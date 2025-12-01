@@ -24,9 +24,8 @@ COPY middleware/ ./middleware/
 # Copy platform agents (for future use in EPIC-04)
 COPY platform/ ./platform/
 
-# Copy crm and validation agents (if they exist)
-COPY crm/ ./crm/ 2>/dev/null || true
-COPY validation/ ./validation/ 2>/dev/null || true
+# Note: crm/ and validation/ directories will be added in future epics
+# They are not included in the base image - mount them at runtime if needed
 
 # Expose AgentOS port
 EXPOSE 7777
