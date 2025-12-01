@@ -112,7 +112,7 @@ export function SessionList() {
           No Active Sessions
         </h3>
         <p className="text-sm text-gray-600">
-          You don't have any active sessions at the moment.
+          You don&apos;t have any active sessions at the moment.
         </p>
       </div>
     )
@@ -130,7 +130,7 @@ export function SessionList() {
                 Single Session Active
               </h3>
               <p className="text-sm text-blue-700">
-                You're currently signed in on this device only. Sign in on other
+                You&apos;re currently signed in on this device only. Sign in on other
                 devices to see them here.
               </p>
             </div>

@@ -1,0 +1,993 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-info>
+    <id>01-8</id>
+    <title>Create Auth UI Components</title>
+    <epic>EPIC-01: Authentication System</epic>
+    <status>drafted</status>
+    <points>3</points>
+    <priority>P0</priority>
+  </story-info>
+
+  <technical-context>
+    <overview>
+      This story creates the final set of reusable authentication UI components for HYVVE.
+      While previous stories (01-2 through 01-7) implemented specific auth flows, this story
+      provides shared components used throughout the application:
+
+      - UserAvatar: Display user profile picture or initials
+      - UserMenu: Header dropdown with user info and sign-out
+      - AuthGuard: Component wrapper for protected routes
+      - useAuth: Custom hook for accessing auth state
+      - SettingsLayout: Sidebar navigation for /settings pages
+
+      This completes Epic 01 by providing all UI building blocks for authentication.
+    </overview>
+
+    <technology-stack>
+      <framework>Next.js 15</framework>
+      <language>TypeScript</language>
+      <auth-library>better-auth</auth-library>
+      <state-management>@tanstack/react-query</state-management>
+      <styling>Tailwind CSS + shadcn/ui</styling>
+      <icons>lucide-react</icons>
+    </technology-stack>
+
+    <better-auth-integration>
+      <session-hook>
+        The `useSession()` hook from better-auth returns:
+        ```typescript
+        {
+          data: {
+            user: {
+              id: string
+              email: string
+              name: string | null
+              image: string | null
+              emailVerified: boolean
+            },
+            session: {
+              id: string
+              token: string
+              expiresAt: Date
+              ipAddress?: string | null
+              userAgent?: string | null
+              activeWorkspaceId?: string | null
+            }
+          } | null,
+          isPending: boolean,
+          error: Error | null
+        }
+        ```
+      </session-hook>
+
+      <sign-out-function>
+        The `signOut()` function from better-auth:
+        - Clears session from database
+        - Removes HTTP-only session cookie
+        - Returns Promise&lt;void&gt;
+        - Requires manual redirect after completion
+      </sign-out-function>
+
+      <auth-client-location>
+        Import from: `@/lib/auth-client`
+
+        Available exports:
+        - authClient (better-auth client instance)
+        - useSession (hook for session state)
+        - signOut (async function)
+        - signIn, signUp (auth functions)
+        - listSessions, revokeSession, etc.
+      </auth-client-location>
+    </better-auth-integration>
+
+    <design-system>
+      <colors>
+        <primary>#FF6B6B (HYVVE brand color)</primary>
+        <background-light>#FFFBF5 (warm cream)</background-light>
+        <neutrals>Stone palette (stone-100, stone-200, stone-800)</neutrals>
+        <text>Slate palette (slate-600, slate-800)</text>
+        <danger>Red palette (red-600, red-700) for sign-out</danger>
+      </colors>
+
+      <typography>
+        <font>Inter (via Tailwind)</font>
+        <sizes>text-sm, text-base, text-lg</sizes>
+        <weights>400 (normal), 500 (medium), 600 (semibold)</weights>
+      </typography>
+
+      <spacing>
+        <component-padding>p-4 (16px)</component-padding>
+        <section-gaps>space-y-6 (24px)</section-gaps>
+        <item-gaps>space-y-2 (8px)</item-gaps>
+      </spacing>
+
+      <radius>
+        <buttons-inputs>rounded-lg (8px)</buttons-inputs>
+        <cards>rounded-xl (12px)</cards>
+        <avatars>rounded-full (circular)</avatars>
+      </radius>
+    </design-system>
+  </technical-context>
+
+  <relevant-code>
+    <auth-client>
+      <file-path>apps/web/src/lib/auth-client.ts</file-path>
+      <description>Better-auth client with type-safe methods</description>
+      <key-exports>
+        ```typescript
+        // Session hook - use this in components
+        export const useSession = authClient.useSession
+
+        // Sign out function
+        export async function signOut() {
+          return authClient.signOut()
+        }
+
+        // Session interface
+        export interface Session {
+          id: string
+          userId: string
+          token: string
+          expiresAt: Date
+          ipAddress?: string | null
+          userAgent?: string | null
+          activeWorkspaceId?: string | null
+          createdAt: Date
+          updatedAt: Date
+        }
+        ```
+      </key-exports>
+    </auth-client>
+
+    <existing-component-patterns>
+      <sign-in-form>
+        <file-path>apps/web/src/components/auth/sign-in-form.tsx</file-path>
+        <patterns>
+          - Use 'use client' directive for interactive components
+          - Import Button, Input, Label from @/components/ui
+          - Use lucide-react for icons (Loader2, AlertCircle, etc.)
+          - Error states with AlertCircle icon in red-50 background
+          - Loading states with Loader2 animate-spin
+          - Brand color #FF6B6B for primary actions
+          - Link from next/link for navigation
+          - useRouter from next/navigation for redirects
+        </patterns>
+
+        <example-error-banner>
+          ```tsx
+          &lt;div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3"&gt;
+            &lt;AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" /&gt;
+            &lt;div className="flex-1"&gt;
+              &lt;p className="text-sm text-red-600"&gt;Error message here&lt;/p&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+          ```
+        </example-error-banner>
+
+        <example-loading-button>
+          ```tsx
+          &lt;Button disabled={isSubmitting} className="w-full bg-[#FF6B6B] hover:bg-[#FF6B6B]/90"&gt;
+            {isSubmitting ? (
+              &lt;&gt;
+                &lt;Loader2 className="w-4 h-4 mr-2 animate-spin" /&gt;
+                Signing in...
+              &lt;/&gt;
+            ) : (
+              'Sign In'
+            )}
+          &lt;/Button&gt;
+          ```
+        </example-loading-button>
+      </sign-in-form>
+
+      <session-list>
+        <file-path>apps/web/src/components/session/session-list.tsx</file-path>
+        <patterns>
+          - Use @tanstack/react-query for data fetching
+          - useQuery for fetching data with refetchOnWindowFocus
+          - useMutation for actions (revoke, delete)
+          - Loading skeleton with animate-pulse
+          - Empty state with centered icon and text
+          - Error state with retry button
+          - Info banners with Shield/AlertCircle icons
+        </patterns>
+
+        <example-loading-skeleton>
+          ```tsx
+          {[1, 2, 3].map((i) =&gt; (
+            &lt;div key={i} className="w-full h-48 bg-gray-100 rounded-lg animate-pulse" /&gt;
+          ))}
+          ```
+        </example-loading-skeleton>
+      </session-list>
+
+      <settings-page>
+        <file-path>apps/web/src/app/settings/sessions/page.tsx</file-path>
+        <structure>
+          - Container: max-w-4xl mx-auto py-8 px-4
+          - Breadcrumbs with ChevronRight icon
+          - Page header: h1 (text-3xl font-bold) + description (text-gray-600)
+          - Info banner: bg-blue-50 border-blue-200 rounded-lg
+          - Content sections with space-y-6
+        </structure>
+
+        <example-breadcrumbs>
+          ```tsx
+          &lt;div className="flex items-center gap-2 text-sm text-gray-600"&gt;
+            &lt;span className="hover:text-gray-900"&gt;Settings&lt;/span&gt;
+            &lt;ChevronRight className="w-4 h-4" /&gt;
+            &lt;span className="text-gray-900"&gt;Sessions&lt;/span&gt;
+          &lt;/div&gt;
+          ```
+        </example-breadcrumbs>
+      </settings-page>
+    </existing-component-patterns>
+
+    <shadcn-components-needed>
+      <avatar>
+        <install>npx shadcn@latest add avatar</install>
+        <usage>
+          ```tsx
+          import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+
+          &lt;Avatar&gt;
+            &lt;AvatarImage src={user.image} alt={user.name} /&gt;
+            &lt;AvatarFallback&gt;JD&lt;/AvatarFallback&gt;
+          &lt;/Avatar&gt;
+          ```
+        </usage>
+      </avatar>
+
+      <dropdown-menu>
+        <install>npx shadcn@latest add dropdown-menu</install>
+        <usage>
+          ```tsx
+          import {
+            DropdownMenu,
+            DropdownMenuContent,
+            DropdownMenuItem,
+            DropdownMenuLabel,
+            DropdownMenuSeparator,
+            DropdownMenuTrigger,
+          } from '@/components/ui/dropdown-menu'
+
+          &lt;DropdownMenu&gt;
+            &lt;DropdownMenuTrigger&gt;Open&lt;/DropdownMenuTrigger&gt;
+            &lt;DropdownMenuContent&gt;
+              &lt;DropdownMenuLabel&gt;My Account&lt;/DropdownMenuLabel&gt;
+              &lt;DropdownMenuSeparator /&gt;
+              &lt;DropdownMenuItem&gt;Settings&lt;/DropdownMenuItem&gt;
+            &lt;/DropdownMenuContent&gt;
+          &lt;/DropdownMenu&gt;
+          ```
+        </usage>
+      </dropdown-menu>
+    </shadcn-components-needed>
+
+    <utilities>
+      <cn-function>
+        <file-path>apps/web/src/lib/utils.ts</file-path>
+        <usage>
+          ```typescript
+          import { cn } from '@/lib/utils'
+
+          // Merge Tailwind classes conditionally
+          className={cn('base-class', isActive &amp;&amp; 'active-class', className)}
+          ```
+        </usage>
+      </cn-function>
+    </utilities>
+  </relevant-code>
+
+  <implementation-guidance>
+    <component-1-useauth-hook>
+      <name>useAuth Custom Hook</name>
+      <file-path>apps/web/src/hooks/use-auth.ts</file-path>
+      <priority>1 (implement first - foundation for other components)</priority>
+
+      <implementation>
+        ```typescript
+        'use client'
+
+        import { useSession } from '@/lib/auth-client'
+        import { signOut as authSignOut } from '@/lib/auth-client'
+        import { useRouter } from 'next/navigation'
+
+        export interface UseAuthReturn {
+          user: User | null
+          session: Session | null
+          isLoading: boolean
+          isAuthenticated: boolean
+          signOut: () =&gt; Promise&lt;void&gt;
+        }
+
+        interface User {
+          id: string
+          email: string
+          name: string | null
+          image: string | null
+          emailVerified: boolean
+        }
+
+        export function useAuth(): UseAuthReturn {
+          const { data: session, isPending } = useSession()
+          const router = useRouter()
+
+          const signOut = async () =&gt; {
+            await authSignOut()
+            router.push('/sign-in')
+          }
+
+          return {
+            user: session?.user ?? null,
+            session: session ?? null,
+            isLoading: isPending,
+            isAuthenticated: !!session?.user,
+            signOut,
+          }
+        }
+        ```
+      </implementation>
+
+      <notes>
+        - Wraps better-auth useSession hook
+        - Provides convenient signOut with redirect
+        - Returns null-safe user and session objects
+        - isLoading tracks session fetch state
+        - isAuthenticated is boolean for easy checks
+      </notes>
+    </component-1-useauth-hook>
+
+    <component-2-user-avatar>
+      <name>UserAvatar Component</name>
+      <file-path>apps/web/src/components/auth/user-avatar.tsx</file-path>
+      <priority>2 (simple component, used by UserMenu)</priority>
+
+      <requirements>
+        - Display user image if available
+        - Show initials from name (first 2 characters)
+        - Fallback to email initials if no name
+        - Support sizes: sm (32px/8), md (48px/12), lg (64px/16)
+        - Circular shape (rounded-full)
+        - Background: bg-stone-200, Text: text-slate-800
+      </requirements>
+
+      <props>
+        ```typescript
+        interface UserAvatarProps {
+          user: {
+            name?: string | null
+            email: string
+            image?: string | null
+          }
+          size?: 'sm' | 'md' | 'lg'
+          className?: string
+        }
+        ```
+      </props>
+
+      <implementation-steps>
+        1. Install shadcn Avatar: npx shadcn@latest add avatar
+        2. Create component with props interface
+        3. Calculate initials from name or email
+        4. Map size prop to Tailwind classes (h-8 w-8, h-12 w-12, h-16 w-16)
+        5. Use Avatar, AvatarImage, AvatarFallback from shadcn
+        6. Style fallback with bg-stone-200 text-slate-800 font-medium
+      </implementation-steps>
+
+      <initials-logic>
+        ```typescript
+        function getInitials(name: string | null | undefined, email: string): string {
+          if (name) {
+            // Split by space, take first letter of first two words
+            const parts = name.split(' ').filter(Boolean)
+            if (parts.length &gt;= 2) {
+              return (parts[0][0] + parts[1][0]).toUpperCase()
+            }
+            return name.slice(0, 2).toUpperCase()
+          }
+          // Fallback to email
+          return email.slice(0, 2).toUpperCase()
+        }
+        ```
+      </initials-logic>
+    </component-2-user-avatar>
+
+    <component-3-user-menu>
+      <name>UserMenu Component</name>
+      <file-path>apps/web/src/components/auth/user-menu.tsx</file-path>
+      <priority>3 (integrates Avatar and useAuth)</priority>
+
+      <requirements>
+        - Dropdown menu triggered by avatar + name + chevron
+        - Show user info section (avatar + name + email) - not clickable
+        - Navigation links: Settings, Security &amp; Sessions
+        - Sign out action in danger color (text-red-600)
+        - Dividers between sections
+        - Close menu after action
+      </requirements>
+
+      <props>
+        ```typescript
+        interface UserMenuProps {
+          user: {
+            name?: string | null
+            email: string
+            image?: string | null
+          }
+        }
+        ```
+      </props>
+
+      <implementation-steps>
+        1. Install shadcn DropdownMenu: npx shadcn@latest add dropdown-menu
+        2. Import UserAvatar component
+        3. Import useAuth for signOut function
+        4. Create trigger with avatar + name + ChevronDown icon
+        5. Add user info section with DropdownMenuLabel
+        6. Add navigation items with Link from next/link
+        7. Add separator before sign-out
+        8. Add sign-out item with onClick handler
+      </implementation-steps>
+
+      <menu-structure>
+        ```tsx
+        &lt;DropdownMenu&gt;
+          &lt;DropdownMenuTrigger&gt;
+            {/* Avatar + Name + ChevronDown */}
+          &lt;/DropdownMenuTrigger&gt;
+
+          &lt;DropdownMenuContent align="end" className="w-60"&gt;
+            {/* User Info Section */}
+            &lt;DropdownMenuLabel&gt;
+              &lt;UserAvatar user={user} size="sm" /&gt;
+              &lt;div&gt;
+                &lt;div className="font-medium"&gt;{user.name}&lt;/div&gt;
+                &lt;div className="text-xs text-gray-500"&gt;{user.email}&lt;/div&gt;
+              &lt;/div&gt;
+            &lt;/DropdownMenuLabel&gt;
+
+            &lt;DropdownMenuSeparator /&gt;
+
+            {/* Navigation Links */}
+            &lt;DropdownMenuItem asChild&gt;
+              &lt;Link href="/settings"&gt;Settings&lt;/Link&gt;
+            &lt;/DropdownMenuItem&gt;
+
+            &lt;DropdownMenuItem asChild&gt;
+              &lt;Link href="/settings/sessions"&gt;Security &amp; Sessions&lt;/Link&gt;
+            &lt;/DropdownMenuItem&gt;
+
+            &lt;DropdownMenuSeparator /&gt;
+
+            {/* Sign Out */}
+            &lt;DropdownMenuItem
+              onClick={handleSignOut}
+              className="text-red-600 focus:text-red-700"
+            &gt;
+              Sign Out
+            &lt;/DropdownMenuItem&gt;
+          &lt;/DropdownMenuContent&gt;
+        &lt;/DropdownMenu&gt;
+        ```
+      </menu-structure>
+
+      <sign-out-handler>
+        ```typescript
+        const { signOut } = useAuth()
+
+        const handleSignOut = async () =&gt; {
+          try {
+            await signOut()
+            // signOut from useAuth handles redirect
+          } catch (error) {
+            console.error('Sign out error:', error)
+          }
+        }
+        ```
+      </sign-out-handler>
+    </component-3-user-menu>
+
+    <component-4-auth-guard>
+      <name>AuthGuard Component</name>
+      <file-path>apps/web/src/components/auth/auth-guard.tsx</file-path>
+      <priority>4 (uses useAuth hook)</priority>
+
+      <requirements>
+        - Wrapper component for protected routes
+        - Show loading state while checking auth
+        - Redirect to sign-in if not authenticated
+        - Render children if authenticated
+        - Support custom fallback component
+        - Support custom redirect URL
+      </requirements>
+
+      <props>
+        ```typescript
+        interface AuthGuardProps {
+          children: React.ReactNode
+          fallback?: React.ReactNode
+          redirectTo?: string
+        }
+        ```
+      </props>
+
+      <implementation>
+        ```tsx
+        'use client'
+
+        import { useAuth } from '@/hooks/use-auth'
+        import { useRouter } from 'next/navigation'
+        import { useEffect } from 'react'
+        import { Loader2 } from 'lucide-react'
+
+        export function AuthGuard({
+          children,
+          fallback,
+          redirectTo = '/sign-in'
+        }: AuthGuardProps) {
+          const { isAuthenticated, isLoading } = useAuth()
+          const router = useRouter()
+
+          useEffect(() =&gt; {
+            if (!isLoading &amp;&amp; !isAuthenticated) {
+              router.push(redirectTo)
+            }
+          }, [isLoading, isAuthenticated, router, redirectTo])
+
+          if (isLoading) {
+            return fallback || (
+              &lt;div className="flex items-center justify-center min-h-screen"&gt;
+                &lt;Loader2 className="w-8 h-8 animate-spin text-[#FF6B6B]" /&gt;
+              &lt;/div&gt;
+            )
+          }
+
+          if (!isAuthenticated) {
+            return null // Will redirect
+          }
+
+          return &lt;&gt;{children}&lt;/&gt;
+        }
+        ```
+      </implementation>
+
+      <usage-example>
+        ```tsx
+        // In a protected page
+        export default function DashboardPage() {
+          return (
+            &lt;AuthGuard&gt;
+              &lt;DashboardContent /&gt;
+            &lt;/AuthGuard&gt;
+          )
+        }
+
+        // With custom fallback
+        &lt;AuthGuard fallback={&lt;CustomLoader /&gt;}&gt;
+          &lt;ProtectedContent /&gt;
+        &lt;/AuthGuard&gt;
+        ```
+      </usage-example>
+
+      <notes>
+        - Use sparingly in pages (prefer middleware for route protection)
+        - Useful for component-level protection
+        - Consider adding role/permission support in future
+      </notes>
+    </component-4-auth-guard>
+
+    <component-5-settings-layout>
+      <name>SettingsLayout Component</name>
+      <file-path>apps/web/src/components/layouts/settings-layout.tsx</file-path>
+      <priority>5 (standalone layout component)</priority>
+
+      <requirements>
+        - Sidebar navigation with icons
+        - Main content area with title and description
+        - Responsive (side-by-side on desktop, stacked on mobile)
+        - Active link highlighting in brand color
+        - Support children for page content
+      </requirements>
+
+      <props>
+        ```typescript
+        interface SettingsLayoutProps {
+          children: React.ReactNode
+          title: string
+          description?: string
+        }
+        ```
+      </props>
+
+      <navigation-items>
+        ```typescript
+        import { User, Lock, Shield, Key, Bot, Palette } from 'lucide-react'
+
+        const settingsNavItems = [
+          {
+            title: 'Profile',
+            href: '/settings',
+            icon: User,
+          },
+          {
+            title: 'Security',
+            href: '/settings/security',
+            icon: Lock,
+          },
+          {
+            title: 'Sessions',
+            href: '/settings/sessions',
+            icon: Shield,
+          },
+          {
+            title: 'API Keys',
+            href: '/settings/api-keys',
+            icon: Key,
+          },
+          {
+            title: 'AI Configuration',
+            href: '/settings/ai-config',
+            icon: Bot,
+          },
+          {
+            title: 'Appearance',
+            href: '/settings/appearance',
+            icon: Palette,
+          },
+        ]
+        ```
+      </navigation-items>
+
+      <implementation-structure>
+        ```tsx
+        'use client'
+
+        import { usePathname } from 'next/navigation'
+        import Link from 'next/link'
+        import { cn } from '@/lib/utils'
+
+        export function SettingsLayout({ children, title, description }: SettingsLayoutProps) {
+          const pathname = usePathname()
+
+          return (
+            &lt;div className="container max-w-7xl mx-auto py-8 px-4"&gt;
+              {/* Page Title */}
+              &lt;h1 className="text-3xl font-bold mb-8"&gt;Settings&lt;/h1&gt;
+
+              {/* Layout: Sidebar + Content */}
+              &lt;div className="flex flex-col md:flex-row gap-8"&gt;
+                {/* Sidebar */}
+                &lt;aside className="w-full md:w-60 flex-shrink-0"&gt;
+                  &lt;nav className="space-y-1"&gt;
+                    {settingsNavItems.map((item) =&gt; {
+                      const Icon = item.icon
+                      const isActive = pathname === item.href
+
+                      return (
+                        &lt;Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
+                            isActive
+                              ? 'bg-[#FF6B6B]/10 text-[#FF6B6B] border-l-4 border-[#FF6B6B]'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          )}
+                        &gt;
+                          &lt;Icon className="w-5 h-5" /&gt;
+                          &lt;span&gt;{item.title}&lt;/span&gt;
+                        &lt;/Link&gt;
+                      )
+                    })}
+                  &lt;/nav&gt;
+                &lt;/aside&gt;
+
+                {/* Main Content */}
+                &lt;main className="flex-1 min-w-0"&gt;
+                  &lt;div className="space-y-6"&gt;
+                    {/* Section Header */}
+                    &lt;div&gt;
+                      &lt;h2 className="text-2xl font-bold text-gray-900"&gt;{title}&lt;/h2&gt;
+                      {description &amp;&amp; (
+                        &lt;p className="text-gray-600 mt-1"&gt;{description}&lt;/p&gt;
+                      )}
+                    &lt;/div&gt;
+
+                    {/* Page Content */}
+                    {children}
+                  &lt;/div&gt;
+                &lt;/main&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+          )
+        }
+        ```
+      </implementation-structure>
+
+      <responsive-design>
+        - Desktop (&gt;= 768px): Sidebar fixed 240px width, content flexible
+        - Mobile (&lt; 768px): Stacked layout (flex-col), full width sidebar
+        - Active link: Left border on desktop, background highlight
+        - Navigation items: 8px vertical padding, 12px horizontal
+      </responsive-design>
+    </component-5-settings-layout>
+
+    <integration-tasks>
+      <update-sessions-page>
+        <file-path>apps/web/src/app/settings/sessions/page.tsx</file-path>
+        <change>
+          Wrap existing content with SettingsLayout:
+
+          ```tsx
+          import { SettingsLayout } from '@/components/layouts/settings-layout'
+          import { SessionList } from '@/components/session/session-list'
+
+          export default function SessionsPage() {
+            return (
+              &lt;SettingsLayout
+                title="Active Sessions"
+                description="Manage your active sessions across different devices"
+              &gt;
+                {/* Remove duplicate header/breadcrumbs - now in layout */}
+                {/* Keep info banner and SessionList */}
+                &lt;div className="p-4 bg-blue-50 border border-blue-200 rounded-lg"&gt;
+                  &lt;h3 className="font-semibold text-blue-900 mb-1"&gt;
+                    Security Recommendation
+                  &lt;/h3&gt;
+                  &lt;p className="text-sm text-blue-700"&gt;
+                    Regularly review your active sessions...
+                  &lt;/p&gt;
+                &lt;/div&gt;
+
+                &lt;SessionList /&gt;
+              &lt;/SettingsLayout&gt;
+            )
+          }
+          ```
+        </change>
+      </update-sessions-page>
+
+      <add-user-menu-to-header>
+        <location>Main application header/layout</location>
+        <note>
+          Find the main layout or header component and add UserMenu.
+          This may be in:
+          - apps/web/src/app/layout.tsx (root layout)
+          - apps/web/src/components/layout/header.tsx (if exists)
+
+          Add UserMenu in top-right corner:
+          ```tsx
+          import { UserMenu } from '@/components/auth/user-menu'
+          import { useSession } from '@/lib/auth-client'
+
+          function Header() {
+            const { data: session } = useSession()
+
+            return (
+              &lt;header&gt;
+                {/* Other header content */}
+                {session?.user &amp;&amp; (
+                  &lt;UserMenu user={session.user} /&gt;
+                )}
+              &lt;/header&gt;
+            )
+          }
+          ```
+        </note>
+      </add-user-menu-to-header>
+    </integration-tasks>
+
+    <testing-checklist>
+      <useauth-hook>
+        - Returns null user when not authenticated
+        - Returns user data when authenticated
+        - isLoading is true during session fetch
+        - isAuthenticated matches session state
+        - signOut() redirects to /sign-in
+      </useauth-hook>
+
+      <user-avatar>
+        - Displays image when available
+        - Shows name initials when no image
+        - Shows email initials when no name
+        - Renders correct sizes (sm, md, lg)
+        - Handles null/undefined gracefully
+      </user-avatar>
+
+      <user-menu>
+        - Opens dropdown on click
+        - Displays user info correctly
+        - Navigation links work
+        - Sign out button works and redirects
+        - Closes menu after action
+        - Keyboard navigation (Tab, Enter, Escape)
+      </user-menu>
+
+      <auth-guard>
+        - Shows loading state while checking
+        - Redirects when not authenticated
+        - Renders children when authenticated
+        - Custom redirectTo works
+        - Custom fallback renders
+      </auth-guard>
+
+      <settings-layout>
+        - Sidebar renders with all nav items
+        - Active link highlighted correctly
+        - Title and description display
+        - Responsive on mobile
+        - All links navigate correctly
+      </settings-layout>
+    </testing-checklist>
+  </implementation-guidance>
+
+  <dependencies>
+    <epic-dependencies>
+      <dependency>
+        <story>01-1: Install and Configure better-auth</story>
+        <status>Complete</status>
+        <provides>Auth client, session hooks, Prisma integration</provides>
+      </dependency>
+
+      <dependency>
+        <story>01-4: Implement Email/Password Sign-In</story>
+        <status>Complete</status>
+        <provides>Sign-in flow, session creation, user authentication</provides>
+      </dependency>
+
+      <dependency>
+        <story>01-7: Implement Session Management</story>
+        <status>Complete</status>
+        <provides>Session context, session list component, auth patterns</provides>
+      </dependency>
+    </epic-dependencies>
+
+    <package-dependencies>
+      <already-installed>
+        - better-auth: Auth library with React hooks
+        - @tanstack/react-query: Already used in session management
+        - lucide-react: Icons (User, Lock, Shield, etc.)
+        - tailwindcss: Styling framework
+        - next: Next.js framework with routing
+      </already-installed>
+
+      <to-install>
+        - shadcn/ui Avatar: npx shadcn@latest add avatar
+        - shadcn/ui DropdownMenu: npx shadcn@latest add dropdown-menu
+      </to-install>
+    </package-dependencies>
+
+    <external-services>
+      <none>All components work with existing better-auth setup</none>
+    </external-services>
+  </dependencies>
+
+  <acceptance-criteria>
+    <criterion id="AC-1">
+      <description>UserAvatar component created with image fallback to initials</description>
+      <test>
+        - Create user with image → displays image
+        - Create user without image → displays initials from name
+        - Create user without name → displays initials from email
+        - Test all sizes: sm (32px), md (48px), lg (64px)
+      </test>
+    </criterion>
+
+    <criterion id="AC-2">
+      <description>UserMenu component shows user info and actions</description>
+      <test>
+        - Click trigger → menu opens
+        - Menu displays avatar, name, email
+        - "Settings" link → navigates to /settings
+        - "Security &amp; Sessions" link → navigates to /settings/sessions
+        - "Sign Out" → calls signOut() and redirects to /sign-in
+      </test>
+    </criterion>
+
+    <criterion id="AC-3">
+      <description>AuthGuard component protects routes</description>
+      <test>
+        - Not authenticated → shows loading then redirects to /sign-in
+        - Authenticated → renders children
+        - Custom fallback → renders when provided
+        - Custom redirectTo → redirects to specified URL
+      </test>
+    </criterion>
+
+    <criterion id="AC-4">
+      <description>useAuth hook provides auth state</description>
+      <test>
+        - Returns user data when authenticated
+        - Returns null when not authenticated
+        - isLoading true during fetch
+        - isAuthenticated boolean matches state
+        - signOut() function works and redirects
+      </test>
+    </criterion>
+
+    <criterion id="AC-5">
+      <description>SettingsLayout provides consistent navigation</description>
+      <test>
+        - Sidebar renders with 6 navigation items
+        - Active link highlighted in brand color (#FF6B6B)
+        - Title and description display correctly
+        - Responsive layout on mobile (stacked)
+        - All links navigate to correct URLs
+      </test>
+    </criterion>
+
+    <criterion id="AC-6">
+      <description>Components follow HYVVE design system</description>
+      <test>
+        - Brand color #FF6B6B used for primary actions
+        - Stone/Slate color palette for neutrals
+        - Tailwind spacing/typography conventions
+        - Responsive and accessible
+        - Matches existing component patterns
+      </test>
+    </criterion>
+
+    <criterion id="AC-7">
+      <description>Components are fully typed with TypeScript</description>
+      <test>
+        - All components have prop interfaces
+        - No TypeScript errors
+        - Proper null checks and optional chaining
+        - Type-safe imports from better-auth
+      </test>
+    </criterion>
+
+    <criterion id="AC-8">
+      <description>Components are responsive and accessible</description>
+      <test>
+        - Works on mobile, tablet, desktop
+        - Keyboard navigation (Tab, Enter, Escape)
+        - Proper ARIA labels
+        - Focus states visible
+        - Color contrast meets WCAG standards
+      </test>
+    </criterion>
+  </acceptance-criteria>
+
+  <notes>
+    <implementation-order>
+      Recommended order:
+      1. useAuth hook (foundation)
+      2. UserAvatar (simplest, used by UserMenu)
+      3. UserMenu (integrates Avatar and useAuth)
+      4. AuthGuard (uses useAuth)
+      5. SettingsLayout (standalone)
+    </implementation-order>
+
+    <shadcn-installation>
+      Before starting, install required shadcn components:
+      ```bash
+      cd apps/web
+      npx shadcn@latest add avatar
+      npx shadcn@latest add dropdown-menu
+      ```
+    </shadcn-installation>
+
+    <better-auth-session-structure>
+      The session object from better-auth useSession() has this exact structure:
+      - data.user: { id, email, name, image, emailVerified }
+      - data.session: { id, token, expiresAt, ipAddress, userAgent, activeWorkspaceId }
+      - isPending: boolean (loading state)
+      - error: Error | null
+    </better-auth-session-structure>
+
+    <settings-navigation>
+      Some settings pages don't exist yet (Security, API Keys, AI Config, Appearance).
+      These are placeholders for future epics. The layout should still include them.
+    </settings-navigation>
+
+    <completes-epic>
+      This is the final story in EPIC-01: Authentication System.
+      After completion, all authentication UI components will be in place.
+    </completes-epic>
+
+    <estimated-time>4-5 hours</estimated-time>
+  </notes>
+</story-context>
