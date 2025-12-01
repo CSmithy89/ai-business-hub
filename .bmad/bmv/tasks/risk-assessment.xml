@@ -1,0 +1,81 @@
+<task id="{bmad_folder}/bmv/tasks/risk-assessment.xml"
+      name="Business Validation Risk Assessment"
+      standalone="true">
+
+  <purpose>
+    Systematic identification and assessment of risks for a business idea,
+    with mitigation strategies and monitoring triggers.
+  </purpose>
+
+  <inputs>
+    <input name="idea_description" required="true">
+      Description of the business idea to assess
+    </input>
+    <input name="validation_docs" required="false">
+      Paths to existing validation documents
+    </input>
+  </inputs>
+
+  <risk_categories>
+    <category name="market">
+      <risk>Market too small to sustain business</risk>
+      <risk>Market declining or saturating</risk>
+      <risk>Timing too early or too late</risk>
+    </category>
+    <category name="competitive">
+      <risk>Established player can easily copy</risk>
+      <risk>Price war potential</risk>
+      <risk>Patent/IP conflicts</risk>
+    </category>
+    <category name="customer">
+      <risk>Willingness to pay insufficient</risk>
+      <risk>Customer acquisition cost too high</risk>
+      <risk>Target segment too narrow</risk>
+    </category>
+    <category name="execution">
+      <risk>Technical feasibility uncertain</risk>
+      <risk>Team capability gaps</risk>
+      <risk>Resource constraints</risk>
+    </category>
+    <category name="financial">
+      <risk>Unit economics don't work</risk>
+      <risk>Funding requirements exceed availability</risk>
+      <risk>Time to revenue too long</risk>
+    </category>
+  </risk_categories>
+
+  <flow>
+    <step n="1" title="Risk Identification">
+      <action>Review all validation documents for risk signals</action>
+      <action>Walk through each risk category</action>
+      <action>Identify idea-specific risks</action>
+    </step>
+
+    <step n="2" title="Risk Scoring">
+      <action>Score each risk: Probability (1-5) × Impact (1-5)</action>
+      <action>Categorize: Low (1-6), Medium (7-14), High (15-25)</action>
+    </step>
+
+    <step n="3" title="Mitigation Planning">
+      <action>Define mitigation strategy for each High risk</action>
+      <action>Define monitoring approach for Medium risks</action>
+      <action>Identify early warning indicators</action>
+    </step>
+
+    <step n="4" title="Risk Register Output">
+      <format>
+        ## Risk Register
+
+        | Risk | Category | P | I | Score | Level | Mitigation |
+        |------|----------|---|---|-------|-------|------------|
+        | Risk 1 | Market | 4 | 5 | 20 | High | [Strategy] |
+
+        ### Overall Risk Assessment
+        - High Risks: X
+        - Medium Risks: X
+        - Low Risks: X
+        - Recommendation: [Proceed/Mitigate/Reconsider]
+      </format>
+    </step>
+  </flow>
+</task>

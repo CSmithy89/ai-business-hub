@@ -1,0 +1,13 @@
+source_type,credibility_tier,examples,notes
+analyst_firm,high,"Gartner, Forrester, IDC, McKinsey, BCG","Expensive but authoritative"
+government,high,"census.gov, bls.gov, sec.gov, data.gov","Free, highly credible for US data"
+academic,high,".edu domains, published research","Peer-reviewed content"
+financial_data,high,"SEC filings, Crunchbase verified, PitchBook","Verified financial information"
+industry_association,high,"Trade associations, professional bodies","Industry-specific expertise"
+major_publication,medium,"TechCrunch, Forbes, Bloomberg, Reuters","Reputable journalism"
+company_official,medium,"Press releases, official websites, documentation","First-party but potentially biased"
+review_platform,medium,"G2, Capterra, TrustPilot","Aggregated customer sentiment"
+news_aggregator,medium,"Product Hunt, Hacker News","Community validation"
+blog_expert,low,"Individual expert blogs","Requires credibility verification"
+social_media,low,"Twitter/X, LinkedIn, Reddit","Anecdotal, needs corroboration"
+unknown,low,"Unverifiable sources","Should not be used for critical claims"

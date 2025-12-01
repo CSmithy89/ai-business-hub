@@ -1,0 +1,29 @@
+# Export to Planning Workflow
+# Transform validated business concepts into BMM-compatible planning artifacts
+
+name: export-to-planning
+description: "Export validated business concept to product brief for BMM planning workflows"
+config_source: "{project-root}/.bmad/bmv/config.yaml"
+installed_path: "{project-root}/.bmad/bmv/workflows/export-to-planning"
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+bmm_integration: "{project-root}/.bmad/bmm/workflows/1-analysis/product-brief"
+default_output_file: "{output_folder}/bmm/validated-product-brief-{{date}}.md"
+
+workflow_type: document
+interaction_mode: transformation
+
+inputs:
+  - name: synthesis_path
+    type: file_path
+    required: true
+    description: "Path to validation synthesis document"
+
+agents:
+  primary: validation-orchestrator-agent
+
+events:
+  on_complete:
+    - bmv.export.completed
+    - bmm.product_brief.ready

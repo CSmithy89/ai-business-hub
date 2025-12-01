@@ -1,0 +1,19 @@
+# Quick Validation Workflow - 30-minute rapid assessment
+name: quick-validation
+description: "Rapid 30-minute business idea sanity check for early-stage ideas"
+config_source: "{project-root}/.bmad/bmv/config.yaml"
+installed_path: "{project-root}/.bmad/bmv/workflows/quick-validation"
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+default_output_file: "{output_folder}/bmv/quick-validation-{{date}}.md"
+
+workflow_type: document
+interaction_mode: rapid
+
+agents:
+  primary: validation-orchestrator-agent
+
+events:
+  on_complete:
+    - validation.quick.completed

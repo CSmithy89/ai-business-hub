@@ -1,0 +1,47 @@
+# Idea Intake Workflow - Business Validation Module
+# Captures and structures business ideas for validation
+
+name: idea-intake
+description: "Capture and structure a business idea with clarifying questions to prepare for validation"
+config_source: "{project-root}/.bmad/bmv/config.yaml"
+installed_path: "{project-root}/.bmad/bmv/workflows/idea-intake"
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+default_output_file: "{output_folder}/bmv/idea-intake-{{date}}.md"
+
+# Workflow metadata
+workflow_type: document  # Produces a document output
+interaction_mode: guided  # Interactive with user input
+
+# Input requirements
+inputs:
+  - name: idea_description
+    type: text
+    required: true
+    description: "Initial description of the business idea"
+  - name: founder_context
+    type: text
+    required: false
+    description: "Background of the founder/team relevant to this idea"
+
+# Agent assignments
+agents:
+  primary: validation-orchestrator-agent
+  supporting: []
+
+# Output configuration
+outputs:
+  primary:
+    file: "idea-intake-{{date}}.md"
+    format: markdown
+  data:
+    session_id: "Generated validation session ID"
+    problem_statement: "Structured problem definition"
+    solution_hypothesis: "Solution hypothesis"
+
+# Event triggers
+events:
+  on_complete:
+    - validation.session.created
+    - validation.idea_intake.completed

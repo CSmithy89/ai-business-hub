@@ -1,0 +1,36 @@
+# Customer Discovery Workflow - Business Validation Module
+# ICP development, personas, and Jobs-to-be-Done analysis
+
+name: customer-discovery
+description: "Develop Ideal Customer Profile, create personas, and apply Jobs-to-be-Done framework"
+config_source: "{project-root}/.bmad/bmv/config.yaml"
+installed_path: "{project-root}/.bmad/bmv/workflows/customer-discovery"
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+default_output_file: "{output_folder}/bmv/customer-discovery-{{date}}.md"
+
+workflow_type: document
+interaction_mode: research
+
+inputs:
+  - name: idea_intake_path
+    type: file_path
+    required: false
+  - name: target_description
+    type: text
+    required: true
+    description: "Initial description of target customer"
+
+agents:
+  primary: customer-profiler-agent
+  supporting:
+    - validation-orchestrator-agent
+
+mcp_tools:
+  required:
+    - jina-ai
+
+events:
+  on_complete:
+    - validation.customer_profile.completed

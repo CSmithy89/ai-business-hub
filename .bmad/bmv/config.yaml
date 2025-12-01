@@ -1,0 +1,180 @@
+# BMV (Business Validation) Module Configuration
+# AI Business Hub - Market Validation & Feasibility Assessment
+# Created: 2025-11-30
+
+module:
+  name: bmv
+  display_name: Business Validation Module
+  description: |
+    AI-powered business idea validation with market sizing (TAM/SAM/SOM),
+    competitive intelligence, customer profiling, and go/no-go recommendations.
+    Validates ideas before significant investment.
+  version: 0.1.0
+  status: scaffold  # scaffold | development | alpha | beta | stable
+  layer: foundation  # Part of Foundation Layer (BUILD Phase)
+
+# Agents in this module
+agents:
+  - id: validation-orchestrator-agent
+    name: Validator
+    status: scaffold
+    description: Validation team lead - coordinates all validation activities
+
+  - id: market-researcher-agent
+    name: Marco
+    status: scaffold
+    description: TAM/SAM/SOM calculations and market intelligence
+
+  - id: competitor-analyst-agent
+    name: Cipher
+    status: scaffold
+    description: Competitive intelligence and positioning analysis
+
+  - id: customer-profiler-agent
+    name: Persona
+    status: scaffold
+    description: ICP development and Jobs-to-be-Done analysis
+
+  - id: feasibility-assessor-agent
+    name: Risk
+    status: scaffold
+    description: Risk assessment and go/no-go recommendations
+
+# Workflows
+workflows:
+  - id: idea-intake
+    name: Idea Intake Flow
+    status: todo
+    description: Capture and structure business idea with clarifying questions
+    trigger: user-initiated
+    agents: [validation-orchestrator-agent]
+
+  - id: market-sizing
+    name: Market Sizing Flow
+    status: todo
+    description: Calculate TAM/SAM/SOM with multiple methodologies
+    trigger: validation.session.created
+    agents: [market-researcher-agent]
+
+  - id: competitor-mapping
+    name: Competitor Mapping Flow
+    status: todo
+    description: Deep competitive analysis with positioning map
+    trigger: validation.session.created
+    agents: [competitor-analyst-agent]
+
+  - id: customer-discovery
+    name: Customer Discovery Flow
+    status: todo
+    description: ICP development and persona creation
+    trigger: validation.session.created
+    agents: [customer-profiler-agent]
+
+  - id: validation-synthesis
+    name: Validation Synthesis Flow
+    status: todo
+    description: Synthesize findings into final recommendation
+    trigger: all_completed (market-sizing, competitor-mapping, customer-discovery)
+    agents: [validation-orchestrator-agent, feasibility-assessor-agent]
+    requires_approval: true
+
+# Tasks (one-shot operations)
+tasks:
+  - id: quick-tam
+    name: Quick TAM Estimate
+    status: todo
+    description: Rapid TAM calculation using top-down method only
+
+  - id: competitor-snapshot
+    name: Competitor Snapshot
+    status: todo
+    description: Quick overview of top 3-5 competitors
+
+  - id: validation-summary
+    name: Validation Summary
+    status: todo
+    description: Generate executive summary from existing validation data
+
+# Checklists
+checklists:
+  - id: market-data-validation
+    name: Market Data Validation Checklist
+    status: todo
+    items:
+      - At least 2 independent sources for TAM
+      - Sources from current year or within 24 months
+      - Credible sources (Gartner, Forrester, govt data)
+      - Conflicting data noted with all sources
+      - Confidence levels marked
+
+  - id: go-no-go-criteria
+    name: Go/No-Go Criteria Checklist
+    status: todo
+    items:
+      - TAM > $1B (or justified smaller market)
+      - SAM > $100M (realistic serviceable market)
+      - No dominant competitor with >80% market share
+      - Clear customer pain points identified
+      - No insurmountable barriers to entry
+      - Technical feasibility confirmed
+      - Financial requirements defined
+
+# Dependencies
+dependencies:
+  requires:
+    - orchestrator  # For approval gates
+  required_by:
+    - bmp    # Planning uses validated ideas
+    - bmi    # Intelligence can use validation data
+
+# Runtime configuration
+runtime:
+  agno_implementation: agents/validation/
+  database_tables:
+    - validation_sessions
+    - market_sizing
+    - competitor_analysis
+    - customer_profiles
+    - feasibility_assessments
+    - validation_reports
+    - validation_sources
+  external_apis:
+    - web_search (required)
+    - statista (optional)
+    - similarweb (optional)
+    - crunchbase (optional)
+
+# Anti-hallucination configuration
+anti_hallucination:
+  market_size_claims:
+    min_sources: 2
+    max_age_months: 24
+    required_source_types:
+      - analyst_report
+      - government_data
+      - industry_publication
+  growth_rate_claims:
+    min_sources: 2
+    require_methodology: true
+  competitor_claims:
+    require_source_url: true
+    max_age_months: 12
+  confidence_levels:
+    - high: "2+ corroborating sources"
+    - medium: "single credible source"
+    - low: "estimation or speculation"
+
+# Event triggers (pub/sub)
+events:
+  publishes:
+    - validation.session.created
+    - validation.market_sizing.completed
+    - validation.competitor_analysis.completed
+    - validation.customer_profile.completed
+    - validation.completed
+    - validation.approved
+    - validation.rejected
+  subscribes:
+    - user.action.validate_idea
+    - user.action.quick_tam
+    - user.action.competitor_check

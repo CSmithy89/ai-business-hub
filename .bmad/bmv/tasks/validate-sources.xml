@@ -1,0 +1,88 @@
+<task id="{bmad_folder}/bmv/tasks/validate-sources.xml"
+      name="Source Validator"
+      standalone="true"
+      mcp_tools="jina-ai">
+
+  <llm critical="true">
+    <i>This task validates all cited sources in validation documents</i>
+    <i>Ensures anti-hallucination protocol compliance</i>
+    <i>Uses jina-ai MCP server for URL verification</i>
+  </llm>
+
+  <purpose>
+    Validate accessibility and credibility of all sources cited in BMV documents.
+    Essential for maintaining research integrity and anti-hallucination compliance.
+  </purpose>
+
+  <inputs>
+    <input name="document_path" required="true">
+      Path to the validation document to check
+    </input>
+    <input name="credibility_threshold" required="false" default="medium">
+      Minimum credibility level (low/medium/high)
+    </input>
+  </inputs>
+
+  <credibility_tiers>
+    <tier name="high">
+      <source>Gartner, Forrester, IDC, McKinsey, BCG, Deloitte</source>
+      <source>Government data (.gov), Academic (.edu), SEC Filings</source>
+      <source>Crunchbase (verified), PitchBook</source>
+    </tier>
+    <tier name="medium">
+      <source>TechCrunch, Forbes, Bloomberg, Reuters</source>
+      <source>Industry publications, Company press releases</source>
+      <source>G2, Capterra, TrustPilot reviews</source>
+    </tier>
+    <tier name="low">
+      <source>Blog posts, Social media</source>
+      <source>Unverified claims, Anonymous sources</source>
+    </tier>
+  </credibility_tiers>
+
+  <flow>
+    <step n="1" title="Extract Citations">
+      <action>Read the document at {{document_path}}</action>
+      <action>Extract all URLs and source citations using regex</action>
+      <action>Create citation inventory with line numbers</action>
+    </step>
+
+    <step n="2" title="URL Accessibility Check">
+      <action>For each URL, use jina-ai read_url to verify accessibility</action>
+      <action>Record HTTP status and any redirects</action>
+      <action>Flag broken links (4xx, 5xx errors)</action>
+      <action>Note paywalled content</action>
+    </step>
+
+    <step n="3" title="Credibility Assessment">
+      <action>Match each source against credibility tiers</action>
+      <action>Assign credibility rating (high/medium/low)</action>
+      <action>Flag sources below {{credibility_threshold}}</action>
+      <action>Identify claims with only low-credibility sources</action>
+    </step>
+
+    <step n="4" title="Generate Report">
+      <output>
+        ## Source Validation Report
+
+        **Document**: {{document_path}}
+        **Date**: {{current_date}}
+        **Total Sources**: {{count}}
+
+        ### Summary
+        - High credibility: X sources
+        - Medium credibility: X sources
+        - Low credibility: X sources
+        - Broken links: X
+
+        ### Issues Found
+        [List broken links and low-credibility sources]
+
+        ### Compliance Status
+        - [ ] Anti-hallucination compliant
+        - [ ] All critical claims have 2+ sources
+        - [ ] No broken links
+      </output>
+    </step>
+  </flow>
+</task>

@@ -1,0 +1,38 @@
+# Validation Synthesis Workflow - Business Validation Module
+# Synthesize all validation findings into final recommendation
+
+name: validation-synthesis
+description: "Synthesize market sizing, competitor, and customer findings into final Go/No-Go recommendation with risk assessment"
+config_source: "{project-root}/.bmad/bmv/config.yaml"
+installed_path: "{project-root}/.bmad/bmv/workflows/validation-synthesis"
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+default_output_file: "{output_folder}/bmv/validation-synthesis-{{date}}.md"
+
+workflow_type: document
+interaction_mode: analysis
+
+inputs:
+  - name: idea_intake_path
+    type: file_path
+    required: true
+  - name: market_sizing_path
+    type: file_path
+    required: true
+  - name: competitor_path
+    type: file_path
+    required: true
+  - name: customer_path
+    type: file_path
+    required: true
+
+agents:
+  primary: validation-orchestrator-agent
+  supporting:
+    - feasibility-assessor-agent
+
+events:
+  on_complete:
+    - validation.completed
+  requires_approval: true

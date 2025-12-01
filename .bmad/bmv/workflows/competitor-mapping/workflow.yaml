@@ -1,0 +1,41 @@
+# Competitor Mapping Workflow - Business Validation Module
+# Deep competitive analysis with positioning map
+
+name: competitor-mapping
+description: "Analyze competitive landscape with Porter's Five Forces, feature comparison, and positioning map"
+config_source: "{project-root}/.bmad/bmv/config.yaml"
+installed_path: "{project-root}/.bmad/bmv/workflows/competitor-mapping"
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+default_output_file: "{output_folder}/bmv/competitor-mapping-{{date}}.md"
+
+workflow_type: document
+interaction_mode: research
+
+inputs:
+  - name: idea_intake_path
+    type: file_path
+    required: false
+  - name: product_category
+    type: text
+    required: true
+  - name: geographic_focus
+    type: text
+    required: false
+    default: "global"
+
+agents:
+  primary: competitor-analyst-agent
+  supporting:
+    - validation-orchestrator-agent
+
+mcp_tools:
+  required:
+    - jina-ai
+  optional:
+    - playwright  # For screenshots
+
+events:
+  on_complete:
+    - validation.competitor_analysis.completed

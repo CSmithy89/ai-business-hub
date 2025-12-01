@@ -1,0 +1,454 @@
+// HYVVE Platform Foundation - Prisma Schema
+// Generated: 2025-11-30
+// Version: 1.0
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// AUTHENTICATION ENTITIES
+// ============================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  emailVerified Boolean   @default(false) @map("email_verified")
+  name          String?
+  image         String?
+  passwordHash  String?   @map("password_hash")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sessions   Session[]
+  accounts   Account[]
+  workspaces WorkspaceMember[]
+  invitationsSent WorkspaceMember[] @relation("InvitedBy")
+  assignedApprovals ApprovalItem[] @relation("AssignedApprovals")
+  resolvedApprovals ApprovalItem[] @relation("ResolvedApprovals")
+  createdApiKeys ApiKey[] @relation("CreatedBy")
+
+  @@map("users")
+}
+
+model Session {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  token             String    @unique
+  expiresAt         DateTime  @map("expires_at")
+  ipAddress         String?   @map("ip_address")
+  userAgent         String?   @map("user_agent")
+  activeWorkspaceId String?   @map("active_workspace_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Account {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  provider          String
+  providerAccountId String    @map("provider_account_id")
+  accessToken       String?   @map("access_token") @db.Text
+  refreshToken      String?   @map("refresh_token") @db.Text
+  expiresAt         DateTime? @map("expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model VerificationToken {
+  id         String   @id @default(uuid())
+  identifier String
+  token      String   @unique
+  type       String
+  expiresAt  DateTime @map("expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([identifier])
+  @@index([token])
+  @@map("verification_tokens")
+}
+
+// ============================================
+// WORKSPACE / MULTI-TENANT ENTITIES
+// ============================================
+
+model Workspace {
+  id       String  @id @default(uuid())
+  name     String
+  slug     String  @unique
+  image    String?
+  timezone String  @default("UTC")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  members     WorkspaceMember[]
+  aiProviders AIProviderConfig[]
+  approvals   ApprovalItem[]
+  apiKeys     ApiKey[]
+  auditLogs   AuditLog[]
+  events      EventLog[]
+  tokenUsage  TokenUsage[]
+  settings    WorkspaceSettings?
+
+  @@index([slug])
+  @@index([deletedAt])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  workspaceId       String    @map("workspace_id")
+  role              String    @default("member")
+  modulePermissions Json?     @map("module_permissions")
+
+  invitedById String?   @map("invited_by_id")
+  invitedAt   DateTime  @default(now()) @map("invited_at")
+  acceptedAt  DateTime? @map("accepted_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User?      @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+model WorkspaceInvitation {
+  id          String   @id @default(uuid())
+  workspaceId String   @map("workspace_id")
+  email       String
+  role        String   @default("member")
+  token       String   @unique
+  expiresAt   DateTime @map("expires_at")
+  invitedById String   @map("invited_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([workspaceId, email])
+  @@index([token])
+  @@index([email])
+  @@map("workspace_invitations")
+}
+
+// ============================================
+// BYOAI CONFIGURATION
+// ============================================
+
+model AIProviderConfig {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+
+  provider        String
+  apiKeyEncrypted String @map("api_key_encrypted") @db.Text
+  defaultModel    String @map("default_model")
+
+  isValid         Boolean   @default(false) @map("is_valid")
+  lastValidatedAt DateTime? @map("last_validated_at")
+  validationError String?   @map("validation_error")
+
+  maxTokensPerDay Int @default(100000) @map("max_tokens_per_day")
+  tokensUsedToday Int @default(0) @map("tokens_used_today")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace  Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tokenUsage TokenUsage[]
+
+  @@unique([workspaceId, provider])
+  @@index([workspaceId])
+  @@map("ai_provider_configs")
+}
+
+model TokenUsage {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+  providerId  String @map("provider_id")
+
+  agentId   String? @map("agent_id")
+  sessionId String? @map("session_id")
+  model     String
+
+  promptTokens     Int @map("prompt_tokens")
+  completionTokens Int @map("completion_tokens")
+  totalTokens      Int @map("total_tokens")
+
+  estimatedCost Float @map("estimated_cost")
+
+  requestedAt DateTime @map("requested_at")
+  duration    Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  provider  AIProviderConfig @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([providerId])
+  @@index([requestedAt])
+  @@map("token_usage")
+}
+
+// ============================================
+// APPROVAL QUEUE
+// ============================================
+
+model ApprovalItem {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+
+  type        String
+  title       String
+  description String? @db.Text
+
+  confidenceScore    Int     @map("confidence_score")
+  confidenceFactors  Json?   @map("confidence_factors")
+  aiRecommendation   String  @map("ai_recommendation")
+  aiReasoning        String? @map("ai_reasoning") @db.Text
+
+  previewUrl      String? @map("preview_url")
+  previewData     Json?   @map("preview_data")
+  relatedEntities Json?   @map("related_entities")
+
+  sourceModule String? @map("source_module")
+  sourceId     String? @map("source_id")
+
+  status   String @default("pending")
+  priority String @default("medium")
+
+  requestedBy   String  @map("requested_by")
+  assignedToId  String? @map("assigned_to_id")
+  escalatedToId String? @map("escalated_to_id")
+
+  dueAt        DateTime  @map("due_at")
+  resolvedAt   DateTime? @map("resolved_at")
+  resolvedById String?   @map("resolved_by_id")
+
+  resolution Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignedTo User?     @relation("AssignedApprovals", fields: [assignedToId], references: [id])
+  resolvedBy User?     @relation("ResolvedApprovals", fields: [resolvedById], references: [id])
+
+  @@index([workspaceId, status])
+  @@index([assignedToId, status])
+  @@index([dueAt])
+  @@index([status, priority])
+  @@map("approval_items")
+}
+
+// ============================================
+// API KEYS
+// ============================================
+
+model ApiKey {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+
+  name        String
+  keyHash     String  @unique @map("key_hash")
+  keyPrefix   String  @map("key_prefix")
+  permissions Json
+
+  lastUsedAt DateTime? @map("last_used_at")
+  expiresAt  DateTime? @map("expires_at")
+
+  createdById String    @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  revokedAt   DateTime? @map("revoked_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CreatedBy", fields: [createdById], references: [id])
+
+  @@index([workspaceId])
+  @@index([keyHash])
+  @@index([keyPrefix])
+  @@map("api_keys")
+}
+
+// ============================================
+// EVENT BUS / AUDIT
+// ============================================
+
+model EventLog {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+
+  eventType     String  @map("event_type")
+  source        String
+  correlationId String? @map("correlation_id")
+  userId        String? @map("user_id")
+  version       String  @default("1.0")
+
+  data     Json
+  metadata Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([eventType])
+  @@index([correlationId])
+  @@index([createdAt])
+  @@map("event_logs")
+}
+
+model AuditLog {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+
+  action    String
+  entity    String
+  entityId  String? @map("entity_id")
+  userId    String? @map("user_id")
+  ipAddress String? @map("ip_address")
+  userAgent String? @map("user_agent")
+
+  oldValues Json? @map("old_values")
+  newValues Json? @map("new_values")
+  metadata  Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([action])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model NotificationPreference {
+  id     String @id @default(uuid())
+  userId String @unique @map("user_id")
+
+  emailApprovals        Boolean @default(true) @map("email_approvals")
+  emailWorkspaceInvites Boolean @default(true) @map("email_workspace_invites")
+  emailAgentErrors      Boolean @default(true) @map("email_agent_errors")
+  emailDigest           String  @default("daily") @map("email_digest")
+
+  inAppApprovals        Boolean @default(true) @map("in_app_approvals")
+  inAppWorkspaceInvites Boolean @default(true) @map("in_app_workspace_invites")
+  inAppAgentUpdates     Boolean @default(true) @map("in_app_agent_updates")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_preferences")
+}
+
+model Notification {
+  id          String @id @default(uuid())
+  userId      String @map("user_id")
+  workspaceId String @map("workspace_id")
+
+  type    String
+  title   String
+  message String?
+  link    String?
+  data    Json?
+
+  readAt DateTime? @map("read_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, readAt])
+  @@index([workspaceId])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ============================================
+// WORKSPACE SETTINGS
+// ============================================
+
+model WorkspaceSettings {
+  id          String @id @default(uuid())
+  workspaceId String @unique @map("workspace_id")
+
+  approvalTimeoutHours Int    @default(48) @map("approval_timeout_hours")
+  autoApproveThreshold Int    @default(85) @map("auto_approve_threshold")
+  quickReviewThreshold Int    @default(60) @map("quick_review_threshold")
+
+  defaultInviteRole String @default("member") @map("default_invite_role")
+
+  enableBulkApprovals Boolean @default(true) @map("enable_bulk_approvals")
+  enableAgentChat     Boolean @default(true) @map("enable_agent_chat")
+  enableTokenTracking Boolean @default(true) @map("enable_token_tracking")
+
+  brandPrimaryColor String? @map("brand_primary_color")
+  brandLogoUrl      String? @map("brand_logo_url")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("workspace_settings")
+}
+
+// ============================================
+// TWO-FACTOR AUTHENTICATION (Future)
+// ============================================
+
+model TwoFactorBackupCode {
+  id     String    @id @default(uuid())
+  userId String    @map("user_id")
+  code   String
+  usedAt DateTime? @map("used_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("two_factor_backup_codes")
+}
+
+model TwoFactorSecret {
+  id       String  @id @default(uuid())
+  userId   String  @unique @map("user_id")
+  secret   String
+  verified Boolean @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("two_factor_secrets")
+}

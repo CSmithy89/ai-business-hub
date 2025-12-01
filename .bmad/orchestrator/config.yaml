@@ -1,0 +1,69 @@
+# Orchestrator Module Configuration
+# AI Business Hub - Platform Orchestration Layer
+# Created: 2025-11-29
+
+module:
+  name: orchestrator
+  display_name: Platform Orchestrator
+  description: |
+    Core platform agents that coordinate work across all modules.
+    Provides human-in-the-loop approval gates and request routing.
+  version: 0.1.0
+  status: scaffold  # scaffold | development | alpha | beta | stable
+
+# Agents in this module
+agents:
+  - id: approval-agent
+    name: Sentinel
+    status: scaffold
+    description: Human-in-the-loop approval workflow manager
+
+  - id: orchestrator-agent
+    name: Navigator
+    status: scaffold
+    description: Request router and multi-module coordinator
+
+# Workflows to be created
+workflows:
+  - id: approval-request
+    name: Approval Request Flow
+    status: todo
+    description: Workflow for requesting and processing approvals
+    agents: [approval-agent]
+
+  - id: approval-reminder
+    name: Approval Reminder Flow
+    status: todo
+    description: Automated reminders for pending approvals
+    agents: [approval-agent]
+
+  - id: multi-module-task
+    name: Multi-Module Task Flow
+    status: todo
+    description: Coordinate tasks across multiple modules
+    agents: [orchestrator-agent]
+
+# Tasks (one-shot operations)
+tasks:
+  - id: audit-report
+    name: Generate Audit Report
+    status: todo
+    description: Generate compliance audit report of all approvals
+
+# Dependencies
+dependencies:
+  requires: []  # No dependencies - this is a core module
+  required_by:
+    - bm-crm
+    - bmc
+    - bm-pm
+    - bms
+
+# Runtime configuration
+runtime:
+  agno_implementation: agents/platform/
+  database_tables:
+    - agno_memories_orchestrator
+    - approval_requests
+    - approval_decisions
+    - approval_audit_log

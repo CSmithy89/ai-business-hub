@@ -1,0 +1,92 @@
+<task id="{bmad_folder}/bmv/tasks/calculate-tam.xml"
+      name="TAM/SAM/SOM Calculator"
+      standalone="true"
+      mcp_tools="jina-ai">
+
+  <llm critical="true">
+    <i>All numbers MUST have source citations</i>
+    <i>Present ranges, not single numbers</i>
+    <i>Show calculation methodology transparently</i>
+  </llm>
+
+  <purpose>
+    Calculate Total Addressable Market, Serviceable Addressable Market, and
+    Serviceable Obtainable Market using multiple methodologies with full
+    source transparency.
+  </purpose>
+
+  <inputs>
+    <input name="market_description" required="true">
+      Description of the market to size
+    </input>
+    <input name="geographic_scope" required="true">
+      Geographic boundaries (global, us, eu, etc.)
+    </input>
+    <input name="segment_focus" required="false">
+      Specific segment if applicable
+    </input>
+  </inputs>
+
+  <methodologies>
+    <method name="top_down">
+      <description>Start with total industry size, apply filters to narrow</description>
+      <formula>TAM = Industry Size × Relevant Segment % × Geographic Filter</formula>
+    </method>
+    <method name="bottom_up">
+      <description>Build up from unit economics</description>
+      <formula>TAM = Number of Potential Customers × Average Revenue Per Customer</formula>
+    </method>
+    <method name="value_theory">
+      <description>Based on value delivered to customers</description>
+      <formula>TAM = Value Created × Share Customer Would Pay</formula>
+    </method>
+  </methodologies>
+
+  <flow>
+    <step n="1" title="Research Phase">
+      <action>Search for market size reports</action>
+      <searches>
+        <search>"{{market_description}} market size {{current_year}}"</search>
+        <search>"{{market_description}} TAM total addressable market"</search>
+        <search>"{{market_description}} market forecast CAGR"</search>
+      </searches>
+      <action>Document all sources with URLs and dates</action>
+    </step>
+
+    <step n="2" title="Top-Down Calculation">
+      <action>Find total industry size from analyst reports</action>
+      <action>Apply geographic filter for {{geographic_scope}}</action>
+      <action>Apply segment filter if specified</action>
+      <action>Show calculation with all numbers sourced</action>
+    </step>
+
+    <step n="3" title="Bottom-Up Calculation">
+      <action>Identify total potential customers</action>
+      <action>Research average revenue per customer</action>
+      <action>Calculate and cross-reference with top-down</action>
+    </step>
+
+    <step n="4" title="SAM Calculation">
+      <action>Apply realistic constraints</action>
+      <action>SAM typically 10-40% of TAM - justify percentage</action>
+    </step>
+
+    <step n="5" title="SOM Projection">
+      <action>Project Year 1-3 capture (conservative)</action>
+      <action>Benchmark against comparable companies</action>
+    </step>
+
+    <step n="6" title="Output">
+      <format>
+        ## Market Sizing Summary
+
+        | Metric | Low | Mid | High | Confidence | Sources |
+        |--------|-----|-----|------|------------|---------|
+        | TAM | $X | $Y | $Z | [H/M/L] | [Source list] |
+        | SAM | $X | $Y | $Z | [H/M/L] | [Source list] |
+        | SOM Y1 | $X | $Y | $Z | [H/M/L] | [Benchmark] |
+        | SOM Y3 | $X | $Y | $Z | [H/M/L] | [Benchmark] |
+      </format>
+    </step>
+  </flow>
+</task>

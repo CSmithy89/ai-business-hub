@@ -1,0 +1,11 @@
+pivot_type,description,when_to_use,example
+zoom_in,"Single feature becomes the whole product","One feature getting 90% of usage/love","Flickr photo sharing from game"
+zoom_out,"Product becomes just a feature of something larger","Product not standalone viable but valuable as part of bigger offering","Feature → Platform"
+customer_segment,"Same product, different customer","Original segment not buying but adjacent segment is","Slack from gaming to enterprise"
+customer_need,"Same customer, different problem","Discovered a bigger problem while serving original one","Pivot to adjacent pain point"
+platform,"Application becomes platform","Others want to build on your product","Single app → developer platform"
+business_architecture,"Switch between high margin/low volume and low margin/high volume","Current model not scaling as needed","Consulting → SaaS"
+value_capture,"Change monetization model","Revenue model not working","Paid → Freemium"
+engine_of_growth,"Switch between viral, sticky, or paid growth","Current growth engine stalling","Viral → Enterprise sales"
+channel,"Change distribution method","Current channel too expensive or limited","Direct → Channel partners"
+technology,"Use different tech to achieve same result","New tech enables better/cheaper delivery","On-premise → Cloud"

@@ -1,0 +1,1213 @@
+openapi: 3.1.0
+info:
+  title: HYVVE Platform Foundation API
+  description: |
+    API specification for the HYVVE Platform Foundation.
+    
+    ## Authentication
+    All authenticated endpoints require a valid JWT token in the Authorization header:
+    ```
+    Authorization: Bearer <token>
+    ```
+    
+    ## Multi-Tenancy
+    Most endpoints operate within a workspace context. The active workspace is determined by:
+    1. The `workspaceId` in the JWT payload (session's active workspace)
+    2. The `:workspaceId` path parameter for workspace-specific endpoints
+    
+    ## Rate Limiting
+    - Authentication endpoints: 5 requests per 15 minutes
+    - API requests: 1000 requests per minute
+    
+  version: 1.0.0
+  contact:
+    name: HYVVE Support
+    email: support@hyvve.io
+
+servers:
+  - url: https://api.hyvve.io/v1
+    description: Production
+  - url: http://localhost:3000/api
+    description: Local Development
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Workspaces
+    description: Workspace management
+  - name: Members
+    description: Workspace member management
+  - name: Approvals
+    description: Approval queue operations
+  - name: AI Providers
+    description: BYOAI configuration
+  - name: Notifications
+    description: User notifications
+
+paths:
+  # ============================================
+  # AUTHENTICATION
+  # ============================================
+  /auth/sign-up/email:
+    post:
+      tags: [Authentication]
+      summary: Register with email and password
+      operationId: signUpEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  minLength: 8
+                  example: securePassword123
+                name:
+                  type: string
+                  example: John Doe
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Email already registered
+
+  /auth/sign-in/email:
+    post:
+      tags: [Authentication]
+      summary: Sign in with email and password
+      operationId: signInEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                rememberMe:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /auth/sign-in/social:
+    post:
+      tags: [Authentication]
+      summary: Initiate OAuth flow
+      operationId: signInSocial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider]
+              properties:
+                provider:
+                  type: string
+                  enum: [google, github, microsoft]
+                callbackUrl:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: OAuth redirect URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+
+  /auth/sign-out:
+    post:
+      tags: [Authentication]
+      summary: Sign out current session
+      operationId: signOut
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully signed out
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/session:
+    get:
+      tags: [Authentication]
+      summary: Get current session
+      operationId: getSession
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request password reset
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Reset email sent (always returns success for security)
+
+  /auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset password with token
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token:
+                  type: string
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Password reset successfully
+        '400':
+          description: Invalid or expired token
+
+  # ============================================
+  # WORKSPACES
+  # ============================================
+  /workspaces:
+    get:
+      tags: [Workspaces]
+      summary: List user's workspaces
+      operationId: listWorkspaces
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of workspaces
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Workspace'
+    post:
+      tags: [Workspaces]
+      summary: Create new workspace
+      operationId: createWorkspace
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+      responses:
+        '201':
+          description: Workspace created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Workspace'
+
+  /workspaces/{workspaceId}:
+    parameters:
+      - $ref: '#/components/parameters/workspaceId'
+    get:
+      tags: [Workspaces]
+      summary: Get workspace details
+      operationId: getWorkspace
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Workspace details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Workspace'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Workspaces]
+      summary: Update workspace
+      operationId: updateWorkspace
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                image:
+                  type: string
+                  format: uri
+                timezone:
+                  type: string
+      responses:
+        '200':
+          description: Workspace updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Workspace'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [Workspaces]
+      summary: Delete workspace (30-day grace period)
+      operationId: deleteWorkspace
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Workspace scheduled for deletion
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ============================================
+  # WORKSPACE MEMBERS
+  # ============================================
+  /workspaces/{workspaceId}/members:
+    parameters:
+      - $ref: '#/components/parameters/workspaceId'
+    get:
+      tags: [Members]
+      summary: List workspace members
+      operationId: listMembers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkspaceMember'
+    post:
+      tags: [Members]
+      summary: Invite member to workspace
+      operationId: inviteMember
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, role]
+              properties:
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum: [admin, member, viewer, guest]
+      responses:
+        '201':
+          description: Invitation sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Invitation'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /workspaces/{workspaceId}/members/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/workspaceId'
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [Members]
+      summary: Update member role
+      operationId: updateMemberRole
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [admin, member, viewer, guest]
+      responses:
+        '200':
+          description: Role updated
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [Members]
+      summary: Remove member from workspace
+      operationId: removeMember
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Member removed
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ============================================
+  # APPROVALS
+  # ============================================
+  /approvals:
+    get:
+      tags: [Approvals]
+      summary: List pending approvals
+      operationId: listApprovals
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, auto_approved, expired]
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, urgent]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: List of approvals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApprovalItem'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /approvals/{approvalId}:
+    parameters:
+      - name: approvalId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Approvals]
+      summary: Get approval details
+      operationId: getApproval
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Approval details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ApprovalItem'
+
+  /approvals/{approvalId}/approve:
+    parameters:
+      - name: approvalId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [Approvals]
+      summary: Approve item
+      operationId: approveItem
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Item approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ApprovalItem'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /approvals/{approvalId}/reject:
+    parameters:
+      - name: approvalId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [Approvals]
+      summary: Reject item
+      operationId: rejectItem
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 10
+      responses:
+        '200':
+          description: Item rejected
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /approvals/bulk:
+    post:
+      tags: [Approvals]
+      summary: Bulk approve/reject items
+      operationId: bulkAction
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, action]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  minItems: 1
+                  maxItems: 50
+                action:
+                  type: string
+                  enum: [approve, reject]
+                notes:
+                  type: string
+                reason:
+                  type: string
+                  description: Required for reject action
+      responses:
+        '200':
+          description: Bulk action completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApprovalItem'
+
+  # ============================================
+  # AI PROVIDERS
+  # ============================================
+  /ai-providers:
+    get:
+      tags: [AI Providers]
+      summary: List configured AI providers
+      operationId: listAIProviders
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of configured providers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AIProvider'
+    post:
+      tags: [AI Providers]
+      summary: Add AI provider configuration
+      operationId: addAIProvider
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, apiKey, defaultModel]
+              properties:
+                provider:
+                  type: string
+                  enum: [claude, openai, gemini, deepseek]
+                apiKey:
+                  type: string
+                defaultModel:
+                  type: string
+                maxTokensPerDay:
+                  type: integer
+                  default: 100000
+      responses:
+        '201':
+          description: Provider added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AIProvider'
+        '409':
+          description: Provider already configured
+
+  /ai-providers/{providerId}:
+    parameters:
+      - name: providerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [AI Providers]
+      summary: Update AI provider configuration
+      operationId: updateAIProvider
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                apiKey:
+                  type: string
+                defaultModel:
+                  type: string
+                maxTokensPerDay:
+                  type: integer
+      responses:
+        '200':
+          description: Provider updated
+    delete:
+      tags: [AI Providers]
+      summary: Remove AI provider
+      operationId: removeAIProvider
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Provider removed
+
+  /ai-providers/{providerId}/test:
+    parameters:
+      - name: providerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [AI Providers]
+      summary: Test API key validity
+      operationId: testAIProvider
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  error:
+                    type: string
+
+  /ai-providers/usage:
+    get:
+      tags: [AI Providers]
+      summary: Get token usage statistics
+      operationId: getUsageStats
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: provider
+          in: query
+          schema:
+            type: string
+            enum: [claude, openai, gemini, deepseek]
+      responses:
+        '200':
+          description: Usage statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageStats'
+
+  # ============================================
+  # NOTIFICATIONS
+  # ============================================
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications
+      operationId: listNotifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /notifications/mark-read:
+    post:
+      tags: [Notifications]
+      summary: Mark notifications as read
+      operationId: markNotificationsRead
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                all:
+                  type: boolean
+                  description: Mark all as read
+      responses:
+        '200':
+          description: Notifications marked as read
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    workspaceId:
+      name: workspaceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Workspace ID
+
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RateLimited:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Invalid email format
+            details:
+              type: object
+            requestId:
+              type: string
+              format: uuid
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        hasMore:
+          type: boolean
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        image:
+          type: string
+          format: uri
+        emailVerified:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        session:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            expiresAt:
+              type: string
+              format: date-time
+        token:
+          type: string
+          description: JWT access token
+
+    SessionResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        session:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            activeWorkspaceId:
+              type: string
+              format: uuid
+            expiresAt:
+              type: string
+              format: date-time
+        workspaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceSimple'
+
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        image:
+          type: string
+          format: uri
+        timezone:
+          type: string
+        memberCount:
+          type: integer
+        currentUserRole:
+          type: string
+          enum: [owner, admin, member, viewer, guest]
+        createdAt:
+          type: string
+          format: date-time
+
+    WorkspaceSimple:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        image:
+          type: string
+        role:
+          type: string
+
+    WorkspaceMember:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/User'
+        role:
+          type: string
+          enum: [owner, admin, member, viewer, guest]
+        invitedAt:
+          type: string
+          format: date-time
+        acceptedAt:
+          type: string
+          format: date-time
+
+    Invitation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, accepted, expired]
+
+    ApprovalItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        confidenceScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        confidenceFactors:
+          type: array
+          items:
+            type: object
+            properties:
+              factor:
+                type: string
+              score:
+                type: integer
+              weight:
+                type: number
+              explanation:
+                type: string
+        aiRecommendation:
+          type: string
+          enum: [approve, reject, review]
+        aiReasoning:
+          type: string
+        previewUrl:
+          type: string
+          format: uri
+        previewData:
+          type: object
+        status:
+          type: string
+          enum: [pending, approved, rejected, auto_approved, expired]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        requestedBy:
+          type: string
+        assignedTo:
+          $ref: '#/components/schemas/User'
+        dueAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+        resolution:
+          type: object
+          properties:
+            decision:
+              type: string
+            notes:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AIProvider:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+          enum: [claude, openai, gemini, deepseek]
+        defaultModel:
+          type: string
+        isValid:
+          type: boolean
+        lastValidatedAt:
+          type: string
+          format: date-time
+        validationError:
+          type: string
+        maxTokensPerDay:
+          type: integer
+        tokensUsedToday:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    UsageStats:
+      type: object
+      properties:
+        totalTokens:
+          type: integer
+        totalCost:
+          type: number
+        byProvider:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              tokens:
+                type: integer
+              cost:
+                type: number
+              requests:
+                type: integer
+        byDay:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              tokens:
+                type: integer
+              cost:
+                type: number
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        link:
+          type: string
+        data:
+          type: object
+        readAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time

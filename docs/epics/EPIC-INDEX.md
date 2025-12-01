@@ -1,0 +1,210 @@
+# HYVVE Platform Foundation - Epic Index
+
+**Created:** 2025-11-30
+**Status:** Ready for Sprint Planning
+
+---
+
+## Epic Summary
+
+| Epic | Name | Stories | Points | Priority | Phase |
+|------|------|---------|--------|----------|-------|
+| EPIC-00 | Project Scaffolding | 7 | 17 | P0 | Phase 1 |
+| EPIC-01 | Authentication | 8 | 19 | P0 | Phase 1 |
+| EPIC-02 | Workspace Management | 7 | 16 | P0 | Phase 1 |
+| EPIC-03 | RBAC & Multi-tenancy | 7 | 17 | P0 | Phase 2 |
+| EPIC-04 | Approval System | 12 | 29 | P0 | Phase 3 |
+| EPIC-05 | Event Bus | 7 | 15 | P0 | Phase 4 |
+| EPIC-06 | BYOAI Configuration | 11 | 28 | P0 | Phase 4 |
+| EPIC-07 | UI Shell | 10 | 24 | P0 | Phase 1-3 |
+| **Total** | | **69** | **165** | | |
+
+> **Note:** Story counts updated 2025-12-01 to include AgentOS integration (ADR-007), IAssistantClient (06.10), Agent Model Preferences (06.11)
+
+---
+
+## Phase Breakdown
+
+### Phase 1: Core Foundation
+**Target:** Foundational infrastructure and authentication
+
+| Epic | Stories | Focus |
+|------|---------|-------|
+| EPIC-00 | 7 | Monorepo, Next.js, NestJS, Prisma, AgentOS |
+| EPIC-01 | 8 | better-auth, email/password, OAuth |
+| EPIC-02 | 7 | Workspace CRUD, invitations, switching |
+| EPIC-07 | 4 | Layout, sidebar, header, basic shell |
+
+**Phase 1 Stories:** 26
+**Phase 1 Points:** ~58
+
+### Phase 2: RBAC & Multi-tenancy
+**Target:** Security and data isolation
+
+| Epic | Stories | Focus |
+|------|---------|-------|
+| EPIC-03 | 7 | Permissions, guards, RLS, Prisma extension |
+
+**Phase 2 Stories:** 7
+**Phase 2 Points:** ~17
+
+### Phase 3: Approval System
+**Target:** Human-in-the-loop workflows
+
+| Epic | Stories | Focus |
+|------|---------|-------|
+| EPIC-04 | 12 | Confidence routing, queue, cards, agents, AgentOS integration |
+| EPIC-07 | 3 | Chat panel, notifications |
+
+**Phase 3 Stories:** 15
+**Phase 3 Points:** ~35
+
+### Phase 4: Event Bus & BYOAI
+**Target:** Cross-module communication and AI integration
+
+| Epic | Stories | Focus |
+|------|---------|-------|
+| EPIC-05 | 7 | Redis Streams, pub/sub, DLQ |
+| EPIC-06 | 11 | Provider abstraction, encryption, usage tracking, AgentOS integration, IAssistantClient, Agent Model Preferences |
+
+**Phase 4 Stories:** 18
+**Phase 4 Points:** ~43
+
+### Phase 5: UI Polish
+**Target:** Complete UI features
+
+| Epic | Stories | Focus |
+|------|---------|-------|
+| EPIC-07 | 3 | Command palette, shortcuts, mobile |
+
+**Phase 5 Stories:** 3
+**Phase 5 Points:** ~12
+
+---
+
+## Sprint Planning Recommendations
+
+### Sprint 1 (Foundation)
+- EPIC-00: All stories (Project Scaffolding + AgentOS Setup)
+- EPIC-07: Stories 07.1, 07.2 (Layout, Sidebar)
+**Points:** ~22
+
+### Sprint 2 (Auth)
+- EPIC-01: Stories 01.1-01.4 (Core Auth)
+- EPIC-07: Story 07.3 (Header)
+**Points:** ~12
+
+### Sprint 3 (Auth + Workspaces)
+- EPIC-01: Stories 01.5-01.8 (OAuth, Sessions, UI)
+- EPIC-02: Stories 02.1-02.2 (Workspace CRUD, Invites)
+**Points:** ~14
+
+### Sprint 4 (Workspaces + RBAC)
+- EPIC-02: Stories 02.3-02.7 (Members, Settings)
+- EPIC-03: Stories 03.1-03.3 (Permissions, Guards)
+**Points:** ~16
+
+### Sprint 5 (RBAC + Multi-tenancy)
+- EPIC-03: Stories 03.4-03.7 (RLS, Extension, Audit)
+**Points:** ~10
+
+### Sprint 6-7 (Approval System + AgentOS Integration)
+- EPIC-04: All stories (includes Control Plane, NestJS ↔ AgentOS bridge)
+- EPIC-07: Story 07.4 (Chat Panel)
+**Points:** ~32
+
+### Sprint 8-9 (Event Bus + BYOAI)
+- EPIC-05: All stories
+- EPIC-06: All stories (includes AgentOS BYOAI integration)
+**Points:** ~37
+
+### Sprint 10 (Polish)
+- EPIC-07: Stories 07.5-07.10 (Theme, Command, Keyboard, Mobile)
+**Points:** ~13
+
+---
+
+## Story Priority Matrix
+
+### P0 (Critical - Must Have for MVP)
+- All scaffolding stories (including AgentOS setup - Story 00.7)
+- Core authentication (sign-up, sign-in, session)
+- Workspace CRUD and invitations
+- Permission guards and RLS
+- Approval queue and routing
+- NestJS ↔ AgentOS bridge (Story 04.12)
+- AI provider configuration (including AgentOS integration - Story 06.9, IAssistantClient - Story 06.10)
+- Dashboard layout and navigation
+
+### P1 (High - Important Features)
+- OAuth providers
+- Member management
+- Module permission overrides
+- Bulk approval
+- Approval Agent integration (Story 04.10)
+- Control Plane connection (Story 04.11)
+- Token usage dashboard
+- Command palette
+- Notifications
+
+### P2 (Medium - Nice to Have)
+- Event replay
+- Provider health monitoring
+- Mobile navigation
+- Advanced keyboard shortcuts
+
+---
+
+## Dependency Graph
+
+```
+EPIC-00 (Scaffolding)
+    │
+    ├── EPIC-01 (Auth) ─────────────────────────┐
+    │       │                                    │
+    │       ├── EPIC-02 (Workspaces) ───────────┤
+    │       │       │                            │
+    │       │       └── EPIC-03 (RBAC) ─────────┤
+    │       │               │                    │
+    │       │               ├── EPIC-04 (Approvals)
+    │       │               │
+    │       │               └── EPIC-05 (Events)
+    │       │                       │
+    │       └───────────────────────┴── EPIC-06 (BYOAI)
+    │
+    └── EPIC-07 (UI Shell) ─────── [Parallel with all epics]
+```
+
+---
+
+## Files Reference
+
+| Epic | File |
+|------|------|
+| EPIC-00 | `docs/epics/EPIC-00-project-scaffolding.md` |
+| EPIC-01 | `docs/epics/EPIC-01-authentication.md` |
+| EPIC-02 | `docs/epics/EPIC-02-workspace-management.md` |
+| EPIC-03 | `docs/epics/EPIC-03-rbac-multitenancy.md` |
+| EPIC-04 | `docs/epics/EPIC-04-approval-system.md` |
+| EPIC-05 | `docs/epics/EPIC-05-event-bus.md` |
+| EPIC-06 | `docs/epics/EPIC-06-byoai.md` |
+| EPIC-07 | `docs/epics/EPIC-07-ui-shell.md` |
+
+---
+
+## Related Documents
+
+| Document | Purpose |
+|----------|---------|
+| `/docs/prd.md` | Product requirements |
+| `/docs/architecture.md` | Technical architecture |
+| `/docs/ux-design.md` | UX design decisions |
+| `/docs/api/openapi.yaml` | API specification |
+| `/packages/db/prisma/schema.prisma` | Database schema |
+
+---
+
+_Generated by BMAD Create Epics and Stories Workflow v1.0_
+_Date: 2025-11-30_
+_Updated: 2025-12-01 (AgentOS integration - ADR-007, IAssistantClient - 06.10, Agent Model Preferences - 06.11)_
+_For: chris_

@@ -1,0 +1,102 @@
+# BMV (Business Validation) Module Configuration
+# Installation questions and module configuration values
+
+code: bmv
+name: "Business Validation Module"
+default_selected: true  # Foundation layer - selected by default
+
+# Welcome message shown during installation
+prompt:
+  - "Welcome to the Business Validation Module (BMV)!"
+  - "AI-powered business idea validation with market sizing, competitive intelligence,"
+  - "customer profiling, and go/no-go recommendations."
+  - "Validates ideas before significant investment."
+
+# Core config values are automatically inherited:
+## user_name
+## communication_language
+## document_output_language
+## output_folder
+
+# ============================================================================
+# CONFIGURATION FIELDS
+# ============================================================================
+
+# Output path for validation documents
+bmv_output_path:
+  prompt: "Where should BMV save validation documents?"
+  default: "output/bmv"
+  result: "{project-root}/{value}"
+
+# Anti-hallucination strictness level
+anti_hallucination_level:
+  prompt: "How strict should source verification be?"
+  default: "standard"
+  result: "{value}"
+  single-select:
+    - value: "relaxed"
+      label: "Relaxed - Single source acceptable for non-critical claims"
+    - value: "standard"
+      label: "Standard - 2+ sources for market claims, single for others"
+    - value: "strict"
+      label: "Strict - 2+ credible sources required for all claims"
+
+# Market sizing methodology preference
+tam_methodology:
+  prompt: "Which TAM methodology should be primary?"
+  default: "multi"
+  result: "{value}"
+  single-select:
+    - value: "topdown"
+      label: "Top-Down - Start from industry size (faster)"
+    - value: "bottomup"
+      label: "Bottom-Up - Build from unit economics (more accurate)"
+    - value: "multi"
+      label: "Multi-Method - Use all three and reconcile (most thorough)"
+
+# Default geographic scope
+default_geographic_scope:
+  prompt: "Default geographic scope for market sizing?"
+  default: "global"
+  result: "{value}"
+  single-select:
+    - value: "global"
+      label: "Global - Worldwide market"
+    - value: "north_america"
+      label: "North America - US + Canada"
+    - value: "us"
+      label: "United States only"
+    - value: "europe"
+      label: "Europe (EU + UK)"
+
+# ============================================================================
+# STATIC CONFIGURATION VALUES
+# ============================================================================
+
+# Module version
+module_version:
+  result: "1.0.0"
+
+# Module layer
+module_layer:
+  result: "foundation"
+
+# Data path (static)
+bmv_data_path:
+  result: "{project-root}/.bmad/bmv/data"
+
+# Minimum sources for anti-hallucination
+min_sources_critical:
+  result: "2"
+
+# Maximum source age in months
+max_source_age_months:
+  result: "24"
+
+# Go/no-go TAM threshold
+tam_threshold:
+  result: "1000000000"  # $1B
+
+# Go/no-go SAM threshold
+sam_threshold:
+  result: "100000000"   # $100M
