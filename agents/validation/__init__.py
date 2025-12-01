@@ -9,63 +9,83 @@ This module provides AI agents for business idea validation:
 - Feasibility assessment
 - Go/no-go recommendations
 
-BMAD Specs: .bmad/bmv/agents/*.agent.yaml
+Team Structure:
+- Leader: Vera (Validation Orchestrator)
+- Members: Marco (Market), Cipher (Competitors), Persona (Customers), Risk (Feasibility)
+
+Usage:
+    from agents.validation import create_validation_team
+
+    team = create_validation_team(
+        session_id="session_123",
+        user_id="user_456",
+        business_id="biz_789"
+    )
+    response = team.run("Validate this business idea: ...")
 """
 
+# Agno Team exports
+from .team import (
+    create_validation_team,
+    run_idea_intake,
+    run_market_sizing,
+    run_competitor_analysis,
+    run_customer_discovery,
+    run_validation_synthesis,
+)
+
+# Legacy agent classes (for data models)
 from .validation_orchestrator_agent import (
-    ValidationOrchestratorAgent,
     ValidationSession,
     ValidationStatus,
     GoNoGoRecommendation,
 )
 from .market_researcher_agent import (
-    MarketResearcherAgent,
     TAMCalculation,
     MarketSizing,
     ConfidenceLevel,
 )
 from .competitor_analyst_agent import (
-    CompetitorAnalystAgent,
     Competitor,
     CompetitorProfile,
     PositioningMap,
 )
 from .customer_profiler_agent import (
-    CustomerProfilerAgent,
     IdealCustomerProfile,
     CustomerPersona,
     JTBDAnalysis,
 )
 from .feasibility_assessor_agent import (
-    FeasibilityAssessorAgent,
     Risk,
     RiskMatrix,
     FeasibilityAssessment,
 )
 
 __all__ = [
-    # Orchestrator
-    "ValidationOrchestratorAgent",
+    # Agno Team
+    "create_validation_team",
+    "run_idea_intake",
+    "run_market_sizing",
+    "run_competitor_analysis",
+    "run_customer_discovery",
+    "run_validation_synthesis",
+    # Data Models - Orchestrator
     "ValidationSession",
     "ValidationStatus",
     "GoNoGoRecommendation",
-    # Market Research
-    "MarketResearcherAgent",
+    # Data Models - Market Research
     "TAMCalculation",
     "MarketSizing",
     "ConfidenceLevel",
-    # Competitor Analysis
-    "CompetitorAnalystAgent",
+    # Data Models - Competitor Analysis
     "Competitor",
     "CompetitorProfile",
     "PositioningMap",
-    # Customer Profiling
-    "CustomerProfilerAgent",
+    # Data Models - Customer Profiling
     "IdealCustomerProfile",
     "CustomerPersona",
     "JTBDAnalysis",
-    # Feasibility Assessment
-    "FeasibilityAssessorAgent",
+    # Data Models - Feasibility Assessment
     "Risk",
     "RiskMatrix",
     "FeasibilityAssessment",
