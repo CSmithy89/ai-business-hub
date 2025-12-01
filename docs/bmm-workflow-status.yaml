@@ -39,7 +39,7 @@ phase_3_solutioning:
 # Phase 4: Implementation Readiness
 phase_4_readiness:
   implementation-readiness: "/home/chris/projects/work/Ai Bussiness Hub/docs/implementation-readiness-report-2025-11-30.md"
-  sprint-planning: "pending"
+  sprint-planning: "/home/chris/projects/work/Ai Bussiness Hub/docs/sprint-artifacts/sprint-status.yaml"
 
 # Phase 5: Development (per-story tracking)
 phase_5_development:

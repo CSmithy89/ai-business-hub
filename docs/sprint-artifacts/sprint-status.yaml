@@ -1,0 +1,160 @@
+# Sprint Status - HYVVE Platform Foundation
+# generated: 2025-12-01
+# project: Ai Bussiness Hub
+# tracking_system: file-system
+# story_location: /home/chris/projects/work/Ai Bussiness Hub/docs/sprint-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epic file but not contexted
+#   - contexted: Next epic tech context created by *epic-tech-context (required)
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder by *create-story
+#   - ready-for-dev: Draft approved and story context created by *story-ready
+#   - in-progress: Developer actively working on implementation by *dev-story
+#   - review: Implementation complete, ready for review by *code-review
+#   - done: Story completed by *story-done
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done by *retrospective
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - SM typically drafts next story ONLY after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
+
+generated: 2025-12-01
+project: Ai Bussiness Hub
+tracking_system: file-system
+story_location: "{project-root}/docs/sprint-artifacts"
+
+development_status:
+  # ===========================================
+  # EPIC-00: Project Scaffolding & Core Setup
+  # Phase 1 - Core Foundation | 7 stories | 17 points
+  # ===========================================
+  epic-00: contexted
+  00-1-initialize-monorepo-with-turborepo: backlog
+  00-2-configure-nextjs-15-frontend: backlog
+  00-3-configure-nestjs-backend: backlog
+  00-4-set-up-database-package-with-prisma: backlog
+  00-5-configure-docker-development-environment: backlog
+  00-6-set-up-shared-types-package: backlog
+  00-7-set-up-agentos-runtime-environment: backlog
+  epic-00-retrospective: optional
+
+  # ===========================================
+  # EPIC-01: Authentication System
+  # Phase 1 - Core Foundation | 8 stories | 19 points
+  # ===========================================
+  epic-01: backlog
+  01-1-install-and-configure-better-auth: backlog
+  01-2-implement-email-password-registration: backlog
+  01-3-implement-email-verification: backlog
+  01-4-implement-email-password-sign-in: backlog
+  01-5-implement-google-oauth: backlog
+  01-6-implement-password-reset-flow: backlog
+  01-7-implement-session-management: backlog
+  01-8-create-auth-ui-components: backlog
+  epic-01-retrospective: optional
+
+  # ===========================================
+  # EPIC-02: Workspace Management
+  # Phase 1 - Core Foundation | 7 stories | 16 points
+  # ===========================================
+  epic-02: backlog
+  02-1-create-workspace-crud-operations: backlog
+  02-2-implement-member-invitation-system: backlog
+  02-3-implement-invitation-acceptance: backlog
+  02-4-implement-workspace-switching: backlog
+  02-5-implement-member-management: backlog
+  02-6-create-workspace-settings-page: backlog
+  02-7-implement-workspace-deletion: backlog
+  epic-02-retrospective: optional
+
+  # ===========================================
+  # EPIC-03: RBAC & Multi-Tenancy
+  # Phase 2 - RBAC & Multi-tenancy | 7 stories | 17 points
+  # ===========================================
+  epic-03: backlog
+  03-1-implement-permission-matrix: backlog
+  03-2-create-auth-guards-for-nestjs: backlog
+  03-3-create-permission-middleware-for-nextjs: backlog
+  03-4-implement-prisma-tenant-extension: backlog
+  03-5-create-postgresql-rls-policies: backlog
+  03-6-implement-module-level-permission-overrides: backlog
+  03-7-create-audit-logging-for-permission-changes: backlog
+  epic-03-retrospective: optional
+
+  # ===========================================
+  # EPIC-04: Approval Queue System
+  # Phase 3 - Approval System | 12 stories | 29 points
+  # ===========================================
+  epic-04: backlog
+  04-1-implement-confidence-calculator-service: backlog
+  04-2-create-approval-queue-api-endpoints: backlog
+  04-3-implement-approval-router: backlog
+  04-4-create-approval-queue-dashboard: backlog
+  04-5-create-approval-card-component: backlog
+  04-6-implement-ai-reasoning-display: backlog
+  04-7-implement-bulk-approval: backlog
+  04-8-implement-approval-escalation: backlog
+  04-9-implement-approval-audit-trail: backlog
+  04-10-integrate-approval-agent-with-agentos: backlog
+  04-11-configure-control-plane-connection: backlog
+  04-12-implement-nestjs-agentos-bridge: backlog
+  epic-04-retrospective: optional
+
+  # ===========================================
+  # EPIC-05: Event Bus Infrastructure
+  # Phase 4 - Event Bus & BYOAI | 7 stories | 15 points
+  # ===========================================
+  epic-05: backlog
+  05-1-set-up-redis-streams-infrastructure: backlog
+  05-2-implement-event-publisher: backlog
+  05-3-implement-event-subscriber: backlog
+  05-4-implement-retry-and-dead-letter-queue: backlog
+  05-5-define-core-platform-events: backlog
+  05-6-implement-event-replay: backlog
+  05-7-create-event-monitoring-dashboard: backlog
+  epic-05-retrospective: optional
+
+  # ===========================================
+  # EPIC-06: BYOAI Configuration
+  # Phase 4 - Event Bus & BYOAI | 11 stories | 28 points
+  # ===========================================
+  epic-06: backlog
+  06-1-implement-credential-encryption: backlog
+  06-2-create-ai-provider-factory: backlog
+  06-3-create-ai-provider-api-endpoints: backlog
+  06-4-create-ai-provider-settings-ui: backlog
+  06-5-implement-token-usage-tracking: backlog
+  06-6-create-token-usage-dashboard: backlog
+  06-7-implement-daily-token-limits: backlog
+  06-8-implement-provider-health-monitoring: backlog
+  06-9-integrate-agentos-with-byoai-providers: backlog
+  06-10-implement-iassistantclient-interface-pattern: backlog
+  06-11-agent-model-preferences-ui: backlog
+  epic-06-retrospective: optional
+
+  # ===========================================
+  # EPIC-07: UI Shell
+  # Phase 1-3 (Progressive) | 10 stories | 24 points
+  # ===========================================
+  epic-07: backlog
+  07-1-create-dashboard-layout-component: backlog
+  07-2-create-sidebar-navigation: backlog
+  07-3-create-header-bar: backlog
+  07-4-implement-chat-panel: backlog
+  07-5-implement-dark-light-mode: backlog
+  07-6-create-command-palette: backlog
+  07-7-create-notification-center: backlog
+  07-8-implement-keyboard-shortcuts: backlog
+  07-9-create-dashboard-home-page: backlog
+  07-10-create-mobile-navigation: backlog
+  epic-07-retrospective: optional
