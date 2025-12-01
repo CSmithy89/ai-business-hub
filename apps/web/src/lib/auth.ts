@@ -2,7 +2,7 @@ import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { organization } from 'better-auth/plugins'
 import { prisma } from '@hyvve/db'
-import { sendVerificationEmail } from './email'
+import { sendVerificationEmail, sendPasswordResetEmail } from './email'
 
 export const auth = betterAuth({
   // Database adapter using Prisma
@@ -39,6 +39,11 @@ export const auth = betterAuth({
     sendVerificationEmail: async ({ user, token }: { user: any; url: string; token: string }) => {
       await sendVerificationEmail(user.email, token, user.name)
     },
+    // Password reset configuration (Story 01.6)
+    sendResetPassword: async ({ user, token }: { user: any; token: string; url: string }) => {
+      await sendPasswordResetEmail(user.email, token)
+    },
+    resetPasswordExpiresIn: 3600, // 1 hour expiry for reset tokens
   },
 
   // Advanced options
