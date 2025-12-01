@@ -1,5 +1,5 @@
-# AgentOS Dockerfile - Placeholder for Story 00-7
-# Full implementation will include Agno framework, SQLAlchemy, and tenant middleware
+# AgentOS Dockerfile - Story 00-7
+# Production-ready Docker image for AI Agent Runtime
 
 FROM python:3.12-slim
 
@@ -18,6 +18,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY main.py .
+COPY config.py .
+COPY middleware/ ./middleware/
+
+# Copy platform agents (for future use in EPIC-04)
+COPY platform/ ./platform/
+
+# Copy crm and validation agents (if they exist)
+COPY crm/ ./crm/ 2>/dev/null || true
+COPY validation/ ./validation/ 2>/dev/null || true
 
 # Expose AgentOS port
 EXPOSE 7777

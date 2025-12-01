@@ -1,20 +1,26 @@
-# AgentOS Requirements - Placeholder for Story 00-5
-# Full dependencies will be added in Story 00-7
+# AgentOS Requirements - Story 00-7
 
 # Web Framework
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
 
-# JWT Authentication
+# AI Agent Framework
+# Note: agno package may need different name or may not be available yet
+# Check https://pypi.org/project/agno/ or https://docs.agno.com for installation
+# agno>=0.1.0
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+asyncpg>=0.29.0
+
+# Authentication
 pyjwt==2.8.0
 
-# HTTP Client (for health check)
-requests==2.31.0
+# Configuration
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
 
-# Future dependencies for Story 00-7:
-# agno>=0.1.0
-# sqlalchemy>=2.0.0
-# psycopg2-binary>=2.9.0
-# alembic>=1.13.0
-# pydantic>=2.0.0
-# python-dotenv>=1.0.0
+# Utilities
+requests>=2.31.0

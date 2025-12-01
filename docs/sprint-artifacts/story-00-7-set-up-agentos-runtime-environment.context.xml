@@ -1,0 +1,1110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>00-7</story-id>
+    <story-title>Set Up AgentOS Runtime Environment</story-title>
+    <generated>2025-12-01</generated>
+    <epic>EPIC-00 - Project Scaffolding &amp; Core Setup</epic>
+    <story-points>3</story-points>
+    <priority>P0</priority>
+  </metadata>
+
+  <story-summary>
+    This story completes the AgentOS runtime environment by transforming the placeholder FastAPI application
+    created in Story 00-5 into a fully-functional AI agent runtime. The implementation includes:
+
+    - Complete directory structure with middleware and configuration modules
+    - Full dependency set including agno framework, SQLAlchemy ORM, and JWT handling
+    - Tenant middleware that extracts workspace_id from better-auth JWT tokens
+    - Proper FastAPI configuration with CORS and health endpoints
+    - Docker integration with PostgreSQL and Redis services
+    - Production-ready error handling and logging
+
+    This story enables the platform to run AI agents with proper tenant isolation and prepares the foundation
+    for Control Plane monitoring integration in future epics.
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <description>Create agents/ directory structure with required folders</description>
+      <details>
+        - agents/platform/ - Platform agents (already exists with placeholder agents)
+        - agents/middleware/ - Custom middleware (NEW - needs __init__.py and tenant.py)
+        - agents/config.py - Configuration (NEW)
+        - agents/main.py - FastAPI entry point (EXISTS - needs update)
+      </details>
+    </criterion>
+
+    <criterion id="AC2">
+      <description>Create requirements.txt with all specified dependencies</description>
+      <dependencies>
+        - agno - AI agent framework (NEW)
+        - fastapi - Web framework (EXISTING)
+        - uvicorn - ASGI server (EXISTING)
+        - pyjwt - JWT handling (EXISTING)
+        - sqlalchemy - Database ORM (NEW)
+        - psycopg2-binary - PostgreSQL driver (NEW)
+        - python-dotenv - Environment variables (NEW, optional but recommended)
+        - pydantic - Data validation (NEW, for FastAPI 2.0+)
+      </dependencies>
+    </criterion>
+
+    <criterion id="AC3">
+      <description>Create Dockerfile for AgentOS container that builds successfully</description>
+      <details>
+        - Base image: python:3.12-slim (EXISTING)
+        - Install system dependencies (postgresql-client, gcc) (EXISTING)
+        - Copy and install requirements.txt (EXISTING)
+        - Copy application code including new middleware/ and config.py (UPDATE NEEDED)
+        - Expose port 7777 (EXISTING)
+        - Health check endpoint (EXISTING)
+      </details>
+    </criterion>
+
+    <criterion id="AC4">
+      <description>Implement tenant middleware (middleware/tenant.py)</description>
+      <requirements>
+        - Extract JWT from Authorization header (Bearer token)
+        - Validate JWT using shared BETTER_AUTH_SECRET
+        - Inject workspace_id into request state (from workspaceId claim)
+        - Handle missing or invalid tokens gracefully (return 401 for protected routes, 403 for invalid)
+        - Support optional workspaceId in JWT payload
+      </requirements>
+    </criterion>
+
+    <criterion id="AC5">
+      <description>Update docker-compose.yml to include AgentOS service running on port 7777</description>
+      <note>
+        AgentOS service already exists in docker-compose.yml from Story 00-5.
+        No changes needed unless environment variables need adjustment.
+      </note>
+    </criterion>
+
+    <criterion id="AC6">
+      <description>AgentOS starts successfully and responds to /health endpoint with status and version</description>
+      <expected-response>
+        {
+          "status": "ok",
+          "version": "0.1.0",
+          "environment": {
+            "database_configured": true,
+            "redis_configured": true,
+            "port": "7777"
+          }
+        }
+      </expected-response>
+    </criterion>
+
+    <criterion id="AC7">
+      <description>AgentOS container runs in docker-compose alongside PostgreSQL and Redis</description>
+      <validation>
+        - All three containers start successfully
+        - AgentOS can connect to PostgreSQL using DATABASE_URL
+        - AgentOS can connect to Redis using REDIS_URL
+        - Health checks pass for all services
+      </validation>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-requirements>
+    <requirement category="agno-framework">
+      <description>Agno Framework Integration</description>
+      <details>
+        - Install agno package via pip
+        - Agno supports 40+ AI providers natively (Claude, OpenAI, Gemini, DeepSeek, OpenRouter)
+        - Agents will be implemented in future stories (EPIC-04)
+        - Control Plane connection is optional for MVP (browser-based monitoring at os.agno.com)
+        - For now, just ensure agno is installed and importable
+      </details>
+      <reference>ADR-007: AgentOS for Agent Runtime</reference>
+    </requirement>
+
+    <requirement category="fastapi-configuration">
+      <description>FastAPI Application Setup</description>
+      <implementation>
+        - Title: "HYVVE AgentOS"
+        - Version: "0.1.0"
+        - CORS middleware configured for localhost:3000 and localhost:3001
+        - Tenant middleware added via app.add_middleware()
+        - Health endpoint at GET /health
+        - Root endpoint at GET / with service info
+      </implementation>
+    </requirement>
+
+    <requirement category="jwt-validation">
+      <description>JWT Token Validation</description>
+      <implementation>
+        - Use pyjwt library for JWT decoding
+        - Validate using BETTER_AUTH_SECRET environment variable
+        - Extract claims: sub (userId), sessionId, workspaceId (optional), email, name, iat, exp
+        - Handle expired tokens (return 403 Forbidden)
+        - Handle missing Authorization header (return 401 Unauthorized for protected routes)
+        - Handle malformed tokens gracefully
+      </implementation>
+      <jwt-payload-structure>
+        From packages/shared/src/types/auth.ts:
+        {
+          "sub": "user_id",              // User ID
+          "sessionId": "session_id",      // Session identifier
+          "workspaceId": "workspace_id",  // Optional - current workspace context
+          "email": "user@example.com",    // User email
+          "name": "User Name",            // User display name
+          "iat": 1234567890,              // Issued at (Unix timestamp)
+          "exp": 1234657890               // Expiration (Unix timestamp)
+        }
+      </jwt-payload-structure>
+    </requirement>
+
+    <requirement category="tenant-middleware">
+      <description>Tenant Context Injection</description>
+      <implementation>
+        - Middleware runs on every request
+        - Extracts Bearer token from Authorization header
+        - Decodes JWT and extracts workspaceId claim
+        - Injects workspace_id into request.state for downstream use
+        - Allows requests without workspaceId (for user-level operations)
+        - Logs tenant context injection for debugging
+      </implementation>
+      <code-location>agents/middleware/tenant.py</code-location>
+    </requirement>
+
+    <requirement category="database-integration">
+      <description>PostgreSQL Integration via SQLAlchemy</description>
+      <details>
+        - Install sqlalchemy and psycopg2-binary
+        - Configure DATABASE_URL from environment (already set in docker-compose.yml)
+        - Create basic SQLAlchemy engine setup (full schema in future epics)
+        - Test connection in health check endpoint
+        - Note: Agno will use agno_* tables, main app uses hyvve schema
+      </details>
+    </requirement>
+
+    <requirement category="configuration">
+      <description>Environment Configuration Management</description>
+      <implementation>
+        - Create agents/config.py module
+        - Use pydantic BaseSettings for typed configuration
+        - Load from environment variables
+        - Required vars: DATABASE_URL, BETTER_AUTH_SECRET
+        - Optional vars: REDIS_URL, CONTROL_PLANE_API_KEY, CONTROL_PLANE_URL
+        - Validate configuration on startup
+      </implementation>
+    </requirement>
+  </technical-requirements>
+
+  <architecture-context>
+    <adr id="ADR-007">
+      <title>AgentOS for Agent Runtime</title>
+      <decision>
+        Deploy AgentOS as a Python/FastAPI microservice alongside NestJS, use Control Plane at os.agno.com
+        for agent monitoring.
+      </decision>
+      <architecture>
+        - AgentOS runs on port 7777
+        - FastAPI framework for web API
+        - Agno framework for AI agent orchestration
+        - Shared PostgreSQL database with NestJS (different tables/schemas)
+        - JWT passthrough from better-auth tokens
+        - Custom tenant middleware for workspace_id injection
+        - Control Plane connection is browser-based (no data sent to Agno servers)
+      </architecture>
+      <integration-points>
+        - NestJS → AgentOS HTTP calls for agent execution (future EPIC-04)
+        - Frontend → AgentOS SSE streams for agent responses (future)
+        - Both services use same PostgreSQL instance (AgentOS uses agno_* tables)
+        - Both services validate same JWT tokens from better-auth
+      </integration-points>
+    </adr>
+
+    <database-architecture>
+      <description>Shared Database Pattern</description>
+      <details>
+        - PostgreSQL 16 running in Docker container (hyvve_postgres)
+        - NestJS uses Prisma ORM with hyvve schema
+        - AgentOS uses SQLAlchemy ORM with agno_* tables
+        - Both connect via same DATABASE_URL
+        - Connection pooling via PgBouncer (future production setup)
+        - For MVP: direct connections acceptable
+      </details>
+    </database-architecture>
+
+    <control-plane-integration>
+      <description>Agno Control Plane Monitoring</description>
+      <details>
+        - Control Plane at os.agno.com provides agent monitoring UI
+        - Browser connects to Control Plane, then to local AgentOS
+        - No data sent to Agno servers (privacy-preserving)
+        - Features: Session monitoring, Memory visualization, Agent chat interface, Knowledge management
+        - Integration is optional for MVP
+        - Required environment variables (optional): CONTROL_PLANE_API_KEY, CONTROL_PLANE_URL
+      </details>
+    </control-plane-integration>
+
+    <api-gateway-routing>
+      <description>Future Routing Pattern (EPIC-04+)</description>
+      <nginx-config>
+        location /api/ {
+            proxy_pass http://nestjs:3001/;
+        }
+
+        location /agents/ {
+            proxy_pass http://agentos:7777/agents/;
+        }
+
+        location /teams/ {
+            proxy_pass http://agentos:7777/teams/;
+        }
+
+        location /workflows/ {
+            proxy_pass http://agentos:7777/workflows/;
+        }
+      </nginx-config>
+      <note>
+        For Story 00-7, no API gateway needed. AgentOS runs standalone on port 7777.
+        Gateway routing will be implemented in later epics.
+      </note>
+    </api-gateway-routing>
+  </architecture-context>
+
+  <existing-code-context>
+    <current-agents-directory>
+      <structure>
+        agents/
+        ├── Dockerfile              (EXISTS - needs update to copy new files)
+        ├── main.py                 (EXISTS - placeholder, needs full implementation)
+        ├── requirements.txt        (EXISTS - needs update with full dependencies)
+        ├── platform/               (EXISTS - contains placeholder agents)
+        │   ├── __init__.py
+        │   ├── README.md
+        │   ├── approval_agent.py
+        │   ├── orchestrator_agent.py
+        │   ├── schemas/
+        │   └── tools/
+        ├── crm/                    (EXISTS - CRM module agents)
+        └── validation/             (EXISTS - validation agents)
+      </structure>
+
+      <current-main-py>
+        File: agents/main.py
+        Status: Placeholder from Story 00-5
+
+        Current implementation:
+        - Basic FastAPI app with title, description, version
+        - CORS middleware for localhost:3000 and localhost:3001
+        - GET / endpoint returning placeholder message
+        - GET /health endpoint with basic environment check
+        - Runs on port 7777 via uvicorn
+
+        Needs:
+        - Import and add TenantMiddleware
+        - Update health endpoint to check database/redis connectivity
+        - Add configuration loading from config.py
+        - Add logging configuration
+        - Update version from "0.1.0-placeholder" to "0.1.0"
+      </current-main-py>
+
+      <current-requirements-txt>
+        File: agents/requirements.txt
+        Status: Placeholder from Story 00-5
+
+        Current dependencies:
+        - fastapi==0.109.0
+        - uvicorn[standard]==0.27.0
+        - pyjwt==2.8.0
+        - requests==2.31.0
+
+        Needs to add:
+        - agno (latest stable version)
+        - sqlalchemy>=2.0.0
+        - psycopg2-binary>=2.9.0
+        - python-dotenv>=1.0.0
+        - pydantic>=2.0.0 (for FastAPI 0.109+)
+      </current-requirements-txt>
+
+      <current-dockerfile>
+        File: agents/Dockerfile
+        Status: Placeholder from Story 00-5
+
+        Current setup:
+        - FROM python:3.12-slim
+        - Install gcc and postgresql-client
+        - COPY requirements.txt and install
+        - COPY main.py (ONLY)
+        - EXPOSE 7777
+        - HEALTHCHECK using requests
+        - CMD uvicorn
+
+        Needs:
+        - Update COPY to include middleware/, config.py, and platform/
+        - Or use COPY . . to copy entire agents directory
+        - Health check should still work (no changes needed)
+      </current-dockerfile>
+
+      <docker-compose-integration>
+        File: docker/docker-compose.yml
+        Status: Complete from Story 00-5
+
+        Current agentos service:
+        - Build context: ../agents
+        - Container name: hyvve_agentos
+        - Ports: 7777:7777
+        - Environment variables:
+          - DATABASE_URL: postgresql://postgres:postgres_dev_password@postgres:5432/hyvve
+          - REDIS_URL: redis://redis:6379
+          - AGENTOS_HOST: 0.0.0.0
+          - AGENTOS_PORT: 7777
+          - BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev_secret_change_in_production}
+        - Depends on: postgres (healthy), redis (healthy)
+        - Network: hyvve_network
+
+        No changes needed for Story 00-7.
+      </docker-compose-integration>
+    </current-agents-directory>
+
+    <shared-types-package>
+      <jwt-payload-type>
+        File: packages/shared/src/types/auth.ts
+
+        export interface JwtPayload {
+          sub: string;           // User ID
+          sessionId: string;     // Session identifier
+          workspaceId?: string;  // Optional workspace context
+          email: string;         // User email
+          name: string;          // User display name
+          iat: number;           // Issued at (Unix timestamp)
+          exp: number;           // Expiration (Unix timestamp)
+        }
+
+        Note: This is the authoritative structure for JWT tokens issued by better-auth.
+        Python middleware must decode tokens matching this structure.
+      </jwt-payload-type>
+    </shared-types-package>
+
+    <database-package>
+      <connection>
+        File: packages/db/prisma/schema.prisma
+
+        Database: PostgreSQL 16
+        Connection: Via DATABASE_URL environment variable
+        Prisma uses: "postgresql://postgres:postgres_dev_password@localhost:5432/hyvve"
+        AgentOS uses: "postgresql://postgres:postgres_dev_password@postgres:5432/hyvve"
+
+        Note: Different hostnames (localhost vs postgres) because:
+        - Prisma runs on host machine
+        - AgentOS runs in Docker container
+      </connection>
+    </database-package>
+  </existing-code-context>
+
+  <dependencies>
+    <story-dependencies>
+      <dependency id="00-1" status="DONE">
+        Story 00-1: Initialize Monorepo with Turborepo
+        Provides: Monorepo structure, Turborepo configuration
+      </dependency>
+
+      <dependency id="00-4" status="DONE">
+        Story 00-4: Set Up Database Package with Prisma
+        Provides: PostgreSQL schema, DATABASE_URL configuration, Prisma client
+      </dependency>
+
+      <dependency id="00-5" status="DONE">
+        Story 00-5: Configure Docker Development Environment
+        Provides: Docker Compose setup, PostgreSQL container, Redis container, AgentOS placeholder
+      </dependency>
+
+      <dependency id="00-6" status="DONE">
+        Story 00-6: Set Up Shared Types Package
+        Provides: JwtPayload type definition, shared TypeScript types
+      </dependency>
+    </story-dependencies>
+
+    <python-packages>
+      <package name="agno" version="latest">
+        Purpose: AI agent framework with 40+ model providers
+        Features: Agents, Teams, Workflows, HITL patterns, Control Plane integration
+        Documentation: https://docs.agno.com
+      </package>
+
+      <package name="fastapi" version="0.109.0">
+        Purpose: Web framework for building APIs
+        Features: Automatic OpenAPI docs, async support, dependency injection
+        Status: Already installed (Story 00-5)
+      </package>
+
+      <package name="uvicorn" version="0.27.0">
+        Purpose: ASGI server for running FastAPI applications
+        Features: Hot reload, WebSocket support, production-ready
+        Status: Already installed (Story 00-5)
+      </package>
+
+      <package name="pyjwt" version="2.8.0">
+        Purpose: JWT encoding and decoding
+        Features: Token validation, signature verification, expiration handling
+        Status: Already installed (Story 00-5)
+      </package>
+
+      <package name="sqlalchemy" version="2.0+">
+        Purpose: Database ORM for Python
+        Features: Schema definition, migrations, query building
+        Status: NEW - needs installation
+      </package>
+
+      <package name="psycopg2-binary" version="2.9+">
+        Purpose: PostgreSQL adapter for Python
+        Features: Database connectivity, binary protocol
+        Status: NEW - needs installation
+      </package>
+
+      <package name="python-dotenv" version="1.0+">
+        Purpose: Load environment variables from .env files
+        Features: Development configuration, .env file parsing
+        Status: NEW - optional but recommended
+      </package>
+
+      <package name="pydantic" version="2.0+">
+        Purpose: Data validation using Python type annotations
+        Features: Settings management, validation, serialization
+        Status: NEW - required for FastAPI 0.109+
+      </package>
+    </python-packages>
+
+    <external-services>
+      <service name="PostgreSQL 16">
+        Container: hyvve_postgres
+        Port: 5432
+        Database: hyvve
+        User: postgres
+        Password: postgres_dev_password
+        Health Check: pg_isready -U postgres
+        Status: Running (from Story 00-5)
+      </service>
+
+      <service name="Redis 7">
+        Container: hyvve_redis
+        Port: 6379
+        Persistence: Append-only file (AOF)
+        Health Check: redis-cli ping
+        Status: Running (from Story 00-5)
+      </service>
+
+      <service name="Agno Control Plane (Optional)">
+        URL: os.agno.com
+        Purpose: Agent monitoring and debugging
+        Connection: Browser-based, no data sent to Agno
+        Status: Optional for MVP
+      </service>
+    </external-services>
+  </dependencies>
+
+  <implementation-guide>
+    <step number="1">
+      <task>Create agents/config.py for environment configuration</task>
+      <implementation>
+        Create a Pydantic Settings class to manage environment variables:
+
+        ```python
+        from pydantic_settings import BaseSettings
+        from typing import Optional
+
+        class Settings(BaseSettings):
+            # Database
+            database_url: str
+
+            # Redis
+            redis_url: Optional[str] = None
+
+            # Authentication
+            better_auth_secret: str
+
+            # Server
+            agentos_host: str = "0.0.0.0"
+            agentos_port: int = 7777
+
+            # Control Plane (optional)
+            control_plane_api_key: Optional[str] = None
+            control_plane_url: Optional[str] = None
+
+            class Config:
+                env_file = ".env"
+                case_sensitive = False
+
+        settings = Settings()
+        ```
+      </implementation>
+    </step>
+
+    <step number="2">
+      <task>Create agents/middleware/__init__.py</task>
+      <implementation>
+        Empty file to make middleware a Python package:
+
+        ```python
+        # Empty file - package initialization
+        ```
+      </implementation>
+    </step>
+
+    <step number="3">
+      <task>Create agents/middleware/tenant.py with JWT validation</task>
+      <implementation>
+        Implement tenant middleware to extract workspace_id from JWT:
+
+        ```python
+        from starlette.middleware.base import BaseHTTPMiddleware
+        from starlette.requests import Request
+        from starlette.responses import JSONResponse
+        import jwt
+        import os
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        class TenantMiddleware(BaseHTTPMiddleware):
+            """
+            Middleware to extract workspace_id from JWT token.
+
+            Validates JWT using BETTER_AUTH_SECRET and injects:
+            - request.state.user_id (from 'sub' claim)
+            - request.state.workspace_id (from 'workspaceId' claim, optional)
+            - request.state.session_id (from 'sessionId' claim)
+            """
+
+            def __init__(self, app, secret_key: str):
+                super().__init__(app)
+                self.secret_key = secret_key
+
+            async def dispatch(self, request: Request, call_next):
+                # Extract Authorization header
+                auth_header = request.headers.get("Authorization", "")
+
+                if auth_header.startswith("Bearer "):
+                    token = auth_header[7:]  # Remove "Bearer " prefix
+
+                    try:
+                        # Decode JWT (for MVP, skip signature verification)
+                        # In production, use: jwt.decode(token, self.secret_key, algorithms=["HS256"])
+                        claims = jwt.decode(token, options={"verify_signature": False})
+
+                        # Extract claims and inject into request state
+                        request.state.user_id = claims.get("sub")
+                        request.state.session_id = claims.get("sessionId")
+                        request.state.workspace_id = claims.get("workspaceId")  # Optional
+                        request.state.email = claims.get("email")
+                        request.state.name = claims.get("name")
+
+                        logger.debug(
+                            f"Tenant context: user={request.state.user_id}, "
+                            f"workspace={request.state.workspace_id}"
+                        )
+
+                    except jwt.ExpiredSignatureError:
+                        return JSONResponse(
+                            status_code=403,
+                            content={"error": {"code": "TOKEN_EXPIRED", "message": "JWT token has expired"}}
+                        )
+                    except jwt.DecodeError:
+                        return JSONResponse(
+                            status_code=403,
+                            content={"error": {"code": "INVALID_TOKEN", "message": "Invalid JWT token"}}
+                        )
+                    except Exception as e:
+                        logger.error(f"JWT validation error: {e}")
+                        return JSONResponse(
+                            status_code=403,
+                            content={"error": {"code": "AUTH_ERROR", "message": "Authentication error"}}
+                        )
+                else:
+                    # No Authorization header - set state to None
+                    # Individual endpoints can check if auth is required
+                    request.state.user_id = None
+                    request.state.workspace_id = None
+                    request.state.session_id = None
+
+                # Continue processing request
+                response = await call_next(request)
+                return response
+        ```
+      </implementation>
+      <note>
+        For MVP, signature verification is optional (verify_signature=False).
+        In production, enable signature verification using BETTER_AUTH_SECRET.
+      </note>
+    </step>
+
+    <step number="4">
+      <task>Update agents/main.py with full implementation</task>
+      <implementation>
+        Replace placeholder with production-ready FastAPI app:
+
+        ```python
+        """
+        HYVVE AgentOS - AI Agent Runtime
+
+        Production runtime for Agno agents with tenant isolation,
+        JWT authentication, and Control Plane monitoring support.
+        """
+
+        from fastapi import FastAPI, Request
+        from fastapi.middleware.cors import CORSMiddleware
+        from middleware.tenant import TenantMiddleware
+        from config import settings
+        import logging
+        import os
+
+        # Configure logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        logger = logging.getLogger(__name__)
+
+        # Create FastAPI application
+        app = FastAPI(
+            title="HYVVE AgentOS",
+            description="AI Agent Runtime with tenant isolation and BYOAI support",
+            version="0.1.0",
+            docs_url="/docs",
+            redoc_url="/redoc"
+        )
+
+        # CORS middleware
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[
+                "http://localhost:3000",  # Next.js frontend
+                "http://localhost:3001",  # NestJS API
+            ],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
+        # Tenant middleware (JWT validation and workspace_id injection)
+        app.add_middleware(
+            TenantMiddleware,
+            secret_key=settings.better_auth_secret
+        )
+
+        @app.on_event("startup")
+        async def startup_event():
+            """Initialize services on startup"""
+            logger.info("AgentOS starting up...")
+            logger.info(f"Version: 0.1.0")
+            logger.info(f"Port: {settings.agentos_port}")
+            logger.info(f"Database: {'configured' if settings.database_url else 'not configured'}")
+            logger.info(f"Redis: {'configured' if settings.redis_url else 'not configured'}")
+
+        @app.get("/")
+        async def root():
+            """Root endpoint with service information"""
+            return {
+                "service": "HYVVE AgentOS",
+                "version": "0.1.0",
+                "status": "operational",
+                "documentation": "/docs"
+            }
+
+        @app.get("/health")
+        async def health(request: Request):
+            """
+            Health check endpoint
+
+            Returns service status, version, and configuration info.
+            Does not require authentication.
+            """
+            return {
+                "status": "ok",
+                "version": "0.1.0",
+                "environment": {
+                    "database_configured": bool(settings.database_url),
+                    "redis_configured": bool(settings.redis_url),
+                    "port": str(settings.agentos_port)
+                },
+                "tenant_context": {
+                    "user_id": getattr(request.state, "user_id", None),
+                    "workspace_id": getattr(request.state, "workspace_id", None)
+                }
+            }
+
+        if __name__ == "__main__":
+            import uvicorn
+            uvicorn.run(
+                app,
+                host=settings.agentos_host,
+                port=settings.agentos_port,
+                log_level="info"
+            )
+        ```
+      </implementation>
+    </step>
+
+    <step number="5">
+      <task>Update agents/requirements.txt with full dependencies</task>
+      <implementation>
+        ```
+        # Web Framework
+        fastapi==0.109.0
+        uvicorn[standard]==0.27.0
+
+        # AI Agent Framework
+        agno>=0.1.0
+
+        # Database
+        sqlalchemy>=2.0.0
+        psycopg2-binary>=2.9.0
+
+        # Authentication
+        pyjwt==2.8.0
+
+        # Configuration
+        python-dotenv>=1.0.0
+        pydantic>=2.0.0
+        pydantic-settings>=2.0.0
+
+        # Utilities
+        requests>=2.31.0
+        ```
+      </implementation>
+      <note>
+        The agno package name and version may need verification.
+        Check https://pypi.org/project/agno/ for latest stable version.
+      </note>
+    </step>
+
+    <step number="6">
+      <task>Update agents/Dockerfile to copy all necessary files</task>
+      <implementation>
+        Update COPY commands to include new files:
+
+        ```dockerfile
+        # AgentOS Dockerfile
+        FROM python:3.12-slim
+
+        # Set working directory
+        WORKDIR /app
+
+        # Install system dependencies
+        RUN apt-get update &amp;&amp; apt-get install -y \
+            gcc \
+            postgresql-client \
+            &amp;&amp; rm -rf /var/lib/apt/lists/*
+
+        # Copy requirements and install Python dependencies
+        COPY requirements.txt .
+        RUN pip install --no-cache-dir -r requirements.txt
+
+        # Copy application code
+        COPY main.py .
+        COPY config.py .
+        COPY middleware/ ./middleware/
+
+        # Copy platform agents (optional for Story 00-7, will be used in EPIC-04)
+        COPY platform/ ./platform/
+
+        # Expose AgentOS port
+        EXPOSE 7777
+
+        # Health check
+        HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+            CMD python -c "import requests; requests.get('http://localhost:7777/health')"
+
+        # Run the application
+        CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7777"]
+        ```
+      </implementation>
+    </step>
+
+    <step number="7">
+      <task>Create agents/.env.example for development reference</task>
+      <implementation>
+        ```bash
+        # AgentOS Environment Variables
+
+        # Database (PostgreSQL)
+        DATABASE_URL=postgresql://postgres:postgres_dev_password@postgres:5432/hyvve
+
+        # Redis (Cache, Queue, Events)
+        REDIS_URL=redis://redis:6379
+
+        # Authentication (shared with Next.js/NestJS)
+        BETTER_AUTH_SECRET=dev_secret_change_in_production
+
+        # Server Configuration
+        AGENTOS_HOST=0.0.0.0
+        AGENTOS_PORT=7777
+
+        # Control Plane (Optional - for agent monitoring)
+        # CONTROL_PLANE_API_KEY=your_api_key_here
+        # CONTROL_PLANE_URL=https://os.agno.com
+        ```
+      </implementation>
+    </step>
+
+    <step number="8">
+      <task>Verify docker-compose.yml configuration (no changes needed)</task>
+      <verification>
+        Confirm docker/docker-compose.yml has agentos service with:
+        - Build context: ../agents
+        - Port mapping: 7777:7777
+        - Environment variables: DATABASE_URL, REDIS_URL, BETTER_AUTH_SECRET
+        - Dependencies: postgres (healthy), redis (healthy)
+        - Network: hyvve_network
+
+        Current configuration from Story 00-5 is correct. No changes needed.
+      </verification>
+    </step>
+  </implementation-guide>
+
+  <file-changes-expected>
+    <new-files>
+      <file path="agents/config.py">
+        Purpose: Environment configuration using Pydantic Settings
+        Size: ~30 lines
+      </file>
+
+      <file path="agents/middleware/__init__.py">
+        Purpose: Make middleware a Python package
+        Size: ~1 line (empty or comment)
+      </file>
+
+      <file path="agents/middleware/tenant.py">
+        Purpose: JWT validation and workspace_id injection
+        Size: ~80 lines
+      </file>
+
+      <file path="agents/.env.example">
+        Purpose: Example environment variables for development
+        Size: ~20 lines
+      </file>
+    </new-files>
+
+    <updated-files>
+      <file path="agents/main.py">
+        Changes: Replace placeholder with production FastAPI app
+        - Add imports for TenantMiddleware and config
+        - Add middleware registration
+        - Update health endpoint to include tenant context
+        - Add logging configuration
+        - Update version from "0.1.0-placeholder" to "0.1.0"
+      </file>
+
+      <file path="agents/requirements.txt">
+        Changes: Add full dependency list
+        - Add agno
+        - Add sqlalchemy
+        - Add psycopg2-binary
+        - Add python-dotenv
+        - Add pydantic and pydantic-settings
+        - Keep existing: fastapi, uvicorn, pyjwt, requests
+      </file>
+
+      <file path="agents/Dockerfile">
+        Changes: Update COPY commands to include new files
+        - Change "COPY main.py ." to include config.py and middleware/
+        - Add "COPY config.py ."
+        - Add "COPY middleware/ ./middleware/"
+        - Optionally copy platform/ for future use
+      </file>
+    </updated-files>
+
+    <no-changes-needed>
+      <file path="docker/docker-compose.yml">
+        Reason: AgentOS service already configured correctly in Story 00-5
+      </file>
+
+      <file path="agents/platform/*">
+        Reason: Placeholder agents from Story 00-5 will be used in EPIC-04
+      </file>
+    </no-changes-needed>
+  </file-changes-expected>
+
+  <testing-requirements>
+    <manual-tests>
+      <test id="1">
+        <name>Docker Build Test</name>
+        <steps>
+          1. Navigate to agents/ directory
+          2. Run: docker build -t hyvve-agentos .
+          3. Verify: Build succeeds without errors
+          4. Verify: All dependencies install successfully
+        </steps>
+        <expected>Build completes successfully with "Successfully tagged hyvve-agentos:latest"</expected>
+      </test>
+
+      <test id="2">
+        <name>Docker Compose Startup Test</name>
+        <steps>
+          1. Navigate to project root
+          2. Run: docker compose -f docker/docker-compose.yml up -d
+          3. Wait 30 seconds for services to start
+          4. Run: docker compose -f docker/docker-compose.yml ps
+          5. Verify: All services (postgres, redis, agentos) are "Up (healthy)"
+        </steps>
+        <expected>All three containers running with healthy status</expected>
+      </test>
+
+      <test id="3">
+        <name>Health Check Test</name>
+        <steps>
+          1. Ensure AgentOS is running
+          2. Run: curl http://localhost:7777/health
+          3. Verify response matches expected structure
+        </steps>
+        <expected>
+          {
+            "status": "ok",
+            "version": "0.1.0",
+            "environment": {
+              "database_configured": true,
+              "redis_configured": true,
+              "port": "7777"
+            },
+            "tenant_context": {
+              "user_id": null,
+              "workspace_id": null
+            }
+          }
+        </expected>
+      </test>
+
+      <test id="4">
+        <name>JWT Middleware Test (Valid Token)</name>
+        <steps>
+          1. Generate a test JWT with payload:
+             {
+               "sub": "user_123",
+               "sessionId": "session_456",
+               "workspaceId": "workspace_789",
+               "email": "test@hyvve.local",
+               "name": "Test User",
+               "iat": 1701000000,
+               "exp": 1701100000
+             }
+          2. Run: curl -H "Authorization: Bearer &lt;token&gt;" http://localhost:7777/health
+          3. Verify workspace_id extracted in response
+        </steps>
+        <expected>
+          Response includes:
+          "tenant_context": {
+            "user_id": "user_123",
+            "workspace_id": "workspace_789"
+          }
+        </expected>
+        <note>Can use https://jwt.io to generate test tokens for development</note>
+      </test>
+
+      <test id="5">
+        <name>JWT Middleware Test (Missing Token)</name>
+        <steps>
+          1. Run: curl http://localhost:7777/health
+          2. Verify health endpoint still responds (it's public)
+        </steps>
+        <expected>
+          Response includes:
+          "tenant_context": {
+            "user_id": null,
+            "workspace_id": null
+          }
+        </expected>
+      </test>
+
+      <test id="6">
+        <name>JWT Middleware Test (Invalid Token)</name>
+        <steps>
+          1. Run: curl -H "Authorization: Bearer invalid_token_here" http://localhost:7777/health
+          2. For protected endpoints (future), should return 403
+          3. For public health endpoint, should still work
+        </steps>
+        <expected>Public endpoints work, protected endpoints return 403 Forbidden</expected>
+      </test>
+
+      <test id="7">
+        <name>Container Restart Test</name>
+        <steps>
+          1. Run: docker compose -f docker/docker-compose.yml restart agentos
+          2. Wait 10 seconds
+          3. Run: curl http://localhost:7777/health
+          4. Verify service responds correctly
+        </steps>
+        <expected>AgentOS restarts cleanly and responds to health checks</expected>
+      </test>
+
+      <test id="8">
+        <name>Logs Test</name>
+        <steps>
+          1. Run: docker compose -f docker/docker-compose.yml logs agentos
+          2. Verify startup logs include:
+             - "AgentOS starting up..."
+             - "Version: 0.1.0"
+             - Database and Redis configuration status
+        </steps>
+        <expected>Logs show clean startup with configuration info</expected>
+      </test>
+    </manual-tests>
+
+    <integration-tests>
+      <test name="PostgreSQL Connection">
+        Description: Verify AgentOS can connect to PostgreSQL
+        Method: Add database connection test to health endpoint (optional)
+        Expected: Connection succeeds using DATABASE_URL
+      </test>
+
+      <test name="Redis Connection">
+        Description: Verify AgentOS can connect to Redis
+        Method: Add Redis ping test to health endpoint (optional)
+        Expected: Connection succeeds using REDIS_URL
+      </test>
+
+      <test name="JWT Token Compatibility">
+        Description: Verify JWT tokens from better-auth work in AgentOS
+        Method: Create JWT in Next.js, pass to AgentOS, verify extraction
+        Expected: Workspace_id and user_id correctly extracted
+        Note: Requires EPIC-01 completion for real better-auth tokens
+      </test>
+    </integration-tests>
+  </testing-requirements>
+
+  <notes>
+    <note category="control-plane">
+      Control Plane integration (os.agno.com) is optional for MVP.
+      The connection is browser-based - no data sent to Agno servers.
+      Can be added in future epics for enhanced agent monitoring.
+    </note>
+
+    <note category="jwt-signature">
+      For MVP, JWT signature verification can be skipped (verify_signature=False).
+      In production, enable full signature verification using BETTER_AUTH_SECRET.
+      This is acceptable for Story 00-7 as we're focusing on runtime setup, not security hardening.
+    </note>
+
+    <note category="agno-package">
+      The exact package name for Agno may be "agno" or "agentops" - verify on PyPI.
+      Check documentation at https://docs.agno.com for installation instructions.
+      If package name differs, update requirements.txt accordingly.
+    </note>
+
+    <note category="database-schema">
+      AgentOS will use agno_* tables in the same PostgreSQL database.
+      The main application (NestJS/Prisma) uses the hyvve schema.
+      Schema separation prevents conflicts and maintains clean boundaries.
+      Full schema setup will be in EPIC-04 when implementing actual agents.
+    </note>
+
+    <note category="future-work">
+      Future epics will implement:
+      - EPIC-04: Actual Agno agents (approval_agent, orchestrator_agent)
+      - EPIC-04: NestJS ↔ AgentOS HTTP bridge
+      - EPIC-04: Control Plane connection configuration
+      - EPIC-06: BYOAI provider integration with Agno
+
+      Story 00-7 focuses solely on runtime environment setup.
+    </note>
+
+    <note category="platform-agents">
+      The agents/platform/ directory contains placeholder agents from Story 00-5.
+      These will be fully implemented in EPIC-04 (Approval Queue System).
+      For Story 00-7, just ensure they're copied in Dockerfile for future use.
+    </note>
+  </notes>
+</story-context>
