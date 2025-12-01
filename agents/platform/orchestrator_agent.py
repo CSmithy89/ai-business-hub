@@ -36,6 +36,47 @@ PRINCIPLES = [
 
 # Module registry - maps capabilities to agents
 MODULE_REGISTRY = {
+    # ============================================================================
+    # Business Onboarding Modules (BMAD Foundation)
+    # ============================================================================
+    "bmv": {
+        "name": "Business Model Validation",
+        "description": "Idea validation, market sizing, competitor analysis, customer discovery",
+        "agents": ["Vera", "Marco", "Cipher", "Persona", "Risk"],
+        "capabilities": [
+            "idea_intake", "market_sizing", "tam_sam_som",
+            "competitor_analysis", "customer_discovery", "icp_creation",
+            "risk_assessment", "validation_synthesis",
+        ],
+        "team_leader": "Vera",
+    },
+    "bmp": {
+        "name": "Business Planning",
+        "description": "Business model canvas, financial projections, pricing strategy, growth forecasting",
+        "agents": ["Blake", "Model", "Finn", "Revenue", "Forecast"],
+        "capabilities": [
+            "business_model_canvas", "value_proposition",
+            "financial_projections", "unit_economics", "funding_requirements",
+            "pricing_strategy", "revenue_model", "growth_forecast",
+            "milestone_roadmap", "business_plan_synthesis",
+        ],
+        "team_leader": "Blake",
+    },
+    "bmb": {
+        "name": "Business Branding",
+        "description": "Brand strategy, voice architecture, visual identity, asset generation",
+        "agents": ["Bella", "Sage", "Vox", "Iris", "Artisan", "Audit"],
+        "capabilities": [
+            "brand_strategy", "brand_archetype", "brand_positioning",
+            "brand_voice", "tone_guidelines", "messaging_framework",
+            "visual_identity", "color_system", "typography", "logo_system",
+            "asset_generation", "brand_guidelines", "brand_audit",
+        ],
+        "team_leader": "Bella",
+    },
+    # ============================================================================
+    # Operational Modules
+    # ============================================================================
     "bm-crm": {
         "name": "CRM Module",
         "description": "Contact management, companies, deals, pipelines",

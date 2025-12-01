@@ -68,7 +68,7 @@ development_status:
   # Phase 1 - Core Foundation | 7 stories | 16 points
   # ===========================================
   epic-02: contexted
-  02-1-create-workspace-crud-operations: backlog
+  02-1-create-workspace-crud-operations: done
   02-2-implement-member-invitation-system: backlog
   02-3-implement-invitation-acceptance: backlog
   02-4-implement-workspace-switching: backlog

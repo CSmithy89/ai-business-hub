@@ -1,0 +1,844 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>02-1</story-id>
+    <story-name>Create Workspace CRUD Operations</story-name>
+    <epic>EPIC-02 - Workspace Management</epic>
+    <priority>P0 - Critical</priority>
+    <points>3</points>
+    <generated-date>2025-12-02</generated-date>
+  </metadata>
+
+  <story-requirements>
+    <summary>
+      Implement the core CRUD operations for workspace management, establishing the foundational
+      multi-tenant isolation boundary for HYVVE. Each workspace represents a single tenant, with
+      automatic slug generation, role-based access control, and soft deletion capabilities.
+    </summary>
+
+    <key-features>
+      <feature>Create workspace with auto-generated unique slug (format: {sanitized-name}-{nanoid(6)})</feature>
+      <feature>List all workspaces for authenticated user with role information</feature>
+      <feature>Get workspace details with member count</feature>
+      <feature>Update workspace settings (owner/admin only)</feature>
+      <feature>Soft delete workspace (owner only) with 30-day grace period</feature>
+      <feature>Automatic owner membership creation on workspace creation</feature>
+      <feature>Session context update with active workspace ID</feature>
+    </key-features>
+
+    <acceptance-criteria>
+      <criterion id="AC-2.1.1">
+        User can create workspace: POST /api/workspaces with name → workspace created with auto-slug,
+        user set as owner, session updated with workspace ID
+      </criterion>
+      <criterion id="AC-2.1.2">
+        Slug auto-generated unique: "My Business" → "my-business-abc123" (lowercase, alphanumeric + hyphens,
+        6-char nanoid suffix, uniqueness validated)
+      </criterion>
+      <criterion id="AC-2.1.3">
+        Workspace list returns user's workspaces: GET /api/workspaces → all workspaces with role,
+        sorted by updatedAt DESC
+      </criterion>
+      <criterion id="AC-2.1.4">
+        Workspace update restricted: Member role attempting PATCH → 403 Forbidden
+        "Insufficient permissions. Owner or Admin role required."
+      </criterion>
+      <criterion id="AC-2.1.5">
+        Workspace soft delete: Owner DELETE → deletedAt timestamp set, access blocked,
+        30-day grace period before hard delete
+      </criterion>
+    </acceptance-criteria>
+  </story-requirements>
+
+  <technical-context>
+    <architecture>
+      <overview>
+        Workspace management follows the multi-tenant architecture (ADR-003) where workspaceId
+        serves as the tenant isolation boundary. All workspace operations are implemented as
+        Next.js API routes in apps/web/src/app/api/workspaces/ rather than NestJS endpoints
+        (ADR-002: platform API vs module API distinction).
+      </overview>
+
+      <session-management>
+        The better-auth session includes activeWorkspaceId in the Session model (schema.prisma line 49).
+        After workspace creation or switching, this field must be updated to maintain workspace
+        context across requests. Future Epic 03 will implement Prisma Client Extension to
+        automatically filter queries by active workspace.
+      </session-management>
+
+      <tenant-isolation>
+        All workspace-scoped data models require workspaceId foreign key with index for query
+        performance. Soft delete is implemented via deletedAt timestamp with query filter
+        (WHERE deletedAt IS NULL) to exclude deleted workspaces from all operations.
+      </tenant-isolation>
+    </architecture>
+
+    <database-schema>
+      <model name="Workspace">
+        <location>packages/db/prisma/schema.prisma (lines 99-122)</location>
+        <fields>
+          <field name="id" type="String" note="UUID primary key" />
+          <field name="name" type="String" note="Workspace display name (3-50 chars)" />
+          <field name="slug" type="String" note="Unique URL-safe identifier" />
+          <field name="image" type="String?" note="Optional workspace avatar URL" />
+          <field name="timezone" type="String" note="IANA timezone, default UTC" />
+          <field name="createdAt" type="DateTime" note="Auto-generated" />
+          <field name="updatedAt" type="DateTime" note="Auto-updated on changes" />
+          <field name="deletedAt" type="DateTime?" note="Soft delete timestamp" />
+        </fields>
+        <indexes>
+          <index>@@unique on slug</index>
+          <index>@@index on slug (for lookup)</index>
+          <index>@@index on deletedAt (for filtering)</index>
+        </indexes>
+        <relations>
+          <relation>members: WorkspaceMember[]</relation>
+          <relation>aiProviders: AIProviderConfig[]</relation>
+          <relation>approvals: ApprovalItem[]</relation>
+          <relation>apiKeys: ApiKey[]</relation>
+        </relations>
+      </model>
+
+      <model name="WorkspaceMember">
+        <location>packages/db/prisma/schema.prisma (lines 124-143)</location>
+        <fields>
+          <field name="id" type="String" note="UUID primary key" />
+          <field name="userId" type="String" note="Foreign key to User" />
+          <field name="workspaceId" type="String" note="Foreign key to Workspace" />
+          <field name="role" type="String" note="owner | admin | member | viewer | guest" />
+          <field name="modulePermissions" type="Json?" note="Module-level overrides (Epic 03)" />
+          <field name="invitedById" type="String?" note="Who invited this member" />
+          <field name="invitedAt" type="DateTime" note="Invitation timestamp" />
+          <field name="acceptedAt" type="DateTime?" note="Acceptance timestamp" />
+        </fields>
+        <constraints>
+          <constraint>@@unique on [userId, workspaceId] - user can only belong once</constraint>
+        </constraints>
+        <indexes>
+          <index>@@index on workspaceId (for member queries)</index>
+          <index>@@index on userId (for user's workspace list)</index>
+        </indexes>
+      </model>
+
+      <model name="Session">
+        <location>packages/db/prisma/schema.prisma (lines 42-60)</location>
+        <relevant-field name="activeWorkspaceId" type="String?" note="Current workspace context (line 49)" />
+        <note>
+          This field must be updated after workspace creation/switching to maintain workspace
+          context in JWT claims for tenant isolation.
+        </note>
+      </model>
+    </database-schema>
+
+    <api-endpoints>
+      <endpoint method="POST" path="/api/workspaces">
+        <location>apps/web/src/app/api/workspaces/route.ts</location>
+        <description>Create new workspace with auto-generated slug and owner membership</description>
+        <request-body>
+          <field name="name" type="string" validation="3-50 characters" />
+        </request-body>
+        <response status="201">
+          <field name="data" type="Workspace" note="Created workspace object" />
+        </response>
+        <errors>
+          <error status="400">Invalid name (too short/long)</error>
+          <error status="409">Slug collision after 3 retry attempts</error>
+          <error status="500">Database transaction failure</error>
+        </errors>
+        <implementation-steps>
+          1. Validate request body with Zod schema (CreateWorkspaceSchema)
+          2. Generate slug using generateUniqueSlug utility
+          3. Create workspace and member in transaction (atomic operation)
+          4. Update session with activeWorkspaceId
+          5. Emit event: workspace.created
+          6. Return workspace data
+        </implementation-steps>
+      </endpoint>
+
+      <endpoint method="GET" path="/api/workspaces">
+        <location>apps/web/src/app/api/workspaces/route.ts</location>
+        <description>List all workspaces where user is a member</description>
+        <response status="200">
+          <field name="data" type="WorkspaceWithRole[]" note="Array of workspaces with user's role" />
+        </response>
+        <implementation-steps>
+          1. Get authenticated user ID from session
+          2. Query workspaces via WorkspaceMember join
+          3. Filter: deletedAt IS NULL
+          4. Include user's role from WorkspaceMember
+          5. Sort by updatedAt DESC
+          6. Return workspace array
+        </implementation-steps>
+      </endpoint>
+
+      <endpoint method="GET" path="/api/workspaces/[id]">
+        <location>apps/web/src/app/api/workspaces/[id]/route.ts</location>
+        <description>Get workspace details with member count</description>
+        <response status="200">
+          <field name="data" type="WorkspaceWithRole" note="Workspace with memberCount and userRole" />
+        </response>
+        <errors>
+          <error status="404">Workspace not found or user not a member</error>
+          <error status="410">Workspace is soft-deleted</error>
+        </errors>
+        <implementation-steps>
+          1. Validate workspace ID format (UUID)
+          2. Check user membership via requireWorkspaceMembership middleware
+          3. Query workspace with member count aggregate
+          4. Return workspace data with user's role
+        </implementation-steps>
+      </endpoint>
+
+      <endpoint method="PATCH" path="/api/workspaces/[id]">
+        <location>apps/web/src/app/api/workspaces/[id]/route.ts</location>
+        <description>Update workspace settings (owner/admin only)</description>
+        <request-body>
+          <field name="name" type="string?" validation="3-50 characters, optional" />
+          <field name="image" type="string?" validation="URL or null, optional" />
+          <field name="timezone" type="string?" validation="Valid IANA timezone, optional" />
+        </request-body>
+        <response status="200">
+          <field name="data" type="Workspace" note="Updated workspace object" />
+        </response>
+        <errors>
+          <error status="403">User lacks owner/admin role</error>
+          <error status="400">Invalid timezone or name</error>
+          <error status="404">Workspace not found</error>
+        </errors>
+        <implementation-steps>
+          1. Validate workspace ID and user membership
+          2. Check user role is "owner" or "admin" via requireRole
+          3. Validate request body fields
+          4. If name changed: regenerate slug with new name
+          5. Update workspace record
+          6. Emit event: workspace.updated
+          7. Return updated workspace
+        </implementation-steps>
+      </endpoint>
+
+      <endpoint method="DELETE" path="/api/workspaces/[id]">
+        <location>apps/web/src/app/api/workspaces/[id]/route.ts</location>
+        <description>Soft delete workspace (owner only, 30-day grace period)</description>
+        <response status="200">
+          <field name="success" type="boolean" value="true" />
+          <field name="message" type="string" value="Workspace scheduled for deletion in 30 days" />
+          <field name="deletedAt" type="string" note="ISO 8601 timestamp" />
+        </response>
+        <errors>
+          <error status="403">User is not owner</error>
+          <error status="404">Workspace not found</error>
+          <error status="409">Workspace already deleted</error>
+        </errors>
+        <implementation-steps>
+          1. Validate workspace ID and user membership
+          2. Check user role is exactly "owner"
+          3. Update workspace: deletedAt = now()
+          4. Send confirmation email to owner (via sendWorkspaceDeletionEmail)
+          5. Schedule hard delete job (30 days from now - Epic 05)
+          6. Emit event: workspace.deleted
+          7. Return success response
+        </implementation-steps>
+      </endpoint>
+    </api-endpoints>
+
+    <utilities-to-create>
+      <utility name="Slug Generation">
+        <location>apps/web/src/lib/workspace.ts</location>
+        <function name="generateSlug">
+          <signature>generateSlug(name: string): string</signature>
+          <description>
+            Convert workspace name to URL-safe slug with unique nanoid suffix.
+            Format: {sanitized-name}-{nanoid(6)}
+          </description>
+          <implementation>
+            1. Convert name to lowercase
+            2. Replace non-alphanumeric characters with hyphens
+            3. Remove leading/trailing hyphens
+            4. Append 6-character nanoid for uniqueness
+            5. Return formatted slug
+          </implementation>
+        </function>
+        <function name="generateUniqueSlug">
+          <signature>generateUniqueSlug(name: string, checkExists: (slug: string) => Promise&lt;boolean&gt;): Promise&lt;string&gt;</signature>
+          <description>
+            Generate unique slug with collision retry logic (max 3 attempts).
+            Uses generateSlug internally with database uniqueness check.
+          </description>
+          <implementation>
+            1. Attempt to generate slug
+            2. Check if slug exists in database
+            3. If exists, retry with new nanoid (up to 3 times)
+            4. If all attempts fail, throw error
+            5. Return unique slug
+          </implementation>
+        </function>
+      </utility>
+
+      <utility name="Authorization Middleware">
+        <location>apps/web/src/middleware/workspace-auth.ts</location>
+        <function name="requireWorkspaceMembership">
+          <signature>requireWorkspaceMembership(req: NextRequest, workspaceId: string): Promise&lt;{ userId: string; role: string }&gt;</signature>
+          <description>
+            Validate user has membership in workspace and workspace is not deleted.
+            Returns user ID and role if authorized, throws error otherwise.
+          </description>
+          <implementation>
+            1. Get session from better-auth (await getSession())
+            2. Query WorkspaceMember by userId + workspaceId
+            3. If not found, throw 404 error
+            4. If workspace.deletedAt is set, throw 410 error
+            5. Return { userId, role }
+          </implementation>
+        </function>
+        <function name="requireRole">
+          <signature>requireRole(userRole: string, allowedRoles: string[]): void</signature>
+          <description>
+            Check if user's role is in allowed roles list. Throws 403 if not authorized.
+          </description>
+          <implementation>
+            1. Check if userRole in allowedRoles array
+            2. If not, throw Error with cause: { status: 403 }
+            3. Otherwise, return void (authorization passed)
+          </implementation>
+        </function>
+      </utility>
+
+      <utility name="Session Management">
+        <location>apps/web/src/lib/auth.ts</location>
+        <function name="updateSessionWorkspace">
+          <signature>updateSessionWorkspace(workspaceId: string): Promise&lt;void&gt;</signature>
+          <description>
+            Update the current session's activeWorkspaceId field in database.
+            Used after workspace creation or switching.
+          </description>
+          <implementation>
+            1. Get current session from better-auth
+            2. Update Session record: activeWorkspaceId = workspaceId
+            3. Force session token refresh (if needed by better-auth)
+            4. Return void
+          </implementation>
+        </function>
+      </utility>
+    </utilities-to-create>
+
+    <shared-types>
+      <location>packages/shared/src/types/workspace.ts</location>
+      <types-to-add>
+        <type name="WorkspaceRole">
+          <definition>type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest'</definition>
+          <note>Already defined in workspace.ts (line 10)</note>
+        </type>
+        <type name="Workspace">
+          <definition>
+interface Workspace {
+  id: string;
+  name: string;
+  slug: string;
+  image: string | null;
+  timezone: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
+          </definition>
+          <note>Update existing interface to match Prisma schema (add image, timezone, deletedAt)</note>
+        </type>
+        <type name="WorkspaceWithRole">
+          <definition>
+interface WorkspaceWithRole extends Workspace {
+  role: WorkspaceRole;
+  memberCount?: number;
+}
+          </definition>
+          <note>New interface for API responses that include user's role</note>
+        </type>
+      </types-to-add>
+
+      <validation-schemas>
+        <location>packages/shared/src/types/workspace.ts</location>
+        <schema name="CreateWorkspaceSchema">
+          <definition>
+export const CreateWorkspaceSchema = z.object({
+  name: z.string()
+    .min(3, 'Name must be at least 3 characters')
+    .max(50, 'Name must be under 50 characters'),
+});
+          </definition>
+        </schema>
+        <schema name="UpdateWorkspaceSchema">
+          <definition>
+export const UpdateWorkspaceSchema = z.object({
+  name: z.string().min(3).max(50).optional(),
+  image: z.string().url().nullable().optional(),
+  timezone: z.string().optional(), // TODO: Add IANA timezone validation
+});
+          </definition>
+        </schema>
+      </validation-schemas>
+    </shared-types>
+  </technical-context>
+
+  <existing-codebase-patterns>
+    <authentication>
+      <pattern name="Session Retrieval">
+        <description>Get current authenticated user from better-auth session</description>
+        <example>
+// Pattern from auth.ts and API routes
+import { auth } from '@/lib/auth'
+import { headers } from 'next/headers'
+
+export async function getSession() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
+  return session
+}
+
+// Usage in API route:
+const session = await getSession()
+if (!session?.user?.id) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+}
+const userId = session.user.id
+        </example>
+      </pattern>
+    </authentication>
+
+    <validation>
+      <pattern name="Zod Schema Validation">
+        <description>Request body validation with Zod (from resend-verification/route.ts)</description>
+        <example>
+import { z } from 'zod'
+
+const requestSchema = z.object({
+  name: z.string().min(3).max(50),
+})
+
+// In API route:
+const body = await request.json()
+const result = requestSchema.safeParse(body)
+
+if (!result.success) {
+  return NextResponse.json(
+    {
+      success: false,
+      error: 'INVALID_INPUT',
+      message: result.error.issues[0].message,
+    },
+    { status: 400 }
+  )
+}
+
+const { name } = result.data
+        </example>
+      </pattern>
+    </validation>
+
+    <database>
+      <pattern name="Prisma Client Import">
+        <description>Import Prisma client from @hyvve/db package</description>
+        <example>
+import { prisma } from '@hyvve/db'
+
+// Usage:
+const workspace = await prisma.workspace.create({
+  data: {
+    name: 'My Workspace',
+    slug: 'my-workspace-abc123',
+  }
+})
+        </example>
+      </pattern>
+
+      <pattern name="Transaction for Atomic Operations">
+        <description>Use Prisma transactions for multi-step database operations</description>
+        <example>
+const result = await prisma.$transaction(async (tx) => {
+  // Create workspace
+  const workspace = await tx.workspace.create({
+    data: {
+      name: data.name,
+      slug: slug,
+    }
+  })
+
+  // Create owner membership
+  await tx.workspaceMember.create({
+    data: {
+      userId: userId,
+      workspaceId: workspace.id,
+      role: 'owner',
+      acceptedAt: new Date(),
+    }
+  })
+
+  return workspace
+})
+        </example>
+      </pattern>
+    </database>
+
+    <error-handling>
+      <pattern name="API Error Responses">
+        <description>Consistent error response format (from resend-verification/route.ts)</description>
+        <example>
+// Success response:
+return NextResponse.json({
+  success: true,
+  data: workspace,
+})
+
+// Error response:
+return NextResponse.json(
+  {
+    success: false,
+    error: 'ERROR_CODE',
+    message: 'Human-readable error message',
+  },
+  { status: 400 }
+)
+
+// Always wrap in try-catch:
+try {
+  // ... API logic
+} catch (error) {
+  console.error('Error creating workspace:', error)
+  return NextResponse.json(
+    {
+      success: false,
+      error: 'INTERNAL_ERROR',
+      message: 'An error occurred while processing your request.',
+    },
+    { status: 500 }
+  )
+}
+        </example>
+      </pattern>
+    </error-handling>
+
+    <rate-limiting>
+      <pattern name="Rate Limit Check">
+        <description>Apply rate limiting to API endpoints (from rate-limit.ts)</description>
+        <example>
+import { checkRateLimit } from '@/lib/utils/rate-limit'
+
+// In API route:
+const rateLimitKey = `create-workspace:${userId}`
+const rateLimit = checkRateLimit(rateLimitKey, 5, 60 * 60) // 5 per hour
+
+if (rateLimit.isRateLimited) {
+  return NextResponse.json(
+    {
+      success: false,
+      error: 'RATE_LIMITED',
+      message: 'Too many workspace creation attempts. Please try again later.',
+      retryAfter: rateLimit.retryAfter,
+    },
+    { status: 429 }
+  )
+}
+        </example>
+      </pattern>
+    </rate-limiting>
+
+    <email>
+      <pattern name="Email Sending">
+        <description>Send transactional emails via Resend (from email.ts)</description>
+        <example>
+import { sendEmail } from '@/lib/email'
+
+// Email utility pattern (to be created for workspace deletion):
+export async function sendWorkspaceDeletionEmail(
+  to: string,
+  workspaceName: string,
+  deletedAt: Date
+): Promise&lt;void&gt; {
+  // For local development
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'test') {
+    console.log(`\n📧 Workspace Deletion Email (Local Dev Mode)`)
+    console.log(`To: ${to}`)
+    console.log(`Subject: Workspace "${workspaceName}" scheduled for deletion`)
+    console.log(`Deleted At: ${deletedAt.toISOString()}`)
+    return
+  }
+
+  // Production email sending via Resend
+  await resend.emails.send({
+    from: 'HYVVE &lt;onboarding@hyvve.app&gt;',
+    to,
+    subject: `Workspace "${workspaceName}" scheduled for deletion`,
+    html: `...email template...`,
+  })
+}
+        </example>
+      </pattern>
+    </email>
+  </existing-codebase-patterns>
+
+  <dependencies>
+    <npm-packages>
+      <package name="nanoid" version="^5.0.0" usage="Slug generation (unique suffix)" />
+      <package name="zod" version="^3.23.0" usage="Request validation schemas" />
+      <package name="@hyvve/db" internal="true" usage="Prisma client access" />
+      <package name="@hyvve/shared" internal="true" usage="Shared TypeScript types" />
+    </npm-packages>
+
+    <upstream-dependencies>
+      <dependency>Epic 00: Monorepo structure, Prisma package, Next.js setup</dependency>
+      <dependency>Epic 01: Authentication system, session management, User model</dependency>
+      <dependency>Prisma schema models: Workspace, WorkspaceMember, Session (already migrated)</dependency>
+    </upstream-dependencies>
+
+    <downstream-dependencies>
+      <dependency>Story 02.2: Member invitation system (requires workspace CRUD)</dependency>
+      <dependency>Story 02.4: Workspace switching (requires workspace list API)</dependency>
+      <dependency>Story 02.5: Member management (requires workspace authorization)</dependency>
+      <dependency>Epic 03: Prisma tenant extension (requires workspace context in session)</dependency>
+    </downstream-dependencies>
+  </dependencies>
+
+  <implementation-files>
+    <files-to-create>
+      <file path="apps/web/src/app/api/workspaces/route.ts">
+        Create/List workspaces endpoints (POST, GET)
+      </file>
+      <file path="apps/web/src/app/api/workspaces/[id]/route.ts">
+        Single workspace endpoints (GET, PATCH, DELETE)
+      </file>
+      <file path="apps/web/src/lib/workspace.ts">
+        Workspace utilities: slug generation, uniqueness check
+      </file>
+      <file path="apps/web/src/middleware/workspace-auth.ts">
+        Authorization middleware: membership check, role validation
+      </file>
+      <file path="apps/web/src/lib/__tests__/workspace.test.ts">
+        Unit tests for slug generation utilities
+      </file>
+      <file path="apps/web/src/app/api/workspaces/__tests__/workspaces.test.ts">
+        Integration tests for workspace API endpoints
+      </file>
+    </files-to-create>
+
+    <files-to-modify>
+      <file path="packages/shared/src/types/workspace.ts">
+        Update Workspace interface to match Prisma schema (add image, timezone, deletedAt).
+        Add WorkspaceWithRole interface.
+        Add CreateWorkspaceSchema and UpdateWorkspaceSchema Zod schemas.
+      </file>
+      <file path="apps/web/src/lib/auth.ts">
+        Add updateSessionWorkspace function to update activeWorkspaceId in session.
+      </file>
+      <file path="apps/web/src/lib/email.ts">
+        Add sendWorkspaceDeletionEmail function for deletion confirmation.
+      </file>
+    </files-to-modify>
+
+    <files-to-reference>
+      <file path="packages/db/prisma/schema.prisma">
+        Reference for Workspace, WorkspaceMember, Session models and relationships
+      </file>
+      <file path="apps/web/src/app/api/auth/resend-verification/route.ts">
+        Example API route structure, validation, error handling
+      </file>
+      <file path="apps/web/src/lib/validations/auth.ts">
+        Example Zod schema validation patterns
+      </file>
+      <file path="apps/web/src/lib/utils/rate-limit.ts">
+        Rate limiting utility for workspace creation endpoint
+      </file>
+      <file path="packages/shared/src/types/auth.ts">
+        Reference for JwtPayload and Session interfaces (includes workspaceId)
+      </file>
+    </files-to-reference>
+  </implementation-files>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-suite name="Slug Generation">
+        <location>apps/web/src/lib/__tests__/workspace.test.ts</location>
+        <test>generateSlug with valid name produces correct format</test>
+        <test>generateSlug with special characters sanitizes correctly</test>
+        <test>generateSlug with empty/whitespace name handles gracefully</test>
+        <test>generateUniqueSlug retries on collision up to 3 times</test>
+        <test>generateUniqueSlug throws error after 3 failed attempts</test>
+        <test>Slug format validation: lowercase, hyphens only, 6-char nanoid</test>
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <test-suite name="POST /api/workspaces">
+        <location>apps/web/src/app/api/workspaces/__tests__/workspaces.test.ts</location>
+        <test>Create workspace with valid name succeeds</test>
+        <test>Owner membership automatically created</test>
+        <test>Session updated with workspace ID</test>
+        <test>Unauthenticated request returns 401</test>
+        <test>Invalid name (too short/long) returns 400</test>
+        <test>Slug collision handled with retry</test>
+        <test>Rate limit enforced (5 per hour per user)</test>
+      </test-suite>
+
+      <test-suite name="GET /api/workspaces">
+        <test>List returns all user's workspaces</test>
+        <test>Correct role included for each workspace</test>
+        <test>Soft-deleted workspaces excluded</test>
+        <test>Workspaces sorted by updatedAt DESC</test>
+        <test>Empty array for user with no workspaces</test>
+        <test>Unauthenticated request returns 401</test>
+      </test-suite>
+
+      <test-suite name="GET /api/workspaces/:id">
+        <test>Get workspace details with member count</test>
+        <test>User's role included in response</test>
+        <test>Non-member access returns 404</test>
+        <test>Soft-deleted workspace returns 410</test>
+        <test>Invalid UUID format returns 400</test>
+      </test-suite>
+
+      <test-suite name="PATCH /api/workspaces/:id">
+        <test>Owner can update all fields</test>
+        <test>Admin can update all fields</test>
+        <test>Member cannot update (403)</test>
+        <test>Slug regenerated on name change</test>
+        <test>Invalid timezone format returns 400</test>
+        <test>Partial updates work (only name, only timezone, etc.)</test>
+      </test-suite>
+
+      <test-suite name="DELETE /api/workspaces/:id">
+        <test>Owner can soft delete</test>
+        <test>deletedAt timestamp set correctly</test>
+        <test>Member access blocked after deletion</test>
+        <test>Admin cannot delete (403)</test>
+        <test>Member cannot delete (403)</test>
+        <test>Deletion email sent to owner</test>
+        <test>Already deleted workspace returns 409</test>
+      </test-suite>
+    </integration-tests>
+  </testing-requirements>
+
+  <event-emissions>
+    <event type="workspace.created">
+      <trigger>After successful workspace creation</trigger>
+      <payload>
+        {
+          workspaceId: string,
+          workspaceName: string,
+          workspaceSlug: string,
+          ownerId: string,
+          createdAt: string
+        }
+      </payload>
+      <note>Event bus integration in Epic 05, for now just console.log</note>
+    </event>
+
+    <event type="workspace.updated">
+      <trigger>After successful workspace update</trigger>
+      <payload>
+        {
+          workspaceId: string,
+          workspaceName: string,
+          updatedFields: string[],
+          updatedBy: string,
+          updatedAt: string
+        }
+      </payload>
+    </event>
+
+    <event type="workspace.deleted">
+      <trigger>After successful workspace soft delete</trigger>
+      <payload>
+        {
+          workspaceId: string,
+          workspaceName: string,
+          deletedBy: string,
+          deletedAt: string,
+          hardDeleteScheduledAt: string
+        }
+      </payload>
+    </event>
+  </event-emissions>
+
+  <implementation-notes>
+    <note category="session-management">
+      After workspace creation, call updateSessionWorkspace(workspace.id) to set activeWorkspaceId
+      in the user's session. This enables workspace context for future requests and prepares for
+      Prisma tenant extension in Epic 03.
+    </note>
+
+    <note category="slug-collision">
+      With nanoid(6), collision probability is extremely low (56 billion combinations).
+      Retry logic (3 attempts) provides robustness. Log collision events for monitoring:
+      console.warn('Slug collision detected, retrying...', { slug, attempt })
+    </note>
+
+    <note category="soft-delete">
+      Soft delete strategy: set deletedAt timestamp, add query filter (WHERE deletedAt IS NULL),
+      schedule background job for hard delete after 30 days (Epic 05). For now, just set the
+      timestamp and block access via middleware check.
+    </note>
+
+    <note category="performance">
+      Key indexes for performance:
+      - workspaces.slug (unique constraint) - O(1) lookup
+      - workspace_members.workspaceId - fast member queries
+      - workspace_members.userId - fast user's workspace list
+      - workspaces.deletedAt - efficient soft-delete filtering
+    </note>
+
+    <note category="security">
+      Authorization checklist:
+      - Always validate workspace membership before operations
+      - Never trust client-side role claims - query database
+      - Prevent role escalation through proper authorization checks
+      - Audit log all workspace deletion actions (Epic 03)
+    </note>
+
+    <note category="rate-limiting">
+      Apply rate limiting to workspace creation:
+      - 5 workspaces per hour per user (prevent spam)
+      - Use checkRateLimit utility with key: `create-workspace:${userId}`
+      - Return 429 with retryAfter on limit exceeded
+    </note>
+
+    <note category="email-handling">
+      For workspace deletion confirmation email:
+      - Check for RESEND_API_KEY in development
+      - Log to console if missing (local dev mode)
+      - Send via Resend in production
+      - Don't block deletion on email failure (log error, continue)
+    </note>
+  </implementation-notes>
+
+  <open-questions>
+    <question id="Q1">
+      Should workspace slug allow manual override by user?
+      - Status: Deferred to Story 02.6 (workspace settings)
+      - For now: always auto-generate
+    </question>
+
+    <question id="Q2">
+      Image upload to Supabase Storage or S3?
+      - Status: Deferred to Story 02.6 implementation
+      - For now: accept URL string, validate format
+    </question>
+
+    <question id="Q3">
+      Maximum workspace limit per user (free tier)?
+      - Status: Deferred to future billing epic
+      - For now: no limit, rely on rate limiting
+    </question>
+
+    <question id="Q4">
+      Should soft-deleted workspaces appear in list with status?
+      - Status: Resolved - excluded from list entirely
+      - Implementation: WHERE deletedAt IS NULL filter
+    </question>
+  </open-questions>
+
+  <wireframe-references>
+    <note>
+      Wireframes for workspace UI are in Story 02.4 (workspace switching), 02.5 (member management),
+      and 02.6 (workspace settings). This story (02.1) focuses on backend API implementation.
+      No UI components are required for this story.
+    </note>
+  </wireframe-references>
+</story-context>
