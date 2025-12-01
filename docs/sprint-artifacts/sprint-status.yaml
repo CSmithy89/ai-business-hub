@@ -52,7 +52,7 @@ development_status:
   # EPIC-01: Authentication System
   # Phase 1 - Core Foundation | 8 stories | 19 points
   # ===========================================
-  epic-01: backlog
+  epic-01: contexted
   01-1-install-and-configure-better-auth: backlog
   01-2-implement-email-password-registration: backlog
   01-3-implement-email-verification: backlog
