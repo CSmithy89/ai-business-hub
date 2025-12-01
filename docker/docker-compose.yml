@@ -1,0 +1,93 @@
+version: '3.9'
+
+services:
+  # PostgreSQL 16 - Primary database
+  postgres:
+    image: postgres:16-alpine
+    container_name: hyvve_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: hyvve
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hyvve_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 7 - Cache, Queue, and Events
+  redis:
+    image: redis:7-alpine
+    container_name: hyvve_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - hyvve_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # AgentOS - Python/FastAPI AI Agent Runtime (Placeholder for Story 00-7)
+  agentos:
+    build:
+      context: ../agents
+      dockerfile: Dockerfile
+    container_name: hyvve_agentos
+    restart: unless-stopped
+    ports:
+      - "7777:7777"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres_dev_password@postgres:5432/hyvve
+      REDIS_URL: redis://redis:6379
+      AGENTOS_HOST: 0.0.0.0
+      AGENTOS_PORT: 7777
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev_secret_change_in_production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hyvve_network
+
+  # pgAdmin - Database UI (Optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hyvve_pgadmin
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: dev@hyvve.local
+      PGADMIN_DEFAULT_PASSWORD: pgadmin_dev_password
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - hyvve_network
+    depends_on:
+      - postgres
+    # Uncomment the following line if using M1/M2 Mac
+    # platform: linux/amd64
+
+networks:
+  hyvve_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
