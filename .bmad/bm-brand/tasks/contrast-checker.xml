@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task id="contrast-checker">
+  <name>WCAG Color Contrast Checker</name>
+  <description>Verifies color combinations meet WCAG accessibility standards</description>
+
+  <inputs>
+    <input name="foreground_color" required="true">Foreground/text color (HEX)</input>
+    <input name="background_color" required="true">Background color (HEX)</input>
+    <input name="text_size" required="false">Text size: normal or large (default: normal)</input>
+  </inputs>
+
+  <instructions>
+    <step n="1">
+      <action>Convert HEX colors to relative luminance</action>
+      <formula>
+        For each channel (R, G, B):
+        1. Divide by 255 to get 0-1 range
+        2. If value <= 0.03928: value / 12.92
+        3. Else: ((value + 0.055) / 1.055) ^ 2.4
+
+        Luminance = 0.2126 * R + 0.7152 * G + 0.0722 * B
+      </formula>
+    </step>
+
+    <step n="2">
+      <action>Calculate contrast ratio</action>
+      <formula>
+        Contrast = (L1 + 0.05) / (L2 + 0.05)
+        Where L1 is the lighter luminance and L2 is the darker
+      </formula>
+    </step>
+
+    <step n="3">
+      <action>Evaluate against WCAG standards</action>
+      <wcag_requirements>
+        <requirement level="AA" text="Normal text">4.5:1 minimum</requirement>
+        <requirement level="AA" text="Large text (18pt+ or 14pt+ bold)">3:1 minimum</requirement>
+        <requirement level="AAA" text="Normal text">7:1 minimum</requirement>
+        <requirement level="AAA" text="Large text">4.5:1 minimum</requirement>
+        <requirement level="AA" text="UI components">3:1 minimum</requirement>
+      </wcag_requirements>
+    </step>
+
+    <step n="4">
+      <action>Output results with recommendations</action>
+      <output_format>
+## Contrast Check Results
+
+**Colors Tested**:
+- Foreground: {{fg_color}}
+- Background: {{bg_color}}
+
+**Contrast Ratio**: {{ratio}}:1
+
+### WCAG Compliance
+
+| Standard | Requirement | Result |
+|----------|-------------|--------|
+| AA Normal Text | 4.5:1 | {{pass/fail}} |
+| AA Large Text | 3:1 | {{pass/fail}} |
+| AAA Normal Text | 7:1 | {{pass/fail}} |
+| AAA Large Text | 4.5:1 | {{pass/fail}} |
+| UI Components | 3:1 | {{pass/fail}} |
+
+**Recommendation**: {{recommendation}}
+      </output_format>
+    </step>
+  </instructions>
+
+  <notes>
+    <note>Large text is 18pt (24px) regular or 14pt (18.5px) bold</note>
+    <note>Always test on actual devices for real-world verification</note>
+  </notes>
+</task>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task id="color-converter">
+  <name>Color Format Converter</name>
+  <description>Converts color values between HEX, RGB, CMYK, and HSL formats</description>
+
+  <inputs>
+    <input name="color_value" required="true">The color value to convert (HEX, RGB, or HSL)</input>
+    <input name="source_format" required="true">Source format: hex, rgb, hsl</input>
+    <input name="target_formats" required="false">Target formats to convert to (default: all)</input>
+  </inputs>
+
+  <instructions>
+    <step n="1">
+      <action>Parse the input color value based on source format</action>
+      <formats>
+        <format name="hex">Accepts #RRGGBB or RRGGBB</format>
+        <format name="rgb">Accepts rgb(R, G, B) or R, G, B</format>
+        <format name="hsl">Accepts hsl(H, S%, L%) or H, S, L</format>
+      </formats>
+    </step>
+
+    <step n="2">
+      <action>Convert to all target formats</action>
+
+      <conversion name="hex_to_rgb">
+        R = parseInt(hex.substring(0,2), 16)
+        G = parseInt(hex.substring(2,4), 16)
+        B = parseInt(hex.substring(4,6), 16)
+      </conversion>
+
+      <conversion name="rgb_to_hex">
+        HEX = #${R.toString(16).padStart(2,'0')}${G.toString(16).padStart(2,'0')}${B.toString(16).padStart(2,'0')}
+      </conversion>
+
+      <conversion name="rgb_to_hsl">
+        r = R/255, g = G/255, b = B/255
+        max = Math.max(r,g,b), min = Math.min(r,g,b)
+        L = (max + min) / 2
+        S = (L > 0.5) ? (max-min)/(2-max-min) : (max-min)/(max+min)
+        H = calculated from which channel is max
+      </conversion>
+
+      <conversion name="rgb_to_cmyk">
+        K = 1 - Math.max(R/255, G/255, B/255)
+        C = (1 - R/255 - K) / (1 - K)
+        M = (1 - G/255 - K) / (1 - K)
+        Y = (1 - B/255 - K) / (1 - K)
+        Convert to percentages
+      </conversion>
+    </step>
+
+    <step n="3">
+      <action>Output all converted values</action>
+      <output_format>
+| Format | Value |
+|--------|-------|
+| HEX | #{{hex}} |
+| RGB | {{r}}, {{g}}, {{b}} |
+| HSL | {{h}}°, {{s}}%, {{l}}% |
+| CMYK | {{c}}%, {{m}}%, {{y}}%, {{k}}% |
+      </output_format>
+    </step>
+  </instructions>
+
+  <notes>
+    <note>CMYK values are approximate - professional print may require Pantone matching</note>
+    <note>Always verify colors in target medium</note>
+  </notes>
+</task>

@@ -1,0 +1,71 @@
+id: brand-audit
+name: Brand Health Audit
+version: 1.0.0
+description: Conducts comprehensive brand health assessment, consistency audit, and generates improvement recommendations
+
+category: analysis
+complexity: high
+estimated_duration: 45-60 minutes
+
+agent: brand-auditor
+
+inputs:
+  required:
+    - brand_guidelines
+    - touchpoint_samples
+  optional:
+    - competitor_brands
+    - customer_feedback
+    - performance_metrics
+
+outputs:
+  primary: brand-audit-report.md
+  artifacts:
+    - health-scorecard.md
+    - consistency-checklist.md
+    - action-plan.md
+    - competitive-analysis.md
+
+dependencies:
+  upstream:
+    - module: bm-brand
+      workflow: brand-guidelines
+      data: brand_standards
+  downstream:
+    - module: bm-brand
+      workflow: brand-strategy
+      data: audit_insights (if refresh needed)
+
+steps:
+  - id: gather_materials
+    name: Gather Audit Materials
+    description: Collect all brand touchpoints and guidelines
+  - id: visual_audit
+    name: Visual Consistency Audit
+    description: Check logo, color, typography usage
+  - id: verbal_audit
+    name: Verbal Consistency Audit
+    description: Check voice, tone, messaging
+  - id: touchpoint_audit
+    name: Touchpoint Analysis
+    description: Audit each brand touchpoint
+  - id: competitive_analysis
+    name: Competitive Position Analysis
+    description: Compare against competitors
+  - id: health_scoring
+    name: Calculate Health Scores
+    description: Generate quantified scores
+  - id: generate_recommendations
+    name: Generate Recommendations
+    description: Create prioritized action items
+  - id: compile_report
+    name: Compile Audit Report
+    description: Create comprehensive report
+
+validation:
+  checklist: checklist.md
+  required_sections:
+    - visual_consistency
+    - verbal_consistency
+    - touchpoint_scores
+    - recommendations

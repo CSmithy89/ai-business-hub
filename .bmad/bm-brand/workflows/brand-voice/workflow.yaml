@@ -1,0 +1,74 @@
+id: brand-voice
+name: Brand Voice Development
+version: 1.0.0
+description: Develops comprehensive verbal identity including voice attributes, tone guidelines, and writing standards
+
+category: identity
+complexity: high
+estimated_duration: 45-60 minutes
+
+agent: voice-architect
+
+inputs:
+  required:
+    - brand_archetype
+    - target_personas
+    - positioning_statement
+    - messaging_framework
+  optional:
+    - existing_content_samples
+    - competitor_voice_analysis
+    - industry_context
+
+outputs:
+  primary: brand-voice-guidelines.md
+  artifacts:
+    - voice-attributes.md
+    - tone-spectrum.md
+    - writing-style-guide.md
+    - vocabulary-lists.md
+    - content-type-guidelines.md
+
+dependencies:
+  upstream:
+    - module: bm-brand
+      workflow: brand-strategy
+      data: archetype, personas, messaging
+  downstream:
+    - module: bm-brand
+      workflow: brand-guidelines
+      data: voice_guidelines
+    - module: bm-brand
+      workflow: asset-generation
+      data: messaging_templates
+
+steps:
+  - id: analyze_strategy
+    name: Analyze Brand Strategy
+    description: Review archetype, personas, and messaging
+  - id: define_voice
+    name: Define Voice Attributes
+    description: Establish 3-4 core voice characteristics
+  - id: create_tone_spectrum
+    name: Create Tone Spectrum
+    description: Define tone variations by context
+  - id: writing_guidelines
+    name: Develop Writing Guidelines
+    description: Create specific writing rules and standards
+  - id: vocabulary_lists
+    name: Build Vocabulary Lists
+    description: Define words to use and avoid
+  - id: content_guidelines
+    name: Content Type Guidelines
+    description: Apply voice to different content types
+  - id: validate_voice
+    name: Validate Voice System
+    description: Test consistency and completeness
+
+validation:
+  checklist: checklist.md
+  required_sections:
+    - voice_attributes_defined
+    - tone_spectrum_complete
+    - writing_guidelines_specific
+    - vocabulary_actionable

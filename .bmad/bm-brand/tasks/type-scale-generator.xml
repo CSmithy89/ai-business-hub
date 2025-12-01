@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task id="type-scale-generator">
+  <name>Typography Scale Generator</name>
+  <description>Generates a modular type scale based on base size and ratio</description>
+
+  <inputs>
+    <input name="base_size" required="true">Base font size in pixels (e.g., 16)</input>
+    <input name="scale_ratio" required="true">Scale ratio (e.g., 1.25 for Major Third)</input>
+    <input name="levels" required="false">Number of scale levels (default: 10)</input>
+  </inputs>
+
+  <instructions>
+    <step n="1">
+      <action>Calculate type scale using formula: size = base * ratio^n</action>
+      <formula>
+        For level n (where n can be negative for smaller sizes):
+        size = base_size * (scale_ratio ^ n)
+        Round to nearest pixel
+      </formula>
+    </step>
+
+    <step n="2">
+      <action>Generate recommended line heights</action>
+      <guidelines>
+        - Headlines (large): 1.1 - 1.2 line height
+        - Subheadings: 1.2 - 1.3 line height
+        - Body text: 1.4 - 1.6 line height
+        - Small text: 1.4 - 1.5 line height
+      </guidelines>
+    </step>
+
+    <step n="3">
+      <action>Map to semantic names</action>
+      <semantic_mapping>
+        <level n="5">Display</level>
+        <level n="4">H1</level>
+        <level n="3">H2</level>
+        <level n="2">H3</level>
+        <level n="1">H4</level>
+        <level n="0">Body (base)</level>
+        <level n="-1">Small</level>
+        <level n="-2">Caption</level>
+      </semantic_mapping>
+    </step>
+
+    <step n="4">
+      <action>Output complete type scale</action>
+      <output_format>
+## Type Scale
+
+**Base Size**: {{base}}px
+**Scale Ratio**: {{ratio}} ({{ratio_name}})
+
+| Level | Name | Size (px) | Size (rem) | Line Height | Weight |
+|-------|------|-----------|------------|-------------|--------|
+| 5 | Display | {{size}} | {{rem}} | 1.1 | 800 |
+| 4 | H1 | {{size}} | {{rem}} | 1.15 | 700 |
+| 3 | H2 | {{size}} | {{rem}} | 1.2 | 700 |
+| 2 | H3 | {{size}} | {{rem}} | 1.25 | 600 |
+| 1 | H4 | {{size}} | {{rem}} | 1.3 | 600 |
+| 0 | Body | {{base}} | 1 | 1.5 | 400 |
+| -1 | Small | {{size}} | {{rem}} | 1.4 | 400 |
+| -2 | Caption | {{size}} | {{rem}} | 1.4 | 400 |
+
+### CSS Variables
+
+```css
+:root {
+  --font-size-display: {{size}}px;
+  --font-size-h1: {{size}}px;
+  --font-size-h2: {{size}}px;
+  --font-size-h3: {{size}}px;
+  --font-size-h4: {{size}}px;
+  --font-size-body: {{base}}px;
+  --font-size-small: {{size}}px;
+  --font-size-caption: {{size}}px;
+}
+```
+      </output_format>
+    </step>
+  </instructions>
+
+  <reference>
+    <common_ratios>
+      Load from: data/typography-scale-ratios.csv
+    </common_ratios>
+  </reference>
+</task>

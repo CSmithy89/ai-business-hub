@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task id="archetype-matcher">
+  <name>Brand Archetype Matcher</name>
+  <description>Analyzes brand attributes to recommend suitable archetypes</description>
+
+  <inputs>
+    <input name="brand_values" required="true">Core brand values (list)</input>
+    <input name="target_audience" required="true">Target audience description</input>
+    <input name="brand_personality" required="false">Desired personality traits</input>
+    <input name="industry" required="false">Industry context</input>
+  </inputs>
+
+  <instructions>
+    <step n="1">
+      <action>Map brand values to archetype desires</action>
+      <mapping>
+        <map value="Safety, comfort, trust" archetype="Innocent"/>
+        <map value="Knowledge, expertise, wisdom" archetype="Sage"/>
+        <map value="Freedom, adventure, exploration" archetype="Explorer"/>
+        <map value="Excellence, leadership, quality" archetype="Ruler"/>
+        <map value="Innovation, creativity, expression" archetype="Creator"/>
+        <map value="Service, care, protection" archetype="Caregiver"/>
+        <map value="Transformation, vision, possibility" archetype="Magician"/>
+        <map value="Courage, strength, achievement" archetype="Hero"/>
+        <map value="Revolution, disruption, change" archetype="Rebel"/>
+        <map value="Connection, intimacy, pleasure" archetype="Lover"/>
+        <map value="Fun, enjoyment, entertainment" archetype="Jester"/>
+        <map value="Authenticity, belonging, community" archetype="Regular Guy"/>
+      </mapping>
+    </step>
+
+    <step n="2">
+      <action>Score each archetype based on fit</action>
+      <scoring_criteria>
+        <criterion weight="30">Value alignment with archetype desire</criterion>
+        <criterion weight="25">Audience resonance potential</criterion>
+        <criterion weight="20">Industry appropriateness</criterion>
+        <criterion weight="15">Differentiation potential</criterion>
+        <criterion weight="10">Authenticity potential</criterion>
+      </scoring_criteria>
+    </step>
+
+    <step n="3">
+      <action>Recommend primary and secondary archetypes</action>
+      <output_format>
+## Archetype Recommendation
+
+**Primary Archetype**: {{archetype}}
+- Fit Score: {{score}}/100
+- Rationale: {{rationale}}
+
+**Secondary Archetype**: {{archetype}}
+- Fit Score: {{score}}/100
+- Complementary Role: {{role}}
+
+### All Scores
+| Archetype | Score | Notes |
+|-----------|-------|-------|
+| {{name}} | {{score}} | {{notes}} |
+      </output_format>
+    </step>
+  </instructions>
+
+  <reference>
+    <archetypes>
+      Load from: data/brand-archetypes.csv
+    </archetypes>
+  </reference>
+</task>

@@ -1,0 +1,78 @@
+id: brand-guidelines
+name: Brand Guidelines Compilation
+version: 1.0.0
+description: Compiles comprehensive brand guidelines document from all brand identity components
+
+category: documentation
+complexity: medium
+estimated_duration: 30-45 minutes
+
+agent: brand-orchestrator
+
+inputs:
+  required:
+    - brand_strategy_document
+    - brand_voice_guidelines
+    - visual_identity_guide
+  optional:
+    - additional_guidelines
+    - specific_applications
+
+outputs:
+  primary: brand-guidelines.md
+  artifacts:
+    - brand-guidelines-summary.md
+    - quick-reference-card.md
+
+dependencies:
+  upstream:
+    - module: bm-brand
+      workflow: brand-strategy
+      data: strategy_document
+    - module: bm-brand
+      workflow: brand-voice
+      data: voice_guidelines
+    - module: bm-brand
+      workflow: visual-identity
+      data: visual_guide
+  downstream:
+    - module: bm-brand
+      workflow: asset-checklist
+      data: brand_requirements
+    - module: bm-pm
+      workflow: project-requirements
+      data: brand_specifications
+
+steps:
+  - id: gather_inputs
+    name: Gather All Brand Components
+    description: Load strategy, voice, and visual identity outputs
+  - id: structure_document
+    name: Structure Guidelines Document
+    description: Organize sections logically
+  - id: compile_strategy
+    name: Compile Strategy Section
+    description: Include brand foundation and positioning
+  - id: compile_visual
+    name: Compile Visual Section
+    description: Include logo, colors, typography, imagery
+  - id: compile_verbal
+    name: Compile Verbal Section
+    description: Include voice, tone, messaging
+  - id: add_applications
+    name: Add Application Guidelines
+    description: Include specific use cases
+  - id: create_summary
+    name: Create Quick Reference
+    description: Build summary card
+  - id: validate_guidelines
+    name: Validate Completeness
+    description: Ensure all sections complete
+
+validation:
+  checklist: checklist.md
+  required_sections:
+    - brand_foundation
+    - visual_identity
+    - verbal_identity
+    - applications

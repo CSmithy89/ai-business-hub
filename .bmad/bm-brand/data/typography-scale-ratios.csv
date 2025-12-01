@@ -1,0 +1,13 @@
+ratio_name,ratio_value,use_case,description,size_sequence_16px_base
+Minor Second,1.067,Subtle hierarchy,Very subtle size differences,"16, 17, 18, 19, 21, 22, 24"
+Major Second,1.125,Compact UI,Small increments for dense layouts,"16, 18, 20, 23, 26, 29, 33"
+Minor Third,1.200,Balanced,Good for body-heavy content,"16, 19, 23, 28, 33, 40, 48"
+Major Third,1.250,Popular choice,Most commonly used ratio,"16, 20, 25, 31, 39, 49, 61"
+Perfect Fourth,1.333,Strong hierarchy,Clear visual hierarchy,"16, 21, 28, 38, 50, 67, 89"
+Augmented Fourth,1.414,Bold headlines,Strong contrast between sizes,"16, 23, 32, 45, 64, 91, 128"
+Perfect Fifth,1.500,Dramatic,Large jumps between sizes,"16, 24, 36, 54, 81, 122, 182"
+Golden Ratio,1.618,Classical,Aesthetically pleasing proportions,"16, 26, 42, 68, 110, 178, 288"
+Major Sixth,1.667,Very bold,Very dramatic size differences,"16, 27, 44, 74, 123, 205, 342"
+Minor Seventh,1.778,Extreme,Maximum contrast headlines,"16, 28, 50, 90, 160, 284, 505"
+Major Seventh,1.875,Ultra dramatic,Poster-like contrast,"16, 30, 56, 105, 197, 370, 693"
+Octave,2.000,Maximum,Double size each step,"16, 32, 64, 128, 256, 512, 1024"

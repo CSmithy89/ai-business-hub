@@ -1,0 +1,75 @@
+id: brand-strategy
+name: Brand Strategy Development
+version: 1.0.0
+description: Develops comprehensive brand positioning, archetype selection, and strategic messaging framework
+
+category: strategy
+complexity: high
+estimated_duration: 60-90 minutes
+
+agent: brand-strategist
+
+inputs:
+  required:
+    - business_name
+    - business_description
+    - target_audience
+    - value_proposition
+    - competitive_landscape
+  optional:
+    - existing_brand_elements
+    - industry_context
+    - growth_aspirations
+
+outputs:
+  primary: brand-strategy-document.md
+  artifacts:
+    - archetype-profile.md
+    - persona-cards.md
+    - positioning-statement.md
+    - messaging-framework.md
+    - competitive-analysis.md
+
+dependencies:
+  upstream:
+    - module: bmp
+      workflow: business-plan
+      data: business_context
+  downstream:
+    - module: bm-brand
+      workflow: brand-voice
+      data: archetype, positioning
+    - module: bm-brand
+      workflow: visual-identity
+      data: archetype, audience
+
+steps:
+  - id: analyze_inputs
+    name: Analyze Business Context
+    description: Review all inputs from BMP module
+  - id: competitive_analysis
+    name: Competitive Brand Analysis
+    description: Map competitor brand positioning
+  - id: archetype_selection
+    name: Select Brand Archetype
+    description: Choose primary and secondary archetypes
+  - id: persona_development
+    name: Develop Target Personas
+    description: Create detailed audience personas
+  - id: positioning_statement
+    name: Craft Positioning Statement
+    description: Define unique market position
+  - id: messaging_framework
+    name: Build Messaging Framework
+    description: Create key messages and proof points
+  - id: validate_strategy
+    name: Validate Strategy
+    description: Ensure alignment and consistency
+
+validation:
+  checklist: checklist.md
+  required_sections:
+    - archetype_justification
+    - positioning_rationale
+    - persona_validation
+    - competitive_differentiation

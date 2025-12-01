@@ -1,0 +1,176 @@
+# BM-Brand Module Installer Configuration
+# Brand Identity & Guidelines Module
+
+module:
+  name: "Brand Identity Module"
+  code: "bm-brand"
+  version: "1.0.0"
+  description: "Comprehensive branding module for brand identity, guidelines, voice, and asset creation"
+  author: "AI Business Hub Team"
+  layer: "foundation"
+  phase: "BRAND"
+
+dependencies:
+  upstream:
+    - module: "bmp"
+      required: true
+      data_required:
+        - business_plan
+        - positioning
+        - target_audience
+  downstream:
+    - module: "bm-pm"
+      provides:
+        - brand_guidelines
+        - asset_specifications
+
+installation:
+  target_path: ".bmad/bm-brand"
+
+  directories:
+    - agents
+    - workflows
+    - tasks
+    - data
+    - _module-installer
+
+  agents:
+    - source: "agents/brand-orchestrator-agent.agent.yaml"
+      description: "Coordinates all branding workflows"
+    - source: "agents/brand-strategist-agent.agent.yaml"
+      description: "Develops brand positioning and archetype"
+    - source: "agents/voice-architect-agent.agent.yaml"
+      description: "Creates voice and tone guidelines"
+    - source: "agents/visual-identity-designer-agent.agent.yaml"
+      description: "Develops visual identity system"
+    - source: "agents/asset-generator-agent.agent.yaml"
+      description: "Creates brand asset deliverables"
+    - source: "agents/brand-auditor-agent.agent.yaml"
+      description: "Conducts brand health audits"
+
+  workflows:
+    - source: "workflows/brand-strategy"
+      description: "Brand positioning and archetype selection"
+      files:
+        - workflow.yaml
+        - instructions.md
+        - template.md
+        - checklist.md
+
+    - source: "workflows/brand-voice"
+      description: "Voice attributes and tone guidelines"
+      files:
+        - workflow.yaml
+        - instructions.md
+        - template.md
+        - checklist.md
+
+    - source: "workflows/visual-identity"
+      description: "Logo, colors, typography, imagery"
+      files:
+        - workflow.yaml
+        - instructions.md
+        - template.md
+        - checklist.md
+
+    - source: "workflows/brand-guidelines"
+      description: "Comprehensive brand guidelines compilation"
+      files:
+        - workflow.yaml
+        - instructions.md
+        - template.md
+        - checklist.md
+
+    - source: "workflows/asset-checklist"
+      description: "Brand asset audit and requirements"
+      files:
+        - workflow.yaml
+        - instructions.md
+        - template.md
+        - checklist.md
+
+    - source: "workflows/asset-generation"
+      description: "Brand asset creation and packaging"
+      files:
+        - workflow.yaml
+        - instructions.md
+        - template.md
+        - checklist.md
+
+    - source: "workflows/brand-audit"
+      description: "Brand health assessment and audit"
+      files:
+        - workflow.yaml
+        - instructions.md
+        - template.md
+        - checklist.md
+
+  tasks:
+    - source: "tasks/color-converter.xml"
+      description: "Color format conversion utility"
+    - source: "tasks/archetype-matcher.xml"
+      description: "Brand archetype matching utility"
+    - source: "tasks/contrast-checker.xml"
+      description: "WCAG accessibility checker"
+    - source: "tasks/type-scale-generator.xml"
+      description: "Typography scale generator"
+
+  data:
+    - source: "data/brand-archetypes.csv"
+      description: "12 Jungian brand archetypes reference"
+    - source: "data/color-psychology.csv"
+      description: "Color psychology and associations"
+    - source: "data/social-media-dimensions.csv"
+      description: "Social media asset dimensions"
+    - source: "data/file-format-specifications.csv"
+      description: "File format specifications"
+    - source: "data/typography-scale-ratios.csv"
+      description: "Typography scale ratios reference"
+
+configuration:
+  fields:
+    - name: business_name
+      type: string
+      required: true
+      description: "Business name for branding"
+
+    - name: brand_output_path
+      type: string
+      required: false
+      default: "docs/brand"
+      description: "Path for brand document outputs"
+
+    - name: asset_output_path
+      type: string
+      required: false
+      default: "docs/brand/assets"
+      description: "Path for brand asset outputs"
+
+validation:
+  pre_install:
+    - check: directory_exists
+      path: ".bmad"
+      message: "BMAD directory must exist"
+
+  post_install:
+    - check: files_exist
+      files:
+        - "agents/brand-orchestrator-agent.agent.yaml"
+        - "workflows/brand-strategy/workflow.yaml"
+        - "data/brand-archetypes.csv"
+      message: "Core module files must be installed"
+
+hooks:
+  post_install:
+    - action: create_directories
+      paths:
+        - "{{brand_output_path}}"
+        - "{{asset_output_path}}"
+
+recommended_workflow_sequence:
+  1: brand-strategy
+  2: brand-voice
+  3: visual-identity
+  4: brand-guidelines
+  5: asset-checklist
+  6: asset-generation

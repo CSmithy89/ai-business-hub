@@ -1,0 +1,74 @@
+id: asset-checklist
+name: Brand Asset Audit & Checklist
+version: 1.0.0
+description: Creates comprehensive checklist of all required brand assets based on brand guidelines and business needs
+
+category: planning
+complexity: medium
+estimated_duration: 20-30 minutes
+
+agent: asset-generator
+
+inputs:
+  required:
+    - brand_guidelines
+    - business_type
+    - channels
+  optional:
+    - existing_assets
+    - priority_applications
+    - budget_constraints
+
+outputs:
+  primary: asset-checklist.md
+  artifacts:
+    - asset-inventory.md
+    - priority-matrix.md
+    - file-specifications.md
+
+dependencies:
+  upstream:
+    - module: bm-brand
+      workflow: brand-guidelines
+      data: brand_requirements
+    - module: bm-brand
+      workflow: visual-identity
+      data: logo_specs, colors
+  downstream:
+    - module: bm-brand
+      workflow: asset-generation
+      data: asset_requirements
+
+steps:
+  - id: analyze_needs
+    name: Analyze Business Needs
+    description: Determine required asset categories
+  - id: logo_assets
+    name: Define Logo Assets
+    description: List all logo file requirements
+  - id: social_assets
+    name: Define Social Media Assets
+    description: List platform-specific assets
+  - id: collateral_assets
+    name: Define Collateral Assets
+    description: List business materials needed
+  - id: digital_assets
+    name: Define Digital Assets
+    description: List website and email assets
+  - id: prioritize
+    name: Prioritize Assets
+    description: Create priority matrix
+  - id: specifications
+    name: Define Specifications
+    description: Document file formats and sizes
+  - id: compile_checklist
+    name: Compile Checklist
+    description: Create master asset checklist
+
+validation:
+  checklist: checklist.md
+  required_sections:
+    - logo_package
+    - social_media
+    - business_collateral
+    - digital_assets

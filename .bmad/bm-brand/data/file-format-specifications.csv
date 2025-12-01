@@ -1,0 +1,20 @@
+format,type,extension,color_space,use_cases,software,notes
+Adobe Illustrator,Vector,.ai,"RGB, CMYK",Master files print and digital,Adobe Illustrator,Native AI format - master source
+Encapsulated PostScript,Vector,.eps,CMYK,Print production legacy systems,Universal,Widely compatible print format
+Scalable Vector Graphics,Vector,.svg,sRGB,Web digital applications,Web browsers,XML-based web standard
+Portable Document Format,Vector/Raster,.pdf,"RGB, CMYK",Print sharing multi-page,Universal,Cross-platform document
+Portable Network Graphics,Raster,.png,sRGB,Web digital transparency,All image editors,Lossless compression with alpha
+Joint Photographic Experts Group,Raster,.jpg/.jpeg,sRGB,Photos web images,All image editors,Lossy compression no transparency
+Graphics Interchange Format,Raster,.gif,Indexed (256),Simple animations icons,All image editors,Limited colors supports animation
+WebP,Raster,.webp,sRGB,Modern web images,Modern browsers,Better compression than PNG/JPG
+Tagged Image File Format,Raster,.tif/.tiff,CMYK,Print production archival,Professional software,High quality print standard
+ICO,Raster,.ico,sRGB,Favicons Windows icons,Icon editors,Multi-resolution container
+Adobe Swatch Exchange,Data,.ase,N/A,Color palette exchange,Adobe apps,Share colors between Adobe apps
+CSS Variables,Code,.css,sRGB hex,Web color definitions,Text editor,Web development colors
+JSON,Data,.json,N/A,Structured data config,Text editor,Machine-readable data format
+Adobe XD,Design,.xd,sRGB,UI/UX design,Adobe XD,UI design tool format
+Figma,Design,.fig,sRGB,UI/UX design collaboration,Figma,Cloud-based design format
+Sketch,Design,.sketch,sRGB,UI/UX design Mac,Sketch app,Mac design tool format
+PowerPoint,Presentation,.pptx,sRGB,Presentations,Microsoft PowerPoint,Microsoft presentation format
+Keynote,Presentation,.key,sRGB,Presentations Mac,Apple Keynote,Apple presentation format
+Google Slides,Presentation,N/A,sRGB,Cloud presentations,Google Workspace,Cloud-based presentations

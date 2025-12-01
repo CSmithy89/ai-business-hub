@@ -1,0 +1,74 @@
+id: visual-identity
+name: Visual Identity Development
+version: 1.0.0
+description: Develops comprehensive visual identity including logo specifications, color palette, typography, and imagery guidelines
+
+category: identity
+complexity: high
+estimated_duration: 60-90 minutes
+
+agent: visual-identity-designer
+
+inputs:
+  required:
+    - brand_archetype
+    - target_personas
+    - positioning_statement
+  optional:
+    - existing_visual_elements
+    - competitor_visual_analysis
+    - industry_context
+    - color_preferences
+
+outputs:
+  primary: visual-identity-guide.md
+  artifacts:
+    - logo-specifications.md
+    - color-palette.md
+    - typography-guide.md
+    - imagery-guidelines.md
+    - visual-elements.md
+
+dependencies:
+  upstream:
+    - module: bm-brand
+      workflow: brand-strategy
+      data: archetype, personas, positioning
+  downstream:
+    - module: bm-brand
+      workflow: brand-guidelines
+      data: visual_specifications
+    - module: bm-brand
+      workflow: asset-generation
+      data: logo_specs, colors, typography
+
+steps:
+  - id: analyze_strategy
+    name: Analyze Brand Strategy
+    description: Review archetype and positioning for visual direction
+  - id: logo_system
+    name: Design Logo System
+    description: Define logo types, variations, and usage rules
+  - id: color_palette
+    name: Develop Color Palette
+    description: Create primary, secondary, and extended colors
+  - id: typography_system
+    name: Select Typography System
+    description: Define font hierarchy and specifications
+  - id: imagery_direction
+    name: Define Imagery Direction
+    description: Establish photography and illustration guidelines
+  - id: visual_elements
+    name: Create Visual Elements
+    description: Define patterns, icons, and graphic devices
+  - id: validate_identity
+    name: Validate Visual Identity
+    description: Ensure consistency and completeness
+
+validation:
+  checklist: checklist.md
+  required_sections:
+    - logo_system_complete
+    - color_specifications_accurate
+    - typography_accessible
+    - imagery_actionable

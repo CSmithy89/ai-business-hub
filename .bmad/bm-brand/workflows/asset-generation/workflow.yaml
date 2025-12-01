@@ -1,0 +1,77 @@
+id: asset-generation
+name: Brand Asset Generation
+version: 1.0.0
+description: Generates all brand assets according to checklist, guidelines, and specifications
+
+category: production
+complexity: high
+estimated_duration: 60-120 minutes
+
+agent: asset-generator
+
+inputs:
+  required:
+    - asset_checklist
+    - brand_guidelines
+    - visual_identity_guide
+    - voice_guidelines
+  optional:
+    - logo_source_files
+    - custom_requirements
+
+outputs:
+  primary: asset-package-manifest.md
+  artifacts:
+    - generated_assets (folder structure)
+    - asset-delivery-readme.md
+    - production-log.md
+
+dependencies:
+  upstream:
+    - module: bm-brand
+      workflow: asset-checklist
+      data: asset_requirements
+    - module: bm-brand
+      workflow: visual-identity
+      data: colors, typography, logo_specs
+    - module: bm-brand
+      workflow: brand-voice
+      data: messaging_templates
+  downstream:
+    - module: bm-pm
+      workflow: project-setup
+      data: brand_assets
+
+steps:
+  - id: setup_structure
+    name: Setup Folder Structure
+    description: Create organized asset folders
+  - id: generate_logos
+    name: Generate Logo Assets
+    description: Export all logo variations
+  - id: generate_social
+    name: Generate Social Media Assets
+    description: Create platform-specific assets
+  - id: generate_collateral
+    name: Generate Collateral Assets
+    description: Create business materials
+  - id: generate_digital
+    name: Generate Digital Assets
+    description: Create web and email assets
+  - id: apply_messaging
+    name: Apply Messaging
+    description: Add copy to templates
+  - id: quality_check
+    name: Quality Check
+    description: Verify all assets
+  - id: package_delivery
+    name: Package for Delivery
+    description: Create final asset package
+
+validation:
+  checklist: checklist.md
+  required_sections:
+    - folder_structure
+    - logo_package
+    - social_assets
+    - collateral_assets
