@@ -45,7 +45,7 @@ development_status:
   00-4-set-up-database-package-with-prisma: done
   00-5-configure-docker-development-environment: done
   00-6-set-up-shared-types-package: done
-  00-7-set-up-agentos-runtime-environment: backlog
+  00-7-set-up-agentos-runtime-environment: done
   epic-00-retrospective: optional
 
   # ===========================================
