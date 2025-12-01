@@ -1,0 +1,842 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story-id="01-1" generated="2025-12-02">
+  <metadata>
+    <story-title>Install and Configure better-auth</story-title>
+    <epic>EPIC-01 Authentication System</epic>
+    <priority>P0</priority>
+    <points>3</points>
+    <status>ready-for-dev</status>
+    <estimated-time>2-3 hours</estimated-time>
+  </metadata>
+
+  <requirements>
+    <summary>
+      Install and configure better-auth library with Prisma adapter as the foundation
+      for all authentication flows in the HYVVE platform. This includes setting up
+      the auth service configuration, API route handlers, session management, and
+      environment variables.
+    </summary>
+
+    <acceptance-criteria>
+      <criterion id="AC-1">Install better-auth and Prisma adapter</criterion>
+      <criterion id="AC-2">Create lib/auth.ts with better-auth configuration</criterion>
+      <criterion id="AC-3">Configure session settings (7 days, daily refresh)</criterion>
+      <criterion id="AC-4">Set up environment variables for secrets</criterion>
+      <criterion id="AC-5">Create API route handlers in app/api/auth/[...all]/route.ts</criterion>
+      <criterion id="AC-6">Verify auth endpoints respond correctly</criterion>
+    </acceptance-criteria>
+
+    <functional-requirements>
+      <requirement id="FR-1.5" priority="P0">
+        System creates session on successful login
+      </requirement>
+      <requirement id="FR-1.8" priority="P0">
+        Session expires after configured duration (7 days default, 30 days with remember me)
+      </requirement>
+    </functional-requirements>
+  </requirements>
+
+  <technical-spec>
+    <architecture-decision ref="ADR-005">
+      better-auth selected for authentication library due to native organization support,
+      self-hosted option for GDPR compliance, and TypeScript-first design with excellent DX.
+    </architecture-decision>
+
+    <authentication-strategy>
+      <session-management>
+        <access-tokens type="JWT" expiration="15 minutes">
+          Stored in memory on client side for API authentication.
+          Signed with RS256 algorithm using BETTER_AUTH_SECRET.
+        </access-tokens>
+        <session-tokens expiration="7 days default, 30 days with remember">
+          Database-backed sessions stored in sessions table.
+          Survive server restarts and enable multi-device support.
+        </session-tokens>
+        <refresh-strategy interval="daily">
+          Automatic transparent refresh without user interaction.
+          Session token updated daily while within expiration window.
+        </refresh-strategy>
+        <storage>
+          Database-backed via Prisma adapter using existing Session model.
+          HTTP-only cookies for session tokens (XSS protection).
+          SameSite=strict for CSRF protection.
+        </storage>
+      </session-management>
+
+      <jwt-payload>
+        <claim name="sub" type="string">User ID (UUID)</claim>
+        <claim name="sessionId" type="string">Session reference for lookup</claim>
+        <claim name="workspaceId" type="string" optional="true">
+          Active workspace for multi-tenant routing (added in Epic 02)
+        </claim>
+        <claim name="email" type="string">User email address</claim>
+        <claim name="name" type="string">User display name</claim>
+        <claim name="iat" type="number">Issued at timestamp</claim>
+        <claim name="exp" type="number">Expiration timestamp (15 min from iat)</claim>
+      </jwt-payload>
+
+      <security>
+        <jwt-signing algorithm="RS256">
+          Uses BETTER_AUTH_SECRET for signing keys.
+          Generate with: openssl rand -base64 32
+        </jwt-signing>
+        <csrf-protection>Built-in to better-auth</csrf-protection>
+        <cookies http-only="true" secure="true" same-site="strict">
+          HTTP-only prevents XSS access to session tokens.
+          Secure flag requires HTTPS in production.
+          SameSite strict prevents CSRF attacks.
+        </cookies>
+        <rate-limiting>
+          Integration points ready for rate limiting in subsequent stories.
+          To be implemented on sign-in (5/15min), sign-up (3/hour), reset (3/hour).
+        </rate-limiting>
+      </security>
+    </authentication-strategy>
+
+    <database-models>
+      <model name="User" source="packages/db/prisma/schema.prisma">
+        Stores user accounts with email, name, passwordHash, emailVerified flag.
+        Relations: sessions (one-to-many), accounts (one-to-many for OAuth).
+        No schema changes needed - already defined in Epic 00.
+      </model>
+      <model name="Session" source="packages/db/prisma/schema.prisma">
+        Stores active sessions with token, expiresAt, ipAddress, userAgent.
+        Links to User via userId foreign key with cascade delete.
+        activeWorkspaceId field ready for Epic 02 workspace switching.
+        No schema changes needed - already defined in Epic 00.
+      </model>
+      <model name="Account" source="packages/db/prisma/schema.prisma">
+        Stores OAuth provider accounts for future Google OAuth (Story 01.5).
+        No schema changes needed - already defined in Epic 00.
+      </model>
+      <model name="VerificationToken" source="packages/db/prisma/schema.prisma">
+        Stores email verification and password reset tokens.
+        Will be used in Stories 01.3 (email verification) and 01.6 (password reset).
+        No schema changes needed - already defined in Epic 00.
+      </model>
+    </database-models>
+
+    <dependencies>
+      <npm-package name="better-auth" version="^1.0.0">
+        Core authentication library with organization plugin support.
+      </npm-package>
+      <npm-package name="@better-auth/prisma-adapter" version="^1.0.0">
+        Prisma adapter for better-auth to integrate with existing database schema.
+      </npm-package>
+      <workspace-package name="@hyvve/db">
+        Prisma client and schema from packages/db.
+        Already installed as workspace dependency.
+      </workspace-package>
+    </dependencies>
+
+    <environment-variables>
+      <variable name="BETTER_AUTH_SECRET" required="true" secret="true">
+        JWT signing secret. Generate with: openssl rand -base64 32
+        Must be at least 32 characters for production security.
+        Store in apps/web/.env.local (never commit to version control).
+      </variable>
+      <variable name="BETTER_AUTH_URL" required="true">
+        Base URL for better-auth endpoints.
+        Development: http://localhost:3000
+        Production: https://yourdomain.com
+      </variable>
+      <variable name="DATABASE_URL" required="true" inherited="true">
+        PostgreSQL connection string (already configured in Epic 00).
+        Used by Prisma adapter for session storage.
+      </variable>
+    </environment-variables>
+
+    <api-routes>
+      <route path="/api/auth/*" handler="app/api/auth/[...all]/route.ts">
+        Catch-all API route that delegates to better-auth's built-in routing.
+        Exports GET and POST handlers for Next.js App Router.
+        Automatically handles all better-auth endpoints:
+        - /api/auth/session (get current session)
+        - /api/auth/sign-in/email (email/password login - Story 01.4)
+        - /api/auth/sign-up/email (email/password registration - Story 01.2)
+        - /api/auth/sign-out (logout - Story 01.7)
+        - /api/auth/callback/google (OAuth callback - Story 01.5)
+        - /api/auth/verify-email (email verification - Story 01.3)
+        - /api/auth/forgot-password (password reset request - Story 01.6)
+        - /api/auth/reset-password (password reset - Story 01.6)
+      </route>
+    </api-routes>
+  </technical-spec>
+
+  <architecture-context>
+    <system-architecture>
+      <component name="Frontend" tech="Next.js 15 App Router">
+        apps/web/ - React 19 with Server Components
+        Authentication flows will be Next.js pages using better-auth client
+      </component>
+      <component name="Platform API" tech="Next.js API Routes">
+        apps/web/src/app/api/ - Co-located with frontend for tight integration
+        Better-auth endpoints live here as catch-all route
+      </component>
+      <component name="Database" tech="PostgreSQL via Prisma">
+        packages/db/ - Shared Prisma schema and client
+        Session and user data stored here
+      </component>
+    </system-architecture>
+
+    <multi-tenancy>
+      <strategy>Workspace-based tenancy with Row-Level Security</strategy>
+      <tenant-identifier>workspaceId (UUID, matches workspace.id)</tenant-identifier>
+      <session-integration>
+        Session model includes activeWorkspaceId field.
+        JWT payload includes workspaceId claim for API routing.
+        Enables workspace switching in Story 02.4.
+      </session-integration>
+      <data-isolation>
+        Authentication tables (User, Session, Account) are NOT tenant-scoped.
+        Users can belong to multiple workspaces via WorkspaceMember junction table.
+        Tenant filtering applied at workspace data level (Epic 03).
+      </data-isolation>
+    </multi-tenancy>
+
+    <integration-points>
+      <integration target="Epic 02: Workspace Management">
+        Session.activeWorkspaceId will be set when user selects workspace.
+        JWT workspaceId claim enables multi-tenant API routing.
+      </integration>
+      <integration target="Epic 03: RBAC">
+        JWT claims will include user role for permission checks.
+        Prisma Client Extension will use JWT workspaceId for automatic tenant filtering.
+      </integration>
+      <integration target="Story 01.2-01.7">
+        This story establishes foundation for:
+        - Email/password registration (Story 01.2)
+        - Email verification (Story 01.3)
+        - Sign-in flows (Story 01.4)
+        - Google OAuth (Story 01.5)
+        - Password reset (Story 01.6)
+        - Session management (Story 01.7)
+      </integration>
+    </integration-points>
+
+    <security-considerations>
+      <principle name="Defense in Depth">
+        Multiple layers: JWT signing, HTTP-only cookies, SameSite cookies, HTTPS
+      </principle>
+      <principle name="Least Privilege">
+        JWT tokens short-lived (15 min), session tokens longer but revocable
+      </principle>
+      <principle name="Secure by Default">
+        better-auth includes CSRF protection, secure password hashing (Argon2id)
+      </principle>
+      <secrets-management>
+        NEVER commit .env.local to version control (.gitignore already configured).
+        Use strong random secrets (32+ bytes) for production.
+        Rotate BETTER_AUTH_SECRET periodically in production.
+      </secrets-management>
+    </security-considerations>
+  </architecture-context>
+
+  <existing-code>
+    <project-structure>
+      <directory path="/home/chris/projects/work/Ai Bussiness Hub">
+        Monorepo root with Turborepo configuration.
+        Contains apps/, packages/, docs/ directories.
+      </directory>
+
+      <directory path="apps/web">
+        Next.js 15 frontend application.
+        Current state: Basic Next.js setup complete (Epic 00).
+        Existing files:
+        - src/app/page.tsx (placeholder home page)
+        - src/app/layout.tsx (root layout)
+        - src/app/providers.tsx (client providers)
+        - src/lib/utils.ts (utility functions for cn())
+        - package.json (dependencies: next 15, react 19, tailwind)
+        - .env.example (app configuration template)
+      </directory>
+
+      <directory path="packages/db">
+        Prisma database package.
+        Current state: Schema complete, migrations run (Epic 00).
+        Files:
+        - prisma/schema.prisma (complete schema with User, Session, Account, etc.)
+        - src/index.ts (Prisma client export)
+        - src/tenant-extension.ts (tenant filtering - will be used in Epic 03)
+      </directory>
+    </project-structure>
+
+    <current-prisma-schema>
+      <![CDATA[
+// Authentication models (excerpt from schema.prisma)
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  emailVerified Boolean   @default(false) @map("email_verified")
+  name          String?
+  image         String?
+  passwordHash  String?   @map("password_hash")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  sessions      Session[]
+  accounts      Account[]
+  workspaces    WorkspaceMember[]
+
+  @@map("users")
+}
+
+model Session {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  token             String    @unique
+  expiresAt         DateTime  @map("expires_at")
+  ipAddress         String?   @map("ip_address")
+  userAgent         String?   @map("user_agent")
+  activeWorkspaceId String?   @map("active_workspace_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Account {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  provider          String
+  providerAccountId String    @map("provider_account_id")
+  accessToken       String?   @map("access_token") @db.Text
+  refreshToken      String?   @map("refresh_token") @db.Text
+  expiresAt         DateTime? @map("expires_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model VerificationToken {
+  id         String   @id @default(uuid())
+  identifier String
+  token      String   @unique
+  type       String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([identifier])
+  @@index([token])
+  @@map("verification_tokens")
+}
+      ]]>
+    </current-prisma-schema>
+
+    <current-package-json>
+      <![CDATA[
+// apps/web/package.json
+{
+  "name": "@hyvve/web",
+  "version": "0.1.0",
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "next-themes": "^0.3.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.0",
+    "lucide-react": "^0.263.0"
+  },
+  "devDependencies": {
+    "@hyvve/shared": "workspace:*",
+    "@hyvve/ui": "workspace:*",
+    // ... TypeScript, ESLint, Tailwind configs
+  }
+}
+      ]]>
+    </current-package-json>
+
+    <prisma-client-export>
+      <![CDATA[
+// packages/db/src/index.ts
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({
+  log: ['query', 'error', 'warn'],
+})
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
+}
+
+export * from '@prisma/client'
+export * from './tenant-extension'
+      ]]>
+    </prisma-client-export>
+
+    <env-example>
+      <![CDATA[
+# apps/web/.env.example
+# App Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3001
+
+# Feature Flags (future)
+NEXT_PUBLIC_ENABLE_ANALYTICS=false
+      ]]>
+    </env-example>
+  </existing-code>
+
+  <implementation-guidance>
+    <step number="1" title="Install Dependencies">
+      <command>cd apps/web</command>
+      <command>pnpm add better-auth @better-auth/prisma-adapter</command>
+      <verification>
+        Check package.json to confirm better-auth packages are added to dependencies.
+      </verification>
+    </step>
+
+    <step number="2" title="Generate BETTER_AUTH_SECRET">
+      <command>openssl rand -base64 32</command>
+      <note>
+        Copy the generated secret for use in .env.local.
+        This secret must be at least 32 characters and cryptographically secure.
+      </note>
+    </step>
+
+    <step number="3" title="Create/Update .env.local">
+      <location>apps/web/.env.local</location>
+      <content>
+        <![CDATA[
+# Inherit from .env.example
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3001
+
+# Authentication (NEW)
+BETTER_AUTH_SECRET=<paste_generated_secret_here>
+BETTER_AUTH_URL=http://localhost:3000
+
+# Database (inherited from root .env)
+DATABASE_URL=postgresql://...
+        ]]>
+      </content>
+      <verification>
+        Confirm BETTER_AUTH_SECRET is set to a 32+ character random string.
+        Confirm .env.local is in .gitignore (should already be from Epic 00).
+      </verification>
+    </step>
+
+    <step number="4" title="Update .env.example">
+      <location>apps/web/.env.example</location>
+      <action>
+        Add authentication environment variables to template for other developers.
+      </action>
+      <content>
+        <![CDATA[
+# App Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3001
+
+# Authentication
+BETTER_AUTH_SECRET=xxx              # JWT signing secret (openssl rand -base64 32)
+BETTER_AUTH_URL=http://localhost:3000
+
+# Feature Flags (future)
+NEXT_PUBLIC_ENABLE_ANALYTICS=false
+        ]]>
+      </content>
+    </step>
+
+    <step number="5" title="Create lib/auth.ts">
+      <location>apps/web/src/lib/auth.ts</location>
+      <template>
+        <![CDATA[
+import { betterAuth } from 'better-auth'
+import { prismaAdapter } from '@better-auth/prisma-adapter'
+import { organization } from 'better-auth/plugins'
+import { prisma } from '@hyvve/db'
+
+export const auth = betterAuth({
+  // Database adapter using Prisma
+  database: prismaAdapter(prisma, {
+    provider: 'postgresql',
+  }),
+
+  // Session configuration
+  session: {
+    expiresIn: 60 * 60 * 24 * 7,      // 7 days (default)
+    updateAge: 60 * 60 * 24,          // Refresh daily
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 15,                // 15 minutes (access token lifetime)
+    },
+  },
+
+  // Security settings
+  secret: process.env.BETTER_AUTH_SECRET!,
+  baseURL: process.env.BETTER_AUTH_URL!,
+
+  // Plugins for multi-tenant organization support
+  plugins: [
+    organization({
+      allowUserToCreateOrganization: true,
+      organizationLimit: 5,           // Max workspaces per user (future)
+      // Role definitions for Epic 02
+      roles: {
+        owner: ['*'],
+        admin: ['read', 'update', 'invite', 'remove'],
+        member: ['read'],
+        viewer: ['read'],
+        guest: ['read:limited'],
+      },
+    }),
+  ],
+
+  // Advanced options
+  advanced: {
+    cookiePrefix: 'hyvve',
+    crossSubDomainCookies: {
+      enabled: false,                 // Single domain for MVP
+    },
+  },
+
+  // Email configuration (will be added in Story 01.2)
+  // emailAndPassword: { ... }
+
+  // OAuth configuration (will be added in Story 01.5)
+  // socialProviders: {
+  //   google: { ... }
+  // }
+})
+
+// Export type-safe auth client
+export type Auth = typeof auth
+        ]]>
+      </template>
+      <notes>
+        - organization plugin prepares for Epic 02 workspace features
+        - Email/password and OAuth configs commented out for future stories
+        - cookiePrefix helps avoid conflicts with other applications
+        - Session expiration 7 days, extend to 30 days with "remember me" in Story 01.4
+      </notes>
+    </step>
+
+    <step number="6" title="Create API Route Handlers">
+      <location>apps/web/src/app/api/auth/[...all]/route.ts</location>
+      <template>
+        <![CDATA[
+import { auth } from '@/lib/auth'
+
+// Export GET and POST handlers for Next.js App Router
+export const { GET, POST } = auth.handler
+        ]]>
+      </template>
+      <notes>
+        - Catch-all route [...all] delegates all /api/auth/* requests to better-auth
+        - better-auth.handler provides both GET and POST methods
+        - Automatically handles all auth endpoints defined by better-auth
+        - No manual routing needed - better-auth handles all paths internally
+      </notes>
+    </step>
+
+    <step number="7" title="Verify Installation">
+      <substep>
+        <action>Start Next.js dev server</action>
+        <command>cd apps/web &amp;&amp; pnpm dev</command>
+        <expected>Server starts on http://localhost:3000 without errors</expected>
+      </substep>
+
+      <substep>
+        <action>Test auth session endpoint</action>
+        <command>curl http://localhost:3000/api/auth/session</command>
+        <expected>
+          Response: {"user": null, "session": null}
+          (Unauthenticated state is correct for MVP without active sessions)
+        </expected>
+      </substep>
+
+      <substep>
+        <action>Check TypeScript compilation</action>
+        <command>pnpm type-check</command>
+        <expected>No TypeScript errors in lib/auth.ts or route handlers</expected>
+      </substep>
+
+      <substep>
+        <action>Verify environment variables</action>
+        <verification>
+          - BETTER_AUTH_SECRET is defined and 32+ characters
+          - BETTER_AUTH_URL matches dev server URL
+          - No console warnings about missing environment variables
+        </verification>
+      </substep>
+    </step>
+
+    <step number="8" title="Update Documentation">
+      <action>
+        Ensure .env.example is updated with authentication variables.
+        Add inline comments to lib/auth.ts explaining configuration choices.
+        No separate documentation file needed at this stage.
+      </action>
+    </step>
+  </implementation-guidance>
+
+  <acceptance-tests>
+    <test id="AC-1" criterion="Install better-auth and Prisma adapter">
+      <manual-test>
+        1. Navigate to apps/web directory
+        2. Check package.json for "better-auth" and "@better-auth/prisma-adapter"
+        3. Verify both packages are in dependencies (not devDependencies)
+        4. Run `pnpm list better-auth` to confirm installation
+      </manual-test>
+      <pass-criteria>
+        Both packages present in package.json with version ^1.0.0 or higher.
+        pnpm list command shows packages successfully installed.
+      </pass-criteria>
+    </test>
+
+    <test id="AC-2" criterion="Create lib/auth.ts with better-auth configuration">
+      <manual-test>
+        1. Verify file exists at apps/web/src/lib/auth.ts
+        2. Check file imports betterAuth, prismaAdapter, organization plugin
+        3. Verify auth instance is exported
+        4. Confirm Prisma adapter is configured with correct database provider
+        5. Check organization plugin is included in plugins array
+      </manual-test>
+      <pass-criteria>
+        File exists with complete better-auth configuration.
+        Imports are correct and no TypeScript errors.
+        Configuration includes database adapter and organization plugin.
+      </pass-criteria>
+    </test>
+
+    <test id="AC-3" criterion="Configure session settings (7 days, daily refresh)">
+      <manual-test>
+        1. Open apps/web/src/lib/auth.ts
+        2. Locate session configuration object
+        3. Verify expiresIn is set to 60 * 60 * 24 * 7 (7 days)
+        4. Verify updateAge is set to 60 * 60 * 24 (daily refresh)
+        5. Check cookieCache.maxAge is 60 * 15 (15 min access token)
+      </manual-test>
+      <pass-criteria>
+        Session expires in 7 days (604800 seconds).
+        Session refreshes daily (86400 seconds).
+        Cookie cache matches access token lifetime (900 seconds).
+      </pass-criteria>
+    </test>
+
+    <test id="AC-4" criterion="Set up environment variables for secrets">
+      <manual-test>
+        1. Check apps/web/.env.local exists (should not be in git)
+        2. Verify BETTER_AUTH_SECRET is defined
+        3. Confirm secret is at least 32 characters long
+        4. Verify BETTER_AUTH_URL is set to http://localhost:3000
+        5. Check apps/web/.env.example includes these variables with documentation
+      </manual-test>
+      <pass-criteria>
+        .env.local contains valid BETTER_AUTH_SECRET (32+ chars).
+        .env.example documents all required auth environment variables.
+        .env.local is listed in .gitignore.
+      </pass-criteria>
+    </test>
+
+    <test id="AC-5" criterion="Create API route handlers in app/api/auth/[...all]/route.ts">
+      <manual-test>
+        1. Verify file exists at apps/web/src/app/api/auth/[...all]/route.ts
+        2. Check file imports auth from @/lib/auth
+        3. Verify GET and POST handlers are exported
+        4. Confirm exports use destructuring: export const { GET, POST } = auth.handler
+        5. Check no TypeScript errors in route file
+      </manual-test>
+      <pass-criteria>
+        Route file exists with correct catch-all path.
+        Exports GET and POST from auth.handler.
+        No TypeScript compilation errors.
+      </pass-criteria>
+    </test>
+
+    <test id="AC-6" criterion="Verify auth endpoints respond correctly">
+      <automated-test>
+        1. Start dev server: pnpm dev
+        2. Make request: curl http://localhost:3000/api/auth/session
+        3. Check response status is 200 OK
+        4. Verify response body is valid JSON
+        5. Confirm response contains {"user": null, "session": null}
+      </automated-test>
+      <pass-criteria>
+        HTTP 200 response received.
+        Response is valid JSON with expected structure.
+        Unauthenticated state returns null user and session.
+        No server errors in console.
+      </pass-criteria>
+    </test>
+
+    <integration-test name="End-to-End Configuration Check">
+      <steps>
+        1. Clean install: rm -rf node_modules &amp;&amp; pnpm install
+        2. Type check: pnpm type-check (no errors)
+        3. Build: pnpm build (successful build)
+        4. Start: pnpm dev (server starts on port 3000)
+        5. Test endpoint: curl http://localhost:3000/api/auth/session
+        6. Check logs: No errors or warnings in console
+      </steps>
+      <pass-criteria>
+        All commands execute successfully without errors.
+        Server starts and responds to auth requests.
+        TypeScript compilation succeeds.
+        No runtime errors in console.
+      </pass-criteria>
+    </integration-test>
+  </acceptance-tests>
+
+  <definition-of-done>
+    <checklist>
+      <item>✓ All acceptance criteria met</item>
+      <item>✓ apps/web/src/lib/auth.ts created with better-auth configuration</item>
+      <item>✓ apps/web/src/app/api/auth/[...all]/route.ts created and responding</item>
+      <item>✓ Environment variables documented in .env.example</item>
+      <item>✓ .env.local created with BETTER_AUTH_SECRET (not committed)</item>
+      <item>✓ Auth endpoints verified with manual curl testing</item>
+      <item>✓ No TypeScript errors (pnpm type-check passes)</item>
+      <item>✓ Dev server starts without errors or warnings</item>
+      <item>✓ better-auth and adapter packages installed in package.json</item>
+      <item>✓ Session configuration matches spec (7 days, daily refresh)</item>
+      <item>✓ Organization plugin configured for future multi-tenant support</item>
+    </checklist>
+  </definition-of-done>
+
+  <related-stories>
+    <blocking>
+      <story id="00-1" status="done">Initialize monorepo with Turborepo</story>
+      <story id="00-2" status="done">Configure Next.js 15 frontend</story>
+      <story id="00-4" status="done">Set up database package with Prisma</story>
+    </blocking>
+
+    <blocked-by-this>
+      <story id="01-2">Email/Password Registration</story>
+      <story id="01-3">Email Verification</story>
+      <story id="01-4">Email/Password Sign-In</story>
+      <story id="01-5">Google OAuth</story>
+      <story id="01-6">Password Reset Flow</story>
+      <story id="01-7">Session Management</story>
+      <story id="01-8">Auth UI Components</story>
+    </blocked-by-this>
+  </related-stories>
+
+  <traceability>
+    <mapping>
+      <acceptance-criteria ref="AC-1">
+        <tech-spec-section>Dependencies and Integrations - npm Dependencies</tech-spec-section>
+        <test-approach>Check package.json for better-auth packages</test-approach>
+      </acceptance-criteria>
+
+      <acceptance-criteria ref="AC-2">
+        <tech-spec-section>Services and Modules - AuthService</tech-spec-section>
+        <test-approach>Verify lib/auth.ts exists with correct configuration</test-approach>
+      </acceptance-criteria>
+
+      <acceptance-criteria ref="AC-3">
+        <tech-spec-section>Data Models and Contracts - JWT Payload Structure</tech-spec-section>
+        <test-approach>Check session config in lib/auth.ts matches spec</test-approach>
+      </acceptance-criteria>
+
+      <acceptance-criteria ref="AC-4">
+        <tech-spec-section>Dependencies and Integrations - Environment Variables</tech-spec-section>
+        <test-approach>Verify .env.local and .env.example contain auth vars</test-approach>
+      </acceptance-criteria>
+
+      <acceptance-criteria ref="AC-5">
+        <tech-spec-section>Services and Modules - API route handlers</tech-spec-section>
+        <test-approach>Check route.ts file exports GET and POST handlers</test-approach>
+      </acceptance-criteria>
+
+      <acceptance-criteria ref="AC-6">
+        <tech-spec-section>APIs and Interfaces - Endpoint table</tech-spec-section>
+        <test-approach>curl /api/auth/session returns expected JSON</test-approach>
+      </acceptance-criteria>
+    </mapping>
+  </traceability>
+
+  <troubleshooting>
+    <issue name="BETTER_AUTH_SECRET not found">
+      <symptom>Error: "BETTER_AUTH_SECRET is required" on server start</symptom>
+      <solution>
+        1. Check .env.local exists in apps/web directory
+        2. Verify BETTER_AUTH_SECRET is defined and not empty
+        3. Restart dev server after adding environment variable
+        4. Generate new secret if needed: openssl rand -base64 32
+      </solution>
+    </issue>
+
+    <issue name="Prisma adapter connection error">
+      <symptom>Error: "Can't reach database server" or similar Prisma error</symptom>
+      <solution>
+        1. Verify DATABASE_URL is defined (should be inherited from root .env)
+        2. Check PostgreSQL is running (docker compose up -d)
+        3. Test connection: pnpm db:studio (should open Prisma Studio)
+        4. Run migrations if needed: pnpm db:migrate
+      </solution>
+    </issue>
+
+    <issue name="TypeScript import errors">
+      <symptom>Cannot find module '@hyvve/db' or similar import errors</symptom>
+      <solution>
+        1. Build shared packages: pnpm build (from monorepo root)
+        2. Clean and reinstall: rm -rf node_modules &amp;&amp; pnpm install
+        3. Restart TypeScript server in IDE
+        4. Check @hyvve/db is in devDependencies of apps/web/package.json
+      </solution>
+    </issue>
+
+    <issue name="Auth endpoints return 404">
+      <symptom>curl /api/auth/session returns 404 Not Found</symptom>
+      <solution>
+        1. Verify file exists: apps/web/src/app/api/auth/[...all]/route.ts
+        2. Check folder name uses square brackets: [...]
+        3. Restart dev server to pick up new routes
+        4. Check Next.js build output shows /api/auth/[...all] route
+      </solution>
+    </issue>
+
+    <issue name="Session cookie not being set">
+      <symptom>Cookies not appearing in browser after login (future stories)</symptom>
+      <solution>
+        1. Verify BETTER_AUTH_URL matches current domain
+        2. Check browser is not blocking third-party cookies
+        3. For localhost, ensure URL is http://localhost:3000 (not 127.0.0.1)
+        4. Inspect Network tab to see Set-Cookie headers
+      </solution>
+    </issue>
+  </troubleshooting>
+
+  <notes>
+    <note type="security">
+      This story establishes the security foundation for the entire platform.
+      JWT signing secrets MUST be kept secure and never committed to version control.
+      Use strong random secrets (32+ bytes) generated with cryptographically secure methods.
+    </note>
+
+    <note type="architecture">
+      The organization plugin is included now even though workspace features come in Epic 02.
+      This prevents breaking changes later when multi-tenant features are added.
+      Role definitions in the plugin are placeholders and will be fully implemented in Epic 03.
+    </note>
+
+    <note type="testing">
+      At this stage, we only verify that endpoints respond correctly.
+      Full authentication flows (sign-up, sign-in, etc.) will be tested in subsequent stories.
+      The /api/auth/session endpoint returning null is correct and expected behavior.
+    </note>
+
+    <note type="future">
+      OAuth providers (Google, GitHub, Microsoft) will be added in Stories 01.5 and beyond.
+      Email/password functionality will be added in Stories 01.2-01.4.
+      This story focuses solely on the infrastructure and configuration.
+    </note>
+  </notes>
+</story-context>
