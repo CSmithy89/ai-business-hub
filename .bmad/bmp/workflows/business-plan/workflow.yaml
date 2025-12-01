@@ -1,0 +1,56 @@
+# Business Plan Workflow Configuration
+name: business-plan
+description: "Create investor-ready business plan synthesizing all planning artifacts"
+
+config_source: "{project-root}/.bmad/bmp/config.yaml"
+installed_path: "{project-root}/.bmad/bmp/workflows/business-plan"
+
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+
+default_output_file: "{bmp_output_path}/business-plan-{{date}}.md"
+
+type: document
+primary_agent: planner
+supporting_agents:
+  - model
+  - finance
+  - revenue
+  - forecast
+
+# Required inputs from other workflows
+inputs:
+  business_model_canvas:
+    path: "{bmp_output_path}"
+    files: ["business-model-canvas*.md"]
+    required: true
+  financial_projections:
+    path: "{bmp_output_path}"
+    files: ["financial-projections*.md"]
+    required: true
+  pricing_strategy:
+    path: "{bmp_output_path}"
+    files: ["pricing-strategy*.md"]
+    required: false
+  growth_forecast:
+    path: "{bmp_output_path}"
+    files: ["growth-forecast*.md"]
+    required: false
+  bmv_documents:
+    path: "{output_folder}/bmv"
+    files: ["*.md"]
+    required: false
+
+sections:
+  - executive_summary
+  - company_description
+  - market_analysis
+  - products_services
+  - business_model
+  - go_to_market
+  - operations_plan
+  - management_team
+  - financial_projections
+  - funding_requirements
+  - appendices

@@ -1,0 +1,30 @@
+# Growth Forecast Workflow Configuration
+name: growth-forecast
+description: "Create growth projections with scenario analysis"
+
+config_source: "{project-root}/.bmad/bmp/config.yaml"
+installed_path: "{project-root}/.bmad/bmp/workflows/growth-forecast"
+
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+
+default_output_file: "{bmp_output_path}/growth-forecast-{{date}}.md"
+
+type: document
+primary_agent: forecast
+supporting_agents:
+  - finance
+
+growth_models:
+  - linear
+  - exponential
+  - s_curve
+  - cohort_based
+
+growth_levers:
+  - acquisition
+  - activation
+  - retention
+  - expansion
+  - referral

@@ -1,0 +1,13 @@
+model_type,description,best_for,key_metrics,examples
+subscription_flat,"Fixed monthly/annual fee for access","Simple products with predictable value","MRR, Churn, LTV","Netflix, Spotify basic"
+subscription_tiered,"Multiple pricing tiers with different features","Products with varying customer needs and budgets","ARPU, Tier distribution, Upgrade rate","Slack, Zoom, HubSpot"
+subscription_per_seat,"Per user/seat pricing","Team collaboration and enterprise tools","Seat count, Expansion revenue","Salesforce, Asana, Figma"
+usage_based,"Pay per use or consumption","Variable usage patterns, infrastructure","Usage volume, Revenue per unit","AWS, Twilio, Stripe"
+freemium,"Free tier with paid upgrades","Mass market products with viral potential","Conversion rate, Free:Paid ratio","Dropbox, Canva, Notion"
+marketplace_commission,"Take rate on transactions","Two-sided marketplaces","GMV, Take rate, Liquidity","Airbnb, Uber, Etsy"
+one_time_purchase,"Single payment for perpetual access","Software, digital products, courses","AOV, Repeat purchase rate","Video games, templates"
+hybrid,"Combination of multiple models","Complex value delivery","Model-specific metrics","Shopify, HubSpot"
+advertising,"Ad-supported free access","Content platforms, social networks","DAU, CPM, Ad inventory","Facebook, YouTube, Spotify Free"
+licensing,"Per deployment or usage license","Enterprise software, IP licensing","License count, Renewal rate","Oracle, SAP, Adobe"
+transaction_fee,"Fee per transaction processed","Payment processing, financial services","Transaction volume, Fee percentage","PayPal, Square"
+data_monetization,"Revenue from data insights","Platforms with valuable data","Data volume, Insight value","LinkedIn, Bloomberg"

@@ -1,0 +1,11 @@
+strategy,description,when_to_use,implementation,risk
+value_based,"Price based on value delivered to customer","Strong differentiation, measurable ROI for customers","Quantify customer value, price at 10-30% of value delivered","Requires clear proof of value, may limit market"
+competitive,"Price relative to competitor positioning","Commoditized market, price-sensitive customers","Benchmark competitors, position above/below/at parity","Race to bottom risk, margin pressure"
+cost_plus,"Price = Cost + target margin","Low differentiation, stable predictable costs","Calculate all costs, add target margin percentage","Ignores customer value perception, may leave money on table"
+penetration,"Low initial price to gain market share","New market entry, network effects important","Start below market, plan price increases over time","Hard to raise prices, attracts price-sensitive customers"
+skimming,"High initial price, reduce over time","Innovation with eager early adopters","Premium launch price, gradual reductions","Limits initial market size, attracts competition"
+psychological,"Use pricing psychology and anchoring","Consumer products, SaaS with multiple tiers","Decoy pricing, charm pricing, anchoring effects","Can feel manipulative, may not work for all audiences"
+dynamic,"Prices vary based on demand and timing","Variable demand, perishable inventory","Implement pricing algorithms, demand forecasting","Customer frustration, fairness perception"
+bundle,"Multiple products/features at discount","Cross-sell opportunities, increase ARPU","Create value bundles, price below sum of parts","May cannibalize individual sales"
+freemium_conversion,"Free tier drives paid conversion","Viral growth potential, low marginal cost","Design free limits carefully, clear upgrade triggers","Low conversion if limits too generous"
+enterprise_custom,"Negotiated pricing for large deals","Enterprise sales, high-value contracts","Quote-based, value selling, annual contracts","Longer sales cycles, sales team required"

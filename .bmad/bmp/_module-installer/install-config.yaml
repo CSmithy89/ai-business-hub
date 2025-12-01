@@ -1,0 +1,133 @@
+# BMP (Business Planning) Module Configuration
+# Installation questions and module configuration values
+
+code: bmp
+name: "Business Planning Module"
+default_selected: true  # Foundation layer - selected by default
+
+# Welcome message shown during installation
+prompt:
+  - "Welcome to the Business Planning Module (BMP)!"
+  - "AI-powered business planning with Business Model Canvas, financial projections,"
+  - "pricing strategies, revenue models, and comprehensive business plan generation."
+  - "Bridges validation (BMV) and development (BMM) phases."
+
+# Core config values are automatically inherited:
+## user_name
+## communication_language
+## document_output_language
+## output_folder
+
+# ============================================================================
+# CONFIGURATION FIELDS
+# ============================================================================
+
+# Output path for planning documents
+bmp_output_path:
+  prompt: "Where should BMP save planning documents?"
+  default: "output/bmp"
+  result: "{project-root}/{value}"
+
+# Default projection years
+projection_years:
+  prompt: "How many years should financial projections cover?"
+  default: "5"
+  result: "{value}"
+  single-select:
+    - value: "3"
+      label: "3 years - Short-term planning"
+    - value: "5"
+      label: "5 years - Standard business plan"
+    - value: "7"
+      label: "7 years - Long-term strategic planning"
+
+# Default business model type for benchmarks
+default_business_type:
+  prompt: "What type of business are you planning?"
+  default: "saas"
+  result: "{value}"
+  single-select:
+    - value: "saas"
+      label: "SaaS - Software as a Service"
+    - value: "ecommerce"
+      label: "E-commerce - Online retail"
+    - value: "marketplace"
+      label: "Marketplace - Two-sided platform"
+    - value: "consumer"
+      label: "Consumer - B2C products/services"
+    - value: "enterprise"
+      label: "Enterprise - B2B solutions"
+
+# Financial scenario strictness
+scenario_mode:
+  prompt: "How should financial scenarios be generated?"
+  default: "three"
+  result: "{value}"
+  single-select:
+    - value: "single"
+      label: "Single - Realistic scenario only"
+    - value: "three"
+      label: "Three - Conservative/Realistic/Optimistic (recommended)"
+    - value: "five"
+      label: "Five - Additional best/worst case scenarios"
+
+# Currency preference
+default_currency:
+  prompt: "What currency should financial projections use?"
+  default: "USD"
+  result: "{value}"
+  single-select:
+    - value: "USD"
+      label: "USD - US Dollar"
+    - value: "EUR"
+      label: "EUR - Euro"
+    - value: "GBP"
+      label: "GBP - British Pound"
+    - value: "CAD"
+      label: "CAD - Canadian Dollar"
+    - value: "AUD"
+      label: "AUD - Australian Dollar"
+
+# ============================================================================
+# STATIC CONFIGURATION VALUES
+# ============================================================================
+
+# Module version
+module_version:
+  result: "1.0.0"
+
+# Module layer
+module_layer:
+  result: "foundation"
+
+# Data path (static)
+bmp_data_path:
+  result: "{project-root}/.bmad/bmp/data"
+
+# Default target LTV:CAC ratio
+target_ltv_cac:
+  result: "3"
+
+# Default target payback months
+target_payback_months:
+  result: "12"
+
+# Default gross margin target (SaaS)
+target_gross_margin:
+  result: "70"
+
+# Default monthly churn target
+target_churn_monthly:
+  result: "5"
+
+# Default funding runway target (months)
+target_runway_months:
+  result: "18"
+
+# BMV integration path
+bmv_input_path:
+  result: "{project-root}/output/bmv"
+
+# BMM output path
+bmm_output_path:
+  result: "{project-root}/output/bmm"

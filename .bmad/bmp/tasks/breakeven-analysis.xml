@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task id="breakeven-analysis" name="Breakeven Analysis Calculator" standalone="true">
+
+  <llm critical="true">
+    <i>Show all calculation steps</i>
+    <i>Document all assumptions</i>
+    <i>Provide time-to-breakeven estimate</i>
+  </llm>
+
+  <purpose>
+    Calculate the breakeven point in units and revenue, determining how many
+    customers or sales are needed to cover all costs. Essential for understanding
+    business viability and funding requirements.
+  </purpose>
+
+  <inputs>
+    <input name="fixed_costs" required="true">
+      Total monthly fixed costs (salaries, rent, tools, etc.)
+    </input>
+    <input name="price_per_unit" required="true">
+      Revenue per customer/unit
+    </input>
+    <input name="variable_cost_per_unit" required="true">
+      Variable cost per customer/unit (COGS, support, etc.)
+    </input>
+    <input name="monthly_growth_units" required="false">
+      Expected monthly growth in customers/units
+    </input>
+    <input name="current_customers" required="false" default="0">
+      Current number of customers/units
+    </input>
+  </inputs>
+
+  <formulas>
+    <formula name="contribution_margin">
+      Contribution Margin = Price - Variable Cost per Unit
+    </formula>
+    <formula name="breakeven_units">
+      Breakeven Units = Fixed Costs / Contribution Margin
+    </formula>
+    <formula name="breakeven_revenue">
+      Breakeven Revenue = Breakeven Units × Price per Unit
+    </formula>
+    <formula name="time_to_breakeven">
+      Time to Breakeven = (Breakeven Units - Current Units) / Monthly Growth
+    </formula>
+  </formulas>
+
+  <flow>
+    <step n="1" title="Calculate Contribution Margin">
+      <action>Contribution Margin = Price - Variable Cost</action>
+      <action>Contribution Margin % = Contribution Margin / Price</action>
+    </step>
+
+    <step n="2" title="Calculate Breakeven Point">
+      <action>Breakeven Units = Fixed Costs / Contribution Margin</action>
+      <action>Breakeven Revenue = Breakeven Units × Price</action>
+    </step>
+
+    <step n="3" title="Calculate Time to Breakeven">
+      <action>If growth rate provided:</action>
+      <action>Time = (Breakeven - Current) / Monthly Growth</action>
+    </step>
+
+    <step n="4" title="Scenario Analysis">
+      <action>Calculate breakeven under different assumptions:</action>
+      <scenarios>
+        <scenario name="base">Current assumptions</scenario>
+        <scenario name="price_increase">10% price increase</scenario>
+        <scenario name="cost_reduction">10% cost reduction</scenario>
+        <scenario name="pessimistic">20% higher costs</scenario>
+      </scenarios>
+    </step>
+
+    <step n="5" title="Generate Report">
+      <format>
+## Breakeven Analysis Report
+
+### Inputs
+| Input | Value |
+|-------|-------|
+| Monthly Fixed Costs | {{fixed_costs}} |
+| Price per Unit | {{price}} |
+| Variable Cost per Unit | {{variable_cost}} |
+| Current Customers | {{current_customers}} |
+| Monthly Growth | {{monthly_growth}} |
+
+### Breakeven Calculation
+
+**Contribution Margin:**
+- Per Unit: {{contribution_margin}}
+- Percentage: {{contribution_margin_pct}}%
+
+**Breakeven Point:**
+- Units: {{breakeven_units}} customers
+- Revenue: {{breakeven_revenue}}/month
+
+### Time to Breakeven
+{{time_to_breakeven}}
+
+### Scenario Comparison
+| Scenario | Breakeven Units | Breakeven Revenue |
+|----------|-----------------|-------------------|
+| Base Case | {{base_units}} | {{base_revenue}} |
+| Price +10% | {{price_up_units}} | {{price_up_revenue}} |
+| Costs -10% | {{cost_down_units}} | {{cost_down_revenue}} |
+| Pessimistic | {{pessimistic_units}} | {{pessimistic_revenue}} |
+
+### Key Insights
+{{insights}}
+      </format>
+    </step>
+  </flow>
+</task>

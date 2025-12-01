@@ -1,0 +1,41 @@
+# Export to Development Workflow Configuration
+name: export-to-development
+description: "Export business plan to BMM product development workflows"
+
+config_source: "{project-root}/.bmad/bmp/config.yaml"
+installed_path: "{project-root}/.bmad/bmp/workflows/export-to-development"
+
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+
+default_output_file: "{bmp_output_path}/development-brief-{{date}}.md"
+
+type: action
+primary_agent: planner
+
+# This workflow creates BMM-compatible artifacts
+bmm_integration:
+  target_workflow: "{project-root}/.bmad/bmm/workflows/1-analysis/product-brief"
+  handoff_path: "{output_folder}/bmm"
+
+inputs:
+  business_plan:
+    path: "{bmp_output_path}"
+    files: ["business-plan*.md"]
+    required: true
+  business_model_canvas:
+    path: "{bmp_output_path}"
+    files: ["business-model-canvas*.md"]
+    required: true
+  financial_projections:
+    path: "{bmp_output_path}"
+    files: ["financial-projections*.md"]
+    required: false
+
+outputs:
+  - product_brief
+  - feature_priorities
+  - success_metrics
+  - mvp_constraints
+  - integration_requirements

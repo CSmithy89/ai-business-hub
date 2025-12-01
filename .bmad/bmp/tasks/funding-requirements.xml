@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task id="funding-requirements" name="Funding Requirements Calculator" standalone="true">
+
+  <llm critical="true">
+    <i>Calculate funding needed with appropriate buffer</i>
+    <i>Match funding stage to business stage</i>
+    <i>Provide use of funds breakdown</i>
+  </llm>
+
+  <purpose>
+    Calculate funding requirements based on runway needs, growth plans, and
+    milestone targets. Helps determine how much to raise and how to allocate funds.
+  </purpose>
+
+  <inputs>
+    <input name="monthly_burn" required="true">
+      Current or projected monthly burn rate
+    </input>
+    <input name="current_cash" required="false" default="0">
+      Current cash on hand
+    </input>
+    <input name="time_to_revenue" required="false">
+      Months until revenue covers costs
+    </input>
+    <input name="target_runway" required="false" default="18">
+      Desired runway in months
+    </input>
+    <input name="growth_investment" required="false">
+      Additional investment for growth beyond baseline
+    </input>
+    <input name="business_stage" required="false" default="seed">
+      Current stage (pre-seed, seed, series-a, series-b)
+    </input>
+  </inputs>
+
+  <funding_stages>
+    <stage name="pre-seed">
+      <typical_amount>$100K - $500K</typical_amount>
+      <purpose>Idea validation, MVP development</purpose>
+      <milestones>MVP, initial users, proof of concept</milestones>
+    </stage>
+    <stage name="seed">
+      <typical_amount>$500K - $2M</typical_amount>
+      <purpose>Product-market fit, initial growth</purpose>
+      <milestones>PMF signals, $10K+ MRR, repeatable acquisition</milestones>
+    </stage>
+    <stage name="series-a">
+      <typical_amount>$2M - $15M</typical_amount>
+      <purpose>Scale proven model, expand team</purpose>
+      <milestones>$1M+ ARR, proven unit economics, scalable growth</milestones>
+    </stage>
+    <stage name="series-b">
+      <typical_amount>$15M - $50M</typical_amount>
+      <purpose>Accelerate growth, market expansion</purpose>
+      <milestones>Category leadership, geographic expansion, profitability path</milestones>
+    </stage>
+  </funding_stages>
+
+  <flow>
+    <step n="1" title="Calculate Base Funding Need">
+      <formula>
+        Base Need = Monthly Burn × Target Runway - Current Cash
+      </formula>
+    </step>
+
+    <step n="2" title="Add Buffer">
+      <action>Add 20% buffer for unexpected costs</action>
+      <formula>
+        Funding with Buffer = Base Need × 1.2
+      </formula>
+    </step>
+
+    <step n="3" title="Add Growth Investment">
+      <action>If growth investment specified, add to total</action>
+      <formula>
+        Total Funding = Funding with Buffer + Growth Investment
+      </formula>
+    </step>
+
+    <step n="4" title="Match to Stage">
+      <action>Compare to typical amounts for business stage</action>
+      <action>Adjust if significantly outside range</action>
+    </step>
+
+    <step n="5" title="Define Use of Funds">
+      <categories>
+        <category name="product">Product Development (30-40%)</category>
+        <category name="sales_marketing">Sales and Marketing (30-40%)</category>
+        <category name="operations">Operations/G&amp;A (10-20%)</category>
+        <category name="buffer">Buffer/Contingency (10-20%)</category>
+      </categories>
+    </step>
+
+    <step n="6" title="Calculate Post-Funding Runway">
+      <formula>
+        Post-Funding Runway = (Current Cash + Funding) / Projected Burn
+      </formula>
+    </step>
+
+    <step n="7" title="Generate Report">
+      <format>
+## Funding Requirements Report
+
+### Current Situation
+| Metric | Value |
+|--------|-------|
+| Monthly Burn Rate | {{monthly_burn}} |
+| Current Cash | {{current_cash}} |
+| Current Runway | {{current_runway}} months |
+| Business Stage | {{business_stage}} |
+
+### Funding Calculation
+
+**Base Funding Need:**
+- Target Runway: {{target_runway}} months
+- Burn × Runway: {{base_need}}
+- Less Current Cash: -{{current_cash}}
+- Base Need: {{net_need}}
+
+**With Buffer (20%):**
+{{funding_with_buffer}}
+
+**Plus Growth Investment:**
+{{growth_investment}}
+
+**Total Funding Sought:**
+### {{total_funding}}
+
+### Stage Alignment
+- Typical for {{business_stage}}: {{typical_range}}
+- Your ask: {{total_funding}}
+- Assessment: {{stage_assessment}}
+
+### Use of Funds
+
+| Category | Allocation | Amount |
+|----------|------------|--------|
+| Product Development | {{product_pct}}% | {{product_amount}} |
+| Sales &amp; Marketing | {{sm_pct}}% | {{sm_amount}} |
+| Operations | {{ops_pct}}% | {{ops_amount}} |
+| Buffer | {{buffer_pct}}% | {{buffer_amount}} |
+| **Total** | **100%** | **{{total_funding}}** |
+
+### Post-Funding Metrics
+- New Runway: {{post_funding_runway}} months
+- Target Milestone: {{milestone_for_round}}
+- Next Funding Target: {{next_funding}}
+
+### Milestones This Round
+
+{{#each round_milestones}}
+- {{milestone}}
+{{/each}}
+      </format>
+    </step>
+  </flow>
+</task>

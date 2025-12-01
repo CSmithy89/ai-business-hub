@@ -1,0 +1,13 @@
+pattern,description,key_elements,revenue_implications,examples,bmp_workflow
+freemium,"Free tier drives paid conversion","Free tier limits, upgrade triggers, viral loops","Lower CAC but lower conversion, high volume needed","Slack, Dropbox, Canva, Notion","revenue-model"
+razor_blade,"Low-cost base product with high-margin consumables","Subsidized hardware/setup, recurring consumable purchases","Upfront loss, long-term recurring revenue","Printers, Keurig, Gillette, gaming consoles","revenue-model"
+platform,"Multi-sided market enabling value creation","Network effects, ecosystem participants, APIs","Transaction fees, subscriptions, both sides pay","Uber, Airbnb, App Store, Shopify","business-model-canvas"
+marketplace,"Connect buyers and sellers","Liquidity, trust mechanisms, search/discovery","Commission on transactions, featured listings","eBay, Etsy, Upwork, Fiverr","business-model-canvas"
+subscription_box,"Curated recurring physical delivery","Curation expertise, surprise element, convenience","Predictable recurring revenue, fulfillment costs","Birchbox, Dollar Shave Club, HelloFresh","revenue-model"
+aggregator,"Aggregate fragmented supply for demand","Quality control, demand generation, standardization","Commission, advertising, premium placement","Google, Booking.com, Yelp","business-model-canvas"
+franchise,"License proven business model","Proven operations, brand, training","Franchise fees, ongoing royalties","McDonald's, Subway, 7-Eleven","business-model-canvas"
+direct_to_consumer,"Bypass intermediaries to sell direct","Brand building, customer relationship, data ownership","Higher margins, customer acquisition costs","Warby Parker, Casper, Glossier","business-model-canvas"
+long_tail,"Aggregate many niche products","Search/discovery, low inventory cost, personalization","High volume of small transactions","Amazon, Netflix, Spotify","business-model-canvas"
+api_first,"Product delivered via API","Developer experience, documentation, usage-based pricing","Usage-based revenue, enterprise contracts","Stripe, Twilio, SendGrid","pricing-strategy"
+white_label,"Product sold under others brands","Flexible branding, B2B2C distribution","License fees, revenue share","Many payment processors, software","business-model-canvas"
+network_effect,"Value increases with users","Critical mass, winner-take-all dynamics","Defensibility, can support freemium","Facebook, LinkedIn, Slack","business-model-canvas"

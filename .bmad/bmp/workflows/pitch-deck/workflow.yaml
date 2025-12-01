@@ -1,0 +1,27 @@
+# Pitch Deck Workflow Configuration
+name: pitch-deck
+description: "Create content for investor pitch deck"
+
+config_source: "{project-root}/.bmad/bmp/config.yaml"
+installed_path: "{project-root}/.bmad/bmp/workflows/pitch-deck"
+
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+
+default_output_file: "{bmp_output_path}/pitch-deck-content-{{date}}.md"
+
+type: document
+primary_agent: planner
+
+slides:
+  - title_hook
+  - problem
+  - solution
+  - market_size
+  - business_model
+  - traction
+  - competition
+  - team
+  - financials
+  - ask

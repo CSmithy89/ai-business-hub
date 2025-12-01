@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task id="calculate-unit-economics" name="Unit Economics Calculator" standalone="true">
+
+  <llm critical="true">
+    <i>All calculations must show work and assumptions</i>
+    <i>Industry benchmarks require sources</i>
+    <i>Flag metrics outside healthy ranges</i>
+  </llm>
+
+  <purpose>
+    Calculate key unit economics metrics for a business including CAC, LTV,
+    LTV:CAC ratio, payback period, and gross margin. Essential for validating
+    business model viability.
+  </purpose>
+
+  <inputs>
+    <input name="revenue_per_customer" required="true">
+      Average monthly revenue per customer (ARPU)
+    </input>
+    <input name="acquisition_cost" required="true">
+      Total cost to acquire one customer (marketing + sales)
+    </input>
+    <input name="churn_rate" required="true">
+      Monthly customer churn rate (percentage)
+    </input>
+    <input name="gross_margin" required="false" default="70%">
+      Gross margin percentage (revenue - COGS / revenue)
+    </input>
+    <input name="business_type" required="false" default="saas">
+      Business type for benchmark comparison (saas, ecommerce, marketplace)
+    </input>
+  </inputs>
+
+  <benchmarks>
+    <benchmark type="saas">
+      <metric name="ltv_cac" target=">3:1" healthy=">5:1"/>
+      <metric name="payback" target="<12 months" healthy="<6 months"/>
+      <metric name="churn" target="<5% monthly" healthy="<3% monthly"/>
+      <metric name="gross_margin" target=">70%" healthy=">80%"/>
+    </benchmark>
+    <benchmark type="ecommerce">
+      <metric name="ltv_cac" target=">1.5:1" healthy=">3:1"/>
+      <metric name="payback" target="<6 months" healthy="<3 months"/>
+      <metric name="gross_margin" target=">30%" healthy=">50%"/>
+    </benchmark>
+    <benchmark type="marketplace">
+      <metric name="ltv_cac" target=">2:1" healthy=">4:1"/>
+      <metric name="payback" target="<12 months" healthy="<6 months"/>
+      <metric name="gross_margin" target=">60%" healthy=">75%"/>
+    </benchmark>
+  </benchmarks>
+
+  <flow>
+    <step n="1" title="Calculate Customer Lifetime">
+      <formula>Customer Lifetime (months) = 1 / Monthly Churn Rate</formula>
+      <example>If churn = 5%, lifetime = 1/0.05 = 20 months</example>
+    </step>
+
+    <step n="2" title="Calculate Lifetime Value">
+      <formula>LTV = ARPU × Gross Margin × Customer Lifetime</formula>
+      <example>LTV = $100/mo × 70% × 20 months = $1,400</example>
+    </step>
+
+    <step n="3" title="Calculate LTV:CAC Ratio">
+      <formula>LTV:CAC = LTV / CAC</formula>
+      <example>LTV:CAC = $1,400 / $400 = 3.5:1</example>
+      <assessment>
+        <healthy>Greater than 3:1</healthy>
+        <warning>Between 1:1 and 3:1</warning>
+        <critical>Less than 1:1</critical>
+      </assessment>
+    </step>
+
+    <step n="4" title="Calculate Payback Period">
+      <formula>Payback = CAC / (ARPU × Gross Margin)</formula>
+      <example>Payback = $400 / ($100 × 70%) = 5.7 months</example>
+      <assessment>
+        <healthy>Less than 12 months</healthy>
+        <warning>12-18 months</warning>
+        <critical>Greater than 18 months</critical>
+      </assessment>
+    </step>
+
+    <step n="5" title="Generate Report">
+      <format>
+## Unit Economics Report
+
+### Input Values
+| Input | Value |
+|-------|-------|
+| ARPU (Monthly) | {{arpu}} |
+| CAC | {{cac}} |
+| Monthly Churn | {{churn}} |
+| Gross Margin | {{gross_margin}} |
+
+### Calculated Metrics
+| Metric | Value | Benchmark | Status |
+|--------|-------|-----------|--------|
+| Customer Lifetime | {{lifetime}} months | - | - |
+| LTV | {{ltv}} | - | - |
+| LTV:CAC | {{ltv_cac}} | >3:1 | {{ltv_cac_status}} |
+| Payback Period | {{payback}} months | <12 months | {{payback_status}} |
+| Gross Margin | {{gross_margin}} | >70% | {{gm_status}} |
+
+### Assessment
+{{overall_assessment}}
+
+### Recommendations
+{{recommendations}}
+      </format>
+    </step>
+  </flow>
+</task>

@@ -1,0 +1,18 @@
+metric,formula,benchmark_saas,benchmark_ecommerce,benchmark_marketplace,notes
+mrr,Monthly Recurring Revenue,>$10K for seed funding,N/A,N/A,Key SaaS health metric
+arr,MRR × 12,$1M+ for Series A,N/A,N/A,Annual view for investors
+cac,Total Sales + Marketing / New Customers,<LTV/3,<30% of first order value,<GMV × take rate × 3,Varies significantly by channel
+ltv,ARPU × Gross Margin × Customer Lifetime,>3× CAC,>1.5× CAC,>2× CAC,Critical for unit economics
+ltv_cac_ratio,LTV / CAC,>3:1 healthy >5:1 excellent,>1.5:1,>2:1,Key efficiency metric
+payback_months,CAC / (Monthly ARPU × Gross Margin),<12 months,<6 months,<12 months,Cash efficiency indicator
+churn_monthly,Lost Customers / Starting Customers,<5% monthly,<8% monthly,<10% monthly,Lower is better
+churn_annual,1 - (1 - Monthly Churn)^12,<40% annually,N/A,N/A,Often more meaningful
+nrr,Net Revenue Retention,(Start MRR + Expansion - Contraction - Churn) / Start MRR,>100% good >120% excellent,N/A,N/A,Shows expansion vs churn
+grr,Gross Revenue Retention,(Start MRR - Contraction - Churn) / Start MRR,>80%,N/A,N/A,Pure retention without expansion
+gross_margin,(Revenue - COGS) / Revenue,>70%,>30%,>60%,Varies by business model
+burn_rate,Monthly Cash Outflow - Cash Inflow,Track monthly,Track monthly,Track monthly,Key for runway calculation
+runway_months,Cash Balance / Monthly Burn Rate,>18 months post-funding,>12 months,>18 months,Safety buffer
+gmv,Gross Merchandise Value,N/A,Direct revenue,>$1M monthly for Series A,Marketplace transaction volume
+take_rate,Platform Revenue / GMV,N/A,N/A,10-30% typical,Varies by category and value add
+arpu,Total Revenue / Total Customers,Industry specific,Industry specific,Industry specific,Average revenue per user
+conversion_rate,Paying Customers / Total Users,2-5% for freemium,2-3% for ecommerce,Varies,Depends on model type

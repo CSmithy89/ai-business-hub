@@ -1,0 +1,44 @@
+# Pricing Strategy Workflow Configuration
+name: pricing-strategy
+description: "Design pricing strategy with tiers, value metrics, and competitive positioning"
+
+config_source: "{project-root}/.bmad/bmp/config.yaml"
+installed_path: "{project-root}/.bmad/bmp/workflows/pricing-strategy"
+
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+
+default_output_file: "{bmp_output_path}/pricing-strategy-{{date}}.md"
+
+type: document
+primary_agent: revenue
+supporting_agents:
+  - model
+  - finance
+
+inputs:
+  business_model_canvas:
+    path: "{bmp_output_path}"
+    files: ["business-model-canvas*.md"]
+    required: false
+  competitive_analysis:
+    path: "{output_folder}/bmv"
+    files: ["competitor*.md"]
+    required: false
+
+pricing_models:
+  - subscription_flat
+  - subscription_tiered
+  - subscription_per_seat
+  - usage_based
+  - freemium
+  - one_time
+  - hybrid
+
+pricing_strategies:
+  - value_based
+  - competitive
+  - cost_plus
+  - penetration
+  - skimming

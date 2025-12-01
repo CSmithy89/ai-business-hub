@@ -1,0 +1,91 @@
+# Business Model Canvas Workflow Configuration
+name: business-model-canvas
+description: "Create comprehensive Business Model Canvas with all 9 building blocks"
+
+config_source: "{project-root}/.bmad/bmp/config.yaml"
+installed_path: "{project-root}/.bmad/bmp/workflows/business-model-canvas"
+
+# Workflow components
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+
+# Output configuration
+default_output_file: "{bmp_output_path}/business-model-canvas-{{date}}.md"
+
+# Workflow metadata
+type: document
+primary_agent: model
+supporting_agents:
+  - planner
+
+# Input sources (optional)
+inputs:
+  bmv_validation:
+    path: "{output_folder}/bmv"
+    files:
+      - "validation-synthesis*.md"
+      - "customer-profile*.md"
+      - "market-sizing*.md"
+    required: false
+    description: "BMV validation documents for context"
+
+# Canvas blocks to complete
+canvas_blocks:
+  - id: customer_segments
+    name: "Customer Segments"
+    questions:
+      - "Who are we creating value for?"
+      - "Who are our most important customers?"
+
+  - id: value_propositions
+    name: "Value Propositions"
+    questions:
+      - "What value do we deliver to the customer?"
+      - "Which customer problems are we solving?"
+      - "What bundles of products/services do we offer?"
+
+  - id: channels
+    name: "Channels"
+    questions:
+      - "How do customers want to be reached?"
+      - "How are we reaching them now?"
+      - "Which channels work best?"
+
+  - id: customer_relationships
+    name: "Customer Relationships"
+    questions:
+      - "What type of relationship does each segment expect?"
+      - "How costly are they?"
+
+  - id: revenue_streams
+    name: "Revenue Streams"
+    questions:
+      - "What value are customers willing to pay for?"
+      - "How are they currently paying?"
+      - "How much does each stream contribute?"
+
+  - id: key_resources
+    name: "Key Resources"
+    questions:
+      - "What key resources does our value proposition require?"
+      - "Our distribution channels? Customer relationships?"
+
+  - id: key_activities
+    name: "Key Activities"
+    questions:
+      - "What activities does our value proposition require?"
+      - "Our distribution channels? Revenue streams?"
+
+  - id: key_partnerships
+    name: "Key Partnerships"
+    questions:
+      - "Who are our key partners and suppliers?"
+      - "What resources do we acquire from partners?"
+
+  - id: cost_structure
+    name: "Cost Structure"
+    questions:
+      - "What are the most important costs?"
+      - "Which key resources are most expensive?"
+      - "Which key activities are most expensive?"

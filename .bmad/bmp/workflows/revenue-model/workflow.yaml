@@ -1,0 +1,27 @@
+# Revenue Model Workflow Configuration
+name: revenue-model
+description: "Design and validate revenue model architecture"
+
+config_source: "{project-root}/.bmad/bmp/config.yaml"
+installed_path: "{project-root}/.bmad/bmp/workflows/revenue-model"
+
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+
+default_output_file: "{bmp_output_path}/revenue-model-{{date}}.md"
+
+type: document
+primary_agent: revenue
+supporting_agents:
+  - model
+
+revenue_model_types:
+  - subscription
+  - usage_based
+  - freemium
+  - marketplace
+  - advertising
+  - licensing
+  - transaction_fee
+  - hybrid

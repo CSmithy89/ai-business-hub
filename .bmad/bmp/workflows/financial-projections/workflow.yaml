@@ -1,0 +1,137 @@
+# Financial Projections Workflow Configuration
+name: financial-projections
+description: "Create comprehensive financial projections with P&L, cash flow, and unit economics"
+
+config_source: "{project-root}/.bmad/bmp/config.yaml"
+installed_path: "{project-root}/.bmad/bmp/workflows/financial-projections"
+
+# Workflow components
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+
+# Output configuration
+default_output_file: "{bmp_output_path}/financial-projections-{{date}}.md"
+
+# Workflow metadata
+type: document
+primary_agent: finance
+supporting_agents:
+  - planner
+  - forecast
+
+# Input sources
+inputs:
+  business_model_canvas:
+    path: "{bmp_output_path}"
+    files: ["business-model-canvas*.md"]
+    required: true
+    description: "Business model canvas for revenue/cost structure"
+
+  pricing_strategy:
+    path: "{bmp_output_path}"
+    files: ["pricing-strategy*.md"]
+    required: false
+    description: "Pricing details for revenue modeling"
+
+  market_sizing:
+    path: "{output_folder}/bmv"
+    files: ["market-sizing*.md"]
+    required: false
+    description: "TAM/SAM/SOM for revenue ceiling"
+
+# Projection configuration
+projection_periods:
+  year_1: monthly
+  year_2: quarterly
+  year_3: quarterly
+  year_4: annual
+  year_5: annual
+
+# Financial model components
+components:
+  - id: assumptions
+    name: "Assumptions Documentation"
+    critical: true
+
+  - id: revenue_model
+    name: "Revenue Projections"
+    metrics:
+      - mrr
+      - arr
+      - revenue_growth
+
+  - id: cost_model
+    name: "Cost Projections"
+    categories:
+      - fixed_costs
+      - variable_costs
+      - cogs
+
+  - id: unit_economics
+    name: "Unit Economics"
+    metrics:
+      - cac
+      - ltv
+      - ltv_cac_ratio
+      - payback_months
+      - gross_margin
+
+  - id: income_statement
+    name: "Pro Forma P&L"
+    sections:
+      - revenue
+      - cogs
+      - gross_profit
+      - operating_expenses
+      - ebitda
+      - net_income
+
+  - id: cash_flow
+    name: "Cash Flow Projection"
+    sections:
+      - operating_cash_flow
+      - investing_cash_flow
+      - financing_cash_flow
+
+  - id: funding
+    name: "Funding Requirements"
+    outputs:
+      - burn_rate
+      - runway
+      - funding_needed
+      - use_of_funds
+
+# Scenario modeling
+scenarios:
+  - name: conservative
+    label: "Conservative"
+    adjustments:
+      growth_rate: -30%
+      conversion_rate: -20%
+      churn_rate: +20%
+      cac: +25%
+
+  - name: realistic
+    label: "Realistic (Base)"
+    adjustments: baseline
+
+  - name: optimistic
+    label: "Optimistic"
+    adjustments:
+      growth_rate: +30%
+      conversion_rate: +20%
+      churn_rate: -20%
+      cac: -15%
+
+# Anti-hallucination requirements
+anti_hallucination:
+  required:
+    - All assumptions documented with rationale
+    - Industry benchmarks cite sources
+    - Three scenarios minimum
+    - Ranges instead of point estimates where uncertain
+  prohibited:
+    - Invented benchmark numbers
+    - Hidden assumptions
+    - Optimism bias without conservative scenario

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task id="scenario-model" name="Scenario Planning Model" standalone="true">
+
+  <llm critical="true">
+    <i>Present all three scenarios with clear assumptions</i>
+    <i>Show impact on key metrics</i>
+    <i>Identify which scenario is most likely</i>
+  </llm>
+
+  <purpose>
+    Generate conservative, realistic, and optimistic business scenarios to
+    understand the range of possible outcomes. Essential for planning and
+    risk management.
+  </purpose>
+
+  <inputs>
+    <input name="baseline_metrics" required="true">
+      Baseline financial metrics to adjust:
+      - Revenue growth rate
+      - Customer conversion rate
+      - Churn rate
+      - CAC
+      - ARPU
+    </input>
+    <input name="projection_years" required="false" default="3">
+      Number of years to project
+    </input>
+  </inputs>
+
+  <scenarios>
+    <scenario name="conservative" label="Conservative">
+      <description>Things go slower than expected</description>
+      <adjustments>
+        <adjustment metric="growth_rate" change="-30%">Slower growth</adjustment>
+        <adjustment metric="conversion_rate" change="-20%">Lower conversion</adjustment>
+        <adjustment metric="churn_rate" change="+20%">Higher churn</adjustment>
+        <adjustment metric="cac" change="+25%">Higher acquisition cost</adjustment>
+        <adjustment metric="arpu" change="-10%">Price pressure</adjustment>
+      </adjustments>
+      <triggers>
+        <trigger>Economic downturn</trigger>
+        <trigger>Strong competitor response</trigger>
+        <trigger>Slower product development</trigger>
+        <trigger>Higher than expected costs</trigger>
+      </triggers>
+    </scenario>
+
+    <scenario name="realistic" label="Realistic (Base)">
+      <description>Base case with moderate assumptions</description>
+      <adjustments>
+        <adjustment metric="all" change="0%">Baseline values</adjustment>
+      </adjustments>
+      <triggers>
+        <trigger>Normal market conditions</trigger>
+        <trigger>Expected competitive dynamics</trigger>
+        <trigger>Competent execution</trigger>
+      </triggers>
+    </scenario>
+
+    <scenario name="optimistic" label="Optimistic">
+      <description>Things go better than expected</description>
+      <adjustments>
+        <adjustment metric="growth_rate" change="+30%">Faster growth</adjustment>
+        <adjustment metric="conversion_rate" change="+20%">Better conversion</adjustment>
+        <adjustment metric="churn_rate" change="-20%">Lower churn</adjustment>
+        <adjustment metric="cac" change="-15%">More efficient acquisition</adjustment>
+        <adjustment metric="arpu" change="+10%">Pricing power</adjustment>
+      </adjustments>
+      <triggers>
+        <trigger>Viral growth kicks in</trigger>
+        <trigger>Perfect market timing</trigger>
+        <trigger>Weak competitor response</trigger>
+        <trigger>Strong word of mouth</trigger>
+      </triggers>
+    </scenario>
+  </scenarios>
+
+  <flow>
+    <step n="1" title="Gather Baseline">
+      <action>Collect current/projected baseline metrics</action>
+      <action>Document assumptions behind baseline</action>
+    </step>
+
+    <step n="2" title="Apply Scenario Adjustments">
+      <action>For each scenario, apply adjustments to baseline</action>
+      <action>Calculate resulting metrics for each year</action>
+    </step>
+
+    <step n="3" title="Project Outcomes">
+      <action>Project key metrics for each scenario:</action>
+      <metrics>
+        <metric>Revenue</metric>
+        <metric>Customers</metric>
+        <metric>LTV:CAC</metric>
+        <metric>Time to profitability</metric>
+        <metric>Funding required</metric>
+      </metrics>
+    </step>
+
+    <step n="4" title="Generate Report">
+      <format>
+## Scenario Analysis Report
+
+### Baseline Assumptions
+| Metric | Baseline Value |
+|--------|---------------|
+{{#each baseline_metrics}}
+| {{metric}} | {{value}} |
+{{/each}}
+
+### Scenario Comparison
+
+| Metric | Conservative | Realistic | Optimistic |
+|--------|--------------|-----------|------------|
+| Y1 Revenue | {{cons_y1_rev}} | {{real_y1_rev}} | {{opt_y1_rev}} |
+| Y3 Revenue | {{cons_y3_rev}} | {{real_y3_rev}} | {{opt_y3_rev}} |
+| Y3 Customers | {{cons_y3_cust}} | {{real_y3_cust}} | {{opt_y3_cust}} |
+| Time to Profit | {{cons_ttp}} | {{real_ttp}} | {{opt_ttp}} |
+| Total Funding | {{cons_funding}} | {{real_funding}} | {{opt_funding}} |
+
+### Conservative Scenario
+**Assumptions:**
+{{conservative_assumptions}}
+
+**What would have to be true:**
+{{conservative_triggers}}
+
+### Realistic Scenario
+**Assumptions:**
+{{realistic_assumptions}}
+
+**What would have to be true:**
+{{realistic_triggers}}
+
+### Optimistic Scenario
+**Assumptions:**
+{{optimistic_assumptions}}
+
+**What would have to be true:**
+{{optimistic_triggers}}
+
+### Probability Assessment
+- Conservative: {{conservative_probability}}%
+- Realistic: {{realistic_probability}}%
+- Optimistic: {{optimistic_probability}}%
+
+### Recommendations
+{{recommendations}}
+      </format>
+    </step>
+  </flow>
+</task>
