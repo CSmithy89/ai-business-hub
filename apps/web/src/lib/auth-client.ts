@@ -64,3 +64,81 @@ export async function signOut() {
  * Use in React components to access session data
  */
 export const useSession = authClient.useSession
+
+/**
+ * Session interface from better-auth
+ */
+export interface Session {
+  id: string
+  userId: string
+  token: string
+  expiresAt: Date
+  ipAddress?: string | null
+  userAgent?: string | null
+  activeWorkspaceId?: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+/**
+ * List all active sessions for the current user
+ *
+ * @returns Promise with array of session objects
+ */
+export async function listSessions(): Promise<Session[]> {
+  try {
+    const response = await authClient.listSessions()
+    return response.data || []
+  } catch (error) {
+    console.error('Error listing sessions:', error)
+    throw error
+  }
+}
+
+/**
+ * Revoke a specific session by token
+ *
+ * @param token - Session token to revoke
+ * @returns Promise with revocation result
+ */
+export async function revokeSession({ token }: { token: string }) {
+  try {
+    return await authClient.revokeSession({ token })
+  } catch (error) {
+    console.error('Error revoking session:', error)
+    throw error
+  }
+}
+
+/**
+ * Revoke all sessions except the current one
+ *
+ * @returns Promise with number of revoked sessions
+ */
+export async function revokeOtherSessions() {
+  try {
+    return await authClient.revokeOtherSessions()
+  } catch (error) {
+    console.error('Error revoking other sessions:', error)
+    throw error
+  }
+}
+
+/**
+ * Get current session token from cookies
+ * Used to identify which session is the current one
+ *
+ * @returns Current session token or undefined
+ */
+export function getCurrentSessionToken(): string | undefined {
+  if (typeof window === 'undefined') return undefined
+
+  const cookies = document.cookie.split(';')
+  const sessionCookie = cookies.find((c) =>
+    c.trim().startsWith('hyvve.session_token=')
+  )
+
+  if (!sessionCookie) return undefined
+
+  return sessionCookie.split('=')[1]
+}
