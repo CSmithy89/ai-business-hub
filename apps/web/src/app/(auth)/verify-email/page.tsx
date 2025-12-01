@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { AuthLayout } from '@/components/auth/auth-layout'
 import { VerificationPending } from '@/components/auth/verification-pending'
@@ -18,14 +18,10 @@ type VerificationState =
   | { type: 'error'; errorType: 'expired' | 'invalid' | 'unknown'; email?: string }
 
 /**
- * Email Verification Page
- *
- * Handles email verification with token from query params.
- * Supports multiple states: pending, verifying, success, error.
- *
- * Route: /verify-email?token={token}&email={email}
+ * Email Verification Content Component
+ * Separated to handle Suspense boundary for useSearchParams
  */
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
   const emailParam = searchParams.get('email')
@@ -124,40 +120,65 @@ export default function VerifyEmailPage() {
   }
 
   return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      {/* Verifying State */}
+      {state.type === 'verifying' && (
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-[#FF6B6B]" />
+          <p className="text-gray-600 dark:text-gray-400">
+            Verifying your email...
+          </p>
+        </div>
+      )}
+
+      {/* Pending State */}
+      {state.type === 'pending' && (
+        <VerificationPending
+          email={state.email}
+          onResend={handleResend}
+          isResending={resending}
+        />
+      )}
+
+      {/* Success State */}
+      {state.type === 'success' && <VerificationSuccess />}
+
+      {/* Error State */}
+      {state.type === 'error' && (
+        <VerificationError
+          type={state.errorType}
+          email={state.email}
+          onResend={state.email ? handleResend : undefined}
+          isResending={resending}
+        />
+      )}
+    </div>
+  )
+}
+
+/**
+ * Email Verification Page
+ *
+ * Handles email verification with token from query params.
+ * Supports multiple states: pending, verifying, success, error.
+ *
+ * Route: /verify-email?token={token}&email={email}
+ */
+export default function VerifyEmailPage() {
+  return (
     <AuthLayout>
-      <div className="flex items-center justify-center min-h-[60vh]">
-        {/* Verifying State */}
-        {state.type === 'verifying' && (
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-[#FF6B6B]" />
-            <p className="text-gray-600 dark:text-gray-400">
-              Verifying your email...
-            </p>
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="w-8 h-8 animate-spin text-[#FF6B6B]" />
+              <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            </div>
           </div>
-        )}
-
-        {/* Pending State */}
-        {state.type === 'pending' && (
-          <VerificationPending
-            email={state.email}
-            onResend={handleResend}
-            isResending={resending}
-          />
-        )}
-
-        {/* Success State */}
-        {state.type === 'success' && <VerificationSuccess />}
-
-        {/* Error State */}
-        {state.type === 'error' && (
-          <VerificationError
-            type={state.errorType}
-            email={state.email}
-            onResend={state.email ? handleResend : undefined}
-            isResending={resending}
-          />
-        )}
-      </div>
+        }
+      >
+        <VerifyEmailContent />
+      </Suspense>
     </AuthLayout>
   )
 }

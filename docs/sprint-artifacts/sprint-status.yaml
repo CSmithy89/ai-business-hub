@@ -56,7 +56,7 @@ development_status:
   01-1-install-and-configure-better-auth: done
   01-2-implement-email-password-registration: done
   01-3-implement-email-verification: done
-  01-4-implement-email-password-sign-in: backlog
+  01-4-implement-email-password-sign-in: done
   01-5-implement-google-oauth: backlog
   01-6-implement-password-reset-flow: backlog
   01-7-implement-session-management: backlog

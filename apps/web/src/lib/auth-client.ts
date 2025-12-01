@@ -43,10 +43,12 @@ export async function signUp(data: {
 export async function signIn(data: {
   email: string
   password: string
+  rememberMe?: boolean
 }) {
   return authClient.signIn.email({
     email: data.email,
     password: data.password,
+    rememberMe: data.rememberMe,
   })
 }
 
