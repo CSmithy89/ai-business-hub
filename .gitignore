@@ -54,3 +54,4 @@ venv/
 credentials.json
 *.pem
 *.key
+*.tsbuildinfo
