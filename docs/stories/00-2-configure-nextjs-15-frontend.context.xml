@@ -1,0 +1,912 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>00-2</story-id>
+    <story-title>Configure Next.js 15 Frontend</story-title>
+    <epic>EPIC-00 - Project Scaffolding &amp; Core Setup</epic>
+    <generated>2025-12-01</generated>
+    <priority>P0</priority>
+    <points>2</points>
+  </metadata>
+
+  <story-summary>
+    Initialize Next.js 15 with App Router in apps/web directory, configure Tailwind CSS 4 with existing brand tokens, set up shadcn/ui component library, and implement base layout with theme support (dark/light mode). This story builds upon Story 00-1 (monorepo initialization) and creates the frontend foundation for all subsequent UI development.
+
+    Key Deliverables:
+    - Next.js 15 with App Router structure
+    - Tailwind CSS 4 integration with Hyvve brand tokens
+    - shadcn/ui base configuration
+    - Root layout with theme provider
+    - Environment variable setup
+    - Dark/light mode toggle functionality
+  </story-summary>
+
+  <technical-requirements>
+    <overview>
+      Configure Next.js 15 in the apps/web directory with the following stack:
+      - Next.js 15.x with App Router and experimental typedRoutes
+      - React 19.x with concurrent rendering
+      - Tailwind CSS 4.x with existing brand configuration
+      - shadcn/ui component library (default style)
+      - next-themes for theme management
+      - TypeScript 5.x in strict mode
+    </overview>
+
+    <nextjs-configuration>
+      <file path="apps/web/next.config.ts">
+        <description>Next.js configuration with typedRoutes and image optimization</description>
+        <content><![CDATA[
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
+  // Enable experimental features
+  experimental: {
+    typedRoutes: true,  // Type-safe routing
+  },
+
+  // Image optimization domains
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+      },
+    ],
+  },
+
+  // Transpile shared workspace packages
+  transpilePackages: ['@hyvve/shared', '@hyvve/ui'],
+};
+
+export default nextConfig;
+        ]]></content>
+      </file>
+    </nextjs-configuration>
+
+    <tailwind-configuration>
+      <note>
+        USE EXISTING CONFIGURATION - Do NOT recreate tailwind.config.ts or tokens.css
+        The root directory already contains:
+        - /home/chris/projects/work/Ai Bussiness Hub/tailwind.config.ts
+        - /home/chris/projects/work/Ai Bussiness Hub/src/styles/tokens.css
+
+        These files define the complete Hyvve brand design system including:
+        - Coral (#FF6B6B) and Teal (#20B2AA) brand colors
+        - Warm cream (#FFFBF5) background
+        - Character colors for AI team (Hub, Maya, Atlas, Sage, Nova, Echo)
+        - Complete spacing, typography, shadows, and animation tokens
+      </note>
+
+      <integration>
+        The Next.js app will reference the existing root Tailwind config and import tokens.
+        No duplication needed - workspace packages share configuration.
+      </integration>
+
+      <global-styles path="apps/web/src/styles/globals.css">
+        <content><![CDATA[
+@import '../../../../src/styles/tokens.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles with warm cream background */
+@layer base {
+  html {
+    @apply font-sans antialiased;
+  }
+
+  body {
+    @apply bg-background-cream text-foreground-primary;
+  }
+}
+        ]]></content>
+        <notes>
+          - Imports existing tokens.css from project root
+          - Sets default background to warm cream (#FFFBF5)
+          - Uses foreground-primary for text (Slate 800 #1e293b)
+          - Font antialiasing for crisp text rendering
+        </notes>
+      </global-styles>
+    </tailwind-configuration>
+
+    <shadcn-ui-configuration>
+      <file path="apps/web/components.json">
+        <description>shadcn/ui configuration with Hyvve brand integration</description>
+        <content><![CDATA[
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "../../tailwind.config.ts",
+    "css": "src/styles/globals.css",
+    "baseColor": "slate",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui"
+  }
+}
+        ]]></content>
+        <notes>
+          - Points to root tailwind.config.ts (../../tailwind.config.ts)
+          - Uses slate as baseColor (matches Hyvve text colors)
+          - Enables CSS variables for theming
+          - Standard path aliases for clean imports
+        </notes>
+      </file>
+
+      <utility-file path="apps/web/src/lib/utils.ts">
+        <description>Utility function for classname merging (required by shadcn/ui)</description>
+        <content><![CDATA[
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+        ]]></content>
+      </utility-file>
+    </shadcn-ui-configuration>
+
+    <app-router-structure>
+      <directory-tree><![CDATA[
+apps/web/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx              # Root layout with providers
+│   │   ├── page.tsx                # Home page
+│   │   ├── providers.tsx           # Theme provider wrapper
+│   │   └── globals.css             # Global styles (Tailwind imports)
+│   ├── components/
+│   │   ├── ui/                     # shadcn/ui components (added via CLI)
+│   │   └── theme-toggle.tsx        # Dark/light mode toggle
+│   ├── lib/
+│   │   └── utils.ts                # Utility functions (cn helper)
+│   └── styles/
+│       └── globals.css             # Global styles
+├── public/
+│   └── (static assets)
+├── next.config.ts
+├── tsconfig.json
+├── package.json
+├── .env.example
+└── .env.local
+      ]]></directory-tree>
+
+      <root-layout path="apps/web/src/app/layout.tsx">
+        <description>Root layout with metadata, font loading, and theme provider</description>
+        <content><![CDATA[
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { Providers } from './providers';
+
+const inter = Inter({ subsets: ['latin'] });
+
+export const metadata: Metadata = {
+  title: 'Hyvve - Your AI Team',
+  description: 'AI-powered business orchestration platform',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}
+        ]]></content>
+        <notes>
+          - Inter font loaded from Google Fonts (brand typography)
+          - suppressHydrationWarning prevents theme flicker
+          - Providers component wraps children for theme context
+        </notes>
+      </root-layout>
+
+      <providers path="apps/web/src/app/providers.tsx">
+        <description>Client component wrapping children with ThemeProvider</description>
+        <content><![CDATA[
+'use client';
+
+import { ThemeProvider } from 'next-themes';
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      enableSystem
+      disableTransitionOnChange
+    >
+      {children}
+    </ThemeProvider>
+  );
+}
+        ]]></content>
+        <notes>
+          - Client component (uses 'use client' directive)
+          - Light mode is default (matches Hyvve design philosophy)
+          - enableSystem allows OS preference detection
+          - disableTransitionOnChange prevents flash during theme switch
+        </notes>
+      </providers>
+
+      <home-page path="apps/web/src/app/page.tsx">
+        <description>Basic home page to verify setup</description>
+        <content><![CDATA[
+export default function HomePage() {
+  return (
+    <main className="min-h-screen p-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <header className="space-y-4">
+          <h1 className="text-5xl font-bold tracking-tight text-foreground-primary">
+            Welcome to Hyvve
+          </h1>
+          <p className="text-xl text-foreground-secondary">
+            Your AI team, ready to help.
+          </p>
+        </header>
+
+        <section className="p-6 bg-background-white rounded-lg border border-border-subtle shadow-sm">
+          <h2 className="text-2xl font-semibold mb-4">Setup Complete</h2>
+          <ul className="space-y-2 text-foreground-secondary">
+            <li>✅ Next.js 15 with App Router</li>
+            <li>✅ Tailwind CSS 4 with Hyvve brand tokens</li>
+            <li>✅ shadcn/ui configured</li>
+            <li>✅ Theme support (dark/light mode)</li>
+          </ul>
+        </section>
+      </div>
+    </main>
+  );
+}
+        ]]></content>
+        <notes>
+          - Server component by default (no 'use client')
+          - Uses Hyvve brand classes from tokens.css
+          - Demonstrates cream background, white cards, typography
+        </notes>
+      </home-page>
+
+      <theme-toggle path="apps/web/src/components/theme-toggle.tsx">
+        <description>Theme toggle button component</description>
+        <content><![CDATA[
+'use client';
+
+import { Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
+
+export function ThemeToggle() {
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <button className="p-2 rounded-md border border-border-default">
+        <Sun className="h-5 w-5" />
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+      className="p-2 rounded-md border border-border-default hover:bg-background-hover transition-colors"
+      aria-label="Toggle theme"
+    >
+      {theme === 'light' ? (
+        <Moon className="h-5 w-5 text-foreground-secondary" />
+      ) : (
+        <Sun className="h-5 w-5 text-foreground-secondary" />
+      )}
+    </button>
+  );
+}
+        ]]></content>
+        <notes>
+          - Client component with 'use client'
+          - Prevents hydration mismatch with mounted state
+          - Uses Lucide icons (Moon/Sun)
+          - Accessible with aria-label
+        </notes>
+      </theme-toggle>
+    </app-router-structure>
+
+    <typescript-configuration>
+      <file path="apps/web/tsconfig.json">
+        <description>TypeScript config extending root config with Next.js plugin</description>
+        <content><![CDATA[
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@hyvve/shared": ["../../packages/shared/src"],
+      "@hyvve/ui": ["../../packages/ui/src"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+        ]]></content>
+        <notes>
+          - Extends root tsconfig.json for consistency
+          - Next.js plugin provides type checking
+          - Path aliases for clean imports (@/, @hyvve/*)
+          - Strict mode enabled for type safety
+        </notes>
+      </file>
+    </typescript-configuration>
+
+    <environment-variables>
+      <file path="apps/web/.env.example">
+        <description>Template for environment variables</description>
+        <content><![CDATA[
+# App Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3001
+
+# Feature Flags (future)
+NEXT_PUBLIC_ENABLE_ANALYTICS=false
+        ]]></content>
+      </file>
+
+      <file path="apps/web/.env.local">
+        <description>Local environment variables (gitignored)</description>
+        <content><![CDATA[
+# Copy from .env.example and configure for local development
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_ENABLE_ANALYTICS=false
+        ]]></content>
+      </file>
+    </environment-variables>
+
+    <package-dependencies>
+      <file path="apps/web/package.json">
+        <description>Next.js app dependencies</description>
+        <content><![CDATA[
+{
+  "name": "@hyvve/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hyvve Platform - Next.js 15 Frontend",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "next-themes": "^0.3.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.0",
+    "lucide-react": "^0.263.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5",
+    "tailwindcss": "^4.0.0",
+    "postcss": "^8",
+    "autoprefixer": "^10",
+    "@hyvve/shared": "workspace:*",
+    "@hyvve/ui": "workspace:*"
+  }
+}
+        ]]></content>
+        <notes>
+          - Next.js 15.x with React 19.x
+          - next-themes for theme management
+          - clsx + tailwind-merge for cn() utility
+          - lucide-react for icons
+          - Workspace references to shared packages
+        </notes>
+      </file>
+    </package-dependencies>
+  </technical-requirements>
+
+  <existing-codebase>
+    <monorepo-status>
+      Story 00-1 has completed monorepo initialization with:
+      - Root package.json with Turborepo orchestration
+      - pnpm workspace configuration (pnpm-workspace.yaml)
+      - turbo.json with build, dev, lint, type-check tasks
+      - apps/web directory created with placeholder package.json
+      - Workspace structure: apps/*, packages/*
+    </monorepo-status>
+
+    <brand-system>
+      The following files already exist at project root and should be referenced (NOT recreated):
+
+      1. /home/chris/projects/work/Ai Bussiness Hub/tailwind.config.ts
+         - Complete Tailwind configuration with Hyvve brand colors
+         - Extends with custom tokens: primary (coral), accent (teal)
+         - Character colors for AI team members
+         - Spacing, typography, shadows, animations
+         - Dark mode configuration with 'class' strategy
+
+      2. /home/chris/projects/work/Ai Bussiness Hub/src/styles/tokens.css
+         - CSS custom properties for all design tokens
+         - Brand colors: Coral (#FF6B6B), Teal (#20B2AA)
+         - Background colors: Cream (#FFFBF5), White (#FFFFFF)
+         - Text colors: Slate 800 (#1e293b) primary
+         - Character colors: Hub (Coral), Maya (Teal), Atlas (Orange), etc.
+         - Semantic colors: success, warning, error, info
+         - Typography: Inter font family, rem-based scale
+         - Spacing: 4px grid system
+         - Shadows: soft, subtle premium shadows
+         - Animations: character animations, transitions
+
+      3. /home/chris/projects/work/Ai Bussiness Hub/docs/design/BRAND-GUIDELINES.md
+         - Complete brand identity documentation
+         - Logo specifications (Double-V Infinity)
+         - AI team character definitions
+         - Voice and tone guidelines
+    </brand-system>
+
+    <project-structure>
+      Current directory structure:
+      /home/chris/projects/work/Ai Bussiness Hub/
+      ├── apps/
+      │   └── web/              # Target directory for this story
+      │       ├── package.json  # Placeholder - will be replaced
+      │       ├── .gitkeep
+      │       └── .turbo/
+      ├── packages/
+      │   └── (to be created in future stories)
+      ├── src/
+      │   └── styles/
+      │       └── tokens.css    # Existing design tokens
+      ├── docs/
+      │   ├── architecture.md
+      │   ├── design/
+      │   │   └── BRAND-GUIDELINES.md
+      │   ├── epics/
+      │   │   └── EPIC-00-project-scaffolding.md
+      │   ├── stories/
+      │   │   └── 00-2-configure-nextjs-15-frontend.md
+      │   └── sprint-artifacts/
+      │       ├── sprint-status.yaml
+      │       └── tech-spec-epic-00.md
+      ├── tailwind.config.ts    # Existing Tailwind config
+      ├── package.json          # Root workspace package.json
+      ├── pnpm-workspace.yaml
+      ├── turbo.json
+      └── tsconfig.json         # Root TypeScript config
+    </project-structure>
+  </existing-codebase>
+
+  <implementation-guidance>
+    <step-by-step>
+      <step number="1">
+        <title>Install Next.js and Dependencies</title>
+        <actions>
+          <action>Navigate to apps/web directory</action>
+          <action>Create package.json with Next.js 15, React 19, and dependencies</action>
+          <action>Install packages: pnpm install</action>
+        </actions>
+        <command>cd apps/web &amp;&amp; pnpm install</command>
+      </step>
+
+      <step number="2">
+        <title>Create Next.js Configuration</title>
+        <actions>
+          <action>Create next.config.ts with typedRoutes and image optimization</action>
+          <action>Create tsconfig.json extending root config with Next.js plugin</action>
+        </actions>
+        <verification>TypeScript should recognize Next.js types</verification>
+      </step>
+
+      <step number="3">
+        <title>Set Up App Router Structure</title>
+        <actions>
+          <action>Create src/app directory</action>
+          <action>Create src/components, src/lib, src/styles directories</action>
+          <action>Create layout.tsx with metadata and font loading</action>
+          <action>Create providers.tsx with ThemeProvider (client component)</action>
+          <action>Create page.tsx with welcome content</action>
+        </actions>
+        <verification>Next.js dev server should recognize App Router structure</verification>
+      </step>
+
+      <step number="4">
+        <title>Configure Tailwind CSS</title>
+        <actions>
+          <action>Create src/styles/globals.css importing tokens from root</action>
+          <action>Import globals.css in layout.tsx</action>
+          <action>Verify Tailwind can access root config and tokens</action>
+        </actions>
+        <verification>Run dev server, check that cream background and brand colors apply</verification>
+        <note>DO NOT create new tailwind.config.ts - reference existing root config</note>
+      </step>
+
+      <step number="5">
+        <title>Initialize shadcn/ui</title>
+        <actions>
+          <action>Create components.json pointing to root tailwind.config.ts</action>
+          <action>Create src/lib/utils.ts with cn() helper function</action>
+          <action>Run: npx shadcn@latest init (use existing components.json)</action>
+        </actions>
+        <verification>shadcn CLI should recognize configuration</verification>
+      </step>
+
+      <step number="6">
+        <title>Implement Theme Support</title>
+        <actions>
+          <action>Install next-themes: pnpm add next-themes</action>
+          <action>Create theme-toggle.tsx component</action>
+          <action>Add ThemeProvider to providers.tsx</action>
+          <action>Test theme toggle in browser</action>
+        </actions>
+        <verification>Theme should persist across page reloads</verification>
+      </step>
+
+      <step number="7">
+        <title>Configure Environment Variables</title>
+        <actions>
+          <action>Create .env.example with template variables</action>
+          <action>Create .env.local from .env.example</action>
+        </actions>
+        <verification>Environment variables accessible in components</verification>
+      </step>
+
+      <step number="8">
+        <title>Test Development Server</title>
+        <actions>
+          <action>Start dev server: pnpm dev</action>
+          <action>Verify Next.js starts on http://localhost:3000</action>
+          <action>Check cream background (#FFFBF5) renders</action>
+          <action>Check Inter font loads correctly</action>
+          <action>Test theme toggle switches between light/dark</action>
+          <action>Verify no console errors</action>
+        </actions>
+        <verification>All visual and functional checks pass</verification>
+      </step>
+
+      <step number="9">
+        <title>Run Type Checking</title>
+        <actions>
+          <action>Run: pnpm type-check</action>
+          <action>Fix any TypeScript errors</action>
+        </actions>
+        <verification>tsc --noEmit passes with no errors</verification>
+      </step>
+
+      <step number="10">
+        <title>Update Root Scripts</title>
+        <actions>
+          <action>Verify turbo.json includes web app in dev task</action>
+          <action>Test: pnpm dev from root runs apps/web</action>
+        </actions>
+        <verification>Root dev command starts Next.js app</verification>
+      </step>
+    </step-by-step>
+
+    <integration-notes>
+      <brand-tokens>
+        The apps/web application imports design tokens from the root project:
+        - Tailwind config at root level includes all brand customizations
+        - tokens.css at root level defines CSS custom properties
+        - apps/web/src/styles/globals.css imports: @import '../../../../src/styles/tokens.css'
+
+        This ensures:
+        - Single source of truth for design system
+        - Consistency across all apps in monorepo
+        - Easy updates - change tokens once, all apps reflect changes
+      </brand-tokens>
+
+      <typography>
+        Inter font family (from Google Fonts) provides:
+        - Weights: 400 (normal), 500 (medium), 600 (semibold), 700 (bold)
+        - Excellent readability at all sizes
+        - Modern, professional appearance
+        - Matches Hyvve brand guidelines
+      </typography>
+
+      <color-usage>
+        Primary color applications:
+        - Coral (#FF6B6B): Primary buttons, links, focus rings
+        - Teal (#20B2AA): Secondary accents, success states
+        - Cream (#FFFBF5): Main background (light mode)
+        - White (#FFFFFF): Cards, elevated surfaces
+        - Slate 800 (#1e293b): Primary text color
+      </color-usage>
+    </integration-notes>
+
+    <common-pitfalls>
+      <pitfall>
+        <issue>Hydration mismatch with theme</issue>
+        <solution>Use suppressHydrationWarning on html element and mounted state in ThemeToggle</solution>
+      </pitfall>
+
+      <pitfall>
+        <issue>Tailwind classes not applying</issue>
+        <solution>Verify globals.css imports tokens.css with correct relative path</solution>
+      </pitfall>
+
+      <pitfall>
+        <issue>TypeScript errors with Next.js types</issue>
+        <solution>Ensure next-env.d.ts is included in tsconfig.json</solution>
+      </pitfall>
+
+      <pitfall>
+        <issue>Font not loading</issue>
+        <solution>Check Inter import in layout.tsx and className application to body</solution>
+      </pitfall>
+
+      <pitfall>
+        <issue>Theme not persisting</issue>
+        <solution>Verify ThemeProvider has enableSystem and correct defaultTheme</solution>
+      </pitfall>
+    </common-pitfalls>
+  </implementation-guidance>
+
+  <dependencies>
+    <story-dependencies>
+      <dependency>
+        <story>00-1: Initialize Monorepo with Turborepo</story>
+        <status>COMPLETED (done)</status>
+        <required>Yes - provides apps/web directory and workspace structure</required>
+      </dependency>
+    </story-dependencies>
+
+    <package-dependencies>
+      <runtime>
+        <package name="next" version="^15.0.0" purpose="Frontend framework with App Router" />
+        <package name="react" version="^19.0.0" purpose="UI library with concurrent rendering" />
+        <package name="react-dom" version="^19.0.0" purpose="React DOM rendering" />
+        <package name="next-themes" version="^0.3.0" purpose="Theme management with SSR support" />
+        <package name="clsx" version="^2.1.0" purpose="Conditional classname utility" />
+        <package name="tailwind-merge" version="^2.2.0" purpose="Merge Tailwind classes (cn helper)" />
+        <package name="lucide-react" version="^0.263.0" purpose="Icon library for theme toggle" />
+      </runtime>
+
+      <development>
+        <package name="@types/node" version="^20" purpose="Node.js type definitions" />
+        <package name="@types/react" version="^19" purpose="React type definitions" />
+        <package name="@types/react-dom" version="^19" purpose="React DOM type definitions" />
+        <package name="typescript" version="^5" purpose="TypeScript compiler" />
+        <package name="tailwindcss" version="^4.0.0" purpose="Utility-first CSS framework" />
+        <package name="postcss" version="^8" purpose="CSS processor for Tailwind" />
+        <package name="autoprefixer" version="^10" purpose="Vendor prefix automation" />
+      </development>
+
+      <workspace>
+        <package name="@hyvve/shared" version="workspace:*" purpose="Shared types (future)" />
+        <package name="@hyvve/ui" version="workspace:*" purpose="Shared UI components (future)" />
+      </workspace>
+    </package-dependencies>
+
+    <external-services>
+      <service name="Google Fonts" purpose="Inter font family loading" />
+    </external-services>
+  </dependencies>
+
+  <file-changes>
+    <files-to-create>
+      <file path="apps/web/next.config.ts" description="Next.js configuration" />
+      <file path="apps/web/tsconfig.json" description="TypeScript configuration" />
+      <file path="apps/web/src/app/layout.tsx" description="Root layout with metadata" />
+      <file path="apps/web/src/app/page.tsx" description="Home page component" />
+      <file path="apps/web/src/app/providers.tsx" description="Theme provider wrapper" />
+      <file path="apps/web/src/app/globals.css" description="Global styles" />
+      <file path="apps/web/src/components/theme-toggle.tsx" description="Theme toggle component" />
+      <file path="apps/web/src/lib/utils.ts" description="Utility functions (cn)" />
+      <file path="apps/web/src/styles/globals.css" description="Tailwind imports" />
+      <file path="apps/web/components.json" description="shadcn/ui configuration" />
+      <file path="apps/web/.env.example" description="Environment template" />
+      <file path="apps/web/.env.local" description="Local environment variables" />
+    </files-to-create>
+
+    <files-to-modify>
+      <file path="apps/web/package.json" description="Replace placeholder with full dependencies" />
+    </files-to-modify>
+
+    <files-to-reference>
+      <file path="/home/chris/projects/work/Ai Bussiness Hub/tailwind.config.ts" description="Existing Tailwind config with brand tokens" />
+      <file path="/home/chris/projects/work/Ai Bussiness Hub/src/styles/tokens.css" description="Existing design tokens" />
+      <file path="/home/chris/projects/work/Ai Bussiness Hub/docs/design/BRAND-GUIDELINES.md" description="Brand specifications" />
+    </files-to-reference>
+  </file-changes>
+
+  <acceptance-verification>
+    <criterion id="AC-1">
+      <title>Initialize Next.js 15 in apps/web</title>
+      <verification>
+        <check>apps/web/package.json contains "next": "^15.0.0"</check>
+        <check>apps/web/next.config.ts exists with typedRoutes enabled</check>
+        <check>pnpm install completes without errors</check>
+      </verification>
+      <test-command>cd apps/web &amp;&amp; pnpm list next</test-command>
+    </criterion>
+
+    <criterion id="AC-2">
+      <title>Configure App Router structure with src/app directory</title>
+      <verification>
+        <check>apps/web/src/app/layout.tsx exists</check>
+        <check>apps/web/src/app/page.tsx exists</check>
+        <check>apps/web/src/app/providers.tsx exists</check>
+      </verification>
+      <test-command>ls -la apps/web/src/app/</test-command>
+    </criterion>
+
+    <criterion id="AC-3">
+      <title>Set up Tailwind CSS 4 with custom configuration</title>
+      <verification>
+        <check>apps/web/src/styles/globals.css imports tokens.css from root</check>
+        <check>Tailwind classes compile correctly</check>
+        <check>Cream background (#FFFBF5) applies to body</check>
+        <check>Brand colors (coral, teal) are accessible</check>
+      </verification>
+      <test-command>pnpm dev &amp;&amp; open http://localhost:3000</test-command>
+    </criterion>
+
+    <criterion id="AC-4">
+      <title>Add shadcn/ui base configuration with components.json</title>
+      <verification>
+        <check>apps/web/components.json exists</check>
+        <check>components.json points to root tailwind.config.ts</check>
+        <check>src/lib/utils.ts exports cn() function</check>
+        <check>npx shadcn@latest add button works (test command)</check>
+      </verification>
+      <test-command>cat apps/web/components.json</test-command>
+    </criterion>
+
+    <criterion id="AC-5">
+      <title>Configure environment variables with .env.example and .env.local</title>
+      <verification>
+        <check>apps/web/.env.example exists with template variables</check>
+        <check>apps/web/.env.local exists (gitignored)</check>
+        <check>NEXT_PUBLIC_APP_URL is accessible in components</check>
+      </verification>
+      <test-command>cat apps/web/.env.example</test-command>
+    </criterion>
+
+    <criterion id="AC-6">
+      <title>Add base layout with theme support (dark/light mode)</title>
+      <verification>
+        <check>ThemeProvider wraps app in providers.tsx</check>
+        <check>next-themes package installed</check>
+        <check>suppressHydrationWarning on html element</check>
+        <check>Theme persists across page reloads</check>
+      </verification>
+      <test-command>grep -r "ThemeProvider" apps/web/src/app/</test-command>
+    </criterion>
+
+    <criterion id="AC-7">
+      <title>Next.js starts successfully on port 3000</title>
+      <verification>
+        <check>pnpm dev starts without errors</check>
+        <check>Server listening on http://localhost:3000</check>
+        <check>Page loads in browser</check>
+        <check>No console errors in browser</check>
+      </verification>
+      <test-command>cd apps/web &amp;&amp; pnpm dev</test-command>
+    </criterion>
+
+    <criterion id="AC-8">
+      <title>TypeScript type checking passes without errors</title>
+      <verification>
+        <check>pnpm type-check runs successfully</check>
+        <check>tsc --noEmit exits with code 0</check>
+        <check>No TypeScript errors in IDE</check>
+      </verification>
+      <test-command>cd apps/web &amp;&amp; pnpm type-check</test-command>
+    </criterion>
+
+    <criterion id="AC-9">
+      <title>Tailwind CSS compiles and applies styles correctly</title>
+      <verification>
+        <check>Cream background visible (#FFFBF5)</check>
+        <check>Inter font renders correctly</check>
+        <check>Custom Tailwind classes apply (bg-background-cream, etc.)</check>
+        <check>No CSS compilation errors</check>
+      </verification>
+      <visual-check>Background is warm cream, not pure white</visual-check>
+    </criterion>
+
+    <criterion id="AC-10">
+      <title>Dark/light mode toggle works in base layout</title>
+      <verification>
+        <check>ThemeToggle component renders</check>
+        <check>Clicking toggle switches theme</check>
+        <check>Theme persists on page refresh</check>
+        <check>No hydration mismatch warnings</check>
+      </verification>
+      <manual-test>
+        1. Open app in browser
+        2. Click theme toggle button
+        3. Verify dark mode applies
+        4. Refresh page
+        5. Verify dark mode persists
+      </manual-test>
+    </criterion>
+  </acceptance-verification>
+
+  <reference-documents>
+    <document path="/home/chris/projects/work/Ai Bussiness Hub/docs/prd.md" section="Phase 1 - Core Foundation" />
+    <document path="/home/chris/projects/work/Ai Bussiness Hub/docs/architecture.md" section="Technology Stack - Next.js 15" />
+    <document path="/home/chris/projects/work/Ai Bussiness Hub/docs/sprint-artifacts/tech-spec-epic-00.md" section="AC-00.2: Next.js Frontend" />
+    <document path="/home/chris/projects/work/Ai Bussiness Hub/docs/design/BRAND-GUIDELINES.md" section="Color Palette, Typography, UI Components" />
+    <document path="/home/chris/projects/work/Ai Bussiness Hub/docs/epics/EPIC-00-project-scaffolding.md" section="Story 00.2" />
+    <document path="/home/chris/projects/work/Ai Bussiness Hub/tailwind.config.ts" description="Complete Tailwind configuration" />
+    <document path="/home/chris/projects/work/Ai Bussiness Hub/src/styles/tokens.css" description="Design tokens (CSS custom properties)" />
+
+    <external-references>
+      <reference name="Next.js 15 Documentation" url="https://nextjs.org/docs" />
+      <reference name="Next.js App Router" url="https://nextjs.org/docs/app" />
+      <reference name="Tailwind CSS v4" url="https://tailwindcss.com/docs" />
+      <reference name="shadcn/ui" url="https://ui.shadcn.com" />
+      <reference name="next-themes" url="https://github.com/pacocoursey/next-themes" />
+    </external-references>
+  </reference-documents>
+
+  <notes>
+    <note type="important">
+      DO NOT recreate tailwind.config.ts or src/styles/tokens.css - these exist at root level.
+      The apps/web app should import from the root to maintain single source of truth.
+    </note>
+
+    <note type="important">
+      Light mode is the primary theme (default). Dark mode is secondary.
+      This aligns with Hyvve's warm, friendly brand personality.
+    </note>
+
+    <note type="tip">
+      Use the ThemeToggle component in future UI development (Epic 07) to add theme switching to the header.
+      For this story, basic functionality verification is sufficient.
+    </note>
+
+    <note type="warning">
+      Ensure suppressHydrationWarning is on the html element to prevent theme flicker during SSR.
+      Without this, users see a flash of light mode before dark mode applies.
+    </note>
+
+    <note type="architecture">
+      This setup creates the foundation for:
+      - Epic 07: UI Shell (will add sidebar, header with theme toggle)
+      - All subsequent UI development
+      - Future module UIs (CRM, PM, etc.)
+    </note>
+  </notes>
+</story-context>
