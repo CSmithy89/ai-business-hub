@@ -11,15 +11,25 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@hyvve/db": "workspace:^",
+    "@radix-ui/react-checkbox": "^1.3.3",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@react-email/components": "^1.0.1",
     "better-auth": "^1.4.4",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.0",
     "lucide-react": "^0.263.0",
     "next": "^15.0.0",
     "next-themes": "^0.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tailwind-merge": "^2.2.0"
+    "react-email": "^5.0.5",
+    "react-hook-form": "^7.67.0",
+    "resend": "^6.5.2",
+    "tailwind-merge": "^2.2.0",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@hyvve/shared": "workspace:*",
