@@ -80,23 +80,28 @@ Production-ready assets including:
 ### 4. Wireframe Index
 **Location:** `/docs/design/wireframes/WIREFRAME-INDEX.md`
 
-Comprehensive catalog of 124+ wireframes organized by:
-- Core Shell & Navigation (6) - 🟢 95% Ready
-- Chat Interface (7) - 🟢 95% Ready
-- Dashboard & Overview (5) - 🟢 75% Ready
-- Approval Queue (7) - 🟢 95% Ready (confidence routing)
-- AI Team Panel (5) - 🟢 95% Ready (agent identities)
-- Settings Pages (8) - 🟢 95% Ready (BYOAI + RBAC)
-- CRM Module (14) - 🟢 95% Ready (research complete)
-- PM Module (16) - 🟢 95% Ready (research complete)
-- Data Components (6) - 🟢 95% Ready (STYLE-GUIDE specs)
-- Forms & Inputs (5) - 🟢 95% Ready (STYLE-GUIDE specs)
-- Feedback & States (5) - 🟢 95% Ready (STYLE-GUIDE patterns)
-- Authentication (6) - 🟢 95% Ready (PRD + onboarding)
-- Workflow Builder (6) - 🔴 Future
-- Content Module (5) - 🔴 Future
-- Email Module (5) - 🔴 Future
-- Video Module (4) - 🔴 Future
+**91 wireframes completed** with HTML and PNG assets:
+
+| Category | Status | Count |
+|----------|--------|-------|
+| Core Shell & Navigation | ✅ Complete | 6/6 |
+| Chat Interface | ✅ Complete | 7/7 |
+| Dashboard & Overview | 🟡 Partial | 1/5 |
+| Approval Queue | ✅ Complete | 7/7 |
+| AI Team Panel | ✅ Complete | 5/5 |
+| Settings Pages | ✅ Complete | 8/8 |
+| CRM Module | ✅ Complete | 14/14 |
+| PM Module | ✅ Complete | 20/16 (+4 bonus) |
+| Data Components | ✅ Complete | 6/6 |
+| Forms & Inputs | ✅ Complete | 5/5 |
+| Feedback & States | ✅ Complete | 5/5 |
+| Authentication | ✅ Complete | 6/6 |
+| Workflow Builder | 🔴 Future | 0/6 |
+| Content Module | 🔴 Future | 0/5 |
+| Email Module | 🔴 Future | 0/5 |
+| Video Module | 🔴 Future | 0/4 |
+
+**Assets Location:** `/docs/design/wireframes/Finished wireframes and html files/`
 
 ---
 
@@ -355,24 +360,27 @@ All design tokens are defined in the Style Guide and should be implemented as CS
 
 ## Next Steps
 
-### Phase 1: Core Shell Wireframes (Sprint 1)
-Priority P0 wireframes for implementation:
-1. SH-01 Shell Layout
-2. CH-01 Chat Panel
-3. DB-01 Dashboard Main
-4. AP-01 Approval Queue
-5. AI-01 AI Team Overview
-6. ST-01 Settings Layout
-7. AU-01 Login
-8. AU-02 Register
+### Phase 1: Core Shell Implementation
+All P0 wireframes are complete. Begin implementation using:
 
-### Phase 2: Data Components (Sprint 2)
-1. DC-01 Data Table
-2. DC-02 Kanban Board
-3. AP-02 Approval Card
-4. ST-02 API Keys
+| Component | Wireframe | Assets |
+|-----------|-----------|--------|
+| Shell Layout | SH-01 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/sh-01_shell_layout_(three-panel)/) |
+| Chat Panel | CH-01 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/ch-01_chat_panel/) |
+| Dashboard | DB-01 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/db-01_dashboard_overview/) |
+| Approval Queue | AP-01 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/ap-01_approval_queue_main/) |
+| AI Team | AI-01 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/ai-01_ai_team_overview/) |
+| Settings | ST-01 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/st-01_settings_layout/) |
+| Login | AU-01 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/au-01_login_page/) |
+| Register | AU-02 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/au-02_register/) |
 
-Wireframes will be created as Excalidraw files during implementation sprints, using the specifications in the Style Guide.
+### Phase 2: Data Components & Modules
+All module wireframes are complete. Implement in order:
+1. Data Tables (DC-01) → CRM Lists → PM Lists
+2. Kanban Boards (DC-02) → Deals Pipeline → Task Board
+3. Forms & Inputs (FI-*) → Entity Creation/Editing
+
+**Full wireframe index:** [WIREFRAME-INDEX.md](design/wireframes/WIREFRAME-INDEX.md)
 
 ---
 

@@ -316,6 +316,23 @@ const result = await this.agentOS.invokeAgent('approval', {
 
 ---
 
+## Wireframe References
+
+All Approval Queue wireframes are complete. Reference these when implementing:
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| 04.4 Approval Queue Dashboard | AP-01 Approval Queue | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-01_approval_queue_main/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-01_approval_queue_main/screen.png) |
+| 04.5 Approval Card | AP-02 Confidence Cards | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-02_approval_card_(confidence_routing_)/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-02_approval_card_(confidence_routing_)/screen.png) |
+| 04.6 AI Reasoning Display | AP-03 Approval Detail | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-03_approval_detail_modal/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-03_approval_detail_modal/screen.png) |
+| 04.7 Bulk Approval | AP-04 Batch Approval | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-04_batch_approval/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-04_batch_approval/screen.png) |
+| General | AP-05 Approval Filters | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-05_approval_filters/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-05_approval_filters/screen.png) |
+| 04.9 Audit Trail | AP-06 Approval History | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-06_approval_history/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-06_approval_history/screen.png) |
+
+**Full wireframe index:** [WIREFRAME-INDEX.md](../design/wireframes/WIREFRAME-INDEX.md)
+
+---
+
 ## Dependencies
 
 - Epic 00: Project Scaffolding

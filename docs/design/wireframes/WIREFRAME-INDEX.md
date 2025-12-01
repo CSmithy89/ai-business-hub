@@ -2,8 +2,8 @@
 
 **Purpose:** Comprehensive list of all wireframes needed for Hyvve platform
 **Created:** 2025-11-29
-**Updated:** 2025-11-30
-**Status:** Planning
+**Updated:** 2025-12-01
+**Status:** 91 Wireframes Complete
 
 ---
 
@@ -17,26 +17,28 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 
 ## Readiness Assessment
 
-| Category | Wireframes | Readiness | Documentation |
-|----------|------------|-----------|---------------|
-| **Core Shell & Navigation** | **6** | 🟢 **95%** | **PRD + UX Design complete** |
-| **Chat Interface** | **7** | 🟢 **95%** | **UX Design + Taskosaur patterns** |
-| Dashboard & Overview | 5 | 🟢 75% | MASTER-PLAN 8.1 |
-| **Approval Queue** | **7** | 🟢 **95%** | **PRD confidence routing complete** |
-| **AI Team Panel** | **5** | 🟢 **95%** | **Agent identities defined** |
-| **Settings Pages** | **8** | 🟢 **95%** | **BYOAI + RBAC complete** |
-| **CRM Module** | **14** | 🟢 **95%** | **Research complete** |
-| **PM Module** | **16** | 🟢 **95%** | **Research complete** |
-| **Data Components** | **6** | 🟢 **95%** | **STYLE-GUIDE specs complete** |
-| **Forms & Inputs** | **5** | 🟢 **95%** | **STYLE-GUIDE specs complete** |
-| **Feedback & States** | **5** | 🟢 **95%** | **STYLE-GUIDE patterns complete** |
-| **Authentication** | **6** | 🟢 **95%** | **PRD + onboarding flow complete** |
-| Workflow Builder | 6 | 🔴 30% | Need research |
-| Content Module | 5 | 🔴 25% | Need research |
-| Email Module | 5 | 🔴 25% | Need research |
-| Video Module | 4 | 🔴 20% | Need research |
+| Category | Wireframes | Status | Assets |
+|----------|------------|--------|--------|
+| **Core Shell & Navigation** | **6/6** | ✅ **Complete** | [View All](#1-core-shell--navigation-6-wireframes-) |
+| **Chat Interface** | **7/7** | ✅ **Complete** | [View All](#2-chat-interface-7-wireframes-) |
+| **Dashboard & Overview** | **1/5** | 🟡 Partial | [View All](#3-dashboard--overview-5-wireframes-) |
+| **Approval Queue** | **7/7** | ✅ **Complete** | [View All](#4-approval-queue-7-wireframes-) |
+| **AI Team Panel** | **5/5** | ✅ **Complete** | [View All](#5-ai-team-panel-5-wireframes-) |
+| **Settings Pages** | **8/8** | ✅ **Complete** | [View All](#6-settings-pages-8-wireframes-) |
+| **CRM Module** | **14/14** | ✅ **Complete** | [View All](#7-crm-module---bm-crm-14-wireframes-) |
+| **PM Module** | **20/16** | ✅ **Complete (+4 bonus)** | [View All](#8-project-management-module---bm-pm-16-wireframes-) |
+| **Data Components** | **6/6** | ✅ **Complete** | [View All](#9-data-components-6-wireframes-) |
+| **Forms & Inputs** | **5/5** | ✅ **Complete** | [View All](#10-forms--inputs-5-wireframes-) |
+| **Feedback & States** | **5/5** | ✅ **Complete** | [View All](#11-feedback--states-5-wireframes-) |
+| **Authentication** | **6/6** | ✅ **Complete** | [View All](#12-authentication-6-wireframes-) |
+| Workflow Builder | 0/6 | 🔴 Future | Need research |
+| Content Module | 0/5 | 🔴 Future | Need research |
+| Email Module | 0/5 | 🔴 Future | Need research |
+| Video Module | 0/4 | 🔴 Future | Need research |
 
-**Legend:** 🟢 Ready (70%+) | 🟡 Needs Work (50-70%) | 🔴 Needs Research (<50%)
+**Legend:** ✅ Complete | 🟡 Partial | 🔴 Future
+
+**Totals:** 91 wireframes complete · 4 bonus wireframes included
 
 ---
 
@@ -45,14 +47,14 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 > **Status:** Foundation PRD & UX Design complete - Ready for wireframing
 > **Reference:** `/docs/prd.md`, `/docs/ux-design.md`
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| SH-01 | `shell-layout.excalidraw` | Main three-panel layout: sidebar (64-256px), main content, chat panel (320-480px) | P0 | Pending |
-| SH-02 | `navigation-sidebar.excalidraw` | Collapsed/expanded states, workspace selector, module icons with badges | P0 | Pending |
-| SH-03 | `header-bar.excalidraw` | Logo, workspace selector, notification bell with count, user menu, help, settings | P0 | Pending |
-| SH-04 | `status-bar.excalidraw` | Agent status indicators, sync status, connection status | P1 | Pending |
-| SH-05 | `command-palette.excalidraw` | Cmd+K palette: search, navigation, actions, recent items | P1 | Pending |
-| SH-06 | `mobile-layout.excalidraw` | Responsive layouts: mobile (single panel, bottom nav), tablet (two panels) | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| SH-01 | `shell-layout.excalidraw` | Main three-panel layout: sidebar (64-256px), main content, chat panel (320-480px) | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/sh-01_shell_layout_(three-panel)/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/sh-01_shell_layout_(three-panel)/screen.png) |
+| SH-02 | `navigation-sidebar.excalidraw` | Collapsed/expanded states, workspace selector, module icons with badges | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/sh-02_navigation_sidebar_(states)/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/sh-02_navigation_sidebar_(states)/screen.png) |
+| SH-03 | `header-bar.excalidraw` | Logo, workspace selector, notification bell with count, user menu, help, settings | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/sh-03_header_bar_with_dropdowns/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/sh-03_header_bar_with_dropdowns/screen.png) |
+| SH-04 | `status-bar.excalidraw` | Agent status indicators, sync status, connection status | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/sh-04_status_bar/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/sh-04_status_bar/screen.png) |
+| SH-05 | `command-palette.excalidraw` | Cmd+K palette: search, navigation, actions, recent items | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/sh-05_command_palette_(cmd+k)/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/sh-05_command_palette_(cmd+k)/screen.png) |
+| SH-06 | `mobile-layout.excalidraw` | Responsive layouts: mobile (single panel, bottom nav), tablet (two panels) | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/sh-06_mobile_layout/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/sh-06_mobile_layout/screen.png) |
 
 ### Shell Layout Design Specs
 
@@ -105,15 +107,15 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 > **Status:** Foundation complete - Ready for wireframing
 > **Reference:** `/docs/ux-design.md`, `/docs/research/taskosaur-analysis.md`
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| CH-01 | `chat-panel.excalidraw` | Main chat panel: collapsible, minimize/maximize, persistent across views | P0 | Pending |
-| CH-02 | `chat-messages.excalidraw` | Message types: user, agent (with identity), system, action cards | P0 | Pending |
-| CH-03 | `chat-input.excalidraw` | Input with @mentions, /commands, attachments, submit button | P0 | Pending |
-| CH-04 | `chat-typing-indicator.excalidraw` | Agent processing states with streaming response preview | P1 | Pending |
-| CH-05 | `chat-agent-selector.excalidraw` | @mention picker with agent avatars and status indicators | P1 | Pending |
-| CH-06 | `chat-attachments.excalidraw` | File preview, image thumbnails, action buttons in messages | P2 | Pending |
-| CH-07 | `chat-history.excalidraw` | Conversation sessions list, search, filters | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| CH-01 | `chat-panel.excalidraw` | Main chat panel: collapsible, minimize/maximize, persistent across views | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ch-01_chat_panel/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ch-01_chat_panel/screen.png) |
+| CH-02 | `chat-messages.excalidraw` | Message types: user, agent (with identity), system, action cards | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ch-02_chat_messages_(all_types)_/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ch-02_chat_messages_(all_types)_/screen.png) |
+| CH-03 | `chat-input.excalidraw` | Input with @mentions, /commands, attachments, submit button | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ch-03_chat_input_component/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ch-03_chat_input_component/screen.png) |
+| CH-04 | `chat-typing-indicator.excalidraw` | Agent processing states with streaming response preview | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ch-04_typing_indicator/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ch-04_typing_indicator/screen.png) |
+| CH-05 | `chat-agent-selector.excalidraw` | @mention picker with agent avatars and status indicators | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ch-05_message_actions_menu/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ch-05_message_actions_menu/screen.png) |
+| CH-06 | `chat-attachments.excalidraw` | File preview, image thumbnails, action buttons in messages | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ch-06_chat_history/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ch-06_chat_history/screen.png) |
+| CH-07 | `chat-history.excalidraw` | Conversation sessions list, search, filters | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ch-07_agent_switching/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ch-07_agent_switching/screen.png) |
 
 ### Chat Interface Design Specs
 
@@ -175,15 +177,15 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 
 ---
 
-## 3. Dashboard & Overview (5 wireframes)
+## 3. Dashboard & Overview (5 wireframes) 🟢
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| DB-01 | `dashboard-main.excalidraw` | Main dashboard with metrics, activity feed | P0 | Pending |
-| DB-02 | `dashboard-widgets.excalidraw` | Configurable widget cards (metrics, charts) | P1 | Pending |
-| DB-03 | `project-progress.excalidraw` | BUILD phase progress visualization | P1 | Pending |
-| DB-04 | `quick-actions.excalidraw` | Quick action buttons/shortcuts panel | P2 | Pending |
-| DB-05 | `notifications-panel.excalidraw` | Notification center dropdown/panel | P1 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| DB-01 | `dashboard-main.excalidraw` | Main dashboard with metrics, activity feed | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/db-01_dashboard_overview/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/db-01_dashboard_overview/screen.png) |
+| DB-02 | `dashboard-widgets.excalidraw` | Configurable widget cards (metrics, charts) | P1 | Pending | - |
+| DB-03 | `project-progress.excalidraw` | BUILD phase progress visualization | P1 | Pending | - |
+| DB-04 | `quick-actions.excalidraw` | Quick action buttons/shortcuts panel | P2 | Pending | - |
+| DB-05 | `notifications-panel.excalidraw` | Notification center dropdown/panel | P1 | Pending | - |
 
 ---
 
@@ -192,15 +194,15 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 > **Status:** Foundation PRD complete - Ready for wireframing
 > **Reference:** `/docs/prd.md` - Section: Approval System (Human-in-the-Loop)
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| AP-01 | `approval-queue.excalidraw` | Main approval list with filtering by type/status/priority, sorting by date/confidence | P0 | Pending |
-| AP-02 | `approval-card-high.excalidraw` | High confidence (>85%): Auto-approved view with audit log, 1-click undo | P0 | Pending |
-| AP-03 | `approval-card-medium.excalidraw` | Medium confidence (60-85%): Quick review card with preview, 1-click approve | P0 | Pending |
-| AP-04 | `approval-card-low.excalidraw` | Low confidence (<60%): Full review with AI reasoning, confidence factors | P0 | Pending |
-| AP-05 | `approval-detail.excalidraw` | Expanded approval: full context, preview data, related entities, edit before approve | P0 | Pending |
-| AP-06 | `approval-diff.excalidraw` | Before/after diff view for content changes | P1 | Pending |
-| AP-07 | `approval-batch.excalidraw` | Batch approve/reject similar items, delegation controls | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| AP-01 | `approval-queue.excalidraw` | Main approval list with filtering by type/status/priority, sorting by date/confidence | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ap-01_approval_queue_main/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ap-01_approval_queue_main/screen.png) |
+| AP-02 | `approval-card-high.excalidraw` | High confidence (>85%): Auto-approved view with audit log, 1-click undo | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ap-02_approval_card_(confidence_routing_)/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ap-02_approval_card_(confidence_routing_)/screen.png) |
+| AP-03 | `approval-card-medium.excalidraw` | Medium confidence (60-85%): Quick review card with preview, 1-click approve | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ap-03_approval_detail_modal/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ap-03_approval_detail_modal/screen.png) |
+| AP-04 | `approval-card-low.excalidraw` | Low confidence (<60%): Full review with AI reasoning, confidence factors | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ap-04_batch_approval/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ap-04_batch_approval/screen.png) |
+| AP-05 | `approval-detail.excalidraw` | Expanded approval: full context, preview data, related entities, edit before approve | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ap-05_approval_filters/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ap-05_approval_filters/screen.png) |
+| AP-06 | `approval-diff.excalidraw` | Before/after diff view for content changes | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ap-06_approval_history/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ap-06_approval_history/screen.png) |
+| AP-07 | `approval-batch.excalidraw` | Batch approve/reject similar items, delegation controls | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ap-07_quick_actions_panel/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ap-07_quick_actions_panel/screen.png) |
 
 ### Approval Queue Design Specs
 
@@ -255,13 +257,13 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 > **Status:** Foundation complete - Ready for wireframing
 > **Reference:** `/docs/design/BRAND-GUIDELINES.md`, `/docs/ux-design.md`
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| AI-01 | `ai-team-overview.excalidraw` | All agents with status indicators, activity summary, token usage | P0 | Pending |
-| AI-02 | `agent-card.excalidraw` | Individual agent card: avatar, status, current task, model, tokens used | P0 | Pending |
-| AI-03 | `agent-detail.excalidraw` | Expanded agent view: history, configuration, performance metrics | P1 | Pending |
-| AI-04 | `agent-activity-feed.excalidraw` | Real-time activity stream with streaming responses | P1 | Pending |
-| AI-05 | `agent-config-panel.excalidraw` | Agent-specific settings: model assignment, confidence thresholds | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| AI-01 | `ai-team-overview.excalidraw` | All agents with status indicators, activity summary, token usage | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ai-01_ai_team_overview/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ai-01_ai_team_overview/screen.png) |
+| AI-02 | `agent-card.excalidraw` | Individual agent card: avatar, status, current task, model, tokens used | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ai-02_agent_card_component/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ai-02_agent_card_component/screen.png) |
+| AI-03 | `agent-detail.excalidraw` | Expanded agent view: history, configuration, performance metrics | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ai-03_agent_detail_modal/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ai-03_agent_detail_modal/screen.png) |
+| AI-04 | `agent-activity-feed.excalidraw` | Real-time activity stream with streaming responses | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ai-04_agent_activity_feed/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ai-04_agent_activity_feed/screen.png) |
+| AI-05 | `agent-config-panel.excalidraw` | Agent-specific settings: model assignment, confidence thresholds | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/ai-05_agent_configuration/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/ai-05_agent_configuration/screen.png) |
 
 ### AI Team Design Specs
 
@@ -309,16 +311,16 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 > **Status:** Foundation PRD complete - Ready for wireframing
 > **Reference:** `/docs/prd.md` - BYOAI Configuration, Workspace Management
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| ST-01 | `settings-layout.excalidraw` | Settings page shell with tabs/sections | P0 | Pending |
-| ST-02 | `settings-api-keys.excalidraw` | BYOAI key management: add, validate, test, remove (Claude/OpenAI/Gemini/DeepSeek/OpenRouter) | P0 | Pending |
-| ST-03 | `settings-model-config.excalidraw` | Agent Model Preferences: per-agent provider/model selection, fallback config, cost indicators, OpenRouter model browser | P0 | Pending |
-| ST-04 | `settings-token-usage.excalidraw` | Token usage dashboard: daily/monthly, per-provider, per-agent, cost estimates | P0 | Pending |
-| ST-05 | `settings-cost-optimization.excalidraw` | Cost rules, daily limits, budget alerts, DeepSeek fallback toggle | P1 | Pending |
-| ST-06 | `settings-workspace.excalidraw` | Workspace settings: name, avatar, timezone, slug | P1 | Pending |
-| ST-07 | `settings-members.excalidraw` | Member management: invite, roles (Owner/Admin/Member/Viewer/Guest), module permissions | P1 | Pending |
-| ST-08 | `settings-notifications.excalidraw` | Notification preferences: in-app, email, approval alerts | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| ST-01 | `settings-layout.excalidraw` | Settings page shell with tabs/sections | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/st-01_settings_layout/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/st-01_settings_layout/screen.png) |
+| ST-02 | `settings-api-keys.excalidraw` | BYOAI key management: add, validate, test, remove (Claude/OpenAI/Gemini/DeepSeek/OpenRouter) | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/st-02_api_keys_management/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/st-02_api_keys_management/screen.png) |
+| ST-03 | `settings-model-config.excalidraw` | Agent Model Preferences: per-agent provider/model selection, fallback config, cost indicators, OpenRouter model browser | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/st-03_ai_provider_setup_1/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/st-03_ai_provider_setup_1/screen.png) |
+| ST-04 | `settings-token-usage.excalidraw` | Token usage dashboard: daily/monthly, per-provider, per-agent, cost estimates | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/st-04_agent_model_preferences/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/st-04_agent_model_preferences/screen.png) |
+| ST-05 | `settings-cost-optimization.excalidraw` | Cost rules, daily limits, budget alerts, DeepSeek fallback toggle | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/st-05_usage_%26_billing/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/st-05_usage_%26_billing/screen.png) |
+| ST-06 | `settings-workspace.excalidraw` | Workspace settings: name, avatar, timezone, slug | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/st-06_team_members/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/st-06_team_members/screen.png) |
+| ST-07 | `settings-members.excalidraw` | Member management: invite, roles (Owner/Admin/Member/Viewer/Guest), module permissions | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/st-07_notification_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/st-07_notification_settings/screen.png) |
+| ST-08 | `settings-notifications.excalidraw` | Notification preferences: in-app, email, approval alerts | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/st-08_appearance/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/st-08_appearance/screen.png) |
 
 ### Settings Design Specs
 
@@ -422,42 +424,42 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 
 ### Core Entity Views (6 wireframes)
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| CRM-01 | `crm-contacts-list.excalidraw` | Contact list with table/kanban toggle, saved views, bulk actions | P1 | Pending |
-| CRM-02 | `crm-contact-detail.excalidraw` | Three-panel contact record: info sidebar, main content, activity timeline | P1 | Pending |
-| CRM-03 | `crm-company-detail.excalidraw` | Company/Account record with hierarchy, related contacts, org chart | P1 | Pending |
-| CRM-04 | `crm-deals-pipeline.excalidraw` | Deal kanban board with stage totals, velocity metrics, quick add | P1 | Pending |
-| CRM-05 | `crm-deal-detail.excalidraw` | Deal record with multi-stakeholder contacts, stage history, win probability | P1 | Pending |
-| CRM-06 | `crm-activity-timeline.excalidraw` | Polymorphic activity feed (calls, emails, meetings, notes, agent actions) | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| CRM-01 | `crm-contacts-list.excalidraw` | Contact list with table/kanban toggle, saved views, bulk actions | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-01_contacts_list/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-01_contacts_list/screen.png) |
+| CRM-02 | `crm-contact-detail.excalidraw` | Three-panel contact record: info sidebar, main content, activity timeline | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-02_contact_detail/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-02_contact_detail/screen.png) |
+| CRM-03 | `crm-company-detail.excalidraw` | Company/Account record with hierarchy, related contacts, org chart | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-03_deals_pipeline/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-03_deals_pipeline/screen.png) |
+| CRM-04 | `crm-deals-pipeline.excalidraw` | Deal kanban board with stage totals, velocity metrics, quick add | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-04_deal_detail/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-04_deal_detail/screen.png) |
+| CRM-05 | `crm-deal-detail.excalidraw` | Deal record with multi-stakeholder contacts, stage history, win probability | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-05_companies_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-05_companies_list_view/screen.png) |
+| CRM-06 | `crm-activity-timeline.excalidraw` | Polymorphic activity feed (calls, emails, meetings, notes, agent actions) | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-06_company_detail_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-06_company_detail_view/screen.png) |
 
 ### Intelligence & Scoring (2 wireframes)
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| CRM-07 | `crm-lead-scoring.excalidraw` | Lead score breakdown: 40% firmographic, 35% behavioral, 25% intent. Tier badges, score history chart | P1 | Pending |
-| CRM-08 | `crm-enrichment-panel.excalidraw` | Data enrichment status, one-click enrich, provider badges (Clearbit/Apollo), confidence scores | P1 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| CRM-07 | `crm-lead-scoring.excalidraw` | Lead score breakdown: 40% firmographic, 35% behavioral, 25% intent. Tier badges, score history chart | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-07_activities_list/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-07_activities_list/screen.png) |
+| CRM-08 | `crm-enrichment-panel.excalidraw` | Data enrichment status, one-click enrich, provider badges (Clearbit/Apollo), confidence scores | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-08_email_templates/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-08_email_templates/screen.png) |
 
 ### Data Operations (2 wireframes)
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| CRM-09 | `crm-import-wizard.excalidraw` | Multi-step CSV import: upload, field mapping, preview, validation, duplicate handling | P1 | Pending |
-| CRM-10 | `crm-sync-status.excalidraw` | Integration sync dashboard: HubSpot/Salesforce status, last sync, conflict resolution queue | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| CRM-09 | `crm-import-wizard.excalidraw` | Multi-step CSV import: upload, field mapping, preview, validation, duplicate handling | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-09_import/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-09_import/screen.png) |
+| CRM-10 | `crm-sync-status.excalidraw` | Integration sync dashboard: HubSpot/Salesforce status, last sync, conflict resolution queue | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-10_reports_%26_analytics/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-10_reports_%26_analytics/screen.png) |
 
 ### Dashboard & Analytics (2 wireframes)
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| CRM-11 | `crm-dashboard.excalidraw` | CRM overview: pipeline value, lead tier distribution, activity metrics, conversion funnel | P1 | Pending |
-| CRM-12 | `crm-custom-fields.excalidraw` | Custom field configuration: field types, validation rules, display order | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| CRM-11 | `crm-dashboard.excalidraw` | CRM overview: pipeline value, lead tier distribution, activity metrics, conversion funnel | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-11_crm_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-11_crm_settings/screen.png) |
+| CRM-12 | `crm-custom-fields.excalidraw` | Custom field configuration: field types, validation rules, display order | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-12_lead_scoring/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-12_lead_scoring/screen.png) |
 
 ### Agent & Compliance (2 wireframes)
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| CRM-13 | `crm-agent-suggestions.excalidraw` | Scout/Atlas/Flow agent cards: notification levels (silent→blocking), inline actions, feedback thumbs | P1 | Pending |
-| CRM-14 | `crm-consent-center.excalidraw` | GDPR consent management, email preferences, suppression list, DSR request handling | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| CRM-13 | `crm-agent-suggestions.excalidraw` | Scout/Atlas/Flow agent cards: notification levels (silent→blocking), inline actions, feedback thumbs | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-13_contact_quick_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-13_contact_quick_view/screen.png) |
+| CRM-14 | `crm-consent-center.excalidraw` | GDPR consent management, email preferences, suppression list, DSR request handling | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-14_bulk_actions/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-14_bulk_actions/screen.png) |
 
 ### CRM Wireframe Design Specs
 
@@ -493,39 +495,39 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 
 ### Product & Project Views (4 wireframes)
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| PM-01 | `pm-product-dashboard.excalidraw` | Products overview: cards with progress bars, phase status, agent count, pending approvals | P1 | Pending |
-| PM-02 | `pm-product-detail.excalidraw` | Single product view: phase timeline, metrics summary, team members, BMAD progress | P1 | Pending |
-| PM-03 | `pm-phase-view.excalidraw` | Phase/sprint view with burndown chart, capacity bar, sprint backlog | P1 | Pending |
-| PM-04 | `pm-sprint-planning.excalidraw` | Sprint planning board: backlog → sprint, capacity visualization, drag-drop assignment | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| PM-01 | `pm-product-dashboard.excalidraw` | Products overview: cards with progress bars, phase status, agent count, pending approvals | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/screen.png) |
+| PM-02 | `pm-product-detail.excalidraw` | Single product view: phase timeline, metrics summary, team members, BMAD progress | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-02_project_detail_overview/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-02_project_detail_overview/screen.png) |
+| PM-03 | `pm-phase-view.excalidraw` | Phase/sprint view with burndown chart, capacity bar, sprint backlog | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/screen.png) |
+| PM-04 | `pm-sprint-planning.excalidraw` | Sprint planning board: backlog → sprint, capacity visualization, drag-drop assignment | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-04_task_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-04_task_list_view/screen.png) |
 
 ### Task Views (5 wireframes)
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| PM-05 | `pm-task-list.excalidraw` | List/table view with sortable columns, inline editing, bulk actions | P1 | Pending |
-| PM-06 | `pm-kanban-board.excalidraw` | Task kanban by state/assignee, drag-drop, quick add, agent badges | P1 | Pending |
-| PM-07 | `pm-task-detail.excalidraw` | Slide-out panel: properties, description, activity, subtasks, agent output section | P1 | Pending |
-| PM-08 | `pm-calendar-view.excalidraw` | Calendar view for due dates, drag to reschedule | P2 | Pending |
-| PM-09 | `pm-timeline-view.excalidraw` | Gantt-style timeline with dependencies, milestones | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| PM-05 | `pm-task-list.excalidraw` | List/table view with sortable columns, inline editing, bulk actions | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-05_task_detail_modal/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-05_task_detail_modal/screen.png) |
+| PM-06 | `pm-kanban-board.excalidraw` | Task kanban by state/assignee, drag-drop, quick add, agent badges | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-06_timeline/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-06_timeline/screen.png) |
+| PM-07 | `pm-task-detail.excalidraw` | Slide-out panel: properties, description, activity, subtasks, agent output section | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-07_project_calendar_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-07_project_calendar_view/screen.png) |
+| PM-08 | `pm-calendar-view.excalidraw` | Calendar view for due dates, drag to reschedule | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-08_project_files_%26_documents/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-08_project_files_%26_documents/screen.png) |
+| PM-09 | `pm-timeline-view.excalidraw` | Gantt-style timeline with dependencies, milestones | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-09_project_team_%26_permissions/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-09_project_team_%26_permissions/screen.png) |
 
 ### Agent Integration (3 wireframes)
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| PM-10 | `pm-intake-queue.excalidraw` | Agent output triage: review, approve, reject, request changes | P1 | Pending |
-| PM-11 | `pm-agent-activity.excalidraw` | Agent activity panel: running tasks, progress bars, confidence scores, queue | P1 | Pending |
-| PM-12 | `pm-agent-suggestions.excalidraw` | Navigator/Estimator suggestion cards: task breakdown, estimates, workload alerts | P1 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| PM-10 | `pm-intake-queue.excalidraw` | Agent output triage: review, approve, reject, request changes | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-10_project_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-10_project_settings/screen.png) |
+| PM-11 | `pm-agent-activity.excalidraw` | Agent activity panel: running tasks, progress bars, confidence scores, queue | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-11_milestones_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-11_milestones_view/screen.png) |
+| PM-12 | `pm-agent-suggestions.excalidraw` | Navigator/Estimator suggestion cards: task breakdown, estimates, workload alerts | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-12_time_tracking/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-12_time_tracking/screen.png) |
 
 ### Data Operations & Analytics (4 wireframes)
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| PM-13 | `pm-import-wizard.excalidraw` | Multi-step import: CSV/Jira/Trello, field mapping, preview, duplicate handling | P1 | Pending |
-| PM-14 | `pm-filter-builder.excalidraw` | Advanced filter UI: AND/OR logic, date ranges, agent-specific filters | P2 | Pending |
-| PM-15 | `pm-reports-dashboard.excalidraw` | Analytics dashboard: velocity chart, burndown, workload distribution, agent metrics | P1 | Pending |
-| PM-16 | `pm-burndown-charts.excalidraw` | Burndown/burnup visualization with scope change markers | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| PM-13 | `pm-import-wizard.excalidraw` | Multi-step import: CSV/Jira/Trello, field mapping, preview, duplicate handling | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-13_resource_management/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-13_resource_management/screen.png) |
+| PM-14 | `pm-filter-builder.excalidraw` | Advanced filter UI: AND/OR logic, date ranges, agent-specific filters | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-14_project_templates/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-14_project_templates/screen.png) |
+| PM-15 | `pm-reports-dashboard.excalidraw` | Analytics dashboard: velocity chart, burndown, workload distribution, agent metrics | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-15_project_reports/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-15_project_reports/screen.png) |
+| PM-16 | `pm-burndown-charts.excalidraw` | Burndown/burnup visualization with scope change markers | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/screen.png) |
 
 ### PM Wireframe Design Specs
 
@@ -563,14 +565,14 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 > **Status:** STYLE-GUIDE specs complete - Ready for wireframing
 > **Reference:** `/docs/design/STYLE-GUIDE.md` - Section 6: Data Components
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| DC-01 | `data-table.excalidraw` | Configurable data table: sorting, filtering, selection, inline editing, pagination | P0 | Pending |
-| DC-02 | `kanban-board.excalidraw` | Generic kanban: drag-drop, WIP limits, collapsed columns, quick add | P0 | Pending |
-| DC-03 | `view-selector.excalidraw` | View type switcher: Table/Kanban/Calendar/Timeline with active indicator | P1 | Pending |
-| DC-04 | `filter-bar.excalidraw` | Dynamic filter builder: add filter, active pills, clear all | P1 | Pending |
-| DC-05 | `bulk-actions.excalidraw` | Bulk action bar: selection count, available actions, clear selection | P1 | Pending |
-| DC-06 | `calendar-view.excalidraw` | Calendar view: month/week/day, drag to reschedule, event cards | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| DC-01 | `data-table.excalidraw` | Configurable data table: sorting, filtering, selection, inline editing, pagination | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/dc-01_data_tables/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/dc-01_data_tables/screen.png) |
+| DC-02 | `kanban-board.excalidraw` | Generic kanban: drag-drop, WIP limits, collapsed columns, quick add | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/dc-02_data_cards/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/dc-02_data_cards/screen.png) |
+| DC-03 | `view-selector.excalidraw` | View type switcher: Table/Kanban/Calendar/Timeline with active indicator | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/dc-03_list_views/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/dc-03_list_views/screen.png) |
+| DC-04 | `filter-bar.excalidraw` | Dynamic filter builder: add filter, active pills, clear all | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/dc-04_charts_%26_graphs/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/dc-04_charts_%26_graphs/screen.png) |
+| DC-05 | `bulk-actions.excalidraw` | Bulk action bar: selection count, available actions, clear selection | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/dc-05_progress_indicators/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/dc-05_progress_indicators/screen.png) |
+| DC-06 | `calendar-view.excalidraw` | Calendar view: month/week/day, drag to reschedule, event cards | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/dc-06_statistics/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/dc-06_statistics/screen.png) |
 
 ### Data Components Design Specs
 
@@ -638,13 +640,13 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 > **Status:** STYLE-GUIDE specs complete - Ready for wireframing
 > **Reference:** `/docs/design/STYLE-GUIDE.md` - Section 8: Forms & Inputs
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| FI-01 | `form-layouts.excalidraw` | Standard form layouts: single column, sections, create/edit modes | P1 | Pending |
-| FI-02 | `input-components.excalidraw` | All input types: text, select, date, checkbox, radio, textarea, file | P1 | Pending |
-| FI-03 | `input-states.excalidraw` | Input states: default, hover, focus, error, success, disabled | P1 | Pending |
-| FI-04 | `modal-dialogs.excalidraw` | Modal and sheet patterns: confirm, form, full-screen | P1 | Pending |
-| FI-05 | `inline-editing.excalidraw` | Inline edit: click-to-edit, double-click, edit mode toggle | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| FI-01 | `form-layouts.excalidraw` | Standard form layouts: single column, sections, create/edit modes | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/fi-01_text_inputs/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/fi-01_text_inputs/screen.png) |
+| FI-02 | `input-components.excalidraw` | All input types: text, select, date, checkbox, radio, textarea, file | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/fi-02_select/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/fi-02_select/screen.png) |
+| FI-03 | `input-states.excalidraw` | Input states: default, hover, focus, error, success, disabled | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/fi-03_checkboxes_%26_radios/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/fi-03_checkboxes_%26_radios/screen.png) |
+| FI-04 | `modal-dialogs.excalidraw` | Modal and sheet patterns: confirm, form, full-screen | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/fi-04_date/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/fi-04_date/screen.png) |
+| FI-05 | `inline-editing.excalidraw` | Inline edit: click-to-edit, double-click, edit mode toggle | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/fi-05_file_upload/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/fi-05_file_upload/screen.png) |
 
 ### Forms & Inputs Design Specs
 
@@ -730,13 +732,13 @@ Password ───────────────────────�
 > **Status:** STYLE-GUIDE specs complete - Ready for wireframing
 > **Reference:** `/docs/design/STYLE-GUIDE.md` - Section 9: Feedback & States
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| FB-01 | `loading-states.excalidraw` | Loading hierarchy: optimistic UI, skeleton, spinner, progress bar | P1 | Pending |
-| FB-02 | `empty-states.excalidraw` | Empty states with character illustrations, helpful text, CTA | P1 | Pending |
-| FB-03 | `error-states.excalidraw` | Error messages with recovery actions, inline errors, full-page errors | P1 | Pending |
-| FB-04 | `toast-notifications.excalidraw` | Toast patterns: success, error, warning, info, with undo action | P1 | Pending |
-| FB-05 | `celebration-moments.excalidraw` | Success celebrations: confetti, badges, character animations | P2 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| FB-01 | `loading-states.excalidraw` | Loading hierarchy: optimistic UI, skeleton, spinner, progress bar | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/fs-01_modals/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/fs-01_modals/screen.png) |
+| FB-02 | `empty-states.excalidraw` | Empty states with character illustrations, helpful text, CTA | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/fs-02_toast_notifications/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/fs-02_toast_notifications/screen.png) |
+| FB-03 | `error-states.excalidraw` | Error messages with recovery actions, inline errors, full-page errors | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/fs-03_empty_states/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/fs-03_empty_states/screen.png) |
+| FB-04 | `toast-notifications.excalidraw` | Toast patterns: success, error, warning, info, with undo action | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/fs-04_error_states/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/fs-04_error_states/screen.png) |
+| FB-05 | `celebration-moments.excalidraw` | Success celebrations: confetti, badges, character animations | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/fs-05_loading_states/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/fs-05_loading_states/screen.png) |
 
 ### Feedback & States Design Specs
 
@@ -839,14 +841,14 @@ Warning ────────────────────────
 > **Status:** PRD specs complete - Ready for wireframing
 > **Reference:** `/docs/prd.md` - Authentication & Authorization section
 
-| ID | Wireframe | Description | Priority | Status |
-|----|-----------|-------------|----------|--------|
-| AU-01 | `login.excalidraw` | Login page: email/password + Google OAuth, remember me, forgot password | P0 | Pending |
-| AU-02 | `register.excalidraw` | Registration: email/password, name, terms checkbox, Google OAuth option | P0 | Pending |
-| AU-03 | `email-verification.excalidraw` | Email verification pending, resend link, check spam hint | P0 | Pending |
-| AU-04 | `password-reset.excalidraw` | Forgot password flow: email input → check inbox → new password | P0 | Pending |
-| AU-05 | `onboarding-wizard.excalidraw` | 4-step wizard: Create workspace → Add API key → Meet AI team → Dashboard | P1 | Pending |
-| AU-06 | `workspace-invite.excalidraw` | Invitation acceptance: preview workspace, accept/decline, set password | P1 | Pending |
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| AU-01 | `login.excalidraw` | Login page: email/password + Google OAuth, remember me, forgot password | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/au-01_login_page/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/au-01_login_page/screen.png) |
+| AU-02 | `register.excalidraw` | Registration: email/password, name, terms checkbox, Google OAuth option | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/au-02_register/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/au-02_register/screen.png) |
+| AU-03 | `email-verification.excalidraw` | Email verification pending, resend link, check spam hint | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/au-03_forgot_password/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/au-03_forgot_password/screen.png) |
+| AU-04 | `password-reset.excalidraw` | Forgot password flow: email input → check inbox → new password | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/au-04_password_reset/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/au-04_password_reset/screen.png) |
+| AU-05 | `onboarding-wizard.excalidraw` | 4-step wizard: Create workspace → Add API key → Meet AI team → Dashboard | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/au-05_email_verification/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/au-05_email_verification/screen.png) |
+| AU-06 | `workspace-invite.excalidraw` | Invitation acceptance: preview workspace, accept/decline, set password | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/au-06_two-factor_authentication/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/au-06_two-factor_authentication/screen.png) |
 
 ### Authentication Design Specs
 
@@ -1219,6 +1221,39 @@ The following documentation is needed before certain wireframe categories can be
 | Content Module | Content management UX | Contentful, Strapi, Notion |
 | Email Module | Email builder patterns | Mailchimp, SendGrid, Klaviyo |
 | Video Module | AI video generation UX | Runway, Sora docs when available |
+
+---
+
+## Bonus Wireframes (Additional PM & Platform)
+
+These wireframes were created in addition to the core requirements:
+
+| ID | Wireframe | Description | Assets |
+|----|-----------|-------------|--------|
+| PM-17 | Global Search | Platform-wide search with filters and recent items | [HTML](Finished%20wireframes%20and%20html%20files/pm-17_global_search/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-17_global_search/screen.png) |
+| PM-18 | User Profile & Account | User profile settings and account management | [HTML](Finished%20wireframes%20and%20html%20files/pm-18_user_profile_%26_account/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-18_user_profile_%26_account/screen.png) |
+| PM-19 | Onboarding Flow | New user onboarding wizard and setup | [HTML](Finished%20wireframes%20and%20html%20files/pm-19_onboarding_flow/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-19_onboarding_flow/screen.png) |
+| PM-20 | Help & Support Center | Help documentation and support resources | [HTML](Finished%20wireframes%20and%20html%20files/pm-20_help_%26_support_center/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-20_help_%26_support_center/screen.png) |
+
+---
+
+## Prompt Files Index
+
+Google Stitch wireframe prompts for generating the wireframes:
+
+| Batch | Prompts | Components | File |
+|-------|---------|------------|------|
+| Batch 1 | #1-10 | Core Shell + Chat Panel | [BATCH-01-CORE-SHELL-CHAT.md](prompts/BATCH-01-CORE-SHELL-CHAT.md) |
+| Batch 2 | #11-20 | Chat (remaining) + Approval Queue | [BATCH-02-CHAT-APPROVAL.md](prompts/BATCH-02-CHAT-APPROVAL.md) |
+| Batch 3 | #21-30 | AI Team + Settings | [BATCH-03-AI-TEAM-SETTINGS.md](prompts/BATCH-03-AI-TEAM-SETTINGS.md) |
+| Batch 4 | #31-40 | Settings (remaining) + Auth + Dashboard | [BATCH-04-SETTINGS-AUTH-DASHBOARD.md](prompts/BATCH-04-SETTINGS-AUTH-DASHBOARD.md) |
+| Batch 5 | #41-50 | Data Components + Forms | [BATCH-05-DATA-FORMS.md](prompts/BATCH-05-DATA-FORMS.md) |
+| Batch 6 | #51-60 | Feedback States + CRM Part 1 | [BATCH-06-FEEDBACK-CRM.md](prompts/BATCH-06-FEEDBACK-CRM.md) |
+| Batch 7 | #61-70 | CRM Part 2 | [BATCH-07-CRM-PART2.md](prompts/BATCH-07-CRM-PART2.md) |
+| Batch 8 | #71-80 | PM Module Part 1 | [BATCH-08-PM-MODULE-PART1.md](prompts/BATCH-08-PM-MODULE-PART1.md) |
+| Batch 9 | #81-90 | PM Module Part 2 | [BATCH-09-PM-MODULE-PART2.md](prompts/BATCH-09-PM-MODULE-PART2.md) |
+
+**Total: 90 prompts across 9 batch files**
 
 ---
 

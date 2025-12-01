@@ -448,6 +448,22 @@ def get_model_for_agent(workspace_id: str, agent_type: str):
 
 ---
 
+## Wireframe References
+
+All BYOAI and Settings wireframes are complete. Reference these when implementing:
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| 06.4 API Keys UI | ST-02 API Keys | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-02_api_keys_management/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-02_api_keys_management/screen.png) |
+| 06.4 Provider Setup | ST-03 AI Provider Setup | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-03_ai_provider_setup_1/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-03_ai_provider_setup_1/screen.png) |
+| 06.6 Usage Dashboard | ST-05 Usage & Billing | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-05_usage_%26_billing/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-05_usage_%26_billing/screen.png) |
+| 06.8 Agent Model Prefs | ST-04 Agent Model Preferences | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-04_agent_model_preferences/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-04_agent_model_preferences/screen.png) |
+| Settings Layout | ST-01 Settings Layout | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-01_settings_layout/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-01_settings_layout/screen.png) |
+
+**Full wireframe index:** [WIREFRAME-INDEX.md](../design/wireframes/WIREFRAME-INDEX.md)
+
+---
+
 ## Dependencies
 
 - Epic 00: Project Scaffolding

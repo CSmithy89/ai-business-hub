@@ -7,17 +7,17 @@
 
 ## Epic Summary
 
-| Epic | Name | Stories | Points | Priority | Phase |
-|------|------|---------|--------|----------|-------|
-| EPIC-00 | Project Scaffolding | 7 | 17 | P0 | Phase 1 |
-| EPIC-01 | Authentication | 8 | 19 | P0 | Phase 1 |
-| EPIC-02 | Workspace Management | 7 | 16 | P0 | Phase 1 |
-| EPIC-03 | RBAC & Multi-tenancy | 7 | 17 | P0 | Phase 2 |
-| EPIC-04 | Approval System | 12 | 29 | P0 | Phase 3 |
-| EPIC-05 | Event Bus | 7 | 15 | P0 | Phase 4 |
-| EPIC-06 | BYOAI Configuration | 11 | 28 | P0 | Phase 4 |
-| EPIC-07 | UI Shell | 10 | 24 | P0 | Phase 1-3 |
-| **Total** | | **69** | **165** | | |
+| Epic | Name | Stories | Points | Priority | Phase | Wireframes |
+|------|------|---------|--------|----------|-------|------------|
+| EPIC-00 | Project Scaffolding | 7 | 17 | P0 | Phase 1 | - |
+| EPIC-01 | Authentication | 8 | 19 | P0 | Phase 1 | ✅ 6 wireframes |
+| EPIC-02 | Workspace Management | 7 | 16 | P0 | Phase 1 | - |
+| EPIC-03 | RBAC & Multi-tenancy | 7 | 17 | P0 | Phase 2 | - |
+| EPIC-04 | Approval System | 12 | 29 | P0 | Phase 3 | ✅ 7 wireframes |
+| EPIC-05 | Event Bus | 7 | 15 | P0 | Phase 4 | - |
+| EPIC-06 | BYOAI Configuration | 11 | 28 | P0 | Phase 4 | ✅ 8 wireframes |
+| EPIC-07 | UI Shell | 10 | 24 | P0 | Phase 1-3 | ✅ 9 wireframes |
+| **Total** | | **69** | **165** | | | **30 linked** |
 
 > **Note:** Story counts updated 2025-12-01 to include AgentOS integration (ADR-007), IAssistantClient (06.10), Agent Model Preferences (06.11)
 
@@ -199,6 +199,7 @@ EPIC-00 (Scaffolding)
 | `/docs/prd.md` | Product requirements |
 | `/docs/architecture.md` | Technical architecture |
 | `/docs/ux-design.md` | UX design decisions |
+| `/docs/design/wireframes/WIREFRAME-INDEX.md` | **91 completed wireframes** |
 | `/docs/api/openapi.yaml` | API specification |
 | `/packages/db/prisma/schema.prisma` | Database schema |
 

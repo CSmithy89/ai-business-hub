@@ -255,6 +255,26 @@ The UI shell provides consistent navigation and AI interaction across the platfo
 
 ---
 
+## Wireframe References
+
+All UI Shell wireframes are complete. Reference these when implementing:
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| 07.1 Dashboard Layout | SH-01 Shell Layout | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-01_shell_layout_(three-panel)/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-01_shell_layout_(three-panel)/screen.png) |
+| 07.2 Sidebar Navigation | SH-02 Navigation Sidebar | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-02_navigation_sidebar_(states)/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-02_navigation_sidebar_(states)/screen.png) |
+| 07.3 Header Bar | SH-03 Header Bar | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-03_header_bar_with_dropdowns/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-03_header_bar_with_dropdowns/screen.png) |
+| 07.4 Chat Panel | CH-01 Chat Panel | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ch-01_chat_panel/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/ch-01_chat_panel/screen.png) |
+| 07.5 Dark/Light Mode | ST-08 Appearance | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-08_appearance/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-08_appearance/screen.png) |
+| 07.6 Command Palette | SH-05 Command Palette | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-05_command_palette_(cmd+k)/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-05_command_palette_(cmd+k)/screen.png) |
+| 07.7 Notification Center | PM-16 Notifications | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/screen.png) |
+| 07.9 Dashboard Home | DB-01 Dashboard | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/db-01_dashboard_overview/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/db-01_dashboard_overview/screen.png) |
+| 07.10 Mobile Navigation | SH-06 Mobile Layout | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-06_mobile_layout/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-06_mobile_layout/screen.png) |
+
+**Full wireframe index:** [WIREFRAME-INDEX.md](../design/wireframes/WIREFRAME-INDEX.md)
+
+---
+
 ## Dependencies
 
 - Epic 00: Project Scaffolding

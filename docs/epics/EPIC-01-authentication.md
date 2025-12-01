@@ -213,6 +213,22 @@ import { organization } from 'better-auth/plugins'
 
 ---
 
+## Wireframe References
+
+All Authentication wireframes are complete. Reference these when implementing:
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| 01.2 Registration | AU-02 Register | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-02_register/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-02_register/screen.png) |
+| 01.3 Email Verification | AU-05 Email Verification | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-05_email_verification/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-05_email_verification/screen.png) |
+| 01.4 Sign-In | AU-01 Login | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-01_login_page/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-01_login_page/screen.png) |
+| 01.6 Password Reset | AU-03/AU-04 Password Reset | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-04_password_reset/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-04_password_reset/screen.png) |
+| 01.8 Auth UI | AU-06 Two-Factor | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-06_two-factor_authentication/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-06_two-factor_authentication/screen.png) |
+
+**Full wireframe index:** [WIREFRAME-INDEX.md](../design/wireframes/WIREFRAME-INDEX.md)
+
+---
+
 ## Dependencies
 
 - Epic 00: Project Scaffolding (for Prisma, Next.js setup)
