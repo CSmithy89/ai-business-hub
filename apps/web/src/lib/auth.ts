@@ -49,10 +49,14 @@ export const auth = betterAuth({
     },
   },
 
-  // OAuth configuration (will be added in Story 01.5)
-  // socialProviders: {
-  //   google: { ... }
-  // }
+  // OAuth configuration - Google OAuth (Story 01.5)
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/google`,
+    },
+  },
 })
 
 // Export type-safe auth client
