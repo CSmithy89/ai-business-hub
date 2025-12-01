@@ -273,6 +273,20 @@ RESEND_API_KEY=xxx                  # Resend dashboard
 ### Epic Dependencies
 - **Epic 00** (Complete): Prisma database package, Next.js setup, shared types
 
+### Wireframe References
+
+All Authentication wireframes are complete. Reference these when implementing UI:
+
+| Story | Wireframe | Description | Assets |
+|-------|-----------|-------------|--------|
+| 01.2 Registration | AU-02 | Register page with email/password, Google OAuth | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-02_register/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-02_register/screen.png) |
+| 01.3 Email Verification | AU-05 | Email verification pending, resend link | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-05_email_verification/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-05_email_verification/screen.png) |
+| 01.4 Sign-In | AU-01 | Login page with email/password, Google OAuth | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-01_login_page/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-01_login_page/screen.png) |
+| 01.6 Password Reset | AU-03 | Forgot password form | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-03_forgot_password/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-03_forgot_password/screen.png) |
+| 01.6 Password Reset | AU-04 | New password form after reset | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-04_password_reset/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-04_password_reset/screen.png) |
+
+**Full wireframe index:** [WIREFRAME-INDEX.md](../design/wireframes/WIREFRAME-INDEX.md)
+
 ---
 
 ## Acceptance Criteria (Authoritative)
