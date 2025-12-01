@@ -144,7 +144,7 @@ export function SessionCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Revoke Session?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will sign out the device using this session. You'll need to sign
+              This will sign out the device using this session. You&apos;ll need to sign
               in again on that device.
             </AlertDialogDescription>
           </AlertDialogHeader>

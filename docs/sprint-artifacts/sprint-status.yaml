@@ -60,7 +60,7 @@ development_status:
   01-5-implement-google-oauth: done
   01-6-implement-password-reset-flow: done
   01-7-implement-session-management: done
-  01-8-create-auth-ui-components: backlog
+  01-8-create-auth-ui-components: done
   epic-01-retrospective: optional
 
   # ===========================================

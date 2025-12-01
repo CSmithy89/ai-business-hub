@@ -58,7 +58,7 @@ export function RevokeSessionDialog({
             will remain active.
             <br />
             <br />
-            You'll need to sign in again on those devices.
+            You&apos;ll need to sign in again on those devices.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
