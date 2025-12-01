@@ -40,7 +40,7 @@ development_status:
   # ===========================================
   epic-00: contexted
   00-1-initialize-monorepo-with-turborepo: done
-  00-2-configure-nextjs-15-frontend: backlog
+  00-2-configure-nextjs-15-frontend: done
   00-3-configure-nestjs-backend: backlog
   00-4-set-up-database-package-with-prisma: backlog
   00-5-configure-docker-development-environment: backlog

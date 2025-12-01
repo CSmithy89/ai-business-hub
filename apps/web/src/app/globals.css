@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+@import '../../../../src/styles/tokens.css';
+
+/* Base styles with warm cream background */
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: rgb(var(--color-bg-cream));
+    color: rgb(var(--color-text-primary));
+  }
+}
