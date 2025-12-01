@@ -2,12 +2,24 @@
   "name": "@hyvve/db",
   "version": "0.1.0",
   "private": true,
-  "description": "Prisma database package - configured in Story 00.4",
+  "description": "Prisma database package with tenant extension",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "scripts": {
-    "db:generate": "echo 'Prisma configuration in Story 00.4'",
-    "db:migrate": "echo 'Prisma configuration in Story 00.4'",
-    "db:studio": "echo 'Prisma configuration in Story 00.4'",
-    "build": "echo 'Prisma configuration in Story 00.4'",
-    "type-check": "echo 'TypeScript configuration in Story 00.4'"
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:push": "prisma db push",
+    "db:reset": "prisma migrate reset",
+    "build": "prisma generate",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "prisma": "^6.0.0",
+    "typescript": "^5.0.0"
   }
 }
