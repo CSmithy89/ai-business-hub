@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI-04 Agent Activity Feed (Light Mode)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24;
+        }
+    </style>
+<script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#FF6B6B",
+                        secondary: "#20B2AA",
+                        "background-light": "#FFFBF5",
+                        "background-dark": "#0a0a0b",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1a1a1b",
+                        "border-light": "#E5E5E5",
+                        "border-dark": "#2a2a2b",
+                        "text-primary-light": "#1a1a1a",
+                        "text-primary-dark": "#FAFAFA",
+                        "text-secondary": "#6B7280",
+                        success: "#10B981",
+                        warning: "#F59E0B",
+                        error: "#EF4444",
+                        info: "#3B82F6",
+                        "agent-hub": "#FF6B6B",
+                        "agent-maya": "#20B2AA",
+                        "agent-atlas": "#FF9F43",
+                        "agent-sage": "#2ECC71",
+                        "agent-nova": "#FF6B9D",
+                        "agent-echo": "#4B7BEC",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "system-ui", "sans-serif"],
+                        mono: ["JetBrains Mono", "monospace"],
+                    },
+                    borderRadius: {
+                        sm: "4px",
+                        md: "8px",
+                        lg: "12px",
+                        xl: "16px",
+                        full: "9999px",
+                    },
+                    boxShadow: {
+                        sm: '0 1px 2px rgba(0,0,0,0.04)',
+                        md: '0 4px 6px rgba(0,0,0,0.04)',
+                        lg: '0 10px 15px rgba(0,0,0,0.06)',
+                        xl: '0 20px 25px rgba(0,0,0,0.08)',
+                    },
+                    keyframes: {
+                        pulse: {
+                          '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                          '50%': { opacity: 0.7, transform: 'scale(1.1)' },
+                        }
+                    },
+                    animation: {
+                        pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                },
+            },
+        };
+    </script>
+</head>
+<body class="font-sans bg-background-light text-text-primary-light">
+<div class="flex min-h-screen">
+<aside class="w-64 flex-shrink-0 bg-surface-light border-r border-border-light">
+<div class="flex h-full flex-col justify-between p-4">
+<div class="flex flex-col gap-6">
+<div class="flex items-center gap-3 px-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC5z-nsOCOmo42kezgnUlNCdykVg3aqm-003v3T1yoDQMKQEJQxqkOLm6VprXGD_JM7gbQF9Soyw_qJ7s1fJSj_C5VDvjtFs9u7ElT8EVPNm7a3nGh8hQK2P_qayFu8AsnZdsJtI3-5t_8xgaBu9H_5611SkIBaBsOS57PTVfErx_K24R4hj6CKm91R9AYRVPsyAhIdayuCexyoYTexvFlyyc0ak3xh0yDhY5d9ZYKRHuLnpalt92N7SnGj1JckIi8Y9rHgbsL1SHkc");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-primary-light text-base font-semibold leading-normal">HYVVE</h1>
+<p class="text-text-secondary text-sm font-normal leading-normal">AI Operations</p>
+</div>
+</div>
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-text-secondary hover:bg-primary/10 hover:text-primary" href="#">
+<span class="material-symbols-outlined text-xl">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-text-secondary hover:bg-primary/10 hover:text-primary" href="#">
+<span class="material-symbols-outlined text-xl">smart_toy</span>
+<p class="text-sm font-medium leading-normal">Agents</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md bg-primary/10 text-primary" href="#">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">history</span>
+<p class="text-sm font-medium leading-normal">Activity Feed</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-text-secondary hover:bg-primary/10 hover:text-primary" href="#">
+<span class="material-symbols-outlined text-xl">view_kanban</span>
+<p class="text-sm font-medium leading-normal">Projects</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-text-secondary hover:bg-primary/10 hover:text-primary" href="#">
+<span class="material-symbols-outlined text-xl">bar_chart</span>
+<p class="text-sm font-medium leading-normal">Analytics</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-text-secondary hover:bg-primary/10 hover:text-primary" href="#">
+<span class="material-symbols-outlined text-xl">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-text-secondary hover:bg-primary/10 hover:text-primary" href="#">
+<span class="material-symbols-outlined text-xl">help_center</span>
+<p class="text-sm font-medium leading-normal">Help Center</p>
+</a>
+</div>
+</div>
+</aside>
+<main class="flex-1 p-8 overflow-y-auto">
+<div class="max-w-4xl mx-auto">
+<div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+<div class="flex flex-col">
+<p class="text-text-primary-light text-2xl font-bold leading-tight">Activity Feed</p>
+<p class="text-text-secondary text-sm font-normal leading-normal">Real-time updates from your AI team</p>
+</div>
+<button class="flex items-center justify-center gap-2 overflow-hidden rounded-full h-9 px-4 bg-success/10 text-success text-sm font-medium leading-normal tracking-wide">
+<span class="relative flex h-2 w-2">
+<span class="animate-pulse absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+</span>
+<span class="truncate">Live</span>
+</button>
+</div>
+<div class="sticky top-0 bg-background-light/80 backdrop-blur-sm py-4 z-10">
+<div class="border-b border-border-light">
+<div class="flex flex-wrap items-center gap-4 pb-4">
+<div class="flex gap-2">
+<button class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-surface-light border border-border-light shadow-sm text-text-primary-light">All Agents <span class="material-symbols-outlined text-base">expand_more</span></button>
+<button class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-surface-light border border-border-light shadow-sm text-text-primary-light">All Types <span class="material-symbols-outlined text-base">expand_more</span></button>
+<button class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-surface-light border border-border-light shadow-sm text-text-primary-light">All Status <span class="material-symbols-outlined text-base">expand_more</span></button>
+</div>
+<div class="flex-1 min-w-[200px]">
+<label class="flex flex-col w-full">
+<div class="flex w-full flex-1 items-stretch rounded-md h-9">
+<div class="text-text-secondary flex border-y border-l border-border-light bg-surface-light items-center justify-center pl-3 rounded-l-md">
+<span class="material-symbols-outlined text-xl">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-md text-text-primary-light focus:outline-0 focus:ring-2 focus:ring-primary/50 border-y border-r border-border-light bg-surface-light h-full placeholder:text-text-secondary px-3 text-sm font-normal leading-normal" placeholder="Search activities..."/>
+</div>
+</label>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-4 space-y-3 relative">
+<div class="sticky top-[100px] z-20 flex justify-center">
+<button class="flex items-center justify-center overflow-hidden rounded-full h-9 px-4 bg-primary text-white gap-2 shadow-lg text-sm font-semibold leading-normal">
+<span class="material-symbols-outlined text-lg">arrow_upward</span>
+<span class="truncate">3 new activities · Click to view</span>
+</button>
+</div>
+<div class="bg-surface-light rounded-lg border border-border-light shadow-md overflow-hidden border-l-4 border-warning">
+<div class="p-4">
+<div class="flex justify-between items-start gap-4">
+<div class="flex items-start gap-4 flex-1">
+<div class="flex-shrink-0 size-10 rounded-full bg-agent-atlas/10 text-agent-atlas flex items-center justify-center text-xl">🗺️</div>
+<div class="flex-1">
+<p class="text-sm text-text-primary-light"><strong class="font-semibold text-agent-atlas">Atlas</strong> created a project proposal</p>
+<p class="text-xs text-text-secondary">5 min ago</p>
+<hr class="my-3 border-border-light"/>
+<div class="space-y-2 text-sm">
+<p class="text-text-primary-light"><span class="material-symbols-outlined text-base align-bottom mr-1 text-text-secondary">draft</span> "Q1 Marketing Campaign - Full Plan"</p>
+<p class="text-text-secondary">Confidence: 72% · Requires your approval</p>
+</div>
+<div class="mt-4 p-3 bg-gray-50 rounded-md border border-border-light">
+<p class="font-semibold text-sm text-text-primary-light">Preview:</p>
+<div class="mt-2 text-sm text-text-secondary space-y-1">
+<p class="font-semibold text-text-primary-light">Executive Summary</p>
+<p>This proposal outlines a comprehensive Q1 marketing strategy designed to increase brand awareness and drive lead generation through a multi-channel approach...</p>
+<button class="text-primary font-semibold text-xs mt-1">Show More <span class="material-symbols-outlined text-xs align-middle">expand_more</span></button>
+</div>
+</div>
+</div>
+</div>
+<div class="flex-shrink-0">
+<span class="inline-flex items-center rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
+<span class="material-symbols-outlined text-sm mr-1.5">hourglass_top</span>Needs Review
+                                </span>
+</div>
+</div>
+<div class="flex justify-end items-center gap-2 mt-4 pt-4 border-t border-border-light">
+<button class="px-4 py-1.5 text-sm font-semibold rounded-md bg-surface-light text-text-primary-light border border-border-light shadow-sm hover:bg-gray-50">Reject</button>
+<button class="px-4 py-1.5 text-sm font-semibold rounded-md bg-surface-light text-text-primary-light border border-border-light shadow-sm hover:bg-gray-50">Request Edit</button>
+<button class="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold rounded-md bg-primary text-white shadow-sm hover:bg-primary/90">
+<span class="material-symbols-outlined text-base">check</span>Approve
+                            </button>
+</div>
+</div>
+</div>
+<div class="bg-surface-light rounded-lg border border-border-light shadow-md overflow-hidden border-l-4 border-error">
+<div class="p-4">
+<div class="flex justify-between items-start gap-4">
+<div class="flex items-start gap-4 flex-1">
+<div class="flex-shrink-0 size-10 rounded-full bg-agent-echo/10 text-agent-echo flex items-center justify-center text-xl">📊</div>
+<div class="flex-1">
+<p class="text-sm text-text-primary-light"><strong class="font-semibold text-agent-echo">Echo</strong> failed to generate report</p>
+<p class="text-xs text-text-secondary">10 min ago</p>
+<hr class="my-3 border-border-light"/>
+<div class="space-y-2 text-sm">
+<p class="text-text-primary-light"><span class="material-symbols-outlined text-base align-bottom mr-1 text-text-secondary">assessment</span> "Weekly Analytics Summary"</p>
+<p class="text-error text-xs font-medium">Error: Data source connection timeout</p>
+</div>
+</div>
+</div>
+<div class="flex-shrink-0">
+<span class="inline-flex items-center rounded-full bg-error/10 px-2.5 py-1 text-xs font-semibold text-error">
+<span class="material-symbols-outlined text-sm mr-1.5">error</span>Failed
+                                </span>
+</div>
+</div>
+<div class="flex justify-end items-center gap-2 mt-4 pt-4 border-t border-border-light">
+<button class="px-4 py-1.5 text-sm font-semibold rounded-md bg-surface-light text-text-primary-light border border-border-light shadow-sm hover:bg-gray-50">View Details</button>
+<button class="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold rounded-md bg-primary/20 text-primary border border-primary/30 shadow-sm hover:bg-primary/30">
+<span class="material-symbols-outlined text-base">refresh</span>Retry
+                            </button>
+</div>
+</div>
+</div>
+<div class="bg-surface-light rounded-lg border border-border-light shadow-md overflow-hidden hover:border-l-4 hover:border-agent-maya transition-all duration-150 ease-out">
+<div class="p-4">
+<div class="flex items-start gap-4">
+<div class="flex-shrink-0 size-10 rounded-full bg-agent-maya/10 text-agent-maya flex items-center justify-center text-xl">🐚</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<p class="text-sm text-text-primary-light"><strong class="font-semibold text-agent-maya">Maya</strong> drafted an email</p>
+<p class="text-xs text-text-secondary whitespace-nowrap ml-4">12 min ago</p>
+</div>
+<hr class="my-3 border-border-light"/>
+<div class="space-y-2 text-sm">
+<p class="text-text-primary-light"><span class="material-symbols-outlined text-base align-bottom mr-1 text-text-secondary">mail</span> "Follow-up: Enterprise Package Discussion"</p>
+<p class="text-text-secondary">To: john.smith@techcorp.com</p>
+<p class="text-text-secondary">Confidence: <span class="text-success font-medium">94%</span> · Auto-approved</p>
+</div>
+<div class="flex justify-end items-center gap-4 mt-3">
+<button class="text-primary text-sm font-semibold">View in CRM</button>
+<button class="text-primary text-sm font-semibold">View Email</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<aside class="w-80 flex-shrink-0 bg-surface-light border-l border-border-light hidden xl:block">
+<div class="p-4 h-full flex flex-col">
+<h3 class="text-base font-semibold text-text-primary-light mb-4 px-2">Recent Activity</h3>
+<div class="flex-1 space-y-1 overflow-y-auto">
+<div class="flex items-center gap-3 px-2 py-2.5 rounded-md hover:bg-gray-50">
+<div class="text-agent-maya text-lg">🐚</div>
+<div class="flex-1 text-sm text-text-primary-light">
+<strong class="font-semibold text-agent-maya">Maya</strong> created contact "Sarah Johnson"
+                    </div>
+<div class="text-xs text-text-secondary">2m</div>
+</div>
+<div class="flex items-center gap-3 px-2 py-2.5 rounded-md hover:bg-gray-50">
+<div class="text-agent-atlas text-lg">🗺️</div>
+<div class="flex-1 text-sm text-text-primary-light">
+<strong class="font-semibold text-agent-atlas">Atlas</strong> updated project status
+                    </div>
+<div class="text-xs text-warning"><span class="material-symbols-outlined text-xs">hourglass_top</span></div>
+<div class="text-xs text-text-secondary">5m</div>
+</div>
+<div class="flex items-center gap-3 px-2 py-2.5 rounded-md hover:bg-gray-50">
+<div class="text-agent-maya text-lg">🐚</div>
+<div class="flex-1 text-sm text-text-primary-light">
+<strong class="font-semibold text-agent-maya">Maya</strong> sent an email
+                    </div>
+<div class="text-xs text-success"><span class="material-symbols-outlined text-xs">check</span></div>
+<div class="text-xs text-text-secondary">8m</div>
+</div>
+<div class="flex items-center gap-3 px-2 py-2.5 rounded-md hover:bg-gray-50">
+<div class="text-agent-echo text-lg">📊</div>
+<div class="flex-1 text-sm text-text-primary-light">
+<strong class="font-semibold text-agent-echo">Echo</strong> sync failed
+                    </div>
+<div class="text-xs text-error"><span class="material-symbols-outlined text-xs">close</span></div>
+<div class="text-xs text-text-secondary">10m</div>
+</div>
+<div class="flex items-center gap-3 px-2 py-2.5 rounded-md hover:bg-gray-50">
+<div class="text-agent-atlas text-lg">🗺️</div>
+<div class="flex-1 text-sm text-text-primary-light">
+<strong class="font-semibold text-agent-atlas">Atlas</strong> completed a task
+                    </div>
+<div class="text-xs text-success"><span class="material-symbols-outlined text-xs">check</span></div>
+<div class="text-xs text-text-secondary">15m</div>
+</div>
+<div class="flex items-center gap-3 px-2 py-2.5 rounded-md hover:bg-gray-50">
+<div class="text-agent-maya text-lg">🐚</div>
+<div class="flex-1 text-sm text-text-primary-light">
+<strong class="font-semibold text-agent-maya">Maya</strong> logged a call
+                    </div>
+<div class="text-xs text-text-secondary">22m</div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-border-light">
+<a class="w-full flex items-center justify-center text-primary text-sm font-semibold" href="#">
+                    View All <span class="material-symbols-outlined text-base">arrow_forward</span>
+</a>
+</div>
+</div>
+</aside>
+</div>
+
+</body></html>

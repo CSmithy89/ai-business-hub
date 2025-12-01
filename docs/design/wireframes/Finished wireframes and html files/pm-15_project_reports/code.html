@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-15 Project Reports</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+              "foreground-light": "#ffffff",
+              "foreground-dark": "#182131",
+              "border-light": "#e5e7eb",
+              "border-dark": "#2d3748",
+              "text-light-primary": "#111318",
+              "text-dark-primary": "#f0f2f4",
+              "text-light-secondary": "#616f89",
+              "text-dark-secondary": "#a0aec0",
+              "success": "#07883b",
+              "warning": "#f59e0b",
+              "danger": "#dc2626",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="relative flex h-auto min-h-screen w-full flex-col">
+<div class="flex h-full grow flex-row">
+<!-- SideNavBar -->
+<aside class="flex h-full min-h-screen flex-col justify-between bg-foreground-light dark:bg-foreground-dark p-4 border-r border-border-light dark:border-border-dark w-64 shrink-0">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB3K_nir-AbJzBSpE4WyoQEEcNVpJy0SE-PV1WkQtSSwRKos_v1zY1-h31UMqG_L_bVoUXchGHDQnBTsVW3NdQHS3TpGjxCsHfqem33f-d6RMLKcMOrek_wZDw5h_V3hCJ1IHdf9XzK_QeXeyg7odMHuFiWRxGRZHBEynKvSNu-__7N6edqBdamQB6t4F8e5urhzabqKoKe96ddg32z-TEvqCgxLGxa-JlUeInOZGeXKPeP4MBmLNNv3ChdVX-gKOzgzM5AB2ss7z0");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-light-primary dark:text-text-dark-primary text-base font-medium leading-normal">HYVVE</h1>
+<p class="text-text-light-secondary dark:text-text-dark-secondary text-sm font-normal leading-normal">SaaS Platform</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-background-light dark:hover:bg-background-dark" href="#">
+<span class="material-symbols-outlined text-text-light-primary dark:text-text-dark-primary">dashboard</span>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-background-light dark:hover:bg-background-dark" href="#">
+<span class="material-symbols-outlined text-text-light-primary dark:text-text-dark-primary">folder</span>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm font-medium leading-normal">Projects</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-background-light dark:hover:bg-background-dark" href="#">
+<span class="material-symbols-outlined text-text-light-primary dark:text-text-dark-primary">assignment_turned_in</span>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm font-medium leading-normal">Tasks</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20" href="#">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">bar_chart</span>
+<p class="text-primary text-sm font-medium leading-normal">Reports</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-background-light dark:hover:bg-background-dark" href="#">
+<span class="material-symbols-outlined text-text-light-primary dark:text-text-dark-primary">settings</span>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm font-medium leading-normal">Settings</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-4">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">New Project</span>
+</button>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-background-light dark:hover:bg-background-dark" href="#">
+<span class="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">help</span>
+<p class="text-text-light-secondary dark:text-text-dark-secondary text-sm font-medium leading-normal">Help Center</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-background-light dark:hover:bg-background-dark" href="#">
+<span class="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">account_circle</span>
+<p class="text-text-light-secondary dark:text-text-dark-secondary text-sm font-medium leading-normal">User Profile</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8 overflow-y-auto">
+<div class="max-w-7xl mx-auto">
+<!-- PageHeading -->
+<header class="flex flex-wrap justify-between items-center gap-4 mb-6">
+<div class="flex flex-col gap-2">
+<h1 class="text-text-light-primary dark:text-text-dark-primary text-4xl font-black leading-tight tracking-[-0.033em]">Project Reports: PM-15</h1>
+<p class="text-text-light-secondary dark:text-text-dark-secondary text-base font-normal leading-normal">Analyze project performance and track key metrics.</p>
+</div>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-foreground-light dark:bg-foreground-dark text-text-light-primary dark:text-text-dark-primary text-sm font-bold leading-normal tracking-[0.015em] border border-border-light dark:border-border-dark shadow-sm">
+<span class="material-symbols-outlined text-base">download</span>
+<span class="truncate">Export Report</span>
+</button>
+</header>
+<!-- Chips / Filters -->
+<div class="flex gap-3 mb-6 overflow-x-auto pb-2">
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-foreground-light dark:bg-foreground-dark border border-border-light dark:border-border-dark px-3 shadow-sm">
+<span class="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary text-base">calendar_today</span>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm font-medium leading-normal">Date Range: Last 30 Days</p>
+<span class="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">arrow_drop_down</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-foreground-light dark:bg-foreground-dark border border-border-light dark:border-border-dark px-3 shadow-sm">
+<span class="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary text-base">compare_arrows</span>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm font-medium leading-normal">Compare Periods</p>
+<span class="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">arrow_drop_down</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-foreground-light dark:bg-foreground-dark border border-border-light dark:border-border-dark px-3 shadow-sm">
+<span class="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary text-base">groups</span>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm font-medium leading-normal">Filter by Team</p>
+<span class="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">arrow_drop_down</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-foreground-light dark:bg-foreground-dark border border-border-light dark:border-border-dark px-3 shadow-sm">
+<span class="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary text-base">flag</span>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm font-medium leading-normal">Filter by Milestone</p>
+<span class="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">arrow_drop_down</span>
+</button>
+</div>
+<!-- Tabs -->
+<div class="border-b border-border-light dark:border-border-dark">
+<div class="flex gap-8">
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-primary pb-3" href="#">
+<p class="text-primary text-sm font-bold leading-normal tracking-[0.015em]">Status</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-light-secondary dark:text-text-dark-secondary pb-3 hover:text-text-light-primary dark:hover:text-text-dark-primary" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Progress</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-light-secondary dark:text-text-dark-secondary pb-3 hover:text-text-light-primary dark:hover:text-text-dark-primary" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Time</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-light-secondary dark:text-text-dark-secondary pb-3 hover:text-text-light-primary dark:hover:text-text-dark-primary" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Team</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-light-secondary dark:text-text-dark-secondary pb-3 hover:text-text-light-primary dark:hover:text-text-dark-primary" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Custom</p>
+</a>
+</div>
+</div>
+<!-- Main Grid -->
+<div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Main column -->
+<div class="lg:col-span-2 flex flex-col gap-6">
+<!-- Stats Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Project Health Card -->
+<div class="flex flex-col gap-4 rounded-xl p-6 bg-foreground-light dark:bg-foreground-dark border border-border-light dark:border-border-dark">
+<p class="text-text-light-primary dark:text-text-dark-primary text-base font-medium leading-normal">Project Health</p>
+<div class="flex items-center justify-center my-4">
+<div class="relative w-40 h-40">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<path class="text-gray-200 dark:text-gray-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+<path class="text-success" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="85, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<p class="text-text-light-primary dark:text-text-dark-primary tracking-tight text-3xl font-bold leading-tight">85/100</p>
+<p class="text-text-light-secondary dark:text-text-dark-secondary text-sm">On Track</p>
+</div>
+</div>
+</div>
+<p class="text-success text-sm font-medium leading-normal flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-base">trending_up</span>
+<span>+3% from last period</span>
+</p>
+</div>
+<!-- Completion Rate Card -->
+<div class="flex flex-col gap-4 rounded-xl p-6 bg-foreground-light dark:bg-foreground-dark border border-border-light dark:border-border-dark">
+<p class="text-text-light-primary dark:text-text-dark-primary text-base font-medium leading-normal">Completion Rate</p>
+<div class="flex items-center justify-center my-4">
+<div class="relative w-40 h-40">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<circle class="text-gray-200 dark:text-gray-700" cx="18" cy="18" fill="none" r="15.9155" stroke-width="3.8"></circle>
+<circle class="text-primary" cx="18" cy="18" fill="none" r="15.9155" stroke-dasharray="72, 100" stroke-dashoffset="25" stroke-linecap="round" stroke-width="3.8"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<p class="text-text-light-primary dark:text-text-dark-primary tracking-tight text-3xl font-bold leading-tight">72%</p>
+<p class="text-text-light-secondary dark:text-text-dark-secondary text-sm">Completed</p>
+</div>
+</div>
+</div>
+<p class="text-success text-sm font-medium leading-normal flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-base">trending_up</span>
+<span>+5% from last period</span>
+</p>
+</div>
+</div>
+<!-- Task Breakdown Card -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- By Status -->
+<div class="rounded-xl p-6 bg-foreground-light dark:bg-foreground-dark border border-border-light dark:border-border-dark">
+<h3 class="text-text-light-primary dark:text-text-dark-primary text-base font-medium leading-normal mb-4">Tasks by Status</h3>
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm">Done</p>
+</div>
+<p class="font-medium text-text-light-secondary dark:text-text-dark-secondary text-sm">124</p>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-warning"></div>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm">In Progress</p>
+</div>
+<p class="font-medium text-text-light-secondary dark:text-text-dark-secondary text-sm">38</p>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm">To Do</p>
+</div>
+<p class="font-medium text-text-light-secondary dark:text-text-dark-secondary text-sm">15</p>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-danger"></div>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm">Blocked</p>
+</div>
+<p class="font-medium text-text-light-secondary dark:text-text-dark-secondary text-sm">3</p>
+</div>
+</div>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-4 flex">
+<div class="bg-primary h-2.5 rounded-l-full" style="width: 70%"></div>
+<div class="bg-warning h-2.5" style="width: 20%"></div>
+<div class="bg-gray-300 dark:bg-gray-600 h-2.5" style="width: 8%"></div>
+<div class="bg-danger h-2.5 rounded-r-full" style="width: 2%"></div>
+</div>
+</div>
+<!-- By Priority -->
+<div class="rounded-xl p-6 bg-foreground-light dark:bg-foreground-dark border border-border-light dark:border-border-dark">
+<h3 class="text-text-light-primary dark:text-text-dark-primary text-base font-medium leading-normal mb-4">Tasks by Priority</h3>
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-danger text-base" style="font-variation-settings: 'FILL' 1;">keyboard_double_arrow_up</span>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm">High</p>
+</div>
+<p class="font-medium text-text-light-secondary dark:text-text-dark-secondary text-sm">22</p>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-warning text-base">keyboard_arrow_up</span>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm">Medium</p>
+</div>
+<p class="font-medium text-text-light-secondary dark:text-text-dark-secondary text-sm">89</p>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-base">keyboard_arrow_down</span>
+<p class="text-text-light-primary dark:text-text-dark-primary text-sm">Low</p>
+</div>
+<p class="font-medium text-text-light-secondary dark:text-text-dark-secondary text-sm">69</p>
+</div>
+</div>
+<div class="w-full h-24 flex items-end gap-2 mt-4">
+<div class="bg-danger rounded-t w-1/3" style="height: 50%"></div>
+<div class="bg-warning rounded-t w-1/3" style="height: 100%"></div>
+<div class="bg-primary rounded-t w-1/3" style="height: 75%"></div>
+</div>
+</div>
+</div>
+<!-- Milestone Progress Card -->
+<div class="rounded-xl p-6 bg-foreground-light dark:bg-foreground-dark border border-border-light dark:border-border-dark">
+<h3 class="text-text-light-primary dark:text-text-dark-primary text-base font-medium leading-normal mb-4">Milestone Progress</h3>
+<div class="flex flex-col gap-5">
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center text-sm">
+<p class="font-medium text-text-light-primary dark:text-text-dark-primary">Alpha Release</p>
+<div class="flex items-center gap-2 text-success">
+<span class="material-symbols-outlined text-base">check_circle</span>
+<span class="font-medium">Completed</span>
+</div>
+</div>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+<div class="bg-success h-2 rounded-full" style="width: 100%"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center text-sm">
+<p class="font-medium text-text-light-primary dark:text-text-dark-primary">Beta Testing Phase</p>
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-base">sync</span>
+<span class="font-medium">On Track</span>
+</div>
+</div>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+<div class="bg-primary h-2 rounded-full" style="width: 80%"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center text-sm">
+<p class="font-medium text-text-light-primary dark:text-text-dark-primary">Public Launch Campaign</p>
+<div class="flex items-center gap-2 text-warning">
+<span class="material-symbols-outlined text-base">warning</span>
+<span class="font-medium">At Risk</span>
+</div>
+</div>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+<div class="bg-warning h-2 rounded-full" style="width: 35%"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sidebar column -->
+<div class="lg:col-span-1 flex flex-col gap-6">
+<!-- AI Analysis Card -->
+<div class="rounded-xl p-6 bg-primary/10 dark:bg-primary/20 border border-primary/20">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary text-2xl">auto_awesome</span>
+<h3 class="text-primary text-lg font-bold">AI-Powered Insights</h3>
+</div>
+<div class="flex flex-col gap-3 text-sm text-text-light-primary dark:text-text-dark-primary">
+<p><strong>Key Trend:</strong> Project velocity has decreased by 15% over the last two weeks, primarily due to an increase in blocked tasks.</p>
+<p><strong>Risk Identified:</strong> 3 high-priority tasks in the 'Public Launch Campaign' milestone are currently blocked, posing a risk to the launch date.</p>
+<p><strong>Recommendation:</strong> Schedule a meeting with the leads of the blocked tasks to identify and resolve impediments promptly.</p>
+</div>
+<button class="flex mt-4 w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-3 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">View Detailed Analysis</span>
+<span class="material-symbols-outlined text-base">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

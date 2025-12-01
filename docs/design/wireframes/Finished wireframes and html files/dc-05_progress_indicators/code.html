@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DC-05 Progress Indicators - HYVVE Design System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        .animate-shimmer {
+            animation: shimmer 2s infinite linear;
+            background: linear-gradient(to right, transparent 0%, #e0e0e0 50%, transparent 100%);
+            background-size: 2000px 100%;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ff6b6b",
+              "background-light": "#f8f5f5",
+              "background-dark": "#230f0f",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#181010] dark:text-white/90">
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="w-64 flex-shrink-0 bg-white dark:bg-[#2c1a1a] p-4 flex flex-col justify-between border-r border-[#e7dada] dark:border-white/10">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAnGTKEQH1Rp73YTqEf7KmtOuoVXhxIoYq1k4fOM9-sVnOoGFzL6RpK4CMTmJPMY0Zi-zQE4w5HXYjSb43XbMilwyHsM3KLJE85DgfbtheaWLxdKVGObs_Wrh5HECunARR5JgfGaW3zdNp_CWJE6BTnnitbrNSe9xor1pUJsXYkcfO5WVRE-tNLAp1fnXEt2hdm6MVxmNLmnQ52rSh99nCbE1pz8z1ixbO9aaccGGusCvdQ0t4w_SD4zGnrHBar-q6oqKOu5lEBEZQ");'></div>
+<div class="flex flex-col">
+<h1 class="text-[#181010] dark:text-white text-base font-medium leading-normal">HYVVE</h1>
+<p class="text-[#8d5e5e] dark:text-white/60 text-sm font-normal leading-normal">Design System</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 text-[#181010] dark:text-white/90 hover:bg-[#f5f0f0] dark:hover:bg-white/10 rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#f5f0f0] dark:bg-white/10 text-[#181010] dark:text-white" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">extension</span>
+<p class="text-sm font-medium leading-normal">Components</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#181010] dark:text-white/90 hover:bg-[#f5f0f0] dark:hover:bg-white/10 rounded-lg" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<p class="text-sm font-medium leading-normal">Patterns</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#181010] dark:text-white/90 hover:bg-[#f5f0f0] dark:hover:bg-white/10 rounded-lg" href="#">
+<span class="material-symbols-outlined">segment</span>
+<p class="text-sm font-medium leading-normal">Content</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#181010] dark:text-white/90 hover:bg-[#f5f0f0] dark:hover:bg-white/10 rounded-lg" href="#">
+<span class="material-symbols-outlined">palette</span>
+<p class="text-sm font-medium leading-normal">Brand</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-4">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+<span class="truncate">Request a Component</span>
+</button>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[#181010] dark:text-white/90 hover:bg-[#f5f0f0] dark:hover:bg-white/10 rounded-lg" href="#">
+<span class="material-symbols-outlined">toggle_on</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#181010] dark:text-white/90 hover:bg-[#f5f0f0] dark:hover:bg-white/10 rounded-lg" href="#">
+<span class="material-symbols-outlined">help</span>
+<p class="text-sm font-medium leading-normal">Help</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8 overflow-y-auto">
+<div class="max-w-7xl mx-auto">
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between gap-3 mb-8">
+<div class="flex min-w-72 flex-col gap-3">
+<p class="text-[#181010] dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">DC-05 Progress Indicators</p>
+<p class="text-[#8d5e5e] dark:text-white/60 text-base font-normal leading-normal">A collection of indicators to show the status of a process.</p>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- Linear Progress -->
+<div class="flex flex-col gap-6">
+<h2 class="text-[#181010] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Linear Progress</h2>
+<div class="bg-white dark:bg-[#2c1a1a] rounded-xl p-6 flex flex-col gap-6 border border-[#e7dada] dark:border-white/10">
+<div class="flex flex-col gap-3">
+<div class="flex gap-6 justify-between items-center">
+<p class="text-[#181010] dark:text-white text-base font-medium leading-normal">25% Filled</p>
+<p class="text-[#8d5e5e] dark:text-white/60 text-sm font-normal leading-normal">25%</p>
+</div>
+<div class="w-full rounded-full bg-[#e7dada] dark:bg-white/10"><div class="h-2 rounded-full bg-primary" style="width: 25%;"></div></div>
+</div>
+<div class="flex flex-col gap-3">
+<div class="flex gap-6 justify-between items-center">
+<p class="text-[#181010] dark:text-white text-base font-medium leading-normal">75% Filled</p>
+<p class="text-[#8d5e5e] dark:text-white/60 text-sm font-normal leading-normal">75%</p>
+</div>
+<div class="w-full rounded-full bg-[#e7dada] dark:bg-white/10"><div class="h-2 rounded-full bg-primary" style="width: 75%;"></div></div>
+</div>
+<div class="flex flex-col gap-3">
+<div class="flex gap-6 justify-between items-center">
+<p class="text-[#181010] dark:text-white text-base font-medium leading-normal">Indeterminate</p>
+</div>
+<div class="w-full h-2 rounded-full bg-[#e7dada] dark:bg-white/10 overflow-hidden">
+<div class="h-full bg-primary animate-shimmer" style="background: linear-gradient(to right, #ff6b6b44 20%, #ff6b6b 50%, #ff6b6b44 80%); background-size: 200% 100%; animation: shimmer 1.5s linear infinite;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Segmented Progress -->
+<div class="flex flex-col gap-6">
+<h2 class="text-[#181010] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Segmented Progress</h2>
+<div class="bg-white dark:bg-[#2c1a1a] rounded-xl p-6 flex flex-col gap-4 border border-[#e7dada] dark:border-white/10">
+<p class="text-base font-medium text-[#181010] dark:text-white">4-Step Progress</p>
+<div class="flex items-center gap-2 w-full">
+<div class="h-2 flex-1 rounded-full bg-primary"></div>
+<div class="h-2 flex-1 rounded-full bg-primary"></div>
+<div class="h-2 flex-1 rounded-full bg-[#e7dada] dark:bg-white/10"><div class="h-full w-1/4 bg-primary rounded-l-full"></div></div>
+<div class="h-2 flex-1 rounded-full bg-[#e7dada] dark:bg-white/10"></div>
+</div>
+<p class="text-sm text-[#8d5e5e] dark:text-white/60">Step 3 of 4</p>
+</div>
+</div>
+<!-- Circular Progress -->
+<div class="flex flex-col gap-6">
+<h2 class="text-[#181010] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Circular Progress</h2>
+<div class="bg-white dark:bg-[#2c1a1a] rounded-xl p-6 flex items-center justify-around gap-6 border border-[#e7dada] dark:border-white/10">
+<div class="flex flex-col items-center gap-2">
+<div class="relative size-12">
+<svg class="w-full h-full" viewbox="0 0 36 36"><path class="stroke-[#e7dada] dark:stroke-white/10" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="4"></path><path class="stroke-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="25, 100" stroke-linecap="round" stroke-width="4"></path></svg>
+<span class="absolute inset-0 flex items-center justify-center text-xs font-medium text-[#181010] dark:text-white">25%</span>
+</div>
+<p class="text-sm text-[#8d5e5e] dark:text-white/60">Small</p>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="relative size-24">
+<svg class="w-full h-full" viewbox="0 0 36 36"><path class="stroke-[#e7dada] dark:stroke-white/10" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path><path class="stroke-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="75, 100" stroke-linecap="round" stroke-width="3"></path></svg>
+<span class="absolute inset-0 flex items-center justify-center text-lg font-bold text-[#181010] dark:text-white">75%</span>
+</div>
+<p class="text-sm text-[#8d5e5e] dark:text-white/60">Medium</p>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="relative size-32">
+<svg class="w-full h-full animate-spin" style="animation-duration: 1.5s;" viewbox="0 0 36 36"><path class="stroke-[#e7dada] dark:stroke-white/10" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="2"></path><path class="stroke-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="40, 100" stroke-linecap="round" stroke-width="2"></path></svg>
+</div>
+<p class="text-sm text-[#8d5e5e] dark:text-white/60">Large Indeterminate</p>
+</div>
+</div>
+</div>
+<!-- Stepper Wizard -->
+<div class="flex flex-col gap-6 lg:col-span-2">
+<h2 class="text-[#181010] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Stepper Wizard</h2>
+<div class="bg-white dark:bg-[#2c1a1a] rounded-xl p-6 border border-[#e7dada] dark:border-white/10">
+<div class="flex items-center w-full">
+<div class="flex-1 flex flex-col items-center relative">
+<div class="size-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">1</div>
+<p class="mt-2 text-sm font-medium text-primary">Profile</p>
+<div class="absolute top-4 left-1/2 w-full h-0.5 bg-primary"></div>
+</div>
+<div class="flex-1 flex flex-col items-center relative">
+<div class="z-10 size-8 rounded-full border-2 border-primary bg-background-light dark:bg-[#2c1a1a] flex items-center justify-center text-primary font-bold">2</div>
+<p class="mt-2 text-sm font-medium text-primary">Billing</p>
+<div class="absolute top-4 left-1/2 w-full h-0.5 bg-[#e7dada] dark:bg-white/10"></div>
+<div class="absolute top-4 right-1/2 w-1/2 h-0.5 bg-primary"></div>
+</div>
+<div class="flex-1 flex flex-col items-center relative">
+<div class="size-8 rounded-full border-2 border-[#e7dada] dark:border-white/20 flex items-center justify-center text-[#8d5e5e] dark:text-white/60 font-bold">3</div>
+<p class="mt-2 text-sm font-medium text-[#8d5e5e] dark:text-white/60">Confirmation</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Upload Progress -->
+<div class="flex flex-col gap-6">
+<h2 class="text-[#181010] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Upload Progress</h2>
+<div class="bg-white dark:bg-[#2c1a1a] rounded-xl p-6 flex flex-col gap-4 border border-[#e7dada] dark:border-white/10">
+<!-- Uploading -->
+<div class="flex items-center gap-4 p-3 border border-[#e7dada] dark:border-white/10 rounded-lg">
+<div class="size-10 bg-primary/20 rounded-lg flex items-center justify-center"><span class="material-symbols-outlined text-primary">draft</span></div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-1">
+<p class="text-sm font-medium text-[#181010] dark:text-white">document.pdf</p>
+<p class="text-sm font-medium text-primary">45%</p>
+</div>
+<div class="w-full rounded-full bg-[#e7dada] dark:bg-white/10"><div class="h-1 rounded-full bg-primary" style="width: 45%;"></div></div>
+</div>
+</div>
+<!-- Complete -->
+<div class="flex items-center gap-4 p-3 border border-[#e7dada] dark:border-white/10 rounded-lg">
+<div class="size-10 bg-green-500/20 rounded-lg flex items-center justify-center"><span class="material-symbols-outlined text-green-500">check_circle</span></div>
+<div class="flex-1">
+<p class="text-sm font-medium text-[#181010] dark:text-white">image.png</p>
+<p class="text-xs text-green-500">Upload complete</p>
+</div>
+<button class="text-[#8d5e5e] dark:text-white/60"><span class="material-symbols-outlined !text-xl">close</span></button>
+</div>
+<!-- Error -->
+<div class="flex items-center gap-4 p-3 border border-red-500/50 rounded-lg bg-red-500/10">
+<div class="size-10 bg-red-500/20 rounded-lg flex items-center justify-center"><span class="material-symbols-outlined text-red-500">error</span></div>
+<div class="flex-1">
+<p class="text-sm font-medium text-red-500">archive.zip</p>
+<p class="text-xs text-red-700 dark:text-red-400">Upload failed. Please try again.</p>
+</div>
+<button class="text-red-500"><span class="material-symbols-outlined !text-xl">refresh</span></button>
+</div>
+</div>
+</div>
+<!-- Loading States -->
+<div class="flex flex-col gap-6">
+<h2 class="text-[#181010] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Loading States</h2>
+<div class="bg-white dark:bg-[#2c1a1a] rounded-xl p-6 flex flex-col gap-6 border border-[#e7dada] dark:border-white/10">
+<!-- Spinners -->
+<div class="flex items-center justify-around">
+<div class="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+<div class="size-8 border-4 border-[#e7dada] dark:border-white/20 border-t-primary rounded-full animate-spin"></div>
+<div class="flex gap-1">
+<div class="size-2 bg-primary rounded-full animate-bounce"></div>
+<div class="size-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
+<div class="size-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0.4s;"></div>
+</div>
+</div>
+<!-- Skeleton Placeholders -->
+<div class="w-full flex flex-col gap-4">
+<div class="flex items-center gap-4">
+<div class="size-12 rounded-full bg-[#e7dada] dark:bg-white/10 animate-shimmer"></div>
+<div class="flex-1 flex flex-col gap-2">
+<div class="h-4 w-3/4 rounded bg-[#e7dada] dark:bg-white/10 animate-shimmer"></div>
+<div class="h-3 w-1/2 rounded bg-[#e7dada] dark:bg-white/10 animate-shimmer"></div>
+</div>
+</div>
+<div class="h-5 w-full rounded bg-[#e7dada] dark:bg-white/10 animate-shimmer mt-2"></div>
+<div class="h-5 w-5/6 rounded bg-[#e7dada] dark:bg-white/10 animate-shimmer"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

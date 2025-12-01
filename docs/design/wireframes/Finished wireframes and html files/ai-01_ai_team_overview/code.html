@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI-01 AI Team Overview</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 24px;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#FF6B6B",
+              "background-light": "#FFFBF5",
+              "background-dark": "#0a0a0b",
+              "surface-light": "#FFFFFF",
+              "surface-dark": "#1a1a1b",
+              "border-light": "#E5E5E5",
+              "border-dark": "#2a2a2b",
+              "text-primary-light": "#1a1a1a",
+              "text-primary-dark": "#FAFAFA",
+              "text-secondary": "#6B7280",
+              "success": "#10B981",
+              "warning": "#F59E0B",
+              "error": "#EF4444",
+              "info": "#3B82F6",
+              "agent-maya": "#20B2AA",
+              "agent-atlas": "#FF9F43",
+              "agent-sage": "#2ECC71",
+              "agent-nova": "#FF6B9D",
+              "agent-echo": "#4B7BEC",
+            },
+            fontFamily: {
+              "display": ["Inter", "system-ui", "sans-serif"],
+              "code": ["JetBrains Mono", "monospace"]
+            },
+            borderRadius: {
+              "sm": "4px",
+              "DEFAULT": "8px",
+              "md": "8px",
+              "lg": "12px",
+              "xl": "16px",
+              "full": "9999px",
+            },
+            boxShadow: {
+                'sm': '0 1px 2px rgba(0,0,0,0.04)',
+                'md': '0 4px 6px rgba(0,0,0,0.04)',
+                'lg': '0 10px 15px rgba(0,0,0,0.06)',
+                'xl': '0 20px 25px rgba(0,0,0,0.08)',
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark">
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="flex w-64 flex-col bg-surface-light p-4 dark:bg-surface-dark border-r border-border-light dark:border-border-dark">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-3 py-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo, a stylized letter H" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB3SjNAb-pZwcrJHf5zPTL0YB1tLqVyQhS-Oz_9uGWxqbwOgg_v-lOucevyXiWtON7aGGYnQTwo8Wk4LGAGvYneKT5E8wqT138rdNentX0cUlWEX_EKdMkvpdg7T8LZKmkI3D46r_978r15sl9HiIqriqETt8JufFHlr90SqKcM1PYbBnkmzXundxYQ0ciQ9dS3kL8jDhAYAh7T1ebAAVgv5fmNSLobOsvUzW2QjdNYtTR6XqxXsNXuw69GOnKECauv1BHfyOOd2xFg");'></div>
+<div class="flex flex-col">
+<h1 class="text-base font-semibold">HYVVE</h1>
+<p class="text-sm font-normal text-text-secondary">Growth Plan</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20" href="#">
+<span class="material-symbols-outlined !text-2xl !font-light">dashboard</span>
+                    Dashboard
+                </a>
+<a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text-primary-light dark:text-text-primary-dark bg-primary/10 dark:bg-primary/20 text-primary" href="#">
+<span class="material-symbols-outlined !text-2xl !font-light" style="font-variation-settings: 'FILL' 1;">group</span>
+                    AI Team
+                </a>
+<a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20" href="#">
+<span class="material-symbols-outlined !text-2xl !font-light">folder</span>
+                    Projects
+                </a>
+<a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20" href="#">
+<span class="material-symbols-outlined !text-2xl !font-light">bar_chart</span>
+                    Analytics
+                </a>
+<a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20" href="#">
+<span class="material-symbols-outlined !text-2xl !font-light">hub</span>
+                    Workflows
+                </a>
+</nav>
+</div>
+<div class="mt-auto flex flex-col gap-1">
+<a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20" href="#">
+<span class="material-symbols-outlined !text-2xl !font-light">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20" href="#">
+<span class="material-symbols-outlined !text-2xl !font-light">help_center</span>
+                Help Center
+            </a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-6">
+<div class="mx-auto max-w-7xl">
+<!-- Page Heading -->
+<header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+<div>
+<h1 class="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">AI Team</h1>
+<p class="text-sm text-text-secondary">Your intelligent workforce</p>
+</div>
+<button class="flex h-10 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-border-light dark:border-border-dark px-4 bg-surface-light dark:bg-surface-dark text-sm font-medium hover:bg-primary/10 dark:hover:bg-primary/20 hover:border-primary/50 dark:hover:border-primary/50 transition-colors duration-150">
+<span>Team Settings</span>
+</button>
+</header>
+<!-- Stats Banner -->
+<section class="mb-6 rounded-lg border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark p-5 sm:p-6">
+<div class="flex flex-wrap justify-around gap-4">
+<div class="flex flex-1 basis-32 flex-col items-center justify-center gap-1 text-center">
+<p class="text-2xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">6</p>
+<p class="text-xs text-text-secondary">Agents</p>
+</div>
+<div class="flex flex-1 basis-32 flex-col items-center justify-center gap-1 text-center">
+<p class="text-2xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">5</p>
+<p class="text-xs text-text-secondary">Online</p>
+</div>
+<div class="flex flex-1 basis-32 flex-col items-center justify-center gap-1 text-center">
+<p class="text-2xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">1,247</p>
+<p class="text-xs text-text-secondary">Tasks Today</p>
+</div>
+<div class="flex flex-1 basis-32 flex-col items-center justify-center gap-1 text-center">
+<p class="text-2xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">94.2%</p>
+<p class="text-xs text-text-secondary">Success</p>
+</div>
+</div>
+</section>
+<!-- Agent Grid -->
+<section class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-5">
+<!-- Hub Agent Card -->
+<div class="group/card flex flex-col gap-4 rounded-xl border border-border-light bg-surface-light p-5 transition-all duration-150 ease-out hover:shadow-md hover:border-primary/50 dark:border-border-dark dark:bg-surface-dark dark:hover:border-primary/50">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-4">
+<div class="grid size-12 place-content-center rounded-full bg-primary/10 text-2xl">🎯</div>
+<div>
+<h3 class="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">Hub</h3>
+<p class="text-sm text-text-secondary">Orchestrator</p>
+<p class="text-xs italic text-gray-400 dark:text-gray-500">"Coordinating your AI team"</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-success"></div>
+<span class="text-xs text-text-secondary">Online</span>
+</div>
+</div>
+<hr class="border-border-light dark:border-border-dark"/>
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<p class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Today's Activity</p>
+<p class="text-xs text-text-secondary">156 tasks</p>
+</div>
+<div class="h-1 w-full rounded-full bg-border-light dark:bg-border-dark"><div class="h-1 w-[78%] rounded-full bg-primary"></div></div>
+<ul class="space-y-2 pt-2">
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-primary"></span><span class="truncate text-text-secondary">Routed email inquiry to Maya</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">2 min ago</span>
+</li>
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-primary"></span><span class="truncate text-text-secondary">Created project brief for Atlas</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">5 min ago</span>
+</li>
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-primary"></span><span class="truncate text-text-secondary">Summarized daily metrics</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">12 min ago</span>
+</li>
+</ul>
+</div>
+<div class="mt-auto flex items-center justify-end gap-4 pt-2">
+<button class="text-sm font-medium text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150">Configure</button>
+<button class="text-sm font-medium text-primary hover:text-primary/80 transition-colors duration-150">View Activity</button>
+</div>
+</div>
+<!-- Maya Agent Card -->
+<div class="group/card flex flex-col gap-4 rounded-xl border border-border-light bg-surface-light p-5 transition-all duration-150 ease-out hover:shadow-md hover:border-agent-maya/50 dark:border-border-dark dark:bg-surface-dark dark:hover:border-agent-maya/50">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-4">
+<div class="grid size-12 place-content-center rounded-full bg-agent-maya/10 text-2xl">🐚</div>
+<div>
+<h3 class="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">Maya</h3>
+<p class="text-sm text-text-secondary">CRM Agent</p>
+<p class="text-xs italic text-gray-400 dark:text-gray-500">"Building lasting relationships"</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-success"></div>
+<span class="text-xs text-text-secondary">Online</span>
+</div>
+</div>
+<hr class="border-border-light dark:border-border-dark"/>
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<p class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Today's Activity</p>
+<p class="text-xs text-text-secondary">211 tasks</p>
+</div>
+<div class="h-1 w-full rounded-full bg-border-light dark:bg-border-dark"><div class="h-1 w-[92%] rounded-full bg-agent-maya"></div></div>
+<ul class="space-y-2 pt-2">
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-maya"></span><span class="truncate text-text-secondary">Updated contact 'Acme Corp'</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">1 min ago</span>
+</li>
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-maya"></span><span class="truncate text-text-secondary">Logged call with 'Innovate Inc.'</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">8 min ago</span>
+</li>
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-maya"></span><span class="truncate text-text-secondary">Scheduled follow-up for lead</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">15 min ago</span>
+</li>
+</ul>
+</div>
+<div class="mt-auto flex items-center justify-end gap-4 pt-2">
+<button class="text-sm font-medium text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150">Configure</button>
+<button class="text-sm font-medium text-agent-maya hover:text-agent-maya/80 transition-colors duration-150">View Activity</button>
+</div>
+</div>
+<!-- Atlas Agent Card -->
+<div class="group/card flex flex-col gap-4 rounded-xl border-2 border-agent-atlas/50 bg-surface-light p-5 shadow-md transition-all duration-150 ease-out dark:border-agent-atlas/50 dark:bg-surface-dark">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-4">
+<div class="grid size-12 place-content-center rounded-full bg-agent-atlas/10 text-2xl">🗺️</div>
+<div>
+<h3 class="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">Atlas</h3>
+<p class="text-sm text-text-secondary">Project Manager</p>
+<p class="text-xs italic text-gray-400 dark:text-gray-500">"Keeping projects on track"</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-warning"></div>
+<span class="text-xs text-text-secondary">Busy</span>
+</div>
+</div>
+<hr class="border-border-light dark:border-border-dark"/>
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<p class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Today's Activity</p>
+<p class="text-xs text-text-secondary">89 tasks</p>
+</div>
+<div class="h-1 w-full rounded-full bg-border-light dark:bg-border-dark"><div class="h-1 w-[45%] rounded-full bg-agent-atlas"></div></div>
+<ul class="space-y-2 pt-2">
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-atlas"></span><span class="truncate text-text-secondary">Assigned task to design team</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">3 min ago</span>
+</li>
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-atlas"></span><span class="truncate text-text-secondary">Updated project timeline for 'Q4 Launch'</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">10 min ago</span>
+</li>
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-atlas"></span><span class="truncate text-text-secondary">Generated weekly progress report</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">22 min ago</span>
+</li>
+</ul>
+</div>
+<div class="mt-auto flex items-center justify-end gap-4 pt-2">
+<button class="text-sm font-medium text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150">Configure</button>
+<button class="text-sm font-medium text-agent-atlas hover:text-agent-atlas/80 transition-colors duration-150">View Activity</button>
+</div>
+</div>
+<!-- Sage Agent Card -->
+<div class="group/card flex flex-col gap-4 rounded-xl border border-border-light bg-surface-light p-5 transition-all duration-150 ease-out hover:shadow-md hover:border-agent-sage/50 dark:border-border-dark dark:bg-surface-dark dark:hover:border-agent-sage/50">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-4">
+<div class="grid size-12 place-content-center rounded-full bg-agent-sage/10 text-2xl">🌿</div>
+<div>
+<h3 class="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">Sage</h3>
+<p class="text-sm text-text-secondary">Finance Agent</p>
+<p class="text-xs italic text-gray-400 dark:text-gray-500">"Managing your numbers"</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-success"></div>
+<span class="text-xs text-text-secondary">Online</span>
+</div>
+</div>
+<hr class="border-border-light dark:border-border-dark"/>
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<p class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Today's Activity</p>
+<p class="text-xs text-text-secondary">302 tasks</p>
+</div>
+<div class="h-1 w-full rounded-full bg-border-light dark:bg-border-dark"><div class="h-1 w-[85%] rounded-full bg-agent-sage"></div></div>
+<ul class="space-y-2 pt-2">
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-sage"></span><span class="truncate text-text-secondary">Processed 15 new invoices</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">6 min ago</span>
+</li>
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-sage"></span><span class="truncate text-text-secondary">Generated monthly expense report</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">18 min ago</span>
+</li>
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-sage"></span><span class="truncate text-text-secondary">Reconciled bank statement</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">30 min ago</span>
+</li>
+</ul>
+</div>
+<div class="mt-auto flex items-center justify-end gap-4 pt-2">
+<button class="text-sm font-medium text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150">Configure</button>
+<button class="text-sm font-medium text-agent-sage hover:text-agent-sage/80 transition-colors duration-150">View Activity</button>
+</div>
+</div>
+<!-- Nova Agent Card -->
+<div class="group/card flex flex-col gap-4 rounded-xl border border-border-light bg-surface-light p-5 transition-all duration-150 ease-out hover:shadow-md hover:border-agent-nova/50 dark:border-border-dark dark:bg-surface-dark dark:hover:border-agent-nova/50">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-4">
+<div class="grid size-12 place-content-center rounded-full bg-agent-nova/10 text-2xl">✨</div>
+<div>
+<h3 class="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">Nova</h3>
+<p class="text-sm text-text-secondary">Marketing Agent</p>
+<p class="text-xs italic text-gray-400 dark:text-gray-500">"Growing your reach"</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-gray-400"></div>
+<span class="text-xs text-text-secondary">Offline</span>
+</div>
+</div>
+<hr class="border-border-light dark:border-border-dark"/>
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<p class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Today's Activity</p>
+<p class="text-xs text-text-secondary">187 tasks</p>
+</div>
+<div class="h-1 w-full rounded-full bg-border-light dark:bg-border-dark"><div class="h-1 w-full rounded-full bg-agent-nova"></div></div>
+<ul class="space-y-2 pt-2">
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-nova"></span><span class="truncate text-text-secondary">Posted update to social media</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">4h ago</span>
+</li>
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-nova"></span><span class="truncate text-text-secondary">Launched A/B test for landing page</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">5h ago</span>
+</li>
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-nova"></span><span class="truncate text-text-secondary">Drafted weekly newsletter</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">6h ago</span>
+</li>
+</ul>
+</div>
+<div class="mt-auto flex items-center justify-end gap-4 pt-2">
+<button class="text-sm font-medium text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150">Configure</button>
+<button class="text-sm font-medium text-agent-nova hover:text-agent-nova/80 transition-colors duration-150">View Activity</button>
+</div>
+</div>
+<!-- Echo Agent Card -->
+<div class="group/card flex flex-col gap-4 rounded-xl border border-border-light bg-surface-light p-5 transition-all duration-150 ease-out hover:shadow-md hover:border-agent-echo/50 dark:border-border-dark dark:bg-surface-dark dark:hover:border-agent-echo/50">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-4">
+<div class="grid size-12 place-content-center rounded-full bg-agent-echo/10 text-2xl">📊</div>
+<div>
+<h3 class="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">Echo</h3>
+<p class="text-sm text-text-secondary">Analytics Agent</p>
+<p class="text-xs italic text-gray-400 dark:text-gray-500">"Insights that matter"</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-2 rounded-full bg-success"></div>
+<span class="text-xs text-text-secondary">Online</span>
+</div>
+</div>
+<hr class="border-border-light dark:border-border-dark"/>
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<p class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Today's Activity</p>
+<p class="text-xs text-text-secondary">293 tasks</p>
+</div>
+<div class="h-1 w-full rounded-full bg-border-light dark:bg-border-dark"><div class="h-1 w-[66%] rounded-full bg-agent-echo"></div></div>
+<ul class="space-y-2 pt-2">
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-echo"></span><span class="truncate text-text-secondary">Compiled user engagement report</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">10 min ago</span>
+</li>
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-echo"></span><span class="truncate text-text-secondary">Analyzed traffic sources for last 7 days</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">25 min ago</span>
+</li>
+<li class="flex items-center justify-between text-xs">
+<div class="flex items-center gap-2"><span class="block size-1.5 rounded-full bg-agent-echo"></span><span class="truncate text-text-secondary">Identified anomaly in conversion rate</span></div>
+<span class="flex-shrink-0 text-gray-400 dark:text-gray-500">45 min ago</span>
+</li>
+</ul>
+</div>
+<div class="mt-auto flex items-center justify-end gap-4 pt-2">
+<button class="text-sm font-medium text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150">Configure</button>
+<button class="text-sm font-medium text-agent-echo hover:text-agent-echo/80 transition-colors duration-150">View Activity</button>
+</div>
+</div>
+<!-- Empty State Card -->
+<div class="col-span-1 md:col-span-2 lg:col-span-3 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-light dark:border-border-dark bg-surface-light/50 dark:bg-surface-dark/50 p-12 text-center">
+<span class="material-symbols-outlined !text-5xl text-text-secondary mb-4">smart_toy</span>
+<h3 class="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">Set up your AI team</h3>
+<p class="max-w-xs text-sm text-text-secondary mt-1 mb-6">Configure AI agents to automate your workflow and supercharge your productivity.</p>
+<button class="flex h-10 cursor-pointer items-center justify-center overflow-hidden rounded-md bg-primary px-5 text-sm font-medium text-white hover:bg-primary/90 transition-colors duration-150">
+<span>Get Started</span>
+</button>
+</div>
+</section>
+</div>
+</main>
+</div>
+</body></html>

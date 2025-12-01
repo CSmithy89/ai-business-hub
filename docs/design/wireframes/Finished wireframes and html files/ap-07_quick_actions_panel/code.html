@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AP-07 Quick Actions Panel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+    }
+  </style>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#ff6b6b", // Coral
+            "secondary": "#20B2AA", // Teal
+            "background-light": "#FFFBF5", // Warm Cream
+            "background-dark": "#0a0a0b", // Near-black
+            "surface-light": "#FFFFFF",
+            "surface-dark": "#1a1a1b",
+            "border-light": "#E5E5E5",
+            "border-dark": "#2a2a2b",
+            "text-primary-light": "#1a1a1a",
+            "text-primary-dark": "#FAFAFA",
+            "text-secondary": "#6B7280", // Gray-500
+            "success": "#10B981", // Green-500
+            "warning": "#F59E0B", // Amber-500
+            "error": "#EF4444", // Red-500
+            "info": "#3B82F6", // Blue-500
+          },
+          fontFamily: {
+            "display": ["Inter", "system-ui", "sans-serif"]
+          },
+          borderRadius: {
+            "sm": "4px",
+            "DEFAULT": "8px",
+            "lg": "12px",
+            "xl": "16px",
+            "full": "9999px"
+          },
+          boxShadow: {
+            'sm': '0 1px 2px rgba(0,0,0,0.04)',
+            'md': '0 4px 6px rgba(0,0,0,0.04)',
+            'lg': '0 10px 15px rgba(0,0,0,0.06)',
+            'xl': '0 20px 25px rgba(0,0,0,0.08)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
+<!-- This is a placeholder for the main application content -->
+<div class="p-8">
+<h1 class="text-3xl font-bold">HYVVE Application Dashboard</h1>
+<p class="text-text-secondary mt-2">Main content area. The Quick Actions panel floats over this.</p>
+</div>
+<!-- AP-07 Quick Actions Panel -->
+<div class="fixed right-6 top-1/2 -translate-y-1/2 w-[280px] flex flex-col gap-4 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl shadow-xl font-display">
+<!-- Panel 1: Item Preview -->
+<div class="flex flex-col">
+<!-- Panel Header -->
+<div class="px-4 pt-4 pb-2">
+<div class="flex justify-between items-center">
+<h3 class="text-text-primary-light dark:text-text-primary-dark text-base font-semibold leading-tight flex items-center gap-2">
+<span class="text-primary">⚡</span> Quick Actions
+          </h3>
+<button class="text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+<p class="text-text-secondary text-[13px] font-normal leading-normal">24 items pending</p>
+</div>
+<!-- Current Item Preview -->
+<div class="px-4 pt-2 pb-4 border-b border-border-light dark:border-border-dark">
+<p class="text-success text-sm font-medium leading-normal">🟢 95% Confidence</p>
+<p class="text-text-primary-light dark:text-text-primary-dark text-[15px] font-semibold leading-tight tracking-tight mt-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-lg text-secondary">email</span> Email: "Summer Sale Follow-up"
+        </p>
+<p class="text-text-secondary text-[13px] font-normal leading-normal mt-1 ml-1">🐚 Maya · Marketing</p>
+<div class="flex flex-col gap-1 mt-3">
+<p class="text-text-secondary text-[13px] font-normal leading-normal">
+            "Hi John, Following up on our conversation about the enterprise package. I wanted to share..."
+          </p>
+<button class="text-primary text-left text-[13px] font-medium leading-normal">Show More ↓</button>
+</div>
+</div>
+<!-- AI Quick Summary -->
+<div class="p-4">
+<div class="bg-gray-50 dark:bg-white/5 rounded-lg p-3">
+<p class="text-text-primary-light dark:text-text-primary-dark text-[13px] font-medium leading-normal mb-2">💡 AI Summary</p>
+<div class="w-full h-px bg-border-light dark:bg-border-dark mb-2"></div>
+<p class="text-text-secondary text-[13px] font-normal leading-relaxed">Personalized follow-up with correct recipient and timing. All checks pass.</p>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-3 px-4 pb-4">
+<button class="w-full py-2 text-center text-sm font-medium rounded-md border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+          View Full Details
+        </button>
+<div class="flex items-center gap-3 justify-between">
+<button class="w-full py-2 text-center text-sm font-medium rounded-md text-error border border-error/50 hover:bg-error/10 transition-colors">
+            Reject
+          </button>
+<button class="w-full py-2 text-center text-sm font-medium rounded-md text-white bg-success hover:bg-opacity-90 transition-colors flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-base">check</span> Approve
+          </button>
+</div>
+<button class="w-full text-center text-sm font-medium text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors">
+          Skip to Next →
+        </button>
+</div>
+<!-- Navigation Strip -->
+<div class="border-t border-border-light dark:border-border-dark p-4 flex flex-col items-center gap-3">
+<div class="flex items-center justify-between w-full">
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-xl">arrow_back</span>
+</button>
+<p class="text-sm font-medium text-text-secondary">3 of 24</p>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-xl">arrow_forward</span>
+</button>
+</div>
+<div class="flex items-center gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-text-primary-light dark:bg-text-primary-dark"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-text-primary-light dark:bg-text-primary-dark"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-text-primary-light dark:bg-text-primary-dark"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+</div>
+</div>
+<!-- Keyboard Shortcuts Hint -->
+<div class="px-4 pb-4">
+<div class="bg-gray-100 dark:bg-white/5 rounded-sm p-2 text-center">
+<p class="text-text-secondary text-[11px] font-medium">⌨️ <span class="font-semibold">A:</span> Approve <span class="font-semibold">R:</span> Reject <span class="font-semibold">→:</span> Skip</p>
+</div>
+</div>
+</div>
+<!-- Panel 2: Reject Reason (hidden by default) -->
+<div class="hidden">
+<!-- Panel Header -->
+<div class="px-4 pt-4 pb-2">
+<div class="flex justify-between items-center">
+<h3 class="text-text-primary-light dark:text-text-primary-dark text-base font-semibold leading-tight flex items-center gap-2">
+<span class="text-primary">⚡</span> Quick Actions
+          </h3>
+<button class="text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+<p class="text-text-secondary text-[13px] font-normal leading-normal">Rejecting: "Summer Sale Follow-up"</p>
+</div>
+<!-- Reject Form -->
+<div class="px-4 py-4 flex flex-col gap-3">
+<p class="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">Quick rejection reason:</p>
+<div class="space-y-3 text-sm text-text-secondary">
+<label class="flex items-center gap-2"><input class="form-radio text-primary focus:ring-primary/50 border-border-light dark:border-border-dark bg-transparent" name="rejection_reason" type="radio"/> Needs revision</label>
+<label class="flex items-center gap-2"><input class="form-radio text-primary focus:ring-primary/50 border-border-light dark:border-border-dark bg-transparent" name="rejection_reason" type="radio"/> Wrong recipient</label>
+<label class="flex items-center gap-2"><input class="form-radio text-primary focus:ring-primary/50 border-border-light dark:border-border-dark bg-transparent" name="rejection_reason" type="radio"/> Timing not right</label>
+<label class="flex items-center gap-2"><input class="form-radio text-primary focus:ring-primary/50 border-border-light dark:border-border-dark bg-transparent" name="rejection_reason" type="radio"/> Content quality</label>
+<div class="flex items-center gap-2">
+<input class="form-radio text-primary focus:ring-primary/50 border-border-light dark:border-border-dark bg-transparent" name="rejection_reason" type="radio"/>
+<input class="w-full text-sm bg-transparent border border-border-light dark:border-border-dark rounded-md focus:ring-primary/50 focus:border-primary placeholder:text-text-secondary/70" placeholder="Other..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-3 justify-between mt-2">
+<button class="w-full py-2 text-center text-sm font-medium rounded-md border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">Cancel</button>
+<button class="w-full py-2 text-center text-sm font-medium rounded-md text-white bg-error hover:bg-opacity-90 transition-colors">Reject with Reason</button>
+</div>
+</div>
+</div>
+<!-- Panel 3: Completion State (hidden by default) -->
+<div class="hidden">
+<!-- Panel Header -->
+<div class="px-4 pt-4 pb-2">
+<div class="flex justify-between items-center">
+<h3 class="text-text-primary-light dark:text-text-primary-dark text-base font-semibold leading-tight flex items-center gap-2">
+<span class="text-primary">⚡</span> Quick Actions
+          </h3>
+<button class="text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+</div>
+<!-- Completion Content -->
+<div class="px-4 py-8 flex flex-col items-center text-center">
+<p class="text-5xl mb-4">🎉</p>
+<h4 class="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">All caught up!</h4>
+<p class="text-sm text-text-secondary mt-1">You've reviewed all pending items.</p>
+<div class="text-left text-sm space-y-2 mt-6 border-t border-border-light dark:border-border-dark w-full pt-6">
+<p class="text-text-secondary font-medium">Today's stats:</p>
+<p class="text-success flex items-center gap-2"><span class="material-symbols-outlined text-base">check_circle</span> 18 approved</p>
+<p class="text-error flex items-center gap-2"><span class="material-symbols-outlined text-base">cancel</span> 4 rejected</p>
+<p class="text-text-secondary flex items-center gap-2"><span class="material-symbols-outlined text-base">redo</span> 2 skipped</p>
+</div>
+<button class="w-full mt-6 py-2 text-center text-sm font-medium rounded-md border border-border-light dark:border-border-dark hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+          View History
+        </button>
+</div>
+</div>
+</div>
+</body></html>

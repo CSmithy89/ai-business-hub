@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-04 Task List View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+                'FILL' 0,
+                'wght' 400,
+                'GRAD' 0,
+                'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+              "neutral-100": "#ffffff",
+              "neutral-200": "#f0f2f4",
+              "neutral-300": "#e0e0e0",
+              "neutral-600": "#616f89",
+              "neutral-900": "#111318",
+              "status-yellow": "#ffb82a",
+              "status-green": "#2ec56b",
+              "status-gray": "#a1aab8",
+              "priority-red": "#ef4444",
+              "priority-orange": "#f97316",
+              "priority-blue": "#3b82f6",
+              "priority-gray": "#6b7280"
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-neutral-900 dark:text-neutral-100">
+<div class="relative flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex-shrink-0 w-64 bg-neutral-100 dark:bg-neutral-900/20 border-r border-neutral-200 dark:border-neutral-900/50">
+<div class="flex h-full flex-col justify-between p-4">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 p-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Company Logo for HYVVE Inc." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuArCzsOm6edUyVhxQK1oQnH7RVmMLV8w6IBw9CK25UhV0voehSCDsh7Y38hYImsJGY6_XjIxZZXiiiNlQw_b-7EPRPY7KYG3P1pz5rTGB3rYRB1LwcPqa0kG_YvJty_ke43BF9JdM0hqPbDYy6pCxl1anlEmO211PU6tMwDcj5ZxNDpZp2Sb3LUS63jXuOmxfAObQDsbc8YeYpmtLaPg5_Xf4WKXNuL-rSX0rw4CZ0K3P3btRn-uqhQZ_SYdgcr0hNAy-_y8JLE0Ho");'></div>
+<div class="flex flex-col">
+<h1 class="text-neutral-900 dark:text-neutral-100 text-base font-medium leading-normal">HYVVE Inc.</h1>
+<p class="text-neutral-600 dark:text-neutral-300 text-sm font-normal leading-normal">sarah.chen@hyvve.com</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-900/50" href="#">
+<span class="material-symbols-outlined">home</span>
+<p class="text-sm font-medium leading-normal">Home</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">folder</span>
+<p class="text-sm font-medium leading-normal">Projects</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-900/50" href="#">
+<span class="material-symbols-outlined">check_circle</span>
+<p class="text-sm font-medium leading-normal">My Tasks</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-900/50" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<p class="text-sm font-medium leading-normal">Calendar</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-900/50" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<p class="text-sm font-medium leading-normal">Reports</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-900/50" href="#">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-900/50" href="#">
+<span class="material-symbols-outlined">help</span>
+<p class="text-sm font-medium leading-normal">Help &amp; Support</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8">
+<div class="max-w-7xl mx-auto">
+<!-- Page Heading -->
+<div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+<h1 class="text-neutral-900 dark:text-neutral-100 text-3xl font-bold leading-tight tracking-tight">Q4 Marketing Campaign</h1>
+<div class="flex items-center gap-4">
+<!-- Segmented Buttons -->
+<div class="flex h-10 items-center justify-center rounded-lg bg-neutral-200 dark:bg-neutral-900/50 p-1">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-md px-4 has-[:checked]:bg-neutral-100 dark:has-[:checked]:bg-neutral-900 has-[:checked]:shadow-sm has-[:checked]:text-neutral-900 dark:has-[:checked]:text-neutral-100 text-neutral-600 dark:text-neutral-300 text-sm font-medium leading-normal">
+<span class="truncate">List</span>
+<input checked="" class="invisible w-0" name="view-toggle" type="radio" value="List"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-md px-4 has-[:checked]:bg-neutral-100 dark:has-[:checked]:bg-neutral-900 has-[:checked]:shadow-sm has-[:checked]:text-neutral-900 dark:has-[:checked]:text-neutral-100 text-neutral-600 dark:text-neutral-300 text-sm font-medium leading-normal">
+<span class="truncate">Board</span>
+<input class="invisible w-0" name="view-toggle" type="radio" value="Board"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-md px-4 has-[:checked]:bg-neutral-100 dark:has-[:checked]:bg-neutral-900 has-[:checked]:shadow-sm has-[:checked]:text-neutral-900 dark:has-[:checked]:text-neutral-100 text-neutral-600 dark:text-neutral-300 text-sm font-medium leading-normal">
+<span class="truncate">Calendar</span>
+<input class="invisible w-0" name="view-toggle" type="radio" value="Calendar"/>
+</label>
+</div>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-primary text-neutral-100 text-sm font-bold leading-normal tracking-wide shadow-sm hover:bg-primary/90">
+<span class="material-symbols-outlined text-base">add</span>
+<span class="truncate">Add Task</span>
+</button>
+</div>
+</div>
+<!-- Contextual Toolbar -->
+<div class="flex justify-between items-center gap-4 p-3 mb-4 rounded-lg bg-primary/10 dark:bg-primary/20 border border-primary/20">
+<p class="text-primary text-sm font-medium leading-normal">3 tasks selected</p>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-900/50">
+<span class="material-symbols-outlined text-base">task_alt</span> Set Status
+                    </button>
+<button class="flex items-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-900/50">
+<span class="material-symbols-outlined text-base">person_add</span> Assign
+                    </button>
+<button class="flex items-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-900/50">
+<span class="material-symbols-outlined text-base">event</span> Set Due Date
+                    </button>
+<button class="flex items-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-900/50">
+<span class="material-symbols-outlined text-base">flag</span> Change Priority
+                    </button>
+<button class="flex items-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium text-red-500 hover:bg-red-500/10">
+<span class="material-symbols-outlined text-base">delete</span> Delete
+                    </button>
+</div>
+</div>
+<!-- Task Table -->
+<div class="bg-neutral-100 dark:bg-neutral-900/50 rounded-xl overflow-hidden border border-neutral-200 dark:border-neutral-900/70">
+<table class="w-full text-sm text-left">
+<thead class="bg-neutral-200/50 dark:bg-neutral-900/50 text-xs text-neutral-600 dark:text-neutral-300 uppercase tracking-wider">
+<tr>
+<th class="p-4 w-12" scope="col"><input class="rounded border-neutral-300 text-primary focus:ring-primary/50" type="checkbox"/></th>
+<th class="py-3 px-6" scope="col">Task Name</th>
+<th class="py-3 px-6" scope="col">Status</th>
+<th class="py-3 px-6" scope="col">Assignee</th>
+<th class="py-3 px-6" scope="col">Due Date</th>
+<th class="py-3 px-6" scope="col">Priority</th>
+<th class="py-3 px-6 w-16" scope="col"><span class="sr-only">Actions</span></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-neutral-200 dark:divide-neutral-900/70">
+<!-- Section Header -->
+<tr class="bg-neutral-200/30 dark:bg-black/10">
+<td class="py-2 px-4 font-bold text-neutral-900 dark:text-neutral-100" colspan="7">Planning</td>
+</tr>
+<!-- Parent Task Row -->
+<tr class="hover:bg-primary/5 dark:hover:bg-primary/10 group">
+<td class="p-4"><input checked="" class="rounded border-neutral-300 text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="py-3 px-6 font-medium text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+<span class="material-symbols-outlined cursor-pointer">expand_more</span> Finalize campaign goals
+                            </td>
+<td class="py-3 px-6">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-green/10 text-status-green">Done</span>
+</td>
+<td class="py-3 px-6">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-white dark:ring-neutral-900" data-alt="Avatar for Sarah Chen" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCNpC94bf0pqVZ0x14Z-V1wGyM2jFRFh4Bd9zlZ4rrn40s6yIUly1W4vp_BVKSh97WdqlRdLBF-KuOkEdFZ88x559spq4Bl2hHDwG2pNGnOconBdmSQgUIyYOy4wLOaMY2Ut-EImDe27rFZfSLk0WTUD_g-bDsw806ABCF6dhJKF9-xHVRbkTFDTbzwArOZn19ioDGK70sIIEhHB_B11AGbN62RUXYnfL5-AFcJM11d_sVEYvNcr9huuEKFJKTXOs4ju1joF21YCvQ");'></div>
+</td>
+<td class="py-3 px-6 text-neutral-600 dark:text-neutral-300">Oct 25, 2023</td>
+<td class="py-3 px-6"><span class="w-3 h-3 rounded-full inline-block bg-priority-red" title="Urgent"></span></td>
+<td class="py-3 px-6"><button class="opacity-0 group-hover:opacity-100 text-neutral-600 dark:text-neutral-300"><span class="material-symbols-outlined">more_horiz</span></button></td>
+</tr>
+<!-- Subtask Row -->
+<tr class="hover:bg-primary/5 dark:hover:bg-primary/10 group">
+<td class="p-4"><input class="rounded border-neutral-300 text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="py-3 px-6 font-medium text-neutral-900 dark:text-neutral-100 pl-14">Define KPIs</td>
+<td class="py-3 px-6">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-green/10 text-status-green">Done</span>
+</td>
+<td class="py-3 px-6">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-white dark:ring-neutral-900" data-alt="Avatar for Sarah Chen" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAr3JK9KwcKV02gw-_RUkloAmTYY2on5dohsXmSArNo4KLzuQ-iMYDuWkB7zV3fxCswqkIwhjzO9kO2qpDRf4CO6goHy69ev1K0QktGwUJAsASO1G_QyIi3IZ3olsiyq9WS4cFUVynYaaQYPL689Ooi-3aKQupQ3Fd6gh3yGE5K_nXQXhoN-HhCqelVxGtTWfzrWNokGD8H7h1yKjX8-e41e3Y2MdCcpbSZQ5qH1IaBkdrUGldPIZ5t4zcARD5kW5HWTvp7gbEBcFg");'></div>
+</td>
+<td class="py-3 px-6 text-neutral-600 dark:text-neutral-300">Oct 22, 2023</td>
+<td class="py-3 px-6"><span class="w-3 h-3 rounded-full inline-block bg-priority-orange" title="High"></span></td>
+<td class="py-3 px-6"><button class="opacity-0 group-hover:opacity-100 text-neutral-600 dark:text-neutral-300"><span class="material-symbols-outlined">more_horiz</span></button></td>
+</tr>
+<!-- Inline Add Task Form -->
+<tr class="bg-neutral-100 dark:bg-neutral-900/50">
+<td class="p-4"></td>
+<td class="py-3 px-6" colspan="6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">add</span>
+<input class="w-full bg-transparent border-0 p-0 focus:ring-0 text-sm placeholder:text-neutral-600 dark:placeholder:text-neutral-400" placeholder="Add a task to Planning..." type="text"/>
+</div>
+</td>
+</tr>
+<!-- Section Header -->
+<tr class="bg-neutral-200/30 dark:bg-black/10">
+<td class="py-2 px-4 font-bold text-neutral-900 dark:text-neutral-100" colspan="7">Design</td>
+</tr>
+<!-- Task Row -->
+<tr class="hover:bg-primary/5 dark:hover:bg-primary/10 group">
+<td class="p-4"><input checked="" class="rounded border-neutral-300 text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="py-3 px-6 font-medium text-neutral-900 dark:text-neutral-100">Create ad creatives</td>
+<td class="py-3 px-6">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-yellow/10 text-status-yellow">In Progress</span>
+</td>
+<td class="py-3 px-6">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-white dark:ring-neutral-900" data-alt="Avatar for Alex Johnson" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBU6zJwEPICXslSbqRBF_iilvrAIfbZoj4LPn_eo8OJ8409d8dK4KJR-PjAwPQj5BsysA9-ZlZ-wIPzK7tVU0F0uUqyT4JHqElLZ5f_-7WZhGNjoMIET-Z_DMuDgZVk5dtp9f1kHFII6qJmRziGGTzrSlQ_CQQkE6xP5B25AbQ_eIOUKMQOGehGK3TbsRTnla3zo-9h6r0jFtaPElbSOMWhimTD3MXo59XkhXHNgswdjTF5_oL7nCXeuE4wdte7NiTAEciAPHenfZA");'></div>
+</td>
+<td class="py-3 px-6 text-neutral-600 dark:text-neutral-300">Nov 5, 2023</td>
+<td class="py-3 px-6"><span class="w-3 h-3 rounded-full inline-block bg-priority-orange" title="High"></span></td>
+<td class="py-3 px-6"><button class="opacity-0 group-hover:opacity-100 text-neutral-600 dark:text-neutral-300"><span class="material-symbols-outlined">more_horiz</span></button></td>
+</tr>
+<!-- Task Row - Overdue -->
+<tr class="hover:bg-primary/5 dark:hover:bg-primary/10 group">
+<td class="p-4"><input checked="" class="rounded border-neutral-300 text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="py-3 px-6 font-medium text-neutral-900 dark:text-neutral-100">Design landing page mockups</td>
+<td class="py-3 px-6">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-gray/10 text-status-gray">To Do</span>
+</td>
+<td class="py-3 px-6">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-white dark:ring-neutral-900" data-alt="Avatar for Emily Rodriguez" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBBZVSqgpscW1CpwtV61jyBEyfuNAP7Z3C1_sVRf2wNP17H8k4HrCXLhNJ6Vj9rKPI4XBjFb1t0f4oe_fw2h6zFfE3azvVU-h11bCTwbrrSpnLzJtlF_4ek5rm_RsXeh0nSW8yJ5VSDIDqI5XXbIDTBPEdcPXMXc6utEDK58HaHGzYe0PsHnc8QDipp2PCDqeM_lvSbHC55423p3DGMGEI0G1R3dLdKzt9LuGNL8uQigxgYsXmPlcrZfIgmD8IgljvdpRz28D9LRuU");'></div>
+</td>
+<td class="py-3 px-6 text-red-500">Oct 30, 2023</td>
+<td class="py-3 px-6"><span class="w-3 h-3 rounded-full inline-block bg-priority-blue" title="Medium"></span></td>
+<td class="py-3 px-6"><button class="opacity-0 group-hover:opacity-100 text-neutral-600 dark:text-neutral-300"><span class="material-symbols-outlined">more_horiz</span></button></td>
+</tr>
+<!-- Section Header -->
+<tr class="bg-neutral-200/30 dark:bg-black/10">
+<td class="py-2 px-4 font-bold text-neutral-900 dark:text-neutral-100" colspan="7">Development</td>
+</tr>
+<!-- Task Row -->
+<tr class="hover:bg-primary/5 dark:hover:bg-primary/10 group">
+<td class="p-4"><input class="rounded border-neutral-300 text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="py-3 px-6 font-medium text-neutral-900 dark:text-neutral-100">Build landing page</td>
+<td class="py-3 px-6">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-gray/10 text-status-gray">To Do</span>
+</td>
+<td class="py-3 px-6">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-white dark:ring-neutral-900" data-alt="Avatar for David Lee" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuABu_Jyg0LZPhhGl01F88Lg9J7ijCnn0LMxLlTUGnVhXvWNYSZrATuMOsd7DZHyXashFM-N_wjUEY5SRFzsOIvqJwJ9RIW95VHPj5Q9XhwY2f9_e7UDkLj2A3mkQ8Js4n1_VxFZU2obpnluofnf7gvsW2UesU7dMFXQNRjbdZJ4-TlAdDZKfIsiulEtzC4KDR1Fq8OU5hKwSyDkoqe2wD_QqtO17Os5P6GbuIdYK6fcsz8Z3JdU5Kj4n0nOz_0EMpXGvsX29NtClag");'></div>
+</td>
+<td class="py-3 px-6 text-neutral-600 dark:text-neutral-300">Nov 15, 2023</td>
+<td class="py-3 px-6"><span class="w-3 h-3 rounded-full inline-block bg-priority-gray" title="Low"></span></td>
+<td class="py-3 px-6"><button class="opacity-0 group-hover:opacity-100 text-neutral-600 dark:text-neutral-300"><span class="material-symbols-outlined">more_horiz</span></button></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+</div>
+</body></html>

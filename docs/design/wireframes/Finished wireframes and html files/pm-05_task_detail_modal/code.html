@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-05 Task Detail Modal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#135bec",
+            "background-light": "#f6f6f8",
+            "background-dark": "#101622",
+            "destructive": "#D9534F",
+          },
+          fontFamily: {
+            "display": ["Inter", "sans-serif"]
+          },
+          borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="relative flex min-h-screen w-full items-center justify-center bg-gray-900/50 p-4" style="--checkbox-tick-svg: url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27rgb(255,255,255)%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e');">
+<!-- Task Detail Modal -->
+<div class="flex h-full max-h-[90vh] w-full max-w-7xl flex-col rounded-xl bg-white dark:bg-gray-900 shadow-2xl">
+<!-- Modal Header -->
+<header class="flex flex-shrink-0 items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+<div class="flex items-center gap-4">
+<div class="text-gray-500 dark:text-gray-400 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0 size-10">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400">bookmark</span>
+</div>
+<p class="text-lg font-semibold text-gray-900 dark:text-white">PM-05</p>
+<input class="text-xl font-bold text-gray-900 dark:text-white bg-transparent border-0 p-1 focus:ring-2 focus:ring-primary rounded-md -ml-1" type="text" value="Design new user onboarding flow"/>
+</div>
+<button class="flex size-8 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400">close</span>
+</button>
+</header>
+<!-- Modal Body -->
+<main class="flex-grow overflow-y-auto">
+<div class="grid grid-cols-12 gap-8 p-4 sm:p-6">
+<!-- Left Column -->
+<div class="col-span-12 lg:col-span-7 space-y-8">
+<!-- Mark Complete & Description -->
+<div class="flex items-start gap-4">
+<input class="mt-1.5 h-6 w-6 rounded border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--checkbox-tick-svg] focus:ring-0 focus:ring-offset-0 focus:border-primary" type="checkbox"/>
+<label class="flex flex-col min-w-40 flex-1">
+<p class="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal pb-2">Description</p>
+<textarea class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800/50 focus:border-primary min-h-36 placeholder:text-gray-400 dark:placeholder:text-gray-500 p-4 text-base font-normal leading-normal" placeholder="Add a more detailed description...">The new user onboarding flow should guide users through the initial setup process, including connecting their accounts, setting up their first project, and inviting team members. It needs to be intuitive, engaging, and provide clear value from the start.</textarea>
+</label>
+</div>
+<!-- Subtasks -->
+<div>
+<h3 class="text-gray-800 dark:text-gray-200 text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Subtasks</h3>
+<div class="px-4">
+<label class="flex gap-x-3 py-3 flex-row items-center">
+<input checked="" class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--checkbox-tick-svg] focus:ring-0 focus:ring-offset-0 focus:border-primary" type="checkbox"/>
+<p class="text-gray-900 dark:text-white text-base font-normal leading-normal line-through text-gray-500 dark:text-gray-400">Develop the main UI for the task detail modal</p>
+</label>
+<label class="flex gap-x-3 py-3 flex-row items-center">
+<input class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--checkbox-tick-svg] focus:ring-0 focus:ring-offset-0 focus:border-primary" type="checkbox"/>
+<p class="text-gray-900 dark:text-white text-base font-normal leading-normal">Design the left main column</p>
+</label>
+<label class="flex gap-x-3 py-3 flex-row items-center">
+<input class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--checkbox-tick-svg] focus:ring-0 focus:ring-offset-0 focus:border-primary" type="checkbox"/>
+<p class="text-gray-900 dark:text-white text-base font-normal leading-normal">Design the right sidebar column</p>
+</label>
+<div class="flex gap-x-3 py-3 flex-row items-center">
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500">add</span>
+<input class="w-full bg-transparent border-0 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 p-0 focus:ring-0" placeholder="Add a subtask" type="text"/>
+</div>
+</div>
+</div>
+<!-- Attachments -->
+<div>
+<div class="flex items-center justify-between px-4 pb-2 pt-4">
+<h3 class="text-gray-800 dark:text-gray-200 text-lg font-bold leading-tight tracking-[-0.015em]">Attachments</h3>
+<button class="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10">
+<span class="material-symbols-outlined text-base">add</span>
+                  Add
+                </button>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
+<div class="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+<div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
+<span class="material-symbols-outlined text-blue-600 dark:text-blue-400">image</span>
+</div>
+<div class="flex-1 overflow-hidden">
+<p class="truncate font-medium text-gray-800 dark:text-gray-200 text-sm">onboarding-flow-v1.png</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">1.2 MB</p>
+</div>
+<button class="flex size-7 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-lg">more_horiz</span>
+</button>
+</div>
+<div class="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+<div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/50">
+<span class="material-symbols-outlined text-green-600 dark:text-green-400">description</span>
+</div>
+<div class="flex-1 overflow-hidden">
+<p class="truncate font-medium text-gray-800 dark:text-gray-200 text-sm">Project Brief.docx</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">256 KB</p>
+</div>
+<button class="flex size-7 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-lg">more_horiz</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column -->
+<div class="col-span-12 lg:col-span-5 space-y-6">
+<!-- Properties -->
+<div class="space-y-4 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-1">
+<label class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</label>
+<button class="flex items-center justify-between rounded-md bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-left">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+<span class="text-sm font-medium text-gray-800 dark:text-gray-200">In Progress</span>
+</div>
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-lg">expand_more</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-sm font-medium text-gray-500 dark:text-gray-400">Due Date</label>
+<button class="flex items-center justify-between rounded-md bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-left">
+<span class="text-sm font-medium text-gray-800 dark:text-gray-200">Dec 22, 2023</span>
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-lg">expand_more</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-sm font-medium text-gray-500 dark:text-gray-400">Assignee</label>
+<button class="flex items-center gap-2 rounded-md bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-left w-fit">
+<img class="w-6 h-6 rounded-full" data-alt="Avatar of Jane Doe" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOJtwr1h_mjzBzjkHsw8j9d5_MBxa2r-3KvQnlwp7uzRzQmW1CfjDCJDU3MwKzUHdBw15RhGbf3HAQ3LWQPaFJt6m6lTRylL5ncGEsnY9OMCXGxvSdtrQ0S639GLl9_qY63C_sZQs9fkwam2wtN_ninMy-qxhN8G2neHNxL5qTZP60mrmIbci9PH_PH3PQHfQb5LJqE9NGmFiFx5lPboWxSma-xHQ2PRJ11DfSIS75BIbstX08HmrMQu2QEYcYY75Y-zAbcO6_s5w"/>
+<span class="text-sm font-medium text-gray-800 dark:text-gray-200">Jane Doe</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-sm font-medium text-gray-500 dark:text-gray-400">Priority</label>
+<button class="flex items-center gap-2 rounded-md bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-left w-fit">
+<span class="material-symbols-outlined text-red-500 text-lg">flag</span>
+<span class="text-sm font-medium text-gray-800 dark:text-gray-200">High</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-sm font-medium text-gray-500 dark:text-gray-400">Tags</label>
+<div class="flex flex-wrap gap-2">
+<div class="flex items-center gap-1.5 rounded-full bg-primary/20 px-2.5 py-1 text-sm text-primary">
+<span>Onboarding</span>
+<span class="material-symbols-outlined text-xs cursor-pointer">close</span>
+</div>
+<div class="flex items-center gap-1.5 rounded-full bg-purple-200 dark:bg-purple-900/50 px-2.5 py-1 text-sm text-purple-700 dark:text-purple-300">
+<span>UI/UX</span>
+<span class="material-symbols-outlined text-xs cursor-pointer">close</span>
+</div>
+<button class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary">
+                    + Add tag
+                  </button>
+</div>
+</div>
+</div>
+<!-- AI Suggestions -->
+<div class="rounded-xl border border-purple-200 dark:border-purple-900 bg-purple-50 dark:bg-purple-900/20 p-4 space-y-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-purple-600 dark:text-purple-400">auto_awesome</span>
+<h4 class="font-bold text-purple-800 dark:text-purple-300">AI Suggestions</h4>
+</div>
+<p class="text-sm text-purple-700 dark:text-purple-300">Here are some actions to move this task forward:</p>
+<div class="space-y-2">
+<button class="w-full text-left text-sm text-primary font-medium p-2 rounded-md hover:bg-primary/10">Set due date to tomorrow</button>
+<button class="w-full text-left text-sm text-primary font-medium p-2 rounded-md hover:bg-primary/10">Break into smaller subtasks</button>
+</div>
+</div>
+<!-- Comments & Activity -->
+<div>
+<div class="border-b border-gray-200 dark:border-gray-700">
+<nav aria-label="Tabs" class="-mb-px flex gap-6">
+<a class="shrink-0 border-b-2 border-primary px-1 pb-2 text-sm font-semibold text-primary" href="#">Comments</a>
+<a class="shrink-0 border-b-2 border-transparent px-1 pb-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-300" href="#">Activity</a>
+</nav>
+</div>
+<div class="pt-4 space-y-4">
+<!-- Comment Input -->
+<div class="flex items-start gap-3">
+<img class="w-8 h-8 rounded-full mt-1" data-alt="Avatar of Jane Doe" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPwIlG9q_63DzDi2s7tZaAywkIQaHNNBlRpovc-9OGL4LwcPp4KLHht_uxGeN7DOMZgavG1OR6R838GJoGdpNnJomezTgZIbMqpqm2W3M3em13sHw0WdMaMGNwG3oC5RkyNb2-2cZbj94NfLmNYaLons7ZslK05VJVVYOcuAtSKqnlu-Qwk5adt2xlOu8URevujUod7efouUHgN_XNuvsdOQKZP0on8XV7bfYCbhqDWYUVcj74jUBXfHz8zcku2ZqMSKS9H25DhN0"/>
+<div class="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
+<textarea class="w-full resize-none bg-transparent p-3 text-sm focus:outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500" placeholder="Add a comment..." rows="3"></textarea>
+<div class="flex justify-between items-center border-t border-gray-200 dark:border-gray-700 p-2">
+<div class="flex items-center gap-1">
+<button class="flex items-center justify-center size-7 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"><span class="material-symbols-outlined text-lg">alternate_email</span></button>
+<button class="flex items-center justify-center size-7 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"><span class="material-symbols-outlined text-lg">attach_file</span></button>
+</div>
+<button class="rounded-md bg-primary px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary/90">Comment</button>
+</div>
+</div>
+</div>
+<!-- Comment Thread -->
+<div class="flex items-start gap-3">
+<img class="w-8 h-8 rounded-full" data-alt="Avatar of John Smith" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_4tl8MyiSUk-p_HPwOLlDJGO0KlkFg_EfBDEqhW0ItlgttY2fUSjxtltrz2Nq62coSA7WAA5N9iz0dvRlVbAUufxZAQkivtZzv4jxQqNdNwbDyHhqP9tKKWtRUlpA5kGKBGoHJnBHp50Z92v6MUgNbkHvXHVheSGTYt10xy8PwPU--ry5gtfSWwkzLpLdDs2OOje_g2fkNulVepHvf9NtFYpw8FxZtdlg-P0_BNCfnFXpUWqwZtLDfdqtL1-EDyzK3zqo6QbytGc"/>
+<div class="flex-1">
+<div class="flex items-baseline gap-2">
+<p class="font-semibold text-sm text-gray-800 dark:text-gray-200">John Smith</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">2 hours ago</p>
+</div>
+<div class="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
+<p>Looks great! Just one question: should we include a step for enterprise SSO setup in the initial flow?</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Modal Footer -->
+<footer class="flex flex-shrink-0 items-center justify-between border-t border-gray-200 dark:border-gray-700 p-4">
+<button class="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10">
+<span class="material-symbols-outlined text-base">delete</span>
+          Delete Task
+        </button>
+<button class="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90">
+          Close
+        </button>
+</footer>
+</div>
+</div>
+</body></html>

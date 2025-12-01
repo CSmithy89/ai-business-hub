@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ST-04 Agent Model Preferences</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ff6b6b",
+              "secondary": "#20B2AA",
+              "background-light": "#FFFBF5",
+              "background-dark": "#0a0a0b",
+              "surface-light": "#FFFFFF",
+              "surface-dark": "#1a1a1b",
+              "border-light": "#E5E5E5",
+              "border-dark": "#2a2a2b",
+              "text-primary-light": "#1a1a1a",
+              "text-primary-dark": "#FAFAFA",
+              "text-secondary": "#6B7280",
+              "success": "#10B981",
+              "warning": "#F59E0B",
+              "error": "#EF4444",
+              "info": "#3B82F6"
+            },
+            fontFamily: {
+              "display": ["Inter", "system-ui", "sans-serif"]
+            },
+            borderRadius: {
+              "sm": "4px",
+              "DEFAULT": "8px",
+              "md": "8px",
+              "lg": "12px",
+              "xl": "16px",
+              "full": "9999px"
+            },
+            boxShadow: {
+                'sm': '0 1px 2px rgba(0,0,0,0.04)',
+                'md': '0 4px 6px rgba(0,0,0,0.04)',
+                'lg': '0 10px 15px rgba(0,0,0,0.06)',
+                'xl': '0 20px 25px rgba(0,0,0,0.08)',
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark">
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="w-64 flex-shrink-0 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark">
+<div class="flex h-full flex-col justify-between p-4">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 p-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDHR3THacv-p3NeWmH7E302LL7FxFdG7BPBPGidC5uajQ2WCPvbBFteJiLsQn0RGrfoxpsFAKLrfbtKZKwzsoTn1GgK23kAFUIUC4CgrSbxaPWBgg2sNR3ZYzycRwnMSxgui3JDGCRuxw60sKlAmFfZ-SEZrXxlor_LIAHVGRt90CleJ9fsB53mi6WhWaC-hOxMFCKoxz8HmpbhgAp--FMQK7TORKG-xa5wjX0dDIs8ai6QdG6_c7ew8X5gqwXzYDszA1EehWRaKHal");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-primary-light dark:text-text-primary-dark text-base font-semibold leading-normal">HYVVE</h1>
+<p class="text-text-secondary text-sm font-normal leading-normal">Business Operations</p>
+</div>
+</div>
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-primary/10 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">grid_view</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-primary/10 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">smart_toy</span>
+<p class="text-sm font-medium leading-normal">Agents</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-primary/10 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">account_tree</span>
+<p class="text-sm font-medium leading-normal">Workflows</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-primary/10 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">bar_chart</span>
+<p class="text-sm font-medium leading-normal">Analytics</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-primary/10 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">storefront</span>
+<p class="text-sm font-medium leading-normal">Marketplace</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md bg-primary/10 text-primary transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-primary/10 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">help_center</span>
+<p class="text-sm font-medium leading-normal">Help</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-primary/10 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">account_circle</span>
+<p class="text-sm font-medium leading-normal">User Profile</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto p-8 lg:p-12">
+<div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+<!-- Left Column -->
+<div class="lg:col-span-2 flex flex-col gap-8">
+<!-- PageHeading -->
+<header>
+<h1 class="text-text-primary-light dark:text-text-primary-dark text-3xl md:text-4xl font-bold tracking-tight">Agent Model Preferences</h1>
+<p class="text-text-secondary mt-2 text-base">Configure AI models for each agent in your team</p>
+</header>
+<!-- Global Defaults Card -->
+<section class="bg-surface-light dark:bg-surface-dark p-6 rounded-lg shadow-md border border-border-light dark:border-border-dark">
+<h2 class="text-text-primary-light dark:text-text-primary-dark text-xl font-semibold flex items-center gap-2">🌐 Global Defaults</h2>
+<p class="text-text-secondary text-sm mt-1 pb-4">These settings apply to all agents unless overridden.</p>
+<hr class="border-border-light dark:border-border-dark mb-6"/>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div>
+<label class="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2">Default Provider</label>
+<select class="w-full bg-surface-light dark:bg-surface-dark border-border-light dark:border-border-dark rounded-md shadow-sm focus:ring-primary focus:border-primary text-text-primary-light dark:text-text-primary-dark">
+<option>Anthropic (Claude)</option>
+<option>OpenAI (GPT)</option>
+<option>Google (Gemini)</option>
+</select>
+</div>
+<div>
+<label class="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2">Default Model</label>
+<select class="w-full bg-surface-light dark:bg-surface-dark border-border-light dark:border-border-dark rounded-md shadow-sm focus:ring-primary focus:border-primary text-text-primary-light dark:text-text-primary-dark">
+<option>Claude 3.5 Sonnet</option>
+<option>Claude 3 Opus</option>
+<option>Claude 3 Haiku</option>
+</select>
+</div>
+</div>
+<div class="mt-6">
+<label class="flex justify-between text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2" for="temperature">
+<span>Default Temperature</span>
+<span class="text-primary font-semibold">0.7</span>
+</label>
+<input class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary" id="temperature" max="1" min="0" step="0.1" type="range" value="0.7"/>
+<div class="flex justify-between text-xs text-text-secondary mt-1">
+<span>0 (Precise)</span>
+<span>1 (Creative)</span>
+</div>
+</div>
+<div class="flex justify-end mt-6">
+<button class="text-sm font-medium text-text-secondary hover:text-primary transition-colors duration-150">Reset to Defaults</button>
+</div>
+</section>
+<!-- Agent-Specific Settings -->
+<section>
+<h2 class="text-text-primary-light dark:text-text-primary-dark text-xl font-semibold">Agent-Specific Settings</h2>
+<p class="text-text-secondary text-sm mt-1">Override global defaults for individual agents.</p>
+<div class="space-y-4 mt-6">
+<!-- Agent Card: Hub -->
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-lg shadow-md border border-border-light dark:border-border-dark">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-md flex items-center justify-center bg-primary/10 text-primary text-xl">🎯</div>
+<div>
+<h3 class="font-semibold text-text-primary-light dark:text-text-primary-dark">Hub</h3>
+<p class="text-sm text-text-secondary">Orchestrator</p>
+</div>
+</div>
+<span class="bg-gray-200 dark:bg-gray-700 text-text-secondary text-xs font-medium px-2.5 py-1 rounded-full">Using Global</span>
+</div>
+<hr class="border-border-light dark:border-border-dark my-4"/>
+<div class="text-sm text-text-secondary space-y-1">
+<p><span class="font-medium text-text-primary-light dark:text-text-primary-dark">Model:</span> Claude 3.5 Sonnet (inherited)</p>
+<p><span class="font-medium text-text-primary-light dark:text-text-primary-dark">Temperature:</span> 0.7 (inherited)</p>
+</div>
+<div class="flex justify-end mt-4">
+<button class="text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1 transition-colors duration-150">Customize <span class="material-symbols-outlined text-base">expand_more</span></button>
+</div>
+</div>
+<!-- Agent Card: Maya -->
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-lg shadow-md border border-border-light dark:border-border-dark">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-md flex items-center justify-center bg-secondary/10 text-secondary text-xl">🐚</div>
+<div>
+<h3 class="font-semibold text-text-primary-light dark:text-text-primary-dark">Maya</h3>
+<p class="text-sm text-text-secondary">CRM Agent</p>
+</div>
+</div>
+<span class="bg-primary/10 text-primary text-xs font-medium px-2.5 py-1 rounded-full">Customized</span>
+</div>
+<hr class="border-border-light dark:border-border-dark my-4"/>
+<div class="text-sm text-text-secondary space-y-1">
+<p><span class="font-medium text-text-primary-light dark:text-text-primary-dark">Model:</span> Claude 3.5 Sonnet ✓</p>
+<p><span class="font-medium text-text-primary-light dark:text-text-primary-dark">Temperature:</span> 0.5 (more precise for CRM tasks)</p>
+<p><span class="font-medium text-text-primary-light dark:text-text-primary-dark">Custom instructions:</span> "Always reference customer name..."</p>
+</div>
+<div class="flex justify-end gap-4 mt-4">
+<button class="text-sm font-medium text-text-secondary hover:text-primary transition-colors duration-150">Reset to Global</button>
+<button class="text-sm font-medium text-primary hover:text-primary/80">Edit</button>
+</div>
+</div>
+<!-- Agent Card: Atlas -->
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-lg shadow-md border border-border-light dark:border-border-dark">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-md flex items-center justify-center bg-orange-500/10 text-orange-500 text-xl">🗺️</div>
+<div>
+<h3 class="font-semibold text-text-primary-light dark:text-text-primary-dark">Atlas</h3>
+<p class="text-sm text-text-secondary">Project Manager</p>
+</div>
+</div>
+<span class="bg-primary/10 text-primary text-xs font-medium px-2.5 py-1 rounded-full">Customized</span>
+</div>
+<hr class="border-border-light dark:border-border-dark my-4"/>
+<div class="text-sm text-text-secondary space-y-1">
+<p><span class="font-medium text-text-primary-light dark:text-text-primary-dark">Model:</span> Claude 3 Opus (for complex planning)</p>
+<p><span class="font-medium text-text-primary-light dark:text-text-primary-dark">Temperature:</span> 0.3 (very precise for schedules)</p>
+<p><span class="font-medium text-text-primary-light dark:text-text-primary-dark">Max tokens:</span> 8192 (for longer documents)</p>
+</div>
+<div class="flex justify-end gap-4 mt-4">
+<button class="text-sm font-medium text-text-secondary hover:text-primary transition-colors duration-150">Reset to Global</button>
+<button class="text-sm font-medium text-primary hover:text-primary/80">Edit</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column -->
+<div class="hidden lg:flex flex-col gap-8 sticky top-12">
+<!-- Model Recommendations -->
+<section class="bg-[#F0FDF4] dark:bg-green-900/20 p-6 rounded-lg border border-[#BBF7D0] dark:border-green-800/50">
+<h2 class="text-lg font-semibold flex items-center gap-2 text-green-900 dark:text-green-200">💡 Model Recommendations</h2>
+<p class="text-sm text-green-700 dark:text-green-300 mt-1 pb-4">Based on agent roles, we recommend:</p>
+<div class="space-y-3 text-sm">
+<div class="text-gray-800 dark:text-gray-300">
+<p class="font-semibold">Hub (Orchestrator)</p>
+<p class="pl-4 border-l-2 border-gray-300 dark:border-gray-600 ml-2 text-gray-600 dark:text-gray-400">Claude 3.5 Sonnet · Temp 0.7 · Fast routing</p>
+</div>
+<div class="text-gray-800 dark:text-gray-300">
+<p class="font-semibold">Maya (CRM)</p>
+<p class="pl-4 border-l-2 border-gray-300 dark:border-gray-600 ml-2 text-gray-600 dark:text-gray-400">Claude 3.5 Sonnet · Temp 0.5 · Precise comms</p>
+</div>
+<div class="text-gray-800 dark:text-gray-300">
+<p class="font-semibold">Atlas (PM)</p>
+<p class="pl-4 border-l-2 border-gray-300 dark:border-gray-600 ml-2 text-gray-600 dark:text-gray-400">Claude 3 Opus · Temp 0.3 · Complex planning</p>
+</div>
+<div class="text-gray-800 dark:text-gray-300">
+<p class="font-semibold">Sage (Finance)</p>
+<p class="pl-4 border-l-2 border-gray-300 dark:border-gray-600 ml-2 text-gray-600 dark:text-gray-400">Claude 3 Opus · Temp 0.2 · Accuracy critical</p>
+</div>
+</div>
+<button class="w-full mt-6 bg-primary text-white font-semibold py-2 px-4 rounded-md hover:bg-primary/90 transition-colors duration-150">Apply All Recommendations</button>
+</section>
+<!-- Cost Impact -->
+<section class="bg-surface-light dark:bg-surface-dark p-6 rounded-lg shadow-md border border-border-light dark:border-border-dark">
+<h2 class="text-lg font-semibold flex items-center gap-2">📊 Estimated Monthly Cost Impact</h2>
+<div class="mt-4 space-y-2 text-sm">
+<p class="text-text-secondary">Current configuration: <span class="font-semibold text-text-primary-light dark:text-text-primary-dark">~$150/month</span></p>
+<p class="text-text-secondary">With recommendations: <span class="font-semibold text-text-primary-light dark:text-text-primary-dark">~$180/month</span> <span class="text-warning font-medium">(+$30)</span></p>
+</div>
+<div class="mt-6 space-y-3">
+<h3 class="text-sm font-medium text-text-secondary">Cost breakdown:</h3>
+<div class="text-xs space-y-2">
+<div class="flex items-center gap-2">
+<span class="w-12 text-right">Hub</span>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div class="bg-primary/50 h-2.5 rounded-full" style="width: 25%"></div></div>
+<span class="w-16 text-left">$25</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-12 text-right">Maya</span>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div class="bg-secondary/50 h-2.5 rounded-full" style="width: 35%"></div></div>
+<span class="w-16 text-left">$35</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-12 text-right">Atlas</span>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div class="bg-orange-500/50 h-2.5 rounded-full" style="width: 60%"></div></div>
+<span class="w-16 text-left">$60 <span class="text-warning">↑</span></span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-12 text-right">Sage</span>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div class="bg-green-500/50 h-2.5 rounded-full" style="width: 40%"></div></div>
+<span class="w-16 text-left">$40</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-12 text-right">Nova</span>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div class="bg-pink-500/50 h-2.5 rounded-full" style="width: 15%"></div></div>
+<span class="w-16 text-left">$15</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-12 text-right">Echo</span>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div class="bg-blue-500/50 h-2.5 rounded-full" style="width: 5%"></div></div>
+<span class="w-16 text-left">$5</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Modal (hidden by default) -->
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden" id="customize-modal">
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+<header class="flex justify-between items-center p-4 border-b border-border-light dark:border-border-dark">
+<h2 class="text-lg font-semibold">Customize Maya's Model Settings</h2>
+<button class="text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<main class="p-6 overflow-y-auto space-y-6">
+<div class="flex items-center gap-4">
+<div class="size-12 rounded-lg flex items-center justify-center bg-secondary/10 text-secondary text-2xl">🐚</div>
+<div>
+<h3 class="font-semibold text-text-primary-light dark:text-text-primary-dark">Maya</h3>
+<p class="text-sm text-text-secondary">CRM Agent</p>
+</div>
+</div>
+<!-- Provider Setting -->
+<div>
+<h4 class="font-medium mb-2">Provider</h4>
+<div class="space-y-2 text-sm">
+<div class="flex items-center gap-2">
+<input checked="" class="text-primary focus:ring-primary/50" id="provider-global" name="provider" type="radio"/>
+<label class="text-text-secondary" for="provider-global">Use global default (Anthropic)</label>
+</div>
+<div class="flex items-start gap-2">
+<input class="text-primary focus:ring-primary/50 mt-0.5" id="provider-override" name="provider" type="radio"/>
+<div class="flex-1">
+<label for="provider-override">Override:</label>
+<select class="mt-1 w-full bg-surface-light dark:bg-surface-dark border-border-light dark:border-border-dark rounded-md shadow-sm focus:ring-primary focus:border-primary text-text-primary-light dark:text-text-primary-dark">
+<option>Anthropic</option>
+<option>OpenAI</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+<!-- Model Setting -->
+<div>
+<h4 class="font-medium mb-2">Model</h4>
+<div class="space-y-2 text-sm">
+<div class="flex items-center gap-2">
+<input class="text-primary focus:ring-primary/50" id="model-global" name="model" type="radio"/>
+<label class="text-text-secondary" for="model-global">Use global default (Claude 3.5 Sonnet)</label>
+</div>
+<div class="flex items-start gap-2">
+<input checked="" class="text-primary focus:ring-primary/50 mt-0.5" id="model-override" name="model" type="radio"/>
+<div class="flex-1">
+<label for="model-override">Override:</label>
+<select class="mt-1 w-full bg-surface-light dark:bg-surface-dark border-border-light dark:border-border-dark rounded-md shadow-sm focus:ring-primary focus:border-primary text-text-primary-light dark:text-text-primary-dark">
+<option>Claude 3.5 Sonnet</option>
+<option>Claude 3 Opus</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+<!-- Temperature Setting -->
+<div>
+<h4 class="font-medium mb-2">Temperature</h4>
+<div class="space-y-2 text-sm">
+<div class="flex items-center gap-2">
+<input class="text-primary focus:ring-primary/50" id="temp-global" name="temp" type="radio"/>
+<label class="text-text-secondary" for="temp-global">Use global default (0.7)</label>
+</div>
+<div class="flex items-start gap-2">
+<input checked="" class="text-primary focus:ring-primary/50 mt-0.5" id="temp-override" name="temp" type="radio"/>
+<div class="flex-1">
+<label class="flex justify-between" for="temp-override"><span>Override:</span><span class="font-semibold text-primary">0.5</span></label>
+<input class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary mt-2" max="1" min="0" step="0.1" type="range" value="0.5"/>
+<p class="mt-2 text-xs text-text-secondary bg-blue-500/10 dark:bg-blue-500/20 text-blue-800 dark:text-blue-200 p-2 rounded-md">💡 Lower temperature recommended for CRM tasks</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Custom Instructions -->
+<div>
+<label class="font-medium mb-2 block" for="custom-instructions">Custom Instructions</label>
+<textarea class="w-full text-sm bg-surface-light dark:bg-surface-dark border-border-light dark:border-border-dark rounded-md shadow-sm focus:ring-primary focus:border-primary text-text-primary-light dark:text-text-primary-dark" id="custom-instructions" placeholder="For Maya specifically..." rows="4">- Always use the customer's first name
+- Keep emails under 150 words
+- Include a clear call-to-action</textarea>
+<p class="text-xs text-text-secondary mt-1">These instructions are appended to Maya's base prompt.</p>
+</div>
+</main>
+<footer class="flex justify-end items-center gap-3 p-4 bg-gray-50 dark:bg-surface-dark/50 border-t border-border-light dark:border-border-dark">
+<button class="px-4 py-2 text-sm font-semibold rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-150">Cancel</button>
+<button class="px-4 py-2 text-sm font-semibold text-white bg-primary rounded-md hover:bg-primary/90 transition-colors duration-150">Save Settings</button>
+</footer>
+</div>
+</div>
+</div>
+</body></html>

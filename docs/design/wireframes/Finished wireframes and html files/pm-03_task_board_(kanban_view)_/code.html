@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-03 Task Board (Kanban View)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+              "neutral-100": "#f0f2f4",
+              "neutral-200": "#e3e6eb",
+              "neutral-800": "#111318",
+              "neutral-600": "#616f89",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-neutral-800 dark:text-neutral-100">
+<div class="flex h-screen w-full flex-col">
+<!-- TopNavBar -->
+<header class="flex h-16 shrink-0 items-center justify-between whitespace-nowrap border-b border-solid border-neutral-100 dark:border-neutral-800 bg-white dark:bg-background-dark px-6">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 text-neutral-800 dark:text-white">
+<span class="material-symbols-outlined text-2xl text-primary">waves</span>
+<h2 class="text-lg font-bold">HYVVE</h2>
+</div>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-sm font-medium" href="#">Dashboard</a>
+<a class="text-sm font-medium text-primary" href="#">Projects</a>
+<a class="text-sm font-medium" href="#">Tasks</a>
+<a class="text-sm font-medium" href="#">Calendar</a>
+<a class="text-sm font-medium" href="#">Reports</a>
+</div>
+</div>
+<div class="flex flex-1 justify-end gap-2">
+<label class="relative hidden lg:block w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-600">search</span>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-neutral-800 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border-none bg-neutral-100 dark:bg-neutral-800/50 h-10 placeholder:text-neutral-600 pl-10 text-sm font-normal" placeholder="Search..." value=""/>
+</label>
+<button class="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-800/50 text-neutral-800 dark:text-white">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-800/50 text-neutral-800 dark:text-white">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-800/50 text-neutral-800 dark:text-white">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="ml-2 bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCBBAFGZTZQBVBg_59wXdvYpDmRIfL3QiTk-4LYAZCdaA-79Q7ghv-K_V0oObFwiyle2e8Cas8lJ9kL1mHj5sr8t_zms9MraFByi6HRliB8jTt_HodslKOHq9ZPzUuG0DuBpZcTNKSCc7roHg-iUnMrv_PLLaUWaaF8ObEAWnPQdukt_tMRl5PtfYymtyS82Em8RxbLsmktkxHm6JTXkPx75qfd2T1YXNYdtAs4sgH1vRQTrXHTDrjqEWiWsYT84RVz7qFUpCrCl8E");'></div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex flex-1 flex-col overflow-hidden">
+<div class="flex shrink-0 flex-col gap-4 border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-background-dark px-6 py-4">
+<!-- Breadcrumbs & Heading -->
+<div class="flex flex-wrap items-center justify-between gap-4">
+<div class="flex flex-col gap-1">
+<div class="flex flex-wrap items-center gap-2">
+<a class="text-neutral-600 dark:text-neutral-200 text-sm font-medium" href="#">Projects</a>
+<span class="text-neutral-600 dark:text-neutral-200 text-sm font-medium">/</span>
+<a class="text-neutral-600 dark:text-neutral-200 text-sm font-medium" href="#">Project Alpha</a>
+<span class="text-neutral-600 dark:text-neutral-200 text-sm font-medium">/</span>
+<span class="text-neutral-800 dark:text-white text-sm font-medium">Task Board</span>
+</div>
+<p class="text-neutral-800 dark:text-white text-2xl font-bold tracking-tight">PM-03 Task Board</p>
+</div>
+<div class="flex items-center gap-2">
+<div class="hidden sm:flex h-10 items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-800/50 p-1">
+<label class="flex h-full cursor-pointer items-center justify-center overflow-hidden rounded-md px-3 has-[:checked]:bg-white dark:has-[:checked]:bg-neutral-800 has-[:checked]:shadow-sm has-[:checked]:text-neutral-800 dark:has-[:checked]:text-white text-neutral-600 text-sm font-medium">
+<span class="truncate">Kanban</span>
+<input checked="" class="invisible w-0" name="view-toggle" type="radio" value="Kanban"/>
+</label>
+<label class="flex h-full cursor-pointer items-center justify-center overflow-hidden rounded-md px-3 has-[:checked]:bg-white dark:has-[:checked]:bg-neutral-800 has-[:checked]:shadow-sm has-[:checked]:text-neutral-800 dark:has-[:checked]:text-white text-neutral-600 text-sm font-medium">
+<span class="truncate">List</span>
+<input class="invisible w-0" name="view-toggle" type="radio" value="List"/>
+</label>
+<label class="flex h-full cursor-pointer items-center justify-center overflow-hidden rounded-md px-3 has-[:checked]:bg-white dark:has-[:checked]:bg-neutral-800 has-[:checked]:shadow-sm has-[:checked]:text-neutral-800 dark:has-[:checked]:text-white text-neutral-600 text-sm font-medium">
+<span class="truncate">Calendar</span>
+<input class="invisible w-0" name="view-toggle" type="radio" value="Calendar"/>
+</label>
+</div>
+<button class="flex h-10 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-primary text-white px-4 text-sm font-medium">
+<span class="material-symbols-outlined text-base">share</span>
+<span class="truncate">Share</span>
+</button>
+</div>
+</div>
+<!-- Filter Bar -->
+<div class="flex flex-wrap items-center gap-2">
+<button class="flex h-9 items-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 px-3 text-sm font-medium text-neutral-800 dark:text-neutral-100">
+<span class="material-symbols-outlined text-base">group</span>
+<span>Assignee</span>
+<span class="material-symbols-outlined text-base">expand_more</span>
+</button>
+<button class="flex h-9 items-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 px-3 text-sm font-medium text-neutral-800 dark:text-neutral-100">
+<span class="material-symbols-outlined text-base">flag</span>
+<span>Priority</span>
+<span class="material-symbols-outlined text-base">expand_more</span>
+</button>
+<button class="flex h-9 items-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 px-3 text-sm font-medium text-neutral-800 dark:text-neutral-100">
+<span class="material-symbols-outlined text-base">sell</span>
+<span>Tags</span>
+<span class="material-symbols-outlined text-base">expand_more</span>
+</button>
+<button class="flex h-9 items-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 px-3 text-sm font-medium text-neutral-800 dark:text-neutral-100">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+<span>Due Date</span>
+<span class="material-symbols-outlined text-base">expand_more</span>
+</button>
+<div class="h-6 w-px bg-neutral-200 dark:bg-neutral-800"></div>
+<button class="flex h-9 items-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 px-3 text-sm font-medium text-neutral-800 dark:text-neutral-100">
+<span>Group by: Status</span>
+<span class="material-symbols-outlined text-base">expand_more</span>
+</button>
+<button class="flex h-9 items-center gap-2 rounded-lg border border-transparent px-3 text-sm font-medium text-neutral-600 hover:text-primary">
+<span>Clear Filters</span>
+</button>
+</div>
+</div>
+<!-- Kanban Board -->
+<div class="flex flex-1 gap-4 overflow-x-auto p-4 lg:p-6">
+<!-- To Do Column -->
+<div class="flex w-80 shrink-0 flex-col">
+<div class="mb-3 flex items-center justify-between border-b-2 border-blue-400 pb-2">
+<div class="flex items-center gap-2">
+<h3 class="font-semibold text-neutral-800 dark:text-white">To Do</h3>
+<span class="rounded-lg bg-neutral-100 dark:bg-neutral-800/50 px-2 py-0.5 text-sm font-medium text-neutral-600 dark:text-neutral-200">3</span>
+</div>
+<button class="text-neutral-600 hover:text-neutral-800 dark:hover:text-white">
+<span class="material-symbols-outlined text-xl">more_horiz</span>
+</button>
+</div>
+<div class="flex flex-col gap-3 overflow-y-auto">
+<div class="cursor-grab rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 p-3 shadow-sm transition-shadow hover:shadow-md">
+<div class="mb-2 flex items-start justify-between">
+<p class="font-medium text-neutral-800 dark:text-white">Implement new user authentication flow</p>
+<span class="material-symbols-outlined text-xl text-red-500" title="High Priority">expand_less</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-neutral-600">
+<span class="material-symbols-outlined text-base">chat_bubble_outline</span><span>3</span>
+<span class="material-symbols-outlined text-base">attachment</span><span>1</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-neutral-600">Aug 25</span>
+<img class="size-6 rounded-full" data-alt="Avatar of Sarah Lee" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClrOeXHMjwrTJSTu9Rznj45_ntVTtfoDJk1je9JObJNnnPL1MDMwXRT7PWw1Q0Iso93yBN8ncz3a3RPD1kT0DLX5NLO51J8sOpnSdHozbzfkZ2z892rmoJjNhdCjiR0k8HXdjRWuHIhnINgP_wJpT8mFjp0YZAJdjzXUQcqJRF05Mxy-HLOiokhhaA_IC0Sku0D0a-CaIGEzCRs8tZpUGOCnHeeKkaBjlK8JnibSFgub208sr0eqMb2L-_wptc08mUsQFqtWNaBqs"/>
+</div>
+</div>
+</div>
+<div class="cursor-grab rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 p-3 shadow-sm transition-shadow hover:shadow-md">
+<div class="mb-2 flex items-start justify-between">
+<p class="font-medium text-neutral-800 dark:text-white">Design onboarding tutorial slides</p>
+<span class="material-symbols-outlined text-xl text-orange-500" title="Medium Priority">horizontal_rule</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-neutral-600">
+<span class="material-symbols-outlined text-base">format_list_bulleted</span><span>2/5</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-neutral-600">Aug 28</span>
+<img class="size-6 rounded-full" data-alt="Avatar of Alex Johnson" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAvrRd2KUSp1pDqiCOA9OsExtt15wRGnb_hcvdYyOa0dhsqY3cB6A2vAGHyto2fSYgUDUiLqzUTgFn8h8brzSlW_V7BaoyvySza-qfzrWbaB_u2nCTnRAyQdGA2uXD7rGJG07QIDBz8xi9T_0wk7VrCJieNERCQKbQHkYLFl_TcnFvWszdPM3IKErr8VRlGr4Y-8wCtZ3_q03rQPI2nhz1U4ks-cqJJSzyWEQBBWPXhstDX6-nf227TccD3urqQbE72QTzbRNlk_k"/>
+</div>
+</div>
+</div>
+<div class="cursor-grab rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 p-3 shadow-sm transition-shadow hover:shadow-md">
+<div class="mb-2 flex items-start justify-between">
+<p class="font-medium text-neutral-800 dark:text-white">Fix mobile responsiveness issues on the dashboard</p>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-neutral-600"></div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-red-500">Aug 15</span>
+<img class="size-6 rounded-full" data-alt="Avatar of Emily Carter" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDg517gqb7-rbQ6H1xjzfk5AQ7Xb_3jDHMxXwxzYfxLgPfdVD8iHPlSV1hWjsP3dejPav8ZioNnjkX3sOCWJiaMJz2Cxag0Vj6zzkIcYVMdBbmXlbt9wf8HN46ViwlcKkiSOYUTu0cYvIFEcTbubGg9m7YX8zTFmK2rdAf5g8hmnB6-4ebnJU1riuELEsSrOUZN0ul9vDH6gp7j088IYEEHTrcabZ2xYxEuIT-7wSgeS-coHD-_zRpRXDklJfeOTAfgopZLAjbr51w"/>
+</div>
+</div>
+</div>
+<button class="flex w-full items-center justify-center gap-2 rounded-lg p-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800/50">
+<span class="material-symbols-outlined text-base">add</span>
+<span>Add a task</span>
+</button>
+</div>
+</div>
+<!-- In Progress Column -->
+<div class="flex w-80 shrink-0 flex-col">
+<div class="mb-3 flex items-center justify-between border-b-2 border-purple-400 pb-2">
+<div class="flex items-center gap-2">
+<h3 class="font-semibold text-neutral-800 dark:text-white">In Progress</h3>
+<span class="rounded-lg bg-neutral-100 dark:bg-neutral-800/50 px-2 py-0.5 text-sm font-medium text-neutral-600 dark:text-neutral-200">2</span>
+</div>
+<button class="text-neutral-600 hover:text-neutral-800 dark:hover:text-white">
+<span class="material-symbols-outlined text-xl">more_horiz</span>
+</button>
+</div>
+<div class="flex flex-col gap-3 overflow-y-auto">
+<!-- Dragging State Example -->
+<div class="relative cursor-grabbing rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 p-3 shadow-lg opacity-80 ring-2 ring-primary">
+<div class="mb-2 flex items-start justify-between">
+<p class="font-medium text-neutral-800 dark:text-white">Develop API endpoints for user profiles</p>
+<span class="material-symbols-outlined text-xl text-red-500" title="High Priority">expand_less</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-neutral-600">
+<span class="material-symbols-outlined text-base">chat_bubble_outline</span><span>5</span>
+<span class="material-symbols-outlined text-base">attachment</span><span>2</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-neutral-600">Sep 01</span>
+<div class="flex -space-x-2">
+<img class="size-6 rounded-full border-2 border-white dark:border-neutral-800/50" data-alt="Avatar of Alex Johnson" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7MCwBN7ND8Iiw2z2STsGkCO4BY3QnjNaCWaCDSEy8cbJ0rMoYDsP_vVqn96f7-ePvhQm98LjZEma45Q6ChaPHgHkamg6HNo0_PryK1VSXJrPcTOvNAL5mFUuf1Bf_9b_aw_l-ZT6IQWNx-CHm3iJLHb4I5vyAO1eID5sD894fo1ijIpjxi_DrkDpVGP9byhRf6am-FN6ooiJ1V37P4ZjSvLLI-3HB72HV5Adtg_XXcZpn4c4TNvOD0bH9pe1o6ZFfWRA2AfTOkvE"/>
+<img class="size-6 rounded-full border-2 border-white dark:border-neutral-800/50" data-alt="Avatar of Sarah Lee" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgfPPTMdFsDY35o562t_7scomrgyGRk4IW0dkZgtcxv3cfcaLJ8KXrNbTvIIJAidWoezAUt0C4Ifc9t1p2jKaFFFBA0l_XI-gPSE5KCMYViik8rtOHm7ZuTHMa9TziBhtLsQGCYRao1Srl81eaHMboLQtYt8uW5Tj0Izn6JnyXr6Qd9AwpBNqa4eXFQsltKvtSL6e3cZ-mqpYmp2XpouMLd9psJ9VRBiZX86T6tsm8lg6E3_WgoXi1ouaU4C0OCofbly1ebLzTK5o"/>
+</div>
+</div>
+</div>
+</div>
+<div class="cursor-grab rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 p-3 shadow-sm transition-shadow hover:shadow-md">
+<div class="mb-2 flex items-start justify-between">
+<p class="font-medium text-neutral-800 dark:text-white">Update brand assets and style guide</p>
+<span class="material-symbols-outlined text-xl text-green-500" title="Low Priority">expand_more</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-neutral-600"></div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-neutral-600">Sep 05</span>
+<img class="size-6 rounded-full" data-alt="Avatar of Emily Carter" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKOxyd83lSnbw7mLWoX-kmQjRdSVbrRJu1YxbazjaAjHXZRXkaGmnPP-41YsMKtWGVSNhPOfB-ohVDJaRaXoW-jwkOSH7yofRsPr7bJXhNHxpUtQfrJkXMc40wlgwbrvO9Cl8qTwYbaOyI6kcusLmg6wMue47DzicLXrgOk4_jYeIXXWgh0hC1VM5WSGiL3VAsY44QUWwkjM1-lHBQpRjAHFfle3bV0R0riwo2fdj4NTcmUrmQFnrNXFRwGQSx9Uy7P5STvFIbgUE"/>
+</div>
+</div>
+</div>
+<!-- Drop Zone Indicator -->
+<div class="h-24 rounded-lg border-2 border-dashed border-primary/50 bg-primary/10"></div>
+<button class="flex w-full items-center justify-center gap-2 rounded-lg p-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800/50">
+<span class="material-symbols-outlined text-base">add</span>
+<span>Add a task</span>
+</button>
+</div>
+</div>
+<!-- In Review Column -->
+<div class="flex w-80 shrink-0 flex-col">
+<div class="mb-3 flex items-center justify-between border-b-2 border-orange-400 pb-2">
+<div class="flex items-center gap-2">
+<h3 class="font-semibold text-neutral-800 dark:text-white">In Review</h3>
+<span class="rounded-lg bg-neutral-100 dark:bg-neutral-800/50 px-2 py-0.5 text-sm font-medium text-neutral-600 dark:text-neutral-200">1</span>
+</div>
+<button class="text-neutral-600 hover:text-neutral-800 dark:hover:text-white">
+<span class="material-symbols-outlined text-xl">more_horiz</span>
+</button>
+</div>
+<div class="flex flex-col gap-3 overflow-y-auto">
+<div class="cursor-grab rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 p-3 shadow-sm transition-shadow hover:shadow-md">
+<div class="mb-2 flex items-start justify-between">
+<p class="font-medium text-neutral-800 dark:text-white">Refactor database schema for performance</p>
+<span class="material-symbols-outlined text-xl text-orange-500" title="Medium Priority">horizontal_rule</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-neutral-600">
+<span class="material-symbols-outlined text-base">format_list_bulleted</span><span>8/10</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-neutral-600">Aug 30</span>
+<img class="size-6 rounded-full" data-alt="Avatar of Sarah Lee" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDt6VpkBdIlepqCw8EdbFElsMAfM5mfTCQXDVvJAMEZoTqyIBED6bH3jywjREuQwKLXMDGDLTztzq_1Zeh0FMPc1qzTzwxqf1ho8FCTUnveAy0oPZPGEp30m3WPS4KM4KZZu_EtoI9p71DX8zPAtGbYSkDcUjfJKRbNS_B9ERHNGVI2inyOnyxKMTSvb8bPUxpo7vMwFhqIPa6bKXwRq3hNGGdpFdtoDOjhK3iieGtDPA0d5suQfCLrkO2ao17g23zkMQWibYtnetc"/>
+</div>
+</div>
+</div>
+<button class="flex w-full items-center justify-center gap-2 rounded-lg p-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800/50">
+<span class="material-symbols-outlined text-base">add</span>
+<span>Add a task</span>
+</button>
+</div>
+</div>
+<!-- Done Column -->
+<div class="flex w-80 shrink-0 flex-col">
+<div class="mb-3 flex items-center justify-between border-b-2 border-green-400 pb-2">
+<div class="flex items-center gap-2">
+<h3 class="font-semibold text-neutral-800 dark:text-white">Done</h3>
+<span class="rounded-lg bg-neutral-100 dark:bg-neutral-800/50 px-2 py-0.5 text-sm font-medium text-neutral-600 dark:text-neutral-200">4</span>
+</div>
+<button class="text-neutral-600 hover:text-neutral-800 dark:hover:text-white">
+<span class="material-symbols-outlined text-xl">more_horiz</span>
+</button>
+</div>
+<div class="flex flex-col gap-3 overflow-y-auto">
+<div class="cursor-grab rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 p-3 shadow-sm transition-shadow hover:shadow-md opacity-70">
+<p class="font-medium text-neutral-600 dark:text-neutral-400 line-through">Setup CI/CD pipeline</p>
+</div>
+<div class="cursor-grab rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 p-3 shadow-sm transition-shadow hover:shadow-md opacity-70">
+<p class="font-medium text-neutral-600 dark:text-neutral-400 line-through">Initial project setup and configuration</p>
+</div>
+<div class="cursor-grab rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 p-3 shadow-sm transition-shadow hover:shadow-md opacity-70">
+<p class="font-medium text-neutral-600 dark:text-neutral-400 line-through">User research and persona creation</p>
+</div>
+<div class="cursor-grab rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800/50 p-3 shadow-sm transition-shadow hover:shadow-md opacity-70">
+<p class="font-medium text-neutral-600 dark:text-neutral-400 line-through">Define project scope and roadmap</p>
+</div>
+<button class="flex w-full items-center justify-center gap-2 rounded-lg p-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800/50">
+<span class="material-symbols-outlined text-base">add</span>
+<span>Add a task</span>
+</button>
+</div>
+</div>
+<!-- Add Column Button -->
+<div class="w-80 shrink-0">
+<button class="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-neutral-100 dark:bg-neutral-800/50 text-sm font-medium text-neutral-600 hover:bg-neutral-200/70 dark:hover:bg-neutral-800">
+<span class="material-symbols-outlined text-base">add</span>
+<span>Add new column</span>
+</button>
+</div>
+</div>
+</main>
+</div>
+</body></html>

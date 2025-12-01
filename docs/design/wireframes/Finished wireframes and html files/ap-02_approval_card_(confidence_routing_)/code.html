@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AP-02 Approval Card (Confidence Routing )</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#FF6B6B",
+              "secondary": "#20B2AA",
+              "background-light": "#FFFBF5",
+              "background-dark": "#0a0a0b",
+              "surface-light": "#FFFFFF",
+              "surface-dark": "#1a1a1b",
+              "border-light": "#E5E5E5",
+              "border-dark": "#2a2a2b",
+              "text-primary-light": "#1a1a1a",
+              "text-primary-dark": "#FAFAFA",
+              "text-secondary": "#6B7280",
+              "success": "#10B981",
+              "warning": "#F59E0B",
+              "error": "#EF4444",
+              "info": "#3B82F6",
+            },
+            fontFamily: {
+              "display": ["Inter", "system-ui", "sans-serif"],
+              "code": ["JetBrains Mono", "monospace"],
+            },
+            borderRadius: {
+                "sm": "4px",
+                "md": "8px",
+                "lg": "12px",
+                "xl": "16px",
+                "full": "9999px",
+            },
+            boxShadow: {
+              'sm': '0 1px 2px rgba(0,0,0,0.04)',
+              'md': '0 4px 6px rgba(0,0,0,0.04)',
+              'lg': '0 10px 15px rgba(0,0,0,0.06)',
+              'xl': '0 20px 25px rgba(0,0,0,0.08)',
+            },
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
+<div class="relative flex min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<header class="p-8 border-b border-border-light dark:border-border-dark">
+<h1 class="text-2xl font-bold">HYVVE Approval Queue</h1>
+<p class="text-text-secondary">AI-powered confidence routing for business operations.</p>
+</header>
+<main class="flex-1 px-4 py-8 md:px-8 lg:px-16">
+<div class="mx-auto max-w-4xl space-y-6">
+<!-- HIGH CONFIDENCE CARD -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-lg shadow-md border-l-4 border-success flex flex-col gap-4 p-5 opacity-90">
+<div class="flex items-start gap-4">
+<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-800 font-bold text-sm dark:bg-green-900/50 dark:text-green-300">
+                                95%
+                            </div>
+<div class="flex-1">
+<div class="flex justify-between items-center">
+<h2 class="text-lg font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-xl text-secondary">mail</span>
+<span>Email: "Summer Sale Follow-up"</span>
+</h2>
+<div class="flex items-center gap-2 text-sm text-text-secondary">
+<span class="material-symbols-outlined text-xl text-pink-500">spark</span>
+<span>Nova</span>
+</div>
+</div>
+<p class="text-sm text-text-secondary flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-success">check_circle</span>
+<span>Auto-approved · Marketing · Just now</span>
+</p>
+</div>
+</div>
+<div class="flex justify-end items-center gap-2 pl-14">
+<button class="flex items-center justify-center rounded-md h-9 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-surface-dark dark:hover:bg-gray-700/50 text-text-primary-light dark:text-text-primary-dark text-sm font-medium">
+<span class="truncate">View Details</span>
+</button>
+<button class="flex items-center justify-center rounded-md h-9 px-3 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-700/50 text-sm font-medium gap-1">
+<span class="material-symbols-outlined text-lg">undo</span>
+<span class="truncate">Undo</span>
+</button>
+</div>
+</div>
+<!-- MEDIUM CONFIDENCE CARD -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-lg shadow-md border-l-4 border-warning flex flex-col gap-4 p-5">
+<div class="flex items-start gap-4">
+<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800 font-bold text-sm dark:bg-amber-900/50 dark:text-amber-300">
+                                72%
+                            </div>
+<div class="flex-1">
+<div class="flex justify-between items-center">
+<h2 class="text-lg font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-xl text-secondary">edit_document</span>
+<span>Blog Post: "AI Trends 2025"</span>
+</h2>
+<div class="flex items-center gap-2 text-sm text-text-secondary">
+<span class="material-symbols-outlined text-xl text-pink-500">spark</span>
+<span>Nova</span>
+</div>
+</div>
+<p class="text-sm text-text-secondary">Quick review · Content · 15 min ago</p>
+</div>
+</div>
+<div class="pl-14 space-y-4">
+<div class="bg-gray-50 dark:bg-surface-dark dark:border dark:border-border-dark rounded-md p-3 max-h-20 overflow-hidden">
+<p class="text-sm text-text-secondary">
+<span class="font-semibold text-text-primary-light dark:text-text-primary-dark">Preview:</span> "Artificial intelligence continues to reshape industries at an unprecedented pace. As we look towards 2025, several key trends are emerging that promise to redefine how businesses operate and innovate..."
+                                    <a class="text-primary font-medium hover:underline" href="#"> [Show more]</a>
+</p>
+</div>
+<div class="text-sm italic text-text-secondary flex items-start gap-2">
+<span class="material-symbols-outlined text-base text-info mt-0.5">lightbulb</span>
+<span><span class="font-semibold not-italic">AI Note:</span> "Tone matches brand guidelines. Minor grammar suggestions applied."</span>
+</div>
+</div>
+<div class="flex justify-end items-center gap-3 pl-14">
+<button class="flex min-w-[84px] items-center justify-center rounded-md h-10 px-4 text-text-primary-light dark:text-text-primary-dark hover:bg-gray-100 dark:hover:bg-gray-700/50 text-sm font-semibold">
+<span class="truncate">Reject</span>
+</button>
+<button class="flex min-w-[84px] items-center justify-center rounded-md h-10 px-4 bg-gray-100 text-text-primary-light dark:bg-surface-dark dark:hover:bg-gray-700/50 dark:text-text-primary-dark hover:bg-gray-200 text-sm font-semibold">
+<span class="truncate">Request Edit</span>
+</button>
+<button class="flex min-w-[84px] items-center justify-center gap-1.5 rounded-md h-10 px-4 bg-primary text-white text-sm font-semibold shadow-sm hover:bg-primary/90">
+<span class="material-symbols-outlined text-lg">check</span>
+<span class="truncate">Approve</span>
+</button>
+</div>
+</div>
+<!-- LOW CONFIDENCE CARD -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-lg shadow-md border-l-4 border-error flex flex-col gap-4 p-5">
+<div class="flex items-start gap-4">
+<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-800 font-bold text-sm dark:bg-red-900/50 dark:text-red-300">
+                                45%
+                            </div>
+<div class="flex-1">
+<div class="flex justify-between items-center">
+<h2 class="text-lg font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-xl text-secondary">description</span>
+<span>Contract: "Enterprise Deal - TechCorp"</span>
+</h2>
+<div class="flex items-center gap-2 text-sm text-text-secondary">
+<span class="material-symbols-outlined text-xl text-teal-500">support_agent</span>
+<span>Maya</span>
+</div>
+</div>
+<div class="mt-1">
+<span class="inline-flex items-center gap-1.5 rounded-md bg-red-50 dark:bg-red-900/50 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-200 ring-1 ring-inset ring-red-600/20 dark:ring-red-500/30">
+<span class="material-symbols-outlined text-sm">warning</span>
+                                        Full review required
+                                    </span>
+<span class="text-sm text-text-secondary ml-2">· Sales · 1 hour ago</span>
+</div>
+</div>
+</div>
+<div class="pl-14 space-y-5">
+<div class="border border-border-light dark:border-border-dark rounded-md p-4 space-y-4">
+<h3 class="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark">AI Reasoning</h3>
+<div class="flex items-start gap-2 text-sm text-error">
+<span class="material-symbols-outlined text-base mt-0.5">warning</span>
+<p>Unusual terms detected in section 4.2</p>
+</div>
+<div class="space-y-2">
+<p class="text-sm font-medium">Concerns identified:</p>
+<ul class="space-y-1.5 text-sm text-text-primary-light dark:text-text-primary-dark pl-1">
+<li class="flex items-start gap-2">
+<span class="text-error mt-1.5">●</span>
+<span>Non-standard liability clause</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="text-error mt-1.5">●</span>
+<span>Payment terms differ from template (Net-60 vs standard Net-30)</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="text-error mt-1.5">●</span>
+<span>Missing SLA definitions in Appendix A</span>
+</li>
+</ul>
+</div>
+<div class="space-y-3 pt-2">
+<p class="text-sm font-medium">Confidence factors:</p>
+<div class="space-y-3 text-sm">
+<div class="flex items-center gap-4">
+<span class="w-32 shrink-0">Template match:</span>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+<div class="bg-warning h-1.5 rounded-full" style="width: 62%"></div>
+</div>
+<span class="font-semibold text-warning">62%</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="w-32 shrink-0">Terms analysis:</span>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+<div class="bg-error h-1.5 rounded-full" style="width: 38%"></div>
+</div>
+<span class="font-semibold text-error">38%</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="w-32 shrink-0">Risk assessment:</span>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+<div class="bg-error h-1.5 rounded-full" style="width: 41%"></div>
+</div>
+<span class="font-semibold text-error">41%</span>
+</div>
+</div>
+</div>
+<div class="pt-2 border-t border-border-light dark:border-border-dark flex justify-end">
+<button class="flex items-center gap-1 text-primary font-medium hover:underline text-sm">
+<span>View Full Document</span>
+<span class="material-symbols-outlined text-base">arrow_forward</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium">Suggested actions:</span>
+<button class="flex items-center justify-center gap-1.5 rounded-md h-9 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-surface-dark dark:hover:bg-gray-700/50 text-text-primary-light dark:text-text-primary-dark text-sm font-medium">
+<span class="material-symbols-outlined text-base">call</span>
+<span class="truncate">Schedule Review Call</span>
+</button>
+<button class="flex items-center justify-center gap-1.5 rounded-md h-9 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-surface-dark dark:hover:bg-gray-700/50 text-text-primary-light dark:text-text-primary-dark text-sm font-medium">
+<span class="material-symbols-outlined text-base">gavel</span>
+<span class="truncate">Request Legal Review</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row justify-end items-center gap-3 pl-14 pt-4 border-t border-border-light dark:border-border-dark">
+<button class="flex w-full sm:w-auto min-w-[84px] items-center justify-center rounded-md h-10 px-4 text-text-primary-light dark:text-text-primary-dark hover:bg-gray-100 dark:hover:bg-gray-700/50 text-sm font-semibold">
+<span class="truncate">Reject with Reason</span>
+</button>
+<button class="flex w-full sm:w-auto min-w-[84px] items-center justify-center rounded-md h-10 px-4 bg-gray-100 text-text-primary-light dark:bg-surface-dark dark:hover:bg-gray-700/50 dark:text-text-primary-dark hover:bg-gray-200 text-sm font-semibold">
+<span class="truncate">Hold</span>
+</button>
+<!-- ACTION BEING TAKEN STATE -->
+<button class="flex w-full sm:w-auto min-w-[84px] items-center justify-center gap-1.5 rounded-md h-10 px-4 bg-primary text-white text-sm font-semibold shadow-sm hover:bg-primary/90 disabled:opacity-75" disabled="">
+<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+<path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+</svg>
+<span class="truncate">Approving...</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

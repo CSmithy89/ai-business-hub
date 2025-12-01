@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FI-03 Checkboxes &amp; Radios</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ff6b6b",
+              "background-light": "#f8f5f5",
+              "background-dark": "#230f0f",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200" style="--checkbox-tick-svg: url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27rgb(255,255,255)%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e'); --radio-dot-svg: url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27rgb(255,255,255)%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3ccircle cx=%278%27 cy=%278%27 r=%273%27/%3e%3c/svg%3e');">
+<div class="relative flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex w-64 flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-black/20 p-4">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCvB7mnpw4FojkoX9N65ShroIsSBMJ6q_ESSuNWAKoYg2Ox6YMRyHQ4_N5HZMDIwx1vliUMRwgk573Q_J3JRs2aieg6VGVdf2dQCldwLIDGSddUP7-YPFPqEYspi_v8e8H6Wv_WzgCZQRufHgJcYu02Kq8vWGBfGzc9Lkh2WxZZghwhJ2u05miO0vKsLLgTTVX7CaCiqBCcx5svEfX_mV2goSKl7ds0aBg_UC3odbIMJgu7Z7Rp6aozyJBgbqkJtn1xfpHC_2tEbuE");'></div>
+<div class="flex flex-col">
+<h1 class="text-gray-900 dark:text-white text-base font-medium leading-normal">HYVVE</h1>
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">Design System</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4 flex-grow">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-gray-700 dark:text-gray-300">home</span>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">Home</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-gray-700 dark:text-gray-300">pie_chart</span>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">Analytics</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-gray-700 dark:text-gray-300">folder</span>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">Projects</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-gray-700 dark:text-gray-300">settings</span>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md bg-primary/20 text-primary transition-colors" href="#">
+<span class="material-symbols-outlined fill text-primary">apps</span>
+<p class="text-primary text-sm font-medium leading-normal">Components</p>
+</a>
+</nav>
+</div>
+<div class="mt-auto flex flex-col gap-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+<span class="truncate">Get Started</span>
+</button>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-gray-700 dark:text-gray-300">help</span>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">Support</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-gray-700 dark:text-gray-300">logout</span>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">Logout</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8 overflow-y-auto">
+<div class="max-w-4xl mx-auto">
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between gap-3 p-4">
+<div class="flex min-w-72 flex-col gap-3">
+<p class="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">FI-03 Checkboxes &amp; Radios</p>
+<p class="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">A showcase of checkbox and radio button components displaying various types and states.</p>
+</div>
+</div>
+<!-- Checkboxes Section -->
+<section class="mt-10">
+<h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Checkboxes</h2>
+<p class="text-gray-700 dark:text-gray-300 text-base font-normal leading-normal pb-3 pt-1 px-4">Basic States: Default, Checked, Indeterminate, Disabled</p>
+<div class="bg-white dark:bg-black/20 p-6 rounded-xl border border-gray-200 dark:border-gray-800 grid grid-cols-2 md:grid-cols-4 gap-6">
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--checkbox-tick-svg] focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 focus:outline-none" type="checkbox"/>
+<p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-normal">Default</p>
+</label>
+<label class="flex items-center gap-3 cursor-pointer">
+<input checked="" class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--checkbox-tick-svg] focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 focus:outline-none" type="checkbox"/>
+<p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-normal">Checked</p>
+</label>
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--checkbox-tick-svg] focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 focus:outline-none" indeterminate="" type="checkbox"/>
+<p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-normal">Indeterminate</p>
+</label>
+<label class="flex items-center gap-3 cursor-not-allowed">
+<input class="h-5 w-5 rounded border-gray-200 dark:border-gray-700 border-2 bg-gray-100 dark:bg-gray-800 text-primary" disabled="" type="checkbox"/>
+<p class="text-gray-400 dark:text-gray-500 text-base font-normal leading-normal">Disabled</p>
+</label>
+</div>
+<p class="text-gray-700 dark:text-gray-300 text-base font-normal leading-normal pb-3 pt-8 px-4">Checkbox Group with Description</p>
+<div class="bg-white dark:bg-black/20 p-6 rounded-xl border border-gray-200 dark:border-gray-800 flex flex-col gap-4">
+<label class="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer">
+<input class="mt-1 h-5 w-5 shrink-0 rounded border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--checkbox-tick-svg] focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 focus:outline-none" type="checkbox"/>
+<div>
+<p class="font-medium text-gray-800 dark:text-gray-100">Receive newsletter</p>
+<p class="text-sm text-gray-500 dark:text-gray-400">Get weekly updates on new features and promotions.</p>
+</div>
+</label>
+<label class="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer">
+<input checked="" class="mt-1 h-5 w-5 shrink-0 rounded border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--checkbox-tick-svg] focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 focus:outline-none" type="checkbox"/>
+<div>
+<p class="font-medium text-gray-800 dark:text-gray-100">Product updates</p>
+<p class="text-sm text-gray-500 dark:text-gray-400">Be the first to know about new product releases.</p>
+</div>
+</label>
+</div>
+</section>
+<!-- Radio Buttons Section -->
+<section class="mt-10">
+<h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Radio Buttons</h2>
+<p class="text-gray-700 dark:text-gray-300 text-base font-normal leading-normal pb-3 pt-1 px-4">Basic States: Default, Selected, Disabled</p>
+<div class="bg-white dark:bg-black/20 p-6 rounded-xl border border-gray-200 dark:border-gray-800 grid grid-cols-2 md:grid-cols-4 gap-6">
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="h-5 w-5 rounded-full border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--radio-dot-svg] focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 focus:outline-none" name="radio_basic" type="radio"/>
+<p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-normal">Default</p>
+</label>
+<label class="flex items-center gap-3 cursor-pointer">
+<input checked="" class="h-5 w-5 rounded-full border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--radio-dot-svg] focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 focus:outline-none" name="radio_basic" type="radio"/>
+<p class="text-gray-800 dark:text-gray-200 text-base font-normal leading-normal">Selected</p>
+</label>
+<label class="flex items-center gap-3 cursor-not-allowed">
+<input class="h-5 w-5 rounded-full border-gray-200 dark:border-gray-700 border-2 bg-gray-100 dark:bg-gray-800" disabled="" name="radio_basic" type="radio"/>
+<p class="text-gray-400 dark:text-gray-500 text-base font-normal leading-normal">Disabled</p>
+</label>
+</div>
+<p class="text-gray-700 dark:text-gray-300 text-base font-normal leading-normal pb-3 pt-8 px-4">Radio Cards (Plan Selection)</p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<label class="relative flex flex-col p-6 border-2 rounded-xl cursor-pointer bg-white dark:bg-black/20 border-gray-300 dark:border-gray-700 has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary/50 transition-all">
+<input class="absolute top-4 right-4 h-5 w-5 rounded-full border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--radio-dot-svg] focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 focus:outline-none" name="plan" type="radio"/>
+<h3 class="text-lg font-bold text-gray-900 dark:text-white">Basic</h3>
+<p class="mt-1 text-gray-500 dark:text-gray-400"><span class="text-2xl font-black text-gray-900 dark:text-white">$19</span>/mo</p>
+<ul class="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span>10 Projects</li>
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span>Basic Analytics</li>
+</ul>
+</label>
+<label class="relative flex flex-col p-6 border-2 rounded-xl cursor-pointer bg-white dark:bg-black/20 border-gray-300 dark:border-gray-700 has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary/50 transition-all">
+<div class="absolute top-[-12px] right-4 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">Recommended</div>
+<input checked="" class="absolute top-4 right-4 h-5 w-5 rounded-full border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--radio-dot-svg] focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 focus:outline-none" name="plan" type="radio"/>
+<h3 class="text-lg font-bold text-gray-900 dark:text-white">Pro</h3>
+<p class="mt-1 text-gray-500 dark:text-gray-400"><span class="text-2xl font-black text-gray-900 dark:text-white">$49</span>/mo</p>
+<ul class="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span>50 Projects</li>
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span>Advanced Analytics</li>
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span>Team Collaboration</li>
+</ul>
+</label>
+<label class="relative flex flex-col p-6 border-2 rounded-xl cursor-pointer bg-white dark:bg-black/20 border-gray-300 dark:border-gray-700 has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary/50 transition-all">
+<input class="absolute top-4 right-4 h-5 w-5 rounded-full border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--radio-dot-svg] focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 focus:outline-none" name="plan" type="radio"/>
+<h3 class="text-lg font-bold text-gray-900 dark:text-white">Enterprise</h3>
+<p class="mt-1 text-gray-500 dark:text-gray-400"><span class="text-2xl font-black text-gray-900 dark:text-white">$99</span>/mo</p>
+<ul class="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span>Unlimited Projects</li>
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span>Dedicated Support</li>
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span>SSO Integration</li>
+</ul>
+</label>
+</div>
+</section>
+<!-- Other Controls Section -->
+<section class="mt-10">
+<h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Other Controls</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div>
+<p class="text-gray-700 dark:text-gray-300 text-base font-normal leading-normal pb-3 pt-1 px-4">Toggle Switches</p>
+<div class="bg-white dark:bg-black/20 p-6 rounded-xl border border-gray-200 dark:border-gray-800 space-y-4">
+<div class="flex items-center justify-between">
+<label class="font-medium text-gray-800 dark:text-gray-200" for="toggle-on">Enable Dark Mode</label>
+<button aria-checked="true" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-primary transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" role="switch" type="button">
+<span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+<div class="flex items-center justify-between">
+<label class="font-medium text-gray-800 dark:text-gray-200" for="toggle-off">Auto-Save</label>
+<button aria-checked="false" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-200 dark:bg-gray-700 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" role="switch" type="button">
+<span class="pointer-events-none inline-block h-5 w-5 translate-x-0 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+<div class="flex items-center justify-between">
+<label class="font-medium text-gray-400 dark:text-gray-500" for="toggle-disabled">Public Profile</label>
+<button aria-checked="false" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-not-allowed rounded-full border-2 border-transparent bg-gray-200 dark:bg-gray-700" disabled="" role="switch" type="button">
+<span class="pointer-events-none inline-block h-5 w-5 translate-x-0 transform rounded-full bg-gray-400 dark:bg-gray-500 shadow ring-0"></span>
+</button>
+</div>
+</div>
+</div>
+<div>
+<p class="text-gray-700 dark:text-gray-300 text-base font-normal leading-normal pb-3 pt-1 px-4">Segmented Controls</p>
+<div class="bg-white dark:bg-black/20 p-6 rounded-xl border border-gray-200 dark:border-gray-800">
+<div class="isolate inline-flex rounded-lg shadow-sm bg-gray-100 dark:bg-gray-800 p-1">
+<button class="relative inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 focus:z-10" type="button">List</button>
+<button class="relative -ml-px inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:z-10" type="button">Grid</button>
+<button class="relative -ml-px inline-flex items-center rounded-r-md px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:z-10" type="button">Board</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</body></html>

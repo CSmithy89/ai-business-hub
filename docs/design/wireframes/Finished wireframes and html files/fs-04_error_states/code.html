@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FS-04 Error States</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f42525",
+                        "background-light": "#f8f5f5",
+                        "background-dark": "#221010",
+                        "error": "#E53E3E",
+                        "warning": "#ED8936",
+                        "success": "#38A169"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#2D3748] dark:text-gray-200">
+<div class="relative flex min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="flex-grow">
+<div class="px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 py-10">
+<div class="mx-auto max-w-[960px] flex flex-col gap-12">
+<!-- Page Heading -->
+<header>
+<h1 class="text-[#181111] dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">FS-04 Error States</h1>
+<p class="text-[#8a6060] dark:text-gray-400 text-base font-normal leading-normal mt-3">A design system reference for various error state components.</p>
+</header>
+<div class="flex flex-col gap-16">
+<!-- Inline Field Error -->
+<section>
+<h2 class="text-[#181111] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3">Inline Field Error</h2>
+<p class="text-[#181111] dark:text-gray-300 text-base font-normal leading-normal pb-3">A standard text input field with a red border, an error icon, and a concise error message.</p>
+<div class="p-6 bg-white dark:bg-[#2D1616] rounded-lg border border-gray-200 dark:border-gray-800">
+<div class="flex max-w-[480px] flex-col gap-1">
+<label class="flex flex-col">
+<p class="text-[#181111] dark:text-white text-base font-medium leading-normal pb-2">Email Address</p>
+<div class="relative flex w-full flex-1 items-stretch">
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#181111] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border-error bg-white dark:bg-background-dark h-14 placeholder:text-[#8a6060] p-4 pr-12 text-base font-normal leading-normal" value="invalid-email@"/>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 text-error flex items-center justify-center">
+<span class="material-symbols-outlined">error</span>
+</div>
+</div>
+</label>
+<p class="text-error text-sm font-normal leading-normal pt-1">Please enter a valid email address.</p>
+</div>
+</div>
+</section>
+<!-- Form Error Banner -->
+<section>
+<h2 class="text-[#181111] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3">Form Error Banner</h2>
+<p class="text-[#181111] dark:text-gray-300 text-base font-normal leading-normal pb-3">A prominent banner at the top of a form summarizing multiple issues with anchor links.</p>
+<div class="p-6 bg-white dark:bg-[#2D1616] rounded-lg border border-gray-200 dark:border-gray-800">
+<div class="bg-primary/10 dark:bg-primary/20 text-error p-4 rounded-lg flex items-start gap-3">
+<span class="material-symbols-outlined mt-0.5">error</span>
+<div class="flex flex-col">
+<h3 class="font-bold text-base text-error dark:text-red-300">Please fix the 3 errors below</h3>
+<ul class="list-disc list-inside mt-2 text-sm text-error dark:text-red-400">
+<li><a class="underline hover:text-error-dark" href="#">Full Name is required.</a></li>
+<li><a class="underline hover:text-error-dark" href="#">A valid Email Address is required.</a></li>
+<li><a class="underline hover:text-error-dark" href="#">Password must be at least 8 characters.</a></li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<!-- Card/Section Error -->
+<section>
+<h2 class="text-[#181111] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3">Card/Section Error</h2>
+<p class="text-[#181111] dark:text-gray-300 text-base font-normal leading-normal pb-3">A self-contained card for component-level errors like an API failure.</p>
+<div class="p-6 bg-white dark:bg-[#2D1616] rounded-lg border border-gray-200 dark:border-gray-800">
+<div class="max-w-[480px] w-full p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg flex flex-col items-center justify-center text-center">
+<span class="material-symbols-outlined text-error text-5xl">signal_wifi_off</span>
+<h3 class="text-lg font-bold mt-4 text-[#181111] dark:text-white">Could not load data</h3>
+<p class="text-sm text-[#8a6060] dark:text-gray-400 mt-1 mb-6">The connection to the server failed. Please check your network and try again.</p>
+<button class="bg-primary hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
+                                        Retry
+                                    </button>
+</div>
+</div>
+</section>
+<!-- Global Banner (Offline) -->
+<section>
+<h2 class="text-[#181111] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3">Global Banner (Offline)</h2>
+<p class="text-[#181111] dark:text-gray-300 text-base font-normal leading-normal pb-3">A full-width banner docked to the top of the viewport to indicate loss of connectivity.</p>
+<div class="relative h-24 p-6 bg-white dark:bg-[#2D1616] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+<div class="absolute top-0 left-0 w-full bg-warning/90 dark:bg-warning/80 text-white text-center py-2 px-4 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">wifi_off</span>
+<span class="text-sm font-medium">You are currently offline. Some features may be unavailable.</span>
+</div>
+</div>
+</section>
+<!-- Modal (Session Expired) -->
+<section>
+<h2 class="text-[#181111] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3">Modal (Session Expired)</h2>
+<p class="text-[#181111] dark:text-gray-300 text-base font-normal leading-normal pb-3">A modal dialog that appears when a user's session has timed out for security reasons.</p>
+<div class="relative h-96 p-6 bg-gray-200 dark:bg-black/30 rounded-lg border border-gray-200 dark:border-gray-800 flex items-center justify-center overflow-hidden">
+<div class="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+<div class="relative max-w-md w-full bg-white dark:bg-background-dark shadow-2xl rounded-xl p-8 text-center z-10">
+<div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+<span class="material-symbols-outlined text-primary text-4xl">lock_clock</span>
+</div>
+<h3 class="text-xl font-bold mt-6 text-[#181111] dark:text-white">Session Expired</h3>
+<p class="text-base text-[#8a6060] dark:text-gray-400 mt-2">For your security, you have been logged out due to inactivity. Please log in again to continue.</p>
+<div class="mt-8 flex justify-center gap-4">
+<button class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-black dark:text-white font-bold py-3 px-4 rounded-lg transition-colors">Log Out</button>
+<button class="flex-1 bg-primary hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors">Log In</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Rate Limit Banner -->
+<section>
+<h2 class="text-[#181111] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3">Rate Limit Banner</h2>
+<p class="text-[#181111] dark:text-gray-300 text-base font-normal leading-normal pb-3">A warning banner that informs the user they have exceeded an action limit and must wait.</p>
+<div class="p-6 bg-white dark:bg-[#2D1616] rounded-lg border border-gray-200 dark:border-gray-800">
+<div class="bg-warning/10 dark:bg-warning/20 text-warning-dark dark:text-yellow-300 p-4 rounded-lg flex items-start gap-3">
+<span class="material-symbols-outlined text-warning mt-0.5">timer</span>
+<div class="flex flex-col">
+<h3 class="font-bold text-base text-amber-800 dark:text-yellow-200">Rate limit exceeded</h3>
+<p class="mt-1 text-sm text-amber-700 dark:text-yellow-400">You have made too many requests. Please try again in <strong>45 seconds</strong>.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Partial Failure Report -->
+<section>
+<h2 class="text-[#181111] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3">Partial Failure Report</h2>
+<p class="text-[#181111] dark:text-gray-300 text-base font-normal leading-normal pb-3">A component for displaying results of a bulk operation, such as an import, with mixed success and failure states.</p>
+<div class="p-6 bg-white dark:bg-[#2D1616] rounded-lg border border-gray-200 dark:border-gray-800">
+<div class="border border-gray-200 dark:border-gray-700 rounded-lg">
+<div class="p-4 border-b border-gray-200 dark:border-gray-700">
+<h3 class="font-bold text-[#181111] dark:text-white">Import complete with 2 errors</h3>
+<p class="text-sm text-[#8a6060] dark:text-gray-400">3 of 5 contacts were imported successfully.</p>
+</div>
+<ul class="divide-y divide-gray-200 dark:divide-gray-700">
+<li class="p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-success">check_circle</span>
+<span class="text-sm font-medium text-[#181111] dark:text-white">contact-01.csv</span>
+</div>
+<span class="text-sm text-success">Success</span>
+</li>
+<li class="p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-error">cancel</span>
+<span class="text-sm font-medium text-[#181111] dark:text-white">contact-02.csv</span>
+</div>
+<a class="text-sm text-primary underline" href="#">View details</a>
+</li>
+<li class="p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-success">check_circle</span>
+<span class="text-sm font-medium text-[#181111] dark:text-white">contact-03.csv</span>
+</div>
+<span class="text-sm text-success">Success</span>
+</li>
+<li class="p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-error">cancel</span>
+<span class="text-sm font-medium text-[#181111] dark:text-white">contact-04.csv</span>
+</div>
+<a class="text-sm text-primary underline" href="#">View details</a>
+</li>
+<li class="p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-success">check_circle</span>
+<span class="text-sm font-medium text-[#181111] dark:text-white">contact-05.csv</span>
+</div>
+<span class="text-sm text-success">Success</span>
+</li>
+</ul>
+</div>
+</div>
+</section>
+<!-- Full Page Error (500) -->
+<section>
+<h2 class="text-[#181111] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3">Full Page Error (500)</h2>
+<p class="text-[#181111] dark:text-gray-300 text-base font-normal leading-normal pb-3">A full-page state for critical server-side errors.</p>
+<div class="h-[600px] p-6 bg-white dark:bg-[#2D1616] rounded-lg border border-gray-200 dark:border-gray-800 flex items-center justify-center text-center">
+<div class="flex flex-col items-center">
+<span class="material-symbols-outlined text-primary text-7xl">error</span>
+<p class="text-8xl font-black text-primary mt-4">500</p>
+<h3 class="text-3xl font-bold mt-2 text-[#181111] dark:text-white">Something went wrong</h3>
+<p class="max-w-sm text-base text-[#8a6060] dark:text-gray-400 mt-2 mb-8">We're sorry, but our servers are experiencing a problem. Our team has been notified. Please try again later.</p>
+<div class="flex gap-4">
+<button class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-black dark:text-white font-bold py-3 px-6 rounded-lg transition-colors">Contact Support</button>
+<button class="bg-primary hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">Go to Dashboard</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Full Page Error (404) -->
+<section>
+<h2 class="text-[#181111] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3">Full Page Error (404)</h2>
+<p class="text-[#181111] dark:text-gray-300 text-base font-normal leading-normal pb-3">A user-friendly page for when a requested URL cannot be found, with helpful navigation.</p>
+<div class="h-[600px] p-6 bg-white dark:bg-[#2D1616] rounded-lg border border-gray-200 dark:border-gray-800 flex items-center justify-center text-center">
+<div class="flex flex-col items-center">
+<span class="material-symbols-outlined text-primary text-7xl">search_off</span>
+<p class="text-8xl font-black text-primary mt-4">404</p>
+<h3 class="text-3xl font-bold mt-2 text-[#181111] dark:text-white">Page Not Found</h3>
+<p class="max-w-md text-base text-[#8a6060] dark:text-gray-400 mt-2 mb-8">The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
+<div class="relative w-full max-w-sm mb-6">
+<input class="form-input w-full rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-background-dark h-14 pl-6 pr-14 focus:ring-2 focus:ring-primary/50 focus:border-primary/50" placeholder="Search the application..." type="text"/>
+<span class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+</div>
+<div class="flex gap-6 text-sm font-medium text-primary underline">
+<a href="#">Home</a>
+<a href="#">Projects</a>
+<a href="#">Settings</a>
+<a href="#">Help Center</a>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

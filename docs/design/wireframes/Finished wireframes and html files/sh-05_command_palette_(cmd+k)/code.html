@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SH-05 Command Palette (Cmd+K)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,0" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    // Light Mode
+                    "background-primary-light": "#FFFBF5",
+                    "background-secondary-light": "#f9f7f2",
+                    "background-tertiary-light": "#f5f3ee",
+                    "surface-light": "#ffffff",
+                    "border-light": "#e5e5e5",
+                    "text-primary-light": "#1a1a1a",
+                    "text-secondary-light": "#6b7280",
+                    "text-muted-light": "#9ca3af",
+
+                    // Dark Mode
+                    "background-primary-dark": "#0a0a0b",
+                    "background-secondary-dark": "#111113",
+                    "background-tertiary-dark": "#1a1a1d",
+                    "surface-dark": "#232326",
+                    "border-dark": "#27272a",
+                    "text-primary-dark": "#fafafa",
+                    "text-secondary-dark": "#a1a1aa",
+                    "text-muted-dark": "#71717a",
+                    
+                    // Brand & System
+                    "primary": "#FF6B6B",
+                    "secondary": "#20B2AA",
+                    "success": "#2ECC71",
+                    "warning": "#F59E0B",
+                    "error": "#EF4444",
+                    "info": "#4B7BEC",
+                    
+                    // AI Agents
+                    "agent-hub": "#FF6B6B",
+                    "agent-maya": "#20B2AA",
+                    "agent-atlas": "#FF9F43",
+                    "agent-sage": "#2ECC71",
+                    "agent-nova": "#FF6B9D",
+                    "agent-echo": "#4B7BEC"
+                },
+                fontFamily: {
+                    sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+                    mono: ['JetBrains Mono', 'SF Mono', 'Fira Code', 'monospace'],
+                },
+                borderRadius: {
+                    'sm': '4px',
+                    'md': '8px',
+                    'lg': '12px',
+                    'xl': '16px',
+                    'full': '9999px',
+                },
+                boxShadow: {
+                    'xs': '0 1px 2px rgba(0, 0, 0, 0.04)',
+                    'sm': '0 2px 4px rgba(0, 0, 0, 0.04)',
+                    'md': '0 4px 8px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02)',
+                    'lg': '0 8px 16px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.03)',
+                    'xl': '0 16px 32px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.04)',
+                },
+                transitionDuration: {
+                    'fast': '100ms',
+                    'normal': '150ms',
+                    'slow': '250ms',
+                    'slide': '300ms',
+                },
+                letterSpacing: {
+                  'label': '0.05em'
+                },
+                lineHeight: {
+                  'heading': '1.2',
+                  'body': '1.6',
+                },
+            },
+        },
+    }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+            font-size: inherit;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased">
+<div class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/40 backdrop-blur-sm" data-alt="Command palette backdrop">
+<div class="flex w-[580px] max-h-[480px] flex-col overflow-hidden bg-surface-light dark:bg-background-tertiary-dark rounded-xl shadow-xl ring-1 ring-black/5 dark:ring-white/10">
+<div class="flex h-[56px] shrink-0 items-center gap-3 border-b border-border-light dark:border-border-dark px-5">
+<span class="material-symbols-outlined text-xl text-text-muted-light dark:text-text-muted-dark">search</span>
+<input class="h-full flex-1 border-none bg-transparent text-base text-text-primary-light dark:text-text-primary-dark placeholder:text-text-muted-light dark:placeholder:text-text-muted-dark focus:outline-none focus:ring-0" placeholder="Type a command or search..." type="text"/>
+<div class="rounded-sm bg-border-light/50 dark:bg-surface-dark px-2 py-0.5 text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">esc</div>
+</div>
+<div class="flex-1 overflow-y-auto p-2">
+<h4 class="px-4 py-2 text-[11px] font-medium uppercase tracking-label text-text-muted-light dark:text-text-muted-dark">Recent</h4>
+<ul>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 transition-colors duration-fast hover:bg-background-tertiary-light dark:hover:bg-surface-dark">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-text-secondary-light dark:text-text-secondary-dark">edit_document</span>
+<p class="text-sm text-text-primary-light dark:text-text-primary-dark">Create new task</p>
+</div>
+<p class="text-xs text-text-muted-light dark:text-text-muted-dark">⌘⇧T</p>
+</div>
+</li>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 bg-background-tertiary-light dark:bg-surface-dark border-l-2 border-primary">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-text-secondary-light dark:text-text-secondary-dark">account_circle</span>
+<p class="text-sm text-text-primary-light dark:text-text-primary-dark">View contact: Acme Corp</p>
+</div>
+<p class="text-xs text-text-muted-light dark:text-text-muted-dark">⌘O</p>
+</div>
+</li>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 transition-colors duration-fast hover:bg-background-tertiary-light dark:hover:bg-surface-dark">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-text-secondary-light dark:text-text-secondary-dark">mail</span>
+<p class="text-sm text-text-primary-light dark:text-text-primary-dark">Compose email</p>
+</div>
+<p class="text-xs text-text-muted-light dark:text-text-muted-dark">⌘E</p>
+</div>
+</li>
+</ul>
+<h4 class="mt-2 px-4 py-2 text-[11px] font-medium uppercase tracking-label text-text-muted-light dark:text-text-muted-dark">Navigation</h4>
+<ul>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 transition-colors duration-fast hover:bg-background-tertiary-light dark:hover:bg-surface-dark">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-text-secondary-light dark:text-text-secondary-dark">dashboard</span>
+<p class="text-sm text-text-primary-light dark:text-text-primary-dark">Dashboard</p>
+</div>
+<p class="text-xs text-text-muted-light dark:text-text-muted-dark">⌘D</p>
+</div>
+</li>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 transition-colors duration-fast hover:bg-background-tertiary-light dark:hover:bg-surface-dark">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-text-secondary-light dark:text-text-secondary-dark">check_circle</span>
+<p class="text-sm text-text-primary-light dark:text-text-primary-dark">Approvals</p>
+</div>
+<p class="text-xs text-text-muted-light dark:text-text-muted-dark">⌘A</p>
+</div>
+</li>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 transition-colors duration-fast hover:bg-background-tertiary-light dark:hover:bg-surface-dark">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-text-secondary-light dark:text-text-secondary-dark">smart_toy</span>
+<p class="text-sm text-text-primary-light dark:text-text-primary-dark">AI Team</p>
+</div>
+<p class="text-xs text-text-muted-light dark:text-text-muted-dark">⌘I</p>
+</div>
+</li>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 transition-colors duration-fast hover:bg-background-tertiary-light dark:hover:bg-surface-dark">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-text-secondary-light dark:text-text-secondary-dark">settings</span>
+<p class="text-sm text-text-primary-light dark:text-text-primary-dark">Settings</p>
+</div>
+<p class="text-xs text-text-muted-light dark:text-text-muted-dark">⌘,</p>
+</div>
+</li>
+</ul>
+<h4 class="mt-2 px-4 py-2 text-[11px] font-medium uppercase tracking-label text-text-muted-light dark:text-text-muted-dark">Actions</h4>
+<ul>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 transition-colors duration-fast hover:bg-background-tertiary-light dark:hover:bg-surface-dark">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-text-secondary-light dark:text-text-secondary-dark">person_add</span>
+<p class="text-sm text-text-primary-light dark:text-text-primary-dark">Create contact</p>
+</div>
+</div>
+</li>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 transition-colors duration-fast hover:bg-background-tertiary-light dark:hover:bg-surface-dark">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-text-secondary-light dark:text-text-secondary-dark">monetization_on</span>
+<p class="text-sm text-text-primary-light dark:text-text-primary-dark">Create deal</p>
+</div>
+</div>
+</li>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 transition-colors duration-fast hover:bg-background-tertiary-light dark:hover:bg-surface-dark">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-text-secondary-light dark:text-text-secondary-dark">create_new_folder</span>
+<p class="text-sm text-text-primary-light dark:text-text-primary-dark">New project</p>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="flex h-11 shrink-0 items-center justify-between border-t border-border-light dark:border-border-dark bg-background-secondary-light dark:bg-background-secondary-dark px-4">
+<div class="flex items-center gap-3 text-xs text-text-secondary-light dark:text-text-secondary-dark">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm">arrow_upward</span>
+<span class="material-symbols-outlined text-sm">arrow_downward</span>
+<span>Navigate</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm">keyboard_return</span>
+<span>Select</span>
+</div>
+</div>
+<a class="flex items-center gap-1.5 text-xs text-text-secondary-light dark:text-text-secondary-dark hover:text-primary dark:hover:text-primary transition-colors duration-fast" href="#">
+<span class="material-symbols-outlined text-sm">help</span>
+<span>Help</span>
+</a>
+</div>
+</div>
+</div>
+<div class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/40 backdrop-blur-sm mt-[100vh]" data-alt="Command palette backdrop for Agent view">
+<div class="flex w-[580px] max-h-[480px] flex-col overflow-hidden bg-surface-light dark:bg-background-tertiary-dark rounded-xl shadow-xl ring-1 ring-black/5 dark:ring-white/10">
+<div class="flex h-[56px] shrink-0 items-center gap-3 border-b border-border-light dark:border-border-dark px-5">
+<span class="material-symbols-outlined text-xl text-text-muted-light dark:text-text-muted-dark">alternate_email</span>
+<input class="h-full flex-1 border-none bg-transparent text-base text-text-primary-light dark:text-text-primary-dark placeholder:text-text-muted-light dark:placeholder:text-text-muted-dark focus:outline-none focus:ring-0" placeholder="Type a command or search..." type="text" value="maya"/>
+<div class="rounded-sm bg-border-light/50 dark:bg-surface-dark px-2 py-0.5 text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">esc</div>
+</div>
+<div class="flex-1 overflow-y-auto p-2">
+<h4 class="px-4 py-2 text-[11px] font-medium uppercase tracking-label text-text-muted-light dark:text-text-muted-dark">Agents</h4>
+<ul>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 transition-colors duration-fast hover:bg-background-tertiary-light dark:hover:bg-surface-dark">
+<div class="flex items-center gap-3">
+<div class="flex size-6 items-center justify-center rounded-sm bg-agent-hub/10">
+<span class="material-symbols-outlined text-sm text-agent-hub">adjust</span>
+</div>
+<p class="text-sm font-medium text-agent-hub">Hub</p>
+<p class="text-sm text-text-secondary-light dark:text-text-secondary-dark">Orchestrator</p>
+</div>
+</div>
+</li>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 bg-background-tertiary-light dark:bg-surface-dark border-l-2 border-agent-maya">
+<div class="flex items-center gap-3">
+<div class="flex size-6 items-center justify-center rounded-sm bg-agent-maya/10">
+<span class="material-symbols-outlined text-sm text-agent-maya">support_agent</span>
+</div>
+<p class="text-sm font-medium text-agent-maya">Maya</p>
+<p class="text-sm text-text-secondary-light dark:text-text-secondary-dark">CRM &amp; Relationships</p>
+</div>
+</div>
+</li>
+<li>
+<div class="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-4 transition-colors duration-fast hover:bg-background-tertiary-light dark:hover:bg-surface-dark">
+<div class="flex items-center gap-3">
+<div class="flex size-6 items-center justify-center rounded-sm bg-agent-atlas/10">
+<span class="material-symbols-outlined text-sm text-agent-atlas">task</span>
+</div>
+<p class="text-sm font-medium text-agent-atlas">Atlas</p>
+<p class="text-sm text-text-secondary-light dark:text-text-secondary-dark">Projects &amp; Tasks</p>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="flex h-11 shrink-0 items-center justify-between border-t border-border-light dark:border-border-dark bg-background-secondary-light dark:bg-background-secondary-dark px-4">
+<div class="flex items-center gap-3 text-xs text-text-secondary-light dark:text-text-secondary-dark">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm">arrow_upward</span>
+<span class="material-symbols-outlined text-sm">arrow_downward</span>
+<span>Navigate</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm">keyboard_return</span>
+<span>Select</span>
+</div>
+</div>
+<a class="flex items-center gap-1.5 text-xs text-text-secondary-light dark:text-text-secondary-dark hover:text-primary dark:hover:text-primary transition-colors duration-fast" href="#">
+<span class="material-symbols-outlined text-sm">help</span>
+<span>Help</span>
+</a>
+</div>
+</div>
+</div>
+</body></html>

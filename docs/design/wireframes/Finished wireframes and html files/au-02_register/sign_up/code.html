@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+
+<html class="" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AU-02 Register/Sign Up - HYVVE</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FF6B6B",
+                        "secondary": "#20B2AA",
+                        "background-light": "#FFFBF5",
+                        "background-dark": "#0a0a0b",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1a1a1b",
+                        "border-light": "#E5E5E5",
+                        "border-dark": "#2a2a2b",
+                        "text-primary-light": "#1a1a1a",
+                        "text-primary-dark": "#FAFAFA",
+                        "text-secondary": "#6B7280",
+                        "success": "#10B981",
+                        "warning": "#F59E0B",
+                        "error": "#EF4444",
+                        "info": "#3B82F6",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "system-ui", "sans-serif"],
+                        code: ["JetBrains Mono", "monospace"],
+                    },
+                    borderRadius: {
+                        "sm": "4px",
+                        "md": "8px",
+                        "lg": "12px",
+                        "xl": "16px",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'sm': '0 1px 2px rgba(0,0,0,0.04)',
+                        'md': '0 4px 6px rgba(0,0,0,0.04)',
+                        'lg': '0 10px 15px rgba(0,0,0,0.06)',
+                        'xl': '0 20px 25px rgba(0,0,0,0.08)',
+                    },
+                },
+            },
+        };
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark">
+<div class="relative flex min-h-screen w-full flex-col">
+<div class="flex h-full min-h-screen w-full lg:grid lg:grid-cols-2">
+<div class="relative hidden flex-col items-center justify-center bg-background-light p-10 dark:bg-background-dark lg:flex">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/10 to-transparent dark:from-primary/20 dark:via-secondary/20"></div>
+<div class="relative z-10 w-full max-w-md">
+<a class="flex items-center gap-2 text-2xl font-bold tracking-tighter text-text-primary-light dark:text-text-primary-dark" href="#">
+<svg class="h-8 w-8 text-primary" fill="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5zM12 14.5l-10-5v6l10 5 10-5v-6l-10 5z"></path></svg>
+                    HYVVE
+                </a>
+<div class="mt-8 space-y-4">
+<h1 class="text-4xl font-bold tracking-tight text-text-primary-light dark:text-text-primary-dark">Empower Your Business with AI.</h1>
+<p class="text-lg text-text-secondary">Automate, analyze, and accelerate your operations with a single, intelligent platform.</p>
+</div>
+<div class="mt-12 text-sm text-text-secondary">
+                    © 2024 HYVVE Inc. All rights reserved.
+                </div>
+</div>
+</div>
+<div class="flex w-full items-center justify-center bg-surface-light p-6 dark:bg-surface-dark sm:p-8 lg:p-12">
+<div class="w-full max-w-md space-y-6">
+<div>
+<h1 class="text-3xl font-bold tracking-tight text-text-primary-light dark:text-text-primary-dark">Create your account</h1>
+<p class="mt-2 text-text-secondary">Start your 14-day free trial. No credit card required.</p>
+</div>
+<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+<button class="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-border-light bg-surface-light text-sm font-medium text-text-primary-light transition-colors hover:bg-background-light dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark dark:hover:bg-background-dark">
+<svg class="h-5 w-5" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.578 12.245c0-.818-.073-1.609-.218-2.364H12v4.463h5.938c-.262 1.432-1.018 2.659-2.2 3.5v2.882h3.7c2.168-2 3.468-5.018 3.468-8.481z" fill="#4285F4"></path><path d="M12 23c3.24 0 5.955-1.077 7.94-2.918l-3.7-2.882c-1.077.727-2.454 1.159-4.24 1.159-3.273 0-6.04-2.209-7.027-5.182H1.232v2.982C3.16 20.2 7.24 23 12 23z" fill="#34A853"></path><path d="M4.973 13.636a7.143 7.143 0 010-4.272V6.382H1.232A11.95 11.95 0 000 11.5c0 1.627.327 3.186.918 4.618l3.7-2.982-.145.5z" fill="#FBBC05"></path><path d="M12 4.636c1.75 0 3.327.6 4.582 1.791l3.273-3.273C17.95 1.186 15.24 0 12 0 7.24 0 3.16 2.8 1.232 6.382l3.74 2.982C5.96 6.845 8.727 4.636 12 4.636z" fill="#EA4335"></path></svg>
+                        Continue with Google
+                    </button>
+<button class="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-border-light bg-surface-light text-sm font-medium text-text-primary-light transition-colors hover:bg-background-light dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark dark:hover:bg-background-dark">
+<svg class="h-5 w-5" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2 2h9v9H2V2zm0 11h9v9H2v-9zM13 2h9v9h-9V2zm0 11h9v9h-9v-9z" fill="#F25022"></path></svg>
+                        Continue with Microsoft
+                    </button>
+</div>
+<div class="relative">
+<div class="absolute inset-0 flex items-center">
+<span class="w-full border-t border-border-light dark:border-border-dark"></span>
+</div>
+<div class="relative flex justify-center text-xs uppercase">
+<span class="bg-surface-light px-2 text-text-secondary dark:bg-surface-dark">or</span>
+</div>
+</div>
+<div class="space-y-4">
+<div>
+<label class="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark" for="full-name">Full Name</label>
+<div class="mt-1">
+<input autocomplete="name" class="block w-full rounded-md border-border-light bg-surface-light text-text-primary-light placeholder:text-text-secondary/60 focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark sm:text-sm" id="full-name" name="full-name" placeholder="John Smith" required="" type="text"/>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark" for="email">Work Email</label>
+<div class="mt-1">
+<input autocomplete="email" class="block w-full rounded-md border-border-light bg-surface-light text-text-primary-light placeholder:text-text-secondary/60 focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark sm:text-sm" id="email" name="email" placeholder="john@company.com" required="" type="email"/>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark" for="password">Password</label>
+<div class="relative mt-1">
+<input autocomplete="new-password" class="block w-full rounded-md border-border-light bg-surface-light text-text-primary-light placeholder:text-text-secondary/60 focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark sm:text-sm" id="password" name="password" placeholder="••••••••••••" required="" type="password"/>
+<button class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-secondary" type="button">
+<span class="material-symbols-outlined h-5 w-5">visibility_off</span>
+</button>
+</div>
+<div class="mt-2 flex items-center gap-2">
+<div class="relative h-1 w-full overflow-hidden rounded-full bg-border-light dark:bg-border-dark">
+<div class="absolute h-full w-1/4 rounded-full bg-success"></div>
+</div>
+<span class="text-xs font-medium text-success">Strong</span>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark" for="company-name">Company Name <span class="text-text-secondary">(Optional)</span></label>
+<div class="mt-1">
+<input autocomplete="organization" class="block w-full rounded-md border-border-light bg-surface-light text-text-primary-light placeholder:text-text-secondary/60 focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-primary-dark sm:text-sm" id="company-name" name="company-name" placeholder="Acme Corp" type="text"/>
+</div>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex items-start">
+<div class="flex h-5 items-center">
+<input class="h-4 w-4 rounded border-border-light text-primary focus:ring-primary dark:border-border-dark" id="terms" name="terms" type="checkbox"/>
+</div>
+<div class="ml-3 text-sm">
+<label class="text-text-secondary" for="terms">I agree to the <a class="font-medium text-primary hover:underline" href="#">Terms of Service</a> and <a class="font-medium text-primary hover:underline" href="#">Privacy Policy</a>.</label>
+</div>
+</div>
+<div class="flex items-start">
+<div class="flex h-5 items-center">
+<input class="h-4 w-4 rounded border-border-light text-primary focus:ring-primary dark:border-border-dark" id="updates" name="updates" type="checkbox"/>
+</div>
+<div class="ml-3 text-sm">
+<label class="text-text-secondary" for="updates">Send me product updates and tips (optional).</label>
+</div>
+</div>
+</div>
+<button class="flex w-full justify-center rounded-md border border-transparent bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" type="submit">Create Account</button>
+<div class="relative">
+<div class="absolute inset-0 flex items-center">
+<span class="w-full border-t border-border-light dark:border-border-dark"></span>
+</div>
+<div class="relative flex justify-center text-xs">
+</div>
+</div>
+<p class="text-center text-sm text-text-secondary">
+                    Already have an account?
+                    <a class="font-medium text-primary hover:underline" href="#">Sign in</a>
+</p>
+</div>
+</div>
+</div>
+</div>
+</body></html>

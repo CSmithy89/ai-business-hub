@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-09 Import/Export</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+              "success": "#28A745",
+              "info": "#17A2B8",
+              "warning": "#FFC107",
+              "danger": "#DC3545",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#111318] dark:text-gray-200">
+<div class="relative flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex flex-col w-64 p-4 bg-white dark:bg-background-dark border-r border-gray-200 dark:border-gray-800">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE CRM company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC208bycW5DePnuHJ1EOMzfZKGX5RsZ7q-GX6zJCaHPVSXJeGEdXtorJEet9xoz-zHg2zJXE2zeZUdtJ_14GusdyW8EpCFBdG2U31uD_El0LW9BxbKXMkKv1cLirtIhJMGG7jki2eSVYLQ_Z_Rl9gbSEkD5BF681fTAbH6hvZVOutUTFPVuiNaxhAkFp8hzPo3wpREQ8j6xGH3pX-SryGrFQ_EwaCNspt2SaKKEpdPLTFInR5rk11sZbQ9zvmWYI-0hFTO9bna9_tY");'></div>
+<div class="flex flex-col">
+<h1 class="text-[#111318] dark:text-white text-base font-medium leading-normal">HYVVE CRM</h1>
+<p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Premium Plan</p>
+</div>
+</div>
+<div class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">dashboard</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">group</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Contacts</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">monetization_on</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Deals</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">task_alt</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Tasks</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20" href="#">
+<span class="material-symbols-outlined text-primary dark:text-primary-400" style="font-variation-settings: 'FILL' 1;">import_export</span>
+<p class="text-primary dark:text-primary-400 text-sm font-bold leading-normal">Import &amp; Export</p>
+</a>
+</div>
+</div>
+<div class="flex flex-col gap-4 mt-auto">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] w-full">
+<span class="truncate">Create New</span>
+</button>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">settings</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">help</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Help</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8 overflow-y-auto">
+<div class="max-w-7xl mx-auto">
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between gap-3 mb-8">
+<h1 class="text-[#111318] dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Import &amp; Export</h1>
+</div>
+<!-- ImageGrid adapted to Action Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="flex flex-col gap-4 p-6 bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-800 rounded-xl">
+<span class="material-symbols-outlined text-primary text-4xl">upload</span>
+<div>
+<p class="text-[#111318] dark:text-white text-xl font-bold leading-normal">Import Data</p>
+<p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal mt-1">Bring external data like contacts, deals, and companies into your CRM.</p>
+</div>
+<button class="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] mt-2 self-start">Start Import</button>
+</div>
+<div class="flex flex-col gap-4 p-6 bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-800 rounded-xl">
+<span class="material-symbols-outlined text-primary text-4xl">download</span>
+<div>
+<p class="text-[#111318] dark:text-white text-xl font-bold leading-normal">Export Data</p>
+<p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal mt-1">Export CRM data for backups, analysis, or migration to other platforms.</p>
+</div>
+<button class="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] mt-2 self-start">Start Export</button>
+</div>
+</div>
+<!-- SectionHeader -->
+<h2 class="text-[#111318] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-10">Recent Imports &amp; Exports</h2>
+<!-- Table -->
+<div class="@container">
+<div class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark">
+<table class="w-full">
+<thead>
+<tr class="bg-gray-50 dark:bg-gray-900/50">
+<th class="px-4 py-3 text-left w-16 text-[#616f89] dark:text-gray-400 text-sm font-medium leading-normal">Type</th>
+<th class="px-4 py-3 text-left text-[#616f89] dark:text-gray-400 text-sm font-medium leading-normal">File Name</th>
+<th class="px-4 py-3 text-left text-[#616f89] dark:text-gray-400 text-sm font-medium leading-normal">Date</th>
+<th class="px-4 py-3 text-left text-[#616f89] dark:text-gray-400 text-sm font-medium leading-normal">Data Type</th>
+<th class="px-4 py-3 text-left text-[#616f89] dark:text-gray-400 text-sm font-medium leading-normal">Records</th>
+<th class="px-4 py-3 text-left text-[#616f89] dark:text-gray-400 text-sm font-medium leading-normal">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+<tr>
+<td class="h-[72px] px-4 py-2">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400" title="Upload">upload</span>
+</td>
+<td class="h-[72px] px-4 py-2 text-[#111318] dark:text-gray-200 text-sm font-normal leading-normal">contacts_q4.csv</td>
+<td class="h-[72px] px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Oct 26, 2023</td>
+<td class="h-[72px] px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Contacts</td>
+<td class="h-[72px] px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">2,401</td>
+<td class="h-[72px] px-4 py-2">
+<div class="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
+<span class="h-1.5 w-1.5 rounded-full bg-success"></span>Done
+                                        </div>
+</td>
+</tr>
+<tr>
+<td class="h-[72px] px-4 py-2">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400" title="Download">download</span>
+</td>
+<td class="h-[72px] px-4 py-2 text-[#111318] dark:text-gray-200 text-sm font-normal leading-normal">deals_backup.xlsx</td>
+<td class="h-[72px] px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Oct 25, 2023</td>
+<td class="h-[72px] px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Deals</td>
+<td class="h-[72px] px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">530</td>
+<td class="h-[72px] px-4 py-2">
+<div class="inline-flex items-center gap-1.5 rounded-full bg-info/10 px-2.5 py-1 text-xs font-medium text-info">
+<span class="h-1.5 w-1.5 rounded-full bg-info"></span>Processing
+                                        </div>
+</td>
+</tr>
+<tr>
+<td class="h-[72px] px-4 py-2">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400" title="Upload">upload</span>
+</td>
+<td class="h-[72px] px-4 py-2 text-[#111318] dark:text-gray-200 text-sm font-normal leading-normal">new_leads.csv</td>
+<td class="h-[72px] px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Oct 24, 2023</td>
+<td class="h-[72px] px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Leads</td>
+<td class="h-[72px] px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">1,200</td>
+<td class="h-[72px] px-4 py-2">
+<div class="inline-flex items-center gap-1.5 rounded-full bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">
+<span class="h-1.5 w-1.5 rounded-full bg-warning"></span>Warning
+                                        </div>
+</td>
+</tr>
+<tr>
+<td class="h-[72px] px-4 py-2">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400" title="Upload">upload</span>
+</td>
+<td class="h-[72px] px-4 py-2 text-[#111318] dark:text-gray-200 text-sm font-normal leading-normal">companies_data.csv</td>
+<td class="h-[72px] px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Oct 22, 2023</td>
+<td class="h-[72px] px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Companies</td>
+<td class="h-[72px] px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">850</td>
+<td class="h-[72px] px-4 py-2">
+<div class="inline-flex items-center gap-1.5 rounded-full bg-danger/10 px-2.5 py-1 text-xs font-medium text-danger">
+<span class="h-1.5 w-1.5 rounded-full bg-danger"></span>Failed
+                                        </div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

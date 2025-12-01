@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ST-03 AI Provider Setup</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FF6B6B",
+                        "background-light": "#FFFBF5",
+                        "background-dark": "#0a0a0b",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1a1a1b",
+                        "border-light": "#E5E5E5",
+                        "border-dark": "#2a2a2b",
+                        "text-primary-light": "#1a1a1a",
+                        "text-primary-dark": "#FAFAFA",
+                        "text-secondary": "#6B7280",
+                        "success": "#10B981",
+                        "warning": "#F59E0B",
+                        "error": "#EF4444",
+                        "info": "#3B82F6",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "system-ui", "sans-serif"],
+                        "code": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: {
+                        "sm": "4px",
+                        "DEFAULT": "8px",
+                        "lg": "12px",
+                        "xl": "16px",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'sm': '0 1px 2px rgba(0,0,0,0.04)',
+                        'md': '0 4px 6px rgba(0,0,0,0.04)',
+                        'lg': '0 10px 15px rgba(0,0,0,0.06)',
+                        'xl': '0 20px 25px rgba(0,0,0,0.08)',
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
+<div class="relative flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex flex-col w-64 border-r border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark p-4 shrink-0">
+<div class="flex flex-col justify-between h-full">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCnYUA6mxVxcGgzrkV8o2SXGdVsufAiZWw2PhogNb-o7zxSkGhzIJ7ng6-sI0JKoS7-xXpwhTo57IOIHd6lncTy6-0_Xc87ZGPsFqa3lA09MkdS8uBvaTgLrDywE_39v4QNgzVvizRMyT6GuoLJpZChl6wx2-7lvy6_Ml6xshQL3HsZFWD-XImGJIb9iPK4RIBFNzNZGvoLfWNbIuZGJQT28ZLUEaf7ZXl6lftLY50L4ufnu474J_kWem6h5IPAj0XGIpmAKfuELkMl");'></div>
+<div class="flex flex-col">
+<h1 class="text-base font-semibold">HYVVE</h1>
+<p class="text-sm text-text-secondary">Business Operations</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary hover:bg-primary/10 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<p class="text-sm font-medium">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary hover:bg-primary/10 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined">smart_toy</span>
+<p class="text-sm font-medium">Agents</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary hover:bg-primary/10 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined">hub</span>
+<p class="text-sm font-medium">Integrations</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">key</span>
+<p class="text-sm font-medium">API Keys</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary hover:bg-primary/10 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium">Settings</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary hover:bg-primary/10 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined">help</span>
+<p class="text-sm font-medium">Support</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary hover:bg-primary/10 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined">logout</span>
+<p class="text-sm font-medium">Log Out</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8 overflow-y-auto">
+<div class="max-w-4xl mx-auto">
+<!-- PageHeading -->
+<header class="flex flex-wrap items-center justify-between gap-4 mb-8">
+<div class="flex flex-col">
+<h1 class="text-3xl font-bold tracking-tight text-text-primary-light dark:text-text-primary-dark">API Keys</h1>
+<p class="text-base text-text-secondary">Manage API keys for external integrations.</p>
+</div>
+<button class="flex items-center justify-center h-10 px-4 text-sm font-semibold text-white rounded-lg cursor-pointer bg-primary hover:bg-primary/90 transition-colors duration-150 shadow-sm">
+<span class="material-symbols-outlined mr-2 text-base">add</span>
+<span class="truncate">Create New Key</span>
+</button>
+</header>
+<!-- Security Notice -->
+<div class="flex items-start gap-4 p-4 mb-8 rounded-lg bg-info/10 border border-info/30">
+<span class="material-symbols-outlined text-info mt-0.5">security</span>
+<div class="flex flex-col">
+<p class="text-sm font-semibold text-info/90 dark:text-info/80">Security Notice</p>
+<p class="text-sm text-info/80 dark:text-info/70">API keys provide full access to your account. Keep them secure and never share them publicly. Rotate keys periodically for security.</p>
+</div>
+</div>
+<!-- SectionHeader -->
+<h2 class="text-xl font-semibold tracking-tight text-text-primary-light dark:text-text-primary-dark mb-4">Active Keys (3)</h2>
+<!-- API Keys List -->
+<div class="flex flex-col gap-4">
+<!-- Key Card 1 -->
+<div class="p-5 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg shadow-sm">
+<div class="flex flex-wrap items-start justify-between gap-2 mb-4">
+<h3 class="text-base font-semibold text-text-primary-light dark:text-text-primary-dark">Production API Key</h3>
+<div class="flex items-center gap-2 px-2 py-1 text-xs font-medium rounded-full bg-success/10 text-success">
+<span class="w-2 h-2 rounded-full bg-success"></span>
+                                Active
+                            </div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md bg-zinc-100 dark:bg-zinc-800">
+<span class="font-code text-sm text-text-secondary">sk_live_••••••••••••••••••••4f2a</span>
+<div class="flex items-center gap-2">
+<button class="p-1 rounded-md text-text-secondary hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+<span class="material-symbols-outlined text-base">visibility</span>
+</button>
+<button class="p-1 rounded-md text-text-secondary hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+<span class="material-symbols-outlined text-base">content_copy</span>
+</button>
+</div>
+</div>
+<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+<div class="flex items-center gap-4 text-xs text-text-secondary">
+<span>Created: Dec 15, 2024</span>
+<span class="text-success">Last used: 2 hours ago</span>
+<span>Permissions: <span class="font-medium text-text-primary-light dark:text-text-primary-dark">Full access</span></span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1 text-sm font-medium border rounded-md border-border-light dark:border-border-dark text-text-secondary hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">Rotate</button>
+<button class="px-3 py-1 text-sm font-medium text-error hover:bg-error/10 rounded-md transition-colors">Revoke</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Key Card 2 -->
+<div class="p-5 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg shadow-sm">
+<div class="flex flex-wrap items-start justify-between gap-2 mb-4">
+<h3 class="text-base font-semibold text-text-primary-light dark:text-text-primary-dark">Development API Key</h3>
+<div class="flex items-center gap-2 px-2 py-1 text-xs font-medium rounded-full bg-success/10 text-success">
+<span class="w-2 h-2 rounded-full bg-success"></span>
+                                Active
+                            </div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md bg-zinc-100 dark:bg-zinc-800">
+<span class="font-code text-sm text-text-secondary">sk_test_••••••••••••••••••••8b3c</span>
+<div class="flex items-center gap-2">
+<button class="p-1 rounded-md text-text-secondary hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+<span class="material-symbols-outlined text-base">visibility</span>
+</button>
+<button class="p-1 rounded-md text-text-secondary hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+<span class="material-symbols-outlined text-base">content_copy</span>
+</button>
+</div>
+</div>
+<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+<div class="flex items-center gap-4 text-xs text-text-secondary">
+<span>Created: Nov 28, 2024</span>
+<span>Last used: 5 days ago</span>
+<span>Permissions: <span class="font-medium text-text-primary-light dark:text-text-primary-dark">Read only</span></span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1 text-sm font-medium border rounded-md border-border-light dark:border-border-dark text-text-secondary hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">Rotate</button>
+<button class="px-3 py-1 text-sm font-medium text-error hover:bg-error/10 rounded-md transition-colors">Revoke</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Key Card 3 -->
+<div class="p-5 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg shadow-sm">
+<div class="flex flex-wrap items-start justify-between gap-2 mb-4">
+<h3 class="text-base font-semibold text-text-primary-light dark:text-text-primary-dark">Marketing Campaign Key</h3>
+<div class="flex items-center gap-2 px-2 py-1 text-xs font-medium rounded-full bg-warning/10 text-warning">
+<span class="w-2 h-2 rounded-full bg-warning"></span>
+                                Expires in 7 days
+                            </div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md bg-zinc-100 dark:bg-zinc-800">
+<span class="font-code text-sm text-text-secondary">sk_live_••••••••••••••••••••1c9a</span>
+<div class="flex items-center gap-2">
+<button class="p-1 rounded-md text-text-secondary hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+<span class="material-symbols-outlined text-base">visibility</span>
+</button>
+<button class="p-1 rounded-md text-text-secondary hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+<span class="material-symbols-outlined text-base">content_copy</span>
+</button>
+</div>
+</div>
+<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+<div class="flex items-center gap-4 text-xs text-text-secondary">
+<span>Created: Oct 05, 2024</span>
+<span>Last used: 2 weeks ago</span>
+<span>Permissions: <span class="font-medium text-text-primary-light dark:text-text-primary-dark">Write only</span></span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1 text-sm font-medium border rounded-md border-border-light dark:border-border-dark text-text-secondary hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">Rotate</button>
+<button class="px-3 py-1 text-sm font-medium text-error hover:bg-error/10 rounded-md transition-colors">Revoke</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-10 Reports &amp; Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="relative flex min-h-screen w-full flex-col group/design-root">
+<div class="flex flex-row h-full min-h-screen">
+<!-- SideNavBar -->
+<div class="w-64 bg-white dark:bg-background-dark border-r border-[#dbdfe6] dark:border-gray-700 flex flex-col justify-between p-4">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE CRM company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD9Wag_ZQlUht6NUmgho44x3u-dN5IQARwNQc0qSJzT_rzsEjy16-sFk4ahECIXSW5RNDUhQiIqDQgT1IuU58PcV__9A7uJrK8P_dkWIRt1ItDIQ5_iwtbR8ZZRknvI0ftbKwqYbIfafiJMW6ZfC96etsFJTrn9IrL75iDGk7iQV5JhYZnl-TiAsATavvbnb5n7PEl-h034v9OabLQZ6heYUoXbaif8xZ65ZQTWsKNGnKH3M821-brn89XcLT5hIP7JfrqmCypd8ps");'></div>
+<div class="flex flex-col">
+<h1 class="text-[#111318] dark:text-white text-base font-bold leading-normal">HYVVE CRM</h1>
+<p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">SaaS Application</p>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f0f2f4] dark:hover:bg-white/10" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">dashboard</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f0f2f4] dark:hover:bg-white/10" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">handshake</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Deals</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f0f2f4] dark:hover:bg-white/10" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">group</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Contacts</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f0f2f4] dark:hover:bg-white/10" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">task_alt</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Tasks</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-primary/20" href="#">
+<span class="material-symbols-outlined text-primary dark:text-primary-400" style="font-variation-settings: 'FILL' 1;">bar_chart</span>
+<p class="text-[#111318] dark:text-white text-sm font-bold leading-normal">Reports</p>
+</a>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<button class="flex min-w-[84px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Create New Deal</span>
+</button>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f0f2f4] dark:hover:bg-white/10" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">settings</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f0f2f4] dark:hover:bg-white/10" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">help</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Help</p>
+</a>
+</div>
+</div>
+</div>
+<!-- Main Content -->
+<main class="flex-1 p-8 overflow-y-auto">
+<div class="max-w-7xl mx-auto">
+<!-- PageHeading -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+<div class="flex flex-col gap-1">
+<p class="text-[#111318] dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Reports &amp; Analytics</p>
+<p class="text-[#616f89] dark:text-gray-400 text-base font-normal leading-normal">Monitor your team's performance and track key business metrics.</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-white dark:bg-background-dark border border-[#dbdfe6] dark:border-gray-700 text-[#111318] dark:text-white text-sm font-bold leading-normal tracking-[0.015em] gap-2">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+<span class="truncate">Last 30 Days</span>
+<span class="material-symbols-outlined text-base">expand_more</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#f0f2f4] dark:bg-white/10 text-[#111318] dark:text-white text-sm font-bold leading-normal tracking-[0.015em] gap-2">
+<span class="material-symbols-outlined text-base">ios_share</span>
+<span class="truncate">Export Report</span>
+</button>
+</div>
+</div>
+<!-- Tabs -->
+<div class="pb-6">
+<div class="flex border-b border-[#dbdfe6] dark:border-gray-700 gap-8">
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-primary text-primary pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Overview</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-[#616f89] dark:text-gray-400 pb-[13px] pt-4 hover:text-[#111318] dark:hover:text-white" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Pipeline</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-[#616f89] dark:text-gray-400 pb-[13px] pt-4 hover:text-[#111318] dark:hover:text-white" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Activities</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-[#616f89] dark:text-gray-400 pb-[13px] pt-4 hover:text-[#111318] dark:hover:text-white" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Team Performance</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-[#616f89] dark:text-gray-400 pb-[13px] pt-4 hover:text-[#111318] dark:hover:text-white" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Forecasting</p>
+</a>
+</div>
+</div>
+<!-- Stats -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-background-dark border border-[#dbdfe6] dark:border-gray-700">
+<p class="text-[#616f89] dark:text-gray-400 text-base font-medium leading-normal">Total Revenue</p>
+<p class="text-[#111318] dark:text-white tracking-tight text-3xl font-bold leading-tight">$1,254,300</p>
+<div class="flex items-center gap-1 text-[#07883b] text-sm font-medium leading-normal">
+<span class="material-symbols-outlined text-base">arrow_upward</span>
+<span>+12.5%</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-background-dark border border-[#dbdfe6] dark:border-gray-700">
+<p class="text-[#616f89] dark:text-gray-400 text-base font-medium leading-normal">New Deals</p>
+<p class="text-[#111318] dark:text-white tracking-tight text-3xl font-bold leading-tight">152</p>
+<div class="flex items-center gap-1 text-[#07883b] text-sm font-medium leading-normal">
+<span class="material-symbols-outlined text-base">arrow_upward</span>
+<span>+8.2%</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-background-dark border border-[#dbdfe6] dark:border-gray-700">
+<p class="text-[#616f89] dark:text-gray-400 text-base font-medium leading-normal">Win Rate</p>
+<p class="text-[#111318] dark:text-white tracking-tight text-3xl font-bold leading-tight">28.5%</p>
+<div class="flex items-center gap-1 text-[#e73908] text-sm font-medium leading-normal">
+<span class="material-symbols-outlined text-base">arrow_downward</span>
+<span>-1.5%</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-background-dark border border-[#dbdfe6] dark:border-gray-700">
+<p class="text-[#616f89] dark:text-gray-400 text-base font-medium leading-normal">Avg. Deal Cycle</p>
+<p class="text-[#111318] dark:text-white tracking-tight text-3xl font-bold leading-tight">34 days</p>
+<div class="flex items-center gap-1 text-[#07883b] text-sm font-medium leading-normal">
+<span class="material-symbols-outlined text-base">arrow_upward</span>
+<span>-2 days</span>
+</div>
+</div>
+</div>
+<!-- Main Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Left Column -->
+<div class="lg:col-span-2 flex flex-col gap-6">
+<!-- AI Insights Card -->
+<div class="p-6 bg-primary/10 dark:bg-primary/20 rounded-xl border border-primary/20 dark:border-primary/30">
+<div class="flex items-stretch justify-between gap-6">
+<div class="flex flex-col gap-2 flex-[2_2_0px]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary dark:text-primary-300">auto_awesome</span>
+<p class="text-[#111318] dark:text-white text-base font-bold leading-tight">AI Insights</p>
+</div>
+<p class="text-[#616f89] dark:text-gray-300 text-sm font-normal leading-normal">
+                                            Win rate has increased by 15% for deals originating from 'Webinar'. Consider investing more in this channel.
+                                        </p>
+</div>
+<div class="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg flex-1" data-alt="Abstract colorful chart visualization" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCprxvxSsuNobjl_KvmPScXcrmn3c8qOybvrl6PwxfE8Pkoj7jWRMN7ujtObQqXaC8QkrGaJZQpaSY6lVIlXecWyxyHbz5PgCvPyS_eiv7UmtbAjjR5a82cElnfYwCpLe9Z5XlA6CkJMoO08kbDuJ56QTPM0thUm5zrQFCr0YhEhEKYFhj6ZUM_3xQZfNXjW8RAvr01N8mfFLanqNsxJNGdK2UnTQkZ3Q0SNK9IAOjrar5pBBzHftBXDVgG_yW6DZt_0SojqEp7j3Y");'></div>
+</div>
+</div>
+<!-- Revenue Trend Chart -->
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-[#dbdfe6] dark:border-gray-700">
+<h3 class="text-lg font-bold text-[#111318] dark:text-white mb-4">Revenue Trend</h3>
+<div class="w-full h-64 bg-[#f0f2f4] dark:bg-white/10 rounded-lg flex items-center justify-center animate-pulse">
+<p class="text-[#616f89] dark:text-gray-400">Line chart loading...</p>
+</div>
+</div>
+<!-- Pipeline Funnel and Deals by source -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-[#dbdfe6] dark:border-gray-700">
+<h3 class="text-lg font-bold text-[#111318] dark:text-white mb-4">Pipeline Overview</h3>
+<div class="w-full h-64 bg-[#f0f2f4] dark:bg-white/10 rounded-lg flex items-center justify-center animate-pulse">
+<p class="text-[#616f89] dark:text-gray-400">Funnel chart loading...</p>
+</div>
+</div>
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-[#dbdfe6] dark:border-gray-700">
+<h3 class="text-lg font-bold text-[#111318] dark:text-white mb-4">Deals by Source</h3>
+<div class="w-full h-64 bg-[#f0f2f4] dark:bg-white/10 rounded-lg flex items-center justify-center animate-pulse">
+<p class="text-[#616f89] dark:text-gray-400">Donut chart loading...</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column -->
+<div class="lg:col-span-1 bg-white dark:bg-background-dark p-6 rounded-xl border border-[#dbdfe6] dark:border-gray-700">
+<h3 class="text-lg font-bold text-[#111318] dark:text-white mb-4">Team Leaderboard</h3>
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Avatar of Olivia Martin" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYoQGZYNMrggip3AvGnsN5XUpfYRXbBJv17vtiik18kEqHy_TzVeaqOwVwcemXBTOqsUxYvwCdyGCqXRT6Sx2nSuKlDX57q3fE0Ywsr4wRGs-TWNWVdxCLZ0yab2wGaSZ4HpmlAduCU9j5PM3sseGntcf8RzAgvaYQ0t3fUi1golYmgAZluJ1r62Y7j7rvIW7o8kU77o3kaR7_MnGxzD_PkfeepjQrJCMC_76lrkwhQ53PtifpqPPDPgViyR6z51l4qYnvDT_KKH8"/>
+<div class="flex-1">
+<p class="text-sm font-medium text-[#111318] dark:text-white">Olivia Martin</p>
+<p class="text-xs text-[#616f89] dark:text-gray-400">32 Deals</p>
+</div>
+<p class="text-sm font-bold text-[#111318] dark:text-white">$310,450</p>
+</div>
+<div class="flex items-center gap-4">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Avatar of Noah Lee" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWYalmgNmLD0mIpdTYql4NW5G8H2JexaP-w3Z3Odn6REOWNTsw0I7uNRXU-xv8JFdAJqlKTosvbie7c19j4aa8e7Y9WoVfKAq9ZF_NrTa-c7bvJZfn1jIGbOyirZN03g9hzUEzricedCLVwHAr6Yhy1Fknv6N_WMhVGX5E2pjHXekaDX140xoAH1DMXIa_KnsplhSLDoTJXnt3As_LL7txrRNvGKvwYCScaeLQOoZ6OyGmGvHmf_y72Naxk-1aUxnE_utOZI_9_j0"/>
+<div class="flex-1">
+<p class="text-sm font-medium text-[#111318] dark:text-white">Noah Lee</p>
+<p class="text-xs text-[#616f89] dark:text-gray-400">28 Deals</p>
+</div>
+<p class="text-sm font-bold text-[#111318] dark:text-white">$289,800</p>
+</div>
+<div class="flex items-center gap-4">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Avatar of Jackson Garcia" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQ2uniVQ-c_LRr74LwtfcDP5E_ggybPxVN3MEcw5M8r_8MZxQYn93YvxBnGncqPuIbkQO1HJ6I_ebeCyTHlhqFvbo_YBpi2de78XaCHbI0FJ-aBgwJZdACzG1hMRy4CFTsjIYd9LjW4Gi2gTwqZnv_2_yuIpbPlkDBPpaaQKU-S8V7oOdMPQRZH1jbKr4K7PYKbJUqdUNTzNPuDYGs0uBbXhlIohnQcRU6VS03FJecVQBAOLWnnlcuOZTC916Yc0zPEUsmnwhYDHo"/>
+<div class="flex-1">
+<p class="text-sm font-medium text-[#111318] dark:text-white">Jackson Garcia</p>
+<p class="text-xs text-[#616f89] dark:text-gray-400">25 Deals</p>
+</div>
+<p class="text-sm font-bold text-[#111318] dark:text-white">$255,120</p>
+</div>
+<div class="flex items-center gap-4">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Avatar of Sophia Rodriguez" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDM6qDkBfdQWPBSXq4_uDyTmIc64OCGszQYVfJ0CpU0dGQzwaLOtxRUZSScAnWIqK_X3wg-gbC7Fd4wTqq9fH70uTggVmcmcsUL69bynEHwKaHHESc6LBVBNa2HX41Tcv0LYrCTvyneY84_ftdWTzNE613i4EIXfWxh6echRy6fH7SeiIPp2SoLMXF7HhyX_BRPWHL-fWWoehgXdpa4ChCd7rR1LvFc1n0vUR7co3QZ1OMnxiuzmumXvxeDal3vqUHS0O-lygU8Cm0"/>
+<div class="flex-1">
+<p class="text-sm font-medium text-[#111318] dark:text-white">Sophia Rodriguez</p>
+<p class="text-xs text-[#616f89] dark:text-gray-400">22 Deals</p>
+</div>
+<p class="text-sm font-bold text-[#111318] dark:text-white">$210,500</p>
+</div>
+<div class="flex items-center gap-4">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Avatar of Liam Martinez" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJhFd2ARGccKEJRzfKlMuj6yEpapdyvelcFr6nJlnwZi3e-NrOvLWQXhQsPHGpg0kzk-G3zs6foxt_W-817bkNADRatO9r1Xyb27DNXxdN-0Ma5nsykq_COfWieXsZf9YEOjtOwdJ-eWySbEFVV-z_gyjbxTJZcyDeIfzUZpf2H6c0CTM4FolyGaP1ORarwYhZ-mZ6VUdzRy89sgVS-wU7O4lZCYUfdzOG9PskIQBgMA5vC3Xmd7koeCIEJ2N4x2CZ_yZqgjAgxSs"/>
+<div class="flex-1">
+<p class="text-sm font-medium text-[#111318] dark:text-white">Liam Martinez</p>
+<p class="text-xs text-[#616f89] dark:text-gray-400">20 Deals</p>
+</div>
+<p class="text-sm font-bold text-[#111318] dark:text-white">$198,300</p>
+</div>
+<div class="flex items-center gap-4">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Avatar of Emma Brown" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7UTteqAWrj5TkXXFKruhXXSG75UsNXGWL6adEdOXrI1cuNNv9pJ5EXo0em9zJ8KF9zFMlIhmnjrdT14sBOfcMv2L2H94kqodSSBmX5bXlDejtUGZRE3m_tJjNKYfdXxWm0oCwmAikOeudzkN2ymkCByBjk3htcxyfIS00nAaJvZaqtT8Y1nzzA6EZDnCse6aNamknIFnNr7sjEwxYWpZKMis3Bs1YwbQ2RwqjPRLUvdCu0M78ya6aUAhQW2QwnpoaqlS1ZEDm-JQ"/>
+<div class="flex-1">
+<p class="text-sm font-medium text-[#111318] dark:text-white">Emma Brown</p>
+<p class="text-xs text-[#616f89] dark:text-gray-400">18 Deals</p>
+</div>
+<p class="text-sm font-bold text-[#111318] dark:text-white">$175,000</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

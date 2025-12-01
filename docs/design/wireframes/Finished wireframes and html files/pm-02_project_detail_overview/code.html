@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-02 Project Detail Overview</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#135bec",
+            "background-light": "#f6f6f8",
+            "background-dark": "#101622",
+          },
+          fontFamily: {
+            "display": ["Inter", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "1rem",
+            "xl": "1.5rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#101622] dark:text-gray-200">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-40 flex flex-1 justify-center py-5">
+<div class="layout-content-container flex flex-col w-full max-w-7xl flex-1">
+<!-- Header and Toolbar -->
+<header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4 py-3">
+<div class="flex items-center gap-2">
+<a class="text-[#616f89] dark:text-gray-400 text-base font-medium leading-normal hover:text-primary dark:hover:text-primary" href="#">Projects</a>
+<span class="text-[#616f89] dark:text-gray-500 text-base font-medium leading-normal">/</span>
+<span class="text-[#111318] dark:text-white text-base font-medium leading-normal">Project Alpha</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-[#111318] dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
+<span class="material-symbols-outlined">star</span>
+</button>
+<button class="p-2 text-[#111318] dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+</header>
+<!-- Tabs -->
+<div class="pb-3 border-b border-[#dbdfe6] dark:border-gray-700">
+<div class="flex px-4 gap-8">
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-primary text-primary pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Overview</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-[#616f89] dark:text-gray-400 hover:text-primary dark:hover:text-primary pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Tasks</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-[#616f89] dark:text-gray-400 hover:text-primary dark:hover:text-primary pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Timeline</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-[#616f89] dark:text-gray-400 hover:text-primary dark:hover:text-primary pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Files</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-[#616f89] dark:text-gray-400 hover:text-primary dark:hover:text-primary pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Team</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-[#616f89] dark:text-gray-400 hover:text-primary dark:hover:text-primary pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Settings</p>
+</a>
+</div>
+</div>
+<!-- Main Content Grid -->
+<main class="grid grid-cols-1 lg:grid-cols-3 gap-6 px-4 py-6">
+<!-- Left Column -->
+<div class="lg:col-span-2 flex flex-col gap-6">
+<!-- Charts & Stats -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-background-dark border border-[#dbdfe6] dark:border-gray-700">
+<p class="text-[#111318] dark:text-white text-base font-medium leading-normal">Project Progress</p>
+<div class="relative w-40 h-40 mx-auto">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<path class="text-gray-200 dark:text-gray-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+<path class="text-green-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="62, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<p class="text-[#111318] dark:text-white tracking-light text-[32px] font-bold leading-tight truncate">62%</p>
+</div>
+</div>
+<div class="flex justify-center gap-1">
+<p class="text-[#616f89] dark:text-gray-400 text-base font-normal leading-normal">Completed</p>
+<p class="text-[#07883b] text-base font-medium leading-normal">+5%</p>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-2 rounded-xl p-6 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-background-dark">
+<p class="text-[#111318] dark:text-white text-base font-medium leading-normal">Tasks Done</p>
+<p class="text-[#111318] dark:text-white tracking-light text-2xl font-bold leading-tight">124 / 200</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-background-dark">
+<p class="text-[#111318] dark:text-white text-base font-medium leading-normal">Sprint Days Left</p>
+<p class="text-[#111318] dark:text-white tracking-light text-2xl font-bold leading-tight">5</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-background-dark">
+<p class="text-[#111318] dark:text-white text-base font-medium leading-normal">Project Days Left</p>
+<p class="text-[#111318] dark:text-white tracking-light text-2xl font-bold leading-tight">42</p>
+</div>
+</div>
+</div>
+<!-- AI Insights -->
+<div class="flex flex-col gap-4 rounded-xl p-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-amber-600 dark:text-amber-400">auto_awesome</span>
+<h3 class="text-base font-semibold text-amber-800 dark:text-amber-200">AI Project Insights</h3>
+</div>
+<ul class="space-y-3 pl-4 text-sm text-amber-700 dark:text-amber-300">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-base mt-0.5">arrow_right</span>
+<span>Resource bottleneck detected in the Design phase. Consider reallocating tasks.</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-base mt-0.5">arrow_right</span>
+<span>Sprint velocity is trending down by 8%. Review recent commits for blockers.</span>
+</li>
+</ul>
+</div>
+<!-- Recent Activity -->
+<div class="flex flex-col gap-4">
+<h3 class="text-lg font-semibold text-[#111318] dark:text-white">Recent Activity</h3>
+<div class="space-y-4">
+<div class="flex items-start gap-3">
+<img class="w-9 h-9 rounded-full object-cover" data-alt="Avatar of Sarah Chen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3Ddac-wBa5RVYOvbUTA608YHSQFieJWTZBMZCyHTQtwdukLvBfLbXVARGR3H-ucYT08ZWO8ePIhPkxcnbsZ4cDrzYkKKTUk6Wr8qKNmGa61JGibiXMqsXtSD_bE_RBM5cczGgAtfEPrIVpqx29AgSCT0S-vIVsWnXKjbfuKC9o57qXbt3YvPc6jy50lNxjgcC0WEPjo_ndpGc8DYnVsNofxqEo5pHn88cFlr2TIUPb4xFuZzixKWlFtAV3sTRWMtbWO-VYTP_nHc"/>
+<div class="flex-1">
+<p class="text-sm text-[#111318] dark:text-gray-200"><span class="font-semibold">Sarah Chen</span> completed task "Finalize UI Mockups".</p>
+<p class="text-xs text-[#616f89] dark:text-gray-400">2 hours ago</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<img class="w-9 h-9 rounded-full object-cover" data-alt="Avatar of Mark Johnson" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJGJJ5UgLy_ce7yxSQeGyGu4YtjDoNkT6_EZAEfogg5ZzBHK9pNryYhv4dIgPVe5sz2Lu33u3_-d3gipxO4icE_OJdf9efCcaQ8jvWObIi51RyLgsbkOINzz--G32Lqu7kOES2Khff_zVYIgkoc-gruOnItFXVgmRzA0B0T0HZBjvcXEgYIhv4DgmXvx7SwEAEPIIdNwC53CenHjcaK7uLyZ5ILtt_d9LQboHauynl2h9US74fEAzMUIox3IXNabEJm2XZOWvvuZ0"/>
+<div class="flex-1">
+<p class="text-sm text-[#111318] dark:text-gray-200"><span class="font-semibold">Mark Johnson</span> uploaded "Client_Feedback_Round2.pdf".</p>
+<p class="text-xs text-[#616f89] dark:text-gray-400">5 hours ago</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<img class="w-9 h-9 rounded-full object-cover" data-alt="Avatar of Emily White" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwHF6feDj_GVBMcPxZX5R8e-XM9T1_vRIQop7LFg84trc0PIlv7gOFJ9yiOBcDJOeboDU8uYj1nAPA0dREAc8jwuXmKsucmUlueGygXuuOorrWpc2lg2Jeu-DOt9-BQxJ0z3Zfy_vFzDJcOn3A4YxMLekv_FUGQzGqQnqz6jFbiKAr2Ge8CCydII3Mthlgo0qYXkgWVPRviaIGog8WJgO28W1tUSFG2eSF1oVo4iuEiXdML3jvUeYf6zyqvPbKzLrGa4ZT7OUf2B0"/>
+<div class="flex-1">
+<p class="text-sm text-[#111318] dark:text-gray-200"><span class="font-semibold">Emily White</span> logged 4 hours on "API Integration".</p>
+<p class="text-xs text-[#616f89] dark:text-gray-400">Yesterday</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column -->
+<div class="lg:col-span-1 flex flex-col gap-6">
+<!-- Quick Actions -->
+<div class="flex flex-col gap-3">
+<button class="flex w-full items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90">
+<span class="material-symbols-outlined text-base">add_circle</span> New Task
+                </button>
+<div class="grid grid-cols-2 gap-3">
+<button class="flex w-full items-center justify-center gap-2 rounded bg-primary/20 dark:bg-primary/30 px-4 py-2 text-sm font-medium text-primary dark:text-primary hover:bg-primary/30 dark:hover:bg-primary/40">
+<span class="material-symbols-outlined text-base">schedule</span> Log Time
+                  </button>
+<button class="flex w-full items-center justify-center gap-2 rounded bg-primary/20 dark:bg-primary/30 px-4 py-2 text-sm font-medium text-primary dark:text-primary hover:bg-primary/30 dark:hover:bg-primary/40">
+<span class="material-symbols-outlined text-base">upload_file</span> Upload File
+                  </button>
+</div>
+</div>
+<!-- Upcoming Milestones -->
+<div class="flex flex-col gap-4">
+<h3 class="text-lg font-semibold text-[#111318] dark:text-white">Upcoming Milestones</h3>
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<div class="flex flex-col items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 p-2 w-14 h-14">
+<p class="text-xs font-bold text-red-500">JUL</p>
+<p class="text-lg font-bold text-[#111318] dark:text-white">28</p>
+</div>
+<div>
+<p class="font-medium text-[#111318] dark:text-white">Q3 Feature Freeze</p>
+<p class="text-sm text-[#616f89] dark:text-gray-400">All new features locked</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex flex-col items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 p-2 w-14 h-14">
+<p class="text-xs font-bold text-red-500">AUG</p>
+<p class="text-lg font-bold text-[#111318] dark:text-white">15</p>
+</div>
+<div>
+<p class="font-medium text-[#111318] dark:text-white">Client Demo</p>
+<p class="text-sm text-[#616f89] dark:text-gray-400">Final presentation</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Team -->
+<div class="flex flex-col gap-4">
+<h3 class="text-lg font-semibold text-[#111318] dark:text-white">Team</h3>
+<div class="grid grid-cols-1 gap-3">
+<div class="flex items-center gap-3 rounded-lg p-3 bg-white dark:bg-background-dark border border-transparent hover:border-[#dbdfe6] dark:hover:border-gray-700">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Avatar of Sarah Chen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmflHJAJU05X4-Ea9BnNG3k3MFVtqudzz-khvIN4prWlPQJsTT9IWsXwp-5zPAbgM_PD1c9XoUISHYmmSFiG99ZBjZq7x5-KuoU70EQ-Ojo_4emxN9na-SGXcXTXl-F6q8_y--j1NbuZPtPxYR2PtoUXk09xb4lZJcHZVF5Ev3IAMW6AmGQm8CR0MQHYcffLOxjTNIPlNpA_rnZW8y1fq11_z-RX6OkkMTTToxI9i1luMlnD9Db6P-_0vY6c-WBC9mlRWzt0v8MQo"/>
+<div>
+<p class="font-medium text-[#111318] dark:text-white">Sarah Chen</p>
+<p class="text-sm text-[#616f89] dark:text-gray-400">Project Manager</p>
+</div>
+</div>
+<div class="flex items-center gap-3 rounded-lg p-3 bg-white dark:bg-background-dark border border-transparent hover:border-[#dbdfe6] dark:hover:border-gray-700">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Avatar of Mark Johnson" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKUZQ5VlPnlGBOF9CzoMlmvjFJPYKXTL4t5g1gqT1WYIn7XKRWp5ERUhWX9Md30d5--_KotUXX4DZaRfQeVaHiH33MyRSUHeYdFY6injPZ0zLVst5QVBk_S-viwfEkqLGjIL4uFcp9JKqzFcalXJUTYC8NvYVoUU8cy-WaEB3dYL0X_RM9ve_vsOfU9eHbArD_vTKlPu80Hgzz8u-Xwba59_gB8Rj_WPGInQutM2UdTTWT_H0VP9PkSaDfiErQ4v-5CQyT1s24jnU"/>
+<div>
+<p class="font-medium text-[#111318] dark:text-white">Mark Johnson</p>
+<p class="text-sm text-[#616f89] dark:text-gray-400">Lead Developer</p>
+</div>
+</div>
+<div class="flex items-center gap-3 rounded-lg p-3 bg-white dark:bg-background-dark border border-transparent hover:border-[#dbdfe6] dark:hover:border-gray-700">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Avatar of Emily White" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaIfnhNH_-M8TBxPsa9uv267TAE1K1pMUzEANQynrydSDwp2ZHYcej-7IEtXcdquDnE9caNnNw2Vu4BBu1LSkzlgs5O5BEQFHET21Jlo4rv7nWxoSWNjpOpebrf9y1dmhE3m7Efl6xQLwa9KqckrdNHunamifgh1mT5UhMcIIc7hOequ6xoKhPVGSAPX5BeRvEOKeKrquv9nz6fi2T65vXk4LYR-Wla7YLd9tQx9zovmexioY_q21zIxjZGEzHu4OlgjY03UGcIfA"/>
+<div>
+<p class="font-medium text-[#111318] dark:text-white">Emily White</p>
+<p class="text-sm text-[#616f89] dark:text-gray-400">UX/UI Designer</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</div>
+</div>
+</body></html>

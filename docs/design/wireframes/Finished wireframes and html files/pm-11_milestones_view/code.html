@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-11 Milestones View</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+              "surface-light": "#ffffff",
+              "surface-dark": "#19212e",
+              "text-primary-light": "#111318",
+              "text-primary-dark": "#f0f2f4",
+              "text-secondary-light": "#616f89",
+              "text-secondary-dark": "#a0aec0",
+              "border-light": "#dbdfe6",
+              "border-dark": "#2d3748",
+              "status-completed": "#28A745",
+              "status-inprogress": "#007BFF",
+              "status-atrisk": "#FD7E14",
+              "status-blocked": "#DC3545",
+              "status-upcoming": "#6C757D"
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="relative flex min-h-screen w-full flex-row">
+<!-- SideNavBar -->
+<aside class="flex h-screen min-w-[256px] max-w-[256px] flex-col justify-between bg-surface-light dark:bg-surface-dark p-4 border-r border-border-light dark:border-border-dark sticky top-0">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Project logo with abstract gradient" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBGqcZdVtj2urqCx7-8fYY-QvAxDxltn8F9mtOX-QTtK1lUBrZnygIBml_sG27uXh7kFBeEtLwGfrMHIuTWSj2hmAvJEYfzAdzRuTVO1lnYkFcyGjqzebOBAcporvjs2USDhUDBpQraJQFWiiAQi6AXG1TC2n-iH_Fs8RrIWNpUQXW7QLySFU0cwbENOZm9agEBchZ3C64idEbqoGLpPgnB3klq77xz7KvJDtxCwop7WsSga47k0wJT6T53XAVo_IyJa_3Y5jlfNpA");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-primary-light dark:text-text-primary-dark text-base font-medium leading-normal">Project Name</h1>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-normal leading-normal">SaaS Application</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-primary-light dark:text-text-primary-dark hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-text-primary-light dark:text-text-primary-dark" style="font-size: 24px;">grid_view</span>
+<p class="text-sm font-medium leading-normal">Overview</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-size: 24px; font-variation-settings: 'FILL' 1;">flag</span>
+<p class="text-sm font-medium leading-normal">Milestones</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-primary-light dark:text-text-primary-dark hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-text-primary-light dark:text-text-primary-dark" style="font-size: 24px;">check_box</span>
+<p class="text-sm font-medium leading-normal">Tasks</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-primary-light dark:text-text-primary-dark hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-text-primary-light dark:text-text-primary-dark" style="font-size: 24px;">folder</span>
+<p class="text-sm font-medium leading-normal">Files</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-4">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Settings</span>
+</button>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-primary-light dark:text-text-primary-dark hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-text-primary-light dark:text-text-primary-dark" style="font-size: 24px;">help_outline</span>
+<p class="text-sm font-medium leading-normal">Help</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-primary-light dark:text-text-primary-dark hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-text-primary-light dark:text-text-primary-dark" style="font-size: 24px;">logout</span>
+<p class="text-sm font-medium leading-normal">Logout</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8">
+<div class="max-w-7xl mx-auto flex flex-col gap-6">
+<!-- Breadcrumbs -->
+<div class="flex flex-wrap gap-2">
+<a class="text-text-secondary-light dark:text-text-secondary-dark text-base font-medium leading-normal" href="#">Projects</a>
+<span class="text-text-secondary-light dark:text-text-secondary-dark text-base font-medium leading-normal">/</span>
+<a class="text-text-secondary-light dark:text-text-secondary-dark text-base font-medium leading-normal" href="#">Project Name</a>
+<span class="text-text-secondary-light dark:text-text-secondary-dark text-base font-medium leading-normal">/</span>
+<span class="text-text-primary-light dark:text-text-primary-dark text-base font-medium leading-normal">Milestones</span>
+</div>
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between items-center gap-3">
+<div class="flex min-w-72 flex-col gap-3">
+<h1 class="text-text-primary-light dark:text-text-primary-dark text-4xl font-black leading-tight tracking-[-0.033em]">Milestones</h1>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-base font-normal leading-normal">Track and manage project milestones, dependencies, and deliverables.</p>
+</div>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] gap-2">
+<span class="material-symbols-outlined" style="font-size: 20px;">add</span>
+<span class="truncate">Add Milestone</span>
+</button>
+</div>
+<!-- SectionHeader: Timeline -->
+<h3 class="text-text-primary-light dark:text-text-primary-dark text-lg font-bold leading-tight tracking-[-0.015em] pt-4">Milestone Timeline</h3>
+<!-- Mini Timeline -->
+<div class="bg-surface-light dark:bg-surface-dark p-6 rounded-lg shadow-sm border border-border-light dark:border-border-dark">
+<div class="relative w-full h-8">
+<div class="absolute top-1/2 left-0 w-full h-0.5 bg-border-light dark:border-border-dark"></div>
+<div class="absolute top-1/2 left-0 w-3/4 h-0.5 bg-primary"></div>
+<div class="absolute flex justify-between w-full h-full">
+<div class="relative" style="left: 0%;">
+<div class="absolute -top-2.5 w-6 h-6 rounded-full bg-status-completed border-2 border-surface-light dark:border-surface-dark flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-size: 16px;">check</span>
+</div>
+</div>
+<div class="relative" style="left: 25%;">
+<div class="absolute -top-2.5 -ml-3 w-6 h-6 rounded-full bg-status-inprogress border-2 border-surface-light dark:border-surface-dark flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-size: 16px;">autorenew</span>
+</div>
+</div>
+<div class="relative" style="left: 50%;">
+<div class="absolute -top-2.5 -ml-3 w-6 h-6 rounded-full bg-status-atrisk border-2 border-surface-light dark:border-surface-dark flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-size: 16px;">warning</span>
+</div>
+</div>
+<div class="relative" style="left: 75%;">
+<div class="absolute -top-2.5 -ml-3 w-6 h-6 rounded-full bg-status-upcoming border-2 border-surface-light dark:border-surface-dark flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-size: 16px;">schedule</span>
+</div>
+</div>
+<div class="relative" style="left: 100%;">
+<div class="absolute -top-2.5 -ml-6 w-6 h-6 rounded-full bg-status-upcoming border-2 border-surface-light dark:border-surface-dark flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-size: 16px;">schedule</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- SectionHeader: Milestone Cards -->
+<h3 class="text-text-primary-light dark:text-text-primary-dark text-lg font-bold leading-tight tracking-[-0.015em] pt-4">Project Milestones</h3>
+<!-- Milestone Cards -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- Card 1: Completed -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border border-border-light dark:border-border-dark p-6 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-status-completed" style="font-size: 28px; font-variation-settings: 'FILL' 1;">check_circle</span>
+<div class="flex flex-col">
+<h4 class="text-text-primary-light dark:text-text-primary-dark font-bold text-lg">Discovery &amp; Research</h4>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm">Due: Oct 15, 2023</p>
+</div>
+</div>
+<div class="bg-status-completed/20 text-status-completed text-xs font-bold px-2 py-1 rounded-full">Completed</div>
+</div>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm">Initial project phase to define scope, gather requirements, and conduct user research.</p>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-status-completed" style="font-size: 20px;">check_box</span>
+<p class="text-text-primary-light dark:text-text-primary-dark text-sm line-through">User Personas Complete</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-status-completed" style="font-size: 20px;">check_box</span>
+<p class="text-text-primary-light dark:text-text-primary-dark text-sm line-through">Market Analysis Report</p>
+</div>
+</div>
+<div class="flex justify-between items-center mt-2">
+<div class="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary-dark">
+<span class="material-symbols-outlined" style="font-size: 16px;">link_off</span>
+<span class="text-xs">No dependencies</span>
+</div>
+<div class="flex -space-x-2">
+<img class="inline-block size-8 rounded-full ring-2 ring-surface-light dark:ring-surface-dark" data-alt="User avatar 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVQbNPJrr23Ae8YW4YARIEGaIJLu42FKvf0hOICJ688jWtGGLWW8F_zZFCwOJ1uyHV_Ih6YViyovfOOoHIcut-oeirufGFHlzT-NUUuofE2MwnWqAiL0GOqdZ5e1n7ia_phluVN-ZrjEvTlhwbhQy3iXGYGgMSoI6BJ3gkUxdlsparzkFs2I3KI1LkIga0elHEkRwjD72jzTYfJ34VvJMkp1Z5tdQ4gUGuh1Dtn5Saz9ynIeYOZRK4N84lmfqS-K9ii_hEJwWSogg"/>
+<img class="inline-block size-8 rounded-full ring-2 ring-surface-light dark:ring-surface-dark" data-alt="User avatar 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoVK8Sr9c0Vs5PQJSLN0xLx_MqmciOA8CcxYBswh8cRu_H86ALY9BhWURAgFVOiymL00bWZF-UU3l6fe3WgGzUCi62WoRhjjGCLv07cQwo4EnzwNj_GuiEA40HnhQpSMFQumSkBFQ2hCBmAx31DJEgSHAMts2KW9eYsHY2GnNmEVkAgB7fqNZYqxIPTbDzNPc9IDjGCyvonRf8gICh8CEpp-I35zZ2oc42vUcsAcnQ6cfm6ejOSubI93FnYlaALvHGcNKjm0So53w"/>
+</div>
+</div>
+</div>
+<!-- Card 2: In Progress -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border-2 border-primary p-6 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-status-inprogress animate-spin" style="font-size: 28px; --tw-animation-duration: 2s;">progress_activity</span>
+<div class="flex flex-col">
+<h4 class="text-text-primary-light dark:text-text-primary-dark font-bold text-lg">UI/UX Design</h4>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm">Due: Nov 30, 2023</p>
+</div>
+</div>
+<div class="bg-status-inprogress/20 text-status-inprogress text-xs font-bold px-2 py-1 rounded-full">On Track</div>
+</div>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm">Designing the user interface and experience, including wireframes and mockups.</p>
+<div>
+<div class="flex justify-between mb-1">
+<span class="text-xs font-medium text-primary">Progress</span>
+<span class="text-xs font-medium text-primary">75%</span>
+</div>
+<div class="w-full bg-primary/20 rounded-full h-2">
+<div class="bg-primary h-2 rounded-full" style="width: 75%"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-status-completed" style="font-size: 20px;">check_box</span>
+<p class="text-text-primary-light dark:text-text-primary-dark text-sm line-through">Wireframes Approved</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark" style="font-size: 20px;">check_box_outline_blank</span>
+<p class="text-text-primary-light dark:text-text-primary-dark text-sm">High-Fidelity Mockups</p>
+</div>
+</div>
+<div class="flex justify-between items-center mt-2">
+<div class="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary-dark">
+<!-- Dependency indicator here if needed -->
+</div>
+<div class="flex -space-x-2">
+<img class="inline-block size-8 rounded-full ring-2 ring-surface-light dark:ring-surface-dark" data-alt="User avatar 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOpn6cxAtySMzylhaihQbV-Di9e9PRl4fRnIWlEl7R0kUKBx3nF7Bh512UltoL9BMHerbj7F-kIZXZ9Uf2PiQN-kYJrIAVWBY7hTl8j3H9MRtjUsDLVvA5tQ91j4OC3zS0eyLci94d6dUEwXuk7l4ZOdmupqYgKxeJ85wJlGXWQIwMfiQsnPUapFMga27ksjJOzRLkD-oaNq8jUPs3iutc5Cd7obE8ZTAA2axd-4X0EGIpmlLIL_cMEnSEX9eOJ2LgdHUiUWYDulw"/>
+<img class="inline-block size-8 rounded-full ring-2 ring-surface-light dark:ring-surface-dark" data-alt="User avatar 4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkpIH3rdgtm_FK6ts4gxS_yNGBTyCQMs9IlMqG0R4uBk4R3R6wFANS1vV0cp35k8eu0e1kbvaWZeRAw46qrvB77vmLDOGus5QEuLxeO_nZSlxOvQT2aftujoYxRQIUzRh6KxAQVPvsrhnbvAJRA7Y94xl5P-5gXe82U6Ck0TVT_YkkNVbceGlGbZ6eibD1IfPBPgWGJXnPgsrhOR638UnEqnmtDX-sKVUfQ2pfR3chYG9h600PyxQupmmxXzXqDbFTSTjDgYvCmU0"/>
+</div>
+</div>
+</div>
+<!-- Card 3: At Risk -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border border-border-light dark:border-border-dark p-6 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-status-atrisk" style="font-size: 28px;">warning</span>
+<div class="flex flex-col">
+<h4 class="text-text-primary-light dark:text-text-primary-dark font-bold text-lg">Frontend Development</h4>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm">Due: Dec 20, 2023</p>
+</div>
+</div>
+<div class="bg-status-atrisk/20 text-status-atrisk text-xs font-bold px-2 py-1 rounded-full">At Risk</div>
+</div>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm">Implementing the front-end of the application based on the approved UI/UX designs.</p>
+<div>
+<div class="flex justify-between mb-1">
+<span class="text-xs font-medium text-status-atrisk">Progress</span>
+<span class="text-xs font-medium text-status-atrisk">20%</span>
+</div>
+<div class="w-full bg-status-atrisk/20 rounded-full h-2">
+<div class="bg-status-atrisk h-2 rounded-full" style="width: 20%"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark" style="font-size: 20px;">check_box_outline_blank</span>
+<p class="text-text-primary-light dark:text-text-primary-dark text-sm">Component Library Setup</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark" style="font-size: 20px;">check_box_outline_blank</span>
+<p class="text-text-primary-light dark:text-text-primary-dark text-sm">Dashboard Page Implementation</p>
+</div>
+</div>
+<div class="flex justify-between items-center mt-2">
+<div class="flex items-center gap-2 text-status-blocked">
+<span class="material-symbols-outlined" style="font-size: 16px;">block</span>
+<span class="text-xs font-bold">Blocked by UI/UX Design</span>
+</div>
+<div class="flex -space-x-2">
+<img class="inline-block size-8 rounded-full ring-2 ring-surface-light dark:ring-surface-dark" data-alt="User avatar 5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3Ug1klvS0KZr6bjxCR5JIj78D-nyZZkpf5seymmd9kFPJTpj7giIwbIkR88GDu2EjkDeDRwi02Q2dbJ_WDOHshND9j3T43FygWICTuxqx3VuOSHIOuUmIwV9_4CYVxXoxlf644bCEN9X2IaSl-VTDKCyUkbP1fcfmPxjOgBJKUH0ZeEbuVjLBRMJO6VYNNo56I6y9aKG6Cu7F0tY_pBdzVg7h6-mZ-7mZPSSoFLoaNIhoAaFTOY5NsBcty6vTe3LcbNs8eOApzbw"/>
+</div>
+</div>
+</div>
+<!-- Card 4: Upcoming -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border border-dashed border-border-light dark:border-border-dark p-6 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-status-upcoming" style="font-size: 28px;">schedule</span>
+<div class="flex flex-col">
+<h4 class="text-text-primary-light dark:text-text-primary-dark font-bold text-lg">Backend Development</h4>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm">Due: Jan 15, 2024</p>
+</div>
+</div>
+<div class="bg-status-upcoming/20 text-status-upcoming text-xs font-bold px-2 py-1 rounded-full">Upcoming</div>
+</div>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm">Building the server-side logic, database, and APIs to support the application.</p>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark" style="font-size: 20px;">check_box_outline_blank</span>
+<p class="text-text-primary-light dark:text-text-primary-dark text-sm">Database Schema Design</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark" style="font-size: 20px;">check_box_outline_blank</span>
+<p class="text-text-primary-light dark:text-text-primary-dark text-sm">User Authentication API</p>
+</div>
+</div>
+<div class="flex justify-between items-center mt-2">
+<div class="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary-dark">
+<span class="material-symbols-outlined" style="font-size: 16px;">link</span>
+<span class="text-xs">Depends on Frontend</span>
+</div>
+<div class="flex -space-x-2">
+<img class="inline-block size-8 rounded-full ring-2 ring-surface-light dark:ring-surface-dark" data-alt="User avatar 6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDiYSKR2DLJY-eS9big1JnG3HZ7Hj11Q6iXEwJ37Pzs4fpdmBwx-lowtVyvrInQgO16D9E7JFUKI0DUWF4p6akxRMV0duP3smo9DxIK8SloZ8PfWieC1W2lZn7ymQBbaDLLwdiizW3mTG37GPabopRYTWzIO4MssQc5QmsL2kQMyrgbI-uE7-wl-oCE3bkBiq0sOmxNIuiCfxQvxdAZsl5irPKOeYa3Sm_zzlIFV8pmyVDXyiqfwxDOWNU4vuMcUSRvgowZr5kZIRg"/>
+<img class="inline-block size-8 rounded-full ring-2 ring-surface-light dark:ring-surface-dark" data-alt="User avatar 7" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_GhoPA6x4qATCymO28mU0NoKFo0-MY0C0f9LVgTgBpKeK_NNT0XiA-j3J6D8roqWrv4NwT0PCel3235cTlitXLUXGjnZ4P36QLK3A_zngB3KZ3_kakGg8BLr_eKZ4v5Rn6HgdV0b0LxCMSA3xf-v65PCK8gxjgpfAjBizwqIWk7wqF5pQdH-RHirYFbtaim2mC73mnlq5NPBd4cyIPjMczu5mNWgjQVsQe8rrtcCewHEv4m0xVMGDzX1VL2PFwAoNee5muZdqEAs"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

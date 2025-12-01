@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ST-03 AI Provider Setup</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#FF6B6B",
+              "secondary": "#20B2AA",
+              "background-light": "#FFFBF5",
+              "background-dark": "#0a0a0b",
+              "surface-light": "#FFFFFF",
+              "surface-dark": "#1a1a1b",
+              "border-light": "#E5E5E5",
+              "border-dark": "#2a2a2b",
+              "text-primary-light": "#1a1a1a",
+              "text-primary-dark": "#FAFAFA",
+              "text-secondary": "#6B7280",
+              "success": "#10B981",
+              "warning": "#F59E0B",
+              "error": "#EF4444",
+              "info": "#3B82F6",
+            },
+            fontFamily: {
+              display: ["Inter", "system-ui", "sans-serif"],
+              code: ["JetBrains Mono", "monospace"],
+            },
+            borderRadius: {
+              "sm": "4px",
+              "md": "8px",
+              "lg": "12px",
+              "xl": "16px",
+              "full": "9999px",
+            },
+            boxShadow: {
+              'sm': '0 1px 2px rgba(0,0,0,0.04)',
+              'md': '0 4px 6px rgba(0,0,0,0.04)',
+              'lg': '0 10px 15px rgba(0,0,0,0.06)',
+              'xl': '0 20px 25px rgba(0,0,0,0.08)',
+            },
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark">
+<div class="relative flex min-h-screen w-full flex-col">
+<main class="flex h-full w-full flex-col items-center p-4 sm:p-6 md:p-8 lg:p-12">
+<div class="w-full max-w-5xl space-y-8">
+<!-- Page Header -->
+<div class="space-y-1">
+<h1 class="text-3xl font-bold tracking-tight text-text-primary-light dark:text-text-primary-dark">AI Providers</h1>
+<p class="text-base text-text-secondary">Configure AI models and API connections</p>
+</div>
+<!-- Provider Cards -->
+<div class="space-y-6">
+<!-- Connected Provider Card: Anthropic -->
+<div class="flex flex-col rounded-lg border border-border-light bg-surface-light shadow-md dark:border-border-dark dark:bg-surface-dark" style="border-left: 4px solid #10B981;">
+<div class="p-6">
+<div class="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+<div class="flex items-center gap-4">
+<img alt="Anthropic logo" class="h-10 w-10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFmTS67Xjh9C-6OlKhOiv1SAD_wV5Fvzwk9W2Dg6gQFEN4_ZR-w8ebtVGWVs42O00BO4O0NZCVNEresjJWSGvL46vEs_Ct8iRAaHIoN6Ev4kv_BmwA2Vy3mSGRi1oGFc3up0-J6ylV89VNdY_WcWJJGYTlTmHFHr3A2Lc7VGxa2bfaRqVLRLaLLLQkcKCFXFHmYfuJ10x5xnTY4gSY53uCkD2k24xyYSngWz3HWe_TiDg2Qm5JpZeVqBhFdgENq-yFYm5JLRbOQfR8"/>
+<div>
+<div class="flex items-center gap-3">
+<h2 class="text-lg font-semibold">Anthropic (Claude)</h2>
+<span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">Recommended</span>
+</div>
+<p class="text-sm text-text-secondary">Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku</p>
+</div>
+</div>
+<div class="flex items-center gap-2 text-sm font-medium">
+<div class="h-2 w-2 rounded-full bg-success"></div>
+<span class="text-success">Connected</span>
+</div>
+</div>
+<hr class="my-4 border-border-light dark:border-border-dark"/>
+<div class="space-y-4">
+<div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+<div class="space-y-1">
+<p class="font-code text-sm text-text-secondary">API Key: <span class="text-text-primary-light dark:text-text-primary-dark">sk-ant-••••••••••••••••4f2a</span></p>
+<p class="text-xs text-text-secondary">Status: Verified · Last checked 5 min ago</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex h-9 items-center justify-center gap-2 rounded-md border border-border-light bg-surface-light px-3 text-sm font-medium hover:bg-gray-50 dark:border-border-dark dark:bg-surface-dark dark:hover:bg-white/5">Edit</button>
+<button class="flex h-9 items-center justify-center gap-2 rounded-md border border-border-light bg-surface-light px-3 text-sm font-medium hover:bg-gray-50 dark:border-border-dark dark:bg-surface-dark dark:hover:bg-white/5">Test</button>
+</div>
+</div>
+<div>
+<div class="flex items-baseline justify-between text-sm">
+<p class="text-text-secondary">Usage this month:</p>
+<p class="font-medium text-text-primary-light dark:text-text-primary-dark">$127.45 / $500 limit</p>
+</div>
+<div class="relative mt-1 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+<div class="absolute left-0 top-0 h-full rounded-full bg-primary" style="width: 25%;"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex justify-end gap-2 rounded-b-lg border-t border-border-light bg-gray-50 p-4 dark:border-border-dark dark:bg-surface-dark/50">
+<button class="flex h-9 items-center justify-center gap-2 rounded-md border border-border-light bg-surface-light px-3 text-sm font-medium hover:bg-gray-50 dark:border-border-dark dark:bg-surface-dark dark:hover:bg-white/5">View Usage</button>
+<button class="flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90">Configure</button>
+</div>
+</div>
+<!-- Not Connected Provider Card: OpenAI -->
+<div class="flex flex-col rounded-lg border border-border-light bg-surface-light shadow-md dark:border-border-dark dark:bg-surface-dark" style="border-left: 4px solid #E5E5E5;">
+<div class="p-6">
+<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+<div class="flex items-center gap-4">
+<img alt="OpenAI logo" class="h-10 w-10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOy_tsJQw0kaUihmRWKQ7MFptf0qv4GXB6mBWFWJw1mvpUmk9YUinKPp8aVTSThvKgiWxHFRVsZx_XXwaY3DO6zuQtc5gwAiAkeRMTwPR6wFK-rl9H1alz_KVs2GytofeTs98zieUNbYTl88oD0D3gu_06SCdG8jcOr9nLsgnYrXV2oVbTbbrVYGQez5lRj1xPvR2te_e7rIE0R7iBXkhZbcTQKoeS6XzSkRCCMgivrALnjdKPy2QFhLWz-lMgJAxs5qIASVukQ8GQ"/>
+<div>
+<h2 class="text-lg font-semibold">OpenAI (GPT)</h2>
+<p class="text-sm text-text-secondary">GPT-4, GPT-4 Turbo, GPT-3.5 Turbo</p>
+</div>
+</div>
+<div class="flex items-center gap-2 text-sm font-medium">
+<div class="h-2 w-2 rounded-full bg-gray-400"></div>
+<span class="text-text-secondary">Not Connected</span>
+</div>
+</div>
+<hr class="my-4 border-border-light dark:border-border-dark"/>
+<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+<p class="text-sm text-text-secondary">Connect your OpenAI account to use GPT models</p>
+<button class="flex h-9 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90 sm:w-auto">Connect OpenAI</button>
+</div>
+</div>
+</div>
+<!-- Not Connected Provider Card: Google -->
+<div class="flex flex-col rounded-lg border border-border-light bg-surface-light shadow-md dark:border-border-dark dark:bg-surface-dark" style="border-left: 4px solid #E5E5E5;">
+<div class="p-6">
+<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+<div class="flex items-center gap-4">
+<img alt="Google logo" class="h-10 w-10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA128HeSy4PhyGnV2mbhxkofUvKy1lsjYMlG9BoN3HBZWFVtdOhC6p4LN7DuhXyBmaouuA2ssvdY-3yNh5KUNTga15B2TlXPhiJjFPgJRldbpSqn2OPQQaoLZMQbVNAvbi2j0vRVEVIasKDo0tRBSCZ7jeSB_3Jq0dVFrVzWBi2WuTpT_Wc5FalAVHY27AkdeqCMVXPw2e-40wCjoJu2Yydl7GjfAnbm3IH3G0UszjBKEMfvB665RuLmUfEB1biu2kBk9VqzK1Yo6Sa"/>
+<div>
+<h2 class="text-lg font-semibold">Google (Gemini)</h2>
+<p class="text-sm text-text-secondary">Gemini Pro, Gemini Ultra</p>
+</div>
+</div>
+<div class="flex items-center gap-2 text-sm font-medium">
+<div class="h-2 w-2 rounded-full bg-gray-400"></div>
+<span class="text-text-secondary">Not Connected</span>
+</div>
+</div>
+<div class="mt-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+<p class="text-sm text-text-secondary flex-grow">Connect your Google account to use Gemini models</p>
+<button class="flex h-9 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90 sm:w-auto">Connect Google</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Model Comparison Table -->
+<div class="overflow-hidden rounded-lg border border-border-light bg-surface-light shadow-md dark:border-border-dark dark:bg-surface-dark">
+<div class="p-6">
+<h3 class="text-lg font-semibold">Available Models</h3>
+</div>
+<div class="w-full overflow-x-auto">
+<table class="min-w-full divide-y divide-border-light text-left text-sm dark:divide-border-dark">
+<thead class="bg-gray-50 dark:bg-white/5">
+<tr>
+<th class="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-text-secondary" scope="col">Model</th>
+<th class="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-text-secondary" scope="col">Speed</th>
+<th class="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-text-secondary" scope="col">Quality</th>
+<th class="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-text-secondary" scope="col">Cost</th>
+<th class="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-text-secondary" scope="col">Best For</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-light dark:divide-border-dark">
+<tr class="hover:bg-gray-50 dark:hover:bg-white/5">
+<td class="whitespace-nowrap px-6 py-4 font-medium text-text-primary-light dark:text-text-primary-dark">Claude 3.5 Sonnet</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">Fast</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">High</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">$3/1M tok</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">General use</td>
+</tr>
+<tr class="bg-gray-50 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10">
+<td class="whitespace-nowrap px-6 py-4 font-medium text-text-primary-light dark:text-text-primary-dark">Claude 3 Opus</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">Slower</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">Highest</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">$15/1M</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">Complex tasks</td>
+</tr>
+<tr class="hover:bg-gray-50 dark:hover:bg-white/5">
+<td class="whitespace-nowrap px-6 py-4 font-medium text-text-primary-light dark:text-text-primary-dark">Claude 3 Haiku</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">Fastest</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">Good</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">$0.25/1M</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">Simple tasks</td>
+</tr>
+<tr class="bg-gray-50 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10">
+<td class="whitespace-nowrap px-6 py-4 font-medium text-text-primary-light dark:text-text-primary-dark">GPT-4 Turbo</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">Medium</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">High</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">$10/1M</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">Analysis</td>
+</tr>
+<tr class="hover:bg-gray-50 dark:hover:bg-white/5">
+<td class="whitespace-nowrap px-6 py-4 font-medium text-text-primary-light dark:text-text-primary-dark">GPT-3.5 Turbo</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">Fastest</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">Medium</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">$0.50/1M</td>
+<td class="whitespace-nowrap px-6 py-4 text-text-secondary">Quick tasks</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- All modals would be conditionally rendered in a real app. For this static wireframe, they are hidden but present in the DOM. -->
+<!-- Connect Provider Modal -->
+<div class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+<div class="w-full max-w-md rounded-lg bg-surface-light shadow-xl dark:bg-surface-dark dark:border dark:border-border-dark">
+<div class="flex items-center justify-between border-b border-border-light p-4 dark:border-border-dark">
+<h3 class="text-lg font-semibold">Connect Anthropic</h3>
+<button class="text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">
+<span class="material-symbols-outlined !text-2xl">close</span>
+</button>
+</div>
+<div class="p-6 space-y-6">
+<div class="text-center">
+<img alt="Anthropic logo" class="mx-auto h-12 w-12" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-_Lx6wBQBDJmdUmbTWgM0wX6tkv9zvaQaSKlZSD9PZyjrSOsqw6jF9px-HEPwf6KiDWsm0cDViF7NlrPUKU-ISOWN7r3BIE4BQZYEbL5jkyntda16y3py8M-0nb9P_0ZsH-pSnPhaCcTM9mLzl87mfwLUuhgykFIKXftca6tX2aHewvzVnOIe0QzH7vVh-GaXYHhp-u1NTnMPSRweuI1ywHJ-WYDZUa7E0eHFXdS3xhjLzKl_FILiyZ8QjXB0Yd8bZX1kwKgtqi5H"/>
+<p class="mt-4 text-sm text-text-secondary">Enter your Anthropic API key to connect Claude models.</p>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium" for="api-key">API Key</label>
+<input class="w-full rounded-md border-border-light bg-surface-light font-code text-sm shadow-sm focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-surface-dark/50 dark:placeholder:text-gray-500" id="api-key" placeholder="sk-ant-api03-" type="text"/>
+<div class="flex items-center justify-between">
+<p class="text-xs text-text-secondary">Get your API key from console.anthropic.com</p>
+<a class="flex items-center gap-1 text-xs font-medium text-primary hover:underline" href="#">
+                        Get API Key <span class="material-symbols-outlined !text-sm">arrow_outward</span>
+</a>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium" for="spend-limit">Monthly Spend Limit (Optional)</label>
+<div class="relative">
+<span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-text-secondary">$</span>
+<input class="w-full rounded-md border-border-light bg-surface-light pl-7 text-sm shadow-sm focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-surface-dark/50 dark:placeholder:text-gray-500" id="spend-limit" placeholder="500" type="number"/>
+</div>
+<p class="text-xs text-text-secondary">You'll be notified when approaching this limit</p>
+</div>
+<div class="flex items-center gap-2">
+<input class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="default-provider" type="checkbox"/>
+<label class="text-sm text-text-secondary" for="default-provider">Set as default provider for new agents</label>
+</div>
+</div>
+<div class="flex justify-end gap-3 rounded-b-lg border-t border-border-light bg-gray-50 p-4 dark:border-border-dark dark:bg-surface-dark/50">
+<button class="flex h-9 items-center justify-center rounded-md border border-border-light bg-surface-light px-4 text-sm font-medium hover:bg-gray-50 dark:border-border-dark dark:bg-surface-dark dark:hover:bg-white/5">Cancel</button>
+<button class="flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90">Connect &amp; Verify</button>
+</div>
+</div>
+</div>
+<!-- Verification States Modals (showing Success for example) -->
+<div class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+<!-- Verifying State -->
+<div class="w-full max-w-sm rounded-lg bg-surface-light text-center shadow-xl dark:bg-surface-dark dark:border dark:border-border-dark p-8 space-y-4">
+<svg class="mx-auto h-12 w-12 animate-spin text-primary" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+<path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+</svg>
+<h3 class="text-lg font-semibold">Verifying API key...</h3>
+<p class="text-sm text-text-secondary">Checking connection to Anthropic</p>
+</div>
+<!-- Success State -->
+<div class="w-full max-w-md rounded-lg bg-surface-light shadow-xl dark:bg-surface-dark dark:border dark:border-border-dark p-8 space-y-4">
+<div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
+<span class="material-symbols-outlined text-success !text-3xl">check_circle</span>
+</div>
+<div class="text-center">
+<h3 class="text-lg font-semibold">Connected Successfully</h3>
+<p class="mt-2 text-sm text-text-secondary">Your Anthropic account is now connected.</p>
+</div>
+<div class="rounded-md bg-gray-50 p-4 text-left text-sm dark:bg-surface-dark/50">
+<p class="font-medium">Available models:</p>
+<ul class="mt-2 list-disc list-inside space-y-1 text-text-secondary">
+<li>Claude 3.5 Sonnet (claude-3-5-sonnet-20241022)</li>
+<li>Claude 3 Opus (claude-3-opus-20240229)</li>
+<li>Claude 3 Haiku (claude-3-haiku-20240307)</li>
+</ul>
+</div>
+<div class="pt-4 text-right">
+<button class="flex h-9 ml-auto items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90">Done</button>
+</div>
+</div>
+<!-- Error State -->
+<div class="w-full max-w-md rounded-lg bg-surface-light shadow-xl dark:bg-surface-dark dark:border dark:border-border-dark p-8 space-y-4">
+<div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-error/10">
+<span class="material-symbols-outlined text-error !text-3xl">error</span>
+</div>
+<div class="text-center">
+<h3 class="text-lg font-semibold">Connection Failed</h3>
+<p class="mt-2 text-sm text-text-secondary">Invalid API key. Please check and try again.</p>
+</div>
+<div class="rounded-md border border-warning/50 bg-warning/10 p-4 text-left text-sm text-yellow-800 dark:text-yellow-300">
+<p class="font-medium">Common issues:</p>
+<ul class="mt-2 list-disc list-inside space-y-1">
+<li>API key may have expired</li>
+<li>Key may not have required permissions</li>
+<li>Rate limit may have been exceeded</li>
+</ul>
+</div>
+<div class="pt-4 flex justify-end gap-3">
+<button class="flex h-9 items-center justify-center rounded-md border border-border-light bg-surface-light px-4 text-sm font-medium hover:bg-gray-50 dark:border-border-dark dark:bg-surface-dark dark:hover:bg-white/5">Get Help</button>
+<button class="flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90">Try Again</button>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-13 Contact Quick View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400,FILL@0..1" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+              "hot": "#EF4444",
+              "warm": "#F59E0B",
+              "cold": "#3B82F6"
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="relative flex min-h-screen w-full flex-col group/design-root" style="background-image: url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 100 100\'%3E%3Cg fill-rule=\'evenodd\'%3E%3Cg fill=\'%23e0e0e0\' fill-opacity=\'0.2\'%3E%3Cpath opacity=\'.5\' d=\'M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z\'/%3E%3Cpath d=\'M6 5V0h1v5h9V0h1v5h9V0h1v5h9V0h1v5h9V0h1v5h9V0h1v5h9V0h1v5h9V0h1v5h9V0h1v5h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h-1v-9h-9v9h-1v-9h-9v9h-1v-9h-9v9h-1v-9h-9v9h-1v-9h-9v9h-1v-9h-9v9h-1v-9h-9v9h-1v-9H0v-1h5v-9H0v-1h5v-9H0v-1h5v-9H0v-1h5v-9H0v-1h5v-9H0v-1h5v-9H0v-1h5V0h1v5h9V0h1v5h9V0h1v5h9V0h1v5h9V0h1v5h9V0h1v5h9V0h1v5h9V0h1v5h9V0h1v5zm-1 95V6h-9v9h9v1h-9v9h9v1h-9v9h9v1h-9v9h9v1h-9v9h9v1h-9v9h9v1h-9v9h9v1h-9v9zm-10-9v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');">
+<!-- Backdrop -->
+<div class="fixed inset-0 bg-black/40 z-40"></div>
+<!-- Slide-Out Panel -->
+<div class="fixed inset-y-0 right-0 z-50 flex h-full max-w-md w-full flex-col overflow-y-auto bg-white dark:bg-[#1C2534] shadow-2xl">
+<!-- Header -->
+<div class="flex items-start justify-between p-6 border-b border-[#E5E7EB] dark:border-[#2A374A]">
+<!-- ProfileHeader modified -->
+<div class="flex w-full flex-col gap-4 items-start">
+<div class="flex gap-4 flex-col items-start w-full">
+<div class="flex items-center gap-4 w-full">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full min-h-20 w-20" data-alt="Jordan Walker's avatar, an abstract gradient of blue and purple" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCyStAFZTHYqdI7y3O8BPc1wYQKnz3RGZuTJYLpBqx__SBsVZDUV0tiQyVNwEt9KtA562vDOowMjhQFAqE8dp63z8JNA7mOrpu2YCiEn7Emy2QubEpP92aJBO0Fqy5lws_5FvWGBU4cufRnyij6gzEelGQrmnsj3dweeGNge_gMwuIuKQjvuXMoIvh-evbuIq4fK3qtyoh8spyrzSKLLDqxjndgB0Q5-IA71BShfpKKf-JeMv7ultKBRW7jnK3KNFSOOMCGlH_SiVs");'></div>
+<div class="flex flex-col justify-center">
+<p class="text-[#111318] dark:text-white text-2xl font-bold leading-tight">Jordan Walker</p>
+<p class="text-[#616f89] dark:text-[#94a3b8] text-base font-normal leading-normal">Senior Account Executive</p>
+</div>
+</div>
+</div>
+</div>
+<button class="flex min-w-[40px] h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-[#616f89] dark:text-[#94a3b8] hover:bg-[#f0f2f4] dark:hover:bg-[#2A374A]">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Action Bar -->
+<div class="p-6 border-b border-[#E5E7EB] dark:border-[#2A374A]">
+<div class="flex w-full gap-3">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-[#f0f2f4] dark:bg-[#2A374A] text-[#111318] dark:text-white text-sm font-bold leading-normal flex-1">
+<span class="material-symbols-outlined">edit</span>
+<span class="truncate">Edit</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal flex-1">
+<span class="material-symbols-outlined">email</span>
+<span class="truncate">Email</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-[#f0f2f4] dark:bg-[#2A374A] text-[#111318] dark:text-white text-sm font-bold leading-normal flex-1">
+<span class="material-symbols-outlined">call</span>
+<span class="truncate">Call</span>
+</button>
+</div>
+</div>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto">
+<!-- Contact Details -->
+<div class="p-6">
+<h3 class="text-[#111318] dark:text-white text-base font-bold leading-tight tracking-[-0.015em] mb-4">Contact Details</h3>
+<!-- DescriptionList modified -->
+<div class="grid grid-cols-[25%_1fr] gap-x-4">
+<div class="col-span-2 grid grid-cols-subgrid border-t border-[#E5E7EB] dark:border-[#2A374A] py-3">
+<p class="text-[#616f89] dark:text-[#94a3b8] text-sm font-normal leading-normal">Company</p>
+<a class="text-primary text-sm font-medium leading-normal hover:underline" href="#">Innovate Solutions Inc.</a>
+</div>
+<div class="col-span-2 grid grid-cols-subgrid border-t border-[#E5E7EB] dark:border-[#2A374A] py-3">
+<p class="text-[#616f89] dark:text-[#94a3b8] text-sm font-normal leading-normal">Email</p>
+<p class="text-[#111318] dark:text-white text-sm font-normal leading-normal">j.walker@innovatesolutions.com</p>
+</div>
+<div class="col-span-2 grid grid-cols-subgrid border-t border-[#E5E7EB] dark:border-[#2A374A] py-3">
+<p class="text-[#616f89] dark:text-[#94a3b8] text-sm font-normal leading-normal">Phone</p>
+<p class="text-[#111318] dark:text-white text-sm font-normal leading-normal">+1 (555) 123-4567</p>
+</div>
+<div class="col-span-2 grid grid-cols-subgrid border-t border-b border-[#E5E7EB] dark:border-[#2A374A] py-3">
+<p class="text-[#616f89] dark:text-[#94a3b8] text-sm font-normal leading-normal">LinkedIn</p>
+<a class="text-primary text-sm font-medium leading-normal hover:underline truncate" href="#">linkedin.com/in/jordanwalker</a>
+</div>
+</div>
+</div>
+<!-- Lead Score -->
+<div class="p-6 border-t border-[#E5E7EB] dark:border-[#2A374A]">
+<!-- SectionHeader -->
+<h3 class="text-[#111318] dark:text-white text-base font-bold leading-tight tracking-[-0.015em] mb-4">Lead Score</h3>
+<!-- ProgressBar modified -->
+<div class="flex flex-col gap-3">
+<div class="flex gap-4 justify-between items-center">
+<div class="inline-flex items-center justify-center rounded-full bg-hot/10 px-3 py-1 text-sm font-medium text-hot">Hot Lead</div>
+<p class="text-[#111318] dark:text-white text-sm font-medium leading-normal">85/100</p>
+</div>
+<div class="rounded-full bg-[#dbdfe6] dark:bg-[#2A374A]"><div class="h-2 rounded-full bg-hot" style="width: 85%;"></div></div>
+</div>
+<!-- MetaText -->
+<p class="text-[#616f89] dark:text-[#94a3b8] text-sm font-normal leading-normal pt-4 pb-2">Top Contributing Factors:</p>
+<ul class="flex flex-col gap-1 list-disc list-inside text-[#111318] dark:text-white text-sm">
+<li>Viewed Pricing Page</li>
+<li>Opened 3 Emails</li>
+<li>Downloaded Whitepaper</li>
+</ul>
+</div>
+<!-- Associated Records -->
+<div class="p-6 border-t border-[#E5E7EB] dark:border-[#2A374A]">
+<h3 class="text-[#111318] dark:text-white text-base font-bold leading-tight tracking-[-0.015em] mb-4">Associated Records</h3>
+<div class="flex flex-col gap-3">
+<a class="flex items-center gap-3 p-3 rounded-lg hover:bg-[#f0f2f4] dark:hover:bg-[#2A374A]" href="#">
+<div class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 text-primary">
+<span class="material-symbols-outlined">domain</span>
+</div>
+<div class="flex flex-col">
+<p class="text-[#616f89] dark:text-[#94a3b8] text-xs">Company</p>
+<p class="text-[#111318] dark:text-white text-sm font-medium">Innovate Solutions Inc.</p>
+</div>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg hover:bg-[#f0f2f4] dark:hover:bg-[#2A374A]" href="#">
+<div class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 text-primary">
+<span class="material-symbols-outlined">monetization_on</span>
+</div>
+<div class="flex flex-col">
+<p class="text-[#616f89] dark:text-[#94a3b8] text-xs">Deal</p>
+<p class="text-[#111318] dark:text-white text-sm font-medium">Q4 Enterprise Deal - $50k</p>
+</div>
+</a>
+</div>
+</div>
+<!-- Recent Activity Timeline -->
+<div class="p-6 border-t border-[#E5E7EB] dark:border-[#2A374A]">
+<h3 class="text-[#111318] dark:text-white text-base font-bold leading-tight tracking-[-0.015em] mb-4">Recent Activity</h3>
+<div class="relative flex flex-col gap-6 pl-6">
+<!-- Vertical line -->
+<div class="absolute left-[11px] top-1 bottom-1 w-0.5 bg-[#E5E7EB] dark:bg-[#2A374A]"></div>
+<!-- Timeline Item 1 -->
+<div class="relative flex items-start gap-4">
+<div class="absolute -left-[14px] top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white dark:bg-[#1C2534]">
+<div class="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-primary">
+<span class="material-symbols-outlined !text-xs">call</span>
+</div>
+</div>
+<div class="flex flex-col">
+<p class="text-[#111318] dark:text-white text-sm font-medium">Call Logged</p>
+<p class="text-[#616f89] dark:text-[#94a3b8] text-sm">2 days ago</p>
+</div>
+</div>
+<!-- Timeline Item 2 -->
+<div class="relative flex items-start gap-4">
+<div class="absolute -left-[14px] top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white dark:bg-[#1C2534]">
+<div class="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-primary">
+<span class="material-symbols-outlined !text-xs">outgoing_mail</span>
+</div>
+</div>
+<div class="flex flex-col">
+<p class="text-[#111318] dark:text-white text-sm font-medium">Email Sent: "Following Up"</p>
+<p class="text-[#616f89] dark:text-[#94a3b8] text-sm">4 days ago</p>
+</div>
+</div>
+<!-- Timeline Item 3 -->
+<div class="relative flex items-start gap-4">
+<div class="absolute -left-[14px] top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white dark:bg-[#1C2534]">
+<div class="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-primary">
+<span class="material-symbols-outlined !text-xs">note_add</span>
+</div>
+</div>
+<div class="flex flex-col">
+<p class="text-[#111318] dark:text-white text-sm font-medium">Note Added</p>
+<p class="text-[#616f89] dark:text-[#94a3b8] text-sm">1 week ago</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Actions Footer -->
+<div class="p-6 border-t border-[#E5E7EB] dark:border-[#2A374A] bg-white dark:bg-[#1C2534] sticky bottom-0">
+<div class="flex flex-col gap-3">
+<textarea class="block w-full text-sm rounded-lg border border-[#dbdfe6] dark:border-[#2A374A] bg-[#f0f2f4] dark:bg-[#2A374A] px-3 py-2 text-[#111318] dark:text-white placeholder:text-[#616f89] dark:placeholder:text-[#94a3b8] focus:border-primary focus:ring-primary" placeholder="Log an activity or note..." rows="3"></textarea>
+<div class="flex gap-2">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-3 bg-primary text-white text-sm font-bold leading-normal flex-1">
+<span class="truncate">Log Activity</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-3 bg-[#f0f2f4] dark:bg-[#2A374A] text-[#111318] dark:text-white text-sm font-bold leading-normal flex-auto">
+<span class="truncate">Create Task</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-3 bg-[#f0f2f4] dark:bg-[#2A374A] text-[#111318] dark:text-white text-sm font-bold leading-normal flex-auto">
+<span class="truncate">Schedule Meeting</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

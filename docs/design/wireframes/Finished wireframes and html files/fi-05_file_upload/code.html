@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FI-05 File Upload</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ff6b6b",
+              "background-light": "#f8f5f5",
+              "background-dark": "#230f0f",
+              "success": "#22c55e",
+              "error": "#ef4444",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<div class="flex flex-1 justify-center py-5">
+<div class="layout-content-container flex flex-col w-full max-w-6xl px-4">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 dark:border-gray-800 px-6 py-4">
+<div class="flex items-center gap-4 text-gray-900 dark:text-white">
+<div class="size-6 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 42.4379C4 42.4379 14.0962 36.0744 24 41.1692C35.0664 46.8624 44 42.2078 44 42.2078L44 7.01134C44 7.01134 35.068 11.6577 24.0031 5.96913C14.0971 0.876274 4 7.27094 4 7.27094L4 42.4379Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-xl font-bold leading-tight tracking-tight">HYVVE</h2>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<div class="hidden md:flex items-center gap-6">
+<a class="text-sm font-medium hover:text-primary dark:text-gray-300 dark:hover:text-primary" href="#">Dashboard</a>
+<a class="text-sm font-medium hover:text-primary dark:text-gray-300 dark:hover:text-primary" href="#">Projects</a>
+<a class="text-sm font-medium hover:text-primary dark:text-gray-300 dark:hover:text-primary" href="#">Files</a>
+<a class="text-sm font-medium hover:text-primary dark:text-gray-300 dark:hover:text-primary" href="#">Settings</a>
+</div>
+<div class="flex gap-2">
+<button class="flex cursor-pointer items-center justify-center rounded-full h-10 w-10 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<button class="flex cursor-pointer items-center justify-center rounded-full h-10 w-10 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-xl">help</span>
+</button>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCrzO8roCLQ0BgqV1MyuQKdFv0rvVa-gLl1T4RbF5WXg3hAQ_eAw-f2w0MX1yFxOSOA1MVbz-6jBxuPpOQyTtIb9NMfInjTLEUOX6B4-uNpyVyTYZlPjOpxXVWXH3T8EN74YxAnTgnYb5Pq8xhD70xarCGI9qcY8_beIt-jm2ll1BDHKGyKI4Jyat6LpYnMEKvBxpS4sHPKsl4rczY2rIZ6jxM-w2CamrRWrX01HBrlnRqBJ1xE07V9xLYJp46VkLIMjqRswS9BDXU");'></div>
+</div>
+</header>
+<main class="flex-1 p-6 space-y-12">
+<div class="flex flex-wrap justify-between items-center gap-4">
+<p class="text-4xl font-black leading-tight tracking-tighter text-gray-900 dark:text-white">File Upload Components</p>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+<!-- Left Column: Main Upload Flow -->
+<div class="space-y-8">
+<!-- Default State -->
+<div>
+<h2 class="text-lg font-bold leading-tight tracking-tight px-1 pb-3 text-gray-800 dark:text-gray-200">Default Drop Zone</h2>
+<div class="flex flex-col p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50">
+<div class="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 px-6 py-10">
+<div class="flex-col items-center justify-center text-center">
+<span class="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-500">cloud_upload</span>
+<p class="text-lg font-bold text-gray-800 dark:text-gray-200 mt-2">Drag &amp; drop files here</p>
+<p class="text-sm text-gray-500 dark:text-gray-400">Supports: JPG, PNG, PDF. Max size: 50MB</p>
+</div>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-bold hover:bg-gray-200 dark:hover:bg-gray-600">
+<span>Click to browse</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Drag Active State -->
+<div>
+<h2 class="text-lg font-bold leading-tight tracking-tight px-1 pb-3 text-gray-800 dark:text-gray-200">Drag Active State</h2>
+<div class="flex flex-col p-4 rounded-xl border border-primary/50 dark:border-primary/50 bg-primary/10 dark:bg-primary/20">
+<div class="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-primary dark:border-primary px-6 py-10">
+<div class="flex-col items-center justify-center text-center">
+<span class="material-symbols-outlined text-5xl text-primary">file_upload</span>
+<p class="text-lg font-bold text-primary">Drop files to upload</p>
+<p class="text-sm text-primary/80">Release to start the upload process</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Uploading State -->
+<div>
+<h2 class="text-lg font-bold leading-tight tracking-tight px-1 pb-3 text-gray-800 dark:text-gray-200">Uploading State</h2>
+<div class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 space-y-3">
+<div class="flex justify-between items-center px-2">
+<h3 class="text-sm font-semibold text-gray-600 dark:text-gray-300">Uploading 3 files...</h3>
+<button class="text-sm font-medium text-primary hover:text-primary/80">Cancel All</button>
+</div>
+<!-- File 1: Uploading -->
+<div class="flex items-center gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+<div class="flex items-center justify-center size-10 rounded bg-primary/20 text-primary">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">project_brief_final_v2.pdf</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">4.2 MB</p>
+</div>
+<div class="w-24">
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+<div class="bg-primary h-1.5 rounded-full" style="width: 45%"></div>
+</div>
+<p class="text-xs text-gray-500 dark:text-gray-400 text-right mt-1">45%</p>
+</div>
+<button class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+<!-- File 2: Processing -->
+<div class="flex items-center gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+<div class="size-10 rounded bg-gray-200 dark:bg-gray-700 bg-cover bg-center" data-alt="abstract design thumbnail" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA_wneR869JFWoFsqPvCBWr_gHHXvm1LAbizH4Ra_s10ca_XWNJfon0EBqDNHgDNT3nZZUnIdedYEYJLtoGDs1RXpA-Wrv26rIoLnsCO8FGugxbkGfFsv2WemO_K_ih-t8gOd7P7LJbi2wYFndp7MQ0vNidCFnseyPJAEZZt-s5Y3kT5FtemCUH2zrYVjXWHGZNzM_YSR7e7t3PRho_4CxVKqAn0PPyBeXqHaajSUcDt382TU8jGUb0OE9LSI3AsCdU_GFNJv8eIUU');"></div>
+<div class="flex-1">
+<p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">moodboard_inspiration.jpg</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">12.8 MB</p>
+</div>
+<div class="w-24">
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+<div class="bg-primary h-1.5 rounded-full" style="width: 100%"></div>
+</div>
+<p class="text-xs text-gray-500 dark:text-gray-400 text-right mt-1">Processing...</p>
+</div>
+<button class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Completed & Error State -->
+<div>
+<h2 class="text-lg font-bold leading-tight tracking-tight px-1 pb-3 text-gray-800 dark:text-gray-200">Completed &amp; Error State</h2>
+<div class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 space-y-3">
+<div class="flex justify-between items-center px-2">
+<h3 class="text-sm font-semibold text-gray-600 dark:text-gray-300">Uploads complete</h3>
+<button class="text-sm font-medium text-primary hover:text-primary/80">Clear All</button>
+</div>
+<!-- File 1: Success -->
+<div class="flex items-center gap-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+<div class="size-10 rounded bg-gray-200 dark:bg-gray-700 bg-cover bg-center" data-alt="Mountain landscape thumbnail" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAm6dlNYaCJvbTHEIbATkNLVCm7YuFXFwaTPIJahS0q5-HwAhuKnBOAJulSMU64JNmdlgkFSVo740weKBH6kHu23V7-V3vBnGEvoc1Ieunj-FRrvXxyF12ntZgp3vZ4co_3scHY1uqree_oGbMHDAQK49KMch8C3JuWOthB2919Hhr0ISdV_SqFe4fzmZRC3TLiRehhcA_4IVzr_rO_anIJQq2yroXicpOHNXMqdcVikcpuu-lMeb5Cp51Yul__9F5c9rpJijJI6Qo');"></div>
+<div class="flex-1">
+<p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">hero_banner_final.png</p>
+<p class="text-xs text-green-600 dark:text-green-400 font-medium">Upload complete</p>
+</div>
+<span class="material-symbols-outlined text-xl text-success">check_circle</span>
+<button class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+<span class="material-symbols-outlined text-xl">delete</span>
+</button>
+</div>
+<!-- File 2: Error (File size) -->
+<div class="flex items-center gap-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+<div class="flex items-center justify-center size-10 rounded bg-error/20 text-error">
+<span class="material-symbols-outlined">videocam</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">product_demo_export.mp4</p>
+<p class="text-xs text-error font-medium">Upload failed: File exceeds 50MB limit.</p>
+</div>
+<button class="text-sm font-medium text-primary hover:text-primary/80">Retry</button>
+</div>
+<!-- File 3: Error (File type) -->
+<div class="flex items-center gap-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+<div class="flex items-center justify-center size-10 rounded bg-error/20 text-error">
+<span class="material-symbols-outlined">folder_zip</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">project_assets.zip</p>
+<p class="text-xs text-error font-medium">Upload failed: File type not allowed.</p>
+</div>
+<button class="text-sm font-medium text-primary hover:text-primary/80">Retry</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Compact & Avatar Uploaders -->
+<div class="space-y-8">
+<!-- Compact Version -->
+<div>
+<h2 class="text-lg font-bold leading-tight tracking-tight px-1 pb-3 text-gray-800 dark:text-gray-200">Compact Upload Button</h2>
+<div class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 flex flex-col items-start gap-4">
+<p class="text-sm text-gray-600 dark:text-gray-400">Use a compact button for areas with limited space, like forms or tables.</p>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold gap-2 hover:bg-primary/90">
+<span class="material-symbols-outlined text-xl">upload_file</span>
+<span class="truncate">Upload File</span>
+</button>
+</div>
+</div>
+<!-- Avatar Uploader -->
+<div>
+<h2 class="text-lg font-bold leading-tight tracking-tight px-1 pb-3 text-gray-800 dark:text-gray-200">Avatar Upload</h2>
+<div class="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 space-y-8">
+<!-- Default State -->
+<div class="flex flex-col items-center gap-4">
+<p class="font-medium text-gray-800 dark:text-gray-200">Default State</p>
+<div class="relative group">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-24 border-2 border-dashed border-gray-300 dark:border-gray-600" data-alt="placeholder for user avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDzrmCyDETp3X7ipEzJtUfzc2Db8S0ukmOJj1CPTnKHehxM5rSO58GmG7e5-OPvYPdnJdOiq_WpwYG4LjyOEoPWbqxhVbexbzJtYn-AcWDaADXfm1dQUpN5XygmviZ4jhuAeT9-DOkJlQO9wQVxBwxUpTIzkO2BSrzaSPDZMBsDqIdfl_zWaVBFt7qPZCuV09Nk9f1PIBI7yUd-UObMrPodnHma9te6ie1aVB00eJ4KYaleDFHKfbdKT02qqdaJC-PEhMgJg44c7dI");'></div>
+<div class="absolute inset-0 rounded-full bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+<span class="material-symbols-outlined text-white text-2xl">photo_camera</span>
+<span class="text-xs text-white font-semibold">Change</span>
+</div>
+</div>
+</div>
+<!-- Preview State -->
+<div class="flex flex-col items-center gap-4">
+<p class="font-medium text-gray-800 dark:text-gray-200">Preview State</p>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-24 border-2 border-primary" data-alt="newly uploaded user avatar for preview" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBWO9PvUp_YpoaJQskpPC1-gHuw4IR9_3Ncjw9CJaE_eCLy4X-uKIjPHSJz34DNf1WiqG13ddmq_f1vtcCL8zyNMJoB_H1YBDDlUclxoRG1ZmkKSXfPc0glfguqI5_Brwq4ZUgrTRi-dQKu9ct7pGqjkUAWkWAucsVTvZbtK4KWJAW5Wbee2vcZqdrnf01_09NJfPU6S3k656Aw5L0MIVRAqN7-AJirWIEzfNy1TyWWflCHa2Awz3RbcqbFCdNaoSXasoz1s0YlY0c");'></div>
+<div class="flex items-center gap-2">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-bold hover:bg-gray-200 dark:hover:bg-gray-600">
+<span>Cancel</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90">
+<span>Save</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</div>
+</div>
+</body></html>

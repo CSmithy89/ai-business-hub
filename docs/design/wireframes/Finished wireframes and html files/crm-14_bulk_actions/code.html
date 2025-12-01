@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-14 Bulk Actions</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                        "destructive": "#D92D20",
+                        "success": "#12B76A",
+                        "warning": "#F79009"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="flex h-screen min-h-[700px] flex-col justify-between bg-white dark:bg-background-dark/50 p-4 w-64 border-r border-gray-200 dark:border-gray-800">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-3">
+<div class="size-8 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M24 45.8096C19.6865 45.8096 15.4698 44.5305 11.8832 42.134C8.29667 39.7376 5.50128 36.3314 3.85056 32.3462C2.19985 28.361 1.76794 23.9758 2.60947 19.7452C3.451 15.5145 5.52816 11.6284 8.57829 8.5783C11.6284 5.52817 15.5145 3.45101 19.7452 2.60948C23.9758 1.76795 28.361 2.19986 32.3462 3.85057C36.3314 5.50129 39.7376 8.29668 42.134 11.8833C44.5305 15.4698 45.8096 19.6865 45.8096 24L24 24L24 45.8096Z" fill="currentColor"></path>
+</svg>
+</div>
+<div class="flex flex-col">
+<h1 class="text-[#111318] dark:text-gray-200 text-base font-medium leading-normal">HYVVE</h1>
+<p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">CRM</p>
+</div>
+</div>
+<div class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 text-[#616f89] dark:text-gray-400 hover:bg-primary/10 hover:text-primary dark:hover:text-primary rounded" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<p class="text-sm font-medium leading-normal">Contacts</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#616f89] dark:text-gray-400 hover:bg-primary/10 hover:text-primary dark:hover:text-primary rounded" href="#">
+<span class="material-symbols-outlined">handshake</span>
+<p class="text-sm font-medium leading-normal">Deals</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#616f89] dark:text-gray-400 hover:bg-primary/10 hover:text-primary dark:hover:text-primary rounded" href="#">
+<span class="material-symbols-outlined">task_alt</span>
+<p class="text-sm font-medium leading-normal">Tasks</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#616f89] dark:text-gray-400 hover:bg-primary/10 hover:text-primary dark:hover:text-primary rounded" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<p class="text-sm font-medium leading-normal">Reports</p>
+</a>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Create New</span>
+</button>
+<a class="flex items-center gap-3 px-3 py-2 text-[#616f89] dark:text-gray-400 hover:bg-primary/10 hover:text-primary dark:hover:text-primary rounded" href="#">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col">
+<!-- TopNavBar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 dark:border-gray-800 px-10 py-3 bg-white dark:bg-background-dark/50">
+<div class="flex items-center gap-8">
+<label class="flex flex-col min-w-40 !h-10 max-w-sm">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full">
+<div class="text-[#616f89] dark:text-gray-400 flex border-none bg-background-light dark:bg-background-dark items-center justify-center pl-4 rounded-l-lg border-r-0">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-gray-200 focus:outline-0 focus:ring-0 border-none bg-background-light dark:bg-background-dark focus:border-none h-full placeholder:text-[#616f89] dark:placeholder:text-gray-500 px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal" placeholder="Search contacts..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex flex-1 justify-end gap-4">
+<div class="flex gap-2">
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-background-light dark:bg-background-dark text-[#111318] dark:text-gray-300 gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5">
+<span class="material-symbols-outlined">chat_bubble</span>
+</button>
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-background-light dark:bg-background-dark text-[#111318] dark:text-gray-300 gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBVMYbnbKds8IyLUXLcGDikMdvwLVYQcA58SrGgBCadoCGtEZuXVXChGgclDDcKzPAxJRmEOVa1IMfuAaK4DhzmA7qqMBq4Euz1FiFXUDOqtrj72A7z7-uZgk8p5t5b42vdgpXRq3VB2tWJXgM28DdpVSV9m6pAaAAH90ZLO33d-IAxi6iNPBlg1o2ePTovCXkvLQsOtxcKXy-KSToIz7bQsL89yrEKtFEf6EDUlyx8Zal7kPaZjE6WhTDlzfTcE0uNkGGzoiDqdGk");'></div>
+</div>
+</header>
+<div class="p-8 flex-1">
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between gap-4 items-center">
+<div class="flex min-w-72 flex-col gap-1">
+<p class="text-[#111318] dark:text-gray-100 text-3xl font-black leading-tight tracking-[-0.033em]">Contacts</p>
+<p class="text-[#616f89] dark:text-gray-400 text-base font-normal leading-normal">Manage your contacts and perform bulk actions.</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-white dark:bg-background-dark text-[#111318] dark:text-gray-200 text-sm font-bold leading-normal tracking-[0.015em] border border-gray-300 dark:border-gray-700">
+<span class="truncate">Import Contacts</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Add Contact</span>
+</button>
+</div>
+</div>
+<!-- Table -->
+<div class="mt-6 @container">
+<div class="flex overflow-hidden rounded-xl border border-[#dbdfe6] dark:border-gray-800 bg-white dark:bg-background-dark/50">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-gray-50 dark:bg-background-dark">
+<th class="p-4 w-12"><input class="form-checkbox rounded border-gray-300 dark:border-gray-600 dark:bg-background-dark text-primary focus:ring-primary/50" type="checkbox"/></th>
+<th class="px-4 py-3 text-left text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Contact Name</th>
+<th class="px-4 py-3 text-left text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Company</th>
+<th class="px-4 py-3 text-left text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Email</th>
+<th class="px-4 py-3 text-left text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Status</th>
+<th class="px-4 py-3 text-left text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Last Contacted</th>
+<th class="px-4 py-3 text-left text-[#111318] dark:text-gray-300 w-16"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-t border-t-[#dbdfe6] dark:border-t-gray-800">
+<td class="p-4"><input checked="" class="form-checkbox rounded border-gray-300 dark:border-gray-600 dark:bg-background-dark text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="px-4 py-2 text-[#111318] dark:text-gray-200 text-sm font-normal leading-normal">Alex Johnson</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Innovate Inc.</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">alex.j@innovate.com</td>
+<td class="px-4 py-2"><span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/50 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-300">Lead</span></td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">2 days ago</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400"><button class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"><span class="material-symbols-outlined text-lg">more_horiz</span></button></td>
+</tr>
+<tr class="border-t border-t-[#dbdfe6] dark:border-t-gray-800">
+<td class="p-4"><input class="form-checkbox rounded border-gray-300 dark:border-gray-600 dark:bg-background-dark text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="px-4 py-2 text-[#111318] dark:text-gray-200 text-sm font-normal leading-normal">Brenda Smith</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Solutions Corp.</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">brenda.s@solutions.co</td>
+<td class="px-4 py-2"><span class="inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:text-yellow-300">Prospect</span></td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">5 days ago</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400"><button class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"><span class="material-symbols-outlined text-lg">more_horiz</span></button></td>
+</tr>
+<tr class="border-t border-t-[#dbdfe6] dark:border-t-gray-800">
+<td class="p-4"><input checked="" class="form-checkbox rounded border-gray-300 dark:border-gray-600 dark:bg-background-dark text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="px-4 py-2 text-[#111318] dark:text-gray-200 text-sm font-normal leading-normal">Charles Brown</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Tech Gadgets</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">charles.b@techgadgets.io</td>
+<td class="px-4 py-2"><span class="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/50 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-300">Customer</span></td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">1 week ago</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400"><button class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"><span class="material-symbols-outlined text-lg">more_horiz</span></button></td>
+</tr>
+<tr class="border-t border-t-[#dbdfe6] dark:border-t-gray-800">
+<td class="p-4"><input checked="" class="form-checkbox rounded border-gray-300 dark:border-gray-600 dark:bg-background-dark text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="px-4 py-2 text-[#111318] dark:text-gray-200 text-sm font-normal leading-normal">Diana Miller</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Quantum Leap</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">diana.m@quantum.com</td>
+<td class="px-4 py-2"><span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/50 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-300">Lead</span></td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">3 days ago</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400"><button class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"><span class="material-symbols-outlined text-lg">more_horiz</span></button></td>
+</tr>
+<tr class="border-t border-t-[#dbdfe6] dark:border-t-gray-800">
+<td class="p-4"><input class="form-checkbox rounded border-gray-300 dark:border-gray-600 dark:bg-background-dark text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="px-4 py-2 text-[#111318] dark:text-gray-200 text-sm font-normal leading-normal">Edward Wilson</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Future Forward</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">ed.w@future.io</td>
+<td class="px-4 py-2"><span class="inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:text-yellow-300">Prospect</span></td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">6 days ago</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400"><button class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"><span class="material-symbols-outlined text-lg">more_horiz</span></button></td>
+</tr>
+<tr class="border-t border-t-[#dbdfe6] dark:border-t-gray-800">
+<td class="p-4"><input class="form-checkbox rounded border-gray-300 dark:border-gray-600 dark:bg-background-dark text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="px-4 py-2 text-[#111318] dark:text-gray-200 text-sm font-normal leading-normal">Fiona Garcia</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Data Dynamics</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">f.garcia@datadynamics.net</td>
+<td class="px-4 py-2"><span class="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/50 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-300">Customer</span></td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">2 weeks ago</td>
+<td class="px-4 py-2 text-[#616f89] dark:text-gray-400"><button class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"><span class="material-symbols-outlined text-lg">more_horiz</span></button></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Sticky Selection Bar -->
+<div class="fixed bottom-0 left-0 right-0 p-4 flex justify-center z-50">
+<div class="w-full max-w-4xl flex items-center justify-between gap-4 px-6 py-4 bg-white dark:bg-background-dark rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800">
+<div class="flex items-center gap-4">
+<p class="text-sm font-medium text-[#111318] dark:text-gray-200">3 items selected</p>
+<div class="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+<button class="text-sm font-medium text-primary hover:underline">Select all 250 items</button>
+<button class="text-sm font-medium text-[#616f89] dark:text-gray-400 hover:underline">Clear selection</button>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center justify-center gap-2 h-9 px-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-200 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-base">edit</span>
+<span>Edit</span>
+</button>
+<button class="flex items-center justify-center gap-2 h-9 px-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-200 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-base">person_add</span>
+<span>Assign</span>
+</button>
+<button class="flex items-center justify-center gap-2 h-9 px-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-200 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-base">label</span>
+<span>Tag</span>
+</button>
+<button class="flex items-center justify-center gap-2 h-9 px-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-200 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-base">download</span>
+<span>Export</span>
+</button>
+<button class="flex items-center justify-center gap-2 h-9 px-3 rounded-lg bg-destructive/10 text-destructive text-sm font-medium hover:bg-destructive/20 border border-destructive/20">
+<span class="material-symbols-outlined text-base">delete</span>
+<span>Delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Modals (Initially hidden, shown for demonstration) -->
+<div class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[100]">
+<!-- Bulk Delete Modal -->
+<div class="bg-white dark:bg-background-dark rounded-xl shadow-xl w-full max-w-md p-6 m-4">
+<div class="flex items-start justify-between">
+<div>
+<h2 class="text-lg font-bold text-[#111318] dark:text-gray-100">Delete 3 Contacts?</h2>
+<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">This action cannot be undone. All associated data will be permanently removed.</p>
+</div>
+<button class="p-1 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="mt-6">
+<label class="text-sm font-medium text-gray-700 dark:text-gray-300" for="delete-confirm">To confirm, please type <strong class="text-destructive">DELETE</strong> below.</label>
+<input class="mt-2 form-input w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-[#111318] dark:text-gray-200 placeholder:text-gray-400 focus:border-primary focus:ring-primary/50" id="delete-confirm" placeholder="DELETE" type="text"/>
+</div>
+<div class="mt-6 flex justify-end gap-3">
+<button class="px-4 py-2 rounded-lg text-sm font-bold bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700">Cancel</button>
+<button class="px-4 py-2 rounded-lg text-sm font-bold bg-destructive text-white hover:bg-destructive/90 disabled:bg-destructive/50" disabled="">Delete 3 contacts</button>
+</div>
+</div>
+<!-- In a real application, only one modal would be visible at a time. Other examples are commented out below for reference. -->
+<!--
+            
+            Bulk Edit Modal
+            <div class="bg-white dark:bg-background-dark rounded-xl shadow-xl w-full max-w-2xl p-6 m-4">
+                ... content for bulk edit ...
+            </div>
+
+            Progress Modal
+            <div class="bg-white dark:bg-background-dark rounded-xl shadow-xl w-full max-w-md p-6 m-4">
+                 ... content for progress ...
+            </div>
+
+            Summary Modal
+            <div class="bg-white dark:bg-background-dark rounded-xl shadow-xl w-full max-w-lg p-6 m-4">
+                ... content for summary ...
+            </div>
+            
+            -->
+</div>
+</div>
+</body></html>

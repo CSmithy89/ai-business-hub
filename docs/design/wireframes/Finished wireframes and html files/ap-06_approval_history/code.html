@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AP-06 Approval History</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FF6B6B",
+                        "secondary": "#20B2AA",
+                        "background-light": "#FFFBF5",
+                        "background-dark": "#0a0a0b",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1a1a1b",
+                        "border-light": "#E5E5E5",
+                        "border-dark": "#2a2a2b",
+                        "text-primary-light": "#1a1a1a",
+                        "text-primary-dark": "#FAFAFA",
+                        "text-secondary": "#6B7280",
+                        "success": "#10B981",
+                        "warning": "#F59E0B",
+                        "error": "#EF4444",
+                        "info": "#3B82F6",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "system-ui", "sans-serif"],
+                        "code": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: {
+                        "sm": "4px",
+                        "DEFAULT": "8px",
+                        "md": "8px",
+                        "lg": "12px",
+                        "xl": "16px",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-primary-dark antialiased">
+<div class="relative flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex flex-col w-64 border-r border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark p-4 shrink-0">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAW3nOu--5FCZLMmS0FIqcX6DwhichQLHr9iFfPcNG1FQLYf5xQaxPzqptXz30aSf218GYKFE1BDVkMmKne2HGB2LrP2eJ9wtkGGMxDNc70mug-OSn20GMQuhUcsiaS5u1lYs0TfC_fDXRFqHUmFvcg0ZoNH_LisZDgm1ffhK2oGKzEWGdnAhR1YyncDJDSX9hXpct-Qe1thhva-zEyTu0WSLa27gHHHqBDV-lTCJgsv_beyFzz9zDkKO61DwfMe_mLfJUH5NGVWPyw");'></div>
+<div class="flex flex-col">
+<h1 class="text-base font-semibold">HYVVE</h1>
+<p class="text-text-secondary text-sm font-normal">Business Operations</p>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">dashboard</span>
+<p class="text-sm font-medium">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">inbox</span>
+<p class="text-sm font-medium">Inbox</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">checklist</span>
+<p class="text-sm font-medium">Approval Queue</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md bg-primary/10 text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-xl !font-bold" style="font-variation-settings: 'FILL' 1, 'wght' 600;">history</span>
+<p class="text-sm font-semibold">Approval History</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">bar_chart</span>
+<p class="text-sm font-medium">Analytics</p>
+</a>
+</div>
+</div>
+<div class="flex flex-col gap-4 mt-auto">
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-md h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">New Task</span>
+</button>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">settings</span>
+<p class="text-sm font-medium">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">help</span>
+<p class="text-sm font-medium">Help</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8">
+<div class="max-w-7xl mx-auto flex flex-col gap-6">
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between items-center gap-4">
+<div class="flex flex-col">
+<h1 class="text-2xl font-bold">Approval History</h1>
+<p class="text-text-secondary text-base font-normal">Review past decisions and their outcomes across all agents</p>
+</div>
+<button class="flex items-center justify-center gap-2 overflow-hidden rounded-md h-10 px-4 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark text-sm font-semibold hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-base">ios_share</span>
+<span class="truncate">Export CSV</span>
+</button>
+</div>
+<!-- Stats -->
+<div class="border border-border-light dark:border-border-dark rounded-lg p-6 bg-surface-light dark:bg-surface-dark">
+<p class="text-sm font-semibold text-text-secondary mb-4">📊 Last 30 Days</p>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="flex flex-col gap-1 p-4 rounded-md border border-border-light dark:border-border-dark">
+<p class="text-2xl font-bold">247</p>
+<p class="text-xs text-text-secondary">Total</p>
+</div>
+<div class="flex flex-col gap-1 p-4 rounded-md border border-border-light dark:border-border-dark">
+<p class="text-2xl font-bold">198</p>
+<p class="text-xs text-text-secondary">Approved (80.2%)</p>
+</div>
+<div class="flex flex-col gap-1 p-4 rounded-md border border-border-light dark:border-border-dark">
+<p class="text-2xl font-bold">42</p>
+<p class="text-xs text-text-secondary">Rejected (17.0%)</p>
+</div>
+<div class="flex flex-col gap-1 p-4 rounded-md border border-border-light dark:border-border-dark">
+<p class="text-2xl font-bold">7</p>
+<p class="text-xs text-text-secondary">Pending (2.8%)</p>
+</div>
+</div>
+<!-- ProgressBar -->
+<div class="flex flex-col gap-2 mt-6">
+<div class="flex gap-4 justify-between items-center">
+<p class="text-sm font-medium">Approval Rate</p>
+<p class="text-sm font-semibold">80.2%</p>
+</div>
+<div class="rounded-full h-2 bg-border-light dark:bg-border-dark"><div class="h-2 rounded-full bg-success" style="width: 80.2%;"></div></div>
+</div>
+</div>
+<!-- ToolBar & View Toggle -->
+<div class="flex flex-col md:flex-row justify-between items-center gap-4 p-2 border border-border-light dark:border-border-dark rounded-lg bg-surface-light dark:bg-surface-dark">
+<div class="flex flex-wrap items-center gap-2">
+<button class="flex items-center gap-2 p-2 rounded-md border border-border-light dark:border-border-dark hover:bg-primary/10">
+<span class="material-symbols-outlined text-lg">calendar_month</span>
+<span class="text-sm">Last 30 Days</span>
+<span class="material-symbols-outlined text-lg">expand_more</span>
+</button>
+<button class="flex items-center gap-2 p-2 rounded-md border border-border-light dark:border-border-dark hover:bg-primary/10">
+<span class="text-sm">Type: All</span>
+<span class="material-symbols-outlined text-lg">expand_more</span>
+</button>
+<button class="flex items-center gap-2 p-2 rounded-md border border-border-light dark:border-border-dark hover:bg-primary/10">
+<span class="text-sm">Agent: All</span>
+<span class="material-symbols-outlined text-lg">expand_more</span>
+</button>
+<button class="flex items-center gap-2 p-2 rounded-md border border-border-light dark:border-border-dark hover:bg-primary/10">
+<span class="text-sm">Status: All</span>
+<span class="material-symbols-outlined text-lg">expand_more</span>
+</button>
+</div>
+<div class="flex items-center p-1 rounded-md bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark">
+<button class="px-3 py-1 text-sm font-semibold rounded-[5px] bg-surface-light dark:bg-surface-dark shadow-sm">Timeline</button>
+<button class="px-3 py-1 text-sm font-medium text-text-secondary">Table</button>
+</div>
+</div>
+<!-- Timeline View -->
+<div class="relative pl-6">
+<!-- Vertical Line -->
+<div class="absolute left-6 top-0 bottom-0 w-0.5 bg-border-light dark:bg-border-dark"></div>
+<!-- Date Marker: Today -->
+<div class="relative mb-8">
+<div class="absolute -left-[30px] top-1 flex items-center justify-center size-5 bg-background-light dark:bg-background-dark">
+<div class="size-2 rounded-full bg-text-secondary"></div>
+</div>
+<p class="text-xs font-semibold text-text-secondary tracking-wider uppercase">Today</p>
+</div>
+<!-- Timeline Item Cards -->
+<div class="space-y-4">
+<!-- Item 1: Approved & Expanded -->
+<div class="relative ml-8 p-4 rounded-lg bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-success mt-1" style="font-variation-settings: 'FILL' 1, 'wght' 700;">check_circle</span>
+<div class="flex-1">
+<p class="font-semibold text-base">Email: "Summer Sale Follow-up"</p>
+<p class="text-sm text-text-secondary">Approved by You · 2:34 PM · <span class="text-success font-medium">95% confidence</span></p>
+<div class="my-4 border-t border-border-light dark:border-border-dark"></div>
+<div class="text-sm space-y-2">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-base text-success mt-0.5">mark_email_read</span>
+<div>
+<p class="font-medium">Outcome: Sent successfully</p>
+<ul class="text-text-secondary text-xs list-disc list-inside mt-1 pl-1 space-y-0.5">
+<li>Delivered: 2:35 PM</li>
+<li>Opened: 3:12 PM (first open)</li>
+<li>Clicks: 2 (proposal link)</li>
+</ul>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-base mt-0.5">description</span>
+<div class="text-xs">
+<p class="font-medium text-sm">Original Content:</p>
+<p class="font-code text-text-secondary mt-1">"Hi John, Following up on our conversation..." <a class="text-primary hover:underline" href="#">View Full Email</a></p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-base mt-0.5">psychology</span>
+<div class="text-xs">
+<p class="font-medium text-sm">AI Analysis:</p>
+<p class="text-text-secondary mt-1">"Strong personalization, optimal send time..."</p>
+</div>
+</div>
+</div>
+<div class="flex justify-end gap-2 mt-4">
+<button class="text-xs font-semibold text-text-secondary hover:text-primary transition-colors">Report Issue</button>
+<button class="text-xs font-semibold text-primary hover:underline">View Details</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Item 2: Auto-approved -->
+<div class="relative ml-8 p-4 rounded-lg bg-surface-light dark:bg-surface-dark border border-transparent hover:border-border-light dark:hover:border-border-dark transition-colors">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-success mt-1" style="font-variation-settings: 'FILL' 1, 'wght' 700;">check_circle</span>
+<div class="flex-1">
+<p class="font-semibold text-base">Task: Update Johnson contact</p>
+<p class="text-sm text-text-secondary">Auto-approved · 1:15 PM · <span class="text-success font-medium">92% confidence</span></p>
+<p class="text-xs text-success mt-2 flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">check</span>Contact updated in CRM</p>
+</div>
+</div>
+</div>
+<!-- Item 3: Rejected -->
+<div class="relative ml-8 p-4 rounded-lg bg-surface-light dark:bg-surface-dark border border-transparent hover:border-border-light dark:hover:border-border-dark transition-colors">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-error mt-1" style="font-variation-settings: 'FILL' 1, 'wght' 700;">cancel</span>
+<div class="flex-1">
+<p class="font-semibold text-base">Blog Post: "Q3 Market Analysis"</p>
+<p class="text-sm text-text-secondary">Rejected by You · 11:45 AM · <span class="text-warning font-medium">68% confidence</span></p>
+<p class="text-xs text-error mt-2 italic">Reason: "Needs updated statistics"</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Date Marker: Yesterday -->
+<div class="relative my-8">
+<div class="absolute -left-[30px] top-1 flex items-center justify-center size-5 bg-background-light dark:bg-background-dark">
+<div class="size-2 rounded-full bg-text-secondary"></div>
+</div>
+<p class="text-xs font-semibold text-text-secondary tracking-wider uppercase">Yesterday</p>
+</div>
+<!-- Timeline Item Cards for Yesterday -->
+<div class="space-y-4">
+<!-- Item 4: Reverted -->
+<div class="relative ml-8 p-4 rounded-lg bg-surface-light dark:bg-surface-dark border border-transparent hover:border-border-light dark:hover:border-border-dark transition-colors">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-warning mt-1" style="font-variation-settings: 'FILL' 0, 'wght' 700;">subdirectory_arrow_left</span>
+<div class="flex-1">
+<p class="font-semibold text-base">Email: "Partnership Proposal"</p>
+<p class="text-sm text-text-secondary">Reverted by You · 4:30 PM · <span class="text-text-secondary">Originally 87%</span></p>
+<p class="text-xs text-warning mt-2 italic">Reason: "Wrong recipient selected"</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

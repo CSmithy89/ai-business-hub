@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-12 Lead Scoring</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+              "text-light": "#111318",
+              "text-dark": "#f0f2f4",
+              "subtext-light": "#616f89",
+              "subtext-dark": "#94a3b8",
+              "border-light": "#e2e8f0",
+              "border-dark": "#334155",
+              "card-light": "#ffffff",
+              "card-dark": "#1e293b",
+            },
+            fontFamily: {
+              "display": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
+<div class="relative flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex flex-col w-64 p-4 bg-card-light dark:bg-card-dark border-r border-border-light dark:border-border-dark">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE Inc. company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDdWPbvy7N8owBSOtAuONl9F5TNVq8T8OOEtqsv7qFRXLE70g0_OYUHrpnwme-yvvOh_gqRrItXlS5qAXOEglrx4ON6WIq9STdxsjGSdg6Fv3ymXCoZwc54rszO5YVGAW-dCIr7ZzU0HFHoKAqFDEzRMjOXEvz-qVOtCujJhJDHHHVLjkpL0XD6YUnXBagMmvXJn7ZFk5vOkpWsO-iAuTsHtrzb8ABKJKfOXr0WAlKSkyECK2xF1W1F9pOVNfXqaMaXF5U5Kg-yQOk");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-light dark:text-text-dark text-base font-medium leading-normal">HYVVE Inc.</h1>
+<p class="text-subtext-light dark:text-subtext-dark text-sm font-normal leading-normal">CRM</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-light dark:text-text-dark" href="#">
+<span class="material-symbols-outlined">space_dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded bg-primary/10 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<p class="text-sm font-medium leading-normal">Leads</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-light dark:text-text-dark" href="#">
+<span class="material-symbols-outlined">apartment</span>
+<p class="text-sm font-medium leading-normal">Accounts</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-light dark:text-text-dark" href="#">
+<span class="material-symbols-outlined">campaign</span>
+<p class="text-sm font-medium leading-normal">Campaigns</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-light dark:text-text-dark" href="#">
+<span class="material-symbols-outlined">pie_chart</span>
+<p class="text-sm font-medium leading-normal">Reports</p>
+</a>
+</nav>
+</div>
+<div class="mt-auto flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-light dark:text-text-dark" href="#">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-light dark:text-text-dark" href="#">
+<span class="material-symbols-outlined">help</span>
+<p class="text-sm font-medium leading-normal">Help</p>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8">
+<div class="max-w-4xl mx-auto">
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between gap-4 items-center mb-8">
+<div class="flex flex-col gap-2">
+<h1 class="text-text-light dark:text-text-dark text-4xl font-black leading-tight tracking-[-0.033em]">Lead Scoring</h1>
+<p class="text-subtext-light dark:text-subtext-dark text-base font-normal leading-normal">Define how leads are qualified and prioritized based on their attributes and behaviors.</p>
+</div>
+<div class="flex items-center gap-2">
+<a class="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline" href="#">
+<span class="material-symbols-outlined text-base">school</span>
+                            How it works
+                        </a>
+<button class="px-4 py-2 text-sm font-medium text-white bg-primary rounded hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50">Save Changes</button>
+</div>
+</div>
+<!-- Scoring Method Section -->
+<div class="bg-card-light dark:bg-card-dark rounded-lg p-6 mb-8 border border-border-light dark:border-border-dark">
+<h2 class="text-text-light dark:text-text-dark text-[22px] font-bold leading-tight tracking-[-0.015em] mb-4">Scoring Method</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<label class="flex items-start gap-4 rounded-lg border border-border-light dark:border-border-dark p-4 cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary/20">
+<input checked="" class="h-5 w-5 mt-0.5 border-2 border-border-light dark:border-border-dark bg-transparent text-primary focus:ring-primary/50 checked:bg-primary" name="scoring-method" type="radio"/>
+<div class="flex grow flex-col">
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Rules-Based Only</p>
+<p class="text-subtext-light dark:text-subtext-dark text-sm font-normal leading-normal">Score leads solely based on the rules you define.</p>
+</div>
+</label>
+<label class="flex items-start gap-4 rounded-lg border border-border-light dark:border-border-dark p-4 cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary/20">
+<input class="h-5 w-5 mt-0.5 border-2 border-border-light dark:border-border-dark bg-transparent text-primary focus:ring-primary/50 checked:bg-primary" name="scoring-method" type="radio"/>
+<div class="flex grow flex-col">
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">AI-Assisted</p>
+<p class="text-subtext-light dark:text-subtext-dark text-sm font-normal leading-normal">Use your rules combined with AI predictions for a more accurate score.</p>
+</div>
+</label>
+<label class="flex items-start gap-4 rounded-lg border border-border-light dark:border-border-dark p-4 cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary/20">
+<input class="h-5 w-5 mt-0.5 border-2 border-border-light dark:border-border-dark bg-transparent text-primary focus:ring-primary/50 checked:bg-primary" name="scoring-method" type="radio"/>
+<div class="flex grow flex-col">
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">AI Only</p>
+<p class="text-subtext-light dark:text-subtext-dark text-sm font-normal leading-normal">Let our AI automatically score leads based on historical data.</p>
+</div>
+</label>
+</div>
+</div>
+<!-- Score Thresholds Section -->
+<div class="bg-card-light dark:bg-card-dark rounded-lg p-6 mb-8 border border-border-light dark:border-border-dark">
+<h2 class="text-text-light dark:text-text-dark text-[22px] font-bold leading-tight tracking-[-0.015em] mb-6">Score Thresholds</h2>
+<div class="relative pt-8">
+<div class="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+<div class="absolute h-2 bg-gradient-to-r from-sky-400 via-yellow-400 to-red-500 rounded-full w-full"></div>
+<div class="absolute w-6 h-6 bg-white dark:bg-slate-300 rounded-full -top-2 border-2 border-sky-500" style="left: 25%;">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 text-center text-sm">
+<span class="font-semibold text-text-light dark:text-text-dark">25</span>
+</div>
+</div>
+<div class="absolute w-6 h-6 bg-white dark:bg-slate-300 rounded-full -top-2 border-2 border-red-500" style="left: 75%;">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 text-center text-sm">
+<span class="font-semibold text-text-light dark:text-text-dark">75</span>
+</div>
+</div>
+</div>
+<div class="flex justify-between mt-4 text-sm font-medium">
+<div class="w-1/4 text-center">
+<span class="px-2 py-1 rounded-full bg-sky-100 dark:bg-sky-900 text-sky-600 dark:text-sky-300 text-xs">Cold Lead</span>
+</div>
+<div class="w-1/2 text-center">
+<span class="px-2 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300 text-xs">Warm Lead</span>
+</div>
+<div class="w-1/4 text-center">
+<span class="px-2 py-1 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 text-xs">Hot Lead</span>
+</div>
+</div>
+</div>
+</div>
+<!-- AI Insights Section -->
+<div class="flex items-start gap-4 bg-primary/10 dark:bg-primary/20 p-4 rounded-lg mb-8 border border-primary/20">
+<span class="material-symbols-outlined text-primary text-2xl mt-1">auto_awesome</span>
+<div>
+<h3 class="font-bold text-primary">AI Insights</h3>
+<p class="text-sm text-subtext-light dark:text-subtext-dark mt-1">Suggestion: Increase points for the 'Demo Requested' behavior. Leads with this action have an 85% higher conversion rate compared to average.</p>
+<button class="text-sm font-medium text-primary hover:underline mt-2">Apply Suggestion</button>
+</div>
+</div>
+<!-- Attribute Scoring Rules Section -->
+<div class="mb-8">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-text-light dark:text-text-dark text-[22px] font-bold leading-tight tracking-[-0.015em]">Attribute Scoring Rules</h2>
+<button class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-border-light dark:border-border-dark rounded hover:bg-background-light dark:hover:bg-card-dark/50">
+<span class="material-symbols-outlined text-base">add</span>
+                            Add Attribute Rule
+                        </button>
+</div>
+<div class="space-y-4">
+<!-- Rule Card 1 -->
+<div class="bg-card-light dark:bg-card-dark rounded-lg p-4 border border-border-light dark:border-border-dark">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-semibold text-text-light dark:text-text-dark">Job Title</h4>
+<div class="text-sm text-subtext-light dark:text-subtext-dark mt-2 space-y-1">
+<p><span class="font-mono text-xs text-primary">IF</span> title contains 'Director', 'VP', 'C-Level' <span class="font-mono text-xs text-primary">THEN</span> <span class="font-semibold text-green-600 dark:text-green-400">+20 pts</span></p>
+<p><span class="font-mono text-xs text-primary">IF</span> title contains 'Manager' <span class="font-mono text-xs text-primary">THEN</span> <span class="font-semibold text-green-600 dark:text-green-400">+10 pts</span></p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded hover:bg-background-light dark:hover:bg-background-dark text-subtext-light dark:text-subtext-dark"><span class="material-symbols-outlined text-xl">edit</span></button>
+<button class="p-2 rounded hover:bg-background-light dark:hover:bg-background-dark text-subtext-light dark:text-subtext-dark"><span class="material-symbols-outlined text-xl">toggle_on</span></button>
+</div>
+</div>
+</div>
+<!-- Rule Card 2 -->
+<div class="bg-card-light dark:bg-card-dark rounded-lg p-4 border border-border-light dark:border-border-dark">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-semibold text-text-light dark:text-text-dark">Company Size</h4>
+<div class="text-sm text-subtext-light dark:text-subtext-dark mt-2 space-y-1">
+<p><span class="font-mono text-xs text-primary">IF</span> employees &gt; 500 <span class="font-mono text-xs text-primary">THEN</span> <span class="font-semibold text-green-600 dark:text-green-400">+15 pts</span></p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded hover:bg-background-light dark:hover:bg-background-dark text-subtext-light dark:text-subtext-dark"><span class="material-symbols-outlined text-xl">edit</span></button>
+<button class="p-2 rounded hover:bg-background-light dark:hover:bg-background-dark text-subtext-light dark:text-subtext-dark"><span class="material-symbols-outlined text-xl">toggle_off</span></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Behavior Scoring Rules Section -->
+<div>
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-text-light dark:text-text-dark text-[22px] font-bold leading-tight tracking-[-0.015em]">Behavior Scoring Rules</h2>
+<button class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-border-light dark:border-border-dark rounded hover:bg-background-light dark:hover:bg-card-dark/50">
+<span class="material-symbols-outlined text-base">add</span>
+                            Add Behavior Rule
+                        </button>
+</div>
+<div class="space-y-4">
+<!-- Rule Card 3 -->
+<div class="bg-card-light dark:bg-card-dark rounded-lg p-4 border border-border-light dark:border-border-dark">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-semibold text-text-light dark:text-text-dark">Demo Requested</h4>
+<div class="text-sm text-subtext-light dark:text-subtext-dark mt-2 space-y-1">
+<p><span class="font-mono text-xs text-primary">IF</span> form 'Demo Request' is submitted <span class="font-mono text-xs text-primary">THEN</span> <span class="font-semibold text-green-600 dark:text-green-400">+50 pts</span></p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded hover:bg-background-light dark:hover:bg-background-dark text-subtext-light dark:text-subtext-dark"><span class="material-symbols-outlined text-xl">edit</span></button>
+<button class="p-2 rounded hover:bg-background-light dark:hover:bg-background-dark text-subtext-light dark:text-subtext-dark"><span class="material-symbols-outlined text-xl">toggle_on</span></button>
+</div>
+</div>
+</div>
+<!-- Empty State Card -->
+<div class="text-center py-10 px-6 border-2 border-dashed border-border-light dark:border-border-dark rounded-lg">
+<span class="material-symbols-outlined text-5xl text-subtext-light dark:text-subtext-dark">add_circle</span>
+<h4 class="mt-4 font-semibold text-text-light dark:text-text-dark">Add your first behavior rule</h4>
+<p class="mt-1 text-sm text-subtext-light dark:text-subtext-dark">Score leads based on actions they take, like visiting a page or downloading a file.</p>
+<button class="mt-4 flex mx-auto items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-border-light dark:border-border-dark rounded hover:bg-background-light dark:hover:bg-card-dark/50">
+<span class="material-symbols-outlined text-base">add</span>
+                                Add Behavior Rule
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Rule Builder Modal -->
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 hidden" id="rule-builder-modal">
+<div class="bg-card-light dark:bg-card-dark rounded-xl w-full max-w-lg shadow-2xl">
+<div class="p-6 border-b border-border-light dark:border-border-dark">
+<h3 class="text-lg font-bold text-text-light dark:text-text-dark">Rule Builder</h3>
+<p class="text-sm text-subtext-light dark:text-subtext-dark">Create or edit a scoring rule.</p>
+</div>
+<div class="p-6 space-y-4">
+<div>
+<label class="text-sm font-medium text-text-light dark:text-text-dark" for="rule-name">Rule Name</label>
+<input class="mt-1 block w-full rounded border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:border-primary focus:ring-primary/50" id="rule-name" type="text" value="Job Title"/>
+</div>
+<p class="text-sm font-medium text-text-light dark:text-text-dark">Conditions</p>
+<div class="space-y-3">
+<!-- Condition Row 1 -->
+<div class="flex items-center gap-2">
+<span class="font-mono text-sm text-primary">IF</span>
+<select class="flex-1 rounded border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:border-primary focus:ring-primary/50"><option>Job Title</option></select>
+<select class="flex-1 rounded border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:border-primary focus:ring-primary/50"><option>contains</option></select>
+<input class="flex-[2] rounded border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:border-primary focus:ring-primary/50" type="text" value="'Director', 'VP'"/>
+<button class="p-2 rounded text-subtext-light dark:text-subtext-dark hover:bg-background-light dark:hover:bg-background-dark"><span class="material-symbols-outlined text-xl">delete</span></button>
+</div>
+<!-- Condition Row 2 -->
+<div class="flex items-center gap-2">
+<span class="font-mono text-sm text-primary">THEN</span>
+<select class="flex-1 rounded border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:border-primary focus:ring-primary/50"><option>Add points</option></select>
+<input class="flex-1 rounded border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:border-primary focus:ring-primary/50" type="number" value="20"/>
+<div class="flex-[2]"></div>
+<div class="w-9 h-9"></div>
+</div>
+</div>
+<button class="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+<span class="material-symbols-outlined text-base">add</span> Add Condition
+                 </button>
+</div>
+<div class="p-6 flex justify-end gap-3 bg-background-light dark:bg-background-dark/50 rounded-b-xl">
+<button class="px-4 py-2 text-sm font-medium border border-border-light dark:border-border-dark rounded hover:bg-background-light dark:hover:bg-card-dark/50">Cancel</button>
+<button class="px-4 py-2 text-sm font-medium text-white bg-primary rounded hover:bg-primary/90">Save Rule</button>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SH-06 Mobile Layout</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
+    }
+    .material-symbols-outlined.fill {
+        font-variation-settings: 'FILL' 1, 'wght' 400;
+    }
+  </style>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            // Light Mode Palette
+            'background-primary': '#FFFBF5',
+            'background-secondary': '#F9F7F2',
+            'background-tertiary': '#F5F3EE',
+            'surface': '#FFFFFF',
+            'border-light': '#E5E5E5',
+            'text-primary': '#1A1A1A',
+            'text-secondary': '#6B7280',
+            'text-muted': '#9CA3AF',
+            // Dark Mode Palette
+            'dark-background-primary': '#0A0A0B',
+            'dark-background-secondary': '#111113',
+            'dark-background-tertiary': '#1A1A1D',
+            'dark-surface': '#232326',
+            'dark-border': '#27272A',
+            'dark-text-primary': '#FAFAFA',
+            'dark-text-secondary': '#A1A1AA',
+            'dark-text-muted': '#71717A',
+            // Brand & System Colors
+            primary: '#FF6B6B',
+            secondary: '#20B2AA',
+            success: '#2ECC71',
+            warning: '#F59E0B',
+            error: '#EF4444',
+            info: '#4B7BEC',
+          },
+          fontFamily: {
+            display: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+            mono: ["JetBrains Mono", "SF Mono", "Fira Code", "monospace"],
+          },
+          borderRadius: {
+            sm: '4px',
+            md: '8px',
+            lg: '12px',
+            xl: '16px',
+            full: '9999px',
+          },
+          boxShadow: {
+            'xs': '0 1px 2px rgba(0, 0, 0, 0.04)',
+            'sm': '0 2px 4px rgba(0, 0, 0, 0.04)',
+            'md': '0 4px 8px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02)',
+            'lg': '0 8px 16px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.03)',
+            'xl': '0 16px 32px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.04)',
+          }
+        },
+      },
+    }
+  </script>
+</head>
+<body class="font-display bg-gray-100">
+<div class="my-8 mx-auto max-w-lg">
+<h1 class="text-2xl font-bold text-center text-gray-800 mb-2">HYVVE Mobile Views</h1>
+<p class="text-center text-gray-600 mb-8">This file contains three separate mobile views as requested.</p>
+</div>
+<!-- View 1: Mobile Layout with Bottom Navigation -->
+<div class="my-12">
+<h2 class="text-xl font-semibold text-center text-gray-700 mb-4">View 1: Main Dashboard Layout</h2>
+<div class="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[812px] w-[375px] shadow-xl">
+<div class="w-[148px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>
+<div class="h-[46px] w-[3px] bg-gray-800 absolute -start-[17px] top-[124px] rounded-s-lg"></div>
+<div class="h-[46px] w-[3px] bg-gray-800 absolute -start-[17px] top-[178px] rounded-s-lg"></div>
+<div class="h-[64px] w-[3px] bg-gray-800 absolute -end-[17px] top-[142px] rounded-e-lg"></div>
+<div class="rounded-[2rem] overflow-hidden w-full h-full bg-background-primary">
+<div class="flex flex-col h-full w-full bg-background-primary text-text-primary">
+<!-- Fixed Top Header -->
+<header class="fixed top-0 left-0 right-0 z-50 flex h-[56px] w-full items-center justify-between border-b border-border-light bg-surface px-4">
+<button class="flex h-10 w-10 items-center justify-center rounded-md hover:bg-background-tertiary active:bg-background-tertiary/80">
+<span class="material-symbols-outlined text-text-primary text-[24px]">menu</span>
+</button>
+<h1 class="text-lg font-bold tracking-tight text-text-primary">HYVVE</h1>
+<button class="relative flex h-10 w-10 items-center justify-center rounded-md hover:bg-background-tertiary active:bg-background-tertiary/80">
+<span class="material-symbols-outlined text-text-primary text-[24px]">chat_bubble</span>
+<div class="absolute right-[8px] top-[8px] flex h-4 w-4 items-center justify-center rounded-full bg-error text-[10px] font-bold text-white">2</div>
+</button>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto pb-4 pt-[56px]">
+<div class="p-4">
+<div class="mb-6">
+<h2 class="text-2xl font-bold leading-none tracking-tight text-text-primary">Dashboard</h2>
+<p class="text-sm text-text-secondary">Welcome back, John</p>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col justify-between rounded-lg border border-border-light bg-surface p-4 shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-info">person_add</span>
+<p class="text-xs font-medium text-text-secondary">New Leads</p>
+</div>
+<p class="text-2xl font-bold tracking-tight text-text-primary">12</p>
+</div>
+<div class="flex flex-col justify-between rounded-lg border border-border-light bg-surface p-4 shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-success">attach_money</span>
+<p class="text-xs font-medium text-text-secondary">Revenue</p>
+</div>
+<p class="text-2xl font-bold tracking-tight text-text-primary">$5,600</p>
+</div>
+<div class="flex flex-col justify-between rounded-lg border border-border-light bg-surface p-4 shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-warning">pending_actions</span>
+<p class="text-xs font-medium text-text-secondary">Open Tasks</p>
+</div>
+<p class="text-2xl font-bold tracking-tight text-text-primary">8</p>
+</div>
+<div class="flex flex-col justify-between rounded-lg border border-border-light bg-surface p-4 shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-secondary">assignment</span>
+<p class="text-xs font-medium text-text-secondary">Active Projects</p>
+</div>
+<p class="text-2xl font-bold tracking-tight text-text-primary">3</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Fixed Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 flex h-[64px] w-full items-start justify-around border-t border-border-light bg-surface pt-1" style="padding-bottom: calc(env(safe-area-inset-bottom) + 0.25rem);">
+<!-- Dashboard Item (Active) -->
+<a class="flex h-12 w-14 flex-col items-center justify-center gap-1 rounded-md bg-primary/10" href="#">
+<span class="material-symbols-outlined fill text-primary text-[24px]">grid_view</span>
+<p class="text-[10px] font-medium text-primary">Dashboard</p>
+</a>
+<!-- Approvals Item -->
+<a class="relative flex h-12 w-14 flex-col items-center justify-center gap-1 rounded-md" href="#">
+<span class="material-symbols-outlined text-text-secondary text-[24px]">check_circle</span>
+<p class="text-[10px] font-medium text-text-muted">Approvals</p>
+<div class="absolute right-2 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">5</div>
+</a>
+<!-- Hub Item -->
+<a class="flex h-12 w-14 flex-col items-center justify-center gap-1 rounded-md" href="#">
+<span class="material-symbols-outlined text-text-secondary text-[24px]">hub</span>
+<p class="text-[10px] font-medium text-text-muted">Hub</p>
+</a>
+<!-- Tasks Item -->
+<a class="flex h-12 w-14 flex-col items-center justify-center gap-1 rounded-md" href="#">
+<span class="material-symbols-outlined text-text-secondary text-[24px]">folder</span>
+<p class="text-[10px] font-medium text-text-muted">Tasks</p>
+</a>
+<!-- More Item -->
+<a class="flex h-12 w-14 flex-col items-center justify-center gap-1 rounded-md" href="#">
+<span class="material-symbols-outlined text-text-secondary text-[24px]">more_horiz</span>
+<p class="text-[10px] font-medium text-text-muted">More</p>
+</a>
+</nav>
+</div>
+</div>
+</div>
+</div>
+<!-- View 2: Slide-Out Menu (Open State) -->
+<div class="my-12">
+<h2 class="text-xl font-semibold text-center text-gray-700 mb-4">View 2: Slide-Out Menu (Open)</h2>
+<div class="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[812px] w-[375px] shadow-xl">
+<div class="w-[148px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>
+<div class="h-[46px] w-[3px] bg-gray-800 absolute -start-[17px] top-[124px] rounded-s-lg"></div>
+<div class="h-[46px] w-[3px] bg-gray-800 absolute -start-[17px] top-[178px] rounded-s-lg"></div>
+<div class="h-[64px] w-[3px] bg-gray-800 absolute -end-[17px] top-[142px] rounded-e-lg"></div>
+<div class="rounded-[2rem] overflow-hidden w-full h-full bg-background-primary">
+<div class="relative flex flex-col h-full w-full bg-background-primary text-text-primary">
+<!-- Main content (partially visible) -->
+<header class="fixed top-0 left-0 right-0 z-10 flex h-[56px] w-full items-center justify-between border-b border-border-light bg-surface px-4">
+<button class="flex h-10 w-10 items-center justify-center rounded-md"><span class="material-symbols-outlined text-text-primary text-[24px]">menu</span></button>
+<h1 class="text-lg font-bold tracking-tight text-text-primary">HYVVE</h1>
+<button class="relative flex h-10 w-10 items-center justify-center rounded-md"><span class="material-symbols-outlined text-text-primary text-[24px]">chat_bubble</span></button>
+</header>
+<main class="flex-1 overflow-y-auto pt-[56px] p-4">
+<h2 class="text-2xl font-bold leading-none tracking-tight text-text-primary">Dashboard</h2>
+</main>
+<!-- Menu Overlay -->
+<div class="absolute inset-0 z-40 bg-black/40"></div>
+<!-- Slide-Out Menu -->
+<div class="absolute left-0 top-0 bottom-0 z-50 flex w-[280px] flex-col bg-surface shadow-xl">
+<!-- Menu Header -->
+<div class="flex h-[60px] items-center justify-between border-b border-border-light px-4">
+<div class="flex items-center gap-3">
+<img class="size-10 rounded-full" data-alt="User avatar for John Doe" src="https://lh3.googleusercontent.com/aida-public/AB6AXuADqy8Y_JgUaUxzPBtXCPd1CvXs_s6uw81hLalsVFQ2tY_ZQxFsRCbJat0HCBjWKBn0PqX2zfYidLRsxZPUSsVb0ABdjK5qH4LRT_R03ruUV9yUw9c_vFReIvY-68s2n_l_wSveNKBpfSpnwE0ir_aAaqa7cbbBA2AwWuqzpWJ-A43hfCrYfU4Q-CNIX_7v9R5Z53-g79P44XgTLTaaZozFfQq_oHcdiKeeDM0J75C0bWsZDHzlqFEMm8CaOx1hv159F5YeFJyooRis"/>
+<span class="text-base font-semibold text-text-primary">John Doe</span>
+</div>
+<button class="flex h-8 w-8 items-center justify-center rounded-md hover:bg-background-tertiary">
+<span class="material-symbols-outlined text-text-secondary text-lg">close</span>
+</button>
+</div>
+<!-- Menu Content -->
+<div class="flex-1 overflow-y-auto p-4">
+<div class="mb-4">
+<div class="flex items-center justify-between rounded-md bg-background-secondary p-3">
+<div class="flex flex-col">
+<p class="text-sm font-medium text-text-primary">Current Workspace</p>
+<p class="text-xs text-text-secondary">ACME Inc.</p>
+</div>
+<a class="text-xs font-medium text-primary hover:underline" href="#">Switch</a>
+</div>
+</div>
+<nav class="flex flex-col gap-1">
+<a class="flex h-[52px] items-center gap-3 rounded-md bg-background-tertiary px-3" href="#">
+<span class="material-symbols-outlined fill text-text-primary text-xl">grid_view</span>
+<span class="text-sm font-medium text-text-primary">Dashboard</span>
+</a>
+<a class="flex h-[52px] items-center gap-3 rounded-md px-3 hover:bg-background-tertiary" href="#">
+<span class="material-symbols-outlined text-text-secondary text-xl">check_circle</span>
+<span class="text-sm font-medium text-text-secondary">Approvals</span>
+</a>
+<a class="flex h-[52px] items-center gap-3 rounded-md px-3 hover:bg-background-tertiary" href="#">
+<span class="material-symbols-outlined text-text-secondary text-xl">group</span>
+<span class="text-sm font-medium text-text-secondary">AI Team</span>
+</a>
+<a class="flex h-[52px] items-center gap-3 rounded-md px-3 hover:bg-background-tertiary" href="#">
+<span class="material-symbols-outlined text-text-secondary text-xl">settings</span>
+<span class="text-sm font-medium text-text-secondary">Settings</span>
+</a>
+<hr class="my-2 border-border-light"/>
+<a class="flex h-[52px] items-center gap-3 rounded-md px-3 hover:bg-background-tertiary" href="#">
+<span class="material-symbols-outlined text-text-secondary text-xl">contact_mail</span>
+<span class="text-sm font-medium text-text-secondary">CRM</span>
+</a>
+<a class="flex h-[52px] items-center gap-3 rounded-md px-3 hover:bg-background-tertiary" href="#">
+<span class="material-symbols-outlined text-text-secondary text-xl">folder_managed</span>
+<span class="text-sm font-medium text-text-secondary">Projects</span>
+</a>
+</nav>
+</div>
+<!-- Menu Footer -->
+<div class="border-t border-border-light p-4">
+<button class="flex h-10 w-full items-center justify-center gap-2 rounded-md hover:bg-red-50">
+<span class="material-symbols-outlined text-error text-lg">logout</span>
+<span class="text-sm font-medium text-error">Sign Out</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- View 3: Chat Modal (Full Screen) -->
+<div class="my-12">
+<h2 class="text-xl font-semibold text-center text-gray-700 mb-4">View 3: Chat Modal (Full Screen)</h2>
+<div class="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[812px] w-[375px] shadow-xl">
+<div class="w-[148px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>
+<div class="h-[46px] w-[3px] bg-gray-800 absolute -start-[17px] top-[124px] rounded-s-lg"></div>
+<div class="h-[46px] w-[3px] bg-gray-800 absolute -start-[17px] top-[178px] rounded-s-lg"></div>
+<div class="h-[64px] w-[3px] bg-gray-800 absolute -end-[17px] top-[142px] rounded-e-lg"></div>
+<div class="rounded-[2rem] overflow-hidden w-full h-full bg-surface">
+<div class="flex h-full flex-col bg-surface text-text-primary">
+<!-- Chat Header -->
+<header class="flex h-[56px] flex-shrink-0 items-center justify-between border-b border-border-light px-2">
+<button class="flex h-10 w-10 items-center justify-center rounded-md hover:bg-background-tertiary">
+<span class="material-symbols-outlined text-text-secondary">arrow_back</span>
+</button>
+<div class="flex items-center gap-2">
+<div class="relative">
+<div class="flex h-8 w-8 items-center justify-center rounded-full" style="background-color: #FF6B6B;">
+<span class="material-symbols-outlined text-white text-lg">hub</span>
+</div>
+<div class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-surface bg-success"></div>
+</div>
+<span class="text-base font-semibold text-text-primary">Hub Agent</span>
+</div>
+<button class="flex h-10 w-10 items-center justify-center rounded-md hover:bg-background-tertiary">
+<span class="material-symbols-outlined text-text-secondary">more_vert</span>
+</button>
+</header>
+<!-- Chat Messages -->
+<div class="flex-1 overflow-y-auto p-4">
+<div class="flex flex-col gap-4">
+<!-- Agent Message -->
+<div class="flex items-start gap-3">
+<div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full" style="background-color: #FF6B6B;">
+<span class="material-symbols-outlined text-white text-lg">hub</span>
+</div>
+<div class="flex flex-col gap-1">
+<div class="max-w-[250px] rounded-lg rounded-tl-none bg-background-secondary p-3">
+<p class="text-sm text-text-primary">Hello John, I've analyzed your new leads. Two of them, "Innovate Corp" and "Quantum Solutions," have a high conversion probability. Would you like me to draft an outreach email for them?</p>
+</div>
+<span class="text-xs text-text-muted">Hub · 9:41 AM</span>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex justify-end">
+<div class="flex flex-col items-end gap-1">
+<div class="max-w-[250px] rounded-lg rounded-br-none bg-primary p-3">
+<p class="text-sm text-white">Yes, please. Use the "High-Priority" template for both.</p>
+</div>
+<span class="text-xs text-text-muted">You · 9:42 AM</span>
+</div>
+</div>
+<!-- Agent Typing Indicator -->
+<div class="flex items-start gap-3">
+<div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full" style="background-color: #FF6B6B;">
+<span class="material-symbols-outlined text-white text-lg">hub</span>
+</div>
+<div class="max-w-[250px] rounded-lg rounded-tl-none bg-background-secondary p-3">
+<div class="flex items-center gap-1.5">
+<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-text-muted [animation-delay:-0.3s]"></div>
+<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-text-muted [animation-delay:-0.15s]"></div>
+<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-text-muted"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Chat Input -->
+<div class="flex-shrink-0 border-t border-border-light p-2" style="padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);">
+<div class="flex items-center gap-2">
+<button class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md hover:bg-background-tertiary">
+<span class="material-symbols-outlined text-text-secondary">add</span>
+</button>
+<input class="flex-1 rounded-md border-border-light bg-background-secondary px-4 py-2 text-sm placeholder:text-text-muted focus:border-primary focus:ring-primary" placeholder="Message Hub..." type="text"/>
+<button class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-primary text-white hover:bg-primary/90">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

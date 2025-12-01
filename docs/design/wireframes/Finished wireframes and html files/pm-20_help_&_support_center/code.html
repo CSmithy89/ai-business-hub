@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-20 Help &amp; Support Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100">
+<div class="relative flex min-h-screen w-full flex-col">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
+<div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+<div class="flex h-16 items-center justify-between">
+<div class="flex items-center gap-4 text-[#111318] dark:text-white">
+<div class="size-6 text-primary">
+<svg fill="currentColor" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M39.475 21.6262C40.358 21.4363 40.6863 21.5589 40.7581 21.5934C40.7876 21.655 40.8547 21.857 40.8082 22.3336C40.7408 23.0255 40.4502 24.0046 39.8572 25.2301C38.6799 27.6631 36.5085 30.6631 33.5858 33.5858C30.6631 36.5085 27.6632 38.6799 25.2301 39.8572C24.0046 40.4502 23.0255 40.7407 22.3336 40.8082C21.8571 40.8547 21.6551 40.7875 21.5934 40.7581C21.5589 40.6863 21.4363 40.358 21.6262 39.475C21.8562 38.4054 22.4689 36.9657 23.5038 35.2817C24.7575 33.2417 26.5497 30.9744 28.7621 28.762C30.9744 26.5497 33.2417 24.7574 35.2817 23.5037C36.9657 22.4689 38.4054 21.8562 39.475 21.6262ZM4.41189 29.2403L18.7597 43.5881C19.8813 44.7097 21.4027 44.9179 22.7217 44.7893C24.0585 44.659 25.5148 44.1631 26.9723 43.4579C29.9052 42.0387 33.2618 39.5667 36.4142 36.4142C39.5667 33.2618 42.0387 29.9052 43.4579 26.9723C44.1631 25.5148 44.659 24.0585 44.7893 22.7217C44.9179 21.4027 44.7097 19.8813 43.5881 18.7597L29.2403 4.41187C27.8527 3.02428 25.8765 3.02573 24.2861 3.36776C22.6081 3.72863 20.7334 4.58419 18.8396 5.74801C16.4978 7.18716 13.9881 9.18353 11.5858 11.5858C9.18354 13.988 7.18717 16.4978 5.74802 18.8396C4.58421 20.7334 3.72865 22.6081 3.36778 24.2861C3.02574 25.8765 3.02429 27.8527 4.41189 29.2403Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">PM-20</h2>
+</div>
+<div class="hidden md:flex flex-1 justify-center gap-8">
+<a class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal" href="#">Dashboard</a>
+<a class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal" href="#">Projects</a>
+<a class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal" href="#">Tasks</a>
+<a class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal" href="#">Reports</a>
+<a class="text-primary dark:text-primary font-bold text-sm leading-normal" href="#">Help</a>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg size-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCLeb1FzEaT-0g5kHZIXcAqRtVpO51hA6gpIYJd4ii6nCRqJLanSrCgNVdn57wVtQYzRmZj0VM3Q3kwFUqSc9j4N6tcOZ1srXSnCzH-OJgEDOORhiZ2SUzq7y9IbOGWVASq1yZX_RKJAlcrDWSylmaZyMAnUFD8h5g0X6HfhF6ALMTQNF-TACQ7NSneXMe0wxUv5W9EQAHmd87jWy5yYRW-FJZaMjY_MtuuwvYN9eufq-vwVa62PdudfjO33BfXfjBVjF0C3t1bLzc");'></div>
+</div>
+</div>
+</div>
+</header>
+<!-- System Status Bar -->
+<div class="w-full bg-green-500/10 dark:bg-green-500/20 border-b border-green-500/20">
+<div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+<div class="flex items-center gap-3 h-12 justify-center">
+<span class="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
+<p class="text-green-800 dark:text-green-300 text-sm font-medium">All Systems Operational</p>
+</div>
+</div>
+</div>
+<!-- Main Content -->
+<main class="flex-grow">
+<div class="container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+<!-- Hero Section -->
+<section class="text-center mb-16 md:mb-24">
+<h1 class="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-[#111318] dark:text-white">Help &amp; Support Center</h1>
+<p class="text-lg text-gray-600 dark:text-gray-400 mb-8">How can we help you today?</p>
+<div class="max-w-2xl mx-auto">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-2xl">search</span>
+<input class="w-full h-14 pl-12 pr-4 rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#111318] dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="Search for articles, tutorials, and more..." type="search"/>
+</div>
+<div class="flex gap-2 justify-center mt-4 flex-wrap">
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary/10 dark:bg-primary/20 px-4 cursor-pointer hover:bg-primary/20 dark:hover:bg-primary/30 transition-colors">
+<p class="text-primary dark:text-blue-300 text-sm font-medium">Billing</p>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary/10 dark:bg-primary/20 px-4 cursor-pointer hover:bg-primary/20 dark:hover:bg-primary/30 transition-colors">
+<p class="text-primary dark:text-blue-300 text-sm font-medium">Integrations</p>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary/10 dark:bg-primary/20 px-4 cursor-pointer hover:bg-primary/20 dark:hover:bg-primary/30 transition-colors">
+<p class="text-primary dark:text-blue-300 text-sm font-medium">User Roles</p>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary/10 dark:bg-primary/20 px-4 cursor-pointer hover:bg-primary/20 dark:hover:bg-primary/30 transition-colors">
+<p class="text-primary dark:text-blue-300 text-sm font-medium">Reporting</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Browse by Topic -->
+<section class="mb-16 md:mb-24">
+<h2 class="text-2xl font-bold mb-6 text-[#111318] dark:text-white">Browse by Topic</h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+<div class="group flex flex-col items-start gap-4 rounded-xl bg-white dark:bg-gray-800/50 p-6 border border-gray-200 dark:border-gray-800 hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/50 transition-all">
+<div class="flex items-center justify-center size-12 rounded-lg bg-primary/10 text-primary"><span class="material-symbols-outlined">rocket_launch</span></div>
+<h3 class="text-lg font-bold text-[#111318] dark:text-white">Getting Started</h3>
+<p class="text-gray-600 dark:text-gray-400 text-sm">12 Articles</p>
+</div>
+<div class="group flex flex-col items-start gap-4 rounded-xl bg-white dark:bg-gray-800/50 p-6 border border-gray-200 dark:border-gray-800 hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/50 transition-all">
+<div class="flex items-center justify-center size-12 rounded-lg bg-primary/10 text-primary"><span class="material-symbols-outlined">manage_accounts</span></div>
+<h3 class="text-lg font-bold text-[#111318] dark:text-white">Account Management</h3>
+<p class="text-gray-600 dark:text-gray-400 text-sm">25 Articles</p>
+</div>
+<div class="group flex flex-col items-start gap-4 rounded-xl bg-white dark:bg-gray-800/50 p-6 border border-gray-200 dark:border-gray-800 hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/50 transition-all">
+<div class="flex items-center justify-center size-12 rounded-lg bg-primary/10 text-primary"><span class="material-symbols-outlined">widgets</span></div>
+<h3 class="text-lg font-bold text-[#111318] dark:text-white">Features A-Z</h3>
+<p class="text-gray-600 dark:text-gray-400 text-sm">58 Articles</p>
+</div>
+<div class="group flex flex-col items-start gap-4 rounded-xl bg-white dark:bg-gray-800/50 p-6 border border-gray-200 dark:border-gray-800 hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/50 transition-all">
+<div class="flex items-center justify-center size-12 rounded-lg bg-primary/10 text-primary"><span class="material-symbols-outlined">build</span></div>
+<h3 class="text-lg font-bold text-[#111318] dark:text-white">Troubleshooting</h3>
+<p class="text-gray-600 dark:text-gray-400 text-sm">18 Articles</p>
+</div>
+<div class="group flex flex-col items-start gap-4 rounded-xl bg-white dark:bg-gray-800/50 p-6 border border-gray-200 dark:border-gray-800 hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/50 transition-all">
+<div class="flex items-center justify-center size-12 rounded-lg bg-primary/10 text-primary"><span class="material-symbols-outlined">api</span></div>
+<h3 class="text-lg font-bold text-[#111318] dark:text-white">API &amp; Integrations</h3>
+<p class="text-gray-600 dark:text-gray-400 text-sm">32 Articles</p>
+</div>
+<div class="group flex flex-col items-start gap-4 rounded-xl bg-white dark:bg-gray-800/50 p-6 border border-gray-200 dark:border-gray-800 hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/50 transition-all">
+<div class="flex items-center justify-center size-12 rounded-lg bg-primary/10 text-primary"><span class="material-symbols-outlined">receipt_long</span></div>
+<h3 class="text-lg font-bold text-[#111318] dark:text-white">Billing &amp; Subscriptions</h3>
+<p class="text-gray-600 dark:text-gray-400 text-sm">15 Articles</p>
+</div>
+</div>
+</section>
+<!-- Popular Articles & Videos -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16 md:mb-24">
+<div>
+<div class="flex justify-between items-baseline mb-6">
+<h2 class="text-2xl font-bold text-[#111318] dark:text-white">Popular Articles</h2>
+<a class="text-sm font-medium text-primary hover:underline" href="#">View All</a>
+</div>
+<div class="space-y-2">
+<a class="flex items-center gap-4 rounded-lg bg-white dark:bg-gray-800/50 p-4 min-h-14 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all group" href="#">
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 group-hover:text-primary">article</span>
+<p class="text-[#111318] dark:text-white text-base font-medium flex-1 truncate">How to set up your first project</p>
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 group-hover:text-primary transition-transform group-hover:translate-x-1">arrow_forward</span>
+</a>
+<a class="flex items-center gap-4 rounded-lg bg-white dark:bg-gray-800/50 p-4 min-h-14 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all group" href="#">
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 group-hover:text-primary">article</span>
+<p class="text-[#111318] dark:text-white text-base font-medium flex-1 truncate">Inviting team members to collaborate</p>
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 group-hover:text-primary transition-transform group-hover:translate-x-1">arrow_forward</span>
+</a>
+<a class="flex items-center gap-4 rounded-lg bg-white dark:bg-gray-800/50 p-4 min-h-14 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all group" href="#">
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 group-hover:text-primary">article</span>
+<p class="text-[#111318] dark:text-white text-base font-medium flex-1 truncate">Understanding user roles and permissions</p>
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 group-hover:text-primary transition-transform group-hover:translate-x-1">arrow_forward</span>
+</a>
+<a class="flex items-center gap-4 rounded-lg bg-white dark:bg-gray-800/50 p-4 min-h-14 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all group" href="#">
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 group-hover:text-primary">article</span>
+<p class="text-[#111318] dark:text-white text-base font-medium flex-1 truncate">How to connect with Slack</p>
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 group-hover:text-primary transition-transform group-hover:translate-x-1">arrow_forward</span>
+</a>
+</div>
+</div>
+<div>
+<div class="flex justify-between items-baseline mb-6">
+<h2 class="text-2xl font-bold text-[#111318] dark:text-white">Featured Video Tutorials</h2>
+<a class="text-sm font-medium text-primary hover:underline" href="#">View All</a>
+</div>
+<div class="space-y-4">
+<a class="flex items-center gap-4 group" href="#">
+<div class="relative shrink-0 w-32 h-20 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Abstract colorful paint splash for video thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfqpjMmNZ6cRvo4nQE5XOsMFiaZhR9gmEXo0iF8IaS1fl7aht7CgOiX6L5erVKKpjOQzj9tk6drYUFB54UpVw8jfxRCBNN8lw9m98EuVYHHvi1_wlszZcXwPmCe-es1cB4_eSo6iGdeJjBHH5n0KPCJq-zFcUrMusvi0tEwbH-wd9RkoJuoIUBXPLkCfN7rRm0P8hxoofbMGp_nCN-jExr_7fbh4SeKNgjyVVjM7-jKDNeJaRqvwSQuTdyHzwKXggfgTPLlehZtk4"/>
+<div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-3xl">play_circle</span>
+</div>
+</div>
+<div>
+<p class="text-[#111318] dark:text-white text-base font-medium group-hover:text-primary">Getting Started with PM-20</p>
+<p class="text-sm text-gray-500 dark:text-gray-400">5 min watch</p>
+</div>
+</a>
+<a class="flex items-center gap-4 group" href="#">
+<div class="relative shrink-0 w-32 h-20 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Retro gaming console for video thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAA0RPlk_fJUZ9nYPk7JGJX8-1YztDStwc6pqxosaUP8zA1JruFm-yaPHX5G3UTP6oDzc0HRjjJ_E5YR68xPYmWaTcyy1xRYYZukWp8maLZcahD_XogsEoaKhYAIorg4-PNBX2qTLSHk2yRZpm_-GAYiDGRJj5N8hxuv_ffVui_MV-Xw3EwXpM5IEszrNXk2v0cinqZgJVZescundHGc8cbBbCM2nSvA6g2ZxpqFJJXMLXs-CF4C_gYAijnS-H9prpK-LIc7yqMZ6Q"/>
+<div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-3xl">play_circle</span>
+</div>
+</div>
+<div>
+<p class="text-[#111318] dark:text-white text-base font-medium group-hover:text-primary">Mastering the Task View</p>
+<p class="text-sm text-gray-500 dark:text-gray-400">8 min watch</p>
+</div>
+</a>
+<a class="flex items-center gap-4 group" href="#">
+<div class="relative shrink-0 w-32 h-20 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Colorful abstract gradient for video thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAD8lIySnFHmSzD5iE4HCxKttjsKFyI0x3xa3BKjbzc4e4Dt4VRc5UmvG48CRTPEOWH7zMt9XGb0pdVOHYYlR7xAOv6Qruzbnuu1yX62CW9Ntwidj3DrvFLXAEEbG1rfMNgBbD0E6GtJbY7GnwTdU0aJcu3lcPpXM79OM1dYB05gMU_zFqBsNsUVpGY0rh_44K9APVR6fVym04R0a-6FCWE1J0DLX-r7tXwlFyNhaZfrBIUPdIMRSWQxaDg4rYLO6Cm62x0o4z6A-E"/>
+<div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-3xl">play_circle</span>
+</div>
+</div>
+<div>
+<p class="text-[#111318] dark:text-white text-base font-medium group-hover:text-primary">Advanced Reporting Techniques</p>
+<p class="text-sm text-gray-500 dark:text-gray-400">12 min watch</p>
+</div>
+</a>
+</div>
+</div>
+</section>
+<!-- Need More Help? -->
+<section>
+<div class="text-center mb-8">
+<h2 class="text-2xl font-bold text-[#111318] dark:text-white">Can't find an answer?</h2>
+<p class="text-gray-600 dark:text-gray-400 mt-2">Our team is here to help you.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="text-center p-8 rounded-xl bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800">
+<div class="flex items-center justify-center mx-auto size-14 rounded-full bg-primary/10 text-primary mb-4"><span class="material-symbols-outlined text-3xl">chat</span></div>
+<h3 class="text-lg font-bold mb-2 text-[#111318] dark:text-white">Live Chat</h3>
+<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Chat with our team now. We're available 9am-5pm EST.</p>
+<button class="font-medium text-primary hover:underline">Start Chat</button>
+</div>
+<div class="text-center p-8 rounded-xl bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800">
+<div class="flex items-center justify-center mx-auto size-14 rounded-full bg-primary/10 text-primary mb-4"><span class="material-symbols-outlined text-3xl">email</span></div>
+<h3 class="text-lg font-bold mb-2 text-[#111318] dark:text-white">Email Support</h3>
+<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">We'll get back to you within 24 hours.</p>
+<button class="font-medium text-primary hover:underline">Send Email</button>
+</div>
+<div class="text-center p-8 rounded-xl bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800">
+<div class="flex items-center justify-center mx-auto size-14 rounded-full bg-primary/10 text-primary mb-4"><span class="material-symbols-outlined text-3xl">confirmation_number</span></div>
+<h3 class="text-lg font-bold mb-2 text-[#111318] dark:text-white">Submit a Ticket</h3>
+<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">For technical issues, submit a ticket for our team to track.</p>
+<button class="font-medium text-primary hover:underline">Create Ticket</button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-gray-100 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800">
+<div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+<p>© 2024 PM-20. All Rights Reserved.</p>
+</div>
+</footer>
+</div>
+</body></html>

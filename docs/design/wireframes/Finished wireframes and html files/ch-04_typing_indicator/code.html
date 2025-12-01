@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HYVVE - Typing Indicator Showcase</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        /* CSS Animations for Indicators */
+        @keyframes typing-bounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.6; }
+            30% { transform: translateY(-8px); opacity: 1; }
+        }
+        .animate-typing-bounce span:nth-child(1) { animation: typing-bounce 1.4s infinite ease-in-out; animation-delay: 0s; }
+        .animate-typing-bounce span:nth-child(2) { animation: typing-bounce 1.4s infinite ease-in-out; animation-delay: 0.2s; }
+        .animate-typing-bounce span:nth-child(3) { animation: typing-bounce 1.4s infinite ease-in-out; animation-delay: 0.4s; }
+
+        @keyframes progress-indeterminate {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(250%); }
+        }
+        .animate-progress-indeterminate::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 40%;
+            height: 100%;
+            background-image: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: progress-indeterminate 1.5s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin { animation: spin 0.8s linear infinite; }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        .animate-blink { animation: blink 1s step-end infinite; }
+
+        @keyframes thinking-pulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1); opacity: 1; }
+        }
+        .animate-thinking-pulse div:nth-child(1) { animation: thinking-pulse 1.5s ease-in-out infinite; animation-delay: 0s; }
+        .animate-thinking-pulse div:nth-child(2) { animation: thinking-pulse 1.5s ease-in-out infinite; animation-delay: 0.2s; }
+        .animate-thinking-pulse div:nth-child(3) { animation: thinking-pulse 1.5s ease-in-out infinite; animation-delay: 0.4s; }
+    </style>
+<script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'background-primary': '#FFFBF5',
+                        'background-secondary': '#F9F7F2',
+                        'background-tertiary': '#F5F3EE',
+                        'surface': '#FFFFFF',
+                        'border-color': '#E5E5E5',
+                        'text-primary': '#1A1A1A',
+                        'text-secondary': '#6B7280',
+                        'text-muted': '#9CA3AF',
+                        'brand-primary': '#FF6B6B', /* Coral for Hub */
+                        'brand-secondary': '#20B2AA', /* Teal for Maya */
+                        'brand-success': '#2ECC71',
+                        'brand-warning': '#F59E0B',
+                        'brand-error': '#EF4444',
+                        'brand-info': '#4B7BEC',
+                        'agent-hub': '#FF6B6B',
+                        'agent-maya': '#20B2AA',
+                        'agent-atlas': '#FF9F43',
+                        'agent-sage': '#2ECC71',
+                        'agent-nova': '#FF6B9D',
+                        'agent-echo': '#4B7BEC',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'SF Mono', 'Fira Code', 'monospace'],
+                    },
+                    borderRadius: {
+                        'sm': '4px',
+                        'md': '8px',
+                        'lg': '12px',
+                        'xl': '16px',
+                        'full': '9999px',
+                    },
+                    boxShadow: {
+                        'xs': '0 1px 2px rgba(0, 0, 0, 0.04)',
+                        'sm': '0 2px 4px rgba(0, 0, 0, 0.04)',
+                        'md': '0 4px 8px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02)',
+                        'lg': '0 8px 16px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.03)',
+                        'xl': '0 16px 32px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.04)',
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sans bg-background-primary text-text-primary">
+<div class="w-full min-h-screen p-8 md:p-12 lg:p-16">
+<div class="max-w-3xl mx-auto">
+<header class="mb-12 text-center">
+<h1 class="text-3xl font-bold tracking-tighter text-text-primary">HYVVE</h1>
+<p class="text-lg text-text-secondary">AI Agent Typing &amp; Processing Indicators</p>
+</header>
+<div class="space-y-12">
+<!-- Variant 1: Simple Typing Dots -->
+<div>
+<h2 class="mb-4 text-lg font-semibold tracking-tight text-text-primary">Variant 1: Simple Typing Dots</h2>
+<div class="flex items-start gap-4">
+<div class="flex items-center justify-center text-lg font-bold text-white rounded-full size-10 bg-agent-maya shrink-0">🐚</div>
+<div class="flex items-center h-10 gap-2">
+<span class="text-sm text-text-secondary">Maya is typing</span>
+<div class="flex items-center gap-1 animate-typing-bounce">
+<span class="bg-agent-maya rounded-full size-2"></span>
+<span class="bg-agent-maya rounded-full size-2"></span>
+<span class="bg-agent-maya rounded-full size-2"></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Variant 2: Typing with Bubble -->
+<div>
+<h2 class="mb-4 text-lg font-semibold tracking-tight text-text-primary">Variant 2: Typing with Bubble</h2>
+<div class="flex items-start gap-4">
+<div class="flex items-center justify-center text-lg font-bold text-white rounded-full size-10 bg-agent-maya shrink-0">🐚</div>
+<div class="flex flex-col items-start w-full max-w-md gap-2">
+<span class="text-sm font-medium text-agent-maya">Maya</span>
+<div class="px-5 py-4 rounded-b-xl rounded-tr-xl bg-background-secondary">
+<div class="flex items-center gap-1.5 animate-typing-bounce">
+<span class="bg-agent-maya/50 rounded-full w-2.5 h-2.5"></span>
+<span class="bg-agent-maya/50 rounded-full w-2.5 h-2.5"></span>
+<span class="bg-agent-maya/50 rounded-full w-2.5 h-2.5"></span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Variant 3: Processing with Context -->
+<div>
+<h2 class="mb-4 text-lg font-semibold tracking-tight text-text-primary">Variant 3: Processing with Context</h2>
+<div class="flex items-start gap-4">
+<div class="flex items-center justify-center text-lg font-bold text-white rounded-full size-10 bg-agent-maya shrink-0">🐚</div>
+<div class="flex flex-col items-start w-full max-w-md gap-2">
+<span class="text-sm font-medium text-agent-maya">Maya</span>
+<div class="flex items-start w-full gap-3 p-4 rounded-lg bg-background-secondary">
+<div class="flex items-center justify-center p-2 rounded-full bg-surface">
+<span class="text-xl material-symbols-outlined text-agent-maya">search</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-medium text-text-primary">Searching your contacts...</p>
+<div class="flex items-center gap-2 mt-2">
+<div class="relative w-full h-1.5 overflow-hidden rounded-full bg-border-color animate-progress-indeterminate">
+<div class="h-full rounded-full bg-agent-maya" style="width: 45%;"></div>
+</div>
+<span class="text-xs text-text-muted">45%</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Variant 4: Multi-Step Processing -->
+<div>
+<h2 class="mb-4 text-lg font-semibold tracking-tight text-text-primary">Variant 4: Multi-Step Processing</h2>
+<div class="flex items-start gap-4">
+<div class="flex items-center justify-center text-lg font-bold text-white rounded-full size-10 bg-agent-hub shrink-0">🎯</div>
+<div class="flex flex-col items-start w-full max-w-md gap-2">
+<span class="text-sm font-medium text-agent-hub">Hub</span>
+<div class="w-full p-4 space-y-2.5 rounded-lg bg-background-secondary">
+<div class="flex items-center gap-2.5">
+<div class="flex items-center justify-center text-white rounded-full size-4 bg-brand-success"><span class="text-xs material-symbols-outlined !text-[10px] !font-bold">check</span></div>
+<span class="text-sm text-text-primary">Parsing request</span>
+</div>
+<div class="flex items-center gap-2.5">
+<div class="flex items-center justify-center text-white rounded-full size-4 bg-brand-success"><span class="text-xs material-symbols-outlined !text-[10px] !font-bold">check</span></div>
+<span class="text-sm text-text-primary">Checking calendar</span>
+</div>
+<div class="flex items-center gap-2.5">
+<div class="box-border border-2 rounded-full size-4 border-border-color border-t-agent-hub animate-spin"></div>
+<span class="text-sm font-medium text-text-primary">Assigning to project</span>
+</div>
+<div class="flex items-center gap-2.5 text-text-muted">
+<div class="border-2 rounded-full size-4 border-current"></div>
+<span class="text-sm">Setting due date</span>
+</div>
+<div class="flex items-center gap-2.5 text-text-muted">
+<div class="border-2 rounded-full size-4 border-current"></div>
+<span class="text-sm">Notifying team</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Variant 5: Streaming Text Response -->
+<div>
+<h2 class="mb-4 text-lg font-semibold tracking-tight text-text-primary">Variant 5: Streaming Text Response</h2>
+<div class="flex items-start gap-4">
+<div class="flex items-center justify-center text-lg font-bold text-white rounded-full size-10 bg-agent-maya shrink-0">🐚</div>
+<div class="flex flex-col items-start w-full max-w-md gap-2">
+<span class="text-sm font-medium text-agent-maya">Maya</span>
+<div class="w-full p-4 prose-sm leading-relaxed rounded-b-xl rounded-tr-xl bg-background-secondary text-text-primary">
+<p class="whitespace-pre-wrap">I found 3 contacts matching "Johnson":
+
+1. **Sarah Johnson** - VP Sales at Acme Corp
+   Last contact: 2 days ago
+
+2. **Mike Johnson** - CEO at Johnson &amp; Co
+   Last contact: 1 week ago<span class="inline-block w-0.5 h-4 ml-px -mb-0.5 bg-text-primary animate-blink"></span></p>
+</div>
+</div>
+</div>
+</div>
+<!-- Variant 6: Error During Processing -->
+<div>
+<h2 class="mb-4 text-lg font-semibold tracking-tight text-text-primary">Variant 6: Error During Processing</h2>
+<div class="flex items-start gap-4">
+<div class="flex items-center justify-center text-lg font-bold text-white rounded-full size-10 bg-agent-hub shrink-0">🎯</div>
+<div class="flex flex-col items-start w-full max-w-md gap-2">
+<span class="text-sm font-medium text-agent-hub">Hub</span>
+<div class="w-full overflow-hidden border rounded-lg border-red-200 bg-red-50/50">
+<div class="flex items-center gap-2 px-4 py-3">
+<span class="text-xl material-symbols-outlined text-brand-error">warning</span>
+<span class="text-sm font-semibold text-brand-error">Something went wrong</span>
+</div>
+<div class="px-4 pb-4 text-sm text-text-secondary">
+                                    Couldn't access the calendar service. Would you like me to:
+                                </div>
+<div class="flex items-center gap-2 px-4 py-3 border-t border-red-200 bg-surface">
+<button class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors border rounded-md shadow-xs bg-surface text-text-secondary border-border-color hover:bg-background-secondary">
+<span class="text-base material-symbols-outlined">refresh</span>
+                                        Try again
+                                    </button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors border rounded-md shadow-xs bg-surface text-text-secondary border-border-color hover:bg-background-secondary">
+<span class="text-base material-symbols-outlined">event_busy</span>
+                                        Skip calendar
+                                    </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Variant 7: Agent Thinking (Longer Process) -->
+<div>
+<h2 class="mb-4 text-lg font-semibold tracking-tight text-text-primary">Variant 7: Agent Thinking</h2>
+<div class="flex items-start gap-4">
+<div class="flex items-center justify-center text-lg font-bold text-white rounded-full size-10 bg-agent-maya shrink-0">🐚</div>
+<div class="flex flex-col items-start w-full max-w-md gap-2">
+<span class="text-sm font-medium text-agent-maya">Maya</span>
+<div class="flex items-center w-full gap-4 p-5 rounded-lg bg-background-secondary">
+<div class="flex gap-1 animate-thinking-pulse">
+<div class="bg-agent-maya rounded-full size-3"></div>
+<div class="bg-agent-maya rounded-full size-3"></div>
+<div class="bg-agent-maya rounded-full size-3"></div>
+</div>
+<div>
+<p class="text-sm font-medium text-text-primary">Analyzing 2,450 contacts to find the best matches...</p>
+<p class="text-xs text-text-muted">This may take a moment</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-04 Deal Detail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 20
+      }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+              "card-light": "#ffffff",
+              "card-dark": "#182234",
+              "text-light-primary": "#111318",
+              "text-dark-primary": "#ffffff",
+              "text-light-secondary": "#616f89",
+              "text-dark-secondary": "#a0aec0",
+              "border-light": "#e2e8f0",
+              "border-dark": "#2d3748",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root">
+<!-- TopNavBar Component -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-border-light dark:border-border-dark px-6 lg:px-10 py-3 bg-card-light dark:bg-card-dark sticky top-0 z-20">
+<div class="flex items-center gap-4 text-text-light-primary dark:text-text-dark-primary">
+<div class="size-6 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M24 45.8096C19.6865 45.8096 15.4698 44.5305 11.8832 42.134C8.29667 39.7376 5.50128 36.3314 3.85056 32.3462C2.19985 28.361 1.76794 23.9758 2.60947 19.7452C3.451 15.5145 5.52816 11.6284 8.57829 8.5783C11.6284 5.52817 15.5145 3.45101 19.7452 2.60948C23.9758 1.76795 28.361 2.19986 32.3462 3.85057C36.3314 5.50129 39.7376 8.29668 42.134 11.8833C44.5305 15.4698 45.8096 19.6865 45.8096 24L24 24L24 45.8096Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-text-light-primary dark:text-text-dark-primary text-lg font-bold leading-tight tracking-[-0.015em]">HYVVE CRM</h2>
+</div>
+<div class="hidden lg:flex flex-1 justify-center gap-8">
+<div class="flex items-center gap-9">
+<a class="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal" href="#">Dashboard</a>
+<a class="text-primary dark:text-primary text-sm font-bold leading-normal" href="#">Deals</a>
+<a class="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal" href="#">Contacts</a>
+<a class="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal" href="#">Companies</a>
+<a class="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal" href="#">Reports</a>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="hidden sm:flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Create Deal</span>
+</button>
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-background-light dark:bg-background-dark text-text-light-secondary dark:text-text-dark-secondary gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5">
+<span class="material-symbols-outlined text-xl">help</span>
+</button>
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-background-light dark:bg-background-dark text-text-light-secondary dark:text-text-dark-secondary gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBPWWA_ghZRu9f-yKtrevGeOGTeM8uDxTmS0Hgtrn1B6bl1vFz24haxm24zV9HiRqO5svD26QhY6IecEiSVVPvwptM9gYjJrNjWxQg5DL_hq4y6cLSH6g9pil2tJMfpcBdTUzvQ5NbijoNrqWRSK66Fzh0_HnVwuV35ZcofeQcaQiDpZeDCGYE0trefXUkSaeD-LWCI1kgBU6RumcaMDIOnanU5kO7Sm4SrA-BZWwW6JyucKvskWlILnHMC2LNSBGjGzJX4BpIvc7U");'></div>
+</div>
+</header>
+<main class="flex-grow p-4 sm:p-6 lg:p-8">
+<div class="mx-auto max-w-7xl">
+<!-- Breadcrumbs Component -->
+<div class="flex flex-wrap gap-2 mb-4">
+<a class="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary text-sm font-medium leading-normal" href="#">Deals</a>
+<span class="text-text-light-secondary dark:text-text-dark-secondary text-sm font-medium leading-normal">/</span>
+<a class="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary text-sm font-medium leading-normal" href="#">Q4 Pipeline</a>
+<span class="text-text-light-secondary dark:text-text-dark-secondary text-sm font-medium leading-normal">/</span>
+<span class="text-text-light-primary dark:text-text-dark-primary text-sm font-medium leading-normal">QuantumLeap Integration</span>
+</div>
+<!-- PageHeading Component -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+<h1 class="text-text-light-primary dark:text-text-dark-primary text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">QuantumLeap Integration - $50,000</h1>
+<div class="flex items-center gap-2">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-background-light dark:bg-card-dark text-text-light-primary dark:text-text-dark-primary text-sm font-bold leading-normal tracking-[0.015em] border border-border-light dark:border-border-dark gap-2">
+<span class="material-symbols-outlined text-base">edit</span> <span class="truncate">Edit</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-background-light dark:bg-card-dark text-text-light-primary dark:text-text-dark-primary text-sm font-bold leading-normal tracking-[0.015em] border border-border-light dark:border-border-dark gap-2">
+<span class="material-symbols-outlined text-base">more_horiz</span>
+</button>
+</div>
+</div>
+<!-- ProgressBar Component -->
+<div class="mb-8">
+<div class="flex flex-wrap gap-x-6 gap-y-2 justify-between mb-3">
+<p class="text-text-light-primary dark:text-text-dark-primary text-base font-medium leading-normal">Current Stage: <span class="font-bold text-primary">Negotiation</span></p>
+<p class="text-text-light-secondary dark:text-text-dark-secondary text-sm">Next: Closing</p>
+</div>
+<div class="w-full bg-border-light dark:bg-border-dark rounded-full h-2">
+<div class="h-2 rounded-full bg-primary" style="width: 75%;"></div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Main Content Column -->
+<div class="lg:col-span-2">
+<!-- Tabs Component -->
+<div class="border-b border-border-light dark:border-border-dark">
+<div class="flex gap-8">
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-primary text-primary pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Overview</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-light-secondary dark:text-text-dark-secondary hover:text-primary pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Activity</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-light-secondary dark:text-text-dark-secondary hover:text-primary pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Products</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-light-secondary dark:text-text-dark-secondary hover:text-primary pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Emails</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-light-secondary dark:text-text-dark-secondary hover:text-primary pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Files</p>
+</a>
+</div>
+</div>
+<!-- Tab Content: Overview -->
+<div class="pt-8 space-y-8">
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-border-light dark:border-border-dark">
+<h3 class="text-lg font-bold text-text-light-primary dark:text-text-dark-primary mb-4">Deal Information</h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+<div>
+<label class="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">Primary Contact</label>
+<p class="text-base font-medium text-text-light-primary dark:text-text-dark-primary">Jane Doe</p>
+</div>
+<div>
+<label class="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">Company</label>
+<p class="text-base font-medium text-text-light-primary dark:text-text-dark-primary">Innovate Inc.</p>
+</div>
+<div>
+<label class="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">Expected Close Date</label>
+<p class="text-base font-medium text-text-light-primary dark:text-text-dark-primary">December 15, 2023</p>
+</div>
+<div>
+<label class="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">Deal Value</label>
+<p class="text-base font-medium text-text-light-primary dark:text-text-dark-primary">$50,000</p>
+</div>
+</div>
+</div>
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-6 border border-border-light dark:border-border-dark">
+<h3 class="text-lg font-bold text-text-light-primary dark:text-text-dark-primary mb-4">Notes &amp; Description</h3>
+<p class="text-base text-text-light-secondary dark:text-text-dark-secondary leading-relaxed">Client is looking to integrate our QuantumLeap solution to streamline their data processing workflow. They are currently using a competitor's product but are unhappy with the performance and lack of support. The main decision-maker is Jane Doe, Head of Operations. A final proposal has been sent, and we are in the negotiation phase regarding pricing and implementation timeline.</p>
+</div>
+</div>
+</div>
+<!-- Sidebar Column -->
+<aside class="space-y-6">
+<!-- Deal Owner Card -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-5 border border-border-light dark:border-border-dark">
+<h4 class="text-sm font-bold text-text-light-secondary dark:text-text-dark-secondary mb-3 uppercase tracking-wider">Deal Owner</h4>
+<div class="flex items-center gap-4">
+<img class="size-12 rounded-full object-cover" data-alt="Avatar of the deal owner" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuuJQsiqDHiXcbcLlI1iai9ZHEmyq1PU-8L10sDk8Di6HSYtTcFi3KllQMNpRxWSuSbCAIRq0CHlKJ-Iy11L1bUT6nn7Mx5n4bwW_XxAAfZYOa-lD0DFnsaE0ZLB_HMhIQWLjm_Bsnt3Ruj-38v1qq2La2Di05noo-WyyR0hvDDUF7NU_cV0xlvoU3kLX48A3Q5mu6DbmDLX115Qs-KMDcBiekG32V7UL2pxsztm3wZCac7vN9e-zj-Ttjlv3HthHnlSe5OTTAD5c"/>
+<div>
+<p class="font-bold text-text-light-primary dark:text-text-dark-primary">Alex Johnson</p>
+<p class="text-sm text-text-light-secondary dark:text-text-dark-secondary">Senior Account Executive</p>
+</div>
+</div>
+</div>
+<!-- Key Metrics Card -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-5 border border-border-light dark:border-border-dark">
+<h4 class="text-sm font-bold text-text-light-secondary dark:text-text-dark-secondary mb-4 uppercase tracking-wider">Key Metrics</h4>
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<p class="text-text-light-secondary dark:text-text-dark-secondary">Days in Stage</p>
+<p class="font-bold text-text-light-primary dark:text-text-dark-primary">12</p>
+</div>
+<div class="flex justify-between items-center">
+<p class="text-text-light-secondary dark:text-text-dark-secondary">Last Activity</p>
+<p class="font-bold text-text-light-primary dark:text-text-dark-primary">2 days ago</p>
+</div>
+<div class="flex justify-between items-center">
+<p class="text-text-light-secondary dark:text-text-dark-secondary">Deal Age</p>
+<p class="font-bold text-text-light-primary dark:text-text-dark-primary">45 days</p>
+</div>
+</div>
+</div>
+<!-- Maya AI Analysis Card -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-5 border border-border-light dark:border-border-dark">
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-sm font-bold text-text-light-secondary dark:text-text-dark-secondary uppercase tracking-wider">Maya AI Analysis</h4>
+<span class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+<span class="material-symbols-outlined text-sm">auto_awesome</span>AI
+                             </span>
+</div>
+<div class="text-center mb-4">
+<p class="text-sm text-text-light-secondary dark:text-text-dark-secondary mb-1">Win Probability</p>
+<p class="text-4xl font-bold text-green-500">78%</p>
+</div>
+<div class="space-y-3">
+<h5 class="font-bold text-text-light-primary dark:text-text-dark-primary">Suggested Actions:</h5>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-base text-primary mt-0.5">check_circle</span>
+<p class="text-sm text-text-light-secondary dark:text-text-dark-secondary">Send follow-up email highlighting ROI case study.</p>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-base text-primary mt-0.5">check_circle</span>
+<p class="text-sm text-text-light-secondary dark:text-text-dark-secondary">Schedule a final call with the technical lead to address integration concerns.</p>
+</div>
+</div>
+</div>
+<!-- Next Steps Card -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-5 border border-border-light dark:border-border-dark">
+<h4 class="text-sm font-bold text-text-light-secondary dark:text-text-dark-secondary mb-3 uppercase tracking-wider">Next Steps</h4>
+<div class="space-y-3">
+<div class="flex items-start gap-3">
+<input class="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/>
+<div>
+<p class="font-medium text-text-light-primary dark:text-text-dark-primary">Finalize contract details</p>
+<p class="text-xs text-red-500">Due: Tomorrow</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<input class="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/>
+<div>
+<p class="font-medium text-text-light-primary dark:text-text-dark-primary">Send security compliance docs</p>
+<p class="text-xs text-text-light-secondary dark:text-text-dark-secondary">Due: In 3 days</p>
+</div>
+</div>
+<button class="mt-2 text-primary font-bold text-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-lg">add</span> Add Task
+                                </button>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</main>
+</div>
+</body></html>

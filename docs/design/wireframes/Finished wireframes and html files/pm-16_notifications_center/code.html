@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-16 Notifications Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+              "foreground-light": "#ffffff",
+              "foreground-dark": "#182131",
+              "text-light": "#111318",
+              "text-dark": "#ffffff",
+              "text-secondary-light": "#616f89",
+              "text-secondary-dark": "#a0aec0",
+              "border-light": "#dbdfe6",
+              "border-dark": "#334155"
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-border-light dark:border-border-dark px-6 md:px-10 py-3 bg-foreground-light dark:bg-foreground-dark">
+<div class="flex items-center gap-4 text-text-light dark:text-text-dark">
+<div class="size-6 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 42.4379C4 42.4379 14.0962 36.0744 24 41.1692C35.0664 46.8624 44 42.2078 44 42.2078L44 7.01134C44 7.01134 35.068 11.6577 24.0031 5.96913C14.0971 0.876274 4 7.27094 4 7.27094L4 42.4379Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-text-light dark:text-text-dark text-lg font-bold leading-tight tracking-[-0.015em]">HYVVE</h2>
+</div>
+<div class="hidden md:flex items-center gap-9">
+<a class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium leading-normal hover:text-text-light dark:hover:text-text-dark" href="#">Dashboard</a>
+<a class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium leading-normal hover:text-text-light dark:hover:text-text-dark" href="#">Projects</a>
+<a class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium leading-normal hover:text-text-light dark:hover:text-text-dark" href="#">Tasks</a>
+<a class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium leading-normal hover:text-text-light dark:hover:text-text-dark" href="#">Calendar</a>
+</div>
+<div class="flex flex-1 justify-end gap-2">
+<button class="hidden sm:flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">New Task</span>
+</button>
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-background-light dark:bg-background-dark hover:bg-border-light dark:hover:bg-border-dark text-text-secondary-light dark:text-text-secondary-dark gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5">
+<span class="material-symbols-outlined text-xl">help</span>
+</button>
+<button class="relative flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-background-light dark:bg-background-dark hover:bg-border-light dark:hover:bg-border-dark text-text-secondary-light dark:text-text-secondary-dark gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5">
+<span class="material-symbols-outlined text-xl">notifications</span>
+<div class="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">3</div>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAgPNhQzWmT7LLkP217Kw-RLtkOtuoxat8qKg-QvoWvMJP5lLTN6ofGAMFQ6y1ckfoE_K1Pcgv8qQSZ7koexGNKGVHJgVvxUppGqyuAgw0nx4CTagPawqs_XHJ6KBW4Z2S0jHSCySuBa75tXveH9A5kJCgycjIW0LwveqsIWNi2CwLzDZV4-6lVELOJoBiOlc0reN8rn4yX-xo1fJSmQyr_xBO7mx4W1zYAvOBiFrZ7PiTlbEIbXokvO_sg8I--YjCnb-TxB9Ob5-k");'></div>
+</div>
+</header>
+<main class="px-4 sm:px-6 lg:px-8 flex flex-1 justify-center py-5 md:py-10">
+<div class="layout-content-container flex flex-col w-full max-w-[960px] flex-1">
+<div class="flex flex-wrap justify-between items-center gap-4 p-4">
+<p class="text-text-light dark:text-text-dark text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">Notifications</p>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-background-light dark:bg-foreground-dark border border-border-light dark:border-border-dark text-text-light dark:text-text-dark hover:bg-border-light dark:hover:bg-border-dark text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Mark All as Read</span>
+</button>
+</div>
+<div class="pb-3 sticky top-0 bg-background-light dark:bg-background-dark z-10">
+<div class="flex border-b border-border-light dark:border-border-dark px-4 gap-8">
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-primary text-text-light dark:text-text-dark pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">All</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-secondary-light dark:text-text-secondary-dark hover:text-text-light dark:hover:text-text-dark pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Unread</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-secondary-light dark:text-text-secondary-dark hover:text-text-light dark:hover:text-text-dark pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Mentions</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-secondary-light dark:text-text-secondary-dark hover:text-text-light dark:hover:text-text-dark pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Assignments</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-secondary-light dark:text-text-secondary-dark hover:text-text-light dark:hover:text-text-dark pb-[13px] pt-4" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Settings</p>
+</a>
+</div>
+</div>
+<div class="flex flex-col gap-4 mt-6">
+<h3 class="text-text-light dark:text-text-dark text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Today</h3>
+<div class="flex flex-col divide-y divide-border-light dark:divide-border-dark bg-foreground-light dark:bg-foreground-dark rounded-xl border border-border-light dark:border-border-dark">
+<div class="flex gap-4 px-4 py-3 justify-between items-center group relative">
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-primary rounded-r-full"></div>
+<div class="flex items-start gap-4 flex-grow">
+<div class="text-text-light dark:text-text-dark flex items-center justify-center rounded-lg bg-background-light dark:bg-background-dark shrink-0 size-12">
+<span class="material-symbols-outlined text-2xl">chat_bubble</span>
+</div>
+<div class="flex flex-1 flex-col justify-center">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Jane Doe mentioned you in 'Q4 Planning'</p>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-normal leading-normal">Project: Marketing Campaign</p>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-normal leading-normal mt-1">"Hey, could you take a look at the latest designs? They're ready for review."</p>
+</div>
+</div>
+<div class="shrink-0 flex items-center gap-2">
+<button class="text-sm font-medium leading-normal text-primary hover:underline">View</button>
+<button class="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary-light dark:text-text-secondary-dark hover:text-text-light dark:hover:text-text-dark">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+</div>
+<div class="flex gap-4 px-4 py-3 justify-between items-center group relative">
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-primary rounded-r-full"></div>
+<div class="flex items-start gap-4 flex-grow">
+<div class="text-text-light dark:text-text-dark flex items-center justify-center rounded-lg bg-background-light dark:bg-background-dark shrink-0 size-12">
+<span class="material-symbols-outlined text-2xl">assignment_ind</span>
+</div>
+<div class="flex flex-1 flex-col justify-center">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">John Smith assigned 'Create new landing page' to you</p>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-normal leading-normal">Project: Website Redesign</p>
+</div>
+</div>
+<div class="shrink-0 flex items-center gap-2">
+<button class="text-sm font-medium leading-normal text-primary hover:underline">View Task</button>
+<button class="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary-light dark:text-text-secondary-dark hover:text-text-light dark:hover:text-text-dark">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+</div>
+<div class="flex gap-4 px-4 py-3 justify-between items-center group relative">
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-primary rounded-r-full"></div>
+<div class="flex items-start gap-4 flex-grow">
+<div class="text-text-light dark:text-text-dark flex items-center justify-center rounded-lg bg-background-light dark:bg-background-dark shrink-0 size-12">
+<span class="material-symbols-outlined text-2xl">upload_file</span>
+</div>
+<div class="flex flex-1 flex-col justify-center">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Emily White uploaded a new file 'final_assets.zip'</p>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-normal leading-normal">Project: Mobile App UI</p>
+</div>
+</div>
+<div class="shrink-0 flex items-center gap-2">
+<button class="text-sm font-medium leading-normal text-primary hover:underline">Download</button>
+<button class="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary-light dark:text-text-secondary-dark hover:text-text-light dark:hover:text-text-dark">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+</div>
+</div>
+<h3 class="text-text-light dark:text-text-dark text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Yesterday</h3>
+<div class="flex flex-col divide-y divide-border-light dark:divide-border-dark bg-foreground-light dark:bg-foreground-dark rounded-xl border border-border-light dark:border-border-dark">
+<div class="flex gap-4 px-4 py-3 justify-between items-center group">
+<div class="flex items-start gap-4 flex-grow">
+<div class="text-text-light dark:text-text-dark flex items-center justify-center rounded-lg bg-background-light dark:bg-background-dark shrink-0 size-12">
+<span class="material-symbols-outlined text-2xl">event_available</span>
+</div>
+<div class="flex flex-1 flex-col justify-center">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Task 'Review user feedback' is due today</p>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-normal leading-normal">Project: Q3 Customer Insights</p>
+</div>
+</div>
+<div class="shrink-0 flex items-center gap-2">
+<button class="text-sm font-medium leading-normal text-primary hover:underline">View</button>
+<button class="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary-light dark:text-text-secondary-dark hover:text-text-light dark:hover:text-text-dark">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+</div>
+<div class="flex gap-4 px-4 py-3 justify-between items-center group">
+<div class="flex items-start gap-4 flex-grow">
+<div class="text-text-light dark:text-text-dark flex items-center justify-center rounded-lg bg-background-light dark:bg-background-dark shrink-0 size-12">
+<span class="material-symbols-outlined text-2xl">add_comment</span>
+</div>
+<div class="flex flex-1 flex-col justify-center">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Michael Brown commented on 'Marketing Budget'</p>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-normal leading-normal">Project: Marketing Campaign</p>
+</div>
+</div>
+<div class="shrink-0 flex items-center gap-2">
+<button class="text-sm font-medium leading-normal text-primary hover:underline">View Comment</button>
+<button class="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary-light dark:text-text-secondary-dark hover:text-text-light dark:hover:text-text-dark">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex justify-center pt-6">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-background-light dark:bg-foreground-dark border border-border-light dark:border-border-dark text-text-light dark:text-text-dark hover:bg-border-light dark:hover:bg-border-dark text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Load More</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

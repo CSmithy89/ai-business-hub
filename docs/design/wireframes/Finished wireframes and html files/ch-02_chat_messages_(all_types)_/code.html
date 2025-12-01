@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CH-02 Chat Messages (All Types)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24;
+            font-size: 20px;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        .cursor-blink {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -400px 0; }
+            100% { background-position: 400px 0; }
+        }
+        .shimmer-progress {
+            background: linear-gradient(90deg, transparent, #20B2AA, transparent);
+            background-size: 400px 100%;
+            animation: shimmer 1.5s infinite linear;
+        }
+    </style>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ff6b6b",
+              "light-bg-primary": "#FFFBF5",
+              "light-bg-secondary": "#f9f7f2",
+              "light-bg-tertiary": "#f5f3ee",
+              "light-surface": "#ffffff",
+              "light-border": "#e5e5e5",
+              "light-text-primary": "#1a1a1a",
+              "light-text-secondary": "#6b7280",
+              "light-text-muted": "#9ca3af",
+
+              "dark-bg-primary": "#0a0a0b",
+              "dark-bg-secondary": "#111113",
+              "dark-bg-tertiary": "#1a1a1d",
+              "dark-surface": "#232326",
+              "dark-border": "#27272a",
+              "dark-text-primary": "#fafafa",
+              "dark-text-secondary": "#a1a1aa",
+              "dark-text-muted": "#71717a",
+
+              "brand-primary": "#FF6B6B",
+              "brand-secondary": "#20B2AA",
+              "brand-success": "#2ECC71",
+              "brand-warning": "#F59E0B",
+              "brand-error": "#EF4444",
+              "brand-info": "#4B7BEC",
+            },
+            fontFamily: {
+              "display": ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+              "mono": ["JetBrains Mono", "SF Mono", "Fira Code", "monospace"]
+            },
+            borderRadius: {
+              "sm": "4px",
+              "md": "8px",
+              "lg": "12px",
+              "xl": "16px",
+              "full": "9999px",
+            },
+            boxShadow: {
+              'xs': '0 1px 2px rgba(0, 0, 0, 0.04)',
+              'sm': '0 2px 4px rgba(0, 0, 0, 0.04)',
+              'md': '0 4px 8px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02)',
+              'lg': '0 8px 16px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.03)',
+              'xl': '0 16px 32px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.04)',
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-light-bg-primary dark:bg-dark-bg-primary text-light-text-primary dark:text-dark-text-primary">
+<div class="relative flex min-h-screen w-full flex-col items-center justify-center p-8">
+<div class="flex flex-col gap-8 w-full max-w-[400px]">
+<!-- TYPE 1: USER MESSAGE (Basic) -->
+<div class="flex flex-col">
+<h2 class="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4 tracking-wider uppercase">TYPE 1: USER MESSAGE (Basic)</h2>
+<div class="flex flex-col items-end gap-1">
+<p class="text-sm font-normal leading-relaxed max-w-[85%] rounded-xl rounded-br-sm bg-brand-primary text-white px-4 py-3">
+                  Create a follow-up email for the Johnson deal with a friendly tone.
+                </p>
+<span class="text-xs text-light-text-muted dark:text-dark-text-muted">2:34 PM</span>
+</div>
+</div>
+<!-- TYPE 8: STREAMING/LOADING MESSAGE -->
+<div class="flex flex-col">
+<h2 class="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4 tracking-wider uppercase">TYPE 8: STREAMING/LOADING</h2>
+<div class="flex items-start gap-2.5 max-w-[85%]">
+<div class="flex size-7 shrink-0 items-center justify-center rounded-full text-sm" style="background-color: #20B2AA; color: white;">🐚</div>
+<div class="flex flex-col gap-1 w-full">
+<p class="text-xs font-semibold" style="color: #20B2AA;">Maya</p>
+<div class="bg-light-bg-secondary dark:bg-dark-bg-tertiary text-light-text-primary dark:text-dark-text-primary rounded-xl rounded-bl-sm p-3 overflow-hidden">
+<p class="text-sm leading-relaxed">Analyzing the Johnson deal history and drafting a personalized email<span class="cursor-blink font-mono">|</span></p>
+<div class="h-0.5 mt-2 shimmer-progress"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- TYPE 2: AGENT MESSAGE (Basic Text) -->
+<div class="flex flex-col">
+<h2 class="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4 tracking-wider uppercase">TYPE 2: AGENT MESSAGE (Basic Text)</h2>
+<div class="flex items-start gap-2.5 max-w-[85%]">
+<div class="flex size-7 shrink-0 items-center justify-center rounded-full text-sm" style="background-color: #20B2AA; color: white;">🐚</div>
+<div class="flex flex-col gap-1">
+<p class="text-xs font-semibold" style="color: #20B2AA;">Maya</p>
+<p class="text-sm leading-relaxed rounded-xl rounded-bl-sm bg-light-bg-secondary dark:bg-dark-bg-tertiary px-4 py-3">
+                        I've drafted a follow-up email for the Johnson deal. The tone matches your previous communications with them.
+                    </p>
+<span class="text-xs text-light-text-muted dark:text-dark-text-muted">2:35 PM</span>
+</div>
+</div>
+</div>
+<!-- TYPE 3: AGENT MESSAGE WITH PREVIEW CARD -->
+<div class="flex flex-col">
+<h2 class="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4 tracking-wider uppercase">TYPE 3: AGENT WITH PREVIEW CARD</h2>
+<div class="flex items-start gap-2.5 max-w-[85%]">
+<div class="flex size-7 shrink-0 items-center justify-center rounded-full text-sm" style="background-color: #20B2AA; color: white;">🐚</div>
+<div class="flex flex-col gap-1 w-full">
+<p class="text-xs font-semibold" style="color: #20B2AA;">Maya</p>
+<p class="text-sm leading-relaxed rounded-xl rounded-bl-sm bg-light-bg-secondary dark:bg-dark-bg-tertiary px-4 py-3">Here is the draft.</p>
+<div class="mt-2 w-full overflow-hidden rounded-md border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface shadow-xs">
+<div class="border-b border-light-border dark:border-dark-border bg-light-bg-secondary dark:bg-dark-bg-secondary px-3 py-2 text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">📧 Email Draft</div>
+<div class="p-3 text-xs leading-relaxed text-light-text-secondary dark:text-dark-text-secondary max-h-[120px] overflow-hidden">
+<strong class="text-light-text-primary dark:text-dark-text-primary">Subject:</strong> Following up on our chat
+                            <br/><br/>
+                            Hi Sarah,
+                            <br/><br/>
+                            Great speaking with you yesterday about the Q4 expansion plans. I wanted to follow up on a few points we discussed...
+                            <br/><br/>
+<a class="font-medium text-brand-primary hover:underline" href="#">Show full email →</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- TYPE 4: AGENT MESSAGE WITH ACTION BUTTONS -->
+<div class="flex flex-col">
+<h2 class="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4 tracking-wider uppercase">TYPE 4: AGENT WITH ACTION BUTTONS</h2>
+<div class="flex items-start gap-2.5 max-w-[85%]">
+<div class="flex size-7 shrink-0 items-center justify-center rounded-full text-sm" style="background-color: #20B2AA; color: white;">🐚</div>
+<div class="flex flex-col gap-1 w-full">
+<p class="text-xs font-semibold" style="color: #20B2AA;">Maya</p>
+<p class="text-sm leading-relaxed rounded-xl rounded-bl-sm bg-light-bg-secondary dark:bg-dark-bg-tertiary px-4 py-3">Ready to send it?</p>
+<div class="mt-2 flex flex-wrap gap-2">
+<button class="flex items-center gap-1.5 rounded-sm bg-brand-primary px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-red-500 active:scale-[0.98]">📧 Send Now</button>
+<button class="flex items-center gap-1.5 rounded-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface px-3.5 py-2 text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary transition-colors hover:bg-light-bg-secondary dark:hover:bg-dark-bg-tertiary hover:text-light-text-primary dark:hover:text-dark-text-primary active:scale-[0.98]">✏️ Edit</button>
+<button class="flex items-center gap-1.5 rounded-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface px-3.5 py-2 text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary transition-colors hover:bg-light-bg-secondary dark:hover:bg-dark-bg-tertiary hover:text-light-text-primary dark:hover:text-dark-text-primary active:scale-[0.98]">📋 Copy</button>
+</div>
+</div>
+</div>
+</div>
+<!-- TYPE 5: SYSTEM MESSAGE -->
+<div class="flex flex-col">
+<h2 class="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4 tracking-wider uppercase">TYPE 5: SYSTEM MESSAGE</h2>
+<div class="flex w-full items-center gap-3 py-4">
+<div class="h-px flex-1 bg-light-border dark:bg-dark-border"></div>
+<div class="whitespace-nowrap rounded-full bg-light-bg-secondary dark:bg-dark-bg-tertiary px-3 py-1 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                    ℹ️ Email queued for approval
+                </div>
+<div class="h-px flex-1 bg-light-border dark:bg-dark-border"></div>
+</div>
+</div>
+<!-- TYPE 6: APPROVAL REQUEST CARD -->
+<div class="flex flex-col">
+<h2 class="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4 tracking-wider uppercase">TYPE 6: APPROVAL REQUEST CARD</h2>
+<div class="flex items-start gap-2.5 max-w-[85%]">
+<div class="flex size-7 shrink-0 items-center justify-center rounded-full text-sm" style="background-color: #FF6B6B; color: white;">🎯</div>
+<div class="flex flex-col gap-1 w-full">
+<p class="text-xs font-semibold" style="color: #FF6B6B;">Hub</p>
+<div class="mt-1 w-full overflow-hidden rounded-lg border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface shadow-md">
+<div class="flex items-center gap-2 border-b border-light-border dark:border-dark-border bg-light-bg-secondary dark:bg-dark-bg-secondary p-3.5">
+<span class="text-base">📋</span>
+<span class="text-sm font-semibold text-light-text-primary dark:text-dark-text-primary">Approval Request</span>
+</div>
+<div class="p-3.5">
+<p class="text-[15px] font-medium text-light-text-primary dark:text-dark-text-primary">"Johnson Deal Follow-up Email"</p>
+<div class="mt-1.5 flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+<span>Category: Email</span>
+<span>•</span>
+<span>Agent: Maya</span>
+</div>
+<div class="mt-3 flex items-center gap-2.5">
+<div class="relative h-1.5 flex-1 overflow-hidden rounded-full bg-light-border dark:bg-dark-border">
+<div class="absolute inset-y-0 left-0 rounded-full bg-brand-warning" style="width: 78%;"></div>
+</div>
+<span class="text-sm font-semibold text-brand-warning">78%</span>
+<span class="text-xs text-light-text-secondary dark:text-dark-text-secondary">Quick Review</span>
+</div>
+</div>
+<div class="flex gap-2 border-t border-light-border dark:border-dark-border p-3">
+<button class="flex-1 rounded-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface px-3.5 py-2 text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary transition-colors hover:bg-light-bg-secondary dark:hover:bg-dark-bg-tertiary active:scale-[0.98]">👀 Preview</button>
+<button class="flex-1 rounded-sm border border-brand-error/50 bg-light-surface dark:bg-dark-surface px-3.5 py-2 text-xs font-medium text-brand-error transition-colors hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-[0.98]">✗ Reject</button>
+<button class="flex-1 rounded-sm bg-brand-success px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-green-600 active:scale-[0.98]">✓ Approve</button>
+</div>
+</div>
+<span class="text-xs text-light-text-muted dark:text-dark-text-muted mt-1">2:36 PM</span>
+</div>
+</div>
+</div>
+<!-- TYPE 7: ERROR MESSAGE -->
+<div class="flex flex-col">
+<h2 class="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4 tracking-wider uppercase">TYPE 7: ERROR MESSAGE</h2>
+<div class="flex items-start gap-2.5 max-w-[85%]">
+<div class="flex size-7 shrink-0 items-center justify-center rounded-full text-sm" style="background-color: #FF6B6B; color: white;">🎯</div>
+<div class="flex w-full flex-col gap-1">
+<p class="text-xs font-semibold" style="color: #FF6B6B;">Hub</p>
+<div class="flex items-start gap-2.5 rounded-xl rounded-bl-sm border-l-2 border-brand-error bg-red-50 dark:bg-red-900/20 p-3">
+<span class="text-lg text-brand-warning">⚠️</span>
+<div class="text-sm text-red-900 dark:text-red-200">
+<strong class="font-semibold">I couldn't complete that request.</strong>
+<p class="mt-1 text-red-800/80 dark:text-red-200/80">The email service is temporarily unavailable. I'll retry automatically in 5 minutes.</p>
+</div>
+</div>
+<div class="mt-2 flex flex-wrap gap-2">
+<button class="flex items-center gap-1.5 rounded-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface px-3.5 py-2 text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary transition-colors hover:bg-light-bg-secondary dark:hover:bg-dark-bg-tertiary active:scale-[0.98]">🔄 Retry Now</button>
+<button class="flex items-center gap-1.5 rounded-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface px-3.5 py-2 text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary transition-colors hover:bg-light-bg-secondary dark:hover:bg-dark-bg-tertiary active:scale-[0.98]">❌ Cancel</button>
+</div>
+<span class="mt-1 text-xs text-light-text-muted dark:text-dark-text-muted">2:37 PM</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

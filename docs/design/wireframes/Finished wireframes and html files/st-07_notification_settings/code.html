@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ST-07 Notification Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        @layer base {
+            .material-symbols-outlined {
+                font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            }
+        }
+    </style>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#FF6B6B",
+              "secondary": "#20B2AA",
+              "background-light": "#FFFBF5",
+              "background-dark": "#0a0a0b",
+              "surface-light": "#FFFFFF",
+              "surface-dark": "#1a1a1b",
+              "border-light": "#E5E5E5",
+              "border-dark": "#2a2a2b",
+              "text-primary-light": "#1a1a1a",
+              "text-primary-dark": "#FAFAFA",
+              "text-secondary": "#6B7280",
+              "success": "#10B981",
+              "warning": "#F59E0B",
+              "error": "#EF4444",
+              "info": "#3B82F6",
+            },
+            fontFamily: {
+              "display": ["Inter", "system-ui", "sans-serif"],
+              "code": ["JetBrains Mono", "monospace"]
+            },
+            borderRadius: {
+              'sm': '4px',
+              'md': '8px',
+              'DEFAULT': '8px',
+              'lg': '12px',
+              'xl': '16px',
+              'full': '9999px',
+            },
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark">
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col w-64 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark p-4">
+<div class="flex items-center gap-3 mb-8">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA8KkH3o_O0xJZsaTCjHkvtYoY5-ypYsI_DrjWxOJEL23R6yPHY-lLtERqL8gGYDN6f6Jjvyd-9ajCmcAltWVIwcqHVtFSUtDghHCxZ2mtByjd0AfQS1jDXmGfMuBdKgcZ5PDmCkWwhfaMnea_NvSsJwBxHg5jxsiflQp1pLVJ2BrghC5YDLk0FqTugLnsZJ_oficnpjVgC7jd8buNwpJww2o8LtFdXqrTHBKvWaJLHK_-crEHCrjuA-NBJp3gVFViAIgzDkggiyNHX");'></div>
+<div class="flex flex-col">
+<h1 class="text-base font-semibold">HYVVE</h1>
+<p class="text-sm text-text-secondary">AI Business Operations</p>
+</div>
+</div>
+<div class="flex flex-col gap-2 flex-grow">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">dashboard</span>
+<p class="text-sm font-medium">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">smart_toy</span>
+<p class="text-sm font-medium">Agents</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">view_kanban</span>
+<p class="text-sm font-medium">Projects</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">group</span>
+<p class="text-sm font-medium">CRM</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">bar_chart</span>
+<p class="text-sm font-medium">Analytics</p>
+</a>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md bg-primary/10 text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">settings</span>
+<p class="text-sm font-medium">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">help_center</span>
+<p class="text-sm font-medium">Help Center</p>
+</a>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-1 p-4 sm:p-6 lg:p-10">
+<div class="max-w-4xl mx-auto space-y-8">
+<!-- PageHeader -->
+<div>
+<h1 class="text-3xl font-bold tracking-tight">Notifications</h1>
+<p class="text-text-secondary mt-1">Control how you receive updates and alerts.</p>
+</div>
+<!-- Notification Channels Section -->
+<div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg shadow-sm">
+<div class="p-5 border-b border-border-light dark:border-border-dark">
+<h2 class="text-lg font-semibold">Notification Channels</h2>
+</div>
+<div class="p-5 space-y-4">
+<!-- Email Notifications Card -->
+<div class="flex items-start justify-between gap-4 border border-border-light dark:border-border-dark rounded-lg p-4 sm:p-5">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-2xl text-text-secondary mt-1">mail</span>
+<div>
+<p class="font-medium">Email Notifications</p>
+<p class="text-sm text-text-secondary">Receive notifications at john@acme.com</p>
+<div class="mt-3">
+<label class="text-sm text-text-secondary mr-2" for="delivery-speed">Delivery:</label>
+<select class="text-sm rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:ring-primary focus:border-primary" id="delivery-speed">
+<option>Instant</option>
+<option>Hourly Digest</option>
+<option>Daily Digest</option>
+</select>
+</div>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-primary/50 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Push Notifications Card -->
+<div class="flex items-start justify-between gap-4 border border-border-light dark:border-border-dark rounded-lg p-4 sm:p-5">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-2xl text-text-secondary mt-1">notifications</span>
+<div>
+<p class="font-medium">Push Notifications</p>
+<p class="text-sm text-text-secondary">Browser and mobile notifications</p>
+<p class="text-sm text-text-secondary mt-1">Status: <span class="text-success font-medium">Enabled for this browser</span></p>
+<button class="mt-3 text-sm font-medium text-primary hover:text-primary/80">Test Notification</button>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-primary/50 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Slack Notifications Card -->
+<div class="flex items-start justify-between gap-4 border border-border-light dark:border-border-dark rounded-lg p-4 sm:p-5">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-2xl text-text-secondary mt-1">chat</span>
+<div>
+<p class="font-medium">Slack Notifications</p>
+<p class="text-sm text-text-secondary">Connected to #general channel</p>
+<div class="mt-3 space-x-4">
+<button class="text-sm font-medium text-primary hover:text-primary/80">Configure Channels</button>
+<button class="text-sm font-medium text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">Disconnect</button>
+</div>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-primary/50 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</div>
+<!-- Notification Preferences Section -->
+<div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg shadow-sm">
+<div class="p-5 border-b border-border-light dark:border-border-dark">
+<h2 class="text-lg font-semibold">Notification Preferences</h2>
+</div>
+<div class="divide-y divide-border-light dark:divide-border-dark">
+<!-- AI Agent Activity -->
+<div class="p-5">
+<h3 class="font-semibold mb-4 text-sm uppercase tracking-wider text-text-secondary">AI Agent Activity</h3>
+<div class="grid grid-cols-[1fr_auto_auto_auto] items-center gap-y-4 gap-x-2 text-sm text-center">
+<p class="text-left font-medium">Type</p>
+<p class="font-medium w-16">Email</p>
+<p class="font-medium w-16">Push</p>
+<p class="font-medium w-16">Slack</p>
+<div class="text-left">
+<p>Approval requests</p>
+<p class="text-xs text-text-secondary">When an agent needs your approval</p>
+</div>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" disabled="" type="checkbox"/>
+<div class="text-left">
+<p>Task completions</p>
+<p class="text-xs text-text-secondary">When an agent completes a task</p>
+</div>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" disabled="" type="checkbox"/>
+<div class="text-left">
+<p>Auto-approved actions</p>
+<p class="text-xs text-text-secondary">Summary of actions taken automatically</p>
+</div>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" disabled="" type="checkbox"/>
+<div class="text-left">
+<p>Agent errors</p>
+<p class="text-xs text-text-secondary">When an agent encounters an error</p>
+</div>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" disabled="" type="checkbox"/>
+</div>
+</div>
+<!-- CRM Activity -->
+<div class="p-5">
+<h3 class="font-semibold mb-4 text-sm uppercase tracking-wider text-text-secondary">CRM Activity</h3>
+<div class="grid grid-cols-[1fr_auto_auto_auto] items-center gap-y-4 gap-x-2 text-sm text-center">
+<div class="text-left">
+<p>New leads</p>
+<p class="text-xs text-text-secondary">When new leads are created</p>
+</div>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" disabled="" type="checkbox"/>
+<div class="text-left">
+<p>Deal stage changes</p>
+<p class="text-xs text-text-secondary">When deals move through pipeline</p>
+</div>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" disabled="" type="checkbox"/>
+<div class="text-left">
+<p>Deal won/lost</p>
+<p class="text-xs text-text-secondary">When deals are closed</p>
+</div>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" disabled="" type="checkbox"/>
+</div>
+</div>
+<!-- Project Management -->
+<div class="p-5">
+<h3 class="font-semibold mb-4 text-sm uppercase tracking-wider text-text-secondary">Project Management</h3>
+<div class="grid grid-cols-[1fr_auto_auto_auto] items-center gap-y-4 gap-x-2 text-sm text-center">
+<div class="text-left">
+<p>Task assignments</p>
+<p class="text-xs text-text-secondary">When tasks are assigned to you</p>
+</div>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" disabled="" type="checkbox"/>
+<div class="text-left">
+<p>Task due soon</p>
+<p class="text-xs text-text-secondary">24 hours before deadline</p>
+</div>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input checked="" class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" disabled="" type="checkbox"/>
+<div class="text-left">
+<p>Project updates</p>
+<p class="text-xs text-text-secondary">Status changes and comments</p>
+</div>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" type="checkbox"/>
+<input class="h-5 w-5 rounded text-primary focus:ring-primary/50 justify-self-center" disabled="" type="checkbox"/>
+</div>
+</div>
+</div>
+</div>
+<!-- Quiet Hours Section -->
+<div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg shadow-sm">
+<div class="p-5 border-b border-border-light dark:border-border-dark">
+<h2 class="text-lg font-semibold">Quiet Hours</h2>
+<p class="text-sm text-text-secondary">Pause non-urgent notifications during specific times.</p>
+</div>
+<div class="p-5 space-y-5">
+<div class="flex items-center">
+<input class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="quiet-hours-enable" type="checkbox"/>
+<label class="ml-2 block text-sm font-medium" for="quiet-hours-enable">Enable quiet hours</label>
+</div>
+<div class="grid sm:grid-cols-2 gap-4">
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1" for="from-time">From</label>
+<select class="w-full text-sm rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:ring-primary focus:border-primary" id="from-time">
+<option>10:00 PM</option>
+<option>11:00 PM</option>
+</select>
+</div>
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1" for="to-time">To</label>
+<select class="w-full text-sm rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:ring-primary focus:border-primary" id="to-time">
+<option>7:00 AM</option>
+<option>8:00 AM</option>
+</select>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1" for="timezone">Timezone</label>
+<select class="w-full text-sm rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:ring-primary focus:border-primary" id="timezone">
+<option>America/Los_Angeles (PST)</option>
+<option>America/New_York (EST)</option>
+</select>
+</div>
+<div>
+<p class="text-sm font-medium text-text-secondary mb-2">During quiet hours:</p>
+<div class="space-y-2">
+<div class="flex items-center">
+<input checked="" class="h-4 w-4 border-gray-300 text-primary focus:ring-primary" id="pause-all" name="quiet-hours-option" type="radio"/>
+<label class="ml-2 block text-sm" for="pause-all">Pause all notifications</label>
+</div>
+<div class="flex items-center">
+<input class="h-4 w-4 border-gray-300 text-primary focus:ring-primary" id="allow-urgent" name="quiet-hours-option" type="radio"/>
+<label class="ml-2 block text-sm" for="allow-urgent">Only allow urgent notifications (errors, high-priority)</label>
+</div>
+</div>
+</div>
+<div>
+<p class="text-sm font-medium text-text-secondary mb-2">Quiet on weekends:</p>
+<div class="flex items-center space-x-4">
+<div class="flex items-center">
+<input class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="saturday" type="checkbox"/>
+<label class="ml-2 block text-sm" for="saturday">Saturday</label>
+</div>
+<div class="flex items-center">
+<input class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="sunday" type="checkbox"/>
+<label class="ml-2 block text-sm" for="sunday">Sunday</label>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Email Digest Settings -->
+<div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg shadow-sm">
+<div class="p-5 border-b border-border-light dark:border-border-dark">
+<h2 class="text-lg font-semibold">Email Digest</h2>
+</div>
+<div class="p-5 space-y-6">
+<div>
+<div class="flex items-center">
+<input checked="" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="daily-summary" type="checkbox"/>
+<label class="ml-2 block text-sm font-medium" for="daily-summary">Send daily summary of all activity</label>
+</div>
+<div class="flex items-center gap-2 mt-2 ml-6">
+<label class="text-sm text-text-secondary" for="daily-time">Delivery time:</label>
+<select class="text-sm rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:ring-primary focus:border-primary" id="daily-time">
+<option>9:00 AM</option>
+<option>8:00 AM</option>
+</select>
+</div>
+</div>
+<div>
+<div class="flex items-center">
+<input checked="" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="weekly-report" type="checkbox"/>
+<label class="ml-2 block text-sm font-medium" for="weekly-report">Send weekly performance report</label>
+</div>
+<div class="flex items-center flex-wrap gap-2 mt-2 ml-6">
+<label class="text-sm text-text-secondary" for="weekly-day">Delivery:</label>
+<select class="text-sm rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:ring-primary focus:border-primary" id="weekly-day">
+<option>Monday</option>
+<option>Friday</option>
+</select>
+<span class="text-sm text-text-secondary">at</span>
+<select class="text-sm rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:ring-primary focus:border-primary" id="weekly-time">
+<option>9:00 AM</option>
+<option>10:00 AM</option>
+</select>
+</div>
+</div>
+<div>
+<p class="text-sm font-medium text-text-secondary mb-2">Include in digest:</p>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+<div class="flex items-center"><input checked="" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="digest-ai" type="checkbox"/><label class="ml-2 block text-sm" for="digest-ai">AI agent activity summary</label></div>
+<div class="flex items-center"><input checked="" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="digest-crm" type="checkbox"/><label class="ml-2 block text-sm" for="digest-crm">CRM metrics (leads, deals)</label></div>
+<div class="flex items-center"><input checked="" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="digest-project" type="checkbox"/><label class="ml-2 block text-sm" for="digest-project">Project status overview</label></div>
+<div class="flex items-center"><input checked="" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="digest-team" type="checkbox"/><label class="ml-2 block text-sm" for="digest-team">Team activity highlights</label></div>
+<div class="flex items-center"><input class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="digest-task" type="checkbox"/><label class="ml-2 block text-sm" for="digest-task">Detailed task breakdowns</label></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Notification Preview Section -->
+<div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg shadow-sm">
+<div class="p-5 border-b border-border-light dark:border-border-dark">
+<h2 class="text-lg font-semibold">Preview</h2>
+</div>
+<div class="p-5 space-y-4">
+<p class="text-sm text-text-secondary">This is how your notifications will appear:</p>
+<div class="bg-background-light dark:bg-background-dark p-4 rounded-lg">
+<div class="w-full max-w-sm bg-surface-light dark:bg-surface-dark rounded-lg shadow-lg p-3.5 border border-border-light dark:border-border-dark">
+<div class="flex items-center justify-between pb-2 border-b border-border-light dark:border-border-dark">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-base text-secondary">notifications</span>
+<p class="text-xs font-semibold">HYVVE</p>
+</div>
+<p class="text-xs text-text-secondary">just now</p>
+</div>
+<div class="pt-2">
+<p class="font-semibold text-sm">Maya needs your approval</p>
+<p class="text-sm text-text-secondary mt-1">Email draft: "Follow-up with TechCorp"</p>
+<p class="text-xs text-text-secondary mt-2">Confidence: 72% · Quick review recommended</p>
+</div>
+<div class="flex items-center gap-2 mt-4">
+<button class="flex-1 text-center text-sm py-1.5 px-3 rounded-md bg-primary/10 text-primary font-medium hover:bg-primary/20">View</button>
+<button class="flex-1 text-center text-sm py-1.5 px-3 rounded-md bg-primary text-white font-medium hover:bg-primary/90">Approve</button>
+<button class="flex-1 text-center text-sm py-1.5 px-3 rounded-md hover:bg-black/5 dark:hover:bg-white/10 font-medium">Dismiss</button>
+</div>
+</div>
+</div>
+<div class="flex justify-end">
+<button class="bg-secondary text-white font-medium py-2 px-4 rounded-md text-sm hover:bg-secondary/90 transition-colors">Send Test Notification</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

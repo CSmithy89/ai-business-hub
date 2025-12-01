@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-18 User Profile &amp; Account</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="flex flex-grow">
+<!-- SideNavBar -->
+<aside class="w-64 flex-shrink-0 bg-white dark:bg-background-dark dark:border-r dark:border-gray-800 p-4">
+<div class="flex flex-col gap-4 sticky top-4">
+<div class="flex gap-3 items-center">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAFgPiMIWw4tLInp8Y8hdqWbYBtc3FeydyhG8wmp8rkDOlZJr5UGXfXYvAcjpFDWn_AcaR3GJ9XrJWIpGYLEDR2a47gjplHef11hwvwU5eOlCBu38dK2pdpqeDOGvloKBeTMHfivTCeNjTuMzv5gX0sGuOW-3ORWYqR3ZEuMqyNOAGqFhROnEpcRjWVfknaCD1JlEWzbDN3r2qYP7g0xA3zfmW3-n-3mHAjPYvH97k2Pr6j_IwbtTpWUAJ-S3QfISpsy4jygQ1CFVw");'></div>
+<div class="flex flex-col">
+<h1 class="text-[#111318] dark:text-white text-base font-medium leading-normal">Alex Doe</h1>
+<p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">alex.doe@example.com</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" href="#">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">person</span>
+<p class="text-sm font-medium leading-normal">Profile</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">lock</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Security</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">notifications</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Notifications</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">hub</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Connected Apps</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined text-[#111318] dark:text-gray-300">tune</span>
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Preferences</p>
+</a>
+</nav>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 p-8">
+<div class="layout-content-container flex flex-col max-w-4xl mx-auto gap-8">
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between gap-3">
+<div class="flex min-w-72 flex-col gap-3">
+<p class="text-[#111318] dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Profile</p>
+<p class="text-[#616f89] dark:text-gray-400 text-base font-normal leading-normal">Update your photo and personal details here.</p>
+</div>
+</div>
+<!-- Profile Information Card -->
+<div class="bg-white dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-800">
+<!-- ProfileHeader -->
+<div class="flex p-6 border-b border-gray-200 dark:border-gray-800 @container">
+<div class="flex w-full flex-col gap-4 @[520px]:flex-row @[520px]:justify-between @[520px]:items-center">
+<div class="flex gap-4 items-center">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-24 h-24" data-alt="User profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAwUzbnaRs_gyVSAS6GqmsoJl_hvfO9WV2aD5Ibm0KGONq_ZifFMKu38uHLt8wS7xZtnE5pFFHgWLKuSmNH3gPv3VygB7he30Z_ocoMWqL0xhSbujWJshm_uZykVnfjynr5l9ZRtIlObwdjI0Pyvg6WPWEdFtdQu3gvyo5aR0gOKSHpouQoZg0n5Jq_VmR0zvvN7yRDaguU1xG6-P-c_v5nNOumPMMIU0fRtIvskQKW0FdPX1cmxzeW5vohmhJz1lQZ0fTN2qkt_40");'></div>
+<div class="flex flex-col justify-center">
+<p class="text-[#111318] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Profile Photo</p>
+<p class="text-[#616f89] dark:text-gray-400 text-base font-normal leading-normal">Update your profile photo.</p>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#f0f2f4] dark:bg-gray-700 text-[#111318] dark:text-white text-sm font-bold leading-normal tracking-[0.015em] w-full max-w-[480px] @[480px]:w-auto">
+<span class="truncate">Change</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 border border-gray-300 dark:border-gray-700 bg-transparent text-gray-500 dark:text-gray-400 text-sm font-bold leading-normal tracking-[0.015em] w-full max-w-[480px] @[480px]:w-auto">
+<span class="truncate">Remove</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Form Fields -->
+<div class="p-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<label class="flex flex-col flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-base font-medium leading-normal pb-2">Full Name</p>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#616f89] dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" value="Alex Doe"/>
+</label>
+<label class="flex flex-col flex-1">
+<div class="flex justify-between items-center pb-2">
+<p class="text-[#111318] dark:text-gray-300 text-base font-medium leading-normal">Email Address</p>
+<span class="inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/50 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-300">
+<span class="material-symbols-outlined text-sm">verified</span>
+                                            Verified
+                                        </span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-gray-400 focus:outline-0 focus:ring-0 border border-[#dbdfe6] dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 h-12 placeholder:text-[#616f89] px-4 text-base font-normal leading-normal" disabled="" value="alex.doe@example.com"/>
+</label>
+<label class="flex flex-col flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-base font-medium leading-normal pb-2">Job Title</p>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#616f89] dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" value="Product Manager"/>
+</label>
+<label class="flex flex-col flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-base font-medium leading-normal pb-2">Department</p>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#616f89] dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal" value="Core Platform"/>
+</label>
+<label class="flex flex-col col-span-1 md:col-span-2">
+<p class="text-[#111318] dark:text-gray-300 text-base font-medium leading-normal pb-2">Bio</p>
+<textarea class="form-textarea flex w-full min-w-0 flex-1 resize-y overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary min-h-28 placeholder:text-[#616f89] dark:placeholder:text-gray-500 p-4 text-base font-normal leading-normal" placeholder="Tell us a little about yourself...">Passionate product manager with a focus on user-centric design and agile development. I strive to build products that not only meet user needs but also delight them.</textarea>
+</label>
+</div>
+</div>
+<!-- Card Footer -->
+<div class="flex justify-end gap-3 p-6 bg-gray-50 dark:bg-gray-900 rounded-b-xl border-t border-gray-200 dark:border-gray-800">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-[#111318] dark:text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Cancel</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Save Changes</span>
+</button>
+</div>
+</div>
+<!-- Danger Zone Card -->
+<div class="bg-white dark:bg-gray-900/50 rounded-xl border border-red-500/50 dark:border-red-500/30">
+<div class="p-6">
+<h3 class="text-lg font-bold text-red-600 dark:text-red-400">Danger Zone</h3>
+<p class="text-[#616f89] dark:text-gray-400 text-sm mt-1">These actions are permanent and cannot be undone.</p>
+<div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30">
+<div>
+<p class="font-semibold text-red-800 dark:text-red-300">Delete Your Account</p>
+<p class="text-sm text-red-600 dark:text-red-400">Once you delete your account, there is no going back. Please be certain.</p>
+</div>
+<button class="mt-3 sm:mt-0 flex-shrink-0 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-red-600 hover:bg-red-700 text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Delete Account</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

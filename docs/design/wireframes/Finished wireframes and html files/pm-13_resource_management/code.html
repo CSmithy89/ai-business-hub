@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-13 Resource Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 1,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200">
+<div class="flex h-screen">
+<!-- SideNavBar -->
+<aside class="flex flex-col w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-4">
+<div class="flex items-center gap-3 mb-8">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE Inc. company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB2_XYOukAvXoddbLWmFaRK0bIGI1bQeQvoUrY8j7tnvhz8QRhSd-ecn6teCCbC2HavkSqOfJvB6kXoYjO-jBc54TjD1Cncc9fuponLlDHNsQ3-wUBq976_q3kpJnwKnoX34KJ7Md3CwNyQskmo8gbIGuytCjeCc1LYfZmFtqmZytlJ7uR_TQRr12ZhOqmLBhkM5wwNY_R5FUhJEjP21DfeTDOMZtad-iU_njMXybvQE7f7rGZQI-i1wtOj_NhETMDfjpwpGJPfIBY");'></div>
+<div class="flex flex-col">
+<h1 class="text-gray-900 dark:text-white text-base font-medium leading-normal">HYVVE Inc.</h1>
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">Premium Plan</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 flex-grow">
+<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
+<span class="material-symbols-outlined !text-2xl">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
+<span class="material-symbols-outlined !text-2xl">folder</span>
+<p class="text-sm font-medium leading-normal">Projects</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white" href="#">
+<span class="material-symbols-outlined !text-2xl">groups</span>
+<p class="text-sm font-medium leading-normal">Resource Mgmt</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
+<span class="material-symbols-outlined !text-2xl">bar_chart</span>
+<p class="text-sm font-medium leading-normal">Reports</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
+<span class="material-symbols-outlined !text-2xl">toggle_on</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+</nav>
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">New Project</span>
+</button>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col h-screen overflow-y-auto">
+<div class="flex-1 p-6 lg:p-8 space-y-6">
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between items-center gap-4">
+<div class="flex flex-col gap-1">
+<p class="text-gray-900 dark:text-white text-3xl font-black leading-tight tracking-[-0.033em]">Resource Management</p>
+<p class="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Cross-project view of team member workload and availability.</p>
+</div>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Add Member</span>
+</button>
+</div>
+<!-- Stats -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+<p class="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal">Total Team Members</p>
+<p class="text-gray-900 dark:text-white tracking-light text-3xl font-bold leading-tight">24</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+<p class="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal">Overloaded</p>
+<div class="flex items-center gap-2">
+<p class="text-red-500 dark:text-red-400 tracking-light text-3xl font-bold leading-tight">3</p>
+<span class="material-symbols-outlined text-red-500 dark:text-red-400">arrow_upward</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+<p class="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal">Optimal Load</p>
+<div class="flex items-center gap-2">
+<p class="text-green-600 dark:text-green-400 tracking-light text-3xl font-bold leading-tight">18</p>
+<span class="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+<p class="text-gray-800 dark:text-gray-200 text-base font-medium leading-normal">Underutilized</p>
+<div class="flex items-center gap-2">
+<p class="text-yellow-500 dark:text-yellow-400 tracking-light text-3xl font-bold leading-tight">3</p>
+<span class="material-symbols-outlined text-yellow-500 dark:text-yellow-400">arrow_downward</span>
+</div>
+</div>
+</div>
+<!-- Main Grid & AI Recommendations -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-2 space-y-6">
+<!-- SectionHeader & ToolBar -->
+<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+<div class="flex flex-wrap items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+<h2 class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-[-0.015em]">Team Overview</h2>
+<div class="flex items-center gap-2">
+<div class="relative w-48">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+<input class="w-full h-10 pl-10 pr-4 rounded-lg bg-gray-100 dark:bg-gray-800 border-transparent focus:ring-primary focus:border-primary text-sm" placeholder="Search members..." type="text"/>
+</div>
+<button class="flex items-center justify-center p-2 h-10 w-10 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-primary text-white gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-4">
+<span class="material-symbols-outlined !text-xl">download</span>
+<span class="truncate">Export View</span>
+</button>
+</div>
+</div>
+<!-- Resource Timeline Grid -->
+<div class="overflow-x-auto">
+<div class="min-w-[1200px] grid grid-cols-[300px_1fr] text-sm">
+<!-- Header Row -->
+<div class="p-4 font-semibold border-r border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 uppercase tracking-wider">Member</div>
+<div class="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
+<div class="p-4 text-center font-semibold text-gray-500 dark:text-gray-400">Mon, 20</div>
+<div class="p-4 text-center font-semibold text-gray-500 dark:text-gray-400">Tue, 21</div>
+<div class="p-4 text-center font-semibold text-gray-500 dark:text-gray-400">Wed, 22</div>
+<div class="p-4 text-center font-semibold text-gray-500 dark:text-gray-400">Thu, 23</div>
+<div class="p-4 text-center font-semibold text-gray-500 dark:text-gray-400">Fri, 24</div>
+<div class="p-4 text-center font-semibold text-gray-500 dark:text-gray-400">Sat, 25</div>
+<div class="p-4 text-center font-semibold text-gray-500 dark:text-gray-400">Sun, 26</div>
+</div>
+<!-- Member Rows -->
+<!-- Member 1: Overloaded -->
+<div class="flex items-center p-3 border-r border-b border-gray-200 dark:border-gray-800 bg-red-500/5 dark:bg-red-500/10">
+<img alt="Avatar of Eleanor Pena" class="w-10 h-10 rounded-full mr-3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDB9D9MzeJJRo98itHkB8GcCjV5tyDX_iVRtjW0asP3Lkgqd79dEcm-D9oWWLc0shk46JAeR0Ti1G-3VTssdJYQV-kp7OP-n6XKQFOyNMz2I8AQhLW_Y99aiLJXP_OSfMKJl_WUeQRL_C8lPyGvOunVRey7aWG02fTbGpHHLZlnXeokiCFTeIjf5YaIp3uu-mio2eq-k83ghLMvalv4wSi1IT1cz6LjRPhvfV7n2osUZ79AeI0TtrTqdFSpid26FZeKH-fuBUnqmE4"/>
+<div>
+<p class="font-semibold text-gray-900 dark:text-white">Eleanor Pena</p>
+<p class="text-gray-500 dark:text-gray-400">UI/UX Designer</p>
+</div>
+<div class="ml-auto text-right">
+<p class="font-bold text-red-500 dark:text-red-400">120%</p>
+<span class="material-symbols-outlined text-red-500 dark:text-red-400 !text-xl">error</span>
+</div>
+</div>
+<div class="relative grid grid-cols-7 p-2 border-b border-gray-200 dark:border-gray-800 bg-red-500/5 dark:bg-red-500/10">
+<div class="absolute top-1/2 -translate-y-1/2 h-8 rounded bg-blue-500 left-2" style="width: 28.57%;">
+<span class="text-xs text-white px-2 truncate block pt-1.5">Project Atlas</span>
+</div>
+<div class="absolute top-1/2 -translate-y-1/2 h-8 rounded bg-purple-500" style="left: 28.57%; width: 42.85%;">
+<span class="text-xs text-white px-2 truncate block pt-1.5">Project Nova</span>
+</div>
+</div>
+<!-- Member 2: Optimal -->
+<div class="flex items-center p-3 border-r border-b border-gray-200 dark:border-gray-800">
+<img alt="Avatar of Cameron Williamson" class="w-10 h-10 rounded-full mr-3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD00IPimCbRRHkaBjfkgVoD99Sjjbhqoysx6kUujEya5KYxxz1xnhI_DLw1xXcM4NbJC58p4iMGrHT6rSY93yG4Sxr2V2UH4h-pEJKUuFjK52HUJ1bAlbOJaFKemNIcJMjPKHvO1f_nd9yxpiVzlmWaBcD6Wsowwn31mc1DLH1l_y4yrf7Rp-M8oPX6k36x9F7-6H1RGtzRuYgpMz22sWpTgwbFpiDT5bKk1bMbjYskQNpVu_rlm5CE2IQHimShQFJfOSc__A6nH8E"/>
+<div>
+<p class="font-semibold text-gray-900 dark:text-white">Cameron Williamson</p>
+<p class="text-gray-500 dark:text-gray-400">Frontend Developer</p>
+</div>
+<div class="ml-auto text-right">
+<p class="font-bold text-green-600 dark:text-green-400">90%</p>
+<span class="material-symbols-outlined text-green-600 dark:text-green-400 !text-xl">check_circle</span>
+</div>
+</div>
+<div class="relative grid grid-cols-7 p-2 border-b border-gray-200 dark:border-gray-800">
+<div class="absolute top-1/2 -translate-y-1/2 h-8 rounded bg-green-500" style="left: 14.28%; width: 57.14%;">
+<span class="text-xs text-white px-2 truncate block pt-1.5">Project Zenith</span>
+</div>
+</div>
+<!-- Member 3: Underutilized -->
+<div class="flex items-center p-3 border-r border-b border-gray-200 dark:border-gray-800">
+<img alt="Avatar of Jane Cooper" class="w-10 h-10 rounded-full mr-3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxIrW9jW4V51DYUyGBkpZvbE58Lk1DDnKUVtH57caECsjq3R6JxnrQLWa8TQ0wPpG3tDSbY0Nk4cAkokUdUis8x1CdeKdLSlk4zHgzq_HMHyi9Uxsq7i7FxSCemHNkRrQmWlfHisWvkwslE3B2i_E_TXpXLPy5o9Di-Es2qGhNZtPf0kG2JskCQhMHqaP-W1Bn9ZIfaZKP3dPBxYSw_taf08EiEpeibDk2LgatmGBVuf2fhpuRA9hmAIPhiyrdrv_RoyeOuLtfCAo"/>
+<div>
+<p class="font-semibold text-gray-900 dark:text-white">Jane Cooper</p>
+<p class="text-gray-500 dark:text-gray-400">Backend Developer</p>
+</div>
+<div class="ml-auto text-right">
+<p class="font-bold text-yellow-500 dark:text-yellow-400">40%</p>
+<span class="material-symbols-outlined text-yellow-500 dark:text-yellow-400 !text-xl">hourglass_empty</span>
+</div>
+</div>
+<div class="relative grid grid-cols-7 p-2 border-b border-gray-200 dark:border-gray-800">
+<div class="absolute top-1/2 -translate-y-1/2 h-8 rounded bg-blue-500" style="left: 42.85%; width: 28.57%;">
+<span class="text-xs text-white px-2 truncate block pt-1.5">Project Atlas</span>
+</div>
+</div>
+<!-- Member 4: Vacation -->
+<div class="flex items-center p-3 border-r border-b-0 md:border-b border-gray-200 dark:border-gray-800">
+<img alt="Avatar of Robert Fox" class="w-10 h-10 rounded-full mr-3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcVRyVssu1LhB5AuifGIL-55R1ls1cjfsl-UmurSXM6QGhEnYYoPj1s4Mp-frwQqCfar1VQaf_Gj3sJgUj63arS31cpBaxm3DjjZKGgRRq0_-GDBjJRG_-dj-P_T4SSWMEPdsKrA9KwVOGxa_lmxga3P4u4hL4vYZ5klU75Ml0B92GcvCjYMN-OgOT2fo0J5LmNw6VHhBxi8m7CUMfLEnpQHaWge57pf5TQVuMtHgHKmJ0D6l5xwTcsUS4hTAjxP54JmcPDL3gAeA"/>
+<div>
+<p class="font-semibold text-gray-900 dark:text-white">Robert Fox</p>
+<p class="text-gray-500 dark:text-gray-400">QA Engineer</p>
+</div>
+<div class="ml-auto text-right">
+<p class="font-bold text-gray-500 dark:text-gray-400">0%</p>
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400 !text-xl">beach_access</span>
+</div>
+</div>
+<div class="relative grid grid-cols-7 p-2 border-b-0 md:border-b border-gray-200 dark:border-gray-800">
+<div class="absolute top-1/2 -translate-y-1/2 h-8 rounded bg-gray-300 dark:bg-gray-700 col-span-5 left-2" style="width: 71.42%;">
+<span class="text-xs text-gray-700 dark:text-gray-200 px-2 truncate block pt-1.5">Paid Time Off</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- AI Recommendations & Member Detail Panel -->
+<div class="space-y-6">
+<!-- AI Recommendations Card -->
+<div class="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-800">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary !text-2xl">auto_awesome</span>
+<h3 class="text-lg font-bold text-gray-900 dark:text-white">AI Workload Recommendations</h3>
+</div>
+<div class="space-y-4">
+<div class="p-4 rounded-lg bg-background-light dark:bg-background-dark">
+<p class="text-sm text-gray-800 dark:text-gray-200">Reassign 'Nova UI Polish' from <span class="font-semibold text-red-500 dark:text-red-400">Eleanor Pena</span> to <span class="font-semibold text-yellow-500 dark:text-yellow-400">Jane Cooper</span> to balance load.</p>
+<button class="mt-2 text-sm font-bold text-primary hover:underline">Apply Recommendation</button>
+</div>
+<div class="p-4 rounded-lg bg-background-light dark:bg-background-dark">
+<p class="text-sm text-gray-800 dark:text-gray-200"><span class="font-semibold text-yellow-500 dark:text-yellow-400">Jane Cooper</span> has capacity for 'Zenith API Integration'. Assign to improve utilization.</p>
+<button class="mt-2 text-sm font-bold text-primary hover:underline">Assign Task</button>
+</div>
+</div>
+</div>
+<!-- Member Detail Panel -->
+<div class="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-800">
+<div class="flex items-center gap-4 mb-6">
+<img alt="Avatar of Eleanor Pena" class="w-12 h-12 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCux4_y3TLubnOX_-pfWxu5pE2XBAw-IbF7H5M4R07W8bqeErbj92w5zjpWDBieoC-zYcP3RRJ2exkP0kr8jARoqX2zSlILL6QjOSmsnJ9CItgHYFSd5Ic5loc5r7A6GRJqmdQFbX0Tv6UDIRqZJmHpoAxkhtoiynJKDifxf4MvkudnqGy9Afv_veCI-zBPHnuiJysmptufD4wsDGvgplfEqRT25CiqW_wjcGKq15fhB6v4itSHnI-R9hJPvW3g_imqIK-9eW2lgVs"/>
+<div>
+<h3 class="text-lg font-bold text-gray-900 dark:text-white">Eleanor Pena</h3>
+<p class="text-sm text-gray-500 dark:text-gray-400">UI/UX Designer</p>
+</div>
+</div>
+<div>
+<h4 class="text-sm font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider mb-3">Project Breakdown</h4>
+<div class="space-y-2">
+<div class="flex justify-between items-center text-sm">
+<p>Project Nova</p><p class="font-medium">60%</p>
+</div>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+<div class="bg-purple-500 h-2 rounded-full" style="width: 60%"></div>
+</div>
+<div class="flex justify-between items-center text-sm">
+<p>Project Atlas</p><p class="font-medium">40%</p>
+</div>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+<div class="bg-blue-500 h-2 rounded-full" style="width: 40%"></div>
+</div>
+</div>
+</div>
+<div class="mt-6">
+<h4 class="text-sm font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider mb-3">Assigned Tasks (3)</h4>
+<div class="space-y-3">
+<div class="flex justify-between items-start">
+<div>
+<p class="font-medium text-sm text-gray-800 dark:text-gray-200">Nova UI Polish</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Due: Fri, 24</p>
+</div>
+<span class="text-xs font-semibold px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300">Project Nova</span>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<p class="font-medium text-sm text-gray-800 dark:text-gray-200">Atlas Login Screen</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Due: Tue, 21</p>
+</div>
+<span class="text-xs font-semibold px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">Project Atlas</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Reassign Modal (hidden by default) -->
+<!-- This would typically be controlled by JS to show/hide -->
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+<div class="bg-white dark:bg-gray-900 rounded-xl w-full max-w-md p-6 shadow-2xl">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-xl font-bold text-gray-900 dark:text-white">Reassign Task</h2>
+<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="space-y-4">
+<div>
+<label class="text-sm font-medium text-gray-700 dark:text-gray-300">Task</label>
+<p class="font-semibold mt-1 text-gray-900 dark:text-white">Nova UI Polish</p>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="assignee">Reassign to</label>
+<select class="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm focus:border-primary focus:ring-primary sm:text-sm" id="assignee">
+<option>Select a member...</option>
+<option>Jane Cooper (40% Capacity)</option>
+<option>Cameron Williamson (90% Capacity)</option>
+</select>
+</div>
+<div class="flex gap-4">
+<div class="flex-1">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="startDate">Start Date</label>
+<input class="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm focus:border-primary focus:ring-primary sm:text-sm" id="startDate" type="date" value="2024-05-22"/>
+</div>
+<div class="flex-1">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="endDate">End Date</label>
+<input class="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm focus:border-primary focus:ring-primary sm:text-sm" id="endDate" type="date" value="2024-05-24"/>
+</div>
+</div>
+<div class="flex justify-end gap-3 pt-4">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-bold">Cancel</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold">Confirm Reassignment</button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

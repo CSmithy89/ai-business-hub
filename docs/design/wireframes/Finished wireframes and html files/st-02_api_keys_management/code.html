@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ST-02 API Keys Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FF6B6B",
+                        "secondary": "#20B2AA",
+                        "background-light": "#FFFBF5",
+                        "background-dark": "#0a0a0b",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1a1a1b",
+                        "border-light": "#E5E5E5",
+                        "border-dark": "#2a2a2b",
+                        "text-primary-light": "#1a1a1a",
+                        "text-primary-dark": "#FAFAFA",
+                        "text-secondary": "#6B7280",
+                        "success": "#10B981",
+        				"warning": "#F59E0B",
+        				"error": "#EF4444",
+        				"info": "#3B82F6",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "system-ui", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: {
+                        "sm": "4px",
+                        "DEFAULT": "8px", 
+                        "lg": "12px",
+                        "xl": "16px",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'sm': '0 1px 2px rgba(0,0,0,0.04)',
+                        'md': '0 4px 6px rgba(0,0,0,0.04)',
+                        'lg': '0 10px 15px rgba(0,0,0,0.06)',
+                        'xl': '0 20px 25px rgba(0,0,0,0.08)',
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
+<div class="relative flex min-h-screen">
+<!-- SideNavBar -->
+<nav class="flex h-screen flex-col border-r border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark p-4 w-64">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCADU-u-_G4N68jNava44-TBRW5FxU6zQhCGZ58SWAp0Iidm8Tpb3YzQJ7Um-cPhJC6x_vgbkpYkHsrHbklxffS6bFanb3WqeB6Rfg3LNX1gxqrnVR9DytS8X04CiQUpbP2zaFE5ElMaW0FOIJ9Xd4OIGeK_LR92zYlO4MAtWuZrA3m4icwYqgLBhnJJtCS1mJN3T8tSZrjWJZE_VoDn17jCB1DNbCgTQb81T4l_Lgii0B6iSZKxe6jsSNggfBVmVrm6OY_SahzNKm0");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-primary-light dark:text-text-primary-dark text-base font-semibold leading-normal">HYVVE</h1>
+<p class="text-text-secondary text-sm font-normal leading-normal">Business Operations</p>
+</div>
+</div>
+<div class="flex flex-col gap-1 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark rounded-md" href="#">
+<span class="material-symbols-outlined text-xl">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark rounded-md" href="#">
+<span class="material-symbols-outlined text-xl">integration_instructions</span>
+<p class="text-sm font-medium leading-normal">Integrations</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md bg-primary/10 text-primary" href="#">
+<span class="material-symbols-outlined text-xl">api</span>
+<p class="text-sm font-semibold leading-normal">API Keys</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark rounded-md" href="#">
+<span class="material-symbols-outlined text-xl">receipt_long</span>
+<p class="text-sm font-medium leading-normal">Billing</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark rounded-md" href="#">
+<span class="material-symbols-outlined text-xl">group</span>
+<p class="text-sm font-medium leading-normal">Team</p>
+</a>
+</div>
+</div>
+<div class="mt-auto flex flex-col gap-2">
+<div class="p-4 bg-primary/10 rounded-lg text-center">
+<p class="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark">Upgrade to Pro</p>
+<p class="text-xs text-text-secondary mt-1 mb-3">Unlock powerful new features.</p>
+<button class="w-full cursor-pointer items-center justify-center rounded-md h-9 px-4 bg-primary text-white text-sm font-semibold leading-normal tracking-wide">
+<span class="truncate">Upgrade Plan</span>
+</button>
+</div>
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark rounded-md" href="#">
+<span class="material-symbols-outlined text-xl">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark rounded-md" href="#">
+<span class="material-symbols-outlined text-xl">logout</span>
+<p class="text-sm font-medium leading-normal">Log out</p>
+</a>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-1 p-8 overflow-y-auto">
+<div class="max-w-4xl mx-auto">
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+<div class="flex flex-col gap-1">
+<h1 class="text-text-primary-light dark:text-text-primary-dark text-3xl font-bold tracking-tight">API Keys</h1>
+<p class="text-text-secondary text-base font-normal leading-normal">Manage API keys for external integrations and services.</p>
+</div>
+<button class="flex items-center justify-center gap-2 cursor-pointer rounded-md h-10 px-4 bg-primary text-white text-sm font-semibold leading-normal shadow-sm hover:opacity-90">
+<span class="material-symbols-outlined text-lg">add</span>
+<span class="truncate">Create New Key</span>
+</button>
+</div>
+<!-- ActionPanel -->
+<div class="flex items-start gap-4 rounded-lg border border-[#BFDBFE] dark:border-info/50 bg-[#EFF6FF] dark:bg-info/10 p-4 mb-8">
+<span class="material-symbols-outlined text-[#1E40AF] dark:text-info text-2xl mt-0.5">lock</span>
+<div class="flex flex-col gap-1">
+<p class="text-[#1E40AF] dark:text-info/90 text-sm font-semibold">Security Notice</p>
+<p class="text-[#1E40AF] dark:text-info/80 text-sm font-normal leading-relaxed">
+                            API keys provide full access to your account. Keep them secure and never share them publicly. Rotate keys periodically for added security.
+                        </p>
+</div>
+</div>
+<!-- SectionHeader -->
+<h2 class="text-text-primary-light dark:text-text-primary-dark text-xl font-semibold tracking-tight pb-4 border-b border-border-light dark:border-border-dark">Active Keys (2)</h2>
+<!-- API Keys List -->
+<div class="flex flex-col gap-4 mt-6">
+<!-- Card 1 -->
+<div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg shadow-sm p-5 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<h3 class="text-text-primary-light dark:text-text-primary-dark text-base font-semibold leading-tight">Production API Key</h3>
+<div class="flex items-center gap-2 text-sm text-success font-medium">
+<div class="size-2 rounded-full bg-success"></div>
+                                Active
+                            </div>
+</div>
+<div class="border-t border-border-light dark:border-border-dark -mx-5"></div>
+<div class="flex flex-col gap-4">
+<div class="flex flex-wrap items-center justify-between gap-2">
+<div class="flex items-center gap-3">
+<p class="text-text-secondary text-sm">Key:</p>
+<div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 rounded-md px-3 py-2">
+<p class="font-mono text-sm text-text-primary-light dark:text-text-primary-dark">sk_live_••••••••••••••••••••4f2a</p>
+<button class="text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+<button class="text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">
+<span class="material-symbols-outlined text-lg">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+<div class="flex flex-col gap-1">
+<p class="text-text-secondary text-xs">METADATA</p>
+<p class="text-text-secondary text-sm">Created: Dec 15, 2024 · <span class="text-success font-medium">Last used: 2 hours ago</span></p>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-text-secondary text-xs">PERMISSIONS</p>
+<p class="text-text-primary-light dark:text-text-primary-dark text-sm font-medium">Full access</p>
+</div>
+<div class="flex items-center gap-2 ml-auto">
+<button class="flex items-center justify-center gap-2 cursor-pointer rounded-md h-9 px-4 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark text-sm font-semibold border border-border-light dark:border-border-dark shadow-sm hover:bg-gray-50 dark:hover:bg-white/5">
+                                        Rotate
+                                    </button>
+<button class="flex items-center justify-center gap-2 cursor-pointer rounded-md h-9 px-4 text-error text-sm font-semibold hover:bg-error/10">
+                                        Revoke
+                                    </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg shadow-sm p-5 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<h3 class="text-text-primary-light dark:text-text-primary-dark text-base font-semibold leading-tight">Development API Key</h3>
+<div class="flex items-center gap-2 text-sm text-success font-medium">
+<div class="size-2 rounded-full bg-success"></div>
+                                Active
+                            </div>
+</div>
+<div class="border-t border-border-light dark:border-border-dark -mx-5"></div>
+<div class="flex flex-col gap-4">
+<div class="flex flex-wrap items-center justify-between gap-2">
+<div class="flex items-center gap-3">
+<p class="text-text-secondary text-sm">Key:</p>
+<div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 rounded-md px-3 py-2">
+<p class="font-mono text-sm text-text-primary-light dark:text-text-primary-dark">sk_test_••••••••••••••••••••8b3c</p>
+<button class="text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+<button class="text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">
+<span class="material-symbols-outlined text-lg">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+<div class="flex flex-col gap-1">
+<p class="text-text-secondary text-xs">METADATA</p>
+<p class="text-text-secondary text-sm">Created: Nov 28, 2024 · Last used: 5 days ago</p>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-text-secondary text-xs">PERMISSIONS</p>
+<p class="text-text-primary-light dark:text-text-primary-dark text-sm font-medium">Read only</p>
+</div>
+<div class="flex items-center gap-2 ml-auto">
+<button class="flex items-center justify-center gap-2 cursor-pointer rounded-md h-9 px-4 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark text-sm font-semibold border border-border-light dark:border-border-dark shadow-sm hover:bg-gray-50 dark:hover:bg-white/5">
+                                        Rotate
+                                    </button>
+<button class="flex items-center justify-center gap-2 cursor-pointer rounded-md h-9 px-4 text-error text-sm font-semibold hover:bg-error/10">
+                                        Revoke
+                                    </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Empty State Example (hidden by default) -->
+<div class="hidden text-center border-2 border-dashed border-border-light dark:border-border-dark rounded-lg py-16 mt-6">
+<span class="material-symbols-outlined text-5xl text-text-secondary mx-auto">key</span>
+<h3 class="mt-4 text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">No API Keys Yet</h3>
+<p class="mt-1 text-sm text-text-secondary">Get started by creating your first API key for your application.</p>
+<div class="mt-6">
+<button class="flex items-center justify-center gap-2 cursor-pointer rounded-md h-10 px-4 bg-primary text-white text-sm font-semibold leading-normal shadow-sm hover:opacity-90 mx-auto">
+<span class="material-symbols-outlined text-lg">add</span>
+<span class="truncate">Create Your First Key</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Modals (Overlay) -->
+<div class="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+<!-- Create New Key Modal (Example) -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-lg shadow-xl w-full max-w-lg">
+<div class="flex justify-between items-center p-5 border-b border-border-light dark:border-border-dark">
+<h3 class="text-lg font-semibold">Create API Key</h3>
+<button class="text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-6 flex flex-col gap-6">
+<div>
+<label class="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-1" for="key-name">Key Name</label>
+<input class="w-full h-10 px-3 border border-border-light dark:border-border-dark rounded-md bg-transparent focus:ring-2 focus:ring-primary/50 focus:border-primary" id="key-name" placeholder="Production API Key" type="text"/>
+<p class="text-xs text-text-secondary mt-1">A descriptive name to identify this key.</p>
+</div>
+<div>
+<label class="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2">Environment</label>
+<div class="flex gap-4">
+<label class="flex items-center gap-2"><input checked="" class="text-primary focus:ring-primary/50" name="environment" type="radio"/> Production (sk_live_...)</label>
+<label class="flex items-center gap-2"><input class="text-primary focus:ring-primary/50" name="environment" type="radio"/> Development (sk_test_...)</label>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2">Permissions</label>
+<div class="grid grid-cols-2 gap-2">
+<label class="flex items-center gap-2"><input checked="" class="text-primary rounded-sm focus:ring-primary/50" type="checkbox"/> Read - View data</label>
+<label class="flex items-center gap-2"><input checked="" class="text-primary rounded-sm focus:ring-primary/50" type="checkbox"/> Write - Create and update data</label>
+<label class="flex items-center gap-2"><input class="text-primary rounded-sm focus:ring-primary/50" type="checkbox"/> Delete - Remove data</label>
+<label class="flex items-center gap-2"><input class="text-primary rounded-sm focus:ring-primary/50" type="checkbox"/> Admin - Full account access</label>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-1" for="expiration">Expiration</label>
+<select class="w-full h-10 px-3 border border-border-light dark:border-border-dark rounded-md bg-transparent focus:ring-2 focus:ring-primary/50 focus:border-primary" id="expiration">
+<option>Never</option>
+<option>30 days</option>
+<option>90 days</option>
+<option>1 year</option>
+</select>
+</div>
+</div>
+<div class="flex justify-end items-center gap-3 p-5 bg-gray-50 dark:bg-black/20 border-t border-border-light dark:border-border-dark rounded-b-lg">
+<button class="cursor-pointer rounded-md h-10 px-4 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5">Cancel</button>
+<button class="flex items-center justify-center gap-2 cursor-pointer rounded-md h-10 px-4 bg-primary text-white text-sm font-semibold leading-normal shadow-sm hover:opacity-90">Create Key</button>
+</div>
+</div>
+<!-- New Key Created Modal (hidden) -->
+<div class="hidden bg-surface-light dark:bg-surface-dark rounded-lg shadow-xl w-full max-w-lg">
+<div class="p-6 text-center">
+<span class="material-symbols-outlined text-4xl text-success mx-auto bg-success/10 p-3 rounded-full">check_circle</span>
+<h3 class="text-lg font-semibold mt-4">Key Created Successfully</h3>
+<p class="text-sm text-text-secondary mt-2">Your new API key has been created. Copy it now — you won't be able to see it again!</p>
+</div>
+<div class="px-6 pb-6 flex flex-col gap-4">
+<div class="relative bg-gray-50 dark:bg-gray-800/50 rounded-md p-3 pr-12 font-mono text-sm break-all">
+                    sk_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
+                    <button class="absolute top-1/2 -translate-y-1/2 right-3 text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">
+<span class="material-symbols-outlined">content_copy</span>
+</button>
+</div>
+<div class="flex items-center gap-2 p-3 rounded-md bg-warning/10 text-warning">
+<span class="material-symbols-outlined text-xl">warning</span>
+<p class="text-sm font-medium">This key will only be shown once. Store it securely.</p>
+</div>
+</div>
+<div class="flex justify-end items-center p-5 bg-gray-50 dark:bg-black/20 border-t border-border-light dark:border-border-dark rounded-b-lg">
+<button class="flex items-center justify-center gap-2 cursor-pointer rounded-md h-10 px-4 bg-primary text-white text-sm font-semibold leading-normal shadow-sm hover:opacity-90">Done, I've copied it</button>
+</div>
+</div>
+<!-- Revoke Confirmation Modal (hidden) -->
+<div class="hidden bg-surface-light dark:bg-surface-dark rounded-lg shadow-xl w-full max-w-md">
+<div class="flex justify-between items-center p-5 border-b border-border-light dark:border-border-dark">
+<h3 class="text-lg font-semibold text-error">Revoke API Key?</h3>
+<button class="text-text-secondary hover:text-text-primary-light dark:hover:text-text-primary-dark">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-6 flex flex-col gap-4">
+<p class="text-sm text-text-secondary">Are you sure you want to revoke <strong class="text-text-primary-light dark:text-text-primary-dark">"Production API Key"</strong>? This will immediately invalidate the key and any applications using it will lose access.</p>
+<div>
+<label class="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-1" for="revoke-confirm">Type the key name to confirm:</label>
+<input class="w-full h-10 px-3 border border-border-light dark:border-border-dark rounded-md bg-transparent focus:ring-2 focus:ring-error/50 focus:border-error" id="revoke-confirm" type="text"/>
+</div>
+</div>
+<div class="flex justify-end items-center gap-3 p-5 bg-gray-50 dark:bg-black/20 border-t border-border-light dark:border-border-dark rounded-b-lg">
+<button class="cursor-pointer rounded-md h-10 px-4 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5">Cancel</button>
+<button class="flex items-center justify-center gap-2 cursor-pointer rounded-md h-10 px-4 bg-error text-white text-sm font-semibold leading-normal shadow-sm opacity-50 cursor-not-allowed">Revoke Key</button>
+</div>
+</div>
+</div>
+</body></html>

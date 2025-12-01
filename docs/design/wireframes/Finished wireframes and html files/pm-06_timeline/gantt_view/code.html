@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-06 Timeline/Gantt View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="flex h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex flex-col w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-[#101622]">
+<div class="flex h-full min-h-[700px] flex-col justify-between p-4">
+<div class="flex flex-col gap-4">
+<div class="flex gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Company logo for HYVVE Inc." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCEfPyUdB2gk4-G-1LbZyBsiyXTgD_m4voT8GYB5S9MN0z4rB7pwLmKByHvHjXg9raaGci4zDK7pc14-tH3K0hnsmyhipkZnABPc0wcfr92MEyDvrydyHYUsqsRomsOQkR0mVCEwafHsKYrAS1lGoKTE_gtLg3ohESnlh4CY1nYdatKyxUXCnY2bEc3Si9f4N8Xp_GtlFAKe6jgbeWYZyPVJWfoh7N49hHaDgjx9togt5kb4qyAyLVXlz4GFORN1Fs7Ya_qDtS3QYA");'></div>
+<div class="flex flex-col">
+<h1 class="text-[#111318] dark:text-gray-100 text-base font-medium leading-normal">HYVVE Inc.</h1>
+<p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Premium Plan</p>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#111318] dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-white" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">folder</span>
+<p class="text-sm font-medium leading-normal">Projects</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#111318] dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined">task_alt</span>
+<p class="text-sm font-medium leading-normal">Tasks</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#111318] dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<p class="text-sm font-medium leading-normal">Calendar</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#111318] dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+<p class="text-sm font-medium leading-normal">Reports</p>
+</a>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">New Project</span>
+</button>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#111318] dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#111318] dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined">help</span>
+<p class="text-sm font-medium leading-normal">Help</p>
+</a>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden">
+<!-- Page Heading -->
+<header class="p-6 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#101622]">
+<div class="flex flex-wrap justify-between items-center gap-3">
+<div class="flex flex-col gap-1">
+<p class="text-[#111318] dark:text-white text-2xl font-black leading-tight tracking-[-0.033em]">Project Alpha Timeline</p>
+<p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Visualize project tasks, milestones, and dependencies over time.</p>
+</div>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#f0f2f4] dark:bg-gray-800 text-[#111318] dark:text-gray-200 text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Export</span>
+</button>
+</div>
+</header>
+<!-- Toolbar -->
+<div class="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#101622]">
+<div class="flex justify-between items-center gap-4">
+<div class="flex items-center gap-2">
+<!-- Navigation -->
+<div class="flex gap-2">
+<button class="p-2 text-[#111318] dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="p-2 text-[#111318] dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<!-- Today Button -->
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#f0f2f4] dark:bg-gray-800 text-[#111318] dark:text-gray-200 text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Today</span>
+</button>
+</div>
+<!-- View Controls -->
+<div class="flex h-10 items-center justify-center rounded-lg bg-[#f0f2f4] dark:bg-gray-800 p-1">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-3 text-[#616f89] dark:text-gray-400 has-[:checked]:bg-white dark:has-[:checked]:bg-gray-700 has-[:checked]:shadow-[0_0_4px_rgba(0,0,0,0.1)] has-[:checked]:text-[#111318] dark:has-[:checked]:text-white text-sm font-medium leading-normal">
+<span class="truncate">Day</span>
+<input class="invisible w-0" name="view-toggle" type="radio" value="Day"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-3 text-[#616f89] dark:text-gray-400 has-[:checked]:bg-white dark:has-[:checked]:bg-gray-700 has-[:checked]:shadow-[0_0_4px_rgba(0,0,0,0.1)] has-[:checked]:text-[#111318] dark:has-[:checked]:text-white text-sm font-medium leading-normal">
+<span class="truncate">Week</span>
+<input checked="" class="invisible w-0" name="view-toggle" type="radio" value="Week"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-3 text-[#616f89] dark:text-gray-400 has-[:checked]:bg-white dark:has-[:checked]:bg-gray-700 has-[:checked]:shadow-[0_0_4px_rgba(0,0,0,0.1)] has-[:checked]:text-[#111318] dark:has-[:checked]:text-white text-sm font-medium leading-normal">
+<span class="truncate">Month</span>
+<input class="invisible w-0" name="view-toggle" type="radio" value="Month"/>
+</label>
+</div>
+<div class="flex items-center gap-2">
+<!-- Filter -->
+<button class="p-2 text-[#111318] dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+<!-- Add Task -->
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-primary text-white gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-4">
+<span class="material-symbols-outlined text-base">add</span>
+<span class="truncate">Add Task</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Gantt Chart Area -->
+<div class="flex-1 overflow-auto bg-background-light dark:bg-background-dark">
+<div class="relative w-full h-full" style="min-width: 1200px;"> <!-- Min-width to ensure horizontal scroll -->
+<!-- Fixed Task List Panel -->
+<div class="absolute top-0 left-0 h-full w-72 bg-white dark:bg-[#101622] border-r border-gray-200 dark:border-gray-800 z-10">
+<div class="h-12 border-b border-gray-200 dark:border-gray-800 flex items-center px-4">
+<p class="text-sm font-semibold text-[#111318] dark:text-white">Task Name</p>
+</div>
+<div class="py-2 space-y-1">
+<!-- Task Group -->
+<div class="flex items-center px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-gray-500 mr-1 text-base cursor-pointer">arrow_drop_down</span>
+<p class="text-sm font-medium text-[#111318] dark:text-gray-200">Phase 1: Discovery &amp; Planning</p>
+</div>
+<!-- Task Item -->
+<div class="flex items-center pl-10 pr-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+<p class="text-sm text-gray-600 dark:text-gray-400">User Research</p>
+<div class="ml-auto bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6" data-alt="Avatar of Sarah Lee" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA59cm_G3Ifb60WIDSk0iioqR0GwkE06D47eUVv6p7WBDa4Fz_sp1bVCSC_dSYiaGwaW2F2b6yF7xK13XtxZbJtll6uQYmDlcEDx2DhJH3X51qpULwBICS8zXHjrni44VXtlO54FCjtyTjkw_z_qV1fPmbguSFo64j_CNIfMdS-1ShjpEHBxaNOB3ln3nZ6BjfT-azGNrXFLZdt7j8RoBlwAdtrISTVUEjDjWk0AYDJDvwonKiovutmsSkhOSWREETA0ixbDGLijWo");'></div>
+</div>
+<div class="flex items-center pl-10 pr-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+<p class="text-sm text-gray-600 dark:text-gray-400">Define Project Scope</p>
+<div class="ml-auto bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6" data-alt="Avatar of Mike Ross" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC_CiFbJdHX9djJkQmcKmbdx4_Yz6R1YWoqkgugzDFDFkzJcMjtzkZyd0jkResYvoXd5wDOalspgNHbmugxpwDAGnUyBCpkxUtQa_MXZSnSODn4nntd3-lo7LgnPFwxXN5EZ5tgTo9Tiq9q2t-E4bSD6w9k4PVTHdkwb6B9o29HtfSY9kmTejCT1go-00qe3W_iHIijH5caOuMw94auXApARD0pFf-EHW8UF6q462KpNEaVk8lXd0hT4uMCCd2NEVYZsf_6d7EzoNs");'></div>
+</div>
+<!-- Task Group -->
+<div class="flex items-center px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-gray-500 mr-1 text-base cursor-pointer">arrow_right</span>
+<p class="text-sm font-medium text-[#111318] dark:text-gray-200">Phase 2: Design</p>
+</div>
+<!-- Task Group -->
+<div class="flex items-center px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-gray-500 mr-1 text-base cursor-pointer">arrow_right</span>
+<p class="text-sm font-medium text-[#111318] dark:text-gray-200">Phase 3: Development</p>
+</div>
+<!-- Task Group -->
+<div class="flex items-center px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-gray-500 mr-1 text-base cursor-pointer">arrow_right</span>
+<p class="text-sm font-medium text-[#111318] dark:text-gray-200">Phase 4: Testing &amp; QA</p>
+</div>
+</div>
+</div>
+<!-- Scrollable Timeline Panel -->
+<div class="absolute top-0 left-72 right-0 bottom-0 overflow-x-scroll">
+<div class="relative h-full" style="width: 1800px;"> <!-- Example width, make it wider than the viewport -->
+<!-- Time Header -->
+<div class="sticky top-0 h-12 bg-white dark:bg-[#101622] z-0">
+<div class="grid grid-cols-12 h-full border-b border-gray-200 dark:border-gray-800">
+<div class="flex items-center justify-center border-r border-gray-200 dark:border-gray-800"><p class="text-xs font-medium text-gray-500 dark:text-gray-400">W1</p></div>
+<div class="flex items-center justify-center border-r border-gray-200 dark:border-gray-800"><p class="text-xs font-medium text-gray-500 dark:text-gray-400">W2</p></div>
+<div class="flex items-center justify-center border-r border-gray-200 dark:border-gray-800"><p class="text-xs font-medium text-gray-500 dark:text-gray-400">W3</p></div>
+<div class="flex items-center justify-center border-r border-gray-200 dark:border-gray-800 bg-primary/10"><p class="text-xs font-bold text-primary">W4 (Today)</p></div>
+<div class="flex items-center justify-center border-r border-gray-200 dark:border-gray-800"><p class="text-xs font-medium text-gray-500 dark:text-gray-400">W5</p></div>
+<div class="flex items-center justify-center border-r border-gray-200 dark:border-gray-800"><p class="text-xs font-medium text-gray-500 dark:text-gray-400">W6</p></div>
+<div class="flex items-center justify-center border-r border-gray-200 dark:border-gray-800"><p class="text-xs font-medium text-gray-500 dark:text-gray-400">W7</p></div>
+<div class="flex items-center justify-center border-r border-gray-200 dark:border-gray-800"><p class="text-xs font-medium text-gray-500 dark:text-gray-400">W8</p></div>
+<div class="flex items-center justify-center border-r border-gray-200 dark:border-gray-800"><p class="text-xs font-medium text-gray-500 dark:text-gray-400">W9</p></div>
+<div class="flex items-center justify-center border-r border-gray-200 dark:border-gray-800"><p class="text-xs font-medium text-gray-500 dark:text-gray-400">W10</p></div>
+<div class="flex items-center justify-center border-r border-gray-200 dark:border-gray-800"><p class="text-xs font-medium text-gray-500 dark:text-gray-400">W11</p></div>
+<div class="flex items-center justify-center"><p class="text-xs font-medium text-gray-500 dark:text-gray-400">W12</p></div>
+</div>
+</div>
+<!-- Grid and Tasks -->
+<div class="absolute top-12 left-0 w-full h-[calc(100%-3rem)]">
+<!-- Grid Lines -->
+<div class="grid grid-cols-12 h-full absolute w-full">
+<div class="border-r border-gray-200 dark:border-gray-800/50"></div>
+<div class="border-r border-gray-200 dark:border-gray-800/50"></div>
+<div class="border-r border-gray-200 dark:border-gray-800/50"></div>
+<div class="border-r border-gray-200 dark:border-gray-800/50 bg-primary/5 dark:bg-primary/10"></div>
+<div class="border-r border-gray-200 dark:border-gray-800/50"></div>
+<div class="border-r border-gray-200 dark:border-gray-800/50"></div>
+<div class="border-r border-gray-200 dark:border-gray-800/50"></div>
+<div class="border-r border-gray-200 dark:border-gray-800/50"></div>
+<div class="border-r border-gray-200 dark:border-gray-800/50"></div>
+<div class="border-r border-gray-200 dark:border-gray-800/50"></div>
+<div class="border-r border-gray-200 dark:border-gray-800/50"></div>
+<div></div>
+</div>
+<!-- Today Line -->
+<div class="absolute top-0 h-full w-0.5 bg-primary" style="left: 550px;"></div> <!-- Approx W4 start -->
+<!-- Task Rows -->
+<div class="relative py-2 space-y-1">
+<!-- Row 1: Group -->
+<div class="h-10"></div>
+<!-- Row 2: User Research -->
+<div class="h-10 flex items-center pr-4 relative group">
+<div class="absolute top-1/2 -translate-y-1/2 h-8 rounded-lg bg-blue-500 cursor-pointer flex items-center px-3" style="left: 25px; width: 250px;">
+<div class="absolute top-0 left-0 h-full bg-blue-700 rounded-lg" style="width: 75%;"></div>
+<p class="text-white text-xs font-medium truncate z-10">User Research</p>
+</div>
+<!-- Task detail popover -->
+<div class="absolute left-32 top-10 w-64 bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
+<p class="font-bold text-sm text-[#111318] dark:text-white">User Research</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Jan 8 - Jan 26</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Assignee: Sarah Lee</p>
+<span class="inline-block mt-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">In Progress</span>
+</div>
+</div>
+<!-- Row 3: Define Project Scope -->
+<div class="h-10 flex items-center pr-4">
+<div class="absolute top-1/2 -translate-y-1/2 h-8 rounded-lg bg-blue-500 cursor-pointer flex items-center px-3" style="left: 280px; width: 250px;">
+<div class="absolute top-0 left-0 h-full bg-blue-700 rounded-lg" style="width: 20%;"></div>
+<p class="text-white text-xs font-medium truncate z-10">Define Project Scope</p>
+</div>
+<!-- Milestone -->
+<div class="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-amber-400 transform rotate-45 flex items-center justify-center cursor-pointer" style="left: 540px;">
+<span class="material-symbols-outlined text-amber-800 text-sm" style="transform: rotate(-45deg);">star</span>
+</div>
+</div>
+<!-- Row 4: Group -->
+<div class="h-10"></div>
+<!-- Row 5: Group -->
+<div class="h-10"></div>
+<!-- Row 6: Group -->
+<div class="h-10"></div>
+</div>
+<!-- Dependency Lines -->
+<svg class="absolute top-0 left-0 w-full h-full pointer-events-none" style="top:56px;">
+<path d="M 275 60 C 285 60, 285 90, 295 90" fill="none" stroke="#a0aec0" stroke-dasharray="4 2" stroke-width="2"></path>
+<polygon fill="#a0aec0" points="290,95 300,90 290,85"></polygon>
+</svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

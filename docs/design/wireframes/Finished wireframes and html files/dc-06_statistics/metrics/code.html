@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DC-06 Statistics/Metrics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ff6b6b",
+              "background-light": "#f8f5f5",
+              "background-dark": "#1a1010", 
+              "card-light": "#ffffff",
+              "card-dark": "#230f0f",
+              "text-light": "#181010",
+              "text-dark": "#f8f5f5",
+              "subtext-light": "#8d5e5e",
+              "subtext-dark": "#a19090",
+              "border-light": "#e7dada",
+              "border-dark": "#3a2a2a",
+              "positive": "#078807",
+              "negative": "#e70808",
+              "neutral": "#4f46e5"
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
+<div class="relative flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex w-64 flex-col border-r border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-4 sticky top-0 h-screen">
+<div class="flex h-full min-h-[700px] flex-col justify-between">
+<div class="flex flex-col gap-4">
+<div class="flex gap-3 items-center">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Company Logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCxStX3X5rRAH1Qexs2tLTfI6aaZ2_-aOCngKaoTtI24g48bZsus87-8uofgOXznkIQIkFS6xnRn-x9ST4QJPMTDBzdxhmlCdYfnYtFjLSSud6AmbEf-gib7jn6mscyWTeFAHVSzmlOYd8GgDTVe2fc9xNBj74X_8pYB61C6ITDhymQl2xe4AAk0V0RG7AEvimoYiUFThuawq9SDHmCI56E_bsK__a5QxG8_EW9dhpYhVjpwRsvfBnpeXagBaTU2GgX3DhKcE5MAYc");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-light dark:text-text-dark text-base font-medium leading-normal">HYVVE Inc.</h1>
+<p class="text-subtext-light dark:text-subtext-dark text-sm font-normal leading-normal">Premium Plan</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20 text-primary" href="#">
+<span class="material-symbols-outlined text-2xl">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">bar_chart</span>
+<p class="text-sm font-medium leading-normal">Analytics</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">description</span>
+<p class="text-sm font-medium leading-normal">Reports</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">group</span>
+<p class="text-sm font-medium leading-normal">Users</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">support_agent</span>
+<p class="text-sm font-medium leading-normal">Support</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">logout</span>
+<p class="text-sm font-medium leading-normal">Logout</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-6 lg:p-10">
+<div class="mx-auto max-w-7xl">
+<!-- PageHeading -->
+<div class="mb-8">
+<p class="text-text-light dark:text-text-dark text-4xl font-black leading-tight tracking-[-0.033em]">Key Metrics Dashboard</p>
+<p class="text-subtext-light dark:text-subtext-dark text-base font-normal leading-normal mt-2">An overview of your application's performance.</p>
+</div>
+<!-- Hero Metric -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark lg:col-span-2">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Total Revenue</p>
+<p class="text-text-light dark:text-text-dark tracking-light text-5xl font-bold leading-tight">$1,245,830.50</p>
+<p class="text-positive text-base font-medium leading-normal flex items-center gap-1">
+<span class="material-symbols-outlined text-lg">arrow_upward</span>
+<span>+12.5% vs last month</span>
+</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-primary/20 dark:bg-primary/30 border border-primary/30">
+<p class="text-primary text-base font-medium leading-normal">Active Users</p>
+<p class="text-text-light dark:text-text-dark tracking-light text-5xl font-bold leading-tight">32,491</p>
+<p class="text-positive text-base font-medium leading-normal flex items-center gap-1">
+<span class="material-symbols-outlined text-lg">arrow_upward</span>
+<span>+8.1%</span>
+</p>
+</div>
+<!-- Live Metric -->
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark">
+<div class="flex items-center gap-2">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Live Visitors</p>
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-positive opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-positive"></span>
+</span>
+</div>
+<p class="text-text-light dark:text-text-dark tracking-light text-5xl font-bold leading-tight">1,204</p>
+<p class="text-subtext-light dark:text-subtext-dark text-base font-normal leading-normal">on the platform now</p>
+</div>
+</div>
+<!-- SectionHeader -->
+<h2 class="text-text-light dark:text-text-dark text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-5">Primary Metrics</h2>
+<!-- Stats Grid: Icon, Sparkline, Standard -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<!-- Icon Metric -->
+<div class="flex items-start gap-4 rounded-xl p-6 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark">
+<div class="bg-primary/20 text-primary p-3 rounded-lg">
+<span class="material-symbols-outlined text-3xl">person_add</span>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">New Signups</p>
+<p class="text-text-light dark:text-text-dark tracking-light text-3xl font-bold leading-tight">1,842</p>
+<p class="text-positive text-base font-medium leading-normal flex items-center gap-1">
+<span class="material-symbols-outlined text-base">arrow_upward</span>
+<span>+5.2%</span>
+</p>
+</div>
+</div>
+<!-- Standard Metric -->
+<div class="flex flex-col gap-1 rounded-xl p-6 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Customer Churn</p>
+<p class="text-text-light dark:text-text-dark tracking-light text-3xl font-bold leading-tight">4.2%</p>
+<p class="text-negative text-base font-medium leading-normal flex items-center gap-1">
+<span class="material-symbols-outlined text-base">arrow_downward</span>
+<span>-1.1%</span>
+</p>
+</div>
+<!-- Sparkline Metric -->
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark">
+<div class="flex justify-between items-baseline">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Avg. Session</p>
+<p class="text-positive text-sm font-medium leading-normal flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">arrow_upward</span>
+<span>+3.0%</span>
+</p>
+</div>
+<p class="text-text-light dark:text-text-dark tracking-light text-3xl font-bold leading-tight">12m 34s</p>
+<div class="h-10">
+<svg class="w-full h-full" fill="none" preserveaspectratio="none" viewbox="0 0 100 25" xmlns="http://www.w3.org/2000/svg">
+<path d="M1 18L15.5 12L29.5 19L44 8L58.5 15L72.5 5L87 13L100 1" stroke="#078807" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+<!-- Icon Metric -->
+<div class="flex items-start gap-4 rounded-xl p-6 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark">
+<div class="bg-neutral/20 text-neutral p-3 rounded-lg">
+<span class="material-symbols-outlined text-3xl">support_agent</span>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Tickets Solved</p>
+<p class="text-text-light dark:text-text-dark tracking-light text-3xl font-bold leading-tight">289</p>
+<p class="text-subtext-light dark:text-subtext-dark text-base font-medium leading-normal">Today</p>
+</div>
+</div>
+</div>
+<!-- SectionHeader -->
+<h2 class="text-text-light dark:text-text-dark text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-5">Performance &amp; Goals</h2>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Comparison & Compact Metrics -->
+<div class="lg:col-span-2 flex flex-col gap-6">
+<div class="rounded-xl p-6 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark">
+<p class="text-text-light dark:text-text-dark text-lg font-bold leading-normal mb-4">Quarterly Comparison</p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+<!-- Comparison Pair 1 -->
+<div class="flex flex-col gap-1">
+<p class="text-subtext-light dark:text-subtext-dark text-sm font-medium">Revenue (This Quarter)</p>
+<p class="text-text-light dark:text-text-dark text-2xl font-bold">$421,982</p>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-subtext-light dark:text-subtext-dark text-sm font-medium">Revenue (Last Quarter)</p>
+<p class="text-text-light dark:text-text-dark text-2xl font-bold">$389,450</p>
+</div>
+<div class="md:col-span-2 border-t border-border-light dark:border-border-dark my-2"></div>
+<!-- Comparison Pair 2 -->
+<div class="flex flex-col gap-1">
+<p class="text-subtext-light dark:text-subtext-dark text-sm font-medium">New Trials (This Quarter)</p>
+<p class="text-text-light dark:text-text-dark text-2xl font-bold">1,024</p>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-subtext-light dark:text-subtext-dark text-sm font-medium">New Trials (Last Quarter)</p>
+<p class="text-text-light dark:text-text-dark text-2xl font-bold">971</p>
+</div>
+</div>
+<!-- Compact Inline Metrics -->
+<div class="mt-6 pt-4 border-t border-border-light dark:border-border-dark flex flex-wrap gap-x-6 gap-y-2">
+<div class="flex items-center gap-2">
+<p class="text-subtext-light dark:text-subtext-dark text-sm">Conv. Rate:</p>
+<p class="font-bold text-sm">14.2%</p>
+</div>
+<div class="flex items-center gap-2">
+<p class="text-subtext-light dark:text-subtext-dark text-sm">ARPU:</p>
+<p class="font-bold text-sm">$98.50</p>
+</div>
+<div class="flex items-center gap-2">
+<p class="text-subtext-light dark:text-subtext-dark text-sm">LTV:</p>
+<p class="font-bold text-sm">$1,240</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Goal/Progress Metric -->
+<div class="rounded-xl p-6 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark">
+<p class="text-text-light dark:text-text-dark text-lg font-bold leading-normal mb-4">Q3 Sales Target</p>
+<div class="relative w-40 h-40 mx-auto">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e7dada" stroke-width="3"></path>
+<path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ff6b6b" stroke-dasharray="75, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<p class="text-3xl font-bold">75%</p>
+<p class="text-sm text-subtext-light dark:text-subtext-dark">Complete</p>
+</div>
+</div>
+<div class="mt-4 text-center">
+<p class="text-lg font-medium">$375,120 / $500,000</p>
+<p class="text-sm text-subtext-light dark:text-subtext-dark">32 days left</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

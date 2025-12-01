@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AU-06 Two-Factor Authentication</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .font-code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FF6B6B",
+                        "secondary": "#20B2AA",
+                        "background-light": "#FFFBF5",
+                        "background-dark": "#0a0a0b",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1a1a1b",
+                        "border-light": "#E5E5E5",
+                        "border-dark": "#2a2a2b",
+                        "text-light-primary": "#1a1a1a",
+                        "text-dark-primary": "#FAFAFA",
+                        "text-secondary": "#6B7280",
+                        "success": "#10B981",
+                        "warning": "#F59E0B",
+                        "error": "#EF4444",
+                        "info": "#3B82F6",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "system-ui", "sans-serif"],
+                        "code": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: {
+                        "sm": "4px",
+                        "md": "8px",
+                        "lg": "12px",
+                        "xl": "16px",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'sm': '0 1px 2px rgba(0,0,0,0.04)',
+                        'md': '0 4px 6px rgba(0,0,0,0.04)',
+                        'lg': '0 10px 15px rgba(0,0,0,0.06)',
+                        'xl': '0 20px 25px rgba(0,0,0,0.08)',
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-light-primary dark:text-dark-primary">
+<div class="relative w-full flex flex-col items-center p-4 sm:p-8 md:p-12 space-y-16">
+<!-- 1. 2FA Setup Options (Not Enabled) -->
+<div class="w-full max-w-4xl space-y-6">
+<h2 class="text-2xl font-bold text-text-light-primary dark:text-dark-primary">1. 2FA Setup Options (Not Enabled)</h2>
+<div class="bg-surface-light dark:bg-surface-dark p-6 sm:p-8 rounded-xl shadow-lg border border-border-light dark:border-border-dark">
+<div class="flex flex-col gap-2 pb-6 border-b border-border-light dark:border-border-dark">
+<h1 class="text-3xl font-bold tracking-tight text-text-light-primary dark:text-dark-primary">Two-Factor Authentication</h1>
+<p class="text-text-secondary">Add an extra layer of security to your account</p>
+</div>
+<div class="pt-6 pb-8">
+<p class="text-sm font-medium text-text-secondary">Status: <span class="text-text-light-primary dark:text-dark-primary font-semibold">Not enabled</span></p>
+</div>
+<div class="space-y-4">
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-lg bg-white dark:bg-surface-dark p-6 border border-border-light dark:border-border-dark shadow-md">
+<div class="flex-grow space-y-2">
+<p class="text-lg font-semibold text-text-light-primary dark:text-dark-primary"><span class="material-symbols-outlined align-bottom mr-2">shield_lock</span>Authenticator App (Recommended)</p>
+<p class="text-text-secondary text-sm">Use an app like Google Authenticator, Authy, or 1Password. Most secure option. Works offline.</p>
+</div>
+<button class="flex items-center justify-center rounded-md h-10 px-5 bg-primary text-white text-sm font-semibold whitespace-nowrap">
+<span>Set Up</span>
+</button>
+</div>
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-lg bg-white dark:bg-surface-dark p-6 border border-border-light dark:border-border-dark shadow-md">
+<div class="flex-grow space-y-2">
+<p class="text-lg font-semibold text-text-light-primary dark:text-dark-primary"><span class="material-symbols-outlined align-bottom mr-2">sms</span>SMS Verification</p>
+<p class="text-text-secondary text-sm">Receive codes via text message. Convenient but less secure than authenticator apps.</p>
+</div>
+<button class="flex items-center justify-center rounded-md h-10 px-5 bg-neutral-200 dark:bg-neutral-700 text-text-light-primary dark:text-dark-primary text-sm font-semibold whitespace-nowrap">
+<span>Set Up</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- 2. Authenticator Setup with QR code -->
+<div class="w-full max-w-4xl space-y-6">
+<h2 class="text-2xl font-bold text-text-light-primary dark:text-dark-primary">2. Authenticator Setup with QR code (Modal)</h2>
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg border border-border-light dark:border-border-dark overflow-hidden">
+<div class="flex items-center justify-between p-6 border-b border-border-light dark:border-border-dark">
+<h3 class="text-xl font-semibold">Set up authenticator app</h3>
+<button class="text-text-secondary hover:text-text-light-primary dark:hover:text-dark-primary">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-6 sm:p-8 space-y-8">
+<div>
+<p class="font-semibold text-text-light-primary dark:text-dark-primary mb-1">Step 1: Scan QR code</p>
+<p class="text-text-secondary text-sm mb-4">Open your authenticator app and scan this QR code:</p>
+<div class="flex flex-col items-center">
+<div class="bg-white p-4 rounded-lg border border-border-light dark:border-border-dark">
+<img class="rounded-md" data-alt="A sample QR code for authenticator app setup" height="256" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPSJVE_5NEmdL_wAH9BYWLxxoT-4piS08MXmhyVZHRgGh4wtqNel7hhpiYsPjEB0F5DzYONgF-A25-rowSpd_Hys0LqURlKJzaXP8qudayr6sNDFOh0VQKGTF2TegBeiyGAejyhoNL64k7Ml_UTvBXzPg-VPxUFDT259zbnBKC2LwDnIxnl_zS6Nroy8rYrJGi8m0Ohy-eJxSbTAa5YAkC9Abg7sKfnxSDV3zsRAlbGqBgP_mMdijgibByxdPHwUuKFmwVQtg4Rt71" width="256"/>
+</div>
+<button class="mt-4 text-sm font-medium text-primary hover:underline">Can't scan? Enter code manually</button>
+</div>
+<div class="mt-6 p-4 rounded-md bg-neutral-100 dark:bg-neutral-800/50 border border-border-light dark:border-border-dark">
+<p class="font-semibold text-sm mb-2">Manual setup code:</p>
+<div class="flex items-center justify-between p-3 rounded-md bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark">
+<span class="font-code text-text-secondary tracking-wider">JBSWY3DPEHPK3PXP</span>
+<button aria-label="Copy code" class="text-text-secondary hover:text-text-light-primary dark:hover:text-dark-primary">
+<span class="material-symbols-outlined text-base">content_copy</span>
+</button>
+</div>
+<div class="mt-3 space-y-1 text-sm text-text-secondary">
+<p><span class="font-medium text-text-light-primary dark:text-dark-primary">Account:</span> john@company.com</p>
+<p><span class="font-medium text-text-light-primary dark:text-dark-primary">Issuer:</span> HYVVE</p>
+<p><span class="font-medium text-text-light-primary dark:text-dark-primary">Type:</span> Time-based (TOTP)</p>
+</div>
+</div>
+</div>
+<hr class="border-border-light dark:border-border-dark"/>
+<div>
+<p class="font-semibold text-text-light-primary dark:text-dark-primary mb-1">Step 2: Enter verification code</p>
+<p class="text-text-secondary text-sm mb-4">Enter the 6-digit code from your authenticator app:</p>
+<div class="flex justify-center space-x-2">
+<input class="w-12 h-14 text-center text-2xl font-semibold rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" maxlength="1" type="text"/>
+<input class="w-12 h-14 text-center text-2xl font-semibold rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" maxlength="1" type="text"/>
+<input class="w-12 h-14 text-center text-2xl font-semibold rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" maxlength="1" type="text"/>
+<span class="flex items-center text-xl text-text-secondary">-</span>
+<input class="w-12 h-14 text-center text-2xl font-semibold rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" maxlength="1" type="text"/>
+<input class="w-12 h-14 text-center text-2xl font-semibold rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" maxlength="1" type="text"/>
+<input class="w-12 h-14 text-center text-2xl font-semibold rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" maxlength="1" type="text"/>
+</div>
+</div>
+</div>
+<div class="flex justify-end gap-3 p-6 bg-neutral-50 dark:bg-surface-dark/50 border-t border-border-light dark:border-border-dark">
+<button class="flex items-center justify-center rounded-md h-10 px-5 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-light-primary dark:text-dark-primary text-sm font-semibold">Cancel</button>
+<button class="flex items-center justify-center rounded-md h-10 px-5 bg-primary text-white text-sm font-semibold">Verify &amp; Enable</button>
+</div>
+</div>
+</div>
+<!-- 3. Backup Codes Display -->
+<div class="w-full max-w-4xl space-y-6">
+<h2 class="text-2xl font-bold text-text-light-primary dark:text-dark-primary">3. Backup Codes Display (Modal)</h2>
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg border border-border-light dark:border-border-dark overflow-hidden">
+<div class="flex items-center justify-between p-6 border-b border-border-light dark:border-border-dark">
+<h3 class="text-xl font-semibold">Save your backup codes</h3>
+<button class="text-text-secondary hover:text-text-light-primary dark:hover:text-dark-primary">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-6 sm:p-8 space-y-6">
+<div class="flex items-start gap-3 p-4 rounded-md bg-warning/10 border border-warning/20 text-warning">
+<span class="material-symbols-outlined mt-0.5">warning</span>
+<div class="flex-1">
+<p class="font-semibold text-sm">Important: Save these codes in a secure location</p>
+<p class="text-sm">If you lose access to your authenticator app, you can use one of these codes to sign in. Each code can only be used once.</p>
+</div>
+</div>
+<div class="p-6 rounded-md bg-neutral-100 dark:bg-neutral-800/50 font-code tracking-wider text-text-secondary">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
+<span>1. A7K9-X2M4</span> <span>6. P3N8-R5T2</span>
+<span>2. B2L5-Y7N9</span> <span>7. Q8M3-S6U7</span>
+<span>3. C4M8-Z3P6</span> <span>8. R2N7-T4V9</span>
+<span>4. D6N2-A9Q4</span> <span>9. S5P2-U8W3</span>
+<span>5. E9P5-B4R7</span> <span>10. T7Q6-V3X5</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-3">
+<button class="flex items-center justify-center gap-2 rounded-md h-10 px-4 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-light-primary dark:text-dark-primary text-sm font-semibold">
+<span class="material-symbols-outlined text-base">content_copy</span>Copy Codes
+                        </button>
+<button class="flex items-center justify-center gap-2 rounded-md h-10 px-4 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-light-primary dark:text-dark-primary text-sm font-semibold">
+<span class="material-symbols-outlined text-base">download</span>Download
+                        </button>
+<button class="flex items-center justify-center gap-2 rounded-md h-10 px-4 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-light-primary dark:text-dark-primary text-sm font-semibold">
+<span class="material-symbols-outlined text-base">print</span>Print
+                        </button>
+</div>
+<div class="flex items-center space-x-2">
+<input class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="saved-codes-checkbox" type="checkbox"/>
+<label class="text-sm font-medium text-text-light-primary dark:text-dark-primary" for="saved-codes-checkbox">I have saved my backup codes</label>
+</div>
+</div>
+<div class="flex justify-end p-6 bg-neutral-50 dark:bg-surface-dark/50 border-t border-border-light dark:border-border-dark">
+<button class="flex items-center justify-center rounded-md h-10 px-5 bg-primary text-white text-sm font-semibold disabled:bg-primary/50 disabled:cursor-not-allowed" disabled="">Done, Enable 2FA</button>
+</div>
+</div>
+</div>
+<!-- 4. Login 2FA Prompt & 5. Backup Code Entry -->
+<div class="w-full max-w-4xl space-y-6">
+<h2 class="text-2xl font-bold text-text-light-primary dark:text-dark-primary">4 &amp; 5. Login 2FA &amp; Backup Code Prompt (Component)</h2>
+<div class="w-full max-w-md mx-auto bg-surface-light dark:bg-surface-dark p-8 sm:p-10 rounded-xl shadow-lg border border-border-light dark:border-border-dark">
+<!-- State 1: Authenticator Code Entry -->
+<div class="text-center space-y-6">
+<div class="flex justify-center">
+<div class="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl">shield_lock</span>
+</div>
+</div>
+<div>
+<h3 class="text-xl font-semibold text-text-light-primary dark:text-dark-primary">Two-factor authentication</h3>
+<p class="text-text-secondary mt-1">Enter the 6-digit code from your authenticator app</p>
+</div>
+<div class="flex justify-center space-x-2">
+<input class="w-10 h-12 sm:w-12 sm:h-14 text-center text-2xl font-semibold rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" maxlength="1" type="text"/>
+<input class="w-10 h-12 sm:w-12 sm:h-14 text-center text-2xl font-semibold rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" maxlength="1" type="text"/>
+<input class="w-10 h-12 sm:w-12 sm:h-14 text-center text-2xl font-semibold rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" maxlength="1" type="text"/>
+<span class="hidden sm:flex items-center text-xl text-text-secondary">-</span>
+<input class="w-10 h-12 sm:w-12 sm:h-14 text-center text-2xl font-semibold rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" maxlength="1" type="text"/>
+<input class="w-10 h-12 sm:w-12 sm:h-14 text-center text-2xl font-semibold rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" maxlength="1" type="text"/>
+<input class="w-10 h-12 sm:w-12 sm:h-14 text-center text-2xl font-semibold rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" maxlength="1" type="text"/>
+</div>
+<button class="w-full flex items-center justify-center rounded-md h-12 px-5 bg-primary text-white text-base font-semibold">Verify</button>
+<div class="relative py-2">
+<div aria-hidden="true" class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-border-light dark:border-border-dark"></div>
+</div>
+<div class="relative flex justify-center text-sm">
+<span class="px-2 bg-surface-light dark:bg-surface-dark text-text-secondary">Having trouble?</span>
+</div>
+</div>
+<button class="w-full text-sm font-medium text-primary hover:underline">Use a backup code</button>
+<div class="pt-2">
+<div class="flex items-center justify-center space-x-2">
+<input class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" id="trust-device" type="checkbox"/>
+<label class="text-sm font-medium text-text-secondary" for="trust-device">Trust this device for 30 days</label>
+</div>
+</div>
+</div>
+<!-- State 2: Backup Code Entry (hidden by default) -->
+<div class="text-center space-y-6 hidden">
+<h3 class="text-xl font-semibold text-text-light-primary dark:text-dark-primary">Use a backup code</h3>
+<p class="text-text-secondary mt-1">Enter one of your backup codes:</p>
+<input class="w-full h-12 text-center text-lg font-code tracking-wider rounded-md border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark focus:ring-2 focus:ring-primary focus:border-primary" placeholder="A7K9-X2M4" type="text"/>
+<p class="text-sm text-warning flex items-center justify-center gap-1.5"><span class="material-symbols-outlined text-base">warning</span> Each backup code can only be used once</p>
+<button class="w-full flex items-center justify-center rounded-md h-12 px-5 bg-primary text-white text-base font-semibold">Verify</button>
+<button class="w-full text-sm font-medium text-primary hover:underline flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-base">arrow_back</span> Back to authenticator code
+                    </button>
+</div>
+</div>
+</div>
+<!-- 6. 2FA Enabled Management -->
+<div class="w-full max-w-4xl space-y-6">
+<h2 class="text-2xl font-bold text-text-light-primary dark:text-dark-primary">6. 2FA Enabled Management</h2>
+<div class="bg-surface-light dark:bg-surface-dark p-6 sm:p-8 rounded-xl shadow-lg border border-border-light dark:border-border-dark">
+<div class="flex flex-col gap-2 pb-6 border-b border-border-light dark:border-border-dark">
+<h1 class="text-3xl font-bold tracking-tight text-text-light-primary dark:text-dark-primary">Two-Factor Authentication</h1>
+</div>
+<div class="pt-6 pb-8 space-y-1">
+<p class="text-sm font-medium text-text-secondary">Status: <span class="inline-flex items-center gap-1.5 text-success font-semibold"><span class="material-symbols-outlined text-base">check_circle</span> Enabled via Authenticator App</span></p>
+<p class="text-sm text-text-secondary">Enabled on: <span class="font-medium text-text-light-primary dark:text-dark-primary">December 15, 2024</span></p>
+</div>
+<div class="space-y-4">
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-lg bg-white dark:bg-surface-dark p-6 border border-border-light dark:border-border-dark shadow-md">
+<div class="flex-grow">
+<p class="text-lg font-semibold text-text-light-primary dark:text-dark-primary">Backup Codes</p>
+<p class="text-text-secondary text-sm">7 of 10 codes remaining</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center justify-center rounded-md h-10 px-4 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-light-primary dark:text-dark-primary text-sm font-semibold whitespace-nowrap">View Codes</button>
+<button class="flex items-center justify-center rounded-md h-10 px-4 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-light-primary dark:text-dark-primary text-sm font-semibold whitespace-nowrap">Generate New</button>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-lg bg-white dark:bg-surface-dark p-6 border border-border-light dark:border-border-dark shadow-md">
+<div class="flex-grow">
+<p class="text-lg font-semibold text-text-light-primary dark:text-dark-primary">Trusted Devices</p>
+<p class="text-text-secondary text-sm">3 devices trusted</p>
+</div>
+<button class="flex items-center justify-center rounded-md h-10 px-5 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-light-primary dark:text-dark-primary text-sm font-semibold whitespace-nowrap">Manage Devices</button>
+</div>
+</div>
+<div class="mt-8 pt-8 border-t border-border-light dark:border-border-dark">
+<button class="flex items-center justify-center rounded-md h-10 px-5 bg-error/10 dark:bg-error/20 border border-error/20 dark:border-error/30 text-error text-sm font-semibold">Disable Two-Factor Authentication</button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

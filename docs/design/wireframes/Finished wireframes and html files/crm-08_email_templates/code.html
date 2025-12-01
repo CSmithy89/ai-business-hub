@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-08 Email Templates</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+                'FILL' 0,
+                'wght' 400,
+                'GRAD' 0,
+                'opsz' 24;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#111318] dark:text-gray-200">
+<div class="relative flex h-auto min-h-screen w-full flex-col">
+<header class="sticky top-0 z-20 flex items-center justify-between whitespace-nowrap border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark/80 backdrop-blur-sm px-10 py-3">
+<div class="flex items-center gap-4">
+<div class="size-6 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M24 45.8096C19.6865 45.8096 15.4698 44.5305 11.8832 42.134C8.29667 39.7376 5.50128 36.3314 3.85056 32.3462C2.19985 28.361 1.76794 23.9758 2.60947 19.7452C3.451 15.5145 5.52816 11.6284 8.57829 8.5783C11.6284 5.52817 15.5145 3.45101 19.7452 2.60948C23.9758 1.76795 28.361 2.19986 32.3462 3.85057C36.3314 5.50129 39.7376 8.29668 42.134 11.8833C44.5305 15.4698 45.8096 19.6865 45.8096 24L24 24L24 45.8096Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">HYVVE CRM</h2>
+</div>
+<div class="flex flex-1 justify-center gap-8">
+<div class="flex items-center gap-9">
+<a class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal" href="#">Dashboard</a>
+<a class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal" href="#">Contacts</a>
+<a class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal" href="#">Deals</a>
+<a class="text-primary dark:text-primary text-sm font-bold leading-normal border-b-2 border-primary pb-1" href="#">Email</a>
+<a class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal" href="#">Reports</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex gap-2">
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-300 gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-300 gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-300 gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCmpZ0LVjqX8DyN6IgQEKf0zVmXdsXz5XjI7oOZBkfFcEHvaHo8grgtHsamvZIjBuFCqQyjnVYde8Oa93uE4DlHG5xdgmIDrw78qwqhMsCGjvQ69mo4J-2tMbhEmh23pFnCjeagNAwVvPPgp-BajC-IDnRkrMID_61OQ_Y1HF4_QJK4jNyELEouv21vJrJ1rg8iWGRaJ-Xf_cgA4njUX_km2D3zweifiRL8VjiNfXEgdQD2_53JXl-xcUhc1Uf5YutNgzu1NlZHWzw");'></div>
+</div>
+</header>
+<div class="flex flex-1">
+<aside class="w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-4">
+<div class="flex h-full min-h-[700px] flex-col justify-between">
+<div class="flex flex-col gap-4">
+<div class="px-3 py-3">
+<label class="flex flex-col min-w-40 h-11 w-full">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full">
+<div class="text-[#616f89] dark:text-gray-400 flex border-none bg-background-light dark:bg-gray-800 items-center justify-center pl-3 rounded-l-lg border-r-0">
+<span class="material-symbols-outlined" style="font-size: 20px;">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-gray-200 focus:outline-0 focus:ring-2 focus:ring-primary/50 border-none bg-background-light dark:bg-gray-800 focus:border-none h-full placeholder:text-[#616f89] dark:placeholder-gray-400 px-4 rounded-l-none border-l-0 pl-2 text-sm font-normal leading-normal" placeholder="Search templates..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">folder</span>
+<p class="text-sm font-medium leading-normal">All Templates</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+<p class="text-sm font-medium leading-normal">Sales Outreach</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined">favorite</span>
+<p class="text-sm font-medium leading-normal">Customer Success</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined">campaign</span>
+<p class="text-sm font-medium leading-normal">Marketing</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" href="#">
+<span class="material-symbols-outlined">auto_awesome</span>
+<p class="text-sm font-medium leading-normal">Onboarding</p>
+</a>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 p-8">
+<div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+<div class="flex min-w-72 flex-col gap-2">
+<p class="text-[#111318] dark:text-white text-3xl font-bold leading-tight tracking-tight">Email Templates</p>
+<p class="text-[#616f89] dark:text-gray-400 text-base font-normal leading-normal">Manage and create reusable email templates for your team.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-gray-800 text-[#111318] dark:text-gray-200 text-sm font-medium leading-normal tracking-[0.015em] gap-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">download</span>
+<span>Export</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] gap-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">add</span>
+<span class="truncate">Create Template</span>
+</button>
+</div>
+</div>
+<section>
+<h2 class="text-[#111318] dark:text-white text-xl font-bold leading-tight tracking-tight pb-4 pt-5">Sales Outreach</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<div class="flex flex-col gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-base text-[#111318] dark:text-white">Initial Cold Outreach</h3>
+<div class="relative">
+<button class="flex items-center justify-center size-7 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-[#616f89] dark:text-gray-400" style="font-size: 20px;">more_horiz</span>
+</button>
+</div>
+</div>
+<p class="text-[#616f89] dark:text-gray-400 text-sm line-clamp-2">Hi {{contact.name}}, hope you're having a great week. I'm reaching out because I noticed you're leading the charge at {{company.name}} and thought you might be interested in our solutions to boost sales productivity...</p>
+<div>
+<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">VARIABLES</p>
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2 py-0.5 bg-primary/10 text-primary dark:bg-primary/20 text-xs font-mono rounded-full">{{contact.name}}</span>
+<span class="px-2 py-0.5 bg-primary/10 text-primary dark:bg-primary/20 text-xs font-mono rounded-full">{{company.name}}</span>
+</div>
+</div>
+<div class="flex gap-4 border-t border-gray-200 dark:border-gray-800 pt-4">
+<div class="flex-1">
+<p class="text-xs text-gray-500 dark:text-gray-400">Used</p>
+<p class="font-semibold text-[#111318] dark:text-white">1,204</p>
+</div>
+<div class="flex-1">
+<p class="text-xs text-gray-500 dark:text-gray-400">Open Rate</p>
+<p class="font-semibold text-[#111318] dark:text-white">48.2%</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex-1 flex items-center justify-center h-9 px-3 bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-200 rounded-lg text-sm font-medium gap-1.5"><span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>Preview</button>
+<button class="flex-1 flex items-center justify-center h-9 px-3 bg-primary text-white rounded-lg text-sm font-medium gap-1.5"><span class="material-symbols-outlined" style="font-size: 16px;">send</span>Use</button>
+</div>
+</div>
+<div class="flex flex-col gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border-2 border-dashed border-teal-400/50 dark:border-teal-400/40 relative overflow-hidden">
+<div class="absolute top-0 right-0 px-3 py-1 bg-teal-400/20 text-teal-600 dark:text-teal-300 text-xs font-semibold rounded-bl-lg">AI Suggestion</div>
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-base text-[#111318] dark:text-white">Follow-up After Demo</h3>
+<div class="relative">
+<button class="flex items-center justify-center size-7 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-[#616f89] dark:text-gray-400" style="font-size: 20px;">more_horiz</span>
+</button>
+</div>
+</div>
+<p class="text-[#616f89] dark:text-gray-400 text-sm line-clamp-2">Great connecting today, {{contact.name}}. I've attached the summary we discussed. What are your thoughts on the proposed next steps for {{company.name}}? Looking forward to hearing from you.</p>
+<div>
+<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">VARIABLES</p>
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2 py-0.5 bg-primary/10 text-primary dark:bg-primary/20 text-xs font-mono rounded-full">{{contact.name}}</span>
+</div>
+</div>
+<div class="flex gap-4 border-t border-gray-200 dark:border-gray-800 pt-4">
+<div class="flex-1">
+<p class="text-xs text-gray-500 dark:text-gray-400">Used</p>
+<p class="font-semibold text-[#111318] dark:text-white">357</p>
+</div>
+<div class="flex-1">
+<p class="text-xs text-gray-500 dark:text-gray-400">Open Rate</p>
+<p class="font-semibold text-[#111318] dark:text-white">62.1%</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex-1 flex items-center justify-center h-9 px-3 bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-200 rounded-lg text-sm font-medium gap-1.5"><span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>Preview</button>
+<button class="flex-1 flex items-center justify-center h-9 px-3 bg-primary text-white rounded-lg text-sm font-medium gap-1.5"><span class="material-symbols-outlined" style="font-size: 16px;">send</span>Use</button>
+</div>
+</div>
+<div class="flex flex-col gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-base text-[#111318] dark:text-white">Re-engagement Email</h3>
+<div class="relative">
+<button class="flex items-center justify-center size-7 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-[#616f89] dark:text-gray-400" style="font-size: 20px;">more_horiz</span>
+</button>
+</div>
+</div>
+<p class="text-[#616f89] dark:text-gray-400 text-sm line-clamp-2">Hi {{contact.name}}, just wanted to check in and see if now is a better time to reconnect. We've launched some new features since we last spoke that I think {{company.name}} would find very valuable.</p>
+<div>
+<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">VARIABLES</p>
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2 py-0.5 bg-primary/10 text-primary dark:bg-primary/20 text-xs font-mono rounded-full">{{contact.name}}</span>
+<span class="px-2 py-0.5 bg-primary/10 text-primary dark:bg-primary/20 text-xs font-mono rounded-full">{{company.name}}</span>
+</div>
+</div>
+<div class="flex gap-4 border-t border-gray-200 dark:border-gray-800 pt-4">
+<div class="flex-1">
+<p class="text-xs text-gray-500 dark:text-gray-400">Used</p>
+<p class="font-semibold text-[#111318] dark:text-white">89</p>
+</div>
+<div class="flex-1">
+<p class="text-xs text-gray-500 dark:text-gray-400">Open Rate</p>
+<p class="font-semibold text-[#111318] dark:text-white">31.5%</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex-1 flex items-center justify-center h-9 px-3 bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-200 rounded-lg text-sm font-medium gap-1.5"><span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>Preview</button>
+<button class="flex-1 flex items-center justify-center h-9 px-3 bg-primary text-white rounded-lg text-sm font-medium gap-1.5"><span class="material-symbols-outlined" style="font-size: 16px;">send</span>Use</button>
+</div>
+</div>
+</div>
+</section>
+<section>
+<h2 class="text-[#111318] dark:text-white text-xl font-bold leading-tight tracking-tight pb-4 pt-10">Customer Success</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<div class="flex flex-col gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-base text-[#111318] dark:text-white">Welcome &amp; Onboarding</h3>
+<div class="relative">
+<button class="flex items-center justify-center size-7 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-[#616f89] dark:text-gray-400" style="font-size: 20px;">more_horiz</span>
+</button>
+</div>
+</div>
+<p class="text-[#616f89] dark:text-gray-400 text-sm line-clamp-2">Welcome to the HYVVE family, {{contact.name}}! We are thrilled to have {{company.name}} on board. To get you started, here is a link to our quick start guide...</p>
+<div>
+<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">VARIABLES</p>
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2 py-0.5 bg-primary/10 text-primary dark:bg-primary/20 text-xs font-mono rounded-full">{{contact.name}}</span>
+<span class="px-2 py-0.5 bg-primary/10 text-primary dark:bg-primary/20 text-xs font-mono rounded-full">{{company.name}}</span>
+</div>
+</div>
+<div class="flex gap-4 border-t border-gray-200 dark:border-gray-800 pt-4">
+<div class="flex-1">
+<p class="text-xs text-gray-500 dark:text-gray-400">Used</p>
+<p class="font-semibold text-[#111318] dark:text-white">451</p>
+</div>
+<div class="flex-1">
+<p class="text-xs text-gray-500 dark:text-gray-400">Open Rate</p>
+<p class="font-semibold text-[#111318] dark:text-white">88.9%</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex-1 flex items-center justify-center h-9 px-3 bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-200 rounded-lg text-sm font-medium gap-1.5"><span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>Preview</button>
+<button class="flex-1 flex items-center justify-center h-9 px-3 bg-primary text-white rounded-lg text-sm font-medium gap-1.5"><span class="material-symbols-outlined" style="font-size: 16px;">send</span>Use</button>
+</div>
+</div>
+<div class="flex flex-col gap-4 p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-base text-[#111318] dark:text-white">Quarterly Business Review</h3>
+<div class="relative">
+<button class="flex items-center justify-center size-7 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-[#616f89] dark:text-gray-400" style="font-size: 20px;">more_horiz</span>
+</button>
+</div>
+</div>
+<p class="text-[#616f89] dark:text-gray-400 text-sm line-clamp-2">Hi Team at {{company.name}}, it's that time of the quarter again! Let's schedule a call to review your progress and plan for the next quarter. Please find a link to my calendar...</p>
+<div>
+<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">VARIABLES</p>
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2 py-0.5 bg-primary/10 text-primary dark:bg-primary/20 text-xs font-mono rounded-full">{{company.name}}</span>
+</div>
+</div>
+<div class="flex gap-4 border-t border-gray-200 dark:border-gray-800 pt-4">
+<div class="flex-1">
+<p class="text-xs text-gray-500 dark:text-gray-400">Used</p>
+<p class="font-semibold text-[#111318] dark:text-white">62</p>
+</div>
+<div class="flex-1">
+<p class="text-xs text-gray-500 dark:text-gray-400">Open Rate</p>
+<p class="font-semibold text-[#111318] dark:text-white">71.0%</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex-1 flex items-center justify-center h-9 px-3 bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-gray-200 rounded-lg text-sm font-medium gap-1.5"><span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>Preview</button>
+<button class="flex-1 flex items-center justify-center h-9 px-3 bg-primary text-white rounded-lg text-sm font-medium gap-1.5"><span class="material-symbols-outlined" style="font-size: 16px;">send</span>Use</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+</div>
+</body></html>

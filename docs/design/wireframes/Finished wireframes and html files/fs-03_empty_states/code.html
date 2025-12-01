@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FS-03 Empty States</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ff6b6b",
+              "background-light": "#f8f5f5",
+              "background-dark": "#230f0f",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 flex flex-1 justify-center py-10 sm:py-16">
+<div class="layout-content-container flex flex-col max-w-[960px] flex-1">
+<!-- Page Heading -->
+<div class="flex flex-wrap justify-between gap-3 p-4">
+<div class="flex min-w-72 flex-col gap-3">
+<p class="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Empty State Components</p>
+<p class="text-gray-600 dark:text-gray-400 text-base font-normal leading-normal">A showcase of various empty state scenarios within the HYVVE Design System.</p>
+</div>
+</div>
+<!-- 1. Basic Empty State -->
+<h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-10">1. Basic Empty State</h2>
+<div class="flex flex-col p-4">
+<div class="flex flex-col items-center gap-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-black/20 p-8 sm:p-12">
+<span class="material-symbols-outlined text-6xl text-primary">inventory_2</span>
+<div class="flex max-w-[480px] flex-col items-center gap-2">
+<p class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] text-center">No Items Yet</p>
+<p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal text-center">Items you create will appear here. Get started by creating your first one.</p>
+</div>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+<span class="truncate">Create Your First Item</span>
+</button>
+</div>
+</div>
+<!-- 2. No Search Results -->
+<h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-10">2. No Search Results</h2>
+<div class="flex flex-col p-4">
+<div class="flex flex-col items-center gap-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-black/20 p-8 sm:p-12">
+<span class="material-symbols-outlined text-6xl text-primary">search_off</span>
+<div class="flex max-w-[480px] flex-col items-center gap-2">
+<p class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] text-center">No results for 'Design System'</p>
+<p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal text-center">We couldn't find anything matching your search. Try checking for typos or using different keywords.</p>
+</div>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-bold leading-normal tracking-[0.015em] hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors">
+<span class="truncate">Clear Search</span>
+</button>
+</div>
+</div>
+<!-- 3. No Filter Matches -->
+<h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-10">3. No Filter Matches</h2>
+<div class="flex flex-col p-4">
+<div class="flex flex-col items-center gap-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-black/20 p-8 sm:p-12">
+<span class="material-symbols-outlined text-6xl text-primary">filter_alt_off</span>
+<div class="flex max-w-[480px] flex-col items-center gap-4">
+<div class="flex flex-col items-center gap-2">
+<p class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] text-center">No matches for your filters</p>
+<p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal text-center">Try adjusting your filters to find what you're looking for.</p>
+</div>
+<div class="flex flex-wrap items-center justify-center gap-2">
+<span class="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-primary/20 px-3 py-1 text-sm font-medium text-primary">
+<span>Status: Active</span>
+<button class="material-symbols-outlined !text-base">close</button>
+</span>
+<span class="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-primary/20 px-3 py-1 text-sm font-medium text-primary">
+<span>Priority: High</span>
+<button class="material-symbols-outlined !text-base">close</button>
+</span>
+</div>
+</div>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+<span class="truncate">Clear All Filters</span>
+</button>
+</div>
+</div>
+<!-- 4. First-Time/Onboarding State -->
+<h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-10">4. First-Time/Onboarding State</h2>
+<div class="flex flex-col p-4">
+<div class="flex flex-col items-center gap-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-black/20 p-8 sm:p-12">
+<span class="material-symbols-outlined text-6xl text-primary">rocket_launch</span>
+<div class="flex max-w-[480px] flex-col items-center gap-2">
+<p class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] text-center">Welcome to HYVVE!</p>
+<p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal text-center">Let's get you started. Here are a few things you can do to begin.</p>
+</div>
+<div class="grid w-full max-w-lg grid-cols-1 gap-4 sm:grid-cols-2">
+<button class="flex w-full items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-800 p-4 text-left hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
+<span class="material-symbols-outlined text-primary">add_circle</span>
+<span class="flex flex-col">
+<span class="font-bold text-gray-800 dark:text-gray-200">Create a New Project</span>
+<span class="text-xs text-gray-500 dark:text-gray-400">Start from scratch</span>
+</span>
+</button>
+<button class="flex w-full items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-800 p-4 text-left hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
+<span class="material-symbols-outlined text-primary">upload_file</span>
+<span class="flex flex-col">
+<span class="font-bold text-gray-800 dark:text-gray-200">Import Data</span>
+<span class="text-xs text-gray-500 dark:text-gray-400">From a CSV file</span>
+</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 5. Error State -->
+<h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-10">5. Error State</h2>
+<div class="flex flex-col p-4">
+<div class="flex flex-col items-center gap-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-black/20 p-8 sm:p-12">
+<span class="material-symbols-outlined text-6xl text-red-500">error</span>
+<div class="flex max-w-[480px] flex-col items-center gap-2">
+<p class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] text-center">Something Went Wrong</p>
+<p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal text-center">We had trouble loading this content. Please try again or contact support if the problem persists.</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-bold leading-normal tracking-[0.015em] hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors">
+<span class="truncate">Contact Support</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+<span class="truncate">Try Again</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 6. Permission Denied -->
+<h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-10">6. Permission Denied</h2>
+<div class="flex flex-col p-4">
+<div class="flex flex-col items-center gap-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-black/20 p-8 sm:p-12">
+<span class="material-symbols-outlined text-6xl text-primary">lock</span>
+<div class="flex max-w-[480px] flex-col items-center gap-2">
+<p class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] text-center">Access Denied</p>
+<p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal text-center">You do not have the necessary permissions to view this page. Contact your administrator to request access.</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-bold leading-normal tracking-[0.015em] hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors">
+<span class="truncate">Go to Dashboard</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+<span class="truncate">Request Access</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 7. 'All Done' / Inbox Zero -->
+<h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-10">7. 'All Done' / Inbox Zero</h2>
+<div class="flex flex-col p-4">
+<div class="flex flex-col items-center gap-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-black/20 p-8 sm:p-12">
+<span class="material-symbols-outlined text-6xl text-green-500">task_alt</span>
+<div class="flex max-w-[480px] flex-col items-center gap-2">
+<p class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] text-center">You're All Caught Up!</p>
+<p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal text-center">There are no new notifications or tasks. Enjoy the peace and quiet.</p>
+</div>
+</div>
+</div>
+<!-- 8. Compact Inline State -->
+<h2 class="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-10">8. Compact Inline State</h2>
+<div class="flex flex-col p-4">
+<div class="flex items-center justify-center gap-3 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-black/20 p-8">
+<span class="material-symbols-outlined text-xl text-gray-500 dark:text-gray-400">checklist</span>
+<p class="text-sm text-gray-600 dark:text-gray-400">No tasks assigned yet.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

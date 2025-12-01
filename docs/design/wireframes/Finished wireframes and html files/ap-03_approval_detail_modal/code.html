@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AP-03 Approval Detail Modal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+      }
+    </style>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#FF6B6B",
+              secondary: "#20B2AA",
+              "background-light": "#FFFBF5",
+              "background-dark": "#0a0a0b",
+              "surface-light": "#FFFFFF",
+              "surface-dark": "#1a1a1b",
+              "border-light": "#E5E5E5",
+              "border-dark": "#2a2a2b",
+              "text-primary-light": "#1a1a1a",
+              "text-primary-dark": "#FAFAFA",
+              "text-secondary": "#6B7280",
+              success: "#10B981",
+              warning: "#F59E0B",
+              error: "#EF4444",
+              info: "#3B82F6",
+            },
+            fontFamily: {
+              sans: ["Inter", "system-ui", "sans-serif"],
+              mono: ["JetBrains Mono", "monospace"],
+            },
+            borderRadius: {
+              sm: "4px",
+              md: "8px",
+              lg: "12px",
+              xl: "16px",
+              full: "9999px",
+            },
+            boxShadow: {
+              sm: "0 1px 2px rgba(0,0,0,0.04)",
+              md: "0 4px 6px rgba(0,0,0,0.04)",
+              lg: "0 10px 15px rgba(0,0,0,0.06)",
+              xl: "0 20px 25px rgba(0,0,0,0.08)",
+            },
+          },
+        },
+      };
+    </script>
+</head>
+<body class="font-sans antialiased">
+<div class="relative flex h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root" style="font-family: 'Inter', sans-serif">
+<!-- Modal Overlay -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+<!-- Modal Content -->
+<div class="flex h-[90vh] max-h-[800px] w-[90vw] max-w-[1000px] flex-col overflow-hidden rounded-xl bg-surface-light shadow-xl dark:bg-surface-dark">
+<!-- Modal Header -->
+<header class="flex h-16 shrink-0 items-center justify-between border-b border-border-light bg-surface-light px-6 dark:border-border-dark dark:bg-surface-dark">
+<div class="flex items-center gap-4">
+<div class="relative h-9 w-9">
+<svg class="absolute inset-0" viewbox="0 0 36 36">
+<circle class="text-gray-200 dark:text-gray-700" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-width="3"></circle>
+<circle class="text-warning" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-dasharray="72" stroke-dashoffset="100.48" stroke-linecap="round" stroke-width="3"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-text-primary-light dark:text-text-primary-dark">72%</div>
+</div>
+<span class="material-symbols-outlined text-2xl text-text-secondary"> mail </span>
+<h2 class="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">Follow up on our conversation</h2>
+<span class="rounded-full bg-warning/10 px-3 py-1 text-xs font-medium text-warning">Pending Review</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<img class="h-6 w-6 rounded-full" data-alt="Teal circular avatar for Maya agent" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTVxX3Y9bRgqIiPu_nryNYr0tuenbx1SYdlSOxpa7quhGqA9wZWFj55zg7HYyrwcW16Yiw3o-AZi68xPkmJqA4V0Fkq9iRGiasRpdtqZqkda64UPwgzbtB9-T6Wq9lfwgB3gaWW43gyKppPhtMyRDPkQW00QB-DaQ0iMpHzhnk9LVPQrZybKG0t9_xODxaKQ7o3PnC4C1JhiVj_9A_EyciBOKK16FK6RFdDhdYmP09OS6baHGNTUYX5bpZianFpqwhG7q8jnXywCOO"/>
+<span class="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">Maya</span>
+</div>
+<span class="text-sm text-text-secondary">Created 2 hours ago</span>
+<button class="flex h-10 w-10 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-gray-100 dark:hover:bg-white/10">
+<span class="material-symbols-outlined text-2xl"> close </span>
+</button>
+</div>
+</header>
+<!-- Modal Body -->
+<main class="flex min-h-0 flex-1">
+<!-- Left Panel (Content Preview) -->
+<div class="flex w-3/5 flex-col overflow-y-auto bg-gray-50 p-6 dark:bg-black/20">
+<div class="flex flex-col rounded-lg border border-border-light bg-surface-light dark:border-border-dark dark:bg-surface-dark">
+<div class="flex flex-col gap-1 border-b border-border-light px-4 py-3 dark:border-border-dark">
+<p class="text-sm text-text-secondary">From: <span class="font-medium text-text-primary-light dark:text-text-primary-dark">sales@company.com</span></p>
+<p class="text-sm text-text-secondary">To: <span class="font-medium text-text-primary-light dark:text-text-primary-dark">john@techcorp.com</span></p>
+<p class="text-sm text-text-secondary">Subject: <span class="font-medium text-text-primary-light dark:text-text-primary-dark">Following up on our conversation</span></p>
+</div>
+<div class="prose prose-sm max-w-none p-4 text-text-primary-light dark:text-text-primary-dark dark:prose-invert">
+<p>Hi John,</p>
+<p>Thank you for taking the time to discuss your requirements yesterday. Based on our conversation, I've put together a custom proposal that addresses your needs for the Enterprise Plan.</p>
+<p>I've highlighted the key areas for your review, specifically regarding the custom integration modules and the proposed timeline for deployment. The attached document provides a full breakdown of the features and pricing.</p>
+<p>Please let me know if you have any questions or if there's a good time for a quick call to walk through it. Looking forward to hearing from you.</p>
+<p>Best regards,</p>
+<p>Alex</p>
+</div>
+</div>
+</div>
+<!-- Right Panel (AI Analysis) -->
+<div class="w-2/5 overflow-y-auto border-l border-border-light bg-surface-light p-6 dark:border-border-dark dark:bg-surface-dark">
+<div class="flex flex-col gap-6">
+<!-- Confidence Breakdown -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<p class="font-semibold text-text-primary-light dark:text-text-primary-dark">Overall Confidence</p>
+<p class="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">72%</p>
+</div>
+<div class="w-full rounded-full bg-gray-200 dark:bg-gray-700">
+<div class="h-2 rounded-full bg-warning" style="width: 72%"></div>
+</div>
+<div class="flex flex-col gap-3">
+<p class="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark">Factors</p>
+<div class="flex items-center gap-3 text-sm">
+<span class="w-28 text-text-secondary">Content Quality</span>
+<div class="flex-1 rounded-full bg-gray-200 dark:bg-gray-700">
+<div class="h-1.5 rounded-full bg-success" style="width: 82%"></div>
+</div>
+<span class="w-8 text-right font-medium text-success">82%</span>
+</div>
+<div class="flex items-center gap-3 text-sm">
+<span class="w-28 text-text-secondary">Brand Alignment</span>
+<div class="flex-1 rounded-full bg-gray-200 dark:bg-gray-700">
+<div class="h-1.5 rounded-full bg-warning" style="width: 74%"></div>
+</div>
+<span class="w-8 text-right font-medium text-warning">74%</span>
+</div>
+<div class="flex items-center gap-3 text-sm">
+<span class="w-28 text-text-secondary">Recipient Match</span>
+<div class="flex-1 rounded-full bg-gray-200 dark:bg-gray-700">
+<div class="h-1.5 rounded-full bg-success" style="width: 91%"></div>
+</div>
+<span class="w-8 text-right font-medium text-success">91%</span>
+</div>
+<div class="flex items-center gap-3 text-sm">
+<span class="w-28 text-text-secondary">Timing Score</span>
+<div class="flex-1 rounded-full bg-gray-200 dark:bg-gray-700">
+<div class="h-1.5 rounded-full bg-error" style="width: 52%"></div>
+</div>
+<span class="w-8 text-right font-medium text-error">52%</span>
+</div>
+</div>
+</div>
+<!-- AI Reasoning -->
+<div class="flex flex-col gap-3">
+<h3 class="flex items-center gap-2 text-lg font-bold leading-tight tracking-[-0.015em] text-secondary">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'wght' 600, 'FILL' 1">smart_toy</span>
+<span>Analysis by Maya</span>
+</h3>
+<div class="space-y-3 text-sm text-text-secondary">
+<p>This follow-up email is well-crafted with personalized references to the previous meeting. The timing score is lower because the optimal send time would be Tuesday AM for maximum engagement.</p>
+<p class="font-medium text-text-primary-light dark:text-text-primary-dark">Suggestions applied:</p>
+<ul class="list-inside list-disc space-y-1">
+<li>Added recipient's company name.</li>
+<li>Included meeting reference date.</li>
+<li>Attached proposal document.</li>
+</ul>
+</div>
+</div>
+<!-- Related Context -->
+<div class="flex flex-col gap-3">
+<h3 class="flex items-center gap-2 text-base font-semibold leading-tight text-text-primary-light dark:text-text-primary-dark">
+<span class="material-symbols-outlined text-xl"> topic </span>
+<span>Related Items</span>
+</h3>
+<div class="grid grid-cols-1 gap-2 text-sm">
+<div class="flex items-center justify-between rounded-md p-2 hover:bg-gray-100 dark:hover:bg-white/5">
+<span class="text-text-secondary">Contact</span>
+<span class="font-medium text-info">John Smith (TechCorp)</span>
+</div>
+<div class="flex items-center justify-between rounded-md p-2 hover:bg-gray-100 dark:hover:bg-white/5">
+<span class="text-text-secondary">Deal</span>
+<span class="font-medium text-text-primary-light dark:text-text-primary-dark">Enterprise Plan - $45,000</span>
+</div>
+<div class="flex items-center justify-between rounded-md p-2 hover:bg-gray-100 dark:hover:bg-white/5">
+<span class="text-text-secondary">Last interaction</span>
+<span class="font-medium text-text-primary-light dark:text-text-primary-dark">2 days ago</span>
+</div>
+<div class="flex items-center justify-between rounded-md p-2 hover:bg-gray-100 dark:hover:bg-white/5">
+<span class="text-text-secondary">Pipeline stage</span>
+<span class="font-medium text-text-primary-light dark:text-text-primary-dark">Proposal</span>
+</div>
+</div>
+</div>
+<!-- Similar Approvals -->
+<div class="flex flex-col gap-3">
+<h3 class="flex items-center gap-2 text-base font-semibold leading-tight text-text-primary-light dark:text-text-primary-dark">
+<span class="material-symbols-outlined text-xl"> history </span>
+<span>Similar Past Approvals</span>
+</h3>
+<div class="rounded-md border border-border-light bg-gray-50 p-3 text-sm text-text-secondary dark:border-border-dark dark:bg-white/5">You've approved <span class="font-semibold text-success">12</span> similar follow-up emails in the past month.</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Modal Footer -->
+<footer class="flex h-[72px] shrink-0 items-center justify-between border-t border-border-light bg-surface-light px-6 dark:border-border-dark dark:bg-surface-dark">
+<div class="flex items-center gap-2">
+<button class="flex h-9 w-9 items-center justify-center rounded-md border border-border-light text-text-secondary transition-colors hover:bg-gray-100 dark:border-border-dark dark:hover:bg-white/10">
+<span class="material-symbols-outlined"> chevron_left </span>
+</button>
+<span class="text-sm font-medium text-text-secondary">Item 3 of 12</span>
+<button class="flex h-9 w-9 items-center justify-center rounded-md border border-border-light text-text-secondary transition-colors hover:bg-gray-100 dark:border-border-dark dark:hover:bg-white/10">
+<span class="material-symbols-outlined"> chevron_right </span>
+</button>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex h-10 items-center justify-center rounded-md border border-error px-4 text-sm font-semibold text-error transition-colors hover:bg-error/10">Reject</button>
+<button class="flex h-10 items-center justify-center rounded-md border border-border-light px-4 text-sm font-semibold text-text-secondary transition-colors hover:bg-gray-100 dark:border-border-dark dark:hover:bg-white/10">Request Changes</button>
+<button class="flex h-10 min-w-[100px] items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90">Approve</button>
+</div>
+</footer>
+</div>
+</div>
+</div>
+</body></html>

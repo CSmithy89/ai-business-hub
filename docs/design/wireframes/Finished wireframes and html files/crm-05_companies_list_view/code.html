@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-05 Companies List View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#135bec",
+            "background-light": "#f6f6f8",
+            "background-dark": "#101622",
+          },
+          fontFamily: {
+            "display": ["Inter", "sans-serif"]
+          },
+          borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
+    }
+    .table-row-selected {
+        background-color: #135bec1a; /* bg-primary/10 */
+    }
+    .dark .table-row-selected {
+        background-color: #135bec33; /* bg-primary/20 */
+    }
+  </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-40 flex flex-1 justify-center py-5">
+<div class="layout-content-container flex flex-col w-full max-w-7xl flex-1">
+<!-- Page Heading -->
+<div class="flex flex-wrap justify-between items-center gap-4 p-4">
+<h1 class="text-4xl font-black leading-tight tracking-[-0.033em] text-[#111318] dark:text-white">Companies</h1>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] gap-2">
+<span class="material-symbols-outlined text-base">add</span>
+<span class="truncate">Add Company</span>
+</button>
+</div>
+<!-- Toolbar -->
+<div class="flex flex-wrap items-center justify-between gap-4 p-4">
+<div class="flex flex-wrap items-center gap-2">
+<div class="relative w-full sm:w-64">
+<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+<span class="material-symbols-outlined text-gray-400">search</span>
+</div>
+<input class="block w-full rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-2 pl-10 pr-4 h-10 text-sm focus:border-primary focus:ring-primary dark:text-gray-300" placeholder="Search companies..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center justify-center gap-2 rounded-lg h-10 px-4 text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+<span>Industry</span>
+<span class="material-symbols-outlined text-base">expand_more</span>
+</button>
+<button class="flex items-center justify-center gap-2 rounded-lg h-10 px-4 text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+<span>Company Size</span>
+<span class="material-symbols-outlined text-base">expand_more</span>
+</button>
+<button class="flex items-center justify-center gap-2 rounded-lg h-10 px-4 text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+<span>Status</span>
+<span class="material-symbols-outlined text-base">expand_more</span>
+</button>
+</div>
+</div>
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-primary text-white gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-4">
+<span class="material-symbols-outlined text-base">layers</span>
+<span class="truncate">Bulk Actions</span>
+</button>
+</div>
+<!-- Table -->
+<div class="px-4 py-3 @container">
+<div class="flex overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+<table class="w-full">
+<thead class="bg-gray-50 dark:bg-gray-900/50">
+<tr>
+<th class="p-4 w-12">
+<input class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-primary focus:ring-primary/50 dark:focus:ring-offset-gray-800" type="checkbox"/>
+</th>
+<th class="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-400 w-1/4">
+<div class="flex items-center gap-1">Company <span class="material-symbols-outlined text-base">swap_vert</span></div>
+</th>
+<th class="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-400 w-1/4">
+<div class="flex items-center gap-1">Domain <span class="material-symbols-outlined text-base">swap_vert</span></div>
+</th>
+<th class="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-400">
+<div class="flex items-center gap-1">Status <span class="material-symbols-outlined text-base">swap_vert</span></div>
+</th>
+<th class="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-400">
+<div class="flex items-center gap-1">Industry <span class="material-symbols-outlined text-base">swap_vert</span></div>
+</th>
+<th class="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-400">
+<div class="flex items-center gap-1">Contacts <span class="material-symbols-outlined text-base">swap_vert</span></div>
+</th>
+<th class="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-400">
+<div class="flex items-center gap-1">Deals <span class="material-symbols-outlined text-base">swap_vert</span></div>
+</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+<td class="p-4">
+<input class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-primary focus:ring-primary/50 dark:focus:ring-offset-gray-800" type="checkbox"/>
+</td>
+<td class="px-4 py-2">
+<div class="flex items-center gap-3">
+<img class="h-10 w-10 rounded-full object-cover" data-alt="Innovate Inc company logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7ek83kAAqqHr_8D64Jz3ldw1HtJ_ftIhPT_OqKE5GBjxvHC2-3J_TjphnS6FhUkJAPDbJ1rtR_5VZLsrEeB9lcaTeGWEGcX5jXnfPd9HnJRZ1tIWuLO8KWKH107zqMnJrpag5ClmJ32mdNeYAaqLJoMcs9qvB8Dm4k773S99s75RsbxDpWuMwN5-3CRhsIn9Yd-0sShoa-RNXVv84oyrBrIVgKA_Gz-otzGNYJndotBGm6MU1iwoS1BMeWZeXTQ5l6ULLZ3mqGgw"/>
+<span class="font-medium text-gray-900 dark:text-white">Innovate Inc.</span>
+</div>
+</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">innovate.com</td>
+<td class="px-4 py-2 text-sm">
+<span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/50 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-300">Key Account</span>
+</td>
+<td class="px-4 py-2 text-sm">
+<span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:text-gray-300">Technology</span>
+</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">12</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">5</td>
+</tr>
+<tr class="table-row-selected hover:bg-primary/20 dark:hover:bg-primary/30">
+<td class="p-4">
+<input checked="" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-primary focus:ring-primary/50 dark:focus:ring-offset-gray-800" type="checkbox"/>
+</td>
+<td class="px-4 py-2">
+<div class="flex items-center gap-3">
+<img class="h-10 w-10 rounded-full object-cover" data-alt="QuantumLeap company logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0DXJqi8HVtRTHC6uMSOwq5EM8hAfQPSyI0e6QNr-ar3OR8J553lwO9HmJ2X_7oUILg_phAt-ZdCZmzaljrcuzDA0QOnJsTOgumSiqQibLSes1HVcBquRMr3N6I7nGFX4MuiNGfDQ7bZfQmeAeM-xJLZyMIg2TiNeLjG4cV7KH4M79bnWFTx2TTy-D1G6abeJiK1HakffvUdGedio2W7W6f1f0A-zmRpVw70IQXbiLaQP0TUoXUmI29v1SqVsd1YC1vz4mJyu0abg"/>
+<span class="font-medium text-gray-900 dark:text-white">QuantumLeap</span>
+</div>
+</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">quantumleap.io</td>
+<td class="px-4 py-2 text-sm">
+<span class="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/50 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-300">New</span>
+</td>
+<td class="px-4 py-2 text-sm">
+<span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:text-gray-300">SaaS</span>
+</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">8</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">2</td>
+</tr>
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+<td class="p-4">
+<input class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-primary focus:ring-primary/50 dark:focus:ring-offset-gray-800" type="checkbox"/>
+</td>
+<td class="px-4 py-2">
+<div class="flex items-center gap-3">
+<img class="h-10 w-10 rounded-full object-cover" data-alt="DataStream company logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTtGkO9YFbkEV8vzzW3McA1LxorCd-aDNgnncmqIZW09gLq8pk-gJoK6V-WjFPGllbnQ1WtzGuhhRpNkPnfZyizkETTfe-APmc5CDP00It2L8bbB8lhsMaLQ8m8RwWN8y_na2snhOHq9laXmEA5dDbYUgtKytTz03twhb60Hws6fblgTYALscrEgp-i403CTOLosEhIVWfewyHm2X-cbjHxCU7u8QHYSAe3zXuUSgkIwriUbiOQkuG6ocxe9g4feyzJpxb8ekJkgE"/>
+<span class="font-medium text-gray-900 dark:text-white">DataStream</span>
+</div>
+</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">datastream.ai</td>
+<td class="px-4 py-2 text-sm">
+<span class="inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:text-yellow-300">Hot Lead</span>
+</td>
+<td class="px-4 py-2 text-sm">
+<span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:text-gray-300">Analytics</span>
+</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">25</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">10</td>
+</tr>
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+<td class="p-4">
+<input class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-primary focus:ring-primary/50 dark:focus:ring-offset-gray-800" type="checkbox"/>
+</td>
+<td class="px-4 py-2">
+<div class="flex items-center gap-3">
+<img class="h-10 w-10 rounded-full object-cover" data-alt="NexGen company logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOuqoBl5s2bu27n0_6T6Gd6u-owyphxLxpuL0y8IX1ORHvUMfpX9Cr2AQXKehbu2Wn9JbSayv1oHp6psjL0CG-4zTYF88Lygi1lHdyf15msykDTh356X07wdCWBMkdJRauLh-G9UbPHAPmu9xs7tlzMr1WhHy3T6HwlgjY3iG8sCpa8qUt3eRATE2XahtrQF1oLU9PnxTVS6ZonYstJ3-ylflr-BkdabzjLxvqWEARJLQILxRHNDwhiCYqWtIgkHk82rHElXLUznc"/>
+<span class="font-medium text-gray-900 dark:text-white">NexGen</span>
+</div>
+</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">nexgen.com</td>
+<td class="px-4 py-2 text-sm">
+<span class="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/50 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-300">New</span>
+</td>
+<td class="px-4 py-2 text-sm">
+<span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:text-gray-300">Consulting</span>
+</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">5</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">1</td>
+</tr>
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+<td class="p-4">
+<input class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-primary focus:ring-primary/50 dark:focus:ring-offset-gray-800" type="checkbox"/>
+</td>
+<td class="px-4 py-2">
+<div class="flex items-center gap-3">
+<img class="h-10 w-10 rounded-full object-cover" data-alt="Ecoworks company logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcFgWhEnOI5lnXya3ZXmErblgmy16JLpsbcbz3DZ6_cle1-r2ETIQLP_ObemMJH5HkRHUHzQNLVylrUOwUpJh38pSD-CDwAev-BlWM6wwLSCS7ey-NXgqv7u1TDuWRC1mhFj5Vo4rQ6X4kj13OH9rxS3BcFWPHMV06j70PCXZnXj4-nTJNWNF_E-PtO0gDKF94QihzuN6sY90xetFGuaWhTHbN4PihwrNob67a4BIj2HOCQc_Y97ooIRpwr1kIKxYNIfdLpa1Fj2o"/>
+<span class="font-medium text-gray-900 dark:text-white">Ecoworks</span>
+</div>
+</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">ecoworks.green</td>
+<td class="px-4 py-2 text-sm">
+<span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/50 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-300">Key Account</span>
+</td>
+<td class="px-4 py-2 text-sm">
+<span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:text-gray-300">Sustainability</span>
+</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">18</td>
+<td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">7</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Pagination -->
+<div class="flex flex-wrap items-center justify-between gap-4 p-4 text-sm">
+<div class="text-gray-600 dark:text-gray-400">
+              Showing <span class="font-semibold text-gray-800 dark:text-gray-200">1</span>-<span class="font-semibold text-gray-800 dark:text-gray-200">10</span> of <span class="font-semibold text-gray-800 dark:text-gray-200">150</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-2">
+<span class="text-gray-600 dark:text-gray-400">Items per page:</span>
+<select class="h-10 rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-2 pl-3 pr-8 text-sm focus:border-primary focus:ring-primary dark:text-gray-300">
+<option>10</option>
+<option>25</option>
+<option>50</option>
+</select>
+</div>
+<div class="flex items-center">
+<a class="flex size-10 items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" href="#">
+<span class="material-symbols-outlined text-base">chevron_left</span>
+</a>
+<a class="text-sm font-bold leading-normal flex size-10 items-center justify-center text-white rounded-lg bg-primary" href="#">1</a>
+<a class="text-sm font-medium leading-normal flex size-10 items-center justify-center text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" href="#">2</a>
+<a class="text-sm font-medium leading-normal flex size-10 items-center justify-center text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" href="#">3</a>
+<span class="text-sm font-medium leading-normal flex size-10 items-center justify-center text-gray-600 dark:text-gray-300 rounded-lg" href="#">...</span>
+<a class="text-sm font-medium leading-normal flex size-10 items-center justify-center text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" href="#">15</a>
+<a class="flex size-10 items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" href="#">
+<span class="material-symbols-outlined text-base">chevron_right</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Divider for different states -->
+<div class="my-10 border-t-2 border-dashed border-gray-300 dark:border-gray-700"></div>
+<!-- Loading Skeleton -->
+<div class="p-4">
+<h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">Loading State</h3>
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 animate-pulse">
+<div class="grid grid-cols-7 gap-4">
+<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded col-span-1"></div>
+<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded col-span-1"></div>
+<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded col-span-1"></div>
+<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded col-span-1"></div>
+<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded col-span-1"></div>
+<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded col-span-1"></div>
+<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded col-span-1"></div>
+</div>
+<div class="space-y-4 mt-6">
+<div class="grid grid-cols-7 gap-4 items-center" v-for="i in 5">
+<div class="flex items-center gap-3 col-span-2">
+<div class="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+</div>
+<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded col-span-1"></div>
+<div class="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-24 col-span-1"></div>
+<div class="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-20 col-span-1"></div>
+<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-8 col-span-1"></div>
+<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-8 col-span-1"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Empty State -->
+<div class="p-4">
+<h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">Empty State</h3>
+<div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-12 text-center">
+<div class="flex flex-col items-center">
+<div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/20 mb-4">
+<span class="material-symbols-outlined text-4xl text-primary">domain</span>
+</div>
+<h4 class="text-xl font-bold text-gray-900 dark:text-white">No companies found</h4>
+<p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Get started by adding your first company record.</p>
+<button class="mt-6 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] gap-2">
+<span class="material-symbols-outlined text-base">add</span>
+<span class="truncate">Add Your First Company</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Error State -->
+<div class="p-4">
+<h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">Error State</h3>
+<div class="rounded-xl border border-dashed border-red-400/50 dark:border-red-500/50 bg-red-50 dark:bg-red-900/10 p-12 text-center">
+<div class="flex flex-col items-center">
+<div class="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+<span class="material-symbols-outlined text-4xl text-red-600 dark:text-red-400">error</span>
+</div>
+<h4 class="text-xl font-bold text-red-800 dark:text-red-200">Failed to load companies</h4>
+<p class="mt-2 text-sm text-red-600 dark:text-red-300">Something went wrong. Please check your connection and try again.</p>
+<button class="mt-6 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-bold leading-normal tracking-[0.015em] gap-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-base">refresh</span>
+<span class="truncate">Retry</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

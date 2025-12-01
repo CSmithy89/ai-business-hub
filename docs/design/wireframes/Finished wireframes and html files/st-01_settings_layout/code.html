@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ST-01 Settings Layout</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#FF6B6B",
+              "secondary": "#20B2AA",
+              "background-light": "#FFFBF5",
+              "background-dark": "#0a0a0b",
+              "surface-light": "#FFFFFF",
+              "surface-dark": "#1a1a1b",
+              "border-light": "#E5E5E5",
+              "border-dark": "#2a2a2b",
+              "text-primary-light": "#1a1a1a",
+              "text-primary-dark": "#FAFAFA",
+              "text-secondary": "#6B7280",
+              "success": "#10B981",
+              "warning": "#F59E0B",
+              "error": "#EF4444",
+              "info": "#3B82F6",
+            },
+            fontFamily: {
+              display: ["Inter", "system-ui", "sans-serif"],
+              mono: ["JetBrains Mono", "monospace"]
+            },
+            borderRadius: {
+              "DEFAULT": "8px",
+              "sm": "4px",
+              "md": "8px",
+              "lg": "12px",
+              "xl": "16px",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark">
+<div class="relative flex min-h-screen w-full flex-col">
+<div class="flex flex-1">
+<!-- Sidebar Navigation -->
+<aside class="sticky top-0 h-screen w-60 shrink-0 border-r border-border-light bg-surface-light dark:border-border-dark dark:bg-surface-dark hidden md:block">
+<div class="flex h-full flex-col py-6">
+<div class="px-5 pb-4">
+<h1 class="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">Settings</h1>
+</div>
+<nav class="flex-1 space-y-2">
+<!-- Account Group -->
+<div>
+<h2 class="px-5 pt-4 pb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Account</h2>
+<div class="space-y-1">
+<a class="group flex items-center gap-3 rounded-none px-5 py-2 text-sm font-medium bg-[#FFF5F5] dark:bg-primary/10 text-primary transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">person</span>
+<span>Profile</span>
+</a>
+<a class="group flex items-center gap-3 rounded-none px-5 py-2 text-sm font-medium text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">shield</span>
+<span>Security</span>
+</a>
+<a class="group flex items-center gap-3 rounded-none px-5 py-2 text-sm font-medium text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">notifications</span>
+<span>Notifications</span>
+</a>
+</div>
+</div>
+<!-- Workspace Group -->
+<div>
+<h2 class="px-5 pt-4 pb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Workspace</h2>
+<div class="space-y-1">
+<a class="group flex items-center gap-3 rounded-none px-5 py-2 text-sm font-medium text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">settings</span>
+<span>General</span>
+</a>
+<a class="group flex items-center gap-3 rounded-none px-5 py-2 text-sm font-medium text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">group</span>
+<span>Members</span>
+</a>
+<a class="group flex items-center gap-3 rounded-none px-5 py-2 text-sm font-medium text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">credit_card</span>
+<span>Billing</span>
+</a>
+</div>
+</div>
+<!-- AI & Automation Group -->
+<div>
+<h2 class="px-5 pt-4 pb-2 text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">AI &amp; Automation</h2>
+<div class="space-y-1">
+<a class="group flex items-center gap-3 rounded-none px-5 py-2 text-sm font-medium text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">hub</span>
+<span>AI Providers</span>
+</a>
+<a class="group flex items-center gap-3 rounded-none px-5 py-2 text-sm font-medium text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">key</span>
+<span>API Keys</span>
+</a>
+<a class="group flex items-center gap-3 rounded-none px-5 py-2 text-sm font-medium text-text-secondary hover:bg-gray-50 dark:hover:bg-white/5 hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-xl">model_training</span>
+<span>Automation</span>
+</a>
+</div>
+</div>
+</nav>
+</div>
+</aside>
+<!-- Content Area -->
+<main class="flex-1 p-4 md:p-8 lg:p-10 min-w-0">
+<div class="mx-auto max-w-[800px]">
+<!-- Breadcrumbs (Mobile) -->
+<div class="flex flex-wrap gap-2 text-sm text-text-secondary md:hidden mb-4">
+<a class="hover:text-primary" href="#">Settings</a>
+<span>/</span>
+<a class="hover:text-primary" href="#">Account</a>
+<span>/</span>
+<span class="text-text-primary-light dark:text-text-primary-dark font-medium">Profile</span>
+</div>
+<!-- Page Header -->
+<header class="mb-6 border-b border-border-light dark:border-border-dark pb-6">
+<div class="flex flex-wrap items-center justify-between gap-4">
+<div>
+<h1 class="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Profile</h1>
+<p class="mt-1 text-sm text-text-secondary">Manage your personal information, profile picture, and display name.</p>
+</div>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-md h-9 px-4 bg-primary text-white text-sm font-medium leading-normal shadow-sm hover:opacity-90 transition-opacity">
+<span>Save Changes</span>
+</button>
+</div>
+</header>
+<!-- Settings Cards -->
+<div class="space-y-5">
+<!-- Personal Information Card -->
+<div class="rounded-lg border border-border-light bg-surface-light shadow-sm dark:border-border-dark dark:bg-surface-dark">
+<div class="p-5 sm:p-6">
+<h3 class="text-base font-semibold text-text-primary-light dark:text-text-primary-dark">Personal Information</h3>
+<p class="mt-1 text-sm text-text-secondary">Update your photo and personal details here.</p>
+</div>
+<div class="border-t border-border-light dark:border-border-dark p-5 sm:p-6 space-y-6">
+<!-- Setting Row: Name -->
+<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+<div class="w-full sm:w-2/5">
+<label class="text-sm font-medium text-text-primary-light dark:text-text-primary-dark" for="fullName">Full Name</label>
+<p class="mt-1 text-xs text-text-secondary">Your legal name.</p>
+</div>
+<div class="w-full sm:w-3/5">
+<input class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm shadow-sm focus:border-primary focus:ring-primary dark:text-white" id="fullName" type="text" value="Aria Montgomery"/>
+</div>
+</div>
+<!-- Setting Row: Email -->
+<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+<div class="w-full sm:w-2/5">
+<label class="text-sm font-medium text-text-primary-light dark:text-text-primary-dark" for="email">Email Address</label>
+<p class="mt-1 text-xs text-text-secondary">Your login email cannot be changed.</p>
+</div>
+<div class="w-full sm:w-3/5">
+<input class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-sm shadow-sm text-gray-500 dark:text-gray-400" disabled="" id="email" type="email" value="aria.m@hyvve.ai"/>
+</div>
+</div>
+<!-- Setting Row: Profile Picture -->
+<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+<div class="w-full sm:w-2/5">
+<label class="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">Your Photo</label>
+<p class="mt-1 text-xs text-text-secondary">This will be displayed on your profile.</p>
+</div>
+<div class="flex w-full items-center gap-4 sm:w-3/5">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-12" data-alt="User avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC4wLbyiuswat-uGRp8GzFcix7wGg8ba64sdHBdHONsu_d5dqX73l-MQBGMy55XQll4OX-Trmzyr39diDYofMsJtLXXgPbBGM-Iyd6O9aTI3ofzeEWK_L8pwkBQOY4sHzFyENtaBbH3-X90_0wIDkyDzRPdVhXokrA1cwWjtO8A63uo9kbULZyRK3UOyutsojY-YbPsRZPmIqjLryIjZEOc0Tw8gQF-v6bZb0QXrPaGZtBIH4gbZ66tyM3tFOVjtr0mbcdob7P1qwlX");'></div>
+<div class="flex gap-2">
+<button class="flex cursor-pointer items-center justify-center overflow-hidden rounded-md h-8 px-3 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark text-xs font-medium hover:bg-gray-50 dark:hover:bg-white/5">Change</button>
+<button class="flex cursor-pointer items-center justify-center overflow-hidden rounded-md h-8 px-3 text-text-secondary text-xs font-medium hover:bg-gray-50 dark:hover:bg-white/5">Remove</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Preferences Card -->
+<div class="rounded-lg border border-border-light bg-surface-light shadow-sm dark:border-border-dark dark:bg-surface-dark">
+<div class="p-5 sm:p-6">
+<h3 class="text-base font-semibold text-text-primary-light dark:text-text-primary-dark">Preferences</h3>
+<p class="mt-1 text-sm text-text-secondary">Customize your experience on the platform.</p>
+</div>
+<div class="border-t border-border-light dark:border-border-dark">
+<!-- Setting Row: Theme -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 sm:p-6">
+<div class="w-full sm:w-3/5">
+<label class="text-sm font-medium text-text-primary-light dark:text-text-primary-dark" for="theme">Theme</label>
+<p class="mt-1 text-xs text-text-secondary">Choose between light and dark mode.</p>
+</div>
+<div class="w-full sm:w-2/5 flex justify-start sm:justify-end">
+<label class="relative inline-flex cursor-pointer items-center" for="theme-toggle">
+<input class="peer sr-only" id="theme-toggle" type="checkbox" value=""/>
+<div class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:top-0.5 after:start-0.5 after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white dark:border-gray-600 dark:bg-gray-700"></div>
+</label>
+</div>
+</div>
+<!-- Setting Row: Language -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 sm:p-6 border-t border-border-light dark:border-border-dark">
+<div class="w-full sm:w-3/5">
+<label class="text-sm font-medium text-text-primary-light dark:text-text-primary-dark" for="language">Language</label>
+<p class="mt-1 text-xs text-text-secondary">Select your preferred language.</p>
+</div>
+<div class="w-full sm:w-2/5 flex justify-start sm:justify-end">
+<select class="block w-full max-w-48 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm shadow-sm focus:border-primary focus:ring-primary dark:text-white" id="language">
+<option>English (US)</option>
+<option>Spanish</option>
+<option>French</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Unsaved Changes Bar -->
+<div class="sticky bottom-0 left-0 right-0 z-10 mt-auto w-full border-t border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/20">
+<div class="mx-auto flex max-w-screen-xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+<p class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+<span class="mr-2">⚠️</span>You have unsaved changes.
+                </p>
+<div class="flex gap-2">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-md h-8 px-3 bg-transparent text-yellow-900 dark:text-yellow-200 text-sm font-medium leading-normal hover:bg-yellow-100 dark:hover:bg-yellow-800/30">
+<span>Discard</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-md h-8 px-3 bg-yellow-400 text-yellow-900 text-sm font-medium leading-normal hover:bg-yellow-500">
+<span>Save</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

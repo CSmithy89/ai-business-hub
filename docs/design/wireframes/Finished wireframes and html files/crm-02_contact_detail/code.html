@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-02 Contact Detail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<div class="flex flex-1 justify-center p-4 sm:p-6 md:p-8">
+<div class="layout-content-container flex flex-col w-full max-w-7xl flex-1 gap-8">
+<!-- Header Bar -->
+<header class="flex w-full flex-col gap-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 p-6 @container">
+<div class="flex w-full flex-col gap-4 @[640px]:flex-row @[640px]:justify-between @[640px]:items-center">
+<div class="flex items-center gap-4">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-24 w-24 shrink-0" data-alt="Profile picture of Jordan Walker" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA2a1JAS8pTK3ko-HfHHdhWI6jIPIz04XZWFqRTZw2qEHROW2wPegozTsV5E2q1QFhMlhtV_EPxsZoD5lKD0buJGGEpmLBvFlVsyYfc9grlXLSvjC7lzshYFt83lxGn1mQzytJNHXb_o56Wqd1MNRb4d8X6kcGbDIYztgMXrlSo_ICxqQHGAjZ5JRhUAwBKLQU9JIHDnuOSu5kgfItZqAk_9TnSuRwyz5-4p7G-DoOEPyvqwOGHz9sh7MektkgLPTABlE-Y6FSP9iI");'></div>
+<div class="flex flex-col justify-center gap-1">
+<div class="flex items-center gap-3">
+<p class="text-gray-900 dark:text-white text-2xl font-bold leading-tight tracking-[-0.015em]">Jordan Walker</p>
+<span class="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/50 px-2.5 py-0.5 text-xs font-semibold text-green-800 dark:text-green-300">Customer</span>
+</div>
+<p class="text-gray-600 dark:text-gray-400 text-base font-normal leading-normal">VP of Engineering at Acme Inc.</p>
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">jordan.walker@acme.com • (555) 123-4567</p>
+</div>
+</div>
+<div class="flex w-full shrink-0 gap-3 @[640px]:w-auto">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-bold leading-normal tracking-[0.015em] flex-1 @[640px]:flex-auto hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+<span class="truncate">Edit</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] flex-1 @[640px]:flex-auto hover:bg-primary/90 transition-colors">
+<span class="truncate">Log Activity</span>
+</button>
+<button class="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content and Sidebar -->
+<div class="flex flex-col lg:flex-row gap-8">
+<!-- Left Column: Main Content -->
+<main class="w-full lg:w-2/3 flex flex-col gap-6">
+<div class="bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+<!-- Tabs -->
+<div class="border-b border-gray-200 dark:border-gray-700">
+<div class="flex px-4 gap-6 sm:gap-8 overflow-x-auto">
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-primary text-primary pb-[13px] pt-4 whitespace-nowrap" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Overview</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 pb-[13px] pt-4 whitespace-nowrap" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Activity</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 pb-[13px] pt-4 whitespace-nowrap" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Deals</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 pb-[13px] pt-4 whitespace-nowrap" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Emails</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 pb-[13px] pt-4 whitespace-nowrap" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Notes</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 pb-[13px] pt-4 whitespace-nowrap" href="#">
+<p class="text-sm font-bold leading-normal tracking-[0.015em]">Tasks</p>
+</a>
+</div>
+</div>
+<!-- Overview Tab Content -->
+<div class="flex flex-col">
+<div class="p-6">
+<h2 class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-4">Contact Details</h2>
+<div class="grid grid-cols-1 sm:grid-cols-2">
+<div class="flex flex-col gap-1 border-t border-solid border-gray-200 dark:border-gray-700 py-4 pr-2">
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">Email</p>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">jordan.walker@acme.com</p>
+</div>
+<div class="flex flex-col gap-1 border-t border-solid border-gray-200 dark:border-gray-700 py-4 sm:pl-2">
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">Lead Source</p>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">Website Form</p>
+</div>
+<div class="flex flex-col gap-1 border-t border-solid border-gray-200 dark:border-gray-700 py-4 pr-2">
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">Phone Number</p>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">(555) 123-4567</p>
+</div>
+<div class="flex flex-col gap-1 border-t border-solid border-gray-200 dark:border-gray-700 py-4 sm:pl-2">
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">Last Contacted</p>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">Oct 25, 2023</p>
+</div>
+</div>
+</div>
+<div class="border-t border-gray-200 dark:border-gray-700 p-6">
+<h2 class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-4">Address Information</h2>
+<div class="grid grid-cols-1 sm:grid-cols-2">
+<div class="flex flex-col gap-1 border-t border-solid border-gray-200 dark:border-gray-700 py-4 pr-2">
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">Street</p>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">123 Market St.</p>
+</div>
+<div class="flex flex-col gap-1 border-t border-solid border-gray-200 dark:border-gray-700 py-4 sm:pl-2">
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">City</p>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">San Francisco</p>
+</div>
+<div class="flex flex-col gap-1 border-t border-solid border-gray-200 dark:border-gray-700 py-4 pr-2">
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">State / Zip</p>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">CA, 94105</p>
+</div>
+<div class="flex flex-col gap-1 border-t border-solid border-gray-200 dark:border-gray-700 py-4 sm:pl-2">
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">Country</p>
+<p class="text-gray-800 dark:text-gray-200 text-sm font-medium leading-normal">United States</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Activity Tab Content (example) -->
+<div class="hidden flex-col">
+<!-- This would be shown when Activity tab is active -->
+</div>
+</div>
+</main>
+<!-- Right Column: Sidebar -->
+<aside class="w-full lg:w-1/3 flex flex-col gap-6">
+<div class="bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+<h3 class="text-gray-900 dark:text-white font-bold mb-4">Owner</h3>
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full" data-alt="Avatar of Sarah Chen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaRDBuXc-6MEDo0NEhBLCPqRgtAUZmNNVjTh9JPgYrw4Da_cPFAHi2jwW39W_hagIcRNA9Ug3TzJ0jtt764rti1gKsVmXb1DpPePngjB-KpTN3jDpVIeKrQjrfVvvRpmsXazxFnr-j-iX3gaA9ihi0LAWyREANOUGlioRTozfntDGmnOdjQ0iNplOIG8ytXZUV7QBI-ddK55IX_fm19tkzq4syeeikZv44AWwp7Jl5bbV30IERxdpmB5pcgwjhDZMAQlvMdaSEP7M"/>
+<div>
+<p class="font-semibold text-gray-800 dark:text-gray-200">Sarah Chen</p>
+<p class="text-sm text-gray-500 dark:text-gray-400">Account Executive</p>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+<h3 class="text-gray-900 dark:text-white font-bold mb-4">Company Info</h3>
+<div class="space-y-3 text-sm">
+<div class="flex justify-between">
+<span class="text-gray-500 dark:text-gray-400">Name</span>
+<a class="font-medium text-primary hover:underline" href="#">Acme Inc.</a>
+</div>
+<div class="flex justify-between">
+<span class="text-gray-500 dark:text-gray-400">Industry</span>
+<span class="text-gray-800 dark:text-gray-200">Software</span>
+</div>
+<div class="flex justify-between">
+<span class="text-gray-500 dark:text-gray-400">Employees</span>
+<span class="text-gray-800 dark:text-gray-200">501-1000</span>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+<h3 class="text-gray-900 dark:text-white font-bold mb-4">Related Deals (2)</h3>
+<ul class="space-y-4">
+<li>
+<a class="font-medium text-primary hover:underline" href="#">Q4 Enterprise Platform Upgrade</a>
+<div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
+<span>$75,000</span>
+<span class="inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-2 py-0.5 text-xs font-semibold text-yellow-800 dark:text-yellow-300">Negotiation</span>
+</div>
+</li>
+<li>
+<a class="font-medium text-primary hover:underline" href="#">2024 Support Contract</a>
+<div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
+<span>$25,000</span>
+<span class="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/50 px-2 py-0.5 text-xs font-semibold text-green-800 dark:text-green-300">Won</span>
+</div>
+</li>
+</ul>
+</div>
+<div class="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-800 dark:to-slate-900 rounded-xl border border-blue-200 dark:border-blue-900/50 p-6">
+<div class="flex items-center gap-3 mb-3">
+<span class="material-symbols-outlined text-teal-500 dark:text-teal-400 text-2xl" style="font-variation-settings: 'FILL' 1, 'wght' 500;">auto_awesome</span>
+<h3 class="text-gray-900 dark:text-white font-bold">Maya AI Insights</h3>
+</div>
+<div class="space-y-3 text-sm">
+<p class="text-gray-600 dark:text-gray-300">Best time to contact: <strong class="text-gray-800 dark:text-gray-100">Tuesdays, 2-4 PM PT</strong>.</p>
+<p class="text-gray-600 dark:text-gray-300">Mention their recent <strong class="text-gray-800 dark:text-gray-100">Series C funding round</strong> to build rapport.</p>
+<button class="w-full text-center mt-2 text-sm font-bold text-primary hover:underline">Generate Talking Points</button>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

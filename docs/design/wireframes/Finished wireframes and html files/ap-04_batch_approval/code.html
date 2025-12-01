@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AP-04 Batch Approval</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FF6B6B",
+                        "background-light": "#FFFBF5",
+                        "background-dark": "#0a0a0b",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1a1a1b",
+                        "border-light": "#E5E5E5",
+                        "border-dark": "#2a2a2b",
+                        "text-light": "#1a1a1a",
+                        "text-dark": "#FAFAFA",
+                        "text-secondary": "#6B7280",
+                        "success": "#10B981",
+                        "warning": "#F59E0B",
+                        "error": "#EF4444",
+                        "info": "#3B82F6",
+                        "agent-maya": "#20B2AA",
+                        "agent-atlas": "#FF9F43",
+                        "agent-sage": "#2ECC71",
+                        "agent-nova": "#FF6B9D",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "system-ui", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "sm": "4px",
+                        "md": "8px",
+                        "lg": "12px",
+                        "xl": "16px",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light text-text-light">
+<div class="relative flex min-h-screen">
+<aside class="flex flex-col w-64 bg-surface-light border-r border-border-light p-4">
+<div class="flex items-center gap-3 mb-8">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB3D9psW7RGuHlc2XYwxYTtFHrZsOMXbk29_1-rumN4PreVTUI3I85G8M8YG47Sxu0isdFFrv8sMMh0Zf-WTxSxCVwO4TzBIwAzsohcQnoROQGpWQFuAvT_AP-y5VSNlgQJiiZaB-Jcq7FZdaOD2Va8es-ELZD-robx3HLE2hbzZCTQcuUzAlshYX75SW50IB5wYH25Ra8znl6LSqneYqUk_O91LHH2gOKihhxUOsZCEXN5fASUfoojnEqiQYLXedeR4J6EVS1gWH2A");'></div>
+<div class="flex flex-col">
+<h1 class="text-base font-semibold">HYVVE</h1>
+<p class="text-sm text-text-secondary">AI Business Operations</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-light rounded-md hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+<a class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-white bg-primary rounded-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+                    Approvals
+                </a>
+<a class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-light rounded-md hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined">folder</span>
+                    Projects
+                </a>
+<a class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-light rounded-md hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+                    Analytics
+                </a>
+<a class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-light rounded-md hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined">settings</span>
+                    Settings
+                </a>
+</nav>
+</aside>
+<main class="flex-1 p-8">
+<div class="max-w-7xl mx-auto">
+<div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+<div class="flex flex-col gap-2">
+<h1 class="text-3xl font-bold tracking-tight">Approval Queue</h1>
+<p class="text-text-secondary">Select items to approve, reject, or request changes in bulk.</p>
+</div>
+<button class="flex items-center justify-center rounded-md h-10 px-4 bg-primary text-white text-sm font-semibold hover:bg-primary/90">
+<span class="material-symbols-outlined mr-2 text-base">select_all</span>
+<span class="truncate">Bulk Actions</span>
+</button>
+</div>
+<div class="sticky top-6 z-10 bg-surface-light text-text-light border border-border-light rounded-lg h-14 flex items-center justify-between px-6 mb-6 shadow-md">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-3">
+<input checked="" class="h-5 w-5 rounded-sm border-gray-300 text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm font-medium">5 selected</span>
+</div>
+<div class="h-6 w-px bg-border-light"></div>
+<div class="flex items-center gap-4">
+<button class="text-sm text-text-secondary hover:text-text-light">Select All High (8)</button>
+<button class="text-sm text-text-secondary hover:text-text-light">Select All (24)</button>
+<button class="text-sm text-text-secondary hover:text-text-light">Clear Selection</button>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="text-sm text-text-secondary hover:text-text-light px-3">Cancel</button>
+<button class="flex items-center gap-1.5 rounded-md h-8 px-3 text-sm font-semibold border border-error/50 text-error hover:bg-error/10">
+<span class="material-symbols-outlined text-base">delete</span>
+                            Reject All
+                        </button>
+<button class="flex items-center gap-1.5 rounded-md h-8 px-3 text-sm font-semibold border border-border-light text-text-secondary hover:bg-gray-100">
+<span class="material-symbols-outlined text-base">edit</span>
+                            Request Changes
+                        </button>
+<button class="flex items-center gap-1.5 rounded-md h-8 px-3 text-sm font-semibold bg-success text-white hover:bg-success/90">
+<span class="material-symbols-outlined text-base">check</span>
+                            Approve All
+                        </button>
+</div>
+</div>
+<div class="flex justify-between gap-2 mb-4">
+<div class="flex gap-2">
+<button class="p-2 rounded-md hover:bg-gray-200/60 text-text-secondary">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+<button class="p-2 rounded-md hover:bg-gray-200/60 text-text-secondary">
+<span class="material-symbols-outlined">sort</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<div class="inline-block min-w-full align-middle">
+<div class="overflow-hidden border border-border-light rounded-lg">
+<table class="min-w-full divide-y divide-border-light">
+<thead class="bg-gray-50">
+<tr>
+<th class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-text-light sm:pl-6" scope="col">
+<input class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/>
+</th>
+<th class="px-3 py-3.5 text-left text-sm font-semibold text-text-light" scope="col">Item</th>
+<th class="px-3 py-3.5 text-left text-sm font-semibold text-text-light" scope="col">Agent</th>
+<th class="px-3 py-3.5 text-left text-sm font-semibold text-text-light" scope="col">Confidence</th>
+<th class="px-3 py-3.5 text-left text-sm font-semibold text-text-light" scope="col">Submitted</th>
+<th class="relative py-3.5 pl-3 pr-4 sm:pr-6" scope="col">
+<span class="sr-only">Actions</span>
+</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-light bg-surface-light">
+<tr class="bg-[#FFF5F5] border-l-2 border-primary">
+<td class="py-4 pl-4 pr-3 text-sm font-medium sm:pl-6">
+<input checked="" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm font-medium text-text-light">Summer Sale Email</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-text-secondary"><span class="font-medium text-[#FF6B9D]">Nova</span></td>
+<td class="whitespace-nowrap px-3 py-4 text-sm">
+<span class="inline-flex items-center rounded-md bg-success/10 px-2 py-1 text-xs font-medium text-success ring-1 ring-inset ring-success/20">High - 95%</span>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-text-secondary">2 hours ago</td>
+<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+<a class="text-primary hover:text-primary/80" href="#">Review</a>
+</td>
+</tr>
+<tr class="bg-[#FFF5F5] border-l-2 border-primary">
+<td class="py-4 pl-4 pr-3 text-sm font-medium sm:pl-6">
+<input checked="" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm font-medium text-text-light">Follow-up Email</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-text-secondary"><span class="font-medium text-[#20B2AA]">Maya</span></td>
+<td class="whitespace-nowrap px-3 py-4 text-sm">
+<span class="inline-flex items-center rounded-md bg-success/10 px-2 py-1 text-xs font-medium text-success ring-1 ring-inset ring-success/20">High - 88%</span>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-text-secondary">5 hours ago</td>
+<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+<a class="text-primary hover:text-primary/80" href="#">Review</a>
+</td>
+</tr>
+<tr class="bg-[#FFF5F5] border-l-2 border-primary">
+<td class="py-4 pl-4 pr-3 text-sm font-medium sm:pl-6">
+<input checked="" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm font-medium text-text-light">Blog Post Draft</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-text-secondary"><span class="font-medium text-[#FF6B9D]">Nova</span></td>
+<td class="whitespace-nowrap px-3 py-4 text-sm">
+<span class="inline-flex items-center rounded-md bg-success/10 px-2 py-1 text-xs font-medium text-success ring-1 ring-inset ring-success/20">High - 92%</span>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-text-secondary">Yesterday</td>
+<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+<a class="text-primary hover:text-primary/80" href="#">Review</a>
+</td>
+</tr>
+<tr class="bg-[#FFF5F5] border-l-2 border-primary">
+<td class="py-4 pl-4 pr-3 text-sm font-medium sm:pl-6">
+<input checked="" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm font-medium text-text-light">Task: Update CRM</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-text-secondary"><span class="font-medium text-[#FF9F43]">Atlas</span></td>
+<td class="whitespace-nowrap px-3 py-4 text-sm">
+<span class="inline-flex items-center rounded-md bg-warning/10 px-2 py-1 text-xs font-medium text-warning ring-1 ring-inset ring-warning/20">Medium - 87%</span>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-text-secondary">Yesterday</td>
+<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+<a class="text-primary hover:text-primary/80" href="#">Review</a>
+</td>
+</tr>
+<tr class="bg-[#FFF5F5] border-l-2 border-primary">
+<td class="py-4 pl-4 pr-3 text-sm font-medium sm:pl-6">
+<input checked="" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm font-medium text-text-light">Report: Q3 Financials</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-text-secondary"><span class="font-medium text-[#2ECC71]">Sage</span></td>
+<td class="whitespace-nowrap px-3 py-4 text-sm">
+<span class="inline-flex items-center rounded-md bg-error/10 px-2 py-1 text-xs font-medium text-error ring-1 ring-inset ring-error/20">Low - 55%</span>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-text-secondary">2 days ago</td>
+<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+<a class="text-primary hover:text-primary/80" href="#">Review</a>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<nav class="flex items-center justify-between border-t border-border-light px-4 sm:px-0 mt-6 pt-4">
+<div class="flex flex-1 justify-start">
+<a class="inline-flex items-center pl-1 pt-4 text-sm font-medium text-text-secondary hover:text-text-light" href="#">
+<span class="material-symbols-outlined mr-2">arrow_back</span>
+                            Previous
+                        </a>
+</div>
+<div class="hidden md:flex">
+<a class="inline-flex items-center border-t-2 border-primary px-4 pt-4 text-sm font-medium text-primary" href="#">1</a>
+<a class="inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-text-secondary hover:border-gray-300 hover:text-text-light" href="#">2</a>
+<a class="inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-text-secondary hover:border-gray-300 hover:text-text-light" href="#">3</a>
+<span class="inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-text-secondary">...</span>
+<a class="inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-text-secondary hover:border-gray-300 hover:text-text-light" href="#">8</a>
+</div>
+<div class="flex flex-1 justify-end">
+<a class="inline-flex items-center pr-1 pt-4 text-sm font-medium text-text-secondary hover:text-text-light" href="#">
+                            Next
+                            <span class="material-symbols-outlined ml-2">arrow_forward</span>
+</a>
+</div>
+</nav>
+</div>
+</main>
+</div>
+<div class="fixed inset-0 z-20 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+<div class="w-full max-w-md bg-surface-light rounded-xl shadow-xl p-6 hidden">
+<h3 class="text-lg font-semibold flex items-center mb-4"><span class="material-symbols-outlined text-warning mr-2">warning</span>Mixed confidence levels</h3>
+<p class="text-sm text-text-secondary mb-4">You have selected items with different confidence ratings. Low confidence items require individual review and cannot be batch approved.</p>
+<div class="text-sm space-y-2 mb-6 p-4 bg-gray-100 rounded-md">
+<p class="flex justify-between"><span>• 3 High confidence items</span> <span class="text-success font-medium">Ready</span></p>
+<p class="flex justify-between"><span>• 2 Medium confidence items</span> <span class="text-warning font-medium">Ready</span></p>
+<p class="flex justify-between"><span>• 1 Low confidence item</span> <span class="text-error font-medium">Needs Review</span></p>
+</div>
+<div class="flex justify-end gap-3">
+<button class="px-4 py-2 text-sm font-semibold rounded-md hover:bg-gray-100">Review Each</button>
+<button class="px-4 py-2 text-sm font-semibold text-primary rounded-md hover:bg-primary/10">Remove Low Item</button>
+</div>
+</div>
+<div class="w-full max-w-md bg-surface-light rounded-xl shadow-xl p-6 hidden">
+<h3 class="text-lg font-semibold text-center mb-2">Approve 4 items?</h3>
+<p class="text-sm text-text-secondary text-center mb-6">These items will be approved and their corresponding actions executed.</p>
+<div class="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
+<div class="text-sm flex items-center gap-3">
+<span class="material-symbols-outlined text-agent-nova text-base">email</span>
+<span class="flex-1">Summer Sale Email</span>
+<span class="font-mono text-xs text-success">95%</span>
+</div>
+<div class="text-sm flex items-center gap-3">
+<span class="material-symbols-outlined text-agent-maya text-base">email</span>
+<span class="flex-1">Follow-up Email</span>
+<span class="font-mono text-xs text-success">88%</span>
+</div>
+<div class="text-sm flex items-center gap-3">
+<span class="material-symbols-outlined text-agent-nova text-base">article</span>
+<span class="flex-1">Blog Post Draft</span>
+<span class="font-mono text-xs text-success">92%</span>
+</div>
+<div class="text-sm flex items-center gap-3">
+<span class="material-symbols-outlined text-agent-atlas text-base">task</span>
+<span class="flex-1">Task: Update CRM</span>
+<span class="font-mono text-xs text-warning">87%</span>
+</div>
+</div>
+<div class="flex justify-end gap-3">
+<button class="px-4 py-2 text-sm font-semibold rounded-md hover:bg-gray-100">Cancel</button>
+<button class="px-4 py-2 text-sm font-semibold rounded-md text-white bg-success hover:bg-success/90 flex items-center gap-2">
+<span class="material-symbols-outlined text-base">check</span>
+                    Approve 4 Items
+                </button>
+</div>
+</div>
+<div class="w-full max-w-md bg-surface-light rounded-xl shadow-xl p-6">
+<h3 class="text-lg font-semibold text-center mb-2">Processing 4 items...</h3>
+<p class="text-sm text-text-secondary text-center mb-4">3 of 4 completed</p>
+<div class="w-full bg-gray-200 rounded-full h-2 mb-6">
+<div class="bg-primary h-2 rounded-full" style="width: 75%"></div>
+</div>
+<div class="space-y-3 max-h-60 overflow-y-auto pr-2">
+<div class="flex items-center gap-3 text-sm text-success">
+<span class="material-symbols-outlined">check_circle</span>
+<span class="flex-1">Summer Sale Email - Approved</span>
+</div>
+<div class="flex items-center gap-3 text-sm text-success">
+<span class="material-symbols-outlined">check_circle</span>
+<span class="flex-1">Follow-up Email - Approved</span>
+</div>
+<div class="flex items-center gap-3 text-sm text-success">
+<span class="material-symbols-outlined">check_circle</span>
+<span class="flex-1">Blog Post Draft - Approved</span>
+</div>
+<div class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined animate-spin">progress_activity</span>
+<span class="flex-1">Task: Update CRM - Processing...</span>
+</div>
+</div>
+</div>
+<div class="w-full max-w-md bg-surface-light rounded-xl shadow-xl p-6 text-center hidden">
+<div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/10 mb-4">
+<span class="material-symbols-outlined text-success text-3xl">check</span>
+</div>
+<h3 class="text-lg font-semibold mb-2">Batch Complete</h3>
+<p class="text-sm text-text-secondary mb-6">4 items were approved successfully.</p>
+<button class="px-6 py-2 w-full text-sm font-semibold rounded-md text-white bg-primary hover:bg-primary/90">
+                Done
+            </button>
+</div>
+</div>
+
+</body></html>

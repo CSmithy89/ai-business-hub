@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-14 Project Templates</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden">
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<div class="flex flex-col gap-4 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark p-4 w-64">
+<div class="flex flex-col grow">
+<div class="flex gap-3 items-center mb-6">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Eleanor Pena's profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAjcpYWdhM43Ru81HmRn-I1Q-lQbq5oPkhJmJD7y2OSmBHloL6MxREMfZgO8VU5R30REXB3TNeJst-VZ67L-DFMsoDjjtW_0JCkaQzy3xK7v4-75t7igs11-b72EVdPBPA4BD2s1hTEByU64YKk7O93tjlypfSL3iG4GwDxbMzOSdL6yt-nZ2Tr7hQPmLw5zEGeKhzp2TbSJTlrlyMFdrHs2at3wgrLGeeOeW4zd39aepKe08L_SNYL-iMuquTwNZdxTsn8OC_Awdg");'></div>
+<div class="flex flex-col">
+<h1 class="text-slate-900 dark:text-white text-base font-medium leading-normal">Eleanor Pena</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">Project Manager</p>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-3 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-slate-800 dark:text-slate-200">dashboard</span>
+<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Dashboard</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 cursor-pointer">
+<span class="material-symbols-outlined text-slate-900 dark:text-white">folder</span>
+<p class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Projects</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-slate-800 dark:text-slate-200">task_alt</span>
+<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Tasks</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-slate-800 dark:text-slate-200">group</span>
+<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Teams</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-slate-800 dark:text-slate-200">settings</span>
+<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Settings</p>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">New Project</span>
+</button>
+<div class="flex flex-col gap-1 border-t border-slate-200 dark:border-slate-800 pt-2">
+<div class="flex items-center gap-3 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-slate-800 dark:text-slate-200">support_agent</span>
+<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Support</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-slate-800 dark:text-slate-200">logout</span>
+<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Logout</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Content -->
+<main class="flex-1 p-8 overflow-y-auto">
+<div class="max-w-7xl mx-auto">
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+<div class="flex flex-col gap-2">
+<p class="text-slate-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Project Templates</p>
+<p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">Create, manage, and use project templates to streamline your workflow.</p>
+</div>
+<button class="flex min-w-[84px] items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="material-symbols-outlined text-lg">add</span>
+<span class="truncate">Create Template</span>
+</button>
+</div>
+<!-- Search and Filters -->
+<div class="flex flex-col md:flex-row gap-3 mb-8">
+<!-- SearchBar -->
+<div class="flex-grow">
+<label class="flex flex-col min-w-40 h-12 w-full">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full">
+<div class="text-slate-500 dark:text-slate-400 flex bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center justify-center pl-4 rounded-l-lg border-r-0">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:border-primary h-full placeholder:text-slate-500 dark:placeholder:text-slate-400 px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal" placeholder="Search templates by name..." value=""/>
+</div>
+</label>
+</div>
+<!-- Chips -->
+<div class="flex items-center gap-3 overflow-x-auto pb-2">
+<div class="flex h-12 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-primary/10 dark:bg-primary/20 px-4">
+<span class="material-symbols-outlined text-primary dark:text-sky-300 text-lg">grid_view</span>
+<p class="text-primary dark:text-sky-300 text-sm font-medium leading-normal">All</p>
+</div>
+<div class="flex h-12 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 hover:bg-slate-50 dark:hover:bg-slate-700">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-300 text-lg">campaign</span>
+<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Marketing</p>
+</div>
+<div class="flex h-12 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 hover:bg-slate-50 dark:hover:bg-slate-700">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-300 text-lg">code</span>
+<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Development</p>
+</div>
+<div class="flex h-12 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 hover:bg-slate-50 dark:hover:bg-slate-700">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-300 text-lg">design_services</span>
+<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Design</p>
+</div>
+<div class="flex h-12 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 hover:bg-slate-50 dark:hover:bg-slate-700">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-300 text-lg">badge</span>
+<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">HR</p>
+</div>
+</div>
+</div>
+<!-- Your Templates Section -->
+<div>
+<h2 class="text-slate-900 dark:text-white text-2xl font-bold leading-tight tracking-[-0.015em] mb-4">Your Templates</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Template Card -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 flex flex-col gap-4">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 dark:bg-primary/20 rounded-lg size-12 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary dark:text-sky-300 text-3xl">rocket_launch</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold">Product Launch</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm">90-day product launch plan</p>
+</div>
+</div>
+<button class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-4 text-slate-500 dark:text-slate-400 text-sm">
+<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">flag</span>5 Milestones</div>
+<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">task_alt</span>42 Tasks</div>
+<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">folder_open</span>8 Folders</div>
+</div>
+<div class="border-t border-slate-200 dark:border-slate-700 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+<p class="text-sm text-slate-500 dark:text-slate-400">Used 15 times</p>
+<div class="flex items-center gap-2 w-full sm:w-auto">
+<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200">Preview</button>
+<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg bg-primary text-white hover:bg-primary/90">Use</button>
+</div>
+</div>
+</div>
+<!-- Add more cards as needed -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 flex flex-col gap-4">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 dark:bg-primary/20 rounded-lg size-12 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary dark:text-sky-300 text-3xl">home_work</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold">Construction</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm">Residential building project</p>
+</div>
+</div>
+<button class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-4 text-slate-500 dark:text-slate-400 text-sm">
+<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">flag</span>12 Milestones</div>
+<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">task_alt</span>128 Tasks</div>
+<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">folder_open</span>25 Folders</div>
+</div>
+<div class="border-t border-slate-200 dark:border-slate-700 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+<p class="text-sm text-slate-500 dark:text-slate-400">Used 3 times</p>
+<div class="flex items-center gap-2 w-full sm:w-auto">
+<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200">Preview</button>
+<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg bg-primary text-white hover:bg-primary/90">Use</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Suggested Templates Section -->
+<div class="mt-12">
+<h2 class="text-slate-900 dark:text-white text-2xl font-bold leading-tight tracking-[-0.015em] mb-4">Suggested Templates</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Recommended Template Card -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 flex flex-col gap-4">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 dark:bg-primary/20 rounded-lg size-12 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary dark:text-sky-300 text-3xl">event</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold">Event Planning</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm">Corporate event management</p>
+</div>
+</div>
+<button class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-1">
+<div class="inline-flex items-center gap-1.5 rounded-full bg-teal-100 dark:bg-teal-900 px-2 py-1 text-xs font-medium text-teal-700 dark:text-teal-200">
+<span class="material-symbols-outlined text-sm">verified</span>
+                                        HYVVE RECOMMENDED
+                                    </div>
+</div>
+<div class="flex items-center gap-4 text-slate-500 dark:text-slate-400 text-sm">
+<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">flag</span>8 Milestones</div>
+<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">task_alt</span>64 Tasks</div>
+<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">folder_open</span>12 Folders</div>
+</div>
+<div class="border-t border-slate-200 dark:border-slate-700 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+<p class="text-sm text-slate-500 dark:text-slate-400">Used 124 times</p>
+<div class="flex items-center gap-2 w-full sm:w-auto">
+<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200">Preview</button>
+<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg bg-primary text-white hover:bg-primary/90">Use</button>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 flex flex-col gap-4">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 dark:bg-primary/20 rounded-lg size-12 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary dark:text-sky-300 text-3xl">web</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold">Website Redesign</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm">Full website overhaul process</p>
+</div>
+</div>
+<button class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-1">
+<div class="inline-flex items-center gap-1.5 rounded-full bg-teal-100 dark:bg-teal-900 px-2 py-1 text-xs font-medium text-teal-700 dark:text-teal-200">
+<span class="material-symbols-outlined text-sm">verified</span>
+                                        HYVVE RECOMMENDED
+                                    </div>
+</div>
+<div class="flex items-center gap-4 text-slate-500 dark:text-slate-400 text-sm">
+<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">flag</span>10 Milestones</div>
+<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">task_alt</span>98 Tasks</div>
+<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">folder_open</span>15 Folders</div>
+</div>
+<div class="border-t border-slate-200 dark:border-slate-700 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+<p class="text-sm text-slate-500 dark:text-slate-400">Used 250+ times</p>
+<div class="flex items-center gap-2 w-full sm:w-auto">
+<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200">Preview</button>
+<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg bg-primary text-white hover:bg-primary/90">Use</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

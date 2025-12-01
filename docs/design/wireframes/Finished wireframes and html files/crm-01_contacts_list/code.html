@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-01 Contacts List</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#3A5BCC",
+              "secondary": "#10B981",
+              "background-light": "#F9FAFB",
+              "surface-light": "#FFFFFF",
+              "border-light": "#E5E7EB",
+              "text-primary-light": "#1F2937",
+              "text-secondary-light": "#6B7280",
+              "background-dark": "#111827",
+              "surface-dark": "#1F2937",
+              "border-dark": "#374151",
+              "text-primary-dark": "#F9FAFB",
+              "text-secondary-dark": "#9CA3AF"
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.5rem",
+              "lg": "1rem",
+              "xl": "1.5rem",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="relative flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex flex-col w-64 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark">
+<div class="flex flex-col gap-4 p-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBe5nBLVvKyDNbpbpeBWWm2pMsIXHFQM_ngxu7DKfgd0t1YBw6YpC5Ev2w_Hmxo-fBAv8sTG_BHg5YGUVlOLNtyORZjUBOCakrmuCbW7pYuaOFV1W7LIPObOru7LxUWbRvW5ifu_PRKDH61EaFaumk3C8Hi4jfpIUKvWOV96F3IDfSbNOPhOUwdPTD1dClFGVmmjbGYZ2wyhaOmaXOVTvdOPzNAGebPQorTjmbNBbHa4qXFQwxeupbuZuUrMXgP1SXbewLPMSgnUrY");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-primary-light dark:text-text-primary-dark text-base font-bold leading-normal">HYVVE</h1>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-normal leading-normal">CRM</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary dark:hover:text-primary" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<p class="text-sm font-bold leading-normal">Contacts</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary dark:hover:text-primary" href="#">
+<span class="material-symbols-outlined">apartment</span>
+<p class="text-sm font-medium leading-normal">Companies</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary dark:hover:text-primary" href="#">
+<span class="material-symbols-outlined">monetization_on</span>
+<p class="text-sm font-medium leading-normal">Deals</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary dark:hover:text-primary" href="#">
+<span class="material-symbols-outlined">task_alt</span>
+<p class="text-sm font-medium leading-normal">Tasks</p>
+</a>
+</nav>
+</div>
+<div class="mt-auto flex flex-col gap-1 p-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary dark:hover:text-primary" href="#">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary dark:hover:text-primary" href="#">
+<span class="material-symbols-outlined">help</span>
+<p class="text-sm font-medium leading-normal">Help</p>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col p-8">
+<!-- Header -->
+<header class="flex flex-wrap justify-between items-center gap-4 mb-6">
+<h1 class="text-text-primary-light dark:text-text-primary-dark text-4xl font-black leading-tight tracking-[-0.033em]">Contacts</h1>
+<div class="flex gap-3">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Import Contacts</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Add Contact</span>
+</button>
+<button class="flex size-10 items-center justify-center rounded-lg border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+</header>
+<!-- Bulk Actions Bar (Conditional) -->
+<div class="mb-4 flex items-center justify-between rounded-lg bg-primary/10 p-3 text-sm text-primary dark:text-primary-dark">
+<div class="flex items-center gap-4">
+<p class="font-bold">2 items selected</p>
+<button class="font-medium hover:underline">Select all</button>
+</div>
+<div class="flex items-center gap-4">
+<button class="font-medium hover:underline">Assign Owner</button>
+<button class="font-medium hover:underline">Send Email</button>
+<button class="font-medium hover:underline text-red-500">Delete</button>
+</div>
+</div>
+<!-- Toolbar -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+<div class="flex-1 min-w-[300px]">
+<label class="flex flex-col h-12 w-full">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full">
+<div class="text-text-secondary-light dark:text-text-secondary-dark flex bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark items-center justify-center pl-4 rounded-l-lg border-r-0">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary focus:ring-opacity-50 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark h-full placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark px-4 border-l-0 text-base font-normal leading-normal" placeholder="Search by name, email, company..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-2 h-10 px-4 rounded-lg border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark">
+<span class="material-symbols-outlined text-base">filter_list</span>
+<span class="text-sm font-medium">Filters</span>
+<span class="flex items-center justify-center text-xs font-bold size-5 rounded-full bg-primary text-white">3</span>
+</button>
+<button class="flex items-center gap-2 h-10 px-4 rounded-lg border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark">
+<span class="material-symbols-outlined text-base">swap_vert</span>
+<span class="text-sm font-medium">Sort</span>
+</button>
+<div class="flex items-center rounded-lg border border-border-light dark:border-border-dark p-0.5 bg-background-light dark:bg-background-dark">
+<button class="flex size-9 items-center justify-center rounded bg-surface-light dark:bg-surface-dark text-primary dark:text-primary-dark shadow-sm">
+<span class="material-symbols-outlined">view_list</span>
+</button>
+<button class="flex size-9 items-center justify-center rounded text-text-secondary-light dark:text-text-secondary-dark hover:bg-surface-light dark:hover:bg-surface-dark">
+<span class="material-symbols-outlined">grid_view</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Contacts Table -->
+<div class="w-full overflow-x-auto rounded-lg border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark">
+<table class="w-full text-left text-sm">
+<thead class="text-xs text-text-secondary-light dark:text-text-secondary-dark uppercase bg-background-light dark:bg-background-dark">
+<tr>
+<th class="p-4 w-4" scope="col"><input class="form-checkbox rounded border-border-light dark:border-border-dark text-primary focus:ring-primary/50 bg-surface-light dark:bg-surface-dark" type="checkbox"/></th>
+<th class="px-6 py-3" scope="col">Contact</th>
+<th class="px-6 py-3" scope="col">Company</th>
+<th class="px-6 py-3" scope="col">Email</th>
+<th class="px-6 py-3" scope="col">Status</th>
+<th class="px-6 py-3" scope="col">Last Activity</th>
+<th class="px-6 py-3" scope="col">Owner</th>
+<th class="px-6 py-3 w-20" scope="col"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark group">
+<td class="p-4"><input checked="" class="form-checkbox rounded border-border-light dark:border-border-dark text-primary focus:ring-primary/50 bg-surface-light dark:bg-surface-dark" type="checkbox"/></td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img class="size-10 rounded-full" data-alt="Profile picture of John Doe" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBR9GyjiTkf3RAXqw0HPgXojg6Tyxa4sITcumH5nP6tjrJLnizBYq-IAGqdEwjVB6Dg4OsuANy5nMTf3p7S2RL4QSy2cXoBxe1qm4XOvPC7pE37kkTCYX_vWdG8b_E-fvcWy6PHq3CpJBwRsc5mtsK16s7OhRfA96sHKpaNQnM2Iz495eIgf5bHicEGoy5kDY0Am6k9eN5Qju-0QKEXxLI1Vbdq7ZtaVme40hS84H7zq151Z1EbIWT92cmnWYuCnZshhv02W1Bf7lw"/>
+<div>
+<div class="font-bold text-text-primary-light dark:text-text-primary-dark">John Doe</div>
+<div class="text-text-secondary-light dark:text-text-secondary-dark">Marketing Director</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-text-primary-light dark:text-text-primary-dark">Innovate Inc.</td>
+<td class="px-6 py-4 text-text-primary-light dark:text-text-primary-dark">john.doe@innovate.com</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Customer</span>
+</td>
+<td class="px-6 py-4 text-text-secondary-light dark:text-text-secondary-dark">Email sent 2 days ago</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<img class="size-6 rounded-full" data-alt="Profile picture of owner Jane Smith" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCoy7t4novdl3h4SUVMhYTjpB4Up_sl9M1ZwuSoDjRoXYB00babCVvG5XBx-5iCYZcen03HRrU_JomKTa1PMO82cuwEc7eYPhm5KBnW7QKEJCHndkEPpJERjQIjecwJpe92zfPSqs2KJXIzAaWcWgH-OnRU6HT_qUQBaZQEQ2i7PJURbuMAx5F5kMp-zTicrnf9Z7rK22orDBtJsDvWkeOZL09q65GaRO5rjQcWIuItMBt3bzl4kdPQ78zDrigmXCWr8jqIPv9WHPs"/>
+<span class="text-text-primary-light dark:text-text-primary-dark">Jane Smith</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-text-secondary-light dark:text-text-secondary-dark hover:text-primary"><span class="material-symbols-outlined text-xl">edit</span></button>
+<button class="text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500"><span class="material-symbols-outlined text-xl">delete</span></button>
+</div>
+</td>
+</tr>
+<tr class="border-b border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark group">
+<td class="p-4"><input checked="" class="form-checkbox rounded border-border-light dark:border-border-dark text-primary focus:ring-primary/50 bg-surface-light dark:bg-surface-dark" type="checkbox"/></td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img class="size-10 rounded-full" data-alt="Profile picture of Sarah Miller" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOtV33Hw9Tv3nTAWLhVgZH2Fl3qrFy5MI6xHqfmy-qmAYnSW3ii0b_e7YYrJKhWmE9ZGgZoeNZ5PXw6lirzimok953LN1OqpUPVV-qawPSwkcinDt_lPm4nNbnCwLKPxFm0C3DiDWk7qZXzunjDXK8nixoxxSeXeRYNNdFSecXAjX8kWL4WqbemdERl0tcGe63O4KgulkYIERvYgFNsY9Q69sVodNICiOoVQcF8zfHFMXJo0-Q871jjT4H0W9GVw304EP97e6Jvrw"/>
+<div>
+<div class="font-bold text-text-primary-light dark:text-text-primary-dark">Sarah Miller</div>
+<div class="text-text-secondary-light dark:text-text-secondary-dark">Product Manager</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-text-primary-light dark:text-text-primary-dark">Future Solutions</td>
+<td class="px-6 py-4 text-text-primary-light dark:text-text-primary-dark">sarah.m@futuresolutions.io</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Lead</span>
+</td>
+<td class="px-6 py-4 text-text-secondary-light dark:text-text-secondary-dark">Called 5 hours ago</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<img class="size-6 rounded-full" data-alt="Profile picture of owner Jane Smith" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCE1kk-p68iDPLpyHBLleFX9NzJ2rQ0HMWps_EQTc8MtyQuTxnJrB612PVPja5GQeB1fSzy4lYwFa9amXj-EumtAv_6BPjkmjD5vkXsjwzLrCe5OHLIGxh9OXiznDajyRhIw0vciiDGh0c8HGnaOx9SMGL7g-wqisSPfntIWMK0ffz2dBt_GtxmXb-ymgz-YDm5tlQZ7fiLm28ilkDA8GT7SC2phbcj0ETqeZYQjMiXsrJlbXt7TM1CEBn0PDDfel7kZcpRcmae18E"/>
+<span class="text-text-primary-light dark:text-text-primary-dark">Jane Smith</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-text-secondary-light dark:text-text-secondary-dark hover:text-primary"><span class="material-symbols-outlined text-xl">edit</span></button>
+<button class="text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500"><span class="material-symbols-outlined text-xl">delete</span></button>
+</div>
+</td>
+</tr>
+<tr class="border-b border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark group">
+<td class="p-4"><input class="form-checkbox rounded border-border-light dark:border-border-dark text-primary focus:ring-primary/50 bg-surface-light dark:bg-surface-dark" type="checkbox"/></td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img class="size-10 rounded-full" data-alt="Profile picture of Michael Chen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAH98jhG5wusy_HsXMGLW_ogwnKKPBRefbVitXeqDBolETk8-tT0Q-uuMybfX9_4HrZL9uMf57PMARmtlK4PwG9rVyrYCnSfLrfRDpbRr2m1Kgc0_bshPvV2aTkibl9A9E1XhPWGyANqgkBeCCWFXZ9tN2yVMbFyvpThFAqcTlK3293IYXPh8ysmqOMoGj7gpdG7R0nCHsGy47rTg0Y8vKiDTD4Z-I1jMpZ8tmqFILBEg3TgudjHe5ZkCjdGWDdY5GvrbEYusjZNU"/>
+<div>
+<div class="font-bold text-text-primary-light dark:text-text-primary-dark">Michael Chen</div>
+<div class="text-text-secondary-light dark:text-text-secondary-dark">Lead Developer</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-text-primary-light dark:text-text-primary-dark">Quantum Leap</td>
+<td class="px-6 py-4 text-text-primary-light dark:text-text-primary-dark">m.chen@quantum.dev</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Prospect</span>
+</td>
+<td class="px-6 py-4 text-text-secondary-light dark:text-text-secondary-dark">Note added yesterday</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<img class="size-6 rounded-full" data-alt="Profile picture of owner Robert Brown" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHtaltVHriia8eekibm7r7LUY6_nHfNWOUielHBla3eGd7D_hhq_t9DtgRwlVEpEj97Q8HUuuY8DjoApxtcP7fCCHGc123eh0wfI9jFoCsNnj1QFd-3n_ASHRt_Izq6f3Ls7SiDjoDRUyZ9TLcYxbBpyjjE7wdFXsMJUkXvxjeFAa5O7FX-ErSQsuMlztiz4HspFQlvqG-VANOLRolr4_SXHeIx3NLNUdUUB5u52pG9pP3qtcNhETuFEiAK_pT9SMPvHjSPFC6gMc"/>
+<span class="text-text-primary-light dark:text-text-primary-dark">Robert Brown</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-text-secondary-light dark:text-text-secondary-dark hover:text-primary"><span class="material-symbols-outlined text-xl">edit</span></button>
+<button class="text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500"><span class="material-symbols-outlined text-xl">delete</span></button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="flex items-center justify-between mt-4 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+<span>Showing 1-10 of 2,345</span>
+<div class="flex items-center gap-2">
+<button class="flex items-center justify-center size-8 rounded border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark hover:bg-background-light dark:hover:bg-background-dark">
+<span class="material-symbols-outlined text-base">chevron_left</span>
+</button>
+<button class="flex items-center justify-center size-8 rounded border border-primary text-primary bg-primary/10">1</button>
+<button class="flex items-center justify-center size-8 rounded border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark hover:bg-background-light dark:hover:bg-background-dark">2</button>
+<button class="flex items-center justify-center size-8 rounded border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark hover:bg-background-light dark:hover:bg-background-dark">3</button>
+<span>...</span>
+<button class="flex items-center justify-center size-8 rounded border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark hover:bg-background-light dark:hover:bg-background-dark">235</button>
+<button class="flex items-center justify-center size-8 rounded border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark hover:bg-background-light dark:hover:bg-background-dark">
+<span class="material-symbols-outlined text-base">chevron_right</span>
+</button>
+</div>
+</div>
+</main>
+</div>
+<!-- Floating Action Button for Maya AI -->
+<button class="fixed bottom-8 right-8 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark">
+<span class="material-symbols-outlined text-3xl">smart_toy</span>
+<span class="sr-only">Ask Maya AI</span>
+</button>
+</body></html>
