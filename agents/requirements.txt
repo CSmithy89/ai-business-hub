@@ -5,9 +5,8 @@ fastapi==0.109.0
 uvicorn[standard]==0.27.0
 
 # AI Agent Framework
-# Note: agno package may need different name or may not be available yet
-# Check https://pypi.org/project/agno/ or https://docs.agno.com for installation
-# agno>=0.1.0
+# https://docs.agno.com/how-to/install
+agno
 
 # Database
 sqlalchemy>=2.0.0
