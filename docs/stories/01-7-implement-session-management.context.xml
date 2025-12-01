@@ -1,0 +1,561 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-info>
+    <id>01-7</id>
+    <title>Implement Session Management</title>
+    <epic>EPIC-01: Authentication System</epic>
+    <status>ready-for-dev</status>
+    <points>2</points>
+    <priority>P0</priority>
+    <estimated-time>3-4 hours</estimated-time>
+  </story-info>
+
+  <summary>
+    Create a session management page at /settings/sessions that allows users to view all their active sessions
+    with device/browser information, location, and last activity. Users can revoke individual sessions (except
+    current session) or revoke all other sessions at once. Uses better-auth's built-in session management APIs.
+  </summary>
+
+  <technical-context>
+    <authentication-library>
+      <name>better-auth</name>
+      <version>^1.0.0</version>
+      <configuration-file>apps/web/src/lib/auth.ts</configuration-file>
+      <client-file>apps/web/src/lib/auth-client.ts</client-file>
+      <features>
+        <feature>Session persistence with database-backed storage</feature>
+        <feature>JWT access tokens (15 min) + database sessions (7-30 days)</feature>
+        <feature>Built-in session management APIs</feature>
+        <feature>HTTP-only cookies for XSS protection</feature>
+        <feature>Session token: hyvve.session_token</feature>
+      </features>
+    </authentication-library>
+
+    <session-configuration>
+      <session-expiry>
+        <default>7 days (60 * 60 * 24 * 7)</default>
+        <remember-me>30 days (when enabled)</remember-me>
+        <access-token>15 minutes</access-token>
+      </session-expiry>
+      <cookie-prefix>hyvve</cookie-prefix>
+      <update-age>24 hours (session refresh interval)</update-age>
+    </session-configuration>
+
+    <database-schema>
+      <model>
+        <name>Session</name>
+        <fields>
+          <field name="id" type="String" key="primary">UUID identifier</field>
+          <field name="userId" type="String" indexed="true">User foreign key</field>
+          <field name="token" type="String" unique="true">Session token (JWT)</field>
+          <field name="expiresAt" type="DateTime" indexed="true">Expiration timestamp</field>
+          <field name="ipAddress" type="String?" optional="true">Client IP address</field>
+          <field name="userAgent" type="String?" optional="true">Browser/device user agent string</field>
+          <field name="activeWorkspaceId" type="String?" optional="true">Multi-tenant workspace ID</field>
+          <field name="createdAt" type="DateTime">Session creation timestamp</field>
+          <field name="updatedAt" type="DateTime">Last activity timestamp</field>
+        </fields>
+        <relations>
+          <relation name="user" type="User" cascade="Cascade">Belongs to User</relation>
+        </relations>
+      </model>
+    </database-schema>
+
+    <better-auth-apis>
+      <endpoint>
+        <path>/api/auth/list-sessions</path>
+        <method>GET</method>
+        <description>List all active sessions for current user</description>
+        <client-method>authClient.listSessions()</client-method>
+        <response>Array of session objects with id, userId, token, expiresAt, ipAddress, userAgent, createdAt, updatedAt</response>
+        <authentication>Required - uses current session token</authentication>
+      </endpoint>
+
+      <endpoint>
+        <path>/api/auth/revoke-session</path>
+        <method>POST</method>
+        <description>Revoke a specific session by token</description>
+        <client-method>authClient.revokeSession({ token: string })</client-method>
+        <request-body>{ token: "session-token" }</request-body>
+        <response>{ success: true, revokedSessionToken: string }</response>
+        <security>Cannot revoke current session</security>
+      </endpoint>
+
+      <endpoint>
+        <path>/api/auth/revoke-other-sessions</path>
+        <method>POST</method>
+        <description>Revoke all sessions except current one</description>
+        <client-method>authClient.revokeOtherSessions()</client-method>
+        <response>{ success: true, revokedCount: number }</response>
+        <use-case>Security feature - sign out all other devices</use-case>
+      </endpoint>
+    </better-auth-apis>
+
+    <user-agent-parsing>
+      <library>ua-parser-js</library>
+      <installation>pnpm add ua-parser-js @types/ua-parser-js</installation>
+      <purpose>Parse userAgent string to extract browser, OS, and device info</purpose>
+      <extracted-data>
+        <data>Browser name (Chrome, Firefox, Safari, Edge, etc.)</data>
+        <data>Browser version</data>
+        <data>Operating system (Windows, macOS, Linux, iOS, Android)</data>
+        <data>OS version</data>
+        <data>Device type (Desktop, Mobile, Tablet)</data>
+        <data>Device vendor and model (for mobile)</data>
+      </extracted-data>
+    </user-agent-parsing>
+
+    <routing-pattern>
+      <page-path>/settings/sessions</page-path>
+      <route-structure>apps/web/src/app/settings/sessions/page.tsx</route-structure>
+      <protection>Requires authenticated session</protection>
+      <middleware>apps/web/middleware.ts (extend for protected routes)</middleware>
+    </routing-pattern>
+
+    <state-management>
+      <library>@tanstack/react-query</library>
+      <pattern>Server state management with optimistic updates</pattern>
+      <queries>
+        <query name="sessions" key="['sessions']">Fetch and cache active sessions list</query>
+      </queries>
+      <mutations>
+        <mutation name="revokeSession">Revoke individual session, invalidate query on success</mutation>
+        <mutation name="revokeOtherSessions">Bulk revoke, invalidate query on success</mutation>
+      </mutations>
+    </state-management>
+  </technical-context>
+
+  <relevant-code>
+    <existing-patterns>
+      <auth-client>
+        <file>apps/web/src/lib/auth-client.ts</file>
+        <current-exports>
+          - authClient (createAuthClient instance)
+          - signUp(data)
+          - signIn(data)
+          - signOut()
+          - useSession() hook
+        </current-exports>
+        <extension-needed>
+          Add session management wrapper methods:
+          - listSessions() → authClient.listSessions()
+          - revokeSession({ token }) → authClient.revokeSession({ token })
+          - revokeOtherSessions() → authClient.revokeOtherSessions()
+        </extension-needed>
+      </auth-client>
+
+      <auth-configuration>
+        <file>apps/web/src/lib/auth.ts</file>
+        <session-config>
+          session: {
+            expiresIn: 60 * 60 * 24 * 7,      // 7 days
+            updateAge: 60 * 60 * 24,          // Refresh daily
+            cookieCache: {
+              enabled: true,
+              maxAge: 60 * 15,                // 15 minutes
+            },
+          }
+        </session-config>
+        <cookie-prefix>hyvve</cookie-prefix>
+        <note>Session tokens stored as HTTP-only cookies with name: hyvve.session_token</note>
+      </auth-configuration>
+
+      <middleware-protection>
+        <file>apps/web/middleware.ts</file>
+        <current-logic>
+          - Checks for 'hyvve.session_token' cookie
+          - Redirects authenticated users away from /sign-in, /sign-up
+          - Future: Protect routes like /settings/* and /dashboard/*
+        </current-logic>
+        <extension-needed>
+          Uncomment protected routes logic for /settings/sessions:
+          if (!sessionToken &amp;&amp; pathname.startsWith('/settings')) {
+            return NextResponse.redirect(new URL('/sign-in', request.url))
+          }
+        </extension-needed>
+      </middleware-protection>
+
+      <ui-component-patterns>
+        <from-story>01.4 - Sign-In Form</from-story>
+        <file>apps/web/src/components/auth/sign-in-form.tsx</file>
+        <patterns>
+          <pattern>Error handling with specific error types (INVALID_CREDENTIALS, RATE_LIMITED, etc.)</pattern>
+          <pattern>Loading states with Loader2 icon from lucide-react</pattern>
+          <pattern>Error banners with AlertCircle/AlertTriangle icons</pattern>
+          <pattern>Form validation with react-hook-form + zod</pattern>
+          <pattern>Async mutations with useState for loading/error tracking</pattern>
+          <pattern>Button disabled states during async operations</pattern>
+        </patterns>
+        <design-system>
+          - Primary color: #FF6B6B (HYVVE brand)
+          - Error states: red-50 bg, red-200 border, red-600 text
+          - Warning states: yellow-50 bg, yellow-200 border, yellow-600 text
+          - Button variants: outline, primary (bg-[#FF6B6B])
+          - Typography: text-3xl for headers, text-sm for descriptions
+        </design-system>
+      </ui-component-patterns>
+
+      <shadcn-components>
+        <available>Button, Input, Label, Checkbox, Card, Badge, Dialog, AlertDialog</available>
+        <location>apps/web/src/components/ui/</location>
+        <usage>Import from @/components/ui/{component}</usage>
+      </shadcn-components>
+    </existing-patterns>
+
+    <session-identification>
+      <current-session-detection>
+        // Get current session token from cookie
+        const sessionToken = document.cookie
+          .split(';')
+          .find(c => c.trim().startsWith('hyvve.session_token='))
+          ?.split('=')[1]
+
+        // OR use better-auth's useSession hook
+        const { data: session } = useSession()
+        const currentSessionToken = session?.session?.token
+
+        // Compare with session list to mark current session
+        const isCurrentSession = (sessionToken: string) =>
+          sessionToken === currentSessionToken
+      </current-session-detection>
+    </session-identification>
+  </relevant-code>
+
+  <implementation-guidance>
+    <step number="1">
+      <title>Install Dependencies</title>
+      <commands>
+        pnpm add ua-parser-js
+        pnpm add -D @types/ua-parser-js
+      </commands>
+      <verification>Check package.json for ua-parser-js</verification>
+    </step>
+
+    <step number="2">
+      <title>Create User Agent Parsing Utility</title>
+      <file>apps/web/src/lib/user-agent.ts</file>
+      <description>
+        Parse userAgent string to extract readable device information.
+        Export parseUserAgent(userAgent: string) function that returns:
+        {
+          browser: { name: string, version: string },
+          os: { name: string, version: string },
+          device: { type: string, vendor: string, model: string }
+        }
+      </description>
+      <example-from-story>See story file lines 276-299 for implementation example</example-from-story>
+    </step>
+
+    <step number="3">
+      <title>Extend Auth Client with Session Management</title>
+      <file>apps/web/src/lib/auth-client.ts</file>
+      <changes>
+        - Add listSessions() export → calls authClient.listSessions()
+        - Add revokeSession({ token: string }) → calls authClient.revokeSession({ token })
+        - Add revokeOtherSessions() → calls authClient.revokeOtherSessions()
+        - Add getCurrentSessionToken() helper to get token from cookie/session
+      </changes>
+      <typescript-types>
+        interface Session {
+          id: string
+          userId: string
+          token: string
+          expiresAt: Date
+          ipAddress?: string
+          userAgent?: string
+          activeWorkspaceId?: string
+          createdAt: Date
+          updatedAt: Date
+        }
+      </typescript-types>
+    </step>
+
+    <step number="4">
+      <title>Create Session Components</title>
+      <structure>
+        apps/web/src/components/session/
+        ├── session-list.tsx        # Container with React Query
+        ├── session-card.tsx        # Individual session display
+        └── revoke-session-dialog.tsx  # Confirmation for bulk revoke
+      </structure>
+      <session-list>
+        - Use React Query: useQuery({ queryKey: ['sessions'], queryFn: listSessions })
+        - Display loading state with skeleton loaders
+        - Handle empty state (only current session exists)
+        - Map sessions to SessionCard components
+        - Show "Revoke All Other Sessions" button if multiple sessions
+      </session-list>
+      <session-card>
+        - Parse userAgent to display browser/OS info
+        - Show "Current Session" badge if isCurrentSession(token)
+        - Display last activity as relative time ("2 hours ago", "Active now")
+        - Show session created date
+        - Include "Revoke" button (disabled for current session)
+        - Use AlertDialog for revoke confirmation
+      </session-card>
+      <revoke-dialog>
+        - AlertDialog for bulk revocation confirmation
+        - Explain consequence: "All other devices will be signed out"
+        - Cancel and Confirm actions
+      </revoke-dialog>
+    </step>
+
+    <step number="5">
+      <title>Create Sessions Page</title>
+      <file>apps/web/src/app/settings/sessions/page.tsx</file>
+      <description>
+        Server component that renders the session management interface.
+        - Import and render SessionList component
+        - Wrap with SessionProvider if needed
+        - Add page header with title and description
+        - Include breadcrumbs: Settings > Sessions
+      </description>
+      <layout>
+        &lt;div className="container max-w-4xl mx-auto py-8"&gt;
+          &lt;div className="space-y-6"&gt;
+            &lt;div&gt;
+              &lt;h1 className="text-3xl font-bold"&gt;Active Sessions&lt;/h1&gt;
+              &lt;p className="text-gray-600"&gt;Manage your active sessions across devices&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;SessionList /&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      </layout>
+    </step>
+
+    <step number="6">
+      <title>Update Middleware for Protected Routes</title>
+      <file>apps/web/middleware.ts</file>
+      <changes>
+        Uncomment protected routes logic to require authentication for /settings/*:
+        if (!sessionToken &amp;&amp; pathname.startsWith('/settings')) {
+          return NextResponse.redirect(new URL('/sign-in', request.url))
+        }
+      </changes>
+    </step>
+
+    <step number="7">
+      <title>Implement React Query Mutations</title>
+      <in-component>apps/web/src/components/session/session-list.tsx</in-component>
+      <mutations>
+        const revokeSessionMutation = useMutation({
+          mutationFn: (token: string) => revokeSession({ token }),
+          onSuccess: () => {
+            queryClient.invalidateQueries(['sessions'])
+            toast.success('Session revoked successfully')
+          },
+          onError: (error) => {
+            toast.error('Failed to revoke session')
+          }
+        })
+
+        const revokeOthersMutation = useMutation({
+          mutationFn: () => revokeOtherSessions(),
+          onSuccess: () => {
+            queryClient.invalidateQueries(['sessions'])
+            toast.success('All other sessions revoked')
+          }
+        })
+      </mutations>
+      <note>May need to install sonner or use existing toast library</note>
+    </step>
+
+    <step number="8">
+      <title>Handle Edge Cases and Error States</title>
+      <cases>
+        <case>Network error during fetch: Show error banner with retry button</case>
+        <case>Session not found (expired during display): Handle gracefully, refetch</case>
+        <case>Current session protection: Disable/hide revoke for current session</case>
+        <case>Empty state: Show message if only current session exists</case>
+        <case>Loading states: Skeleton loaders during initial fetch, button loading during mutations</case>
+      </cases>
+    </step>
+
+    <step number="9">
+      <title>Add Time Formatting Utilities</title>
+      <utility>
+        Use date-fns or similar for relative time formatting:
+        - formatDistanceToNow(updatedAt) for "2 hours ago"
+        - Check if updatedAt is within last 5 minutes → "Active now"
+        - format(createdAt, 'PPP') for "December 1, 2025"
+      </utility>
+      <installation>pnpm add date-fns (if not already installed)</installation>
+    </step>
+
+    <step number="10">
+      <title>Testing and Verification</title>
+      <manual-tests>
+        1. Sign in on multiple browsers/devices
+        2. Navigate to /settings/sessions
+        3. Verify all sessions appear with correct device info
+        4. Verify current session is marked and cannot be revoked
+        5. Revoke individual session, verify it disappears
+        6. Verify user is logged out on revoked device
+        7. Test "Revoke All Other Sessions" functionality
+        8. Verify error handling (network errors, invalid tokens)
+      </manual-tests>
+      <accessibility>
+        - Ensure keyboard navigation works
+        - Test screen reader announcements
+        - Verify focus management in dialogs
+      </accessibility>
+    </step>
+  </implementation-guidance>
+
+  <dependencies>
+    <npm-packages>
+      <package name="better-auth" version="^1.0.0" status="installed">Authentication library</package>
+      <package name="ua-parser-js" version="latest" status="to-install">User agent parsing</package>
+      <package name="@types/ua-parser-js" version="latest" status="to-install" dev="true">TypeScript types</package>
+      <package name="@tanstack/react-query" version="^5.x" status="installed">Server state management</package>
+      <package name="date-fns" version="^3.x" status="check">Date formatting (may be installed)</package>
+      <package name="lucide-react" version="latest" status="installed">Icons</package>
+    </npm-packages>
+
+    <story-dependencies>
+      <dependency id="01-1" status="complete">better-auth installation and configuration</dependency>
+      <dependency id="01-4" status="complete">Sign-in flow creates sessions</dependency>
+      <dependency id="01-6" status="complete">Session invalidation pattern established</dependency>
+    </story-dependencies>
+
+    <external-services>
+      <service>None - all functionality is provided by better-auth</service>
+    </external-services>
+  </dependencies>
+
+  <acceptance-criteria>
+    <criteria id="AC-1">
+      <description>Create session management page at /settings/sessions</description>
+      <verification>Navigate to /settings/sessions and verify page loads</verification>
+      <testable>Page exists and is accessible via URL</testable>
+    </criteria>
+
+    <criteria id="AC-2">
+      <description>Display list of active sessions with device/browser info, location, and last activity</description>
+      <verification>Sign in on multiple devices, verify all sessions appear with parsed device info</verification>
+      <testable>All sessions from database displayed with browser name, OS, last activity timestamp</testable>
+    </criteria>
+
+    <criteria id="AC-3">
+      <description>Show current session indicator (marked as "Current Session")</description>
+      <verification>Current session has visible badge/indicator different from other sessions</verification>
+      <testable>Badge or visual indicator present on current session only</testable>
+    </criteria>
+
+    <criteria id="AC-4">
+      <description>Allow users to revoke individual sessions (except current session)</description>
+      <verification>Click revoke on non-current session, verify session removed and user logged out on that device</verification>
+      <testable>Revoke button works, session deleted from database, user logged out</testable>
+    </criteria>
+
+    <criteria id="AC-5">
+      <description>Allow users to revoke all other sessions at once with a single action</description>
+      <verification>Click "Revoke All Other Sessions", confirm, verify all other sessions removed</verification>
+      <testable>Bulk revoke button works, all sessions except current are deleted</testable>
+    </criteria>
+
+    <criteria id="AC-6">
+      <description>Add session activity tracking with proper timestamps</description>
+      <verification>Session updatedAt field shows last activity, formatted as relative time</verification>
+      <testable>Timestamps displayed correctly, update when session refreshed</testable>
+    </criteria>
+
+    <criteria id="AC-7">
+      <description>Implement proper error handling and loading states for all operations</description>
+      <verification>Simulate network errors, verify error messages; check loading indicators during operations</verification>
+      <testable>Error states display error messages, loading states show spinners/skeleton loaders</testable>
+    </criteria>
+  </acceptance-criteria>
+
+  <traceability>
+    <tech-spec-section>APIs and Interfaces</tech-spec-section>
+    <tech-spec-reference>tech-spec-epic-01.md - Lines 140-161 (Authentication Endpoints)</tech-spec-reference>
+    <data-model-section>Data Models and Contracts</data-model-section>
+    <data-model-reference>tech-spec-epic-01.md - Lines 85-96 (Session Model)</data-model-reference>
+    <prd-section>Authentication and Security</prd-section>
+    <architecture-adr>ADR-005: better-auth for authentication</architecture-adr>
+  </traceability>
+
+  <design-references>
+    <wireframes>
+      <note>No specific wireframe for session management page in Epic 01</note>
+      <guidance>Follow existing auth page patterns from AU-01 to AU-05</guidance>
+      <design-system>
+        - Use HYVVE brand color #FF6B6B for primary actions
+        - Follow card-based layout from auth pages
+        - Use consistent spacing and typography
+        - Reference: design/wireframes/WIREFRAME-INDEX.md
+      </design-system>
+    </wireframes>
+  </design-references>
+
+  <security-considerations>
+    <session-identification>
+      <requirement>Current session must be identified to prevent self-revocation</requirement>
+      <implementation>Use session token from cookie/useSession hook to match current session</implementation>
+    </session-identification>
+
+    <authorization>
+      <requirement>Users can only view/revoke their own sessions</requirement>
+      <implementation>better-auth handles authorization automatically via session middleware</implementation>
+    </authorization>
+
+    <session-revocation>
+      <effect>Revoking a session deletes it from database</effect>
+      <effect>Session token becomes invalid immediately</effect>
+      <effect>User on revoked device is logged out on next request</effect>
+    </session-revocation>
+
+    <audit-trail>
+      <note>Session revocation logging is a future enhancement</note>
+      <future>Track who revoked which session when via event bus</future>
+    </audit-trail>
+  </security-considerations>
+
+  <performance-considerations>
+    <target>Page load time &lt; 500ms (p95)</target>
+    <target>Session list API response &lt; 200ms</target>
+    <optimization>Use React Query caching to avoid redundant API calls</optimization>
+    <optimization>Parse userAgent on client-side to avoid backend overhead</optimization>
+  </performance-considerations>
+
+  <open-questions>
+    <question>
+      <text>Should location information be displayed for MVP?</text>
+      <answer>No, location is optional for MVP. Can be added as future enhancement using IP geolocation</answer>
+    </question>
+    <question>
+      <text>Should we log session revocation events to audit log?</text>
+      <answer>Not required for MVP, but recommended for future security enhancement</answer>
+    </question>
+    <question>
+      <text>Should there be a confirmation dialog for individual session revocation?</text>
+      <answer>Yes, use AlertDialog to confirm action before revoking</answer>
+    </question>
+  </open-questions>
+
+  <notes>
+    <note>Session management is critical for account security - users should be able to identify suspicious sessions</note>
+    <note>Location information can be added as future enhancement using IP geolocation service</note>
+    <note>Mobile responsive design is important for cross-device management</note>
+    <note>Consider adding session activity log as future enhancement</note>
+    <note>better-auth handles session validation and authorization automatically</note>
+    <note>Session tokens are JWT-based, stored in HTTP-only cookies for XSS protection</note>
+  </notes>
+
+  <definition-of-done>
+    <item>All acceptance criteria met and verified</item>
+    <item>Session management page accessible at /settings/sessions</item>
+    <item>List of active sessions displayed with all required information</item>
+    <item>Current session properly identified and marked</item>
+    <item>Individual session revocation working (except current)</item>
+    <item>Bulk revocation (all other sessions) working</item>
+    <item>User agent parsing correctly extracts device info</item>
+    <item>Error handling implemented for all operations</item>
+    <item>Loading states implemented for all async operations</item>
+    <item>TypeScript compilation passes with no errors</item>
+    <item>UI is responsive and matches design system</item>
+    <item>Code reviewed and approved</item>
+    <item>Story status updated to "review" in sprint-status.yaml</item>
+  </definition-of-done>
+</story-context>

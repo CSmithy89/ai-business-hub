@@ -20,10 +20,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // For protected routes (future implementation):
-  // if (!sessionToken && pathname.startsWith('/dashboard')) {
-  //   return NextResponse.redirect(new URL('/sign-in', request.url))
-  // }
+  // Protected routes: require authentication
+  if (!sessionToken && (pathname.startsWith('/settings') || pathname.startsWith('/dashboard'))) {
+    return NextResponse.redirect(new URL('/sign-in', request.url))
+  }
 
   return NextResponse.next()
 }
