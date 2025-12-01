@@ -46,7 +46,7 @@ development_status:
   00-5-configure-docker-development-environment: done
   00-6-set-up-shared-types-package: done
   00-7-set-up-agentos-runtime-environment: done
-  epic-00-retrospective: optional
+  epic-00-retrospective: done
 
   # ===========================================
   # EPIC-01: Authentication System
