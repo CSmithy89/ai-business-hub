@@ -39,7 +39,7 @@ development_status:
   # Phase 1 - Core Foundation | 7 stories | 17 points
   # ===========================================
   epic-00: contexted
-  00-1-initialize-monorepo-with-turborepo: backlog
+  00-1-initialize-monorepo-with-turborepo: done
   00-2-configure-nextjs-15-frontend: backlog
   00-3-configure-nestjs-backend: backlog
   00-4-set-up-database-package-with-prisma: backlog

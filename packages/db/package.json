@@ -1,0 +1,13 @@
+{
+  "name": "@hyvve/db",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prisma database package - configured in Story 00.4",
+  "scripts": {
+    "db:generate": "echo 'Prisma configuration in Story 00.4'",
+    "db:migrate": "echo 'Prisma configuration in Story 00.4'",
+    "db:studio": "echo 'Prisma configuration in Story 00.4'",
+    "build": "echo 'Prisma configuration in Story 00.4'",
+    "type-check": "echo 'TypeScript configuration in Story 00.4'"
+  }
+}
