@@ -2,12 +2,16 @@
   "name": "@hyvve/shared",
   "version": "0.1.0",
   "private": true,
-  "description": "Shared TypeScript types and utilities - configured in Story 00.6",
+  "description": "Shared TypeScript types for HYVVE Platform",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "build": "echo 'Shared package configuration in Story 00.6'",
-    "type-check": "echo 'TypeScript configuration in Story 00.6'",
-    "lint": "echo 'ESLint configuration in Story 00.6'"
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
   }
 }
