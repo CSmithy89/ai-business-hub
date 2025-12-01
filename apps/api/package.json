@@ -1,0 +1,12 @@
+{
+  "name": "@hyvve/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NestJS 10 backend - configured in Story 00.3",
+  "scripts": {
+    "dev": "echo 'NestJS configuration in Story 00.3'",
+    "build": "echo 'NestJS configuration in Story 00.3'",
+    "lint": "echo 'ESLint configuration in Story 00.3'",
+    "type-check": "echo 'TypeScript configuration in Story 00.3'"
+  }
+}

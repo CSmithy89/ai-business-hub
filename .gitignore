@@ -25,6 +25,9 @@ build/
 out/
 .next/
 
+# Turborepo
+.turbo/
+
 # Logs
 *.log
 npm-debug.log*

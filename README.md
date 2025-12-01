@@ -270,25 +270,41 @@ For ongoing operations:
 - Docker & Docker Compose
 - pnpm 9+
 
-### Development Setup (Coming Soon)
+### Development Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/hyvve.git
-cd hyvve
+git clone https://github.com/CSmithy89/ai-business-hub.git
+cd ai-business-hub
+
+# Use correct Node.js version
+nvm use  # Reads from .nvmrc (Node 20)
 
 # Install dependencies
 pnpm install
 
-# Start infrastructure
-docker compose up -d
+# Run builds (with Turborepo caching)
+pnpm build
 
-# Run database migrations
-pnpm db:migrate
-
-# Start development servers
+# Start development servers (when configured)
 pnpm dev
+
+# Run linting
+pnpm lint
+
+# Type checking
+pnpm type-check
 ```
+
+### Monorepo Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm build` | Build all packages with Turborepo |
+| `pnpm dev` | Start all dev servers |
+| `pnpm lint` | Lint all packages |
+| `pnpm type-check` | TypeScript type checking |
+| `pnpm clean` | Clean build artifacts |
 
 ---
 
