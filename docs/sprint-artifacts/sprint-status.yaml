@@ -158,3 +158,45 @@ development_status:
   07-9-create-dashboard-home-page: backlog
   07-10-create-mobile-navigation: backlog
   epic-07-retrospective: optional
+
+  # ===========================================
+  # EPIC-08: Business Onboarding & Foundation Modules
+  # Phase 5-6 | 23 stories | 82 points
+  # BMV (Validation) + BMP (Planning) + BM-Brand (Branding)
+  # ===========================================
+  epic-08: backlog
+
+  # Section 1: Foundation Infrastructure (4 stories, 18 points)
+  08-1-create-business-onboarding-database-models: backlog
+  08-2-implement-portfolio-dashboard-with-business-cards: backlog
+  08-3-implement-onboarding-wizard-ui: backlog
+  08-4-implement-document-upload-and-extraction-pipeline: backlog
+
+  # Section 2: Validation Team - BMV (7 stories, 23 points)
+  08-5-implement-validation-team-agno-configuration: backlog
+  08-6-create-validation-chat-interface: backlog
+  08-7-implement-idea-intake-workflow: backlog
+  08-8-implement-market-sizing-workflow: backlog
+  08-9-implement-competitor-mapping-workflow: backlog
+  08-10-implement-customer-discovery-workflow: backlog
+  08-11-implement-validation-synthesis-workflow: backlog
+
+  # Section 3: Planning Team - BMP (5 stories, 17 points)
+  08-12-implement-planning-team-agno-configuration: backlog
+  08-13-create-planning-page-with-workflow-progress: backlog
+  08-14-implement-business-model-canvas-workflow: backlog
+  08-15-implement-financial-projections-workflow: backlog
+  08-16-implement-business-plan-synthesis-workflow: backlog
+
+  # Section 4: Branding Team - BM-Brand (5 stories, 19 points)
+  08-17-implement-branding-team-agno-configuration: backlog
+  08-18-create-branding-page-with-visual-identity-preview: backlog
+  08-19-implement-brand-strategy-and-voice-workflows: backlog
+  08-20-implement-visual-identity-workflow: backlog
+  08-21-implement-asset-generation-workflow: backlog
+
+  # Section 5: Integration & Handoff (2 stories, 5 points)
+  08-22-implement-module-handoff-workflows: backlog
+  08-23-implement-onboarding-completion-and-handoff-to-bm-pm: backlog
+
+  epic-08-retrospective: optional

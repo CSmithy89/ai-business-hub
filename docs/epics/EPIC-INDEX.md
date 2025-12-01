@@ -17,9 +17,11 @@
 | EPIC-05 | Event Bus | 7 | 15 | P0 | Phase 4 | - |
 | EPIC-06 | BYOAI Configuration | 11 | 28 | P0 | Phase 4 | ✅ 8 wireframes |
 | EPIC-07 | UI Shell | 10 | 24 | P0 | Phase 1-3 | ✅ 9 wireframes |
-| **Total** | | **69** | **165** | | | **30 linked** |
+| EPIC-08 | Business Onboarding | 23 | 82 | P0/P1/P2 | Phase 5-6 | Pending |
+| **Total** | | **92** | **247** | | | **30 linked** |
 
 > **Note:** Story counts updated 2025-12-01 to include AgentOS integration (ADR-007), IAssistantClient (06.10), Agent Model Preferences (06.11)
+> **Note:** EPIC-08 added 2025-12-01 - Business Onboarding with BMV, BMP, BM-Brand modules (23 stories, 82 points)
 
 ---
 
@@ -79,6 +81,21 @@
 
 **Phase 5 Stories:** 3
 **Phase 5 Points:** ~12
+
+### Phase 6: Business Onboarding
+**Target:** Foundation Modules (BMV, BMP, BM-Brand)
+
+| Epic | Stories | Focus |
+|------|---------|-------|
+| EPIC-08 | 23 | Business Validation (8 workflows), Planning (9 workflows), Branding (7 workflows), Integration |
+
+**Phase 6 Stories:** 23
+**Phase 6 Points:** ~82
+
+**Sub-phases:**
+- Phase 6a (P0): Foundation + Validation MVP - 8 stories, ~30 points
+- Phase 6b (P1): Full Validation + Planning - 8 stories, ~33 points
+- Phase 6c (P2): Branding + Polish - 7 stories, ~19 points
 
 ---
 
@@ -189,6 +206,7 @@ EPIC-00 (Scaffolding)
 | EPIC-05 | `docs/epics/EPIC-05-event-bus.md` |
 | EPIC-06 | `docs/epics/EPIC-06-byoai.md` |
 | EPIC-07 | `docs/epics/EPIC-07-ui-shell.md` |
+| EPIC-08 | `docs/epics/EPIC-08-business-onboarding.md` |
 
 ---
 

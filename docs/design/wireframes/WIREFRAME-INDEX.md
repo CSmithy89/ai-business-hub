@@ -3,7 +3,7 @@
 **Purpose:** Comprehensive list of all wireframes needed for Hyvve platform
 **Created:** 2025-11-29
 **Updated:** 2025-12-01
-**Status:** 91 Wireframes Complete
+**Status:** 91 Wireframes Complete + 10 Business Onboarding Pending
 
 ---
 
@@ -31,6 +31,7 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 | **Forms & Inputs** | **5/5** | ✅ **Complete** | [View All](#10-forms--inputs-5-wireframes-) |
 | **Feedback & States** | **5/5** | ✅ **Complete** | [View All](#11-feedback--states-5-wireframes-) |
 | **Authentication** | **6/6** | ✅ **Complete** | [View All](#12-authentication-6-wireframes-) |
+| **Business Onboarding** | **0/18** | 🟡 Pending | [View All](#17-business-onboarding-18-wireframes-) |
 | Workflow Builder | 0/6 | 🔴 Future | Need research |
 | Content Module | 0/5 | 🔴 Future | Need research |
 | Email Module | 0/5 | 🔴 Future | Need research |
@@ -38,7 +39,7 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 
 **Legend:** ✅ Complete | 🟡 Partial | 🔴 Future
 
-**Totals:** 91 wireframes complete · 4 bonus wireframes included
+**Totals:** 91 wireframes complete · 4 bonus wireframes included · 18 business onboarding pending
 
 ---
 
@@ -1075,6 +1076,161 @@ Step 4: Ready! ─────────────────────�
 
 ---
 
+## 17. Business Onboarding (18 wireframes) 🟡
+
+> **Status:** Prompts ready - Pending wireframe creation
+> **Reference:** `/docs/epics/EPIC-08-business-onboarding.md`, `/docs/architecture/business-onboarding-architecture.md`
+
+### Portfolio & Dashboard (2 wireframes)
+
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| BO-01 | `portfolio-dashboard.excalidraw` | Portfolio view with business cards showing validation/planning/branding progress, add business CTA, no active business context | P0 | Pending | - |
+| BO-09 | `business-switcher.excalidraw` | Header dropdown for switching between businesses, shows status badges, quick access to portfolio | P0 | Pending | - |
+
+### Onboarding Wizard (4 wireframes)
+
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| BO-02 | `onboarding-step1-documents.excalidraw` | Step 1: Upload documents (pitch deck, business plan, financial projections), drag-drop zone, file preview cards | P0 | Pending | - |
+| BO-03 | `onboarding-step2-details.excalidraw` | Step 2: Business details form (name, industry, stage, team size, funding), auto-populated from document extraction | P0 | Pending | - |
+| BO-04 | `onboarding-step3-idea.excalidraw` | Step 3: Describe business idea via chat interface with Vera (validation lead), conversational intake | P0 | Pending | - |
+| BO-05 | `onboarding-step4-launch.excalidraw` | Step 4: Launch validation with team introduction (5 agents), timeline preview, start button | P0 | Pending | - |
+
+### Module Pages (3 wireframes)
+
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| BO-06 | `validation-page.excalidraw` | Validation module page with chat interface, workflow progress sidebar (8 workflows), agent avatars | P0 | Pending | - |
+| BO-07 | `planning-page.excalidraw` | Planning module page with workflow progress cards, Business Model Canvas preview, financial projections preview | P1 | Pending | - |
+| BO-08 | `branding-page.excalidraw` | Branding module page with visual identity preview (logo, colors, typography), asset download grid | P1 | Pending | - |
+
+### Validation Results (4 wireframes)
+
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| BO-10 | `validation-results.excalidraw` | Validation synthesis results page with scorecard, key findings, recommendations, export options | P0 | Pending | - |
+| BO-11 | `market-sizing-results.excalidraw` | TAM/SAM/SOM funnel visualization, market growth charts, methodology panel, sources | P1 | Pending | - |
+| BO-12 | `competitor-analysis.excalidraw` | Competitor matrix, positioning map, competitor cards, opportunity gaps panel | P1 | Pending | - |
+| BO-13 | `customer-discovery.excalidraw` | ICP cards (3 personas), pain point analysis, interview insights, jobs-to-be-done | P1 | Pending | - |
+
+### Planning Outputs (2 wireframes)
+
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| BO-14 | `business-model-canvas.excalidraw` | Full BMC with 9 blocks, edit mode, AI suggestions, canvas health score, export options | P1 | Pending | - |
+| BO-15 | `financial-projections.excalidraw` | Revenue charts, expense breakdown, cash flow table, scenario comparison, assumptions panel | P1 | Pending | - |
+
+### Branding Outputs (3 wireframes)
+
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| BO-16 | `brand-strategy.excalidraw` | Archetype card, archetype wheel, brand attributes, personality sliders, messaging pillars | P2 | Pending | - |
+| BO-17 | `visual-identity.excalidraw` | Logo variations, color palette with swatches, typography samples, iconography, imagery guidelines | P2 | Pending | - |
+| BO-18 | `asset-gallery.excalidraw` | Logo package grid, social media kit, documents, templates, bulk download, generation status | P2 | Pending | - |
+
+### Business Onboarding Design Specs
+
+**Two-Level Dashboard Architecture:**
+
+```
+Portfolio Level (No Business Context)
+┌─────────────────────────────────────────────────────────────────────┐
+│  [Logo]  HYVVE                        🔔(3)  [User ▼]  [?] [⚙]     │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Your Businesses                                    [+ Add Business] │
+│                                                                      │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐   │
+│  │ 🏢 Acme Corp     │  │ 🏢 TechStart     │  │ ➕ Add New       │   │
+│  │ ━━━━━━━━━━━━━━━  │  │ ━━━━━━━━━━━━━━━  │  │                  │   │
+│  │ Validation: 85%  │  │ Validation: 40%  │  │  Start a new     │   │
+│  │ Planning: 60%    │  │ Planning: 0%     │  │  business        │   │
+│  │ Branding: 30%    │  │ Branding: 0%     │  │  validation      │   │
+│  │                  │  │                  │  │                  │   │
+│  │ [Continue →]     │  │ [Continue →]     │  │                  │   │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘   │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+Business Level (Active Business Context)
+┌─────────────────────────────────────────────────────────────────────┐
+│  [Logo]  HYVVE  [Acme Corp ▼]            🔔(3)  [User ▼]  [?] [⚙]  │
+├────────┬────────────────────────────────────────────────────────────┤
+│        │                                                    │       │
+│  📊    │  [Module Content Area]                             │ 💬    │
+│ Dashbd │                                                    │       │
+│        │  Validation / Planning / Branding                  │ Team  │
+│  ✅    │  module-specific UI with                           │ Chat  │
+│Validtn │  workflow progress and                             │       │
+│        │  chat integration                                  │       │
+│  📋    │                                                    │       │
+│Plannng │                                                    │       │
+│        │                                                    │       │
+│  🎨    │                                                    │       │
+│Brandng │                                                    │       │
+│        │                                                    │       │
+└────────┴────────────────────────────────────────────────────────────┘
+```
+
+**Business Card Component:**
+```
+┌──────────────────────────────────────┐
+│ 🏢 Acme Corp                   ⋮     │
+│ ───────────────────────────────      │
+│                                      │
+│ Validation    ███████████░░  85%     │
+│ Planning      ██████░░░░░░░  60%     │
+│ Branding      ███░░░░░░░░░░  30%     │
+│                                      │
+│ Last activity: 2 hours ago           │
+│                                      │
+│                        [Continue →]  │
+└──────────────────────────────────────┘
+```
+
+**Onboarding Wizard Flow:**
+```
+Step 1: Documents → Step 2: Details → Step 3: Idea → Step 4: Launch
+     ●────────────────○────────────────○────────────────○
+```
+
+**Validation Team Agents (displayed in Step 4):**
+
+| Agent | Icon | Color | Role |
+|-------|------|-------|------|
+| Vera | 🎯 | Coral #FF6B6B | Validation Lead / Orchestrator |
+| Marco | 📊 | Blue #4B7BEC | Market Research Analyst |
+| Cipher | 🔍 | Teal #20B2AA | Competitive Intelligence |
+| Persona | 👤 | Purple #9B59B6 | Customer Discovery |
+| Risk | ⚠️ | Orange #FF9F43 | Risk Assessment |
+
+**Workflow Progress Sidebar (Validation Page):**
+```
+┌─────────────────────────────────┐
+│ Validation Progress        85%  │
+├─────────────────────────────────┤
+│ ✅ Idea Intake            Done  │
+│ ✅ Market Sizing          Done  │
+│ ✅ Competitor Analysis    Done  │
+│ 🔄 Customer Discovery     70%   │
+│ ○  Problem Validation    Pending│
+│ ○  Solution Validation   Pending│
+│ ○  Risk Assessment       Pending│
+│ ○  Validation Synthesis  Pending│
+└─────────────────────────────────┘
+```
+
+**Key UI Elements:**
+- Business switcher in header (replaces workspace selector when in business context)
+- Progress bars with percentage completion
+- Agent avatars with status indicators in chat
+- Workflow step cards with expand/collapse
+- Document upload with extraction status
+- Chat interface integrated into module pages
+
+---
+
 ## Priority Legend
 
 | Priority | Meaning | Target |
@@ -1252,8 +1408,9 @@ Google Stitch wireframe prompts for generating the wireframes:
 | Batch 7 | #61-70 | CRM Part 2 | [BATCH-07-CRM-PART2.md](prompts/BATCH-07-CRM-PART2.md) |
 | Batch 8 | #71-80 | PM Module Part 1 | [BATCH-08-PM-MODULE-PART1.md](prompts/BATCH-08-PM-MODULE-PART1.md) |
 | Batch 9 | #81-90 | PM Module Part 2 | [BATCH-09-PM-MODULE-PART2.md](prompts/BATCH-09-PM-MODULE-PART2.md) |
+| Batch 10 | #91-108 | Business Onboarding (All Phases) | [BATCH-10-BUSINESS-ONBOARDING.md](prompts/BATCH-10-BUSINESS-ONBOARDING.md) |
 
-**Total: 90 prompts across 9 batch files**
+**Total: 108 prompts across 10 batch files**
 
 ---
 
