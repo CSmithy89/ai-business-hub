@@ -502,7 +502,7 @@ Creates content for 10-slide investor pitch deck.
 
 ---
 
-#### 8. Export to Development
+#### 9. Export to Development
 
 Transforms planning artifacts to BMM-compatible format.
 
