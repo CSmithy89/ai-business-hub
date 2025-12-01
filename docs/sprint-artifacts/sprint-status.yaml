@@ -44,7 +44,7 @@ development_status:
   00-3-configure-nestjs-backend: done
   00-4-set-up-database-package-with-prisma: done
   00-5-configure-docker-development-environment: done
-  00-6-set-up-shared-types-package: backlog
+  00-6-set-up-shared-types-package: done
   00-7-set-up-agentos-runtime-environment: backlog
   epic-00-retrospective: optional
 

@@ -35,6 +35,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@hyvve/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@nestjs/common':
         specifier: ^10.4.15
         version: 10.4.20(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -204,7 +207,14 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
-  packages/shared: {}
+  packages/shared:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.1
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
 
   packages/ui: {}
 
