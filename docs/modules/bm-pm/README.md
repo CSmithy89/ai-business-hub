@@ -2,11 +2,134 @@
 
 > **Status**: Planning / Architecture
 > **Module Code**: BM-PM
-> **Last Updated**: 2025-11-28
+> **Last Updated**: 2025-12-01
 
 ## Overview
 
 The Project Management module (BM-PM) serves as the higher-level container for all product development within AI Business Hub. It enables users to manage multiple businesses, each containing various products (BME-Course, BME-Podcast, BME-Book, etc.) that progress through BMAD methodology phases with AI agent assistance.
+
+## Module Pipeline Position
+
+BM-PM sits at the center of the AI Business Hub pipeline, receiving validated and planned products from upstream modules and delegating to specialized product modules:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        AI BUSINESS HUB - MODULE PIPELINE                        │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  PHASE 1: IDEATION & VALIDATION                                                 │
+│  ┌───────────────────────────────────────────────────────────────────────────┐  │
+│  │  BMV - Business Validation Module                                         │  │
+│  │  ├── Problem-Solution Validation                                          │  │
+│  │  ├── Market Size Analysis (TAM/SAM/SOM)                                   │  │
+│  │  ├── Competitor Research & Gap Analysis                                   │  │
+│  │  └── Product-Fit Analysis ──────────────────────────────────────────────┐ │  │
+│  │      ├── Match idea to product types                                    │ │  │
+│  │      ├── Identify competitive gaps per product                          │ │  │
+│  │      └── Score & rank product opportunities                             │ │  │
+│  └─────────────────────────────────────────────────────────────────────────┼─┘  │
+│                                                                            │    │
+│  Output: Validated Idea + Recommended Products (with fit scores)           │    │
+└────────────────────────────────────────────────────────────────────────────┼────┘
+                                                                             │
+                                                                             ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  PHASE 2: BUSINESS PLANNING                                                     │
+│  ┌───────────────────────────────────────────────────────────────────────────┐  │
+│  │  BMP - Business Planning Module                                           │  │
+│  │  ├── Business Model Canvas (per product)                                  │  │
+│  │  ├── Financial Projections & Unit Economics                               │  │
+│  │  ├── Pricing Strategy                                                     │  │
+│  │  └── Multi-Product Planning ────────────────────────────────────────────┐ │  │
+│  │      ├── Create business models for each recommended product            │ │  │
+│  │      ├── Cross-product synergy analysis                                 │ │  │
+│  │      ├── Resource allocation & sequencing                               │ │  │
+│  │      └── Consolidated financial rollup                                  │ │  │
+│  └─────────────────────────────────────────────────────────────────────────┼─┘  │
+│                                                                            │    │
+│  Output: Business Plans + Financial Models (per product)                   │    │
+└────────────────────────────────────────────────────────────────────────────┼────┘
+                                                                             │
+                                                                             ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  PHASE 3: BRANDING                                                              │
+│  ┌───────────────────────────────────────────────────────────────────────────┐  │
+│  │  BMB - Branding Module                                                    │  │
+│  │  ├── Brand Identity Development                                           │  │
+│  │  ├── Brand Guidelines & Style Guide                                       │  │
+│  │  ├── Voice & Messaging Framework                                          │  │
+│  │  └── Visual Identity System                                               │  │
+│  └───────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                 │
+│  Output: Brand Guidelines + Visual Assets + Voice Framework                     │
+└────────────────────────────────────────────────────────────────────────────┬────┘
+                                                                             │
+                                                                             ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  PHASE 4: PROJECT MANAGEMENT (THIS MODULE)                                      │
+│  ┌───────────────────────────────────────────────────────────────────────────┐  │
+│  │  BM-PM - Project Management Module                                        │  │
+│  │  ├── Business/Product Container Management                                │  │
+│  │  ├── BMAD Phase Orchestration                                             │  │
+│  │  ├── Task Assignment (Human/Agent/Hybrid)                                 │  │
+│  │  ├── Approval Workflows                                                   │  │
+│  │  └── Delegates to Product Modules ─────────────────────────────────────┐  │  │
+│  └────────────────────────────────────────────────────────────────────────┼──┘  │
+│                                                                           │     │
+│  Receives: Validated Products + Business Plans + Brand Guidelines         │     │
+│  Manages: Product lifecycle through BMAD phases                           │     │
+└───────────────────────────────────────────────────────────────────────────┼─────┘
+                                                                            │
+                          ┌─────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  PHASE 5: PRODUCT DEVELOPMENT (BME-* MODULES)                                   │
+│  ┌───────────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                           │  │
+│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐     │  │
+│  │  │ BME-COURSE   │ │ BME-PODCAST  │ │ BME-BOOK     │ │ BME-YOUTUBE  │     │  │
+│  │  │ Online       │ │ Audio        │ │ Publishing   │ │ Video        │     │  │
+│  │  │ Courses      │ │ Shows        │ │ & eBooks     │ │ Content      │     │  │
+│  │  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘     │  │
+│  │                                                                           │  │
+│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐     │  │
+│  │  │ BME-DIGITAL  │ │ BME-SAAS     │ │ BME-PHYSICAL │ │ BME-ECOMMERCE│     │  │
+│  │  │ Digital      │ │ Software     │ │ Physical     │ │ Online       │     │  │
+│  │  │ Downloads    │ │ Products     │ │ Products     │ │ Stores       │     │  │
+│  │  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘     │  │
+│  │                                                                           │  │
+│  │  ┌──────────────┐                                                         │  │
+│  │  │ BME-WEBSITE  │  Each module has specialized:                           │  │
+│  │  │ Web          │  ├── Agent teams (content, design, dev)                 │  │
+│  │  │ Properties   │  ├── PRD templates                                      │  │
+│  │  └──────────────┘  ├── Phase-specific workflows                           │  │
+│  │                    └── Platform integrations                              │  │
+│  └───────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                 │
+│  Each product follows BMAD phases: Brief → Requirements → Architecture →       │
+│  Design → Implementation → Testing → Launch → Operate                          │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+LEGEND:
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  BMV  = Business Validation Module (Idea → Validated Opportunity)               │
+│  BMP  = Business Planning Module (Strategy → Business Plan)                     │
+│  BMB  = Branding Module (Identity → Brand Guidelines)                           │
+│  BM-PM = Project Management Module (Orchestration → Product Delivery)           │
+│  BME-* = Product Execution Modules (PRD → Launched Product)                     │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow Between Modules
+
+| From | To | Data Passed |
+|------|-----|-------------|
+| BMV | BMP | Validated idea, market research, recommended products with fit scores |
+| BMP | BMB | Business plans per product, target audience, value propositions |
+| BMB | BM-PM | Brand guidelines, voice framework, visual identity |
+| BM-PM | BME-* | Product context, brand assets, business requirements, phase assignments |
 
 ## Key Features
 

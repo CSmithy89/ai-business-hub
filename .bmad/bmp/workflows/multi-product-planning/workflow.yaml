@@ -1,0 +1,104 @@
+# Multi-Product Planning Workflow - Business Planning Module
+# Creates business models and financials for each recommended product type
+
+name: multi-product-planning
+description: "Create coordinated business plans for multiple product types with cross-product synergies and consolidated financials"
+config_source: "{project-root}/.bmad/bmp/config.yaml"
+installed_path: "{project-root}/.bmad/bmp/workflows/multi-product-planning"
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+default_output_file: "{output_folder}/bmp/multi-product-plan-{{date}}.md"
+
+workflow_type: document
+interaction_mode: analysis
+
+inputs:
+  - name: product_fit_analysis_path
+    type: file_path
+    required: true
+    description: "Path to BMV product-fit-analysis output document"
+  - name: validated_idea_path
+    type: file_path
+    required: false
+    description: "Path to original validated idea document"
+  - name: market_research_path
+    type: file_path
+    required: false
+    description: "Path to market sizing document"
+  - name: planning_horizon
+    type: text
+    required: false
+    default: "3 years"
+    description: "Financial projection horizon"
+
+outputs:
+  - name: multi_product_plan
+    type: document
+    description: "Comprehensive multi-product business plan"
+  - name: product_business_models
+    type: structured_data
+    description: "JSON array of business models per product"
+  - name: consolidated_financials
+    type: structured_data
+    description: "Consolidated financial projections across products"
+
+agents:
+  primary: planning-orchestrator-agent
+  supporting:
+    - business-model-architect-agent
+    - financial-analyst-agent
+    - monetization-strategist-agent
+    - growth-forecaster-agent
+
+mcp_tools:
+  required: []
+  optional:
+    - jina-ai
+    - context7
+
+product_types:
+  # Reference list of supported product types
+  - code: BME-COURSE
+    name: "Online Course"
+    revenue_model: "one-time or subscription"
+    typical_margin: "80-95%"
+  - code: BME-PODCAST
+    name: "Podcast"
+    revenue_model: "sponsorship, premium, merchandise"
+    typical_margin: "60-90%"
+  - code: BME-BOOK
+    name: "Book/eBook"
+    revenue_model: "royalties, direct sales"
+    typical_margin: "30-70%"
+  - code: BME-YOUTUBE
+    name: "YouTube Channel"
+    revenue_model: "ads, sponsorship, memberships"
+    typical_margin: "40-70%"
+  - code: BME-DIGITAL
+    name: "Digital Product"
+    revenue_model: "one-time purchase"
+    typical_margin: "90-98%"
+  - code: BME-SAAS
+    name: "SaaS Product"
+    revenue_model: "subscription, usage-based"
+    typical_margin: "70-85%"
+  - code: BME-PHYSICAL
+    name: "Physical Product"
+    revenue_model: "product sales"
+    typical_margin: "30-60%"
+  - code: BME-ECOMMERCE
+    name: "E-commerce Store"
+    revenue_model: "product sales, marketplace"
+    typical_margin: "20-50%"
+  - code: BME-WEBSITE
+    name: "Website/Blog"
+    revenue_model: "ads, affiliate, lead gen"
+    typical_margin: "60-90%"
+
+events:
+  on_complete:
+    - planning.multi_product.completed
+  triggers:
+    - workflow: export-to-development
+      condition: "products_planned > 0"

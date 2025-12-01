@@ -63,7 +63,7 @@ BMP helps users:
 │   ├── monetization-strategist-agent.agent.yaml
 │   └── growth-forecaster-agent.agent.yaml
 │
-├── workflows/                      # 8 workflow definitions
+├── workflows/                      # 9 workflow definitions
 │   ├── business-model-canvas/
 │   │   ├── workflow.yaml
 │   │   ├── instructions.md
@@ -73,6 +73,7 @@ BMP helps users:
 │   ├── pricing-strategy/
 │   ├── revenue-model/
 │   ├── growth-forecast/
+│   ├── multi-product-planning/     # NEW: Coordinates multiple products
 │   ├── business-plan/
 │   ├── pitch-deck/
 │   └── export-to-development/
@@ -108,24 +109,49 @@ BMP helps users:
 
 ## Integration Flow
 
-### The BMAD Planning Pipeline
+### The Complete Module Pipeline
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           BMAD MODULE PIPELINE                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌─────────────┐      ┌─────────────┐      ┌─────────────┐                 │
-│  │     BMV     │ ───▶ │     BMP     │ ───▶ │     BMM     │                 │
-│  │ Validation  │      │  Planning   │      │   Method    │                 │
-│  └─────────────┘      └─────────────┘      └─────────────┘                 │
-│        │                    │                    │                         │
-│        ▼                    ▼                    ▼                         │
-│   GO/NO-GO             Business Plan        Product Build                  │
-│   Decision             Financial Model      Technical Specs                │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                           AI BUSINESS HUB MODULE PIPELINE                            │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                      │
+│  ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌───────────────┐     │
+│  │   BMV   │───▶│   BMP   │───▶│   BMB   │───▶│  BM-PM  │───▶│    BME-*      │     │
+│  │Validate │    │ Plan    │    │ Brand   │    │ Manage  │    │Product Modules│     │
+│  └─────────┘    └─────────┘    └─────────┘    └─────────┘    └───────────────┘     │
+│       │              │              │              │                  │             │
+│       ▼              ▼              ▼              ▼                  ▼             │
+│   GO/NO-GO      Business       Brand          Project           PRDs &            │
+│   + Products    Plans per      Identity       Orchestration     Development       │
+│   Recommended   Product        Guidelines     & Tracking        per Product       │
+│                                                                                      │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+Product Modules (BME-*):
+├── BME-COURSE    - Online Courses
+├── BME-PODCAST   - Audio Shows
+├── BME-BOOK      - Books & eBooks
+├── BME-YOUTUBE   - Video Content
+├── BME-DIGITAL   - Digital Products
+├── BME-SAAS      - Software Products
+├── BME-PHYSICAL  - Physical Products
+├── BME-ECOMMERCE - Online Stores
+└── BME-WEBSITE   - Web Properties
 ```
+
+### BMP's Role in Multi-Product Planning
+
+BMP receives recommended products from BMV's **product-fit-analysis** workflow and creates:
+1. **Business Model Canvas** for each Tier 1 product
+2. **Lite Business Model** for each Tier 2 product
+3. **Unit Economics** per product
+4. **Financial Projections** per product
+5. **Cross-Product Synergy Analysis**
+6. **Cannibalization Risk Assessment**
+7. **Resource Allocation Plan**
+8. **Consolidated Portfolio Financials**
+9. **Product Roadmap with Launch Sequencing**
 
 ### BMV → BMP Data Flow
 
@@ -304,6 +330,7 @@ BMP uses 5 specialized agents organized by expertise area:
 | pricing-strategy | Document | revenue | Pricing document |
 | revenue-model | Document | revenue | Revenue architecture |
 | growth-forecast | Document | forecast | Growth projections |
+| **multi-product-planning** | **Document** | **planner** | **Multi-product portfolio plan** |
 | business-plan | Document | planner | Full business plan |
 | pitch-deck | Document | planner | Pitch deck content |
 | export-to-development | Action | planner | Development brief |
@@ -392,7 +419,49 @@ Creates growth projections with scenario analysis.
 
 ---
 
-#### 6. Business Plan
+#### 6. Multi-Product Planning (NEW)
+
+Creates coordinated business plans for multiple product types from BMV's product-fit analysis.
+
+**Purpose:**
+Takes recommended products from BMV and creates:
+- Business Model Canvas per Tier 1 product
+- Lite business model per Tier 2 product
+- Unit economics per product
+- Financial projections per product
+- Cross-product synergy analysis
+- Cannibalization risk assessment
+- Resource allocation plan
+- Consolidated portfolio financials
+- Launch sequence roadmap
+
+**Input Required:**
+- Product-fit-analysis document from BMV
+- Validated idea document (optional)
+- Market research document (optional)
+- Planning horizon (default: 3 years)
+
+**Output:**
+- Comprehensive multi-product business plan
+- JSON structured data for BMB handoff
+- Consolidated financial projections
+
+**Synergy Analysis:**
+- Content synergies (course → book → video)
+- Audience synergies (cross-sell opportunities)
+- Resource synergies (shared team, tools)
+- Brand synergies (authority building)
+
+**Risk Assessment:**
+- Identifies cannibalization risks
+- Provides mitigation strategies
+- Analyzes pricing conflicts
+
+**Invoke:** `/bmad:bmp:workflows:multi-product-planning`
+
+---
+
+#### 7. Business Plan
 
 Generates comprehensive investor-ready business plan.
 
@@ -413,7 +482,7 @@ Generates comprehensive investor-ready business plan.
 
 ---
 
-#### 7. Pitch Deck
+#### 8. Pitch Deck
 
 Creates content for 10-slide investor pitch deck.
 

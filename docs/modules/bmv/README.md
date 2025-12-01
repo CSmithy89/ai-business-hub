@@ -141,7 +141,7 @@ FOUNDATION Layer  │ BMV (Validation) ← YOU ARE HERE
 │   ├── customer-profiler-agent.agent.yaml
 │   └── feasibility-assessor-agent.agent.yaml
 │
-├── workflows/                          # Workflow Packages (7)
+├── workflows/                          # Workflow Packages (8)
 │   ├── idea-intake/
 │   │   ├── workflow.yaml              # Workflow configuration
 │   │   ├── instructions.md            # Step-by-step instructions
@@ -161,6 +161,12 @@ FOUNDATION Layer  │ BMV (Validation) ← YOU ARE HERE
 │   │   └── checklist.md
 │   │
 │   ├── customer-discovery/
+│   │   ├── workflow.yaml
+│   │   ├── instructions.md
+│   │   ├── template.md
+│   │   └── checklist.md
+│   │
+│   ├── product-fit-analysis/          # NEW: Multi-product fit analysis
 │   │   ├── workflow.yaml
 │   │   ├── instructions.md
 │   │   ├── template.md
@@ -399,7 +405,34 @@ integrations:
 
 ---
 
-#### 5. validation-synthesis
+#### 5. product-fit-analysis
+
+**Purpose:** Match validated ideas to product types and identify competitive gaps
+
+**Input:** Validated idea document, optional market/competitor research
+
+**Output:** Product-fit analysis with ranked product recommendations
+
+**Key Steps:**
+1. Load and review validated idea
+2. Assess compatibility with 9 product types (Course, Podcast, Book, YouTube, Digital, SaaS, Physical, E-commerce, Website)
+3. Score each product type on: Audience Alignment, Content Fit, Monetization, Resources, Time-to-Market
+4. Research competitive gaps per product type candidate
+5. Calculate gap opportunity scores
+6. Analyze resource requirements and synergies
+7. Create final ranked recommendations by tier
+8. Generate product roadmap sequence
+9. Create structured JSON handoff for BMP
+
+**Agent:** Marco (market-researcher) + Cipher (competitor-analyst)
+
+**Output Data:** JSON array of recommended products with fit scores, gaps, synergies
+
+**Feeds Into:** BMP `multi-product-planning` workflow
+
+---
+
+#### 6. validation-synthesis
 
 **Purpose:** Synthesize all findings into go/no-go recommendation
 
@@ -423,7 +456,7 @@ integrations:
 
 ---
 
-#### 6. quick-validation
+#### 7. quick-validation
 
 **Purpose:** 30-minute rapid sanity check for early-stage ideas
 
@@ -444,7 +477,7 @@ integrations:
 
 ---
 
-#### 7. export-to-planning
+#### 8. export-to-planning
 
 **Purpose:** Transform validated concept to BMM product brief
 
@@ -717,6 +750,7 @@ After installation, workflows are accessible via:
 /bmad:bmv:workflows:market-sizing
 /bmad:bmv:workflows:competitor-mapping
 /bmad:bmv:workflows:customer-discovery
+/bmad:bmv:workflows:product-fit-analysis
 /bmad:bmv:workflows:validation-synthesis
 /bmad:bmv:workflows:quick-validation
 /bmad:bmv:workflows:export-to-planning
@@ -1087,6 +1121,9 @@ tasks:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1.0 | 2025-12-01 | Added product-fit-analysis workflow |
+| | | Multi-product type matching and gap analysis |
+| | | Now 8 workflows total |
 | 1.0.0 | 2025-12-01 | Initial complete release |
 | | | 5 agents, 7 workflows, 3 tasks |
 | | | Anti-hallucination protocol |

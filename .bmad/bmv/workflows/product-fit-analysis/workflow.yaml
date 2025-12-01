@@ -1,0 +1,89 @@
+# Product-Fit Analysis Workflow - Business Validation Module
+# Matches validated ideas to product types and identifies market gaps
+
+name: product-fit-analysis
+description: "Analyze which product types fit a validated idea, identify competitive gaps, and score product opportunities"
+config_source: "{project-root}/.bmad/bmv/config.yaml"
+installed_path: "{project-root}/.bmad/bmv/workflows/product-fit-analysis"
+template: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+default_output_file: "{output_folder}/bmv/product-fit-analysis-{{date}}.md"
+
+workflow_type: document
+interaction_mode: research
+
+inputs:
+  - name: validated_idea_path
+    type: file_path
+    required: true
+    description: "Path to the validated idea intake document"
+  - name: market_research_path
+    type: file_path
+    required: false
+    description: "Path to market sizing document if available"
+  - name: competitor_mapping_path
+    type: file_path
+    required: false
+    description: "Path to competitor mapping document if available"
+  - name: target_audience
+    type: text
+    required: false
+    description: "Primary target audience description"
+
+outputs:
+  - name: product_fit_analysis
+    type: document
+    description: "Comprehensive product-fit analysis with ranked recommendations"
+  - name: recommended_products
+    type: structured_data
+    description: "JSON array of recommended products with fit scores"
+
+agents:
+  primary: market-analyst-agent
+  supporting:
+    - validation-orchestrator-agent
+    - competitor-analyst-agent
+
+mcp_tools:
+  required:
+    - jina-ai
+  optional:
+    - context7
+
+product_types:
+  # Reference list of product types to evaluate
+  - code: BME-COURSE
+    name: "Online Course"
+    description: "Educational courses, workshops, masterclasses"
+  - code: BME-PODCAST
+    name: "Podcast"
+    description: "Audio shows, interview series, educational audio"
+  - code: BME-BOOK
+    name: "Book/eBook"
+    description: "Books, eBooks, guides, whitepapers"
+  - code: BME-YOUTUBE
+    name: "YouTube Channel"
+    description: "Video content, tutorials, vlogs"
+  - code: BME-DIGITAL
+    name: "Digital Product"
+    description: "Templates, tools, downloads, printables"
+  - code: BME-SAAS
+    name: "SaaS Product"
+    description: "Software as a service, web applications"
+  - code: BME-PHYSICAL
+    name: "Physical Product"
+    description: "Merchandise, physical goods, kits"
+  - code: BME-ECOMMERCE
+    name: "E-commerce Store"
+    description: "Online store, dropshipping, marketplace"
+  - code: BME-WEBSITE
+    name: "Website/Blog"
+    description: "Content site, blog, community platform"
+
+events:
+  on_complete:
+    - validation.product_fit.completed
+  triggers:
+    - workflow: export-to-planning
+      condition: "recommended_products.length > 0"
