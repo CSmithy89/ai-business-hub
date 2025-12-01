@@ -30,6 +30,7 @@
     "clsx": "^2.1.0",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.263.0",
+    "nanoid": "^5.1.6",
     "next": "^15.0.0",
     "next-themes": "^0.3.0",
     "react": "^19.0.0",

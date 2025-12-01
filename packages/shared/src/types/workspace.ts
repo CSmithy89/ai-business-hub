@@ -3,72 +3,213 @@
  * Used for multi-tenant workspace management and RBAC
  */
 
+import { z } from 'zod'
+
 /**
  * Workspace role definitions for RBAC
  * Aligned with better-auth organization plugin
  */
-export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest';
+export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest'
+
+/**
+ * Role hierarchy for permission checks
+ */
+export const ROLE_HIERARCHY: Record<WorkspaceRole, number> = {
+  owner: 100,
+  admin: 80,
+  member: 60,
+  viewer: 40,
+  guest: 20,
+}
 
 /**
  * Workspace information
+ * Matches Prisma Workspace model
  */
 export interface Workspace {
-  /** Workspace ID */
-  id: string;
-  /** Workspace name */
-  name: string;
+  /** Workspace ID (UUID) */
+  id: string
+  /** Workspace display name */
+  name: string
   /** Workspace slug (URL-safe identifier) */
-  slug: string;
-  /** Workspace description */
-  description?: string;
+  slug: string
+  /** Optional workspace avatar/logo URL */
+  image: string | null
+  /** IANA timezone for the workspace */
+  timezone: string
   /** Created timestamp */
-  createdAt: Date;
+  createdAt: Date
   /** Last updated timestamp */
-  updatedAt: Date;
-  /** Owner user ID */
-  ownerId: string;
-  /** Active status */
-  isActive: boolean;
+  updatedAt: Date
+  /** Soft delete timestamp (null if not deleted) */
+  deletedAt: Date | null
+}
+
+/**
+ * Workspace with user's role and optional member count
+ * Used in API responses that need role context
+ */
+export interface WorkspaceWithRole extends Workspace {
+  /** Current user's role in this workspace */
+  role: WorkspaceRole
+  /** Total active members in workspace (optional) */
+  memberCount?: number
 }
 
 /**
  * Workspace member information
+ * Matches Prisma WorkspaceMember model
  */
 export interface WorkspaceMember {
   /** Member ID */
-  id: string;
+  id: string
   /** Workspace ID */
-  workspaceId: string;
+  workspaceId: string
   /** User ID */
-  userId: string;
+  userId: string
   /** Member role */
-  role: WorkspaceRole;
-  /** Joined timestamp */
-  joinedAt: Date;
-  /** Last activity timestamp */
-  lastActiveAt?: Date;
+  role: WorkspaceRole
+  /** Module-level permission overrides */
+  modulePermissions: Record<string, unknown> | null
+  /** Who invited this member (null for owners) */
+  invitedById: string | null
+  /** Invitation timestamp */
+  invitedAt: Date
+  /** Acceptance timestamp (null if pending) */
+  acceptedAt: Date | null
 }
 
 /**
  * Workspace invitation
+ * Matches Prisma WorkspaceInvitation model
  */
 export interface WorkspaceInvitation {
   /** Invitation ID */
-  id: string;
+  id: string
   /** Workspace ID */
-  workspaceId: string;
+  workspaceId: string
   /** Invitee email */
-  email: string;
+  email: string
   /** Role to be assigned */
-  role: WorkspaceRole;
+  role: WorkspaceRole
   /** Invitation token */
-  token: string;
+  token: string
   /** Invited by user ID */
-  invitedBy: string;
+  invitedById: string
   /** Created timestamp */
-  createdAt: Date;
+  createdAt: Date
   /** Expiration timestamp */
-  expiresAt: Date;
-  /** Accepted status */
-  isAccepted: boolean;
+  expiresAt: Date
+}
+
+// ===========================================
+// ZOD VALIDATION SCHEMAS
+// ===========================================
+
+/**
+ * Schema for creating a new workspace
+ */
+export const CreateWorkspaceSchema = z.object({
+  name: z
+    .string()
+    .min(3, 'Workspace name must be at least 3 characters')
+    .max(50, 'Workspace name must be under 50 characters')
+    .trim(),
+})
+
+export type CreateWorkspaceInput = z.infer<typeof CreateWorkspaceSchema>
+
+/**
+ * List of valid IANA timezones (subset for common ones)
+ * Full list should be validated against Intl.supportedValuesOf('timeZone')
+ */
+export const COMMON_TIMEZONES = [
+  'UTC',
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Toronto',
+  'America/Vancouver',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Europe/Amsterdam',
+  'Asia/Tokyo',
+  'Asia/Shanghai',
+  'Asia/Singapore',
+  'Asia/Dubai',
+  'Australia/Sydney',
+  'Australia/Melbourne',
+  'Pacific/Auckland',
+] as const
+
+/**
+ * Validate if a string is a valid IANA timezone
+ */
+export function isValidTimezone(timezone: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: timezone })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Schema for updating workspace settings
+ */
+export const UpdateWorkspaceSchema = z.object({
+  name: z
+    .string()
+    .min(3, 'Workspace name must be at least 3 characters')
+    .max(50, 'Workspace name must be under 50 characters')
+    .trim()
+    .optional(),
+  image: z.string().url('Invalid image URL').nullable().optional(),
+  timezone: z
+    .string()
+    .refine(isValidTimezone, 'Invalid timezone')
+    .optional(),
+})
+
+export type UpdateWorkspaceInput = z.infer<typeof UpdateWorkspaceSchema>
+
+// ===========================================
+// API RESPONSE TYPES
+// ===========================================
+
+/**
+ * Standard API success response for workspace operations
+ */
+export interface WorkspaceApiResponse<T = Workspace> {
+  success: true
+  data: T
+}
+
+/**
+ * Standard API error response
+ */
+export interface WorkspaceApiError {
+  success: false
+  error: string
+  message: string
+  retryAfter?: number
+}
+
+/**
+ * Workspace list API response
+ */
+export interface WorkspaceListResponse {
+  success: true
+  data: WorkspaceWithRole[]
+}
+
+/**
+ * Workspace deletion response
+ */
+export interface WorkspaceDeletionResponse {
+  success: true
+  message: string
+  deletedAt: string
 }
