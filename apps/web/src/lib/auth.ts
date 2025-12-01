@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { organization } from 'better-auth/plugins'
 import { prisma } from '@hyvve/db'
+import { sendVerificationEmail } from './email'
 
 export const auth = betterAuth({
   // Database adapter using Prisma
@@ -23,13 +24,22 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET!,
   baseURL: process.env.BETTER_AUTH_URL!,
 
-  // Plugins for multi-tenant organization support
+  // Plugins for multi-tenant organization support and email/password auth
   plugins: [
     organization({
       allowUserToCreateOrganization: true,
       // Role definitions will be fully implemented in Epic 02
     }),
   ],
+
+  // Email and password authentication
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: false, // Set to false for easier testing; can be enabled later
+    sendVerificationEmail: async ({ user, token }: { user: any; url: string; token: string }) => {
+      await sendVerificationEmail(user.email, token, user.name)
+    },
+  },
 
   // Advanced options
   advanced: {
@@ -38,9 +48,6 @@ export const auth = betterAuth({
       enabled: false,                 // Single domain for MVP
     },
   },
-
-  // Email configuration (will be added in Story 01.2)
-  // emailAndPassword: { ... }
 
   // OAuth configuration (will be added in Story 01.5)
   // socialProviders: {

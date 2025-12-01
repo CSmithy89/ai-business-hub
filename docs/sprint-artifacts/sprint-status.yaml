@@ -54,7 +54,7 @@ development_status:
   # ===========================================
   epic-01: contexted
   01-1-install-and-configure-better-auth: done
-  01-2-implement-email-password-registration: backlog
+  01-2-implement-email-password-registration: done
   01-3-implement-email-verification: backlog
   01-4-implement-email-password-sign-in: backlog
   01-5-implement-google-oauth: backlog
