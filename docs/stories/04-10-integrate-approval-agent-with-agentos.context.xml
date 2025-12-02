@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story>
+    <id>04-10</id>
+    <title>Integrate Approval Agent with AgentOS</title>
+    <epic>EPIC-04 - Approval Queue System</epic>
+    <priority>P1</priority>
+    <points>3</points>
+  </story>
+
+  <technical-context>
+    <architecture>
+      <component name="AgentOS Runtime">
+        <location>agents/</location>
+        <framework>FastAPI + Agno</framework>
+        <port>7777</port>
+        <description>AI agent runtime with tenant isolation</description>
+      </component>
+
+      <component name="NestJS API">
+        <location>apps/api/</location>
+        <base-url>http://localhost:3001/api</base-url>
+        <description>Backend API providing approval endpoints</description>
+      </component>
+
+      <component name="Control Plane">
+        <url>os.agno.com</url>
+        <description>Agno monitoring dashboard for agent sessions</description>
+      </component>
+    </architecture>
+
+    <existing-files>
+      <file path="agents/platform/approval_agent.py" status="scaffold">
+        <purpose>ApprovalAgent class definition</purpose>
+        <needs>Agno implementation, tool registration</needs>
+      </file>
+
+      <file path="agents/platform/tools/approval_tools.py" status="scaffold">
+        <purpose>Tool functions for approval operations</purpose>
+        <needs>API client, @tool decorators, error handling</needs>
+      </file>
+
+      <file path="agents/platform/schemas/approval.py" status="complete">
+        <purpose>Pydantic models for approval data</purpose>
+      </file>
+
+      <file path="agents/main.py" status="partial">
+        <purpose>FastAPI application with routes</purpose>
+        <needs>Approval agent route registration</needs>
+      </file>
+
+      <file path="agents/config.py" status="complete">
+        <purpose>Environment configuration</purpose>
+      </file>
+
+      <file path="agents/requirements.txt" status="partial">
+        <purpose>Python dependencies</purpose>
+        <needs>httpx for async HTTP</needs>
+      </file>
+
+      <file path=".bmad/orchestrator/agents/approval-agent.agent.yaml" status="complete">
+        <purpose>Agent specification and prompts</purpose>
+      </file>
+    </existing-files>
+
+    <nestjs-api-endpoints>
+      <endpoint method="GET" path="/approvals">
+        <description>List approvals with filtering and pagination</description>
+        <query-params>
+          <param name="status" type="string" optional="true">pending|approved|rejected</param>
+          <param name="type" type="string" optional="true">content|email|campaign|deal</param>
+          <param name="priority" type="string" optional="true">low|normal|high|critical</param>
+          <param name="page" type="number" optional="true">Page number</param>
+          <param name="limit" type="number" optional="true">Items per page</param>
+        </query-params>
+        <auth>Requires JWT token</auth>
+        <tenant>Workspace ID from JWT</tenant>
+      </endpoint>
+
+      <endpoint method="GET" path="/approvals/:id">
+        <description>Get full approval details including AI reasoning</description>
+        <auth>Requires JWT token</auth>
+        <tenant>Workspace ID from JWT</tenant>
+      </endpoint>
+
+      <endpoint method="POST" path="/approvals/:id/approve">
+        <description>Approve an approval item</description>
+        <body>
+          <field name="notes" type="string" optional="true">Optional approval notes</field>
+        </body>
+        <auth>Requires JWT token + admin/owner role</auth>
+        <tenant>Workspace ID from JWT</tenant>
+      </endpoint>
+
+      <endpoint method="POST" path="/approvals/:id/reject">
+        <description>Reject an approval item</description>
+        <body>
+          <field name="reason" type="string" required="true">Required rejection reason</field>
+          <field name="notes" type="string" optional="true">Optional rejection notes</field>
+        </body>
+        <auth>Requires JWT token + admin/owner role</auth>
+        <tenant>Workspace ID from JWT</tenant>
+      </endpoint>
+
+      <endpoint method="POST" path="/approvals/bulk">
+        <description>Bulk approve/reject multiple items</description>
+        <body>
+          <field name="ids" type="string[]" required="true">Approval item IDs</field>
+          <field name="action" type="string" required="true">approve|reject</field>
+          <field name="reason" type="string" optional="true">Required for reject</field>
+          <field name="notes" type="string" optional="true">Optional notes</field>
+        </body>
+        <auth>Requires JWT token + admin/owner role</auth>
+        <tenant>Workspace ID from JWT</tenant>
+      </endpoint>
+    </nestjs-api-endpoints>
+  </technical-context>
+
+  <agno-framework>
+    <agent-pattern>
+      <code-example>
+from agno import Agent
+from agno.tools import tool
+
+class MyAgent(Agent):
+    name = "agent_name"
+    description = "Agent description"
+    instructions = ["Instruction 1", "Instruction 2"]
+
+    # Tools can be defined inline or imported
+    tools = [tool_function_1, tool_function_2]
+      </code-example>
+    </agent-pattern>
+
+    <tool-pattern>
+      <code-example>
+from agno.tools import tool
+
+@tool
+def my_tool(param1: str, param2: int) -> dict:
+    """
+    Tool description for the LLM.
+
+    Args:
+        param1: Description of param1
+        param2: Description of param2
+
+    Returns:
+        Description of return value
+    """
+    # Implementation
+    return {"result": "data"}
+
+# For HITL (Human-in-the-Loop) confirmation
+@tool(requires_confirmation=True)
+def critical_action(param: str) -> dict:
+    """Will pause and ask user for confirmation before executing."""
+    # Implementation
+    return {"confirmed": True}
+      </code-example>
+    </tool-pattern>
+
+    <database-setup>
+      <code-example>
+from agno.db.postgres import PostgresDb
+
+# Create agent with database
+agent = Agent(
+    name="my_agent",
+    db=PostgresDb(
+        connection_string=settings.database_url,
+        table_name="agent_sessions"
+    ),
+    add_history_to_context=True,
+    num_history_runs=5,
+)
+      </code-example>
+    </database-setup>
+  </agno-framework>
+
+  <implementation-requirements>
+    <requirement id="REQ-1">
+      <title>Async HTTP Client</title>
+      <description>Use httpx for async API calls to NestJS</description>
+      <reason>Better async support than requests library</reason>
+    </requirement>
+
+    <requirement id="REQ-2">
+      <title>JWT Forwarding</title>
+      <description>Extract JWT from request.state and forward to NestJS</description>
+      <reason>NestJS needs authentication for workspace context</reason>
+    </requirement>
+
+    <requirement id="REQ-3">
+      <title>HITL Confirmation</title>
+      <description>request_approval must use requires_confirmation=True</description>
+      <reason>Critical actions need explicit human approval</reason>
+    </requirement>
+
+    <requirement id="REQ-4">
+      <title>Error Handling</title>
+      <description>Gracefully handle API unavailable, timeout, auth failure</description>
+      <reason>Agent should not crash on API errors</reason>
+    </requirement>
+
+    <requirement id="REQ-5">
+      <title>Workspace Isolation</title>
+      <description>All API calls must include workspace_id from JWT</description>
+      <reason>Multi-tenant data isolation requirement</reason>
+    </requirement>
+
+    <requirement id="REQ-6">
+      <title>Conversational Agent</title>
+      <description>Agent should answer questions about queue status</description>
+      <reason>Natural language interface for approvers</reason>
+    </requirement>
+  </implementation-requirements>
+
+  <dependencies>
+    <story id="04-02" status="done">
+      <title>Create Approval Queue API Endpoints</title>
+      <provides>NestJS REST API for approvals</provides>
+    </story>
+
+    <story id="00-07" status="done">
+      <title>Set Up AgentOS Runtime Environment</title>
+      <provides>FastAPI + Agno infrastructure</provides>
+    </story>
+  </dependencies>
+
+  <testing-strategy>
+    <test type="unit">
+      <target>approval_tools.py</target>
+      <coverage>API client functions, error handling</coverage>
+    </test>
+
+    <test type="integration">
+      <target>AgentOS + NestJS</target>
+      <coverage>End-to-end agent tool execution</coverage>
+    </test>
+
+    <test type="manual">
+      <target>Control Plane</target>
+      <coverage>Agent session visibility (Story 04-11)</coverage>
+    </test>
+  </testing-strategy>
+
+  <related-documentation>
+    <doc path="docs/epics/EPIC-04-approval-system.md">Epic specification</doc>
+    <doc path="docs/architecture.md">ADR-007: AgentOS for Agent Runtime</doc>
+    <doc path=".bmad/orchestrator/agents/approval-agent.agent.yaml">Agent spec</doc>
+    <doc path="apps/api/src/approvals/approvals.controller.ts">NestJS controller</doc>
+  </related-documentation>
+</story-context>
