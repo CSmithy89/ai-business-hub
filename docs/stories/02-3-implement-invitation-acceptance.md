@@ -249,5 +249,21 @@ When an invitation is accepted, the WorkspaceMember record is created and the in
 
 ---
 
+## Implementation Notes (2025-12-02)
+
+**Completed:**
+- API endpoint for invitation acceptance
+- Invite landing page with server-side validation
+- Accept form component with loading states
+- Error component for all failure scenarios
+- Email mismatch detection and handling
+- Graceful already-member handling
+
+**Technical Debt:**
+1. Auth page integration for `?invite=` param (sign-in/sign-up forms should auto-process)
+2. Toast notifications after acceptance
+
+---
+
 _Story drafted: 2025-12-02_
-_Ready for implementation_
+_Implementation completed: 2025-12-02_
