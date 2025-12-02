@@ -328,8 +328,9 @@ All Approval Queue wireframes are complete. Reference these when implementing:
 | 04.7 Bulk Approval | AP-04 Batch Approval | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-04_batch_approval/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-04_batch_approval/screen.png) |
 | General | AP-05 Approval Filters | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-05_approval_filters/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-05_approval_filters/screen.png) |
 | 04.9 Audit Trail | AP-06 Approval History | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-06_approval_history/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-06_approval_history/screen.png) |
+| General | AP-07 Quick Actions | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-07_quick_actions_panel/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/ap-07_quick_actions_panel/screen.png) |
 
-**Full wireframe index:** [WIREFRAME-INDEX.md](../design/wireframes/WIREFRAME-INDEX.md)
+**Total: 7 wireframes** · **Full wireframe index:** [WIREFRAME-INDEX.md](../design/wireframes/WIREFRAME-INDEX.md)
 
 ---
 
