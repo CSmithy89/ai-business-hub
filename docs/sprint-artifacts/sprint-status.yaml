@@ -65,7 +65,7 @@ development_status:
 
   # ===========================================
   # EPIC-02: Workspace Management
-  # Phase 1 - Core Foundation | 7 stories | 16 points
+  # Phase 1 - Core Foundation | 8 stories | 18 points
   # ===========================================
   epic-02: contexted
   02-1-create-workspace-crud-operations: done
@@ -75,6 +75,7 @@ development_status:
   02-5-implement-member-management: done
   02-6-create-workspace-settings-page: done
   02-7-implement-workspace-deletion: done
+  02-8-implement-ownership-transfer: backlog  # Added from Epic 02/03 retro - deferred tech debt
   epic-02-retrospective: completed
 
   # ===========================================

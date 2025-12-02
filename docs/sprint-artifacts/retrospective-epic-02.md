@@ -130,7 +130,7 @@ Components follow established patterns:
 | Item | Priority | Blocked By | Status |
 |------|----------|------------|--------|
 | ~~CreateWorkspaceModal~~ | Low | None | **RESOLVED** (2025-12-02) |
-| Ownership transfer | Medium | None | Open - Add to Epic 03 or future story |
+| Ownership transfer | Medium | None | **SCHEDULED** - Story 02-8 in backlog |
 | Image file upload | Medium | Storage setup | Open - Integrate with Supabase Storage |
 | ~~E2E workspace tests~~ | Medium | None | **RESOLVED** (2025-12-02) |
 | Email templates | Low | Epic 07 | Open - Create shared template system |
