@@ -116,6 +116,11 @@ export const UPDATE_ALLOWED_ROLES: WorkspaceRole[] = ['owner', 'admin']
 export const DELETE_ALLOWED_ROLES: WorkspaceRole[] = ['owner']
 
 /**
+ * Roles allowed for inviting members (owner and admin)
+ */
+export const INVITE_ALLOWED_ROLES: WorkspaceRole[] = ['owner', 'admin']
+
+/**
  * Check if user has one of the required roles
  *
  * @param userRole - The user's current role
@@ -158,6 +163,18 @@ export function requireCanDeleteWorkspace(
   membership: WorkspaceMembershipResult
 ): void {
   requireRole(membership.role, DELETE_ALLOWED_ROLES)
+}
+
+/**
+ * Helper to check if user can invite members
+ *
+ * @param membership - Membership result from requireWorkspaceMembership
+ * @throws WorkspaceAuthError if not owner or admin
+ */
+export function requireCanInviteMembers(
+  membership: WorkspaceMembershipResult
+): void {
+  requireRole(membership.role, INVITE_ALLOWED_ROLES)
 }
 
 /**

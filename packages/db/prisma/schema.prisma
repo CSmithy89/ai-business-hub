@@ -32,6 +32,7 @@ model User {
   accounts   Account[]
   workspaces WorkspaceMember[]
   invitationsSent WorkspaceMember[] @relation("InvitedBy")
+  workspaceInvitationsSent WorkspaceInvitation[] @relation("SentInvitations")
   assignedApprovals ApprovalItem[] @relation("AssignedApprovals")
   resolvedApprovals ApprovalItem[] @relation("ResolvedApprovals")
   createdApiKeys ApiKey[] @relation("CreatedBy")
@@ -108,6 +109,7 @@ model Workspace {
   deletedAt DateTime? @map("deleted_at")
 
   members     WorkspaceMember[]
+  invitations WorkspaceInvitation[]
   aiProviders AIProviderConfig[]
   approvals   ApprovalItem[]
   apiKeys     ApiKey[]
@@ -151,6 +153,9 @@ model WorkspaceInvitation {
   expiresAt   DateTime @map("expires_at")
   invitedById String   @map("invited_by_id")
   createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation("SentInvitations", fields: [invitedById], references: [id])
 
   @@unique([workspaceId, email])
   @@index([token])
