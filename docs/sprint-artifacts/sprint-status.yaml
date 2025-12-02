@@ -84,7 +84,7 @@ development_status:
   epic-03: contexted
   03-1-implement-permission-matrix: done
   03-2-create-auth-guards-for-nestjs: done
-  03-3-create-permission-middleware-for-nextjs: backlog
+  03-3-create-permission-middleware-for-nextjs: done
   03-4-implement-prisma-tenant-extension: backlog
   03-5-create-postgresql-rls-policies: backlog
   03-6-implement-module-level-permission-overrides: backlog
