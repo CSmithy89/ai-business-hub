@@ -224,7 +224,8 @@ All Authentication wireframes are complete. Reference these when implementing:
 | 01.4 Sign-In | AU-01 | Login page with email/password, Google OAuth | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-01_login_page/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-01_login_page/screen.png) |
 | 01.6 Password Reset | AU-03 | Forgot password form | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-03_forgot_password/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-03_forgot_password/screen.png) |
 | 01.6 Password Reset | AU-04 | New password form after reset | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-04_password_reset/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-04_password_reset/screen.png) |
-| 01.8 Auth UI | All AU-* | Auth layout and component patterns | Reference all above wireframes for consistent styling |
+| 01.7 Session/Security | AU-06 | Two-factor authentication setup and verification | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-06_two-factor_authentication/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-06_two-factor_authentication/screen.png) |
+| 01.8 Auth UI | All AU-* | Auth layout and component patterns (6 wireframes) | Reference all above wireframes for consistent styling |
 
 **Full wireframe index:** [WIREFRAME-INDEX.md](../design/wireframes/WIREFRAME-INDEX.md)
 

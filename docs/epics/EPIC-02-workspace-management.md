@@ -192,6 +192,19 @@ Workspaces enable team collaboration and data isolation. Members can work togeth
 
 ---
 
+## Wireframe References
+
+Reference these wireframes when implementing workspace management:
+
+| Story | Wireframe | Description | Assets |
+|-------|-----------|-------------|--------|
+| 02.5 Member Management | ST-06 | Team members list, invite form, role assignment | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-06_team_members/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-06_team_members/screen.png) |
+| 02.6 Workspace Settings | ST-01 | Settings page layout (reusable pattern) | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-01_settings_layout/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-01_settings_layout/screen.png) |
+
+**Full wireframe index:** [WIREFRAME-INDEX.md](../design/wireframes/WIREFRAME-INDEX.md)
+
+---
+
 ## Dependencies
 
 - Epic 00: Project Scaffolding

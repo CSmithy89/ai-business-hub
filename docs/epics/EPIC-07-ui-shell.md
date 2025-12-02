@@ -257,21 +257,88 @@ The UI shell provides consistent navigation and AI interaction across the platfo
 
 ## Wireframe References
 
-All UI Shell wireframes are complete. Reference these when implementing:
+All UI Shell wireframes are complete (43 total). Reference these when implementing:
 
+### Core Shell & Navigation (6 wireframes)
 | Story | Wireframe | Assets |
 |-------|-----------|--------|
-| 07.1 Dashboard Layout | SH-01 Shell Layout | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-01_shell_layout_(three-panel)/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-01_shell_layout_(three-panel)/screen.png) |
-| 07.2 Sidebar Navigation | SH-02 Navigation Sidebar | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-02_navigation_sidebar_(states)/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-02_navigation_sidebar_(states)/screen.png) |
-| 07.3 Header Bar | SH-03 Header Bar | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-03_header_bar_with_dropdowns/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-03_header_bar_with_dropdowns/screen.png) |
-| 07.4 Chat Panel | CH-01 Chat Panel | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ch-01_chat_panel/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/ch-01_chat_panel/screen.png) |
-| 07.5 Dark/Light Mode | ST-08 Appearance | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-08_appearance/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-08_appearance/screen.png) |
-| 07.6 Command Palette | SH-05 Command Palette | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-05_command_palette_(cmd+k)/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-05_command_palette_(cmd+k)/screen.png) |
-| 07.7 Notification Center | PM-16 Notifications | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/screen.png) |
-| 07.9 Dashboard Home | DB-01 Dashboard | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/db-01_dashboard_overview/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/db-01_dashboard_overview/screen.png) |
-| 07.10 Mobile Navigation | SH-06 Mobile Layout | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-06_mobile_layout/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-06_mobile_layout/screen.png) |
+| 07.1 Dashboard Layout | SH-01 Shell Layout | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-01_shell_layout_(three-panel)/code.html) |
+| 07.2 Sidebar Navigation | SH-02 Navigation Sidebar | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-02_navigation_sidebar_(states)/code.html) |
+| 07.3 Header Bar | SH-03 Header Bar | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-03_header_bar_with_dropdowns/code.html) |
+| 07.3 Header Bar | SH-04 Status Bar | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-04_status_bar/code.html) |
+| 07.6 Command Palette | SH-05 Command Palette | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-05_command_palette_(cmd+k)/code.html) |
+| 07.10 Mobile Navigation | SH-06 Mobile Layout | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/sh-06_mobile_layout/code.html) |
 
-**Full wireframe index:** [WIREFRAME-INDEX.md](../design/wireframes/WIREFRAME-INDEX.md)
+### Chat Interface (7 wireframes)
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| 07.4 Chat Panel | CH-01 Chat Panel | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ch-01_chat_panel/code.html) |
+| 07.4 Chat Panel | CH-02 Chat Messages | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ch-02_chat_messages_(all_types)_/code.html) |
+| 07.4 Chat Panel | CH-03 Chat Input | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ch-03_chat_input_component/code.html) |
+| 07.4 Chat Panel | CH-04 Typing Indicator | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ch-04_typing_indicator/code.html) |
+| 07.4 Chat Panel | CH-05 Message Actions | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ch-05_message_actions_menu/code.html) |
+| 07.4 Chat Panel | CH-06 Chat History | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ch-06_chat_history/code.html) |
+| 07.4 Chat Panel | CH-07 Agent Switching | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ch-07_agent_switching/code.html) |
+
+### AI Team Panel (5 wireframes)
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| General | AI-01 AI Team Overview | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ai-01_ai_team_overview/code.html) |
+| General | AI-02 Agent Card | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ai-02_agent_card_component/code.html) |
+| General | AI-03 Agent Detail Modal | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ai-03_agent_detail_modal/code.html) |
+| General | AI-04 Agent Activity Feed | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ai-04_agent_activity_feed/code.html) |
+| General | AI-05 Agent Configuration | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/ai-05_agent_configuration/code.html) |
+
+### Dashboard (1 wireframe)
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| 07.9 Dashboard Home | DB-01 Dashboard Overview | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/db-01_dashboard_overview/code.html) |
+
+### Data Components (6 wireframes) - Reusable across all modules
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| Components | DC-01 Data Tables | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/dc-01_data_tables/code.html) |
+| Components | DC-02 Data Cards | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/dc-02_data_cards/code.html) |
+| Components | DC-03 List Views | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/dc-03_list_views/code.html) |
+| Components | DC-04 Charts & Graphs | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/dc-04_charts_%26_graphs/code.html) |
+| Components | DC-05 Progress Indicators | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/dc-05_progress_indicators/code.html) |
+| Components | DC-06 Statistics | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/dc-06_statistics/code.html) |
+
+### Forms & Inputs (5 wireframes) - Reusable across all modules
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| Components | FI-01 Text Inputs | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/fi-01_text_inputs/code.html) |
+| Components | FI-02 Select | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/fi-02_select/code.html) |
+| Components | FI-03 Checkboxes & Radios | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/fi-03_checkboxes_%26_radios/code.html) |
+| Components | FI-04 Date | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/fi-04_date/code.html) |
+| Components | FI-05 File Upload | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/fi-05_file_upload/code.html) |
+
+### Feedback & States (5 wireframes) - Reusable across all modules
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| Components | FS-01 Modals | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/fs-01_modals/code.html) |
+| Components | FS-02 Toast Notifications | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/fs-02_toast_notifications/code.html) |
+| Components | FS-03 Empty States | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/fs-03_empty_states/code.html) |
+| Components | FS-04 Error States | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/fs-04_error_states/code.html) |
+| Components | FS-05 Loading States | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/fs-05_loading_states/code.html) |
+
+### Settings & Core UI (5 wireframes)
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| Settings | ST-01 Settings Layout | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-01_settings_layout/code.html) |
+| Settings | ST-07 Notification Settings | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-07_notification_settings/code.html) |
+| 07.5 Dark/Light Mode | ST-08 Appearance | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/st-08_appearance/code.html) |
+| 07.7 Notification Center | PM-16 Notifications | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/code.html) |
+| General | PM-17 Global Search | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-17_global_search/code.html) |
+
+### Core Platform UI (3 wireframes)
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| General | PM-18 User Profile | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-18_user_profile_%26_account/code.html) |
+| General | PM-19 Onboarding Flow | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-19_onboarding_flow/code.html) |
+| General | PM-20 Help & Support | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-20_help_%26_support_center/code.html) |
+
+**Total: 43 wireframes** · **Full wireframe index:** [WIREFRAME-INDEX.md](../design/wireframes/WIREFRAME-INDEX.md)
 
 ---
 

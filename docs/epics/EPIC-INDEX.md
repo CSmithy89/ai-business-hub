@@ -9,16 +9,16 @@
 
 | Epic | Name | Stories | Points | Priority | Phase | Wireframes |
 |------|------|---------|--------|----------|-------|------------|
-| EPIC-00 | Project Scaffolding | 7 | 17 | P0 | Phase 1 | - |
-| EPIC-01 | Authentication | 8 | 19 | P0 | Phase 1 | ✅ 6 wireframes |
-| EPIC-02 | Workspace Management | 7 | 16 | P0 | Phase 1 | - |
-| EPIC-03 | RBAC & Multi-tenancy | 7 | 17 | P0 | Phase 2 | - |
-| EPIC-04 | Approval System | 12 | 29 | P0 | Phase 3 | ✅ 7 wireframes |
-| EPIC-05 | Event Bus | 7 | 15 | P0 | Phase 4 | - |
-| EPIC-06 | BYOAI Configuration | 11 | 28 | P0 | Phase 4 | ✅ 8 wireframes |
-| EPIC-07 | UI Shell | 10 | 24 | P0 | Phase 1-3 | ✅ 9 wireframes |
-| EPIC-08 | Business Onboarding | 23 | 82 | P0/P1/P2 | Phase 5-6 | Pending |
-| **Total** | | **92** | **247** | | | **30 linked** |
+| EPIC-00 | Project Scaffolding | 7 | 17 | P0 | Phase 1 | - (infrastructure) |
+| EPIC-01 | Authentication | 8 | 19 | P0 | Phase 1 | ✅ 6 wireframes (AU-01 to AU-06) |
+| EPIC-02 | Workspace Management | 7 | 16 | P0 | Phase 1 | ✅ 1 wireframe (ST-06) |
+| EPIC-03 | RBAC & Multi-tenancy | 7 | 17 | P0 | Phase 2 | - (backend) |
+| EPIC-04 | Approval System | 12 | 29 | P0 | Phase 3 | ✅ 7 wireframes (AP-01 to AP-07) |
+| EPIC-05 | Event Bus | 7 | 15 | P0 | Phase 4 | - (infrastructure) |
+| EPIC-06 | BYOAI Configuration | 11 | 28 | P0 | Phase 4 | ✅ 4 wireframes (ST-02 to ST-05) |
+| EPIC-07 | UI Shell | 10 | 24 | P0 | Phase 1-3 | ✅ 43 wireframes (SH, CH, AI, DB, DC, FI, FS, ST-01/07/08, PM-16-20) |
+| EPIC-08 | Business Onboarding | 23 | 82 | P0/P1/P2 | Phase 5-6 | ✅ 18 wireframes (BO-01 to BO-18) |
+| **Total** | | **92** | **247** | | | **79 linked** + 30 future (CRM, PM) |
 
 > **Note:** Story counts updated 2025-12-01 to include AgentOS integration (ADR-007), IAssistantClient (06.10), Agent Model Preferences (06.11)
 > **Note:** EPIC-08 added 2025-12-01 - Business Onboarding with BMV, BMP, BM-Brand modules (23 stories, 82 points)
@@ -217,7 +217,7 @@ EPIC-00 (Scaffolding)
 | `/docs/prd.md` | Product requirements |
 | `/docs/architecture.md` | Technical architecture |
 | `/docs/ux-design.md` | UX design decisions |
-| `/docs/design/wireframes/WIREFRAME-INDEX.md` | **91 completed wireframes** |
+| `/docs/design/wireframes/WIREFRAME-INDEX.md` | **109 completed wireframes** |
 | `/docs/api/openapi.yaml` | API specification |
 | `/packages/db/prisma/schema.prisma` | Database schema |
 
