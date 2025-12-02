@@ -1,0 +1,651 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>04-1</story-id>
+    <title>Implement Confidence Calculator Service</title>
+    <epic>EPIC-04 - Approval Queue System</epic>
+    <points>3</points>
+    <priority>P0</priority>
+    <generated>2025-12-02</generated>
+  </metadata>
+
+  <story-definition>
+    <user-story>
+      As a platform developer
+      I want a confidence scoring system
+      So that AI actions can be routed appropriately
+    </user-story>
+
+    <description>
+      Implement the core ConfidenceCalculatorService that takes confidence factors with weights
+      and scores, calculates a weighted average, and returns a recommendation (approve/review/full_review)
+      based on configurable thresholds. This service is the foundation of the confidence-based
+      approval routing system.
+    </description>
+
+    <acceptance-criteria>
+      <criterion>Create ConfidenceCalculatorService in NestJS</criterion>
+      <criterion>Define confidence factors interface</criterion>
+      <criterion>Implement weighted average scoring</criterion>
+      <criterion>Return recommendation: auto/quick/full review</criterion>
+      <criterion>Log confidence calculations for debugging</criterion>
+      <criterion>Make thresholds configurable per workspace</criterion>
+    </acceptance-criteria>
+  </story-definition>
+
+  <technical-specification>
+    <overview>
+      The ConfidenceCalculatorService is a stateless NestJS service that calculates confidence
+      scores from provided factors. It does not determine which factors to use (that's the
+      responsibility of calling services) - it only performs the calculation and routing logic.
+    </overview>
+
+    <service-design>
+      <class-structure>
+        <![CDATA[
+@Injectable()
+export class ConfidenceCalculatorService {
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+    private logger: Logger,
+  ) {}
+
+  async calculate(
+    factors: ConfidenceFactor[],
+    workspaceId: string,
+  ): Promise<ConfidenceResult> {
+    // 1. Validate weights sum to 1.0
+    // 2. Calculate weighted average
+    // 3. Get workspace thresholds
+    // 4. Determine recommendation
+    // 5. Generate reasoning for low confidence
+    // 6. Log calculation
+    // 7. Return result
+  }
+
+  private async getWorkspaceThresholds(workspaceId: string) {
+    // Fetch from WorkspaceSettings or use defaults
+  }
+
+  private getRecommendation(score: number, thresholds) {
+    // >85% = approve, 60-85% = review, <60% = full_review
+  }
+
+  private generateReasoning(factors: ConfidenceFactor[], overallScore: number) {
+    // Generate human-readable reasoning for low confidence
+  }
+}
+        ]]>
+      </class-structure>
+
+      <interfaces>
+        <![CDATA[
+// packages/shared/src/types/approval.ts
+export interface ConfidenceFactor {
+  factor: string;           // e.g., 'historical_accuracy', 'data_completeness'
+  score: number;            // 0-100
+  weight: number;           // 0-1 (must sum to 1.0)
+  explanation: string;      // Human-readable explanation
+  concerning?: boolean;     // Flag for red highlighting in UI
+}
+
+export interface ConfidenceResult {
+  overallScore: number;     // 0-100 weighted average
+  factors: ConfidenceFactor[];
+  recommendation: 'approve' | 'review' | 'full_review';
+  reasoning?: string;       // Generated for low confidence (<60%)
+}
+
+export interface ConfidenceThresholds {
+  autoApprove: number;      // Default: 85
+  quick: number;            // Default: 60
+}
+        ]]>
+      </interfaces>
+
+      <validation-logic>
+        <rule>Factor weights must sum to 1.0 (with 0.001 tolerance)</rule>
+        <rule>Factor scores must be 0-100</rule>
+        <rule>Factor weights must be 0-1</rule>
+        <rule>Throw BadRequestException if validation fails</rule>
+      </validation-logic>
+
+      <threshold-logic>
+        <rule>score >= autoApproveThreshold (default 85) → 'approve' → Auto-execute</rule>
+        <rule>score >= quickReviewThreshold (default 60) AND score &lt; autoApproveThreshold → 'review' → Quick approval</rule>
+        <rule>score &lt; quickReviewThreshold → 'full_review' → Full review with AI reasoning</rule>
+      </threshold-logic>
+
+      <reasoning-generation>
+        <description>
+          For scores below the quick review threshold (&lt;60%), generate human-readable reasoning
+          explaining why confidence is low. Include:
+          - Overall score message
+          - Low factors (score &lt; 60)
+          - Concerning factors (concerning flag set)
+        </description>
+      </reasoning-generation>
+
+      <logging>
+        <log-level>INFO</log-level>
+        <log-on>Every successful calculation</log-on>
+        <log-fields>workspaceId, score, recommendation, factorCount</log-fields>
+        <error-level>ERROR</error-level>
+        <error-on>Validation failures</error-on>
+      </logging>
+    </service-design>
+
+    <workspace-settings-integration>
+      <database-fields>
+        <field>autoApproveThreshold: Int @default(85)</field>
+        <field>quickReviewThreshold: Int @default(60)</field>
+      </database-fields>
+      <note>
+        These fields already exist in the WorkspaceSettings model (see schema below).
+        The service should fetch these values and fall back to defaults if the workspace
+        has no settings record.
+      </note>
+    </workspace-settings-integration>
+
+    <confidence-factor-examples>
+      <example>
+        <name>Historical Accuracy</name>
+        <description>Past success rate of similar actions</description>
+        <typical-weight>0.25</typical-weight>
+      </example>
+      <example>
+        <name>Data Completeness</name>
+        <description>Required fields filled</description>
+        <typical-weight>0.20</typical-weight>
+      </example>
+      <example>
+        <name>Business Rules</name>
+        <description>Compliance with workspace rules</description>
+        <typical-weight>0.20</typical-weight>
+      </example>
+      <example>
+        <name>Time Sensitivity</name>
+        <description>Urgency/deadline context</description>
+        <typical-weight>0.10</typical-weight>
+      </example>
+      <example>
+        <name>Value Impact</name>
+        <description>Financial/business impact magnitude</description>
+        <typical-weight>0.15</typical-weight>
+      </example>
+      <example>
+        <name>Pattern Match</name>
+        <description>Similarity to previously approved items</description>
+        <typical-weight>0.10</typical-weight>
+      </example>
+    </confidence-factor-examples>
+  </technical-specification>
+
+  <architecture-context>
+    <nestjs-patterns>
+      <service-pattern>
+        <![CDATA[
+// NestJS services follow this pattern:
+import { Injectable, Logger } from '@nestjs/common'
+import { PrismaService } from '../common/services/prisma.service'
+import { ConfigService } from '@nestjs/config'
+
+@Injectable()
+export class MyService {
+  private readonly logger = new Logger(MyService.name)
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  async myMethod() {
+    // Implementation
+    this.logger.log('Operation completed', { context: 'data' })
+  }
+}
+        ]]>
+      </service-pattern>
+
+      <module-pattern>
+        <![CDATA[
+// NestJS modules export services for dependency injection:
+import { Module } from '@nestjs/common'
+import { MyService } from './my.service'
+
+@Module({
+  providers: [MyService],
+  exports: [MyService],  // Export for use in other modules
+})
+export class MyModule {}
+        ]]>
+      </module-pattern>
+
+      <dependency-injection>
+        <description>
+          NestJS uses constructor-based dependency injection. Services declare dependencies
+          in their constructor, and the NestJS IoC container automatically resolves them.
+        </description>
+      </dependency-injection>
+    </nestjs-patterns>
+
+    <error-handling>
+      <![CDATA[
+// Use NestJS built-in exceptions:
+import { BadRequestException, NotFoundException } from '@nestjs/common'
+
+// Throw for validation errors:
+throw new BadRequestException('Factor weights must sum to 1.0')
+
+// Standard error response format (handled by NestJS):
+{
+  "statusCode": 400,
+  "message": "Factor weights must sum to 1.0",
+  "error": "Bad Request"
+}
+      ]]>
+    </error-handling>
+
+    <multi-tenant-context>
+      <description>
+        All operations must be workspace-scoped. The workspaceId is passed as a parameter
+        to the calculate() method and used to fetch workspace-specific threshold settings.
+      </description>
+    </multi-tenant-context>
+  </architecture-context>
+
+  <existing-code-patterns>
+    <service-example>
+      <file>apps/api/src/audit/audit.service.ts</file>
+      <description>
+        Example of a well-structured NestJS service with:
+        - Injectable decorator
+        - Logger instance
+        - PrismaService injection
+        - Multiple public methods with clear params
+        - Private helper methods
+        - Error handling that doesn't block operations
+        - Comprehensive JSDoc comments
+      </description>
+      <key-patterns>
+        <pattern>Logger initialized as: private readonly logger = new Logger(AuditService.name)</pattern>
+        <pattern>PrismaService injected via constructor</pattern>
+        <pattern>Try-catch blocks log errors but don't throw (for non-critical operations)</pattern>
+        <pattern>Structured logging with context: this.logger.log('message', { context })</pattern>
+      </key-patterns>
+    </service-example>
+
+    <test-example>
+      <file>apps/api/src/audit/audit.service.spec.ts</file>
+      <description>
+        Example of comprehensive NestJS service tests with:
+        - Test.createTestingModule for dependency injection
+        - Mock providers using jest.fn()
+        - beforeEach to reset mocks
+        - Multiple describe blocks for method groups
+        - Tests for success cases and error cases
+        - Verification of mock calls with expect(mock).toHaveBeenCalledWith()
+      </description>
+      <key-patterns>
+        <pattern>Mock PrismaService with jest.fn() for all methods</pattern>
+        <pattern>Use Test.createTestingModule to set up testing module</pattern>
+        <pattern>Clear mocks in beforeEach with jest.clearAllMocks()</pattern>
+        <pattern>Test both success paths and error paths</pattern>
+        <pattern>Verify exact arguments passed to mocked methods</pattern>
+      </key-patterns>
+    </test-example>
+
+    <module-registration>
+      <file>apps/api/src/app.module.ts</file>
+      <description>
+        Root module imports feature modules. Feature modules should be imported here
+        after creation. Example: AuditModule, MembersModule.
+      </description>
+      <pattern>
+        <![CDATA[
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    CommonModule,
+    AuditModule,
+    MembersModule,
+    // Add ApprovalsModule here
+  ],
+})
+export class AppModule {}
+        ]]>
+      </pattern>
+    </module-registration>
+  </existing-code-patterns>
+
+  <database-schema>
+    <workspace-settings>
+      <![CDATA[
+model WorkspaceSettings {
+  id          String @id @default(uuid())
+  workspaceId String @unique @map("workspace_id")
+
+  approvalTimeoutHours Int @default(48) @map("approval_timeout_hours")
+  autoApproveThreshold Int @default(85) @map("auto_approve_threshold")
+  quickReviewThreshold Int @default(60) @map("quick_review_threshold")
+
+  defaultInviteRole String @default("member") @map("default_invite_role")
+
+  enableBulkApprovals Boolean @default(true) @map("enable_bulk_approvals")
+  enableAgentChat     Boolean @default(true) @map("enable_agent_chat")
+  enableTokenTracking Boolean @default(true) @map("enable_token_tracking")
+
+  brandPrimaryColor String? @map("brand_primary_color")
+  brandLogoUrl      String? @map("brand_logo_url")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("workspace_settings")
+}
+      ]]>
+    </workspace-settings>
+
+    <note>
+      The WorkspaceSettings model already exists in the schema with the required threshold fields.
+      The service should query this table and use the configured values, or fall back to defaults
+      if no settings record exists for the workspace.
+    </note>
+  </database-schema>
+
+  <file-structure>
+    <files-to-create>
+      <file>
+        <path>apps/api/src/approvals/approvals.module.ts</path>
+        <description>Approvals module definition</description>
+      </file>
+      <file>
+        <path>apps/api/src/approvals/services/confidence-calculator.service.ts</path>
+        <description>Main service implementation</description>
+      </file>
+      <file>
+        <path>apps/api/src/approvals/services/confidence-calculator.service.spec.ts</path>
+        <description>Unit tests for service</description>
+      </file>
+      <file>
+        <path>packages/shared/src/types/approval.ts</path>
+        <description>Shared TypeScript types (ConfidenceFactor, ConfidenceResult)</description>
+      </file>
+    </files-to-create>
+
+    <files-to-modify>
+      <file>
+        <path>apps/api/src/app.module.ts</path>
+        <description>Import ApprovalsModule</description>
+      </file>
+      <file>
+        <path>packages/shared/src/index.ts</path>
+        <description>Export approval types</description>
+      </file>
+    </files-to-modify>
+
+    <directory-structure>
+      <![CDATA[
+apps/api/src/approvals/
+├── approvals.module.ts
+└── services/
+    ├── confidence-calculator.service.ts
+    └── confidence-calculator.service.spec.ts
+      ]]>
+    </directory-structure>
+  </file-structure>
+
+  <implementation-checklist>
+    <phase name="Setup">
+      <step>Create approvals directory: apps/api/src/approvals/</step>
+      <step>Create services subdirectory: apps/api/src/approvals/services/</step>
+    </phase>
+
+    <phase name="Type Definitions">
+      <step>Create packages/shared/src/types/approval.ts</step>
+      <step>Define ConfidenceFactor interface</step>
+      <step>Define ConfidenceResult interface</step>
+      <step>Define ConfidenceThresholds interface</step>
+      <step>Export types from packages/shared/src/index.ts</step>
+    </phase>
+
+    <phase name="Service Implementation">
+      <step>Create confidence-calculator.service.ts</step>
+      <step>Add Injectable decorator and Logger</step>
+      <step>Inject ConfigService and PrismaService in constructor</step>
+      <step>Implement calculate() method:
+        - Validate weights sum to 1.0
+        - Calculate weighted average
+        - Get workspace thresholds
+        - Determine recommendation
+        - Generate reasoning if needed
+        - Log calculation
+        - Return result
+      </step>
+      <step>Implement getWorkspaceThresholds() private method</step>
+      <step>Implement getRecommendation() private method</step>
+      <step>Implement generateReasoning() private method</step>
+    </phase>
+
+    <phase name="Module Setup">
+      <step>Create approvals.module.ts</step>
+      <step>Import CommonModule (for PrismaService)</step>
+      <step>Declare ConfidenceCalculatorService as provider</step>
+      <step>Export ConfidenceCalculatorService for other modules</step>
+      <step>Import ApprovalsModule in app.module.ts</step>
+    </phase>
+
+    <phase name="Testing">
+      <step>Create confidence-calculator.service.spec.ts</step>
+      <step>Set up test module with mocked dependencies</step>
+      <step>Test calculate() with valid factors</step>
+      <step>Test weight validation (sum to 1.0)</step>
+      <step>Test threshold boundaries (exactly 85, exactly 60)</step>
+      <step>Test recommendation mapping for all ranges</step>
+      <step>Test reasoning generation for low confidence</step>
+      <step>Test workspace-specific thresholds</step>
+      <step>Test fallback to default thresholds</step>
+      <step>Test logging output</step>
+      <step>Test edge cases (empty factors, zero weights, etc.)</step>
+      <step>Run tests: pnpm test confidence-calculator</step>
+    </phase>
+
+    <phase name="Verification">
+      <step>Verify all tests pass (100% coverage goal)</step>
+      <step>Verify TypeScript compilation succeeds</step>
+      <step>Verify module exports correctly</step>
+      <step>Manual test with sample data in development</step>
+    </phase>
+  </implementation-checklist>
+
+  <testing-strategy>
+    <unit-tests>
+      <test-suite>ConfidenceCalculatorService</test-suite>
+
+      <test-case>
+        <name>should be defined</name>
+        <description>Verify service instantiates correctly</description>
+      </test-case>
+
+      <test-case>
+        <name>should calculate weighted average correctly</name>
+        <description>Test with sample factors that sum to 1.0</description>
+        <example>
+          factors = [
+            { factor: 'data_completeness', score: 90, weight: 0.5, explanation: '...' },
+            { factor: 'historical_accuracy', score: 70, weight: 0.5, explanation: '...' }
+          ]
+          Expected: overallScore = 80
+        </example>
+      </test-case>
+
+      <test-case>
+        <name>should throw error when weights do not sum to 1.0</name>
+        <description>Test validation with weights summing to 0.8</description>
+        <expected-error>BadRequestException: 'Factor weights must sum to 1.0'</expected-error>
+      </test-case>
+
+      <test-case>
+        <name>should return approve for score >= 85</name>
+        <description>Test threshold boundary with score exactly 85</description>
+        <expected>recommendation = 'approve'</expected>
+      </test-case>
+
+      <test-case>
+        <name>should return review for score 60-84</name>
+        <description>Test threshold boundary with score exactly 60 and 84</description>
+        <expected>recommendation = 'review'</expected>
+      </test-case>
+
+      <test-case>
+        <name>should return full_review for score &lt; 60</name>
+        <description>Test threshold boundary with score 59</description>
+        <expected>recommendation = 'full_review' with reasoning</expected>
+      </test-case>
+
+      <test-case>
+        <name>should generate reasoning for low confidence scores</name>
+        <description>Test reasoning generation with score &lt; 60</description>
+        <expected>reasoning includes overall score and low factors</expected>
+      </test-case>
+
+      <test-case>
+        <name>should use workspace-specific thresholds</name>
+        <description>Mock workspace settings with custom thresholds</description>
+        <mock-settings>{ autoApproveThreshold: 90, quickReviewThreshold: 70 }</mock-settings>
+        <expected>Uses custom thresholds instead of defaults</expected>
+      </test-case>
+
+      <test-case>
+        <name>should use default thresholds when workspace settings do not exist</name>
+        <description>Mock prisma to return null for workspace settings</description>
+        <expected>Uses defaults: autoApprove=85, quick=60</expected>
+      </test-case>
+
+      <test-case>
+        <name>should log calculation details</name>
+        <description>Verify logger.log is called with correct context</description>
+        <expected>Log includes workspaceId, score, recommendation, factorCount</expected>
+      </test-case>
+
+      <test-case>
+        <name>should handle concerning factors in reasoning</name>
+        <description>Test with factors marked as concerning</description>
+        <expected>Reasoning includes concerning factors section</expected>
+      </test-case>
+
+      <test-case>
+        <name>should accept weights with small floating point errors</name>
+        <description>Test with weights that sum to 1.001 or 0.999</description>
+        <expected>Accepts within 0.001 tolerance</expected>
+      </test-case>
+    </unit-tests>
+
+    <integration-tests>
+      <note>
+        Integration tests will be added in Story 04.2 when the full ApprovalsService
+        is implemented. For this story, unit tests with mocked dependencies are sufficient.
+      </note>
+    </integration-tests>
+  </testing-strategy>
+
+  <dependencies>
+    <epic>EPIC-00: Project Scaffolding (NestJS setup complete)</epic>
+    <epic>EPIC-01: Authentication (JWT context available)</epic>
+    <epic>EPIC-02: Workspace Management (Workspace model exists)</epic>
+    <epic>EPIC-03: RBAC &amp; Multi-tenancy (Tenant guards available)</epic>
+
+    <npm-packages>
+      <package>@nestjs/common</package>
+      <package>@nestjs/config</package>
+      <package>@prisma/client</package>
+      <package>@nestjs/testing (dev)</package>
+      <package>jest (dev)</package>
+    </npm-packages>
+  </dependencies>
+
+  <future-integration>
+    <story>04.2: Create Approval Queue API Endpoints</story>
+    <description>
+      The ApprovalsService will import ConfidenceCalculatorService and use it
+      when creating new approval items.
+    </description>
+    <usage-example>
+      <![CDATA[
+// In ApprovalsService
+constructor(
+  private confidenceCalculator: ConfidenceCalculatorService,
+  // ... other dependencies
+) {}
+
+async createApprovalItem(dto: CreateApprovalItemDto) {
+  // Calculate confidence
+  const result = await this.confidenceCalculator.calculate(
+    dto.factors,
+    dto.workspaceId,
+  );
+
+  // Use result to create approval item
+  const item = await this.prisma.approvalItem.create({
+    data: {
+      ...dto,
+      confidenceScore: result.overallScore,
+      recommendation: result.recommendation,
+      aiReasoning: result.reasoning,
+    },
+  });
+
+  return item;
+}
+      ]]>
+    </usage-example>
+  </future-integration>
+
+  <definition-of-done>
+    <item>ConfidenceCalculatorService implemented with all methods</item>
+    <item>Type definitions created in shared package (ConfidenceFactor, ConfidenceResult)</item>
+    <item>Weighted average calculation working correctly</item>
+    <item>Weight validation throwing error when sum != 1.0</item>
+    <item>Recommendation logic working for all threshold ranges (>85, 60-85, &lt;60)</item>
+    <item>AI reasoning generation working for low confidence (&lt;60%)</item>
+    <item>Workspace-specific thresholds loading from database</item>
+    <item>Default thresholds used when workspace settings don't exist</item>
+    <item>Logging implemented for all calculations</item>
+    <item>Unit tests written and passing (target: 100% coverage)</item>
+    <item>All tests verify exact behavior (not just code coverage)</item>
+    <item>Service exported from ApprovalsModule</item>
+    <item>ApprovalsModule imported in app.module.ts</item>
+    <item>TypeScript compilation successful with no errors</item>
+    <item>Code follows existing patterns in audit.service.ts</item>
+    <item>No linting errors</item>
+  </definition-of-done>
+
+  <notes>
+    <note>
+      This service is stateless - it calculates confidence from provided factors.
+      It does not determine which factors to use or their weights; that's the
+      responsibility of the calling service.
+    </note>
+    <note>
+      Workspace threshold configuration already exists in WorkspaceSettings model.
+      Use defaults if no settings record exists for the workspace.
+    </note>
+    <note>
+      The service should be performant - avoid complex database queries in the
+      main calculation loop. Consider caching workspace thresholds in future
+      optimization stories if needed.
+    </note>
+    <note>
+      Logging should be at INFO level for successful calculations, ERROR for
+      validation failures. Include structured context data for debugging.
+    </note>
+    <note>
+      The confidence factor categories listed in the story (historical accuracy,
+      data completeness, etc.) are examples. The service accepts any factor names
+      and weights; it's up to the caller to determine appropriate factors.
+    </note>
+  </notes>
+</story-context>

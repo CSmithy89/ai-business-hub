@@ -81,3 +81,62 @@ export interface ConfidenceThresholds {
   /** Full review threshold (below this value) */
   fullReview: number;
 }
+
+/**
+ * Confidence scoring types for the Approval Queue System
+ */
+
+/**
+ * A single confidence factor with its score, weight, and explanation
+ */
+export interface ConfidenceFactor {
+  /** Factor identifier (e.g., 'historical_accuracy', 'data_completeness') */
+  factor: string;
+  /** Score from 0-100 */
+  score: number;
+  /** Weight from 0-1 (all weights must sum to 1.0) */
+  weight: number;
+  /** Human-readable explanation of this factor's score */
+  explanation: string;
+  /** Flag if this factor is concerning and should be highlighted */
+  concerning?: boolean;
+}
+
+/**
+ * Routing recommendation based on confidence score
+ */
+export type ConfidenceRecommendation = 'approve' | 'review' | 'full_review';
+
+/**
+ * Result of confidence calculation
+ */
+export interface ConfidenceResult {
+  /** Weighted average score (0-100) */
+  overallScore: number;
+  /** All factors used in the calculation */
+  factors: ConfidenceFactor[];
+  /** Routing recommendation based on thresholds */
+  recommendation: ConfidenceRecommendation;
+  /** AI-generated reasoning for low confidence scores (<60%) */
+  aiReasoning?: string;
+}
+
+/**
+ * Default confidence thresholds
+ */
+export const DEFAULT_CONFIDENCE_THRESHOLDS = {
+  autoApprove: 85,
+  quickReview: 60,
+} as const;
+
+/**
+ * Confidence factor category constants
+ */
+export const CONFIDENCE_FACTORS = {
+  HISTORICAL_ACCURACY: 'historical_accuracy',
+  DATA_COMPLETENESS: 'data_completeness',
+  BUSINESS_RULES: 'business_rules',
+  TIME_SENSITIVITY: 'time_sensitivity',
+  VALUE_IMPACT: 'value_impact',
+  PATTERN_MATCH: 'pattern_match',
+} as const;
