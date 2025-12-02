@@ -72,9 +72,9 @@ development_status:
   02-2-implement-member-invitation-system: done
   02-3-implement-invitation-acceptance: done
   02-4-implement-workspace-switching: done
-  02-5-implement-member-management: backlog
-  02-6-create-workspace-settings-page: backlog
-  02-7-implement-workspace-deletion: backlog
+  02-5-implement-member-management: done
+  02-6-create-workspace-settings-page: done
+  02-7-implement-workspace-deletion: done
   epic-02-retrospective: optional
 
   # ===========================================
