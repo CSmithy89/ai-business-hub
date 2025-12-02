@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story id="04-6" epic="EPIC-04" title="Implement AI Reasoning Display">
+
+    <objective>
+      Create UI components to display AI reasoning and confidence factor breakdowns
+      for approval items, helping approvers understand why AI confidence is low.
+    </objective>
+
+    <database-models>
+      <model name="ApprovalItem" file="packages/db/prisma/schema.prisma">
+        <field name="confidenceScore" type="Int" description="Overall confidence 0-100" />
+        <field name="confidenceFactors" type="Json" description="Array of ConfidenceFactor objects" />
+        <field name="aiRecommendation" type="String" description="approve/review/full_review" />
+        <field name="aiReasoning" type="String?" description="AI explanation for low confidence" />
+        <field name="sourceModule" type="String?" description="Module that created item (e.g., 'crm')" />
+        <field name="sourceId" type="String?" description="Source entity ID for context link" />
+      </model>
+    </database-models>
+
+    <types>
+      <interface name="ConfidenceFactor" file="packages/shared/src/types/approval.ts">
+        <property name="factor" type="string" description="e.g., 'historical_accuracy'" />
+        <property name="score" type="number" description="0-100" />
+        <property name="weight" type="number" description="0-1, sum to 1.0" />
+        <property name="explanation" type="string" description="Human-readable reason" />
+        <property name="concerning" type="boolean?" description="Flag for red highlight" />
+      </interface>
+
+      <interface name="ApprovalItem" file="packages/shared/src/types/approval.ts">
+        <note>
+          Currently missing: sourceModule, sourceId, aiReasoning, factors (confidenceFactors)
+          These need to be added to match DB model
+        </note>
+      </interface>
+    </types>
+
+    <existing-components>
+      <component name="ApprovalCard" file="apps/web/src/components/approval/approval-card.tsx">
+        <description>
+          Has placeholder AI reasoning section at lines 241-267.
+          Shows collapsible section for low confidence items only.
+          Needs to be replaced with AIReasoningSection component.
+        </description>
+      </component>
+
+      <component name="ConfidenceIndicator" file="apps/web/src/components/approval/confidence-indicator.tsx">
+        <description>
+          Shows overall confidence score with progress bar and recommendation.
+          Used for displaying the aggregate confidence, not individual factors.
+        </description>
+      </component>
+
+      <component name="ApprovalDetailPage" file="apps/web/src/app/approvals/[id]/page.tsx">
+        <description>
+          Has placeholder AI reasoning section at lines 174-186.
+          Should display full AI reasoning in detail view.
+        </description>
+      </component>
+    </existing-components>
+
+    <shadcn-components>
+      <component name="Card" />
+      <component name="Badge" />
+      <component name="Button" />
+      <component name="Progress" />
+      <note>
+        Collapsible functionality will be built with native state management
+        using ChevronDown/ChevronUp icons from lucide-react.
+      </note>
+    </shadcn-components>
+
+    <ui-patterns>
+      <pattern name="Confidence Colors">
+        <high>green-500 (score >= 85)</high>
+        <medium>yellow-500 (score 60-84)</medium>
+        <low>red-500 (score &lt; 60)</low>
+      </pattern>
+
+      <pattern name="Factor Display">
+        <sort>Lowest scores first (most concerning)</sort>
+        <highlight>concerning=true gets red border-l-4</highlight>
+        <format>snake_case → Title Case for display</format>
+      </pattern>
+
+      <pattern name="Collapsible Behavior">
+        <low-confidence>Expanded by default (score &lt; 60)</low-confidence>
+        <medium-high>Collapsed by default (score >= 60)</medium-high>
+      </pattern>
+    </ui-patterns>
+
+    <wireframe-reference>
+      <section name="AP-03 Approval Detail Modal" file="docs/ux-design.md">
+        <description>
+          Shows confidence section with:
+          - Overall confidence score and indicator
+          - Expandable factors list
+          - Each factor showing score, weight, explanation
+          - Concerning factors highlighted in red
+          - AI reasoning text block
+          - Related entity context link
+        </description>
+      </section>
+    </wireframe-reference>
+
+    <implementation-order>
+      <step order="1">Update ApprovalItem type to include missing fields</step>
+      <step order="2">Create ConfidenceFactorsList component</step>
+      <step order="3">Create AIReasoningSection component</step>
+      <step order="4">Update ApprovalCard to use AIReasoningSection</step>
+      <step order="5">Update approval detail page to use AIReasoningSection</step>
+      <step order="6">Update sprint status</step>
+    </implementation-order>
+
+    <test-scenarios>
+      <scenario name="Low Confidence with Concerning Factors">
+        <confidence-score>45</confidence-score>
+        <factors-count>5</factors-count>
+        <concerning-count>2</concerning-count>
+        <ai-reasoning>Present</ai-reasoning>
+        <expected>
+          - Section expanded by default
+          - Concerning factors highlighted in red
+          - Sorted by score (lowest first)
+          - AI reasoning displayed
+        </expected>
+      </scenario>
+
+      <scenario name="Medium Confidence">
+        <confidence-score>72</confidence-score>
+        <factors-count>4</factors-count>
+        <concerning-count>0</concerning-count>
+        <ai-reasoning>Absent</ai-reasoning>
+        <expected>
+          - Section collapsed by default
+          - No red highlighting
+          - No AI reasoning block
+        </expected>
+      </scenario>
+
+      <scenario name="With Related Entity">
+        <source-module>crm</source-module>
+        <source-id>contact_123</source-id>
+        <expected>
+          - Link to /crm/contacts/contact_123
+          - "View related contact" link text
+        </expected>
+      </scenario>
+    </test-scenarios>
+
+    <utility-functions>
+      <function name="formatFactorName">
+        <input>historical_accuracy</input>
+        <output>Historical Accuracy</output>
+        <implementation>
+          Split by underscore, capitalize each word, join with space
+        </implementation>
+      </function>
+
+      <function name="getConfidenceColor">
+        <input>score: number</input>
+        <output>green-500 | yellow-500 | red-500</output>
+        <logic>
+          score >= 85 ? green : score >= 60 ? yellow : red
+        </logic>
+      </function>
+
+      <function name="sortFactorsByScore">
+        <input>factors: ConfidenceFactor[]</input>
+        <output>ConfidenceFactor[]</output>
+        <logic>Sort ascending by score (lowest first)</logic>
+      </function>
+    </utility-functions>
+
+    <related-stories>
+      <story id="04-1">Implement Confidence Calculator Service</story>
+      <story id="04-2">Create Approval Queue API Endpoints</story>
+      <story id="04-5">Create Approval Card Component</story>
+      <upcoming id="04-7">Implement Bulk Approval</upcoming>
+      <upcoming id="04-8">Implement Approval Escalation</upcoming>
+    </related-stories>
+
+  </story-context>
+</story-context>

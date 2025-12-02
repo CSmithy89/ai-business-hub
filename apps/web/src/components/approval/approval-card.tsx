@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfidenceIndicator, ConfidenceBadge } from './confidence-indicator'
 import { ApprovalActions } from './approval-actions'
+import { AIReasoningSection } from './ai-reasoning-section'
 import { formatDistanceToNow } from 'date-fns'
 import type { ApprovalItem } from '@hyvve/shared'
 import Link from 'next/link'
@@ -40,7 +41,6 @@ export function ApprovalCard({
   className,
 }: ApprovalCardProps) {
   const [showPreviewData, setShowPreviewData] = useState(false)
-  const [showAIReasoning, setShowAIReasoning] = useState(false)
 
   // Determine border color based on confidence level
   const borderColor = {
@@ -238,33 +238,14 @@ export function ApprovalCard({
           )}
         </div>
 
-        {/* AI Reasoning Section (Placeholder for Story 04-6) */}
-        {approval.confidenceLevel === 'low' && (
-          <div className="space-y-3">
-            <button
-              onClick={() => setShowAIReasoning(!showAIReasoning)}
-              className="flex items-center justify-between w-full text-left"
-            >
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                AI Reasoning
-              </h3>
-              {showAIReasoning ? (
-                <ChevronUp className="h-5 w-5 text-gray-400" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-gray-400" />
-              )}
-            </button>
-
-            {showAIReasoning && (
-              <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
-                <p className="text-sm text-blue-900">
-                  AI reasoning display will be implemented in Story 04-6.
-                  This will show detailed confidence factors and explanations.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+        {/* AI Reasoning Section */}
+        <AIReasoningSection
+          confidenceScore={approval.confidenceScore}
+          factors={approval.factors}
+          aiReasoning={approval.aiReasoning}
+          sourceModule={approval.sourceModule}
+          sourceId={approval.sourceId}
+        />
 
         {/* Metadata */}
         <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-200 text-sm text-gray-600">

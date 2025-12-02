@@ -171,19 +171,6 @@ export default function ApprovalDetailPage() {
           onActionComplete={handleActionComplete}
         />
 
-        {/* AI Reasoning Section - Placeholder */}
-        {/* This will be fully implemented in Story 04-6 */}
-        {approval.confidenceLevel === 'low' && (
-          <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-6">
-            <h3 className="text-sm font-semibold text-blue-900 uppercase tracking-wide mb-2">
-              Note
-            </h3>
-            <p className="text-sm text-blue-800">
-              This is a low confidence item that requires full review.
-              Detailed AI reasoning and confidence factors will be displayed here in Story 04-6.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   )

@@ -36,10 +36,20 @@ export interface ApprovalItem {
   confidenceScore: number;
   /** Confidence level category */
   confidenceLevel: ConfidenceLevel;
+  /** Confidence factors breakdown */
+  factors?: ConfidenceFactor[];
+  /** AI recommendation (approve/review/full_review) */
+  aiRecommendation?: string;
+  /** AI reasoning for low confidence scores */
+  aiReasoning?: string;
   /** Approval status */
   status: ApprovalStatus;
   /** Item payload/data */
   data: Record<string, unknown>;
+  /** Source module that created the item */
+  sourceModule?: string;
+  /** Source entity ID for context link */
+  sourceId?: string;
   /** AI agent that created the item */
   createdBy: string;
   /** User who approved/rejected */
