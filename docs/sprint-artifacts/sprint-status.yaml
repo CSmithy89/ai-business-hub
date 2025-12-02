@@ -81,8 +81,8 @@ development_status:
   # EPIC-03: RBAC & Multi-Tenancy
   # Phase 2 - RBAC & Multi-tenancy | 7 stories | 17 points
   # ===========================================
-  epic-03: backlog
-  03-1-implement-permission-matrix: backlog
+  epic-03: contexted
+  03-1-implement-permission-matrix: done
   03-2-create-auth-guards-for-nestjs: backlog
   03-3-create-permission-middleware-for-nextjs: backlog
   03-4-implement-prisma-tenant-extension: backlog
