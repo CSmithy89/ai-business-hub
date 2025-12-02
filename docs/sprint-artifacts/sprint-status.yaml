@@ -96,7 +96,7 @@ development_status:
   # EPIC-04: Approval Queue System
   # Phase 3 - Approval System | 12 stories | 29 points
   # ===========================================
-  epic-04: backlog
+  epic-04: contexted
   04-1-implement-confidence-calculator-service: backlog
   04-2-create-approval-queue-api-endpoints: backlog
   04-3-implement-approval-router: backlog
