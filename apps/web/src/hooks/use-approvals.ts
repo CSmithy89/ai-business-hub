@@ -161,6 +161,45 @@ export function useApproval(id: string) {
 }
 
 /**
+ * Request body for bulk approve/reject actions
+ */
+export interface BulkApprovalRequest {
+  ids: string[]
+  action: 'approve' | 'reject'
+  notes?: string
+  reason?: string // Required for reject actions
+}
+
+/**
+ * Response type for bulk approval endpoint
+ */
+export interface BulkApprovalResponse {
+  succeeded: string[]
+  failed: { id: string; error: string }[]
+}
+
+/**
+ * Bulk approve or reject multiple approval items
+ */
+async function bulkApproval(data: BulkApprovalRequest): Promise<BulkApprovalResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/approvals/bulk`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Failed to process bulk action' }))
+    throw new Error(error.message || 'Failed to process bulk action')
+  }
+
+  return response.json()
+}
+
+/**
  * Hook to get mutation functions for approval actions
  */
 export function useApprovalMutations() {
@@ -196,4 +235,26 @@ export function useApprovalMutations() {
     approveError: approveMutation.error,
     rejectError: rejectMutation.error,
   }
+}
+
+/**
+ * Hook for bulk approval/reject operations
+ */
+export function useBulkApprovalMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: bulkApproval,
+    onSuccess: (response) => {
+      // Invalidate approvals list to refetch updated data
+      queryClient.invalidateQueries({ queryKey: ['approvals'] })
+
+      // If all succeeded, also invalidate individual approval caches
+      if (response.succeeded.length > 0) {
+        response.succeeded.forEach(id => {
+          queryClient.invalidateQueries({ queryKey: ['approval', id] })
+        })
+      }
+    },
+  })
 }

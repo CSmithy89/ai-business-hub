@@ -1,12 +1,23 @@
 'use client'
 
 import { ApprovalCard } from './approval-card'
+import { Button } from '@/components/ui/button'
 import type { ApprovalItem } from '@hyvve/shared'
 
 interface ApprovalListProps {
   approvals: ApprovalItem[]
   isLoading?: boolean
   isEmpty?: boolean
+  /** Enable selection mode */
+  selectable?: boolean
+  /** Set of selected item IDs */
+  selectedIds?: Set<string>
+  /** Callback when item selection changes */
+  onSelectionChange?: (id: string, selected: boolean) => void
+  /** Callback to select all items */
+  onSelectAll?: () => void
+  /** Callback to deselect all items */
+  onDeselectAll?: () => void
 }
 
 /**
@@ -67,7 +78,22 @@ function EmptyState({ hasFilters }: { hasFilters?: boolean }) {
 /**
  * Approval list container with loading and empty states
  */
-export function ApprovalList({ approvals, isLoading, isEmpty }: ApprovalListProps) {
+export function ApprovalList({
+  approvals,
+  isLoading,
+  isEmpty,
+  selectable = false,
+  selectedIds = new Set(),
+  onSelectionChange,
+  onSelectAll,
+  onDeselectAll,
+}: ApprovalListProps) {
+  // Calculate selectable items (only pending items can be selected)
+  const selectableItems = approvals.filter(a => a.status === 'pending')
+  const allSelected = selectable && selectableItems.length > 0 &&
+    selectableItems.every(a => selectedIds.has(a.id))
+  const someSelected = selectable && selectedIds.size > 0 && !allSelected
+
   // Loading state
   if (isLoading) {
     return (
@@ -87,8 +113,52 @@ export function ApprovalList({ approvals, isLoading, isEmpty }: ApprovalListProp
   // List of approvals
   return (
     <div className="space-y-4">
+      {/* Selection header */}
+      {selectable && selectableItems.length > 0 && (
+        <div className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg border border-gray-200">
+          <p className="text-sm text-gray-600">
+            {selectedIds.size > 0 ? (
+              <span>
+                <strong>{selectedIds.size}</strong> of <strong>{selectableItems.length}</strong> items selected
+              </span>
+            ) : (
+              <span>
+                <strong>{selectableItems.length}</strong> items can be selected
+              </span>
+            )}
+          </p>
+          <div className="flex gap-2">
+            {someSelected || allSelected ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDeselectAll}
+              >
+                Deselect All
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onSelectAll}
+              >
+                Select All
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Approval cards */}
       {approvals.map((approval) => (
-        <ApprovalCard key={approval.id} approval={approval} variant="compact" />
+        <ApprovalCard
+          key={approval.id}
+          approval={approval}
+          variant="compact"
+          selectable={selectable}
+          selected={selectedIds.has(approval.id)}
+          onSelect={onSelectionChange}
+        />
       ))}
     </div>
   )

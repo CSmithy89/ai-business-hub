@@ -1,12 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { useApprovals } from '@/hooks/use-approvals'
+import { useApprovals, useBulkApprovalMutation } from '@/hooks/use-approvals'
 import { ApprovalStats } from '@/components/approval/approval-stats'
 import { ApprovalFilters } from '@/components/approval/approval-filters'
 import { ApprovalList } from '@/components/approval/approval-list'
+import { BulkActionBar } from '@/components/approval/bulk-action-bar'
+import { BulkConfirmDialog } from '@/components/approval/bulk-confirm-dialog'
 import { Button } from '@/components/ui/button'
 import type { ApprovalStatus, ConfidenceLevel } from '@hyvve/shared'
+import type { BulkApprovalResponse } from '@/hooks/use-approvals'
+import { toast } from 'sonner'
 
 /**
  * Pagination component
@@ -112,6 +116,15 @@ export default function ApprovalsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(20)
 
+  // Selection state for bulk actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null)
+  const [bulkNotes, setBulkNotes] = useState<string>('')
+  const [showBulkDialog, setShowBulkDialog] = useState(false)
+
+  // Bulk approval mutation
+  const bulkMutation = useBulkApprovalMutation()
+
   // Build filter object for API
   const filters = {
     status: statusFilter === 'all' ? undefined : statusFilter,
@@ -147,6 +160,95 @@ export default function ApprovalsPage() {
     confidenceFilter === 'all'
       ? data?.data || []
       : (data?.data || []).filter((approval) => approval.confidenceLevel === confidenceFilter)
+
+  // Selection handlers
+  const handleSelectionChange = (id: string, selected: boolean) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev)
+      if (selected) {
+        newSet.add(id)
+      } else {
+        newSet.delete(id)
+      }
+      return newSet
+    })
+  }
+
+  const handleSelectAll = () => {
+    const pendingIds = filteredApprovals
+      .filter(a => a.status === 'pending')
+      .map(a => a.id)
+    setSelectedIds(new Set(pendingIds))
+  }
+
+  const handleDeselectAll = () => {
+    setSelectedIds(new Set())
+  }
+
+  const handleClearSelection = () => {
+    setSelectedIds(new Set())
+    setBulkNotes('')
+  }
+
+  // Bulk action handlers
+  const handleBulkApprove = (notes?: string) => {
+    setBulkAction('approve')
+    setBulkNotes(notes || '')
+    setShowBulkDialog(true)
+  }
+
+  const handleBulkReject = (notes: string) => {
+    setBulkAction('reject')
+    setBulkNotes(notes)
+    setShowBulkDialog(true)
+  }
+
+  const handleBulkConfirm = () => {
+    if (!bulkAction) return
+
+    bulkMutation.mutate(
+      {
+        ids: Array.from(selectedIds),
+        action: bulkAction,
+        notes: bulkNotes || undefined,
+        reason: bulkAction === 'reject' ? bulkNotes : undefined,
+      },
+      {
+        onSuccess: (response: BulkApprovalResponse) => {
+          // Show success message
+          if (response.failed.length === 0) {
+            toast.success(
+              `Successfully ${bulkAction === 'approve' ? 'approved' : 'rejected'} ${response.succeeded.length} items`
+            )
+            handleClearSelection()
+          } else if (response.succeeded.length === 0) {
+            toast.error(`All ${selectedIds.size} items failed to process`)
+          } else {
+            toast.success(
+              `${response.succeeded.length} succeeded, ${response.failed.length} failed`
+            )
+            // Keep only failed items selected
+            const failedIds = new Set(response.failed.map(f => f.id))
+            setSelectedIds(failedIds)
+          }
+        },
+        onError: (error: Error) => {
+          toast.error(error.message || 'Failed to process bulk action')
+        },
+      }
+    )
+  }
+
+  const handleBulkCancel = () => {
+    setShowBulkDialog(false)
+    setBulkAction(null)
+  }
+
+  const handleBulkClose = () => {
+    setShowBulkDialog(false)
+    setBulkAction(null)
+    setBulkNotes('')
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -204,7 +306,7 @@ export default function ApprovalsPage() {
 
         {/* Approval List */}
         {!error && (
-          <div className="mb-6">
+          <div className="mb-6 pb-32">
             <ApprovalList
               approvals={filteredApprovals}
               isLoading={isLoading}
@@ -214,6 +316,11 @@ export default function ApprovalsPage() {
                   confidenceFilter !== 'all' ||
                   typeFilter !== '')
               }
+              selectable={statusFilter === 'pending' || statusFilter === 'all'}
+              selectedIds={selectedIds}
+              onSelectionChange={handleSelectionChange}
+              onSelectAll={handleSelectAll}
+              onDeselectAll={handleDeselectAll}
             />
           </div>
         )}
@@ -227,6 +334,27 @@ export default function ApprovalsPage() {
           />
         )}
       </div>
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClearSelection={handleClearSelection}
+        onBulkApprove={handleBulkApprove}
+        onBulkReject={handleBulkReject}
+      />
+
+      {/* Bulk Confirm Dialog */}
+      <BulkConfirmDialog
+        open={showBulkDialog}
+        action={bulkAction || 'approve'}
+        count={selectedIds.size}
+        notes={bulkNotes}
+        isLoading={bulkMutation.isPending}
+        result={bulkMutation.data}
+        onConfirm={handleBulkConfirm}
+        onCancel={handleBulkCancel}
+        onClose={handleBulkClose}
+      />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { ConfidenceIndicator, ConfidenceBadge } from './confidence-indicator'
 import { ApprovalActions } from './approval-actions'
 import { AIReasoningSection } from './ai-reasoning-section'
@@ -22,6 +23,12 @@ interface ApprovalCardProps {
   showActions?: boolean
   /** Callback after action completion */
   onActionComplete?: () => void
+  /** Enable selection mode with checkbox */
+  selectable?: boolean
+  /** Is this item selected */
+  selected?: boolean
+  /** Callback when selection changes */
+  onSelect?: (id: string, selected: boolean) => void
   /** Custom className */
   className?: string
 }
@@ -38,9 +45,19 @@ export function ApprovalCard({
   variant = 'compact',
   showActions = true,
   onActionComplete,
+  selectable = false,
+  selected = false,
+  onSelect,
   className,
 }: ApprovalCardProps) {
   const [showPreviewData, setShowPreviewData] = useState(false)
+
+  // Handle checkbox change
+  const handleSelectChange = (checked: boolean) => {
+    if (onSelect) {
+      onSelect(approval.id, checked)
+    }
+  }
 
   // Determine border color based on confidence level
   const borderColor = {
@@ -68,24 +85,44 @@ export function ApprovalCard({
   // Compact variant - for list view
   if (variant === 'compact') {
     return (
-      <Card className={cn('border-l-4 transition-shadow hover:shadow-md', borderColor, className)}>
+      <Card
+        className={cn(
+          'border-l-4 transition-shadow hover:shadow-md',
+          borderColor,
+          selected && 'ring-2 ring-blue-500 ring-offset-2',
+          className
+        )}
+      >
         <div className="p-6 space-y-4">
           {/* Header */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex-1 space-y-2">
-              <h3 className="text-lg font-semibold text-gray-900">{approval.title}</h3>
+            <div className="flex items-start gap-3 flex-1">
+              {/* Selection checkbox */}
+              {selectable && approval.status === 'pending' && (
+                <div className="pt-1">
+                  <Checkbox
+                    checked={selected}
+                    onCheckedChange={handleSelectChange}
+                    aria-label={`Select ${approval.title}`}
+                  />
+                </div>
+              )}
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="text-xs">
-                  <Tag className="mr-1 h-3 w-3" />
-                  {approval.type}
-                </Badge>
+              <div className="flex-1 space-y-2">
+                <h3 className="text-lg font-semibold text-gray-900">{approval.title}</h3>
 
-                <ConfidenceBadge score={approval.confidenceScore} level={approval.confidenceLevel} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    <Tag className="mr-1 h-3 w-3" />
+                    {approval.type}
+                  </Badge>
 
-                <Badge variant={priorityConfig.variant} className="text-xs">
-                  {priorityConfig.label} Priority
-                </Badge>
+                  <ConfidenceBadge score={approval.confidenceScore} level={approval.confidenceLevel} />
+
+                  <Badge variant={priorityConfig.variant} className="text-xs">
+                    {priorityConfig.label} Priority
+                  </Badge>
+                </div>
               </div>
             </div>
           </div>
