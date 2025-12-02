@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../common/services/prisma.service'
+import { Prisma } from '@prisma/client'
 
 export interface AuditLogParams {
   workspaceId: string
@@ -111,7 +112,7 @@ export class AuditService {
           userId: params.actorId,
           ipAddress: params.ipAddress,
           userAgent: params.userAgent,
-          oldValues: null,
+          oldValues: Prisma.JsonNull,
           newValues: { role: params.role },
           metadata: {
             changeType: 'member_added',
@@ -147,7 +148,7 @@ export class AuditService {
             email: params.removedMemberEmail,
             role: params.removedMemberRole,
           },
-          newValues: null,
+          newValues: Prisma.JsonNull,
           metadata: {
             changeType: 'member_removed',
             description: `Member ${params.removedMemberEmail} (${params.removedMemberRole}) removed`,
