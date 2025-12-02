@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { User, Lock, Shield, Key, Bot, Palette } from 'lucide-react'
+import { User, Lock, Shield, Key, Bot, Palette, Settings, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Route } from 'next'
 
@@ -25,38 +25,71 @@ interface NavItem {
 }
 
 /**
- * Settings navigation items
+ * Navigation group configuration
  */
-const settingsNavItems: NavItem[] = [
+interface NavGroup {
+  title: string
+  items: NavItem[]
+}
+
+/**
+ * Settings navigation groups
+ */
+const settingsNavGroups: NavGroup[] = [
   {
-    title: 'Profile',
-    href: '/settings' as Route,
-    icon: User,
+    title: 'Account',
+    items: [
+      {
+        title: 'Profile',
+        href: '/settings' as Route,
+        icon: User,
+      },
+      {
+        title: 'Security',
+        href: '/settings/security' as Route,
+        icon: Lock,
+      },
+      {
+        title: 'Sessions',
+        href: '/settings/sessions' as Route,
+        icon: Shield,
+      },
+    ],
   },
   {
-    title: 'Security',
-    href: '/settings/security' as Route,
-    icon: Lock,
+    title: 'Workspace',
+    items: [
+      {
+        title: 'General',
+        href: '/settings/workspace' as Route,
+        icon: Settings,
+      },
+      {
+        title: 'Members',
+        href: '/settings/workspace/members' as Route,
+        icon: Users,
+      },
+    ],
   },
   {
-    title: 'Sessions',
-    href: '/settings/sessions' as Route,
-    icon: Shield,
-  },
-  {
-    title: 'API Keys',
-    href: '/settings/api-keys' as Route,
-    icon: Key,
-  },
-  {
-    title: 'AI Configuration',
-    href: '/settings/ai-config' as Route,
-    icon: Bot,
-  },
-  {
-    title: 'Appearance',
-    href: '/settings/appearance' as Route,
-    icon: Palette,
+    title: 'AI & Automation',
+    items: [
+      {
+        title: 'AI Configuration',
+        href: '/settings/ai-config' as Route,
+        icon: Bot,
+      },
+      {
+        title: 'API Keys',
+        href: '/settings/api-keys' as Route,
+        icon: Key,
+      },
+      {
+        title: 'Appearance',
+        href: '/settings/appearance' as Route,
+        icon: Palette,
+      },
+    ],
   },
 ]
 
@@ -123,27 +156,36 @@ export function SettingsLayout({
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sidebar Navigation */}
         <aside className="w-full md:w-60 flex-shrink-0">
-          <nav className="space-y-1">
-            {settingsNavItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
+          <nav className="space-y-6">
+            {settingsNavGroups.map((group) => (
+              <div key={group.title}>
+                <h3 className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  {group.title}
+                </h3>
+                <div className="space-y-1">
+                  {group.items.map((item) => {
+                    const Icon = item.icon
+                    const isActive = pathname === item.href
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
-                    isActive
-                      ? 'bg-[#FF6B6B]/10 text-[#FF6B6B] border-l-4 border-[#FF6B6B]'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  )}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{item.title}</span>
-                </Link>
-              )
-            })}
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
+                          isActive
+                            ? 'bg-[#FF6B6B]/10 text-[#FF6B6B] border-l-4 border-[#FF6B6B]'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        )}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span className="font-medium">{item.title}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </aside>
 
