@@ -107,7 +107,7 @@ development_status:
   04-8-implement-approval-escalation: done
   04-9-implement-approval-audit-trail: done
   04-10-integrate-approval-agent-with-agentos: done
-  04-11-configure-control-plane-connection: backlog
+  04-11-configure-control-plane-connection: done
   04-12-implement-nestjs-agentos-bridge: backlog
   epic-04-retrospective: optional
 

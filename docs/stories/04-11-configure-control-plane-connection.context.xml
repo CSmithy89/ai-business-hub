@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story>
+    <id>04-11</id>
+    <title>Configure Control Plane Connection</title>
+    <epic>EPIC-04 - Approval Queue System</epic>
+    <priority>P1</priority>
+    <points>2</points>
+  </story>
+
+  <technical-context>
+    <architecture>
+      <component name="Control Plane">
+        <url>https://os.agno.com</url>
+        <description>Agno's web-based monitoring dashboard for agent sessions</description>
+        <connection-type>WebSocket from browser to AgentOS</connection-type>
+        <data-flow>Browser connects directly to AgentOS - no external data transfer</data-flow>
+      </component>
+
+      <component name="AgentOS Runtime">
+        <location>agents/</location>
+        <framework>FastAPI + Agno</framework>
+        <port>7777</port>
+        <description>AI agent runtime with session storage</description>
+        <session-storage>PostgreSQL (agent_sessions table)</session-storage>
+      </component>
+
+      <component name="PostgreSQL">
+        <table>agent_sessions</table>
+        <description>Stores agent conversation history and memories</description>
+        <created-by>Story 04-10</created-by>
+      </component>
+    </architecture>
+
+    <existing-files>
+      <file path="agents/main.py" status="complete">
+        <purpose>FastAPI application with agent routes</purpose>
+        <needs>CORS update, Control Plane endpoints</needs>
+      </file>
+
+      <file path="agents/config.py" status="partial">
+        <purpose>Environment configuration</purpose>
+        <needs>Control Plane settings (enabled flag, optional API key)</needs>
+      </file>
+
+      <file path="agents/platform/approval_agent.py" status="complete">
+        <purpose>ApprovalAgent with session storage</purpose>
+        <provides>Agent sessions stored in PostgreSQL</provides>
+      </file>
+
+      <file path=".env.example" status="partial">
+        <purpose>Environment variable template</purpose>
+        <needs>CONTROL_PLANE_ENABLED, AGNO_API_KEY</needs>
+      </file>
+    </existing-files>
+
+    <new-files>
+      <file path="docs/guides/control-plane-setup.md">
+        <purpose>Complete Control Plane setup and usage guide</purpose>
+        <sections>
+          - What is Control Plane
+          - How to access (browser-based)
+          - Connecting to local AgentOS
+          - Session monitoring guide
+          - Memory inspection
+          - Troubleshooting
+        </sections>
+      </file>
+    </new-files>
+  </technical-context>
+
+  <control-plane-integration>
+    <connection-model>
+      <description>Browser-based direct connection to AgentOS</description>
+      <flow>
+        1. Developer opens os.agno.com in browser
+        2. Browser prompts for AgentOS URL (http://localhost:7777)
+        3. WebSocket connection established browser -> AgentOS
+        4. Control Plane UI reads session data from AgentOS endpoints
+        5. All data stays local - nothing sent to Agno servers
+      </flow>
+    </connection-model>
+
+    <security-model>
+      <principle>No external data transfer</principle>
+      <principle>Read-only monitoring (cannot execute agents)</principle>
+      <principle>Optional feature (can be disabled)</principle>
+      <principle>CORS-protected endpoints</principle>
+    </security-model>
+
+    <required-cors-update>
+      <code-example>
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",      # Next.js frontend
+        "http://localhost:3001",      # NestJS API
+        "https://os.agno.com",        # Control Plane (NEW)
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+      </code-example>
+    </required-cors-update>
+
+    <required-endpoints>
+      <endpoint method="GET" path="/control-plane/sessions">
+        <description>List all agent sessions for workspace</description>
+        <auth>Optional - based on AGNO_API_KEY if set</auth>
+        <response>
+          {
+            "sessions": [
+              {
+                "id": "session_id",
+                "agent_name": "Sentinel",
+                "user_id": "user_123",
+                "workspace_id": "ws_456",
+                "created_at": "2025-12-03T10:00:00Z",
+                "updated_at": "2025-12-03T10:05:00Z",
+                "message_count": 5
+              }
+            ]
+          }
+        </response>
+      </endpoint>
+
+      <endpoint method="GET" path="/control-plane/sessions/:id">
+        <description>Get session details with messages</description>
+        <auth>Optional - based on AGNO_API_KEY if set</auth>
+        <response>
+          {
+            "session": {
+              "id": "session_id",
+              "agent_name": "Sentinel",
+              "user_id": "user_123",
+              "workspace_id": "ws_456",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "Show me pending approvals",
+                  "timestamp": "2025-12-03T10:00:00Z"
+                },
+                {
+                  "role": "assistant",
+                  "content": "You have 3 pending approvals...",
+                  "timestamp": "2025-12-03T10:00:05Z"
+                }
+              ]
+            }
+          }
+        </response>
+      </endpoint>
+
+      <endpoint method="GET" path="/control-plane/health">
+        <description>Control Plane health check</description>
+        <auth>None</auth>
+        <response>
+          {
+            "status": "ok",
+            "control_plane_enabled": true,
+            "session_storage": "postgresql",
+            "sessions_count": 10
+          }
+        </response>
+      </endpoint>
+    </required-endpoints>
+  </control-plane-integration>
+
+  <agno-framework>
+    <session-storage>
+      <description>Agno automatically stores sessions in PostgreSQL</description>
+      <table-structure>
+        CREATE TABLE agent_sessions (
+          id TEXT PRIMARY KEY,
+          agent_name TEXT,
+          user_id TEXT,
+          workspace_id TEXT,
+          session_data JSONB,
+          created_at TIMESTAMP,
+          updated_at TIMESTAMP
+        )
+      </table-structure>
+      <notes>
+        - Created automatically by Agno when db parameter is set
+        - Stores full conversation history
+        - Includes user memories if enable_user_memories=True
+        - Used by Control Plane for monitoring
+      </notes>
+    </session-storage>
+
+    <control-plane-compatibility>
+      <requirement>Agent must use PostgresDb for session storage</requirement>
+      <requirement>Session data must be accessible via REST endpoints</requirement>
+      <requirement>CORS must allow os.agno.com</requirement>
+      <optional>AGNO_API_KEY for authenticated Control Plane access</optional>
+    </control-plane-compatibility>
+  </agno-framework>
+
+  <implementation-requirements>
+    <requirement id="REQ-1">
+      <title>CORS Configuration</title>
+      <description>Add https://os.agno.com to allowed origins</description>
+      <reason>Control Plane UI needs to access AgentOS endpoints from browser</reason>
+      <priority>Critical</priority>
+    </requirement>
+
+    <requirement id="REQ-2">
+      <title>Control Plane Endpoints</title>
+      <description>Add /control-plane/* routes for session access</description>
+      <reason>Control Plane UI needs to read session data</reason>
+      <priority>Critical</priority>
+    </requirement>
+
+    <requirement id="REQ-3">
+      <title>Environment Configuration</title>
+      <description>Add CONTROL_PLANE_ENABLED flag (default: true for dev)</description>
+      <reason>Allow disabling Control Plane in production</reason>
+      <priority>High</priority>
+    </requirement>
+
+    <requirement id="REQ-4">
+      <title>Documentation</title>
+      <description>Create comprehensive setup guide in docs/guides/</description>
+      <reason>Team members need to know how to use Control Plane</reason>
+      <priority>High</priority>
+    </requirement>
+
+    <requirement id="REQ-5">
+      <title>Security Verification</title>
+      <description>Verify no data sent to external servers</description>
+      <reason>Maintain data sovereignty and privacy</reason>
+      <priority>Critical</priority>
+    </requirement>
+
+    <requirement id="REQ-6">
+      <title>Optional Authentication</title>
+      <description>Support optional AGNO_API_KEY for Control Plane access</description>
+      <reason>Additional security layer if needed</reason>
+      <priority>Low</priority>
+    </requirement>
+  </implementation-requirements>
+
+  <environment-variables>
+    <variable name="CONTROL_PLANE_ENABLED">
+      <type>boolean</type>
+      <default>true</default>
+      <description>Enable/disable Control Plane monitoring</description>
+      <example>CONTROL_PLANE_ENABLED=true</example>
+    </variable>
+
+    <variable name="AGNO_API_KEY">
+      <type>string</type>
+      <default>null</default>
+      <optional>true</optional>
+      <description>Optional API key for Control Plane authentication</description>
+      <example>AGNO_API_KEY=agno_sk_...</example>
+    </variable>
+  </environment-variables>
+
+  <dependencies>
+    <story id="04-10" status="done">
+      <title>Integrate Approval Agent with AgentOS</title>
+      <provides>Agent sessions stored in PostgreSQL via Agno</provides>
+    </story>
+
+    <story id="00-07" status="done">
+      <title>Set Up AgentOS Runtime Environment</title>
+      <provides>FastAPI + Agno infrastructure</provides>
+    </story>
+  </dependencies>
+
+  <testing-strategy>
+    <test type="manual">
+      <target>Control Plane Connection</target>
+      <steps>
+        1. Start AgentOS with CONTROL_PLANE_ENABLED=true
+        2. Open os.agno.com in browser
+        3. Enter AgentOS URL (http://localhost:7777)
+        4. Verify WebSocket connection established
+        5. Verify sessions list appears
+        6. Click on a session to view details
+        7. Verify message history displays correctly
+      </steps>
+    </test>
+
+    <test type="manual">
+      <target>CORS Configuration</target>
+      <steps>
+        1. Open browser DevTools
+        2. Connect Control Plane to AgentOS
+        3. Verify no CORS errors in console
+        4. Verify successful WebSocket connection
+      </steps>
+    </test>
+
+    <test type="unit">
+      <target>Control Plane Endpoints</target>
+      <coverage>
+        - /control-plane/sessions returns session list
+        - /control-plane/sessions/:id returns session details
+        - /control-plane/health returns status
+      </coverage>
+    </test>
+
+    <test type="integration">
+      <target>Disabled Control Plane</target>
+      <steps>
+        1. Set CONTROL_PLANE_ENABLED=false
+        2. Start AgentOS
+        3. Verify /control-plane/* endpoints return 404 or disabled message
+        4. Verify agent functionality unaffected
+      </steps>
+    </test>
+  </testing-strategy>
+
+  <documentation-requirements>
+    <guide path="docs/guides/control-plane-setup.md">
+      <sections>
+        <section title="What is Control Plane">
+          - Agno's monitoring dashboard
+          - Browser-based direct connection
+          - No external data transfer
+          - Read-only session viewing
+        </section>
+
+        <section title="Accessing Control Plane">
+          - Navigate to os.agno.com
+          - Enter AgentOS URL
+          - Connect via WebSocket
+          - Browse sessions
+        </section>
+
+        <section title="Session Monitoring">
+          - View all agent sessions
+          - Filter by agent name
+          - Filter by user/workspace
+          - View message history
+        </section>
+
+        <section title="Memory Inspection">
+          - View user memories
+          - View agent context
+          - Debug conversation state
+        </section>
+
+        <section title="Troubleshooting">
+          - Connection refused (check AgentOS running)
+          - CORS errors (verify os.agno.com in allowed origins)
+          - No sessions visible (verify agent using PostgresDb)
+          - WebSocket timeout (check network/firewall)
+        </section>
+
+        <section title="Production Deployment">
+          - Set CONTROL_PLANE_ENABLED=false
+          - Remove os.agno.com from CORS (optional)
+          - Alternative: use SSH tunnel for secure access
+        </section>
+      </sections>
+    </guide>
+  </documentation-requirements>
+
+  <related-documentation>
+    <doc path="docs/epics/EPIC-04-approval-system.md">Epic specification</doc>
+    <doc path="docs/architecture.md">ADR-007: AgentOS for Agent Runtime</doc>
+    <doc path="agents/platform/approval_agent.py">ApprovalAgent implementation</doc>
+    <doc path="https://docs.agno.com/control-plane">Agno Control Plane docs</doc>
+  </related-documentation>
+</story-context>

@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     agentos_port: int = 7777
 
     # Control Plane (optional)
-    control_plane_api_key: Optional[str] = None
-    control_plane_url: Optional[str] = None
+    control_plane_enabled: bool = True
+    agno_api_key: Optional[str] = None
 
     class Config:
         env_file = ".env"

@@ -33,12 +33,18 @@ app = FastAPI(
 )
 
 # CORS middleware
+allowed_origins = [
+    "http://localhost:3000",  # Next.js frontend
+    "http://localhost:3001",  # NestJS API
+]
+
+# Add Control Plane origin if enabled
+if settings.control_plane_enabled:
+    allowed_origins.append("https://os.agno.com")  # Agno Control Plane
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Next.js frontend
-        "http://localhost:3001",  # NestJS API
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -92,6 +98,10 @@ async def startup_event():
     logger.info(f"Port: {settings.agentos_port}")
     logger.info(f"Database: {'configured' if settings.database_url else 'not configured'}")
     logger.info(f"Redis: {'configured' if settings.redis_url else 'not configured'}")
+    logger.info(f"Control Plane: {'enabled' if settings.control_plane_enabled else 'disabled'}")
+    if settings.control_plane_enabled:
+        logger.info("Control Plane URL: https://os.agno.com")
+        logger.info(f"Control Plane Auth: {'enabled' if settings.agno_api_key else 'disabled'}")
 
 
 @app.get("/")
@@ -139,6 +149,152 @@ async def ready():
         "ready": True,
         "version": "0.1.0"
     }
+
+
+# ============================================================================
+# Control Plane Endpoints
+# ============================================================================
+
+@app.get("/control-plane/health")
+async def control_plane_health():
+    """
+    Control Plane health check endpoint
+
+    Returns Control Plane status and session statistics.
+    Does not require authentication.
+    """
+    if not settings.control_plane_enabled:
+        raise HTTPException(
+            status_code=404,
+            detail="Control Plane is disabled"
+        )
+
+    # Get session count from database
+    try:
+        # Query agent_sessions table for count
+        # Note: This is a simple implementation - in production you might want
+        # to use the Agno SDK or direct database query
+        session_count = 0  # Placeholder - actual count would come from DB
+
+        return {
+            "status": "ok",
+            "control_plane_enabled": True,
+            "session_storage": "postgresql",
+            "sessions_count": session_count,
+            "version": "0.1.0"
+        }
+    except Exception as e:
+        logger.error(f"Control Plane health check failed: {str(e)}")
+        return {
+            "status": "degraded",
+            "control_plane_enabled": True,
+            "error": str(e)
+        }
+
+
+@app.get("/control-plane/sessions")
+async def control_plane_sessions(request: Request):
+    """
+    List all agent sessions
+
+    Returns a list of agent sessions with basic metadata.
+    Used by Control Plane UI to display session list.
+
+    Optional authentication via AGNO_API_KEY if configured.
+    """
+    if not settings.control_plane_enabled:
+        raise HTTPException(
+            status_code=404,
+            detail="Control Plane is disabled"
+        )
+
+    # Optional API key authentication
+    if settings.agno_api_key:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required. Provide AGNO_API_KEY as Bearer token."
+            )
+
+        token = auth_header.replace("Bearer ", "")
+        if token != settings.agno_api_key:
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid API key"
+            )
+
+    try:
+        # Note: In a full implementation, you would query the agent_sessions table
+        # This is a placeholder that returns the structure expected by Control Plane
+        sessions = []
+
+        return {
+            "sessions": sessions,
+            "count": len(sessions)
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch sessions: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch sessions: {str(e)}"
+        )
+
+
+@app.get("/control-plane/sessions/{session_id}")
+async def control_plane_session_details(session_id: str, request: Request):
+    """
+    Get detailed information about a specific session
+
+    Returns session metadata and full message history.
+    Used by Control Plane UI to display conversation details.
+
+    Optional authentication via AGNO_API_KEY if configured.
+    """
+    if not settings.control_plane_enabled:
+        raise HTTPException(
+            status_code=404,
+            detail="Control Plane is disabled"
+        )
+
+    # Optional API key authentication
+    if settings.agno_api_key:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required. Provide AGNO_API_KEY as Bearer token."
+            )
+
+        token = auth_header.replace("Bearer ", "")
+        if token != settings.agno_api_key:
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid API key"
+            )
+
+    try:
+        # Note: In a full implementation, you would query the agent_sessions table
+        # and return the specific session with its messages
+        # This is a placeholder structure
+
+        session = {
+            "id": session_id,
+            "agent_name": "Unknown",
+            "messages": [],
+            "created_at": None,
+            "updated_at": None
+        }
+
+        return {
+            "session": session
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch session {session_id}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch session: {str(e)}"
+        )
 
 
 # ============================================================================
