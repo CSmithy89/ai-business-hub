@@ -1,0 +1,27 @@
+/**
+ * Middleware barrel export
+ * Composable higher-order functions for Next.js API route protection
+ *
+ * @module middleware
+ */
+
+// Authentication middleware
+export {
+  withAuth,
+  type AuthContext,
+  type AuthHandler,
+} from './with-auth'
+
+// Tenant context middleware
+export {
+  withTenant,
+  extractWorkspaceId,
+  type TenantContext,
+  type TenantHandler,
+} from './with-tenant'
+
+// Permission middleware
+export {
+  withPermission,
+  type PermissionHandler,
+} from './with-permission'

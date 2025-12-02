@@ -1,0 +1,800 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-metadata>
+    <story-id>03-3</story-id>
+    <title>Create Permission Middleware for Next.js</title>
+    <epic>EPIC-03 - RBAC &amp; Multi-Tenancy</epic>
+    <status>ready-for-dev</status>
+    <priority>P0 - Critical</priority>
+    <points>2</points>
+    <generated-date>2025-12-02</generated-date>
+  </story-metadata>
+
+  <summary>
+    <description>
+      Implement composable higher-order functions for Next.js API route authentication and authorization.
+      These middleware functions (withAuth, withTenant, withPermission) will protect Next.js API routes
+      in the platform layer by validating sessions, checking tenant context, and enforcing permissions.
+
+      The middleware integrates with better-auth for session management and uses the permission matrix
+      from Story 03-1 for role-based access control. The middleware is composable, allowing routes to
+      layer authentication, tenant validation, and permission checks as needed.
+    </description>
+
+    <user-story>
+      As a developer, I want permission middleware for Next.js API routes, so that platform endpoints
+      are protected consistently.
+    </user-story>
+
+    <context>
+      Next.js API routes in the platform layer (workspace management, approval queue UI, etc.) need
+      authentication and authorization middleware. This story creates middleware similar to the existing
+      workspace-auth.ts pattern but following the composable higher-order function approach specified
+      in the tech spec.
+
+      Unlike the current workspace-auth.ts which uses imperative function calls (requireWorkspaceMembership),
+      the new middleware will use declarative composition for cleaner, more maintainable route handlers.
+    </context>
+  </summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-3.3.1">
+      <title>withAuth validates session</title>
+      <given>A Next.js API route wrapped with withAuth</given>
+      <when>A request is made without a valid session</when>
+      <then>
+        - Return 401 Unauthorized response
+        - Response body contains error message
+        - Handler is not executed
+      </then>
+      <when>A request is made with a valid session</when>
+      <then>
+        - User object is extracted from session
+        - User object is passed to handler in context
+        - Handler executes normally
+      </then>
+    </criterion>
+
+    <criterion id="AC-3.3.2">
+      <title>withTenant validates membership</title>
+      <given>A Next.js API route wrapped with withAuth and withTenant</given>
+      <when>A user is not a member of the workspace</when>
+      <then>
+        - Return 403 Forbidden response
+        - Response body contains error message
+        - Handler is not executed
+      </then>
+      <when>A user is a valid workspace member</when>
+      <then>
+        - Workspace context is extracted
+        - Workspace object is passed to handler in context
+        - Handler executes normally
+      </then>
+    </criterion>
+
+    <criterion id="AC-3.3.3">
+      <title>withPermission checks permissions</title>
+      <given>A Next.js API route wrapped with withPermission([PERMISSIONS.MEMBERS_INVITE])</given>
+      <when>A viewer role attempts to access the endpoint</when>
+      <then>
+        - Return 403 Forbidden response
+        - Response body contains error message
+        - Handler is not executed
+      </then>
+      <when>An admin role attempts to access the endpoint</when>
+      <then>
+        - Permission check passes
+        - Handler executes normally
+      </then>
+    </criterion>
+
+    <criterion id="AC-3.3.4">
+      <title>Middleware composition works</title>
+      <given>A route with composed middleware: withAuth(withTenant(withPermission(..., handler)))</given>
+      <when>A request is made</when>
+      <then>
+        - All middleware checks are applied in order
+        - Each middleware can access context from previous middleware
+        - Handler receives complete context (user, workspace)
+        - Any middleware failure short-circuits execution
+      </then>
+    </criterion>
+
+    <criterion id="AC-3.3.5">
+      <title>User/workspace context passed</title>
+      <given>An authenticated request through all middleware</given>
+      <when>The handler executes</when>
+      <then>
+        - Context object contains user property with User object
+        - Context object contains workspace property with Workspace object
+        - Context types are properly typed (TypeScript)
+        - Handler can destructure context parameters
+      </then>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-guidance>
+    <architecture>
+      <overview>
+        The middleware uses a higher-order function pattern that wraps Next.js route handlers.
+        Each middleware function accepts a handler and returns a new handler with additional
+        authentication/authorization logic. Middleware functions can be composed by nesting.
+
+        This is an evolution from the existing workspace-auth.ts pattern, which uses imperative
+        function calls within route handlers. The new pattern is more declarative and provides
+        better type safety through composition.
+      </overview>
+
+      <integration-points>
+        <integration name="better-auth">
+          <description>
+            Uses auth.api.getSession() to retrieve and validate sessions from cookies.
+            The session contains user information which is passed to route handlers.
+          </description>
+          <location>apps/web/src/lib/auth.ts</location>
+          <usage>
+            import { auth } from '@/lib/auth'
+            const session = await auth.api.getSession({ headers: req.headers })
+          </usage>
+        </integration>
+
+        <integration name="permission-matrix">
+          <description>
+            Uses hasPermission() function from shared package to check role-based permissions.
+            The permission matrix defines which roles have which permissions.
+          </description>
+          <location>packages/shared/src/permissions.ts</location>
+          <usage>
+            import { hasPermission, PERMISSIONS } from '@hyvve/shared'
+            const canInvite = hasPermission(memberRole, PERMISSIONS.MEMBERS_INVITE)
+          </usage>
+        </integration>
+
+        <integration name="prisma">
+          <description>
+            Queries WorkspaceMember to validate membership and load workspace context.
+            Includes workspace data for use in route handlers.
+          </description>
+          <location>packages/db</location>
+          <usage>
+            const member = await prisma.workspaceMember.findUnique({
+              where: { userId_workspaceId: { userId, workspaceId } },
+              include: { workspace: true }
+            })
+          </usage>
+        </integration>
+      </integration-points>
+
+      <existing-patterns>
+        <pattern name="workspace-auth">
+          <description>
+            Current imperative pattern using requireWorkspaceMembership() and role checking
+            functions. These will continue to work but new code should use the middleware pattern.
+          </description>
+          <location>apps/web/src/middleware/workspace-auth.ts</location>
+          <example>
+            // Current pattern (continue to support)
+            const membership = await requireWorkspaceMembership(workspaceId)
+            requireCanInviteMembers(membership)
+
+            // New pattern (use for new routes)
+            export const POST = withAuth(
+              withTenant(
+                withPermission([PERMISSIONS.MEMBERS_INVITE], async (req, context) => {
+                  // Handler with context
+                })
+              )
+            )
+          </example>
+        </pattern>
+
+        <pattern name="next-app-router">
+          <description>
+            Next.js 15 App Router uses async route handlers that receive NextRequest and params.
+            Route handlers can be wrapped with middleware functions.
+          </description>
+          <example>
+            // Route: apps/web/src/app/api/workspaces/[id]/route.ts
+            export async function GET(req: NextRequest, { params }: { params: Promise&lt;{ id: string }> }) {
+              // Handler code
+            }
+          </example>
+        </pattern>
+      </existing-patterns>
+
+      <middleware-chain>
+        <order>
+          1. withAuth - Validates session, extracts user
+          2. withTenant - Validates membership, extracts workspace context
+          3. withPermission - Checks role permissions
+          4. handler - Route handler executes
+        </order>
+
+        <context-flow>
+          withAuth adds: { user: User }
+          withTenant adds: { user, workspace, memberRole, modulePermissions }
+          withPermission uses: context.memberRole for permission check
+          handler receives: full context with user and workspace
+        </context-flow>
+
+        <error-handling>
+          - Each middleware returns NextResponse.json() with appropriate status code
+          - 401 Unauthorized: No valid session (withAuth)
+          - 400 Bad Request: Missing workspace ID (withTenant)
+          - 403 Forbidden: Not a member or insufficient permissions (withTenant/withPermission)
+          - Middleware errors short-circuit execution (subsequent middleware not called)
+        </error-handling>
+      </middleware-chain>
+    </architecture>
+
+    <files-to-create>
+      <file>
+        <path>apps/web/src/lib/middleware/with-auth.ts</path>
+        <purpose>Authentication middleware - validates better-auth session</purpose>
+        <exports>
+          - withAuth function
+          - AuthContext interface
+          - AuthHandler type
+        </exports>
+        <dependencies>
+          - next/server (NextRequest, NextResponse)
+          - @/lib/auth (auth object)
+          - @hyvve/db (User type)
+        </dependencies>
+      </file>
+
+      <file>
+        <path>apps/web/src/lib/middleware/with-tenant.ts</path>
+        <purpose>Tenant context middleware - validates workspace membership</purpose>
+        <exports>
+          - withTenant function
+          - TenantContext interface (extends AuthContext)
+          - TenantHandler type
+          - extractWorkspaceId helper function
+        </exports>
+        <dependencies>
+          - next/server (NextRequest, NextResponse)
+          - @hyvve/db (prisma, Workspace type)
+          - ./with-auth (AuthContext)
+        </dependencies>
+      </file>
+
+      <file>
+        <path>apps/web/src/lib/middleware/with-permission.ts</path>
+        <purpose>Permission middleware - checks role-based permissions</purpose>
+        <exports>
+          - withPermission function
+          - PermissionHandler type
+        </exports>
+        <dependencies>
+          - next/server (NextRequest, NextResponse)
+          - @hyvve/shared (hasPermission, Permission, WorkspaceRole)
+          - ./with-tenant (TenantContext)
+        </dependencies>
+      </file>
+
+      <file>
+        <path>apps/web/src/lib/middleware/index.ts</path>
+        <purpose>Barrel export file for middleware</purpose>
+        <exports>
+          - All exports from with-auth
+          - All exports from with-tenant
+          - All exports from with-permission
+        </exports>
+      </file>
+
+      <file>
+        <path>apps/web/src/lib/middleware/middleware.test.ts</path>
+        <purpose>Integration tests for middleware functions</purpose>
+        <test-coverage>
+          - withAuth: session validation, user extraction
+          - withTenant: membership validation, workspace extraction
+          - withPermission: permission checks for different roles
+          - Middleware composition: nested middleware execution
+          - Error cases: 401, 403, 400 responses
+        </test-coverage>
+      </file>
+    </files-to-create>
+
+    <implementation-notes>
+      <note category="session-extraction">
+        Use auth.api.getSession({ headers: req.headers }) to get session from cookies.
+        The session object contains user and session properties. Check session?.user to
+        ensure user is authenticated.
+      </note>
+
+      <note category="workspace-id-extraction">
+        The extractWorkspaceId() helper should check multiple sources:
+        1. URL pathname pattern: /api/workspaces/[workspaceId]/...
+        2. Query string parameter: ?workspaceId=...
+
+        This flexibility supports various API route patterns. Use regex to extract from pathname.
+      </note>
+
+      <note category="type-safety">
+        Each middleware has corresponding Context and Handler types. Use TypeScript generics
+        to maintain type safety through the composition chain. The context object accumulates
+        properties as it passes through middleware.
+      </note>
+
+      <note category="error-responses">
+        All error responses follow consistent format:
+        {
+          error: 'Unauthorized' | 'Forbidden' | 'Bad Request',
+          message: 'Human-readable description',
+          required?: string[] // For permission errors
+        }
+      </note>
+
+      <note category="permission-logic">
+        withPermission uses OR logic - if user has ANY of the specified permissions, access is granted.
+        This is implemented as: permissions.some(p => hasPermission(role, p))
+
+        For AND logic (require ALL permissions), nest multiple withPermission calls.
+      </note>
+
+      <note category="async-params">
+        Next.js 15 App Router requires params to be awaited:
+        const { id } = await params
+
+        Account for this in middleware that need to extract params.
+      </note>
+    </implementation-notes>
+  </technical-guidance>
+
+  <existing-code-references>
+    <reference>
+      <file>apps/web/src/lib/auth.ts</file>
+      <relevant-sections>
+        - Line 7-65: better-auth configuration with session settings
+        - exports 'auth' object with api.getSession() method
+      </relevant-sections>
+      <usage-in-story>
+        Import auth object and use auth.api.getSession({ headers }) to validate session
+      </usage-in-story>
+    </reference>
+
+    <reference>
+      <file>apps/web/src/lib/auth-server.ts</file>
+      <relevant-sections>
+        - Line 44-73: getSession() helper that wraps auth.api.getSession()
+        - Returns typed ServerSession or null
+      </relevant-sections>
+      <usage-in-story>
+        Can reference this pattern but implement directly in withAuth for better performance
+        (avoid double session fetch)
+      </usage-in-story>
+    </reference>
+
+    <reference>
+      <file>apps/web/src/middleware/workspace-auth.ts</file>
+      <relevant-sections>
+        - Line 43-106: requireWorkspaceMembership() - existing membership validation
+        - Line 130-142: requireRole() - existing role checking
+        - Line 24-33: WorkspaceAuthError class
+      </relevant-sections>
+      <usage-in-story>
+        This is the existing imperative pattern. New middleware provides declarative alternative.
+        Continue to support existing pattern for backward compatibility.
+      </usage-in-story>
+    </reference>
+
+    <reference>
+      <file>packages/shared/src/permissions.ts</file>
+      <relevant-sections>
+        - Line 27-63: PERMISSIONS constants object
+        - Line 97-184: ROLE_PERMISSIONS mapping
+        - Line 204-210: hasPermission() function
+        - Line 69: Permission type
+        - Line 15: WorkspaceRole type import
+      </relevant-sections>
+      <usage-in-story>
+        Import and use hasPermission() in withPermission middleware to check if role has permission.
+        Import PERMISSIONS for type checking in route handlers.
+      </usage-in-story>
+    </reference>
+
+    <reference>
+      <file>apps/web/src/app/api/workspaces/[id]/members/route.ts</file>
+      <relevant-sections>
+        - Line 25-104: Example route handler using requireWorkspaceMembership
+        - Shows current pattern and error handling
+      </relevant-sections>
+      <usage-in-story>
+        This route can be refactored to use new middleware pattern as example.
+        Demonstrates integration with existing routes.
+      </usage-in-story>
+    </reference>
+
+    <reference>
+      <file>apps/web/middleware.ts</file>
+      <relevant-sections>
+        - Line 11-28: Next.js middleware for page-level redirects
+        - Uses session cookie check
+      </relevant-sections>
+      <usage-in-story>
+        Different from API route middleware. This is Next.js edge middleware for pages.
+        API route middleware are higher-order functions, not edge middleware.
+      </usage-in-story>
+    </reference>
+  </existing-code-references>
+
+  <dependencies>
+    <upstream-dependency>
+      <story-id>03-1</story-id>
+      <title>Implement Permission Matrix</title>
+      <status>done</status>
+      <artifacts-needed>
+        - hasPermission() function from packages/shared/src/permissions.ts
+        - PERMISSIONS constants
+        - WorkspaceRole type
+      </artifacts-needed>
+    </upstream-dependency>
+
+    <upstream-dependency>
+      <story-id>01-7</story-id>
+      <title>Implement Session Management (Epic 01)</title>
+      <status>done</status>
+      <artifacts-needed>
+        - better-auth configuration with session support
+        - auth.api.getSession() method
+        - Session cookies with 'hyvve' prefix
+      </artifacts-needed>
+    </upstream-dependency>
+
+    <upstream-dependency>
+      <story-id>02-1</story-id>
+      <title>Create Workspace CRUD Operations (Epic 02)</title>
+      <status>done</status>
+      <artifacts-needed>
+        - WorkspaceMember model in Prisma
+        - Workspace model in Prisma
+        - Role field on WorkspaceMember
+      </artifacts-needed>
+    </upstream-dependency>
+
+    <downstream-dependency>
+      <story-id>03-4</story-id>
+      <title>Implement Prisma Tenant Extension</title>
+      <impact>
+        Tenant context from withTenant will be used to set tenant ID for Prisma extension.
+        The workspaceId from context will feed into tenantContext.run().
+      </impact>
+    </downstream-dependency>
+
+    <downstream-dependency>
+      <story-id>03-6</story-id>
+      <title>Module Permission Overrides</title>
+      <impact>
+        modulePermissions from TenantContext will be used in module-specific permission checks.
+        The context already includes this field for future use.
+      </impact>
+    </downstream-dependency>
+  </dependencies>
+
+  <testing-requirements>
+    <test-file>apps/web/src/lib/middleware/middleware.test.ts</test-file>
+
+    <test-setup>
+      - Use Vitest for test framework
+      - Mock better-auth session responses
+      - Create test database with seeded users and workspaces
+      - Mock NextRequest objects with appropriate headers/cookies
+      - Create test route handlers that use middleware
+    </test-setup>
+
+    <test-cases>
+      <group name="withAuth Tests">
+        <test id="1">No session provided → 401 Unauthorized</test>
+        <test id="2">Invalid session → 401 Unauthorized</test>
+        <test id="3">Valid session → User extracted and passed to handler</test>
+        <test id="4">User object has correct properties → User ID, email available</test>
+      </group>
+
+      <group name="withTenant Tests">
+        <test id="5">No workspace ID in URL → 400 Bad Request</test>
+        <test id="6">User not a workspace member → 403 Forbidden</test>
+        <test id="7">Valid workspace membership → Workspace context passed</test>
+        <test id="8">Workspace ID extracted from URL params → Correct workspace loaded</test>
+        <test id="9">Workspace ID extracted from query string → Correct workspace loaded</test>
+        <test id="10">Member role included in context → Role available to handler</test>
+        <test id="11">Module permissions included in context → Available to handler</test>
+      </group>
+
+      <group name="withPermission Tests">
+        <test id="12">User lacks required permission → 403 Forbidden</test>
+        <test id="13">User has required permission → Handler executes</test>
+        <test id="14">Multiple permissions (OR logic) → Passes if user has any permission</test>
+        <test id="15">Owner has all permissions → Always passes</test>
+        <test id="16">Viewer lacks write permissions → 403 on write endpoints</test>
+      </group>
+
+      <group name="Middleware Composition Tests">
+        <test id="17">withAuth + withTenant composition → Both checks applied</test>
+        <test id="18">withAuth + withTenant + withPermission composition → All checks applied</test>
+        <test id="19">First middleware fails → Subsequent middleware not executed</test>
+        <test id="20">Context accumulates through middleware chain → User and workspace both available</test>
+        <test id="21">Type safety maintained → TypeScript enforces context types</test>
+      </group>
+
+      <group name="Error Handling Tests">
+        <test id="22">Database error in membership check → 500 Internal Server Error</test>
+        <test id="23">Malformed workspace ID → 400 Bad Request</test>
+        <test id="24">Context missing required fields → Error response</test>
+      </group>
+    </test-cases>
+
+    <coverage-target>100% of middleware logic paths</coverage-target>
+  </testing-requirements>
+
+  <definition-of-done>
+    <item>apps/web/src/lib/middleware/with-auth.ts created</item>
+    <item>apps/web/src/lib/middleware/with-tenant.ts created</item>
+    <item>apps/web/src/lib/middleware/with-permission.ts created</item>
+    <item>apps/web/src/lib/middleware/index.ts barrel export created</item>
+    <item>All middleware properly typed with TypeScript</item>
+    <item>withAuth integrates with better-auth session</item>
+    <item>withTenant validates workspace membership</item>
+    <item>withPermission checks role permissions</item>
+    <item>Middleware composition works (can be nested)</item>
+    <item>Appropriate HTTP errors returned (401, 403, 400)</item>
+    <item>Error responses include helpful messages</item>
+    <item>Integration tests written for each middleware</item>
+    <item>Integration tests for middleware composition</item>
+    <item>Tests cover happy path and error cases</item>
+    <item>No TypeScript errors in middleware files</item>
+    <item>JSDoc comments for all exports</item>
+    <item>Example usage documented in story file</item>
+    <item>Code follows project standards</item>
+  </definition-of-done>
+
+  <implementation-examples>
+    <example name="withAuth Implementation">
+      <description>Basic authentication middleware that validates session</description>
+      <code language="typescript">
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import type { User } from '@hyvve/db'
+
+export interface AuthContext {
+  user: User
+}
+
+export type AuthHandler&lt;T = any> = (
+  req: NextRequest,
+  context: AuthContext,
+  ...args: any[]
+) => Promise&lt;T> | T
+
+/**
+ * Authentication middleware for Next.js API routes
+ * Validates better-auth session and extracts user
+ *
+ * @example
+ * export const GET = withAuth(async (req, { user }) => {
+ *   return NextResponse.json({ data: user })
+ * })
+ */
+export function withAuth&lt;T>(handler: AuthHandler&lt;T>) {
+  return async (req: NextRequest, ...args: any[]) => {
+    // Get session from better-auth
+    const session = await auth.api.getSession({ headers: req.headers })
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Valid session required' },
+        { status: 401 }
+      )
+    }
+
+    // Pass user to handler
+    return handler(req, { user: session.user }, ...args)
+  }
+}
+      </code>
+    </example>
+
+    <example name="withTenant Implementation">
+      <description>Tenant context middleware that validates membership</description>
+      <code language="typescript">
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@hyvve/db'
+import type { Workspace } from '@hyvve/db'
+import type { AuthContext } from './with-auth'
+
+export interface TenantContext extends AuthContext {
+  workspace: Workspace
+  memberRole: string
+  modulePermissions: any
+}
+
+export type TenantHandler&lt;T = any> = (
+  req: NextRequest,
+  context: TenantContext,
+  ...args: any[]
+) => Promise&lt;T> | T
+
+/**
+ * Extract workspace ID from request
+ * Checks URL pathname and query string
+ */
+function extractWorkspaceId(req: NextRequest): string | null {
+  // Check URL pathname for workspace ID
+  // Example: /api/workspaces/[workspaceId]/...
+  const pathMatch = req.nextUrl.pathname.match(/\/workspaces\/([^\/]+)/)
+  if (pathMatch) return pathMatch[1]
+
+  // Check query params
+  const queryWorkspaceId = req.nextUrl.searchParams.get('workspaceId')
+  if (queryWorkspaceId) return queryWorkspaceId
+
+  return null
+}
+
+/**
+ * Tenant context middleware for Next.js API routes
+ * Validates workspace membership and extracts workspace context
+ * Must be used with withAuth
+ */
+export function withTenant&lt;T>(handler: TenantHandler&lt;T>) {
+  return async (
+    req: NextRequest,
+    context: AuthContext,
+    ...args: any[]
+  ) => {
+    // Extract workspace ID from params or URL
+    const workspaceId = extractWorkspaceId(req)
+
+    if (!workspaceId) {
+      return NextResponse.json(
+        { error: 'Bad Request', message: 'Workspace ID required' },
+        { status: 400 }
+      )
+    }
+
+    // Verify membership
+    const member = await prisma.workspaceMember.findUnique({
+      where: {
+        userId_workspaceId: {
+          userId: context.user.id,
+          workspaceId,
+        },
+      },
+      include: { workspace: true },
+    })
+
+    if (!member) {
+      return NextResponse.json(
+        { error: 'Forbidden', message: 'Not a workspace member' },
+        { status: 403 }
+      )
+    }
+
+    // Pass workspace context to handler
+    return handler(
+      req,
+      {
+        ...context,
+        workspace: member.workspace,
+        memberRole: member.role,
+        modulePermissions: member.modulePermissions,
+      },
+      ...args
+    )
+  }
+}
+      </code>
+    </example>
+
+    <example name="Usage in API Route">
+      <description>Example of using middleware in a Next.js API route</description>
+      <code language="typescript">
+// apps/web/src/app/api/workspaces/[id]/members/invite/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { withAuth, withTenant, withPermission } from '@/lib/middleware'
+import { PERMISSIONS } from '@hyvve/shared'
+
+export const POST = withAuth(
+  withTenant(
+    withPermission([PERMISSIONS.MEMBERS_INVITE], async (req, { workspace, user }) => {
+      // User is authenticated, workspace member verified, and has MEMBERS_INVITE permission
+      const body = await req.json()
+
+      // Invite member logic here
+      const invitation = await invitationService.create(workspace.id, body, user.id)
+
+      return NextResponse.json({ data: invitation }, { status: 201 })
+    })
+  )
+)
+      </code>
+    </example>
+  </implementation-examples>
+
+  <related-documentation>
+    <document>
+      <title>Tech Spec - Epic 03</title>
+      <path>docs/sprint-artifacts/tech-spec-epic-03.md</path>
+      <relevant-sections>Lines 949-1037: Story 03.3 implementation details</relevant-sections>
+    </document>
+
+    <document>
+      <title>Epic 03 - RBAC &amp; Multi-Tenancy</title>
+      <path>docs/epics/EPIC-03-rbac-multitenancy.md</path>
+      <relevant-sections>Story 03.3 description and requirements</relevant-sections>
+    </document>
+
+    <document>
+      <title>Architecture Decision Record 002</title>
+      <path>docs/architecture.md</path>
+      <relevant-sections>ADR-002: Hybrid Next.js + NestJS architecture</relevant-sections>
+    </document>
+  </related-documentation>
+
+  <risks-and-mitigations>
+    <risk>
+      <description>Middleware composition complexity could lead to confusing stack traces</description>
+      <impact>Medium</impact>
+      <mitigation>
+        - Clear documentation with examples
+        - Type safety enforces correct usage
+        - JSDoc comments explain each middleware
+        - Error messages are descriptive
+      </mitigation>
+    </risk>
+
+    <risk>
+      <description>Session validation performance overhead on every request</description>
+      <impact>Low</impact>
+      <mitigation>
+        - better-auth caches sessions (15 minute cookieCache)
+        - Minimal database queries (single membership lookup)
+        - Performance acceptable for MVP
+      </mitigation>
+    </risk>
+
+    <risk>
+      <description>Workspace ID extraction brittleness with different URL patterns</description>
+      <impact>Medium</impact>
+      <mitigation>
+        - Test multiple URL patterns in integration tests
+        - Add fallback to query parameter
+        - Document expected URL patterns
+        - Consider adding explicit workspaceId parameter for complex routes
+      </mitigation>
+    </risk>
+
+    <risk>
+      <description>Error handling inconsistency across different routes</description>
+      <impact>Low</impact>
+      <mitigation>
+        - Use consistent error response format
+        - Document error format in middleware
+        - Provide helper for error handling
+      </mitigation>
+    </risk>
+  </risks-and-mitigations>
+
+  <notes>
+    <note type="backward-compatibility">
+      The existing workspace-auth.ts pattern will continue to work. Gradually migrate routes
+      to use new middleware pattern. Both patterns can coexist during transition period.
+    </note>
+
+    <note type="future-enhancement">
+      After this story is complete, consider:
+      - Rate limiting middleware
+      - Request logging middleware
+      - Module-specific permission checks (Story 03-6)
+      - Tenant context integration with Prisma Extension (Story 03-4)
+    </note>
+
+    <note type="performance">
+      Each middleware adds minimal overhead:
+      - withAuth: Session validation from cache (~5ms)
+      - withTenant: Single database query (~20ms)
+      - withPermission: In-memory permission check (~1ms)
+      Total overhead: ~26ms per request (acceptable for MVP)
+    </note>
+  </notes>
+</story-context>
