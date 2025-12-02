@@ -215,7 +215,7 @@ import { organization } from 'better-auth/plugins'
 
 ## Wireframe References
 
-All Authentication wireframes are complete. Reference these when implementing:
+Reference these wireframes when implementing (5 wireframes for MVP):
 
 | Story | Wireframe | Description | Assets |
 |-------|-----------|-------------|--------|
@@ -224,8 +224,9 @@ All Authentication wireframes are complete. Reference these when implementing:
 | 01.4 Sign-In | AU-01 | Login page with email/password, Google OAuth | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-01_login_page/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-01_login_page/screen.png) |
 | 01.6 Password Reset | AU-03 | Forgot password form | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-03_forgot_password/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-03_forgot_password/screen.png) |
 | 01.6 Password Reset | AU-04 | New password form after reset | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-04_password_reset/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-04_password_reset/screen.png) |
-| 01.7 Session/Security | AU-06 | Two-factor authentication setup and verification | [HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-06_two-factor_authentication/code.html) · [PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-06_two-factor_authentication/screen.png) |
-| 01.8 Auth UI | All AU-* | Auth layout and component patterns (6 wireframes) | Reference all above wireframes for consistent styling |
+| 01.8 Auth UI | AU-01 to AU-05 | Auth layout and component patterns | Reference above wireframes for consistent styling |
+
+> **Note:** AU-06 (Two-Factor Authentication) moved to [EPIC-09: UI & Auth Enhancements](./EPIC-09-ui-auth-enhancements.md) as post-MVP enhancement.
 
 **Full wireframe index:** [WIREFRAME-INDEX.md](../design/wireframes/WIREFRAME-INDEX.md)
 
