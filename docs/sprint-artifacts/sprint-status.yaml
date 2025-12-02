@@ -98,7 +98,7 @@ development_status:
   # ===========================================
   epic-04: contexted
   04-1-implement-confidence-calculator-service: done
-  04-2-create-approval-queue-api-endpoints: backlog
+  04-2-create-approval-queue-api-endpoints: done
   04-3-implement-approval-router: backlog
   04-4-create-approval-queue-dashboard: backlog
   04-5-create-approval-card-component: backlog
