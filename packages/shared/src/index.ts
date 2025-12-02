@@ -20,3 +20,6 @@ export * from './types/approval';
 
 // Event types
 export * from './types/events';
+
+// Permission system
+export * from './permissions';

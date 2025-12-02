@@ -1,0 +1,658 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story-id="03-1" generated="2025-12-02">
+  <story-summary>
+    Implement a centralized permission matrix in the shared package that defines all platform permissions as constants, maps them to workspace roles (Owner → Admin → Member → Viewer → Guest), and provides utility functions for permission checks. This system will be used consistently across both Next.js and NestJS applications to enforce access control. The implementation includes role hierarchy enforcement, module-level permission overrides for targeted access elevation within specific modules, and comprehensive TypeScript typing for type safety.
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-3.1.1">
+      <title>Permission constants defined</title>
+      <given>Permission matrix implementation</given>
+      <when>Importing PERMISSIONS from @hyvve/shared</when>
+      <then>
+        - All permission constants are available (workspace, members, records, approvals, agents, API keys)
+        - Permission type is properly exported
+        - Constants follow naming convention: `CATEGORY_ACTION` (e.g., `WORKSPACE_READ`)
+      </then>
+    </criterion>
+
+    <criterion id="AC-3.1.2">
+      <title>Role permissions mapped</title>
+      <given>Role hierarchy defined</given>
+      <when>Calling `getPermissions(role)`</when>
+      <then>
+        - Owner role returns all permissions
+        - Admin role returns all except workspace deletion
+        - Member role returns limited permissions (read + own records)
+        - Viewer role returns read-only permissions
+        - Guest role returns minimal access
+      </then>
+    </criterion>
+
+    <criterion id="AC-3.1.3">
+      <title>hasPermission function works</title>
+      <given>Role and permission</given>
+      <when>Calling `hasPermission(role, permission)`</when>
+      <then>
+        - Returns true if role has permission
+        - Returns false if role lacks permission
+        - Handles edge cases (undefined role, invalid permission)
+      </then>
+    </criterion>
+
+    <criterion id="AC-3.1.4">
+      <title>Role hierarchy enforced</title>
+      <given>Role hierarchy (owner &gt; admin &gt; member &gt; viewer &gt; guest)</given>
+      <when>Checking role modification functions</when>
+      <then>
+        - `canChangeRole()` prevents unauthorized role changes
+        - Owner can modify anyone except other owners
+        - Admin can modify member/viewer/guest only
+        - Member/Viewer/Guest cannot modify roles
+        - `canRemoveMember()` follows same rules
+      </then>
+    </criterion>
+
+    <criterion id="AC-3.1.5">
+      <title>Module overrides work</title>
+      <given>Member with CRM admin override</given>
+      <when>Calling `hasModulePermission(role, 'bm-crm', permission, overrides)`</when>
+      <then>
+        - Base role checked first
+        - Override applied if module matches
+        - Role elevation works (member → admin in module)
+        - Specific permission grants work
+        - Falls back to base role if no override
+      </then>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-guidance>
+    <section title="File Structure">
+      <file>packages/shared/src/permissions.ts</file>
+      <description>
+        Single file containing all permission definitions, role mappings, and utility functions.
+        Must be exported from packages/shared/src/index.ts for consumption by apps/web and apps/api.
+      </description>
+    </section>
+
+    <section title="Permission Categories">
+      The permission system is organized into 6 main categories:
+
+      1. **Workspace Management** - Control workspace settings and deletion
+         - WORKSPACE_READ, WORKSPACE_UPDATE, WORKSPACE_DELETE
+
+      2. **Member Management** - Invite, remove, and change member roles
+         - MEMBERS_VIEW, MEMBERS_INVITE, MEMBERS_REMOVE, MEMBERS_CHANGE_ROLE
+
+      3. **Record Management** - Generic CRUD for data entities
+         - RECORDS_VIEW, RECORDS_CREATE, RECORDS_EDIT, RECORDS_DELETE
+
+      4. **Approval Queue** - View and approve/reject items
+         - APPROVALS_VIEW, APPROVALS_APPROVE, APPROVALS_REJECT
+
+      5. **AI Agent Management** - Configure and run AI agents
+         - AGENTS_VIEW, AGENTS_CONFIGURE, AGENTS_RUN
+
+      6. **API Key Management** - Create and revoke API keys
+         - API_KEYS_VIEW, API_KEYS_CREATE, API_KEYS_REVOKE
+
+      7. **Module Permissions** - For future module-specific permissions
+         - MODULE_VIEW, MODULE_ADMIN
+    </section>
+
+    <section title="Role Hierarchy">
+      Role levels for hierarchy comparison (used in canChangeRole):
+      ```
+      Platform Admin (internal only - RLS bypass) - Not in WorkspaceRole type
+             ↓
+        Owner (5)     - All permissions including workspace deletion
+             ↓
+        Admin (4)     - All permissions except workspace deletion and owner demotion
+             ↓
+        Member (3)    - Limited permissions (read workspace, view members, own records)
+             ↓
+        Viewer (2)    - Read-only permissions
+             ↓
+        Guest (1)     - Minimal access
+      ```
+    </section>
+
+    <section title="Role Permission Breakdown">
+      **Owner:**
+      - All permissions (includes WORKSPACE_DELETE)
+
+      **Admin:**
+      - All permissions EXCEPT WORKSPACE_DELETE
+      - Cannot demote or remove owners
+
+      **Member:**
+      - WORKSPACE_READ
+      - MEMBERS_VIEW
+      - RECORDS_VIEW, RECORDS_CREATE, RECORDS_EDIT (own only)
+      - APPROVALS_VIEW (own only)
+      - AGENTS_VIEW, AGENTS_RUN
+
+      **Viewer:**
+      - WORKSPACE_READ
+      - MEMBERS_VIEW
+      - RECORDS_VIEW
+      - AGENTS_VIEW
+
+      **Guest:**
+      - WORKSPACE_READ
+      - RECORDS_VIEW (very limited)
+    </section>
+
+    <section title="Module Override Patterns">
+      Module overrides allow targeted permission elevation within specific modules.
+
+      **Pattern 1: Role Elevation**
+      ```json
+      {
+        "bm-crm": { "role": "admin" }
+      }
+      ```
+      Member becomes Admin within CRM module only, inheriting all admin permissions for that module.
+
+      **Pattern 2: Specific Permissions**
+      ```json
+      {
+        "bmc": { "permissions": ["records:view", "records:create"] }
+      }
+      ```
+      Grant only specific permissions in content module, no role elevation.
+
+      **Override Logic:**
+      1. Check base role permission first
+      2. If module ID matches in overrides:
+         a. If override has `role`, check that role's permissions
+         b. If override has `permissions`, check if permission in list
+      3. Fall back to base role if no override
+    </section>
+
+    <section title="Implementation Requirements">
+      - Use `as const` for PERMISSIONS object (enables type inference)
+      - Export `Permission` type derived from PERMISSIONS keys
+      - Export `WorkspaceRole` type (aligned with existing workspace.ts types)
+      - All functions must have proper TypeScript types
+      - Add comprehensive JSDoc comments for all exports
+      - Handle edge cases gracefully (undefined values, invalid inputs)
+    </section>
+  </technical-guidance>
+
+  <existing-code-references>
+    <reference file="packages/shared/src/types/workspace.ts">
+      **WorkspaceRole Type (Already Defined):**
+      ```typescript
+      export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest'
+      ```
+
+      **Role Hierarchy (Already Defined):**
+      ```typescript
+      export const ROLE_HIERARCHY: Record&lt;WorkspaceRole, number&gt; = {
+        owner: 100,
+        admin: 80,
+        member: 60,
+        viewer: 40,
+        guest: 20,
+      }
+      ```
+
+      **WorkspaceMember Interface:**
+      ```typescript
+      export interface WorkspaceMember {
+        id: string
+        workspaceId: string
+        userId: string
+        role: WorkspaceRole
+        modulePermissions: Record&lt;string, unknown&gt; | null  // Used for module overrides
+        invitedById: string | null
+        invitedAt: Date
+        acceptedAt: Date | null
+      }
+      ```
+
+      Note: The permission system should use WorkspaceRole from workspace.ts for consistency.
+    </reference>
+
+    <reference file="packages/db/prisma/schema.prisma">
+      **WorkspaceMember Model (Lines 126-145):**
+      ```prisma
+      model WorkspaceMember {
+        id                String    @id @default(uuid())
+        userId            String    @map("user_id")
+        workspaceId       String    @map("workspace_id")
+        role              String    @default("member")
+        modulePermissions Json?     @map("module_permissions")  // Stores module overrides
+
+        invitedById String?   @map("invited_by_id")
+        invitedAt   DateTime  @default(now()) @map("invited_at")
+        acceptedAt  DateTime? @map("accepted_at")
+
+        user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+        workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+        invitedBy User?      @relation("InvitedBy", fields: [invitedById], references: [id])
+
+        @@unique([userId, workspaceId])
+        @@index([workspaceId])
+        @@index([userId])
+        @@map("workspace_members")
+      }
+      ```
+
+      Note: The `role` field is currently a String in the database. The `modulePermissions` JSON field will store the module permission overrides.
+    </reference>
+
+    <reference file="packages/shared/src/index.ts">
+      **Current Exports:**
+      ```typescript
+      // Auth types
+      export * from './types/auth';
+
+      // Workspace types
+      export * from './types/workspace';
+
+      // Approval types
+      export * from './types/approval';
+
+      // Event types
+      export * from './types/events';
+      ```
+
+      Note: After implementing permissions.ts, add: `export * from './permissions'`
+    </reference>
+
+    <reference>
+      **Shared Package Structure:**
+      ```
+      packages/shared/
+      ├── src/
+      │   ├── index.ts              (Main export file)
+      │   ├── permissions.ts        (NEW - To be created)
+      │   └── types/
+      │       ├── auth.ts
+      │       ├── workspace.ts      (Contains WorkspaceRole type)
+      │       ├── approval.ts
+      │       └── events.ts
+      ├── package.json
+      └── tsconfig.json
+      ```
+    </reference>
+  </existing-code-references>
+
+  <files-to-create>
+    <file path="packages/shared/src/permissions.ts">
+      <purpose>
+        Core permission matrix implementation containing:
+        - PERMISSIONS constant object with all permission strings
+        - Permission and WorkspaceRole type exports
+        - ROLE_PERMISSIONS mapping (role → permission array)
+        - hasPermission(role, permission) function
+        - getPermissions(role) function
+        - canChangeRole(actorRole, targetRole) function
+        - canRemoveMember(actorRole, targetRole) function
+        - ModulePermissionOverride and ModulePermissions types
+        - hasModulePermission(baseRole, moduleId, permission, modulePermissions) function
+      </purpose>
+    </file>
+
+    <file path="packages/shared/src/permissions.test.ts">
+      <purpose>
+        Comprehensive unit tests covering:
+        - Permission constants validation
+        - Role permission mappings (owner has all, admin lacks delete, etc.)
+        - hasPermission checks for all roles
+        - getPermissions returns correct arrays
+        - canChangeRole hierarchy enforcement
+        - canRemoveMember hierarchy enforcement
+        - hasModulePermission with role elevation
+        - hasModulePermission with specific permissions
+        - hasModulePermission fallback to base role
+        - Edge cases (undefined role, invalid permission, null overrides)
+      </purpose>
+      <coverage-target>100% of permission utility functions</coverage-target>
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="packages/shared/src/index.ts">
+      <modification>
+        Add export statement at the end:
+        ```typescript
+        // Permission system
+        export * from './permissions'
+        ```
+      </modification>
+      <reason>Make permissions available to consuming applications via @hyvve/shared import</reason>
+    </file>
+  </files-to-modify>
+
+  <dependencies>
+    <upstream-dependencies>
+      <dependency epic="EPIC-00" story="00-6">
+        Shared package infrastructure - Already complete. The @hyvve/shared package exists with proper TypeScript configuration.
+      </dependency>
+      <dependency epic="EPIC-01" completed="true">
+        User authentication system provides the context of authenticated users with roles.
+      </dependency>
+      <dependency epic="EPIC-02" completed="true">
+        Workspace member roles are defined in the database schema and TypeScript types.
+      </dependency>
+    </upstream-dependencies>
+
+    <downstream-dependencies>
+      <dependency epic="EPIC-03" story="03-2">
+        NestJS Guards will import and use hasPermission, canChangeRole functions
+      </dependency>
+      <dependency epic="EPIC-03" story="03-3">
+        Next.js Middleware will import and use hasPermission for route protection
+      </dependency>
+      <dependency epic="EPIC-03" story="03-4">
+        Prisma Tenant Extension integration will use workspace context with permissions
+      </dependency>
+      <dependency epic="EPIC-03" story="03-6">
+        Module Permission Overrides UI will use ModulePermissions type and hasModulePermission function
+      </dependency>
+    </downstream-dependencies>
+
+    <npm-dependencies>
+      <package name="typescript">
+        Already installed. Used for type definitions.
+      </package>
+      <package name="zod" required="false">
+        Already available in shared package. Could be used for runtime validation but not required for basic implementation.
+      </package>
+      <package name="vitest">
+        Already configured in project. Used for unit tests.
+      </package>
+    </npm-dependencies>
+  </dependencies>
+
+  <testing-requirements>
+    <test-file path="packages/shared/src/permissions.test.ts">
+      <framework>Vitest</framework>
+      <coverage-target>100%</coverage-target>
+
+      <test-suite name="Permission Constants">
+        <test>All PERMISSIONS constants are defined</test>
+        <test>Permission type inference works correctly</test>
+        <test>No duplicate permission values exist</test>
+      </test-suite>
+
+      <test-suite name="Role Permissions Mapping">
+        <test>Owner has all permissions (Object.values(PERMISSIONS))</test>
+        <test>Admin has all permissions except WORKSPACE_DELETE</test>
+        <test>Member has correct limited permissions</test>
+        <test>Viewer has only read permissions</test>
+        <test>Guest has minimal permissions</test>
+      </test-suite>
+
+      <test-suite name="hasPermission Function">
+        <test>Returns true when role has permission</test>
+        <test>Returns false when role lacks permission</test>
+        <test>Owner can access WORKSPACE_DELETE</test>
+        <test>Admin cannot access WORKSPACE_DELETE</test>
+        <test>Member cannot access MEMBERS_INVITE</test>
+        <test>Viewer cannot access RECORDS_CREATE</test>
+      </test-suite>
+
+      <test-suite name="getPermissions Function">
+        <test>Returns complete permission array for owner</test>
+        <test>Returns correct array for each role</test>
+        <test>Arrays are immutable (cannot be modified)</test>
+      </test-suite>
+
+      <test-suite name="canChangeRole Function">
+        <test>Owner can modify admin role</test>
+        <test>Owner can modify member role</test>
+        <test>Owner cannot modify owner role</test>
+        <test>Admin can modify member role</test>
+        <test>Admin can modify viewer role</test>
+        <test>Admin can modify guest role</test>
+        <test>Admin cannot modify admin role</test>
+        <test>Admin cannot modify owner role</test>
+        <test>Member cannot modify any roles</test>
+        <test>Viewer cannot modify any roles</test>
+        <test>Guest cannot modify any roles</test>
+      </test-suite>
+
+      <test-suite name="canRemoveMember Function">
+        <test>Follows same rules as canChangeRole</test>
+        <test>Owner can remove non-owners</test>
+        <test>Admin can remove members/viewers/guests</test>
+        <test>Admin cannot remove admins or owners</test>
+      </test-suite>
+
+      <test-suite name="hasModulePermission Function">
+        <test>Checks base role permission when no overrides</test>
+        <test>Applies role elevation override (member → admin in module)</test>
+        <test>Applies specific permission override</test>
+        <test>Falls back to base role when module not in overrides</test>
+        <test>Handles null modulePermissions gracefully</test>
+        <test>Handles undefined modulePermissions gracefully</test>
+        <test>Role elevation grants all permissions of elevated role</test>
+        <test>Specific permissions only grant listed permissions</test>
+      </test-suite>
+
+      <test-suite name="Edge Cases">
+        <test>Handles undefined role gracefully (type system prevents but test runtime)</test>
+        <test>Handles invalid permission string gracefully</test>
+        <test>Handles empty modulePermissions object</test>
+        <test>Handles modulePermissions with invalid structure</test>
+      </test-suite>
+    </test-file>
+  </testing-requirements>
+
+  <implementation-guidance>
+    <step number="1">
+      <title>Create permissions.ts file structure</title>
+      <description>
+        Start with the basic file structure:
+        - Import WorkspaceRole from './types/workspace'
+        - Define PERMISSIONS constant object
+        - Define Permission type
+        - Add JSDoc comments for documentation
+      </description>
+    </step>
+
+    <step number="2">
+      <title>Define all permission constants</title>
+      <description>
+        Define 23 permission constants across 6 categories:
+        - 3 workspace permissions
+        - 4 member management permissions
+        - 4 record management permissions
+        - 3 approval permissions
+        - 3 agent permissions
+        - 3 API key permissions
+        - 2 module permissions
+
+        Use consistent naming: CATEGORY_ACTION pattern
+        Use string values: 'category:action' pattern
+        Add `as const` for type inference
+      </description>
+    </step>
+
+    <step number="3">
+      <title>Create role permissions mapping</title>
+      <description>
+        Create ROLE_PERMISSIONS object with arrays for each role:
+        - owner: [...Object.values(PERMISSIONS)]
+        - admin: All except WORKSPACE_DELETE
+        - member: Limited set (see technical guidance)
+        - viewer: Read-only set
+        - guest: Minimal set
+      </description>
+    </step>
+
+    <step number="4">
+      <title>Implement basic utility functions</title>
+      <description>
+        Implement hasPermission and getPermissions:
+        - hasPermission: Simple array lookup
+        - getPermissions: Return role's permission array
+        - Add proper TypeScript types
+        - Add JSDoc comments
+      </description>
+    </step>
+
+    <step number="5">
+      <title>Implement role hierarchy functions</title>
+      <description>
+        Implement canChangeRole and canRemoveMember:
+        - Define roleLevel mapping (owner: 5, admin: 4, etc.)
+        - Implement hierarchy logic
+        - Owner can modify non-owners
+        - Admin can modify roles below admin level
+        - Others cannot modify
+      </description>
+    </step>
+
+    <step number="6">
+      <title>Define module permission types</title>
+      <description>
+        Define ModulePermissionOverride and ModulePermissions types:
+        - ModulePermissionOverride: { role?, permissions? }
+        - ModulePermissions: Record&lt;string, ModulePermissionOverride&gt;
+        - Add JSDoc explaining usage
+      </description>
+    </step>
+
+    <step number="7">
+      <title>Implement hasModulePermission function</title>
+      <description>
+        Implement module override logic:
+        1. Check base role permission first
+        2. If no overrides or module not in overrides, return base check
+        3. If override has role, check elevated role's permissions
+        4. If override has permissions array, check if permission in array
+        5. Fall back to base check
+      </description>
+    </step>
+
+    <step number="8">
+      <title>Export from index.ts</title>
+      <description>
+        Add `export * from './permissions'` to packages/shared/src/index.ts
+        This makes all permission exports available via @hyvve/shared
+      </description>
+    </step>
+
+    <step number="9">
+      <title>Write comprehensive unit tests</title>
+      <description>
+        Create permissions.test.ts with 100% coverage:
+        - Test all role permission mappings
+        - Test all utility functions
+        - Test module override logic
+        - Test edge cases
+        - Run: pnpm test packages/shared
+      </description>
+    </step>
+
+    <step number="10">
+      <title>Verify importability in apps</title>
+      <description>
+        Test that permissions can be imported in both apps:
+        - apps/web: Create test import in a route handler
+        - apps/api: Create test import in a service
+        - Verify TypeScript types work correctly
+        - Verify no circular dependency issues
+      </description>
+    </step>
+  </implementation-guidance>
+
+  <code-examples>
+    <example title="Basic Permission Check">
+      ```typescript
+      import { hasPermission, PERMISSIONS } from '@hyvve/shared'
+
+      const member: WorkspaceMember = {
+        role: 'member',
+        // ... other fields
+      }
+
+      // Check if member can invite others
+      if (hasPermission(member.role, PERMISSIONS.MEMBERS_INVITE)) {
+        // Allow invitation
+      } else {
+        // Deny access
+      }
+      ```
+    </example>
+
+    <example title="Role Hierarchy Check">
+      ```typescript
+      import { canChangeRole } from '@hyvve/shared'
+
+      // Admin trying to change owner role
+      if (canChangeRole('admin', 'owner')) {
+        // This will be false - admin cannot modify owner
+      }
+
+      // Owner trying to change admin role
+      if (canChangeRole('owner', 'admin')) {
+        // This will be true - owner can modify admin
+      }
+      ```
+    </example>
+
+    <example title="Module Permission Override">
+      ```typescript
+      import { hasModulePermission, PERMISSIONS } from '@hyvve/shared'
+
+      const member: WorkspaceMember = {
+        role: 'member',
+        modulePermissions: {
+          'bm-crm': { role: 'admin' }  // Member is admin in CRM module
+        }
+      }
+
+      // Check permission in CRM module
+      const canConfigureInCRM = hasModulePermission(
+        member.role,
+        'bm-crm',
+        PERMISSIONS.MODULE_ADMIN,
+        member.modulePermissions
+      )
+      // Returns true because member is elevated to admin in CRM
+
+      // Check permission in another module
+      const canConfigureInPM = hasModulePermission(
+        member.role,
+        'bm-pm',
+        PERMISSIONS.MODULE_ADMIN,
+        member.modulePermissions
+      )
+      // Returns false because no override for bm-pm module
+      ```
+    </example>
+  </code-examples>
+
+  <validation-checklist>
+    <item>All 23 permission constants defined with correct naming pattern</item>
+    <item>PERMISSIONS object uses `as const` for type inference</item>
+    <item>Permission type correctly inferred from PERMISSIONS keys</item>
+    <item>WorkspaceRole imported from workspace.ts (not redefined)</item>
+    <item>ROLE_PERMISSIONS mapping complete for all 5 roles</item>
+    <item>Owner has all permissions (Object.values(PERMISSIONS))</item>
+    <item>Admin has all except WORKSPACE_DELETE</item>
+    <item>hasPermission function implemented with correct signature</item>
+    <item>getPermissions function implemented with correct signature</item>
+    <item>canChangeRole function enforces hierarchy correctly</item>
+    <item>canRemoveMember function follows same rules as canChangeRole</item>
+    <item>ModulePermissionOverride interface defined with optional role and permissions</item>
+    <item>ModulePermissions type defined as Record&lt;string, ModulePermissionOverride&gt;</item>
+    <item>hasModulePermission function checks base role first</item>
+    <item>hasModulePermission applies role elevation correctly</item>
+    <item>hasModulePermission applies specific permissions correctly</item>
+    <item>hasModulePermission falls back to base role when no override</item>
+    <item>All functions have JSDoc comments</item>
+    <item>Exported from packages/shared/src/index.ts</item>
+    <item>Unit tests pass with 100% coverage</item>
+    <item>No TypeScript errors in permissions.ts</item>
+    <item>Successfully imports in apps/web</item>
+    <item>Successfully imports in apps/api</item>
+  </validation-checklist>
+</story-context>
