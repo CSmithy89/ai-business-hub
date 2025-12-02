@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>04-4</story-id>
+    <title>Create Approval Queue Dashboard</title>
+    <epic>EPIC-04 - Approval Queue System</epic>
+    <status>in-progress</status>
+    <points>3</points>
+    <generated-date>2025-12-03</generated-date>
+  </metadata>
+
+  <dependencies>
+    <story id="04-2" status="done">
+      <title>Create Approval Queue API Endpoints</title>
+      <provides>
+        <item>GET /api/approvals - List with filtering/pagination</item>
+        <item>GET /api/approvals/:id - Get single approval</item>
+        <item>POST /api/approvals/:id/approve - Approve action</item>
+        <item>POST /api/approvals/:id/reject - Reject action</item>
+      </provides>
+    </story>
+    <story id="04-3" status="done">
+      <title>Implement Approval Router</title>
+      <provides>
+        <item>Router integration for approval endpoints</item>
+        <item>Authentication guards</item>
+        <item>Workspace context validation</item>
+      </provides>
+    </story>
+  </dependencies>
+
+  <shared-types>
+    <package name="@hyvve/shared">
+      <type-definitions>
+        <type name="ApprovalStatus">
+          <description>Approval status enum</description>
+          <values>
+            <value>pending</value>
+            <value>approved</value>
+            <value>rejected</value>
+            <value>auto_approved</value>
+          </values>
+        </type>
+        <type name="ConfidenceLevel">
+          <description>Confidence level for AI decision routing</description>
+          <values>
+            <value>high</value>
+            <value>medium</value>
+            <value>low</value>
+          </values>
+        </type>
+        <type name="ApprovalItem">
+          <description>Approval item in the queue</description>
+          <fields>
+            <field name="id" type="string">Approval item ID</field>
+            <field name="workspaceId" type="string">Workspace ID (tenant context)</field>
+            <field name="type" type="string">Item type (e.g., 'email', 'social_post', 'invoice')</field>
+            <field name="title" type="string">Item title</field>
+            <field name="description" type="string" optional="true">Item description</field>
+            <field name="confidenceScore" type="number">AI confidence score (0-100)</field>
+            <field name="confidenceLevel" type="ConfidenceLevel">Confidence level category</field>
+            <field name="status" type="ApprovalStatus">Approval status</field>
+            <field name="data" type="Record&lt;string, unknown&gt;">Item payload/data</field>
+            <field name="createdBy" type="string">AI agent that created the item</field>
+            <field name="reviewedBy" type="string" optional="true">User who approved/rejected</field>
+            <field name="createdAt" type="Date">Created timestamp</field>
+            <field name="reviewedAt" type="Date" optional="true">Reviewed timestamp</field>
+            <field name="dueAt" type="Date" optional="true">Due date for review</field>
+            <field name="priority" type="number">Priority level</field>
+          </fields>
+        </type>
+      </type-definitions>
+    </package>
+  </shared-types>
+
+  <api-endpoints>
+    <endpoint method="GET" path="/api/approvals">
+      <description>List approvals with filtering and pagination</description>
+      <query-params>
+        <param name="status" type="ApprovalStatus" optional="true">Filter by status</param>
+        <param name="type" type="string" optional="true">Filter by type</param>
+        <param name="priority" type="number" optional="true">Filter by priority</param>
+        <param name="assignedTo" type="string" optional="true">Filter by assigned user</param>
+        <param name="sortBy" type="string" optional="true">Sort field (createdAt, dueAt, priority)</param>
+        <param name="sortOrder" type="string" optional="true">Sort order (asc, desc)</param>
+        <param name="page" type="number" optional="true">Page number (default: 1)</param>
+        <param name="limit" type="number" optional="true">Items per page (default: 20)</param>
+      </query-params>
+      <response>
+        <success status="200">
+          <body>
+            {
+              "data": ApprovalItem[],
+              "meta": {
+                "total": number,
+                "page": number,
+                "limit": number,
+                "totalPages": number
+              }
+            }
+          </body>
+        </success>
+        <error status="401">Unauthorized - User not authenticated</error>
+        <error status="403">Forbidden - No workspace access</error>
+        <error status="500">Internal server error</error>
+      </response>
+    </endpoint>
+
+    <endpoint method="GET" path="/api/approvals/:id">
+      <description>Get single approval item</description>
+      <response>
+        <success status="200">
+          <body>{ "data": ApprovalItem }</body>
+        </success>
+        <error status="404">Approval not found</error>
+        <error status="401">Unauthorized</error>
+        <error status="403">Forbidden</error>
+      </response>
+    </endpoint>
+
+    <endpoint method="POST" path="/api/approvals/:id/approve">
+      <description>Approve an approval item</description>
+      <request-body>
+        {
+          "notes": string (optional)
+        }
+      </request-body>
+      <response>
+        <success status="200">
+          <body>{ "data": ApprovalItem }</body>
+        </success>
+        <error status="404">Approval not found</error>
+        <error status="409">Approval already processed</error>
+      </response>
+    </endpoint>
+
+    <endpoint method="POST" path="/api/approvals/:id/reject">
+      <description>Reject an approval item</description>
+      <request-body>
+        {
+          "notes": string (optional)
+        }
+      </request-body>
+      <response>
+        <success status="200">
+          <body>{ "data": ApprovalItem }</body>
+        </success>
+        <error status="404">Approval not found</error>
+        <error status="409">Approval already processed</error>
+      </response>
+    </endpoint>
+  </api-endpoints>
+
+  <ui-components>
+    <available-components>
+      <component path="components/ui/button.tsx">shadcn/ui Button component</component>
+      <component path="components/ui/card.tsx">shadcn/ui Card component</component>
+      <component path="components/ui/badge.tsx">shadcn/ui Badge component</component>
+      <component path="components/ui/input.tsx">shadcn/ui Input component</component>
+      <component path="components/ui/dropdown-menu.tsx">shadcn/ui DropdownMenu component</component>
+      <component path="components/ui/checkbox.tsx">shadcn/ui Checkbox component</component>
+      <component path="components/ui/dialog.tsx">shadcn/ui Dialog component</component>
+      <component path="components/ui/alert-dialog.tsx">shadcn/ui AlertDialog component</component>
+    </available-components>
+  </ui-components>
+
+  <technical-decisions>
+    <decision>
+      <title>Use @tanstack/react-query instead of SWR</title>
+      <rationale>Project already has @tanstack/react-query installed in package.json, provides better mutation handling and optimistic updates</rationale>
+      <impact>All data fetching will use react-query hooks</impact>
+    </decision>
+
+    <decision>
+      <title>Keep list items simple for now</title>
+      <rationale>Detailed ApprovalCard component will be implemented in Story 04-5</rationale>
+      <impact>Create minimal approval-list-item.tsx with basic information display</impact>
+    </decision>
+
+    <decision>
+      <title>Placeholder stats calculations</title>
+      <rationale>Full analytics will be added in later stories</rationale>
+      <impact>Stats bar will show basic counts, avg response time and approval rate can be hardcoded placeholders</impact>
+    </decision>
+
+    <decision>
+      <title>Confidence-based color coding</title>
+      <rationale>Visual indication of AI confidence helps users prioritize reviews</rationale>
+      <implementation>
+        - high (>85%): green border (border-green-500)
+        - medium (60-85%): yellow border (border-yellow-500)
+        - low (&lt;60%): red border (border-red-500)
+      </implementation>
+    </decision>
+  </technical-decisions>
+
+  <environment-config>
+    <variable name="NEXT_PUBLIC_API_URL" default="http://localhost:3001">
+      <description>NestJS backend API URL</description>
+    </variable>
+  </environment-config>
+
+  <implementation-order>
+    <step number="1">
+      <title>Create use-approvals.ts hook</title>
+      <description>React Query hooks for approvals API with proper types</description>
+      <deliverables>
+        <item>useApprovals(filters) - fetch list with react-query</item>
+        <item>useApproval(id) - fetch single item</item>
+        <item>useApprovalMutations - approve/reject functions with optimistic updates</item>
+        <item>Proper error handling and loading states</item>
+      </deliverables>
+    </step>
+
+    <step number="2">
+      <title>Create approval component directory</title>
+      <description>Set up component structure for approval-related UI</description>
+      <path>apps/web/src/components/approval/</path>
+    </step>
+
+    <step number="3">
+      <title>Create approval-stats.tsx</title>
+      <description>Stats bar showing key metrics</description>
+      <features>
+        <item>Pending Review count (from data)</item>
+        <item>Auto-Approved Today count (placeholder)</item>
+        <item>Avg Response Time (placeholder)</item>
+        <item>Approval Rate (placeholder)</item>
+      </features>
+    </step>
+
+    <step number="4">
+      <title>Create approval-filters.tsx</title>
+      <description>Filter and sort controls</description>
+      <features>
+        <item>Status filter dropdown</item>
+        <item>Type filter dropdown</item>
+        <item>Confidence level filter</item>
+        <item>Sort by selector</item>
+        <item>Sort order toggle</item>
+      </features>
+    </step>
+
+    <step number="5">
+      <title>Create approval-list-item.tsx</title>
+      <description>Simple list item card (detailed card in Story 04-5)</description>
+      <features>
+        <item>Colored left border based on confidence</item>
+        <item>Title and type badge</item>
+        <item>Confidence badge</item>
+        <item>Created time and due date</item>
+        <item>Priority indicator</item>
+        <item>View button</item>
+      </features>
+    </step>
+
+    <step number="6">
+      <title>Create approval-list.tsx</title>
+      <description>List container with loading/empty states</description>
+      <features>
+        <item>Grid/list layout</item>
+        <item>Skeleton loading state</item>
+        <item>Empty state message</item>
+        <item>No results state</item>
+      </features>
+    </step>
+
+    <step number="7">
+      <title>Create /approvals/page.tsx</title>
+      <description>Main approval queue page</description>
+      <features>
+        <item>Page metadata</item>
+        <item>Stats bar integration</item>
+        <item>Filter controls integration</item>
+        <item>Approval list integration</item>
+        <item>Pagination controls</item>
+        <item>Error handling</item>
+        <item>Responsive layout</item>
+      </features>
+    </step>
+
+    <step number="8">
+      <title>Update sprint-status.yaml</title>
+      <description>Mark story 04-4 as in-progress</description>
+    </step>
+  </implementation-order>
+
+  <styling-conventions>
+    <tailwind-classes>
+      <confidence-colors>
+        <high>border-green-500 bg-green-50</high>
+        <medium>border-yellow-500 bg-yellow-50</medium>
+        <low>border-red-500 bg-red-50</low>
+      </confidence-colors>
+      <badge-variants>
+        <high>default (green)</high>
+        <medium>secondary (yellow)</medium>
+        <low>destructive (red)</low>
+      </badge-variants>
+    </tailwind-classes>
+  </styling-conventions>
+
+  <related-files>
+    <file path="packages/shared/src/types/approval.ts">Approval type definitions</file>
+    <file path="apps/web/src/hooks/use-workspace.ts">Example hook pattern to follow</file>
+    <file path="apps/web/src/app/settings/page.tsx">Example page structure</file>
+    <file path="apps/web/package.json">Dependencies (react-query, date-fns, etc.)</file>
+  </related-files>
+
+  <future-enhancements>
+    <enhancement story="04-5">
+      <title>Create Approval Card Component</title>
+      <description>Detailed card with expanded information and actions</description>
+    </enhancement>
+    <enhancement story="04-6">
+      <title>Implement AI Reasoning Display</title>
+      <description>Show AI confidence factors and explanations</description>
+    </enhancement>
+    <enhancement story="07-2">
+      <title>Create Sidebar Navigation</title>
+      <description>Add pending approval count badge to sidebar</description>
+    </enhancement>
+  </future-enhancements>
+</story-context>
