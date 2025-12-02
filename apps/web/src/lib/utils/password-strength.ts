@@ -6,6 +6,7 @@ export interface PasswordCriteria {
   hasUppercase: boolean
   hasLowercase: boolean
   hasNumber: boolean
+  hasSpecialChar: boolean
 }
 
 /**
@@ -28,10 +29,10 @@ export interface PasswordStrengthResult {
 /**
  * Calculate password strength based on criteria
  *
- * Scoring:
+ * Scoring (5 criteria total):
  * - 0-2 criteria met: Weak (red)
- * - 3 criteria met: Medium (yellow)
- * - All 4 criteria met: Strong (green)
+ * - 3-4 criteria met: Medium (yellow)
+ * - All 5 criteria met: Strong (green)
  *
  * @param password - The password to evaluate
  * @returns Password strength result with score, label, and color
@@ -42,9 +43,10 @@ export function calculatePasswordStrength(password: string): PasswordStrengthRes
     hasUppercase: /[A-Z]/.test(password),
     hasLowercase: /[a-z]/.test(password),
     hasNumber: /[0-9]/.test(password),
+    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password),
   }
 
-  // Calculate score (0-4)
+  // Calculate score (0-5)
   const score = Object.values(criteria).filter(Boolean).length
 
   // Determine strength level
@@ -56,7 +58,7 @@ export function calculatePasswordStrength(password: string): PasswordStrengthRes
     strength = 'weak'
     label = 'Weak'
     color = 'bg-red-500'
-  } else if (score === 3) {
+  } else if (score <= 4) {
     strength = 'medium'
     label = 'Medium'
     color = 'bg-yellow-500'
@@ -67,7 +69,7 @@ export function calculatePasswordStrength(password: string): PasswordStrengthRes
   }
 
   // Calculate percentage for progress bar (0-100%)
-  const percentage = (score / 4) * 100
+  const percentage = (score / 5) * 100
 
   return {
     strength,

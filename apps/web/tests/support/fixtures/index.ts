@@ -8,22 +8,16 @@ import { test as base, mergeTests } from '@playwright/test';
 import { UserFactory } from './factories/user-factory';
 import { WorkspaceFactory } from './factories/workspace-factory';
 
-// Fixture type definitions
-type TestFixtures = {
-  userFactory: UserFactory;
-  workspaceFactory: WorkspaceFactory;
-  auth: AuthFixture;
-};
-
+// Auth fixture type definition
 type AuthFixture = {
   loginAs: (email: string, password: string) => Promise<void>;
-  loginAsTestUser: () => Promise<void>;
+  loginAsTestUser: () => Promise<{ email: string }>;
   logout: () => Promise<void>;
 };
 
 // Auth fixture - handles authentication flows
 const authFixture = base.extend<{ auth: AuthFixture }>({
-  auth: async ({ page, context }, use) => {
+  auth: async ({ page }, use) => {
     const loginAs = async (email: string, password: string) => {
       await page.goto('/sign-in');
       await page.fill('[data-testid="email-input"]', email);
@@ -33,10 +27,9 @@ const authFixture = base.extend<{ auth: AuthFixture }>({
     };
 
     const loginAsTestUser = async () => {
-      await loginAs(
-        process.env.TEST_USER_EMAIL || 'test@example.com',
-        process.env.TEST_USER_PASSWORD || 'Test1234!'
-      );
+      const email = process.env.TEST_USER_EMAIL || 'test@example.com';
+      await loginAs(email, process.env.TEST_USER_PASSWORD || 'Test1234!');
+      return { email };
     };
 
     const logout = async () => {

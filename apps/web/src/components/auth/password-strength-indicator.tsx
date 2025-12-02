@@ -50,6 +50,10 @@ export function PasswordStrengthIndicator({ password, className }: PasswordStren
           <span className="inline-block w-4">{strength.criteria.hasNumber ? '✓' : '○'}</span>
           Contains number
         </li>
+        <li className={cn('flex items-center gap-1', strength.criteria.hasSpecialChar && 'text-green-600')}>
+          <span className="inline-block w-4">{strength.criteria.hasSpecialChar ? '✓' : '○'}</span>
+          Contains special character (!@#$%^&* etc.)
+        </li>
       </ul>
     </div>
   )
