@@ -7,6 +7,7 @@ import {
   UseGuards,
   BadRequestException,
   Logger,
+  Req,
 } from '@nestjs/common'
 import {
   ApiTags,
@@ -27,7 +28,8 @@ import {
   validateCompleteOverrides,
   validatePermissionValues,
 } from '@hyvve/shared'
-import { PrismaService } from '../common/services/prisma.service'
+import { AuditService } from '../audit/audit.service'
+import { Request } from 'express'
 
 /**
  * Controller for workspace member management
@@ -46,7 +48,7 @@ export class MembersController {
 
   constructor(
     private readonly membersService: MembersService,
-    private readonly prisma: PrismaService
+    private readonly auditService: AuditService
   ) {}
 
   /**
@@ -98,7 +100,8 @@ export class MembersController {
     @Param('memberId') memberId: string,
     @Body() dto: UpdateModulePermissionsDto,
     @CurrentWorkspace() workspaceId: string,
-    @CurrentUser() actor: any
+    @CurrentUser() actor: any,
+    @Req() req: Request
   ) {
     // Validate module permissions structure
     if (dto.modulePermissions) {
@@ -133,28 +136,18 @@ export class MembersController {
       dto
     )
 
-    // TODO: Replace with AuditService when Story 03-7 is implemented
-    // For now, create audit log directly
-    try {
-      await this.prisma.auditLog.create({
-        data: {
-          workspaceId,
-          action: 'module_permissions_updated',
-          entity: 'workspace_member',
-          entityId: memberId,
-          userId: actor.id,
-          oldValues: { modulePermissions: result.previousPermissions },
-          newValues: { modulePermissions: result.member.modulePermissions },
-          metadata: {
-            memberUserId: result.member.userId,
-            memberRole: result.member.role,
-          },
-        },
-      })
-    } catch (error) {
-      // Audit logging failure should not block the operation
-      this.logger.error('Failed to create audit log:', error)
-    }
+    // Log the permission change using AuditService
+    await this.auditService.logPermissionOverrideChange({
+      workspaceId,
+      actorId: actor.id,
+      targetMemberId: memberId,
+      targetMemberEmail: result.member.user.email,
+      targetMemberRole: result.member.role,
+      oldPermissions: result.previousPermissions,
+      newPermissions: result.member.modulePermissions,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    })
 
     return result.member
   }
