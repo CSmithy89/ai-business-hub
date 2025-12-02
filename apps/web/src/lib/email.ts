@@ -123,6 +123,88 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
 }
 
 /**
+ * Send workspace invitation email
+ *
+ * @param to - Invitee email address
+ * @param inviterName - Name of the person sending the invitation
+ * @param workspaceName - Name of the workspace
+ * @param token - Secure invitation token
+ * @param role - Role being assigned to the invitee
+ * @returns Promise that resolves when email is sent
+ */
+export async function sendWorkspaceInvitationEmail(
+  to: string,
+  inviterName: string,
+  workspaceName: string,
+  token: string,
+  role: string
+): Promise<void> {
+  const inviteUrl = `${baseUrl}/invite/${token}`
+
+  // For local development
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'test') {
+    console.log('\n📧 Workspace Invitation Email (Local Dev Mode)')
+    console.log('═══════════════════════════════════════════════')
+    console.log(`To: ${to}`)
+    console.log(`From: ${inviterName}`)
+    console.log(`Workspace: ${workspaceName}`)
+    console.log(`Role: ${role}`)
+    console.log(`Subject: You've been invited to join ${workspaceName} on HYVVE`)
+    console.log(`Invite URL: ${inviteUrl}`)
+    console.log('═══════════════════════════════════════════════\n')
+    return
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to,
+      replyTo: EMAIL_CONFIG.replyTo,
+      subject: `You've been invited to join ${workspaceName} on HYVVE`,
+      html: `
+        <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #111827; margin-bottom: 24px;">You've been invited!</h1>
+
+          <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+            <strong>${inviterName}</strong> has invited you to join <strong>${workspaceName}</strong> on HYVVE as a <strong>${role}</strong>.
+          </p>
+
+          <div style="margin: 32px 0;">
+            <a href="${inviteUrl}"
+               style="display: inline-block; background-color: #4f46e5; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+              Accept Invitation
+            </a>
+          </div>
+
+          <p style="color: #6b7280; font-size: 14px;">
+            Or copy and paste this URL into your browser:
+          </p>
+          <p style="color: #4f46e5; font-size: 14px; word-break: break-all;">
+            ${inviteUrl}
+          </p>
+
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+            <p style="color: #9ca3af; font-size: 12px;">
+              This invitation will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.
+            </p>
+          </div>
+        </div>
+      `,
+    })
+
+    if (error) {
+      console.error('Failed to send workspace invitation email:', error)
+      throw new Error(`Email sending failed: ${error.message}`)
+    }
+
+    console.log('Workspace invitation email sent successfully:', data?.id)
+  } catch (error) {
+    console.error('Error sending workspace invitation email:', error)
+    throw error
+  }
+}
+
+/**
  * Send workspace deletion confirmation email
  *
  * @param to - Workspace owner's email address

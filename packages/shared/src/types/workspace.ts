@@ -82,6 +82,7 @@ export interface WorkspaceMember {
 /**
  * Workspace invitation
  * Matches Prisma WorkspaceInvitation model
+ * Note: Invitations are deleted when accepted (no acceptedAt field)
  */
 export interface WorkspaceInvitation {
   /** Invitation ID */
@@ -118,6 +119,25 @@ export const CreateWorkspaceSchema = z.object({
 })
 
 export type CreateWorkspaceInput = z.infer<typeof CreateWorkspaceSchema>
+
+/**
+ * Schema for creating a workspace invitation
+ * Owners and admins can invite new members with specified roles
+ */
+export const CreateInvitationSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  role: z.enum(['admin', 'member', 'viewer', 'guest'], {
+    message: 'Invalid role. Must be admin, member, viewer, or guest.',
+  }),
+})
+
+export type CreateInvitationInput = z.infer<typeof CreateInvitationSchema>
+
+/**
+ * Invitable roles (excludes 'owner' - cannot be invited, must be creator)
+ */
+export const INVITABLE_ROLES = ['admin', 'member', 'viewer', 'guest'] as const
+export type InvitableRole = (typeof INVITABLE_ROLES)[number]
 
 /**
  * List of valid IANA timezones (subset for common ones)
