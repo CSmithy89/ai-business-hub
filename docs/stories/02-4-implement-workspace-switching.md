@@ -180,5 +180,19 @@ Users may belong to multiple workspaces. The workspace switcher allows them to c
 
 ---
 
+## Implementation Notes (2025-12-02)
+
+**Completed:**
+- Switch workspace API endpoint
+- useWorkspace hook for client-side management
+- WorkspaceSelector dropdown component
+- Role badges and workspace initials
+
+**Integration Notes:**
+- WorkspaceSelector should be added to sidebar/header layout
+- May need CreateWorkspaceModal component for onCreateWorkspace callback
+
+---
+
 _Story drafted: 2025-12-02_
-_Ready for implementation_
+_Implementation completed: 2025-12-02_
