@@ -1,6 +1,6 @@
 'use client'
 
-import { ApprovalListItem } from './approval-list-item'
+import { ApprovalCard } from './approval-card'
 import type { ApprovalItem } from '@hyvve/shared'
 
 interface ApprovalListProps {
@@ -88,7 +88,7 @@ export function ApprovalList({ approvals, isLoading, isEmpty }: ApprovalListProp
   return (
     <div className="space-y-4">
       {approvals.map((approval) => (
-        <ApprovalListItem key={approval.id} approval={approval} />
+        <ApprovalCard key={approval.id} approval={approval} variant="compact" />
       ))}
     </div>
   )

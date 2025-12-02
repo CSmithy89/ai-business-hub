@@ -12,7 +12,7 @@
  * @see Migration: 20251202190000_enable_rls_policies
  */
 
-import { PrismaClient, Prisma } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 
 /**
  * Set the tenant context for RLS policies
