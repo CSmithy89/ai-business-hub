@@ -86,3 +86,44 @@ export function createTenantPrismaClient() {
     },
   })
 }
+
+/**
+ * Execute a function within a tenant context
+ *
+ * This helper function wraps AsyncLocalStorage.run() for convenient tenant context management.
+ * The tenant context is automatically propagated through all async operations within the function.
+ *
+ * @param tenantId - Workspace ID to set as tenant context
+ * @param fn - Function to execute within the tenant context
+ * @returns The result of the function execution
+ *
+ * @example
+ * ```ts
+ * const approvals = await withTenantContext('workspace-123', async () => {
+ *   return db.approvalItem.findMany()
+ * })
+ * ```
+ */
+export function withTenantContext<T>(tenantId: string, fn: () => T): T {
+  return tenantContext.run({ tenantId }, fn)
+}
+
+/**
+ * Get the current tenant ID from context
+ *
+ * Returns the workspace ID from the current AsyncLocalStorage context.
+ * Useful for debugging or conditional logic based on tenant context.
+ *
+ * @returns Current tenant ID or undefined if no context is set
+ *
+ * @example
+ * ```ts
+ * const currentTenantId = getTenantId()
+ * if (currentTenantId) {
+ *   console.log(`Operating in workspace: ${currentTenantId}`)
+ * }
+ * ```
+ */
+export function getTenantId(): string | undefined {
+  return tenantContext.getStore()?.tenantId
+}

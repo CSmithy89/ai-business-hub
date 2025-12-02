@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>03-4-implement-prisma-tenant-extension</story-id>
+    <epic>EPIC-03</epic>
+    <title>Implement Prisma Tenant Extension</title>
+    <status>in_progress</status>
+    <priority>P0</priority>
+    <points>3</points>
+    <created>2025-12-02</created>
+  </metadata>
+
+  <requirements>
+    <epic-file>
+      <location>/home/chris/projects/work/Ai Bussiness Hub/docs/epics/EPIC-03-rbac-multitenancy.md</location>
+      <summary>
+        Epic 03 implements defense-in-depth RBAC and multi-tenancy. The Prisma Tenant Extension
+        provides automatic workspace-level data isolation at the ORM layer using AsyncLocalStorage
+        and Prisma Client Extensions.
+      </summary>
+    </epic-file>
+
+    <tech-spec>
+      <location>/home/chris/projects/work/Ai Bussiness Hub/docs/sprint-artifacts/tech-spec-epic-03.md</location>
+      <relevant-sections>
+        <section>Story 03.4: Implement Prisma Tenant Extension</section>
+        <section>Defense-in-depth multi-tenancy with RLS + Prisma Extension</section>
+        <section>Non-Tenant Tables (Skip RLS/Extension)</section>
+      </relevant-sections>
+    </tech-spec>
+
+    <acceptance-criteria>
+      <criterion id="AC-03.4.1" status="complete">
+        Create tenant-extension.ts with AsyncLocalStorage (Already implemented in Epic 00)
+      </criterion>
+      <criterion id="AC-03.4.2" status="complete">
+        Auto-filter reads by workspaceId (Already implemented)
+      </criterion>
+      <criterion id="AC-03.4.3" status="complete">
+        Auto-inject workspaceId on creates (Already implemented)
+      </criterion>
+      <criterion id="AC-03.4.4" status="complete">
+        Auto-filter updates/deletes by workspaceId (Already implemented)
+      </criterion>
+      <criterion id="AC-03.4.5" status="complete">
+        Skip filtering for global tables (Already implemented)
+      </criterion>
+      <criterion id="AC-03.4.6" status="pending">
+        Add helper functions: withTenantContext() and getTenantId()
+      </criterion>
+      <criterion id="AC-03.4.7" status="pending">
+        Create comprehensive unit tests
+      </criterion>
+    </acceptance-criteria>
+  </requirements>
+
+  <architecture>
+    <patterns>
+      <pattern name="AsyncLocalStorage">
+        Uses Node.js AsyncLocalStorage to maintain tenant context across async operations
+        without explicit parameter passing. Context is automatically propagated through
+        async call chains.
+      </pattern>
+
+      <pattern name="Prisma Client Extensions">
+        Prisma's $extends() API allows intercepting all queries at the operation level.
+        The tenant extension modifies query arguments to add workspace filtering before
+        execution.
+      </pattern>
+
+      <pattern name="Defense-in-Depth">
+        The tenant extension is one layer of a multi-layered security approach:
+        1. Application guards (AuthGuard, TenantGuard)
+        2. Prisma Client Extension (this story)
+        3. PostgreSQL Row-Level Security (Story 03.5)
+      </pattern>
+    </patterns>
+
+    <components>
+      <component name="tenantContext">
+        <type>AsyncLocalStorage</type>
+        <purpose>Store current workspace ID for automatic query scoping</purpose>
+        <scope>Global singleton</scope>
+      </component>
+
+      <component name="createTenantPrismaClient">
+        <type>Function</type>
+        <purpose>Factory function that creates a Prisma Client with tenant extension</purpose>
+        <returns>Extended PrismaClient with automatic tenant scoping</returns>
+      </component>
+
+      <component name="withTenantContext">
+        <type>Helper Function</type>
+        <purpose>Execute a function within a tenant context</purpose>
+        <signature>withTenantContext&lt;T&gt;(tenantId: string, fn: () =&gt; T): T</signature>
+      </component>
+
+      <component name="getTenantId">
+        <type>Helper Function</type>
+        <purpose>Get current tenant ID from context</purpose>
+        <signature>getTenantId(): string | undefined</signature>
+      </component>
+    </components>
+
+    <non-tenant-models>
+      <model>User</model>
+      <model>Session</model>
+      <model>Account</model>
+      <model>Workspace</model>
+      <model>VerificationToken</model>
+      <model>WorkspaceInvitation</model>
+      <rationale>
+        These models are global entities not scoped to a specific workspace. User and Session
+        are authentication primitives. Workspace is the tenant itself. WorkspaceInvitation needs
+        to be accessible before user joins workspace.
+      </rationale>
+    </non-tenant-models>
+  </architecture>
+
+  <existing-code>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/packages/db/src/tenant-extension.ts">
+      <status>exists</status>
+      <implemented-in>Epic 00</implemented-in>
+      <features>
+        <feature>AsyncLocalStorage for tenant context</feature>
+        <feature>createTenantPrismaClient() factory function</feature>
+        <feature>Auto-filtering for findMany, findFirst, findUnique, count, aggregate</feature>
+        <feature>Auto-scoping for create and createMany</feature>
+        <feature>Auto-filtering for update, updateMany, delete, deleteMany</feature>
+        <feature>Global model exemption list</feature>
+        <feature>Error throwing when context not set</feature>
+      </features>
+      <missing>
+        <feature>withTenantContext() helper function</feature>
+        <feature>getTenantId() helper function</feature>
+        <feature>Unit tests</feature>
+      </missing>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/packages/db/src/index.ts">
+      <status>exists</status>
+      <exports>
+        <export>export * from '@prisma/client'</export>
+        <export>export * from './tenant-extension'</export>
+      </exports>
+      <note>Already exports tenant-extension, new helpers will be automatically exported</note>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/packages/db/prisma/schema.prisma">
+      <status>exists</status>
+      <tenant-scoped-models>
+        <model>AIProviderConfig</model>
+        <model>TokenUsage</model>
+        <model>ApprovalItem</model>
+        <model>ApiKey</model>
+        <model>EventLog</model>
+        <model>AuditLog</model>
+        <model>Notification</model>
+        <model>WorkspaceSettings</model>
+        <model>WorkspaceMember</model>
+      </tenant-scoped-models>
+      <note>All tenant-scoped models have workspaceId field with index</note>
+    </file>
+  </existing-code>
+
+  <integration>
+    <nestjs>
+      <component>TenantContextInterceptor</component>
+      <location>apps/api/src/common/interceptors/tenant-context.interceptor.ts</location>
+      <purpose>
+        Global interceptor that extracts workspaceId from request (set by TenantGuard) and
+        runs the handler within tenant context using tenantContext.run()
+      </purpose>
+      <story-reference>Story 03.2 (Create Auth Guards for NestJS)</story-reference>
+    </nestjs>
+
+    <nextjs>
+      <component>withTenant middleware</component>
+      <location>apps/web/src/lib/middleware/with-tenant.ts</location>
+      <purpose>
+        Higher-order function that wraps API route handlers, extracts workspaceId from
+        request, and uses withTenantContext() to execute handler
+      </purpose>
+      <story-reference>Story 03.3 (Create Permission Middleware for Next.js)</story-reference>
+    </nextjs>
+  </integration>
+
+  <testing>
+    <test-file>
+      <location>/home/chris/projects/work/Ai Bussiness Hub/packages/db/src/tenant-extension.test.ts</location>
+      <framework>Vitest</framework>
+      <test-database>Test PostgreSQL database with schema</test-database>
+
+      <test-suites>
+        <suite name="Context Management">
+          <test>withTenantContext sets context correctly</test>
+          <test>withTenantContext clears context after execution</test>
+          <test>getTenantId returns current tenant</test>
+          <test>getTenantId returns undefined when no context</test>
+          <test>Nested withTenantContext maintains correct context</test>
+        </suite>
+
+        <suite name="Read Operations">
+          <test>findMany auto-filters by workspace</test>
+          <test>findFirst auto-filters by workspace</test>
+          <test>findUnique auto-filters by workspace</test>
+          <test>count auto-filters by workspace</test>
+          <test>aggregate auto-filters by workspace</test>
+          <test>Cross-tenant access is blocked</test>
+        </suite>
+
+        <suite name="Write Operations">
+          <test>create auto-injects workspaceId</test>
+          <test>createMany auto-injects workspaceId on all items</test>
+          <test>update auto-filters by workspace</test>
+          <test>updateMany auto-filters by workspace</test>
+          <test>delete auto-filters by workspace</test>
+          <test>deleteMany auto-filters by workspace</test>
+        </suite>
+
+        <suite name="Global Models">
+          <test>User queries are not filtered</test>
+          <test>Session queries are not filtered</test>
+          <test>Account queries are not filtered</test>
+          <test>Workspace queries are not filtered</test>
+          <test>VerificationToken queries are not filtered</test>
+          <test>WorkspaceInvitation queries are not filtered</test>
+        </suite>
+
+        <suite name="Error Handling">
+          <test>Query without context throws error</test>
+          <test>Error message includes model name</test>
+          <test>Error message includes operation type</test>
+        </suite>
+      </test-suites>
+
+      <test-data>
+        <setup>
+          <workspace id="workspace-a" name="Test Workspace A"/>
+          <workspace id="workspace-b" name="Test Workspace B"/>
+          <approval-item workspaceId="workspace-a" title="Approval A1"/>
+          <approval-item workspaceId="workspace-a" title="Approval A2"/>
+          <approval-item workspaceId="workspace-b" title="Approval B1"/>
+        </setup>
+      </test-data>
+    </test-file>
+
+    <coverage-target>
+      <line-coverage>90%</line-coverage>
+      <branch-coverage>85%</branch-coverage>
+      <function-coverage>100%</function-coverage>
+    </coverage-target>
+  </testing>
+
+  <dependencies>
+    <runtime>
+      <dependency>
+        <name>@prisma/client</name>
+        <purpose>Database ORM with Client Extensions API</purpose>
+        <status>installed</status>
+      </dependency>
+      <dependency>
+        <name>async_hooks</name>
+        <purpose>Node.js built-in for AsyncLocalStorage</purpose>
+        <status>built-in</status>
+      </dependency>
+    </runtime>
+
+    <dev>
+      <dependency>
+        <name>vitest</name>
+        <purpose>Testing framework</purpose>
+        <status>installed</status>
+      </dependency>
+      <dependency>
+        <name>@types/node</name>
+        <purpose>TypeScript types for Node.js</purpose>
+        <status>installed</status>
+      </dependency>
+    </dev>
+  </dependencies>
+
+  <security-considerations>
+    <consideration priority="critical">
+      The tenant extension is a critical security boundary. All queries MUST be scoped
+      unless explicitly exempted. New models added to schema should be reviewed to determine
+      if they need workspaceId scoping.
+    </consideration>
+
+    <consideration priority="high">
+      AsyncLocalStorage context can be lost in certain async patterns (e.g., setTimeout,
+      setInterval, external event emitters). Always use withTenantContext() wrapper for
+      safe context propagation.
+    </consideration>
+
+    <consideration priority="medium">
+      The NON_TENANT_MODELS list must be carefully maintained. Adding a model to this list
+      bypasses all tenant isolation. Each addition should be reviewed and justified.
+    </consideration>
+
+    <consideration priority="medium">
+      Error handling must fail closed (throw error) when context is missing. Never fall back
+      to unfiltered queries as this would bypass tenant isolation.
+    </consideration>
+  </security-considerations>
+
+  <related-stories>
+    <story id="03-1" status="done">Implement Permission Matrix</story>
+    <story id="03-2" status="done">Create Auth Guards for NestJS</story>
+    <story id="03-3" status="done">Create Permission Middleware for Next.js</story>
+    <story id="03-5" status="backlog">Create PostgreSQL RLS Policies</story>
+  </related-stories>
+
+  <references>
+    <reference>
+      <title>Prisma Client Extensions Documentation</title>
+      <url>https://www.prisma.io/docs/orm/prisma-client/client-extensions</url>
+    </reference>
+    <reference>
+      <title>Node.js AsyncLocalStorage</title>
+      <url>https://nodejs.org/api/async_context.html#class-asynclocalstorage</url>
+    </reference>
+    <reference>
+      <title>ADR-003: Defense-in-Depth Multi-Tenancy</title>
+      <location>docs/architecture.md</location>
+    </reference>
+  </references>
+</story-context>

@@ -18,36 +18,36 @@ datasource db {
 // ============================================
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  emailVerified Boolean   @default(false) @map("email_verified")
+  id            String  @id @default(uuid())
+  email         String  @unique
+  emailVerified Boolean @default(false) @map("email_verified")
   name          String?
   image         String?
-  passwordHash  String?   @map("password_hash")
+  passwordHash  String? @map("password_hash")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  sessions   Session[]
-  accounts   Account[]
-  workspaces WorkspaceMember[]
-  invitationsSent WorkspaceMember[] @relation("InvitedBy")
+  sessions                 Session[]
+  accounts                 Account[]
+  workspaces               WorkspaceMember[]
+  invitationsSent          WorkspaceMember[]     @relation("InvitedBy")
   workspaceInvitationsSent WorkspaceInvitation[] @relation("SentInvitations")
-  assignedApprovals ApprovalItem[] @relation("AssignedApprovals")
-  resolvedApprovals ApprovalItem[] @relation("ResolvedApprovals")
-  createdApiKeys ApiKey[] @relation("CreatedBy")
+  assignedApprovals        ApprovalItem[]        @relation("AssignedApprovals")
+  resolvedApprovals        ApprovalItem[]        @relation("ResolvedApprovals")
+  createdApiKeys           ApiKey[]              @relation("CreatedBy")
 
   @@map("users")
 }
 
 model Session {
-  id                String    @id @default(uuid())
-  userId            String    @map("user_id")
-  token             String    @unique
-  expiresAt         DateTime  @map("expires_at")
-  ipAddress         String?   @map("ip_address")
-  userAgent         String?   @map("user_agent")
-  activeWorkspaceId String?   @map("active_workspace_id")
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  token             String   @unique
+  expiresAt         DateTime @map("expires_at")
+  ipAddress         String?  @map("ip_address")
+  userAgent         String?  @map("user_agent")
+  activeWorkspaceId String?  @map("active_workspace_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -124,19 +124,19 @@ model Workspace {
 }
 
 model WorkspaceMember {
-  id                String    @id @default(uuid())
-  userId            String    @map("user_id")
-  workspaceId       String    @map("workspace_id")
-  role              String    @default("member")
-  modulePermissions Json?     @map("module_permissions")
+  id                String @id @default(uuid())
+  userId            String @map("user_id")
+  workspaceId       String @map("workspace_id")
+  role              String @default("member")
+  modulePermissions Json?  @map("module_permissions")
 
   invitedById String?   @map("invited_by_id")
   invitedAt   DateTime  @default(now()) @map("invited_at")
   acceptedAt  DateTime? @map("accepted_at")
 
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  invitedBy User?      @relation("InvitedBy", fields: [invitedById], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User?     @relation("InvitedBy", fields: [invitedById], references: [id])
 
   @@unique([userId, workspaceId])
   @@index([workspaceId])
@@ -234,10 +234,10 @@ model ApprovalItem {
   title       String
   description String? @db.Text
 
-  confidenceScore    Int     @map("confidence_score")
-  confidenceFactors  Json?   @map("confidence_factors")
-  aiRecommendation   String  @map("ai_recommendation")
-  aiReasoning        String? @map("ai_reasoning") @db.Text
+  confidenceScore   Int     @map("confidence_score")
+  confidenceFactors Json?   @map("confidence_factors")
+  aiRecommendation  String  @map("ai_recommendation")
+  aiReasoning       String? @map("ai_reasoning") @db.Text
 
   previewUrl      String? @map("preview_url")
   previewData     Json?   @map("preview_data")
@@ -282,8 +282,8 @@ model ApiKey {
   workspaceId String @map("workspace_id")
 
   name        String
-  keyHash     String  @unique @map("key_hash")
-  keyPrefix   String  @map("key_prefix")
+  keyHash     String @unique @map("key_hash")
+  keyPrefix   String @map("key_prefix")
   permissions Json
 
   lastUsedAt DateTime? @map("last_used_at")
@@ -409,9 +409,9 @@ model WorkspaceSettings {
   id          String @id @default(uuid())
   workspaceId String @unique @map("workspace_id")
 
-  approvalTimeoutHours Int    @default(48) @map("approval_timeout_hours")
-  autoApproveThreshold Int    @default(85) @map("auto_approve_threshold")
-  quickReviewThreshold Int    @default(60) @map("quick_review_threshold")
+  approvalTimeoutHours Int @default(48) @map("approval_timeout_hours")
+  autoApproveThreshold Int @default(85) @map("auto_approve_threshold")
+  quickReviewThreshold Int @default(60) @map("quick_review_threshold")
 
   defaultInviteRole String @default("member") @map("default_invite_role")
 
