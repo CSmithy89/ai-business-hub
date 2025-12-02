@@ -402,9 +402,9 @@ export function GoogleSignInButton() {
 - [View HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-01_login_page/code.html) · [View PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-01_login_page/screen.png)
 
 **AU-02: Register Page**
-- Location: `docs/design/wireframes/Finished wireframes and html files/au-02_register/`
+- Location: `docs/design/wireframes/Finished wireframes and html files/au-02_register/sign_up/`
 - Shows: "Sign in with Google" button on registration page
-- [View HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-02_register/code.html) · [View PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-02_register/screen.png)
+- [View HTML](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-02_register/sign_up/code.html) · [View PNG](../design/wireframes/Finished%20wireframes%20and%20html%20files/au-02_register/sign_up/screen.png)
 
 ---
 

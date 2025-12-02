@@ -173,8 +173,8 @@ await prisma.user.create({
 **Wireframe:** AU-02 Register
 
 **Assets:**
-- HTML Preview: `docs/design/wireframes/Finished wireframes and html files/au-02_register/code.html`
-- PNG Screenshot: `docs/design/wireframes/Finished wireframes and html files/au-02_register/screen.png`
+- HTML Preview: `docs/design/wireframes/Finished wireframes and html files/au-02_register/sign_up/code.html`
+- PNG Screenshot: `docs/design/wireframes/Finished wireframes and html files/au-02_register/sign_up/screen.png`
 
 **Design Notes:**
 - Centered auth layout with HYVVE branding
