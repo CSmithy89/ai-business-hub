@@ -1038,12 +1038,23 @@ model ApiKey {
 
 ### Key Screen References
 
-- **Dashboard**: `/docs/design/wireframes/DB-01-dashboard-main.excalidraw`
-- **Approval Queue**: `/docs/design/wireframes/AP-01-approval-queue.excalidraw`
-- **Approval Card**: `/docs/design/wireframes/AP-02-approval-card.excalidraw`
-- **Chat Panel**: `/docs/design/wireframes/CH-01-chat-panel.excalidraw`
-- **Settings**: `/docs/design/wireframes/ST-01-settings-layout.excalidraw`
-- **AI Configuration**: `/docs/design/wireframes/ST-02-settings-api-keys.excalidraw`
+**109 wireframes complete** - Full index: [WIREFRAME-INDEX.md](design/wireframes/WIREFRAME-INDEX.md)
+
+| Category | Count | Key Wireframes |
+|----------|-------|----------------|
+| **Core Shell** | 6 | [SH-01 Layout](design/wireframes/Finished%20wireframes%20and%20html%20files/sh-01_shell_layout_(three-panel)/code.html) · [SH-02 Sidebar](design/wireframes/Finished%20wireframes%20and%20html%20files/sh-02_navigation_sidebar_(states)/code.html) |
+| **Chat Interface** | 7 | [CH-01 Panel](design/wireframes/Finished%20wireframes%20and%20html%20files/ch-01_chat_panel/code.html) · [CH-02 Messages](design/wireframes/Finished%20wireframes%20and%20html%20files/ch-02_chat_messages_(all_types)_/code.html) |
+| **Approval Queue** | 7 | [AP-01 Queue](design/wireframes/Finished%20wireframes%20and%20html%20files/ap-01_approval_queue_main/code.html) · [AP-02 Cards](design/wireframes/Finished%20wireframes%20and%20html%20files/ap-02_approval_card_(confidence_routing_)/code.html) |
+| **AI Team Panel** | 5 | [AI-01 Overview](design/wireframes/Finished%20wireframes%20and%20html%20files/ai-01_ai_team_overview/code.html) · [AI-02 Agent Card](design/wireframes/Finished%20wireframes%20and%20html%20files/ai-02_agent_card_component/code.html) |
+| **Dashboard** | 1 | [DB-01 Dashboard](design/wireframes/Finished%20wireframes%20and%20html%20files/db-01_dashboard_overview/code.html) |
+| **Settings** | 8 | [ST-01 Layout](design/wireframes/Finished%20wireframes%20and%20html%20files/st-01_settings_layout/code.html) · [ST-02 API Keys](design/wireframes/Finished%20wireframes%20and%20html%20files/st-02_api_keys_management/code.html) |
+| **Authentication** | 6 | [AU-01 Login](design/wireframes/Finished%20wireframes%20and%20html%20files/au-01_login_page/code.html) · [AU-02 Register](design/wireframes/Finished%20wireframes%20and%20html%20files/au-02_register/code.html) |
+| **Data Components** | 6 | [DC-01 Tables](design/wireframes/Finished%20wireframes%20and%20html%20files/dc-01_data_tables/code.html) · [DC-02 Cards](design/wireframes/Finished%20wireframes%20and%20html%20files/dc-02_data_cards/code.html) |
+| **Forms & Inputs** | 5 | [FI-01 Inputs](design/wireframes/Finished%20wireframes%20and%20html%20files/fi-01_text_inputs/code.html) · [FI-05 Upload](design/wireframes/Finished%20wireframes%20and%20html%20files/fi-05_file_upload/code.html) |
+| **Feedback States** | 5 | [FS-01 Modals](design/wireframes/Finished%20wireframes%20and%20html%20files/fs-01_modals/code.html) · [FS-03 Empty](design/wireframes/Finished%20wireframes%20and%20html%20files/fs-03_empty_states/code.html) |
+| **CRM Module** | 14 | [CRM-01 Contacts](design/wireframes/Finished%20wireframes%20and%20html%20files/crm-01_contacts_list/code.html) · [CRM-03 Deals](design/wireframes/Finished%20wireframes%20and%20html%20files/crm-03_deals_pipeline/code.html) |
+| **PM Module** | 20 | [PM-01 Projects](design/wireframes/Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/code.html) · [PM-03 Kanban](design/wireframes/Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/code.html) |
+| **Business Onboarding** | 18 | [BO-01 Portfolio](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-01_portfolio_dashboard_with_business_cards/code.html) · [BO-06 Validation](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-06_validation_page_with_chat_interface/code.html) |
 
 ---
 
