@@ -3,14 +3,15 @@
 import { useParams, useRouter } from 'next/navigation'
 import { useApproval } from '@/hooks/use-approvals'
 import { ApprovalCard } from '@/components/approval/approval-card'
+import { ApprovalAuditLog } from '@/components/approval/approval-audit-log'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 
 /**
  * Approval Detail Page
  *
- * Shows full approval details with expanded ApprovalCard
- * Includes AI reasoning section (placeholder for Story 04-6)
+ * Shows full approval details with expanded ApprovalCard.
+ * Includes audit trail timeline (Story 04-9).
  */
 export default function ApprovalDetailPage() {
   const params = useParams()
@@ -171,6 +172,13 @@ export default function ApprovalDetailPage() {
           onActionComplete={handleActionComplete}
         />
 
+        {/* Audit Trail - Story 04-9 */}
+        <div className="mt-8">
+          <ApprovalAuditLog
+            approvalId={approvalId}
+            workspaceId={approval.workspaceId}
+          />
+        </div>
       </div>
     </div>
   )

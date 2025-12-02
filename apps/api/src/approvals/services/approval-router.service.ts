@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/services/prisma.service';
 import { ConfidenceCalculatorService } from './confidence-calculator.service';
 import { EventBusService } from '../stubs/event-bus.stub';
-import { AuditLogService } from '../stubs/audit-logger.stub';
+import { ApprovalAuditService } from './approval-audit.service';
 import { ConfidenceFactor } from '@hyvve/shared';
 
 /**
@@ -46,7 +46,7 @@ export class ApprovalRouterService {
     private readonly prisma: PrismaService,
     private readonly confidenceCalculator: ConfidenceCalculatorService,
     private readonly eventBus: EventBusService,
-    private readonly auditLogger: AuditLogService,
+    private readonly auditLogger: ApprovalAuditService,
   ) {}
 
   /**
@@ -134,6 +134,17 @@ export class ApprovalRouterService {
         decidedAt: new Date(),
         confidenceScore: approvalItem.confidenceScore,
       });
+
+      // Step 7a: Log auto-approval with AI reasoning
+      await this.auditLogger.logAutoApproval({
+        workspaceId,
+        approvalId: approvalItem.id,
+        type,
+        confidenceScore: Math.round(confidenceResult.overallScore),
+        aiReasoning: confidenceResult.aiReasoning,
+        factors: confidenceResult.factors,
+        threshold: 85,
+      });
     } else {
       // For pending items, emit approval.requested event
       await this.eventBus.emit('approval.requested', {
@@ -146,25 +157,21 @@ export class ApprovalRouterService {
         assignedToId: approvalItem.assignedToId,
         dueAt: approvalItem.dueAt,
       });
-    }
 
-    // Step 7: Log routing decision
-    await this.auditLogger.logApprovalDecision({
-      workspaceId,
-      userId: requestedBy,
-      action:
-        status === 'auto_approved' ? 'approval.auto_approved' : 'approval.routed',
-      approvalId: approvalItem.id,
-      metadata: {
+      // Step 7b: Log approval creation
+      await this.auditLogger.logApprovalCreated({
+        workspaceId,
+        userId: requestedBy,
+        approvalId: approvalItem.id,
         type,
-        confidenceScore: confidenceResult.overallScore,
+        confidenceScore: Math.round(confidenceResult.overallScore),
         status,
-        reviewType,
         priority,
-        assignedToId,
-        dueAt,
-      },
-    });
+        reviewType,
+        aiReasoning: confidenceResult.aiReasoning,
+        factors: confidenceResult.factors,
+      });
+    }
 
     this.logger.log(
       `Approval routed: ${approvalItem.id} - Score: ${confidenceResult.overallScore} - Status: ${status} - Review: ${reviewType}`,

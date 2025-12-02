@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { EventBusService } from './stubs/event-bus.stub';
-import { AuditLogService } from './stubs/audit-logger.stub';
+import { ApprovalAuditService } from './services/approval-audit.service';
 import { ApprovalQueryDto } from './dto/approval-query.dto';
 import { ApproveItemDto } from './dto/approve-item.dto';
 import { RejectItemDto } from './dto/reject-item.dto';
@@ -26,7 +26,7 @@ import { UpdateEscalationConfigDto } from './dto/escalation-config.dto';
  * Features:
  * - Multi-tenant isolation (all queries filter by workspaceId)
  * - Event emission for approval actions (stub - Epic 05)
- * - Audit logging for all decisions (stub - Story 04-9)
+ * - Audit logging for all decisions (Story 04-9)
  * - Partial failure handling for bulk operations
  */
 @Injectable()
@@ -36,7 +36,7 @@ export class ApprovalsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventBus: EventBusService,
-    private readonly auditLogger: AuditLogService,
+    private readonly auditLogger: ApprovalAuditService,
   ) {}
 
   /**
@@ -262,17 +262,16 @@ export class ApprovalsService {
       decidedAt: new Date(),
     });
 
-    // Log to audit trail (stub)
+    // Log to audit trail
     await this.auditLogger.logApprovalDecision({
       workspaceId,
       userId,
-      action: 'approval.approved',
       approvalId: id,
-      metadata: {
-        type: approval.type,
-        confidenceScore: approval.confidenceScore,
-        notes: dto.notes,
-      },
+      action: 'approval.approved',
+      oldStatus: approval.status,
+      newStatus: 'approved',
+      notes: dto.notes,
+      confidenceScore: approval.confidenceScore,
     });
 
     this.logger.log({
@@ -366,18 +365,17 @@ export class ApprovalsService {
       reason: dto.reason,
     });
 
-    // Log to audit trail (stub)
+    // Log to audit trail
     await this.auditLogger.logApprovalDecision({
       workspaceId,
       userId,
-      action: 'approval.rejected',
       approvalId: id,
-      metadata: {
-        type: approval.type,
-        confidenceScore: approval.confidenceScore,
-        reason: dto.reason,
-        notes: dto.notes,
-      },
+      action: 'approval.rejected',
+      oldStatus: approval.status,
+      newStatus: 'rejected',
+      reason: dto.reason,
+      notes: dto.notes,
+      confidenceScore: approval.confidenceScore,
     });
 
     this.logger.log({
@@ -410,6 +408,9 @@ export class ApprovalsService {
     const successes: string[] = [];
     const failures: { id: string; error: string }[] = [];
 
+    // Generate bulk action correlation ID
+    const bulkActionId = `bulk-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     // Process each approval item
     for (const id of dto.ids) {
       try {
@@ -417,10 +418,31 @@ export class ApprovalsService {
           await this.approve(workspaceId, id, userId, {
             notes: dto.notes,
           });
+          // Log bulk action
+          await this.auditLogger.logBulkAction({
+            workspaceId,
+            userId,
+            approvalId: id,
+            action: 'approval.bulk_approved',
+            bulkActionId,
+            totalItems: dto.ids.length,
+            notes: dto.notes,
+          });
           successes.push(id);
         } else if (dto.action === 'reject') {
           await this.reject(workspaceId, id, userId, {
             reason: dto.reason!,
+            notes: dto.notes,
+          });
+          // Log bulk action
+          await this.auditLogger.logBulkAction({
+            workspaceId,
+            userId,
+            approvalId: id,
+            action: 'approval.bulk_rejected',
+            bulkActionId,
+            totalItems: dto.ids.length,
+            reason: dto.reason,
             notes: dto.notes,
           });
           successes.push(id);
@@ -437,6 +459,7 @@ export class ApprovalsService {
       message: 'Bulk action completed',
       workspaceId,
       action: dto.action,
+      bulkActionId,
       totalProcessed: dto.ids.length,
       successes: successes.length,
       failures: failures.length,

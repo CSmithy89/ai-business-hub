@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>04-9</story-id>
+    <story-name>Implement Approval Audit Trail</story-name>
+    <epic>EPIC-04 - Approval Queue System</epic>
+    <priority>P0</priority>
+    <points>2</points>
+    <generated-at>2025-12-03</generated-at>
+  </metadata>
+
+  <story-overview>
+    <user-story>
+      As a compliance officer
+      I want complete audit trail of approvals
+      So that I can review decisions
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion>Log all approval actions to audit_logs table</criterion>
+      <criterion>Capture action, actor, timestamp, before/after state</criterion>
+      <criterion>Log auto-approvals with AI reasoning in metadata</criterion>
+      <criterion>Create audit timeline view in approval detail page</criterion>
+      <criterion>Export capability (deferred to future)</criterion>
+    </acceptance-criteria>
+  </story-overview>
+
+  <technical-context>
+    <existing-audit-system>
+      <file path="packages/db/prisma/schema.prisma">
+        <model name="AuditLog">
+          <field>id: String @id @default(uuid())</field>
+          <field>workspaceId: String</field>
+          <field>action: String</field>
+          <field>entity: String</field>
+          <field>entityId: String?</field>
+          <field>userId: String?</field>
+          <field>ipAddress: String?</field>
+          <field>userAgent: String?</field>
+          <field>oldValues: Json?</field>
+          <field>newValues: Json?</field>
+          <field>metadata: Json?</field>
+          <field>createdAt: DateTime</field>
+        </model>
+      </file>
+
+      <file path="apps/api/src/audit/audit.service.ts">
+        <description>
+          Existing AuditService provides methods for logging workspace/permission changes:
+          - logRoleChange()
+          - logMemberAdded()
+          - logMemberRemoved()
+          - logPermissionOverrideChange()
+          - getAuditLogs()
+        </description>
+      </file>
+
+      <file path="apps/web/src/components/workspace/AuditLogViewer.tsx">
+        <description>
+          Reference implementation for displaying audit logs with:
+          - Filtering by action type
+          - Date range filtering
+          - Pagination
+          - Timeline view with badges
+          - Before/after change display
+        </description>
+      </file>
+    </existing-audit-system>
+
+    <approval-actions-to-log>
+      <action name="approval.created">
+        <trigger>ApprovalRouterService creates new approval</trigger>
+        <entity>approval_item</entity>
+        <data>
+          <newValues>status, confidenceScore, type, priority</newValues>
+          <metadata>aiReasoning, factors, reviewType</metadata>
+        </data>
+      </action>
+
+      <action name="approval.approved">
+        <trigger>User manually approves approval</trigger>
+        <entity>approval_item</entity>
+        <data>
+          <oldValues>status: "pending"</oldValues>
+          <newValues>status: "approved", decidedAt, decidedBy</newValues>
+          <metadata>notes, confidenceScore</metadata>
+        </data>
+      </action>
+
+      <action name="approval.rejected">
+        <trigger>User manually rejects approval</trigger>
+        <entity>approval_item</entity>
+        <data>
+          <oldValues>status: "pending"</oldValues>
+          <newValues>status: "rejected", decidedAt, decidedBy</newValues>
+          <metadata>reason, notes, confidenceScore</metadata>
+        </data>
+      </action>
+
+      <action name="approval.auto_approved">
+        <trigger>ApprovalRouterService auto-approves high-confidence item</trigger>
+        <entity>approval_item</entity>
+        <userId>system</userId>
+        <data>
+          <newValues>status: "auto_approved", confidenceScore</newValues>
+          <metadata>aiReasoning, factors, threshold: 85</metadata>
+        </data>
+      </action>
+
+      <action name="approval.escalated">
+        <trigger>ApprovalEscalationService escalates overdue approval</trigger>
+        <entity>approval_item</entity>
+        <data>
+          <oldValues>assignedToId</oldValues>
+          <newValues>escalatedToId, escalatedAt</newValues>
+          <metadata>dueAt, overdueBy, reason: "past_due"</metadata>
+        </data>
+      </action>
+
+      <action name="approval.bulk_approved">
+        <trigger>User performs bulk approval action</trigger>
+        <entity>approval_item</entity>
+        <data>
+          <metadata>bulkActionId, totalItems, notes</metadata>
+        </data>
+      </action>
+
+      <action name="approval.bulk_rejected">
+        <trigger>User performs bulk rejection action</trigger>
+        <entity>approval_item</entity>
+        <data>
+          <metadata>bulkActionId, totalItems, reason, notes</metadata>
+        </data>
+      </action>
+    </approval-actions-to-log>
+  </technical-context>
+
+  <implementation-files>
+    <backend>
+      <new-files>
+        <file path="apps/api/src/approvals/services/approval-audit.service.ts">
+          <description>Wrapper around AuditService for approval-specific logging</description>
+          <methods>
+            <method>logApprovalCreated(params): Log creation with confidence score</method>
+            <method>logApprovalDecision(params): Log approve/reject with before/after</method>
+            <method>logAutoApproval(params): Log auto-approval with AI reasoning</method>
+            <method>logEscalation(params): Log escalation events</method>
+            <method>logBulkAction(params): Log bulk actions</method>
+            <method>getApprovalAuditLogs(approvalId): Get logs for specific approval</method>
+          </methods>
+        </file>
+      </new-files>
+
+      <updated-files>
+        <file path="apps/api/src/approvals/approvals.service.ts">
+          <changes>
+            <change>Replace AuditLogService stub with ApprovalAuditService</change>
+            <change>Update approve() to call logApprovalDecision()</change>
+            <change>Update reject() to call logApprovalDecision()</change>
+            <change>Update bulkAction() to call logBulkAction()</change>
+          </changes>
+        </file>
+
+        <file path="apps/api/src/approvals/services/approval-router.service.ts">
+          <changes>
+            <change>Replace AuditLogService stub with ApprovalAuditService</change>
+            <change>Update routeApproval() to call logApprovalCreated()</change>
+            <change>Update auto-approval path to call logAutoApproval()</change>
+          </changes>
+        </file>
+
+        <file path="apps/api/src/approvals/services/approval-escalation.service.ts">
+          <changes>
+            <change>Inject ApprovalAuditService</change>
+            <change>Update escalateApproval() to call logEscalation()</change>
+          </changes>
+        </file>
+
+        <file path="apps/api/src/approvals/approvals.module.ts">
+          <changes>
+            <change>Import AuditModule to get AuditService</change>
+            <change>Add ApprovalAuditService to providers</change>
+            <change>Remove AuditLogService stub</change>
+          </changes>
+        </file>
+      </updated-files>
+    </backend>
+
+    <frontend>
+      <new-files>
+        <file path="apps/web/src/components/approval/approval-audit-log.tsx">
+          <description>Timeline component for displaying approval audit history</description>
+          <features>
+            <feature>Fetch audit logs for specific approval</feature>
+            <feature>Timeline view with action icons</feature>
+            <feature>Badge for action type</feature>
+            <feature>Actor display (user or system)</feature>
+            <feature>Timestamp formatting</feature>
+            <feature>Before/after changes display</feature>
+            <feature>AI reasoning display for auto-approvals</feature>
+          </features>
+        </file>
+      </new-files>
+
+      <updated-files>
+        <file path="apps/web/src/app/approvals/[id]/page.tsx">
+          <changes>
+            <change>Import ApprovalAuditLog component</change>
+            <change>Add audit log section below approval card</change>
+            <change>Pass approval ID to audit log component</change>
+          </changes>
+        </file>
+      </updated-files>
+    </frontend>
+  </implementation-files>
+
+  <api-endpoints>
+    <endpoint method="GET" path="/api/workspaces/:workspaceId/approvals/:approvalId/audit-logs">
+      <description>Get audit logs for specific approval item</description>
+      <response>
+        <field>logs: AuditLog[]</field>
+        <field>total: number</field>
+      </response>
+    </endpoint>
+  </api-endpoints>
+
+  <data-flow>
+    <scenario name="Creating Approval">
+      <step>1. ApprovalRouterService.routeApproval() creates approval</step>
+      <step>2. ApprovalAuditService.logApprovalCreated() called</step>
+      <step>3. AuditService.createAuditLog() persists to database</step>
+      <step>4. AuditLog created with action="approval.created"</step>
+    </scenario>
+
+    <scenario name="Approving">
+      <step>1. ApprovalsService.approve() updates approval status</step>
+      <step>2. ApprovalAuditService.logApprovalDecision() called with before/after</step>
+      <step>3. AuditLog created with oldValues={status: "pending"}, newValues={status: "approved"}</step>
+    </scenario>
+
+    <scenario name="Auto-Approval">
+      <step>1. ApprovalRouterService determines score >= 85%</step>
+      <step>2. Sets status to "auto_approved"</step>
+      <step>3. ApprovalAuditService.logAutoApproval() called with AI reasoning</step>
+      <step>4. AuditLog created with userId="system" and metadata containing aiReasoning</step>
+    </scenario>
+
+    <scenario name="Viewing Audit Trail">
+      <step>1. User navigates to approval detail page</step>
+      <step>2. ApprovalAuditLog component fetches logs via API</step>
+      <step>3. Logs displayed in timeline format</step>
+      <step>4. User sees complete history of all actions</step>
+    </scenario>
+  </data-flow>
+
+  <design-patterns>
+    <pattern name="Service Wrapper">
+      <description>
+        ApprovalAuditService wraps AuditService to provide approval-specific
+        logging with consistent action naming and metadata structure
+      </description>
+    </pattern>
+
+    <pattern name="Before/After Snapshots">
+      <description>
+        Capture meaningful before/after state for approval decisions,
+        focusing on key fields: status, assignedTo, escalatedTo
+      </description>
+    </pattern>
+
+    <pattern name="System Actor">
+      <description>
+        Use userId="system" for automated actions (auto-approvals, escalations)
+        to distinguish from human decisions
+      </description>
+    </pattern>
+
+    <pattern name="Structured Metadata">
+      <description>
+        Store AI reasoning, confidence factors, and action-specific data
+        in metadata JSON field for rich audit trails
+      </description>
+    </pattern>
+  </design-patterns>
+
+  <testing-strategy>
+    <unit-tests>
+      <test>ApprovalAuditService.logApprovalCreated() creates correct audit log</test>
+      <test>ApprovalAuditService.logApprovalDecision() captures before/after</test>
+      <test>ApprovalAuditService.logAutoApproval() includes AI reasoning</test>
+      <test>ApprovalAuditService.logEscalation() logs escalation details</test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>Creating approval creates audit log entry</test>
+      <test>Approving approval creates audit log with decision</test>
+      <test>Auto-approval logs AI reasoning in metadata</test>
+      <test>Escalation logs escalation target change</test>
+      <test>Bulk actions create individual audit logs</test>
+    </integration-tests>
+
+    <manual-tests>
+      <test>View approval detail page and verify audit timeline displays</test>
+      <test>Perform various actions and verify they appear in timeline</test>
+      <test>Check that AI reasoning displays for auto-approved items</test>
+      <test>Verify actor name displays correctly (user vs system)</test>
+    </manual-tests>
+  </testing-strategy>
+
+  <dependencies>
+    <internal>
+      <dependency>AuditService from Epic 03 (apps/api/src/audit/audit.service.ts)</dependency>
+      <dependency>ApprovalItem model with status transitions</dependency>
+      <dependency>Approval detail page from Story 04-4</dependency>
+      <dependency>AuditLogViewer component for UI pattern reference</dependency>
+    </internal>
+
+    <external>
+      <dependency>date-fns for timestamp formatting</dependency>
+      <dependency>lucide-react for timeline icons</dependency>
+    </external>
+  </dependencies>
+
+  <future-enhancements>
+    <enhancement>Export audit logs to CSV/PDF</enhancement>
+    <enhancement>Audit log retention policies</enhancement>
+    <enhancement>Capture IP address and user agent</enhancement>
+    <enhancement>Audit log search and advanced filtering</enhancement>
+    <enhancement>Webhook notifications for audit events</enhancement>
+  </future-enhancements>
+</story-context>

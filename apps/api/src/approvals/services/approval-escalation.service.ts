@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../common/services/prisma.service';
 import { EventBusService } from '../stubs/event-bus.stub';
+import { ApprovalAuditService } from './approval-audit.service';
 
 /**
  * ApprovalEscalationService - Handles escalation of overdue approvals
@@ -35,6 +36,7 @@ export class ApprovalEscalationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventBus: EventBusService,
+    private readonly auditLogger: ApprovalAuditService,
   ) {}
 
   /**
@@ -152,6 +154,17 @@ export class ApprovalEscalationService {
       escalatedTo: escalationTarget.id,
       dueAt: updatedApproval.dueAt.toISOString(),
       escalatedAt: updatedApproval.escalatedAt!.toISOString(),
+    });
+
+    // Log escalation to audit trail
+    await this.auditLogger.logEscalation({
+      workspaceId: updatedApproval.workspaceId,
+      approvalId: updatedApproval.id,
+      oldAssignedToId: updatedApproval.assignedToId,
+      newEscalatedToId: escalationTarget.id,
+      dueAt: updatedApproval.dueAt,
+      escalatedAt: updatedApproval.escalatedAt!,
+      reason: 'Approval overdue',
     });
 
     // Notify escalation target (stub)

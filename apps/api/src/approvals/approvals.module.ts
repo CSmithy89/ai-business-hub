@@ -5,10 +5,10 @@ import { ApprovalsService } from './approvals.service';
 import { ConfidenceCalculatorService } from './services/confidence-calculator.service';
 import { ApprovalRouterService } from './services/approval-router.service';
 import { ApprovalEscalationService } from './services/approval-escalation.service';
+import { ApprovalAuditService } from './services/approval-audit.service';
 import { EscalationSchedulerService } from './services/escalation-scheduler.service';
 import { EscalationProcessor } from './processors/escalation.processor';
 import { EventBusService } from './stubs/event-bus.stub';
-import { AuditLogService } from './stubs/audit-logger.stub';
 
 /**
  * ApprovalsModule - Approval Queue System
@@ -19,8 +19,8 @@ import { AuditLogService } from './stubs/audit-logger.stub';
  * - ApprovalRouterService: Route items based on confidence (Story 04-3)
  * - ApprovalsService: Create and manage approval items
  * - ApprovalEscalationService: Escalate overdue approvals (Story 04-8)
+ * - ApprovalAuditService: Audit logging for approvals (Story 04-9)
  * - EventBusService: Event emission (stub - Epic 05)
- * - AuditLogService: Audit logging (stub - Story 04-9)
  *
  * Processors:
  * - EscalationProcessor: BullMQ processor for scheduled escalation checks (Story 04-8)
@@ -38,16 +38,17 @@ import { AuditLogService } from './stubs/audit-logger.stub';
     ConfidenceCalculatorService,
     ApprovalRouterService,
     ApprovalEscalationService,
+    ApprovalAuditService,
     EscalationSchedulerService,
     EscalationProcessor,
     EventBusService,
-    AuditLogService,
   ],
   exports: [
     ApprovalsService,
     ConfidenceCalculatorService,
     ApprovalRouterService,
     ApprovalEscalationService,
+    ApprovalAuditService,
   ],
 })
 export class ApprovalsModule {}
