@@ -1,0 +1,546 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story-id="03-2" generated="2025-12-02">
+  <story-summary>
+    Create reusable authentication and authorization guards for the NestJS backend API.
+    This includes three core guards (AuthGuard for JWT validation, TenantGuard for workspace
+    context and membership validation, and RolesGuard for role-based permission checks) along
+    with supporting decorators (@Roles, @Public, @CurrentUser, @CurrentWorkspace). These guards
+    integrate with better-auth for JWT verification and the permission matrix from Story 03-1
+    for role-based access control. Guards are applied in a chain pattern, with each guard
+    building on context set by previous guards.
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-3.2.1">
+      <title>AuthGuard validates JWT</title>
+      <description>
+        Given a request with invalid or missing JWT token, when calling a protected endpoint,
+        then AuthGuard throws UnauthorizedException (401). Valid JWT tokens are verified with
+        better-auth, user object is attached to request context, and @Public() decorator bypasses
+        authentication.
+      </description>
+    </criterion>
+
+    <criterion id="AC-3.2.2">
+      <title>TenantGuard extracts workspace context</title>
+      <description>
+        Given a valid JWT token with workspaceId, when calling an endpoint, then workspace ID is
+        extracted from token or route params, workspace context is attached to request,
+        @CurrentWorkspace() decorator provides access to workspace ID, and request proceeds to
+        next guard.
+      </description>
+    </criterion>
+
+    <criterion id="AC-3.2.3">
+      <title>TenantGuard validates workspace membership</title>
+      <description>
+        Given a user not in the requested workspace, when calling an endpoint requiring workspace
+        access, then TenantGuard throws ForbiddenException (403). Member role is loaded from
+        database, module permissions are loaded from database, and membership data is attached
+        to request context.
+      </description>
+    </criterion>
+
+    <criterion id="AC-3.2.4">
+      <title>RolesGuard checks role permissions</title>
+      <description>
+        Given a member role accessing an admin-only endpoint, when @Roles('admin', 'owner')
+        decorator is applied, then RolesGuard checks if user's role matches required roles,
+        throws ForbiddenException (403) if role insufficient, allows request if user has any
+        of the required roles, and bypasses check if no @Roles() decorator present.
+      </description>
+    </criterion>
+
+    <criterion id="AC-3.2.5">
+      <title>@Roles decorator works correctly</title>
+      <description>
+        Given an endpoint decorated with @Roles('owner'), when a non-owner user calls the
+        endpoint, then RolesGuard denies access with 403. Owner users are allowed through.
+        Multiple roles can be specified: @Roles('admin', 'owner'). Decorator metadata is
+        properly read by RolesGuard.
+      </description>
+    </criterion>
+
+    <criterion id="AC-3.2.6">
+      <title>@Public decorator bypasses auth</title>
+      <description>
+        Given an endpoint decorated with @Public(), when an unauthenticated request is made,
+        then AuthGuard allows the request through. No JWT validation performed. Useful for
+        health checks, webhooks, public APIs. Other guards in chain are still evaluated
+        (if applicable).
+      </description>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-guidance>
+    <guard-execution-order>
+      Guards execute in the order they are applied: @UseGuards(AuthGuard, TenantGuard, RolesGuard)
+
+      1. AuthGuard - Validates JWT, extracts user
+      2. TenantGuard - Validates workspace membership, extracts context
+      3. RolesGuard - Checks role requirements
+
+      Each guard depends on data set by previous guards:
+      - TenantGuard requires request.user from AuthGuard
+      - RolesGuard requires request.memberRole from TenantGuard
+    </guard-execution-order>
+
+    <better-auth-integration>
+      AuthGuard must integrate with better-auth for JWT verification. The better-auth instance
+      is configured in apps/web/src/lib/auth.ts. For NestJS integration, JWT verification needs
+      to decode the token and validate it matches better-auth's session format.
+
+      Session tokens are stored in the "sessions" table with format:
+      - token: string (JWT token)
+      - userId: string
+      - expiresAt: DateTime
+      - activeWorkspaceId: string (optional)
+
+      For MVP, AuthGuard can verify JWT tokens by:
+      1. Extracting Bearer token from Authorization header
+      2. Decoding JWT and extracting user ID
+      3. Querying sessions table to verify token is valid and not expired
+      4. Loading user data from users table
+      5. Attaching user to request.user
+    </better-auth-integration>
+
+    <database-queries>
+      TenantGuard performs a database query on every request to verify workspace membership:
+
+      const member = await prisma.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: user.id,
+            workspaceId: workspaceId,
+          },
+        },
+        include: {
+          workspace: true,
+        },
+      })
+
+      This query loads:
+      - member.role: WorkspaceRole ('owner', 'admin', 'member', 'viewer', 'guest')
+      - member.modulePermissions: JSON object with module-level overrides
+      - member.workspace: Workspace object with workspace metadata
+    </database-queries>
+
+    <request-context-structure>
+      After guards execute successfully, the request object contains:
+
+      {
+        user: {
+          id: string,
+          email: string,
+          name: string,
+          // ... other user fields from User model
+        },
+        workspaceId: string,
+        workspace: {
+          id: string,
+          name: string,
+          slug: string,
+          // ... other workspace fields
+        },
+        memberRole: 'owner' | 'admin' | 'member' | 'viewer' | 'guest',
+        modulePermissions: {
+          'bm-crm': { role: 'admin' },
+          // ... module overrides
+        } | null
+      }
+    </request-context-structure>
+
+    <error-handling-strategy>
+      - 401 Unauthorized: Missing or invalid JWT token (AuthGuard)
+      - 400 Bad Request: Missing workspace context (TenantGuard)
+      - 403 Forbidden: Not a workspace member or insufficient role (TenantGuard, RolesGuard)
+      - 500 Internal Server Error: Unexpected errors (logged, not exposed to client)
+
+      All guards must fail closed (deny access on error).
+    </error-handling-strategy>
+  </technical-guidance>
+
+  <existing-code-references>
+    <permission-matrix>
+      <!-- From Story 03-1: packages/shared/src/permissions.ts -->
+      <export>
+        export const PERMISSIONS = {
+          WORKSPACE_READ: 'workspace:read',
+          WORKSPACE_UPDATE: 'workspace:update',
+          WORKSPACE_DELETE: 'workspace:delete',
+          MEMBERS_VIEW: 'members:view',
+          MEMBERS_INVITE: 'members:invite',
+          MEMBERS_REMOVE: 'members:remove',
+          MEMBERS_CHANGE_ROLE: 'members:change_role',
+          RECORDS_VIEW: 'records:view',
+          RECORDS_CREATE: 'records:create',
+          RECORDS_EDIT: 'records:edit',
+          RECORDS_DELETE: 'records:delete',
+          APPROVALS_VIEW: 'approvals:view',
+          APPROVALS_APPROVE: 'approvals:approve',
+          APPROVALS_REJECT: 'approvals:reject',
+          AGENTS_VIEW: 'agents:view',
+          AGENTS_CONFIGURE: 'agents:configure',
+          AGENTS_RUN: 'agents:run',
+          API_KEYS_VIEW: 'api_keys:view',
+          API_KEYS_CREATE: 'api_keys:create',
+          API_KEYS_REVOKE: 'api_keys:revoke',
+          MODULE_VIEW: 'module:view',
+          MODULE_ADMIN: 'module:admin',
+        }
+
+        export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest'
+
+        export function hasPermission(role: WorkspaceRole, permission: Permission): boolean
+        export function getPermissions(role: WorkspaceRole): readonly Permission[]
+        export function canChangeRole(actorRole: WorkspaceRole, targetRole: WorkspaceRole): boolean
+        export function canRemoveMember(actorRole: WorkspaceRole, targetRole: WorkspaceRole): boolean
+
+        export interface ModulePermissionOverride {
+          role?: WorkspaceRole
+          permissions?: Permission[]
+        }
+
+        export type ModulePermissions = Record&lt;string, ModulePermissionOverride&gt;
+
+        export function hasModulePermission(
+          baseRole: WorkspaceRole,
+          moduleId: string,
+          permission: Permission,
+          modulePermissions?: ModulePermissions | null
+        ): boolean
+      </export>
+    </permission-matrix>
+
+    <nestjs-patterns>
+      <!-- Existing NestJS setup from Epic 00 -->
+      <module-structure>
+        - apps/api/src/app.module.ts: Root application module
+        - apps/api/src/common/common.module.ts: Shared utilities module (empty, ready for guards)
+        - apps/api/src/main.ts: Application bootstrap with global pipes, CORS, Swagger
+      </module-structure>
+
+      <validation-pipe>
+        Global ValidationPipe already configured in main.ts with whitelist, transform enabled
+      </validation-pipe>
+
+      <cors-configuration>
+        CORS enabled for frontend (http://localhost:3000) with credentials and Authorization header
+      </cors-configuration>
+    </nestjs-patterns>
+
+    <prisma-schema>
+      <!-- Relevant models from packages/db/prisma/schema.prisma -->
+      <user-model>
+        model User {
+          id            String    @id @default(uuid())
+          email         String    @unique
+          emailVerified Boolean   @default(false)
+          name          String?
+          image         String?
+          // ... relations
+        }
+      </user-model>
+
+      <session-model>
+        model Session {
+          id                String    @id @default(uuid())
+          userId            String
+          token             String    @unique
+          expiresAt         DateTime
+          ipAddress         String?
+          userAgent         String?
+          activeWorkspaceId String?
+          user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+        }
+      </session-model>
+
+      <workspace-member-model>
+        model WorkspaceMember {
+          id                String    @id @default(uuid())
+          userId            String
+          workspaceId       String
+          role              String    @default("member")
+          modulePermissions Json?
+          invitedById       String?
+          invitedAt         DateTime  @default(now())
+          acceptedAt        DateTime?
+
+          user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+          workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+          @@unique([userId, workspaceId])
+        }
+      </workspace-member-model>
+
+      <workspace-model>
+        model Workspace {
+          id       String  @id @default(uuid())
+          name     String
+          slug     String  @unique
+          image    String?
+          timezone String  @default("UTC")
+          // ... relations
+        }
+      </workspace-model>
+    </prisma-schema>
+
+    <better-auth-setup>
+      <!-- From apps/web/src/lib/auth.ts -->
+      <configuration>
+        better-auth is configured with:
+        - prismaAdapter using @hyvve/db Prisma client
+        - Session expires in 7 days, refreshes daily
+        - Cookie cache enabled (15 minute access token lifetime)
+        - Email/password authentication enabled
+        - Google OAuth enabled
+        - Organization plugin (for multi-tenant support)
+
+        Session tokens are JWT format stored in sessions table.
+        Active workspace tracked in session.activeWorkspaceId field.
+      </configuration>
+    </better-auth-setup>
+  </existing-code-references>
+
+  <files-to-create>
+    <file path="apps/api/src/common/guards/auth.guard.ts">
+      AuthGuard implementation. Validates JWT token, verifies with better-auth session data,
+      extracts user, attaches to request.user. Checks for @Public() decorator to bypass.
+    </file>
+
+    <file path="apps/api/src/common/guards/tenant.guard.ts">
+      TenantGuard implementation. Extracts workspace ID from route params, body, or token.
+      Verifies user is workspace member by querying WorkspaceMember table. Loads member role
+      and module permissions. Attaches workspace context to request.
+    </file>
+
+    <file path="apps/api/src/common/guards/roles.guard.ts">
+      RolesGuard implementation. Reads required roles from @Roles() decorator metadata.
+      Checks if user's role (from TenantGuard) matches required roles. Denies access if
+      insufficient role.
+    </file>
+
+    <file path="apps/api/src/common/decorators/roles.decorator.ts">
+      @Roles() decorator using SetMetadata to attach required roles to route handler metadata.
+      Accepts one or more WorkspaceRole values.
+    </file>
+
+    <file path="apps/api/src/common/decorators/public.decorator.ts">
+      @Public() decorator using SetMetadata to mark routes as public (no authentication required).
+    </file>
+
+    <file path="apps/api/src/common/decorators/current-user.decorator.ts">
+      @CurrentUser() parameter decorator using createParamDecorator to extract user from request
+      context (set by AuthGuard).
+    </file>
+
+    <file path="apps/api/src/common/decorators/current-workspace.decorator.ts">
+      @CurrentWorkspace() parameter decorator using createParamDecorator to extract workspaceId
+      from request context (set by TenantGuard).
+    </file>
+
+    <file path="apps/api/src/common/guards/auth.guard.spec.ts">
+      Unit tests for AuthGuard covering valid/invalid tokens, missing tokens, @Public() bypass,
+      malformed Authorization headers.
+    </file>
+
+    <file path="apps/api/src/common/guards/tenant.guard.spec.ts">
+      Unit tests for TenantGuard covering workspace membership checks, workspace ID extraction,
+      missing workspace context, non-member access attempts.
+    </file>
+
+    <file path="apps/api/src/common/guards/roles.guard.spec.ts">
+      Unit tests for RolesGuard covering role requirement checks, insufficient roles, no roles
+      decorator, multiple role requirements.
+    </file>
+
+    <file path="apps/api/src/common/guards/guards.integration.spec.ts">
+      Integration tests for guard chains covering full AuthGuard + TenantGuard + RolesGuard flow,
+      @Public() endpoints, @Roles() enforcement, workspace switching.
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/api/src/common/common.module.ts">
+      Export all guards and decorators from CommonModule so they can be imported by other modules.
+      Add guards as providers.
+    </file>
+
+    <file path="apps/api/src/main.ts">
+      Optional: Apply AuthGuard globally if desired (or apply per-controller). For now, recommend
+      per-controller application for flexibility. Document global guard pattern in implementation.
+    </file>
+  </files-to-modify>
+
+  <dependencies>
+    <npm-packages>
+      No new dependencies required. All packages already installed:
+      - @nestjs/common (guards, decorators, exceptions)
+      - @nestjs/core (Reflector for metadata reading)
+      - @hyvve/db (Prisma client for database queries)
+      - @hyvve/shared (permission matrix from Story 03-1)
+    </npm-packages>
+
+    <upstream-dependencies>
+      <dependency>
+        <story>Epic 00</story>
+        <description>NestJS API scaffold, Prisma database package</description>
+        <status>Complete</status>
+      </dependency>
+
+      <dependency>
+        <story>Epic 01</story>
+        <description>better-auth integration, JWT tokens, session management</description>
+        <status>Complete</status>
+      </dependency>
+
+      <dependency>
+        <story>Epic 02</story>
+        <description>Workspace management, workspace member roles</description>
+        <status>Complete</status>
+      </dependency>
+
+      <dependency>
+        <story>03-1</story>
+        <description>Permission matrix with role mappings and utility functions</description>
+        <status>Complete</status>
+      </dependency>
+    </upstream-dependencies>
+
+    <downstream-dependencies>
+      <dependency>
+        <story>03-3</story>
+        <description>Next.js middleware (similar pattern for platform API routes)</description>
+      </dependency>
+
+      <dependency>
+        <story>03-4</story>
+        <description>Prisma tenant extension (context integration with TenantGuard)</description>
+      </dependency>
+
+      <dependency>
+        <story>03-6</story>
+        <description>Module permission overrides (extended guard logic)</description>
+      </dependency>
+
+      <dependency>
+        <story>03-7</story>
+        <description>Audit logging (guards trigger audit events)</description>
+      </dependency>
+    </downstream-dependencies>
+  </dependencies>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-file path="apps/api/src/common/guards/auth.guard.spec.ts">
+        <test-case>Allows requests with valid JWT token</test-case>
+        <test-case>Rejects requests with missing token (401)</test-case>
+        <test-case>Rejects requests with invalid token (401)</test-case>
+        <test-case>Rejects requests with expired token (401)</test-case>
+        <test-case>Bypasses authentication for @Public() endpoints</test-case>
+        <test-case>Extracts user from token and attaches to request</test-case>
+        <test-case>Handles malformed Authorization header</test-case>
+      </test-file>
+
+      <test-file path="apps/api/src/common/guards/tenant.guard.spec.ts">
+        <test-case>Allows requests when user is workspace member</test-case>
+        <test-case>Rejects requests when user not workspace member (403)</test-case>
+        <test-case>Extracts workspace ID from route params</test-case>
+        <test-case>Extracts workspace ID from request body</test-case>
+        <test-case>Extracts workspace ID from JWT token</test-case>
+        <test-case>Throws error when workspace context missing (400)</test-case>
+        <test-case>Loads member role and attaches to request</test-case>
+        <test-case>Loads module permissions and attaches to request</test-case>
+      </test-file>
+
+      <test-file path="apps/api/src/common/guards/roles.guard.spec.ts">
+        <test-case>Allows requests when user has required role</test-case>
+        <test-case>Rejects requests when user lacks required role (403)</test-case>
+        <test-case>Allows requests when no @Roles() decorator present</test-case>
+        <test-case>Works with single role requirement</test-case>
+        <test-case>Works with multiple role requirements (OR logic)</test-case>
+        <test-case>Handles missing role context gracefully</test-case>
+      </test-file>
+    </unit-tests>
+
+    <integration-tests>
+      <test-file path="apps/api/src/common/guards/guards.integration.spec.ts">
+        <test-case>Test AuthGuard + TenantGuard + RolesGuard chain</test-case>
+        <test-case>Test @Public() endpoint bypasses all auth</test-case>
+        <test-case>Test @Roles('owner') endpoint allows only owners</test-case>
+        <test-case>Test non-member accessing workspace endpoint (403)</test-case>
+        <test-case>Test member accessing admin endpoint (403)</test-case>
+        <test-case>Test admin accessing admin endpoint (200)</test-case>
+        <test-case>Test workspace switching (different workspace IDs)</test-case>
+      </test-file>
+    </integration-tests>
+
+    <coverage-target>100% of guard logic and all decorator combinations</coverage-target>
+  </testing-requirements>
+
+  <implementation-notes>
+    <note title="PrismaService Import">
+      Guards will need access to PrismaService to query database. Import from packages/db:
+      import { PrismaClient } from '@hyvve/db'
+
+      Or create a PrismaService in CommonModule and inject it into guards.
+    </note>
+
+    <note title="JWT Verification Approach">
+      For MVP, recommend direct database verification:
+      1. Extract token from Authorization header
+      2. Query sessions table: prisma.session.findUnique({ where: { token } })
+      3. Check session.expiresAt &gt; now
+      4. Load user: prisma.user.findUnique({ where: { id: session.userId } })
+      5. Attach user to request.user
+
+      Future enhancement: Use JWT decode and verify signature for performance.
+    </note>
+
+    <note title="Workspace Context Priority">
+      TenantGuard should extract workspace ID in this priority order:
+      1. request.params.workspaceId (route parameter)
+      2. request.body.workspaceId (request body)
+      3. request.query.workspaceId (query parameter)
+      4. session.activeWorkspaceId (from user's session)
+
+      If no workspace ID found, throw BadRequestException.
+    </note>
+
+    <note title="Guard Application Pattern">
+      Guards should be applied per-controller or per-route for flexibility:
+
+      @Controller('approvals')
+      @UseGuards(AuthGuard, TenantGuard, RolesGuard)
+      export class ApprovalsController {
+        @Get()
+        @Roles('admin', 'owner')
+        async list() { ... }
+
+        @Get('public-stats')
+        @Public()
+        async publicStats() { ... }
+      }
+
+      Note: For global application, use app.useGlobalGuards() in main.ts, but this makes
+      @Public() decorator more critical.
+    </note>
+
+    <note title="Performance Optimization">
+      TenantGuard makes a database query on every request. For production:
+      - Consider caching workspace membership with Redis (5-10 second TTL)
+      - Use database connection pooling
+      - Add indexes on WorkspaceMember.userId and WorkspaceMember.workspaceId (already present)
+
+      Out of scope for this story but document for future optimization.
+    </note>
+
+    <note title="Security Considerations">
+      - All guards must fail closed (throw exceptions to deny access by default)
+      - Guards cannot be bypassed except via explicit @Public() decorator
+      - All JWT tokens verified against database (no local validation)
+      - Role checks use permission matrix from Story 03-1
+      - Guard failures should be logged for security monitoring (future story)
+    </note>
+  </implementation-notes>
+</story-context>
