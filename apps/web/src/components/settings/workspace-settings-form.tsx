@@ -2,12 +2,23 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, Save } from 'lucide-react'
+import { Loader2, Save, Trash2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useSession } from '@/lib/auth-client'
 import type { WorkspaceWithRole } from '@hyvve/shared'
 
@@ -80,6 +91,21 @@ async function updateWorkspace(
 }
 
 /**
+ * Delete workspace (soft delete)
+ */
+async function deleteWorkspace(workspaceId: string): Promise<void> {
+  const response = await fetch(`/api/workspaces/${workspaceId}`, {
+    method: 'DELETE',
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete workspace')
+  }
+}
+
+/**
  * WorkspaceSettingsForm Component
  *
  * Form for editing workspace name, image, and timezone settings.
@@ -87,6 +113,7 @@ async function updateWorkspace(
 export function WorkspaceSettingsForm() {
   const { data: session } = useSession()
   const queryClient = useQueryClient()
+  const router = useRouter()
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
 
   // Form state
@@ -96,6 +123,10 @@ export function WorkspaceSettingsForm() {
     timezone: 'UTC',
   })
   const [hasChanges, setHasChanges] = useState(false)
+
+  // Delete dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteConfirmName, setDeleteConfirmName] = useState('')
 
   // Fetch workspace data
   const {
@@ -166,6 +197,34 @@ export function WorkspaceSettingsForm() {
       toast.error(error.message || 'Failed to update workspace settings')
     },
   })
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteWorkspace(workspaceId!),
+    onSuccess: () => {
+      toast.success('Workspace scheduled for deletion')
+      // Invalidate workspaces list
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+      // Redirect to dashboard
+      router.push('/dashboard')
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to delete workspace')
+    },
+  })
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = () => {
+    if (deleteConfirmName === workspace?.name) {
+      deleteMutation.mutate()
+    }
+  }
+
+  // Reset delete dialog
+  const handleCloseDeleteDialog = () => {
+    setShowDeleteDialog(false)
+    setDeleteConfirmName('')
+  }
 
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
@@ -352,6 +411,85 @@ export function WorkspaceSettingsForm() {
           )}
         </Button>
       </div>
+
+      {/* Danger Zone - Owner Only */}
+      {workspace?.role === 'owner' && (
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <CardTitle className="text-red-900">Danger Zone</CardTitle>
+            </div>
+            <CardDescription className="text-red-700">
+              Irreversible actions that affect your workspace
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-red-900">Delete this workspace</p>
+                <p className="text-sm text-red-700">
+                  Once deleted, there is a 30-day grace period before permanent deletion.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Workspace
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={handleCloseDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Delete Workspace
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                This action will schedule <strong>{workspace?.name}</strong> for
+                deletion. All workspace data will be permanently deleted after 30
+                days.
+              </p>
+              <p>
+                To confirm, please type the workspace name:{' '}
+                <strong>{workspace?.name}</strong>
+              </p>
+              <Input
+                value={deleteConfirmName}
+                onChange={(e) => setDeleteConfirmName(e.target.value)}
+                placeholder="Type workspace name to confirm"
+                className="mt-2"
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCloseDeleteDialog}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleteConfirmName !== workspace?.name || deleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Workspace'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   )
 }
