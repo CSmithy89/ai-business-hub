@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BO-17 Visual Identity System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#FF6B6B",
+            "secondary": "#20B2AA",
+            "background-light": "#FFFBF5",
+            "background-dark": "#0a0a0b",
+            "text-light": "#1a1a1a",
+            "text-dark": "#e0e0e0",
+          },
+          fontFamily: {
+            "display": ["Inter", "sans-serif"],
+            "mono": ["JetBrains Mono", "monospace"]
+          },
+          borderRadius: {
+            "DEFAULT": "8px",
+            "lg": "12px",
+            "xl": "16px",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .material-symbols-outlined.fill {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
+<div class="relative flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex h-screen flex-col border-r border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-background-dark p-4 transition-all duration-300 w-64">
+<div class="flex flex-col gap-4">
+<div class="flex gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Company Logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA2653lIksXFxgsxGq7hLF6IbFQew8QfR2rvDkh7YDTx6Ln0wmNxgJN8pHiggia4cHCiWhCTKl7jhvr7hg4e0JhD1d8hKjwjkr8M3tWz1OGG0QC-XaneGK6dz8Yp6CWnIxXoitqb57Nlcgu9qJK4fZ7s2ujmIxyH-GdLcaoBwtS9IO1lAoYvGOJssyGV3_6LsyNXkd2ef6T0VUJbcGmFCWJCydTGWACxrgqTOutHtaxbl7v2_4dss7snvSXeZDxIvBdJq_jrAVzNkLD");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-light dark:text-text-dark text-base font-medium leading-normal">HYVVE</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">AI Business Operations</p>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined text-text-light dark:text-text-dark">dashboard</span>
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined text-text-light dark:text-text-dark">list_alt</span>
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Onboarding</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20" href="#">
+<span class="material-symbols-outlined fill text-primary">palette</span>
+<p class="text-primary text-sm font-medium leading-normal">Branding</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined text-text-light dark:text-text-dark">folder</span>
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Projects</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined text-text-light dark:text-text-dark">group</span>
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Team</p>
+</a>
+</div>
+</div>
+<div class="mt-auto flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined text-text-light dark:text-text-dark">settings</span>
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50" href="#">
+<span class="material-symbols-outlined text-text-light dark:text-text-dark">logout</span>
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Log Out</p>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto p-8">
+<div class="max-w-4xl mx-auto">
+<!-- Breadcrumbs -->
+<div class="flex flex-wrap gap-2">
+<a class="text-slate-500 dark:text-slate-400 text-base font-medium leading-normal" href="#">HYVVE Inc.</a>
+<span class="text-slate-500 dark:text-slate-400 text-base font-medium leading-normal">/</span>
+<a class="text-slate-500 dark:text-slate-400 text-base font-medium leading-normal" href="#">Branding</a>
+<span class="text-slate-500 dark:text-slate-400 text-base font-medium leading-normal">/</span>
+<span class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Visual Identity</span>
+</div>
+<!-- Page Heading -->
+<div class="flex flex-wrap justify-between items-center gap-4 mt-4 mb-8">
+<h1 class="text-text-light dark:text-text-dark text-4xl font-bold leading-tight tracking-tight min-w-72">Visual Identity System</h1>
+<div class="flex items-center gap-3">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-slate-100 dark:bg-slate-800 text-text-light dark:text-text-dark text-sm font-medium leading-normal hover:bg-slate-200 dark:hover:bg-slate-700">
+<span class="truncate">Download Brand Kit</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-wide hover:bg-primary/90">
+<span class="truncate">Edit</span>
+</button>
+</div>
+</div>
+<div class="space-y-8">
+<!-- Logo Section -->
+<section class="bg-white dark:bg-slate-900/50 p-6 rounded-lg shadow-sm">
+<h2 class="text-text-light dark:text-text-dark text-xl font-semibold tracking-tight pb-5">Logo</h2>
+<div class="flex flex-col gap-8">
+<div class="bg-slate-100/50 dark:bg-slate-800/40 rounded-lg p-8 flex items-center justify-center h-48">
+<img class="max-h-full" data-alt="HYVVE Primary Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMuEuQ-ILhhvtTCA8VYwXOMn3TXU6pib6iPiFhqFeYIqotDxrDocFU07yOulcp7G4c3rJb0IdjA33ebeAlpbmLavWgHJdq6QwZJb6MpeNKxZ6PdazBVwddDE1TftvMXHN8q2Kgxf81GRAPL_vJIqqXE-YoIi1seDTa_2thexCYcDvwWbdmGQJ3EylgMFoeuzmOtDgHPOXalTfW3p-9PXMS9SZ7U41RSc0aay69nECX6BExzb41ifrT0lXFDT4IaEJWGsrOO9FfgwCV"/>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+<div class="flex flex-col items-center gap-2">
+<div class="w-full flex items-center justify-center p-4 h-24 rounded bg-slate-100/50 dark:bg-slate-800/40">
+<img data-alt="HYVVE Primary Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-9EHTz6EaTyHfgN53SRw3l3Hx0diBMnQoYzAChc0hJqLCcbDP4XQuKIbnzdTFSo88wenB6xH21iH8MLKL8jDNXKMFbByCyWxXjmt9gM4YymwwcZRXwZ5-za0RnsqNFBKmjj5v0_jXkgTn57pxIsncJcLzZgXNYVo734Ra-ZXMk5-v2Sh3UDqY0_iOCfeQ2r1HUWw5Ntt4opkZNr4sd8pH6_VDUXbI3tOr7mimUa9qFfnIIVGrKn-YkOv5mHJHMXfq-ST6uf2IvFkf"/>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-300">Primary</p>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="w-full flex items-center justify-center p-4 h-24 rounded bg-slate-800 dark:bg-slate-900">
+<img data-alt="HYVVE Reversed Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFA5s-Fsa2EbiRSYAmEloEDWZC7bLyYnt_neo57SPqJ4Dr-xAetRrmWxR8fx_qPYhz6By3SNPHcZd9dxF77pz7W9-NsZ1MmyMMO1tcgcaqb4IpW0zCEVRtfIa81iSMvZSUjh0mJEVrVcMRL5Z4rf1h3fO3Q9lcBSu-OlIaT1BMmk2gISHgaMckFDjQ5SubH78F9Ry4EK0Z_ShE0uvL7cM27n8jdneHrX4sh3Ha0tD7LpKfsWKWPrmeeh0XwOSLAK6FSmvXEK6Yj2XG"/>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-300">Reversed</p>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="w-full flex items-center justify-center p-4 h-24 rounded bg-slate-100/50 dark:bg-slate-800/40">
+<img data-alt="HYVVE Monochrome Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8YfK1zLI4Nb3FruywYaN9-PH28sT9gMa3MYsrO9Dpk02jX8XXjYyCBqmmx5oOsg55p6IiPr9Ou6iyVZYbj-U52N-gsiCWYpMLUjQZi_n_2nsWqC4EQmheLTpX9ELj3XLlpDuFN1srAwvFmYwVcmPBaJUVZRneNcHvdpU9JAsRvGzFBQxYctg22-VqwA1S3lFy24C7ZheJZY6aYoFUI-pFssnBAXoSgM3x_XpbjbHgROBjh6ILjgyap3p2KJJY7nrzmfpCV_0aQyYj"/>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-300">Monochrome</p>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="w-full flex items-center justify-center p-4 h-24 rounded bg-slate-100/50 dark:bg-slate-800/40">
+<img data-alt="HYVVE Icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvAR_qKY2TabL4I4KOZ0H9ZUMY4itdgCRVf0hDc8vnTUeNj0LqxriJbPd1ft-3PtgIIZqaxyQk07tl9iEH8W6EOFXcr90vdEL-qnGMPALH3MuBvn06G-KEBqcenpkZRYSKGawMSQ2gHH3InES1f0oFkKayyUfJ9Yr24gvyXENZnpyX79Qg6ig78Gde794ws7kUuONz58wDLj_twBQ2g5B_y6ncukuliKsvBLlRSqvOg-x6jgVo6w-TnEDlfzAWnhY6nXNeU3Wc0B21"/>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-300">Icon Only</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Color Palette Section -->
+<section class="bg-white dark:bg-slate-900/50 p-6 rounded-lg shadow-sm">
+<h2 class="text-text-light dark:text-text-dark text-xl font-semibold tracking-tight pb-5">Color Palette</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="flex flex-col">
+<div class="w-full h-32 rounded-lg" style="background-color: #6366F1;"></div>
+<div class="mt-2 flex justify-between items-center">
+<div>
+<p class="font-semibold">Primary</p>
+<p class="text-sm text-slate-500 dark:text-slate-400">#6366F1</p>
+</div>
+<button class="text-slate-500 dark:text-slate-400 hover:text-primary"><span class="material-symbols-outlined">content_copy</span></button>
+</div>
+</div>
+<div class="flex flex-col">
+<div class="w-full h-32 rounded-lg" style="background-color: #10B981;"></div>
+<div class="mt-2 flex justify-between items-center">
+<div>
+<p class="font-semibold">Secondary</p>
+<p class="text-sm text-slate-500 dark:text-slate-400">#10B981</p>
+</div>
+<button class="text-slate-500 dark:text-slate-400 hover:text-primary"><span class="material-symbols-outlined">content_copy</span></button>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+<div class="flex flex-col">
+<div class="w-full h-20 rounded" style="background-color: #F59E0B;"></div>
+<div class="mt-2">
+<p class="font-medium text-sm">Accent</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">#F59E0B</p>
+</div>
+</div>
+<div class="flex flex-col">
+<div class="w-full h-20 rounded" style="background-color: #F3F4F6;"></div>
+<div class="mt-2">
+<p class="font-medium text-sm">Light</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">#F3F4F6</p>
+</div>
+</div>
+<div class="flex flex-col">
+<div class="w-full h-20 rounded" style="background-color: #1F2937;"></div>
+<div class="mt-2">
+<p class="font-medium text-sm">Dark</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">#1F2937</p>
+</div>
+</div>
+<div class="flex flex-col">
+<div class="w-full h-20 rounded" style="background-color: #6B7280;"></div>
+<div class="mt-2">
+<p class="font-medium text-sm">Neutral</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">#6B7280</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Typography Section -->
+<section class="bg-white dark:bg-slate-900/50 p-6 rounded-lg shadow-sm">
+<h2 class="text-text-light dark:text-text-dark text-xl font-semibold tracking-tight pb-5">Typography</h2>
+<div class="space-y-6">
+<div>
+<p class="text-sm text-slate-500 dark:text-slate-400 mb-1">Heading Font</p>
+<div class="p-4 rounded-lg bg-slate-100/50 dark:bg-slate-800/40">
+<p class="font-bold text-lg">Inter Bold</p>
+<p class="font-mono text-base break-words">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br/>abcdefghijklmnopqrstuvwxyz<br/>1234567890</p>
+</div>
+</div>
+<div>
+<p class="text-sm text-slate-500 dark:text-slate-400 mb-1">Body Font</p>
+<div class="p-4 rounded-lg bg-slate-100/50 dark:bg-slate-800/40">
+<p class="font-bold text-lg">Inter Regular</p>
+<p class="text-base">The quick brown fox jumps over the lazy dog.</p>
+</div>
+</div>
+<div>
+<p class="text-sm text-slate-500 dark:text-slate-400 mb-2">Type Scale</p>
+<div class="space-y-2">
+<p><span class="font-semibold text-slate-600 dark:text-slate-300 w-20 inline-block">H1: 48px</span><span class="font-bold">Bold</span></p>
+<p><span class="font-semibold text-slate-600 dark:text-slate-300 w-20 inline-block">H2: 36px</span><span class="font-semibold">Semi-Bold</span></p>
+<p><span class="font-semibold text-slate-600 dark:text-slate-300 w-20 inline-block">H3: 24px</span><span class="font-semibold">Semi-Bold</span></p>
+<p><span class="font-semibold text-slate-600 dark:text-slate-300 w-20 inline-block">Body: 16px</span>Regular</p>
+<p><span class="font-semibold text-slate-600 dark:text-slate-300 w-20 inline-block">Small: 14px</span>Regular</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Iconography Section -->
+<section class="bg-white dark:bg-slate-900/50 p-6 rounded-lg shadow-sm">
+<h2 class="text-text-light dark:text-text-dark text-xl font-semibold tracking-tight pb-5">Icons</h2>
+<p class="text-sm text-slate-600 dark:text-slate-300 mb-4">Style: Outlined, rounded corners. Use primary or neutral colors only.</p>
+<div class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-4 text-slate-700 dark:text-slate-200">
+<div class="flex items-center justify-center bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-lg aspect-square"><span class="material-symbols-outlined text-4xl">home</span></div>
+<div class="flex items-center justify-center bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-lg aspect-square"><span class="material-symbols-outlined text-4xl">search</span></div>
+<div class="flex items-center justify-center bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-lg aspect-square"><span class="material-symbols-outlined text-4xl">settings</span></div>
+<div class="flex items-center justify-center bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-lg aspect-square"><span class="material-symbols-outlined text-4xl">favorite</span></div>
+<div class="flex items-center justify-center bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-lg aspect-square"><span class="material-symbols-outlined text-4xl">delete</span></div>
+<div class="flex items-center justify-center bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-lg aspect-square"><span class="material-symbols-outlined text-4xl">edit</span></div>
+<div class="flex items-center justify-center bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-lg aspect-square"><span class="material-symbols-outlined text-4xl">info</span></div>
+<div class="flex items-center justify-center bg-slate-100/50 dark:bg-slate-800/40 p-4 rounded-lg aspect-square"><span class="material-symbols-outlined text-4xl">person</span></div>
+</div>
+</section>
+<!-- Photography Section -->
+<section class="bg-white dark:bg-slate-900/50 p-6 rounded-lg shadow-sm">
+<h2 class="text-text-light dark:text-text-dark text-xl font-semibold tracking-tight pb-5">Photography Style</h2>
+<p class="text-sm text-slate-600 dark:text-slate-300 mb-4">Guidelines: Bright, professional, diverse, authentic.</p>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<div class="w-full bg-center bg-no-repeat bg-cover aspect-video rounded-lg" data-alt="Professional woman smiling in a bright office" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD-DYN46PK_Yn069Wxp4P6S9duD9GpQfZvnZuCORiqNEzO5cGcMgHBV8d6Y47aiKK6zE-u7Sso3IIM_FKwnNfvr9St9HMia_dQOq4V4Cu2KOCpV-QPAONfxZxn8c5pUL-MyiEZI1_M2mkbGTc0LyL3IHmTR2WfJM5vtiSxhS_IizsY572wQzFDKboygVaKaKfFAEXtZjw05SnOQ8mEEkPhO2fy5pxEaC2oHkdd6hsMAGZ6K_ZdqVNxUqGNGgzbGzFfozZ_KQo0oXY6X");'></div>
+<div class="w-full bg-center bg-no-repeat bg-cover aspect-video rounded-lg" data-alt="Diverse team collaborating around a table with laptops" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAEhyPurR1Dtn1XutI7KlUij51414420a0UgxwXK1ao6Y6fNKFjDtQc4wsXo1Nk90L2kgqUcVVUvaL516voidiN1Q4PqTNQrvv5VDpthFZoHUfl0A3BaHGb1TB2breCqwdCtMb95OazwiIW0-gP8AbUE2VIy8BbHsxjbYRaT29pI8uc5H5DRJpnzoaerXt2a_xRV159WwhhqlC0qiqDs5Z2pBc2F2OemY1HnU-NsRVK0XQjhmUu8NltQPeY44vJzhE2e17R8zzH_t6r");'></div>
+<div class="w-full bg-center bg-no-repeat bg-cover aspect-video rounded-lg" data-alt="Close-up of hands typing on a modern laptop" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCuA0o4bL-ob1SZyXOszzJFNmI6_dXWTJtyHiFwbtioIL8apVPI8HzINfz2J6msV65xyFbIIn4YB4w7SBLCPLSiaOsv8wPbxXVo8ftE1UqD6GdWcS4ypFD_ERlrRorNux3tgoIGAyttAS50lnCc-Z1-vg1-J1XKhLOC_UnuRuBq2Ixj1fcAK9XqxllnT2RXMjyE7pQrXQjlaiOyJS3y1E4d2ioDpsenpP_VkiFoJI89eNk4ek77E4HmQF3cyHn5QBeMIqd3pXd59qDy");'></div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Chat Panel -->
+<aside class="w-80 h-screen flex flex-col border-l border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/50 p-6">
+<div class="flex items-center gap-3 mb-6">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Aria, the AI Visual Designer" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCDVdIuQRym8LlLDq9z1SDERd-r9DVWa0SppfO1g9ksrKpwF4EaBnkS0X4fHs-gjY3LDWu26PG2dGnWnOVKVPpjD-ne23fiX6Q61tQlVRuczCzYm0hT0biMtnKlkOOzCjwk9ywRXqRuEy85_iya25AzfTcAzlULlGkKu-OwNplUQW_DvkwO1qJLZ-3BtE4zXhw6G1kqwAmXAKNfYnwgcRALUZGDdS_fYiqpmwdOxaUe2hLzgLTXMBpaFEMYOS7BUTTbbg9Y0ywOD997");'></div>
+<div class="flex flex-col">
+<h3 class="text-text-light dark:text-text-dark font-semibold leading-normal">Aria</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm leading-normal">🎨 Visual Designer</p>
+</div>
+</div>
+<div class="flex-1">
+<div class="bg-slate-100 dark:bg-slate-800/60 p-4 rounded-lg">
+<p class="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">Your visual identity is ready! The indigo primary color conveys trust and innovation. Download your brand kit to start using these assets.</p>
+</div>
+</div>
+<div class="flex flex-col gap-3">
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-slate-200 dark:bg-slate-700 text-text-light dark:text-text-dark text-sm font-medium leading-normal hover:bg-slate-300 dark:hover:bg-slate-600">
+<span class="truncate">Download Brand Kit (ZIP)</span>
+</button>
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-wide hover:bg-primary/90">
+<span class="truncate">Continue to Assets →</span>
+</button>
+</div>
+</aside>
+</div>
+</body></html>

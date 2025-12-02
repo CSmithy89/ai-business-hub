@@ -80,7 +80,7 @@ Production-ready assets including:
 ### 4. Wireframe Index
 **Location:** `/docs/design/wireframes/WIREFRAME-INDEX.md`
 
-**101 wireframes completed** with HTML and PNG assets:
+**109 wireframes completed** with HTML and PNG assets:
 
 | Category | Status | Count |
 |----------|--------|-------|
@@ -96,7 +96,7 @@ Production-ready assets including:
 | Forms & Inputs | ✅ Complete | 5/5 |
 | Feedback & States | ✅ Complete | 5/5 |
 | Authentication | ✅ Complete | 6/6 |
-| **Business Onboarding** | 🟡 Partial | **10/18** |
+| **Business Onboarding** | ✅ Complete | **18/18** |
 | Workflow Builder | 🔴 Future | 0/6 |
 | Content Module | 🔴 Future | 0/5 |
 | Email Module | 🔴 Future | 0/5 |
@@ -382,7 +382,7 @@ All module wireframes are complete. Implement in order:
 3. Forms & Inputs (FI-*) → Entity Creation/Editing
 
 ### Phase 3: Business Onboarding (EPIC-08)
-P0 wireframes complete. Begin implementation using:
+All 18 wireframes complete. Begin implementation using:
 
 | Component | Wireframe | Assets |
 |-----------|-----------|--------|
@@ -396,8 +396,14 @@ P0 wireframes complete. Begin implementation using:
 | Branding Page | BO-08 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-08_branding_page_with_visual_identity_preview/) |
 | Business Switcher | BO-09 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-09_business_switcher_dropdown/) |
 | Validation Results | BO-10 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-10_validation_synthesis_results/) |
-
-**Remaining wireframes (P1/P2):** BO-11 to BO-18 (Market Sizing, Competitor Analysis, Customer Discovery, BMC, Financials, Brand Strategy, Visual Identity, Asset Gallery)
+| Market Sizing | BO-11 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-11_market_sizing_results/) |
+| Competitor Analysis | BO-12 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-12_competitor_analysis_dashboard/) |
+| Customer Discovery | BO-13 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-13_customer_discovery_results/) |
+| Business Model Canvas | BO-14 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-14_business_model_canvas_view/) |
+| Financial Projections | BO-15 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-15_financial_projections_dashboard/) |
+| Brand Strategy | BO-16 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-16_brand_strategy_results/) |
+| Visual Identity | BO-17 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-17_visual_identity_system/) |
+| Asset Gallery | BO-18 | [View](design/wireframes/Finished%20wireframes%20and%20html%20files/bo-18_asset_gallery_%26_download/) |
 
 **Full wireframe index:** [WIREFRAME-INDEX.md](design/wireframes/WIREFRAME-INDEX.md)
 

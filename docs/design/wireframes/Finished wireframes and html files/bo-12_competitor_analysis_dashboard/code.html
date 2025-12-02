@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BO-12 Competitor Analysis Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff6b6b",
+                        "secondary": "#20B2AA",
+                        "background-light": "#FFFBF5",
+                        "background-dark": "#0a0a0b",
+                        "text-light": "#1a1a1a",
+                        "text-dark": "#e0e0e0"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
+<div class="relative flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex flex-col gap-4 border-r border-gray-200/50 dark:border-gray-800/50 bg-background-light dark:bg-background-dark p-4 shrink-0 w-64">
+<div class="flex flex-col justify-between h-full">
+<div class="flex flex-col gap-4">
+<div class="flex gap-3 items-center px-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCnJv3xyqQZ0rUlVb827tALeAE37FKgvkBZAHD4zyCqvGybKVSB8D4xMMCw70KORpKbrGy-miV6qQJlKPf491XvfvS2rzfzxTQJ-r9ILycLd1g3uG4G_8dNZN-0TGisKC1OySaK4IQOTZeAGZeVV0wPS1Q5m6k4sUX61vFI3q1LwZEV7lGcQAhP6BYrSUStpN662v94xWZdL6PXaii8hsZfo1cngUFmnTv8Xne6kI79IY_OIFAPVVyqyuoqX6zv7Zi1F0W0Du8Krs-K");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-light dark:text-text-dark text-base font-bold leading-normal">HYVVE</h1>
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">AI Business Operations</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-xl">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-xl">domain</span>
+<p class="text-sm font-medium leading-normal">Business Plan</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT bg-primary/20 text-primary" href="#">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">verified</span>
+<p class="text-sm font-bold leading-normal">Validation</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-xl">trending_up</span>
+<p class="text-sm font-medium leading-normal">Financials</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-xl">settings_suggest</span>
+<p class="text-sm font-medium leading-normal">Operations</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-xl">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800/50" href="#">
+<span class="material-symbols-outlined text-xl">help</span>
+<p class="text-sm font-medium leading-normal">Help</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8 overflow-y-auto">
+<div class="max-w-7xl mx-auto">
+<!-- Header -->
+<header class="mb-8">
+<!-- Breadcrumbs -->
+<div class="flex flex-wrap gap-2 items-center mb-4">
+<a class="text-gray-500 dark:text-gray-400 text-sm font-medium leading-normal hover:text-primary" href="#">HYVVE Industries</a>
+<span class="text-gray-400 dark:text-gray-500 text-sm">/</span>
+<a class="text-gray-500 dark:text-gray-400 text-sm font-medium leading-normal hover:text-primary" href="#">Validation</a>
+<span class="text-gray-400 dark:text-gray-500 text-sm">/</span>
+<span class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Competitors</span>
+</div>
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between items-center gap-4">
+<h1 class="text-text-light dark:text-text-dark text-3xl font-bold leading-tight">Competitive Landscape</h1>
+<div class="flex gap-2 items-center">
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-DEFAULT bg-white dark:bg-background-dark border border-gray-300 dark:border-gray-700 px-4">
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">All</p>
+<span class="material-symbols-outlined text-lg text-gray-500 dark:text-gray-400">expand_more</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-DEFAULT h-10 px-4 bg-primary text-white text-sm font-bold leading-normal">
+<span class="material-symbols-outlined text-lg">add</span>
+<span class="truncate">Add Competitor</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Content Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+<div class="xl:col-span-2 flex flex-col gap-6">
+<!-- Competitor Matrix -->
+<section class="bg-white dark:bg-background-dark/80 p-6 rounded-lg shadow-sm border border-gray-200/50 dark:border-gray-800/50">
+<h2 class="text-text-light dark:text-text-dark text-xl font-semibold mb-4">Competitor Matrix</h2>
+<div class="overflow-x-auto">
+<table class="w-full text-sm text-left">
+<thead class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-800/30">
+<tr>
+<th class="px-6 py-3 rounded-l-lg" scope="col">Feature</th>
+<th class="px-6 py-3 text-center text-primary font-bold" scope="col">Your Business</th>
+<th class="px-6 py-3 text-center" scope="col">Competitor 1</th>
+<th class="px-6 py-3 text-center" scope="col">Competitor 2</th>
+<th class="px-6 py-3 text-center rounded-r-lg" scope="col">Competitor 3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b dark:border-gray-800/50">
+<td class="px-6 py-4 font-medium">AI-Powered Automation</td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-500 bg-green-500/10 rounded-full p-0.5">check_circle</span></td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-red-500 bg-red-500/10 rounded-full p-0.5">cancel</span></td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-500 bg-green-500/10 rounded-full p-0.5">check_circle</span></td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-red-500 bg-red-500/10 rounded-full p-0.5">cancel</span></td>
+</tr>
+<tr class="border-b dark:border-gray-800/50">
+<td class="px-6 py-4 font-medium">SMB Focus</td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-500 bg-green-500/10 rounded-full p-0.5">check_circle</span></td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-red-500 bg-red-500/10 rounded-full p-0.5">cancel</span></td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-red-500 bg-red-500/10 rounded-full p-0.5">cancel</span></td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-500 bg-green-500/10 rounded-full p-0.5">check_circle</span></td>
+</tr>
+<tr class="border-b dark:border-gray-800/50">
+<td class="px-6 py-4 font-medium">No-Code Setup</td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-500 bg-green-500/10 rounded-full p-0.5">check_circle</span></td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-500 bg-green-500/10 rounded-full p-0.5">check_circle</span></td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-red-500 bg-red-500/10 rounded-full p-0.5">cancel</span></td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-500 bg-green-500/10 rounded-full p-0.5">check_circle</span></td>
+</tr>
+<tr>
+<td class="px-6 py-4 font-medium">24/7 Support</td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-500 bg-green-500/10 rounded-full p-0.5">check_circle</span></td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-500 bg-green-500/10 rounded-full p-0.5">check_circle</span></td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-500 bg-green-500/10 rounded-full p-0.5">check_circle</span></td>
+<td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-red-500 bg-red-500/10 rounded-full p-0.5">cancel</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Positioning Map -->
+<section class="bg-white dark:bg-background-dark/80 p-6 rounded-lg shadow-sm border border-gray-200/50 dark:border-gray-800/50">
+<h2 class="text-text-light dark:text-text-dark text-xl font-semibold mb-4">Positioning Map</h2>
+<div class="relative w-full aspect-[16/9] bg-gray-50 dark:bg-gray-900/50 rounded-lg p-8 flex flex-col justify-between">
+<!-- Y-Axis -->
+<div class="absolute left-0 top-0 bottom-0 flex items-center -translate-x-full pr-2">
+<span class="text-xs text-gray-500 dark:text-gray-400 transform -rotate-90 whitespace-nowrap">Features (Basic → Advanced)</span>
+</div>
+<!-- X-Axis -->
+<div class="absolute bottom-0 left-0 right-0 flex justify-center translate-y-full pt-2">
+<span class="text-xs text-gray-500 dark:text-gray-400">Price (Low → High)</span>
+</div>
+<!-- Quadrant Labels -->
+<div class="absolute top-4 left-4 text-gray-400 text-xs font-semibold">Budget</div>
+<div class="absolute top-4 right-4 text-gray-400 text-xs font-semibold">Feature-Rich</div>
+<div class="absolute bottom-4 left-4 text-gray-400 text-xs font-semibold">Enterprise</div>
+<div class="absolute bottom-4 right-4 text-gray-400 text-xs font-semibold">Premium</div>
+<!-- Data Points -->
+<div class="absolute top-[65%] left-[25%] group cursor-pointer">
+<div class="w-3 h-3 bg-gray-400 rounded-full"></div>
+<span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">Comp 1</span>
+</div>
+<div class="absolute top-[40%] left-[60%] group cursor-pointer">
+<div class="w-3 h-3 bg-gray-400 rounded-full"></div>
+<span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">Comp 2</span>
+</div>
+<div class="absolute top-[75%] left-[80%] group cursor-pointer">
+<div class="w-3 h-3 bg-gray-400 rounded-full"></div>
+<span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">Comp 3</span>
+</div>
+<!-- Your Position -->
+<div class="absolute top-[30%] left-[35%] group cursor-pointer">
+<div class="w-4 h-4 bg-primary rounded-full ring-4 ring-primary/30"></div>
+<span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 bg-primary text-white text-xs rounded font-bold">Your Position</span>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column -->
+<div class="flex flex-col gap-6">
+<!-- Opportunity Gaps Panel -->
+<section class="bg-white dark:bg-background-dark/80 p-6 rounded-lg shadow-sm border border-gray-200/50 dark:border-gray-800/50">
+<h2 class="text-text-light dark:text-text-dark text-xl font-semibold mb-4">Market Gaps Identified</h2>
+<div class="flex flex-col gap-4">
+<div class="p-4 bg-secondary/10 dark:bg-secondary/20 rounded-lg">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-secondary dark:text-secondary/90">Gap 1: AI for SMBs</h3>
+<span class="text-xs font-bold text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-1 rounded-full">High</span>
+</div>
+<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">No competitor offers AI specifically for small businesses.</p>
+</div>
+<div class="p-4 bg-secondary/10 dark:bg-secondary/20 rounded-lg">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-secondary dark:text-secondary/90">Gap 2: Unified Platform</h3>
+<span class="text-xs font-bold text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded-full">Medium</span>
+</div>
+<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Most competitors require multiple tools to achieve the same result.</p>
+</div>
+<div class="p-4 bg-secondary/10 dark:bg-secondary/20 rounded-lg">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-secondary dark:text-secondary/90">Gap 3: Affordable Pricing</h3>
+<span class="text-xs font-bold text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-1 rounded-full">High</span>
+</div>
+<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Enterprise-level pricing structures exclude most SMBs.</p>
+</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Competitor Cards -->
+<section class="mt-6">
+<h2 class="text-text-light dark:text-text-dark text-xl font-semibold mb-4">Competitors Overview</h2>
+<div class="flex gap-6 overflow-x-auto pb-4 -mx-8 px-8">
+<!-- Card 1 -->
+<div class="flex-shrink-0 w-72 bg-white dark:bg-background-dark/80 p-5 rounded-lg shadow-sm border border-gray-200/50 dark:border-gray-800/50">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Competitor A logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBjCZ2aM7VGr9qf9Ik4r6hQqScv7Unj3w1xDijY6zyIfm8rENx5FcJArYFAUAxzm9zUGni0cUX-FzHZAMSSCet6ulZzGdyvHccUHOxpRm23tQ3abi8kkkqdxxVlBNzuYQimDZBXmWuhoi_DuY5WNCXZKV8dd0QXbz4450AFwLu2kdVumSIsgVKcZojrqytD64oO1mqOA0K74ZlgGjJT4mwjL0jkVlAt4JfkwczvSMf2CaKbmE5TuassChFqgfgE4eFAaJVBhsC8dFdk");'></div>
+<h3 class="font-bold">Competitor A</h3>
+</div>
+<span class="text-xs font-medium text-red-600 bg-red-500/10 px-2.5 py-1 rounded-full">Direct</span>
+</div>
+<div class="text-sm text-gray-600 dark:text-gray-300 space-y-2 mb-4">
+<p><strong>Founded:</strong> 2019</p>
+<p><strong>Funding:</strong> $50M</p>
+<p><strong>Employees:</strong> 200</p>
+</div>
+<div class="space-y-3">
+<div>
+<h4 class="text-xs font-semibold uppercase text-gray-400 mb-1">Strengths</h4>
+<ul class="text-sm space-y-1">
+<li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">add_circle</span><span>Strong brand recognition</span></li>
+<li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">add_circle</span><span>Large enterprise client base</span></li>
+</ul>
+</div>
+<div>
+<h4 class="text-xs font-semibold uppercase text-gray-400 mb-1">Weaknesses</h4>
+<ul class="text-sm space-y-1">
+<li class="flex items-start gap-2"><span class="material-symbols-outlined text-yellow-600 text-base mt-0.5">remove_circle</span><span>Outdated UI/UX</span></li>
+<li class="flex items-start gap-2"><span class="material-symbols-outlined text-yellow-600 text-base mt-0.5">remove_circle</span><span>Lacks SMB-focused features</span></li>
+</ul>
+</div>
+</div>
+<a class="block text-center mt-4 text-sm font-bold text-primary hover:underline" href="#">View Details</a>
+</div>
+<!-- Card 2 -->
+<div class="flex-shrink-0 w-72 bg-white dark:bg-background-dark/80 p-5 rounded-lg shadow-sm border border-gray-200/50 dark:border-gray-800/50">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Competitor B logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA_YNH5NiLjiZqLEktI0tZ48o5W8TnD0auM51X-jHvMXk6n-NaMJMwZ3pp7tLlf3okIEZfvV3jDJXCiKL-tsrzInM1x1xOw3zs-sV1MNf_fz-8NbuoSxH2uNhxtMyRQoTY5FGdvONRixmOv6DQmO_NvqHogmWYfnQBbPI79b2VzS4JU3_JnKWCjIW0usNVwDfAzVt-sp6nQxnGWuAYooQJUvuNAFNvEFxI6KWOadWITU5Sra4Mpm8Oef-5ZwlnVkpt7lvJQ-ThgGfhx");'></div>
+<h3 class="font-bold">Competitor B</h3>
+</div>
+<span class="text-xs font-medium text-yellow-600 bg-yellow-500/10 px-2.5 py-1 rounded-full">Indirect</span>
+</div>
+<div class="text-sm text-gray-600 dark:text-gray-300 space-y-2 mb-4">
+<p><strong>Founded:</strong> 2021</p>
+<p><strong>Funding:</strong> $12M</p>
+<p><strong>Employees:</strong> 50</p>
+</div>
+<div class="space-y-3">
+<div>
+<h4 class="text-xs font-semibold uppercase text-gray-400 mb-1">Strengths</h4>
+<ul class="text-sm space-y-1">
+<li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">add_circle</span><span>Excellent no-code builder</span></li>
+<li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">add_circle</span><span>Strong community support</span></li>
+</ul>
+</div>
+<div>
+<h4 class="text-xs font-semibold uppercase text-gray-400 mb-1">Weaknesses</h4>
+<ul class="text-sm space-y-1">
+<li class="flex items-start gap-2"><span class="material-symbols-outlined text-yellow-600 text-base mt-0.5">remove_circle</span><span>No AI capabilities</span></li>
+<li class="flex items-start gap-2"><span class="material-symbols-outlined text-yellow-600 text-base mt-0.5">remove_circle</span><span>Scalability concerns</span></li>
+</ul>
+</div>
+</div>
+<a class="block text-center mt-4 text-sm font-bold text-primary hover:underline" href="#">View Details</a>
+</div>
+<!-- Card 3 -->
+<div class="flex-shrink-0 w-72 bg-white dark:bg-background-dark/80 p-5 rounded-lg shadow-sm border border-gray-200/50 dark:border-gray-800/50">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Competitor C logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDUvhBv0sUV-erRJckExlRAFUSDnw6konXilG7UsbVYuf5lRlZVC3C4qwYcdS-cmlOfBBf_UgS-RlVHL5XgbVhkcix5TeYj1g20y8nkQV9aZXgCPyhxGjefRiU00Vg1Xz1yiF3y5gPPcpiW526n9aUXqRhfS61fREXbBQNDqjLrVLMA0oZJ8yRsSeG73RpcBrMSKNaYidrr8obMbgUOJQ4uRJ-PESMMtlPy869joAFzm2cFkWhXAh-hstvxEF9C2P8pI8gKmSpTIxpt");'></div>
+<h3 class="font-bold">Competitor C</h3>
+</div>
+<span class="text-xs font-medium text-red-600 bg-red-500/10 px-2.5 py-1 rounded-full">Direct</span>
+</div>
+<div class="text-sm text-gray-600 dark:text-gray-300 space-y-2 mb-4">
+<p><strong>Founded:</strong> 2018</p>
+<p><strong>Funding:</strong> $150M</p>
+<p><strong>Employees:</strong> 400</p>
+</div>
+<div class="space-y-3">
+<div>
+<h4 class="text-xs font-semibold uppercase text-gray-400 mb-1">Strengths</h4>
+<ul class="text-sm space-y-1">
+<li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">add_circle</span><span>Powerful automation engine</span></li>
+<li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">add_circle</span><span>Extensive integration library</span></li>
+</ul>
+</div>
+<div>
+<h4 class="text-xs font-semibold uppercase text-gray-400 mb-1">Weaknesses</h4>
+<ul class="text-sm space-y-1">
+<li class="flex items-start gap-2"><span class="material-symbols-outlined text-yellow-600 text-base mt-0.5">remove_circle</span><span>Complex and expensive</span></li>
+<li class="flex items-start gap-2"><span class="material-symbols-outlined text-yellow-600 text-base mt-0.5">remove_circle</span><span>Poor customer support</span></li>
+</ul>
+</div>
+</div>
+<a class="block text-center mt-4 text-sm font-bold text-primary hover:underline" href="#">View Details</a>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Chat Panel -->
+<aside class="w-96 border-l border-gray-200/50 dark:border-gray-800/50 bg-white/50 dark:bg-background-dark/80 p-6 flex-col hidden lg:flex">
+<div class="flex items-center gap-3 mb-6">
+<div class="flex-shrink-0 size-10 rounded-full bg-secondary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'wght' 600;">psychology</span>
+</div>
+<div>
+<h3 class="font-bold text-text-light dark:text-text-dark">Cipher</h3>
+<p class="text-sm text-gray-500 dark:text-gray-400">🔍 Competitive Intelligence</p>
+</div>
+</div>
+<div class="bg-secondary/10 dark:bg-secondary/20 p-4 rounded-lg">
+<p class="text-sm leading-relaxed text-secondary-darker dark:text-secondary-lighter">
+                    I've identified 12 competitors total. The biggest opportunity is in the <strong class="font-semibold">SMB AI automation space</strong> - only 2 competitors are actively targeting this segment.
+                </p>
+</div>
+</aside>
+</div>
+</body></html>

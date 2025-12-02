@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BO-14 Business Model Canvas View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+    }
+  </style>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#ff6b6b",
+            "background-light": "#fffbf5",
+            "background-dark": "#0a0a0b",
+            "text-light": "#1a1a1a",
+            "text-dark": "#e0e0e0",
+            "card-light": "#ffffff",
+            "card-dark": "#1a1a1a",
+            "border-light": "#f0f0f0",
+            "border-dark": "#2a2a2a",
+          },
+          fontFamily: {
+            "display": ["Inter", "sans-serif"],
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem", // 8px
+            "lg": "0.75rem", // 12px
+            "xl": "1rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="flex w-64 flex-col border-r border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-4">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Hyvve company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDlXkwAOowsxWTNn9EY4klOF6RrN1dNIJE821keSD5YSN_tj6jXdlnl55zYojUbtqseURb0X5KGkGKBYWsnhCzVFz8FM_7qdRJhCYNlLXNLVo2LUoIsXg-2Scv_DJhzfblfbaZvdpes7zXcSVkRbb1uw5Keyvr2Z_4cPf29eoMUXIYdIRszXPcXV04HSR154id14VxsXpbvf8nObpakv-aWYGlZlXKb6JfjCbDoU7Dv-yw1-0ObVcYAW5MmUZHhLnYpc6xN0XfxB5Ci");'></div>
+<div class="flex flex-col">
+<h1 class="text-base font-bold">Hyvve</h1>
+<p class="text-sm text-text-light/60 dark:text-text-dark/60">AI Business Operations</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-xl">dashboard</span>
+<p class="text-sm font-medium">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20 text-primary font-bold" href="#">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">edit_document</span>
+<p class="text-sm font-medium">Planning</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-xl">settings</span>
+<p class="text-sm font-medium">Operations</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-xl">bar_chart</span>
+<p class="text-sm font-medium">Analytics</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-xl">group</span>
+<p class="text-sm font-medium">Team</p>
+</a>
+</nav>
+</div>
+<div class="mt-auto flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-xl">settings</span>
+<p class="text-sm font-medium">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-xl">help</span>
+<p class="text-sm font-medium">Help</p>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8">
+<!-- Header -->
+<header class="mb-8">
+<!-- Breadcrumbs -->
+<div class="flex flex-wrap items-center gap-2 text-sm text-text-light/60 dark:text-text-dark/60 mb-4">
+<a class="hover:underline" href="#">Hyvve Inc.</a>
+<span>/</span>
+<a class="hover:underline" href="#">Planning</a>
+<span>/</span>
+<span class="font-medium text-text-light dark:text-text-dark">Business Model</span>
+</div>
+<!-- PageHeading & ButtonGroup -->
+<div class="flex flex-wrap items-center justify-between gap-4">
+<h1 class="text-4xl font-bold tracking-tight">Business Model Canvas</h1>
+<div class="flex gap-2">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-black/5 dark:bg-white/5 text-sm font-bold hover:bg-black/10 dark:hover:bg-white/10">
+<span class="material-symbols-outlined text-lg">edit</span>
+<span class="truncate">Edit</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-black/5 dark:bg-white/5 text-sm font-bold hover:bg-black/10 dark:hover:bg-white/10">
+<span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+<span class="truncate">Export PDF</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-black/5 dark:bg-white/5 text-sm font-bold hover:bg-black/10 dark:hover:bg-white/10">
+<span class="material-symbols-outlined text-lg">present_to_all</span>
+<span class="truncate">Present Mode</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Canvas Layout -->
+<div class="grid grid-cols-5 grid-rows-3 gap-4 h-[calc(100vh-12rem)]">
+<!-- Key Partners -->
+<div class="group relative flex flex-col rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm border border-border-light dark:border-border-dark col-span-1 row-span-1">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-lg font-bold">Key Partners</h2>
+<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">High</span>
+</div>
+<ul class="space-y-1 text-sm list-disc pl-5 text-text-light/80 dark:text-text-dark/80">
+<li>AI Providers</li>
+<li>Cloud (AWS)</li>
+<li>Payment (Stripe)</li>
+</ul>
+<button class="mt-auto text-sm font-medium text-primary flex items-center gap-1 hover:underline">✨ Suggest</button>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-primary text-4xl">edit</span>
+</div>
+</div>
+<!-- Key Activities -->
+<div class="group relative flex flex-col rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm border border-border-light dark:border-border-dark col-span-1 row-span-1">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-lg font-bold">Key Activities</h2>
+<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">High</span>
+</div>
+<ul class="space-y-1 text-sm list-disc pl-5 text-text-light/80 dark:text-text-dark/80">
+<li>Platform Development</li>
+<li>Customer Support</li>
+<li>AI Model Training</li>
+</ul>
+<button class="mt-auto text-sm font-medium text-primary flex items-center gap-1 hover:underline">✨ Suggest</button>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-primary text-4xl">edit</span>
+</div>
+</div>
+<!-- Value Propositions -->
+<div class="group relative flex flex-col rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm border border-border-light dark:border-border-dark col-span-1 row-span-2">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-lg font-bold">Value Propositions</h2>
+<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">High</span>
+</div>
+<ul class="space-y-1 text-sm list-disc pl-5 text-text-light/80 dark:text-text-dark/80">
+<li>Up to 90% automation</li>
+<li>An AI team, 24/7</li>
+<li>5hr/wk human oversight</li>
+</ul>
+<button class="mt-auto text-sm font-medium text-primary flex items-center gap-1 hover:underline">✨ Suggest</button>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-primary text-4xl">edit</span>
+</div>
+</div>
+<!-- Customer Relationships -->
+<div class="group relative flex flex-col rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm border border-border-light dark:border-border-dark col-span-1 row-span-1">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-lg font-bold">Customer Relationships</h2>
+<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Med</span>
+</div>
+<ul class="space-y-1 text-sm list-disc pl-5 text-text-light/80 dark:text-text-dark/80">
+<li>Self-service platform</li>
+<li>AI Chatbot 24/7</li>
+<li>Email Support</li>
+</ul>
+<button class="mt-auto text-sm font-medium text-primary flex items-center gap-1 hover:underline">✨ Suggest</button>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-primary text-4xl">edit</span>
+</div>
+</div>
+<!-- Customer Segments -->
+<div class="group relative flex flex-col rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm border border-border-light dark:border-border-dark col-span-1 row-span-1">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-lg font-bold">Customer Segments</h2>
+<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">High</span>
+</div>
+<ul class="space-y-1 text-sm list-disc pl-5 text-text-light/80 dark:text-text-dark/80">
+<li>SMB Owners</li>
+<li>Solopreneurs</li>
+<li>Digital Agencies</li>
+</ul>
+<button class="mt-auto text-sm font-medium text-primary flex items-center gap-1 hover:underline">✨ Suggest</button>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-primary text-4xl">edit</span>
+</div>
+</div>
+<!-- Key Resources -->
+<div class="group relative flex flex-col rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm border border-border-light dark:border-border-dark col-span-1 row-span-1">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-lg font-bold">Key Resources</h2>
+<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Med</span>
+</div>
+<ul class="space-y-1 text-sm list-disc pl-5 text-text-light/80 dark:text-text-dark/80">
+<li>Proprietary AI Models</li>
+<li>Engineering Team</li>
+<li>Data Platform</li>
+</ul>
+<button class="mt-auto text-sm font-medium text-primary flex items-center gap-1 hover:underline">✨ Suggest</button>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-primary text-4xl">edit</span>
+</div>
+</div>
+<!-- Channels -->
+<div class="group relative flex flex-col rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm border border-border-light dark:border-border-dark col-span-1 row-span-1">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-lg font-bold">Channels</h2>
+<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">Low</span>
+</div>
+<ul class="space-y-1 text-sm list-disc pl-5 text-text-light/80 dark:text-text-dark/80">
+<li>Direct Sales</li>
+<li>Online Marketing</li>
+<li>Partner Network</li>
+</ul>
+<button class="mt-auto text-sm font-medium text-primary flex items-center gap-1 hover:underline">✨ Suggest</button>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-primary text-4xl">edit</span>
+</div>
+</div>
+<!-- Cost Structure -->
+<div class="group relative flex flex-col rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm border border-border-light dark:border-border-dark col-span-2 row-span-1">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-lg font-bold">Cost Structure</h2>
+<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">High</span>
+</div>
+<ul class="space-y-1 text-sm list-disc pl-5 text-text-light/80 dark:text-text-dark/80">
+<li>Cloud Infrastructure (40%)</li>
+<li>AI API Costs (25%)</li>
+<li>Engineering Salaries (20%)</li>
+<li>Support &amp; Ops (15%)</li>
+</ul>
+<button class="mt-auto text-sm font-medium text-primary flex items-center gap-1 hover:underline">✨ Suggest</button>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-primary text-4xl">edit</span>
+</div>
+</div>
+<!-- Revenue Streams -->
+<div class="group relative flex flex-col rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm border border-border-light dark:border-border-dark col-span-3 row-span-1">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-lg font-bold">Revenue Streams</h2>
+<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Med</span>
+</div>
+<ul class="space-y-1 text-sm list-disc pl-5 text-text-light/80 dark:text-text-dark/80">
+<li>Subscription Tiers: $99-499/mo</li>
+<li>Usage-based: Token overages</li>
+<li>Enterprise: Custom annual pricing</li>
+</ul>
+<button class="mt-auto text-sm font-medium text-primary flex items-center gap-1 hover:underline">✨ Suggest</button>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-primary text-4xl">edit</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Right Sidebar -->
+<aside class="w-80 border-l border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-6 flex flex-col gap-8">
+<div>
+<h3 class="font-bold mb-2">Canvas Health</h3>
+<div class="flex items-center gap-4">
+<div class="relative size-16">
+<svg class="size-full" viewbox="0 0 36 36">
+<path class="stroke-current text-gray-200 dark:text-gray-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+<path class="stroke-current text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="82, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="text-xl font-bold">82</span>
+<span class="text-xs font-medium text-text-light/60 dark:text-text-dark/60">/100</span>
+</div>
+</div>
+<p class="text-sm text-text-light/80 dark:text-text-dark/80">Your canvas is well-defined. Focus on the areas needing review for improvement.</p>
+</div>
+</div>
+<div>
+<h3 class="font-bold mb-4">Completion Checklist</h3>
+<ul class="space-y-3 text-sm">
+<li class="flex items-center gap-3">
+<span class="text-green-500 material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span>Value Propositions defined</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="text-green-500 material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span>Customer Segments identified</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="text-amber-500 material-symbols-outlined">sync_problem</span>
+<span>Revenue Streams needs review</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="text-gray-400 material-symbols-outlined">radio_button_unchecked</span>
+<span>Key Partners incomplete</span>
+</li>
+</ul>
+</div>
+<div>
+<h3 class="font-bold mb-4">AI Suggestions</h3>
+<div class="space-y-3">
+<div class="p-3 rounded-lg bg-primary/10 border border-primary/20">
+<p class="font-medium text-sm mb-1">Expand Revenue Streams</p>
+<p class="text-xs text-text-light/80 dark:text-text-dark/80">Consider a one-time setup fee for Enterprise clients to cover onboarding costs.</p>
+</div>
+<div class="p-3 rounded-lg bg-primary/10 border border-primary/20">
+<p class="font-medium text-sm mb-1">Strengthen Key Partners</p>
+<p class="text-xs text-text-light/80 dark:text-text-dark/80">Explore partnerships with startup incubators to reach new solopreneurs.</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Zoom Controls -->
+<div class="absolute bottom-8 right-[22rem] flex items-center gap-1 p-1 bg-card-light dark:bg-card-dark rounded-lg shadow-lg border border-border-light dark:border-border-dark">
+<button class="size-8 flex items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/5">
+<span class="material-symbols-outlined text-lg">remove</span>
+</button>
+<span class="text-xs font-medium w-10 text-center">100%</span>
+<button class="size-8 flex items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/5">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<div class="w-px h-5 bg-border-light dark:bg-border-dark mx-1"></div>
+<button class="size-8 flex items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/5">
+<span class="material-symbols-outlined text-lg">fullscreen</span>
+</button>
+</div>
+</div>
+</body></html>
