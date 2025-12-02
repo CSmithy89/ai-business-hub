@@ -75,7 +75,7 @@ development_status:
   02-5-implement-member-management: done
   02-6-create-workspace-settings-page: done
   02-7-implement-workspace-deletion: done
-  epic-02-retrospective: optional
+  epic-02-retrospective: completed
 
   # ===========================================
   # EPIC-03: RBAC & Multi-Tenancy
