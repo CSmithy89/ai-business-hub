@@ -2,8 +2,8 @@
 
 **Purpose:** Comprehensive list of all wireframes needed for Hyvve platform
 **Created:** 2025-11-29
-**Updated:** 2025-12-01
-**Status:** 91 Wireframes Complete + 10 Business Onboarding Pending
+**Updated:** 2025-12-02
+**Status:** 101 Wireframes Complete (including 10 Business Onboarding)
 
 ---
 
@@ -31,7 +31,7 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 | **Forms & Inputs** | **5/5** | ✅ **Complete** | [View All](#10-forms--inputs-5-wireframes-) |
 | **Feedback & States** | **5/5** | ✅ **Complete** | [View All](#11-feedback--states-5-wireframes-) |
 | **Authentication** | **6/6** | ✅ **Complete** | [View All](#12-authentication-6-wireframes-) |
-| **Business Onboarding** | **0/18** | 🟡 Pending | [View All](#17-business-onboarding-18-wireframes-) |
+| **Business Onboarding** | **10/18** | 🟡 Partial | [View All](#17-business-onboarding-18-wireframes-) |
 | Workflow Builder | 0/6 | 🔴 Future | Need research |
 | Content Module | 0/5 | 🔴 Future | Need research |
 | Email Module | 0/5 | 🔴 Future | Need research |
@@ -39,7 +39,7 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 
 **Legend:** ✅ Complete | 🟡 Partial | 🔴 Future
 
-**Totals:** 91 wireframes complete · 4 bonus wireframes included · 18 business onboarding pending
+**Totals:** 101 wireframes complete · 4 bonus wireframes included · 8 business onboarding pending
 
 ---
 
@@ -1078,38 +1078,39 @@ Step 4: Ready! ─────────────────────�
 
 ## 17. Business Onboarding (18 wireframes) 🟡
 
-> **Status:** Prompts ready - Pending wireframe creation
+> **Status:** 10/18 Complete - P0 wireframes done, P1/P2 pending
 > **Reference:** `/docs/epics/EPIC-08-business-onboarding.md`, `/docs/architecture/business-onboarding-architecture.md`
+> **Prompt File:** `/docs/design/wireframes/prompts/BATCH-10-BUSINESS-ONBOARDING.md`
 
 ### Portfolio & Dashboard (2 wireframes)
 
 | ID | Wireframe | Description | Priority | Status | Assets |
 |----|-----------|-------------|----------|--------|--------|
-| BO-01 | `portfolio-dashboard.excalidraw` | Portfolio view with business cards showing validation/planning/branding progress, add business CTA, no active business context | P0 | Pending | - |
-| BO-09 | `business-switcher.excalidraw` | Header dropdown for switching between businesses, shows status badges, quick access to portfolio | P0 | Pending | - |
+| BO-01 | `portfolio-dashboard.excalidraw` | Portfolio view with business cards showing validation/planning/branding progress, add business CTA, no active business context | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/bo-01_portfolio_dashboard_with_business_cards/code.html) |
+| BO-09 | `business-switcher.excalidraw` | Header dropdown for switching between businesses, shows status badges, quick access to portfolio | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/bo-09_business_switcher_dropdown/code.html) |
 
 ### Onboarding Wizard (4 wireframes)
 
 | ID | Wireframe | Description | Priority | Status | Assets |
 |----|-----------|-------------|----------|--------|--------|
-| BO-02 | `onboarding-step1-documents.excalidraw` | Step 1: Upload documents (pitch deck, business plan, financial projections), drag-drop zone, file preview cards | P0 | Pending | - |
-| BO-03 | `onboarding-step2-details.excalidraw` | Step 2: Business details form (name, industry, stage, team size, funding), auto-populated from document extraction | P0 | Pending | - |
-| BO-04 | `onboarding-step3-idea.excalidraw` | Step 3: Describe business idea via chat interface with Vera (validation lead), conversational intake | P0 | Pending | - |
-| BO-05 | `onboarding-step4-launch.excalidraw` | Step 4: Launch validation with team introduction (5 agents), timeline preview, start button | P0 | Pending | - |
+| BO-02 | `onboarding-step1-documents.excalidraw` | Step 1: Upload documents (pitch deck, business plan, financial projections), drag-drop zone, file preview cards | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/bo-02_onboarding_wizard_-_step_1__documents/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/bo-02_onboarding_wizard_-_step_1__documents/screen.png) |
+| BO-03 | `onboarding-step2-details.excalidraw` | Step 2: Business details form (name, industry, stage, team size, funding), auto-populated from document extraction | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/bo-03_onboarding_wizard_-_step_2__business_details/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/bo-03_onboarding_wizard_-_step_2__business_details/screen.png) |
+| BO-04 | `onboarding-step3-idea.excalidraw` | Step 3: Describe business idea via chat interface with Vera (validation lead), conversational intake | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/bo-04_onboarding_wizard_-_step_3__capture_idea/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/bo-04_onboarding_wizard_-_step_3__capture_idea/screen.png) |
+| BO-05 | `onboarding-step4-launch.excalidraw` | Step 4: Launch validation with team introduction (5 agents), timeline preview, start button | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/bo-05_onboarding_wizard_-_step_4__launch_%26_summary/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/bo-05_onboarding_wizard_-_step_4__launch_%26_summary/screen.png) |
 
 ### Module Pages (3 wireframes)
 
 | ID | Wireframe | Description | Priority | Status | Assets |
 |----|-----------|-------------|----------|--------|--------|
-| BO-06 | `validation-page.excalidraw` | Validation module page with chat interface, workflow progress sidebar (8 workflows), agent avatars | P0 | Pending | - |
-| BO-07 | `planning-page.excalidraw` | Planning module page with workflow progress cards, Business Model Canvas preview, financial projections preview | P1 | Pending | - |
-| BO-08 | `branding-page.excalidraw` | Branding module page with visual identity preview (logo, colors, typography), asset download grid | P1 | Pending | - |
+| BO-06 | `validation-page.excalidraw` | Validation module page with chat interface, workflow progress sidebar (8 workflows), agent avatars | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/bo-06_validation_page_with_chat_interface/code.html) |
+| BO-07 | `planning-page.excalidraw` | Planning module page with workflow progress cards, Business Model Canvas preview, financial projections preview | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/bo-07_planning_page_with_workflow_progress/code.html) |
+| BO-08 | `branding-page.excalidraw` | Branding module page with visual identity preview (logo, colors, typography), asset download grid | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/bo-08_branding_page_with_visual_identity_preview/code.html) |
 
 ### Validation Results (4 wireframes)
 
 | ID | Wireframe | Description | Priority | Status | Assets |
 |----|-----------|-------------|----------|--------|--------|
-| BO-10 | `validation-results.excalidraw` | Validation synthesis results page with scorecard, key findings, recommendations, export options | P0 | Pending | - |
+| BO-10 | `validation-results.excalidraw` | Validation synthesis results page with scorecard, key findings, recommendations, export options | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/bo-10_validation_synthesis_results/code.html) |
 | BO-11 | `market-sizing-results.excalidraw` | TAM/SAM/SOM funnel visualization, market growth charts, methodology panel, sources | P1 | Pending | - |
 | BO-12 | `competitor-analysis.excalidraw` | Competitor matrix, positioning map, competitor cards, opportunity gaps panel | P1 | Pending | - |
 | BO-13 | `customer-discovery.excalidraw` | ICP cards (3 personas), pain point analysis, interview insights, jobs-to-be-done | P1 | Pending | - |

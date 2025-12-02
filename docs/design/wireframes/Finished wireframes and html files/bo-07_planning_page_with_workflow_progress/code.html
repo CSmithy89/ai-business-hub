@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BO-07 Planning Page with Workflow Progress</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff6b6b",
+                        "secondary": "#20B2AA",
+                        "background-light": "#f8f5f5",
+                        "background-dark": "#230f0f",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#1a1a1a] dark:text-gray-200">
+<div class="relative flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex h-screen flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] p-4 sticky top-0" style="width: 256px;">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB4nCtSKix4Dnu6KY8XMfwHDytcuUIiqTaTCx4hLZioDyB3589f8UNoM0oRPmNX9KFUtnk_DxPm_L8KBlhtSfJfsqmoZAYv8RhbuB-ODpKLkhs2o7EVY_oNelKwDBf9iOrCaZfX-IPi2pFyUA1qvrpgQrhXwd2Ngyk6f2QFD2iuRsfcfvlNtrdC_knbAZ7DpZngvti53uvKl6gGjqb0u6zu73NmuF7zLnN6uHoUkIifhVn_MGDqyOyckH1AK6alS9KyWTzlNekd58qs");'></div>
+<div class="flex flex-col">
+<h1 class="text-[#181010] dark:text-gray-100 text-base font-semibold leading-normal">HYVVE</h1>
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">AI Business Operations</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
+<span class="material-symbols-outlined">rule</span>
+<p class="text-sm font-medium leading-normal">Validation</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+<p class="text-sm font-medium leading-normal">Planning</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
+<span class="material-symbols-outlined">rocket_launch</span>
+<p class="text-sm font-medium leading-normal">Launch</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+<p class="text-sm font-medium leading-normal">Growth</p>
+</a>
+</nav>
+</div>
+<div class="mt-auto flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" href="#">
+<span class="material-symbols-outlined">help</span>
+<p class="text-sm font-medium leading-normal">Help</p>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8 overflow-y-auto">
+<div class="max-w-7xl mx-auto">
+<!-- Breadcrumbs -->
+<div class="flex flex-wrap gap-2 items-center">
+<a class="text-gray-500 dark:text-gray-400 text-sm font-medium leading-normal hover:text-primary" href="#">My Awesome Business</a>
+<span class="text-gray-400 dark:text-gray-500 text-sm font-medium leading-normal">/</span>
+<span class="text-[#181010] dark:text-gray-100 text-sm font-medium leading-normal">Planning</span>
+</div>
+<!-- PageHeading -->
+<div class="flex flex-wrap justify-between items-center gap-3 mt-4 mb-8">
+<div class="flex flex-col gap-1">
+<p class="text-[#181010] dark:text-gray-50 text-4xl font-bold leading-tight tracking-tight">Business Planning</p>
+</div>
+<div class="bg-secondary/10 text-secondary text-sm font-medium px-3 py-1.5 rounded-full">4/9 workflows complete</div>
+</div>
+<!-- ImageGrid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Business Model Canvas -->
+<div class="flex flex-col gap-4 p-5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-secondary text-3xl">grid_on</span>
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined text-xl">check_circle</span>
+<p class="text-sm font-medium">Complete</p>
+</div>
+</div>
+<div class="mt-2">
+<p class="text-[#181010] dark:text-gray-100 text-base font-semibold leading-normal">Business Model Canvas</p>
+<a class="text-secondary text-sm font-medium leading-normal hover:underline" href="#">View Canvas</a>
+</div>
+</div>
+<!-- Financial Projections -->
+<div class="flex flex-col gap-4 p-5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-secondary text-3xl">monitoring</span>
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined text-xl">check_circle</span>
+<p class="text-sm font-medium">Complete</p>
+</div>
+</div>
+<div class="mt-2">
+<p class="text-[#181010] dark:text-gray-100 text-base font-semibold leading-normal">Financial Projections</p>
+<a class="text-secondary text-sm font-medium leading-normal hover:underline" href="#">View Projections</a>
+</div>
+</div>
+<!-- Pricing Strategy -->
+<div class="flex flex-col gap-4 p-5 bg-white dark:bg-gray-900/50 border border-primary/50 dark:border-primary/30 rounded-lg shadow-sm">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-primary text-3xl">sell</span>
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-xl animate-spin" style="animation-duration: 2s;">sync</span>
+<p class="text-sm font-medium">In Progress</p>
+</div>
+</div>
+<div class="mt-2">
+<p class="text-[#181010] dark:text-gray-100 text-base font-semibold leading-normal">Pricing Strategy</p>
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">60% progress</p>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-2">
+<div class="bg-primary h-1.5 rounded-full" style="width: 60%"></div>
+</div>
+</div>
+</div>
+<!-- Revenue Model -->
+<div class="flex flex-col gap-4 p-5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-secondary text-3xl">account_balance_wallet</span>
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined text-xl">check_circle</span>
+<p class="text-sm font-medium">Complete</p>
+</div>
+</div>
+<div class="mt-2">
+<p class="text-[#181010] dark:text-gray-100 text-base font-semibold leading-normal">Revenue Model</p>
+</div>
+</div>
+<!-- Growth Forecast -->
+<div class="flex flex-col gap-4 p-5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-secondary text-3xl">insights</span>
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined text-xl">check_circle</span>
+<p class="text-sm font-medium">Complete</p>
+</div>
+</div>
+<div class="mt-2">
+<p class="text-[#181010] dark:text-gray-100 text-base font-semibold leading-normal">Growth Forecast</p>
+</div>
+</div>
+<!-- Business Plan -->
+<div class="flex flex-col gap-4 p-5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm opacity-70">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-3xl">description</span>
+<div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+<span class="material-symbols-outlined text-xl">hourglass_empty</span>
+<p class="text-sm font-medium">Waiting</p>
+</div>
+</div>
+<div class="mt-2">
+<p class="text-[#181010] dark:text-gray-100 text-base font-semibold leading-normal">Business Plan</p>
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">Depends on pricing</p>
+</div>
+</div>
+<!-- Pitch Deck -->
+<div class="flex flex-col gap-4 p-5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-3xl">slideshow</span>
+<div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+<span class="material-symbols-outlined text-xl">circle</span>
+<p class="text-sm font-medium">Not Started</p>
+</div>
+</div>
+<div class="mt-2">
+<p class="text-[#181010] dark:text-gray-100 text-base font-semibold leading-normal">Pitch Deck</p>
+<button class="text-primary text-sm font-medium leading-normal mt-1 hover:underline text-left">Start</button>
+</div>
+</div>
+<!-- Multi-Product -->
+<div class="flex flex-col gap-4 p-5 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-3xl">category</span>
+<div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+<span class="material-symbols-outlined text-xl">circle</span>
+<p class="text-sm font-medium">Optional</p>
+</div>
+</div>
+<div class="mt-2">
+<p class="text-[#181010] dark:text-gray-100 text-base font-semibold leading-normal">Multi-Product</p>
+</div>
+</div>
+<!-- Export -->
+<div class="flex flex-col gap-4 p-5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm opacity-70">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-3xl">ios_share</span>
+<div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+<span class="material-symbols-outlined text-xl">lock</span>
+<p class="text-sm font-medium">Locked</p>
+</div>
+</div>
+<div class="mt-2">
+<p class="text-[#181010] dark:text-gray-100 text-base font-semibold leading-normal">Export</p>
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">Requires Business Plan</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Right Chat Panel -->
+<aside class="flex flex-col h-screen border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] p-6 sticky top-0" style="width: 384px;">
+<div class="flex flex-col h-full">
+<!-- TitleText -->
+<h1 class="text-[#181010] dark:text-gray-100 text-[22px] font-bold leading-tight tracking-[-0.015em] text-left pb-3 pt-1">Blake 📋</h1>
+<!-- Chat message -->
+<div class="flex-grow overflow-y-auto pr-2">
+<div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg rounded-tl-none">
+<p class="text-gray-800 dark:text-gray-200 text-sm leading-relaxed">
+                            Your pricing strategy is 60% complete. I'm waiting for your input on the premium tier pricing. What price point are you considering?
+                        </p>
+</div>
+</div>
+<!-- User input -->
+<div class="mt-6 border-t border-gray-200 dark:border-gray-800 pt-4">
+<div class="relative">
+<input class="w-full pl-4 pr-12 py-3 bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-primary focus:border-primary" placeholder="Type your response..." type="text"/>
+<button class="absolute inset-y-0 right-0 flex items-center justify-center w-12 text-gray-500 hover:text-primary">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</body></html>

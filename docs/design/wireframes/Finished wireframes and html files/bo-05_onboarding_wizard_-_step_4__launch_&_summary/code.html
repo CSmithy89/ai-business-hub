@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BO-05 Onboarding Wizard - Step 4: Launch &amp; Summary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 1,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
+    }
+  </style>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#ff6b6b",
+            "secondary": "#20B2AA",
+            "background-light": "#FFFBF5",
+            "background-dark": "#0a0a0b",
+            "text-light": "#1a1a1a",
+            "text-dark": "#e0e0e0"
+          },
+          fontFamily: {
+            "display": ["Inter", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "8px",
+            "lg": "12px",
+            "xl": "16px",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
+<div class="relative flex min-h-screen w-full flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
+<!-- Confetti elements for decoration. In a real app, these would be animated on load or button click. -->
+<div class="absolute top-1/4 left-1/4 h-2 w-2 rounded-full bg-primary/50 opacity-50"></div>
+<div class="absolute top-1/2 left-1/4 h-3 w-3 rounded-full bg-secondary/50 opacity-50"></div>
+<div class="absolute top-2/3 left-1/3 h-1 w-1 rounded-full bg-primary opacity-50"></div>
+<div class="absolute top-1/4 right-1/4 h-2 w-2 rounded-full bg-secondary/50 opacity-50"></div>
+<div class="absolute top-1/2 right-1/4 h-3 w-3 rounded-full bg-primary/50 opacity-50"></div>
+<div class="absolute top-2/3 right-1/3 h-2 w-2 rounded-full bg-secondary opacity-50"></div>
+<div class="w-full max-w-2xl">
+<!-- Wizard Header -->
+<div class="mb-8 flex flex-col items-center gap-4">
+<div class="flex items-center justify-center gap-2 sm:gap-4">
+<div class="flex items-center gap-1 sm:gap-2">
+<div class="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-white">
+<span class="material-symbols-outlined text-base">check</span>
+</div>
+</div>
+<div class="h-0.5 w-8 flex-1 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+<div class="flex items-center gap-1 sm:gap-2">
+<div class="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-white">
+<span class="material-symbols-outlined text-base">check</span>
+</div>
+</div>
+<div class="h-0.5 w-8 flex-1 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+<div class="flex items-center gap-1 sm:gap-2">
+<div class="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-white">
+<span class="material-symbols-outlined text-base">check</span>
+</div>
+</div>
+<div class="h-0.5 w-8 flex-1 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+<div class="flex items-center gap-1 sm:gap-2">
+<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white ring-4 ring-primary/30">
+<span class="font-bold">4</span>
+</div>
+</div>
+</div>
+<p class="text-base font-medium text-text-light dark:text-text-dark">Step 4: Launch</p>
+</div>
+<!-- Main Summary Card -->
+<div class="relative w-full rounded-lg bg-white/50 dark:bg-background-dark/50 shadow-lg backdrop-blur-sm ring-1 ring-black/5 dark:ring-white/10">
+<div class="flex flex-col items-center p-6 sm:p-10">
+<!-- Celebration Element -->
+<div class="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/20">
+<span class="material-symbols-outlined text-5xl text-primary">rocket_launch</span>
+</div>
+<!-- Page Heading -->
+<div class="flex w-full flex-col items-center justify-center gap-3 text-center">
+<div class="flex w-16 h-16 rounded-full overflow-hidden ring-2 ring-white dark:ring-gray-800 shadow-md">
+<div class="w-full bg-center bg-no-repeat bg-cover aspect-auto" data-alt="Abstract logo for the user's new business" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBlGqLOeFbyUyp8AAiwG8T1DTf4_ykqtTCRDEhPmY9HasCtVGumBYKNsIcuZj2ghU__9dqjtrVIytc3WRl-L0nDyBxfKXmuQGL0BtlXyCUyjQTW-PQY8iUK0ff60MrHaAM1S3wBSHBYAJw90JR-kURQUcSL5IGNFG_WAm2kBxkHlRi-B5CDEY9owfVxS-myaF4cqhW0d1JieR5X-BzcLerSpuA6Fr_VBsXK654Zn6nDY_SCMfRIKD29OTnKew1SKaiWEHnSmg4DoBAU");'></div>
+</div>
+<p class="text-3xl font-bold tracking-tight text-text-light dark:text-text-dark sm:text-4xl">Ready to launch: Innovate Inc.</p>
+</div>
+<div class="my-8 h-px w-full bg-gray-200 dark:bg-gray-700"></div>
+<!-- Summary Sections -->
+<div class="w-full space-y-8">
+<!-- AI Team Section -->
+<div>
+<h3 class="text-lg font-bold leading-tight tracking-tight text-text-light dark:text-text-dark text-center">Your AI Team is ready</h3>
+<div class="mt-4 flex flex-col items-center justify-center gap-6 sm:flex-row sm:gap-8">
+<div class="text-center">
+<div class="relative mx-auto h-16 w-16 overflow-visible">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border-2 border-white dark:border-gray-800 shadow-sm" data-alt="Avatar for Vera, Validation Lead" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAvwQNbyafXWJzBXGg29WnBuT28g_CFUmwVw6Xrr9-H-NIxJI7BzowjErgDmrfHVaODoDmE6SbU3unlH64u3BvP3oyiLlXOkABHlKEL6rISuYpT2P5h_SuH_Sd0D8QwYeXj9oqBUdJS8PWaBg5o81cFFsgkrNeHpPfUbewj3LbXqnF0rR3zV-H3p_iZy4evfxM4T45e985DNt9bEc0_WasYleDrqnTGdHxA26gMFqa4sYXLzl3TK-sXFyOyEf0FXy4-_rYXBGVio3jL");'></div>
+</div>
+<p class="mt-2 font-semibold">🎯 Vera</p>
+<p class="text-sm text-gray-500 dark:text-gray-400">Validation Lead</p>
+</div>
+<div class="text-center">
+<div class="relative mx-auto h-16 w-16 overflow-visible">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border-2 border-white dark:border-gray-800 shadow-sm" data-alt="Avatar for Blake, Planning Lead" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCxj1uVI3KczFa1xXLPmUlmpTHJ5YJgJvfRpqK4JFJs5HVz8RZzvDemNzqMEcXGTKa7jLENb5ZgYTLlj6uuyT0_6grYSiJdaxendRhqdTeb0CyhEs3qcAZS0IEha0A2MlGkFuuZcKnr-s4nlv-GIkvWhhIleqFkOlJyrbzJdoxqcyYG0XQ54qTDhXJbXILMe-ysDXMRZHRbxCSM5Jnq9uIL6YrjRYAjNxsMi1ovRCBoaSpqy9f7TNRa341VoJnsh35ItIlhUkj2-6YD");'></div>
+</div>
+<p class="mt-2 font-semibold">📋 Blake</p>
+<p class="text-sm text-gray-500 dark:text-gray-400">Planning Lead</p>
+</div>
+<div class="text-center">
+<div class="relative mx-auto h-16 w-16 overflow-visible">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border-2 border-white dark:border-gray-800 shadow-sm" data-alt="Avatar for Bella, Brand Lead" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBKRAGm6uSCpcaii9H6aKNt3at4s8YQbzJx7wBraZnLXhVuU-0DwOgmC8bLzR-cMexNglEzWgJK_9HG_vzQ00kI8VzV4HRspVDEsv07nPI3WK8dAY9h1TgvDIIpnTyZY83EQ1m6dHmrNPgiG4PVPev14HOf4SPLWzUv5jk2z4uT3gaxnZDZYe3XLogpFepUrKJiWLNsx9y2p6I0LZjImQqTiTcOggfZmX0HQp4LUtWA0oKpDa24k_PTFEDhlip9bS2A_WIOJRg72zfe");'></div>
+</div>
+<p class="mt-2 font-semibold">🎨 Bella</p>
+<p class="text-sm text-gray-500 dark:text-gray-400">Brand Lead</p>
+</div>
+</div>
+</div>
+<!-- What Happens Next Section -->
+<div>
+<h3 class="text-lg font-bold leading-tight tracking-tight text-text-light dark:text-text-dark text-center">What happens next</h3>
+<ul class="mt-4 space-y-3">
+<li class="flex items-start gap-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 p-3">
+<span class="material-symbols-outlined text-secondary !fill-0" style="--material-symbols-wght: 600;">check_circle</span>
+<span class="flex-1 text-sm sm:text-base">Vera will validate your business idea</span>
+</li>
+<li class="flex items-start gap-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 p-3">
+<span class="material-symbols-outlined text-secondary !fill-0" style="--material-symbols-wght: 600;">check_circle</span>
+<span class="flex-1 text-sm sm:text-base">Blake will create your business plan</span>
+</li>
+<li class="flex items-start gap-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 p-3">
+<span class="material-symbols-outlined text-secondary !fill-0" style="--material-symbols-wght: 600;">check_circle</span>
+<span class="flex-1 text-sm sm:text-base">Bella will develop your brand identity</span>
+</li>
+<li class="flex items-start gap-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 p-3">
+<span class="material-symbols-outlined text-secondary !fill-0" style="--material-symbols-wght: 600;">check_circle</span>
+<span class="flex-1 text-sm sm:text-base">Your business will be ready to operate</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- Estimated Time -->
+<div class="mt-8 rounded-lg bg-primary/10 dark:bg-primary/20 p-4 text-center w-full">
+<p class="font-semibold text-primary">Estimated time: 2-4 hours with AI assistance</p>
+<p class="text-sm text-primary/80 dark:text-primary/90 mt-1">You'll review key decisions along the way</p>
+</div>
+<div class="my-8 h-px w-full bg-gray-200 dark:bg-gray-700"></div>
+<!-- Terms Checkbox -->
+<div class="flex items-start space-x-3">
+<input class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-primary focus:ring-primary" id="terms" name="terms" type="checkbox"/>
+<div class="text-sm">
+<label class="font-medium text-gray-700 dark:text-gray-300" for="terms">
+                I agree to the <a class="font-semibold text-secondary hover:underline" href="#">Terms of Service</a> and <a class="font-semibold text-secondary hover:underline" href="#">Privacy Policy</a>.
+              </label>
+</div>
+</div>
+<!-- Bottom Actions -->
+<div class="mt-10 flex w-full flex-col-reverse items-center gap-4 sm:flex-row sm:justify-between">
+<button class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-xl">arrow_back</span>
+              Back
+            </button>
+<button class="flex w-full items-center justify-center gap-3 rounded-lg bg-primary px-6 py-4 text-lg font-bold text-white shadow-lg shadow-primary/30 transition-transform hover:scale-105 sm:w-auto">
+              🚀 Launch Business
+            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

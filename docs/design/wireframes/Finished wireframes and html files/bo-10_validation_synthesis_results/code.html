@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BO-10 Validation Synthesis Results</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ff6b6b",
+              "background-light": "#f8f5f5",
+              "background-dark": "#230f0f",
+              "teal": "#20B2AA",
+              "amber": "#FFC107",
+              "success": "#28A745",
+              "content-light": "#ffffff",
+              "content-dark": "#1a1a1a",
+              "text-light": "#1a1a1a",
+              "text-dark": "#f0f0f0",
+              "text-muted-light": "#6b7280",
+              "text-muted-dark": "#9ca3af",
+              "border-light": "#e5e7eb",
+              "border-dark": "#374151"
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
+<div class="relative flex min-h-screen w-full flex-col items-center justify-center p-4 sm:p-6 md:p-8">
+<div class="flex w-full max-w-4xl flex-col gap-6 rounded-xl bg-content-light dark:bg-content-dark p-6 sm:p-8 shadow-lg border border-border-light dark:border-border-dark">
+<!-- Header -->
+<div class="flex flex-wrap items-start justify-between gap-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-4xl">celebration</span>
+<h1 class="text-3xl font-bold tracking-tight">Validation Complete</h1>
+</div>
+<button class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-background-light dark:bg-background-dark text-text-muted-light dark:text-text-muted-dark hover:bg-border-light dark:hover:bg-border-dark">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Score & Summary -->
+<div class="flex flex-col items-center gap-8 md:flex-row md:items-start md:gap-6">
+<!-- Score Gauge -->
+<div class="flex flex-col items-center gap-4 p-4 text-center">
+<div class="relative h-40 w-40">
+<svg class="h-full w-full" viewbox="0 0 36 36">
+<path class="text-border-light dark:text-border-dark" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path>
+<path class="text-teal" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="78, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<p class="text-4xl font-bold tracking-tighter">78</p>
+</div>
+</div>
+<p class="text-sm font-medium text-text-muted-light dark:text-text-muted-dark">VALIDATION SCORE</p>
+<div class="rounded-full bg-amber/20 px-3 py-1 text-sm font-semibold text-amber-800 dark:text-amber-200">
+                    CONDITIONAL GO
+                </div>
+</div>
+<!-- 3-Column Summary -->
+<div class="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
+<div class="flex flex-col gap-3 rounded-lg border border-border-light dark:border-border-dark p-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-muted-light dark:text-text-muted-dark">bar_chart</span>
+<h3 class="font-semibold">Market</h3>
+</div>
+<ul class="space-y-1 text-sm text-text-muted-light dark:text-text-muted-dark">
+<li>TAM: $4.2B</li>
+<li>SAM: $840M</li>
+<li>SOM: $42M (Y1)</li>
+</ul>
+<p class="mt-auto rounded-full bg-teal/20 px-2.5 py-0.5 text-xs font-medium text-teal-800 dark:text-teal-200 self-start">High Confidence</p>
+</div>
+<div class="flex flex-col gap-3 rounded-lg border border-border-light dark:border-border-dark p-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-muted-light dark:text-text-muted-dark">swords</span>
+<h3 class="font-semibold">Competition</h3>
+</div>
+<ul class="space-y-1 text-sm text-text-muted-light dark:text-text-muted-dark">
+<li>12 competitors identified</li>
+<li>3 direct, 9 indirect</li>
+<li>Opportunity gaps found</li>
+</ul>
+<p class="mt-auto rounded-full bg-amber/20 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200 self-start">Medium Confidence</p>
+</div>
+<div class="flex flex-col gap-3 rounded-lg border border-border-light dark:border-border-dark p-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-muted-light dark:text-text-muted-dark">groups</span>
+<h3 class="font-semibold">Customers</h3>
+</div>
+<ul class="space-y-1 text-sm text-text-muted-light dark:text-text-muted-dark">
+<li>3 ICPs defined</li>
+<li>Primary: SMB Owners</li>
+<li>Clear pain points</li>
+</ul>
+<p class="mt-auto rounded-full bg-teal/20 px-2.5 py-0.5 text-xs font-medium text-teal-800 dark:text-teal-200 self-start">High Confidence</p>
+</div>
+</div>
+</div>
+<!-- Recommendation Card -->
+<div class="rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark p-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-text-muted-light dark:text-text-muted-dark">recommend</span>
+<h3 class="text-lg font-semibold">Recommendation</h3>
+</div>
+<p class="mt-2 text-xl font-bold text-primary">PROCEED WITH CAUTION</p>
+<p class="mt-2 text-sm text-text-muted-light dark:text-text-muted-dark">
+                Strong market opportunity with established competition. Differentiation through AI features and SMB focus recommended.
+            </p>
+</div>
+<!-- Strengths & Risks -->
+<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+<div class="flex flex-col gap-3 rounded-lg border-l-4 border-success bg-background-light dark:bg-background-dark p-4 shadow-sm">
+<h4 class="font-semibold">Strengths</h4>
+<ul class="space-y-2 text-sm">
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-success mt-0.5 text-base">check_circle</span>
+<span>Large and growing market ($4.2B TAM)</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-success mt-0.5 text-base">check_circle</span>
+<span>Clear customer pain points identified</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-success mt-0.5 text-base">check_circle</span>
+<span>Technology differentiation possible</span>
+</li>
+</ul>
+</div>
+<div class="flex flex-col gap-3 rounded-lg border-l-4 border-amber bg-background-light dark:bg-background-dark p-4 shadow-sm">
+<h4 class="font-semibold">Risks</h4>
+<ul class="space-y-2 text-sm">
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-amber mt-0.5 text-base">warning</span>
+<span>Established competitors (Salesforce, HubSpot)</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-amber mt-0.5 text-base">warning</span>
+<span>High customer acquisition costs expected</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-amber mt-0.5 text-base">warning</span>
+<span>Requires significant initial investment</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- Approval Section -->
+<div class="rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark px-6 py-4">
+<div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
+<p class="text-sm font-medium">This recommendation requires your approval.</p>
+<div class="flex gap-3">
+<button class="flex h-10 min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-md px-4 text-sm font-medium leading-normal bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark hover:bg-border-light dark:hover:bg-border-dark">
+<span class="truncate">Request Changes</span>
+</button>
+<button class="flex h-10 min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-md bg-teal px-4 text-sm font-medium leading-normal text-white hover:bg-teal/90">
+<span class="truncate">Approve</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+<button class="flex h-11 min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-md px-6 text-sm font-medium leading-normal bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark hover:bg-border-light dark:hover:bg-border-dark">
+<span class="truncate">View Full Report</span>
+</button>
+<button class="flex h-11 min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-md bg-primary px-6 text-sm font-medium leading-normal text-white hover:bg-primary/90">
+<span class="truncate">Continue to Planning</span>
+<span class="material-symbols-outlined ml-2">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</body></html>

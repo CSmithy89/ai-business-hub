@@ -31,6 +31,37 @@ Implement the Business Onboarding system that guides users through starting a ne
 - [Business Onboarding Architecture](../architecture/business-onboarding-architecture.md)
 - [Agno Implementation Guide](../architecture/agno-implementation-guide.md)
 
+### Design Assets
+- [Wireframe Index - Business Onboarding Section](../design/wireframes/WIREFRAME-INDEX.md#17-business-onboarding-18-wireframes-)
+- [Wireframe Prompts (BATCH-10)](../design/wireframes/prompts/BATCH-10-BUSINESS-ONBOARDING.md)
+- **Wireframe Status:** 10/18 Complete (all P0 done, P1/P2 pending)
+
+| ID | Wireframe | Status |
+|----|-----------|--------|
+| BO-01 | Portfolio Dashboard | ✅ Complete |
+| BO-02 | Wizard Step 1 - Documents | ✅ Complete |
+| BO-03 | Wizard Step 2 - Details | ✅ Complete |
+| BO-04 | Wizard Step 3 - Idea | ✅ Complete |
+| BO-05 | Wizard Step 4 - Launch | ✅ Complete |
+| BO-06 | Validation Page | ✅ Complete |
+| BO-07 | Planning Page | ✅ Complete |
+| BO-08 | Branding Page | ✅ Complete |
+| BO-09 | Business Switcher | ✅ Complete |
+| BO-10 | Validation Results | ✅ Complete |
+| BO-11 | Market Sizing Results | Pending |
+| BO-12 | Competitor Analysis | Pending |
+| BO-13 | Customer Discovery | Pending |
+| BO-14 | Business Model Canvas | Pending |
+| BO-15 | Financial Projections | Pending |
+| BO-16 | Brand Strategy | Pending |
+| BO-17 | Visual Identity | Pending |
+| BO-18 | Asset Gallery | Pending |
+
+### Agent Implementation Status
+- **BMV (Validation):** ✅ Agno Team implemented - `agents/validation/`
+- **BMP (Planning):** ✅ Agno Team implemented - `agents/planning/`
+- **BMB (Branding):** ✅ Agno Team implemented - `agents/branding/`
+
 ---
 
 ## Module Inventory

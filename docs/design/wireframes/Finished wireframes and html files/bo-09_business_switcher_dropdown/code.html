@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BO-09 Business Switcher Dropdown</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ff6b6b",
+              "secondary": "#20B2AA",
+              "background-light": "#FFFBF5",
+              "background-dark": "#0a0a0b",
+              "text-light": "#1a1a1a",
+              "text-dark": "#e0e0e0",
+              "text-muted-light": "#6b7280",
+              "text-muted-dark": "#9ca3af",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {
+                "DEFAULT": "8px",
+                "lg": "12px",
+                "full": "9999px"
+            },
+            boxShadow: {
+                'md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
+<div class="relative flex min-h-screen w-full flex-col items-center justify-center p-10 antialiased">
+<div class="flex w-full max-w-4xl flex-col items-center gap-12">
+<!-- Collapsed State -->
+<div class="w-full max-w-xs">
+<h2 class="mb-4 text-center text-xl font-bold">Collapsed State (Trigger)</h2>
+<div class="flex w-full flex-col items-center rounded-lg bg-white dark:bg-neutral-800 p-8 shadow-md">
+<button class="flex h-10 w-full items-center gap-3 rounded-DEFAULT border border-neutral-200 dark:border-neutral-700 bg-transparent px-3 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-700/50">
+<img class="h-6 w-6 rounded-full object-cover" data-alt="Hyvve Inc. company logo, a stylized 'H'" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABpaw0A3T4lL6ql4j2uHEOvcbj-5hUKKluHAvqQkIbXYxEfrR3SonU_B5jbzegQ4LxqU2yMtDjAnSYxK5HIqb_DRljTmFPYr-YlYfqiRjOd7bDXxu6J15haEFWO9JA72RNfgS67X1vffIiuxLZNyqxyjMpGk9yy2D8q2KD1rTzRwVZrfnlEn9I1ujmpRwjY0v3d9wMqFAu69xkuegYg9mLaEe-EafxnsFPkkk620d7ydHgTdLOvDNZS4kXTEAcN8k_YHlxTxx-3KDK"/>
+<span class="flex-1 truncate text-left text-sm font-medium text-text-light dark:text-text-dark">Hyvve Inc.</span>
+<span class="material-symbols-outlined text-text-muted-light dark:text-text-muted-dark">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Expanded State -->
+<div class="w-full max-w-xs">
+<h2 class="mb-4 text-center text-xl font-bold">Expanded State (Dropdown)</h2>
+<div class="relative w-[280px]">
+<!-- Trigger is included for context but the main focus is the dropdown panel -->
+<button class="flex h-10 w-full items-center gap-3 rounded-DEFAULT border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-700/50 px-3">
+<img class="h-6 w-6 rounded-full object-cover" data-alt="Hyvve Inc. company logo, a stylized 'H'" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAy4bls1RHg2ynHrD2GVUTpOTmb83LCXlKGpNQYvmkoVb5gAIcnP20Edv6yT4NWCpLcmmzJ40iEo5NX2Be0_5H5sBNZ22JIrHRkTIORM6kc-SuYjfNyVpAEXDCXPsT4C75OBjjzBe1wwGpjtCfdyh5Id5rEcali5JsgebceaM3g1gGBnsYDYnb1lFrm03gF37qqV3uu3UbfJMTX70TceTY30bJn2ZQPPspjjyZylRkSTrTPVsTJ4JlYBEa6IxPSx1FcmClVf4gzJfC6"/>
+<span class="flex-1 truncate text-left text-sm font-medium text-text-light dark:text-text-dark">Hyvve Inc.</span>
+<span class="material-symbols-outlined text-text-muted-light dark:text-text-muted-dark">expand_more</span>
+</button>
+<!-- Dropdown Panel -->
+<div class="absolute top-full z-10 mt-2 w-full origin-top-right rounded-DEFAULT border border-neutral-200 dark:border-neutral-700 bg-background-light dark:bg-background-dark shadow-md">
+<div class="flex flex-col p-2">
+<!-- Header -->
+<div class="flex items-center justify-between px-2 pb-2 pt-1">
+<h3 class="text-sm font-semibold text-text-light dark:text-text-dark">Switch Business</h3>
+<button class="flex h-7 w-7 items-center justify-center rounded-full text-text-muted-light dark:text-text-muted-dark transition-colors hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50">
+<span class="material-symbols-outlined !text-[18px]">close</span>
+</button>
+</div>
+<!-- SearchBar -->
+<div class="px-2 py-1">
+<label class="flex h-9 w-full min-w-40 flex-col">
+<div class="flex h-full w-full flex-1 items-stretch rounded-DEFAULT">
+<div class="flex items-center justify-center rounded-l-DEFAULT border border-r-0 border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 pl-3 text-text-muted-light dark:text-text-muted-dark">
+<span class="material-symbols-outlined !text-base">search</span>
+</div>
+<input class="form-input h-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-DEFAULT border border-l-0 border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-2 pl-2 text-sm font-normal leading-normal text-text-light dark:text-text-dark placeholder:text-text-muted-light dark:placeholder:text-text-muted-dark focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Search businesses..." value=""/>
+</div>
+</label>
+</div>
+<!-- Business List -->
+<div class="mt-2 flex flex-col gap-1">
+<!-- Current Business ListItem -->
+<div class="flex cursor-pointer items-center gap-3 rounded-DEFAULT bg-secondary/10 px-2 py-2">
+<img class="h-8 w-8 rounded-full object-cover" data-alt="Hyvve Inc. company logo, a stylized 'H'" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcQZN5SrsXzHXxntwHRMMZUwO8SOk5r2ZSD-dfP-dcsQZMnSSugd43qEdzyY1aIBWPhDNT59cA5HK2oMv8FZas6Bx0TjbTIc9x6pGS3F6YQA6j_PT0coty9-npLmkGoPV9LCnP7XqXxjYLprrwd2dYtj5PQl0sEn8SBanyVjMOczFp8gg-J3BjY2pPDui5Tr16mNLjkDZcHKQxe6RieIMgqxS_I3fiSxMPjewP17aNH7nZ8nhXMNGnvapQYSlhB9f6z6i6k4bzJd5V"/>
+<div class="flex flex-1 flex-col justify-center">
+<p class="text-sm font-bold leading-tight text-text-light dark:text-text-dark">Hyvve Inc.</p>
+<p class="text-xs font-normal leading-tight text-secondary">Active</p>
+</div>
+<div class="shrink-0">
+<span class="material-symbols-outlined text-secondary">check</span>
+</div>
+</div>
+<!-- Other Businesses ListItem -->
+<div class="flex cursor-pointer items-center gap-3 rounded-DEFAULT px-2 py-2 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-700/30">
+<img class="h-8 w-8 rounded-full object-cover" data-alt="QuantumLeap company logo, a stylized 'Q'" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCP7PsqAYJku89z73HJIB46Os4uBwtkTn7S_NUkpeCbh-7QyXLPMBBB8Y8wR7r4vDlbIyKoJolwFoCqhT5BLGPQCaQagbinf_tkpqB7ZZoRhxmmaqgISUVckwwDcNWQlY5Jsw2jV27LuTibkmNVcvQJ-qrv9HGsgagO5tvjkibbr_6tM3QJPq404fLbwcetov0rvuuhrnhv1g34H1jlRn04BlDziypUoeYaKU_thD82VOJ2fwBD4SAKRg2ARSODr-o-OAM4iUxmY4xQ"/>
+<div class="flex flex-1 flex-col justify-center">
+<p class="text-sm font-medium leading-tight text-text-light dark:text-text-dark">QuantumLeap</p>
+<p class="text-xs font-normal leading-tight text-text-muted-light dark:text-text-muted-dark">Validation: 85%</p>
+</div>
+</div>
+<div class="flex cursor-pointer items-center gap-3 rounded-DEFAULT px-2 py-2 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-700/30">
+<img class="h-8 w-8 rounded-full object-cover" data-alt="InnovateX company logo, abstract geometric shape" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnBhC0VsRCcGNiQq9XPdgY1yV84zp3fngeOGB0LXdmbSZqPzHfSoCoPbF88gQMZ6InK8cAxyFO9Rko4dIZD36EqtyUyFIvkMt3xVznIrq6cndGNtnQSqHlEuNyWV2KelbruLZschemDWkjKiJ7mmBhqxN4YqhcgsSNrwLY_RktpnBUMbOob8lev3DIBQZgxK-tA7zmRqimTswAl_musYSdFB-o9t1z8BYvnP8LgK9wDMx7cedC4UsHAcJlz8FVzWXDrbNO2p5GMnrO"/>
+<div class="flex flex-1 flex-col justify-center">
+<p class="text-sm font-medium leading-tight text-text-light dark:text-text-dark">InnovateX</p>
+<p class="text-xs font-normal leading-tight text-text-muted-light dark:text-text-muted-dark">Pending</p>
+</div>
+</div>
+</div>
+<!-- Divider -->
+<div class="my-2 h-px bg-neutral-200 dark:bg-neutral-700"></div>
+<!-- Footer Actions -->
+<div class="flex flex-col gap-1">
+<a class="group flex items-center gap-3 rounded-DEFAULT px-2 py-2 text-sm text-text-light dark:text-text-dark transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-700/30" href="#">
+<span class="material-symbols-outlined text-text-muted-light dark:text-text-muted-dark group-hover:text-primary">add</span>
+<span class="font-medium group-hover:text-primary">Create New Business</span>
+</a>
+<a class="group flex items-center gap-3 rounded-DEFAULT px-2 py-2 text-sm text-text-light dark:text-text-dark transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-700/30" href="#">
+<span class="material-symbols-outlined text-text-muted-light dark:text-text-muted-dark">folder</span>
+<span class="font-medium">View All Businesses</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

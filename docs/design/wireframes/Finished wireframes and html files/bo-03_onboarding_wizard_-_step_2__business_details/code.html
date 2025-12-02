@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BO-03 Onboarding Wizard - Step 2: Business Details</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ff6b6b",
+              "background-light": "#FFFBF5",
+              "background-dark": "#0a0a0b",
+              "text-light": "#1a1a1a",
+              "text-dark": "#f0f0f0",
+              "border-light": "#e7dada",
+              "border-dark": "#4a4a4a",
+              "card-light": "#ffffff",
+              "card-dark": "#1a1a1a",
+              "secondary": "#20B2AA"
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "8px", "lg": "12px", "xl": "16px", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
+<div class="relative flex min-h-screen w-full flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
+<main class="w-full max-w-2xl">
+<!-- Wizard Header -->
+<div class="mb-8 text-center">
+<div class="flex items-center justify-center space-x-4">
+<div class="flex items-center space-x-2">
+<div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white">
+<span class="material-symbols-outlined text-sm">check</span>
+</div>
+</div>
+<div class="h-px w-12 bg-border-light dark:bg-border-dark"></div>
+<div class="flex items-center space-x-2">
+<div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white">
+<span class="text-xs font-bold">2</span>
+</div>
+</div>
+<div class="h-px w-12 bg-border-light dark:bg-border-dark"></div>
+<div class="flex items-center space-x-2">
+<div class="flex h-6 w-6 items-center justify-center rounded-full border border-border-light dark:border-border-dark bg-transparent text-text-light dark:text-text-dark">
+<span class="text-xs font-bold">3</span>
+</div>
+</div>
+</div>
+</div>
+<div class="rounded-lg bg-card-light dark:bg-card-dark shadow-sm border border-border-light/50 dark:border-border-dark/50 p-6 sm:p-8 lg:p-10">
+<!-- Page Heading -->
+<div class="flex items-center gap-4 mb-8">
+<button class="flex items-center justify-center h-8 w-8 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-xl">arrow_back</span>
+</button>
+<div>
+<p class="text-text-light/70 dark:text-text-dark/70 text-sm font-medium">Step 2 of 3</p>
+<h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-text-light dark:text-text-dark">Business Details</h1>
+</div>
+</div>
+<div class="space-y-6">
+<!-- Business Name Field -->
+<div>
+<label class="block text-sm font-medium leading-6 text-text-light dark:text-text-dark pb-2" for="business-name">What's your business called?</label>
+<div class="relative">
+<input class="form-input block w-full rounded-md border-0 py-3 px-4 bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark ring-1 ring-inset ring-border-light dark:ring-border-dark placeholder:text-text-light/50 dark:placeholder:text-text-dark/50 focus:ring-2 focus:ring-inset focus:ring-primary" id="business-name" placeholder="e.g., Acme Solutions" type="text"/>
+</div>
+<div class="flex justify-between mt-2">
+<p class="text-xs text-text-light/60 dark:text-text-dark/60">You can change this later.</p>
+<p class="text-xs text-text-light/60 dark:text-text-dark/60">0/50</p>
+</div>
+</div>
+<!-- Industry Field -->
+<div>
+<label class="block text-sm font-medium leading-6 text-text-light dark:text-text-dark pb-2" for="industry">What industry are you in?</label>
+<select class="form-select block w-full rounded-md border-0 py-3 px-4 bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark ring-1 ring-inset ring-border-light dark:ring-border-dark focus:ring-2 focus:ring-inset focus:ring-primary" id="industry">
+<option>Search or select an industry</option>
+<option>Technology</option>
+<option>E-commerce</option>
+<option>Professional Services</option>
+<option>Healthcare</option>
+<option>Education</option>
+<option>Other</option>
+</select>
+</div>
+<!-- Business Type Field -->
+<div>
+<label class="block text-sm font-medium leading-6 text-text-light dark:text-text-dark">What type of business is this?</label>
+<fieldset class="mt-2">
+<legend class="sr-only">Business type</legend>
+<div class="space-y-3">
+<div class="relative flex items-start">
+<div class="flex h-6 items-center">
+<input class="h-4 w-4 border-border-light dark:border-border-dark text-primary focus:ring-primary" id="new-startup" name="business-type" type="radio"/>
+</div>
+<div class="ml-3 text-sm leading-6">
+<label class="font-medium text-text-light dark:text-text-dark" for="new-startup">New startup</label>
+<p class="text-text-light/60 dark:text-text-dark/60">Just getting started</p>
+</div>
+</div>
+<div class="relative flex items-start">
+<div class="flex h-6 items-center">
+<input class="h-4 w-4 border-border-light dark:border-border-dark text-primary focus:ring-primary" id="existing-business" name="business-type" type="radio"/>
+</div>
+<div class="ml-3 text-sm leading-6">
+<label class="font-medium text-text-light dark:text-text-dark" for="existing-business">Existing business</label>
+<p class="text-text-light/60 dark:text-text-dark/60">Already operating</p>
+</div>
+</div>
+<div class="relative flex items-start">
+<div class="flex h-6 items-center">
+<input class="h-4 w-4 border-border-light dark:border-border-dark text-primary focus:ring-primary" id="side-project" name="business-type" type="radio"/>
+</div>
+<div class="ml-3 text-sm leading-6">
+<label class="font-medium text-text-light dark:text-text-dark" for="side-project">Side project</label>
+<p class="text-text-light/60 dark:text-text-dark/60">Testing an idea</p>
+</div>
+</div>
+</div>
+</fieldset>
+</div>
+<!-- Logo Upload -->
+<div>
+<label class="block text-sm font-medium leading-6 text-text-light dark:text-text-dark">Upload a logo (optional)</label>
+<div class="mt-2 flex items-center justify-center w-32 h-32 rounded-lg border border-dashed border-border-light dark:border-border-dark p-4 cursor-pointer hover:border-primary transition-colors">
+<div class="text-center">
+<span class="material-symbols-outlined text-4xl text-text-light/50 dark:text-text-dark/50">add_photo_alternate</span>
+<p class="mt-1 text-xs text-text-light/60 dark:text-text-dark/60">PNG or SVG</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Actions -->
+<div class="mt-10 pt-6 border-t border-border-light dark:border-border-dark flex items-center justify-between">
+<button class="rounded-md px-4 py-2 text-sm font-semibold text-text-light dark:text-text-dark hover:bg-black/5 dark:hover:bg-white/5 transition-colors">← Back</button>
+<button class="rounded-md bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors">Continue</button>
+</div>
+</div>
+</main>
+</div>
+</body></html>
