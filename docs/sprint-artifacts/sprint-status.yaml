@@ -90,7 +90,7 @@ development_status:
   03-5-create-postgresql-rls-policies: done
   03-6-implement-module-level-permission-overrides: done
   03-7-create-audit-logging-for-permission-changes: done
-  epic-03-retrospective: optional
+  epic-03-retrospective: completed
 
   # ===========================================
   # EPIC-04: Approval Queue System
