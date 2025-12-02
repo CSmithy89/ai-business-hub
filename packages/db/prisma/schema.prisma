@@ -254,6 +254,7 @@ model ApprovalItem {
   escalatedToId String? @map("escalated_to_id")
 
   dueAt        DateTime  @map("due_at")
+  escalatedAt  DateTime? @map("escalated_at")
   resolvedAt   DateTime? @map("resolved_at")
   resolvedById String?   @map("resolved_by_id")
 
@@ -418,6 +419,12 @@ model WorkspaceSettings {
   enableBulkApprovals Boolean @default(true) @map("enable_bulk_approvals")
   enableAgentChat     Boolean @default(true) @map("enable_agent_chat")
   enableTokenTracking Boolean @default(true) @map("enable_token_tracking")
+
+  // Escalation Settings (Story 04-8)
+  enableEscalation                 Boolean @default(true) @map("enable_escalation")
+  escalationCheckIntervalMinutes   Int     @default(15) @map("escalation_check_interval_minutes")
+  escalationTargetUserId           String? @map("escalation_target_user_id")
+  enableEscalationNotifications    Boolean @default(true) @map("enable_escalation_notifications")
 
   brandPrimaryColor String? @map("brand_primary_color")
   brandLogoUrl      String? @map("brand_logo_url")

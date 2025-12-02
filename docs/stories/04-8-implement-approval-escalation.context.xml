@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="04-8-implement-approval-escalation">
+  <metadata>
+    <epic>EPIC-04 - Approval Queue System</epic>
+    <story-id>04-8</story-id>
+    <title>Implement Approval Escalation</title>
+    <points>2</points>
+    <priority>P1</priority>
+    <status>in-progress</status>
+    <generated-date>2025-12-03</generated-date>
+  </metadata>
+
+  <objective>
+    <summary>
+      Implement automated escalation system for overdue approval items to ensure
+      important decisions aren't missed. Use BullMQ scheduled jobs to check for
+      approvals past their due date and escalate them to configured targets.
+    </summary>
+  </objective>
+
+  <architecture>
+    <tech-stack>
+      <item name="NestJS" version="10.x">Backend framework with dependency injection</item>
+      <item name="BullMQ" version="Latest">Queue and job scheduling</item>
+      <item name="Redis" version="7+">Queue backend storage</item>
+      <item name="Prisma" version="6.x">Database ORM</item>
+      <item name="PostgreSQL" version="16+">Database</item>
+    </tech-stack>
+
+    <patterns>
+      <pattern name="Service Layer">Business logic in injectable services</pattern>
+      <pattern name="Job Processor">BullMQ processor pattern for scheduled tasks</pattern>
+      <pattern name="Event-Driven">Emit events for escalation actions</pattern>
+      <pattern name="Multi-Tenant">Workspace-scoped data isolation</pattern>
+    </patterns>
+  </architecture>
+
+  <database>
+    <schema>
+      <model name="ApprovalItem">
+        <description>Existing model with escalation fields</description>
+        <fields>
+          <field name="id" type="String" required="true">Unique identifier</field>
+          <field name="workspaceId" type="String" required="true">Tenant isolation</field>
+          <field name="dueAt" type="DateTime" required="true">When approval is due</field>
+          <field name="escalatedAt" type="DateTime?" required="false">When escalated</field>
+          <field name="escalatedToId" type="String?" required="false">Escalation target user ID</field>
+          <field name="assignedToId" type="String?" required="false">Original assignee</field>
+          <field name="status" type="String" required="true">pending, approved, rejected, etc.</field>
+        </fields>
+        <indexes>
+          <index fields="dueAt">For overdue queries</index>
+          <index fields="workspaceId, status">For escalation queries</index>
+        </indexes>
+      </model>
+
+      <model name="WorkspaceSettings">
+        <description>Add escalation configuration fields</description>
+        <new-fields>
+          <field name="enableEscalation" type="Boolean" default="true">Enable escalation feature</field>
+          <field name="escalationCheckIntervalMinutes" type="Int" default="15">Check interval</field>
+          <field name="escalationTargetUserId" type="String?" required="false">Default escalation user</field>
+          <field name="enableEscalationNotifications" type="Boolean" default="true">Enable notifications</field>
+        </new-fields>
+      </model>
+    </schema>
+  </database>
+
+  <implementation>
+    <files>
+      <file path="apps/api/src/approvals/services/approval-escalation.service.ts">
+        <purpose>Core escalation business logic</purpose>
+        <exports>
+          <export name="ApprovalEscalationService">Main escalation service</export>
+        </exports>
+        <methods>
+          <method name="checkOverdueApprovals" params="workspaceId: string" returns="Promise&lt;ApprovalItem[]&gt;">
+            Find approvals past dueAt that haven't been escalated
+          </method>
+          <method name="escalateApproval" params="approvalId: string" returns="Promise&lt;ApprovalItem&gt;">
+            Escalate single approval to target user
+          </method>
+          <method name="getEscalationTarget" params="workspaceId: string" returns="Promise&lt;User&gt;">
+            Get escalation target user for workspace
+          </method>
+          <method name="notifyEscalationTarget" params="approval: ApprovalItem, targetUser: User" returns="Promise&lt;void&gt;">
+            Notify escalation target (stub - log only)
+          </method>
+        </methods>
+      </file>
+
+      <file path="apps/api/src/approvals/processors/escalation.processor.ts">
+        <purpose>BullMQ processor for scheduled escalation checks</purpose>
+        <exports>
+          <export name="EscalationProcessor">Job processor class</export>
+        </exports>
+        <job-config>
+          <queue-name>approval-escalation</queue-name>
+          <job-name>check-escalations</job-name>
+          <schedule>*/15 * * * *</schedule>
+          <repeat>true</repeat>
+        </job-config>
+      </file>
+
+      <file path="apps/api/src/approvals/dto/escalation-config.dto.ts">
+        <purpose>DTOs for escalation configuration</purpose>
+        <exports>
+          <export name="EscalationConfigDto">Config data transfer object</export>
+          <export name="UpdateEscalationConfigDto">Update DTO</export>
+        </exports>
+      </file>
+
+      <file path="apps/api/src/approvals/approvals.controller.ts">
+        <purpose>Add escalation config endpoints</purpose>
+        <new-endpoints>
+          <endpoint method="GET" path="/escalation-config">Get escalation config</endpoint>
+          <endpoint method="PUT" path="/escalation-config">Update escalation config</endpoint>
+        </new-endpoints>
+      </file>
+
+      <file path="apps/api/src/approvals/approvals.module.ts">
+        <purpose>Register escalation services and BullMQ queue</purpose>
+        <changes>
+          <change>Import BullModule</change>
+          <change>Register approval-escalation queue</change>
+          <change>Add ApprovalEscalationService to providers</change>
+          <change>Add EscalationProcessor to providers</change>
+        </changes>
+      </file>
+    </files>
+
+    <dependencies>
+      <dependency name="@nestjs/bullmq" version="Latest">BullMQ integration for NestJS</dependency>
+      <dependency name="bullmq" version="Latest">Job queue library</dependency>
+      <dependency name="redis" version="Latest">Required by BullMQ</dependency>
+    </dependencies>
+  </implementation>
+
+  <business-logic>
+    <escalation-flow>
+      <step num="1">BullMQ recurring job runs every 15 minutes</step>
+      <step num="2">For each workspace with escalation enabled</step>
+      <step num="3">Query approvals where dueAt &lt; now() AND escalatedAt IS NULL AND status = 'pending'</step>
+      <step num="4">For each overdue approval</step>
+      <step num="5">Get escalation target (settings.escalationTargetUserId or first admin)</step>
+      <step num="6">Update approval: set escalatedAt = now(), escalatedToId = target.id</step>
+      <step num="7">Emit 'approval.escalated' event</step>
+      <step num="8">Log notification (stub - actual email in future)</step>
+    </escalation-flow>
+
+    <escalation-target-fallback>
+      <priority>
+        <item order="1">WorkspaceSettings.escalationTargetUserId (if set)</item>
+        <item order="2">First workspace member with role = 'owner'</item>
+        <item order="3">First workspace member with role = 'admin'</item>
+        <item order="4">Throw error if no valid target found</item>
+      </priority>
+    </escalation-target-fallback>
+
+    <notification-strategy>
+      <current-implementation>Stub - log only</current-implementation>
+      <stub-behavior>
+        - Log escalation to console
+        - Return notification data structure
+        - Do NOT send actual emails/SMS
+      </stub-behavior>
+      <future-implementation>Epic 05 - Event bus integration for real notifications</future-implementation>
+    </notification-strategy>
+  </business-logic>
+
+  <events>
+    <event name="approval.escalated">
+      <description>Emitted when an approval is escalated</description>
+      <schema>
+        <field name="type" value="approval.escalated">Event type</field>
+        <field name="source" value="approval-escalation-service">Event source</field>
+        <field name="timestamp" type="string">ISO timestamp</field>
+        <field name="data">
+          <field name="approvalId" type="string">Approval item ID</field>
+          <field name="workspaceId" type="string">Workspace ID</field>
+          <field name="escalatedFrom" type="string">Original assignee ID</field>
+          <field name="escalatedTo" type="string">Escalation target ID</field>
+          <field name="dueAt" type="string">Due date ISO string</field>
+          <field name="escalatedAt" type="string">Escalation timestamp</field>
+        </field>
+      </schema>
+    </event>
+  </events>
+
+  <testing>
+    <unit-tests>
+      <test file="approval-escalation.service.spec.ts">
+        <test-case>Should find overdue approvals</test-case>
+        <test-case>Should skip already escalated approvals</test-case>
+        <test-case>Should skip resolved approvals</test-case>
+        <test-case>Should get escalation target from settings</test-case>
+        <test-case>Should fallback to first admin</test-case>
+        <test-case>Should throw error if no target available</test-case>
+        <test-case>Should update escalation fields correctly</test-case>
+        <test-case>Should emit escalation event</test-case>
+      </test>
+      <test file="escalation.processor.spec.ts">
+        <test-case>Should process all workspaces with escalation enabled</test-case>
+        <test-case>Should skip workspaces with escalation disabled</test-case>
+        <test-case>Should handle processor errors gracefully</test-case>
+      </test>
+    </unit-tests>
+
+    <integration-tests>
+      <test-case>BullMQ job runs on schedule</test-case>
+      <test-case>Multiple workspaces processed independently</test-case>
+      <test-case>Escalation config CRUD operations</test-case>
+    </integration-tests>
+  </testing>
+
+  <related-stories>
+    <story id="04-1">Confidence Calculator Service (dependency)</story>
+    <story id="04-2">Approval Queue API Endpoints (dependency)</story>
+    <story id="04-3">Approval Router (dependency)</story>
+    <story id="04-9">Approval Audit Trail (next - will use escalation events)</story>
+    <story id="05-2">Event Publisher (future - real event emission)</story>
+  </related-stories>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <description>Create scheduled job for escalation check</description>
+      <verification>BullMQ recurring job registered and runs every 15 minutes</verification>
+    </criterion>
+    <criterion id="AC2">
+      <description>Escalate items past dueAt</description>
+      <verification>Approvals past due date are updated with escalatedAt and escalatedToId</verification>
+    </criterion>
+    <criterion id="AC3">
+      <description>Notify escalation target</description>
+      <verification>Notification logged (stub implementation)</verification>
+    </criterion>
+    <criterion id="AC4">
+      <description>Update approval with escalation info</description>
+      <verification>ApprovalItem has escalatedAt and escalatedToId populated</verification>
+    </criterion>
+    <criterion id="AC5">
+      <description>Emit approval.escalated event</description>
+      <verification>Event emitted via EventBusService (stub)</verification>
+    </criterion>
+    <criterion id="AC6">
+      <description>Configurable escalation chain per workspace</description>
+      <verification>WorkspaceSettings has escalation config fields, API endpoints functional</verification>
+    </criterion>
+  </acceptance-criteria>
+
+  <out-of-scope>
+    <item>Email/SMS notifications (stub only)</item>
+    <item>Multi-level escalation chains</item>
+    <item>Custom escalation rules per approval type</item>
+    <item>Escalation history tracking</item>
+    <item>Configurable escalation delays</item>
+    <item>Re-escalation after timeout</item>
+  </out-of-scope>
+</story-context>

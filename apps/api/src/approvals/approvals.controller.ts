@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Param,
   Query,
@@ -18,6 +19,7 @@ import { ApprovalQueryDto } from './dto/approval-query.dto';
 import { ApproveItemDto } from './dto/approve-item.dto';
 import { RejectItemDto } from './dto/reject-item.dto';
 import { BulkApprovalDto } from './dto/bulk-approval.dto';
+import { UpdateEscalationConfigDto } from './dto/escalation-config.dto';
 
 /**
  * ApprovalsController - REST API for approval queue management
@@ -38,6 +40,40 @@ import { BulkApprovalDto } from './dto/bulk-approval.dto';
 @UseGuards(AuthGuard, TenantGuard, RolesGuard)
 export class ApprovalsController {
   constructor(private readonly approvalsService: ApprovalsService) {}
+
+  /**
+   * GET /api/approvals/escalation-config
+   *
+   * Get escalation configuration for the workspace.
+   * Accessible to admin and owner roles.
+   *
+   * @param workspaceId - Workspace ID from TenantGuard
+   * @returns Escalation configuration
+   */
+  @Get('escalation-config')
+  @Roles('owner', 'admin')
+  async getEscalationConfig(@CurrentWorkspace() workspaceId: string) {
+    return this.approvalsService.getEscalationConfig(workspaceId);
+  }
+
+  /**
+   * PUT /api/approvals/escalation-config
+   *
+   * Update escalation configuration for the workspace.
+   * Restricted to owner role only.
+   *
+   * @param workspaceId - Workspace ID from TenantGuard
+   * @param dto - Updated escalation configuration
+   * @returns Updated escalation configuration
+   */
+  @Put('escalation-config')
+  @Roles('owner')
+  async updateEscalationConfig(
+    @CurrentWorkspace() workspaceId: string,
+    @Body() dto: UpdateEscalationConfigDto,
+  ) {
+    return this.approvalsService.updateEscalationConfig(workspaceId, dto);
+  }
 
   /**
    * GET /api/approvals

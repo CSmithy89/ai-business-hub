@@ -12,6 +12,7 @@ import { ApproveItemDto } from './dto/approve-item.dto';
 import { RejectItemDto } from './dto/reject-item.dto';
 import { BulkApprovalDto } from './dto/bulk-approval.dto';
 import { PaginatedResponse, BulkActionResult } from './dto/approval-response.dto';
+import { UpdateEscalationConfigDto } from './dto/escalation-config.dto';
 
 /**
  * ApprovalsService - Business logic for approval queue management
@@ -503,5 +504,81 @@ export class ApprovalsService {
     } else {
       return 'full';
     }
+  }
+
+  /**
+   * Get escalation configuration for workspace
+   *
+   * Story 04-8: Implement Approval Escalation
+   *
+   * @param workspaceId - Workspace ID for tenant isolation
+   * @returns Escalation configuration
+   */
+  async getEscalationConfig(workspaceId: string): Promise<any> {
+    const settings = await this.prisma.workspaceSettings.findUnique({
+      where: { workspaceId },
+    });
+
+    if (!settings) {
+      throw new NotFoundException(
+        `Workspace settings not found for workspace ${workspaceId}`,
+      );
+    }
+
+    return {
+      enableEscalation: settings.enableEscalation,
+      escalationCheckIntervalMinutes: settings.escalationCheckIntervalMinutes,
+      escalationTargetUserId: settings.escalationTargetUserId,
+      enableEscalationNotifications: settings.enableEscalationNotifications,
+    };
+  }
+
+  /**
+   * Update escalation configuration for workspace
+   *
+   * Story 04-8: Implement Approval Escalation
+   *
+   * @param workspaceId - Workspace ID for tenant isolation
+   * @param dto - Updated escalation configuration
+   * @returns Updated escalation configuration
+   */
+  async updateEscalationConfig(
+    workspaceId: string,
+    dto: UpdateEscalationConfigDto,
+  ): Promise<any> {
+    // Check if settings exist
+    const existingSettings = await this.prisma.workspaceSettings.findUnique({
+      where: { workspaceId },
+    });
+
+    if (!existingSettings) {
+      throw new NotFoundException(
+        `Workspace settings not found for workspace ${workspaceId}`,
+      );
+    }
+
+    // Update settings
+    const updatedSettings = await this.prisma.workspaceSettings.update({
+      where: { workspaceId },
+      data: {
+        enableEscalation: dto.enableEscalation,
+        escalationCheckIntervalMinutes: dto.escalationCheckIntervalMinutes,
+        escalationTargetUserId: dto.escalationTargetUserId,
+        enableEscalationNotifications: dto.enableEscalationNotifications,
+      },
+    });
+
+    this.logger.log({
+      message: 'Escalation config updated',
+      workspaceId,
+      changes: dto,
+    });
+
+    return {
+      enableEscalation: updatedSettings.enableEscalation,
+      escalationCheckIntervalMinutes: updatedSettings.escalationCheckIntervalMinutes,
+      escalationTargetUserId: updatedSettings.escalationTargetUserId,
+      enableEscalationNotifications: updatedSettings.enableEscalationNotifications,
+    };
   }
 }
