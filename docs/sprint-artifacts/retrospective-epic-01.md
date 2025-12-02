@@ -114,12 +114,12 @@ Type '"/settings"' is not assignable to type 'UrlObject | RouteImpl<"/settings">
 
 ## Technical Debt Accumulated
 
-| Item | Priority | Blocked By | Recommendation |
-|------|----------|------------|----------------|
-| In-memory rate limiting | Medium | Epic 05 | Migrate to Redis when available |
-| E2E auth tests | Medium | None | Add before Epic 02 completion |
-| Email template system | Low | Epic 07 | Create shared templates with brand tokens |
-| Password special character validation | Low | None | Add special character requirement to strength check |
+| Item | Priority | Blocked By | Status |
+|------|----------|------------|--------|
+| In-memory rate limiting | Medium | Epic 05 | Open - Migrate to Redis when available |
+| E2E auth tests | Medium | None | Open - Add before production |
+| Email template system | Low | Epic 07 | Open - Create shared templates with brand tokens |
+| ~~Password special character validation~~ | Low | None | **RESOLVED** (2025-12-02) |
 
 ---
 

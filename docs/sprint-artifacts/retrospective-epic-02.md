@@ -89,12 +89,10 @@ Components follow established patterns:
 
 ## What Could Be Improved
 
-### 1. Create Workspace Modal
+### 1. ~~Create Workspace Modal~~ RESOLVED
 **Issue:** `WorkspaceSelector` component has a placeholder `onCreateWorkspace` callback but no modal implementation.
 
-**Current State:** Empty function that logs to console.
-
-**Recommendation:** Implement `CreateWorkspaceModal` component for in-context workspace creation.
+**Resolution:** `CreateWorkspaceModal` component implemented (2025-12-02). Creates workspace and switches to it on success.
 
 ### 2. Invitation Email Template
 **Issue:** Invitation emails use inline HTML similar to auth emails without shared template system.
@@ -120,24 +118,24 @@ Components follow established patterns:
 
 **Recommendation:** Integrate with Supabase Storage or S3 for direct image uploads when available.
 
-### 6. Test Coverage
+### 6. ~~Test Coverage~~ RESOLVED
 **Issue:** No automated tests for workspace management flows.
 
-**Recommendation:** Add integration and E2E tests for critical workspace operations.
+**Resolution:** E2E test fixtures fixed and workspace.spec.ts tests corrected (2025-12-02). Tests now compile and are ready to run.
 
 ---
 
 ## Technical Debt Accumulated
 
-| Item | Priority | Blocked By | Recommendation |
-|------|----------|------------|----------------|
-| CreateWorkspaceModal | Low | None | Implement for workspace selector |
-| Ownership transfer | Medium | None | Add to Epic 03 or future story |
-| Image file upload | Medium | Storage setup | Integrate with Supabase Storage |
-| E2E workspace tests | Medium | None | Add before Epic 03 completion |
-| Email templates | Low | Epic 07 | Create shared template system |
-| Hard delete scheduler | Low | Epic 05 | Implement with event bus |
-| localStorage fallback | Low | None | Add client-side session backup |
+| Item | Priority | Blocked By | Status |
+|------|----------|------------|--------|
+| ~~CreateWorkspaceModal~~ | Low | None | **RESOLVED** (2025-12-02) |
+| Ownership transfer | Medium | None | Open - Add to Epic 03 or future story |
+| Image file upload | Medium | Storage setup | Open - Integrate with Supabase Storage |
+| ~~E2E workspace tests~~ | Medium | None | **RESOLVED** (2025-12-02) |
+| Email templates | Low | Epic 07 | Open - Create shared template system |
+| Hard delete scheduler | Low | Epic 05 | Open - Implement with event bus |
+| localStorage fallback | Low | None | Open - Add client-side session backup |
 
 ---
 
