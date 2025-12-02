@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
+import { AuditModule } from './audit/audit.module';
+import { MembersModule } from './members/members.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -13,6 +15,8 @@ import { validate } from './config/env.validation';
       envFilePath: ['../../.env.local', '../../.env', '.env.local', '.env'],
     }),
     CommonModule,
+    AuditModule,
+    MembersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
