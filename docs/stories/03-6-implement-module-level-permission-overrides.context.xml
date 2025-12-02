@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story-id="03-6" generated="2025-12-02">
+  <story-summary>
+    Implement module-level permission overrides that allow workspace admins to grant elevated
+    permissions for specific modules without changing a member's global role. The hasModulePermission()
+    function was already implemented in Story 03-1. This story adds validation utilities for the
+    modulePermissions JSON field, API endpoints for updating overrides, and UI components for
+    managing them. Supports two patterns: role elevation (grant all permissions of elevated role
+    in a module) and specific permissions (grant only specific permissions in a module).
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-3.6.1">
+      <title>Override JSON validated</title>
+      <description>
+        Given module permission override structure, when saving member module permissions, then
+        valid override structures are accepted (role elevation or specific permissions), invalid
+        structures are rejected with validation error, Zod schema validates override format,
+        module IDs are validated as non-empty strings, role values are limited to 'admin' |
+        'member' | 'viewer', and permission arrays contain valid Permission values from the
+        permission matrix.
+      </description>
+    </criterion>
+
+    <criterion id="AC-3.6.2">
+      <title>Role elevation works</title>
+      <description>
+        Given member with CRM admin override ({ "bm-crm": { "role": "admin" } }), when checking
+        CRM module permissions, then member has all admin permissions within bm-crm module, base
+        role still applies outside the module, hasModulePermission() returns true for admin
+        permissions, and override only affects the specified module.
+      </description>
+    </criterion>
+
+    <criterion id="AC-3.6.3">
+      <title>Specific permissions work</title>
+      <description>
+        Given member with specific permission override ({ "bmc": { "permissions": ["records:view",
+        "records:create"] } }), when checking content module permissions, then only specified
+        permissions are granted in the module, other admin permissions are not granted, base role
+        still applies for non-overridden permissions, and hasModulePermission() returns true only
+        for granted permissions.
+      </description>
+    </criterion>
+
+    <criterion id="AC-3.6.4">
+      <title>Base role still checked</title>
+      <description>
+        Given viewer with module override that doesn't include records:create, when checking
+        records:create permission, then base role is checked (viewer doesn't have records:create),
+        override doesn't add permissions not explicitly granted, hasModulePermission() returns
+        false, and fallback to base role behavior works correctly.
+      </description>
+    </criterion>
+
+    <criterion id="AC-3.6.5">
+      <title>API endpoint updates overrides</title>
+      <description>
+        Given admin user with MEMBERS_CHANGE_ROLE permission, when PATCH /api/workspaces/:id/members/:userId
+        with modulePermissions, then module permissions are validated and saved to database, audit
+        log is created for permission change, updated member data is returned, and unauthorized
+        users receive 403 error.
+      </description>
+    </criterion>
+
+    <criterion id="AC-3.6.6">
+      <title>UI component displays overrides</title>
+      <description>
+        Given module permissions management UI, when viewing member's module permissions, then
+        current module overrides are displayed, admin can add new module overrides, admin can
+        remove existing overrides, and changes are saved via API endpoint.
+      </description>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-guidance>
+    <permission-override-patterns>
+      Module permission overrides support two patterns:
+
+      1. Role Elevation Pattern:
+         { "bm-crm": { "role": "admin" } }
+
+         Grants ALL permissions of the elevated role within the specified module.
+         Example: member becomes admin in CRM module only.
+
+      2. Specific Permissions Pattern:
+         { "bmc": { "permissions": ["records:view", "records:create"] } }
+
+         Grants ONLY the specified permissions within the module.
+         Example: viewer can view and create records in content module, but not delete.
+
+      Permission Resolution Order (already implemented in hasModulePermission):
+      1. Check if base role has the permission
+      2. If module overrides exist for requested module:
+         a. If override has role elevation, check elevated role's permissions
+         b. If override has specific permissions, check if permission is in list
+      3. Fall back to base role permission
+    </permission-override-patterns>
+
+    <validation-requirements>
+      Module permission validation must ensure:
+
+      1. Structure Validation (Zod):
+         - Override object has either 'role' or 'permissions' field (or both)
+         - Module IDs are non-empty strings
+         - Role values are 'admin' | 'member' | 'viewer' (not 'owner' or 'guest')
+         - Permissions are arrays of strings
+
+      2. Permission Value Validation:
+         - Each permission string in permissions array must match a value from PERMISSIONS constant
+         - Use Set for efficient lookup: new Set(Object.values(PERMISSIONS))
+         - Reject if any permission value is invalid
+
+      3. Security Validation:
+         - No guest → owner elevation (guests shouldn't have admin access anywhere)
+         - No elevation above admin role (owner is global only)
+         - Validate before saving to database
+    </validation-requirements>
+
+    <database-integration>
+      WorkspaceMember model already has modulePermissions field (Json type):
+
+      model WorkspaceMember {
+        id                String @id @default(uuid())
+        userId            String @map("user_id")
+        workspaceId       String @map("workspace_id")
+        role              String @default("member")
+        modulePermissions Json?  @map("module_permissions")
+        // ... other fields
+      }
+
+      Storage format:
+      {
+        "bm-crm": { "role": "admin" },
+        "bmc": { "permissions": ["records:view", "records:create"] }
+      }
+
+      To update:
+      await prisma.workspaceMember.update({
+        where: { id: memberId },
+        data: { modulePermissions: validatedOverrides }
+      })
+
+      To remove all overrides:
+      data: { modulePermissions: null }
+    </database-integration>
+
+    <api-endpoint-design>
+      Endpoint: PATCH /api/workspaces/:workspaceId/members/:memberId/module-permissions
+      Auth: Requires admin or owner role (@Roles('admin', 'owner'))
+      Guards: AuthGuard → TenantGuard → RolesGuard
+
+      Request Body:
+      {
+        "modulePermissions": {
+          "bm-crm": { "role": "admin" },
+          "bmc": { "permissions": ["records:view", "records:create"] }
+        }
+      }
+
+      Response:
+      {
+        "id": "member-id",
+        "userId": "user-id",
+        "workspaceId": "workspace-id",
+        "role": "member",
+        "modulePermissions": { ... },
+        "user": { ... }
+      }
+
+      Error Responses:
+      - 400: Invalid module permissions structure
+      - 403: Insufficient permissions (not admin/owner)
+      - 404: Member not found
+
+      Implementation Steps:
+      1. Extract memberId and workspaceId from params
+      2. Validate modulePermissions with validateModulePermissions()
+      3. Validate permission values with validatePermissionValues()
+      4. Find member in database
+      5. Update modulePermissions field
+      6. Create audit log entry
+      7. Return updated member with user data
+    </api-endpoint-design>
+
+    <ui-component-design>
+      Component: ModulePermissionsDialog
+      Location: apps/web/src/components/workspace/module-permissions.tsx
+
+      Features:
+      1. Display current module overrides in a list
+      2. Show base role as a badge
+      3. Add new override:
+         - Select module (dropdown)
+         - Select type: role elevation or specific permissions
+         - If role elevation: select role (admin/member/viewer)
+         - If specific permissions: multi-select permissions (future)
+      4. Remove override with X button
+      5. Save button calls API endpoint
+      6. Cancel button closes dialog
+      7. Show permission precedence info
+
+      For MVP, focus on role elevation pattern only. Specific permissions pattern
+      requires complex multi-select UI and can be added later.
+
+      Available modules (hardcoded for MVP):
+      - bm-crm: CRM
+      - bmc: Content Management
+      - bm-brand: Brand Management
+      - bm-pm: Project Management
+
+      In production, these would be fetched from installed modules.
+    </ui-component-design>
+
+    <audit-logging-integration>
+      Module permission changes must be logged to audit_logs table:
+
+      await auditService.log({
+        workspaceId: workspace.id,
+        action: 'module_permissions_updated',
+        entityType: 'workspace_member',
+        entityId: member.id,
+        actorId: actor.id,
+        actorRole: actor.role,
+        changes: {
+          before: { modulePermissions: member.modulePermissions },
+          after: { modulePermissions: updated.modulePermissions }
+        },
+        metadata: {
+          memberUserId: member.userId,
+          memberRole: member.role
+        }
+      })
+
+      This creates a permanent audit trail of who changed what permissions and when.
+    </audit-logging-integration>
+
+    <testing-requirements>
+      Unit Tests (packages/shared/src/module-permissions.test.ts):
+      1. validateModulePermissions accepts valid structures
+      2. validateModulePermissions rejects invalid structures
+      3. validateModulePermissions rejects empty module IDs
+      4. validateModulePermissions rejects invalid role values
+      5. validatePermissionValues accepts valid permissions
+      6. validatePermissionValues rejects invalid permissions
+      7. validatePermissionValues rejects mixed valid/invalid
+      8. getPermissionPrecedence returns documentation
+
+      Integration Tests (apps/api/src/members/members.controller.spec.ts):
+      1. Admin can update module permissions (200)
+      2. Member cannot update module permissions (403)
+      3. Invalid JSON structure returns 400
+      4. Invalid permission values return 400
+      5. Valid overrides saved to database
+      6. Audit log created on update
+      7. Removing all overrides sets field to null
+      8. Member not found returns 404
+      9. Cross-tenant access blocked (workspace isolation)
+
+      Test Data:
+      - Valid override: { "bm-crm": { "role": "admin" } }
+      - Invalid override (missing both): { "bm-crm": {} }
+      - Invalid override (empty module): { "": { "role": "admin" } }
+      - Invalid override (bad role): { "bm-crm": { "role": "superadmin" } }
+      - Invalid permission: { "bmc": { "permissions": ["invalid:permission"] } }
+    </testing-requirements>
+  </technical-guidance>
+
+  <implementation-files>
+    <file path="packages/shared/src/module-permissions.ts">
+      Validation utilities for module permission overrides.
+
+      Exports:
+      - modulePermissionOverrideSchema: Zod schema for single override
+      - modulePermissionsSchema: Zod schema for overrides map
+      - ValidatedModulePermissions: Type for validated overrides
+      - validateModulePermissions(data: unknown): ValidatedModulePermissions
+      - validatePermissionValues(permissions: string[]): boolean
+      - getPermissionPrecedence(): string
+
+      Dependencies:
+      - zod: Schema validation
+      - ./permissions: PERMISSIONS constant, Permission type
+    </file>
+
+    <file path="packages/shared/src/index.ts">
+      Add export for module-permissions utilities.
+
+      Change:
+      export * from './module-permissions'
+    </file>
+
+    <file path="apps/api/src/members/dto/update-module-permissions.dto.ts">
+      DTO for module permissions update request.
+
+      Classes:
+      - ModulePermissionOverrideDto: Single override structure
+      - UpdateModulePermissionsDto: Request body with modulePermissions field
+
+      Decorators:
+      - @IsObject(), @IsOptional(), @ValidateNested()
+      - @ApiProperty() for Swagger documentation
+    </file>
+
+    <file path="apps/api/src/members/members.controller.ts">
+      Add PATCH endpoint for updating module permissions.
+
+      Endpoint: PATCH ':memberId/module-permissions'
+      Guards: @UseGuards(AuthGuard, TenantGuard, RolesGuard)
+      Roles: @Roles('owner', 'admin')
+
+      Steps:
+      1. Validate module permissions structure
+      2. Validate permission values
+      3. Find member in workspace
+      4. Update modulePermissions field
+      5. Create audit log
+      6. Return updated member
+    </file>
+
+    <file path="apps/web/src/components/workspace/module-permissions.tsx">
+      React component for managing module permissions in UI.
+
+      Props:
+      - open: boolean (dialog open state)
+      - onOpenChange: (open: boolean) => void
+      - memberName: string
+      - memberRole: string
+      - currentOverrides: ModulePermissions | null
+      - onSave: (overrides: ModulePermissions) => Promise<void>
+
+      Features:
+      - Display current overrides
+      - Add new override (role elevation for MVP)
+      - Remove override
+      - Save changes
+      - Show permission precedence info
+
+      Dependencies:
+      - @/components/ui/dialog, button, select, label, badge
+      - lucide-react: X icon
+      - @hyvve/shared: ModulePermissions type
+    </file>
+
+    <file path="packages/shared/src/module-permissions.test.ts">
+      Unit tests for validation utilities.
+
+      Test suites:
+      - Module permission structure validation
+      - Permission value validation
+      - Edge cases and error handling
+      - Documentation function
+    </file>
+  </implementation-files>
+
+  <related-stories>
+    <upstream-story id="03-1" title="Implement Permission Matrix">
+      Provides hasModulePermission() function that uses module overrides.
+      This story uses PERMISSIONS constant and Permission type from 03-1.
+      The override logic is already implemented; this story adds validation and UI.
+    </upstream-story>
+
+    <upstream-story id="03-2" title="Create Auth Guards for NestJS">
+      Provides guards for endpoint protection (@Roles decorator).
+      API endpoint uses RolesGuard to require admin/owner role.
+    </upstream-story>
+
+    <upstream-story id="02-5" title="Implement Member Management">
+      WorkspaceMember model has modulePermissions Json field.
+      This story adds validation and endpoints for that field.
+    </upstream-story>
+
+    <downstream-story id="03-7" title="Create Audit Logging">
+      Will enhance audit logging for permission changes.
+      This story creates basic audit log entries for module permission updates.
+    </downstream-story>
+  </related-stories>
+
+  <security-considerations>
+    <consideration id="SEC-1" severity="high">
+      Validation is Critical for Security
+
+      Module permission overrides can grant elevated privileges. Validation MUST occur
+      before saving to prevent privilege escalation attacks. Always validate:
+      1. Override structure (Zod schema)
+      2. Permission values (against PERMISSIONS constant)
+      3. Role values (limited to admin/member/viewer, not owner)
+
+      Never trust client input. Always validate on server.
+    </consideration>
+
+    <consideration id="SEC-2" severity="medium">
+      Audit All Permission Changes
+
+      Every module permission change must be logged to audit_logs table with:
+      - Actor ID and role (who made the change)
+      - Before and after values (what changed)
+      - Timestamp (when it happened)
+      - Workspace context (where it happened)
+
+      This creates an immutable audit trail for security investigations.
+    </consideration>
+
+    <consideration id="SEC-3" severity="high">
+      No Owner Elevation
+
+      Module overrides should never elevate to 'owner' role. Owner is a global role
+      with workspace deletion permissions. Module overrides are limited to
+      admin/member/viewer only.
+
+      Validation schema explicitly excludes 'owner' and 'guest' from role values.
+    </consideration>
+
+    <consideration id="SEC-4" severity="medium">
+      Admin-Only Access
+
+      Only admins and owners can modify module permissions. RolesGuard enforces this
+      with @Roles('admin', 'owner') decorator. Members and viewers cannot grant
+      themselves elevated permissions.
+    </consideration>
+  </security-considerations>
+
+  <dependencies>
+    <dependency type="package" name="zod">
+      Already installed in packages/shared for validation.
+      Used for modulePermissionsSchema validation.
+    </dependency>
+
+    <dependency type="package" name="class-validator">
+      Already installed in apps/api for DTO validation.
+      Used for UpdateModulePermissionsDto decorators.
+    </dependency>
+
+    <dependency type="package" name="class-transformer">
+      Already installed in apps/api for DTO transformation.
+      Used for @Type() decorator in DTOs.
+    </dependency>
+
+    <dependency type="code" name="@hyvve/shared">
+      Permission matrix from Story 03-1.
+      Provides PERMISSIONS constant and Permission type.
+    </dependency>
+
+    <dependency type="code" name="AuditService">
+      Audit logging service (basic version exists, enhanced in Story 03-7).
+      Used to log module permission changes.
+    </dependency>
+
+    <dependency type="database" name="WorkspaceMember.modulePermissions">
+      JSON field already exists in Prisma schema from Epic 02.
+      This story adds validation and endpoints for updating it.
+    </dependency>
+  </dependencies>
+
+  <examples>
+    <example id="EX-1" title="Role Elevation Override">
+      Scenario: Grant CRM admin permissions to a member
+
+      Override Structure:
+      {
+        "bm-crm": { "role": "admin" }
+      }
+
+      Permission Check:
+      hasModulePermission('member', 'bm-crm', PERMISSIONS.MODULE_ADMIN, overrides)
+      → Returns true (member elevated to admin in bm-crm)
+
+      hasModulePermission('member', 'bmc', PERMISSIONS.MODULE_ADMIN, overrides)
+      → Returns false (no override for bmc, falls back to member role)
+    </example>
+
+    <example id="EX-2" title="Specific Permissions Override">
+      Scenario: Grant view and create permissions to a viewer in content module
+
+      Override Structure:
+      {
+        "bmc": { "permissions": ["records:view", "records:create"] }
+      }
+
+      Permission Checks:
+      hasModulePermission('viewer', 'bmc', PERMISSIONS.RECORDS_VIEW, overrides)
+      → Returns true (explicitly granted)
+
+      hasModulePermission('viewer', 'bmc', PERMISSIONS.RECORDS_CREATE, overrides)
+      → Returns true (explicitly granted)
+
+      hasModulePermission('viewer', 'bmc', PERMISSIONS.RECORDS_DELETE, overrides)
+      → Returns false (not in override, viewer doesn't have delete)
+    </example>
+
+    <example id="EX-3" title="API Request/Response">
+      Request:
+      PATCH /api/workspaces/ws-123/members/member-456/module-permissions
+      Authorization: Bearer eyJhbGc...
+      Content-Type: application/json
+
+      {
+        "modulePermissions": {
+          "bm-crm": { "role": "admin" }
+        }
+      }
+
+      Response (200 OK):
+      {
+        "id": "member-456",
+        "userId": "user-789",
+        "workspaceId": "ws-123",
+        "role": "member",
+        "modulePermissions": {
+          "bm-crm": { "role": "admin" }
+        },
+        "user": {
+          "id": "user-789",
+          "email": "user@example.com",
+          "name": "User Name",
+          "image": null
+        },
+        "invitedAt": "2025-12-01T10:00:00Z",
+        "acceptedAt": "2025-12-01T10:05:00Z"
+      }
+    </example>
+  </examples>
+</story-context>

@@ -23,3 +23,6 @@ export * from './types/events';
 
 // Permission system
 export * from './permissions';
+
+// Module permission overrides
+export * from './module-permissions';

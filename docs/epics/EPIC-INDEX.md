@@ -139,6 +139,21 @@
 - EPIC-07: Stories 07.5-07.10 (Theme, Command, Keyboard, Mobile)
 **Points:** ~13
 
+### Sprint 11-12 (Business Onboarding Foundation)
+- EPIC-08: Stories 08.1-08.4 (Database models, Portfolio Dashboard, Wizard, Document Upload)
+- EPIC-08: Stories 08.5-08.8 (Validation Team config, Chat, Idea Intake, Market Sizing)
+**Points:** ~32
+
+### Sprint 13-14 (Validation + Planning)
+- EPIC-08: Stories 08.9-08.11 (Competitor Mapping, Customer Discovery, Validation Synthesis)
+- EPIC-08: Stories 08.12-08.16 (Planning Team config, Planning Page, BMC, Financials, Plan Synthesis)
+**Points:** ~25
+
+### Sprint 15-16 (Branding + Integration)
+- EPIC-08: Stories 08.17-08.21 (Branding Team config, Branding Page, Brand Strategy, Visual Identity, Asset Generation)
+- EPIC-08: Stories 08.22-08.23 (Module Handoff, Completion Handoff)
+**Points:** ~25
+
 ---
 
 ## Story Priority Matrix
@@ -152,6 +167,8 @@
 - NestJS ↔ AgentOS bridge (Story 04.12)
 - AI provider configuration (including AgentOS integration - Story 06.9, IAssistantClient - Story 06.10)
 - Dashboard layout and navigation
+- **Business Onboarding Foundation:** Database models, Portfolio Dashboard, Wizard (Stories 08.1-08.3)
+- **Validation Team MVP:** Team config, Chat, Idea Intake, Market Sizing, Synthesis (Stories 08.5-08.8, 08.11)
 
 ### P1 (High - Important Features)
 - OAuth providers
@@ -163,19 +180,25 @@
 - Token usage dashboard
 - Command palette
 - Notifications
+- **Validation Completion:** Competitor Mapping, Customer Discovery (Stories 08.9-08.10)
+- **Planning Team:** Team config, Planning Page, BMC, Financials, Plan Synthesis (Stories 08.12-08.16)
+- **Module Handoff:** Workflow handoffs between BMV→BMP→Brand (Story 08.22)
 
 ### P2 (Medium - Nice to Have)
 - Event replay
 - Provider health monitoring
 - Mobile navigation
 - Advanced keyboard shortcuts
+- **Document Upload Pipeline:** Extract existing business docs (Story 08.4)
+- **Branding Team:** Team config, Branding Page, Brand workflows (Stories 08.17-08.21)
+- **Onboarding Completion:** Handoff to BM-PM (Story 08.23)
 
 ---
 
 ## Dependency Graph
 
 ```
-EPIC-00 (Scaffolding)
+EPIC-00 (Scaffolding + AgentOS)
     │
     ├── EPIC-01 (Auth) ─────────────────────────┐
     │       │                                    │
@@ -184,13 +207,23 @@ EPIC-00 (Scaffolding)
     │       │       └── EPIC-03 (RBAC) ─────────┤
     │       │               │                    │
     │       │               ├── EPIC-04 (Approvals)
-    │       │               │
+    │       │               │       │
     │       │               └── EPIC-05 (Events)
     │       │                       │
     │       └───────────────────────┴── EPIC-06 (BYOAI)
+    │                                       │
+    │                                       └── EPIC-08 (Business Onboarding)
+    │                                               │
+    │                                               ├── BMV (Validation Team)
+    │                                               ├── BMP (Planning Team)
+    │                                               └── BM-Brand (Branding Team)
     │
     └── EPIC-07 (UI Shell) ─────── [Parallel with all epics]
 ```
+
+**EPIC-08 Dependencies:**
+- Requires: EPIC-00 (AgentOS), EPIC-01 (Auth), EPIC-02 (Workspaces), EPIC-03 (RBAC), EPIC-06 (BYOAI)
+- Optional: EPIC-04 (Approvals for HITL), EPIC-05 (Events for workflow triggers)
 
 ---
 

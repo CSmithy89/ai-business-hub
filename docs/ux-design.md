@@ -155,6 +155,128 @@ Features:
 
 Key screens: ST-01, ST-02, ST-03, ST-04
 
+### Flow 5: Business Onboarding (First Business)
+
+```
+Sign Up → Portfolio Dashboard (empty) → "Add Business" →
+Wizard Step 1 (Documents) → Wizard Step 2 (Details) →
+Wizard Step 3 (Idea) → Wizard Step 4 (Summary) →
+Business Dashboard → Validation Tab (chat with Vera)
+```
+
+Key screens: BO-01, BO-02, BO-03, BO-04, BO-05, BO-06
+
+### Flow 6: Validation Module (BMV)
+
+```
+Business Dashboard → Validation Tab → Chat with Vera →
+"Run Market Sizing" → Marco analyzes → Results displayed →
+"Run Competitor Analysis" → Cipher analyzes → Results displayed →
+"Run Customer Discovery" → Persona analyzes → Results displayed →
+"Generate Synthesis" → Vera synthesizes → Go/No-Go Score
+```
+
+Key screens: BO-06, BO-10, BO-11, BO-12, BO-13
+
+### Flow 7: Planning Module (BMP)
+
+```
+Validation Complete → Planning Tab → Chat with Blake →
+"Generate Business Model Canvas" → Model creates → Canvas displayed →
+"Run Financial Projections" → Finn analyzes → Projections displayed →
+"Create Business Plan" → Blake synthesizes → Plan document ready
+```
+
+Key screens: BO-07, BO-14, BO-15
+
+### Flow 8: Branding Module (BM-Brand)
+
+```
+Planning Complete → Branding Tab → Chat with Bella →
+"Define Brand Strategy" → Sage develops → Strategy displayed →
+"Design Visual Identity" → Iris creates → Palette/Typography shown →
+"Generate Assets" → Artisan produces → Assets available for download
+```
+
+Key screens: BO-08, BO-16, BO-17, BO-18
+
+---
+
+## Two-Level Dashboard Architecture
+
+HYVVE uses a **two-level dashboard** to support multi-business users:
+
+### Level 1: Portfolio Dashboard (`/dashboard`)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ [Logo] HYVVE                                     🔔(2)  [User ▼]  [?]  [⚙]  │
+├─────────┬───────────────────────────────────────────────────────────────────┤
+│         │                                                                    │
+│  📊     │  Your Businesses                                   [+ Add Business]│
+│ Portfolo│  ───────────────────────────────────────────────────────────────  │
+│         │                                                                    │
+│  ✅     │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐   │
+│ Apprvls │  │ 🏢 TechStartup  │  │ 🏪 LocalBakery │  │ ➕ New Business │   │
+│         │  │ ────────────────│  │ ────────────────│  │ ────────────────│   │
+│  🤖     │  │ Stage: MVP      │  │ Stage: Idea     │  │                 │   │
+│ Agents  │  │ Progress: 85%   │  │ Progress: 20%   │  │ Click to create │   │
+│         │  │ [Validation ✓]  │  │ [Validation...] │  │ your next       │   │
+│  ⚙️     │  │ [Planning ✓]    │  │ [Planning -]    │  │ business        │   │
+│ Settings│  │ [Branding...]   │  │ [Branding -]    │  │                 │   │
+│         │  │                 │  │                 │  │                 │   │
+│         │  │ [Open →]        │  │ [Continue →]    │  │                 │   │
+│         │  └─────────────────┘  └─────────────────┘  └─────────────────┘   │
+│         │                                                                    │
+└─────────┴───────────────────────────────────────────────────────────────────┘
+```
+
+### Level 2: Business Dashboard (`/dashboard/[businessId]`)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ [Logo] HYVVE        [🏢 TechStartup ▼]           🔔(2)  [User ▼]  [?]  [⚙]  │
+├─────────┬───────────────────────────────────────────────────────────────────┤
+│         │                                                                    │
+│  📊     │  TechStartup                                        Stage: MVP    │
+│ Overview│  ───────────────────────────────────────────────────────────────  │
+│         │                                                                    │
+│  🔍     │  ┌─────────────────────────────────────────────────────────────┐  │
+│Validatn │  │  Module Progress                                            │  │
+│  ✓      │  │  ┌───────────┐  ┌───────────┐  ┌───────────┐              │  │
+│         │  │  │ Validation│  │  Planning │  │  Branding │              │  │
+│  📋     │  │  │    ✓      │  │    ✓      │  │   65%    │              │  │
+│ Planning│  │  │ Complete  │  │ Complete  │  │ In Progress│              │  │
+│  ✓      │  │  │ Score: 82 │  │ BMC Done  │  │ Visual ID │              │  │
+│         │  │  └───────────┘  └───────────┘  └───────────┘              │  │
+│  🎨     │  └─────────────────────────────────────────────────────────────┘  │
+│ Branding│                                                                    │
+│  ⬤      │  Next Steps                                                       │
+│         │  • Complete brand strategy with Bella                             │
+│  ⚙️     │  • Generate logo options                                          │
+│ Settings│  • Download brand assets                                          │
+│         │                                                                    │
+│─────────│────────────────────────────────────────────────────────────────────│
+│[← Back] │                                                                    │
+└─────────┴───────────────────────────────────────────────────────────────────┘
+```
+
+### Business Context Navigation
+
+The **Business Switcher** (BO-09) allows quick context switching:
+
+```
+┌─────────────────────────┐
+│ 🏢 TechStartup     ▼    │
+├─────────────────────────┤
+│ 🏢 TechStartup      ✓  │
+│ 🏪 LocalBakery         │
+│ ─────────────────────   │
+│ ➕ Add New Business     │
+│ 📊 View Portfolio       │
+└─────────────────────────┘
+```
+
 ---
 
 ## UI Layout System
@@ -268,6 +390,8 @@ Key screens: ST-01, ST-02, ST-03, ST-04
 
 Each agent has a consistent visual identity:
 
+**Platform Agents:**
+
 | Agent | Icon | Color | Role |
 |-------|------|-------|------|
 | Hub | 🎯 | Coral #FF6B6B | Orchestrator |
@@ -276,6 +400,27 @@ Each agent has a consistent visual identity:
 | Sage | 🌿 | Green #2ECC71 | Finance Agent |
 | Nova | ✨ | Pink #FF6B9D | Marketing Agent |
 | Echo | 📊 | Blue #4B7BEC | Analytics Agent |
+
+**Foundation Module Agents (Business Onboarding):**
+
+| Team | Agent | Icon | Color | Role |
+|------|-------|------|-------|------|
+| **BMV** | Vera | 🔍 | Deep Teal #008B8B | Validation Team Leader |
+| BMV | Marco | 📊 | Steel Blue #4682B4 | Market Researcher |
+| BMV | Cipher | 🎯 | Slate Gray #708090 | Competitor Analyst |
+| BMV | Persona | 👥 | Warm Purple #9370DB | Customer Profiler |
+| BMV | Risk | ⚖️ | Amber #FFB300 | Feasibility Assessor |
+| **BMP** | Blake | 📋 | Navy Blue #001F5C | Planning Team Leader |
+| BMP | Model | 🧩 | Royal Blue #4169E1 | Business Model Architect |
+| BMP | Finn | 💰 | Gold #DAA520 | Financial Analyst |
+| BMP | Revenue | 📈 | Forest Green #228B22 | Monetization Strategist |
+| BMP | Forecast | 🔮 | Purple #800080 | Growth Forecaster |
+| **BM-Brand** | Bella | 🎨 | Rose Gold #B76E79 | Branding Team Leader |
+| BM-Brand | Sage | 🌟 | Emerald #50C878 | Brand Strategist |
+| BM-Brand | Vox | 💬 | Coral #FF7F50 | Voice Architect |
+| BM-Brand | Iris | 👁️ | Violet #8B5CF6 | Visual Identity Designer |
+| BM-Brand | Artisan | ✏️ | Bronze #CD7F32 | Asset Generator |
+| BM-Brand | Audit | ✅ | Charcoal #36454F | Brand Auditor |
 
 ---
 
