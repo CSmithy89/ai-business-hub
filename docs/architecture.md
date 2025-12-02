@@ -1324,6 +1324,308 @@ services:
 
 ---
 
+## Foundation Modules Architecture (Agno Teams)
+
+### Overview
+
+HYVVE's Foundation Modules use the **Agno framework** for multi-agent orchestration. Each module is implemented as an Agno **Team** with a leader agent and specialist agents.
+
+### Team Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       FOUNDATION MODULES                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
+│   BMV (Validation)  │  │   BMP (Planning)    │  │  BM-Brand (Branding)│
+│                     │  │                     │  │                     │
+│  Leader: Vera       │  │  Leader: Blake      │  │  Leader: Bella      │
+│  ────────────────   │  │  ────────────────   │  │  ────────────────   │
+│  Marco (Market)     │  │  Model (BMC)        │  │  Sage (Strategy)    │
+│  Cipher (Competitor)│  │  Finn (Financial)   │  │  Vox (Voice)        │
+│  Persona (Customer) │  │  Revenue (Pricing)  │  │  Iris (Visual)      │
+│  Risk (Feasibility) │  │  Forecast (Growth)  │  │  Artisan (Assets)   │
+│                     │  │                     │  │  Audit (Review)     │
+│                     │  │                     │  │                     │
+│  Mode: coordinate   │  │  Mode: coordinate   │  │  Mode: coordinate   │
+│  Storage: Postgres  │  │  Storage: Postgres  │  │  Storage: Postgres  │
+└─────────────────────┘  └─────────────────────┘  └─────────────────────┘
+         │                        │                        │
+         └────────────────────────┼────────────────────────┘
+                                  │
+                                  ▼
+                    ┌─────────────────────────┐
+                    │    PostgreSQL Tables    │
+                    │  ───────────────────    │
+                    │  agent_sessions         │
+                    │  agent_memories         │
+                    │  validation_sessions    │
+                    │  planning_sessions      │
+                    │  branding_sessions      │
+                    │  businesses             │
+                    └─────────────────────────┘
+```
+
+### Agent Session Database Schema
+
+```sql
+-- Core business entity
+CREATE TABLE businesses (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id    UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES users(id),
+
+    -- Basic info
+    name            VARCHAR(255) NOT NULL,
+    description     TEXT,
+    industry        VARCHAR(100),
+    stage           VARCHAR(50) DEFAULT 'idea',
+
+    -- Onboarding status
+    onboarding_status   VARCHAR(50) DEFAULT 'wizard',
+    onboarding_progress INT DEFAULT 0,
+
+    -- Module status
+    validation_status   VARCHAR(50) DEFAULT 'not_started',
+    planning_status     VARCHAR(50) DEFAULT 'not_started',
+    branding_status     VARCHAR(50) DEFAULT 'not_started',
+
+    -- Validation outputs
+    validation_score    INT,
+    validation_recommendation VARCHAR(50),
+
+    -- Timestamps
+    created_at      TIMESTAMP DEFAULT NOW(),
+    updated_at      TIMESTAMP DEFAULT NOW(),
+
+    -- Multi-tenant index
+    CONSTRAINT idx_businesses_workspace UNIQUE (workspace_id, name)
+);
+
+CREATE INDEX idx_businesses_workspace_id ON businesses(workspace_id);
+
+-- Agno session storage
+CREATE TABLE agent_sessions (
+    id              VARCHAR(255) PRIMARY KEY,
+    user_id         VARCHAR(255) NOT NULL,
+    workspace_id    VARCHAR(255),
+    business_id     VARCHAR(255),
+    team_type       VARCHAR(50), -- bmv, bmp, branding
+    metadata        JSONB,
+    created_at      TIMESTAMP DEFAULT NOW(),
+    updated_at      TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_agent_sessions_user ON agent_sessions(user_id);
+CREATE INDEX idx_agent_sessions_workspace ON agent_sessions(workspace_id);
+CREATE INDEX idx_agent_sessions_business ON agent_sessions(business_id);
+
+-- Agno memory storage
+CREATE TABLE agent_memories (
+    id              VARCHAR(255) PRIMARY KEY,
+    session_id      VARCHAR(255) REFERENCES agent_sessions(id),
+    memory_type     VARCHAR(50), -- message, tool_call, summary
+    content         JSONB,
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_agent_memories_session ON agent_memories(session_id);
+
+-- Enable RLS on tenant-scoped tables
+ALTER TABLE businesses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_memories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation_businesses ON businesses
+    USING (workspace_id = current_setting('app.tenant_id', true)::uuid);
+
+CREATE POLICY tenant_isolation_sessions ON agent_sessions
+    USING (workspace_id = current_setting('app.tenant_id', true));
+```
+
+### Agno Team Configuration Pattern
+
+```python
+# agents/validation/team.py
+from agno.team import Team
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.storage.postgres import PostgresStorage
+
+def create_validation_team(
+    session_id: str,
+    user_id: str,
+    business_id: str,
+    workspace_id: str,
+) -> Team:
+    """Create BMV Validation Team with Vera as leader."""
+
+    # Team Leader
+    vera = Agent(
+        name="Vera",
+        role="Validation Orchestrator",
+        description="Coordinates validation, synthesizes go/no-go recommendation",
+        model=Claude(id="claude-sonnet-4-20250514"),
+        instructions=[
+            "Guide users through business idea validation step by step.",
+            "Delegate to specialists: Marco (market), Cipher (competitor), "
+            "Persona (customer), Risk (feasibility).",
+            "Synthesize findings into clear recommendations.",
+        ],
+    )
+
+    # Specialists
+    marco = Agent(name="Marco", role="Market Researcher", ...)
+    cipher = Agent(name="Cipher", role="Competitor Analyst", ...)
+    persona = Agent(name="Persona", role="Customer Profiler", ...)
+    risk = Agent(name="Risk", role="Feasibility Assessor", ...)
+
+    return Team(
+        name="Validation Team",
+        mode="coordinate",
+        leader=vera,
+        members=[marco, cipher, persona, risk],
+        storage=PostgresStorage(
+            table_name="validation_sessions",
+            db_url=os.getenv("DATABASE_URL"),
+        ),
+        session_id=session_id,
+        user_id=user_id,
+        additional_context={
+            "business_id": business_id,
+            "workspace_id": workspace_id,
+            "module": "bmv",
+        },
+    )
+```
+
+### AgentOS API Endpoints
+
+```python
+# agents/main.py - FastAPI routes for agent teams
+from fastapi import APIRouter, Depends
+
+router = APIRouter(prefix="/api")
+
+@router.post("/teams/{team_type}/chat")
+async def chat_with_team(
+    team_type: str,  # bmv, bmp, branding
+    request: ChatRequest,
+    workspace_id: str = Depends(get_workspace_id),
+    user_id: str = Depends(get_user_id),
+):
+    """Chat with a foundation module team."""
+    team = get_team_instance(team_type, request.business_id, workspace_id, user_id)
+    response = await team.arun(message=request.message, session_id=request.session_id)
+    return ChatResponse(response=response.content, agent_name=response.agent_name)
+
+@router.post("/teams/{team_type}/chat/stream")
+async def chat_stream(team_type: str, request: ChatRequest, ...):
+    """SSE streaming for real-time agent responses."""
+    async def event_generator():
+        async for chunk in team.astream(message=request.message):
+            yield f"data: {chunk.model_dump_json()}\n\n"
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+@router.get("/teams/{team_type}/sessions/{session_id}/history")
+async def get_session_history(team_type: str, session_id: str, ...):
+    """Get conversation history for a session."""
+    ...
+```
+
+### Two-Level Dashboard Architecture
+
+```
+/dashboard                               ← Portfolio Dashboard
+│   ├── List all user's businesses
+│   ├── Business cards with status
+│   └── "Add Business" → Wizard
+│
+├── /dashboard/[businessId]              ← Business Dashboard
+│   ├── /overview                        ← Business overview
+│   │       ├── Module status cards
+│   │       ├── Recent activity
+│   │       └── Next steps
+│   │
+│   ├── /validation                      ← BMV Module
+│   │       ├── Chat with Vera's team
+│   │       ├── Validation progress
+│   │       └── Market/competitor/customer outputs
+│   │
+│   ├── /planning                        ← BMP Module
+│   │       ├── Chat with Blake's team
+│   │       ├── Business Model Canvas
+│   │       └── Financial projections
+│   │
+│   ├── /branding                        ← BM-Brand Module
+│   │       ├── Chat with Bella's team
+│   │       ├── Brand strategy
+│   │       └── Asset downloads
+│   │
+│   └── /settings                        ← Business settings
+```
+
+### Frontend-AgentOS Integration
+
+```typescript
+// apps/web/src/lib/team-client.ts
+const AGENTOS_URL = process.env.NEXT_PUBLIC_AGENTOS_URL || '/api';
+
+export async function chatWithTeam(
+  teamType: 'bmv' | 'bmp' | 'branding',
+  businessId: string,
+  message: string,
+  sessionId?: string,
+) {
+  const response = await fetch(`${AGENTOS_URL}/teams/${teamType}/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getSessionToken()}`,
+    },
+    body: JSON.stringify({ business_id: businessId, message, session_id: sessionId }),
+  });
+  return response.json();
+}
+
+// SSE streaming for real-time responses
+export function streamTeamChat(
+  teamType: string,
+  businessId: string,
+  message: string,
+  onChunk: (chunk: ChatChunk) => void,
+) {
+  const eventSource = new EventSource(
+    `${AGENTOS_URL}/teams/${teamType}/chat/stream?business_id=${businessId}&message=${encodeURIComponent(message)}`
+  );
+  eventSource.onmessage = (event) => {
+    if (event.data === '[DONE]') {
+      eventSource.close();
+      return;
+    }
+    onChunk(JSON.parse(event.data));
+  };
+  return eventSource;
+}
+```
+
+### Anti-Hallucination Architecture
+
+The foundation modules implement strict data quality controls:
+
+| Team | Control | Implementation |
+|------|---------|----------------|
+| BMV | 2+ source requirement | Marco requires multiple data sources for market claims |
+| BMV | Source recency | Sources must be < 24 months old |
+| BMV | Confidence marking | All claims marked `[Verified]`, `[Single Source]`, `[Estimated]` |
+| BMV | URL verification | Cipher requires source URLs for competitor claims |
+| BMP | 3-scenario modeling | Finn generates Conservative/Realistic/Optimistic projections |
+| BMP | Assumption tracking | All projections include documented assumptions |
+| BM-Brand | Competitive review | Audit validates brand against competitor landscape |
+
+---
+
 ## Related Documents
 
 | Document | Purpose |

@@ -163,6 +163,198 @@ This is a multi-tenant B2B SaaS platform with:
 
 ---
 
+## Business Onboarding & Foundation Modules
+
+### Overview
+
+Business Onboarding is the **first-run experience** for HYVVE users. Unlike traditional SaaS that drops users into an empty dashboard, HYVVE's onboarding uses AI agent teams to:
+
+1. **Validate** the business idea (BMV - Business Model Validation)
+2. **Plan** the business model and financials (BMP - Business Planning)
+3. **Brand** the business identity and assets (BM-Brand - Business Branding)
+
+This creates a **two-level dashboard architecture**:
+- **Portfolio Dashboard** (`/dashboard`): Overview of all user's businesses
+- **Business Dashboard** (`/dashboard/[businessId]`): Deep dive into a specific business
+
+### The Onboarding Journey
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       BUSINESS ONBOARDING JOURNEY                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    User Signs Up
+         │
+         ▼
+┌─────────────────┐
+│ Portfolio       │  ← Empty state prompts "Add Your First Business"
+│ Dashboard       │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Onboarding      │  ← 4-step wizard captures business basics
+│ Wizard          │     Step 1: Name & Description
+│ (BO-02 → BO-05) │     Step 2: Industry & Stage
+│                 │     Step 3: Goals & Timeline
+│                 │     Step 4: Document Upload (optional)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       FOUNDATION MODULES                                     │
+├─────────────────────┬─────────────────────┬─────────────────────────────────┤
+│                     │                     │                                  │
+│   BMV (Validation)  │   BMP (Planning)    │   BM-Brand (Branding)           │
+│   Team: Vera + 4    │   Team: Blake + 4   │   Team: Bella + 5               │
+│                     │                     │                                  │
+│   • Idea Intake     │   • Business Model  │   • Brand Strategy              │
+│   • Market Sizing   │     Canvas          │   • Voice & Tone                │
+│   • Competitor Map  │   • Financial       │   • Visual Identity             │
+│   • Customer ICP    │     Projections     │   • Asset Generation            │
+│   • Go/No-Go        │   • Business Plan   │   • Brand Audit                 │
+│                     │                     │                                  │
+│   Output: Score +   │   Output: Canvas +  │   Output: Brand Kit +           │
+│   Recommendation    │   Investor Deck     │   Logo + Guidelines             │
+│                     │                     │                                  │
+└─────────────────────┴─────────────────────┴─────────────────────────────────┘
+         │                     │                     │
+         └─────────────────────┴─────────────────────┘
+                               │
+                               ▼
+                  ┌─────────────────────┐
+                  │ Business Dashboard  │  ← Ready for operational modules
+                  │ (BM-CRM, BM-PM...)  │
+                  └─────────────────────┘
+```
+
+### Agent Team Architecture
+
+HYVVE uses the **Agno framework** for multi-agent orchestration. Each foundation module has a dedicated **team** with a leader and specialists:
+
+#### BMV - Validation Team (Vera's Team)
+
+| Agent | Role | Specialization |
+|-------|------|----------------|
+| **Vera** | Team Leader | Orchestrates validation, synthesizes go/no-go |
+| **Marco** | Market Researcher | TAM/SAM/SOM calculations, 2+ sources required |
+| **Cipher** | Competitor Analyst | Porter's 5 Forces, positioning maps |
+| **Persona** | Customer Profiler | ICP development, Jobs-to-be-Done |
+| **Risk** | Feasibility Assessor | Risk matrix, mitigation strategies |
+
+**Anti-Hallucination Standards:**
+- Market claims require 2+ independent sources
+- Sources must be < 24 months old
+- All claims marked: `[Verified]`, `[Single Source]`, or `[Estimated]`
+- Competitor features must have source URLs
+
+#### BMP - Planning Team (Blake's Team)
+
+| Agent | Role | Specialization |
+|-------|------|----------------|
+| **Blake** | Team Leader | Coordinates planning, investor-ready docs |
+| **Model** | Business Model Architect | 9-block BMC, value proposition |
+| **Finn** | Financial Analyst | P&L, unit economics, funding |
+| **Revenue** | Monetization Strategist | Pricing tiers, competitive pricing |
+| **Forecast** | Growth Forecaster | 3-5 year scenarios, milestones |
+
+**Financial Standards:**
+- Three scenarios: Conservative (50th), Realistic (70th), Optimistic (90th)
+- LTV/CAC target: 3:1 or better
+- CAC payback: < 12 months for SaaS
+- All projections include assumptions and sources
+
+#### BM-Brand - Branding Team (Bella's Team)
+
+| Agent | Role | Specialization |
+|-------|------|----------------|
+| **Bella** | Team Leader | Orchestrates brand development |
+| **Sage** | Brand Strategist | Positioning, archetype, differentiation |
+| **Vox** | Voice Architect | Tone, messaging, content guidelines |
+| **Iris** | Visual Identity Designer | Colors, typography, logo direction |
+| **Artisan** | Asset Generator | Logo creation, template production |
+| **Audit** | Brand Auditor | Consistency checks, competitive review |
+
+### Portfolio & Business Dashboard Structure
+
+```
+/dashboard                           ← Portfolio Dashboard (all businesses)
+├── /dashboard/[businessId]          ← Business Dashboard (specific business)
+│   ├── /overview                    ← Business overview with module status
+│   ├── /validation                  ← BMV chat + validation progress
+│   ├── /planning                    ← BMP chat + business plan
+│   ├── /branding                    ← BM-Brand chat + brand assets
+│   ├── /crm                         ← (Future) CRM module
+│   ├── /projects                    ← (Future) PM module
+│   └── /settings                    ← Business-specific settings
+```
+
+### Business Onboarding Data Model
+
+```typescript
+interface Business {
+  id: string;
+  workspaceId: string;        // Multi-tenant
+  userId: string;             // Creator
+
+  // Basic info
+  name: string;
+  description: string;
+  industry: string;
+  stage: 'idea' | 'validation' | 'mvp' | 'growth' | 'scale';
+
+  // Onboarding status
+  onboardingStatus: 'wizard' | 'validation' | 'planning' | 'branding' | 'complete';
+  onboardingProgress: number; // 0-100
+
+  // Module status
+  validationStatus: 'not_started' | 'in_progress' | 'complete';
+  planningStatus: 'not_started' | 'in_progress' | 'complete';
+  brandingStatus: 'not_started' | 'in_progress' | 'complete';
+
+  // Validation outputs
+  validationScore?: number;   // 0-100
+  validationRecommendation?: 'go' | 'conditional_go' | 'pivot' | 'no_go';
+
+  // Planning outputs
+  businessModel?: BusinessModelCanvas;
+  financialProjections?: FinancialProjections;
+
+  // Branding outputs
+  brandStrategy?: BrandStrategy;
+  brandAssets?: BrandAssetCollection;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### Functional Requirements - Business Onboarding
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-BO.1 | Users can create a new business from Portfolio Dashboard | P0 |
+| FR-BO.2 | Onboarding wizard captures business basics in 4 steps | P0 |
+| FR-BO.3 | Users can upload existing documents for AI extraction | P1 |
+| FR-BO.4 | Portfolio Dashboard shows all businesses with status cards | P0 |
+| FR-BO.5 | Business Dashboard shows module tabs with progress | P0 |
+| FR-BO.6 | Validation page provides chat with Vera's team | P0 |
+| FR-BO.7 | Market sizing workflow runs with Marco | P0 |
+| FR-BO.8 | Competitor mapping workflow runs with Cipher | P0 |
+| FR-BO.9 | Customer discovery workflow runs with Persona | P0 |
+| FR-BO.10 | Validation synthesis provides go/no-go score | P0 |
+| FR-BO.11 | Planning page provides chat with Blake's team | P1 |
+| FR-BO.12 | Business Model Canvas is generated interactively | P1 |
+| FR-BO.13 | Financial projections are generated with 3 scenarios | P1 |
+| FR-BO.14 | Branding page provides chat with Bella's team | P2 |
+| FR-BO.15 | Visual identity is designed with user preferences | P2 |
+| FR-BO.16 | Brand assets are generated and downloadable | P2 |
+| FR-BO.17 | Module handoff preserves context between teams | P1 |
+| FR-BO.18 | Users can skip modules but are guided through sequence | P1 |
+
+---
+
 ## Multi-Tenancy Architecture
 
 ### Isolation Strategy
@@ -1091,7 +1283,25 @@ model ApiKey {
 - [ ] Accessibility audit
 - [ ] Documentation
 
-### Phase 6: Launch Prep (Week 12)
+### Phase 6: Business Onboarding Foundation (Weeks 12-15)
+- [ ] Business and agent session database models
+- [ ] Portfolio Dashboard with business cards
+- [ ] Onboarding wizard (4 steps)
+- [ ] Validation Team Agno configuration
+- [ ] Validation chat interface with Vera's team
+- [ ] Market sizing, competitor mapping, customer discovery workflows
+- [ ] Validation synthesis with go/no-go recommendation
+
+### Phase 7: Planning & Branding (Weeks 16-19)
+- [ ] Planning Team Agno configuration (Blake's team)
+- [ ] Planning page with workflow progress
+- [ ] Business Model Canvas generation
+- [ ] Financial projections (3 scenarios)
+- [ ] Branding Team Agno configuration (Bella's team)
+- [ ] Brand strategy and visual identity workflows
+- [ ] Asset generation and download
+
+### Phase 8: Launch Prep (Week 20)
 - [ ] Security audit
 - [ ] Load testing
 - [ ] Monitoring setup
@@ -1100,5 +1310,7 @@ model ApiKey {
 ---
 
 _This PRD captures the Platform Foundation for HYVVE - the core infrastructure enabling 90% business automation with human-in-the-loop oversight._
+
+_Updated: 2025-12-02 - Added Business Onboarding & Foundation Modules (EPIC-08)_
 
 _Created through collaborative discovery between chris and AI facilitator._
