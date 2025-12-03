@@ -7,8 +7,15 @@
 // Module
 export { AIProvidersModule } from './ai-providers.module';
 
-// Factory
+// Services
+export { AIProvidersService } from './ai-providers.service';
 export { AIProviderFactory, ProviderConfig } from './ai-provider-factory.service';
+
+// Controller
+export { AIProvidersController } from './ai-providers.controller';
+
+// DTOs
+export * from './dto';
 
 // Interfaces and types
 export {
