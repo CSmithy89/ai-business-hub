@@ -1,5 +1,5 @@
 ---
-description: 'Execute complete epic lifecycle: tech spec → all stories (create → context → develop → review → merge → deploy) → retrospective. Fully automated epic orchestration with context isolation.'
+description: 'Execute complete epic lifecycle: tech spec → all stories (create → context → develop → review → commit) → create PR for epic → retrospective. Fully automated epic orchestration with context isolation.'
 ---
 
 # orchestrate-epic
@@ -11,9 +11,11 @@ You are the **BMAD Epic Orchestrator**. Execute the complete epic lifecycle work
 ## Mission
 
 Execute the complete BMAD epic workflow:
-1. **Epic Tech Spec** (if needed): Generate technical specification for the epic
-2. **All Stories**: Execute complete story workflow (11 steps each) for every story in the epic
-3. **Retrospective** (optional): Offer to run epic retrospective after completion
+1. **Create Epic Branch**: Create a feature branch for all epic work
+2. **Epic Tech Spec** (if needed): Generate technical specification for the epic
+3. **All Stories**: Execute complete story workflow for every story in the epic
+4. **Create Epic PR**: Create a single PR for the entire epic after all stories complete
+5. **Retrospective** (optional): Offer to run epic retrospective after completion
 
 Each workflow step MUST run in complete isolation - no shared context between workflow invocations.
 
@@ -37,7 +39,7 @@ Each workflow step MUST run in complete isolation - no shared context between wo
 2. Find the first epic that has at least one story in "backlog" status
 3. Extract epic number (e.g., "3-1-...", "3-2-..." → Epic 3)
 4. Determine if epic needs tech context:
-   - If epic status = "backlog" → needs tech spec (Step 0)
+   - If epic status = "backlog" → needs tech spec (Step 1)
    - If epic status = "contexted" → skip to story execution
 5. Count total stories in this epic that need execution (status: backlog, drafted, ready-for-dev, in-progress, review)
 6. Report epic details to user:
@@ -54,6 +56,7 @@ Epic: Epic 3 (User Interface & Interaction Layer)
 Status: contexted (tech spec exists)
 Stories to execute: 8 stories (3-2 through 3-9)
 Tech spec needed: No
+Branch: epic/03-user-interface-layer
 
 Ready to proceed?
 ```
@@ -62,7 +65,35 @@ Ready to proceed?
 
 ---
 
-## Step 0: Epic Tech Context (Conditional)
+## Step 0: Create Epic Branch
+
+**Execute FIRST before any other work:**
+
+```bash
+# Verify clean working tree
+git status --porcelain
+if [ -n "$(git status --porcelain)" ]; then
+  echo "❌ Working tree not clean. Commit or stash changes first."
+  exit 1
+fi
+
+# Ensure we're on main and up to date
+git checkout main
+git pull origin main
+
+# Create epic branch (format: epic/NN-short-description)
+# Example: epic/00-project-scaffolding, epic/03-user-interface
+git checkout -b epic/[NN]-[short-description]
+
+# Verify branch created
+git branch --show-current
+```
+
+**Report**: "✅ Step 0: Created epic branch epic/[NN]-[short-description]"
+
+---
+
+## Step 1: Epic Tech Context (Conditional)
 
 **Only execute if epic status = "backlog"**
 
@@ -81,7 +112,19 @@ Task(subagent_type="general-purpose",
 - Check `docs/epics/epic-[N]-tech-spec.md` exists
 - Epic status = "contexted" in sprint-status.yaml
 
-**Report**: "✅ Step 0: Epic tech spec created for Epic [N]"
+**Commit tech spec to epic branch:**
+```bash
+git add -A
+git commit -m "docs: add Epic [N] tech specification
+
+Generated technical specification for Epic [N]: [Title]
+
+- Architecture decisions documented
+- Story breakdown included
+- Technical dependencies identified"
+```
+
+**Report**: "✅ Step 1: Epic tech spec created and committed"
 
 ---
 
@@ -92,27 +135,12 @@ Task(subagent_type="general-purpose",
 ### Story Identification
 - Read `docs/sprint-status.yaml` fresh from disk
 - Find next story in epic with status: "backlog", "drafted", "ready-for-dev", "in-progress", or "review"
-- If no stories need execution, exit loop
+- If no stories need execution, exit loop → proceed to Epic PR Creation
 - Extract story ID (e.g., "3-2-create-location-input-field-with-validation")
 
 ### Story Pre-Flight Check
 - If story status = "done", skip to next story
 - Report: "📝 Starting Story [X.Y]: [Title]"
-
-### Story Step 0: Create Safety Branch
-
-```bash
-# Verify clean working tree
-git status --porcelain
-
-# Create story branch (format: story/X-Y-description)
-git checkout -b story/[X-Y]-[short-description]
-
-# Verify branch created
-git branch --show-current
-```
-
-**Report**: "✅ Story [X.Y] Step 0: Created branch story/[X-Y]-[description]"
 
 ---
 
@@ -207,13 +235,13 @@ Task(subagent_type="general-purpose",
 - If outcome = "Changes Requested" or "Blocked":
   - Retry counter < 3: Re-run Story Step 3 (with retry context) → Story Step 4
   - Retry counter ≥ 3: STOP, report manual intervention needed
-- If outcome = "APPROVE": Continue to Story Step 4a
+- If outcome = "APPROVE": Continue to Story Step 5
 
 **Report**: "✅ Story [X.Y] Step 4: Code review complete - [outcome]"
 
 ---
 
-### Story Step 4a: Update Story File Status to Done
+### Story Step 5: Update Story File Status to Done
 
 **Only if review = APPROVE:**
 
@@ -233,161 +261,36 @@ Task(subagent_type="general-purpose",
 - Story file now shows "Status: done" (typically around line 3-5)
 - Read the file again to confirm if needed
 
-**Report**: "✅ Story [X.Y] Step 4a: Story file status updated to done"
+**Report**: "✅ Story [X.Y] Step 5: Story file status updated to done"
 
 ---
 
-### Story Step 5: Commit Changes
+### Story Step 6: Commit Story Changes
 
 **Only if review = APPROVE:**
 
 ```bash
-# Commit all changes
+# Stage all changes for this story
 git add -A
 
 # Create comprehensive commit message
-git commit -m "Complete Story [X.Y]: [Title]
+git commit -m "feat(story-[X.Y]): [Story Title]
 
-[Implementation summary from story file]
+Implementation:
+- [Key changes from story file]
+- [Components/files created or modified]
 
 Code Review: APPROVED ✅
-- [Key accomplishments]
-- [Files modified]
+Acceptance Criteria: All met
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Story: docs/stories/[story-file].md"
 ```
 
-**Report**: "✅ Story [X.Y] Step 5: Changes committed to story branch"
+**Report**: "✅ Story [X.Y] Step 6: Changes committed to epic branch"
 
 ---
 
-### Story Step 6: Push Story Branch (Backup)
-
-**Only if review = APPROVE:**
-
-```bash
-# Push story branch to remote as backup
-git push -u origin story/[X-Y]-[description]
-```
-
-**Report**: "✅ Story [X.Y] Step 6: Story branch pushed to remote"
-
----
-
-### Story Step 7: Create Pull Request
-
-**Only if review = APPROVE and Step 6 succeeded:**
-
-```bash
-# Create PR using GitHub CLI
-gh pr create \
-  --title "Story [X.Y]: [Title]" \
-  --body "## Summary
-[Brief description from story file]
-
-## Changes
-[List key files/components modified]
-
-## Story File
-See: docs/stories/[story-file].md
-
-## Code Review
-- Local Claude Review: APPROVED ✅
-- Awaiting: CodeAnt AI, Gemini Code Assist, Claude PR
-
-## Testing
-- [ ] TypeScript passes
-- [ ] ESLint passes
-- [ ] Semgrep security scan passes
-- [ ] E2E tests pass (if applicable)" \
-  --base main \
-  --head story/[X-Y]-[description]
-
-# Capture PR URL for tracking
-PR_URL=$(gh pr view --json url -q .url)
-echo "PR created: $PR_URL"
-```
-
-**Report**: "✅ Story [X.Y] Step 7: Pull request created - $PR_URL"
-
----
-
-### Story Step 7a: Wait for PR Checks and AI Reviews
-
-**CRITICAL: Do not proceed until all checks pass.**
-
-**Automated checks to verify:**
-- CI Pipeline (lint, build, test)
-- CodeAnt AI review
-- Gemini Code Assist review
-- Claude PR review (if configured)
-
-```bash
-# Wait for CI checks to complete (timeout: 15 minutes)
-echo "⏳ Waiting for CI checks and AI reviews..."
-gh pr checks --watch --fail-fast
-
-# Verify all checks passed
-CHECK_STATUS=$(gh pr checks --json state -q '.[].state' | sort -u)
-if echo "$CHECK_STATUS" | grep -q "FAILURE\|ERROR"; then
-  echo "❌ Some checks failed. Review required."
-  gh pr checks
-  exit 1
-fi
-
-echo "✅ All CI checks passed"
-```
-
-**AI Review Handling:**
-- CodeAnt AI, Gemini, and Claude will post review comments automatically
-- If any AI reviewer requests changes:
-  1. Read the review comments from PR
-  2. Address the feedback by making additional commits
-  3. Push updates to the story branch
-  4. Re-run this step to verify checks pass
-
-**Report**: "✅ Story [X.Y] Step 7a: All CI checks and AI reviews completed"
-
----
-
-### Story Step 7b: Merge Pull Request
-
-**Only if Step 7a succeeded (all checks green):**
-
-```bash
-# Merge the PR using squash merge to keep history clean
-gh pr merge --squash --delete-branch
-
-# Alternative: Use merge commit to preserve full history
-# gh pr merge --merge --delete-branch
-
-echo "✅ PR merged successfully"
-```
-
-**Report**: "✅ Story [X.Y] Step 7b: Pull request merged to main"
-
----
-
-### Story Step 8: Sync Local Main Branch
-
-**Only if Step 7b succeeded:**
-
-```bash
-# Switch to main and pull latest (includes merged PR)
-git checkout main
-git pull origin main
-
-# Verify we have the latest
-git log --oneline -3
-```
-
-**Report**: "✅ Story [X.Y] Step 8: Local main synced with remote - Story deployed!"
-
----
-
-### Story Step 9: Clean Up Background Processes
+### Story Step 7: Clean Up Background Processes
 
 **Execute regardless of approval status:**
 
@@ -396,29 +299,138 @@ git log --oneline -3
 # Use KillShell tool for any running background bash processes
 ```
 
-**Report**: "✅ Story [X.Y] Step 9: Background processes cleaned - Ready for next story"
+**Report**: "✅ Story [X.Y] Step 7: Background processes cleaned - Ready for next story"
 
 ---
 
 ### End of Story Loop
 
-After completing all 10 steps for a story:
+After completing all steps for a story:
 - Report story completion
 - Update progress counter (e.g., "Story 2 of 8 complete")
 - Loop back to Story Identification to process next story
 
 ---
 
+## Post-Story Loop: Create Epic Pull Request
+
+**After ALL stories are complete, create a single PR for the entire epic:**
+
+### Step A: Push Epic Branch
+
+```bash
+# Verify all changes are committed
+git status --porcelain
+if [ -n "$(git status --porcelain)" ]; then
+  echo "⚠️ Uncommitted changes found. Committing..."
+  git add -A
+  git commit -m "chore: cleanup before PR"
+fi
+
+# Push epic branch to remote
+git push -u origin epic/[NN]-[short-description]
+```
+
+**Report**: "✅ Epic branch pushed to remote"
+
+---
+
+### Step B: Create Epic Pull Request
+
+```bash
+# Generate list of stories completed
+STORIES=$(git log main..HEAD --oneline | grep -E "^[a-f0-9]+ feat\(story" | wc -l)
+
+# Create comprehensive PR
+gh pr create \
+  --title "Epic [NN]: [Epic Title]" \
+  --body "## Epic Summary
+[Brief description of the epic's purpose and scope]
+
+## Stories Completed
+This PR includes $STORIES stories:
+
+$(git log main..HEAD --oneline --grep="feat(story" | sed 's/^/- /')
+
+## Key Changes
+- [Major feature 1]
+- [Major feature 2]
+- [Architecture changes if any]
+
+## Documentation
+- Epic Tech Spec: docs/epics/epic-[NN]-tech-spec.md
+- Story Files: docs/stories/[NN]-*.md
+
+## Testing
+- [ ] TypeScript type check passes
+- [ ] ESLint passes
+- [ ] Semgrep security scan passes
+- [ ] E2E tests pass (if applicable)
+- [ ] Manual testing completed
+
+## AI Code Reviews
+Awaiting reviews from:
+- [ ] CodeAnt AI
+- [ ] Gemini Code Assist
+- [ ] Claude AI Review
+
+## Merge Strategy
+Squash merge recommended to keep main branch history clean.
+" \
+  --base main \
+  --head epic/[NN]-[short-description]
+
+# Capture PR URL
+PR_URL=$(gh pr view --json url -q .url)
+echo "Epic PR created: $PR_URL"
+```
+
+**Report**: "✅ Epic PR created: $PR_URL"
+
+---
+
+### Step C: Report PR for Review
+
+**DO NOT auto-merge. The PR is for human + AI review.**
+
+```
+🎯 Epic [NN] PR Ready for Review
+
+PR URL: $PR_URL
+
+The PR includes all [X] stories for this epic.
+
+NEXT STEPS (Manual):
+1. Wait for CI checks to pass (typecheck, lint, build)
+2. Wait for AI code reviews (CodeAnt, Gemini, Claude)
+3. Address any review feedback with additional commits
+4. Request human review if required
+5. Merge when approved
+
+Once merged, run this command to sync:
+  git checkout main && git pull origin main
+```
+
+**IMPORTANT**: Stop here and let the user handle the PR review and merge process.
+The PR will be reviewed by:
+- CI Pipeline (typecheck, lint, build, tests)
+- CodeAnt AI
+- Gemini Code Assist
+- Claude AI Review (consolidated todo list)
+- Human reviewers (if configured)
+
+---
+
 ## Final Step: Epic Retrospective (Manual Process)
 
-**After all stories are complete:**
+**After the PR is merged and main is synced:**
 
 Report epic completion summary and provide guidance for running the retrospective manually:
 
 ```
 🎉 Epic [N] Complete!
 
-All [X] stories have been successfully implemented, reviewed, and deployed.
+All [X] stories have been successfully implemented and merged to main.
 
 ═══════════════════════════════════════════════════════════
 NEXT STEP: Epic Retrospective (Optional but Recommended)
@@ -467,16 +479,15 @@ The user must manually clear context and load the SM agent to run the retrospect
 ### Epic Level Errors
 - **No eligible epic found**: Report to user, exit gracefully
 - **Epic tech spec fails**: Stop immediately, report error, preserve state
+- **Epic branch already exists**: Offer to checkout existing branch or create new one
 
 ### Story Level Errors
-- **Story creation fails**: Stop epic execution, report which story failed, preserve branch
-- **Development fails**: Stop epic execution, report error, preserve branch for debugging
+- **Story creation fails**: Stop epic execution, report which story failed
+- **Development fails**: Stop epic execution, report error
 - **Review fails after max retries**: Stop epic execution, report which story needs manual intervention
-- **Git conflicts on merge**: Stop epic execution, provide resolution instructions
-- **Context isolation violation**: Stop immediately, re-read from disk
 
 ### Recovery Strategy
-- All git branches are preserved (story branches on remote + local)
+- Epic branch is preserved on remote
 - Sprint status shows exact state of each story
 - User can resume epic orchestration after manual fixes
 - Suggest running orchestrate-story for individual story fixes
@@ -493,10 +504,10 @@ After EACH workflow step:
 - [ ] Verify context isolation (no cached knowledge)
 
 After EACH story:
-- [ ] All 10 story steps completed successfully
+- [ ] All story steps completed successfully
 - [ ] Story status = "done" in sprint-status.yaml
 - [ ] Story file shows "Status: done"
-- [ ] Clean git state on main branch
+- [ ] Changes committed to epic branch
 - [ ] Background processes cleaned up
 
 **Never skip steps. Never assume success. Always verify.**
@@ -509,12 +520,15 @@ Use TodoWrite tool to track epic orchestration progress:
 
 ```
 Epic [N] Orchestration:
+[ ] Create epic branch
 [ ] Epic tech spec (if needed)
-[ ] Story [X.1] (11 sub-steps)
-[ ] Story [X.2] (11 sub-steps)
-[ ] Story [X.3] (11 sub-steps)
+[ ] Story [X.1] (7 sub-steps)
+[ ] Story [X.2] (7 sub-steps)
+[ ] Story [X.3] (7 sub-steps)
 ...
-[ ] Epic retrospective (optional)
+[ ] Push epic branch
+[ ] Create epic PR
+[ ] Epic retrospective (optional - after merge)
 ```
 
 Update todos as each story completes.
@@ -523,30 +537,35 @@ Update todos as each story completes.
 
 ## Final Summary Report
 
-Upon successful completion of entire epic:
+Upon successful PR creation:
 
 ```
-🎉 BMAD Epic Workflow Complete - Epic [N]
+🎯 BMAD Epic Workflow Complete - Epic [N]
 
 Epic: [Epic Title]
+Branch: epic/[NN]-[short-description]
 Stories Completed: [X] stories
 Total Commits: [X] commits
 Total Files Modified: [X] files
 
 Stories:
-✅ Story [X.1]: [Title] - deployed
-✅ Story [X.2]: [Title] - deployed
-✅ Story [X.3]: [Title] - deployed
+✅ Story [X.1]: [Title] - committed
+✅ Story [X.2]: [Title] - committed
+✅ Story [X.3]: [Title] - committed
 ...
 
-Epic Tech Spec: docs/epics/epic-[N]-tech-spec.md
-All Story Files: docs/stories/[N]-*.md
-Epic Status: All stories done ✅
+Documentation:
+- Epic Tech Spec: docs/epics/epic-[N]-tech-spec.md
+- Story Files: docs/stories/[N]-*.md
 
-Retrospective: [completed/optional]
+PR Created: [PR_URL]
+Status: Awaiting CI checks and AI reviews
 
-Next Epic: Epic [N+1]
-Next Stories: [count] stories pending
+Next Steps:
+1. Wait for CI + AI reviews
+2. Address any feedback
+3. Merge when approved
+4. Run retrospective (optional)
 ```
 
 ---
