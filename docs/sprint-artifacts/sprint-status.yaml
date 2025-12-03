@@ -115,7 +115,7 @@ development_status:
   # EPIC-05: Event Bus Infrastructure
   # Phase 4 - Event Bus & BYOAI | 7 stories | 15 points
   # ===========================================
-  epic-05: backlog
+  epic-05: contexted
   05-1-set-up-redis-streams-infrastructure: backlog
   05-2-implement-event-publisher: backlog
   05-3-implement-event-subscriber: backlog
