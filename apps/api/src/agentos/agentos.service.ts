@@ -42,6 +42,13 @@ export class AgentOSService {
   private readonly timeoutMs: number;
   private readonly retryAttempts: number;
 
+  // Circuit breaker state
+  private circuitState: 'closed' | 'open' | 'half-open' = 'closed';
+  private failureCount = 0;
+  private readonly failureThreshold = 5;
+  private lastFailureTime: number | null = null;
+  private readonly circuitResetTimeMs = 30000; // 30 seconds
+
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
@@ -62,6 +69,106 @@ export class AgentOSService {
     this.logger.log(
       `AgentOSService initialized: baseUrl=${this.baseUrl}, timeout=${this.timeoutMs}ms, retries=${this.retryAttempts}`,
     );
+  }
+
+  /**
+   * Check if AgentOS is healthy and reachable
+   *
+   * @returns Health status object
+   */
+  async checkHealth(): Promise<{
+    healthy: boolean;
+    status: string;
+    circuitState: string;
+    responseTimeMs?: number;
+  }> {
+    const startTime = Date.now();
+
+    try {
+      const response = await this.httpService
+        .get(`${this.baseUrl}/health`, { timeout: 5000 })
+        .toPromise();
+
+      const responseTimeMs = Date.now() - startTime;
+
+      // Reset circuit breaker on successful health check
+      if (this.circuitState === 'half-open') {
+        this.resetCircuit();
+      }
+
+      return {
+        healthy: true,
+        status: response?.data?.status || 'ok',
+        circuitState: this.circuitState,
+        responseTimeMs,
+      };
+    } catch (error) {
+      const responseTimeMs = Date.now() - startTime;
+
+      return {
+        healthy: false,
+        status: error instanceof Error ? error.message : 'unreachable',
+        circuitState: this.circuitState,
+        responseTimeMs,
+      };
+    }
+  }
+
+  /**
+   * Check circuit breaker state before making requests
+   * @throws ServiceUnavailableException if circuit is open
+   */
+  private checkCircuitBreaker(): void {
+    if (this.circuitState === 'open') {
+      // Check if enough time has passed to try again
+      if (
+        this.lastFailureTime &&
+        Date.now() - this.lastFailureTime > this.circuitResetTimeMs
+      ) {
+        this.circuitState = 'half-open';
+        this.logger.log('Circuit breaker transitioning to half-open state');
+      } else {
+        throw new ServiceUnavailableException(
+          'AgentOS circuit breaker is open',
+          'Service temporarily unavailable due to repeated failures',
+        );
+      }
+    }
+  }
+
+  /**
+   * Record a successful request
+   */
+  private recordSuccess(): void {
+    if (this.circuitState === 'half-open') {
+      this.resetCircuit();
+    }
+    this.failureCount = 0;
+  }
+
+  /**
+   * Record a failed request and potentially open the circuit
+   */
+  private recordFailure(): void {
+    this.failureCount++;
+    this.lastFailureTime = Date.now();
+
+    if (this.failureCount >= this.failureThreshold) {
+      this.circuitState = 'open';
+      this.logger.warn(
+        `Circuit breaker opened after ${this.failureCount} failures`,
+      );
+    }
+  }
+
+  /**
+   * Reset the circuit breaker to closed state
+   */
+  private resetCircuit(): void {
+    this.circuitState = 'closed';
+    this.failureCount = 0;
+    this.lastFailureTime = null;
+    this.logger.log('Circuit breaker reset to closed state');
   }
 
   /**
@@ -87,6 +194,9 @@ export class AgentOSService {
     this.logger.log(
       `Invoking agent: agentId=${agentId}, workspaceId=${workspaceId}, userId=${userId}, correlationId=${correlationId}`,
     );
+
+    // Check circuit breaker before making request
+    this.checkCircuitBreaker();
 
     const headers = this.buildHeaders(workspaceId, token, correlationId);
     const url = `${this.baseUrl}/agents/${agentId}/runs`;
@@ -134,12 +244,19 @@ export class AgentOSService {
         `Agent invoked successfully: runId=${response.runId}, duration=${duration}ms, correlationId=${correlationId}`,
       );
 
+      // Record success for circuit breaker
+      this.recordSuccess();
+
       return response;
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error(
         `Agent invocation failed: agentId=${agentId}, duration=${duration}ms, correlationId=${correlationId}, error=${error instanceof Error ? error.message : String(error)}`,
       );
+
+      // Record failure for circuit breaker
+      this.recordFailure();
+
       throw error;
     }
   }
@@ -164,6 +281,9 @@ export class AgentOSService {
     this.logger.log(
       `Getting agent run: agentId=${agentId}, runId=${runId}, workspaceId=${workspaceId}, correlationId=${correlationId}`,
     );
+
+    // Check circuit breaker before making request
+    this.checkCircuitBreaker();
 
     const headers = this.buildHeaders(workspaceId, token, correlationId);
     const url = `${this.baseUrl}/agents/${agentId}/runs/${runId}`;
@@ -198,11 +318,18 @@ export class AgentOSService {
         `Agent run retrieved: runId=${runId}, status=${response.status}, correlationId=${correlationId}`,
       );
 
+      // Record success for circuit breaker
+      this.recordSuccess();
+
       return response;
     } catch (error) {
       this.logger.error(
         `Failed to get agent run: runId=${runId}, correlationId=${correlationId}, error=${error instanceof Error ? error.message : String(error)}`,
       );
+
+      // Record failure for circuit breaker
+      this.recordFailure();
+
       throw error;
     }
   }
@@ -227,6 +354,9 @@ export class AgentOSService {
     this.logger.log(
       `Streaming agent response: agentId=${agentId}, runId=${runId}, workspaceId=${workspaceId}, correlationId=${correlationId}`,
     );
+
+    // Check circuit breaker before making request
+    this.checkCircuitBreaker();
 
     const headers = this.buildHeaders(workspaceId, token, correlationId);
     const url = `${this.baseUrl}/agents/${agentId}/runs/${runId}/stream`;

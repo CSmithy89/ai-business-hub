@@ -345,13 +345,200 @@ agentOS.streamAgentResponse('approval', run.runId, 'test-workspace').subscribe(.
 - **Story 04-11:** Control Plane Connection (Session storage)
 - **Story 04-13:** Approval Decision Agent (First consumer)
 
+## Circuit Breaker
+
+The service includes a circuit breaker pattern for resilience:
+
+### States
+
+| State | Behavior |
+|-------|----------|
+| `closed` | Normal operation, all requests allowed |
+| `open` | All requests rejected with `ServiceUnavailableException` |
+| `half-open` | Testing recovery - next successful request closes circuit |
+
+### Configuration
+
+```typescript
+// Circuit breaker settings (hardcoded, not configurable via env)
+const failureThreshold = 5;      // Opens after 5 consecutive failures
+const circuitResetTimeMs = 30000; // 30 seconds before trying to recover
+```
+
+### Behavior
+
+1. **Failure Tracking:** Each failed request increments failure count
+2. **Opening:** After 5 failures, circuit opens
+3. **Rejection:** Open circuit rejects all requests for 30 seconds
+4. **Recovery Testing:** After 30s, circuit enters half-open state
+5. **Closing:** First successful request in half-open state closes circuit
+
+### Health Check
+
+Use the health check method to verify AgentOS connectivity:
+
+```typescript
+const health = await this.agentOS.checkHealth();
+console.log(health.healthy);        // true/false
+console.log(health.status);         // 'ok' or error message
+console.log(health.circuitState);   // 'closed' | 'open' | 'half-open'
+console.log(health.responseTimeMs); // Response time in ms
+```
+
+## Control Plane Connection
+
+Story 04-11: Configure Control Plane Connection
+
+### Overview
+
+The Control Plane manages agent session state, run history, and coordination between the NestJS API and Python AgentOS service.
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      NestJS Backend                          │
+│  ┌─────────────────┐    ┌─────────────────┐                 │
+│  │ AgentOSService  │────│  PrismaService  │                 │
+│  │ (HTTP Client)   │    │  (Session Store)│                 │
+│  └────────┬────────┘    └────────┬────────┘                 │
+│           │                      │                          │
+└───────────┼──────────────────────┼──────────────────────────┘
+            │                      │
+            │ HTTP/SSE             │ PostgreSQL
+            │                      │
+┌───────────┼──────────────────────┼──────────────────────────┐
+│           ▼                      ▼                          │
+│  ┌────────────────────────────────────────┐                 │
+│  │           Python AgentOS               │                 │
+│  │  ┌────────────┐  ┌────────────────┐    │                 │
+│  │  │ FastAPI    │  │ Session Manager │   │                 │
+│  │  │ Endpoints  │  │ (Redis/Memory)  │   │                 │
+│  │  └────────────┘  └────────────────┘    │                 │
+│  │           │                            │                 │
+│  │           ▼                            │                 │
+│  │  ┌────────────────────────────────┐    │                 │
+│  │  │        Agno Agents             │    │                 │
+│  │  │  - ApprovalAgent               │    │                 │
+│  │  │  - (future agents)             │    │                 │
+│  │  └────────────────────────────────┘    │                 │
+│  └────────────────────────────────────────┘                 │
+│              AgentOS Service                                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Session Management
+
+Agent sessions enable multi-turn conversations with context persistence:
+
+```typescript
+// Start a new session
+const run = await this.agentOS.invokeAgent(
+  'approval',
+  {
+    message: 'Should we approve this social media post?',
+    sessionId: 'session-123',  // Optional: reuse existing session
+  },
+  workspaceId,
+  userId,
+  token,
+);
+
+// Continue the conversation in same session
+const followUp = await this.agentOS.invokeAgent(
+  'approval',
+  {
+    message: 'What about the tone? Is it professional?',
+    sessionId: run.sessionId,  // Same session = context preserved
+  },
+  workspaceId,
+  userId,
+  token,
+);
+```
+
+### Run History
+
+All agent runs are tracked for audit and debugging:
+
+```typescript
+// Get run details
+const run = await this.agentOS.getAgentRun(
+  'approval',
+  runId,
+  workspaceId,
+  token,
+);
+
+// Run metadata includes:
+// - startedAt, completedAt, durationMs
+// - model used, tokens consumed
+// - Full message history
+// - Structured response data
+```
+
+### Confirmation Flow
+
+For high-impact actions, agents can request human confirmation:
+
+```typescript
+// Agent response may include confirmation request
+if (run.data?.requiresConfirmation) {
+  // Present confirmation UI to user
+  const confirmed = await presentConfirmation(run.data.confirmationDetails);
+
+  // Submit confirmation to continue agent execution
+  await this.agentOS.submitConfirmation(
+    'approval',
+    runId,
+    run.data.confirmationId,
+    confirmed,
+    workspaceId,
+    token,
+  );
+}
+```
+
+### Environment Variables
+
+```bash
+# Control Plane Configuration
+AGENTOS_URL=http://localhost:7777     # AgentOS service URL
+AGENTOS_TIMEOUT_MS=60000              # Request timeout
+AGENTOS_RETRY_ATTEMPTS=3              # Retry count
+
+# Session Storage (AgentOS side)
+# Configured in agents/.env
+REDIS_URL=redis://localhost:6379      # Session state storage
+```
+
+### Request Headers
+
+All requests include these headers for control plane coordination:
+
+| Header | Purpose |
+|--------|---------|
+| `x-workspace-id` | Multi-tenant isolation |
+| `x-correlation-id` | Distributed tracing |
+| `Authorization` | JWT passthrough for authentication |
+| `Content-Type` | Always `application/json` |
+
+### Error Recovery
+
+The Control Plane handles these failure scenarios:
+
+1. **Session Not Found:** Start new session automatically
+2. **Stale Session:** Refresh session state from persistent storage
+3. **Agent Failure:** Mark run as failed, preserve error context
+4. **Network Partition:** Circuit breaker prevents cascade failures
+
 ## Future Enhancements
 
 - [ ] WebSocket support for bi-directional communication
-- [ ] Circuit breaker pattern for resilience
+- [x] Circuit breaker pattern for resilience *(Implemented)*
 - [ ] Request caching for identical requests
 - [ ] Metrics collection (request count, latency, errors)
-- [ ] Health check endpoint integration
+- [x] Health check endpoint integration *(Implemented)*
 - [ ] Agent capability discovery
 
 ## Troubleshooting

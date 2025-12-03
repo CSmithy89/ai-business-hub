@@ -3,7 +3,12 @@ import { PrismaService } from '../../common/services/prisma.service';
 import { ConfidenceCalculatorService } from './confidence-calculator.service';
 import { EventBusService } from '../stubs/event-bus.stub';
 import { ApprovalAuditService } from './approval-audit.service';
-import { ConfidenceFactor } from '@hyvve/shared';
+import {
+  ConfidenceFactor,
+  EventTypes,
+  ApprovalDecisionPayload,
+  ApprovalRequestedPayload,
+} from '@hyvve/shared';
 
 /**
  * Priority to due date hours mapping
@@ -125,15 +130,16 @@ export class ApprovalRouterService {
 
     // Step 6: Emit event based on status
     if (status === 'auto_approved') {
-      // For auto-approved items, emit approval.approved event
-      await this.eventBus.emit('approval.approved', {
-        id: approvalItem.id,
-        workspaceId: approvalItem.workspaceId,
+      // For auto-approved items, emit auto_approved event
+      const autoApprovePayload: ApprovalDecisionPayload = {
+        approvalId: approvalItem.id,
         type: approvalItem.type,
+        title: approvalItem.title,
+        decision: 'auto_approved',
         decidedById: 'system',
-        decidedAt: new Date(),
         confidenceScore: approvalItem.confidenceScore,
-      });
+      };
+      await this.eventBus.emit(EventTypes.APPROVAL_AUTO_APPROVED, autoApprovePayload);
 
       // Step 7a: Log auto-approval with AI reasoning
       await this.auditLogger.logAutoApproval({
@@ -147,16 +153,18 @@ export class ApprovalRouterService {
       });
     } else {
       // For pending items, emit approval.requested event
-      await this.eventBus.emit('approval.requested', {
-        id: approvalItem.id,
-        workspaceId: approvalItem.workspaceId,
+      const requestedPayload: ApprovalRequestedPayload = {
+        approvalId: approvalItem.id,
         type: approvalItem.type,
+        title: approvalItem.title,
         confidenceScore: approvalItem.confidenceScore,
-        reviewType,
-        priority: approvalItem.priority,
-        assignedToId: approvalItem.assignedToId,
-        dueAt: approvalItem.dueAt,
-      });
+        recommendation: confidenceResult.recommendation,
+        assignedToId: approvalItem.assignedToId || undefined,
+        dueAt: approvalItem.dueAt.toISOString(),
+        sourceModule: options?.sourceModule,
+        sourceId: options?.sourceId,
+      };
+      await this.eventBus.emit(EventTypes.APPROVAL_REQUESTED, requestedPayload);
 
       // Step 7b: Log approval creation
       await this.auditLogger.logApprovalCreated({
