@@ -242,14 +242,14 @@ For ongoing operations:
 | EPIC-02 | Workspace Management | 7/8 | ✅ Complete (1 deferred) |
 | EPIC-03 | RBAC & Multi-Tenancy | 7/7 | ✅ Complete |
 | EPIC-04 | Approval Queue System | 12/12 | ✅ Complete |
-| EPIC-05 | Event Bus Infrastructure | 0/7 | 🔄 Ready for Dev |
-| EPIC-06 | BYOAI Configuration | 0/11 | ⏳ Backlog |
+| EPIC-05 | Event Bus Infrastructure | 7/7 | ✅ Complete |
+| EPIC-06 | BYOAI Configuration | 0/11 | 🔄 Ready for Dev |
 | EPIC-07 | UI Shell & Navigation | 0/10 | ⏳ Backlog |
 | EPIC-08 | Business Onboarding & Foundation Modules | 0/23 | ⏳ Backlog |
 
-**Progress: 41/83 stories completed (49%)**
+**Progress: 48/83 stories completed (58%)**
 
-### Completed Features (EPIC-00 through EPIC-04)
+### Completed Features (EPIC-00 through EPIC-05)
 
 #### Project Foundation (EPIC-00)
 - Turborepo monorepo with pnpm workspaces
@@ -296,6 +296,16 @@ For ongoing operations:
 - AgentOS integration with NestJS bridge
 - Control plane connection for agent runs
 
+#### Event Bus Infrastructure (EPIC-05)
+- Redis Streams setup with consumer groups
+- Event publisher service with correlation tracking
+- Event subscriber with decorator-based handlers
+- Retry mechanism with exponential backoff
+- Dead letter queue (DLQ) for failed events
+- Core platform event type definitions
+- Event replay service for historical reprocessing
+- Admin monitoring dashboard at `/admin/events`
+
 ### CI/CD Pipeline
 - GitHub Actions workflow for CI
 - TypeScript type checking
@@ -318,7 +328,7 @@ For ongoing operations:
 
 ## Getting Started
 
-> **Note:** The platform is in active development. EPIC-05 (Event Bus Infrastructure) is the current milestone. Foundation epics (00-04) are complete with 41 stories implemented.
+> **Note:** The platform is in active development. EPIC-06 (BYOAI Configuration) is the next milestone. Foundation epics (00-05) are complete with 48 stories implemented.
 
 ### Prerequisites
 - Node.js 20+
