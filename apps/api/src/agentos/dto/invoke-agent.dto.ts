@@ -1,5 +1,4 @@
-import { IsString, IsObject, IsOptional, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsObject, IsOptional } from 'class-validator';
 
 /**
  * DTO for invoking an agent
@@ -11,7 +10,7 @@ export class InvokeAgentDto {
    * Message or instruction for the agent
    */
   @IsString()
-  message: string;
+  message!: string;
 
   /**
    * Additional parameters for the agent
@@ -49,13 +48,13 @@ export class AgentInvocationMetadata {
    * Workspace/tenant ID
    */
   @IsString()
-  workspaceId: string;
+  workspaceId!: string;
 
   /**
    * User ID making the request
    */
   @IsString()
-  userId: string;
+  userId!: string;
 
   /**
    * Correlation ID for tracking across services

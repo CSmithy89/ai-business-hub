@@ -4,7 +4,6 @@ import { AuditService } from './audit.service'
 
 describe('AuditController', () => {
   let controller: AuditController
-  let service: AuditService
 
   const mockAuditService = {
     getAuditLogs: jest.fn(),
@@ -30,7 +29,6 @@ describe('AuditController', () => {
       .compile()
 
     controller = module.get<AuditController>(AuditController)
-    service = module.get<AuditService>(AuditService)
 
     jest.clearAllMocks()
   })

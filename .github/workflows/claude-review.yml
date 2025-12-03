@@ -1,0 +1,496 @@
+# Claude AI Code Review Workflow
+# Waits for CodeAnt and Gemini reviews, then performs comprehensive analysis
+# Generates todo list from all reviews, auto-fixes issues, and provides summary
+
+name: Claude AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted]
+
+# Explicit permissions for security
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+# Prevent concurrent reviews on same PR
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+env:
+  WAIT_TIMEOUT_MINUTES: 5
+  POLL_INTERVAL_SECONDS: 30
+  MAX_RETRIES: 3
+
+jobs:
+  # Wait for other AI reviewers to complete
+  wait-for-reviews:
+    name: Wait for AI Reviews
+    runs-on: ubuntu-latest
+    # Only run on PR open/sync, not on review submissions
+    if: github.event_name == 'pull_request'
+    outputs:
+      reviews_ready: ${{ steps.check-reviews.outputs.ready }}
+      codeant_review: ${{ steps.collect-reviews.outputs.codeant }}
+      gemini_review: ${{ steps.collect-reviews.outputs.gemini }}
+      coderabbit_review: ${{ steps.collect-reviews.outputs.coderabbit }}
+
+    steps:
+      - name: Wait for AI reviewers
+        id: wait-reviews
+        uses: actions/github-script@v7
+        with:
+          retries: 3
+          retry-exempt-status-codes: 400,401,403,404,422
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const aiReviewers = ['codeantai', 'gemini-code-assist', 'coderabbitai'];
+            const timeoutMs = ${{ env.WAIT_TIMEOUT_MINUTES }} * 60 * 1000;
+            const pollIntervalMs = ${{ env.POLL_INTERVAL_SECONDS }} * 1000;
+            const startTime = Date.now();
+
+            console.log(`Waiting for AI reviews on PR #${prNumber}...`);
+            console.log(`AI reviewers to wait for: ${aiReviewers.join(', ')}`);
+
+            // Helper function with retry logic
+            async function fetchWithRetry(fn, maxRetries = 3) {
+              for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                  return await fn();
+                } catch (error) {
+                  if (attempt === maxRetries) throw error;
+                  console.log(`Retry ${attempt}/${maxRetries} after error: ${error.message}`);
+                  await new Promise(r => setTimeout(r, 1000 * attempt));
+                }
+              }
+            }
+
+            // Wait for at least one AI review or timeout
+            let hasAiReview = false;
+            while (Date.now() - startTime < timeoutMs) {
+              const { data: reviews } = await fetchWithRetry(() =>
+                github.rest.pulls.listReviews({
+                  owner,
+                  repo,
+                  pull_number: prNumber,
+                })
+              );
+
+              const aiReviews = reviews.filter(r =>
+                aiReviewers.some(ai => r.user?.login?.toLowerCase().includes(ai))
+              );
+
+              if (aiReviews.length > 0) {
+                console.log(`Found ${aiReviews.length} AI review(s)`);
+                hasAiReview = true;
+                break;
+              }
+
+              const elapsed = Math.round((Date.now() - startTime) / 1000);
+              console.log(`No AI reviews yet. Elapsed: ${elapsed}s. Waiting...`);
+              await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+            }
+
+            if (!hasAiReview) {
+              console.log('Timeout waiting for AI reviews. Proceeding with Claude review only.');
+            }
+
+            return hasAiReview;
+
+      - name: Check reviews status
+        id: check-reviews
+        run: echo "ready=true" >> $GITHUB_OUTPUT
+
+      - name: Collect all AI reviews
+        id: collect-reviews
+        uses: actions/github-script@v7
+        with:
+          retries: 3
+          retry-exempt-status-codes: 400,401,403,404,422
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Helper function with retry logic
+            async function fetchWithRetry(fn, maxRetries = 3) {
+              for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                  return await fn();
+                } catch (error) {
+                  if (attempt === maxRetries) throw error;
+                  console.log(`Retry ${attempt}/${maxRetries} after error: ${error.message}`);
+                  await new Promise(r => setTimeout(r, 1000 * attempt));
+                }
+              }
+            }
+
+            // Get all review comments with pagination
+            let allComments = [];
+            let page = 1;
+            const perPage = 100;
+
+            while (true) {
+              const { data: comments } = await fetchWithRetry(() =>
+                github.rest.pulls.listReviewComments({
+                  owner,
+                  repo,
+                  pull_number: prNumber,
+                  per_page: perPage,
+                  page: page,
+                })
+              );
+
+              allComments = allComments.concat(comments);
+
+              if (comments.length < perPage) break;
+              page++;
+
+              // Safety limit
+              if (page > 10) {
+                console.log('Reached pagination limit (1000 comments)');
+                break;
+              }
+            }
+
+            console.log(`Total comments collected: ${allComments.length}`);
+
+            // Categorize by reviewer - sanitize content to prevent token exposure
+            const sanitizeContent = (str) => {
+              if (!str) return '';
+              // Remove potential secrets/tokens from logs
+              return str
+                .replace(/sk-[a-zA-Z0-9]{20,}/g, '[REDACTED_KEY]')
+                .replace(/ghp_[a-zA-Z0-9]{36}/g, '[REDACTED_TOKEN]')
+                .replace(/gho_[a-zA-Z0-9]{36}/g, '[REDACTED_TOKEN]')
+                .replace(/github_pat_[a-zA-Z0-9_]{22,}/g, '[REDACTED_PAT]')
+                .replace(/Bearer\s+[a-zA-Z0-9._-]+/gi, 'Bearer [REDACTED]')
+                .replace(/Authorization:\s*[^\s]+/gi, 'Authorization: [REDACTED]');
+            };
+
+            const categorized = {
+              codeant: [],
+              gemini: [],
+              coderabbit: [],
+            };
+
+            for (const comment of allComments) {
+              const login = comment.user?.login?.toLowerCase() || '';
+              const sanitizedBody = sanitizeContent(comment.body);
+
+              const reviewData = {
+                path: comment.path,
+                line: comment.line || comment.original_line,
+                body: sanitizedBody,
+              };
+
+              if (login.includes('codeantai')) {
+                categorized.codeant.push(reviewData);
+              } else if (login.includes('gemini')) {
+                categorized.gemini.push(reviewData);
+              } else if (login.includes('coderabbit')) {
+                categorized.coderabbit.push(reviewData);
+              }
+            }
+
+            console.log(`CodeAnt comments: ${categorized.codeant.length}`);
+            console.log(`Gemini comments: ${categorized.gemini.length}`);
+            console.log(`CodeRabbit comments: ${categorized.coderabbit.length}`);
+
+            core.setOutput('codeant', JSON.stringify(categorized.codeant));
+            core.setOutput('gemini', JSON.stringify(categorized.gemini));
+            core.setOutput('coderabbit', JSON.stringify(categorized.coderabbit));
+
+  # Run Claude's code review and generate consolidated todo list
+  claude-review:
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+    needs: wait-for-reviews
+    if: always() && github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @hyvve/db exec prisma generate
+
+      - name: Run TypeScript check
+        id: typecheck
+        continue-on-error: true
+        run: |
+          pnpm turbo type-check 2>&1 | tee typecheck-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      - name: Run ESLint check
+        id: lint
+        continue-on-error: true
+        run: |
+          pnpm turbo lint 2>&1 | tee lint-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      - name: Generate consolidated todo list
+        id: generate-todos
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Safe JSON parse helper
+            function safeJsonParse(str, defaultValue = []) {
+              if (!str || str === 'null' || str === 'undefined') return defaultValue;
+              try {
+                return JSON.parse(str);
+              } catch (e) {
+                console.log(`JSON parse error: ${e.message}`);
+                return defaultValue;
+              }
+            }
+
+            // Parse AI review comments with error handling
+            const codeantReviews = safeJsonParse('${{ needs.wait-for-reviews.outputs.codeant_review }}');
+            const geminiReviews = safeJsonParse('${{ needs.wait-for-reviews.outputs.gemini_review }}');
+            const coderabbitReviews = safeJsonParse('${{ needs.wait-for-reviews.outputs.coderabbit_review }}');
+
+            // Parse typecheck output
+            let typecheckIssues = [];
+            try {
+              const typecheckOutput = fs.readFileSync('typecheck-output.txt', 'utf8');
+              const errorMatches = typecheckOutput.matchAll(/(.+?)\((\d+),(\d+)\): error TS\d+: (.+)/g);
+              for (const match of errorMatches) {
+                typecheckIssues.push({
+                  source: 'TypeScript',
+                  file: match[1],
+                  line: parseInt(match[2]),
+                  message: match[4]
+                });
+              }
+            } catch (e) {
+              console.log('No typecheck output to parse');
+            }
+
+            // Parse lint output
+            let lintIssues = [];
+            try {
+              const lintOutput = fs.readFileSync('lint-output.txt', 'utf8');
+              const errorMatches = lintOutput.matchAll(/(.+?):(\d+):\d+:\s*(?:error|warning)\s+(.+)/g);
+              for (const match of errorMatches) {
+                lintIssues.push({
+                  source: 'ESLint',
+                  file: match[1],
+                  line: parseInt(match[2]),
+                  message: match[3]
+                });
+              }
+            } catch (e) {
+              console.log('No lint output to parse');
+            }
+
+            // Build consolidated todo list
+            const todos = [];
+            let priority = 1;
+
+            // Add critical/security issues first
+            const allReviews = [...codeantReviews, ...geminiReviews, ...coderabbitReviews];
+            for (const review of allReviews) {
+              const body = review.body?.toLowerCase() || '';
+              const isCritical = body.includes('critical') || body.includes('security') || body.includes('vulnerability');
+              const isHigh = body.includes('high') || body.includes('error') || body.includes('bug');
+
+              if (isCritical || isHigh) {
+                todos.push({
+                  priority: priority++,
+                  type: isCritical ? 'CRITICAL' : 'HIGH',
+                  source: 'AI Review',
+                  file: review.path,
+                  line: review.line,
+                  description: review.body?.split('\n')[0]?.substring(0, 200) || 'Review comment'
+                });
+              }
+            }
+
+            // Add TypeScript errors
+            for (const issue of typecheckIssues) {
+              todos.push({
+                priority: priority++,
+                type: 'ERROR',
+                source: 'TypeScript',
+                file: issue.file,
+                line: issue.line,
+                description: issue.message
+              });
+            }
+
+            // Add lint errors
+            for (const issue of lintIssues) {
+              todos.push({
+                priority: priority++,
+                type: 'WARNING',
+                source: 'ESLint',
+                file: issue.file,
+                line: issue.line,
+                description: issue.message
+              });
+            }
+
+            // Add remaining review comments as medium priority
+            for (const review of allReviews) {
+              const body = review.body?.toLowerCase() || '';
+              const isCritical = body.includes('critical') || body.includes('security');
+              const isHigh = body.includes('high') || body.includes('error') || body.includes('bug');
+
+              if (!isCritical && !isHigh) {
+                todos.push({
+                  priority: priority++,
+                  type: 'MEDIUM',
+                  source: 'AI Review',
+                  file: review.path,
+                  line: review.line,
+                  description: review.body?.split('\n')[0]?.substring(0, 200) || 'Review comment'
+                });
+              }
+            }
+
+            // Format as markdown table
+            let todoMd = '## Consolidated Code Review Todo List\n\n';
+            todoMd += '| # | Priority | Source | File | Line | Issue |\n';
+            todoMd += '|---|----------|--------|------|------|-------|\n';
+
+            for (const todo of todos.slice(0, 50)) { // Limit to 50 items
+              todoMd += `| ${todo.priority} | ${todo.type} | ${todo.source} | ${todo.file || 'N/A'} | ${todo.line || '-'} | ${todo.description?.replace(/\|/g, '\\|') || ''} |\n`;
+            }
+
+            if (todos.length === 0) {
+              todoMd += '| - | - | - | - | - | No issues found |\n';
+            }
+
+            todoMd += `\n**Total issues: ${todos.length}**\n`;
+            todoMd += `- Critical/High: ${todos.filter(t => t.type === 'CRITICAL' || t.type === 'HIGH').length}\n`;
+            todoMd += `- TypeScript errors: ${typecheckIssues.length}\n`;
+            todoMd += `- Lint warnings: ${lintIssues.length}\n`;
+            todoMd += `- Review comments: ${allReviews.length}\n`;
+
+            fs.writeFileSync('todo-list.md', todoMd);
+            core.setOutput('todo_count', todos.length);
+            core.setOutput('has_critical', todos.some(t => t.type === 'CRITICAL'));
+
+            return todos;
+
+      - name: Attempt auto-fix for lint issues
+        id: autofix
+        if: steps.lint.outputs.exit_code != '0'
+        continue-on-error: true
+        run: |
+          echo "Attempting to auto-fix lint issues..."
+          pnpm turbo lint -- --fix || true
+
+          # Check if any files were modified
+          if git diff --quiet; then
+            echo "fixed=false" >> $GITHUB_OUTPUT
+          else
+            echo "fixed=true" >> $GITHUB_OUTPUT
+            git diff --stat
+          fi
+
+      - name: Commit auto-fixes
+        if: steps.autofix.outputs.fixed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git commit -m "fix: auto-fix lint issues from code review
+
+          Automatically fixed lint issues identified during code review." || true
+          git push || true
+
+      - name: Post review summary
+        uses: actions/github-script@v7
+        with:
+          retries: 3
+          retry-exempt-status-codes: 400,401,403,404,422
+          script: |
+            const fs = require('fs');
+            const prNumber = context.payload.pull_request.number;
+
+            // Safe JSON parse helper
+            function safeJsonParse(str, defaultValue = []) {
+              if (!str || str === 'null' || str === 'undefined') return defaultValue;
+              try {
+                return JSON.parse(str);
+              } catch (e) {
+                console.log(`JSON parse error: ${e.message}`);
+                return defaultValue;
+              }
+            }
+
+            // Read todo list
+            let todoList = '';
+            try {
+              todoList = fs.readFileSync('todo-list.md', 'utf8');
+            } catch (e) {
+              todoList = 'No todo list generated.';
+            }
+
+            const typecheckStatus = '${{ steps.typecheck.outputs.exit_code }}' === '0' ? ':white_check_mark:' : ':x:';
+            const lintStatus = '${{ steps.lint.outputs.exit_code }}' === '0' ? ':white_check_mark:' : ':x:';
+            const autoFixed = '${{ steps.autofix.outputs.fixed }}' === 'true';
+
+            let summary = `## Claude AI Code Review Summary\n\n`;
+            summary += `### Quick Status\n`;
+            summary += `| Check | Status |\n`;
+            summary += `|-------|--------|\n`;
+            summary += `| TypeScript | ${typecheckStatus} |\n`;
+            summary += `| ESLint | ${lintStatus} |\n`;
+            summary += `| Auto-fix Applied | ${autoFixed ? ':white_check_mark: Yes' : ':x: No'} |\n\n`;
+
+            summary += `### AI Reviews Analyzed\n`;
+            summary += `- CodeAnt AI: ${safeJsonParse('${{ needs.wait-for-reviews.outputs.codeant_review }}').length} comments\n`;
+            summary += `- Gemini: ${safeJsonParse('${{ needs.wait-for-reviews.outputs.gemini_review }}').length} comments\n`;
+            summary += `- CodeRabbit: ${safeJsonParse('${{ needs.wait-for-reviews.outputs.coderabbit_review }}').length} comments\n\n`;
+
+            summary += todoList;
+
+            summary += `\n\n---\n`;
+            summary += `*Generated by Claude AI Code Review - aggregating feedback from multiple AI reviewers*`;
+
+            // Post as PR comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: summary
+            });
+
+            // Also post as a review if there are critical issues
+            const hasCritical = '${{ steps.generate-todos.outputs.has_critical }}' === 'true';
+            if (hasCritical) {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                event: 'REQUEST_CHANGES',
+                body: ':warning: **Critical issues found!** Please address the CRITICAL items in the todo list before merging.'
+              });
+            }

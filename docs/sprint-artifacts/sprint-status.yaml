@@ -109,13 +109,13 @@ development_status:
   04-10-integrate-approval-agent-with-agentos: done
   04-11-configure-control-plane-connection: done
   04-12-implement-nestjs-agentos-bridge: done
-  epic-04-retrospective: optional
+  epic-04-retrospective: done
 
   # ===========================================
   # EPIC-05: Event Bus Infrastructure
   # Phase 4 - Event Bus & BYOAI | 7 stories | 15 points
   # ===========================================
-  epic-05: backlog
+  epic-05: contexted
   05-1-set-up-redis-streams-infrastructure: backlog
   05-2-implement-event-publisher: backlog
   05-3-implement-event-subscriber: backlog

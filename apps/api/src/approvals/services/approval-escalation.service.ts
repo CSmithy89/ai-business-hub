@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../common/services/prisma.service';
 import { EventBusService } from '../stubs/event-bus.stub';
 import { ApprovalAuditService } from './approval-audit.service';
+import { EventTypes, ApprovalEscalatedPayload } from '@hyvve/shared';
 
 /**
  * ApprovalEscalationService - Handles escalation of overdue approvals
@@ -147,14 +148,17 @@ export class ApprovalEscalationService {
     });
 
     // Emit escalation event
-    await this.eventBus.emit('approval.escalated', {
+    const escalationPayload: ApprovalEscalatedPayload = {
       approvalId: updatedApproval.id,
-      workspaceId: updatedApproval.workspaceId,
-      escalatedFrom: updatedApproval.assignedToId,
-      escalatedTo: escalationTarget.id,
-      dueAt: updatedApproval.dueAt.toISOString(),
-      escalatedAt: updatedApproval.escalatedAt!.toISOString(),
-    });
+      type: updatedApproval.type,
+      title: updatedApproval.title,
+      escalatedFromId: updatedApproval.assignedToId || undefined,
+      escalatedToId: escalationTarget.id,
+      reason: 'Approval overdue',
+      originalDueAt: updatedApproval.dueAt.toISOString(),
+      newDueAt: updatedApproval.dueAt.toISOString(), // Same due date, just escalated
+    };
+    await this.eventBus.emit(EventTypes.APPROVAL_ESCALATED, escalationPayload);
 
     // Log escalation to audit trail
     await this.auditLogger.logEscalation({

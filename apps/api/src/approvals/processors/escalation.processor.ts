@@ -12,7 +12,7 @@ import { ApprovalEscalationService } from '../services/approval-escalation.servi
  * Runs every 15 minutes (configurable via workspace settings).
  *
  * Job Flow:
- * 1. BullMQ triggers job based on cron schedule (*/15 * * * * = every 15 min)
+ * 1. BullMQ triggers job based on cron schedule (every 15 min)
  * 2. Processor calls ApprovalEscalationService.processAllWorkspaces()
  * 3. Service checks all workspaces with escalation enabled
  * 4. For each workspace, finds and escalates overdue approvals

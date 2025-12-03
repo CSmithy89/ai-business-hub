@@ -6,6 +6,7 @@ import {
   Body,
   UseGuards,
   BadRequestException,
+  InternalServerErrorException,
   Logger,
   Req,
 } from '@nestjs/common'
@@ -137,16 +138,25 @@ export class MembersController {
     )
 
     // Log the permission change using AuditService
+    // Validate user exists before accessing (Prisma includes user in query)
+    const memberWithUser = result.member as typeof result.member & {
+      user?: { id: string; email: string; name: string | null; image: string | null }
+    }
+    if (!memberWithUser.user) {
+      throw new InternalServerErrorException('Failed to fetch user details for audit log')
+    }
     await this.auditService.logPermissionOverrideChange({
       workspaceId,
       actorId: actor.id,
       targetMemberId: memberId,
-      targetMemberEmail: result.member.user.email,
-      targetMemberRole: result.member.role,
+      targetMemberEmail: memberWithUser.user.email,
+      targetMemberRole: memberWithUser.role,
       oldPermissions: result.previousPermissions,
-      newPermissions: result.member.modulePermissions,
+      newPermissions: memberWithUser.modulePermissions,
       ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
+      userAgent: Array.isArray(req.headers['user-agent'])
+        ? req.headers['user-agent'].join(', ')
+        : req.headers['user-agent'],
     })
 
     return result.member

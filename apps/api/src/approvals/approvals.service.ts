@@ -13,6 +13,10 @@ import { RejectItemDto } from './dto/reject-item.dto';
 import { BulkApprovalDto } from './dto/bulk-approval.dto';
 import { PaginatedResponse, BulkActionResult } from './dto/approval-response.dto';
 import { UpdateEscalationConfigDto } from './dto/escalation-config.dto';
+import {
+  EventTypes,
+  ApprovalDecisionPayload,
+} from '@hyvve/shared';
 
 /**
  * ApprovalsService - Business logic for approval queue management
@@ -253,14 +257,17 @@ export class ApprovalsService {
       },
     });
 
-    // Emit event (stub)
-    await this.eventBus.emit('approval.approved', {
-      id: updated.id,
-      workspaceId: updated.workspaceId,
+    // Emit event (stub - will be replaced with real event bus in Epic 05)
+    const approvalPayload: ApprovalDecisionPayload = {
+      approvalId: updated.id,
       type: updated.type,
+      title: updated.title,
+      decision: 'approved',
       decidedById: userId,
-      decidedAt: new Date(),
-    });
+      decisionNotes: dto.notes,
+      confidenceScore: updated.confidenceScore,
+    };
+    await this.eventBus.emit(EventTypes.APPROVAL_APPROVED, approvalPayload);
 
     // Log to audit trail
     await this.auditLogger.logApprovalDecision({
@@ -355,15 +362,17 @@ export class ApprovalsService {
       },
     });
 
-    // Emit event (stub)
-    await this.eventBus.emit('approval.rejected', {
-      id: updated.id,
-      workspaceId: updated.workspaceId,
+    // Emit event (stub - will be replaced with real event bus in Epic 05)
+    const rejectPayload: ApprovalDecisionPayload = {
+      approvalId: updated.id,
       type: updated.type,
+      title: updated.title,
+      decision: 'rejected',
       decidedById: userId,
-      decidedAt: new Date(),
-      reason: dto.reason,
-    });
+      decisionNotes: decisionNotes,
+      confidenceScore: updated.confidenceScore,
+    };
+    await this.eventBus.emit(EventTypes.APPROVAL_REJECTED, rejectPayload);
 
     // Log to audit trail
     await this.auditLogger.logApprovalDecision({

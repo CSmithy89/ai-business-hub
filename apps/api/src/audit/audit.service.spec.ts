@@ -5,7 +5,6 @@ import { Prisma } from '@prisma/client'
 
 describe('AuditService', () => {
   let service: AuditService
-  let prismaService: PrismaService
 
   const mockPrismaService = {
     auditLog: {
@@ -27,7 +26,6 @@ describe('AuditService', () => {
     }).compile()
 
     service = module.get<AuditService>(AuditService)
-    prismaService = module.get<PrismaService>(PrismaService)
 
     // Clear all mocks before each test
     jest.clearAllMocks()
