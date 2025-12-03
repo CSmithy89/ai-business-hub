@@ -7,7 +7,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
-import { BaseEvent } from '@hyvve/shared';
+import { BaseEvent, safeValidateEventPayload } from '@hyvve/shared';
 import { RedisProvider } from './redis.provider';
 import { PrismaService } from '../common/services/prisma.service';
 import {
@@ -299,6 +299,22 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
     this.logger.debug(
       `Processing event ${event.id} (type: ${event.type}) with ${matchingHandlers.length} handler(s)`,
     );
+
+    // Validate event payload against schema (if schema exists for this event type)
+    const payloadValidation = safeValidateEventPayload(event.type, event.data);
+    if (!payloadValidation.success) {
+      this.logger.warn({
+        message: 'Event payload validation failed',
+        eventId: event.id,
+        eventType: event.type,
+        validationErrors: payloadValidation.error.issues.map((issue) => ({
+          path: issue.path.join('.'),
+          message: issue.message,
+        })),
+      });
+      // Continue processing - validation is advisory, not blocking
+      // This allows handlers to decide how to handle invalid payloads
+    }
 
     // Update status to PROCESSING once before executing handlers (avoid race condition)
     await this.updateEventStatus(event.id, 'PROCESSING');

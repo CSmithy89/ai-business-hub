@@ -88,7 +88,8 @@ export class EventReplayProcessor extends WorkerHost {
       let allEvents: Array<[string, string[]]> = [];
 
       // Paginate through XRANGE results
-      while (true) {
+      let hasMoreData = true;
+      while (hasMoreData) {
         const batch = await this.redis.xrange(
           STREAMS.MAIN,
           currentStartId,
@@ -98,14 +99,16 @@ export class EventReplayProcessor extends WorkerHost {
         );
 
         if (!batch || batch.length === 0) {
-          break;
+          hasMoreData = false;
+          continue;
         }
 
         allEvents = allEvents.concat(batch);
 
         // If we got fewer results than BATCH_SIZE, we've reached the end
         if (batch.length < BATCH_SIZE) {
-          break;
+          hasMoreData = false;
+          continue;
         }
 
         // Move to next batch (use last ID + 1 for exclusive range)

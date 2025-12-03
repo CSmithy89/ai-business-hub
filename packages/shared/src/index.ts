@@ -21,6 +21,9 @@ export * from './types/approval';
 // Event types
 export * from './types/events';
 
+// Event schemas (Zod validation)
+export * from './schemas/events';
+
 // Permission system
 export * from './permissions';
 
