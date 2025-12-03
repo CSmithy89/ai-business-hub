@@ -312,11 +312,51 @@ After completing all steps for a story:
 
 ---
 
-## Post-Story Loop: Create Epic Pull Request
+## Post-Story Loop: Update Documentation and Create Pull Request
 
-**After ALL stories are complete, create a single PR for the entire epic:**
+**After ALL stories are complete, update documentation and create a single PR for the entire epic:**
 
-### Epic Step 3: Push Epic Branch
+### Epic Step 3: Update README.md
+
+**Update the project README with epic accomplishments before creating PR:**
+
+1. **Read current README.md** to understand its structure
+
+2. **Identify sections to update:**
+   - "Current Development Status" or similar progress section
+   - Feature highlights if significant features were added
+   - Any API/usage documentation if public interfaces changed
+
+3. **Generate README updates based on:**
+   - Stories completed in this epic (from story files)
+   - Key features implemented
+   - Status progression (mark epic as complete, update percentages)
+   - Any new capabilities or modules added
+
+4. **Apply updates using Edit tool:**
+   ```
+   - Update epic status from "In Progress" to "Complete"
+   - Add summary of key features delivered
+   - Update story/feature counts
+   - Add any new documentation links
+   ```
+
+**Example status update:**
+```markdown
+### Epic [NN]: [Title]
+- **Status:** ✅ Complete
+- **Stories:** [X]/[X] completed
+- **Key Features:**
+  - [Feature 1 from stories]
+  - [Feature 2 from stories]
+  - [Feature 3 from stories]
+```
+
+**Report**: "✅ Epic Step 3: README.md updated with epic accomplishments"
+
+---
+
+### Epic Step 4: Push Epic Branch
 
 ```bash
 # Verify all changes are committed
@@ -335,7 +375,7 @@ git push -u origin epic/[NN]-[short-description]
 
 ---
 
-### Epic Step 4: Create Epic Pull Request
+### Epic Step 5: Create Epic Pull Request
 
 ```bash
 # Generate list of stories completed
@@ -389,7 +429,7 @@ echo "Epic PR created: $PR_URL"
 
 ---
 
-### Epic Step 5: Report PR for Review
+### Epic Step 6: Report PR for Review
 
 **DO NOT auto-merge. The PR is for human + AI review.**
 
@@ -520,14 +560,16 @@ Use TodoWrite tool to track epic orchestration progress:
 
 ```
 Epic [N] Orchestration:
-[ ] Create epic branch
-[ ] Epic tech spec (if needed)
+[ ] Epic Step 1: Create epic branch
+[ ] Epic Step 2: Epic tech spec (if needed)
 [ ] Story [X.1] (7 sub-steps)
 [ ] Story [X.2] (7 sub-steps)
 [ ] Story [X.3] (7 sub-steps)
 ...
-[ ] Push epic branch
-[ ] Create epic PR
+[ ] Epic Step 3: Update README.md
+[ ] Epic Step 4: Push epic branch
+[ ] Epic Step 5: Create epic PR
+[ ] Epic Step 6: Report PR for review
 [ ] Epic retrospective (optional - after merge)
 ```
 
