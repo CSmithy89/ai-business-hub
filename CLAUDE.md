@@ -8,8 +8,8 @@ This file provides context for Claude Code when working on this project.
 
 **HYVVE** is an AI-powered business orchestration platform designed to achieve **90% automation with ~5 hours/week human involvement** for SMB businesses.
 
-**Current Phase:** Foundation Build (EPIC-00 through EPIC-07)
-**Status:** EPIC-00 (Project Scaffolding) is contexted and ready for development
+**Current Phase:** Foundation Build (EPIC-00 through EPIC-08)
+**Status:** EPIC-00 through EPIC-04 complete (41 stories). EPIC-05 ready for development.
 
 ### The 90/5 Promise
 - AI agents handle routine operations autonomously
@@ -296,6 +296,91 @@ export function MyComponent({ prop }: Props) {
 
 ---
 
+## Pre-Commit Hooks
+
+Husky pre-commit hooks run automatically before each commit:
+
+```bash
+# What runs on commit:
+1. TypeScript type check (pnpm type-check)
+2. ESLint on staged files (lint-staged)
+3. Semgrep security scan (if installed)
+```
+
+**If a check fails**, the commit is blocked. Fix issues before committing.
+
+**Semgrep** scans for security vulnerabilities (XSS, injection, etc.). Install with:
+```bash
+pip install semgrep
+```
+
+---
+
+## CI/CD Pipeline
+
+### GitHub Actions Workflows
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `test.yml` | Push/PR | TypeScript check, lint, build |
+| `claude-review.yml` | PR | AI code review aggregation |
+
+### CI Jobs (test.yml)
+
+```yaml
+typecheck → lint → build (sequential with dependencies)
+```
+
+- **typecheck**: Runs `pnpm turbo type-check` (includes Prisma generate)
+- **lint**: Runs `pnpm turbo lint`
+- **build**: Runs `pnpm turbo build`
+
+### AI Code Review Pipeline
+
+PRs are reviewed by multiple AI systems:
+- **CodeAnt AI** - Automated code quality
+- **Gemini Code Assist** - Google AI review
+- **CodeRabbit** - AI-powered review
+- **Claude** - Consolidated review summary
+
+The `claude-review.yml` workflow aggregates all AI reviews into a single summary comment.
+
+---
+
+## Pull Request Workflow
+
+### Epic-Based PR Flow
+
+1. **Create epic branch**: `epic/NN-short-description`
+2. **Develop stories**: Each story commits to epic branch
+3. **Single PR**: One PR per epic for review
+4. **AI + Human review**: Wait for CI and AI reviews
+5. **Merge**: Squash merge to main
+
+### PR Checklist
+
+Before merging:
+- [ ] TypeScript check passes
+- [ ] ESLint passes
+- [ ] Build succeeds
+- [ ] AI reviews addressed
+- [ ] Human review (if required)
+
+### Commit Message Format
+
+```
+Type: short description
+
+Longer explanation if needed.
+
+Changes:
+- Bullet points for details
+```
+
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
+
+---
+
 ## Multi-Tenant Architecture
 
 All data models must include tenant isolation:
@@ -375,9 +460,18 @@ Users provide their own AI API keys. Supported providers:
 
 ## Current Sprint
 
-**Epic:** EPIC-00 - Project Scaffolding & Core Setup
-**Stories:** 7 stories, 17 points
+**Epic:** EPIC-05 - Event Bus Infrastructure
+**Stories:** 7 stories, 15 points
 **Status:** Contexted, ready for development
+
+### Completed Epics
+| Epic | Stories | Status |
+|------|---------|--------|
+| EPIC-00 | 7/7 | ✅ Complete |
+| EPIC-01 | 8/8 | ✅ Complete |
+| EPIC-02 | 7/8 | ✅ Complete (1 deferred) |
+| EPIC-03 | 7/7 | ✅ Complete |
+| EPIC-04 | 12/12 | ✅ Complete |
 
 Check `docs/sprint-artifacts/sprint-status.yaml` for current story status.
 
