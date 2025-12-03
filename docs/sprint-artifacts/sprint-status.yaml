@@ -133,7 +133,7 @@ development_status:
   06-1-implement-credential-encryption: done
   06-2-create-ai-provider-factory: done
   06-3-create-ai-provider-api-endpoints: done
-  06-4-create-ai-provider-settings-ui: backlog
+  06-4-create-ai-provider-settings-ui: done
   06-5-implement-token-usage-tracking: backlog
   06-6-create-token-usage-dashboard: backlog
   06-7-implement-daily-token-limits: backlog

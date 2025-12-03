@@ -1,4 +1,5 @@
 import { SettingsLayout } from '@/components/layouts/settings-layout'
+import { AIProviderList } from '@/components/settings/ai-provider-list'
 
 export const metadata = {
   title: 'AI Configuration | HYVVE',
@@ -11,9 +12,7 @@ export default function SettingsAiConfigPage() {
       title="AI Configuration"
       description="Configure AI providers and preferences"
     >
-      <div className="rounded-lg border bg-white p-6">
-        <p className="text-gray-500">AI configuration coming soon.</p>
-      </div>
+      <AIProviderList />
     </SettingsLayout>
   )
 }
