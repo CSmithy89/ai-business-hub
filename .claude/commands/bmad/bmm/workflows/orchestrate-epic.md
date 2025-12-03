@@ -276,35 +276,114 @@ git push -u origin story/[X-Y]-[description]
 
 ---
 
-### Story Step 7: Merge to Main
+### Story Step 7: Create Pull Request
 
 **Only if review = APPROVE and Step 6 succeeded:**
 
 ```bash
-# Checkout main
-git checkout main
+# Create PR using GitHub CLI
+gh pr create \
+  --title "Story [X.Y]: [Title]" \
+  --body "## Summary
+[Brief description from story file]
 
-# Merge with no-ff to preserve branch history
-git merge --no-ff story/[X-Y]-[description] -m "Merge story [X.Y]: [title]"
+## Changes
+[List key files/components modified]
 
-# Verify on main
-git branch --show-current
+## Story File
+See: docs/stories/[story-file].md
+
+## Code Review
+- Local Claude Review: APPROVED ✅
+- Awaiting: CodeAnt AI, Gemini Code Assist, Claude PR
+
+## Testing
+- [ ] TypeScript passes
+- [ ] ESLint passes
+- [ ] Semgrep security scan passes
+- [ ] E2E tests pass (if applicable)" \
+  --base main \
+  --head story/[X-Y]-[description]
+
+# Capture PR URL for tracking
+PR_URL=$(gh pr view --json url -q .url)
+echo "PR created: $PR_URL"
 ```
 
-**Report**: "✅ Story [X.Y] Step 7: Story branch merged to main"
+**Report**: "✅ Story [X.Y] Step 7: Pull request created - $PR_URL"
 
 ---
 
-### Story Step 8: Deploy to Remote
+### Story Step 7a: Wait for PR Checks and AI Reviews
 
-**Only if review = APPROVE and Step 7 succeeded:**
+**CRITICAL: Do not proceed until all checks pass.**
+
+**Automated checks to verify:**
+- CI Pipeline (lint, build, test)
+- CodeAnt AI review
+- Gemini Code Assist review
+- Claude PR review (if configured)
 
 ```bash
-# Push main to remote
-git push origin main
+# Wait for CI checks to complete (timeout: 15 minutes)
+echo "⏳ Waiting for CI checks and AI reviews..."
+gh pr checks --watch --fail-fast
+
+# Verify all checks passed
+CHECK_STATUS=$(gh pr checks --json state -q '.[].state' | sort -u)
+if echo "$CHECK_STATUS" | grep -q "FAILURE\|ERROR"; then
+  echo "❌ Some checks failed. Review required."
+  gh pr checks
+  exit 1
+fi
+
+echo "✅ All CI checks passed"
 ```
 
-**Report**: "✅ Story [X.Y] Step 8: Main branch pushed to remote - Story deployed!"
+**AI Review Handling:**
+- CodeAnt AI, Gemini, and Claude will post review comments automatically
+- If any AI reviewer requests changes:
+  1. Read the review comments from PR
+  2. Address the feedback by making additional commits
+  3. Push updates to the story branch
+  4. Re-run this step to verify checks pass
+
+**Report**: "✅ Story [X.Y] Step 7a: All CI checks and AI reviews completed"
+
+---
+
+### Story Step 7b: Merge Pull Request
+
+**Only if Step 7a succeeded (all checks green):**
+
+```bash
+# Merge the PR using squash merge to keep history clean
+gh pr merge --squash --delete-branch
+
+# Alternative: Use merge commit to preserve full history
+# gh pr merge --merge --delete-branch
+
+echo "✅ PR merged successfully"
+```
+
+**Report**: "✅ Story [X.Y] Step 7b: Pull request merged to main"
+
+---
+
+### Story Step 8: Sync Local Main Branch
+
+**Only if Step 7b succeeded:**
+
+```bash
+# Switch to main and pull latest (includes merged PR)
+git checkout main
+git pull origin main
+
+# Verify we have the latest
+git log --oneline -3
+```
+
+**Report**: "✅ Story [X.Y] Step 8: Local main synced with remote - Story deployed!"
 
 ---
 

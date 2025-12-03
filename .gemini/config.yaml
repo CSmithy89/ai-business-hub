@@ -1,0 +1,68 @@
+# Gemini Code Assist Configuration
+# HYVVE Platform - AI-powered business orchestration
+# https://developers.google.com/gemini-code-assist/docs/customize-gemini-behavior-github
+
+# Fun mode - disabled for professional code reviews
+have_fun: false
+
+# Memory configuration - keep enabled for context awareness
+memory_config:
+  disabled: false
+
+# Code review configuration
+code_review:
+  # Enable code reviews
+  disable: false
+
+  # Only show comments at MEDIUM severity or above
+  # Options: LOW, MEDIUM, HIGH, CRITICAL
+  comment_severity_threshold: MEDIUM
+
+  # No limit on review comments (-1 = unlimited)
+  max_review_comments: -1
+
+  # Pull request opened triggers
+  pull_request_opened:
+    # Don't post help message on every PR
+    help: false
+    # Post summary of changes
+    summary: true
+    # Perform code review
+    code_review: true
+    # Review draft PRs too (for early feedback)
+    include_drafts: true
+
+# Files and directories to ignore during review
+ignore_patterns:
+  # Build outputs
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/.next/**"
+  - "**/.turbo/**"
+
+  # Dependencies
+  - "**/node_modules/**"
+
+  # Generated files
+  - "**/generated/**"
+  - "**/*.generated.ts"
+  - "**/prisma/client/**"
+
+  # Lock files
+  - "**/pnpm-lock.yaml"
+  - "**/package-lock.json"
+  - "**/yarn.lock"
+
+  # Test artifacts
+  - "**/test-results/**"
+  - "**/playwright-report/**"
+  - "**/coverage/**"
+
+  # IDE/Editor
+  - "**/.vscode/**"
+  - "**/.idea/**"
+
+  # Documentation assets
+  - "**/docs/**/*.png"
+  - "**/docs/**/*.jpg"
+  - "**/docs/**/*.gif"
