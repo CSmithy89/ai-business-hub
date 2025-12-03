@@ -121,7 +121,7 @@ development_status:
   05-3-implement-event-subscriber: done
   05-4-implement-retry-and-dead-letter-queue: done
   05-5-define-core-platform-events: done
-  05-6-implement-event-replay: backlog
+  05-6-implement-event-replay: done
   05-7-create-event-monitoring-dashboard: backlog
   epic-05-retrospective: optional
 

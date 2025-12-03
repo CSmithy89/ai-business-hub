@@ -496,3 +496,31 @@ enum EventStatus {
   FAILED
   DLQ
 }
+
+/// Tracks event replay jobs for re-processing historical events
+/// Story: 05-6 - Implement Event Replay
+model ReplayJob {
+  id             String         @id @default(cuid())
+  status         ReplayJobStatus @default(PENDING)
+  progress       Int            @default(0) // 0-100 percentage
+  eventsReplayed Int            @default(0) @map("events_replayed")
+  totalEvents    Int            @default(0) @map("total_events")
+  errors         Int            @default(0)
+  startedAt      DateTime?      @map("started_at")
+  completedAt    DateTime?      @map("completed_at")
+  errorMessage   String?        @map("error_message")
+  options        Json           @default("{}") // Replay options (time range, filters)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("replay_job")
+}
+
+enum ReplayJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}

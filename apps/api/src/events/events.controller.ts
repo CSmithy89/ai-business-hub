@@ -5,6 +5,7 @@ import {
   Delete,
   Query,
   Param,
+  Body,
   Logger,
   UseGuards,
   NotFoundException,
@@ -18,12 +19,14 @@ import {
 import { BaseEvent } from '@hyvve/shared';
 import { RedisProvider } from './redis.provider';
 import { EventRetryService } from './event-retry.service';
+import { EventReplayService } from './event-replay.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
 import { PaginationDto } from './dto/pagination.dto';
+import { ReplayEventsDto } from './dto/replay-events.dto';
 
 /**
  * Response structure for event bus health check
@@ -64,6 +67,7 @@ export class EventsController {
   constructor(
     private readonly redisProvider: RedisProvider,
     private readonly eventRetryService: EventRetryService,
+    private readonly eventReplayService: EventReplayService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -400,5 +404,87 @@ export class EventsController {
       this.logger.error('Error deleting event from DLQ', error);
       throw error;
     }
+  }
+
+  // ============================================
+  // Event Replay Endpoints (Story 05-6)
+  // ============================================
+
+  /**
+   * Start an event replay job
+   *
+   * Replays historical events from a specified time range.
+   * Events can be filtered by type and tenant.
+   * Replayed events are marked with __replay: true flag.
+   *
+   * @param body - Replay options
+   * @returns Job ID for tracking
+   */
+  @Post('admin/events/replay')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin', 'owner')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Start event replay job' })
+  @ApiResponse({
+    status: 201,
+    description: 'Replay job started',
+    schema: {
+      type: 'object',
+      properties: {
+        jobId: { type: 'string' },
+        status: { type: 'string' },
+        estimatedEvents: { type: 'number' },
+      },
+    },
+  })
+  async startReplay(@Body() body: ReplayEventsDto) {
+    this.logger.log({
+      message: 'Starting event replay',
+      startTime: body.startTime,
+      endTime: body.endTime,
+      eventTypes: body.eventTypes,
+      tenantId: body.tenantId,
+    });
+
+    return this.eventReplayService.startReplay(body);
+  }
+
+  /**
+   * Get replay job status
+   *
+   * Returns the current status and progress of a replay job.
+   *
+   * @param jobId - The job ID to check
+   * @returns Job status and progress
+   */
+  @Get('admin/events/replay/:jobId')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin', 'owner')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get replay job status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Replay job status',
+    schema: {
+      type: 'object',
+      properties: {
+        jobId: { type: 'string' },
+        status: { type: 'string' },
+        progress: { type: 'number' },
+        eventsReplayed: { type: 'number' },
+        totalEvents: { type: 'number' },
+        errors: { type: 'number' },
+        startedAt: { type: 'string' },
+        completedAt: { type: 'string' },
+        errorMessage: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Replay job not found',
+  })
+  async getReplayStatus(@Param('jobId') jobId: string) {
+    return this.eventReplayService.getReplayStatus(jobId);
   }
 }

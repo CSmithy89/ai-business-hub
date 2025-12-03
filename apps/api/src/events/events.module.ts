@@ -6,9 +6,16 @@ import { RedisProvider } from './redis.provider';
 import { EventPublisherService } from './event-publisher.service';
 import { EventConsumerService } from './event-consumer.service';
 import { EventRetryService } from './event-retry.service';
+import { EventReplayService } from './event-replay.service';
 import { EventRetryProcessor } from './processors/event-retry.processor';
+import { EventReplayProcessor } from './processors/event-replay.processor';
 import { PrismaService } from '../common/services/prisma.service';
-import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
+import {
+  STREAMS,
+  CONSUMER_GROUP,
+  QUEUE_EVENT_RETRY,
+  QUEUE_EVENT_REPLAY,
+} from './constants/streams.constants';
 
 /**
  * EventsModule - Event Bus Infrastructure
@@ -21,20 +28,23 @@ import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
  * - EventPublisherService for publishing events (Story 05-2)
  * - EventConsumerService for consuming events (Story 05-3)
  * - EventRetryService for retry logic and DLQ (Story 05-4)
+ * - EventReplayService for replaying historical events (Story 05-6)
  * - Health check endpoints for monitoring
- *
- * Future stories will add:
- * - EventReplayService (Story 05-6)
  *
  * @see Story 05-1: Set Up Redis Streams Infrastructure
  * @see Story 05-2: Implement Event Publisher
  * @see Story 05-3: Implement Event Subscriber
+ * @see Story 05-6: Implement Event Replay
  */
 @Module({
   imports: [
     // Register BullMQ queue for event retry processing (Story 05-4)
     BullModule.registerQueue({
-      name: 'event-retry',
+      name: QUEUE_EVENT_RETRY,
+    }),
+    // Register BullMQ queue for event replay processing (Story 05-6)
+    BullModule.registerQueue({
+      name: QUEUE_EVENT_REPLAY,
     }),
     // DiscoveryModule provides DiscoveryService for handler discovery
     DiscoveryModule,
@@ -45,7 +55,9 @@ import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
     EventPublisherService,
     EventConsumerService,
     EventRetryService,
+    EventReplayService,
     EventRetryProcessor,
+    EventReplayProcessor,
     PrismaService,
   ],
   exports: [
@@ -53,6 +65,7 @@ import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
     EventPublisherService,
     EventConsumerService,
     EventRetryService,
+    EventReplayService,
   ],
 })
 export class EventsModule implements OnModuleInit {

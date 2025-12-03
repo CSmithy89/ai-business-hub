@@ -47,3 +47,9 @@ export const RETENTION = {
   /** Replay stream retention in hours (temporary storage) */
   REPLAY_HOURS: 24,
 } as const;
+
+/**
+ * BullMQ Queue names for event processing
+ */
+export const QUEUE_EVENT_RETRY = 'event-retry';
+export const QUEUE_EVENT_REPLAY = 'event-replay';
