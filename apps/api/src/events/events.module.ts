@@ -2,6 +2,8 @@ import { Module, OnModuleInit, Logger } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { EventsController } from './events.controller';
 import { RedisProvider } from './redis.provider';
+import { EventPublisherService } from './event-publisher.service';
+import { PrismaService } from '../common/services/prisma.service';
 import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
 
 /**
@@ -12,15 +14,16 @@ import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
  *
  * - Redis Streams for event storage and delivery
  * - Consumer groups for distributed event processing
+ * - EventPublisherService for publishing events (Story 05-2)
  * - Health check endpoints for monitoring
  *
  * Future stories will add:
- * - EventPublisherService (Story 05-2)
  * - EventConsumerService (Story 05-3)
  * - EventRetryService (Story 05-4)
  * - EventReplayService (Story 05-6)
  *
  * @see Story 05-1: Set Up Redis Streams Infrastructure
+ * @see Story 05-2: Implement Event Publisher
  */
 @Module({
   imports: [
@@ -30,8 +33,8 @@ import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
     }),
   ],
   controllers: [EventsController],
-  providers: [RedisProvider],
-  exports: [RedisProvider],
+  providers: [RedisProvider, EventPublisherService, PrismaService],
+  exports: [RedisProvider, EventPublisherService],
 })
 export class EventsModule implements OnModuleInit {
   private readonly logger = new Logger(EventsModule.name);

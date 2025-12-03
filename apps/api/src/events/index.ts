@@ -7,5 +7,6 @@
 
 export { EventsModule } from './events.module';
 export { RedisProvider } from './redis.provider';
+export { EventPublisherService } from './event-publisher.service';
 export { EventsController } from './events.controller';
 export * from './constants/streams.constants';

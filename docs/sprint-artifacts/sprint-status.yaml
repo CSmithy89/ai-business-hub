@@ -117,7 +117,7 @@ development_status:
   # ===========================================
   epic-05: contexted
   05-1-set-up-redis-streams-infrastructure: done
-  05-2-implement-event-publisher: backlog
+  05-2-implement-event-publisher: done
   05-3-implement-event-subscriber: backlog
   05-4-implement-retry-and-dead-letter-queue: backlog
   05-5-define-core-platform-events: backlog

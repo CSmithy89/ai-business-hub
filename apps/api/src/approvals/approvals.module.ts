@@ -8,7 +8,7 @@ import { ApprovalEscalationService } from './services/approval-escalation.servic
 import { ApprovalAuditService } from './services/approval-audit.service';
 import { EscalationSchedulerService } from './services/escalation-scheduler.service';
 import { EscalationProcessor } from './processors/escalation.processor';
-import { EventBusService } from './stubs/event-bus.stub';
+import { EventsModule } from '../events';
 
 /**
  * ApprovalsModule - Approval Queue System
@@ -20,13 +20,15 @@ import { EventBusService } from './stubs/event-bus.stub';
  * - ApprovalsService: Create and manage approval items
  * - ApprovalEscalationService: Escalate overdue approvals (Story 04-8)
  * - ApprovalAuditService: Audit logging for approvals (Story 04-9)
- * - EventBusService: Event emission (stub - Epic 05)
+ * - EventPublisherService: Event emission (Epic 05 - Story 05-2)
  *
  * Processors:
  * - EscalationProcessor: BullMQ processor for scheduled escalation checks (Story 04-8)
  */
 @Module({
   imports: [
+    // Import EventsModule for EventPublisherService (Story 05-2)
+    EventsModule,
     // Register BullMQ queue for approval escalation (Story 04-8)
     BullModule.registerQueue({
       name: 'approval-escalation',
@@ -41,7 +43,6 @@ import { EventBusService } from './stubs/event-bus.stub';
     ApprovalAuditService,
     EscalationSchedulerService,
     EscalationProcessor,
-    EventBusService,
   ],
   exports: [
     ApprovalsService,

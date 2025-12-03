@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/services/prisma.service';
 import { ConfidenceCalculatorService } from './confidence-calculator.service';
-import { EventBusService } from '../stubs/event-bus.stub';
+import { EventPublisherService } from '../../events';
 import { ApprovalAuditService } from './approval-audit.service';
 import {
   ConfidenceFactor,
@@ -50,7 +50,7 @@ export class ApprovalRouterService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly confidenceCalculator: ConfidenceCalculatorService,
-    private readonly eventBus: EventBusService,
+    private readonly eventPublisher: EventPublisherService,
     private readonly auditLogger: ApprovalAuditService,
   ) {}
 
@@ -139,7 +139,15 @@ export class ApprovalRouterService {
         decidedById: 'system',
         confidenceScore: approvalItem.confidenceScore,
       };
-      await this.eventBus.emit(EventTypes.APPROVAL_AUTO_APPROVED, autoApprovePayload);
+      await this.eventPublisher.publish(
+        EventTypes.APPROVAL_AUTO_APPROVED,
+        autoApprovePayload,
+        {
+          tenantId: workspaceId,
+          userId: requestedBy,
+          source: 'approval-router',
+        },
+      );
 
       // Step 7a: Log auto-approval with AI reasoning
       await this.auditLogger.logAutoApproval({
@@ -164,7 +172,15 @@ export class ApprovalRouterService {
         sourceModule: options?.sourceModule,
         sourceId: options?.sourceId,
       };
-      await this.eventBus.emit(EventTypes.APPROVAL_REQUESTED, requestedPayload);
+      await this.eventPublisher.publish(
+        EventTypes.APPROVAL_REQUESTED,
+        requestedPayload,
+        {
+          tenantId: workspaceId,
+          userId: requestedBy,
+          source: 'approval-router',
+        },
+      );
 
       // Step 7b: Log approval creation
       await this.auditLogger.logApprovalCreated({
