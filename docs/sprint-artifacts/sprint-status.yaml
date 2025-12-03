@@ -129,7 +129,7 @@ development_status:
   # EPIC-06: BYOAI Configuration
   # Phase 4 - Event Bus & BYOAI | 11 stories | 28 points
   # ===========================================
-  epic-06: backlog
+  epic-06: contexted
   06-1-implement-credential-encryption: backlog
   06-2-create-ai-provider-factory: backlog
   06-3-create-ai-provider-api-endpoints: backlog
