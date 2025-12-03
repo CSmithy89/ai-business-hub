@@ -123,7 +123,7 @@ development_status:
   05-5-define-core-platform-events: done
   05-6-implement-event-replay: done
   05-7-create-event-monitoring-dashboard: done
-  epic-05-retrospective: optional
+  epic-05-retrospective: completed
 
   # ===========================================
   # EPIC-06: BYOAI Configuration
