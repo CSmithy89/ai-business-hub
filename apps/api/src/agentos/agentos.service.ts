@@ -430,6 +430,7 @@ export class AgentOSService {
               this.logger.log(
                 `Stream ended: runId=${runId}, correlationId=${correlationId}`,
               );
+              this.recordSuccess();
               observer.complete();
             });
 
@@ -437,6 +438,7 @@ export class AgentOSService {
               this.logger.error(
                 `Stream error: runId=${runId}, correlationId=${correlationId}, error=${error.message}`,
               );
+              this.recordFailure();
               observer.error(
                 new InternalServerErrorException(
                   'Stream connection failed',
@@ -447,6 +449,7 @@ export class AgentOSService {
           });
         }),
         catchError((error) => {
+          this.recordFailure();
           return throwError(() => this.handleError(error, correlationId));
         }),
       );

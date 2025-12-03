@@ -6,6 +6,7 @@ import {
   Body,
   UseGuards,
   BadRequestException,
+  InternalServerErrorException,
   Logger,
   Req,
 } from '@nestjs/common'
@@ -137,9 +138,12 @@ export class MembersController {
     )
 
     // Log the permission change using AuditService
-    // Type assertion needed because Prisma includes user but TS can't infer it
+    // Validate user exists before accessing (Prisma includes user in query)
     const memberWithUser = result.member as typeof result.member & {
-      user: { id: string; email: string; name: string | null; image: string | null }
+      user?: { id: string; email: string; name: string | null; image: string | null }
+    }
+    if (!memberWithUser.user) {
+      throw new InternalServerErrorException('Failed to fetch user details for audit log')
     }
     await this.auditService.logPermissionOverrideChange({
       workspaceId,
