@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/services/prisma.service';
-import { EventBusService } from '../stubs/event-bus.stub';
+import { EventPublisherService } from '../../events';
 import { ApprovalAuditService } from './approval-audit.service';
 import { EventTypes, ApprovalEscalatedPayload } from '@hyvve/shared';
 
@@ -36,7 +36,7 @@ export class ApprovalEscalationService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly eventBus: EventBusService,
+    private readonly eventPublisher: EventPublisherService,
     private readonly auditLogger: ApprovalAuditService,
   ) {}
 
@@ -158,7 +158,15 @@ export class ApprovalEscalationService {
       originalDueAt: updatedApproval.dueAt.toISOString(),
       newDueAt: updatedApproval.dueAt.toISOString(), // Same due date, just escalated
     };
-    await this.eventBus.emit(EventTypes.APPROVAL_ESCALATED, escalationPayload);
+    await this.eventPublisher.publish(
+      EventTypes.APPROVAL_ESCALATED,
+      escalationPayload,
+      {
+        tenantId: updatedApproval.workspaceId,
+        userId: 'system',
+        source: 'approval-escalation',
+      },
+    );
 
     // Log escalation to audit trail
     await this.auditLogger.logEscalation({

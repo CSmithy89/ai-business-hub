@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
-import { EventBusService } from './stubs/event-bus.stub';
+import { EventPublisherService } from '../events';
 import { ApprovalAuditService } from './services/approval-audit.service';
 import { ApprovalQueryDto } from './dto/approval-query.dto';
 import { ApproveItemDto } from './dto/approve-item.dto';
@@ -39,7 +39,7 @@ export class ApprovalsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly eventBus: EventBusService,
+    private readonly eventPublisher: EventPublisherService,
     private readonly auditLogger: ApprovalAuditService,
   ) {}
 
@@ -257,7 +257,7 @@ export class ApprovalsService {
       },
     });
 
-    // Emit event (stub - will be replaced with real event bus in Epic 05)
+    // Emit event
     const approvalPayload: ApprovalDecisionPayload = {
       approvalId: updated.id,
       type: updated.type,
@@ -267,7 +267,15 @@ export class ApprovalsService {
       decisionNotes: dto.notes,
       confidenceScore: updated.confidenceScore,
     };
-    await this.eventBus.emit(EventTypes.APPROVAL_APPROVED, approvalPayload);
+    await this.eventPublisher.publish(
+      EventTypes.APPROVAL_APPROVED,
+      approvalPayload,
+      {
+        tenantId: workspaceId,
+        userId,
+        source: 'approvals',
+      },
+    );
 
     // Log to audit trail
     await this.auditLogger.logApprovalDecision({
@@ -362,7 +370,7 @@ export class ApprovalsService {
       },
     });
 
-    // Emit event (stub - will be replaced with real event bus in Epic 05)
+    // Emit event
     const rejectPayload: ApprovalDecisionPayload = {
       approvalId: updated.id,
       type: updated.type,
@@ -372,7 +380,15 @@ export class ApprovalsService {
       decisionNotes: decisionNotes,
       confidenceScore: updated.confidenceScore,
     };
-    await this.eventBus.emit(EventTypes.APPROVAL_REJECTED, rejectPayload);
+    await this.eventPublisher.publish(
+      EventTypes.APPROVAL_REJECTED,
+      rejectPayload,
+      {
+        tenantId: workspaceId,
+        userId,
+        source: 'approvals',
+      },
+    );
 
     // Log to audit trail
     await this.auditLogger.logApprovalDecision({

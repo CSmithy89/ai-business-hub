@@ -464,3 +464,65 @@ model TwoFactorSecret {
 
   @@map("two_factor_secrets")
 }
+
+// ============================================
+// EVENT BUS METADATA (EPIC-05)
+// ============================================
+
+model EventMetadata {
+  id            String      @id @default(cuid())
+  eventId       String      @unique @map("event_id")
+  streamId      String      @map("stream_id") // Redis stream message ID
+  type          String
+  source        String
+  tenantId      String      @map("tenant_id")
+  correlationId String?     @map("correlation_id")
+  status        EventStatus @default(PENDING)
+  attempts      Int         @default(0)
+  lastError     String?     @map("last_error")
+  processedAt   DateTime?   @map("processed_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt])
+  @@index([type, status])
+  @@index([correlationId])
+  @@index([status, createdAt]) // For replay queries by status and time
+  @@index([tenantId, status, createdAt]) // For tenant-specific replay queries
+  @@map("event_metadata")
+}
+
+enum EventStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DLQ
+}
+
+/// Tracks event replay jobs for re-processing historical events
+/// Story: 05-6 - Implement Event Replay
+model ReplayJob {
+  id             String         @id @default(cuid())
+  status         ReplayJobStatus @default(PENDING)
+  progress       Int            @default(0) // 0-100 percentage
+  eventsReplayed Int            @default(0) @map("events_replayed")
+  totalEvents    Int            @default(0) @map("total_events")
+  errors         Int            @default(0)
+  startedAt      DateTime?      @map("started_at")
+  completedAt    DateTime?      @map("completed_at")
+  errorMessage   String?        @map("error_message")
+  options        Json           @default("{}") // Replay options (time range, filters)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("replay_job")
+}
+
+enum ReplayJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}

@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { AgentOSService } from './agentos.service';
+import { AgentEventHandler } from './handlers/agent-event.handler';
+import { EventsModule } from '../events';
 
 /**
  * AgentOSModule - NestJS-AgentOS Bridge
@@ -32,8 +34,9 @@ import { AgentOSService } from './agentos.service';
       maxRedirects: 5,
     }),
     ConfigModule,
+    EventsModule,
   ],
-  providers: [AgentOSService],
+  providers: [AgentOSService, AgentEventHandler],
   exports: [AgentOSService],
 })
 export class AgentOSModule {}

@@ -116,14 +116,14 @@ development_status:
   # Phase 4 - Event Bus & BYOAI | 7 stories | 15 points
   # ===========================================
   epic-05: contexted
-  05-1-set-up-redis-streams-infrastructure: backlog
-  05-2-implement-event-publisher: backlog
-  05-3-implement-event-subscriber: backlog
-  05-4-implement-retry-and-dead-letter-queue: backlog
-  05-5-define-core-platform-events: backlog
-  05-6-implement-event-replay: backlog
-  05-7-create-event-monitoring-dashboard: backlog
-  epic-05-retrospective: optional
+  05-1-set-up-redis-streams-infrastructure: done
+  05-2-implement-event-publisher: done
+  05-3-implement-event-subscriber: done
+  05-4-implement-retry-and-dead-letter-queue: done
+  05-5-define-core-platform-events: done
+  05-6-implement-event-replay: done
+  05-7-create-event-monitoring-dashboard: done
+  epic-05-retrospective: completed
 
   # ===========================================
   # EPIC-06: BYOAI Configuration
