@@ -30,6 +30,16 @@ export class AgentEventHandler {
   async handleRunStarted(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as AgentRunStartedPayload;
 
+    if (!data) {
+      this.logger.warn({
+        message: 'Agent run started event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
+
     this.logger.log({
       message: 'Agent run started',
       eventId: event.id,
@@ -54,6 +64,16 @@ export class AgentEventHandler {
   @EventSubscriber(EventTypes.AGENT_RUN_COMPLETED)
   async handleRunCompleted(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as AgentRunCompletedPayload;
+
+    if (!data) {
+      this.logger.warn({
+        message: 'Agent run completed event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
 
     this.logger.log({
       message: 'Agent run completed',
@@ -81,6 +101,16 @@ export class AgentEventHandler {
   @EventSubscriber(EventTypes.AGENT_RUN_FAILED)
   async handleRunFailed(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as AgentRunFailedPayload;
+
+    if (!data) {
+      this.logger.warn({
+        message: 'Agent run failed event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
 
     this.logger.error({
       message: 'Agent run failed',
@@ -110,6 +140,16 @@ export class AgentEventHandler {
   async handleConfirmationRequested(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as AgentConfirmationPayload;
 
+    if (!data) {
+      this.logger.warn({
+        message: 'Agent confirmation requested event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
+
     this.logger.log({
       message: 'Agent confirmation requested - creating approval',
       eventId: event.id,
@@ -138,6 +178,16 @@ export class AgentEventHandler {
   async handleConfirmationGranted(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as AgentConfirmationPayload;
 
+    if (!data) {
+      this.logger.warn({
+        message: 'Agent confirmation granted event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
+
     this.logger.log({
       message: 'Agent confirmation granted - resuming agent',
       eventId: event.id,
@@ -162,6 +212,16 @@ export class AgentEventHandler {
   @EventSubscriber(EventTypes.AGENT_CONFIRMATION_DENIED)
   async handleConfirmationDenied(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as AgentConfirmationPayload;
+
+    if (!data) {
+      this.logger.warn({
+        message: 'Agent confirmation denied event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
 
     this.logger.log({
       message: 'Agent confirmation denied - stopping agent action',

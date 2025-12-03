@@ -145,9 +145,13 @@ export class EventRetryService {
     try {
       const redis = this.redisProvider.getClient();
 
-      // Add event to DLQ stream with error context
+      // Add event to DLQ stream with error context and retention limit
+      // Limit DLQ to last 10,000 failed events to prevent unbounded growth
       await redis.xadd(
         STREAMS.DLQ,
+        'MAXLEN',
+        '~', // Approximate trimming for performance
+        '10000',
         '*', // Auto-generate ID
         'event',
         JSON.stringify(event),

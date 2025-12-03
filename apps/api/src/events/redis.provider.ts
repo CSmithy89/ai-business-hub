@@ -43,8 +43,14 @@ export class RedisProvider implements OnModuleInit {
   /**
    * Get the Redis client for stream operations
    * @returns Redis client instance (ioredis)
+   * @throws Error if client is not initialized
    */
   getClient(): any {
+    if (!this.redis) {
+      throw new Error(
+        'Redis client is not initialized. Ensure RedisProvider.onModuleInit() has completed before calling getClient().',
+      );
+    }
     return this.redis;
   }
 }

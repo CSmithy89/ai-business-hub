@@ -30,6 +30,16 @@ export class ApprovalEventHandler {
   async handleApproved(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as ApprovalDecisionPayload;
 
+    if (!data) {
+      this.logger.warn({
+        message: 'Approval approved event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
+
     this.logger.log({
       message: 'Approval approved - triggering execution',
       eventId: event.id,
@@ -56,6 +66,16 @@ export class ApprovalEventHandler {
   async handleAutoApproved(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as ApprovalDecisionPayload;
 
+    if (!data) {
+      this.logger.warn({
+        message: 'Approval auto-approved event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
+
     this.logger.log({
       message: 'Approval auto-approved - high confidence execution',
       eventId: event.id,
@@ -77,6 +97,16 @@ export class ApprovalEventHandler {
   @EventSubscriber(EventTypes.APPROVAL_REJECTED)
   async handleRejected(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as ApprovalDecisionPayload;
+
+    if (!data) {
+      this.logger.warn({
+        message: 'Approval rejected event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
 
     this.logger.log({
       message: 'Approval rejected - notifying source',
@@ -102,6 +132,16 @@ export class ApprovalEventHandler {
   @EventSubscriber(EventTypes.APPROVAL_ESCALATED)
   async handleEscalated(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as ApprovalEscalatedPayload;
+
+    if (!data) {
+      this.logger.warn({
+        message: 'Approval escalated event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
 
     this.logger.log({
       message: 'Approval escalated - notifying target',
@@ -131,6 +171,16 @@ export class ApprovalEventHandler {
   async handleExpired(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as ApprovalExpiredPayload;
 
+    if (!data) {
+      this.logger.warn({
+        message: 'Approval expired event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
+
     this.logger.log({
       message: 'Approval expired - triggering follow-up',
       eventId: event.id,
@@ -153,6 +203,16 @@ export class ApprovalEventHandler {
   @EventSubscriber(EventTypes.APPROVAL_CREATED)
   async handleCreated(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as ApprovalRequestedPayload;
+
+    if (!data) {
+      this.logger.warn({
+        message: 'Approval created event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
 
     this.logger.log({
       message: 'Approval created',
@@ -177,6 +237,16 @@ export class ApprovalEventHandler {
   @EventSubscriber(EventTypes.APPROVAL_REQUESTED)
   async handleRequested(event: BaseEvent): Promise<void> {
     const data = event.data as unknown as ApprovalRequestedPayload;
+
+    if (!data) {
+      this.logger.warn({
+        message: 'Approval requested event missing data',
+        eventId: event.id,
+        correlationId: event.correlationId,
+        tenantId: event.tenantId,
+      });
+      return;
+    }
 
     this.logger.log({
       message: 'Approval requested - notifying assignee',

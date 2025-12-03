@@ -2,8 +2,9 @@ import { SetMetadata } from '@nestjs/common';
 
 /**
  * Metadata key for storing event subscriber information
+ * Using Symbol to prevent collisions with other metadata keys
  */
-export const EVENT_SUBSCRIBER_METADATA = 'EVENT_SUBSCRIBER_METADATA';
+export const EVENT_SUBSCRIBER_METADATA = Symbol('EVENT_SUBSCRIBER_METADATA');
 
 /**
  * Event subscriber options
@@ -58,9 +59,16 @@ export const EventSubscriber = (
   pattern: string,
   options?: Omit<EventSubscriberOptions, 'pattern'>,
 ): MethodDecorator => {
-  return SetMetadata(EVENT_SUBSCRIBER_METADATA, {
+  // Validate pattern at decorator application time
+  if (typeof pattern !== 'string' || pattern.trim() === '') {
+    throw new Error('EventSubscriber pattern must be a non-empty string');
+  }
+
+  const metadata: EventSubscriberOptions = {
     pattern,
     priority: options?.priority ?? 100,
     maxRetries: options?.maxRetries ?? 3,
-  } as EventSubscriberOptions);
+  };
+
+  return SetMetadata(EVENT_SUBSCRIBER_METADATA, metadata);
 };

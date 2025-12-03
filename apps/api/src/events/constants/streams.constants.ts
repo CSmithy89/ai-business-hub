@@ -1,3 +1,5 @@
+import os from 'os';
+
 /**
  * Redis Streams Configuration Constants
  *
@@ -18,6 +20,11 @@ export const STREAMS = {
 } as const;
 
 /**
+ * Strongly-typed union of allowed stream name values to prevent typos at compile time
+ */
+export type StreamName = (typeof STREAMS)[keyof typeof STREAMS];
+
+/**
  * Consumer group name for the platform
  * All instances of the API share this consumer group to distribute event processing
  */
@@ -27,8 +34,11 @@ export const CONSUMER_GROUP = 'hyvve-platform';
  * Consumer configuration for event processing
  */
 export const CONSUMER_CONFIG = {
-  /** Consumer name based on hostname or process ID for identification */
-  NAME: process.env.HOSTNAME || `consumer-${process.pid}`,
+  /**
+   * Consumer name combining hostname and process ID for uniqueness across instances
+   * Using os.hostname() for reliability and PID to prevent collisions on same host
+   */
+  NAME: `${os.hostname() || 'consumer'}-${process.pid}`,
   /** Block timeout in milliseconds when waiting for new events */
   BLOCK_TIMEOUT_MS: 5000,
   /** Number of events to process per batch */

@@ -47,7 +47,18 @@ export class EventRetryProcessor extends WorkerHost {
    * @param job - BullMQ job with retry event data
    */
   async process(job: Job<RetryEventJobData>): Promise<void> {
-    const { eventId, streamId, attempt } = job.data;
+    // Validate job.data exists and has required fields
+    const data = job.data;
+    if (!data || !data.eventId) {
+      this.logger.warn({
+        message: 'Invalid retry job data, skipping job',
+        jobId: job.id,
+        data,
+      });
+      return;
+    }
+
+    const { eventId, streamId, attempt } = data;
 
     this.logger.log({
       message: 'Processing retry job',
