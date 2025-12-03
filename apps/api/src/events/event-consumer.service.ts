@@ -177,6 +177,8 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
    */
   private async consumeLoop(): Promise<void> {
     const redis = this.redisProvider.getClient();
+    let errorCount = 0;
+    const MAX_BACKOFF_MS = 30000; // 30 seconds max backoff
 
     this.logger.log('Consumer loop started');
 
@@ -213,10 +215,20 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
             }
           }
         }
+
+        // Reset error count on successful iteration
+        errorCount = 0;
       } catch (error) {
-        this.logger.error('Error in consumer loop', error);
-        // Backoff on error to avoid busy-looping
-        await this.sleep(1000);
+        errorCount++;
+        const backoffMs = Math.min(1000 * Math.pow(2, errorCount), MAX_BACKOFF_MS);
+
+        this.logger.error(
+          `Error in consumer loop (attempt ${errorCount}), backing off for ${backoffMs}ms`,
+          error instanceof Error ? error.stack : undefined,
+        );
+
+        // Exponential backoff on error to avoid busy-looping and resource exhaustion
+        await this.sleep(backoffMs);
       }
     }
 
@@ -291,18 +303,24 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
       // All handlers succeeded
       await redis.xack(STREAMS.MAIN, CONSUMER_GROUP, streamId);
       await this.updateEventStatus(event.id, 'COMPLETED');
-    } else if (anyHandlerSucceeded) {
-      // Some handlers succeeded, some failed
-      // Acknowledge event but mark as failed
-      await redis.xack(STREAMS.MAIN, CONSUMER_GROUP, streamId);
-      await this.updateEventStatus(
-        event.id,
-        'FAILED',
-        errors.map((e) => e.error.message).join('; '),
-      );
     } else {
-      // All handlers failed
-      // Pass to retry service (Story 05-4)
+      // Some or all handlers failed
+      // Do NOT acknowledge - let retry service handle it
+      // This prevents data loss when some handlers fail
+      const errorMessages = errors
+        .map((e) => (e.error instanceof Error ? e.error.message : String(e.error)))
+        .join('; ');
+
+      this.logger.warn({
+        message: `${anyHandlerSucceeded ? 'Some' : 'All'} handlers failed for event`,
+        eventId: event.id,
+        eventType: event.type,
+        successCount: matchingHandlers.length - errors.length,
+        failureCount: errors.length,
+        errors: errorMessages,
+      });
+
+      // Pass to retry service for retry logic
       await this.handleError(streamId, event, errors);
     }
   }

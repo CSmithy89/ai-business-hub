@@ -118,25 +118,24 @@ export class EventPublisherService {
       });
 
       // Step 8: Log publish operation with structured data
-      this.logger.log({
-        message: 'Event published',
-        eventId,
-        type,
-        correlationId,
-        tenantId: context.tenantId,
-        streamId,
-      });
+      this.logger.log(
+        JSON.stringify({
+          message: 'Event published',
+          eventId,
+          type,
+          correlationId,
+          tenantId: context.tenantId,
+          streamId,
+        }),
+      );
 
       // Step 9: Return event ID
       return eventId;
     } catch (error) {
-      this.logger.error({
-        message: 'Failed to publish event',
-        eventType: type,
-        error: error instanceof Error ? error.message : String(error),
-        tenantId: context.tenantId,
-        correlationId,
-      });
+      this.logger.error(
+        `Failed to publish event: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error; // Let caller handle retry
     }
   }
@@ -224,35 +223,39 @@ export class EventPublisherService {
         throw new Error('Pipeline execution failed');
       }
 
-      // Create EventMetadata records with streamIds
+      // Extract stream IDs and check for errors
+      const streamIds: string[] = [];
       for (let i = 0; i < results.length; i++) {
         const [err, streamId] = results[i];
         if (err) {
           throw err;
         }
-
-        await this.prisma.eventMetadata.create({
-          data: {
-            ...eventMetadataRecords[i],
-            streamId: streamId as string,
-            status: 'PENDING',
-          },
-        });
+        streamIds.push(streamId as string);
       }
 
-      this.logger.log({
-        message: 'Batch events published',
-        eventCount: eventIds.length,
-        eventIds,
+      // Create EventMetadata records in parallel for better performance
+      await this.prisma.eventMetadata.createMany({
+        data: eventMetadataRecords.map((record, i) => ({
+          ...record,
+          streamId: streamIds[i],
+          status: 'PENDING',
+        })),
       });
+
+      this.logger.log(
+        JSON.stringify({
+          message: 'Batch events published',
+          eventCount: eventIds.length,
+          eventIds,
+        }),
+      );
 
       return eventIds;
     } catch (error) {
-      this.logger.error({
-        message: 'Failed to publish batch events',
-        eventCount: events.length,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      this.logger.error(
+        `Failed to publish batch events: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }

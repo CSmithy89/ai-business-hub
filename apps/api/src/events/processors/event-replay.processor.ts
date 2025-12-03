@@ -67,18 +67,55 @@ export class EventReplayProcessor extends WorkerHost {
     try {
       // Convert ISO timestamps to Redis Stream IDs
       // Redis Stream IDs are timestamp-sequence, e.g., "1701388800000-0"
-      const startId = this.timestampToStreamId(new Date(startTime));
-      const endId = this.timestampToStreamId(new Date(endTime));
+      const startDate = new Date(startTime);
+      const endDate = new Date(endTime);
 
-      // Read events from main stream within time range
-      // XRANGE returns events in chronological order
-      const events = await this.redis.xrange(
-        STREAMS.MAIN,
-        startId,
-        endId,
-        'COUNT',
-        10000, // Limit per batch to avoid memory issues
-      );
+      // Validate dates before converting to stream IDs
+      if (isNaN(startDate.getTime())) {
+        throw new Error(`Invalid start date: ${startTime}`);
+      }
+      if (isNaN(endDate.getTime())) {
+        throw new Error(`Invalid end date: ${endTime}`);
+      }
+
+      const startId = this.timestampToStreamId(startDate);
+      const endId = this.timestampToStreamId(endDate);
+
+      // Read events from main stream within time range with pagination
+      // Process in batches to handle large datasets
+      const BATCH_SIZE = 1000;
+      let currentStartId = startId;
+      let allEvents: Array<[string, string[]]> = [];
+
+      // Paginate through XRANGE results
+      while (true) {
+        const batch = await this.redis.xrange(
+          STREAMS.MAIN,
+          currentStartId,
+          endId,
+          'COUNT',
+          BATCH_SIZE,
+        );
+
+        if (!batch || batch.length === 0) {
+          break;
+        }
+
+        allEvents = allEvents.concat(batch);
+
+        // If we got fewer results than BATCH_SIZE, we've reached the end
+        if (batch.length < BATCH_SIZE) {
+          break;
+        }
+
+        // Move to next batch (use last ID + 1 for exclusive range)
+        const lastId = batch[batch.length - 1][0];
+        // Increment stream ID by 1 (split timestamp-sequence, increment sequence)
+        const [timestamp, sequence] = lastId.split('-');
+        currentStartId = `${timestamp}-${parseInt(sequence, 10) + 1}`;
+      }
+
+      const events = allEvents;
 
       if (!events || events.length === 0) {
         this.logger.log({
@@ -210,6 +247,10 @@ export class EventReplayProcessor extends WorkerHost {
    * Stream IDs are timestamp-sequence format
    */
   private timestampToStreamId(date: Date): string {
-    return `${date.getTime()}-0`;
+    const ts = date.getTime();
+    if (isNaN(ts)) {
+      throw new Error(`Invalid date provided for stream ID conversion: ${date}`);
+    }
+    return `${ts}-0`;
   }
 }

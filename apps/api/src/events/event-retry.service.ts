@@ -73,8 +73,8 @@ export class EventRetryService {
         },
       });
 
-      // Check if max retries reached
-      if (currentAttempt >= this.MAX_RETRIES) {
+      // Check if max retries reached (check the incremented attempt)
+      if (nextAttempt >= this.MAX_RETRIES) {
         this.logger.warn({
           message: 'Max retries reached, moving to DLQ',
           eventId: event.id,
@@ -216,7 +216,12 @@ export class EventRetryService {
 
       const eventEntry = events.find(([_, fields]: [string, string[]]) => {
         try {
-          const event = JSON.parse(fields[1]) as BaseEvent;
+          // Parse fields safely
+          const fieldMap: Record<string, string> = {};
+          for (let i = 0; i < fields.length; i += 2) {
+            fieldMap[fields[i]] = fields[i + 1];
+          }
+          const event = JSON.parse(fieldMap.event || '{}') as BaseEvent;
           return event.id === eventId;
         } catch {
           return false;
@@ -230,7 +235,12 @@ export class EventRetryService {
       }
 
       const [dlqStreamId, fields] = eventEntry;
-      const originalEvent = JSON.parse(fields[1]) as BaseEvent;
+      // Parse fields safely
+      const fieldMap: Record<string, string> = {};
+      for (let i = 0; i < fields.length; i += 2) {
+        fieldMap[fields[i]] = fields[i + 1];
+      }
+      const originalEvent = JSON.parse(fieldMap.event || '{}') as BaseEvent;
 
       // Generate new event ID for fresh retry cycle
       const newEventId = createId();
@@ -269,16 +279,16 @@ export class EventRetryService {
         data: { streamId: newStreamId },
       });
 
-      // Delete from DLQ stream
-      await redis.xdel(STREAMS.DLQ, dlqStreamId);
-
-      // Update original event metadata for audit trail
+      // Update original event metadata for audit trail BEFORE deleting from DLQ
       await this.prisma.eventMetadata.update({
         where: { eventId: originalEvent.id },
         data: {
           lastError: `Retried from DLQ as event ${newEventId}`,
         },
       });
+
+      // Delete from DLQ stream (done last to avoid data loss if update fails)
+      await redis.xdel(STREAMS.DLQ, dlqStreamId);
 
       this.logger.log({
         message: 'Event retried from DLQ',

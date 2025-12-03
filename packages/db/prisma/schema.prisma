@@ -486,6 +486,8 @@ model EventMetadata {
   @@index([tenantId, createdAt])
   @@index([type, status])
   @@index([correlationId])
+  @@index([status, createdAt]) // For replay queries by status and time
+  @@index([tenantId, status, createdAt]) // For tenant-specific replay queries
   @@map("event_metadata")
 }
 

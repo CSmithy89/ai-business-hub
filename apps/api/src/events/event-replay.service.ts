@@ -75,15 +75,17 @@ export class EventReplayService {
     });
 
     // Create job record in database for tracking
-    await this.prisma.$executeRaw`
-      INSERT INTO "ReplayJob" (
-        id, status, progress, "eventsReplayed", "totalEvents", errors,
-        "startedAt", "completedAt", "errorMessage", options, "createdAt", "updatedAt"
-      ) VALUES (
-        ${jobId}, 'pending', 0, 0, 0, 0,
-        NULL, NULL, NULL, ${JSON.stringify(options)}::jsonb, NOW(), NOW()
-      )
-    `;
+    await this.prisma.replayJob.create({
+      data: {
+        id: jobId,
+        status: 'PENDING',
+        progress: 0,
+        eventsReplayed: 0,
+        totalEvents: 0,
+        errors: 0,
+        options: options as any, // Prisma expects JsonValue
+      },
+    });
 
     // Add job to BullMQ queue
     const jobData: ReplayJobData = {
@@ -113,30 +115,24 @@ export class EventReplayService {
    * @returns Current job status
    */
   async getReplayStatus(jobId: string): Promise<ReplayJobStatusResponseDto> {
-    // Try to get from database first
-    const result = await this.prisma.$queryRaw<ReplayJobRecord[]>`
-      SELECT
-        id, status, progress, "eventsReplayed", "totalEvents", errors,
-        "startedAt", "completedAt", "errorMessage", options
-      FROM "ReplayJob"
-      WHERE id = ${jobId}
-    `;
+    // Get job from database using Prisma
+    const job = await this.prisma.replayJob.findUnique({
+      where: { id: jobId },
+    });
 
-    if (!result || result.length === 0) {
+    if (!job) {
       throw new NotFoundException(`Replay job ${jobId} not found`);
     }
 
-    const job = result[0];
-
     return {
       jobId: job.id,
-      status: job.status,
+      status: job.status.toLowerCase() as any, // Convert enum to lowercase
       progress: job.progress,
       eventsReplayed: job.eventsReplayed,
       totalEvents: job.totalEvents,
       errors: job.errors,
-      startedAt: job.startedAt?.toISOString(),
-      completedAt: job.completedAt?.toISOString(),
+      startedAt: job.startedAt ? new Date(job.startedAt).toISOString() : undefined,
+      completedAt: job.completedAt ? new Date(job.completedAt).toISOString() : undefined,
       errorMessage: job.errorMessage ?? undefined,
     };
   }
@@ -157,48 +153,24 @@ export class EventReplayService {
       errorMessage: string;
     }>,
   ): Promise<void> {
-    const setClauses: string[] = ['"updatedAt" = NOW()'];
-    const values: unknown[] = [];
-    let paramIndex = 1;
+    // Build update data object dynamically
+    const data: Record<string, any> = {};
 
     if (update.status !== undefined) {
-      setClauses.push(`status = $${paramIndex++}`);
-      values.push(update.status);
+      // Convert lowercase string to uppercase enum value
+      data.status = update.status.toUpperCase();
     }
-    if (update.progress !== undefined) {
-      setClauses.push(`progress = $${paramIndex++}`);
-      values.push(update.progress);
-    }
-    if (update.eventsReplayed !== undefined) {
-      setClauses.push(`"eventsReplayed" = $${paramIndex++}`);
-      values.push(update.eventsReplayed);
-    }
-    if (update.totalEvents !== undefined) {
-      setClauses.push(`"totalEvents" = $${paramIndex++}`);
-      values.push(update.totalEvents);
-    }
-    if (update.errors !== undefined) {
-      setClauses.push(`errors = $${paramIndex++}`);
-      values.push(update.errors);
-    }
-    if (update.startedAt !== undefined) {
-      setClauses.push(`"startedAt" = $${paramIndex++}`);
-      values.push(update.startedAt);
-    }
-    if (update.completedAt !== undefined) {
-      setClauses.push(`"completedAt" = $${paramIndex++}`);
-      values.push(update.completedAt);
-    }
-    if (update.errorMessage !== undefined) {
-      setClauses.push(`"errorMessage" = $${paramIndex++}`);
-      values.push(update.errorMessage);
-    }
+    if (update.progress !== undefined) data.progress = update.progress;
+    if (update.eventsReplayed !== undefined) data.eventsReplayed = update.eventsReplayed;
+    if (update.totalEvents !== undefined) data.totalEvents = update.totalEvents;
+    if (update.errors !== undefined) data.errors = update.errors;
+    if (update.startedAt !== undefined) data.startedAt = update.startedAt;
+    if (update.completedAt !== undefined) data.completedAt = update.completedAt;
+    if (update.errorMessage !== undefined) data.errorMessage = update.errorMessage;
 
-    values.push(jobId);
-
-    await this.prisma.$executeRawUnsafe(
-      `UPDATE "ReplayJob" SET ${setClauses.join(', ')} WHERE id = $${paramIndex}`,
-      ...values,
-    );
+    await this.prisma.replayJob.update({
+      where: { id: jobId },
+      data,
+    });
   }
 }

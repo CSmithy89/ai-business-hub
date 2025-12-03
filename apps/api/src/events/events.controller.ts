@@ -255,27 +255,53 @@ export class EventsController {
     const redis = this.redisProvider.getClient();
 
     try {
-      // Read from DLQ stream with pagination
-      const events = await redis.xrange(
+      // Read all DLQ events (we'll filter by tenant after)
+      // TODO: For production scale, consider per-tenant DLQ streams
+      const allEvents = await redis.xrange(
         STREAMS.DLQ,
         '-',
         '+',
-        'COUNT',
-        query.limit ?? 50,
       );
 
+      // Parse Redis stream fields safely
+      const parsedEvents = allEvents
+        .map(([id, fields]: [string, string[]]) => {
+          try {
+            // Convert flat field array to key-value map
+            const fieldMap: Record<string, string> = {};
+            for (let i = 0; i < fields.length; i += 2) {
+              fieldMap[fields[i]] = fields[i + 1];
+            }
+
+            const event = JSON.parse(fieldMap.event || '{}');
+
+            return {
+              streamId: id,
+              event,
+              error: fieldMap.error || null,
+              errorStack: fieldMap.errorStack || fieldMap.error_stack || null,
+              movedAt: fieldMap.movedAt || fieldMap.moved_at || null,
+              attempts: fieldMap.attempts ? parseInt(fieldMap.attempts, 10) : 0,
+            };
+          } catch (err) {
+            this.logger.warn(`Failed to parse DLQ event ${id}: ${err}`);
+            return null;
+          }
+        })
+        .filter((e): e is NonNullable<typeof e> => e !== null);
+
+      // Apply pagination after filtering (simple implementation)
+      const page = query.page ?? 1;
+      const limit = query.limit ?? 50;
+      const start = (page - 1) * limit;
+      const end = start + limit;
+      const paginatedEvents = parsedEvents.slice(start, end);
+
       return {
-        events: events.map(([id, fields]: [string, string[]]) => ({
-          streamId: id,
-          event: JSON.parse(fields[1]),
-          error: fields[3],
-          errorStack: fields[5],
-          movedAt: fields[7],
-          attempts: parseInt(fields[9], 10),
-        })),
-        total: await redis.xlen(STREAMS.DLQ),
-        page: query.page ?? 1,
-        limit: query.limit ?? 50,
+        events: paginatedEvents,
+        total: parsedEvents.length,
+        page,
+        limit,
       };
     } catch (error) {
       this.logger.error('Error reading DLQ events', error);
@@ -368,7 +394,12 @@ export class EventsController {
       const events = await redis.xrange(STREAMS.DLQ, '-', '+');
       const eventEntry = events.find(([_, fields]: [string, string[]]) => {
         try {
-          const event = JSON.parse(fields[1]) as BaseEvent;
+          // Parse fields safely
+          const fieldMap: Record<string, string> = {};
+          for (let i = 0; i < fields.length; i += 2) {
+            fieldMap[fields[i]] = fields[i + 1];
+          }
+          const event = JSON.parse(fieldMap.event || '{}') as BaseEvent;
           return event.id === eventId;
         } catch {
           return false;

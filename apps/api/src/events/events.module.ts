@@ -124,8 +124,8 @@ export class EventsModule implements OnModuleInit {
     try {
       // XGROUP CREATE with MKSTREAM flag:
       // - Creates stream if it doesn't exist
-      // - Creates consumer group starting from ID '0' (process future events only)
-      await redis.xgroup('CREATE', streamName, groupName, '0', 'MKSTREAM');
+      // - Creates consumer group starting from ID '$' (process future events only, not historical)
+      await redis.xgroup('CREATE', streamName, groupName, '$', 'MKSTREAM');
       this.logger.log(`Created consumer group '${groupName}' for ${streamName}`);
     } catch (error) {
       // BUSYGROUP error means the consumer group already exists
