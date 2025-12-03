@@ -27,6 +27,7 @@ export class PaginationDto {
   /**
    * Number of items per page
    * @default 50
+   * @maximum 100
    */
   @ApiPropertyOptional({
     default: 50,

@@ -53,6 +53,18 @@ interface StreamHealth {
 }
 
 /**
+ * Parsed DLQ event structure
+ */
+interface ParsedDLQEvent {
+  streamId: string;
+  event: unknown;
+  error: string | null;
+  errorStack: string | null;
+  movedAt: string | null;
+  attempts: number;
+}
+
+/**
  * EventsController - Health check and admin endpoints for event bus
  *
  * Provides:
@@ -255,51 +267,58 @@ export class EventsController {
     const redis = this.redisProvider.getClient();
 
     try {
-      // Read all DLQ events (we'll filter by tenant after)
-      // TODO: For production scale, consider per-tenant DLQ streams
+      const limit = query.limit ?? 50;
+      const page = query.page ?? 1;
+
+      // Get total count first
+      const total = await redis.xlen(STREAMS.DLQ);
+
+      // For cursor-based pagination, we need to skip (page-1)*limit entries
+      // We fetch entries and skip the first (page-1)*limit to simulate offset
+      const skipCount = (page - 1) * limit;
+
+      // Fetch more entries than needed to handle pagination
+      const fetchCount = skipCount + limit;
+
       const allEvents = await redis.xrange(
         STREAMS.DLQ,
         '-',
         '+',
+        'COUNT',
+        fetchCount,
       );
 
+      // Slice to get the correct page
+      const pageEvents = allEvents.slice(skipCount, skipCount + limit);
+
       // Parse Redis stream fields safely
-      const parsedEvents = allEvents
-        .map(([id, fields]: [string, string[]]) => {
-          try {
-            // Convert flat field array to key-value map
-            const fieldMap: Record<string, string> = {};
-            for (let i = 0; i < fields.length; i += 2) {
-              fieldMap[fields[i]] = fields[i + 1];
-            }
-
-            const event = JSON.parse(fieldMap.event || '{}');
-
-            return {
-              streamId: id,
-              event,
-              error: fieldMap.error || null,
-              errorStack: fieldMap.errorStack || fieldMap.error_stack || null,
-              movedAt: fieldMap.movedAt || fieldMap.moved_at || null,
-              attempts: fieldMap.attempts ? parseInt(fieldMap.attempts, 10) : 0,
-            };
-          } catch (err) {
-            this.logger.warn(`Failed to parse DLQ event ${id}: ${err}`);
-            return null;
+      const parsedEvents: ParsedDLQEvent[] = [];
+      for (const [id, fields] of pageEvents as [string, string[]][]) {
+        try {
+          // Convert flat field array to key-value map
+          const fieldMap: Record<string, string> = {};
+          for (let i = 0; i < fields.length; i += 2) {
+            fieldMap[fields[i]] = fields[i + 1];
           }
-        })
-        .filter((e): e is NonNullable<typeof e> => e !== null);
 
-      // Apply pagination after filtering (simple implementation)
-      const page = query.page ?? 1;
-      const limit = query.limit ?? 50;
-      const start = (page - 1) * limit;
-      const end = start + limit;
-      const paginatedEvents = parsedEvents.slice(start, end);
+          const event = JSON.parse(fieldMap.event || '{}');
+
+          parsedEvents.push({
+            streamId: id,
+            event,
+            error: fieldMap.error || null,
+            errorStack: fieldMap.errorStack || fieldMap.error_stack || null,
+            movedAt: fieldMap.movedAt || fieldMap.moved_at || null,
+            attempts: fieldMap.attempts ? parseInt(fieldMap.attempts, 10) : 0,
+          });
+        } catch (err) {
+          this.logger.warn(`Failed to parse DLQ event ${id}: ${err}`);
+        }
+      }
 
       return {
-        events: paginatedEvents,
-        total: parsedEvents.length,
+        events: parsedEvents,
+        total,
         page,
         limit,
       };

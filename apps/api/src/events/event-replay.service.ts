@@ -22,22 +22,6 @@ interface ReplayJobData {
 }
 
 /**
- * Replay job status stored in database
- */
-interface ReplayJobRecord {
-  id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  progress: number;
-  eventsReplayed: number;
-  totalEvents: number;
-  errors: number;
-  startedAt: Date | null;
-  completedAt: Date | null;
-  errorMessage: string | null;
-  options: Record<string, unknown>;
-}
-
-/**
  * Event Replay Service
  *
  * Manages event replay jobs for re-processing historical events.
@@ -83,7 +67,7 @@ export class EventReplayService {
         eventsReplayed: 0,
         totalEvents: 0,
         errors: 0,
-        options: options as any, // Prisma expects JsonValue
+        options: JSON.parse(JSON.stringify(options)),
       },
     });
 
@@ -115,7 +99,6 @@ export class EventReplayService {
    * @returns Current job status
    */
   async getReplayStatus(jobId: string): Promise<ReplayJobStatusResponseDto> {
-    // Get job from database using Prisma
     const job = await this.prisma.replayJob.findUnique({
       where: { id: jobId },
     });
@@ -126,7 +109,7 @@ export class EventReplayService {
 
     return {
       jobId: job.id,
-      status: job.status.toLowerCase() as any, // Convert enum to lowercase
+      status: job.status.toLowerCase() as 'pending' | 'running' | 'completed' | 'failed',
       progress: job.progress,
       eventsReplayed: job.eventsReplayed,
       totalEvents: job.totalEvents,
@@ -153,20 +136,33 @@ export class EventReplayService {
       errorMessage: string;
     }>,
   ): Promise<void> {
-    // Build update data object dynamically
-    const data: Record<string, any> = {};
+    // Convert status to uppercase enum value if provided
+    const data: Record<string, unknown> = {};
 
     if (update.status !== undefined) {
-      // Convert lowercase string to uppercase enum value
       data.status = update.status.toUpperCase();
     }
-    if (update.progress !== undefined) data.progress = update.progress;
-    if (update.eventsReplayed !== undefined) data.eventsReplayed = update.eventsReplayed;
-    if (update.totalEvents !== undefined) data.totalEvents = update.totalEvents;
-    if (update.errors !== undefined) data.errors = update.errors;
-    if (update.startedAt !== undefined) data.startedAt = update.startedAt;
-    if (update.completedAt !== undefined) data.completedAt = update.completedAt;
-    if (update.errorMessage !== undefined) data.errorMessage = update.errorMessage;
+    if (update.progress !== undefined) {
+      data.progress = update.progress;
+    }
+    if (update.eventsReplayed !== undefined) {
+      data.eventsReplayed = update.eventsReplayed;
+    }
+    if (update.totalEvents !== undefined) {
+      data.totalEvents = update.totalEvents;
+    }
+    if (update.errors !== undefined) {
+      data.errors = update.errors;
+    }
+    if (update.startedAt !== undefined) {
+      data.startedAt = update.startedAt;
+    }
+    if (update.completedAt !== undefined) {
+      data.completedAt = update.completedAt;
+    }
+    if (update.errorMessage !== undefined) {
+      data.errorMessage = update.errorMessage;
+    }
 
     await this.prisma.replayJob.update({
       where: { id: jobId },
