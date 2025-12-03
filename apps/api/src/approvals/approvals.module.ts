@@ -8,6 +8,7 @@ import { ApprovalEscalationService } from './services/approval-escalation.servic
 import { ApprovalAuditService } from './services/approval-audit.service';
 import { EscalationSchedulerService } from './services/escalation-scheduler.service';
 import { EscalationProcessor } from './processors/escalation.processor';
+import { ApprovalEventHandler } from './handlers/approval-event.handler';
 import { EventsModule } from '../events';
 
 /**
@@ -43,6 +44,7 @@ import { EventsModule } from '../events';
     ApprovalAuditService,
     EscalationSchedulerService,
     EscalationProcessor,
+    ApprovalEventHandler,
   ],
   exports: [
     ApprovalsService,
