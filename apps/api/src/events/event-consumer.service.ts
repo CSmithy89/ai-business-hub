@@ -14,6 +14,7 @@ import {
   STREAMS,
   CONSUMER_GROUP,
   CONSUMER_CONFIG,
+  ERROR_HANDLING_CONFIG,
 } from './constants/streams.constants';
 import {
   EVENT_SUBSCRIBER_METADATA,
@@ -174,11 +175,14 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
   /**
    * Main consumer loop
    * Continuously reads events from Redis Stream and processes them
+   *
+   * Error handling strategy:
+   * - Redis connection errors: exponential backoff + circuit breaker
+   * - Event processing errors: handled individually, don't affect consumer loop
    */
   private async consumeLoop(): Promise<void> {
     const redis = this.redisProvider.getClient();
-    let errorCount = 0;
-    const MAX_BACKOFF_MS = 30000; // 30 seconds max backoff
+    let consecutiveErrors = 0;
 
     this.logger.log('Consumer loop started');
 
@@ -198,6 +202,9 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
           '>',
         );
 
+        // Reset consecutive error count on successful Redis read
+        consecutiveErrors = 0;
+
         // Process messages if any were received
         if (messages && messages.length > 0) {
           for (const [stream, entries] of messages) {
@@ -206,26 +213,53 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
             );
 
             for (const [streamId, fields] of entries) {
-              // Parse event from Redis stream fields
-              // Fields format: ['event', '<json>']
-              const eventJson = fields[1];
-              const event = JSON.parse(eventJson) as BaseEvent;
+              // Process each event in its own try-catch to isolate failures
+              try {
+                // Parse event from Redis stream fields
+                // Fields format: ['event', '<json>']
+                const eventJson = fields[1];
+                const event = JSON.parse(eventJson) as BaseEvent;
 
-              await this.processEvent(streamId, event);
+                await this.processEvent(streamId, event);
+              } catch (eventError) {
+                // Log individual event processing errors but don't affect consumer loop
+                this.logger.error({
+                  message: 'Failed to process event',
+                  streamId,
+                  error: eventError instanceof Error ? eventError.message : String(eventError),
+                  stack: eventError instanceof Error ? eventError.stack : undefined,
+                });
+              }
             }
           }
         }
-
-        // Reset error count on successful iteration
-        errorCount = 0;
       } catch (error) {
-        errorCount++;
-        const backoffMs = Math.min(1000 * Math.pow(2, errorCount), MAX_BACKOFF_MS);
-
-        this.logger.error(
-          `Error in consumer loop (attempt ${errorCount}), backing off for ${backoffMs}ms`,
-          error instanceof Error ? error.stack : undefined,
+        // This catch block handles Redis connection errors only
+        consecutiveErrors++;
+        const backoffMs = Math.min(
+          1000 * Math.pow(2, consecutiveErrors),
+          ERROR_HANDLING_CONFIG.MAX_BACKOFF_MS,
         );
+
+        this.logger.error({
+          message: 'Redis consumer error',
+          consecutiveErrors,
+          maxErrors: ERROR_HANDLING_CONFIG.MAX_CONSECUTIVE_ERRORS,
+          backoffMs,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+
+        // Circuit breaker: stop consumer if too many consecutive errors
+        if (consecutiveErrors >= ERROR_HANDLING_CONFIG.MAX_CONSECUTIVE_ERRORS) {
+          this.logger.fatal({
+            message: 'Consumer loop circuit breaker tripped - too many consecutive Redis errors',
+            consecutiveErrors,
+            action: 'Stopping consumer loop. Health check will fail. Manual intervention required.',
+          });
+          this.running = false;
+          break;
+        }
 
         // Exponential backoff on error to avoid busy-looping and resource exhaustion
         await this.sleep(backoffMs);
@@ -266,6 +300,9 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
       `Processing event ${event.id} (type: ${event.type}) with ${matchingHandlers.length} handler(s)`,
     );
 
+    // Update status to PROCESSING once before executing handlers (avoid race condition)
+    await this.updateEventStatus(event.id, 'PROCESSING');
+
     // Track if at least one handler succeeded
     let anyHandlerSucceeded = false;
     const errors: Array<{ handler: EventHandlerInfo; error: Error }> = [];
@@ -276,7 +313,6 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
           `Executing handler: ${handler.instanceRef.constructor.name}.${handler.methodName} (priority: ${handler.priority})`,
         );
 
-        await this.updateEventStatus(event.id, 'PROCESSING');
         await handler.execute(event);
 
         anyHandlerSucceeded = true;
@@ -370,7 +406,7 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Update event status in EventMetadata
+   * Update event status in EventMetadata with retry logic
    *
    * @param eventId - The event ID
    * @param status - The new status
@@ -381,21 +417,46 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
     status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'DLQ',
     error?: string,
   ): Promise<void> {
-    try {
-      await this.prisma.eventMetadata.update({
-        where: { eventId },
-        data: {
-          status,
-          lastError: error,
-          processedAt: status === 'COMPLETED' ? new Date() : undefined,
-        },
-      });
-    } catch (err) {
-      // Log but don't throw - metadata update failure shouldn't break event processing
-      this.logger.error(
-        `Failed to update event status for eventId ${eventId}`,
-        err,
-      );
+    for (let attempt = 1; attempt <= ERROR_HANDLING_CONFIG.METADATA_MAX_RETRIES; attempt++) {
+      try {
+        await this.prisma.eventMetadata.update({
+          where: { eventId },
+          data: {
+            status,
+            lastError: error,
+            processedAt: status === 'COMPLETED' ? new Date() : undefined,
+          },
+        });
+        return; // Success, exit the retry loop
+      } catch (err) {
+        const isLastAttempt = attempt === ERROR_HANDLING_CONFIG.METADATA_MAX_RETRIES;
+
+        if (isLastAttempt) {
+          // Log but don't throw - metadata update failure shouldn't break event processing
+          // But log at error level since all retries failed
+          this.logger.error({
+            message: 'Failed to update event status after all retries',
+            eventId,
+            targetStatus: status,
+            attempts: attempt,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        } else {
+          // Log at warn level for intermediate failures
+          this.logger.warn({
+            message: 'Retrying event status update',
+            eventId,
+            targetStatus: status,
+            attempt,
+            maxRetries: ERROR_HANDLING_CONFIG.METADATA_MAX_RETRIES,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          // Wait before retrying with exponential backoff
+          await this.sleep(
+            ERROR_HANDLING_CONFIG.METADATA_RETRY_DELAY_MS * Math.pow(2, attempt - 1),
+          );
+        }
+      }
     }
   }
 

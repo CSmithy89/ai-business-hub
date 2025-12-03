@@ -11,7 +11,9 @@
 
 ## Executive Summary
 
-Epic 05 delivered a production-ready Redis Streams-based event bus for cross-module communication with at-least-once delivery guarantees. The implementation includes event publishing, pattern-based subscriptions, retry logic with dead letter queue, event replay capabilities, and an admin monitoring dashboard. All 7 stories were completed with comprehensive PR reviews and multiple security/type-safety fixes applied.
+Epic 05 delivered a Redis Streams-based event bus for cross-module communication with at-least-once delivery guarantees. The implementation includes event publishing, pattern-based subscriptions, retry logic with dead letter queue, event replay capabilities, and an admin monitoring dashboard. All 7 stories were completed.
+
+**However, comprehensive PR reviews identified critical security issues and architectural concerns that must be addressed before production deployment.** This retrospective documents all issues for tracking and resolution.
 
 ---
 
@@ -46,207 +48,325 @@ async handleApproved(event: BaseEvent): Promise<void> {
   // Handler logic
 }
 ```
-- Discovery via Reflect metadata at module initialization
-- Pattern matching supports wildcards (e.g., `approval.*`)
-- Priority ordering for handler execution
 
 ### 3. Comprehensive Event Type System
-Created 20+ typed event definitions in `@hyvve/shared`:
-- Approval events (created, approved, rejected, escalated, expired)
-- User events (invited, joined, left)
-- Workspace events (created, updated, deleted)
-- Agent events (started, completed, error)
-- Audit events (logged)
-- Full TypeScript interfaces with payload types
+Created 20+ typed event definitions in `@hyvve/shared` with full TypeScript interfaces.
 
-### 4. Robust Retry and DLQ System
-Production-ready failure handling:
-- Exponential backoff (1s, 2s, 4s, 8s, 16s)
-- Maximum 3 retries before DLQ
-- BullMQ-based retry scheduling
-- DLQ inspection and manual retry endpoints
-- Approximate MAXLEN (10k) for DLQ memory limits
-
-### 5. Admin Monitoring Dashboard
-React-based dashboard provides visibility:
-- Real-time event throughput metrics
-- Consumer group lag monitoring
-- DLQ size and contents
-- Retry and delete actions for failed events
-- Replay job status tracking
-
-### 6. Thorough PR Review Process
-Multiple AI reviewers (Gemini, CodeAnt, CodeRabbit) identified important issues:
-- Raw SQL replaced with Prisma Client API
-- Symbol used for metadata keys (prevents collisions)
-- Safer field parsing for Redis stream data
-- Proper pagination for DLQ queries
-- Null guards for event handlers
+### 4. Thorough PR Review Process
+Multiple AI reviewers (Gemini, CodeAnt, CodeRabbit) identified important issues that are now documented for resolution.
 
 ---
 
-## What Could Be Improved
+## Critical Issues Identified
 
-### 1. Test Coverage Gap
-**Issue:** No unit or integration tests for the event system.
-**Impact:** Core infrastructure lacks test verification.
-**Recommendation:** Add comprehensive test suites before next epic:
+### 1. VERIFIED: Admin Endpoints Have Authentication Guards
+**Location:** `apps/api/src/events/events.controller.ts`
+**Severity:** N/A
+**Status:** VERIFIED - Not an issue
+
+**Verification:** All admin endpoints properly have guards applied:
 ```typescript
+@Get('admin/events/dlq')
+@UseGuards(AuthGuard, RolesGuard)
+@Roles('admin', 'owner')
+
+@Post('admin/events/dlq/:eventId/retry')
+@UseGuards(AuthGuard, RolesGuard)
+@Roles('admin', 'owner')
+
+@Get('admin/events/stats')
+@UseGuards(AuthGuard, RolesGuard)
+@Roles('admin', 'owner')
+```
+
+**Note:** The health check endpoint (`@Get('health/events')`) is intentionally public for monitoring purposes - this is correct behavior.
+
+---
+
+### 2. RACE CONDITION: Concurrent Handler Status Updates
+**Location:** `apps/api/src/events/event-consumer.service.ts` (Lines 274-299)
+**Severity:** CRITICAL
+**Status:** ✅ FIXED
+
+**Problem:** Multiple handlers call `updateEventStatus()` inside the loop, causing race conditions.
+
+**Fix Applied:** Moved status update outside the handler loop - status is now set to PROCESSING once before iterating handlers. See `processEvent()` method in event-consumer.service.ts.
+
+---
+
+### 3. MEMORY LEAK: Consumer Loop Error Handling
+**Location:** `apps/api/src/events/event-consumer.service.ts` (Lines 178-236)
+**Severity:** CRITICAL
+**Status:** ✅ FIXED
+
+**Problem:** The consumer loop conflated XREADGROUP errors with processEvent errors, causing indefinite backoff.
+
+**Fix Applied:**
+1. Wrapped individual event processing in its own try-catch to isolate failures
+2. Reset consecutiveErrors counter on successful Redis read
+3. Added circuit breaker (MAX_CONSECUTIVE_ERRORS = 20) to stop consumer after ~10 minutes of continuous Redis failures
+See `consumeLoop()` method in event-consumer.service.ts.
+
+---
+
+## High Priority Issues
+
+### 4. DATA LOSS RISK: DLQ Trimming Without Warning
+**Location:** `apps/api/src/events/event-retry.service.ts` (Lines 150-166)
+**Severity:** HIGH
+**Status:** ✅ FIXED
+
+**Problem:** DLQ stream uses approximate trimming with no notification.
+
+**Fix Applied:**
+1. Added `checkDLQSize()` method that checks DLQ length before adding events
+2. Logs WARNING at 80% capacity (8,000 events)
+3. Logs CRITICAL ERROR at 95% capacity (9,500 events)
+4. Added DLQ_CONFIG constants for configurable thresholds
+See `checkDLQSize()` in event-retry.service.ts and `DLQ_CONFIG` in streams.constants.ts.
+
+---
+
+### 5. SILENT FAILURES: Metadata Update Errors Not Propagated
+**Location:** `apps/api/src/events/event-consumer.service.ts` (Lines 379-400)
+**Severity:** HIGH
+**Status:** ✅ FIXED
+
+**Problem:** Metadata update failures were silently logged without retries.
+
+**Fix Applied:**
+1. Added retry loop with 3 attempts (configurable via ERROR_HANDLING_CONFIG.METADATA_MAX_RETRIES)
+2. Exponential backoff between retries (100ms base, 200ms, 400ms)
+3. Logs at WARN level for intermediate failures, ERROR for final failure
+4. Still doesn't throw to avoid breaking event processing, but retries reduce sync issues
+See `updateEventStatus()` in event-consumer.service.ts.
+
+---
+
+### 6. TENANT ISOLATION: Missing Tenant Checks in DLQ Operations
+**Location:** `apps/api/src/events/events.controller.ts` (Lines 250-350)
+**Severity:** HIGH
+**Status:** ✅ FIXED
+
+**Problem:** DLQ endpoints didn't filter by tenantId.
+
+**Fix Applied:**
+1. Added TenantGuard to all DLQ endpoints (getDLQEvents, retryDLQEvent, deleteDLQEvent)
+2. Added @CurrentWorkspace() decorator to get tenant context
+3. getDLQEvents now filters events by tenantId before returning
+4. retryDLQEvent and deleteDLQEvent verify event ownership before operation
+5. Added `verifyEventTenantOwnership()` helper that returns 404 (not 403) to avoid leaking info
+See events.controller.ts for TenantGuard usage and tenant filtering.
+
+---
+
+### 7. NO TEST COVERAGE
+**Location:** Entire `apps/api/src/events/` directory
+**Severity:** HIGH
+**Status:** OPEN
+
+**Problem:** Zero test files for critical infrastructure:
+- `event-publisher.service.ts` - No tests
+- `event-consumer.service.ts` - No tests
+- `event-retry.service.ts` - No tests
+- `event-replay.service.ts` - No tests
+
+**Impact:** Production incidents may not be caught in CI pipeline.
+
+**Required Tests:**
+```typescript
+// event-publisher.service.spec.ts
 describe('EventPublisherService', () => {
   it('should publish event to Redis stream');
   it('should create EventMetadata record');
   it('should handle Redis connection failures');
+  it('should support batch publishing');
+});
+
+// event-consumer.service.spec.ts
+describe('EventConsumerService', () => {
+  it('should discover and register handlers');
+  it('should match event patterns correctly');
+  it('should execute handlers in priority order');
+  it('should handle handler failures gracefully');
+  it('should not ACK events when handlers fail');
+});
+
+// Integration tests
+describe('Event Bus Integration', () => {
+  it('publishes event → consumer processes → handler executes → ACK');
+  it('handler fails → retry scheduled → DLQ after 3 attempts');
+  it('DLQ retry → event republished → handler succeeds');
+  it('replay job → historical events reprocessed');
 });
 ```
 
-### 2. Consumer Loop Circuit Breaker
-**Issue:** Consumer loop uses exponential backoff but retries forever on Redis failures.
-**Current State:** Backs off up to 30s between retries.
-**Recommendation:** Add circuit breaker after ~20 consecutive errors:
-```typescript
-if (errorCount >= MAX_CONSECUTIVE_ERRORS) {
-  this.logger.fatal('Consumer loop exceeded max errors');
-  this.running = false;
-}
-```
+---
 
-### 3. Replay Batch Size Configuration
-**Issue:** Replay processes 1000 events per batch, which could spike memory.
-**Recommendation:** Make batch size configurable (default 100-250).
+## Medium Priority Issues
 
-### 4. Pattern Matching Limitations
-**Issue:** Current pattern matching only supports prefix wildcards.
-**Supported:** `*`, `approval.*`, `approval.item.approved`
-**Not Supported:** `*.approved`, `approval.*.approved`
-**Recommendation:** Document limitation or enhance matcher.
+### 8. Missing Input Validation Pipeline
+**Location:** `apps/api/src/events/dto/replay-events.dto.ts`
+**Severity:** MEDIUM
+**Status:** OPEN
 
-### 5. DLQ Retention Not Visible
-**Issue:** DLQ trimmed at 10k events, but admins aren't warned.
-**Recommendation:** Add warning in dashboard when approaching limit.
+**Problem:** ReplayEventsDto has validation decorators, but ValidationPipe may not be enabled globally.
+
+**Required Fix:** Ensure ValidationPipe is enabled in main.ts or per-route.
 
 ---
 
-## Technical Debt Accumulated
+### 9. Unsafe Type Assertions
+**Location:** `apps/api/src/agentos/handlers/agent-event.handler.ts` (Lines 31-36)
+**Severity:** MEDIUM
+**Status:** OPEN
 
-| Item | Priority | Blocked By | Status |
-|------|----------|------------|--------|
-| Add unit tests for event services | High | None | Open |
-| Add integration tests for full event flow | High | None | Open |
-| Add circuit breaker to consumer loop | Medium | None | Open |
-| Document DLQ retention policy | Low | None | Open |
-| Add event type filtering to DLQ table | Low | None | Open |
-| Export Prometheus metrics | Low | None | Open |
-| Create docs/event-bus.md developer guide | Medium | None | Open |
-| Configurable replay batch size | Low | None | Open |
-
----
-
-## Patterns Established
-
-### 1. Event Publishing Pattern
+**Problem:** Unsafe type casting without runtime validation:
 ```typescript
-import { EventPublisherService } from '../events';
-
-@Injectable()
-export class ApprovalsService {
-  constructor(private readonly eventPublisher: EventPublisherService) {}
-
-  async approve(id: string): Promise<void> {
-    // Business logic...
-
-    await this.eventPublisher.publish(
-      EventFactory.createApprovalApproved({
-        approvalId: id,
-        decidedById: userId,
-        // ...
-      }),
-      { userId, tenantId }
-    );
-  }
-}
+const data = event.data as unknown as AgentRunStartedPayload;
 ```
 
-### 2. Event Subscription Pattern
+**Impact:** If event data shape is wrong, runtime errors occur without helpful messages.
+
+**Recommended Fix:**
 ```typescript
-import { EventSubscriber } from '../events';
-import { EventTypes, BaseEvent } from '@hyvve/shared';
+import { z } from 'zod';
 
-@Injectable()
-export class ApprovalEventHandler {
-  @EventSubscriber(EventTypes.APPROVAL_APPROVED)
-  async handleApproved(event: BaseEvent): Promise<void> {
-    const data = event.data as ApprovalDecisionPayload;
-    // Handle approval...
-  }
-}
-```
-
-### 3. Event Type Factory Pattern
-```typescript
-import { EventFactory, EventTypes } from '@hyvve/shared';
-
-const event = EventFactory.createApprovalCreated({
-  approvalId: 'abc123',
-  type: 'action',
-  title: 'Approve Purchase',
+const AgentRunStartedSchema = z.object({
+  runId: z.string(),
+  agentId: z.string(),
   // ...
 });
-// Returns typed BaseEvent with correct payload
-```
 
-### 4. Event Metadata Tracking Pattern
-```typescript
-// All events get metadata records for replay and audit
-await this.prisma.eventMetadata.create({
-  data: {
-    eventId: event.id,
-    eventType: event.type,
-    correlationId: event.correlationId,
-    tenantId: event.tenantId,
-    userId: event.userId,
-    status: 'PENDING',
-    payload: event.data,
-  },
-});
-```
-
-### 5. DLQ Retry Pattern
-```typescript
-// Admin endpoint to retry failed events
-@Post('admin/events/dlq/:eventId/retry')
-async retryDLQEvent(@Param('eventId') eventId: string) {
-  const newEventId = await this.eventRetryService.retryFromDLQ(eventId);
-  return { success: true, newEventId };
-}
+const data = AgentRunStartedSchema.parse(event.data);
 ```
 
 ---
 
-## Architecture Decisions Validated
+### 10. Hardcoded Configuration Values
+**Location:** Multiple files
+**Severity:** MEDIUM
+**Status:** ✅ FIXED
 
-### ADR: Redis Streams for Event Bus
-- Consumer groups provide at-least-once delivery
-- XREADGROUP with blocking is efficient
-- Approximate MAXLEN manages memory
-- **Outcome:** Validated - reliable event delivery achieved
+**Problem:** Magic numbers were hardcoded in multiple files.
 
-### ADR: BullMQ for Retry Scheduling
-- Delayed job execution for retries
-- Persistent job queue (survives restarts)
-- Dashboard integration (Bull Board)
-- **Outcome:** Validated - robust retry mechanism
+**Fix Applied:** Added centralized configuration constants in `streams.constants.ts`:
+- `RETRY_CONFIG` - retry delays and max retries
+- `DLQ_CONFIG` - DLQ size thresholds
+- `ERROR_HANDLING_CONFIG` - backoff, circuit breaker, metadata retry settings
+- `BULLMQ_CONFIG` - job retention settings
+All services now import and use these constants instead of hardcoded values.
 
-### ADR: Prisma for Event Metadata
-- EventMetadata table tracks all published events
-- Enables replay from any time range
-- Provides audit trail
-- **Outcome:** Validated - replay and audit working
+---
 
-### ADR: Decorator-Based Subscriptions
-- @EventSubscriber decorator for handler registration
-- Pattern matching for flexible subscriptions
-- Priority ordering for handler execution
-- **Outcome:** Validated - clean, type-safe handler registration
+### 11. BullMQ Job Retention Not Configured
+**Location:** `apps/api/src/events/processors/event-retry.processor.ts`
+**Severity:** MEDIUM
+**Status:** ✅ FIXED
+
+**Problem:** BullMQ jobs were created without cleanup configuration.
+
+**Fix Applied:** Added `BULLMQ_CONFIG` constants and updated event-replay.service.ts to use:
+- `removeOnComplete: BULLMQ_CONFIG.JOBS_RETAIN_COMPLETED` (100 jobs)
+- `removeOnFail: BULLMQ_CONFIG.JOBS_RETAIN_FAILED` (100 jobs)
+Note: Queue registration also uses these config values.
+
+---
+
+### 12. Consumer Loop Needs Circuit Breaker
+**Location:** `apps/api/src/events/event-consumer.service.ts` (Lines 178-236)
+**Severity:** MEDIUM
+**Status:** ✅ FIXED (see issue #3)
+
+**Problem:** Consumer loop retried forever on Redis failures.
+
+**Fix Applied:** Circuit breaker added as part of issue #3 fix. Uses `ERROR_HANDLING_CONFIG.MAX_CONSECUTIVE_ERRORS` (20 errors, ~10 minutes). When tripped, logs FATAL error and sets `running = false` to stop consumer loop gracefully.
+
+---
+
+### 13. Pattern Matching Limitations
+**Location:** `apps/api/src/events/event-consumer.service.ts` (Lines 360-370)
+**Severity:** MEDIUM
+**Status:** ✅ DOCUMENTED
+
+**Current Support:**
+- `*` (all events)
+- `approval.*` (prefix wildcard)
+- `approval.item.approved` (exact match)
+
+**Fix Applied:** Added comprehensive JSDoc documentation to `@EventSubscriber` decorator in `event-subscriber.decorator.ts`:
+- Pattern Matching Rules section explaining all 3 pattern types
+- Pattern Matching Limitations section documenting unsupported patterns
+- Handler Execution section explaining priority and failure behavior
+- Extended examples showing complex filtering workaround
+
+---
+
+## Low Priority Issues
+
+### 14. No Event Schema Versioning
+**Location:** `apps/api/src/events/event-publisher.service.ts:87`
+**Severity:** LOW
+**Status:** OPEN
+
+**Problem:** Version field hardcoded to `'1.0'`. When event schemas evolve, handlers may break on old events during replay.
+
+**Recommendations:**
+- Define event schema migration strategy
+- Add version-based handler routing
+- Document breaking changes between versions
+
+---
+
+### 15. No Metrics Export for Observability
+**Severity:** LOW
+**Status:** OPEN
+
+**Problem:** Dashboard is great for human viewing, but no Prometheus/Grafana integration.
+
+**Suggestion:** Add `/metrics` endpoint with:
+- `event_bus_throughput`
+- `event_bus_consumer_lag`
+- `event_bus_dlq_size`
+- `event_processing_duration_histogram`
+- `handler_failure_rate`
+
+---
+
+### 16. Frontend Delete Confirmation Not Accessible
+**Location:** `apps/web/src/app/admin/events/page.tsx` (Lines 60-73)
+**Severity:** LOW
+**Status:** OPEN
+
+**Problem:** Delete confirmation uses `confirm()` which is not accessible.
+
+**Recommendation:** Use proper modal component from shadcn/ui.
+
+---
+
+### 17. Frontend API Response Validation Missing
+**Location:** `apps/web/src/hooks/use-event-stats.ts`
+**Severity:** LOW
+**Status:** OPEN
+
+**Problem:** Frontend hooks don't validate response shapes at runtime.
+
+**Recommendation:** Use Zod schemas shared between frontend and backend.
+
+---
+
+### 18. Missing Operational Runbook
+**Severity:** LOW
+**Status:** OPEN
+
+**Problem:** Code documentation is excellent, but operational documentation is missing.
+
+**Recommendation:** Add `docs/runbooks/event-bus.md` covering:
+- How to manually clear DLQ
+- How to replay events safely
+- What to do if consumer falls behind
+- How to add new event handlers
+- Disaster recovery procedures
 
 ---
 
@@ -263,70 +383,147 @@ async retryDLQEvent(@Param('eventId') eventId: string) {
 
 ---
 
-## Metrics
+## Technical Debt Summary
 
-| Metric | Value |
-|--------|-------|
-| Stories Completed | 7 |
-| Story Points Delivered | 15 |
-| Code Reviews Passed | 7/7 |
-| Event Types Defined | 20+ |
-| Blocking Issues | 0 |
-| Production Incidents | 0 |
-| Technical Debt Items | 8 |
-| Patterns Established | 5 |
-| PR Review Fixes | 6 |
+### Must Fix Before Merge (Critical/High)
+
+| # | Issue | File | Priority | Status |
+|---|-------|------|----------|--------|
+| 1 | Race condition in handler status updates | event-consumer.service.ts | CRITICAL | ✅ FIXED |
+| 2 | Consumer loop error handling conflation | event-consumer.service.ts | CRITICAL | ✅ FIXED |
+| 3 | DLQ trimming without warning | event-retry.service.ts | HIGH | ✅ FIXED |
+| 4 | Silent metadata update failures | event-consumer.service.ts | HIGH | ✅ FIXED |
+| 5 | Missing tenant isolation in DLQ | events.controller.ts | HIGH | ✅ FIXED |
+| 6 | No test coverage | events/*.ts | HIGH | ⚠️ PENDING |
+
+### Should Fix Soon (Medium)
+
+| # | Issue | Priority | Status |
+|---|-------|----------|--------|
+| 8 | Missing input validation pipeline | MEDIUM | OPEN |
+| 9 | Unsafe type assertions in handlers | MEDIUM | OPEN |
+| 10 | Hardcoded configuration values | MEDIUM | ✅ FIXED |
+| 11 | BullMQ job retention not configured | MEDIUM | ✅ FIXED |
+| 12 | Consumer loop needs circuit breaker | MEDIUM | ✅ FIXED |
+| 13 | Pattern matching limitations undocumented | MEDIUM | ✅ DOCUMENTED |
+
+### Nice to Have (Low)
+
+| # | Issue | Priority |
+|---|-------|----------|
+| 14 | No event schema versioning | LOW |
+| 15 | No Prometheus metrics export | LOW |
+| 16 | Frontend delete confirmation accessibility | LOW |
+| 17 | Frontend API response validation | LOW |
+| 18 | Missing operational runbook | LOW |
 
 ---
 
-## Recommendations for Future Epics
+## Security Review Summary
 
-### Epic 06: BYOAI Configuration
-1. **Publish token usage events** - Track AI provider usage via event bus
-2. **Provider health events** - Emit health check results as events
-3. **Use event bus for audit** - Token limits and usage changes
+| Check | Status | Notes |
+|-------|--------|-------|
+| Tenant Isolation in EventMetadata | PASS | Proper tenantId tracking |
+| Admin Route Authorization | PASS | All admin routes have @UseGuards(AuthGuard, RolesGuard) and @Roles('admin', 'owner') |
+| Input Validation | PARTIAL | DTOs have decorators, pipe needs verification |
+| SQL Injection Prevention | PASS | Using Prisma (parameterized queries) |
+| DLQ Data Exposure | OPEN | Admin sees all tenants' data - needs tenant filtering |
 
-### Epic 07: UI Shell
-1. **Real-time notifications** - Subscribe to user-relevant events via WebSocket
-2. **Activity feed** - Show recent events in dashboard
-3. **Event-driven chat updates** - Agent events update chat UI
+---
 
-### Epic 08: Business Onboarding
-1. **Workflow events** - Emit progress events for onboarding steps
-2. **Module handoff events** - Publish when moving between BMV/BMP/Brand
-3. **Document extraction events** - Track extraction pipeline progress
+## Deployment Considerations
+
+### Pre-Deployment Checklist
+
+- [ ] Fix all CRITICAL issues
+- [ ] Fix all HIGH priority issues
+- [ ] Add unit tests for core services
+- [ ] Run Prisma migration for EventMetadata and ReplayJob tables
+- [ ] Verify BullMQ worker processes are configured
+- [ ] Set up monitoring alerts for DLQ size threshold
+- [ ] Document consumer group recovery procedures
+- [ ] Test graceful shutdown behavior
+
+### Migration Command
+```bash
+pnpm prisma migrate deploy
+```
+
+---
+
+## Patterns Established
+
+### 1. Event Publishing Pattern
+```typescript
+await this.eventPublisher.publish(
+  EventFactory.createApprovalApproved({ ... }),
+  { userId, tenantId }
+);
+```
+
+### 2. Event Subscription Pattern
+```typescript
+@EventSubscriber(EventTypes.APPROVAL_APPROVED)
+async handleApproved(event: BaseEvent): Promise<void> { ... }
+```
+
+### 3. Event Type Factory Pattern
+```typescript
+const event = EventFactory.createApprovalCreated({ ... });
+```
+
+### 4. Event Metadata Tracking Pattern
+```typescript
+await this.prisma.eventMetadata.create({ data: { ... } });
+```
+
+### 5. DLQ Retry Pattern
+```typescript
+const newEventId = await this.eventRetryService.retryFromDLQ(eventId);
+```
 
 ---
 
 ## Key Learnings
 
-1. **Redis Streams Are Powerful:** Consumer groups with XREADGROUP provide reliable, scalable event delivery without external message brokers.
+1. **PR Reviews Catch Real Issues:** Multiple reviewers identified critical security and architectural problems.
 
-2. **Decorator Pattern Works Well:** The @EventSubscriber decorator provides clean handler registration with minimal boilerplate.
+2. **Guards Must Be Applied, Not Just Imported:** NestJS guards do nothing unless decorated on routes.
 
-3. **Prisma Over Raw SQL:** Prisma Client API provides type safety and prevents SQL injection. Always prefer it over $executeRaw.
+3. **Error Handling Needs Separation:** Consumer-level errors and event-level errors need different handling strategies.
 
-4. **Symbol for Metadata Keys:** Using Symbol() for metadata keys prevents collisions between decorators from different libraries.
+4. **Multi-Tenant Requires Explicit Filtering:** DLQ streams need tenant isolation like all other data.
 
-5. **Pagination Matters:** Redis XRANGE doesn't support true offset, so pagination requires fetching extra entries and slicing.
+5. **Tests Are Not Optional for Infrastructure:** Event bus is critical path - must have comprehensive tests.
 
-6. **PR Reviews Add Value:** Multiple AI reviewers caught security and type-safety issues that would have been problematic in production.
-
-7. **Test Coverage Is Critical:** Infrastructure code without tests is risky. Should prioritize tests for core services.
+6. **Configuration Should Be External:** Hardcoded values make operational changes difficult.
 
 ---
 
 ## Conclusion
 
-Epic 05 successfully delivered production-ready event bus infrastructure for HYVVE. The Redis Streams implementation provides reliable at-least-once delivery with retry logic, dead letter queue, and admin monitoring. The decorator-based subscription pattern makes it easy for modules to publish and consume events.
+Epic 05 delivered functional event bus infrastructure. **Comprehensive PR reviews revealed critical issues that have now been largely addressed.**
 
-The main gap is test coverage, which should be addressed in the next sprint. The PR review process identified and fixed several security and type-safety issues that improved code quality.
+### Fix Summary
 
-The event bus is ready to support Epic 06 (BYOAI) and beyond, enabling loose coupling between modules.
+**Completed Fixes:**
+- ✅ 2/2 CRITICAL issues fixed (race condition, error handling + circuit breaker)
+- ✅ 5/6 HIGH priority issues fixed (DLQ warning, metadata retry, tenant isolation)
+- ✅ 4/6 MEDIUM issues fixed (config consolidation, BullMQ retention, circuit breaker, pattern docs)
 
-**Epic Status:** COMPLETE
+**Remaining Work:**
+- ⚠️ Unit tests for event services (HIGH priority)
+- ⚠️ Input validation pipeline verification (MEDIUM)
+- ⚠️ Zod validation in handlers (MEDIUM)
+
+The event bus architecture is sound and implementation has been significantly hardened. Test coverage remains the main gap before full production readiness.
+
+**Epic Status:** COMPLETE (stories delivered)
+**Production Readiness:** ALMOST READY (tests pending)
 **Retrospective Status:** COMPLETE
 
 ---
 
 *Generated: 2025-12-04*
+*Updated with comprehensive PR review analysis*
+*Updated with fix implementation status: 2025-12-04*

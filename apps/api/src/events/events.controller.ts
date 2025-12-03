@@ -23,7 +23,9 @@ import { EventReplayService } from './event-replay.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { TenantGuard } from '../common/guards/tenant.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentWorkspace } from '../common/decorators/current-workspace.decorator';
 import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
 import { PaginationDto } from './dto/pagination.dto';
 import { ReplayEventsDto } from './dto/replay-events.dto';
@@ -233,13 +235,13 @@ export class EventsController {
    * @returns List of DLQ events with metadata
    */
   @Get('admin/events/dlq')
-  @UseGuards(AuthGuard, RolesGuard)
+  @UseGuards(AuthGuard, TenantGuard, RolesGuard)
   @Roles('admin', 'owner')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get dead letter queue events' })
+  @ApiOperation({ summary: 'Get dead letter queue events for current workspace' })
   @ApiResponse({
     status: 200,
-    description: 'List of DLQ events',
+    description: 'List of DLQ events filtered by tenant',
     schema: {
       type: 'object',
       properties: {
@@ -263,37 +265,23 @@ export class EventsController {
       },
     },
   })
-  async getDLQEvents(@Query() query: PaginationDto) {
+  async getDLQEvents(
+    @Query() query: PaginationDto,
+    @CurrentWorkspace() workspaceId: string,
+  ) {
     const redis = this.redisProvider.getClient();
 
     try {
       const limit = query.limit ?? 50;
       const page = query.page ?? 1;
 
-      // Get total count first
-      const total = await redis.xlen(STREAMS.DLQ);
+      // Fetch all DLQ events (we filter by tenant, so can't pre-paginate efficiently)
+      // Note: For large DLQs, consider adding tenant-specific DLQ streams in future
+      const allEvents = await redis.xrange(STREAMS.DLQ, '-', '+');
 
-      // For cursor-based pagination, we need to skip (page-1)*limit entries
-      // We fetch entries and skip the first (page-1)*limit to simulate offset
-      const skipCount = (page - 1) * limit;
-
-      // Fetch more entries than needed to handle pagination
-      const fetchCount = skipCount + limit;
-
-      const allEvents = await redis.xrange(
-        STREAMS.DLQ,
-        '-',
-        '+',
-        'COUNT',
-        fetchCount,
-      );
-
-      // Slice to get the correct page
-      const pageEvents = allEvents.slice(skipCount, skipCount + limit);
-
-      // Parse Redis stream fields safely
-      const parsedEvents: ParsedDLQEvent[] = [];
-      for (const [id, fields] of pageEvents as [string, string[]][]) {
+      // Parse and filter by tenant
+      const tenantEvents: ParsedDLQEvent[] = [];
+      for (const [id, fields] of allEvents as [string, string[]][]) {
         try {
           // Convert flat field array to key-value map
           const fieldMap: Record<string, string> = {};
@@ -301,9 +289,14 @@ export class EventsController {
             fieldMap[fields[i]] = fields[i + 1];
           }
 
-          const event = JSON.parse(fieldMap.event || '{}');
+          const event = JSON.parse(fieldMap.event || '{}') as BaseEvent;
 
-          parsedEvents.push({
+          // Filter by tenant (workspaceId)
+          if (event.tenantId !== workspaceId) {
+            continue;
+          }
+
+          tenantEvents.push({
             streamId: id,
             event,
             error: fieldMap.error || null,
@@ -316,8 +309,13 @@ export class EventsController {
         }
       }
 
+      // Apply pagination to filtered results
+      const total = tenantEvents.length;
+      const skipCount = (page - 1) * limit;
+      const paginatedEvents = tenantEvents.slice(skipCount, skipCount + limit);
+
       return {
-        events: parsedEvents,
+        events: paginatedEvents,
         total,
         page,
         limit,
@@ -339,10 +337,10 @@ export class EventsController {
    * @returns Success response with new event ID
    */
   @Post('admin/events/dlq/:eventId/retry')
-  @UseGuards(AuthGuard, RolesGuard)
+  @UseGuards(AuthGuard, TenantGuard, RolesGuard)
   @Roles('admin', 'owner')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Retry an event from DLQ' })
+  @ApiOperation({ summary: 'Retry an event from DLQ (tenant-scoped)' })
   @ApiResponse({
     status: 200,
     description: 'Event moved back to main stream',
@@ -359,8 +357,14 @@ export class EventsController {
     status: 404,
     description: 'Event not found in DLQ',
   })
-  async retryDLQEvent(@Param('eventId') eventId: string) {
+  async retryDLQEvent(
+    @Param('eventId') eventId: string,
+    @CurrentWorkspace() workspaceId: string,
+  ) {
     try {
+      // Verify event belongs to current tenant before retrying
+      await this.verifyEventTenantOwnership(eventId, workspaceId);
+
       const newEventId = await this.eventRetryService.retryFromDLQ(eventId);
       return {
         success: true,
@@ -387,10 +391,10 @@ export class EventsController {
    * @returns Success response
    */
   @Delete('admin/events/dlq/:eventId')
-  @UseGuards(AuthGuard, RolesGuard)
+  @UseGuards(AuthGuard, TenantGuard, RolesGuard)
   @Roles('admin', 'owner')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Permanently delete an event from DLQ' })
+  @ApiOperation({ summary: 'Permanently delete an event from DLQ (tenant-scoped)' })
   @ApiResponse({
     status: 200,
     description: 'Event deleted from DLQ',
@@ -405,10 +409,16 @@ export class EventsController {
     status: 404,
     description: 'Event not found in DLQ',
   })
-  async deleteDLQEvent(@Param('eventId') eventId: string) {
+  async deleteDLQEvent(
+    @Param('eventId') eventId: string,
+    @CurrentWorkspace() workspaceId: string,
+  ) {
     const redis = this.redisProvider.getClient();
 
     try {
+      // Verify event belongs to current tenant before deleting
+      await this.verifyEventTenantOwnership(eventId, workspaceId);
+
       // Find event in DLQ stream
       const events = await redis.xrange(STREAMS.DLQ, '-', '+');
       const eventEntry = events.find(([_, fields]: [string, string[]]) => {
@@ -444,6 +454,7 @@ export class EventsController {
       this.logger.log({
         message: 'Event deleted from DLQ',
         eventId,
+        tenantId: workspaceId,
       });
 
       return { success: true };
@@ -453,6 +464,37 @@ export class EventsController {
       }
       this.logger.error('Error deleting event from DLQ', error);
       throw error;
+    }
+  }
+
+  /**
+   * Verify that an event belongs to the current tenant
+   *
+   * Checks EventMetadata to ensure the event's tenantId matches
+   * the current workspace context.
+   *
+   * @param eventId - The event ID to verify
+   * @param workspaceId - The current workspace (tenant) ID
+   * @throws NotFoundException if event not found
+   * @throws ForbiddenException if event belongs to different tenant
+   */
+  private async verifyEventTenantOwnership(
+    eventId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    const metadata = await this.prisma.eventMetadata.findUnique({
+      where: { eventId },
+      select: { tenantId: true },
+    });
+
+    if (!metadata) {
+      throw new NotFoundException(`Event ${eventId} not found`);
+    }
+
+    if (metadata.tenantId !== workspaceId) {
+      throw new NotFoundException(`Event ${eventId} not found in DLQ`);
+      // Note: We throw NotFoundException instead of ForbiddenException
+      // to avoid leaking information about events from other tenants
     }
   }
 

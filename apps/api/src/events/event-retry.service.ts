@@ -5,7 +5,12 @@ import { createId } from '@paralleldrive/cuid2';
 import { BaseEvent } from '@hyvve/shared';
 import { RedisProvider } from './redis.provider';
 import { PrismaService } from '../common/services/prisma.service';
-import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
+import {
+  STREAMS,
+  CONSUMER_GROUP,
+  RETRY_CONFIG,
+  DLQ_CONFIG,
+} from './constants/streams.constants';
 
 /**
  * EventRetryService
@@ -24,17 +29,6 @@ import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
 @Injectable()
 export class EventRetryService {
   private readonly logger = new Logger(EventRetryService.name);
-
-  /**
-   * Retry delay schedule: exponential backoff
-   * - 1st retry: 1 minute (60,000ms)
-   * - 2nd retry: 5 minutes (300,000ms)
-   * - 3rd retry: 30 minutes (1,800,000ms)
-   */
-  private readonly RETRY_DELAYS = [60_000, 300_000, 1_800_000]; // 1m, 5m, 30m
-
-  /** Maximum number of retry attempts before moving to DLQ */
-  private readonly MAX_RETRIES = 3;
 
   constructor(
     @InjectQueue('event-retry') private retryQueue: Queue,
@@ -74,7 +68,7 @@ export class EventRetryService {
       });
 
       // Check if max retries reached (check the incremented attempt)
-      if (nextAttempt >= this.MAX_RETRIES) {
+      if (nextAttempt >= RETRY_CONFIG.MAX_RETRIES) {
         this.logger.warn({
           message: 'Max retries reached, moving to DLQ',
           eventId: event.id,
@@ -88,7 +82,8 @@ export class EventRetryService {
 
       // Calculate delay for next retry
       const delay =
-        this.RETRY_DELAYS[currentAttempt] ?? this.RETRY_DELAYS[2]; // Default to last delay
+        RETRY_CONFIG.DELAYS_MS[currentAttempt] ??
+        RETRY_CONFIG.DELAYS_MS[RETRY_CONFIG.DELAYS_MS.length - 1]; // Default to last delay
 
       // Schedule delayed retry job
       await this.retryQueue.add(
@@ -127,6 +122,44 @@ export class EventRetryService {
   }
 
   /**
+   * Check DLQ size and log warnings if approaching limits
+   *
+   * @returns Current DLQ size
+   */
+  async checkDLQSize(): Promise<number> {
+    try {
+      const redis = this.redisProvider.getClient();
+      const dlqLength = await redis.xlen(STREAMS.DLQ);
+
+      if (dlqLength >= DLQ_CONFIG.CRITICAL_THRESHOLD) {
+        this.logger.error({
+          message: 'CRITICAL: DLQ approaching maximum capacity',
+          currentSize: dlqLength,
+          maxSize: DLQ_CONFIG.MAX_SIZE,
+          percentFull: Math.round((dlqLength / DLQ_CONFIG.MAX_SIZE) * 100),
+          action: 'Immediate intervention required - oldest events will be dropped when limit is reached',
+        });
+      } else if (dlqLength >= DLQ_CONFIG.WARNING_THRESHOLD) {
+        this.logger.warn({
+          message: 'DLQ size warning - approaching capacity',
+          currentSize: dlqLength,
+          maxSize: DLQ_CONFIG.MAX_SIZE,
+          percentFull: Math.round((dlqLength / DLQ_CONFIG.MAX_SIZE) * 100),
+          action: 'Review and process DLQ events to prevent data loss',
+        });
+      }
+
+      return dlqLength;
+    } catch (err) {
+      this.logger.error({
+        message: 'Failed to check DLQ size',
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return -1;
+    }
+  }
+
+  /**
    * Move event to dead letter queue after max retries
    *
    * Adds event to DLQ Redis Stream with full error context,
@@ -145,13 +178,15 @@ export class EventRetryService {
     try {
       const redis = this.redisProvider.getClient();
 
+      // Check DLQ size and log warnings before adding
+      await this.checkDLQSize();
+
       // Add event to DLQ stream with error context and retention limit
-      // Limit DLQ to last 10,000 failed events to prevent unbounded growth
       await redis.xadd(
         STREAMS.DLQ,
         'MAXLEN',
         '~', // Approximate trimming for performance
-        '10000',
+        String(DLQ_CONFIG.MAX_SIZE),
         '*', // Auto-generate ID
         'event',
         JSON.stringify(event),
@@ -162,7 +197,7 @@ export class EventRetryService {
         'movedAt',
         new Date().toISOString(),
         'attempts',
-        String(this.MAX_RETRIES),
+        String(RETRY_CONFIG.MAX_RETRIES),
       );
 
       // Update EventMetadata status to DLQ
@@ -184,7 +219,7 @@ export class EventRetryService {
         tenantId: event.tenantId,
         error: error.message,
         errorStack: error.stack || 'N/A',
-        attempts: this.MAX_RETRIES,
+        attempts: RETRY_CONFIG.MAX_RETRIES,
         correlationId: event.correlationId,
       });
     } catch (err) {

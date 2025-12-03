@@ -8,7 +8,7 @@ import {
   ReplayJobStartedResponseDto,
   ReplayJobStatusResponseDto,
 } from './dto/replay-events.dto';
-import { QUEUE_EVENT_REPLAY } from './constants/streams.constants';
+import { QUEUE_EVENT_REPLAY, BULLMQ_CONFIG } from './constants/streams.constants';
 
 /**
  * Replay job data stored in Redis
@@ -82,8 +82,8 @@ export class EventReplayService {
 
     await this.replayQueue.add('replay-events', jobData, {
       jobId,
-      removeOnComplete: 100,
-      removeOnFail: 100,
+      removeOnComplete: BULLMQ_CONFIG.JOBS_RETAIN_COMPLETED,
+      removeOnFail: BULLMQ_CONFIG.JOBS_RETAIN_FAILED,
     });
 
     return {

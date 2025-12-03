@@ -63,3 +63,54 @@ export const RETENTION = {
  */
 export const QUEUE_EVENT_RETRY = 'event-retry';
 export const QUEUE_EVENT_REPLAY = 'event-replay';
+
+/**
+ * Retry configuration for failed events
+ */
+export const RETRY_CONFIG = {
+  /**
+   * Retry delay schedule: exponential backoff
+   * - 1st retry: 1 minute (60,000ms)
+   * - 2nd retry: 5 minutes (300,000ms)
+   * - 3rd retry: 30 minutes (1,800,000ms)
+   */
+  DELAYS_MS: [60_000, 300_000, 1_800_000] as const,
+  /** Maximum number of retry attempts before moving to DLQ */
+  MAX_RETRIES: 3,
+} as const;
+
+/**
+ * Dead Letter Queue configuration
+ */
+export const DLQ_CONFIG = {
+  /** Maximum number of events to store in DLQ (older events are trimmed) */
+  MAX_SIZE: 10_000,
+  /** Warning threshold (80% of max) - log warning when reached */
+  WARNING_THRESHOLD: 8_000,
+  /** Critical threshold (95% of max) - log error when reached */
+  CRITICAL_THRESHOLD: 9_500,
+} as const;
+
+/**
+ * Consumer error handling configuration
+ */
+export const ERROR_HANDLING_CONFIG = {
+  /** Maximum backoff delay for Redis errors in milliseconds */
+  MAX_BACKOFF_MS: 30_000,
+  /** Maximum consecutive errors before circuit breaker trips (~10 minutes of errors) */
+  MAX_CONSECUTIVE_ERRORS: 20,
+  /** Base retry delay for metadata updates in milliseconds */
+  METADATA_RETRY_DELAY_MS: 100,
+  /** Maximum retries for metadata updates */
+  METADATA_MAX_RETRIES: 3,
+} as const;
+
+/**
+ * BullMQ job retention configuration
+ */
+export const BULLMQ_CONFIG = {
+  /** Number of completed jobs to retain */
+  JOBS_RETAIN_COMPLETED: 100,
+  /** Number of failed jobs to retain */
+  JOBS_RETAIN_FAILED: 100,
+} as const;
