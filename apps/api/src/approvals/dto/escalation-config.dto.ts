@@ -13,18 +13,18 @@ import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
  */
 export class EscalationConfigDto {
   @IsBoolean()
-  enableEscalation: boolean;
+  enableEscalation!: boolean;
 
   @IsInt()
   @Min(5)
-  escalationCheckIntervalMinutes: number;
+  escalationCheckIntervalMinutes!: number;
 
   @IsOptional()
   @IsString()
   escalationTargetUserId?: string;
 
   @IsBoolean()
-  enableEscalationNotifications: boolean;
+  enableEscalationNotifications!: boolean;
 }
 
 /**

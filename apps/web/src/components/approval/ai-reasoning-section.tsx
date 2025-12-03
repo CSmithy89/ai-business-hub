@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { ConfidenceFactorsList } from './confidence-factors-list'
 import type { ConfidenceFactor } from '@hyvve/shared'
 import { cn } from '@/lib/utils'
-import Link from 'next/link'
 
 interface AIReasoningSectionProps {
   /** Overall confidence score (0-100) */
@@ -135,10 +134,10 @@ export function AIReasoningSection({
                 asChild
                 className="w-full sm:w-auto"
               >
-                <Link href={relatedEntity.url} target="_blank" rel="noopener noreferrer">
+                <a href={relatedEntity.url} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-2 h-4 w-4" />
                   View related {relatedEntity.name}
-                </Link>
+                </a>
               </Button>
             </div>
           )}

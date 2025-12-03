@@ -25,6 +25,9 @@ module.exports = {
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_',
     }],
+    // Disable base rules that conflict with TypeScript
+    'no-unused-vars': 'off',
+    'no-undef': 'off',
     'no-console': 'off',
   },
 };

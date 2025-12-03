@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../common/services/prisma.service'
 import { UpdateModulePermissionsDto } from './dto/update-module-permissions.dto'
 
@@ -33,7 +34,9 @@ export class MembersService {
     const updated = await this.prisma.workspaceMember.update({
       where: { id: memberId },
       data: {
-        modulePermissions: dto.modulePermissions || null,
+        modulePermissions: dto.modulePermissions
+          ? (dto.modulePermissions as unknown as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
       },
       include: {
         user: {

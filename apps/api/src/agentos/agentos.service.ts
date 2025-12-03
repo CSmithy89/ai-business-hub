@@ -12,10 +12,7 @@ import { Observable, throwError, timer } from 'rxjs';
 import { catchError, map, retry, timeout, switchMap } from 'rxjs/operators';
 import { AxiosError, AxiosResponse } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  InvokeAgentDto,
-  AgentInvocationMetadata,
-} from './dto/invoke-agent.dto';
+import { InvokeAgentDto } from './dto/invoke-agent.dto';
 import {
   AgentRunResponse,
   AgentStreamEvent,
@@ -128,6 +125,10 @@ export class AgentOSService {
         )
         .toPromise();
 
+      if (!response) {
+        throw new Error('No response received from agent');
+      }
+
       const duration = Date.now() - startTime;
       this.logger.log(
         `Agent invoked successfully: runId=${response.runId}, duration=${duration}ms, correlationId=${correlationId}`,
@@ -137,7 +138,7 @@ export class AgentOSService {
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error(
-        `Agent invocation failed: agentId=${agentId}, duration=${duration}ms, correlationId=${correlationId}, error=${error.message}`,
+        `Agent invocation failed: agentId=${agentId}, duration=${duration}ms, correlationId=${correlationId}, error=${error instanceof Error ? error.message : String(error)}`,
       );
       throw error;
     }
@@ -189,6 +190,10 @@ export class AgentOSService {
         )
         .toPromise();
 
+      if (!response) {
+        throw new Error('No response received from agent');
+      }
+
       this.logger.log(
         `Agent run retrieved: runId=${runId}, status=${response.status}, correlationId=${correlationId}`,
       );
@@ -196,7 +201,7 @@ export class AgentOSService {
       return response;
     } catch (error) {
       this.logger.error(
-        `Failed to get agent run: runId=${runId}, correlationId=${correlationId}, error=${error.message}`,
+        `Failed to get agent run: runId=${runId}, correlationId=${correlationId}, error=${error instanceof Error ? error.message : String(error)}`,
       );
       throw error;
     }
@@ -257,7 +262,7 @@ export class AgentOSService {
                     }
                   } catch (error) {
                     this.logger.error(
-                      `Failed to parse SSE event: ${error.message}`,
+                      `Failed to parse SSE event: ${error instanceof Error ? error.message : String(error)}`,
                     );
                   }
                 }

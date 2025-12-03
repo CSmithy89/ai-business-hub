@@ -14,7 +14,7 @@ import { Queue } from 'bullmq';
  *
  * Job Configuration:
  * - Job name: 'check-escalations'
- * - Schedule: Every 15 minutes (*/15 * * * *)
+ * - Schedule: Every 15 minutes (cron: 0,15,30,45 * * * *)
  * - Repeat: true
  * - Remove on complete: keep last 10
  * - Remove on fail: keep last 50

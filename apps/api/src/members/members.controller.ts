@@ -137,14 +137,18 @@ export class MembersController {
     )
 
     // Log the permission change using AuditService
+    // Type assertion needed because Prisma includes user but TS can't infer it
+    const memberWithUser = result.member as typeof result.member & {
+      user: { id: string; email: string; name: string | null; image: string | null }
+    }
     await this.auditService.logPermissionOverrideChange({
       workspaceId,
       actorId: actor.id,
       targetMemberId: memberId,
-      targetMemberEmail: result.member.user.email,
-      targetMemberRole: result.member.role,
+      targetMemberEmail: memberWithUser.user.email,
+      targetMemberRole: memberWithUser.role,
       oldPermissions: result.previousPermissions,
-      newPermissions: result.member.modulePermissions,
+      newPermissions: memberWithUser.modulePermissions,
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
     })
