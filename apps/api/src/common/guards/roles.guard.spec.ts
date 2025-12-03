@@ -151,7 +151,7 @@ describe('RolesGuard', () => {
       const getHandlerSpy = jest.fn()
       const getClassSpy = jest.fn()
 
-      jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key, targets) => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((_key, _targets) => {
         return ['admin']
       })
 
