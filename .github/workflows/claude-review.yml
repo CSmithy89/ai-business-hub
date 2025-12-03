@@ -234,6 +234,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma client
+        run: pnpm --filter @hyvve/db exec prisma generate
+
       - name: Run TypeScript check
         id: typecheck
         continue-on-error: true
