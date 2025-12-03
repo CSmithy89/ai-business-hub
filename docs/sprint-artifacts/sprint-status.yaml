@@ -131,7 +131,7 @@ development_status:
   # ===========================================
   epic-06: contexted
   06-1-implement-credential-encryption: done
-  06-2-create-ai-provider-factory: backlog
+  06-2-create-ai-provider-factory: done
   06-3-create-ai-provider-api-endpoints: backlog
   06-4-create-ai-provider-settings-ui: backlog
   06-5-implement-token-usage-tracking: backlog
