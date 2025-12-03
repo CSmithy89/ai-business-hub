@@ -1,7 +1,29 @@
-import { Controller, Get, Logger } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Query,
+  Param,
+  Logger,
+  UseGuards,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import { BaseEvent } from '@hyvve/shared';
 import { RedisProvider } from './redis.provider';
+import { EventRetryService } from './event-retry.service';
+import { PrismaService } from '../common/services/prisma.service';
+import { AuthGuard } from '../common/guards/auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
+import { PaginationDto } from './dto/pagination.dto';
 
 /**
  * Response structure for event bus health check
@@ -28,16 +50,22 @@ interface StreamHealth {
 }
 
 /**
- * EventsController - Health check endpoints for event bus infrastructure
+ * EventsController - Health check and admin endpoints for event bus
  *
- * Provides monitoring endpoints to verify Redis Streams health and status.
+ * Provides:
+ * - Health check endpoints to verify Redis Streams status
+ * - Dead letter queue (DLQ) management for admin users
  */
 @ApiTags('events')
-@Controller('health')
+@Controller()
 export class EventsController {
   private readonly logger = new Logger(EventsController.name);
 
-  constructor(private readonly redisProvider: RedisProvider) {}
+  constructor(
+    private readonly redisProvider: RedisProvider,
+    private readonly eventRetryService: EventRetryService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   /**
    * Health check endpoint for event bus
@@ -49,7 +77,7 @@ export class EventsController {
    *
    * @returns Event bus health status
    */
-  @Get('events')
+  @Get('health/events')
   @ApiOperation({ summary: 'Event bus health check' })
   @ApiResponse({
     status: 200,
@@ -176,6 +204,201 @@ export class EventsController {
         exists: false,
         error: errorMessage,
       };
+    }
+  }
+
+  /**
+   * Get dead letter queue events
+   *
+   * Returns paginated list of failed events in the DLQ with error details.
+   * Admin-only endpoint for monitoring and troubleshooting.
+   *
+   * @param query - Pagination parameters
+   * @returns List of DLQ events with metadata
+   */
+  @Get('admin/events/dlq')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin', 'owner')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get dead letter queue events' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of DLQ events',
+    schema: {
+      type: 'object',
+      properties: {
+        events: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              streamId: { type: 'string' },
+              event: { type: 'object' },
+              error: { type: 'string' },
+              errorStack: { type: 'string' },
+              movedAt: { type: 'string' },
+              attempts: { type: 'number' },
+            },
+          },
+        },
+        total: { type: 'number' },
+        page: { type: 'number' },
+        limit: { type: 'number' },
+      },
+    },
+  })
+  async getDLQEvents(@Query() query: PaginationDto) {
+    const redis = this.redisProvider.getClient();
+
+    try {
+      // Read from DLQ stream with pagination
+      const events = await redis.xrange(
+        STREAMS.DLQ,
+        '-',
+        '+',
+        'COUNT',
+        query.limit ?? 50,
+      );
+
+      return {
+        events: events.map(([id, fields]: [string, string[]]) => ({
+          streamId: id,
+          event: JSON.parse(fields[1]),
+          error: fields[3],
+          errorStack: fields[5],
+          movedAt: fields[7],
+          attempts: parseInt(fields[9], 10),
+        })),
+        total: await redis.xlen(STREAMS.DLQ),
+        page: query.page ?? 1,
+        limit: query.limit ?? 50,
+      };
+    } catch (error) {
+      this.logger.error('Error reading DLQ events', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retry an event from DLQ
+   *
+   * Manually retry a failed event from the dead letter queue.
+   * Creates a new event with a fresh retry cycle and removes from DLQ.
+   * Admin-only operation for intervention after issues are resolved.
+   *
+   * @param eventId - The event ID to retry
+   * @returns Success response with new event ID
+   */
+  @Post('admin/events/dlq/:eventId/retry')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin', 'owner')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Retry an event from DLQ' })
+  @ApiResponse({
+    status: 200,
+    description: 'Event moved back to main stream',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        newEventId: { type: 'string' },
+        message: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Event not found in DLQ',
+  })
+  async retryDLQEvent(@Param('eventId') eventId: string) {
+    try {
+      const newEventId = await this.eventRetryService.retryFromDLQ(eventId);
+      return {
+        success: true,
+        newEventId,
+        message: 'Event moved back to main stream for reprocessing',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error('Error retrying event from DLQ', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Permanently delete an event from DLQ
+   *
+   * Remove an event from the dead letter queue permanently.
+   * Use this when the event is no longer needed or cannot be fixed.
+   * Admin-only operation for cleanup.
+   *
+   * @param eventId - The event ID to delete
+   * @returns Success response
+   */
+  @Delete('admin/events/dlq/:eventId')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin', 'owner')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Permanently delete an event from DLQ' })
+  @ApiResponse({
+    status: 200,
+    description: 'Event deleted from DLQ',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Event not found in DLQ',
+  })
+  async deleteDLQEvent(@Param('eventId') eventId: string) {
+    const redis = this.redisProvider.getClient();
+
+    try {
+      // Find event in DLQ stream
+      const events = await redis.xrange(STREAMS.DLQ, '-', '+');
+      const eventEntry = events.find(([_, fields]: [string, string[]]) => {
+        try {
+          const event = JSON.parse(fields[1]) as BaseEvent;
+          return event.id === eventId;
+        } catch {
+          return false;
+        }
+      });
+
+      if (!eventEntry) {
+        throw new NotFoundException(`Event ${eventId} not found in DLQ`);
+      }
+
+      // Delete from Redis
+      await redis.xdel(STREAMS.DLQ, eventEntry[0]);
+
+      // Update metadata
+      await this.prisma.eventMetadata.update({
+        where: { eventId },
+        data: {
+          status: 'FAILED',
+          lastError: 'Manually deleted from DLQ',
+        },
+      });
+
+      this.logger.log({
+        message: 'Event deleted from DLQ',
+        eventId,
+      });
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error('Error deleting event from DLQ', error);
+      throw error;
     }
   }
 }

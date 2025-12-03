@@ -3,6 +3,8 @@ import {
   Logger,
   OnModuleInit,
   OnModuleDestroy,
+  forwardRef,
+  Inject,
 } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import { BaseEvent } from '@hyvve/shared';
@@ -18,6 +20,7 @@ import {
   EventSubscriberOptions,
 } from './decorators/event-subscriber.decorator';
 import { EventHandlerInfo } from './interfaces/event-handler.interface';
+import { EventRetryService } from './event-retry.service';
 
 /**
  * EventConsumerService
@@ -47,6 +50,8 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly discoveryService: DiscoveryService,
     private readonly reflector: Reflector,
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => EventRetryService))
+    private readonly eventRetryService: EventRetryService,
   ) {}
 
   /**
@@ -377,8 +382,8 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Handle event processing errors
-   * Placeholder for Story 05-4 (EventRetryService)
+   * Handle event processing errors with retry logic
+   * Integrates with EventRetryService for exponential backoff and DLQ
    *
    * @param streamId - Redis stream message ID
    * @param event - The failed event
@@ -389,26 +394,37 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
     event: BaseEvent,
     errors: Array<{ handler: EventHandlerInfo; error: Error }>,
   ): Promise<void> {
-    // TODO: Story 05-4 - Pass to EventRetryService for retry logic
     this.logger.error({
       message: 'All handlers failed for event',
       eventId: event.id,
       eventType: event.type,
       streamId,
       errorCount: errors.length,
+      errors: errors.map((e) => ({
+        handler: `${e.handler.instanceRef.constructor.name}.${e.handler.methodName}`,
+        error: e.error.message,
+      })),
     });
 
-    // For now, just mark as failed
-    await this.updateEventStatus(
-      event.id,
-      'FAILED',
-      errors.map((e) => e.error.message).join('; '),
-    );
+    // Get current metadata to check attempts
+    const metadata = await this.prisma.eventMetadata.findUnique({
+      where: { eventId: event.id },
+    });
 
-    // Acknowledge to prevent infinite reprocessing
-    // In Story 05-4, we'll implement proper retry logic before acknowledging
-    const redis = this.redisProvider.getClient();
-    await redis.xack(STREAMS.MAIN, CONSUMER_GROUP, streamId);
+    const currentAttempt = metadata?.attempts ?? 0;
+
+    // Use the first error as the representative error
+    const primaryError = errors[0].error;
+
+    // Schedule retry via EventRetryService
+    // Note: DO NOT XACK the event yet - it should remain in pending
+    // until retry succeeds or moves to DLQ
+    await this.eventRetryService.scheduleRetry(
+      streamId,
+      event,
+      primaryError,
+      currentAttempt,
+    );
   }
 
   /**

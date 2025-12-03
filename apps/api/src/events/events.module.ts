@@ -5,6 +5,8 @@ import { EventsController } from './events.controller';
 import { RedisProvider } from './redis.provider';
 import { EventPublisherService } from './event-publisher.service';
 import { EventConsumerService } from './event-consumer.service';
+import { EventRetryService } from './event-retry.service';
+import { EventRetryProcessor } from './processors/event-retry.processor';
 import { PrismaService } from '../common/services/prisma.service';
 import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
 
@@ -18,10 +20,10 @@ import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
  * - Consumer groups for distributed event processing
  * - EventPublisherService for publishing events (Story 05-2)
  * - EventConsumerService for consuming events (Story 05-3)
+ * - EventRetryService for retry logic and DLQ (Story 05-4)
  * - Health check endpoints for monitoring
  *
  * Future stories will add:
- * - EventRetryService (Story 05-4)
  * - EventReplayService (Story 05-6)
  *
  * @see Story 05-1: Set Up Redis Streams Infrastructure
@@ -30,7 +32,7 @@ import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
  */
 @Module({
   imports: [
-    // Register BullMQ queue for event retry processing (will be used in Story 05-4)
+    // Register BullMQ queue for event retry processing (Story 05-4)
     BullModule.registerQueue({
       name: 'event-retry',
     }),
@@ -42,9 +44,16 @@ import { STREAMS, CONSUMER_GROUP } from './constants/streams.constants';
     RedisProvider,
     EventPublisherService,
     EventConsumerService,
+    EventRetryService,
+    EventRetryProcessor,
     PrismaService,
   ],
-  exports: [RedisProvider, EventPublisherService, EventConsumerService],
+  exports: [
+    RedisProvider,
+    EventPublisherService,
+    EventConsumerService,
+    EventRetryService,
+  ],
 })
 export class EventsModule implements OnModuleInit {
   private readonly logger = new Logger(EventsModule.name);
