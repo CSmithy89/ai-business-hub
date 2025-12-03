@@ -2,11 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { ConfidenceCalculatorService } from './confidence-calculator.service';
 import { PrismaService } from '../../common/services/prisma.service';
-import { ConfidenceFactor, DEFAULT_CONFIDENCE_THRESHOLDS } from '@hyvve/shared';
+import { ConfidenceFactor } from '@hyvve/shared';
 
 describe('ConfidenceCalculatorService', () => {
   let service: ConfidenceCalculatorService;
-  let prisma: PrismaService;
 
   const mockPrismaService = {
     workspace: {
@@ -30,7 +29,6 @@ describe('ConfidenceCalculatorService', () => {
     service = module.get<ConfidenceCalculatorService>(
       ConfidenceCalculatorService,
     );
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   describe('Service Initialization', () => {
