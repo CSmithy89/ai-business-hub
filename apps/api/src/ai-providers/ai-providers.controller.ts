@@ -13,6 +13,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -25,6 +26,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
@@ -32,6 +34,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentWorkspace } from '../common/decorators/current-workspace.decorator';
 import { AIProvidersService } from './ai-providers.service';
+import { TokenUsageService, UsageStats, DailyUsage, AgentUsage } from './token-usage.service';
 import {
   CreateProviderDto,
   createProviderSchema,
@@ -47,6 +50,9 @@ import {
  * Endpoints:
  * - GET /workspaces/:workspaceId/ai-providers - List all providers
  * - POST /workspaces/:workspaceId/ai-providers - Create provider
+ * - GET /workspaces/:workspaceId/ai-providers/usage - Get usage stats
+ * - GET /workspaces/:workspaceId/ai-providers/usage/daily - Get daily usage
+ * - GET /workspaces/:workspaceId/ai-providers/usage/by-agent - Get usage by agent
  * - GET /workspaces/:workspaceId/ai-providers/:providerId - Get provider
  * - PATCH /workspaces/:workspaceId/ai-providers/:providerId - Update provider
  * - DELETE /workspaces/:workspaceId/ai-providers/:providerId - Delete provider
@@ -59,7 +65,10 @@ import {
 export class AIProvidersController {
   private readonly logger = new Logger(AIProvidersController.name);
 
-  constructor(private readonly providersService: AIProvidersService) {}
+  constructor(
+    private readonly providersService: AIProvidersService,
+    private readonly tokenUsageService: TokenUsageService,
+  ) {}
 
   /**
    * List all AI providers for a workspace
@@ -119,6 +128,75 @@ export class AIProvidersController {
     );
 
     return { data: provider };
+  }
+
+  /**
+   * Get token usage statistics for workspace
+   */
+  @Get('usage')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get token usage statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Usage statistics',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (ISO 8601)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO 8601)' })
+  async getUsage(
+    @CurrentWorkspace() workspace: { id: string },
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<{ data: UsageStats }> {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+
+    const stats = await this.tokenUsageService.getWorkspaceUsage(
+      workspace.id,
+      start,
+      end,
+    );
+
+    return { data: stats };
+  }
+
+  /**
+   * Get daily token usage breakdown
+   */
+  @Get('usage/daily')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Get daily token usage breakdown' })
+  @ApiResponse({
+    status: 200,
+    description: 'Daily usage breakdown',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiQuery({ name: 'days', required: false, description: 'Number of days (default: 30)' })
+  async getDailyUsage(
+    @CurrentWorkspace() workspace: { id: string },
+    @Query('days') days?: string,
+  ): Promise<{ data: DailyUsage[] }> {
+    const numDays = days ? parseInt(days, 10) : 30;
+    const usage = await this.tokenUsageService.getDailyUsage(workspace.id, numDays);
+    return { data: usage };
+  }
+
+  /**
+   * Get token usage breakdown by agent
+   */
+  @Get('usage/by-agent')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Get token usage by agent' })
+  @ApiResponse({
+    status: 200,
+    description: 'Usage breakdown by agent',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  async getUsageByAgent(
+    @CurrentWorkspace() workspace: { id: string },
+  ): Promise<{ data: AgentUsage[] }> {
+    const usage = await this.tokenUsageService.getUsageByAgent(workspace.id);
+    return { data: usage };
   }
 
   /**
