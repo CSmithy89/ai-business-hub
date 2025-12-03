@@ -274,13 +274,13 @@ Task(subagent_type="general-purpose",
 git add -A
 
 # Create comprehensive commit message
-git commit -m "feat(story-[X.Y]): [Story Title]
+git commit -m "feat(story-XY): [Story Title]
 
 Implementation:
 - [Key changes from story file]
 - [Components/files created or modified]
 
-Code Review: APPROVED ✅
+Code Review: APPROVED
 Acceptance Criteria: All met
 
 Story: docs/stories/[story-file].md"

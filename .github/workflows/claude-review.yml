@@ -10,14 +10,21 @@ on:
   pull_request_review:
     types: [submitted]
 
+# Explicit permissions for security
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
 # Prevent concurrent reviews on same PR
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
   cancel-in-progress: false
 
 env:
-  WAIT_TIMEOUT_MINUTES: 15
+  WAIT_TIMEOUT_MINUTES: 10
   POLL_INTERVAL_SECONDS: 30
+  MAX_RETRIES: 3
 
 jobs:
   # Wait for other AI reviewers to complete
@@ -37,6 +44,8 @@ jobs:
         id: wait-reviews
         uses: actions/github-script@v7
         with:
+          retries: 3
+          retry-exempt-status-codes: 400,401,403,404,422
           script: |
             const prNumber = context.payload.pull_request.number;
             const owner = context.repo.owner;
@@ -50,14 +59,29 @@ jobs:
             console.log(`Waiting for AI reviews on PR #${prNumber}...`);
             console.log(`AI reviewers to wait for: ${aiReviewers.join(', ')}`);
 
+            // Helper function with retry logic
+            async function fetchWithRetry(fn, maxRetries = 3) {
+              for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                  return await fn();
+                } catch (error) {
+                  if (attempt === maxRetries) throw error;
+                  console.log(`Retry ${attempt}/${maxRetries} after error: ${error.message}`);
+                  await new Promise(r => setTimeout(r, 1000 * attempt));
+                }
+              }
+            }
+
             // Wait for at least one AI review or timeout
             let hasAiReview = false;
             while (Date.now() - startTime < timeoutMs) {
-              const { data: reviews } = await github.rest.pulls.listReviews({
-                owner,
-                repo,
-                pull_number: prNumber,
-              });
+              const { data: reviews } = await fetchWithRetry(() =>
+                github.rest.pulls.listReviews({
+                  owner,
+                  repo,
+                  pull_number: prNumber,
+                })
+              );
 
               const aiReviews = reviews.filter(r =>
                 aiReviewers.some(ai => r.user?.login?.toLowerCase().includes(ai))
@@ -88,56 +112,91 @@ jobs:
         id: collect-reviews
         uses: actions/github-script@v7
         with:
+          retries: 3
+          retry-exempt-status-codes: 400,401,403,404,422
           script: |
             const prNumber = context.payload.pull_request.number;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            // Get all reviews
-            const { data: reviews } = await github.rest.pulls.listReviews({
-              owner,
-              repo,
-              pull_number: prNumber,
-            });
+            // Helper function with retry logic
+            async function fetchWithRetry(fn, maxRetries = 3) {
+              for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                  return await fn();
+                } catch (error) {
+                  if (attempt === maxRetries) throw error;
+                  console.log(`Retry ${attempt}/${maxRetries} after error: ${error.message}`);
+                  await new Promise(r => setTimeout(r, 1000 * attempt));
+                }
+              }
+            }
 
-            // Get all review comments
-            const { data: comments } = await github.rest.pulls.listReviewComments({
-              owner,
-              repo,
-              pull_number: prNumber,
-            });
+            // Get all review comments with pagination
+            let allComments = [];
+            let page = 1;
+            const perPage = 100;
 
-            // Categorize by reviewer
+            while (true) {
+              const { data: comments } = await fetchWithRetry(() =>
+                github.rest.pulls.listReviewComments({
+                  owner,
+                  repo,
+                  pull_number: prNumber,
+                  per_page: perPage,
+                  page: page,
+                })
+              );
+
+              allComments = allComments.concat(comments);
+
+              if (comments.length < perPage) break;
+              page++;
+
+              // Safety limit
+              if (page > 10) {
+                console.log('Reached pagination limit (1000 comments)');
+                break;
+              }
+            }
+
+            console.log(`Total comments collected: ${allComments.length}`);
+
+            // Categorize by reviewer - sanitize content to prevent token exposure
+            const sanitizeContent = (str) => {
+              if (!str) return '';
+              // Remove potential secrets/tokens from logs
+              return str
+                .replace(/sk-[a-zA-Z0-9]{20,}/g, '[REDACTED_KEY]')
+                .replace(/ghp_[a-zA-Z0-9]{36}/g, '[REDACTED_TOKEN]')
+                .replace(/gho_[a-zA-Z0-9]{36}/g, '[REDACTED_TOKEN]')
+                .replace(/github_pat_[a-zA-Z0-9_]{22,}/g, '[REDACTED_PAT]')
+                .replace(/Bearer\s+[a-zA-Z0-9._-]+/gi, 'Bearer [REDACTED]')
+                .replace(/Authorization:\s*[^\s]+/gi, 'Authorization: [REDACTED]');
+            };
+
             const categorized = {
               codeant: [],
               gemini: [],
               coderabbit: [],
-              other: []
             };
 
-            for (const comment of comments) {
+            for (const comment of allComments) {
               const login = comment.user?.login?.toLowerCase() || '';
+              const sanitizedBody = sanitizeContent(comment.body);
+
+              const reviewData = {
+                path: comment.path,
+                line: comment.line || comment.original_line,
+                body: sanitizedBody,
+              };
+
               if (login.includes('codeantai')) {
-                categorized.codeant.push({
-                  path: comment.path,
-                  line: comment.line || comment.original_line,
-                  body: comment.body,
-                  diff_hunk: comment.diff_hunk
-                });
+                categorized.codeant.push(reviewData);
               } else if (login.includes('gemini')) {
-                categorized.gemini.push({
-                  path: comment.path,
-                  line: comment.line || comment.original_line,
-                  body: comment.body,
-                  diff_hunk: comment.diff_hunk
-                });
+                categorized.gemini.push(reviewData);
               } else if (login.includes('coderabbit')) {
-                categorized.coderabbit.push({
-                  path: comment.path,
-                  line: comment.line || comment.original_line,
-                  body: comment.body,
-                  diff_hunk: comment.diff_hunk
-                });
+                categorized.coderabbit.push(reviewData);
               }
             }
 
@@ -196,10 +255,21 @@ jobs:
           script: |
             const fs = require('fs');
 
-            // Parse AI review comments
-            const codeantReviews = JSON.parse('${{ needs.wait-for-reviews.outputs.codeant_review }}' || '[]');
-            const geminiReviews = JSON.parse('${{ needs.wait-for-reviews.outputs.gemini_review }}' || '[]');
-            const coderabbitReviews = JSON.parse('${{ needs.wait-for-reviews.outputs.coderabbit_review }}' || '[]');
+            // Safe JSON parse helper
+            function safeJsonParse(str, defaultValue = []) {
+              if (!str || str === 'null' || str === 'undefined') return defaultValue;
+              try {
+                return JSON.parse(str);
+              } catch (e) {
+                console.log(`JSON parse error: ${e.message}`);
+                return defaultValue;
+              }
+            }
+
+            // Parse AI review comments with error handling
+            const codeantReviews = safeJsonParse('${{ needs.wait-for-reviews.outputs.codeant_review }}');
+            const geminiReviews = safeJsonParse('${{ needs.wait-for-reviews.outputs.gemini_review }}');
+            const coderabbitReviews = safeJsonParse('${{ needs.wait-for-reviews.outputs.coderabbit_review }}');
 
             // Parse typecheck output
             let typecheckIssues = [];
@@ -347,19 +417,30 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add -A
-          git commit -m "fix: auto-fix lint issues from Claude review
+          git commit -m "fix: auto-fix lint issues from code review
 
-          Automatically fixed lint issues identified during code review.
-
-          Co-Authored-By: Claude <noreply@anthropic.com>" || true
+          Automatically fixed lint issues identified during code review." || true
           git push || true
 
       - name: Post review summary
         uses: actions/github-script@v7
         with:
+          retries: 3
+          retry-exempt-status-codes: 400,401,403,404,422
           script: |
             const fs = require('fs');
             const prNumber = context.payload.pull_request.number;
+
+            // Safe JSON parse helper
+            function safeJsonParse(str, defaultValue = []) {
+              if (!str || str === 'null' || str === 'undefined') return defaultValue;
+              try {
+                return JSON.parse(str);
+              } catch (e) {
+                console.log(`JSON parse error: ${e.message}`);
+                return defaultValue;
+              }
+            }
 
             // Read todo list
             let todoList = '';
@@ -382,9 +463,9 @@ jobs:
             summary += `| Auto-fix Applied | ${autoFixed ? ':white_check_mark: Yes' : ':x: No'} |\n\n`;
 
             summary += `### AI Reviews Analyzed\n`;
-            summary += `- CodeAnt AI: ${JSON.parse('${{ needs.wait-for-reviews.outputs.codeant_review }}' || '[]').length} comments\n`;
-            summary += `- Gemini: ${JSON.parse('${{ needs.wait-for-reviews.outputs.gemini_review }}' || '[]').length} comments\n`;
-            summary += `- CodeRabbit: ${JSON.parse('${{ needs.wait-for-reviews.outputs.coderabbit_review }}' || '[]').length} comments\n\n`;
+            summary += `- CodeAnt AI: ${safeJsonParse('${{ needs.wait-for-reviews.outputs.codeant_review }}').length} comments\n`;
+            summary += `- Gemini: ${safeJsonParse('${{ needs.wait-for-reviews.outputs.gemini_review }}').length} comments\n`;
+            summary += `- CodeRabbit: ${safeJsonParse('${{ needs.wait-for-reviews.outputs.coderabbit_review }}').length} comments\n\n`;
 
             summary += todoList;
 
