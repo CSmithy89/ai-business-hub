@@ -1,0 +1,11 @@
+/**
+ * Events Module Exports
+ *
+ * Public API for the event bus infrastructure.
+ * Other modules can import these to interact with the event system.
+ */
+
+export { EventsModule } from './events.module';
+export { RedisProvider } from './redis.provider';
+export { EventsController } from './events.controller';
+export * from './constants/streams.constants';
