@@ -215,8 +215,11 @@ export function createEvent<T extends Record<string, unknown>>(
 ): BaseEvent {
   return {
     id:
-      (globalThis as any).crypto?.randomUUID?.() ??
-      `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      typeof globalThis !== 'undefined' &&
+      globalThis.crypto &&
+      typeof globalThis.crypto.randomUUID === 'function'
+        ? globalThis.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     type,
     source: context.source ?? 'platform',
     timestamp: new Date().toISOString(),

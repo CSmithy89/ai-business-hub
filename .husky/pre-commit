@@ -22,12 +22,13 @@ echo ""
 echo "🔒 Running Semgrep security scan..."
 
 # Get list of staged TypeScript/JavaScript files (including renamed files)
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|js|jsx)$' || true)
+# Use null-terminated strings for safe handling of filenames with spaces/special chars
+STAGED_FILES=$(git diff --cached --name-only -z --diff-filter=ACMR | tr '\0' '\n' | grep -E '\.(ts|tsx|js|jsx)$' || true)
 
 if [ -n "$STAGED_FILES" ]; then
     # Run Semgrep on staged files with auto config
-    # Note: -- separates options from file paths to prevent files starting with - from being treated as flags
-    echo "$STAGED_FILES" | xargs semgrep scan --config auto --error --quiet -- || {
+    # Use -print0 and xargs -0 for safe filename handling
+    git diff --cached --name-only -z --diff-filter=ACMR | grep -zE '\.(ts|tsx|js|jsx)$' | xargs -0 semgrep scan --config auto --error --quiet -- || {
         echo "❌ Semgrep found security issues. Please fix them before committing."
         exit 1
     }

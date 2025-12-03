@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { Observable, throwError, timer } from 'rxjs';
+import { Observable, throwError, timer, firstValueFrom } from 'rxjs';
 import { catchError, map, retry, timeout, switchMap } from 'rxjs/operators';
 import { AxiosError, AxiosResponse } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
@@ -80,14 +80,14 @@ export class AgentOSService {
     healthy: boolean;
     status: string;
     circuitState: string;
-    responseTimeMs?: number;
+    responseTimeMs: number;
   }> {
     const startTime = Date.now();
 
     try {
-      const response = await this.httpService
-        .get(`${this.baseUrl}/health`, { timeout: 5000 })
-        .toPromise();
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.baseUrl}/health`, { timeout: 5000 }),
+      );
 
       const responseTimeMs = Date.now() - startTime;
 
@@ -128,9 +128,13 @@ export class AgentOSService {
         this.circuitState = 'half-open';
         this.logger.log('Circuit breaker transitioning to half-open state');
       } else {
+        const resetInSeconds = Math.ceil(
+          (this.circuitResetTimeMs - (Date.now() - this.lastFailureTime!)) /
+            1000,
+        );
         throw new ServiceUnavailableException(
           'AgentOS circuit breaker is open',
-          'Service temporarily unavailable due to repeated failures',
+          `Service temporarily unavailable. Retry after ${resetInSeconds} seconds.`,
         );
       }
     }
@@ -169,6 +173,27 @@ export class AgentOSService {
     this.failureCount = 0;
     this.lastFailureTime = null;
     this.logger.log('Circuit breaker reset to closed state');
+  }
+
+  /**
+   * Get circuit breaker status for monitoring/metrics
+   *
+   * @returns Current circuit breaker state and metrics
+   */
+  getCircuitStatus(): {
+    state: 'closed' | 'open' | 'half-open';
+    failureCount: number;
+    lastFailureTime: number | null;
+    failureThreshold: number;
+    resetTimeMs: number;
+  } {
+    return {
+      state: this.circuitState,
+      failureCount: this.failureCount,
+      lastFailureTime: this.lastFailureTime,
+      failureThreshold: this.failureThreshold,
+      resetTimeMs: this.circuitResetTimeMs,
+    };
   }
 
   /**
@@ -211,29 +236,33 @@ export class AgentOSService {
     };
 
     try {
-      const response = await this.httpService
-        .post<AgentRunResponse>(url, payload, { headers })
-        .pipe(
-          timeout(this.timeoutMs),
-          retry({
-            count: this.retryAttempts,
-            delay: (error, retryCount) => {
-              if (this.shouldRetry(error)) {
-                const delayMs = Math.pow(2, retryCount - 1) * 1000; // 1s, 2s, 4s
-                this.logger.warn(
-                  `Retrying agent invocation (attempt ${retryCount}/${this.retryAttempts}) after ${delayMs}ms`,
-                );
-                return timer(delayMs);
-              }
-              throw error;
-            },
-          }),
-          map((res) => res.data),
-          catchError((error) => {
-            return throwError(() => this.handleError(error, correlationId));
-          }),
-        )
-        .toPromise();
+      const response = await firstValueFrom(
+        this.httpService
+          .post<AgentRunResponse>(url, payload, { headers })
+          .pipe(
+            timeout(this.timeoutMs),
+            retry({
+              count: this.retryAttempts,
+              delay: (error, retryCount) => {
+                if (this.shouldRetry(error)) {
+                  const delayMs = Math.min(
+                    Math.pow(2, retryCount - 1) * 1000,
+                    10000,
+                  ); // 1s, 2s, 4s, max 10s
+                  this.logger.warn(
+                    `Retrying agent invocation (attempt ${retryCount}/${this.retryAttempts}) after ${delayMs}ms`,
+                  );
+                  return timer(delayMs);
+                }
+                throw error;
+              },
+            }),
+            map((res) => res.data),
+            catchError((error) => {
+              return throwError(() => this.handleError(error, correlationId));
+            }),
+          ),
+      );
 
       if (!response) {
         throw new Error('No response received from agent');
@@ -289,15 +318,17 @@ export class AgentOSService {
     const url = `${this.baseUrl}/agents/${agentId}/runs/${runId}`;
 
     try {
-      const response = await this.httpService
-        .get<AgentRunResponse>(url, { headers })
-        .pipe(
+      const response = await firstValueFrom(
+        this.httpService.get<AgentRunResponse>(url, { headers }).pipe(
           timeout(this.timeoutMs),
           retry({
             count: this.retryAttempts,
             delay: (error, retryCount) => {
               if (this.shouldRetry(error)) {
-                const delayMs = Math.pow(2, retryCount - 1) * 1000;
+                const delayMs = Math.min(
+                  Math.pow(2, retryCount - 1) * 1000,
+                  10000,
+                ); // max 10s
                 return timer(delayMs);
               }
               throw error;
@@ -307,12 +338,8 @@ export class AgentOSService {
           catchError((error) => {
             return throwError(() => this.handleError(error, correlationId));
           }),
-        )
-        .toPromise();
-
-      if (!response) {
-        throw new Error('No response received from agent');
-      }
+        ),
+      );
 
       this.logger.log(
         `Agent run retrieved: runId=${runId}, status=${response.status}, correlationId=${correlationId}`,
