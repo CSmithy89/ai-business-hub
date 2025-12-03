@@ -407,6 +407,161 @@ export class EventsController {
   }
 
   // ============================================
+  // Event Stats Endpoint (Story 05-7)
+  // ============================================
+
+  /**
+   * Get event bus statistics
+   *
+   * Returns throughput metrics, DLQ size, and consumer group lag
+   * for the event bus monitoring dashboard.
+   *
+   * @returns Event bus statistics
+   */
+  @Get('admin/events/stats')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin', 'owner')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get event bus statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Event bus statistics',
+    schema: {
+      type: 'object',
+      properties: {
+        mainStream: {
+          type: 'object',
+          properties: {
+            length: { type: 'number' },
+            firstEntryId: { type: 'string' },
+            lastEntryId: { type: 'string' },
+          },
+        },
+        dlq: {
+          type: 'object',
+          properties: {
+            length: { type: 'number' },
+          },
+        },
+        consumerGroup: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            pending: { type: 'number' },
+            consumers: { type: 'number' },
+            lag: { type: 'number' },
+          },
+        },
+        throughput: {
+          type: 'object',
+          properties: {
+            last24h: { type: 'number' },
+            lastHour: { type: 'number' },
+          },
+        },
+      },
+    },
+  })
+  async getEventStats() {
+    const redis = this.redisProvider.getClient();
+
+    try {
+      // Get main stream info
+      let mainStreamInfo = {
+        length: 0,
+        firstEntryId: null as string | null,
+        lastEntryId: null as string | null,
+      };
+
+      const mainExists = await redis.exists(STREAMS.MAIN);
+      if (mainExists) {
+        const streamInfo = await redis.xinfo('STREAM', STREAMS.MAIN);
+        // Parse stream info (flat array format)
+        const infoObj: Record<string, unknown> = {};
+        for (let i = 0; i < streamInfo.length; i += 2) {
+          infoObj[streamInfo[i]] = streamInfo[i + 1];
+        }
+        mainStreamInfo = {
+          length: infoObj.length as number,
+          firstEntryId: infoObj['first-entry']
+            ? (infoObj['first-entry'] as unknown[])[0] as string
+            : null,
+          lastEntryId: infoObj['last-entry']
+            ? (infoObj['last-entry'] as unknown[])[0] as string
+            : null,
+        };
+      }
+
+      // Get DLQ length
+      let dlqLength = 0;
+      const dlqExists = await redis.exists(STREAMS.DLQ);
+      if (dlqExists) {
+        dlqLength = await redis.xlen(STREAMS.DLQ);
+      }
+
+      // Get consumer group info
+      let consumerGroupInfo = {
+        name: CONSUMER_GROUP,
+        pending: 0,
+        consumers: 0,
+        lag: 0,
+      };
+
+      if (mainExists) {
+        try {
+          const groupsInfo = await redis.xinfo('GROUPS', STREAMS.MAIN);
+          for (const group of groupsInfo) {
+            const groupData: Record<string, unknown> = {};
+            for (let j = 0; j < group.length; j += 2) {
+              groupData[group[j] as string] = group[j + 1];
+            }
+            if (groupData.name === CONSUMER_GROUP) {
+              consumerGroupInfo = {
+                name: CONSUMER_GROUP,
+                pending: groupData.pending as number || 0,
+                consumers: groupData.consumers as number || 0,
+                lag: groupData.lag as number || 0,
+              };
+              break;
+            }
+          }
+        } catch {
+          // Consumer group may not exist yet
+        }
+      }
+
+      // Calculate throughput from EventMetadata
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+      const [last24hCount, lastHourCount] = await Promise.all([
+        this.prisma.eventMetadata.count({
+          where: { createdAt: { gte: oneDayAgo } },
+        }),
+        this.prisma.eventMetadata.count({
+          where: { createdAt: { gte: oneHourAgo } },
+        }),
+      ]);
+
+      return {
+        mainStream: mainStreamInfo,
+        dlq: {
+          length: dlqLength,
+        },
+        consumerGroup: consumerGroupInfo,
+        throughput: {
+          last24h: last24hCount,
+          lastHour: lastHourCount,
+        },
+      };
+    } catch (error) {
+      this.logger.error('Error fetching event stats', error);
+      throw error;
+    }
+  }
+
+  // ============================================
   // Event Replay Endpoints (Story 05-6)
   // ============================================
 
