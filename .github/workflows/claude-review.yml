@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  WAIT_TIMEOUT_MINUTES: 10
+  WAIT_TIMEOUT_MINUTES: 5
   POLL_INTERVAL_SECONDS: 30
   MAX_RETRIES: 3
 

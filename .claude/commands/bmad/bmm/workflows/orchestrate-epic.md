@@ -39,7 +39,7 @@ Each workflow step MUST run in complete isolation - no shared context between wo
 2. Find the first epic that has at least one story in "backlog" status
 3. Extract epic number (e.g., "3-1-...", "3-2-..." → Epic 3)
 4. Determine if epic needs tech context:
-   - If epic status = "backlog" → needs tech spec (Step 1)
+   - If epic status = "backlog" → needs tech spec (Epic Step 2)
    - If epic status = "contexted" → skip to story execution
 5. Count total stories in this epic that need execution (status: backlog, drafted, ready-for-dev, in-progress, review)
 6. Report epic details to user:
@@ -65,7 +65,7 @@ Ready to proceed?
 
 ---
 
-## Step 0: Create Epic Branch
+## Epic Step 1: Create Epic Branch
 
 **Execute FIRST before any other work:**
 
@@ -89,11 +89,11 @@ git checkout -b epic/[NN]-[short-description]
 git branch --show-current
 ```
 
-**Report**: "✅ Step 0: Created epic branch epic/[NN]-[short-description]"
+**Report**: "✅ Epic Step 1: Created epic branch epic/[NN]-[short-description]"
 
 ---
 
-## Step 1: Epic Tech Context (Conditional)
+## Epic Step 2: Epic Tech Context (Conditional)
 
 **Only execute if epic status = "backlog"**
 
@@ -124,7 +124,7 @@ Generated technical specification for Epic [N]: [Title]
 - Technical dependencies identified"
 ```
 
-**Report**: "✅ Step 1: Epic tech spec created and committed"
+**Report**: "✅ Epic Step 2: Epic tech spec created and committed"
 
 ---
 
@@ -316,7 +316,7 @@ After completing all steps for a story:
 
 **After ALL stories are complete, create a single PR for the entire epic:**
 
-### Step A: Push Epic Branch
+### Epic Step 3: Push Epic Branch
 
 ```bash
 # Verify all changes are committed
@@ -335,7 +335,7 @@ git push -u origin epic/[NN]-[short-description]
 
 ---
 
-### Step B: Create Epic Pull Request
+### Epic Step 4: Create Epic Pull Request
 
 ```bash
 # Generate list of stories completed
@@ -389,7 +389,7 @@ echo "Epic PR created: $PR_URL"
 
 ---
 
-### Step C: Report PR for Review
+### Epic Step 5: Report PR for Review
 
 **DO NOT auto-merge. The PR is for human + AI review.**
 

@@ -201,11 +201,55 @@ export interface AgentConfirmationPayload {
 }
 
 /**
- * Typed event factory - creates properly typed events
+ * Event payload type mapping for type-safe event creation
+ * Maps event types to their corresponding payload types
  */
-export function createEvent<T extends Record<string, unknown>>(
-  type: EventType,
-  data: T,
+export type EventPayloadMap = {
+  // Approval events
+  [EventTypes.APPROVAL_REQUESTED]: ApprovalRequestedPayload;
+  [EventTypes.APPROVAL_CREATED]: ApprovalRequestedPayload;
+  [EventTypes.APPROVAL_APPROVED]: ApprovalDecisionPayload;
+  [EventTypes.APPROVAL_REJECTED]: ApprovalDecisionPayload;
+  [EventTypes.APPROVAL_AUTO_APPROVED]: ApprovalDecisionPayload;
+  [EventTypes.APPROVAL_ESCALATED]: ApprovalEscalatedPayload;
+  [EventTypes.APPROVAL_EXPIRED]: ApprovalExpiredPayload;
+
+  // Agent events
+  [EventTypes.AGENT_RUN_STARTED]: AgentRunStartedPayload;
+  [EventTypes.AGENT_RUN_COMPLETED]: AgentRunCompletedPayload;
+  [EventTypes.AGENT_RUN_FAILED]: AgentRunFailedPayload;
+  [EventTypes.AGENT_CONFIRMATION_REQUESTED]: AgentConfirmationPayload;
+  [EventTypes.AGENT_CONFIRMATION_GRANTED]: AgentConfirmationPayload;
+  [EventTypes.AGENT_CONFIRMATION_DENIED]: AgentConfirmationPayload;
+
+  // Generic fallback for events without specific payloads
+  [EventTypes.AUTH_USER_CREATED]: Record<string, unknown>;
+  [EventTypes.AUTH_USER_UPDATED]: Record<string, unknown>;
+  [EventTypes.AUTH_SESSION_CREATED]: Record<string, unknown>;
+  [EventTypes.AUTH_SESSION_EXPIRED]: Record<string, unknown>;
+  [EventTypes.WORKSPACE_CREATED]: Record<string, unknown>;
+  [EventTypes.WORKSPACE_UPDATED]: Record<string, unknown>;
+  [EventTypes.WORKSPACE_MEMBER_ADDED]: Record<string, unknown>;
+  [EventTypes.WORKSPACE_MEMBER_REMOVED]: Record<string, unknown>;
+  [EventTypes.WORKSPACE_MEMBER_ROLE_CHANGED]: Record<string, unknown>;
+  [EventTypes.PERMISSION_ROLE_CHANGED]: Record<string, unknown>;
+  [EventTypes.PERMISSION_MODULE_OVERRIDE_CHANGED]: Record<string, unknown>;
+  [EventTypes.CRM_CONTACT_CREATED]: Record<string, unknown>;
+  [EventTypes.CRM_CONTACT_UPDATED]: Record<string, unknown>;
+  [EventTypes.CRM_CONTACT_DELETED]: Record<string, unknown>;
+  [EventTypes.CONTENT_ARTICLE_CREATED]: Record<string, unknown>;
+  [EventTypes.CONTENT_ARTICLE_PUBLISHED]: Record<string, unknown>;
+  [EventTypes.CONTENT_ARTICLE_SCHEDULED]: Record<string, unknown>;
+  [EventTypes.CONTENT_ARTICLE_UNPUBLISHED]: Record<string, unknown>;
+};
+
+/**
+ * Type-safe event factory - creates properly typed events
+ * Ensures payload matches the expected type for the given event type
+ */
+export function createEvent<K extends keyof EventPayloadMap>(
+  type: K,
+  data: EventPayloadMap[K],
   context: {
     tenantId: string;
     userId: string;
@@ -227,6 +271,6 @@ export function createEvent<T extends Record<string, unknown>>(
     tenantId: context.tenantId,
     userId: context.userId,
     version: '1.0',
-    data,
+    data: data as Record<string, unknown>,
   };
 }

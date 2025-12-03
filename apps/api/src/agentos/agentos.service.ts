@@ -43,6 +43,11 @@ export class AgentOSService {
   private readonly retryAttempts: number;
 
   // Circuit breaker state
+  // NOTE: This is a simple in-memory circuit breaker suitable for single-instance deployments.
+  // For production with multiple instances, consider:
+  // - Using a library like 'opossum' or 'brakes' for more robust circuit breaking
+  // - Moving circuit breaker state to Redis for distributed state management
+  // - Implementing proper locking for concurrent request handling
   private circuitState: 'closed' | 'open' | 'half-open' = 'closed';
   private failureCount = 0;
   private readonly failureThreshold = 5;
