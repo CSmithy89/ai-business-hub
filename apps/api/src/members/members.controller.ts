@@ -150,7 +150,9 @@ export class MembersController {
       oldPermissions: result.previousPermissions,
       newPermissions: memberWithUser.modulePermissions,
       ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
+      userAgent: Array.isArray(req.headers['user-agent'])
+        ? req.headers['user-agent'].join(', ')
+        : req.headers['user-agent'],
     })
 
     return result.member

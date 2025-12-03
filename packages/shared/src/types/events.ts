@@ -214,7 +214,9 @@ export function createEvent<T extends Record<string, unknown>>(
   }
 ): BaseEvent {
   return {
-    id: crypto.randomUUID(),
+    id:
+      (globalThis as any).crypto?.randomUUID?.() ??
+      `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     type,
     source: context.source ?? 'platform',
     timestamp: new Date().toISOString(),
