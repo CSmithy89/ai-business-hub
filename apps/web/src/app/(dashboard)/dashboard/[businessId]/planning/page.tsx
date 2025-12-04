@@ -7,6 +7,8 @@
  *
  * Story: 08.13 - Create Planning Page with Workflow Progress
  * Story: 08.14 - Integrate Business Model Canvas Workflow
+ * Story: 08.15 - Integrate Financial Projections Workflow
+ * Story: 08.16 - Integrate Business Plan Synthesis Workflow
  */
 
 'use client'
@@ -450,6 +452,15 @@ Your business has been validated - now let's turn that validated idea into an in
       lowerContent.includes('scenario') ||
       lowerContent.includes('assumption')
 
+    const isBusinessPlanMessage =
+      currentWorkflow === 'plan' ||
+      lowerContent.includes('business plan') ||
+      lowerContent.includes('executive summary') ||
+      lowerContent.includes('generate plan') ||
+      lowerContent.includes('finalize plan') ||
+      lowerContent.includes('approve plan') ||
+      lowerContent.includes('export plan')
+
     try {
       if (isCanvasMessage && !isFinancialMessage) {
         // Call canvas API
@@ -496,7 +507,7 @@ Your business has been validated - now let's turn that validated idea into an in
         } else {
           throw new Error('API request failed')
         }
-      } else if (isFinancialMessage) {
+      } else if (isFinancialMessage && !isBusinessPlanMessage) {
         // Call financial projections API
         const response = await fetch(`/api/planning/${businessId}/financial-projections`, {
           method: 'POST',
@@ -529,6 +540,44 @@ Your business has been validated - now let's turn that validated idea into an in
                 )
               )
               setCurrentWorkflow('pricing')
+            }
+          } else {
+            throw new Error(data.message || 'Failed to process message')
+          }
+        } else {
+          throw new Error('API request failed')
+        }
+      } else if (isBusinessPlanMessage) {
+        // Call business plan API
+        const response = await fetch(`/api/planning/${businessId}/business-plan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: content }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            const agentMessage: ChatMessageData = {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              agent: 'blake',
+              content: data.data.message.content,
+              timestamp: new Date(data.data.message.timestamp),
+              suggestedActions: data.data.message.suggestedActions,
+            }
+            setMessages((prev) => [...prev, agentMessage])
+
+            // Update workflow status if completed
+            if (data.data.workflow_status === 'completed') {
+              setWorkflowSteps((prev) =>
+                prev.map((step) =>
+                  step.id === 'plan'
+                    ? { ...step, status: 'completed' }
+                    : step
+                )
+              )
+              setCurrentWorkflow('completed')
             }
           } else {
             throw new Error(data.message || 'Failed to process message')
