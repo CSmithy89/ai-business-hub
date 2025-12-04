@@ -426,21 +426,32 @@ Your business has been validated - now let's turn that validated idea into an in
     setMessages((prev) => [...prev, userMessage])
     setIsLoading(true)
 
-    // Determine if this is a canvas workflow message
+    // Determine workflow type based on current workflow and message content
+    const lowerContent = content.toLowerCase()
     const isCanvasMessage =
       currentWorkflow === 'canvas' ||
-      content.toLowerCase().includes('canvas') ||
-      content.toLowerCase().includes('customer segment') ||
-      content.toLowerCase().includes('value prop') ||
-      content.toLowerCase().includes('channel') ||
-      content.toLowerCase().includes('revenue stream') ||
-      content.toLowerCase().includes('key resource') ||
-      content.toLowerCase().includes('key activit') ||
-      content.toLowerCase().includes('key partner') ||
-      content.toLowerCase().includes('cost struct')
+      lowerContent.includes('canvas') ||
+      lowerContent.includes('customer segment') ||
+      lowerContent.includes('value prop') ||
+      lowerContent.includes('channel') ||
+      lowerContent.includes('key resource') ||
+      lowerContent.includes('key activit') ||
+      lowerContent.includes('key partner') ||
+      lowerContent.includes('cost struct')
+
+    const isFinancialMessage =
+      currentWorkflow === 'financials' ||
+      lowerContent.includes('financ') ||
+      lowerContent.includes('projection') ||
+      lowerContent.includes('revenue') ||
+      lowerContent.includes('p&l') ||
+      lowerContent.includes('cash flow') ||
+      lowerContent.includes('break-even') ||
+      lowerContent.includes('scenario') ||
+      lowerContent.includes('assumption')
 
     try {
-      if (isCanvasMessage) {
+      if (isCanvasMessage && !isFinancialMessage) {
         // Call canvas API
         const response = await fetch(`/api/planning/${businessId}/business-model-canvas`, {
           method: 'POST',
@@ -478,6 +489,46 @@ Your business has been validated - now let's turn that validated idea into an in
                 )
               )
               setCurrentWorkflow('financials')
+            }
+          } else {
+            throw new Error(data.message || 'Failed to process message')
+          }
+        } else {
+          throw new Error('API request failed')
+        }
+      } else if (isFinancialMessage) {
+        // Call financial projections API
+        const response = await fetch(`/api/planning/${businessId}/financial-projections`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: content }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            const agentMessage: ChatMessageData = {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              agent: 'finance',
+              content: data.data.message.content,
+              timestamp: new Date(data.data.message.timestamp),
+              suggestedActions: data.data.message.suggestedActions,
+            }
+            setMessages((prev) => [...prev, agentMessage])
+
+            // Update workflow status if completed
+            if (data.data.workflow_status === 'completed') {
+              setWorkflowSteps((prev) =>
+                prev.map((step) =>
+                  step.id === 'financials'
+                    ? { ...step, status: 'completed' }
+                    : step.id === 'pricing'
+                      ? { ...step, status: 'in_progress' }
+                      : step
+                )
+              )
+              setCurrentWorkflow('pricing')
             }
           } else {
             throw new Error(data.message || 'Failed to process message')
