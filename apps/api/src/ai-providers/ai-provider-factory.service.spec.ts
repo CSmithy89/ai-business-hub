@@ -32,6 +32,10 @@ describe('AIProviderFactory', () => {
     delete process.env.ENCRYPTION_MASTER_KEY;
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -132,11 +136,11 @@ describe('AIProviderFactory', () => {
   });
 
   describe('create', () => {
-    const createConfig = (
+    const createConfig = async (
       provider: string,
       apiKey: string = 'test-api-key',
-    ): ProviderConfig => {
-      const encrypted = encryptionService.encrypt(apiKey);
+    ): Promise<ProviderConfig> => {
+      const encrypted = await encryptionService.encrypt(apiKey);
       return {
         id: 'test-id',
         provider,
@@ -145,57 +149,57 @@ describe('AIProviderFactory', () => {
       };
     };
 
-    it('should create a ClaudeProvider for claude type', () => {
-      const config = createConfig('claude');
-      const provider = factory.create(config);
+    it('should create a ClaudeProvider for claude type', async () => {
+      const config = await createConfig('claude');
+      const provider = await factory.create(config);
       expect(provider).toBeInstanceOf(ClaudeProvider);
       expect(provider.provider).toBe('claude');
       expect(provider.model).toBe('test-model');
     });
 
-    it('should create an OpenAIProvider for openai type', () => {
-      const config = createConfig('openai');
-      const provider = factory.create(config);
+    it('should create an OpenAIProvider for openai type', async () => {
+      const config = await createConfig('openai');
+      const provider = await factory.create(config);
       expect(provider).toBeInstanceOf(OpenAIProvider);
       expect(provider.provider).toBe('openai');
     });
 
-    it('should create a GeminiProvider for gemini type', () => {
-      const config = createConfig('gemini');
-      const provider = factory.create(config);
+    it('should create a GeminiProvider for gemini type', async () => {
+      const config = await createConfig('gemini');
+      const provider = await factory.create(config);
       expect(provider).toBeInstanceOf(GeminiProvider);
       expect(provider.provider).toBe('gemini');
     });
 
-    it('should create a DeepSeekProvider for deepseek type', () => {
-      const config = createConfig('deepseek');
-      const provider = factory.create(config);
+    it('should create a DeepSeekProvider for deepseek type', async () => {
+      const config = await createConfig('deepseek');
+      const provider = await factory.create(config);
       expect(provider).toBeInstanceOf(DeepSeekProvider);
       expect(provider.provider).toBe('deepseek');
     });
 
-    it('should create an OpenRouterProvider for openrouter type', () => {
-      const config = createConfig('openrouter');
-      const provider = factory.create(config);
+    it('should create an OpenRouterProvider for openrouter type', async () => {
+      const config = await createConfig('openrouter');
+      const provider = await factory.create(config);
       expect(provider).toBeInstanceOf(OpenRouterProvider);
       expect(provider.provider).toBe('openrouter');
     });
 
-    it('should throw error for unsupported provider type', () => {
-      const config = createConfig('unsupported');
-      expect(() => factory.create(config)).toThrow(
+    it('should throw error for unsupported provider type', async () => {
+      const config = await createConfig('unsupported');
+      await expect(factory.create(config)).rejects.toThrow(
         /Unsupported provider type: unsupported/,
       );
     });
 
-    it('should throw error when decryption fails', () => {
+    it('should throw error when decryption fails', async () => {
       const config: ProviderConfig = {
         id: 'test-id',
         provider: 'claude',
         apiKeyEncrypted: 'invalid-encrypted-data',
         defaultModel: 'test-model',
       };
-      expect(() => factory.create(config)).toThrow(/Failed to decrypt API key/);
+      await expect(factory.create(config)).rejects.toThrow(/Failed to decrypt API key/);
     });
   });
 

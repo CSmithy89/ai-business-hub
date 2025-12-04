@@ -82,7 +82,7 @@ export interface ChatCompletionResponse {
   content: string | null;
   role: MessageRole;
   toolCalls?: ToolCall[];
-  finishReason: 'stop' | 'tool_calls' | 'length' | 'content_filter' | 'error';
+  finishReason?: 'stop' | 'tool_calls' | 'length' | 'content_filter' | 'error';
   usage?: TokenUsage;
   model: string;
   provider: string;

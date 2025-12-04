@@ -86,9 +86,9 @@ export interface ChatResponse {
   content: string;
 
   /**
-   * Why the model stopped generating
+   * Why the model stopped generating (may not be present in all API responses)
    */
-  finishReason: FinishReason;
+  finishReason?: FinishReason;
 
   /**
    * Token usage for this request

@@ -9,11 +9,11 @@ import { AIProviderFactory } from './ai-provider-factory.service';
 import { PrismaService } from '../common/services/prisma.service';
 import * as crypto from 'crypto';
 
-// Mock the encryption service
+// Mock the encryption service (async methods)
 jest.mock('@hyvve/shared', () => ({
   CredentialEncryptionService: jest.fn().mockImplementation(() => ({
-    encrypt: jest.fn().mockReturnValue('encrypted-key'),
-    decrypt: jest.fn().mockReturnValue('decrypted-key'),
+    encrypt: jest.fn().mockResolvedValue('encrypted-key'),
+    decrypt: jest.fn().mockResolvedValue('decrypted-key'),
   })),
 }));
 
@@ -49,6 +49,10 @@ describe('AIProvidersService', () => {
 
   afterAll(() => {
     delete process.env.ENCRYPTION_MASTER_KEY;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   beforeEach(async () => {

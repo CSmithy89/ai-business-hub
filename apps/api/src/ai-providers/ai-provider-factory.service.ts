@@ -75,7 +75,7 @@ export class AIProviderFactory {
    * @returns Provider instance implementing AIProviderInterface
    * @throws Error if provider type is unsupported
    */
-  create(config: ProviderConfig): AIProviderInterface {
+  async create(config: ProviderConfig): Promise<AIProviderInterface> {
     const providerType = config.provider as AIProviderType;
 
     if (!this.isValidProvider(providerType)) {
@@ -88,7 +88,7 @@ export class AIProviderFactory {
     // Decrypt the API key
     let apiKey: string;
     try {
-      apiKey = this.getEncryptionService().decrypt(config.apiKeyEncrypted);
+      apiKey = await this.getEncryptionService().decrypt(config.apiKeyEncrypted);
     } catch (error) {
       this.logger.error(
         `Failed to decrypt API key for provider ${config.id}: ${error}`,
@@ -98,11 +98,14 @@ export class AIProviderFactory {
       );
     }
 
+    // Use provided model or fall back to default for provider type
+    const model = config.defaultModel || this.getDefaultModel(providerType);
+
     this.logger.debug(
-      `Creating ${providerType} provider with model ${config.defaultModel}`,
+      `Creating ${providerType} provider with model ${model}`,
     );
 
-    return this.createProvider(providerType, apiKey, config.defaultModel);
+    return this.createProvider(providerType, apiKey, model);
   }
 
   /**

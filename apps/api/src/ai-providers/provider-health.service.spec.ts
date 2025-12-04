@@ -68,7 +68,7 @@ describe('ProviderHealthService', () => {
       };
 
       mockPrismaService.aIProviderConfig.findUnique.mockResolvedValue(mockProvider);
-      mockProviderFactory.create.mockReturnValue(mockProviderInstance);
+      mockProviderFactory.create.mockResolvedValue(mockProviderInstance);
       mockProviderInstance.validateCredentials.mockResolvedValue({ valid: true });
       mockPrismaService.aIProviderConfig.update.mockResolvedValue({});
 
@@ -102,7 +102,7 @@ describe('ProviderHealthService', () => {
       };
 
       mockPrismaService.aIProviderConfig.findUnique.mockResolvedValue(mockProvider);
-      mockProviderFactory.create.mockReturnValue(mockProviderInstance);
+      mockProviderFactory.create.mockResolvedValue(mockProviderInstance);
       mockProviderInstance.validateCredentials.mockResolvedValue({
         valid: false,
         error: 'Invalid API key',
@@ -130,7 +130,7 @@ describe('ProviderHealthService', () => {
       };
 
       mockPrismaService.aIProviderConfig.findUnique.mockResolvedValue(mockProvider);
-      mockProviderFactory.create.mockReturnValue(mockProviderInstance);
+      mockProviderFactory.create.mockResolvedValue(mockProviderInstance);
       mockProviderInstance.validateCredentials.mockRejectedValue(
         new Error('Network error'),
       );
@@ -166,7 +166,7 @@ describe('ProviderHealthService', () => {
       };
 
       mockPrismaService.aIProviderConfig.findUnique.mockResolvedValue(mockProvider);
-      mockProviderFactory.create.mockReturnValue(mockProviderInstance);
+      mockProviderFactory.create.mockResolvedValue(mockProviderInstance);
       mockProviderInstance.validateCredentials.mockResolvedValue({
         valid: false,
         error: 'API error',
@@ -195,7 +195,7 @@ describe('ProviderHealthService', () => {
       };
 
       mockPrismaService.aIProviderConfig.findUnique.mockResolvedValue(mockProvider);
-      mockProviderFactory.create.mockReturnValue(mockProviderInstance);
+      mockProviderFactory.create.mockResolvedValue(mockProviderInstance);
       mockPrismaService.aIProviderConfig.update.mockResolvedValue({});
 
       // Fail first
@@ -285,7 +285,7 @@ describe('ProviderHealthService', () => {
       };
 
       mockPrismaService.aIProviderConfig.findUnique.mockResolvedValue(mockProvider);
-      mockProviderFactory.create.mockReturnValue(mockProviderInstance);
+      mockProviderFactory.create.mockResolvedValue(mockProviderInstance);
       mockProviderInstance.validateCredentials.mockResolvedValue({ valid: true });
       mockPrismaService.aIProviderConfig.update.mockResolvedValue({});
 
@@ -318,7 +318,7 @@ describe('ProviderHealthService', () => {
       };
 
       mockPrismaService.aIProviderConfig.findUnique.mockResolvedValue(mockProvider);
-      mockProviderFactory.create.mockReturnValue(mockProviderInstance);
+      mockProviderFactory.create.mockResolvedValue(mockProviderInstance);
       mockProviderInstance.validateCredentials.mockResolvedValue({
         valid: false,
         error: 'API error',
@@ -359,7 +359,7 @@ describe('ProviderHealthService', () => {
         const provider = mockProviders.find((p) => p.id === where.id);
         return Promise.resolve(provider || null);
       });
-      mockProviderFactory.create.mockReturnValue(mockProviderInstance);
+      mockProviderFactory.create.mockResolvedValue(mockProviderInstance);
       mockProviderInstance.validateCredentials.mockResolvedValue({ valid: true });
       mockPrismaService.aIProviderConfig.update.mockResolvedValue({});
 

@@ -43,6 +43,7 @@ import { EventsModule } from '../events/events.module';
     AIProvidersService,
     AIProviderFactory,
     TokenUsageService,
+    TokenResetService,
     TokenLimitService,
     ProviderHealthService,
     AssistantClientFactory,

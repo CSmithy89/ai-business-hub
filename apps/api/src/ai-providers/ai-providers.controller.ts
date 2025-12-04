@@ -158,8 +158,22 @@ export class AIProvidersController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ): Promise<{ data: UsageStats }> {
-    const start = startDate ? new Date(startDate) : undefined;
-    const end = endDate ? new Date(endDate) : undefined;
+    let start: Date | undefined;
+    let end: Date | undefined;
+
+    if (startDate) {
+      start = new Date(startDate);
+      if (isNaN(start.getTime())) {
+        throw new BadRequestException('startDate must be a valid ISO 8601 date');
+      }
+    }
+
+    if (endDate) {
+      end = new Date(endDate);
+      if (isNaN(end.getTime())) {
+        throw new BadRequestException('endDate must be a valid ISO 8601 date');
+      }
+    }
 
     const stats = await this.tokenUsageService.getWorkspaceUsage(
       workspace.id,
@@ -186,7 +200,13 @@ export class AIProvidersController {
     @CurrentWorkspace() workspace: { id: string },
     @Query('days') days?: string,
   ): Promise<{ data: DailyUsage[] }> {
-    const numDays = days ? parseInt(days, 10) : 30;
+    let numDays = 30;
+    if (days) {
+      numDays = parseInt(days, 10);
+      if (isNaN(numDays) || numDays < 1 || numDays > 365) {
+        throw new BadRequestException('days must be a number between 1 and 365');
+      }
+    }
     const usage = await this.tokenUsageService.getDailyUsage(workspace.id, numDays);
     return { data: usage };
   }
@@ -440,7 +460,7 @@ export class AIProvidersController {
   async testProvider(
     @CurrentWorkspace() workspace: { id: string },
     @Param('providerId') providerId: string,
-  ): Promise<TestProviderResponseDto> {
+  ): Promise<{ data: TestProviderResponseDto }> {
     const result = await this.providersService.testProvider(
       workspace.id,
       providerId,
@@ -450,7 +470,7 @@ export class AIProvidersController {
       `Tested provider ${providerId}: valid=${result.valid}, latency=${result.latency}ms`,
     );
 
-    return result;
+    return { data: result };
   }
 
   // ============================================

@@ -17,6 +17,10 @@
  */
 
 import crypto from 'node:crypto';
+import { promisify } from 'node:util';
+
+// Promisify pbkdf2 to avoid blocking the event loop
+const pbkdf2Async = promisify(crypto.pbkdf2);
 
 // Encryption algorithm and parameters
 const ALGORITHM = 'aes-256-gcm';
@@ -34,8 +38,8 @@ const PBKDF2_ITERATIONS = 100000; // OWASP recommendation for 2023+
  * @example
  * ```typescript
  * const service = new CredentialEncryptionService();
- * const encrypted = service.encrypt('my-api-key');
- * const decrypted = service.decrypt(encrypted); // 'my-api-key'
+ * const encrypted = await service.encrypt('my-api-key');
+ * const decrypted = await service.decrypt(encrypted); // 'my-api-key'
  * ```
  */
 export class CredentialEncryptionService {
@@ -76,7 +80,7 @@ export class CredentialEncryptionService {
   }
 
   /**
-   * Encrypt a plaintext credential
+   * Encrypt a plaintext credential (async to avoid blocking event loop)
    *
    * Encryption Process:
    * 1. Generate random salt (64 bytes)
@@ -92,19 +96,19 @@ export class CredentialEncryptionService {
    *
    * @example
    * ```typescript
-   * const encrypted = service.encrypt('sk-ant-1234567890');
+   * const encrypted = await service.encrypt('sk-ant-1234567890');
    * // Returns: base64 string like "Q2hlY2sgdGhpcyBvdXQh..."
    * ```
    */
-  encrypt(plaintext: string): string {
+  async encrypt(plaintext: string): Promise<string> {
     try {
       // Generate random salt and IV for this encryption
       const salt = crypto.randomBytes(SALT_LENGTH);
       const iv = crypto.randomBytes(IV_LENGTH);
 
-      // Derive encryption key from master key + salt using PBKDF2
+      // Derive encryption key from master key + salt using PBKDF2 (async)
       // This makes brute force attacks computationally expensive
-      const key = crypto.pbkdf2Sync(
+      const key = await pbkdf2Async(
         this.masterKey,
         salt,
         PBKDF2_ITERATIONS,
@@ -135,7 +139,7 @@ export class CredentialEncryptionService {
   }
 
   /**
-   * Decrypt an encrypted credential
+   * Decrypt an encrypted credential (async to avoid blocking event loop)
    *
    * Decryption Process:
    * 1. Base64 decode to buffer
@@ -152,11 +156,11 @@ export class CredentialEncryptionService {
    *
    * @example
    * ```typescript
-   * const decrypted = service.decrypt('Q2hlY2sgdGhpcyBvdXQh...');
+   * const decrypted = await service.decrypt('Q2hlY2sgdGhpcyBvdXQh...');
    * // Returns: 'sk-ant-1234567890'
    * ```
    */
-  decrypt(ciphertext: string): string {
+  async decrypt(ciphertext: string): Promise<string> {
     try {
       // Decode from base64
       const combined = Buffer.from(ciphertext, 'base64');
@@ -182,8 +186,8 @@ export class CredentialEncryptionService {
 
       const encrypted = combined.subarray(offset);
 
-      // Derive the same key using PBKDF2 with the stored salt
-      const key = crypto.pbkdf2Sync(
+      // Derive the same key using PBKDF2 with the stored salt (async)
+      const key = await pbkdf2Async(
         this.masterKey,
         salt,
         PBKDF2_ITERATIONS,
@@ -247,10 +251,10 @@ function getService(): CredentialEncryptionService {
  * @example
  * ```typescript
  * import { encryptCredential } from '@hyvve/shared';
- * const encrypted = encryptCredential('my-api-key');
+ * const encrypted = await encryptCredential('my-api-key');
  * ```
  */
-export function encryptCredential(plaintext: string): string {
+export async function encryptCredential(plaintext: string): Promise<string> {
   return getService().encrypt(plaintext);
 }
 
@@ -263,9 +267,9 @@ export function encryptCredential(plaintext: string): string {
  * @example
  * ```typescript
  * import { decryptCredential } from '@hyvve/shared';
- * const plaintext = decryptCredential(encrypted);
+ * const plaintext = await decryptCredential(encrypted);
  * ```
  */
-export function decryptCredential(ciphertext: string): string {
+export async function decryptCredential(ciphertext: string): Promise<string> {
   return getService().decrypt(ciphertext);
 }

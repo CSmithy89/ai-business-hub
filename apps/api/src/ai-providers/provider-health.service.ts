@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../common/services/prisma.service';
-import { AIProviderFactory } from './ai-provider-factory.service';
+import { AIProviderFactory, ProviderConfig } from './ai-provider-factory.service';
 
 /**
  * Health check result for a provider
@@ -117,12 +117,13 @@ export class ProviderHealthService {
 
     try {
       // Create provider instance and validate credentials
-      const providerInstance = this.providerFactory.create({
+      const config: ProviderConfig = {
         id: provider.id,
         provider: provider.provider,
         apiKeyEncrypted: provider.apiKeyEncrypted,
         defaultModel: provider.defaultModel,
-      } as any);
+      };
+      const providerInstance = await this.providerFactory.create(config);
 
       const validation = await providerInstance.validateCredentials();
       const latency = Date.now() - startTime;

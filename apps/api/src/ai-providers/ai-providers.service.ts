@@ -124,7 +124,7 @@ export class AIProvidersService {
     }
 
     // Encrypt the API key
-    const apiKeyEncrypted = this.getEncryptionService().encrypt(dto.apiKey);
+    const apiKeyEncrypted = await this.getEncryptionService().encrypt(dto.apiKey);
 
     // Create the provider
     const provider = await this.prisma.aIProviderConfig.create({
@@ -185,7 +185,7 @@ export class AIProvidersService {
 
     if (dto.apiKey !== undefined) {
       // Re-encrypt the new API key
-      updateData.apiKeyEncrypted = this.getEncryptionService().encrypt(
+      updateData.apiKeyEncrypted = await this.getEncryptionService().encrypt(
         dto.apiKey,
       );
       // Reset validation status when key changes
@@ -255,7 +255,7 @@ export class AIProvidersService {
 
     try {
       // Create provider instance (decrypts key internally)
-      const aiProvider = this.providerFactory.create({
+      const aiProvider = await this.providerFactory.create({
         id: provider.id,
         provider: provider.provider,
         apiKeyEncrypted: provider.apiKeyEncrypted,
@@ -325,7 +325,7 @@ export class AIProvidersService {
       );
     }
 
-    return this.providerFactory.create({
+    return await this.providerFactory.create({
       id: provider.id,
       provider: provider.provider,
       apiKeyEncrypted: provider.apiKeyEncrypted,
@@ -360,7 +360,7 @@ export class AIProvidersService {
 
     try {
       const encryption = this.getEncryptionService();
-      return encryption.decrypt(provider.apiKeyEncrypted);
+      return await encryption.decrypt(provider.apiKeyEncrypted);
     } catch (error) {
       this.logger.error(`Failed to decrypt API key: ${error}`);
       return null;

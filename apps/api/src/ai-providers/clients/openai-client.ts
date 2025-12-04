@@ -34,6 +34,15 @@ const MODEL_CONFIG: Record<string, { maxTokens: number; supportsTools: boolean }
 };
 
 /**
+ * Case-insensitive model config lookup
+ */
+function getModelConfig(model: string) {
+  const lowerModel = model.toLowerCase();
+  const key = Object.keys(MODEL_CONFIG).find((k) => k.toLowerCase() === lowerModel);
+  return key ? MODEL_CONFIG[key] : MODEL_CONFIG['gpt-4o'];
+}
+
+/**
  * OpenAI Assistant Client
  */
 export class OpenAIClient extends BaseAssistantClient {
@@ -60,12 +69,12 @@ export class OpenAIClient extends BaseAssistantClient {
   }
 
   getCapabilities(): ProviderCapabilities {
-    const config = MODEL_CONFIG[this.model] || MODEL_CONFIG['gpt-4o'];
+    const config = getModelConfig(this.model);
 
     return {
       supportsStreaming: true,
       supportsTools: config.supportsTools,
-      supportsVision: this.model.includes('gpt-4') || this.model.includes('o'),
+      supportsVision: this.model.toLowerCase().includes('gpt-4') || this.model.toLowerCase().includes('o'),
       supportsFunctionCalling: config.supportsTools,
       maxContextLength: config.maxTokens,
       supportedModels: Object.keys(MODEL_CONFIG),

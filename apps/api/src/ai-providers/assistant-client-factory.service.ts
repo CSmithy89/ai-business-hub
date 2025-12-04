@@ -121,10 +121,12 @@ export class AssistantClientFactory {
         });
 
       case 'gemini':
-        // Gemini support would require a separate client implementation
-        // For now, fall back to OpenAI client with a warning
-        this.logger.warn('Gemini provider not yet fully supported, using OpenAI-compatible API');
-        throw new Error('Gemini provider not yet implemented');
+        // Gemini requires a separate client implementation due to different API structure.
+        // Alternative: Use OpenRouter with gemini models (e.g., 'google/gemini-pro')
+        throw new Error(
+          'Gemini IAssistantClient not yet implemented. ' +
+            'Consider using OpenRouter provider with gemini models (e.g., google/gemini-pro)',
+        );
 
       default:
         throw new Error(`Unsupported provider type: ${providerType}`);

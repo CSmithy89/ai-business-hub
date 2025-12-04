@@ -32,6 +32,15 @@ const MODEL_CONFIG: Record<string, { maxTokens: number; supportsTools: boolean }
 };
 
 /**
+ * Case-insensitive model config lookup
+ */
+function getModelConfig(model: string) {
+  const lowerModel = model.toLowerCase();
+  const key = Object.keys(MODEL_CONFIG).find((k) => k.toLowerCase() === lowerModel);
+  return key ? MODEL_CONFIG[key] : MODEL_CONFIG['claude-3-5-sonnet-20241022'];
+}
+
+/**
  * Claude Assistant Client
  */
 export class ClaudeClient extends BaseAssistantClient {
@@ -58,7 +67,7 @@ export class ClaudeClient extends BaseAssistantClient {
   }
 
   getCapabilities(): ProviderCapabilities {
-    const config = MODEL_CONFIG[this.model] || MODEL_CONFIG['claude-3-5-sonnet-20241022'];
+    const config = getModelConfig(this.model);
 
     return {
       supportsStreaming: true,
@@ -251,11 +260,18 @@ export class ClaudeClient extends BaseAssistantClient {
           content.push({ type: 'text', text: msg.content });
         }
         for (const tc of msg.toolCalls) {
+          let input: Record<string, unknown>;
+          try {
+            input = JSON.parse(tc.arguments);
+          } catch {
+            this.logger.warn(`Failed to parse tool call arguments for ${tc.name}, using empty object`);
+            input = {};
+          }
           content.push({
             type: 'tool_use',
             id: tc.id,
             name: tc.name,
-            input: JSON.parse(tc.arguments),
+            input,
           });
         }
         formattedMessages.push({
