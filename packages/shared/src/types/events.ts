@@ -107,6 +107,10 @@ export const EventTypes = {
   CONTENT_ARTICLE_PUBLISHED: 'content.article.published',
   CONTENT_ARTICLE_SCHEDULED: 'content.article.scheduled',
   CONTENT_ARTICLE_UNPUBLISHED: 'content.article.unpublished',
+
+  // AI Provider token limit events (Epic 06)
+  TOKEN_LIMIT_WARNING: 'ai.token.limit_warning',
+  TOKEN_LIMIT_EXCEEDED: 'ai.token.limit_exceeded',
 } as const;
 
 /**
@@ -201,6 +205,26 @@ export interface AgentConfirmationPayload {
 }
 
 /**
+ * Token limit event payloads (Epic 06)
+ */
+export interface TokenLimitWarningPayload {
+  providerId: string;
+  provider: string;
+  tokensUsed: number;
+  maxTokens: number;
+  percentageUsed: number;
+  threshold: number; // e.g., 80
+}
+
+export interface TokenLimitExceededPayload {
+  providerId: string;
+  provider: string;
+  tokensUsed: number;
+  maxTokens: number;
+  requestedTokens?: number;
+}
+
+/**
  * Event payload type mapping for type-safe event creation
  * Maps event types to their corresponding payload types
  */
@@ -241,6 +265,10 @@ export type EventPayloadMap = {
   [EventTypes.CONTENT_ARTICLE_PUBLISHED]: Record<string, unknown>;
   [EventTypes.CONTENT_ARTICLE_SCHEDULED]: Record<string, unknown>;
   [EventTypes.CONTENT_ARTICLE_UNPUBLISHED]: Record<string, unknown>;
+
+  // Token limit events
+  [EventTypes.TOKEN_LIMIT_WARNING]: TokenLimitWarningPayload;
+  [EventTypes.TOKEN_LIMIT_EXCEEDED]: TokenLimitExceededPayload;
 };
 
 /**

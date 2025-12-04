@@ -35,6 +35,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentWorkspace } from '../common/decorators/current-workspace.decorator';
 import { AIProvidersService } from './ai-providers.service';
 import { TokenUsageService, UsageStats, DailyUsage, AgentUsage } from './token-usage.service';
+import { TokenLimitService, TokenLimitStatus } from './token-limit.service';
 import {
   CreateProviderDto,
   createProviderSchema,
@@ -68,6 +69,7 @@ export class AIProvidersController {
   constructor(
     private readonly providersService: AIProvidersService,
     private readonly tokenUsageService: TokenUsageService,
+    private readonly tokenLimitService: TokenLimitService,
   ) {}
 
   /**
@@ -197,6 +199,78 @@ export class AIProvidersController {
   ): Promise<{ data: AgentUsage[] }> {
     const usage = await this.tokenUsageService.getUsageByAgent(workspace.id);
     return { data: usage };
+  }
+
+  /**
+   * Get token limit status for all providers in workspace
+   */
+  @Get('limits')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get token limit status for all providers' })
+  @ApiResponse({
+    status: 200,
+    description: 'Token limit status for all providers',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  async getLimitStatus(
+    @CurrentWorkspace() workspace: { id: string },
+  ): Promise<{ data: TokenLimitStatus[] }> {
+    const status = await this.tokenLimitService.getWorkspaceLimitStatus(workspace.id);
+    return { data: status };
+  }
+
+  /**
+   * Get token limit status for a specific provider
+   */
+  @Get(':providerId/limit')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get token limit status for a provider' })
+  @ApiResponse({
+    status: 200,
+    description: 'Token limit status',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'providerId', description: 'Provider ID' })
+  async getProviderLimitStatus(
+    @Param('providerId') providerId: string,
+  ): Promise<{ data: TokenLimitStatus }> {
+    const status = await this.tokenLimitService.checkLimitStatus(providerId);
+    return { data: status };
+  }
+
+  /**
+   * Update token limit for a provider
+   */
+  @Patch(':providerId/limit')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Update daily token limit for a provider' })
+  @ApiResponse({
+    status: 200,
+    description: 'Limit updated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid limit value',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'providerId', description: 'Provider ID' })
+  async updateLimit(
+    @Param('providerId') providerId: string,
+    @Body() body: { maxTokensPerDay: number },
+  ): Promise<{ message: string; data: TokenLimitStatus }> {
+    if (!body.maxTokensPerDay || body.maxTokensPerDay < 0) {
+      throw new BadRequestException('maxTokensPerDay must be a positive number');
+    }
+
+    await this.tokenLimitService.updateLimit(providerId, body.maxTokensPerDay);
+    const status = await this.tokenLimitService.checkLimitStatus(providerId);
+
+    this.logger.log(`Updated limit for provider ${providerId} to ${body.maxTokensPerDay}`);
+
+    return {
+      message: 'Token limit updated successfully',
+      data: status,
+    };
   }
 
   /**

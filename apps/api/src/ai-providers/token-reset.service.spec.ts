@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TokenResetService } from './token-reset.service';
+import { TokenLimitService } from './token-limit.service';
 import { PrismaService } from '../common/services/prisma.service';
 
 describe('TokenResetService', () => {
@@ -14,6 +15,10 @@ describe('TokenResetService', () => {
     },
   };
 
+  const mockTokenLimitService = {
+    clearWarningCache: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -21,6 +26,10 @@ describe('TokenResetService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: TokenLimitService,
+          useValue: mockTokenLimitService,
         },
       ],
     }).compile();
@@ -43,6 +52,16 @@ describe('TokenResetService', () => {
       expect(mockPrismaService.aIProviderConfig.updateMany).toHaveBeenCalledWith({
         data: { tokensUsedToday: 0 },
       });
+    });
+
+    it('should clear warning cache after reset', async () => {
+      mockPrismaService.aIProviderConfig.updateMany.mockResolvedValue({
+        count: 5,
+      });
+
+      await service.resetDailyTokens();
+
+      expect(mockTokenLimitService.clearWarningCache).toHaveBeenCalled();
     });
 
     it('should handle empty providers', async () => {

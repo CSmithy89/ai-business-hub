@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../common/services/prisma.service';
+import { TokenLimitService } from './token-limit.service';
 
 /**
  * Service to handle daily token reset and cleanup tasks
@@ -9,7 +10,11 @@ import { PrismaService } from '../common/services/prisma.service';
 export class TokenResetService {
   private readonly logger = new Logger(TokenResetService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => TokenLimitService))
+    private readonly tokenLimitService: TokenLimitService,
+  ) {}
 
   /**
    * Reset daily token counters at midnight UTC
@@ -23,6 +28,9 @@ export class TokenResetService {
       const result = await this.prisma.aIProviderConfig.updateMany({
         data: { tokensUsedToday: 0 },
       });
+
+      // Clear the warning cache so warnings can be emitted again
+      this.tokenLimitService.clearWarningCache();
 
       this.logger.log(
         `Daily token reset complete. Reset ${result.count} provider(s).`

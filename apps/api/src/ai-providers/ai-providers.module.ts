@@ -7,7 +7,7 @@
  * @module ai-providers
  */
 
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AIProvidersController } from './ai-providers.controller';
@@ -15,17 +15,24 @@ import { AIProvidersService } from './ai-providers.service';
 import { AIProviderFactory } from './ai-provider-factory.service';
 import { TokenUsageService } from './token-usage.service';
 import { TokenResetService } from './token-reset.service';
+import { TokenLimitService } from './token-limit.service';
+import { EventsModule } from '../events/events.module';
 
 @Global()
 @Module({
-  imports: [ConfigModule, ScheduleModule.forRoot()],
+  imports: [
+    ConfigModule,
+    ScheduleModule.forRoot(),
+    forwardRef(() => EventsModule),
+  ],
   controllers: [AIProvidersController],
   providers: [
     AIProvidersService,
     AIProviderFactory,
     TokenUsageService,
     TokenResetService,
+    TokenLimitService,
   ],
-  exports: [AIProvidersService, AIProviderFactory, TokenUsageService],
+  exports: [AIProvidersService, AIProviderFactory, TokenUsageService, TokenLimitService],
 })
 export class AIProvidersModule {}
