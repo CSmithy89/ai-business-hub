@@ -53,7 +53,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             bg-[rgb(var(--color-bg-primary))]
             transition-all duration-300 ease-in-out
             ${sidebarCollapsed ? 'ml-16' : 'ml-64'}
-            ${chatPanelOpen ? `mr-[${chatPanelWidth}px]` : 'mr-0'}
             min-w-[600px]
 
             /* Tablet: Reduce minimum width */
@@ -63,7 +62,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             sm:ml-0 sm:mr-0 sm:min-w-0
           `}
           style={{
-            marginRight: chatPanelOpen ? `${chatPanelWidth}px` : '0',
+            marginRight: chatPanelOpen ? `${chatPanelWidth ?? 320}px` : '0',
           }}
         >
           <div className="p-8 sm:p-4">{children}</div>

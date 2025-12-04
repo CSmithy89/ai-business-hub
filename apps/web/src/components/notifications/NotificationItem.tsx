@@ -7,6 +7,7 @@
 
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import type { Notification, NotificationType } from '@/hooks/use-notifications';
 
@@ -24,6 +25,8 @@ const NOTIFICATION_ICONS: Record<NotificationType, string> = {
 };
 
 export function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
+  const router = useRouter();
+
   const handleClick = () => {
     if (!notification.read) {
       onMarkAsRead(notification.id);
@@ -31,7 +34,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
 
     // Navigate to action URL if provided
     if (notification.actionUrl) {
-      window.location.href = notification.actionUrl;
+      router.push(notification.actionUrl as never);
     }
   };
 

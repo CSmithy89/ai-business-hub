@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 interface ChatMessageProps {
   type: 'user' | 'agent' | 'system';
   content: string;
-  timestamp: Date;
+  timestamp: Date | string;
   agentName?: string;
   agentIcon?: string;
   agentColor?: string;
@@ -28,7 +28,9 @@ export function ChatMessage({
   agentIcon,
   agentColor,
 }: ChatMessageProps) {
-  const formattedTime = formatTime(timestamp);
+  const formattedTime = formatTime(
+    timestamp instanceof Date ? timestamp : new Date(timestamp)
+  );
 
   if (type === 'system') {
     return (

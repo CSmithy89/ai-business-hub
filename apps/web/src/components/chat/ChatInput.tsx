@@ -66,6 +66,7 @@ export function ChatInput({ onSend, agentName, disabled }: ChatInputProps) {
         <div className="absolute bottom-3 left-3 flex items-center gap-1">
           {/* @mention button */}
           <button
+            type="button"
             className={cn(
               'flex h-7 w-7 items-center justify-center rounded-md',
               'text-[rgb(var(--color-text-muted))] transition-colors duration-150',
@@ -89,6 +90,7 @@ export function ChatInput({ onSend, agentName, disabled }: ChatInputProps) {
 
           {/* Attachment button (placeholder) */}
           <button
+            type="button"
             className={cn(
               'flex h-7 w-7 items-center justify-center rounded-md',
               'text-[rgb(var(--color-text-muted))] transition-colors duration-150',
@@ -130,6 +132,7 @@ export function ChatInput({ onSend, agentName, disabled }: ChatInputProps) {
 
         {/* Send Button */}
         <button
+          type="button"
           onClick={handleSend}
           disabled={!message.trim() || disabled}
           className={cn(

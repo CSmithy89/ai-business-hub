@@ -9,7 +9,7 @@ interface ActivityItem {
   type: ActivityType;
   title: string;
   description: string;
-  timestamp: Date;
+  timestamp: Date | string;
 }
 
 /**
@@ -27,6 +27,7 @@ export function DashboardActivity() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-semibold">Recent Activity</CardTitle>
           <button
+            type="button"
             className="text-sm font-medium text-[rgb(var(--color-primary-500))]
                      hover:text-[rgb(var(--color-primary-600))] transition-colors"
             onClick={() => {
@@ -65,7 +66,11 @@ export function DashboardActivity() {
  */
 function ActivityItemComponent({ activity }: { activity: ActivityItem }) {
   const { icon, iconColor } = getActivityIcon(activity.type);
-  const timeAgo = formatTimeAgo(activity.timestamp);
+  const timestampDate =
+    activity.timestamp instanceof Date
+      ? activity.timestamp
+      : new Date(activity.timestamp);
+  const timeAgo = formatTimeAgo(timestampDate);
 
   return (
     <div className="flex gap-3 pb-4 last:pb-0">
@@ -82,7 +87,7 @@ function ActivityItemComponent({ activity }: { activity: ActivityItem }) {
           {activity.description}
         </p>
         <p className="text-xs text-[rgb(var(--color-text-muted))]">
-          <time dateTime={activity.timestamp.toISOString()}>{timeAgo}</time>
+          <time dateTime={timestampDate.toISOString()}>{timeAgo}</time>
         </p>
       </div>
     </div>

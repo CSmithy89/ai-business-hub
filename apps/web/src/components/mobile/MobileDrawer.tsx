@@ -11,6 +11,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { useUIStore } from '@/stores/ui';
 import { useApprovalCount } from '@/hooks/use-approval-count';
 import {
@@ -41,8 +42,9 @@ interface NavItem {
 
 export function MobileDrawer() {
   const { mobileMenuOpen, toggleMobileMenu } = useUIStore();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const user = useCurrentUser();
   const approvalCount = useApprovalCount();
 
@@ -98,6 +100,7 @@ export function MobileDrawer() {
         <nav className="flex flex-col gap-1 p-4">
           {navItems.map((item) => (
             <button
+              type="button"
               key={item.id}
               onClick={() => handleNavClick(item.href)}
               className={cn(
@@ -126,19 +129,26 @@ export function MobileDrawer() {
           <div className="flex items-center justify-between rounded-lg bg-[rgb(var(--color-bg-tertiary))] px-4 py-3">
             <div className="flex items-center gap-3">
               <span className="material-symbols-rounded text-2xl text-[rgb(var(--color-text-primary))]">
-                dark_mode
+                {theme === 'dark' ? 'dark_mode' : 'light_mode'}
               </span>
               <span className="text-sm font-medium text-[rgb(var(--color-text-primary))]">
                 Dark Mode
               </span>
             </div>
             <button
-              className="relative inline-flex h-6 w-11 items-center rounded-full
-                         bg-[rgb(var(--color-border-default))] transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]"
+              type="button"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full
+                         transition-colors focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary))]
+                         ${theme === 'dark' ? 'bg-[rgb(var(--color-primary))]' : 'bg-[rgb(var(--color-border-default))]'}`}
               aria-label="Toggle dark mode"
+              role="switch"
+              aria-checked={theme === 'dark'}
             >
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1" />
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                           ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`}
+              />
             </button>
           </div>
         </div>
@@ -146,6 +156,7 @@ export function MobileDrawer() {
         {/* Sign Out */}
         <div className="mt-auto border-t border-[rgb(var(--color-border-default))] p-4">
           <button
+            type="button"
             onClick={handleSignOut}
             className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left
                        text-[rgb(var(--color-error))] transition-colors

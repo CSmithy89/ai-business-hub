@@ -27,7 +27,7 @@ interface BottomNavItem {
 
 export function MobileBottomNav() {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const { toggleChatPanel, toggleMobileMenu } = useUIStore();
   const approvalCount = useApprovalCount();
 
@@ -88,6 +88,7 @@ export function MobileBottomNav() {
       <div className="flex items-center justify-around">
         {items.map((item) => (
           <button
+            type="button"
             key={item.id}
             onClick={() => handleItemClick(item)}
             className={cn(

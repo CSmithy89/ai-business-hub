@@ -7,14 +7,22 @@
 
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useUIStore } from '@/stores/ui';
 
 export function HeaderSearchTrigger() {
   const openCommandPalette = useUIStore((state) => state.openCommandPalette);
+  const [isMac, setIsMac] = useState(true);
+
+  useEffect(() => {
+    setIsMac(/Mac|iPhone|iPad|iPod/.test(navigator.platform));
+  }, []);
+
+  const shortcutKey = isMac ? '⌘' : 'Ctrl';
 
   return (
     <button
-      aria-label="Search (⌘K)"
+      aria-label={`Search (${shortcutKey}K)`}
       className="flex items-center gap-2 rounded-lg border border-[rgb(var(--color-border-default))]
                  bg-[rgb(var(--color-bg-primary))] px-3 py-1.5 text-sm
                  text-[rgb(var(--color-text-secondary))] transition-colors
@@ -31,7 +39,7 @@ export function HeaderSearchTrigger() {
                    border-[rgb(var(--color-border-default))] bg-[rgb(var(--color-bg-secondary))]
                    px-1.5 py-0.5 text-xs font-medium text-[rgb(var(--color-text-tertiary))]"
       >
-        <span className="text-[10px]">⌘</span>K
+        <span className="text-[10px]">{shortcutKey}</span>K
       </kbd>
     </button>
   );

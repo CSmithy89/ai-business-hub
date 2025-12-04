@@ -104,7 +104,12 @@ function getColorClasses(color: StatCard['color']) {
     },
   };
 
-  return colorMap[color];
+  return (
+    colorMap[color] ?? {
+      icon: 'text-[rgb(var(--color-text-secondary))]',
+      bg: 'bg-[rgb(var(--color-bg-secondary))]',
+    }
+  );
 }
 
 /**

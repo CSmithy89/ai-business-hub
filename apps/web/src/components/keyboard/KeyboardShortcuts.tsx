@@ -74,8 +74,8 @@ export function KeyboardShortcuts() {
       const isModifier = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
 
-      // Help overlay (?)
-      if (key === '?' && !isModifier && !event.shiftKey) {
+      // Help overlay (? - Shift+/ on most keyboards)
+      if ((key === '?' || (key === '/' && event.shiftKey)) && !isModifier) {
         event.preventDefault();
         setShowHelp(true);
         return;

@@ -21,7 +21,12 @@ export function TypingIndicator({
   agentColor,
 }: TypingIndicatorProps) {
   return (
-    <div className="flex max-w-[85%] items-start gap-2.5 self-start">
+    <div
+      className="flex max-w-[85%] items-start gap-2.5 self-start"
+      role="status"
+      aria-live="polite"
+      aria-label={`${agentName} is typing`}
+    >
       {/* Agent Avatar */}
       <div
         className={cn(

@@ -52,7 +52,8 @@ export function SidebarWorkspaceSwitcher({ collapsed }: SidebarWorkspaceSwitcher
     return (
       <>
         <button
-          onClick={() => setShowSelector(!showSelector)}
+          type="button"
+          onClick={() => setShowSelector((prev) => !prev)}
           className="h-10 w-10 rounded-md bg-gradient-to-br from-[rgb(var(--color-primary-500))] to-[rgb(var(--color-agent-atlas))] flex items-center justify-center text-sm font-bold text-white transition-opacity hover:opacity-90"
           aria-label="Switch workspace"
         >
@@ -75,7 +76,8 @@ export function SidebarWorkspaceSwitcher({ collapsed }: SidebarWorkspaceSwitcher
   return (
     <>
       <button
-        onClick={() => setShowSelector(!showSelector)}
+        type="button"
+        onClick={() => setShowSelector((prev) => !prev)}
         className="flex w-full items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-[rgb(var(--color-bg-tertiary))]"
         aria-label="Switch workspace"
       >
