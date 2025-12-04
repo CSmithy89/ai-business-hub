@@ -190,6 +190,7 @@ model AIProviderConfig {
 
   @@unique([workspaceId, provider])
   @@index([workspaceId])
+  @@index([isValid]) // Optimize daily token reset query
   @@map("ai_provider_configs")
 }
 

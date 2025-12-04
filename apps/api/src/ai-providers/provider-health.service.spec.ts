@@ -378,4 +378,121 @@ describe('ProviderHealthService', () => {
       await expect(service.runScheduledHealthChecks()).resolves.not.toThrow();
     });
   });
+
+  describe('edge cases', () => {
+    it('should handle factory creation failure gracefully', async () => {
+      const mockProvider = {
+        id: 'provider-1',
+        provider: 'openai',
+        apiKeyEncrypted: 'invalid-encrypted-key',
+        defaultModel: 'gpt-4',
+      };
+
+      mockPrismaService.aIProviderConfig.findUnique.mockResolvedValue(mockProvider);
+      mockProviderFactory.create.mockRejectedValue(
+        new Error('Failed to decrypt API key'),
+      );
+      mockPrismaService.aIProviderConfig.update.mockResolvedValue({});
+
+      const result = await service.checkProviderHealth('provider-1');
+
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe('Failed to decrypt API key');
+    });
+
+    it('should handle concurrent health checks for different providers', async () => {
+      const mockProviders = [
+        { id: 'provider-1', provider: 'openai', apiKeyEncrypted: 'key1', defaultModel: 'gpt-4' },
+        { id: 'provider-2', provider: 'claude', apiKeyEncrypted: 'key2', defaultModel: 'claude-3' },
+      ];
+
+      mockPrismaService.aIProviderConfig.findUnique.mockImplementation(({ where }) => {
+        const provider = mockProviders.find((p) => p.id === where.id);
+        return Promise.resolve(provider || null);
+      });
+      mockProviderFactory.create.mockResolvedValue(mockProviderInstance);
+      mockProviderInstance.validateCredentials.mockResolvedValue({ valid: true });
+      mockPrismaService.aIProviderConfig.update.mockResolvedValue({});
+
+      // Run concurrent checks
+      const [result1, result2] = await Promise.all([
+        service.checkProviderHealth('provider-1'),
+        service.checkProviderHealth('provider-2'),
+      ]);
+
+      expect(result1.isValid).toBe(true);
+      expect(result2.isValid).toBe(true);
+    });
+
+    it('should handle provider with missing apiKeyEncrypted', async () => {
+      const mockProvider = {
+        id: 'provider-1',
+        provider: 'openai',
+        apiKeyEncrypted: null,
+        defaultModel: 'gpt-4',
+      };
+
+      mockPrismaService.aIProviderConfig.findUnique.mockResolvedValue(mockProvider);
+      mockProviderFactory.create.mockRejectedValue(
+        new Error('API key not configured'),
+      );
+      mockPrismaService.aIProviderConfig.update.mockResolvedValue({});
+
+      const result = await service.checkProviderHealth('provider-1');
+
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe('API key not configured');
+    });
+
+    it('should correctly track failures across multiple providers independently', async () => {
+      const mockProviders = [
+        { id: 'provider-1', provider: 'openai', apiKeyEncrypted: 'key1', defaultModel: 'gpt-4' },
+        { id: 'provider-2', provider: 'claude', apiKeyEncrypted: 'key2', defaultModel: 'claude-3' },
+      ];
+
+      mockPrismaService.aIProviderConfig.findUnique.mockImplementation(({ where }) => {
+        const provider = mockProviders.find((p) => p.id === where.id);
+        return Promise.resolve(provider || null);
+      });
+      mockProviderFactory.create.mockResolvedValue(mockProviderInstance);
+      mockProviderInstance.validateCredentials.mockResolvedValue({
+        valid: false,
+        error: 'API error',
+      });
+      mockPrismaService.aIProviderConfig.update.mockResolvedValue({});
+
+      // Fail provider-1 twice
+      await service.checkProviderHealth('provider-1');
+      await service.checkProviderHealth('provider-1');
+
+      // Fail provider-2 once
+      await service.checkProviderHealth('provider-2');
+
+      expect(service.getConsecutiveFailures('provider-1')).toBe(2);
+      expect(service.getConsecutiveFailures('provider-2')).toBe(1);
+    });
+
+    it('should measure latency within reasonable bounds', async () => {
+      const mockProvider = {
+        id: 'provider-1',
+        provider: 'openai',
+        apiKeyEncrypted: 'encrypted-key',
+        defaultModel: 'gpt-4',
+      };
+
+      mockPrismaService.aIProviderConfig.findUnique.mockResolvedValue(mockProvider);
+      mockProviderFactory.create.mockResolvedValue(mockProviderInstance);
+      mockProviderInstance.validateCredentials.mockImplementation(async () => {
+        // Simulate some latency
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        return { valid: true };
+      });
+      mockPrismaService.aIProviderConfig.update.mockResolvedValue({});
+
+      const result = await service.checkProviderHealth('provider-1');
+
+      expect(result.latency).toBeGreaterThanOrEqual(10);
+      expect(result.latency).toBeLessThan(1000); // Should complete well under 1 second
+    });
+  });
 });

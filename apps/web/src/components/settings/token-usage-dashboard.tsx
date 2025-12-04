@@ -34,6 +34,12 @@ import { useAIProviders, PROVIDER_INFO } from '@/hooks/use-ai-providers'
 const CHART_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
 
 /**
+ * Maximum rows to export in CSV to prevent browser memory issues.
+ * For datasets larger than this, users should use the API directly.
+ */
+const MAX_CSV_EXPORT_ROWS = 1000
+
+/**
  * Sanitize a value for CSV export to prevent CSV injection attacks.
  * Values starting with =, +, -, @, \t, \r can execute formulas in Excel/Sheets.
  * @see https://owasp.org/www-community/attacks/CSV_Injection
@@ -130,18 +136,40 @@ export function TokenUsageDashboard() {
   const handleExportCSV = () => {
     if (!dailyUsage.length) return
 
+    // Limit export size to prevent browser memory issues
+    const isTruncated = dailyUsage.length > MAX_CSV_EXPORT_ROWS
+    const exportData = isTruncated
+      ? dailyUsage.slice(0, MAX_CSV_EXPORT_ROWS)
+      : dailyUsage
+
+    if (isTruncated) {
+      console.warn(
+        `CSV export truncated: ${dailyUsage.length} rows limited to ${MAX_CSV_EXPORT_ROWS}. ` +
+        `Use the API for full data export.`
+      )
+    }
+
     const headers = ['Date', 'Total Tokens', 'Estimated Cost ($)', 'Request Count']
-    const rows = dailyUsage.map((d: DailyUsage) => [
+    const rows = exportData.map((d: DailyUsage) => [
       sanitizeCSVValue(d.date),
       sanitizeCSVValue(d.totalTokens),
       sanitizeCSVValue(d.totalCost.toFixed(4)),
       sanitizeCSVValue(d.requestCount),
     ])
 
-    const csv = [
-      headers.map(h => sanitizeCSVValue(h)).join(','),
-      ...rows.map((r) => r.join(','))
-    ].join('\n')
+    // Add truncation notice as first row if data was limited
+    const csvRows = isTruncated
+      ? [
+          `"Note: Export limited to ${MAX_CSV_EXPORT_ROWS} rows. Use API for full data."`,
+          headers.map(h => sanitizeCSVValue(h)).join(','),
+          ...rows.map((r) => r.join(','))
+        ]
+      : [
+          headers.map(h => sanitizeCSVValue(h)).join(','),
+          ...rows.map((r) => r.join(','))
+        ]
+
+    const csv = csvRows.join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
