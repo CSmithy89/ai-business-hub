@@ -216,7 +216,7 @@ development_status:
   09-5-implement-2fa-management: done
   09-6-implement-magic-link-authentication: done
   09-7-implement-account-linking: done
-  09-8-implement-otp-code-verification: backlog
+  09-8-implement-otp-code-verification: done
 
   # Team Members UI Enhancements (5 stories, 11 points)
   09-9-implement-team-members-stats-cards: backlog

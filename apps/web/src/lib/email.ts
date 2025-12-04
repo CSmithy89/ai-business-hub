@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { VerificationEmail } from '../emails/verification-email'
+import { deriveOTPFromToken } from './otp'
 
 /**
  * Initialize Resend client
@@ -35,6 +36,7 @@ export async function sendVerificationEmail(
   userName?: string
 ): Promise<void> {
   const verificationUrl = `${baseUrl}/verify-email?token=${token}`
+  const otpCode = deriveOTPFromToken(token)
 
   // For local development without Resend API key
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'test') {
@@ -43,6 +45,7 @@ export async function sendVerificationEmail(
     console.log(`To: ${to}`)
     console.log(`Subject: Verify your email address for HYVVE`)
     console.log(`Verification Link: ${verificationUrl}`)
+    console.log(`OTP Code: ${otpCode}`)
     console.log(`Token: ${token}`)
     console.log('═══════════════════════════════════════\n')
     return
@@ -57,6 +60,7 @@ export async function sendVerificationEmail(
       react: VerificationEmail({
         verificationUrl,
         userName,
+        otpCode,
       }),
     })
 

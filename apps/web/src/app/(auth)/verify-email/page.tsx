@@ -6,7 +6,8 @@ import { AuthLayout } from '@/components/auth/auth-layout'
 import { VerificationPending } from '@/components/auth/verification-pending'
 import { VerificationSuccess } from '@/components/auth/verification-success'
 import { VerificationError } from '@/components/auth/verification-error'
-import { Loader2 } from 'lucide-react'
+import { OtpCodeInput } from '@/components/auth/otp-code-input'
+import { Loader2, AlertCircle } from 'lucide-react'
 
 /**
  * Verification state types
@@ -14,6 +15,7 @@ import { Loader2 } from 'lucide-react'
 type VerificationState =
   | { type: 'pending'; email: string }
   | { type: 'verifying' }
+  | { type: 'verifying-otp' }
   | { type: 'success' }
   | { type: 'error'; errorType: 'expired' | 'invalid' | 'unknown'; email?: string }
 
@@ -31,6 +33,7 @@ function VerifyEmailContent() {
     email: emailParam || '',
   })
   const [resending, setResending] = useState(false)
+  const [otpError, setOtpError] = useState<string | null>(null)
 
   // Auto-verify token on mount if present
   useEffect(() => {
@@ -76,6 +79,55 @@ function VerifyEmailContent() {
 
     verifyToken()
   }, [token, emailParam])
+
+  /**
+   * Handle OTP code submission
+   */
+  const handleOtpSubmit = async (code: string) => {
+    const email = state.type === 'pending' ? state.email : emailParam
+
+    if (!email) {
+      setOtpError('Email address is required')
+      return
+    }
+
+    setState({ type: 'verifying-otp' })
+    setOtpError(null)
+
+    try {
+      const response = await fetch('/api/auth/verify-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setState({ type: 'success' })
+      } else {
+        // Handle errors
+        let errorMessage = data.error?.message || 'Invalid or expired code'
+
+        if (response.status === 429) {
+          errorMessage = data.message || 'Too many attempts. Please try again later.'
+        }
+
+        setOtpError(errorMessage)
+        setState({
+          type: 'pending',
+          email: email || '',
+        })
+      }
+    } catch (error) {
+      console.error('OTP verification error:', error)
+      setOtpError('An error occurred. Please try again.')
+      setState({
+        type: 'pending',
+        email: email || '',
+      })
+    }
+  }
 
   /**
    * Handle resend verification email
@@ -133,11 +185,59 @@ function VerifyEmailContent() {
 
       {/* Pending State */}
       {state.type === 'pending' && (
-        <VerificationPending
-          email={state.email}
-          onResend={handleResend}
-          isResending={resending}
-        />
+        <div className="w-full max-w-md space-y-6">
+          <VerificationPending
+            email={state.email}
+            onResend={handleResend}
+            isResending={resending}
+          />
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+                Or verify with code
+              </span>
+            </div>
+          </div>
+
+          {/* OTP Input Section */}
+          <div className="space-y-4">
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Enter the 6-digit code from your email
+              </p>
+            </div>
+
+            {otpError && (
+              <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-600 dark:text-red-400">{otpError}</p>
+              </div>
+            )}
+
+            <OtpCodeInput
+              length={6}
+              onComplete={handleOtpSubmit}
+              disabled={false}
+              error={!!otpError}
+              autoSubmit={true}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Verifying OTP State */}
+      {state.type === 'verifying-otp' && (
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-[#FF6B6B]" />
+          <p className="text-gray-600 dark:text-gray-400">
+            Verifying your code...
+          </p>
+        </div>
       )}
 
       {/* Success State */}

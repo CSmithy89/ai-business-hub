@@ -14,9 +14,10 @@ import {
 interface VerificationEmailProps {
   verificationUrl: string
   userName?: string
+  otpCode?: string
 }
 
-export function VerificationEmail({ verificationUrl, userName }: VerificationEmailProps) {
+export function VerificationEmail({ verificationUrl, userName, otpCode }: VerificationEmailProps) {
   return (
     <Html>
       <Head />
@@ -44,6 +45,20 @@ export function VerificationEmail({ verificationUrl, userName }: VerificationEma
           <Link href={verificationUrl} style={link}>
             {verificationUrl}
           </Link>
+          {otpCode && (
+            <>
+              <Section style={divider} />
+              <Text style={text}>
+                Alternatively, you can enter this 6-digit verification code:
+              </Text>
+              <Section style={otpContainer}>
+                <Text style={otpCode_style}>{otpCode}</Text>
+              </Section>
+              <Text style={smallText}>
+                This code will expire in 24 hours, just like the verification link above.
+              </Text>
+            </>
+          )}
           <Text style={footer}>
             This link will expire in 24 hours. If you didn&apos;t create an account with HYVVE, you can
             safely ignore this email.
@@ -116,4 +131,34 @@ const footer = {
   fontSize: '14px',
   lineHeight: '22px',
   margin: '32px 24px 0',
+}
+
+const divider = {
+  borderTop: '1px solid #e5e7eb',
+  margin: '32px 24px',
+}
+
+const otpContainer = {
+  textAlign: 'center' as const,
+  margin: '24px 0',
+  padding: '16px',
+  backgroundColor: '#f9fafb',
+  borderRadius: '8px',
+}
+
+const otpCode_style = {
+  color: '#FF6B6B',
+  fontSize: '32px',
+  fontWeight: 'bold',
+  letterSpacing: '8px',
+  margin: '0',
+  fontFamily: 'monospace',
+}
+
+const smallText = {
+  color: '#6b7280',
+  fontSize: '14px',
+  lineHeight: '20px',
+  margin: '0 24px',
+  textAlign: 'center' as const,
 }
