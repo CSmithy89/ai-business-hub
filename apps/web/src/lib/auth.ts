@@ -1,8 +1,8 @@
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
-import { organization, twoFactor } from 'better-auth/plugins'
+import { organization, twoFactor, magicLink } from 'better-auth/plugins'
 import { prisma } from '@hyvve/db'
-import { sendVerificationEmail, sendPasswordResetEmail } from './email'
+import { sendVerificationEmail, sendPasswordResetEmail, sendMagicLinkEmail } from './email'
 
 export const auth = betterAuth({
   // Database adapter using Prisma
@@ -32,6 +32,13 @@ export const auth = betterAuth({
     }),
     twoFactor({
       issuer: 'HYVVE',
+    }),
+    magicLink({
+      sendMagicLink: async ({ email, token, url }) => {
+        await sendMagicLinkEmail(email, url, token)
+      },
+      expiresIn: 900, // 15 minutes (900 seconds)
+      disableSignUp: false, // Allow new users to sign up via magic link
     }),
   ],
 

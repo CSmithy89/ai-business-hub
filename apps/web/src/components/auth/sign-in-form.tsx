@@ -430,6 +430,14 @@ export function SignInForm() {
           Sign up
         </Link>
       </p>
+
+      {/* Magic Link Option */}
+      <p className="text-center text-sm text-gray-600">
+        Prefer passwordless sign-in?{' '}
+        <Link href="/magic-link" prefetch={false} className="text-[#FF6B6B] hover:underline font-medium">
+          Email me a login link
+        </Link>
+      </p>
         </>
       )}
     </div>
