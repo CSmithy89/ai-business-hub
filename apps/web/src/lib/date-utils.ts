@@ -4,9 +4,21 @@
  * Standardized date/timestamp handling utilities for consistent
  * date operations across the application.
  *
+ * All formatting functions support an optional timezone parameter
+ * for multi-tenant applications where users may be in different timezones.
+ *
  * Epic: 07 - UI Shell
  * Technical Debt: Standardize timestamp handling across components
  */
+
+/** Options for date formatting functions */
+export interface DateFormatOptions {
+  /**
+   * IANA timezone identifier (e.g., 'America/New_York', 'Europe/London', 'UTC')
+   * Defaults to user's local timezone if not specified.
+   */
+  timezone?: string;
+}
 
 /**
  * Normalizes a timestamp to a Date object.
@@ -34,19 +46,25 @@ export function normalizeTimestamp(timestamp: Date | string | number): Date {
  * Shows time in 12-hour format (e.g., "2:30 PM").
  *
  * @param timestamp - Date object, ISO string, or numeric timestamp
+ * @param options - Optional formatting options including timezone
  * @returns Formatted time string
  *
  * @example
  * ```ts
- * formatChatTime(new Date()); // "2:30 PM"
+ * formatChatTime(new Date()); // "2:30 PM" (local timezone)
+ * formatChatTime(new Date(), { timezone: 'UTC' }); // "2:30 PM" (UTC)
  * ```
  */
-export function formatChatTime(timestamp: Date | string | number): string {
+export function formatChatTime(
+  timestamp: Date | string | number,
+  options?: DateFormatOptions
+): string {
   const date = normalizeTimestamp(timestamp);
   return new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
+    timeZone: options?.timezone,
   }).format(date);
 }
 
@@ -55,9 +73,19 @@ export function formatChatTime(timestamp: Date | string | number): string {
  * Shows full date and time (e.g., "Jan 15, 2024, 2:30 PM").
  *
  * @param timestamp - Date object, ISO string, or numeric timestamp
+ * @param options - Optional formatting options including timezone
  * @returns Formatted date-time string
+ *
+ * @example
+ * ```ts
+ * formatDateTime(new Date()); // "Jan 15, 2024, 2:30 PM" (local)
+ * formatDateTime(new Date(), { timezone: 'America/New_York' });
+ * ```
  */
-export function formatDateTime(timestamp: Date | string | number): string {
+export function formatDateTime(
+  timestamp: Date | string | number,
+  options?: DateFormatOptions
+): string {
   const date = normalizeTimestamp(timestamp);
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
@@ -66,6 +94,7 @@ export function formatDateTime(timestamp: Date | string | number): string {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
+    timeZone: options?.timezone,
   }).format(date);
 }
 
@@ -73,10 +102,18 @@ export function formatDateTime(timestamp: Date | string | number): string {
  * Formats a timestamp as a relative time string.
  * Shows relative time (e.g., "2 minutes ago", "yesterday").
  *
+ * Note: Relative time is calculated from the current moment,
+ * so timezone doesn't affect the relative calculation. The fallback
+ * to formatDateTime will use the specified timezone if provided.
+ *
  * @param timestamp - Date object, ISO string, or numeric timestamp
+ * @param options - Optional formatting options including timezone
  * @returns Relative time string
  */
-export function formatRelativeTime(timestamp: Date | string | number): string {
+export function formatRelativeTime(
+  timestamp: Date | string | number,
+  options?: DateFormatOptions
+): string {
   const date = normalizeTimestamp(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -102,5 +139,5 @@ export function formatRelativeTime(timestamp: Date | string | number): string {
   }
 
   // Fall back to formatted date for older timestamps
-  return formatDateTime(timestamp);
+  return formatDateTime(timestamp, options);
 }

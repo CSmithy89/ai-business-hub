@@ -55,8 +55,8 @@ function isInputFocused(): boolean {
  * Register a keyboard shortcut
  *
  * @param key - The key to listen for (e.g., 'k', 'Enter', 'Escape')
- * @param options - Modifier keys and behavior options
- * @param callback - Function to call when shortcut is triggered
+ * @param options - Modifier keys and behavior options (callers don't need to memoize)
+ * @param callback - Function to call when shortcut is triggered (callers don't need to memoize)
  */
 export function useKeyboardShortcut(
   key: string,
@@ -68,15 +68,17 @@ export function useKeyboardShortcut(
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
 
-  useEffect(() => {
-    const {
-      meta = false,
-      shift = false,
-      alt = false,
-      preventDefault = true,
-      skipInInputs = true,
-    } = options;
+  // Destructure options for stable dependency array
+  // This prevents re-registration when callers pass inline options objects
+  const {
+    meta = false,
+    shift = false,
+    alt = false,
+    preventDefault = true,
+    skipInInputs = true,
+  } = options;
 
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Skip if focus is in an input and skipInInputs is true
       if (skipInInputs && isInputFocused()) {
@@ -115,7 +117,7 @@ export function useKeyboardShortcut(
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [key, options]); // callback removed from deps - using ref instead
+  }, [key, meta, shift, alt, preventDefault, skipInInputs]);
 }
 
 /**

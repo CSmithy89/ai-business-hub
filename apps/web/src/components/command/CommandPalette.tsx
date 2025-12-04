@@ -17,7 +17,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import {
@@ -64,6 +64,21 @@ export function CommandPalette() {
 
   const [search, setSearch] = useState('');
   const [recentItems, setRecentItems] = useState<string[]>([]);
+
+  // Load recent items from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('hyvve-command-palette-recent');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setRecentItems(parsed.slice(0, 5));
+        }
+      }
+    } catch {
+      // Ignore localStorage errors (SSR, private browsing, etc.)
+    }
+  }, []);
 
   // Navigation items
   const navigationItems: CommandItemData[] = [
@@ -167,13 +182,23 @@ export function CommandPalette() {
     },
   ];
 
-  // Add item to recent items
-  const addToRecent = (label: string) => {
+  // Add item to recent items and persist to localStorage
+  const addToRecent = useCallback((label: string) => {
     setRecentItems((prev) => {
       const filtered = prev.filter((item) => item !== label);
-      return [label, ...filtered].slice(0, 5); // Keep only 5 most recent
+      const updated = [label, ...filtered].slice(0, 5);
+      // Persist to localStorage
+      try {
+        localStorage.setItem(
+          'hyvve-command-palette-recent',
+          JSON.stringify(updated)
+        );
+      } catch {
+        // Ignore localStorage errors
+      }
+      return updated;
     });
-  };
+  }, []);
 
   // Get recent items as command items
   const getRecentCommandItems = (): CommandItemData[] => {
