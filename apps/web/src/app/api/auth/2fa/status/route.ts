@@ -21,10 +21,21 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch user's 2FA status from database
+    // Fetch user's 2FA status from database with enhanced metadata
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { twoFactorEnabled: true },
+      select: {
+        twoFactorEnabled: true,
+        updatedAt: true,
+        accounts: {
+          where: { provider: 'credential' },
+          select: { accessToken: true },
+        },
+        backupCodes: {
+          where: { used: false },
+          select: { id: true },
+        },
+      },
     })
 
     if (!user) {
@@ -34,8 +45,20 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Return enhanced metadata when 2FA is enabled
+    if (user.twoFactorEnabled) {
+      return NextResponse.json({
+        twoFactorEnabled: true,
+        method: 'totp',
+        enabledAt: user.updatedAt.toISOString(),
+        backupCodesRemaining: user.backupCodes.length,
+        hasPassword: !!user.accounts[0]?.accessToken,
+      })
+    }
+
+    // Return minimal data when 2FA is disabled
     return NextResponse.json({
-      twoFactorEnabled: user.twoFactorEnabled || false,
+      twoFactorEnabled: false,
     })
   } catch (error) {
     console.error('2FA status check error:', error)

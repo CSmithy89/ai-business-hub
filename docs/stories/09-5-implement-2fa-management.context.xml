@@ -1,0 +1,1208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-id>09-5-implement-2fa-management</story-id>
+  <title>Implement 2FA Management</title>
+  <epic>09 - UI &amp; Authentication Enhancements</epic>
+  <status>ready-for-dev</status>
+  <points>2</points>
+  <priority>P2</priority>
+
+  <!-- ============================================ -->
+  <!-- OVERVIEW -->
+  <!-- ============================================ -->
+  <overview>
+    <objective>
+      Implement comprehensive 2FA management features for users who have already enabled 2FA.
+      This includes viewing/regenerating backup codes, managing trusted devices, and disabling 2FA.
+    </objective>
+
+    <scope>
+      <in-scope>
+        - Display 2FA status and metadata (method, enabled date)
+        - Show backup codes count without revealing codes
+        - View backup codes with password re-authentication
+        - Regenerate backup codes (invalidates old ones)
+        - Display trusted devices list (if implementing trusted devices)
+        - Revoke individual trusted devices
+        - Disable 2FA with password confirmation
+        - Audit logging for all 2FA management actions
+      </in-scope>
+
+      <out-of-scope>
+        - Adding additional 2FA methods (hardware keys, SMS)
+        - Biometric authentication
+        - Session-based trust (implemented in Story 09.4)
+        - Rate limiting (already implemented in setup/login)
+      </out-of-scope>
+    </scope>
+
+    <dependencies>
+      <completed>
+        - Story 09.3: Two-Factor Authentication Setup (COMPLETE)
+        - Story 09.4: Two-Factor Authentication Login (COMPLETE)
+        - BackupCode model in database schema (EXISTS)
+        - 2FA utilities in @/lib/two-factor.ts (EXISTS)
+      </completed>
+
+      <optional>
+        - TrustedDevice model (to be added if implementing device management)
+      </optional>
+    </dependencies>
+  </overview>
+
+  <!-- ============================================ -->
+  <!-- EXISTING CODEBASE CONTEXT -->
+  <!-- ============================================ -->
+  <existing-code>
+    <!-- Database Models -->
+    <database>
+      <model name="User">
+        <location>packages/db/prisma/schema.prisma</location>
+        <fields>
+          - id: String (UUID)
+          - email: String (unique)
+          - twoFactorEnabled: Boolean @default(false)
+          - twoFactorSecret: String? (encrypted TOTP secret)
+          - createdAt: DateTime
+          - updatedAt: DateTime
+          - backupCodes: BackupCode[] (relation)
+        </fields>
+      </model>
+
+      <model name="BackupCode">
+        <location>packages/db/prisma/schema.prisma</location>
+        <fields>
+          - id: String (CUID)
+          - userId: String
+          - code: String (bcrypt-hashed backup code)
+          - used: Boolean @default(false)
+          - usedAt: DateTime?
+          - createdAt: DateTime
+          - user: User (relation)
+        </fields>
+        <indexes>
+          - [userId]
+          - [userId, used]
+        </indexes>
+        <notes>
+          Backup codes are hashed with bcrypt before storage for security.
+          Regenerating codes should delete old codes and create new ones.
+        </notes>
+      </model>
+
+      <model name="TrustedDevice" status="TO_BE_ADDED">
+        <location>packages/db/prisma/schema.prisma</location>
+        <suggested-schema>
+          model TrustedDevice {
+            id           String    @id @default(cuid())
+            userId       String    @map("user_id")
+            deviceName   String    @map("device_name")
+            deviceHash   String    @unique @map("device_hash") // Hash of user agent + IP
+            lastUsedAt   DateTime  @map("last_used_at")
+            expiresAt    DateTime  @map("expires_at") // 30 days from creation
+            createdAt    DateTime  @default(now()) @map("created_at")
+            revokedAt    DateTime? @map("revoked_at")
+
+            user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+            @@index([userId])
+            @@index([userId, revokedAt])
+            @@index([expiresAt])
+            @@map("trusted_devices")
+          }
+        </suggested-schema>
+        <notes>
+          Optional: Only implement if you want device trust management.
+          Device trust was implemented in Story 09.4 using server-side sessions.
+          This model would provide UI for viewing and revoking trusted devices.
+        </notes>
+      </model>
+    </database>
+
+    <!-- Utility Functions -->
+    <utilities>
+      <file path="apps/web/src/lib/two-factor.ts">
+        <description>Two-factor authentication utility functions</description>
+        <key-functions>
+          - generateTOTPSecret(): string - Generate TOTP secret
+          - verifyTOTPCode(secret: string, code: string): boolean - Verify TOTP code
+          - generateBackupCodes(count: number = 10): string[] - Generate backup codes
+          - hashBackupCode(code: string): Promise&lt;string&gt; - Hash code with bcrypt
+          - verifyBackupCode(code: string, hash: string): Promise&lt;boolean&gt; - Verify code
+          - encryptSecret(plaintext: string, masterKey: string): Promise&lt;string&gt; - Encrypt secret
+          - decryptSecret(encrypted: string, masterKey: string): Promise&lt;string&gt; - Decrypt secret
+        </key-functions>
+        <encryption-scheme>
+          - Algorithm: AES-256-GCM
+          - Key derivation: PBKDF2 (100,000 iterations, SHA-256)
+          - Master key: BETTER_AUTH_SECRET environment variable
+          - Storage format: base64(salt + iv + ciphertext + authTag)
+        </encryption-scheme>
+      </file>
+
+      <file path="apps/web/src/lib/two-factor-session.ts" status="EXISTS">
+        <description>Server-side session management for 2FA setup</description>
+        <note>Used during setup flow. May not be needed for management features.</note>
+      </file>
+
+      <file path="apps/web/src/lib/audit-log.ts" status="EXISTS">
+        <description>Audit logging utilities</description>
+        <key-functions>
+          - createAuditLog(params): Promise&lt;void&gt; - Create audit log entry
+          - getClientIp(headers): string - Extract client IP
+          - getUserAgent(headers): string - Extract user agent
+        </key-functions>
+      </file>
+    </utilities>
+
+    <!-- UI Components -->
+    <components>
+      <component path="apps/web/src/components/settings/two-factor-card.tsx">
+        <description>Main 2FA settings card component</description>
+        <current-state>
+          - Displays 2FA enabled/disabled status
+          - Shows enable button when disabled
+          - Shows placeholder buttons for management when enabled:
+            * View Backup Codes (not implemented)
+            * Regenerate Codes (not implemented)
+            * Disable Two-Factor Authentication (not implemented)
+        </current-state>
+        <needs-update>
+          - Wire up management buttons to actual functionality
+          - Add modal dialogs for password verification
+          - Display backup codes count
+          - Show 2FA metadata (enabled date, method)
+        </needs-update>
+      </component>
+
+      <component path="apps/web/src/components/settings/two-factor-setup-modal.tsx">
+        <description>Modal for initial 2FA setup</description>
+        <note>Reference for modal patterns and password verification</note>
+      </component>
+    </components>
+
+    <!-- API Routes -->
+    <api-routes>
+      <route path="apps/web/src/app/api/auth/2fa/status/route.ts">
+        <method>GET</method>
+        <description>Returns user's 2FA status (enabled/disabled)</description>
+        <response-type>{ twoFactorEnabled: boolean }</response-type>
+        <note>Should be enhanced to return more metadata</note>
+      </route>
+
+      <route path="apps/web/src/app/api/auth/2fa/setup/route.ts">
+        <method>POST</method>
+        <description>Initiates 2FA setup with password verification</description>
+        <security>Requires password verification before generating secret</security>
+        <note>Reference for password verification pattern</note>
+      </route>
+
+      <route path="apps/web/src/app/api/auth/2fa/verify-setup/route.ts">
+        <method>POST</method>
+        <description>Verifies TOTP code and enables 2FA</description>
+        <features>
+          - Rate limiting (5 attempts per 15 minutes)
+          - Generates and stores backup codes
+          - Encrypts TOTP secret before storage
+          - Audit logging
+        </features>
+        <note>Reference for backup code generation pattern</note>
+      </route>
+    </api-routes>
+  </existing-code>
+
+  <!-- ============================================ -->
+  <!-- IMPLEMENTATION GUIDE -->
+  <!-- ============================================ -->
+  <implementation>
+    <!-- Database Changes -->
+    <step order="1">
+      <title>Database Schema Updates</title>
+      <action>Add TrustedDevice model to schema (OPTIONAL)</action>
+      <location>packages/db/prisma/schema.prisma</location>
+
+      <instructions>
+        <optional>
+          If implementing device trust management UI, add the TrustedDevice model
+          as specified in the suggested schema above.
+        </optional>
+
+        <migration>
+          1. Add model to schema.prisma
+          2. Add relation to User model: trustedDevices TrustedDevice[]
+          3. Run: pnpm --filter @hyvve/db prisma:migrate
+          4. Name migration: "add_trusted_devices"
+        </migration>
+      </instructions>
+
+      <acceptance>
+        - TrustedDevice model exists in schema (if implementing)
+        - Migration runs successfully
+        - User relation includes trustedDevices
+      </acceptance>
+    </step>
+
+    <!-- Enhanced Status API -->
+    <step order="2">
+      <title>Enhance 2FA Status API</title>
+      <action>Extend /api/auth/2fa/status to return full metadata</action>
+      <location>apps/web/src/app/api/auth/2fa/status/route.ts</location>
+
+      <current-response>
+        {
+          "twoFactorEnabled": false
+        }
+      </current-response>
+
+      <new-response>
+        {
+          "twoFactorEnabled": true,
+          "method": "totp", // Always "totp" for now
+          "enabledAt": "2025-12-05T12:00:00Z",
+          "backupCodesRemaining": 8, // Count of unused backup codes
+          "hasPassword": true // Whether user can use password verification
+        }
+      </new-response>
+
+      <implementation>
+        <query>
+          const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: {
+              twoFactorEnabled: true,
+              updatedAt: true, // Approximation of enabledAt
+              accounts: {
+                where: { provider: 'credential' },
+                select: { accessToken: true }
+              },
+              backupCodes: {
+                where: { used: false },
+                select: { id: true }
+              }
+            }
+          })
+        </query>
+
+        <calculations>
+          - method: Always "totp" (hardcoded for now)
+          - enabledAt: Use user.updatedAt as approximation
+          - backupCodesRemaining: user.backupCodes.length
+          - hasPassword: !!user.accounts[0]?.accessToken
+        </calculations>
+      </implementation>
+
+      <acceptance>
+        - Returns enhanced metadata when 2FA is enabled
+        - Correctly counts unused backup codes
+        - Returns minimal data when 2FA is disabled
+      </acceptance>
+    </step>
+
+    <!-- Backup Codes View/Regenerate API -->
+    <step order="3">
+      <title>Create Backup Codes Management API</title>
+      <action>Implement view and regenerate endpoints</action>
+      <location>apps/web/src/app/api/auth/2fa/backup-codes/route.ts</location>
+
+      <endpoints>
+        <endpoint method="POST" action="view">
+          <description>View existing backup codes (requires password)</description>
+          <request>
+            {
+              "action": "view",
+              "password": "user_password"
+            }
+          </request>
+          <response>
+            {
+              "backupCodes": [
+                { "code": "XXXX-XXXX", "used": false, "usedAt": null },
+                { "code": "YYYY-YYYY", "used": true, "usedAt": "2025-12-01T10:00:00Z" }
+              ]
+            }
+          </response>
+          <security>
+            - Verify password before returning codes
+            - Audit log the view action
+            - Rate limit: 5 attempts per 15 minutes
+          </security>
+          <note>
+            IMPORTANT: Backup codes are hashed in database. You CANNOT retrieve
+            original codes. This endpoint should return a message instructing
+            users to regenerate if they've lost their codes.
+          </note>
+          <revised-response>
+            {
+              "message": "Backup codes cannot be displayed after initial generation. Please regenerate if you need new codes.",
+              "backupCodesCount": 10,
+              "unusedCount": 8
+            }
+          </revised-response>
+        </endpoint>
+
+        <endpoint method="POST" action="regenerate">
+          <description>Generate new backup codes (requires password)</description>
+          <request>
+            {
+              "action": "regenerate",
+              "password": "user_password"
+            }
+          </request>
+          <response>
+            {
+              "backupCodes": ["AAAA-BBBB", "CCCC-DDDD", ...], // 10 new codes
+              "message": "Save these codes in a secure location. They will not be shown again."
+            }
+          </response>
+          <implementation>
+            1. Verify password
+            2. Generate 10 new backup codes
+            3. Hash codes with bcrypt
+            4. Transaction:
+               - Delete all existing backup codes for user
+               - Create new backup codes
+            5. Audit log
+            6. Return plaintext codes (only time shown)
+          </implementation>
+          <security>
+            - Verify password before regenerating
+            - Delete old codes in same transaction
+            - Audit log the regeneration
+            - Rate limit: 3 regenerations per hour
+          </security>
+        </endpoint>
+      </endpoints>
+
+      <code-pattern>
+        // Password verification (from setup route)
+        const user = await prisma.user.findUnique({
+          where: { id: session.user.id },
+          include: { accounts: true }
+        })
+
+        const passwordAccount = user.accounts.find(acc => acc.provider === 'credential')
+        if (!passwordAccount?.accessToken) {
+          return error('No password set')
+        }
+
+        const bcrypt = await import('bcrypt')
+        const isValid = await bcrypt.compare(password, passwordAccount.accessToken)
+
+        if (!isValid) {
+          await createAuditLog({
+            userId: session.user.id,
+            eventType: '2fa.backup_codes.view_failed',
+            metadata: { reason: 'invalid_password' }
+          })
+          return error('Invalid password')
+        }
+      </code-pattern>
+
+      <acceptance>
+        - View endpoint returns code metadata (not actual codes)
+        - Regenerate creates 10 new codes
+        - Old codes are deleted before new ones are created
+        - Password verification works correctly
+        - Audit logs created for all actions
+      </acceptance>
+    </step>
+
+    <!-- Disable 2FA API -->
+    <step order="4">
+      <title>Create Disable 2FA API</title>
+      <action>Implement 2FA disable with password verification</action>
+      <location>apps/web/src/app/api/auth/2fa/disable/route.ts</location>
+
+      <endpoint method="POST">
+        <request>
+          {
+            "password": "user_password"
+          }
+        </request>
+        <response>
+          {
+            "success": true,
+            "message": "Two-factor authentication has been disabled"
+          }
+        </response>
+        <implementation>
+          1. Verify user is authenticated
+          2. Verify password
+          3. Check that 2FA is currently enabled
+          4. Transaction:
+             - Set user.twoFactorEnabled = false
+             - Set user.twoFactorSecret = null
+             - Delete all backup codes
+             - Optional: Delete all trusted devices
+          5. Audit log
+          6. Return success
+        </implementation>
+        <security>
+          - Requires password verification
+          - Audit log the disable action
+          - Consider requiring email confirmation
+        </security>
+      </endpoint>
+
+      <code-example>
+        await prisma.$transaction([
+          prisma.user.update({
+            where: { id: session.user.id },
+            data: {
+              twoFactorEnabled: false,
+              twoFactorSecret: null
+            }
+          }),
+          prisma.backupCode.deleteMany({
+            where: { userId: session.user.id }
+          }),
+          // Optional: Delete trusted devices
+          prisma.trustedDevice.deleteMany({
+            where: { userId: session.user.id }
+          })
+        ])
+      </code-example>
+
+      <acceptance>
+        - Disables 2FA successfully
+        - Deletes TOTP secret
+        - Deletes all backup codes
+        - Password verification required
+        - Audit log created
+      </acceptance>
+    </step>
+
+    <!-- Trusted Devices API (OPTIONAL) -->
+    <step order="5">
+      <title>Create Trusted Devices Management API (OPTIONAL)</title>
+      <action>Implement device listing and revocation</action>
+      <location>apps/web/src/app/api/auth/2fa/trusted-devices/route.ts</location>
+
+      <endpoints>
+        <endpoint method="GET">
+          <description>List user's trusted devices</description>
+          <response>
+            {
+              "devices": [
+                {
+                  "id": "cuid",
+                  "deviceName": "Chrome on Windows",
+                  "lastUsedAt": "2025-12-05T10:00:00Z",
+                  "createdAt": "2025-12-01T08:00:00Z",
+                  "expiresAt": "2025-12-31T08:00:00Z"
+                }
+              ]
+            }
+          </response>
+          <query>
+            const devices = await prisma.trustedDevice.findMany({
+              where: {
+                userId: session.user.id,
+                revokedAt: null,
+                expiresAt: { gt: new Date() }
+              },
+              select: {
+                id: true,
+                deviceName: true,
+                lastUsedAt: true,
+                createdAt: true,
+                expiresAt: true
+              },
+              orderBy: { lastUsedAt: 'desc' }
+            })
+          </query>
+        </endpoint>
+
+        <endpoint method="DELETE" path="/:deviceId">
+          <description>Revoke a trusted device</description>
+          <implementation>
+            await prisma.trustedDevice.update({
+              where: {
+                id: deviceId,
+                userId: session.user.id // Ensure user owns device
+              },
+              data: {
+                revokedAt: new Date()
+              }
+            })
+          </implementation>
+          <audit>
+            eventType: '2fa.trusted_device.revoked'
+            metadata: { deviceId, deviceName }
+          </audit>
+        </endpoint>
+      </endpoints>
+
+      <acceptance>
+        - Lists only active (non-revoked, non-expired) devices
+        - Revoke marks device as revoked (soft delete)
+        - Cannot revoke another user's device
+        - Audit log created on revocation
+      </acceptance>
+    </step>
+
+    <!-- UI Components -->
+    <step order="6">
+      <title>Update Two-Factor Card Component</title>
+      <action>Wire up management buttons and add metadata display</action>
+      <location>apps/web/src/components/settings/two-factor-card.tsx</location>
+
+      <changes>
+        <fetch-enhanced-status>
+          const [twoFactorStatus, setTwoFactorStatus] = useState({
+            twoFactorEnabled: false,
+            method: 'totp',
+            enabledAt: null,
+            backupCodesRemaining: 0,
+            hasPassword: false
+          })
+
+          // Fetch from enhanced status API
+          const response = await fetch('/api/auth/2fa/status')
+          const data = await response.json()
+          setTwoFactorStatus(data)
+        </fetch-enhanced-status>
+
+        <display-metadata>
+          {twoFactorEnabled &amp;&amp; (
+            &lt;div className="space-y-2 text-sm text-gray-600"&gt;
+              &lt;p&gt;Method: {status.method.toUpperCase()}&lt;/p&gt;
+              &lt;p&gt;Enabled: {formatDate(status.enabledAt)}&lt;/p&gt;
+              &lt;p&gt;Backup codes remaining: {status.backupCodesRemaining}/10&lt;/p&gt;
+            &lt;/div&gt;
+          )}
+        </display-metadata>
+
+        <button-handlers>
+          const handleViewBackupCodes = () => setShowBackupCodesModal(true)
+          const handleRegenerateBackupCodes = () => setShowRegenerateModal(true)
+          const handleDisable2FA = () => setShowDisableModal(true)
+        </button-handlers>
+      </changes>
+
+      <acceptance>
+        - Displays 2FA metadata when enabled
+        - Shows backup codes count
+        - Buttons open appropriate modals
+        - Status refreshes after management actions
+      </acceptance>
+    </step>
+
+    <!-- Modal Components -->
+    <step order="7">
+      <title>Create Management Modal Components</title>
+      <action>Build modal dialogs for backup code management and disable</action>
+      <location>apps/web/src/components/settings/two-factor-management.tsx</location>
+
+      <modals>
+        <modal name="ViewBackupCodesModal">
+          <purpose>Display backup code metadata and regeneration prompt</purpose>
+          <flow>
+            1. Show password input
+            2. On submit: Call /api/auth/2fa/backup-codes (action: view)
+            3. Display message about codes being hashed
+            4. Show count of used/unused codes
+            5. Prompt to regenerate if needed
+          </flow>
+          <ui>
+            - Password input field
+            - Submit button
+            - Error display
+            - Information message about hashed codes
+            - Link/button to regenerate modal
+          </ui>
+        </modal>
+
+        <modal name="RegenerateBackupCodesModal">
+          <purpose>Regenerate backup codes with password confirmation</purpose>
+          <flow>
+            1. Show warning: "This will invalidate all existing backup codes"
+            2. Password input
+            3. On submit: Call /api/auth/2fa/backup-codes (action: regenerate)
+            4. Display new codes with download/copy options
+            5. Require user to confirm they've saved codes
+          </flow>
+          <ui>
+            - Warning message
+            - Password input field
+            - Generate button
+            - Backup codes display (grid of 10 codes)
+            - Download as text file button
+            - Copy all button
+            - Confirmation checkbox
+            - Close button (disabled until confirmed)
+          </ui>
+          <code-display>
+            &lt;div className="grid grid-cols-2 gap-2"&gt;
+              {backupCodes.map((code, i) => (
+                &lt;div key={i} className="font-mono bg-gray-100 p-2 rounded"&gt;
+                  {code}
+                &lt;/div&gt;
+              ))}
+            &lt;/div&gt;
+          </code-display>
+        </modal>
+
+        <modal name="Disable2FAModal">
+          <purpose>Disable 2FA with password confirmation</purpose>
+          <flow>
+            1. Show warning about security implications
+            2. Password input
+            3. On submit: Call /api/auth/2fa/disable
+            4. Show success message
+            5. Refresh parent component
+          </flow>
+          <ui>
+            - Warning message
+            - Password input field
+            - Disable button (destructive styling)
+            - Cancel button
+          </ui>
+        </modal>
+
+        <modal name="TrustedDevicesModal" optional="true">
+          <purpose>Display and manage trusted devices</purpose>
+          <flow>
+            1. Fetch devices from /api/auth/2fa/trusted-devices
+            2. Display table/list of devices
+            3. Show revoke button for each device
+            4. On revoke: DELETE /api/auth/2fa/trusted-devices/:id
+          </flow>
+          <ui>
+            - Device list with name, last used, created date
+            - Revoke button for each device
+            - Current device indicator
+            - Empty state if no devices
+          </ui>
+        </modal>
+      </modals>
+
+      <shared-components>
+        - PasswordVerificationInput: Reusable password input with validation
+        - CodeDisplay: Formatted backup code display
+        - ConfirmationDialog: Generic confirmation wrapper
+      </shared-components>
+
+      <acceptance>
+        - All modals open/close correctly
+        - Password verification works
+        - Backup codes display properly
+        - Download/copy functionality works
+        - Error states handled gracefully
+      </acceptance>
+    </step>
+
+    <!-- Audit Logging -->
+    <step order="8">
+      <title>Implement Comprehensive Audit Logging</title>
+      <action>Add audit logs for all 2FA management actions</action>
+
+      <event-types>
+        - 2fa.backup_codes.viewed
+        - 2fa.backup_codes.regenerated
+        - 2fa.disabled
+        - 2fa.trusted_device.revoked
+        - 2fa.backup_codes.view_failed (invalid password)
+        - 2fa.disable_failed (invalid password)
+      </event-types>
+
+      <log-pattern>
+        await createAuditLog({
+          userId: session.user.id,
+          eventType: '2fa.backup_codes.regenerated',
+          ipAddress: getClientIp(request.headers),
+          userAgent: getUserAgent(request.headers),
+          metadata: {
+            oldCodesCount: 10,
+            newCodesCount: 10
+          }
+        })
+      </log-pattern>
+
+      <acceptance>
+        - All management actions create audit logs
+        - Failed attempts are logged
+        - Metadata includes relevant context
+      </acceptance>
+    </step>
+
+    <!-- Testing -->
+    <step order="9">
+      <title>Testing &amp; Validation</title>
+      <action>Comprehensive testing of all features</action>
+
+      <test-scenarios>
+        <scenario name="View Backup Codes Metadata">
+          1. Enable 2FA on account
+          2. Navigate to security settings
+          3. Click "View Backup Codes"
+          4. Enter correct password
+          5. Verify metadata display (count, message)
+          6. Verify cannot see actual codes
+        </scenario>
+
+        <scenario name="Regenerate Backup Codes">
+          1. Enable 2FA on account
+          2. Click "Regenerate Codes"
+          3. Enter correct password
+          4. Verify 10 new codes are displayed
+          5. Download codes as text file
+          6. Copy codes to clipboard
+          7. Confirm saving codes
+          8. Verify old codes no longer work
+          9. Verify new codes work in login flow
+        </scenario>
+
+        <scenario name="Disable 2FA">
+          1. Enable 2FA on account
+          2. Click "Disable Two-Factor Authentication"
+          3. See warning message
+          4. Enter correct password
+          5. Confirm disable
+          6. Verify 2FA is disabled
+          7. Verify backup codes deleted
+          8. Verify can login without 2FA
+        </scenario>
+
+        <scenario name="Trusted Devices Management" optional="true">
+          1. Enable 2FA and trust a device
+          2. View trusted devices list
+          3. Verify current device shown
+          4. Revoke a device
+          5. Verify device removed from list
+          6. Login from revoked device
+          7. Verify 2FA required again
+        </scenario>
+
+        <scenario name="Password Verification">
+          1. Try to view codes with wrong password
+          2. Verify error message
+          3. Verify rate limiting after multiple attempts
+          4. Try to regenerate with wrong password
+          5. Verify error message
+          6. Try to disable with wrong password
+          7. Verify error message
+        </scenario>
+
+        <scenario name="OAuth-Only Account">
+          1. Create account with Google OAuth only
+          2. Enable 2FA (should fail - no password)
+          3. Verify appropriate error message
+          4. Link password to account
+          5. Enable 2FA successfully
+          6. Manage 2FA features
+        </scenario>
+
+        <scenario name="Backup Code Warnings">
+          1. Enable 2FA
+          2. Use backup codes until only 2 remain
+          3. Verify low backup codes warning
+          4. Regenerate codes
+          5. Verify warning disappears
+        </scenario>
+      </test-scenarios>
+
+      <edge-cases>
+        - User has no password (OAuth-only)
+        - All backup codes used
+        - Concurrent regeneration requests
+        - Session expired during operation
+        - Database transaction failures
+      </edge-cases>
+
+      <acceptance>
+        - All test scenarios pass
+        - Edge cases handled gracefully
+        - Error messages are user-friendly
+        - Audit logs created correctly
+      </acceptance>
+    </step>
+  </implementation>
+
+  <!-- ============================================ -->
+  <!-- SECURITY CONSIDERATIONS -->
+  <!-- ============================================ -->
+  <security>
+    <password-verification>
+      - ALWAYS verify password before sensitive operations
+      - Use bcrypt.compare() for verification
+      - Rate limit password attempts (5 per 15 minutes)
+      - Audit log all verification attempts
+      - Clear error messages for invalid passwords
+    </password-verification>
+
+    <backup-codes>
+      - Generate using crypto.randomBytes for entropy
+      - Hash with bcrypt before storage (cost factor 10)
+      - NEVER store plaintext codes in database
+      - Show plaintext codes only at generation time
+      - Warn users to save codes securely
+      - Invalidate all old codes when regenerating
+    </backup-codes>
+
+    <2fa-disable>
+      - Require password verification
+      - Show clear warning about security implications
+      - Delete TOTP secret from database
+      - Delete all backup codes
+      - Optionally: Send email notification
+      - Optionally: Require email confirmation
+      - Audit log the disable action
+    </2fa-disable>
+
+    <trusted-devices>
+      - Use cryptographic hash of user agent + IP
+      - Set expiration (30 days recommended)
+      - Soft delete (revokedAt) instead of hard delete
+      - Audit log revocations
+      - Clean up expired devices periodically
+    </trusted-devices>
+
+    <rate-limiting>
+      - Password verification: 5 attempts per 15 minutes
+      - Backup code regeneration: 3 per hour
+      - Implement using in-memory store or Redis
+      - Return clear error messages on limit exceeded
+    </rate-limiting>
+
+    <audit-logging>
+      - Log all 2FA management actions
+      - Include IP address and user agent
+      - Log both successes and failures
+      - Store in AuditLog table for compliance
+      - Enable searching by user, action, date range
+    </audit-logging>
+  </security>
+
+  <!-- ============================================ -->
+  <!-- UI/UX GUIDELINES -->
+  <!-- ============================================ -->
+  <ux-design>
+    <wireframe-reference>
+      Wireframe: AU-06 - State 6 (2FA Enabled Management)
+      Location: docs/ux-design.md
+    </wireframe-reference>
+
+    <visual-hierarchy>
+      <primary-actions>
+        - Enable 2FA button (when disabled)
+        - Regenerate Backup Codes (when enabled)
+      </primary-actions>
+
+      <secondary-actions>
+        - View Backup Codes
+        - Manage Trusted Devices
+      </secondary-actions>
+
+      <destructive-actions>
+        - Disable Two-Factor Authentication
+      </destructive-actions>
+    </visual-hierarchy>
+
+    <status-indicators>
+      <enabled>
+        - Green badge: "Enabled"
+        - ShieldCheck icon (green)
+        - Metadata display (method, date, backup codes count)
+      </enabled>
+
+      <disabled>
+        - Gray badge: "Disabled"
+        - ShieldOff icon (gray)
+        - Explanation text
+        - Enable button
+      </disabled>
+
+      <warning-states>
+        - Low backup codes (≤2 remaining): Yellow warning
+        - No backup codes: Red warning + regenerate prompt
+      </warning-states>
+    </status-indicators>
+
+    <error-handling>
+      - Invalid password: "Current password is incorrect"
+      - Rate limit: "Too many attempts. Please try again in X minutes"
+      - No password set: "Password required. Please set a password first"
+      - Session expired: "Your session has expired. Please refresh and try again"
+      - Network error: "Unable to connect. Please check your internet connection"
+    </error-handling>
+
+    <success-feedback>
+      - Backup codes regenerated: Toast notification + display codes
+      - 2FA disabled: Toast notification + UI update
+      - Device revoked: Toast notification + remove from list
+    </success-feedback>
+
+    <copy-patterns>
+      <view-codes-message>
+        "Backup codes are stored securely and cannot be displayed. If you've lost your codes, please regenerate them. You have {X} unused backup codes remaining."
+      </view-codes-message>
+
+      <regenerate-warning>
+        "This will generate 10 new backup codes and invalidate all existing codes. Make sure to save the new codes in a secure location."
+      </regenerate-warning>
+
+      <disable-warning>
+        "Disabling two-factor authentication will reduce the security of your account. You will only need your password to sign in."
+      </disable-warning>
+
+      <backup-codes-download>
+        "Save these codes in a secure location. You will not be able to see them again. Each code can only be used once."
+      </backup-codes-download>
+    </copy-patterns>
+  </ux-design>
+
+  <!-- ============================================ -->
+  <!-- ACCEPTANCE CRITERIA -->
+  <!-- ============================================ -->
+  <acceptance-criteria>
+    <criterion id="AC-1">
+      <requirement>Show 2FA status (enabled/disabled, method, enabled date)</requirement>
+      <verification>
+        - 2FA card displays enabled/disabled status
+        - When enabled, shows method (TOTP)
+        - Shows approximate enabled date (from user.updatedAt)
+        - Status updates dynamically after changes
+      </verification>
+    </criterion>
+
+    <criterion id="AC-2">
+      <requirement>Display remaining backup codes count</requirement>
+      <verification>
+        - Shows count of unused backup codes
+        - Updates count after codes are used
+        - Shows warning when count is low (≤2)
+        - Shows error state when count is 0
+      </verification>
+    </criterion>
+
+    <criterion id="AC-3">
+      <requirement>Allow viewing existing backup codes (with re-auth)</requirement>
+      <verification>
+        - Button opens modal with password input
+        - Verifies password before showing info
+        - Displays message about codes being hashed
+        - Shows count of used/unused codes
+        - Does NOT show actual code values (security)
+      </verification>
+    </criterion>
+
+    <criterion id="AC-4">
+      <requirement>Allow generating new backup codes</requirement>
+      <verification>
+        - Button opens regenerate modal
+        - Shows warning about invalidating old codes
+        - Requires password verification
+        - Generates 10 new codes
+        - Deletes old codes in transaction
+        - Displays new codes with copy/download options
+        - Requires user to confirm saving codes
+        - Creates audit log entry
+      </verification>
+    </criterion>
+
+    <criterion id="AC-5">
+      <requirement>Show trusted devices list</requirement>
+      <verification>
+        - Lists all active trusted devices
+        - Shows device name, last used, creation date
+        - Indicates current device
+        - Shows empty state if no devices
+        - Updates list after revocation
+      </verification>
+      <status>OPTIONAL - Implement if adding TrustedDevice model</status>
+    </criterion>
+
+    <criterion id="AC-6">
+      <requirement>Allow revoking trusted devices</requirement>
+      <verification>
+        - Each device has revoke button
+        - Revoke requires confirmation
+        - Soft deletes device (sets revokedAt)
+        - Updates list immediately
+        - Creates audit log entry
+        - Requires 2FA on next login from revoked device
+      </verification>
+      <status>OPTIONAL - Implement if adding TrustedDevice model</status>
+    </criterion>
+
+    <criterion id="AC-7">
+      <requirement>Allow disabling 2FA (with password confirmation)</requirement>
+      <verification>
+        - Button opens disable modal
+        - Shows security warning
+        - Requires password verification
+        - Disables 2FA flag on user
+        - Deletes TOTP secret
+        - Deletes all backup codes
+        - Optionally deletes trusted devices
+        - Updates UI to disabled state
+        - Creates audit log entry
+        - User can login without 2FA afterward
+      </verification>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- ============================================ -->
+  <!-- RESOURCES -->
+  <!-- ============================================ -->
+  <resources>
+    <documentation>
+      - OWASP 2FA Guidelines: https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html
+      - TOTP RFC 6238: https://tools.ietf.org/html/rfc6238
+      - Better Auth Docs: https://better-auth.com
+      - Prisma Transactions: https://www.prisma.io/docs/orm/prisma-client/queries/transactions
+      - bcrypt Best Practices: https://github.com/kelektiv/node.bcrypt.js
+    </documentation>
+
+    <reference-implementations>
+      - GitHub 2FA Settings: https://github.com/settings/security
+      - Google Account Security: https://myaccount.google.com/security
+      - Story 09.3: Two-Factor Authentication Setup (reference for patterns)
+      - Story 09.4: Two-Factor Authentication Login (reference for trusted devices)
+    </reference-implementations>
+
+    <libraries>
+      - bcrypt: Password hashing and verification
+      - crypto (Node.js): Random code generation, encryption
+      - otpauth: TOTP implementation
+      - qrcode: QR code generation (already used in setup)
+      - zod: Request/response validation
+    </libraries>
+  </resources>
+
+  <!-- ============================================ -->
+  <!-- NOTES -->
+  <!-- ============================================ -->
+  <notes>
+    <important>
+      <note>
+        Backup codes are hashed with bcrypt before storage. This means you CANNOT
+        retrieve original codes from the database. The "View Backup Codes" feature
+        should inform users about this limitation and prompt them to regenerate if needed.
+      </note>
+
+      <note>
+        Password verification is critical for all sensitive operations. Always use
+        the same pattern as in /api/auth/2fa/setup/route.ts to verify passwords.
+      </note>
+
+      <note>
+        TrustedDevice model is OPTIONAL. Story 09.4 implemented trusted devices using
+        server-side session storage. This story adds UI for managing those devices
+        if you choose to implement the database model.
+      </note>
+
+      <note>
+        OAuth-only accounts (no password) cannot use 2FA management features that
+        require password verification. Show appropriate error messages and guide
+        users to set a password first.
+      </note>
+    </important>
+
+    <best-practices>
+      <practice>Use Prisma transactions for operations that modify multiple tables</practice>
+      <practice>Audit log all 2FA management actions for security compliance</practice>
+      <practice>Rate limit password verification attempts to prevent brute force</practice>
+      <practice>Show clear warnings before destructive actions (disable, regenerate)</practice>
+      <practice>Require user confirmation after viewing sensitive data (backup codes)</practice>
+      <practice>Use consistent error messages across all 2FA endpoints</practice>
+    </best-practices>
+
+    <future-enhancements>
+      <enhancement>Email notifications for 2FA changes</enhancement>
+      <enhancement>Email confirmation for disabling 2FA</enhancement>
+      <enhancement>Support for multiple 2FA methods (hardware keys, SMS)</enhancement>
+      <enhancement>Backup codes expiration and automatic rotation</enhancement>
+      <enhancement>Device fingerprinting for more accurate trust decisions</enhancement>
+      <enhancement>2FA recovery codes with longer expiration</enhancement>
+    </future-enhancements>
+  </notes>
+
+  <!-- ============================================ -->
+  <!-- TESTING CHECKLIST -->
+  <!-- ============================================ -->
+  <testing-checklist>
+    <section name="2FA Status Display">
+      <test>2FA status displays correctly (enabled/disabled)</test>
+      <test>Method shown as "TOTP" when enabled</test>
+      <test>Enabled date approximated from user.updatedAt</test>
+      <test>Backup codes count is accurate</test>
+      <test>Status updates after management actions</test>
+    </section>
+
+    <section name="Backup Codes Management">
+      <test>View backup codes requires password</test>
+      <test>Invalid password shows error message</test>
+      <test>Displays message about hashed codes</test>
+      <test>Shows count of used/unused codes</test>
+      <test>Regenerate requires password</test>
+      <test>Shows warning before regenerating</test>
+      <test>Generates exactly 10 new codes</test>
+      <test>Old codes deleted before new codes created</test>
+      <test>New codes displayed with copy/download options</test>
+      <test>Download creates properly formatted text file</test>
+      <test>Copy to clipboard works</test>
+      <test>Requires confirmation before closing modal</test>
+      <test>New codes work in login flow</test>
+      <test>Old codes no longer work after regeneration</test>
+      <test>Audit logs created for view and regenerate</test>
+    </section>
+
+    <section name="Disable 2FA">
+      <test>Disable button opens confirmation modal</test>
+      <test>Shows security warning</test>
+      <test>Requires password verification</test>
+      <test>Invalid password shows error</test>
+      <test>Successfully disables 2FA flag</test>
+      <test>Deletes TOTP secret</test>
+      <test>Deletes all backup codes</test>
+      <test>UI updates to disabled state</test>
+      <test>Can login without 2FA after disabling</test>
+      <test>Audit log created</test>
+    </section>
+
+    <section name="Trusted Devices" optional="true">
+      <test>Lists all active devices</test>
+      <test>Shows device name, last used, created date</test>
+      <test>Indicates current device</test>
+      <test>Revoke button works for each device</test>
+      <test>Revoke requires confirmation</test>
+      <test>Device removed from list after revoke</test>
+      <test>2FA required on next login from revoked device</test>
+      <test>Audit log created on revoke</test>
+      <test>Cannot revoke another user's device</test>
+    </section>
+
+    <section name="Security">
+      <test>Password verification rate limiting works</test>
+      <test>Rate limit error messages clear</test>
+      <test>All sensitive actions require password</test>
+      <test>Backup codes properly hashed in database</test>
+      <test>No plaintext secrets in database</test>
+      <test>Audit logs created for all actions</test>
+      <test>Audit logs include IP and user agent</test>
+      <test>Failed attempts logged</test>
+    </section>
+
+    <section name="Edge Cases">
+      <test>OAuth-only account cannot manage 2FA</test>
+      <test>Shows appropriate error for no password</test>
+      <test>Handles concurrent regeneration requests</test>
+      <test>Session expiration handled gracefully</test>
+      <test>Database transaction failures handled</test>
+      <test>Network errors show user-friendly messages</test>
+      <test>All backup codes used shows warning</test>
+      <test>Low backup codes (≤2) shows warning</test>
+    </section>
+
+    <section name="Accessibility">
+      <test>All modals can be closed with Escape key</test>
+      <test>Focus management in modals</test>
+      <test>Screen reader announcements for status changes</test>
+      <test>Keyboard navigation works throughout</test>
+      <test>Error messages associated with form fields</test>
+      <test>Buttons have clear accessible labels</test>
+    </section>
+  </testing-checklist>
+</story-context>

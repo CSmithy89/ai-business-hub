@@ -213,7 +213,7 @@ development_status:
   09-2-implement-github-oauth: done
   09-3-implement-two-factor-authentication-setup: done
   09-4-implement-two-factor-authentication-login: done
-  09-5-implement-2fa-management: backlog
+  09-5-implement-2fa-management: done
   09-6-implement-magic-link-authentication: backlog
   09-7-implement-account-linking: backlog
   09-8-implement-otp-code-verification: backlog

@@ -9,10 +9,12 @@ export type AuditEventType =
   | '2fa.setup.failed'
   | '2fa.enabled'
   | '2fa.disabled'
+  | '2fa.disable_failed'
   | '2fa.verification.success'
   | '2fa.verification.failed'
   | '2fa.backup_code.used'
   | '2fa.backup_code.regenerated'
+  | '2fa.backup_code.regenerate_failed'
 
 export interface AuditLogData {
   userId: string
