@@ -138,7 +138,7 @@ development_status:
   06-6-create-token-usage-dashboard: done
   06-7-implement-daily-token-limits: done
   06-8-implement-provider-health-monitoring: done
-  06-9-integrate-agentos-with-byoai-providers: backlog
+  06-9-integrate-agentos-with-byoai-providers: done
   06-10-implement-iassistantclient-interface-pattern: backlog
   06-11-agent-model-preferences-ui: backlog
   epic-06-retrospective: optional
