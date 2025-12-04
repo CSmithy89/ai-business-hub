@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     agentos_host: str = "0.0.0.0"
     agentos_port: int = 7777
 
+    # NestJS API (for BYOAI integration)
+    api_base_url: str = "http://localhost:3001"
+
     # Control Plane (optional)
     control_plane_enabled: bool = True
     agno_api_key: Optional[str] = None

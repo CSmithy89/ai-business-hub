@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-info>
+    <id>06-2</id>
+    <title>Create AI Provider Factory</title>
+    <status>ready-for-dev</status>
+    <epic>EPIC-06 - BYOAI Configuration</epic>
+    <points>3</points>
+    <priority>P0 (Critical)</priority>
+  </story-info>
+
+  <requirements>
+    <summary>
+      Create a unified AI Provider Factory using the Factory Pattern to instantiate provider-specific
+      implementations from database configuration. The factory decrypts stored API keys and creates
+      the appropriate provider instance (Claude, OpenAI, Gemini, DeepSeek, or OpenRouter).
+    </summary>
+
+    <acceptance-criteria>
+      <criterion id="AC1">AIProviderInterface defined with validateCredentials, chat, streamChat, getUsage methods</criterion>
+      <criterion id="AC2">AIProviderFactory service created with create() method</criterion>
+      <criterion id="AC3">ClaudeProvider implements AIProviderInterface using @anthropic-ai/sdk</criterion>
+      <criterion id="AC4">OpenAIProvider implements AIProviderInterface using openai SDK</criterion>
+      <criterion id="AC5">GeminiProvider implements AIProviderInterface using @google/generative-ai</criterion>
+      <criterion id="AC6">DeepSeekProvider implements AIProviderInterface (OpenAI-compatible)</criterion>
+      <criterion id="AC7">OpenRouterProvider implements AIProviderInterface (OpenAI-compatible)</criterion>
+      <criterion id="AC8">AIProvidersModule created with proper dependency injection</criterion>
+      <criterion id="AC9">Unit tests with >90% coverage</criterion>
+    </acceptance-criteria>
+
+    <technical-specifications>
+      <interface name="AIProviderInterface">
+        <property name="provider" type="readonly" values="claude|openai|gemini|deepseek|openrouter"/>
+        <property name="model" type="readonly string"/>
+        <method name="validateCredentials" returns="Promise&lt;{valid: boolean; error?: string}&gt;"/>
+        <method name="chat" params="ChatParams" returns="Promise&lt;ChatResponse&gt;"/>
+        <method name="streamChat" params="ChatParams" returns="AsyncGenerator&lt;ChatChunk&gt;"/>
+        <method name="getUsage" returns="Promise&lt;UsageStats&gt;"/>
+      </interface>
+
+      <types>
+        <type name="ChatParams">
+          messages: Array&lt;{role: 'user'|'assistant'|'system'; content: string}&gt;
+          temperature?: number
+          maxTokens?: number
+          stream?: boolean
+        </type>
+        <type name="ChatResponse">
+          content: string
+          finishReason: 'stop' | 'length' | 'error'
+          usage: { promptTokens, completionTokens, totalTokens }
+          model: string
+        </type>
+        <type name="ChatChunk">
+          delta: string
+          finishReason?: 'stop' | 'length'
+        </type>
+        <type name="UsageStats">
+          promptTokens, completionTokens, totalTokens: number
+          estimatedCost: number
+        </type>
+      </types>
+
+      <provider-sdks>
+        <sdk provider="claude" package="@anthropic-ai/sdk"/>
+        <sdk provider="openai" package="openai"/>
+        <sdk provider="gemini" package="@google/generative-ai"/>
+        <sdk provider="deepseek" note="Uses openai SDK with custom baseURL"/>
+        <sdk provider="openrouter" note="Uses openai SDK with custom baseURL and headers"/>
+      </provider-sdks>
+    </technical-specifications>
+  </requirements>
+
+  <technical-context>
+    <project-structure>
+      <location>
+        <path>apps/api/src/ai-providers/</path>
+        <description>New module directory (needs creation)</description>
+        <status>needs-creation</status>
+      </location>
+      <location>
+        <path>apps/api/src/ai-providers/interfaces/ai-provider.interface.ts</path>
+        <description>Provider interface and types</description>
+        <status>needs-creation</status>
+      </location>
+      <location>
+        <path>apps/api/src/ai-providers/ai-provider-factory.service.ts</path>
+        <description>Factory service</description>
+        <status>needs-creation</status>
+      </location>
+      <location>
+        <path>apps/api/src/ai-providers/providers/*.provider.ts</path>
+        <description>Provider implementations (5 files)</description>
+        <status>needs-creation</status>
+      </location>
+      <location>
+        <path>apps/api/src/ai-providers/ai-providers.module.ts</path>
+        <description>NestJS module</description>
+        <status>needs-creation</status>
+      </location>
+      <location>
+        <path>apps/api/src/app.module.ts</path>
+        <description>Import AIProvidersModule</description>
+        <status>needs-update</status>
+      </location>
+    </project-structure>
+
+    <existing-patterns>
+      <pattern name="NestJS Module">
+        See apps/api/src/events/events.module.ts for module pattern with services
+      </pattern>
+      <pattern name="Injectable Service">
+        See apps/api/src/common/services/prisma.service.ts for service pattern
+      </pattern>
+      <pattern name="Encryption Service">
+        CredentialEncryptionService exported from @hyvve/shared (Story 06-1)
+      </pattern>
+    </existing-patterns>
+
+    <database-context>
+      <model name="AIProviderConfig">
+        id, workspaceId, provider, apiKeyEncrypted, defaultModel, isValid, lastValidatedAt,
+        validationError, maxTokensPerDay, tokensUsedToday, createdAt, updatedAt
+      </model>
+      <note>Factory receives AIProviderConfig and creates provider instance</note>
+    </database-context>
+  </technical-context>
+
+  <implementation-guide>
+    <step number="1">
+      <title>Install Provider SDKs</title>
+      <command>cd apps/api && pnpm add @anthropic-ai/sdk openai @google/generative-ai</command>
+    </step>
+
+    <step number="2">
+      <title>Create directory structure</title>
+      <command>mkdir -p apps/api/src/ai-providers/interfaces apps/api/src/ai-providers/providers</command>
+    </step>
+
+    <step number="3">
+      <title>Create interface and types</title>
+      <file>apps/api/src/ai-providers/interfaces/ai-provider.interface.ts</file>
+      <notes>Define ChatParams, ChatResponse, ChatChunk, UsageStats, AIProviderInterface</notes>
+    </step>
+
+    <step number="4">
+      <title>Implement each provider</title>
+      <files>
+        - apps/api/src/ai-providers/providers/claude.provider.ts
+        - apps/api/src/ai-providers/providers/openai.provider.ts
+        - apps/api/src/ai-providers/providers/gemini.provider.ts
+        - apps/api/src/ai-providers/providers/deepseek.provider.ts
+        - apps/api/src/ai-providers/providers/openrouter.provider.ts
+      </files>
+    </step>
+
+    <step number="5">
+      <title>Create factory service</title>
+      <file>apps/api/src/ai-providers/ai-provider-factory.service.ts</file>
+      <notes>Injectable service that creates providers from AIProviderConfig</notes>
+    </step>
+
+    <step number="6">
+      <title>Create NestJS module</title>
+      <file>apps/api/src/ai-providers/ai-providers.module.ts</file>
+    </step>
+
+    <step number="7">
+      <title>Update app.module.ts</title>
+      <changes>Import and register AIProvidersModule</changes>
+    </step>
+
+    <step number="8">
+      <title>Create unit tests</title>
+      <file>apps/api/src/ai-providers/ai-provider-factory.service.spec.ts</file>
+    </step>
+  </implementation-guide>
+
+  <out-of-scope>
+    <item>API endpoints (Story 06-3)</item>
+    <item>Frontend UI (Story 06-4)</item>
+    <item>Token usage tracking database writes (Story 06-5)</item>
+    <item>Health monitoring (Story 06-8)</item>
+  </out-of-scope>
+</story-context>

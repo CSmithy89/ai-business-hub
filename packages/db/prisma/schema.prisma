@@ -219,6 +219,8 @@ model TokenUsage {
   @@index([workspaceId])
   @@index([providerId])
   @@index([requestedAt])
+  @@index([providerId, requestedAt]) // Composite index for provider usage queries
+  @@index([workspaceId, requestedAt]) // Composite index for workspace usage queries
   @@map("token_usage")
 }
 
@@ -428,6 +430,10 @@ model WorkspaceSettings {
 
   brandPrimaryColor String? @map("brand_primary_color")
   brandLogoUrl      String? @map("brand_logo_url")
+
+  // Agent Model Preferences (Story 06-11)
+  // JSON object: { [agentId: string]: { providerId: string, model: string } }
+  agentModelPreferences Json? @map("agent_model_preferences")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

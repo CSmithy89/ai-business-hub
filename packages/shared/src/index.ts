@@ -29,3 +29,6 @@ export * from './permissions';
 
 // Module permission overrides
 export * from './module-permissions';
+
+// Encryption utilities
+export * from './utils/credential-encryption';

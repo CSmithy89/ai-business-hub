@@ -1,0 +1,587 @@
+/**
+ * AI Providers Controller
+ *
+ * REST API endpoints for managing AI provider configurations.
+ * All endpoints require Owner or Admin role.
+ */
+
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { AuthGuard } from '../common/guards/auth.guard';
+import { TenantGuard } from '../common/guards/tenant.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentWorkspace } from '../common/decorators/current-workspace.decorator';
+import { AIProvidersService } from './ai-providers.service';
+import { TokenUsageService, UsageStats, DailyUsage, AgentUsage } from './token-usage.service';
+import { TokenLimitService, TokenLimitStatus } from './token-limit.service';
+import { ProviderHealthService, HealthCheckResult, HealthSummary } from './provider-health.service';
+import {
+  AgentPreferencesService,
+  AgentPreference,
+  AvailableModel,
+} from './agent-preferences.service';
+import {
+  CreateProviderDto,
+  createProviderSchema,
+  UpdateProviderDto,
+  updateProviderSchema,
+  ProviderResponseDto,
+  TestProviderResponseDto,
+} from './dto';
+
+/**
+ * Controller for AI provider configuration management
+ *
+ * Endpoints:
+ * - GET /workspaces/:workspaceId/ai-providers - List all providers
+ * - POST /workspaces/:workspaceId/ai-providers - Create provider
+ * - GET /workspaces/:workspaceId/ai-providers/usage - Get usage stats
+ * - GET /workspaces/:workspaceId/ai-providers/usage/daily - Get daily usage
+ * - GET /workspaces/:workspaceId/ai-providers/usage/by-agent - Get usage by agent
+ * - GET /workspaces/:workspaceId/ai-providers/:providerId - Get provider
+ * - PATCH /workspaces/:workspaceId/ai-providers/:providerId - Update provider
+ * - DELETE /workspaces/:workspaceId/ai-providers/:providerId - Delete provider
+ * - POST /workspaces/:workspaceId/ai-providers/:providerId/test - Test provider
+ */
+@ApiTags('AI Providers')
+@Controller('workspaces/:workspaceId/ai-providers')
+@UseGuards(AuthGuard, TenantGuard, RolesGuard)
+@ApiBearerAuth()
+export class AIProvidersController {
+  private readonly logger = new Logger(AIProvidersController.name);
+
+  constructor(
+    private readonly providersService: AIProvidersService,
+    private readonly tokenUsageService: TokenUsageService,
+    private readonly tokenLimitService: TokenLimitService,
+    private readonly providerHealthService: ProviderHealthService,
+    private readonly agentPreferencesService: AgentPreferencesService,
+  ) {}
+
+  /**
+   * List all AI providers for a workspace
+   */
+  @Get()
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'List all AI providers for workspace' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of AI providers',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  async findAll(
+    @CurrentWorkspace() workspace: { id: string },
+  ): Promise<{ data: ProviderResponseDto[] }> {
+    const providers = await this.providersService.findAll(workspace.id);
+    return { data: providers };
+  }
+
+  /**
+   * Create a new AI provider configuration
+   */
+  @Post()
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Add a new AI provider' })
+  @ApiResponse({
+    status: 201,
+    description: 'Provider created successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Provider already exists',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  async create(
+    @CurrentWorkspace() workspace: { id: string },
+    @Body() body: unknown,
+  ): Promise<{ data: ProviderResponseDto }> {
+    // Validate request body
+    const result = createProviderSchema.safeParse(body);
+    if (!result.success) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: result.error.flatten().fieldErrors,
+      });
+    }
+
+    const dto: CreateProviderDto = result.data;
+    const provider = await this.providersService.create(workspace.id, dto);
+
+    this.logger.log(
+      `Created ${dto.provider} provider for workspace ${workspace.id}`,
+    );
+
+    return { data: provider };
+  }
+
+  /**
+   * Get token usage statistics for workspace
+   */
+  @Get('usage')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get token usage statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Usage statistics',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (ISO 8601)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO 8601)' })
+  async getUsage(
+    @CurrentWorkspace() workspace: { id: string },
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<{ data: UsageStats }> {
+    let start: Date | undefined;
+    let end: Date | undefined;
+
+    if (startDate) {
+      start = new Date(startDate);
+      if (isNaN(start.getTime())) {
+        throw new BadRequestException('startDate must be a valid ISO 8601 date');
+      }
+    }
+
+    if (endDate) {
+      end = new Date(endDate);
+      if (isNaN(end.getTime())) {
+        throw new BadRequestException('endDate must be a valid ISO 8601 date');
+      }
+    }
+
+    const stats = await this.tokenUsageService.getWorkspaceUsage(
+      workspace.id,
+      start,
+      end,
+    );
+
+    return { data: stats };
+  }
+
+  /**
+   * Get daily token usage breakdown
+   */
+  @Get('usage/daily')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Get daily token usage breakdown' })
+  @ApiResponse({
+    status: 200,
+    description: 'Daily usage breakdown',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiQuery({ name: 'days', required: false, description: 'Number of days (default: 30)' })
+  async getDailyUsage(
+    @CurrentWorkspace() workspace: { id: string },
+    @Query('days') days?: string,
+  ): Promise<{ data: DailyUsage[] }> {
+    let numDays = 30;
+    if (days) {
+      numDays = parseInt(days, 10);
+      if (isNaN(numDays) || numDays < 1 || numDays > 365) {
+        throw new BadRequestException('days must be a number between 1 and 365');
+      }
+    }
+    const usage = await this.tokenUsageService.getDailyUsage(workspace.id, numDays);
+    return { data: usage };
+  }
+
+  /**
+   * Get token usage breakdown by agent
+   */
+  @Get('usage/by-agent')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Get token usage by agent' })
+  @ApiResponse({
+    status: 200,
+    description: 'Usage breakdown by agent',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  async getUsageByAgent(
+    @CurrentWorkspace() workspace: { id: string },
+  ): Promise<{ data: AgentUsage[] }> {
+    const usage = await this.tokenUsageService.getUsageByAgent(workspace.id);
+    return { data: usage };
+  }
+
+  /**
+   * Get token limit status for all providers in workspace
+   */
+  @Get('limits')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get token limit status for all providers' })
+  @ApiResponse({
+    status: 200,
+    description: 'Token limit status for all providers',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  async getLimitStatus(
+    @CurrentWorkspace() workspace: { id: string },
+  ): Promise<{ data: TokenLimitStatus[] }> {
+    const status = await this.tokenLimitService.getWorkspaceLimitStatus(workspace.id);
+    return { data: status };
+  }
+
+  /**
+   * Get token limit status for a specific provider
+   */
+  @Get(':providerId/limit')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get token limit status for a provider' })
+  @ApiResponse({
+    status: 200,
+    description: 'Token limit status',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'providerId', description: 'Provider ID' })
+  async getProviderLimitStatus(
+    @Param('providerId') providerId: string,
+  ): Promise<{ data: TokenLimitStatus }> {
+    const status = await this.tokenLimitService.checkLimitStatus(providerId);
+    return { data: status };
+  }
+
+  /**
+   * Update token limit for a provider
+   */
+  @Patch(':providerId/limit')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Update daily token limit for a provider' })
+  @ApiResponse({
+    status: 200,
+    description: 'Limit updated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid limit value',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'providerId', description: 'Provider ID' })
+  async updateLimit(
+    @Param('providerId') providerId: string,
+    @Body() body: { maxTokensPerDay: number },
+  ): Promise<{ message: string; data: TokenLimitStatus }> {
+    if (!body.maxTokensPerDay || body.maxTokensPerDay < 0) {
+      throw new BadRequestException('maxTokensPerDay must be a positive number');
+    }
+
+    await this.tokenLimitService.updateLimit(providerId, body.maxTokensPerDay);
+    const status = await this.tokenLimitService.checkLimitStatus(providerId);
+
+    this.logger.log(`Updated limit for provider ${providerId} to ${body.maxTokensPerDay}`);
+
+    return {
+      message: 'Token limit updated successfully',
+      data: status,
+    };
+  }
+
+  /**
+   * Get health status for all providers in workspace
+   */
+  @Get('health')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get health status for all providers' })
+  @ApiResponse({
+    status: 200,
+    description: 'Health status for all providers',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  async getWorkspaceHealth(
+    @CurrentWorkspace() workspace: { id: string },
+  ): Promise<{ data: HealthSummary }> {
+    const health = await this.providerHealthService.getWorkspaceHealth(workspace.id);
+    return { data: health };
+  }
+
+  /**
+   * Trigger health check for a specific provider
+   */
+  @Post(':providerId/health-check')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Trigger health check for a provider' })
+  @ApiResponse({
+    status: 200,
+    description: 'Health check result',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'providerId', description: 'Provider ID' })
+  async triggerHealthCheck(
+    @Param('providerId') providerId: string,
+  ): Promise<{ data: HealthCheckResult }> {
+    const result = await this.providerHealthService.triggerHealthCheck(providerId);
+
+    this.logger.log(
+      `Health check for provider ${providerId}: valid=${result.isValid}, latency=${result.latency}ms`,
+    );
+
+    return { data: result };
+  }
+
+  /**
+   * Get a specific AI provider configuration
+   */
+  @Get(':providerId')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Get AI provider details' })
+  @ApiResponse({
+    status: 200,
+    description: 'Provider details',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Provider not found',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'providerId', description: 'Provider ID' })
+  async findOne(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('providerId') providerId: string,
+  ): Promise<{ data: ProviderResponseDto }> {
+    const provider = await this.providersService.findOne(
+      workspace.id,
+      providerId,
+    );
+    return { data: provider };
+  }
+
+  /**
+   * Update an AI provider configuration
+   */
+  @Patch(':providerId')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Update AI provider configuration' })
+  @ApiResponse({
+    status: 200,
+    description: 'Provider updated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Provider not found',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'providerId', description: 'Provider ID' })
+  async update(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('providerId') providerId: string,
+    @Body() body: unknown,
+  ): Promise<{ data: ProviderResponseDto }> {
+    // Validate request body
+    const result = updateProviderSchema.safeParse(body);
+    if (!result.success) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: result.error.flatten().fieldErrors,
+      });
+    }
+
+    const dto: UpdateProviderDto = result.data;
+    const provider = await this.providersService.update(
+      workspace.id,
+      providerId,
+      dto,
+    );
+
+    this.logger.log(`Updated provider ${providerId}`);
+
+    return { data: provider };
+  }
+
+  /**
+   * Delete an AI provider configuration
+   */
+  @Delete(':providerId')
+  @Roles('owner', 'admin')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove AI provider' })
+  @ApiResponse({
+    status: 204,
+    description: 'Provider deleted successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Provider not found',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'providerId', description: 'Provider ID' })
+  async remove(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('providerId') providerId: string,
+  ): Promise<void> {
+    await this.providersService.remove(workspace.id, providerId);
+    this.logger.log(`Deleted provider ${providerId}`);
+  }
+
+  /**
+   * Test/validate an AI provider's API key
+   */
+  @Post(':providerId/test')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Test AI provider API key' })
+  @ApiResponse({
+    status: 200,
+    description: 'Validation result',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Provider not found',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'providerId', description: 'Provider ID' })
+  async testProvider(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('providerId') providerId: string,
+  ): Promise<{ data: TestProviderResponseDto }> {
+    const result = await this.providersService.testProvider(
+      workspace.id,
+      providerId,
+    );
+
+    this.logger.log(
+      `Tested provider ${providerId}: valid=${result.valid}, latency=${result.latency}ms`,
+    );
+
+    return { data: result };
+  }
+
+  // ============================================
+  // Agent Model Preferences Endpoints
+  // ============================================
+
+  /**
+   * Get all agent preferences for a workspace
+   */
+  @Get('agents/preferences')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Get agent model preferences' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of agent preferences',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  async getAgentPreferences(
+    @CurrentWorkspace() workspace: { id: string },
+  ): Promise<{ data: AgentPreference[] }> {
+    const preferences = await this.agentPreferencesService.getAgentPreferences(
+      workspace.id,
+    );
+    return { data: preferences };
+  }
+
+  /**
+   * Get available models for agent preferences
+   */
+  @Get('agents/models')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Get available models for agents' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of available models',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  async getAvailableModels(
+    @CurrentWorkspace() workspace: { id: string },
+  ): Promise<{ data: AvailableModel[] }> {
+    const models = await this.agentPreferencesService.getAvailableModels(
+      workspace.id,
+    );
+    return { data: models };
+  }
+
+  /**
+   * Update model preference for a specific agent
+   */
+  @Patch('agents/:agentId/preference')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Update agent model preference' })
+  @ApiResponse({
+    status: 200,
+    description: 'Preference updated',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Agent or provider not found',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'agentId', description: 'Agent ID' })
+  async updateAgentPreference(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('agentId') agentId: string,
+    @Body() body: { providerId: string; model: string },
+  ): Promise<{ data: AgentPreference }> {
+    if (!body.providerId || !body.model) {
+      throw new BadRequestException('providerId and model are required');
+    }
+
+    const preference = await this.agentPreferencesService.updateAgentPreference(
+      workspace.id,
+      agentId,
+      body,
+    );
+
+    this.logger.log(
+      `Updated agent ${agentId} preference to ${body.providerId}/${body.model}`,
+    );
+
+    return { data: preference };
+  }
+
+  /**
+   * Reset agent preference to default
+   */
+  @Delete('agents/:agentId/preference')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Reset agent preference to default' })
+  @ApiResponse({
+    status: 200,
+    description: 'Preference reset to default',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Agent not found',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'agentId', description: 'Agent ID' })
+  async resetAgentPreference(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('agentId') agentId: string,
+  ): Promise<{ data: AgentPreference }> {
+    const preference = await this.agentPreferencesService.resetAgentPreference(
+      workspace.id,
+      agentId,
+    );
+
+    this.logger.log(`Reset agent ${agentId} preference to default`);
+
+    return { data: preference };
+  }
+}

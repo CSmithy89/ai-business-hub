@@ -243,13 +243,13 @@ For ongoing operations:
 | EPIC-03 | RBAC & Multi-Tenancy | 7/7 | ✅ Complete |
 | EPIC-04 | Approval Queue System | 12/12 | ✅ Complete |
 | EPIC-05 | Event Bus Infrastructure | 7/7 | ✅ Complete |
-| EPIC-06 | BYOAI Configuration | 0/11 | 🔄 Ready for Dev |
-| EPIC-07 | UI Shell & Navigation | 0/10 | ⏳ Backlog |
+| EPIC-06 | BYOAI Configuration | 11/11 | ✅ Complete |
+| EPIC-07 | UI Shell & Navigation | 0/10 | 🔄 Ready for Dev |
 | EPIC-08 | Business Onboarding & Foundation Modules | 0/23 | ⏳ Backlog |
 
-**Progress: 48/83 stories completed (58%)**
+**Progress: 59/83 stories completed (71%)**
 
-### Completed Features (EPIC-00 through EPIC-05)
+### Completed Features (EPIC-00 through EPIC-06)
 
 #### Project Foundation (EPIC-00)
 - Turborepo monorepo with pnpm workspaces
@@ -306,6 +306,37 @@ For ongoing operations:
 - Event replay service for historical reprocessing
 - Admin monitoring dashboard at `/admin/events`
 
+#### BYOAI Configuration (EPIC-06)
+- **Multi-Provider AI Support**
+  - Claude, OpenAI, Gemini, DeepSeek, OpenRouter integration
+  - Encrypted API key storage (AES-256-GCM)
+  - Provider validation and health monitoring
+- **Token Usage Tracking**
+  - Per-provider daily token consumption
+  - Per-agent usage breakdown
+  - Token cost estimation by model
+- **Daily Token Limits**
+  - Configurable limits per provider
+  - Usage alerts at 80%/90%/100% thresholds
+  - Automatic reset at midnight
+- **Provider Health Monitoring**
+  - Latency tracking and status indicators
+  - 5-minute auto-refresh with exponential backoff
+  - Failure detection and alerting
+- **Agent Model Preferences**
+  - Per-agent AI model configuration
+  - Override default models for any agent team
+  - Cost visibility for model selection
+- **IAssistantClient Interface**
+  - Unified abstraction for AI communication
+  - Support for streaming and non-streaming responses
+  - Tool call handling with structured outputs
+  - Factory pattern for provider-specific clients
+- **Settings UI**
+  - Provider configuration at `/settings/ai-config`
+  - Token usage dashboard with charts
+  - Agent preferences management
+
 ### CI/CD Pipeline
 - GitHub Actions workflow for CI
 - TypeScript type checking
@@ -328,7 +359,7 @@ For ongoing operations:
 
 ## Getting Started
 
-> **Note:** The platform is in active development. EPIC-06 (BYOAI Configuration) is the next milestone. Foundation epics (00-05) are complete with 48 stories implemented.
+> **Note:** The platform is in active development. EPIC-07 (UI Shell & Navigation) is the next milestone. Foundation epics (00-06) are complete with 59 stories implemented.
 
 ### Prerequisites
 - Node.js 20+
