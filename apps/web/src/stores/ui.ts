@@ -12,6 +12,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+/**
+ * LocalStorage key for persisting UI state.
+ * Changing this will reset all users' UI preferences.
+ */
+export const UI_STORE_KEY = 'hyvve-ui-state' as const;
+
 interface UIState {
   // Sidebar state
   sidebarCollapsed: boolean;
@@ -82,7 +88,7 @@ export const useUIStore = create<UIState>()(
         })),
     }),
     {
-      name: 'hyvve-ui-state',
+      name: UI_STORE_KEY,
       partialize: (state) => ({
         sidebarCollapsed: state.sidebarCollapsed,
         chatPanelWidth: state.chatPanelWidth,

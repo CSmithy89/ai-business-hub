@@ -17,7 +17,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { KeyboardHelpOverlay } from './KeyboardHelpOverlay';
 import { useUIStore } from '@/stores/ui';
@@ -59,13 +59,18 @@ export function KeyboardShortcuts() {
   const [showHelp, setShowHelp] = useState(false);
   const [isMac, setIsMac] = useState(false);
 
+  // Use ref to access showHelp in event handler without re-registering listener
+  const showHelpRef = useRef(showHelp);
+  showHelpRef.current = showHelp;
+
   // Detect platform on mount
   useEffect(() => {
     setIsMac(isMacPlatform());
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+  // Memoized handler to avoid recreating on every render
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
       // Skip if focus is in an input field
       if (isInputFocused()) {
         return;
@@ -81,8 +86,8 @@ export function KeyboardShortcuts() {
         return;
       }
 
-      // Close help overlay (Esc)
-      if (key === 'escape' && showHelp) {
+      // Close help overlay (Esc) - use ref to get current value
+      if (key === 'escape' && showHelpRef.current) {
         event.preventDefault();
         setShowHelp(false);
         return;
@@ -125,14 +130,18 @@ export function KeyboardShortcuts() {
         router.push('/settings');
         return;
       }
-    };
+    },
+    [router]
+  );
 
+  // Register event listener once (router is stable)
+  useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [router, showHelp]);
+  }, [handleKeyDown]);
 
   return (
     <KeyboardHelpOverlay

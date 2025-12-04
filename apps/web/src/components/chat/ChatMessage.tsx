@@ -5,22 +5,38 @@
  * - User messages: Right-aligned with primary color background
  * - Agent messages: Left-aligned with avatar and agent color
  * - System messages: Centered with muted style (for dividers)
+ *
+ * Security: All content is sanitized with DOMPurify to prevent XSS attacks.
  */
 
 'use client';
 
+import { memo } from 'react';
+import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
+import { formatChatTime } from '@/lib/date-utils';
+
+/**
+ * Sanitize user-generated content to prevent XSS attacks
+ * Strips all HTML tags and returns plain text
+ */
+function sanitizeContent(content: string): string {
+  // Use DOMPurify with ALLOWED_TAGS=[] to strip all HTML
+  // This is the safest approach for chat messages
+  return DOMPurify.sanitize(content, { ALLOWED_TAGS: [] });
+}
 
 interface ChatMessageProps {
   type: 'user' | 'agent' | 'system';
   content: string;
-  timestamp: Date | string;
+  /** Accepts Date objects, ISO strings, or numeric timestamps */
+  timestamp: Date | string | number;
   agentName?: string;
   agentIcon?: string;
   agentColor?: string;
 }
 
-export function ChatMessage({
+export const ChatMessage = memo(function ChatMessage({
   type,
   content,
   timestamp,
@@ -28,14 +44,16 @@ export function ChatMessage({
   agentIcon,
   agentColor,
 }: ChatMessageProps) {
-  const formattedTime = formatTime(
-    timestamp instanceof Date ? timestamp : new Date(timestamp)
-  );
+  // Use standardized date utility - handles Date, string, and number inputs
+  const formattedTime = formatChatTime(timestamp);
+
+  // Sanitize content to prevent XSS
+  const safeContent = sanitizeContent(content);
 
   if (type === 'system') {
     return (
       <div className="flex justify-center my-3">
-        <p className="text-xs text-[rgb(var(--color-text-muted))]">{content}</p>
+        <p className="text-xs text-[rgb(var(--color-text-muted))]">{safeContent}</p>
       </div>
     );
   }
@@ -49,7 +67,7 @@ export function ChatMessage({
             'bg-[rgb(var(--color-primary-500))] px-4 py-3 text-white'
           )}
         >
-          <p className="text-sm font-normal leading-relaxed">{content}</p>
+          <p className="text-sm font-normal leading-relaxed">{safeContent}</p>
         </div>
         <p className="text-[11px] text-[rgb(var(--color-text-muted))]">
           {formattedTime}
@@ -86,7 +104,7 @@ export function ChatMessage({
             'text-[rgb(var(--color-text-primary))]'
           )}
         >
-          <p className="text-sm font-normal leading-relaxed">{content}</p>
+          <p className="text-sm font-normal leading-relaxed">{safeContent}</p>
         </div>
 
         {/* Timestamp */}
@@ -96,12 +114,5 @@ export function ChatMessage({
       </div>
     </div>
   );
-}
+});
 
-function formatTime(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  }).format(date);
-}

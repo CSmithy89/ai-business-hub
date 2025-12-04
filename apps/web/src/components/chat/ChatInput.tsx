@@ -100,7 +100,7 @@ export function ChatInput({ onSend, agentName, disabled }: ChatInputProps) {
             aria-label="Attach file"
             onClick={() => {
               // TODO: Implement file attachment
-              console.log('Attachment clicked');
+              // Placeholder - will trigger file picker when implemented
             }}
           >
             <span

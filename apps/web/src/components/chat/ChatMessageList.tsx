@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { ChatMessage } from './ChatMessage';
 import { TypingIndicator } from './TypingIndicator';
 import { cn } from '@/lib/utils';
@@ -38,11 +38,28 @@ export function ChatMessageList({
   currentAgent,
 }: ChatMessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(messages.length);
+  const prevIsTypingRef = useRef(isTyping);
 
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
+  // Memoized scroll function
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+  }, []);
+
+  // Optimized auto-scroll: only scroll when messages are added or typing starts
+  useEffect(() => {
+    const messageCountChanged = messages.length !== prevMessageCountRef.current;
+    const typingStarted = isTyping && !prevIsTypingRef.current;
+
+    // Only scroll if new messages or typing just started
+    if (messageCountChanged || typingStarted) {
+      scrollToBottom();
+    }
+
+    // Update refs for next comparison
+    prevMessageCountRef.current = messages.length;
+    prevIsTypingRef.current = isTyping;
+  }, [messages.length, isTyping, scrollToBottom]);
 
   return (
     <div

@@ -33,6 +33,7 @@ export function ChatPanel() {
   if (!chatPanelOpen) {
     return (
       <button
+        type="button"
         onClick={toggleChatPanel}
         className={cn(
           'fixed top-[60px] right-0 z-10 flex h-12 w-12 items-center',
@@ -119,6 +120,7 @@ export function ChatPanel() {
         <div className="flex items-center gap-1">
           {/* History Button */}
           <button
+            type="button"
             className={cn(
               'flex h-8 w-8 items-center justify-center rounded-md',
               'text-[rgb(var(--color-text-secondary))] transition-colors duration-150',
@@ -126,8 +128,7 @@ export function ChatPanel() {
             )}
             aria-label="Chat history"
             onClick={() => {
-              // TODO: Implement chat history
-              console.log('History clicked');
+              // TODO: Implement chat history panel
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
@@ -137,6 +138,7 @@ export function ChatPanel() {
 
           {/* Minimize Button */}
           <button
+            type="button"
             className={cn(
               'flex h-8 w-8 items-center justify-center rounded-md',
               'text-[rgb(var(--color-text-secondary))] transition-colors duration-150',
@@ -152,6 +154,7 @@ export function ChatPanel() {
 
           {/* Expand Button (Placeholder) */}
           <button
+            type="button"
             className={cn(
               'flex h-8 w-8 items-center justify-center rounded-md',
               'text-[rgb(var(--color-text-secondary))] transition-colors duration-150',
@@ -160,7 +163,6 @@ export function ChatPanel() {
             aria-label="Expand to full screen"
             onClick={() => {
               // TODO: Implement full screen mode
-              console.log('Expand clicked');
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
@@ -170,6 +172,7 @@ export function ChatPanel() {
 
           {/* Pop-out Button (Placeholder) */}
           <button
+            type="button"
             className={cn(
               'flex h-8 w-8 items-center justify-center rounded-md',
               'text-[rgb(var(--color-text-secondary))] transition-colors duration-150',
@@ -178,7 +181,6 @@ export function ChatPanel() {
             aria-label="Open in new window"
             onClick={() => {
               // TODO: Implement pop-out window
-              console.log('Pop-out clicked');
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>

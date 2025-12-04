@@ -20,12 +20,16 @@
 import { useEffect } from 'react';
 
 interface KeyboardShortcutOptions {
-  meta?: boolean; // Cmd on Mac, Ctrl on Windows/Linux
-  ctrl?: boolean; // Ctrl key specifically
-  shift?: boolean; // Shift key
-  alt?: boolean; // Alt/Option key
-  preventDefault?: boolean; // Prevent default browser behavior (default: true)
-  skipInInputs?: boolean; // Skip if focus is in input/textarea (default: true)
+  /** Accept Cmd (Mac) or Ctrl (Windows/Linux) - standard cross-platform modifier */
+  meta?: boolean;
+  /** Shift key */
+  shift?: boolean;
+  /** Alt/Option key */
+  alt?: boolean;
+  /** Prevent default browser behavior (default: true) */
+  preventDefault?: boolean;
+  /** Skip if focus is in input/textarea (default: true) */
+  skipInInputs?: boolean;
 }
 
 /**
@@ -62,7 +66,6 @@ export function useKeyboardShortcut(
   useEffect(() => {
     const {
       meta = false,
-      ctrl = false,
       shift = false,
       alt = false,
       preventDefault = true,
@@ -82,16 +85,16 @@ export function useKeyboardShortcut(
 
       if (!keyMatches) return;
 
-      // Check modifier keys
-      const metaMatches = meta ? event.metaKey || event.ctrlKey : !event.metaKey && !event.ctrlKey;
-      const ctrlMatches = ctrl ? event.ctrlKey : !event.ctrlKey;
-      const shiftMatches = shift ? event.shiftKey : !event.shiftKey;
-      const altMatches = alt ? event.altKey : !event.altKey;
-
-      // If meta is true, we accept either metaKey OR ctrlKey (cross-platform)
-      const modifiersMatch = meta
-        ? (event.metaKey || event.ctrlKey) && shiftMatches && altMatches
-        : metaMatches && ctrlMatches && shiftMatches && altMatches;
+      // Simplified modifier matching:
+      // - meta: Accept Cmd (Mac) OR Ctrl (Windows/Linux) for cross-platform shortcuts
+      // - When meta is false, ensure neither metaKey nor ctrlKey is pressed
+      // - shift/alt are straightforward boolean checks
+      const modifiersMatch =
+        (meta
+          ? event.metaKey || event.ctrlKey
+          : !event.metaKey && !event.ctrlKey) &&
+        (shift ? event.shiftKey : !event.shiftKey) &&
+        (alt ? event.altKey : !event.altKey);
 
       if (modifiersMatch) {
         if (preventDefault) {

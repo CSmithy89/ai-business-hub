@@ -20,7 +20,7 @@ export function DashboardWelcome() {
           {greeting}, {userName}!
         </h1>
         <p className="text-base text-[rgb(var(--color-text-secondary))]">
-          Here's what needs your attention today
+          Here&apos;s what needs your attention today
         </p>
       </div>
 

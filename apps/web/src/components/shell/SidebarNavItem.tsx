@@ -15,6 +15,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import type { Route } from 'next';
 import {
   Tooltip,
   TooltipContent,
@@ -60,7 +61,7 @@ export function SidebarNavItem({
   const linkContent = (
     <li>
       <Link
-        href={href as any}
+        href={href as Route}
         className={cn(
           'group relative flex h-11 items-center gap-3 rounded-md',
           'transition-all duration-150 ease-out',
