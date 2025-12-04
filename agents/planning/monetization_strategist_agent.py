@@ -1,203 +1,64 @@
 """
-Monetization Strategist Agent (Revenue)
-BMP - Business Planning Module
+Revenue - Monetization Strategist
+BMP Planning Module - AI Business Hub
 
 Revenue specializes in pricing strategy, revenue model design,
-and monetization optimization.
+and unit economics optimization.
 
-Responsibilities:
-- Design pricing strategies and tiers
-- Create revenue model architectures
-- Analyze competitive pricing
-- Optimize for unit economics
+Personality: Creative, numbers-driven, value-focused
 """
-
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Optional, List
-from datetime import datetime
-
-
-# ============================================================================
-# Data Models
-# ============================================================================
-
-class PricingModel(Enum):
-    """Types of pricing models."""
-    FLAT_RATE = "flat_rate"
-    TIERED = "tiered"
-    PER_SEAT = "per_seat"
-    USAGE_BASED = "usage_based"
-    FREEMIUM = "freemium"
-    HYBRID = "hybrid"
-    VALUE_BASED = "value_based"
-    COMPETITIVE = "competitive"
-    PENETRATION = "penetration"
-    PREMIUM = "premium"
-
-
-class PricingStrategy(Enum):
-    """High-level pricing strategies."""
-    PENETRATION = "penetration"  # Low price to gain market share
-    SKIMMING = "skimming"  # High price, lower over time
-    VALUE_BASED = "value_based"  # Price based on customer value
-    COMPETITIVE = "competitive"  # Match or beat competitors
-    COST_PLUS = "cost_plus"  # Cost + margin
-    FREEMIUM = "freemium"  # Free base, paid premium
-
-
-class BillingFrequency(Enum):
-    """Billing frequency options."""
-    ONE_TIME = "one_time"
-    MONTHLY = "monthly"
-    QUARTERLY = "quarterly"
-    ANNUAL = "annual"
-    USAGE = "usage"
-
-
-@dataclass
-class PricingTier:
-    """A single pricing tier."""
-    name: str
-    price_monthly: float
-    price_annual: Optional[float] = None
-    annual_discount: Optional[float] = None
-
-    # Features
-    features: list = field(default_factory=list)
-    limits: dict = field(default_factory=dict)
-
-    # Target
-    target_segment: Optional[str] = None
-    value_proposition: Optional[str] = None
-
-    # Economics
-    expected_percentage_of_customers: Optional[float] = None
-    margin: Optional[float] = None
-
-
-@dataclass
-class CompetitorPricing:
-    """Competitor pricing analysis."""
-    competitor_name: str
-    pricing_model: PricingModel
-    lowest_tier_price: Optional[float] = None
-    highest_tier_price: Optional[float] = None
-    typical_price_point: Optional[float] = None
-    key_differentiators: list = field(default_factory=list)
-    source_url: Optional[str] = None
-
-
-@dataclass
-class PricingRecommendation:
-    """Complete pricing recommendation."""
-    business_id: str
-
-    # Strategy
-    primary_strategy: PricingStrategy
-    pricing_model: PricingModel
-    billing_frequency: BillingFrequency
-
-    # Tiers
-    tiers: List[PricingTier] = field(default_factory=list)
-
-    # Analysis
-    competitive_analysis: List[CompetitorPricing] = field(default_factory=list)
-    value_anchor: Optional[str] = None  # What value justifies price
-    price_sensitivity_notes: Optional[str] = None
-
-    # Unit economics impact
-    target_arpu: Optional[float] = None
-    target_gross_margin: Optional[float] = None
-
-    # Positioning
-    positioning_statement: Optional[str] = None
-
-    # Metadata
-    confidence: str = "medium"
-    version: int = 1
-    created_at: datetime = field(default_factory=datetime.utcnow)
-
-
-@dataclass
-class RevenueModel:
-    """Complete revenue model architecture."""
-    business_id: str
-
-    # Revenue streams
-    primary_stream: str
-    secondary_streams: list = field(default_factory=list)
-
-    # Revenue composition (Year 1 target)
-    stream_percentages: dict = field(default_factory=dict)
-
-    # Growth levers
-    growth_levers: list = field(default_factory=list)
-    expansion_revenue_strategy: Optional[str] = None
-
-    # Risks
-    revenue_concentration_risk: Optional[str] = None
-    churn_mitigation: list = field(default_factory=list)
-
-    # Metadata
-    version: int = 1
-    created_at: datetime = field(default_factory=datetime.utcnow)
 
 
 # ============================================================================
 # Agent Configuration
 # ============================================================================
 
+AGENT_NAME = "Revenue"
+AGENT_TITLE = "Monetization Strategist"
+
 INSTRUCTIONS = [
-    "You are Revenue, the Monetization Strategist for HYVVE's Business Planning Module.",
-    "Your expertise is designing pricing strategies that maximize revenue while supporting growth.",
+    "You are Revenue, the Monetization Strategist for HYVVE's Planning Team.",
+    "Your specialty is designing pricing strategies and revenue models.",
     "",
-    "## Core Responsibilities",
-    "1. Design pricing strategy and tier structure",
-    "2. Analyze competitive pricing landscape",
-    "3. Create revenue model architecture",
-    "4. Optimize for unit economics",
+    "## Your Responsibilities",
+    "1. Design pricing strategies",
+    "2. Define revenue models (SaaS, marketplace, etc.)",
+    "3. Calculate unit economics (LTV, CAC, payback)",
+    "4. Optimize monetization levers",
+    "5. Model pricing sensitivity",
+    "",
+    "## Revenue Model Types",
+    "- Subscription (SaaS, membership)",
+    "- Transaction-based (marketplace, payment)",
+    "- Freemium (free + premium tiers)",
+    "- Usage-based (API calls, storage)",
+    "- Hybrid models",
     "",
     "## Pricing Strategy Framework",
+    "1. Value-based pricing (what's it worth to customer?)",
+    "2. Competitive pricing (market positioning)",
+    "3. Cost-plus pricing (margin requirements)",
     "",
-    "### 1. Value-Based Pricing (Recommended Default)",
-    "- Start with customer value, not costs",
-    "- Price = (Customer Value x Capture Rate)",
-    "- Typical capture rate: 10-25% of value created",
+    "## Unit Economics",
+    "- LTV (Lifetime Value) = ARPU × Gross Margin × Avg Lifetime",
+    "- CAC (Customer Acquisition Cost)",
+    "- LTV:CAC ratio (target: 3:1 or higher)",
+    "- Payback period (target: <12 months)",
     "",
-    "### 2. Competitive Positioning",
-    "- Premium: 20-50% above market leader",
-    "- Parity: Within 10% of competitors",
-    "- Penetration: 20-40% below to gain share",
-    "",
-    "### 3. Tier Design Best Practices",
-    "- 3-4 tiers is optimal (avoid choice paralysis)",
-    "- Feature differentiation should be clear",
-    "- Middle tier should be the 'obvious choice'",
-    "- Enterprise tier for custom pricing",
-    "",
-    "## Unit Economics Requirements",
-    "- Gross margin > 60% for SaaS",
-    "- Price must support target LTV/CAC ratio (3:1+)",
-    "- Expansion revenue should offset churn",
-    "",
-    "## Pricing Psychology",
-    "- Anchor with highest tier first",
-    "- Use .99 endings strategically",
-    "- Annual discount of 15-20% is standard",
-    "- Free tier requires clear upgrade path",
-    "",
-    "## Revenue Model Design",
-    "- Primary stream should be 70%+ of revenue",
-    "- Secondary streams reduce concentration risk",
-    "- Expansion revenue > new customer revenue at scale",
+    "## Key Principles",
+    "- Price reflects value, not cost",
+    "- Willingness to pay data from validation is gold",
+    "- Test pricing - don't guess",
+    "- Build in expansion revenue potential",
 ]
 
 PRINCIPLES = [
-    "Price based on value delivered, not cost incurred",
-    "Pricing must support required unit economics",
-    "Competitive analysis requires actual source URLs",
-    "Tiers should guide customers to optimal choice",
-    "Annual pricing discounts must be financially sound",
-    "Free tiers must have clear conversion economics",
+    "Price should reflect customer value, not just costs",
+    "Use willingness to pay data from customer validation",
+    "Design for expansion revenue (upsells, cross-sells)",
+    "LTV:CAC ratio of 3:1 is minimum for sustainable growth",
+    "Payback period under 12 months enables efficient scaling",
+    "Consider pricing psychology (anchoring, decoy, bundling)",
+    "Test pricing early - don't wait for perfect data",
+    "Build in room for future price increases",
 ]

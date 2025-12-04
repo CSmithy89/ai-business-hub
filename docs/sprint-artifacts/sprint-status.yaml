@@ -183,7 +183,7 @@ development_status:
   08-11-implement-validation-synthesis-workflow: done
 
   # Section 3: Planning Team - BMP (5 stories, 17 points)
-  08-12-implement-planning-team-agno-configuration: backlog
+  08-12-implement-planning-team-agno-configuration: done
   08-13-create-planning-page-with-workflow-progress: backlog
   08-14-implement-business-model-canvas-workflow: backlog
   08-15-implement-financial-projections-workflow: backlog
