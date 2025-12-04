@@ -367,7 +367,9 @@ export class AIProvidersService {
       const encryption = this.getEncryptionService();
       return await encryption.decrypt(provider.apiKeyEncrypted);
     } catch (error) {
-      this.logger.error(`Failed to decrypt API key: ${error}`);
+      // Log only the error message, not the full error object to avoid leaking sensitive data
+      const errorMessage = error instanceof Error ? error.message : 'Unknown decryption error';
+      this.logger.error(`Failed to decrypt API key for provider ${providerId}: ${errorMessage}`);
       return null;
     }
   }

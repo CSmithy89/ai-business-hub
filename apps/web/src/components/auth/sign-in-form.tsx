@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useRouter } from 'next/navigation'
 import { signIn, authClient } from '@/lib/auth-client'
 import { signInSchema, type SignInFormData } from '@/lib/validations/auth'
@@ -30,7 +30,7 @@ export function SignInForm() {
     setValue,
     watch,
   } = useForm<SignInFormData>({
-    resolver: zodResolver(signInSchema),
+    resolver: standardSchemaResolver(signInSchema),
     mode: 'onBlur',
     defaultValues: {
       rememberMe: false,

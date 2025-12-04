@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { signUp, authClient } from '@/lib/auth-client'
 import { signUpSchema, type SignUpFormData } from '@/lib/validations/auth'
 import { Button } from '@/components/ui/button'
@@ -26,7 +26,7 @@ export function SignUpForm() {
     watch,
     formState: { errors },
   } = useForm<SignUpFormData>({
-    resolver: zodResolver(signUpSchema),
+    resolver: standardSchemaResolver(signUpSchema),
     mode: 'onBlur',
   })
 

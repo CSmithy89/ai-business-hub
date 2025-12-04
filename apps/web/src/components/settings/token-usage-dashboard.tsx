@@ -33,6 +33,24 @@ import { useAIProviders, PROVIDER_INFO } from '@/hooks/use-ai-providers'
 
 const CHART_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
 
+/**
+ * Sanitize a value for CSV export to prevent CSV injection attacks.
+ * Values starting with =, +, -, @, \t, \r can execute formulas in Excel/Sheets.
+ * @see https://owasp.org/www-community/attacks/CSV_Injection
+ */
+function sanitizeCSVValue(value: string | number): string {
+  const stringValue = String(value)
+  // Escape quotes by doubling them
+  const escaped = stringValue.replace(/"/g, '""')
+  // Wrap in quotes to handle commas and special characters
+  // Prefix with single quote if value starts with dangerous characters
+  const dangerousChars = ['=', '+', '-', '@', '\t', '\r']
+  if (dangerousChars.some(char => escaped.startsWith(char))) {
+    return `"'${escaped}"`
+  }
+  return `"${escaped}"`
+}
+
 interface DateRange {
   label: string
   days: number
@@ -114,13 +132,16 @@ export function TokenUsageDashboard() {
 
     const headers = ['Date', 'Total Tokens', 'Estimated Cost ($)', 'Request Count']
     const rows = dailyUsage.map((d: DailyUsage) => [
-      d.date,
-      d.totalTokens,
-      d.totalCost.toFixed(4),
-      d.requestCount,
+      sanitizeCSVValue(d.date),
+      sanitizeCSVValue(d.totalTokens),
+      sanitizeCSVValue(d.totalCost.toFixed(4)),
+      sanitizeCSVValue(d.requestCount),
     ])
 
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+    const csv = [
+      headers.map(h => sanitizeCSVValue(h)).join(','),
+      ...rows.map((r) => r.join(','))
+    ].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
