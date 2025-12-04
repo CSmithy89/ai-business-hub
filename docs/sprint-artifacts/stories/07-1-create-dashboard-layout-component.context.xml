@@ -1,0 +1,659 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<storyContext>
+  <metadata>
+    <storyId>07-1-create-dashboard-layout-component</storyId>
+    <epic>EPIC-07 - UI Shell</epic>
+    <title>Create Dashboard Layout Component</title>
+    <points>3</points>
+    <priority>P0</priority>
+    <generatedDate>2025-12-04</generatedDate>
+    <author>chris</author>
+    <workflow>story-context</workflow>
+  </metadata>
+
+  <summary>
+    <userStory>
+      As a user, I want a consistent app shell layout so that I can navigate the platform easily.
+    </userStory>
+    <description>
+      This story implements the foundational three-panel dashboard layout that serves as the primary
+      UI framework for the HYVVE platform. The layout establishes a responsive shell structure with
+      sidebar navigation, main content area, and chat panel, providing the foundation for all dashboard pages.
+
+      The DashboardLayout component uses Next.js 15 App Router layout patterns and implements responsive
+      breakpoints to adapt across mobile, tablet, and desktop devices. Panel states (sidebar collapsed/expanded,
+      chat panel width) persist in localStorage for a consistent user experience across sessions.
+    </description>
+  </summary>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">
+      DashboardLayout component created at apps/web/src/app/(dashboard)/layout.tsx
+    </criterion>
+    <criterion id="AC2">
+      Three-panel structure renders correctly: sidebar, main content, chat panel
+    </criterion>
+    <criterion id="AC3">
+      Sidebar width is 64px when collapsed, 256px when expanded
+    </criterion>
+    <criterion id="AC4">
+      Main content area is flexible width with minimum 600px constraint
+    </criterion>
+    <criterion id="AC5">
+      Chat panel width is adjustable between 320px-480px, collapsible to icon
+    </criterion>
+    <criterion id="AC6">
+      Panel states (sidebar collapsed, chat width) persist in localStorage
+    </criterion>
+    <criterion id="AC7">
+      Responsive breakpoints implemented:
+      - Mobile (&lt;640px): Single panel with bottom nav
+      - Tablet (640-1024px): Two panels (sidebar + main OR main + chat)
+      - Desktop (&gt;1024px): Three panels visible
+    </criterion>
+    <criterion id="AC8">
+      Layout applied to all /dashboard/* routes via Next.js layout system
+    </criterion>
+    <criterion id="AC9">
+      UI state managed with Zustand store
+    </criterion>
+    <criterion id="AC10">
+      Follows HYVVE Style Guide color variables and design tokens
+    </criterion>
+  </acceptanceCriteria>
+
+  <technicalRequirements>
+    <fileLocation>apps/web/src/app/(dashboard)/layout.tsx</fileLocation>
+
+    <layoutStructure>
+      <![CDATA[
+<div className="flex h-screen w-full flex-col overflow-hidden">
+  <Header /> {/* Fixed header - 60px height */}
+  <div className="flex h-full w-full pt-[60px]">
+    <Sidebar /> {/* Left panel - 64px/256px width */}
+    <main>{children}</main> {/* Main content - flexible */}
+    <ChatPanel /> {/* Right panel - 320px-480px width */}
+  </div>
+</div>
+      ]]>
+    </layoutStructure>
+
+    <panelSpecifications>
+      <sidebar>
+        <collapsed>64px wide (icon-only)</collapsed>
+        <expanded>256px wide (icon + label)</expanded>
+        <transition>300ms ease</transition>
+        <positioning>Fixed position on desktop, slide-over on mobile</positioning>
+      </sidebar>
+
+      <mainContent>
+        <width>calc(100% - sidebar - chat)</width>
+        <minWidth>600px on desktop</minWidth>
+        <mobileWidth>Full-width when sidebar/chat collapsed</mobileWidth>
+      </mainContent>
+
+      <chatPanel>
+        <defaultWidth>380px</defaultWidth>
+        <adjustableRange>320px-480px (resize handle)</adjustableRange>
+        <collapsible>Minimizes to 48px icon button</collapsible>
+        <positioning>Fixed position on right side</positioning>
+      </chatPanel>
+    </panelSpecifications>
+
+    <responsiveBreakpoints>
+      <mobile maxWidth="640px">
+        <layout>Single panel view</layout>
+        <sidebar>Slide-over drawer</sidebar>
+        <chat>Fullscreen overlay</chat>
+        <navigation>Bottom navigation bar</navigation>
+      </mobile>
+
+      <tablet minWidth="640px" maxWidth="1024px">
+        <layout>Two panels: sidebar + main (default)</layout>
+        <chat>Slide-over panel</chat>
+        <toggle>Toggle between views</toggle>
+      </tablet>
+
+      <desktop minWidth="1024px">
+        <layout>All three panels visible</layout>
+        <chatResize>Resizable chat panel</chatResize>
+        <transitions>Smooth transitions</transitions>
+      </desktop>
+    </responsiveBreakpoints>
+
+    <stateManagement>
+      <zustandStore>apps/web/src/stores/ui.ts</zustandStore>
+      <interface>
+        <![CDATA[
+interface UIState {
+  // Sidebar state
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+
+  // Chat panel state
+  chatPanelOpen: boolean;
+  chatPanelWidth: number; // 320-480px
+  toggleChatPanel: () => void;
+  setChatPanelWidth: (width: number) => void;
+
+  // Mobile state
+  mobileMenuOpen: boolean;
+  toggleMobileMenu: () => void;
+}
+        ]]>
+      </interface>
+
+      <localStoragePersistence>
+        <key>hyvve-ui-state</key>
+        <storedValues>{ sidebarCollapsed, chatPanelWidth, chatPanelOpen }</storedValues>
+        <behavior>Load on mount, save on state change</behavior>
+        <implementation>Use Zustand persist middleware</implementation>
+      </localStoragePersistence>
+    </stateManagement>
+  </technicalRequirements>
+
+  <designTokens>
+    <cssVariables>
+      <![CDATA[
+:root {
+  /* Layout */
+  --sidebar-width-collapsed: 64px;
+  --sidebar-width-expanded: 256px;
+  --chat-panel-width-min: 320px;
+  --chat-panel-width-max: 480px;
+  --chat-panel-width-default: 380px;
+  --header-height: 60px;
+
+  /* Animation */
+  --transition-fast: 150ms ease;
+  --transition-base: 300ms ease;
+  --transition-slow: 500ms ease;
+
+  /* Colors (Light Mode) */
+  --bg-cream: #FFFBF5;
+  --bg-secondary: #F8F5F0;
+  --border-light: #E5E5E5;
+
+  /* Colors (Dark Mode) */
+  --bg-dark-primary: #0a0a0b;
+  --bg-dark-secondary: #1a1a1b;
+  --border-dark: #27272a;
+}
+      ]]>
+    </cssVariables>
+
+    <tailwindClasses>
+      Use @layer utilities for custom responsive classes
+      Follow existing patterns in wireframe HTML
+      Apply transitions with transition-all duration-300
+    </tailwindClasses>
+  </designTokens>
+
+  <wireframeReference>
+    <location>docs/design/wireframes/Finished wireframes and html files/sh-01_shell_layout_(three-panel)/code.html</location>
+    <keyElements>
+      <element>Fixed header at 60px height</element>
+      <element>Left sidebar at 256px (expanded state)</element>
+      <element>Main content area with padding</element>
+      <element>Right chat panel at 380px</element>
+      <element>Dark mode color variables</element>
+      <element>Smooth transitions</element>
+    </keyElements>
+
+    <htmlStructure>
+      <![CDATA[
+<!-- Header Structure -->
+<header class="fixed top-0 left-0 right-0 z-30 flex h-[60px] items-center justify-between
+               border-b border-border-light dark:border-border-dark bg-surface-light
+               dark:bg-background-secondary-dark px-6 shadow-xs">
+  <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3">
+      <!-- Logo SVG -->
+      <h2 class="text-xl font-bold tracking-tighter">HYVVE</h2>
+    </div>
+    <!-- Workspace Switcher -->
+  </div>
+  <div class="flex items-center gap-3">
+    <!-- Search, Notifications, Help, User Menu -->
+  </div>
+</header>
+
+<!-- Left Sidebar Structure -->
+<aside class="fixed top-[60px] left-0 bottom-0 z-20 flex w-64 flex-col border-r
+              border-border-light dark:border-border-dark bg-background-secondary-light
+              dark:bg-background-secondary-dark p-3 transition-transform duration-slide">
+  <div class="flex flex-1 flex-col overflow-y-auto">
+    <!-- Navigation items -->
+  </div>
+  <button class="collapse-toggle">
+    <span class="material-symbols-outlined">keyboard_double_arrow_left</span>
+  </button>
+</aside>
+
+<!-- Main Content Area -->
+<main class="ml-64 w-[calc(100%-640px)] flex-1 overflow-y-auto
+             bg-background-primary-light dark:bg-background-primary-dark">
+  <div class="p-8">
+    {children}
+  </div>
+</main>
+
+<!-- Right Chat Panel -->
+<aside class="fixed top-[60px] right-0 bottom-0 z-10 flex w-[380px] flex-col border-l
+              border-border-light dark:border-border-dark bg-surface-light
+              dark:bg-background-tertiary-dark shadow-[-4px_0_16px_rgba(0,0,0,0.04)]">
+  <div class="flex h-14 items-center justify-between border-b px-4">
+    <!-- Chat header -->
+  </div>
+  <div class="flex-1 overflow-y-auto p-4">
+    <!-- Messages -->
+  </div>
+  <div class="border-t p-3">
+    <!-- Input -->
+  </div>
+</aside>
+      ]]>
+    </htmlStructure>
+  </wireframeReference>
+
+  <existingCodebase>
+    <rootLayout>
+      <location>apps/web/src/app/layout.tsx</location>
+      <content>
+        <![CDATA[
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { Providers } from './providers';
+
+const inter = Inter({ subsets: ['latin'] });
+
+export const metadata: Metadata = {
+  title: 'Hyvve - Your AI Team',
+  description: 'AI-powered business orchestration platform',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}
+        ]]>
+      </content>
+      <notes>
+        Root layout already configured with Providers wrapper for theme and React Query.
+        Dashboard layout will be nested under this root layout.
+      </notes>
+    </rootLayout>
+
+    <tailwindConfig>
+      <location>tailwind.config.ts (root)</location>
+      <keyFeatures>
+        <feature>Custom color tokens with RGB values for opacity support</feature>
+        <feature>Agent color system (hub, maya, atlas, sage, nova, echo)</feature>
+        <feature>Background color system (cream, white, soft, muted, hover)</feature>
+        <feature>Custom width tokens for layout panels</feature>
+        <feature>Custom animation keyframes for panel transitions</feature>
+        <feature>Dark mode via class strategy</feature>
+      </keyFeatures>
+      <relevantTokens>
+        <![CDATA[
+width: {
+  "nav-collapsed": "var(--width-nav-collapsed)",
+  "nav-expanded": "var(--width-nav-expanded)",
+  "chat-min": "var(--width-chat-min)",
+  "detail-default": "var(--width-detail-default)",
+}
+height: {
+  header: "var(--height-header)",
+}
+        ]]>
+      </relevantTokens>
+    </tailwindConfig>
+
+    <cssTokens>
+      <location>src/styles/tokens.css</location>
+      <layoutTokens>
+        <![CDATA[
+/* Panel widths */
+--width-nav-collapsed: 56px;
+--width-nav-expanded: 240px;
+--width-nav-max: 320px;
+--width-chat-min: 320px;
+--width-data-min: 400px;
+--width-detail-default: 400px;
+--width-detail-max: 600px;
+
+/* Header heights */
+--height-header: 52px;
+--height-status-bar: 32px;
+        ]]>
+      </layoutTokens>
+      <colorTokens>
+        <![CDATA[
+/* Background colors - Warm cream theme */
+--color-bg-cream: 255, 251, 245;     /* #FFFBF5 - Main background */
+--color-bg-white: 255, 255, 255;     /* #FFFFFF - Cards, elevated */
+--color-bg-soft: 255, 248, 240;      /* #FFF8F0 - Subtle sections */
+--color-bg-muted: 245, 240, 235;     /* #F5F0EB - Disabled, inputs */
+--color-bg-hover: 240, 235, 229;     /* #F0EBE5 - Hover states */
+
+/* Dark Mode */
+[data-theme="dark"], .dark {
+  --color-bg-primary: 10, 10, 11;        /* #0a0a0b */
+  --color-bg-secondary: 17, 17, 19;      /* #111113 */
+  --color-bg-tertiary: 26, 26, 29;       /* #1a1a1d */
+  --color-bg-muted: 35, 35, 38;          /* #232326 */
+}
+        ]]>
+      </colorTokens>
+    </cssTokens>
+
+    <packageDependencies>
+      <installed>
+        <package name="next">^15.0.0</package>
+        <package name="react">^19.0.0</package>
+        <package name="react-dom">^19.0.0</package>
+        <package name="tailwindcss">^4.0.0</package>
+        <package name="next-themes">^0.3.0</package>
+        <package name="lucide-react">^0.263.0</package>
+        <package name="class-variance-authority">^0.7.1</package>
+        <package name="clsx">^2.1.0</package>
+        <package name="tailwind-merge">^2.2.0</package>
+      </installed>
+      <required>
+        <package name="zustand">Not yet installed - need to add</package>
+      </required>
+    </packageDependencies>
+
+    <sharedUIPackage>
+      <location>packages/ui/</location>
+      <status>Empty package ready for shared components</status>
+      <notes>
+        This story creates placeholder components that will be replaced in subsequent stories.
+        Actual Header, Sidebar, and ChatPanel components will be built in Stories 07.2, 07.3, 07.4.
+      </notes>
+    </sharedUIPackage>
+  </existingCodebase>
+
+  <implementationGuidance>
+    <phase name="Phase 1: Setup" duration="30 min">
+      <task>Install Zustand: pnpm add zustand</task>
+      <task>Create UI store at apps/web/src/stores/ui.ts with persist middleware</task>
+      <task>Update CSS variables in src/styles/tokens.css if needed</task>
+    </phase>
+
+    <phase name="Phase 2: Layout Structure" duration="1 hour">
+      <task>Create apps/web/src/app/(dashboard)/layout.tsx</task>
+      <task>Implement three-panel structure with placeholders</task>
+      <task>Add responsive classes with Tailwind breakpoints</task>
+      <task>Connect to Zustand store for state management</task>
+    </phase>
+
+    <phase name="Phase 3: Panel Controls" duration="1 hour">
+      <task>Add sidebar collapse/expand toggle button</task>
+      <task>Add chat panel collapse/expand toggle button</task>
+      <task>Implement chat panel resize handle with drag logic</task>
+      <task>Add localStorage persistence via Zustand persist</task>
+    </phase>
+
+    <phase name="Phase 4: Responsive Behavior" duration="1 hour">
+      <task>Implement mobile layout (single panel + overlays)</task>
+      <task>Implement tablet layout (two panels)</task>
+      <task>Implement desktop layout (three panels)</task>
+      <task>Add smooth transitions for panel changes</task>
+    </phase>
+
+    <phase name="Phase 5: Testing &amp; Polish" duration="1 hour">
+      <task>Test all responsive breakpoints</task>
+      <task>Verify localStorage persistence</task>
+      <task>Test keyboard navigation</task>
+      <task>Run accessibility checks</task>
+      <task>Visual regression testing</task>
+      <task>Fix any issues</task>
+    </phase>
+
+    <totalEstimate>4.5 hours</totalEstimate>
+  </implementationGuidance>
+
+  <zustandStoreImplementation>
+    <![CDATA[
+// apps/web/src/stores/ui.ts
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+interface UIState {
+  // Sidebar state
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+
+  // Chat panel state
+  chatPanelOpen: boolean;
+  chatPanelWidth: number;
+  toggleChatPanel: () => void;
+  setChatPanelWidth: (width: number) => void;
+
+  // Mobile state
+  mobileMenuOpen: boolean;
+  toggleMobileMenu: () => void;
+}
+
+export const useUIStore = create<UIState>()(
+  persist(
+    (set) => ({
+      // Default state
+      sidebarCollapsed: false,
+      chatPanelOpen: true,
+      chatPanelWidth: 380,
+      mobileMenuOpen: false,
+
+      // Actions
+      toggleSidebar: () => set((state) => ({
+        sidebarCollapsed: !state.sidebarCollapsed
+      })),
+      setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+
+      toggleChatPanel: () => set((state) => ({
+        chatPanelOpen: !state.chatPanelOpen
+      })),
+      setChatPanelWidth: (width) => set({
+        chatPanelWidth: Math.max(320, Math.min(480, width))
+      }),
+
+      toggleMobileMenu: () => set((state) => ({
+        mobileMenuOpen: !state.mobileMenuOpen
+      })),
+    }),
+    {
+      name: 'hyvve-ui-state',
+      partialize: (state) => ({
+        sidebarCollapsed: state.sidebarCollapsed,
+        chatPanelWidth: state.chatPanelWidth,
+        chatPanelOpen: state.chatPanelOpen,
+      }),
+    }
+  )
+);
+    ]]>
+  </zustandStoreImplementation>
+
+  <nextJsLayoutPattern>
+    <![CDATA[
+// apps/web/src/app/(dashboard)/layout.tsx
+'use client';
+
+import { ReactNode } from 'react';
+import { useUIStore } from '@/stores/ui';
+
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const { sidebarCollapsed, chatPanelOpen, chatPanelWidth } = useUIStore();
+
+  return (
+    <div className="flex h-screen w-full flex-col overflow-hidden">
+      {/* Header placeholder - 60px height */}
+      <header
+        className="fixed top-0 left-0 right-0 z-30 flex h-[60px] items-center
+                   border-b border-border bg-background-secondary px-6 shadow-xs"
+      >
+        <div className="text-xl font-bold">HYVVE</div>
+      </header>
+
+      <div className="flex h-full w-full pt-[60px]">
+        {/* Sidebar placeholder - responsive width */}
+        <aside
+          className={`
+            fixed top-[60px] left-0 bottom-0 z-20 flex flex-col border-r
+            border-border bg-background-secondary p-3 transition-all duration-300
+            ${sidebarCollapsed ? 'w-16' : 'w-64'}
+          `}
+        >
+          <div className="text-sm text-foreground-secondary">
+            Sidebar ({sidebarCollapsed ? 'Collapsed' : 'Expanded'})
+          </div>
+        </aside>
+
+        {/* Main content - flexible width */}
+        <main
+          className={`
+            flex-1 overflow-y-auto bg-background-primary transition-all duration-300
+            ${sidebarCollapsed ? 'ml-16' : 'ml-64'}
+            ${chatPanelOpen ? 'mr-[380px]' : 'mr-0'}
+          `}
+        >
+          <div className="p-8">
+            {children}
+          </div>
+        </main>
+
+        {/* Chat panel placeholder - adjustable width */}
+        {chatPanelOpen && (
+          <aside
+            className="fixed top-[60px] right-0 bottom-0 z-10 flex flex-col border-l
+                       border-border bg-background-secondary shadow-xl transition-all duration-300"
+            style={{ width: `${chatPanelWidth}px` }}
+          >
+            <div className="text-sm text-foreground-secondary p-4">
+              Chat Panel ({chatPanelWidth}px)
+            </div>
+          </aside>
+        )}
+      </div>
+    </div>
+  );
+}
+    ]]>
+  </nextJsLayoutPattern>
+
+  <accessibilityRequirements>
+    <keyboardNavigation>
+      <shortcut>Tab to navigate between panels</shortcut>
+      <shortcut>Cmd+B to toggle sidebar (Story 07.8)</shortcut>
+      <shortcut>Cmd+/ to toggle chat (Story 07.8)</shortcut>
+      <shortcut>Focus trap in mobile overlays</shortcut>
+    </keyboardNavigation>
+
+    <screenReader>
+      <landmark>navigation - Sidebar</landmark>
+      <landmark>main - Main content</landmark>
+      <landmark>complementary - Chat panel</landmark>
+      <ariaLabels>ARIA labels for panel controls</ariaLabels>
+      <liveRegions>Live regions for dynamic content</liveRegions>
+    </screenReader>
+
+    <focusManagement>
+      <indicator>Focus indicator visible (2px outline)</indicator>
+      <return>Focus returns to trigger on panel close</return>
+      <skipLinks>Skip links for keyboard users</skipLinks>
+    </focusManagement>
+  </accessibilityRequirements>
+
+  <performanceConsiderations>
+    <cssTransforms>
+      Use transform: translateX() for panel animations (GPU-accelerated)
+      Avoid animating width property directly
+    </cssTransforms>
+
+    <layoutShifts>
+      Reserve space for panels to prevent CLS
+      Use will-change: transform for animated panels
+    </layoutShifts>
+
+    <hydration>
+      Server-render with default states
+      Client hydration loads from localStorage
+      Prevent flash of incorrect state
+    </hydration>
+  </performanceConsiderations>
+
+  <blocksStories>
+    <story>07.2: Sidebar Navigation (needs layout structure)</story>
+    <story>07.3: Header Bar (needs layout structure)</story>
+    <story>07.4: Chat Panel (needs layout structure)</story>
+    <story>All other Epic 07 stories (foundation for UI Shell)</story>
+  </blocksStories>
+
+  <outOfScope>
+    <item>Header bar content (Story 07.3)</item>
+    <item>Sidebar navigation items (Story 07.2)</item>
+    <item>Chat panel messages (Story 07.4)</item>
+    <item>Theme toggle (Story 07.5)</item>
+    <item>Command palette (Story 07.6)</item>
+    <item>Notification center (Story 07.7)</item>
+    <item>Keyboard shortcuts (Story 07.8)</item>
+    <item>Dashboard content (Story 07.9)</item>
+    <item>Mobile navigation bar (Story 07.10)</item>
+  </outOfScope>
+
+  <testingStrategy>
+    <manualTesting>
+      <test>Verify layout renders on /dashboard</test>
+      <test>Test sidebar collapse/expand toggle</test>
+      <test>Test chat panel collapse/expand toggle</test>
+      <test>Test chat panel resize (drag handle)</test>
+      <test>Verify localStorage persistence (refresh page)</test>
+      <test>Test responsive breakpoints: Mobile (&lt;640px), Tablet (640-1024px), Desktop (&gt;1024px)</test>
+      <test>Test keyboard navigation (Tab, focus indicators)</test>
+      <test>Test with dark mode (Story 07.5 prerequisite)</test>
+    </manualTesting>
+
+    <visualRegression>
+      <test>Storybook story for DashboardLayout</test>
+      <test>Chromatic snapshots at breakpoints</test>
+      <test>Compare against wireframe reference</test>
+    </visualRegression>
+
+    <accessibilityTesting>
+      <test>Run axe DevTools</test>
+      <test>Test keyboard-only navigation</test>
+      <test>Verify ARIA landmarks</test>
+      <test>Test with screen reader (VoiceOver/NVDA)</test>
+    </accessibilityTesting>
+  </testingStrategy>
+
+  <integrationPoints>
+    <consumers>
+      <consumer>All dashboard pages: /dashboard, /dashboard/approvals, /dashboard/agents, /dashboard/settings</consumer>
+      <consumer>Story 07.2: Sidebar will replace placeholder aside</consumer>
+      <consumer>Story 07.3: Header will replace placeholder header</consumer>
+      <consumer>Story 07.4: ChatPanel will replace placeholder chat aside</consumer>
+    </consumers>
+  </integrationPoints>
+
+  <relatedDocumentation>
+    <doc location="docs/epics/EPIC-07-ui-shell.md">Epic overview and requirements</doc>
+    <doc location="docs/sprint-artifacts/tech-spec-epic-07.md">Technical specification (lines 99-458)</doc>
+    <doc location="docs/design/wireframes/Finished wireframes and html files/sh-01_shell_layout_(three-panel)/code.html">Wireframe reference</doc>
+    <doc location="docs/design/STYLE-GUIDE.md">Design tokens and component specs</doc>
+    <doc location="docs/architecture.md">Frontend architecture section</doc>
+  </relatedDocumentation>
+</storyContext>

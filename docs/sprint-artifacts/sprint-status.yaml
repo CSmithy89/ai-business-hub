@@ -148,7 +148,7 @@ development_status:
   # Phase 1-3 (Progressive) | 10 stories | 24 points
   # ===========================================
   epic-07: contexted
-  07-1-create-dashboard-layout-component: backlog
+  07-1-create-dashboard-layout-component: done
   07-2-create-sidebar-navigation: backlog
   07-3-create-header-bar: backlog
   07-4-implement-chat-panel: backlog
