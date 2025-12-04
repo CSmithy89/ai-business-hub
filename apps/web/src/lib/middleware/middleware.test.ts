@@ -40,6 +40,8 @@ const mockUser: User = {
   emailVerified: false,
   image: null,
   passwordHash: null,
+  twoFactorEnabled: false,
+  twoFactorSecret: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 }

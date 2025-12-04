@@ -211,7 +211,7 @@ development_status:
   # Authentication Enhancements (8 stories, 21 points)
   09-1-implement-microsoft-oauth: done
   09-2-implement-github-oauth: done
-  09-3-implement-two-factor-authentication-setup: backlog
+  09-3-implement-two-factor-authentication-setup: done
   09-4-implement-two-factor-authentication-login: backlog
   09-5-implement-2fa-management: backlog
   09-6-implement-magic-link-authentication: backlog

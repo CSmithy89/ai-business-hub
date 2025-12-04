@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
-import { organization } from 'better-auth/plugins'
+import { organization, twoFactor } from 'better-auth/plugins'
 import { prisma } from '@hyvve/db'
 import { sendVerificationEmail, sendPasswordResetEmail } from './email'
 
@@ -29,6 +29,9 @@ export const auth = betterAuth({
     organization({
       allowUserToCreateOrganization: true,
       // Role definitions will be fully implemented in Epic 02
+    }),
+    twoFactor({
+      issuer: 'HYVVE',
     }),
   ],
 
