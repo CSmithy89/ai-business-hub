@@ -24,6 +24,7 @@ import { ReactNode } from 'react';
 import { Header } from '@/components/shell/Header';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { ChatPanel } from '@/components/shell/ChatPanel';
+import { CommandPalette } from '@/components/command';
 import { useUIStore } from '@/stores/ui';
 
 interface DashboardLayoutProps {
@@ -69,6 +70,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Right Chat Panel - collapsible and resizable */}
         <ChatPanel />
       </div>
+
+      {/* Command Palette - Global keyboard shortcut (Cmd/Ctrl+K) */}
+      <CommandPalette />
     </div>
   );
 }
