@@ -1,0 +1,1458 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>07-3</story-id>
+    <title>Create Header Bar</title>
+    <epic>EPIC-07 - UI Shell</epic>
+    <status>ready-for-dev</status>
+    <points>2</points>
+    <priority>P0 - Critical</priority>
+    <generated>2025-12-04</generated>
+  </metadata>
+
+  <!-- ========================================
+       STORY OVERVIEW
+       ======================================== -->
+  <story-summary>
+    <description>
+      Implement the full Header Bar component with three sections (left: branding + workspace selector,
+      center: breadcrumb navigation, right: search trigger + notifications + help + user menu).
+
+      The header is fixed at the top of the viewport (z-50, height 60px) and provides persistent access
+      to essential platform functions. It integrates with:
+      - Epic 01 (Authentication) for user session and sign-out
+      - Epic 02 (Workspace Management) for workspace switcher
+      - Story 07-6 (Command Palette) for search trigger
+      - Story 07-7 (Notification Center) for notification dropdown
+      - Story 07-5 (Dark/Light Mode) for theme toggle
+    </description>
+
+    <user-story>
+      As a user
+      I want a header bar with key actions
+      So that I can access common functions from anywhere in the app
+    </user-story>
+
+    <dependencies>
+      <dependency status="complete">Story 07-1: Dashboard Layout (provides header container)</dependency>
+      <dependency status="complete">Epic 01: Authentication (user session, sign-out)</dependency>
+      <dependency status="complete">Epic 02: Workspace Management (workspace selector)</dependency>
+      <dependency status="future">Story 07-6: Command Palette (search trigger integration)</dependency>
+      <dependency status="future">Story 07-7: Notification Center (notification dropdown)</dependency>
+      <dependency status="future">Story 07-5: Dark/Light Mode (theme toggle)</dependency>
+    </dependencies>
+  </story-summary>
+
+  <!-- ========================================
+       ACCEPTANCE CRITERIA
+       ======================================== -->
+  <acceptance-criteria>
+    <criterion id="AC-1">
+      <title>Header Structure and Layout</title>
+      <requirements>
+        - Header renders at fixed top position (z-50)
+        - Height: 60px (--header-height CSS variable)
+        - Full width with border-bottom and shadow-xs
+        - Three-column flex layout: left, center, right sections
+        - Responsive: hide breadcrumbs on mobile (&lt;768px), show on desktop (≥768px)
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-2">
+      <title>Left Section - Branding and Workspace</title>
+      <requirements>
+        - Logo/brand: Primary red square with horizontal_rule icon + "HYVVE" text
+        - Logo clickable, navigates to /dashboard
+        - Vertical divider (1px, height 28px) after branding
+        - Workspace selector button: avatar (gradient, initials) + name + expand_more icon
+        - Opens workspace switcher dropdown (Epic 02 component)
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-3">
+      <title>Center Section - Breadcrumb Navigation</title>
+      <requirements>
+        - Breadcrumb displays current page path (e.g., "CRM → Contacts → Acme Corp")
+        - All items except last are clickable links
+        - Last item is current page (non-clickable, primary color)
+        - Separated by chevron_right icon
+        - Hidden on mobile (&lt;768px)
+        - Responsive text truncation if too long
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-4">
+      <title>Right Section - Search Trigger</title>
+      <requirements>
+        - Search trigger button: search icon + "Search..." text + "⌘K" badge
+        - Rounded full border, secondary background
+        - Hover state: tertiary background
+        - Click opens command palette (integration point for Story 07-6)
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-5">
+      <title>Right Section - Notification Bell</title>
+      <requirements>
+        - Notification bell icon (Material Symbol: notifications)
+        - Unread count badge: top-right corner, error red background, white text, 18px circle
+        - Badge hidden when count is 0
+        - Click opens notification dropdown (integration point for Story 07-7)
+        - Hover state: tertiary background
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-6">
+      <title>Right Section - Help Button</title>
+      <requirements>
+        - Help icon button (Material Symbol: help)
+        - Click opens help modal or navigates to help page
+        - Hover state: tertiary background
+        - Accessible label: "Help &amp; Support"
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-7">
+      <title>Right Section - User Menu Dropdown</title>
+      <requirements>
+        - User menu button: avatar (gradient, initials) + expand_more icon
+        - Dropdown displays:
+          * User info header: avatar, full name, email (truncated)
+          * Profile link (person icon)
+          * Account Settings link (settings icon)
+          * Theme toggle (desktop_windows icon, Light/Dark selector)
+          * Sign out action (logout icon, red text)
+        - Dropdown width: 240px, right-aligned
+        - Theme toggle updates theme (Story 07-5 integration)
+        - Sign out clears session and redirects to /sign-in (Epic 01 integration)
+      </requirements>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- ========================================
+       WIREFRAME REFERENCE
+       ======================================== -->
+  <wireframe-reference>
+    <source>SH-03: Header Bar with Dropdowns</source>
+    <path>/home/chris/projects/work/Ai Bussiness Hub/docs/design/wireframes/Finished wireframes and html files/sh-03_header_bar_with_dropdowns/code.html</path>
+
+    <key-elements>
+      <element name="Header Container">
+        - Fixed position: top-0 left-0 right-0 z-50
+        - Height: 60px (h-[60px])
+        - Border bottom: 1px solid --color-border-default
+        - Background: --color-bg-surface (white/dark surface)
+        - Shadow: shadow-xs
+        - Padding: px-6 (24px horizontal)
+      </element>
+
+      <element name="Left Section (Logo + Workspace)">
+        - Flex container: gap-4
+        - Logo: 28px square (h-7 w-7), primary red background, horizontal_rule icon
+        - Brand text: "HYVVE", text-xl font-bold tracking-tight
+        - Divider: 1px width, 28px height, border color
+        - Workspace button: avatar (24px gradient) + name + expand_more icon
+      </element>
+
+      <element name="Center Section (Breadcrumbs)">
+        - Hidden on mobile: hidden md:flex
+        - Breadcrumb items separated by chevron_right (16px)
+        - Links: text-sm, secondary color on hover
+        - Current page: text-sm font-medium, primary text color
+      </element>
+
+      <element name="Right Section (Actions)">
+        - Flex container: gap-2
+        - Search trigger: h-9, rounded-full, border, secondary bg, px-3.5
+        - Icon buttons: h-9 w-9, rounded-md, hover:bg-tertiary
+        - Notification badge: absolute top-1 right-1, 18px circle, error bg
+        - User menu button: avatar (36px) + expand_more
+      </element>
+
+      <element name="Workspace Dropdown">
+        - Width: 280px (w-[280px])
+        - Positioned: absolute, top-full, left-0, mt-2
+        - Border: 1px solid border color
+        - Shadow: shadow-xl
+        - Workspace cards: gradient avatar (32px) + name + role + check icon (current)
+        - Create workspace action at bottom with divider
+      </element>
+
+      <element name="Notification Dropdown">
+        - Width: 380px (w-[380px])
+        - Positioned: absolute, top-full, right-0, mt-2
+        - Header: "Notifications" + "Mark all read" link
+        - Max height: 360px with overflow-y-auto
+        - Notification items: agent color circle + message + timestamp
+        - Unread indicator: red dot (h-2 w-2, absolute left-4 top-4)
+        - Unread background: bg-[#FEF2F2] light / bg-primary/10 dark
+      </element>
+
+      <element name="User Menu Dropdown">
+        - Width: 240px (w-[240px])
+        - Positioned: absolute, top-full, right-0, mt-2
+        - User header: avatar (40px) + name + email (truncated)
+        - Menu items: icon (20px) + label, hover:bg-tertiary
+        - Theme toggle: Light/Dark pill selector with active state
+        - Sign out: error color text, logout icon
+      </element>
+    </key-elements>
+
+    <html-structure><![CDATA[
+<!-- Header structure from wireframe -->
+<header class="fixed top-0 left-0 right-0 z-50 flex h-[60px] items-center justify-between
+               border-b border-border bg-surface px-6 shadow-xs">
+  <!-- Left Section -->
+  <div class="flex items-center gap-4">
+    <!-- Logo/Brand -->
+    <a href="#" class="flex items-center gap-2">
+      <div class="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+        <span class="material-symbols-outlined text-white" style="font-size: 20px;">
+          horizontal_rule
+        </span>
+      </div>
+      <span class="text-xl font-bold tracking-[-0.02em] text-text-primary">HYVVE</span>
+    </a>
+
+    <!-- Divider -->
+    <div class="h-7 w-px bg-border"></div>
+
+    <!-- Workspace Selector Button -->
+    <button class="flex items-center gap-2 rounded-md p-[6px_10px]
+                   transition-colors hover:bg-background-tertiary">
+      <div class="flex h-6 w-6 items-center justify-center rounded-md
+                  bg-gradient-to-br from-primary to-warning
+                  font-semibold text-white text-sm">A</div>
+      <span class="text-sm font-medium text-text-primary">Acme Corp</span>
+      <span class="material-symbols-outlined text-text-secondary"
+            style="font-size: 16px;">expand_more</span>
+    </button>
+  </div>
+
+  <!-- Center Section (Breadcrumbs) -->
+  <div class="hidden items-center gap-2 md:flex">
+    <a class="text-sm text-text-secondary hover:text-primary" href="#">CRM</a>
+    <span class="material-symbols-outlined text-gray-300"
+          style="font-size: 16px;">chevron_right</span>
+    <a class="text-sm text-text-secondary hover:text-primary" href="#">Contacts</a>
+    <span class="material-symbols-outlined text-gray-300"
+          style="font-size: 16px;">chevron_right</span>
+    <span class="text-sm font-medium text-text-primary">Acme Corp</span>
+  </div>
+
+  <!-- Right Section -->
+  <div class="flex items-center gap-2">
+    <!-- Search Trigger -->
+    <button class="flex h-9 items-center gap-2 rounded-full
+                   border border-border bg-background-secondary px-3.5
+                   hover:bg-background-tertiary">
+      <span class="material-symbols-outlined text-text-muted"
+            style="font-size: 18px;">search</span>
+      <span class="text-sm text-text-muted">Search...</span>
+      <div class="ml-auto rounded-sm bg-border px-1.5 py-0.5
+                  text-xs font-medium text-text-secondary">⌘K</div>
+    </button>
+
+    <!-- Notification Bell -->
+    <button class="relative flex h-9 w-9 items-center justify-center rounded-md
+                   hover:bg-background-tertiary">
+      <span class="material-symbols-outlined text-text-secondary"
+            style="font-size: 22px;">notifications</span>
+      <div class="absolute top-1 right-1 flex h-[18px] w-[18px]
+                  items-center justify-center rounded-full
+                  bg-error text-[11px] font-semibold text-white">3</div>
+    </button>
+
+    <!-- Help Button -->
+    <button class="flex h-9 w-9 items-center justify-center rounded-md
+                   hover:bg-background-tertiary">
+      <span class="material-symbols-outlined text-text-secondary"
+            style="font-size: 22px;">help</span>
+    </button>
+
+    <!-- User Menu -->
+    <button class="flex items-center gap-1.5 rounded-md p-1
+                   hover:bg-background-tertiary">
+      <div class="flex h-9 w-9 items-center justify-center rounded-full
+                  bg-gradient-to-br from-info to-purple-500
+                  text-sm font-semibold text-white">JD</div>
+      <span class="material-symbols-outlined text-text-secondary"
+            style="font-size: 16px;">expand_more</span>
+    </button>
+  </div>
+</header>
+    ]]></html-structure>
+  </wireframe-reference>
+
+  <!-- ========================================
+       EXISTING CODE CONTEXT
+       ======================================== -->
+  <existing-code>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/shell/Header.tsx">
+      <description>Current placeholder Header component to be refactored</description>
+      <content><![CDATA[
+/**
+ * Header Component (Placeholder)
+ *
+ * This is a placeholder for the full Header implementation in Story 07.3.
+ * Currently shows a basic header bar with branding.
+ */
+
+export function Header() {
+  return (
+    <header
+      className="fixed top-0 left-0 right-0 z-30 flex h-[60px] items-center
+                 justify-between border-b border-[rgb(var(--color-border-default))]
+                 bg-[rgb(var(--color-bg-secondary))] px-6 shadow-xs"
+    >
+      <div className="flex items-center gap-3">
+        {/* Logo placeholder */}
+        <svg
+          fill="none"
+          height="24"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M12 2.768a2 2 0 0 1 1.732 1l5.236 9.068a2 2 0 0 1 0 2l-5.236 9.068a2 2 0 0 1-1.732 1H12a2 2 0 0 1-1.732-1L5.032 14.836a2 2 0 0 1 0-2l5.236-9.068A2 2 0 0 1 12 2.768z"
+            fill="#FF6B6B"
+          />
+        </svg>
+        <h2 className="text-xl font-bold tracking-tighter text-[rgb(var(--color-text-primary))]">
+          HYVVE
+        </h2>
+      </div>
+      <div className="text-sm text-[rgb(var(--color-text-secondary))]">
+        Header placeholder - Story 07.3
+      </div>
+    </header>
+  );
+}
+      ]]></content>
+      <notes>
+        Replace this placeholder with full implementation including:
+        - Logo with horizontal_rule Material Symbol (not SVG)
+        - Three-section layout
+        - All subcomponents imported and integrated
+        - Proper z-index (z-50 instead of z-30)
+        - Surface background instead of secondary
+      </notes>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/stores/ui.ts">
+      <description>UI state store (Zustand) - needs command palette state added</description>
+      <content><![CDATA[
+interface UIState {
+  // Sidebar state
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+
+  // Chat panel state
+  chatPanelOpen: boolean;
+  chatPanelWidth: number; // 320-480px
+  toggleChatPanel: () => void;
+  setChatPanelWidth: (width: number) => void;
+
+  // Mobile state
+  mobileMenuOpen: boolean;
+  toggleMobileMenu: () => void;
+}
+      ]]></content>
+      <notes>
+        Add command palette state:
+        ```typescript
+        // Command palette state
+        commandPaletteOpen: boolean;
+        openCommandPalette: () => void;
+        closeCommandPalette: () => void;
+        ```
+
+        Implementation in the store:
+        ```typescript
+        commandPaletteOpen: false,
+        openCommandPalette: () => set({ commandPaletteOpen: true }),
+        closeCommandPalette: () => set({ commandPaletteOpen: false }),
+        ```
+      </notes>
+    </file>
+  </existing-code>
+
+  <!-- ========================================
+       AUTHENTICATION INTEGRATION (EPIC 01)
+       ======================================== -->
+  <authentication-context>
+    <source>Epic 01 - Authentication (Complete)</source>
+
+    <hook path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/hooks/use-auth.ts">
+      <description>Custom hook for accessing authentication state</description>
+      <interface><![CDATA[
+export interface User {
+  id: string
+  email: string
+  name: string | null
+  image?: string | null
+  emailVerified: boolean
+}
+
+export interface SessionData {
+  user: User
+  session: {
+    id: string
+    expiresAt: Date
+    ipAddress?: string | null
+    userAgent?: string | null
+  }
+}
+
+export interface UseAuthReturn {
+  user: User | null
+  session: SessionData | null
+  isLoading: boolean
+  isAuthenticated: boolean
+  signOut: () => Promise<void>
+}
+
+// Usage:
+const { user, isLoading, isAuthenticated, signOut } = useAuth()
+      ]]></interface>
+      <usage-example><![CDATA[
+'use client'
+
+import { useAuth } from '@/hooks/use-auth'
+
+export function HeaderUserMenu() {
+  const { user, signOut } = useAuth()
+
+  if (!user) return null
+
+  // Generate initials from user name
+  const initials = user.name
+    ?.split(' ')
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || 'U'
+
+  const handleSignOut = async () => {
+    await signOut()
+    // signOut already redirects to /sign-in
+  }
+
+  return (
+    <div>
+      <div className="avatar">{initials}</div>
+      <p>{user.name}</p>
+      <p>{user.email}</p>
+      <button onClick={handleSignOut}>Sign Out</button>
+    </div>
+  )
+}
+      ]]></usage-example>
+    </hook>
+
+    <implementation-notes>
+      - useAuth() wraps better-auth's useSession hook
+      - signOut() function automatically redirects to /sign-in
+      - User name and email come from session.user
+      - Generate avatar initials from user.name (split by space, take first letters)
+      - Use gradient background for avatar: from-info to-purple-500
+    </implementation-notes>
+  </authentication-context>
+
+  <!-- ========================================
+       WORKSPACE INTEGRATION (EPIC 02)
+       ======================================== -->
+  <workspace-context>
+    <source>Epic 02 - Workspace Management (Complete)</source>
+
+    <component path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/workspace/workspace-selector.tsx">
+      <description>Existing WorkspaceSelector component for dropdown</description>
+      <interface><![CDATA[
+interface WorkspaceSelectorProps {
+  /** Current workspace ID from session */
+  currentWorkspaceId: string | null
+  /** Current workspace name for display */
+  currentWorkspaceName?: string
+  /** Callback when user wants to create new workspace */
+  onCreateWorkspace?: () => void
+}
+
+// Usage:
+<WorkspaceSelector
+  currentWorkspaceId={currentWorkspaceId}
+  currentWorkspaceName={currentWorkspaceName}
+  onCreateWorkspace={() => router.push('/workspaces/new')}
+/>
+      ]]></interface>
+      <notes>
+        - This component already implements the dropdown behavior
+        - It uses Radix UI DropdownMenu primitives
+        - Fetches workspaces on dropdown open
+        - Handles workspace switching with loading state
+        - Shows workspace cards with gradient avatars and role badges
+        - Includes "Create new workspace" action at bottom
+      </notes>
+    </component>
+
+    <hook path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/hooks/use-workspace.ts">
+      <description>Workspace hook for fetching and switching workspaces</description>
+      <interface><![CDATA[
+export function useWorkspace() {
+  return {
+    fetchWorkspaces: async (): Promise<WorkspaceWithRole[]> => {...},
+    switchWorkspace: async (workspaceId: string): Promise<void> => {...},
+    isSwitching: boolean,
+  }
+}
+      ]]></interface>
+    </hook>
+
+    <implementation-approach>
+      <component name="HeaderWorkspaceSelector">
+        <description>
+          Wrapper component that integrates Epic 02 WorkspaceSelector into Header.
+
+          Instead of reimplementing the dropdown, we wrap the existing WorkspaceSelector
+          with a custom trigger button that matches the wireframe design.
+        </description>
+        <approach><![CDATA[
+'use client'
+
+import { WorkspaceSelector } from '@/components/workspace/workspace-selector'
+import { cn } from '@/lib/utils'
+
+export function HeaderWorkspaceSelector({
+  currentWorkspaceId,
+  currentWorkspaceName
+}: Props) {
+  // Generate initials from workspace name
+  const initials = currentWorkspaceName
+    ?.split(' ')
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || '?'
+
+  return (
+    <div className="relative">
+      <WorkspaceSelector
+        currentWorkspaceId={currentWorkspaceId}
+        currentWorkspaceName={currentWorkspaceName}
+      >
+        {/* Custom trigger button matching wireframe */}
+        <button className="flex items-center gap-2 rounded-md p-[6px_10px]
+                           transition-colors hover:bg-[rgb(var(--color-bg-tertiary))]">
+          {/* Workspace Avatar */}
+          <div className="flex h-6 w-6 items-center justify-center rounded-md
+                          bg-gradient-to-br from-[rgb(var(--color-primary-500))]
+                          to-[rgb(var(--color-warning-500))]
+                          text-sm font-semibold text-white">
+            {initials}
+          </div>
+
+          {/* Workspace Name */}
+          <span className="text-sm font-medium text-[rgb(var(--color-text-primary))]">
+            {currentWorkspaceName}
+          </span>
+
+          {/* Dropdown Indicator */}
+          <span className="material-symbols-outlined text-[rgb(var(--color-text-secondary))]"
+                style={{ fontSize: '16px' }}>
+            expand_more
+          </span>
+        </button>
+      </WorkspaceSelector>
+    </div>
+  )
+}
+        ]]></approach>
+        <notes>
+          - WorkspaceSelector component from Epic 02 handles all dropdown logic
+          - We only provide custom trigger button styling to match wireframe
+          - Gradient avatar: from-primary-500 to-warning-500
+          - Avatar shows workspace initials (first letters of each word)
+          - Hover state uses tertiary background color
+        </notes>
+      </component>
+    </implementation-approach>
+  </workspace-context>
+
+  <!-- ========================================
+       DESIGN TOKENS
+       ======================================== -->
+  <design-tokens>
+    <source path="/home/chris/projects/work/Ai Bussiness Hub/src/styles/tokens.css">Design token CSS variables</source>
+
+    <colors>
+      <group name="Background Colors">
+        <token name="--color-bg-cream">255, 251, 245 (Light: #FFFBF5)</token>
+        <token name="--color-bg-primary">var(--color-bg-cream) in light, 10, 10, 11 in dark</token>
+        <token name="--color-bg-secondary">255, 255, 255 (white) in light, 17, 17, 19 in dark</token>
+        <token name="--color-bg-tertiary">255, 248, 240 in light, 26, 26, 29 in dark</token>
+        <usage>Use rgb(var(--color-bg-primary)) for Tailwind className</usage>
+      </group>
+
+      <group name="Text Colors">
+        <token name="--color-text-primary">Slate 800 in light, Slate 50 in dark</token>
+        <token name="--color-text-secondary">Slate 500 in light, Slate 300 in dark</token>
+        <token name="--color-text-muted">Slate 400 in light, Slate 400 in dark</token>
+        <usage>Use rgb(var(--color-text-primary)) for Tailwind className</usage>
+      </group>
+
+      <group name="Brand Colors">
+        <token name="--color-primary-500">255, 107, 107 (#FF6B6B - Coral)</token>
+        <token name="--color-accent-500">32, 178, 170 (#20B2AA - Teal)</token>
+        <token name="--color-success-500">46, 204, 113 (#2ECC71 - Green)</token>
+        <token name="--color-warning-500">245, 158, 11 (#F59E0B - Amber)</token>
+        <token name="--color-error-500">239, 68, 68 (#EF4444 - Red)</token>
+        <token name="--color-info-500">75, 123, 236 (#4B7BEC - Blue)</token>
+        <usage>Use rgb(var(--color-primary-500)) for Tailwind className</usage>
+      </group>
+
+      <group name="Border Colors">
+        <token name="--color-border-subtle">241, 235, 228 in light, 39, 39, 42 in dark</token>
+        <token name="--color-border-default">229, 221, 212 in light, 63, 63, 70 in dark</token>
+        <token name="--color-border-strong">212, 201, 190 in light, 82, 82, 91 in dark</token>
+        <usage>Use rgb(var(--color-border-default)) for borders</usage>
+      </group>
+
+      <group name="Gradients">
+        <token name="--gradient-hub">linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%)</token>
+        <token name="--gradient-brand">linear-gradient(135deg, #FF6B6B 0%, #20B2AA 100%)</token>
+        <usage>Use for workspace/user avatars: bg-gradient-to-br from-[color] to-[color]</usage>
+      </group>
+    </colors>
+
+    <spacing>
+      <token name="--space-1">0.25rem (4px)</token>
+      <token name="--space-2">0.5rem (8px)</token>
+      <token name="--space-3">0.75rem (12px)</token>
+      <token name="--space-4">1rem (16px)</token>
+      <token name="--space-6">1.5rem (24px)</token>
+      <usage>Use Tailwind classes: gap-2, gap-4, px-6, etc.</usage>
+    </spacing>
+
+    <shadows>
+      <token name="--shadow-xs">0 1px 2px rgba(0, 0, 0, 0.03)</token>
+      <token name="--shadow-sm">0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03)</token>
+      <token name="--shadow-md">0 4px 6px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.03)</token>
+      <token name="--shadow-xl">0 20px 25px rgba(0, 0, 0, 0.05), 0 8px 10px rgba(0, 0, 0, 0.02)</token>
+      <usage>Use Tailwind classes: shadow-xs, shadow-xl (for dropdowns)</usage>
+    </shadows>
+
+    <layout>
+      <token name="--height-header">52px (NOTE: wireframe uses 60px, use 60px for consistency)</token>
+      <token name="--width-nav-collapsed">56px</token>
+      <token name="--width-nav-expanded">240px</token>
+      <usage>Use h-[60px] for header height</usage>
+    </layout>
+
+    <z-index>
+      <token name="--z-dropdown">100</token>
+      <token name="--z-sticky">200</token>
+      <token name="--z-modal-backdrop">300</token>
+      <token name="--z-modal">400</token>
+      <usage>Header uses z-50, dropdowns use z-50 or higher to appear above header</usage>
+    </z-index>
+  </design-tokens>
+
+  <!-- ========================================
+       COMPONENT STRUCTURE
+       ======================================== -->
+  <component-structure>
+    <overview>
+      Break Header into subcomponents for maintainability and testability.
+      Each subcomponent handles a specific section of the header.
+    </overview>
+
+    <files>
+      <file path="apps/web/src/components/shell/Header.tsx">
+        Main Header component - imports and orchestrates all subcomponents
+      </file>
+      <file path="apps/web/src/components/shell/HeaderBreadcrumbs.tsx">
+        Breadcrumb navigation (center section)
+      </file>
+      <file path="apps/web/src/components/shell/HeaderWorkspaceSelector.tsx">
+        Workspace selector button (wraps Epic 02 component)
+      </file>
+      <file path="apps/web/src/components/shell/HeaderSearchTrigger.tsx">
+        Search/command palette trigger button
+      </file>
+      <file path="apps/web/src/components/shell/HeaderNotificationBell.tsx">
+        Notification bell with unread badge
+      </file>
+      <file path="apps/web/src/components/shell/HeaderUserMenu.tsx">
+        User menu dropdown with profile, settings, theme toggle, sign out
+      </file>
+    </files>
+
+    <component name="Header.tsx">
+      <responsibility>Main container, layout, orchestration</responsibility>
+      <structure><![CDATA[
+'use client'
+
+import Link from 'next/link'
+import { HeaderBreadcrumbs } from './HeaderBreadcrumbs'
+import { HeaderWorkspaceSelector } from './HeaderWorkspaceSelector'
+import { HeaderSearchTrigger } from './HeaderSearchTrigger'
+import { HeaderNotificationBell } from './HeaderNotificationBell'
+import { HeaderUserMenu } from './HeaderUserMenu'
+import { cn } from '@/lib/utils'
+
+export function Header() {
+  return (
+    <header className={cn(
+      'fixed top-0 left-0 right-0 z-50',
+      'flex h-[60px] items-center justify-between',
+      'border-b border-[rgb(var(--color-border-default))]',
+      'bg-[rgb(var(--color-bg-secondary))] px-6 shadow-xs'
+    )}>
+      {/* Left Section */}
+      <div className="flex items-center gap-4">
+        {/* Logo/Brand */}
+        <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-90">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md
+                          bg-[rgb(var(--color-primary-500))]">
+            <span className="material-symbols-outlined text-white"
+                  style={{ fontSize: '20px' }}>
+              horizontal_rule
+            </span>
+          </div>
+          <span className="text-xl font-bold tracking-tight
+                           text-[rgb(var(--color-text-primary))]">
+            HYVVE
+          </span>
+        </Link>
+
+        {/* Divider */}
+        <div className="h-7 w-px bg-[rgb(var(--color-border-default))]" />
+
+        {/* Workspace Selector */}
+        <HeaderWorkspaceSelector />
+      </div>
+
+      {/* Center Section - Breadcrumbs */}
+      <div className="hidden items-center gap-2 md:flex">
+        <HeaderBreadcrumbs />
+      </div>
+
+      {/* Right Section */}
+      <div className="flex items-center gap-2">
+        <HeaderSearchTrigger />
+        <HeaderNotificationBell />
+        <HeaderHelpButton />
+        <HeaderUserMenu />
+      </div>
+    </header>
+  )
+}
+
+// Help button inline (simple component)
+function HeaderHelpButton() {
+  return (
+    <button
+      className="flex h-9 w-9 items-center justify-center rounded-md
+                 transition-colors hover:bg-[rgb(var(--color-bg-tertiary))]"
+      aria-label="Help & Support"
+      onClick={() => {
+        // TODO: Open help modal or navigate to help page
+        console.log('Help clicked')
+      }}
+    >
+      <span className="material-symbols-outlined text-[rgb(var(--color-text-secondary))]"
+            style={{ fontSize: '22px' }}>
+        help
+      </span>
+    </button>
+  )
+}
+      ]]></structure>
+    </component>
+
+    <component name="HeaderBreadcrumbs.tsx">
+      <responsibility>Generate and render breadcrumb navigation from current pathname</responsibility>
+      <approach><![CDATA[
+'use client'
+
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { cn } from '@/lib/utils'
+
+export function HeaderBreadcrumbs() {
+  const pathname = usePathname()
+
+  // Generate breadcrumb items from pathname
+  const items = generateBreadcrumbs(pathname)
+
+  if (items.length === 0) return null
+
+  return (
+    <nav className="flex items-center gap-2" aria-label="Breadcrumb">
+      {items.map((item, index) => {
+        const isLast = index === items.length - 1
+
+        return (
+          <div key={item.href} className="flex items-center gap-2">
+            {index > 0 && (
+              <span className="material-symbols-outlined
+                               text-[rgb(var(--color-text-muted))]"
+                    style={{ fontSize: '16px' }}>
+                chevron_right
+              </span>
+            )}
+
+            {isLast ? (
+              <span className="text-sm font-medium
+                               text-[rgb(var(--color-text-primary))]">
+                {item.label}
+              </span>
+            ) : (
+              <Link
+                href={item.href}
+                className={cn(
+                  'text-sm text-[rgb(var(--color-text-secondary))]',
+                  'transition-colors hover:text-[rgb(var(--color-primary-500))]'
+                )}
+              >
+                {item.label}
+              </Link>
+            )}
+          </div>
+        )
+      })}
+    </nav>
+  )
+}
+
+// Helper function to generate breadcrumb items from pathname
+function generateBreadcrumbs(pathname: string): { label: string; href: string }[] {
+  // Remove leading/trailing slashes and split
+  const segments = pathname.replace(/^\/|\/$/g, '').split('/')
+
+  // Special cases
+  if (segments.length === 0 || (segments.length === 1 && segments[0] === '')) {
+    return [{ label: 'Home', href: '/' }]
+  }
+
+  if (segments[0] === 'dashboard' && segments.length === 1) {
+    return [{ label: 'Dashboard', href: '/dashboard' }]
+  }
+
+  // Build breadcrumb trail
+  const items: { label: string; href: string }[] = []
+  let currentPath = ''
+
+  segments.forEach((segment) => {
+    currentPath += `/${segment}`
+
+    // Convert segment to readable label
+    const label = segment
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+
+    items.push({
+      label,
+      href: currentPath,
+    })
+  })
+
+  return items
+}
+      ]]></approach>
+      <notes>
+        - Uses usePathname() from next/navigation to get current route
+        - Converts pathname segments to readable labels (kebab-case to Title Case)
+        - Last item is non-clickable (current page)
+        - Previous items are clickable links
+        - Separated by chevron_right icons
+        - Special handling for /dashboard and root routes
+      </notes>
+    </component>
+
+    <component name="HeaderSearchTrigger.tsx">
+      <responsibility>Trigger button that opens command palette</responsibility>
+      <approach><![CDATA[
+'use client'
+
+import { useUIStore } from '@/stores/ui'
+import { cn } from '@/lib/utils'
+
+export function HeaderSearchTrigger() {
+  const { openCommandPalette } = useUIStore()
+
+  return (
+    <button
+      onClick={openCommandPalette}
+      className={cn(
+        'flex h-9 items-center gap-2 rounded-full',
+        'border border-[rgb(var(--color-border-default))]',
+        'bg-[rgb(var(--color-bg-secondary))] px-3.5',
+        'transition-colors hover:bg-[rgb(var(--color-bg-tertiary))]'
+      )}
+      aria-label="Open search"
+    >
+      <span className="material-symbols-outlined text-[rgb(var(--color-text-muted))]"
+            style={{ fontSize: '18px' }}>
+        search
+      </span>
+      <span className="text-sm text-[rgb(var(--color-text-muted))]">Search...</span>
+      <div className="ml-auto rounded-sm bg-[rgb(var(--color-border-default))]
+                      px-1.5 py-0.5 text-xs font-medium
+                      text-[rgb(var(--color-text-secondary))]">
+        ⌘K
+      </div>
+    </button>
+  )
+}
+      ]]></approach>
+      <notes>
+        - Calls openCommandPalette() from UI store
+        - Command palette implementation is in Story 07-6
+        - For now, openCommandPalette() just sets state; actual palette renders when state is true
+        - Keyboard hint shows ⌘K (Mac) - adjust for Windows/Linux in Story 07-8
+      </notes>
+    </component>
+
+    <component name="HeaderNotificationBell.tsx">
+      <responsibility>Notification bell icon with unread count badge</responsibility>
+      <approach><![CDATA[
+'use client'
+
+import { useState } from 'react'
+import { cn } from '@/lib/utils'
+
+// Mock hook for notification count (replace with real API in Story 07-7)
+function useNotificationCount(): number {
+  return 3 // Mock unread count
+}
+
+export function HeaderNotificationBell() {
+  const [isOpen, setIsOpen] = useState(false)
+  const unreadCount = useNotificationCount()
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          'relative flex h-9 w-9 items-center justify-center rounded-md',
+          'transition-colors hover:bg-[rgb(var(--color-bg-tertiary))]'
+        )}
+        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+      >
+        <span className="material-symbols-outlined
+                         text-[rgb(var(--color-text-secondary))]"
+              style={{ fontSize: '22px' }}>
+          notifications
+        </span>
+
+        {/* Unread Badge */}
+        {unreadCount > 0 && (
+          <div
+            className={cn(
+              'absolute top-1 right-1 flex h-[18px] w-[18px]',
+              'items-center justify-center rounded-full',
+              'bg-[rgb(var(--color-error-500))] text-[11px] font-semibold text-white'
+            )}
+          >
+            {unreadCount}
+          </div>
+        )}
+      </button>
+
+      {/* Notification Dropdown (Story 07-7 integration) */}
+      {isOpen && (
+        <div>
+          {/* TODO: Import NotificationDropdown from Story 07-7 */}
+          {/* <NotificationDropdown onClose={() => setIsOpen(false)} /> */}
+          <div className="absolute top-full right-0 mt-2 p-4 bg-white border rounded-lg">
+            Notification dropdown placeholder (Story 07-7)
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+      ]]></approach>
+      <notes>
+        - useNotificationCount() is mock for now, returns hardcoded 3
+        - Real notification API will be implemented in Story 07-7
+        - Badge is positioned absolute at top-1 right-1
+        - Badge hidden when count is 0
+        - Badge shows count up to 99 (can add 99+ logic later)
+        - NotificationDropdown component will be created in Story 07-7
+      </notes>
+    </component>
+
+    <component name="HeaderUserMenu.tsx">
+      <responsibility>User menu dropdown with profile, settings, theme, sign out</responsibility>
+      <approach><![CDATA[
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import { useAuth } from '@/hooks/use-auth'
+import { useTheme } from 'next-themes'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
+
+export function HeaderUserMenu() {
+  const { user, signOut } = useAuth()
+  const { theme, setTheme } = useTheme()
+
+  if (!user) return null
+
+  // Generate initials from user name
+  const initials = user.name
+    ?.split(' ')
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || 'U'
+
+  const handleSignOut = async () => {
+    await signOut()
+    // signOut already redirects to /sign-in
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className={cn(
+            'flex items-center gap-1.5 rounded-md p-1',
+            'transition-colors hover:bg-[rgb(var(--color-bg-tertiary))]'
+          )}
+          aria-label="User menu"
+        >
+          {/* User Avatar */}
+          <div
+            className={cn(
+              'flex h-9 w-9 items-center justify-center rounded-full',
+              'bg-gradient-to-br from-[rgb(var(--color-info-500))] to-purple-500',
+              'text-sm font-semibold text-white'
+            )}
+          >
+            {initials}
+          </div>
+
+          {/* Dropdown Indicator */}
+          <span className="material-symbols-outlined
+                           text-[rgb(var(--color-text-secondary))]"
+                style={{ fontSize: '16px' }}>
+            expand_more
+          </span>
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="w-[240px]">
+        {/* User Info Header */}
+        <div className="flex items-center gap-3 border-b
+                        border-[rgb(var(--color-border-default))] px-3 pb-3 pt-1">
+          <div
+            className={cn(
+              'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full',
+              'bg-gradient-to-br from-[rgb(var(--color-info-500))] to-purple-500',
+              'text-base font-semibold text-white'
+            )}
+          >
+            {initials}
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <p className="text-sm font-semibold text-[rgb(var(--color-text-primary))]">
+              {user.name}
+            </p>
+            <p className="truncate text-xs text-[rgb(var(--color-text-secondary))]">
+              {user.email}
+            </p>
+          </div>
+        </div>
+
+        {/* Menu Items */}
+        <div className="py-2">
+          <DropdownMenuItem asChild>
+            <Link
+              href="/dashboard/profile"
+              className="flex items-center gap-3 px-3 py-2.5"
+            >
+              <span className="material-symbols-outlined
+                               text-[rgb(var(--color-text-secondary))]"
+                    style={{ fontSize: '20px' }}>
+                person
+              </span>
+              <span className="text-sm">Profile</span>
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem asChild>
+            <Link
+              href="/dashboard/settings"
+              className="flex items-center gap-3 px-3 py-2.5"
+            >
+              <span className="material-symbols-outlined
+                               text-[rgb(var(--color-text-secondary))]"
+                    style={{ fontSize: '20px' }}>
+                settings
+              </span>
+              <span className="text-sm">Account Settings</span>
+            </Link>
+          </DropdownMenuItem>
+        </div>
+
+        <DropdownMenuSeparator />
+
+        {/* Theme Toggle */}
+        <div className="px-3 py-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-sm">
+              <span className="material-symbols-outlined
+                               text-[rgb(var(--color-text-secondary))]"
+                    style={{ fontSize: '20px' }}>
+                desktop_windows
+              </span>
+              <span>Theme</span>
+            </div>
+            <div className="flex items-center rounded-md
+                            bg-[rgb(var(--color-bg-secondary))] p-0.5 text-xs">
+              <button
+                onClick={() => setTheme('light')}
+                className={cn(
+                  'rounded-sm px-2 py-0.5',
+                  theme === 'light'
+                    ? 'bg-[rgb(var(--color-bg-surface))] shadow-sm'
+                    : 'text-[rgb(var(--color-text-secondary))]'
+                )}
+              >
+                Light
+              </button>
+              <button
+                onClick={() => setTheme('dark')}
+                className={cn(
+                  'rounded-sm px-2 py-0.5',
+                  theme === 'dark'
+                    ? 'bg-[rgb(var(--color-bg-surface))] shadow-sm'
+                    : 'text-[rgb(var(--color-text-secondary))]'
+                )}
+              >
+                Dark
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <DropdownMenuSeparator />
+
+        {/* Sign Out */}
+        <div className="pt-1">
+          <DropdownMenuItem
+            onClick={handleSignOut}
+            className="flex items-center gap-3 px-3 py-2.5
+                       text-[rgb(var(--color-error-500))]"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+              logout
+            </span>
+            <span className="text-sm">Sign Out</span>
+          </DropdownMenuItem>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+      ]]></approach>
+      <notes>
+        - Uses shadcn/ui DropdownMenu components (Radix UI primitives)
+        - Integrates with Epic 01 useAuth() for user data and signOut
+        - Integrates with Story 07-5 useTheme() for theme toggle
+        - Avatar gradient: from-info-500 to purple-500
+        - Theme toggle: pill-style selector with active state highlighted
+        - Sign out text uses error color (red)
+        - Dropdown width: 240px, aligned to right edge (align="end")
+      </notes>
+    </component>
+  </component-structure>
+
+  <!-- ========================================
+       IMPLEMENTATION GUIDANCE
+       ======================================== -->
+  <implementation-guidance>
+    <step number="1">
+      <title>Update UI Store with Command Palette State</title>
+      <file>apps/web/src/stores/ui.ts</file>
+      <action><![CDATA[
+Add to UIState interface:
+```typescript
+// Command palette state
+commandPaletteOpen: boolean;
+openCommandPalette: () => void;
+closeCommandPalette: () => void;
+```
+
+Add to store implementation:
+```typescript
+commandPaletteOpen: false,
+openCommandPalette: () => set({ commandPaletteOpen: true }),
+closeCommandPalette: () => set({ commandPaletteOpen: false }),
+```
+      ]]></action>
+    </step>
+
+    <step number="2">
+      <title>Create HeaderBreadcrumbs Component</title>
+      <file>apps/web/src/components/shell/HeaderBreadcrumbs.tsx</file>
+      <action>
+        - Use usePathname() from next/navigation
+        - Implement generateBreadcrumbs() helper function
+        - Convert pathname segments to readable labels
+        - Render breadcrumb items with chevron separators
+        - Last item non-clickable, previous items as links
+      </action>
+    </step>
+
+    <step number="3">
+      <title>Create HeaderWorkspaceSelector Component</title>
+      <file>apps/web/src/components/shell/HeaderWorkspaceSelector.tsx</file>
+      <action>
+        - Import WorkspaceSelector from Epic 02
+        - Get currentWorkspaceId and currentWorkspaceName from props or session
+        - Generate workspace initials from name
+        - Create custom trigger button matching wireframe
+        - Wrap Epic 02 WorkspaceSelector component
+      </action>
+    </step>
+
+    <step number="4">
+      <title>Create HeaderSearchTrigger Component</title>
+      <file>apps/web/src/components/shell/HeaderSearchTrigger.tsx</file>
+      <action>
+        - Import useUIStore and call openCommandPalette
+        - Render search icon + "Search..." text + "⌘K" badge
+        - Style as rounded-full with border and secondary background
+        - Add hover state (tertiary background)
+      </action>
+    </step>
+
+    <step number="5">
+      <title>Create HeaderNotificationBell Component</title>
+      <file>apps/web/src/components/shell/HeaderNotificationBell.tsx</file>
+      <action>
+        - Create useNotificationCount() mock hook (returns 3)
+        - Render notification icon with unread badge
+        - Badge positioned absolute top-1 right-1
+        - Badge hidden when count is 0
+        - Add dropdown toggle state (placeholder for Story 07-7)
+      </action>
+    </step>
+
+    <step number="6">
+      <title>Create HeaderUserMenu Component</title>
+      <file>apps/web/src/components/shell/HeaderUserMenu.tsx</file>
+      <action>
+        - Import useAuth() for user data and signOut
+        - Import useTheme() for theme toggle (Story 07-5)
+        - Generate user initials from name
+        - Render avatar button with dropdown trigger
+        - Implement dropdown menu with:
+          * User info header
+          * Profile and Settings links
+          * Theme toggle (Light/Dark pills)
+          * Sign out action (red text)
+        - Use shadcn/ui DropdownMenu components
+      </action>
+    </step>
+
+    <step number="7">
+      <title>Refactor Header.tsx to Full Implementation</title>
+      <file>apps/web/src/components/shell/Header.tsx</file>
+      <action>
+        - Replace placeholder with three-section layout
+        - Left section: Logo (horizontal_rule icon) + HYVVE text + divider + workspace selector
+        - Center section: Breadcrumbs (hidden on mobile)
+        - Right section: Search trigger + notification bell + help button + user menu
+        - Update z-index from z-30 to z-50
+        - Update background from bg-secondary to bg-surface
+        - Import and integrate all subcomponents
+      </action>
+    </step>
+
+    <step number="8">
+      <title>Test Responsive Behavior</title>
+      <action>
+        - Verify header fixed at top (z-50)
+        - Test breadcrumbs hide on mobile (&lt;768px)
+        - Verify all dropdowns position correctly
+        - Test with long workspace/user names (text truncation)
+        - Verify header height consistent (60px)
+        - Test in light and dark modes
+      </action>
+    </step>
+
+    <step number="9">
+      <title>Visual QA Against Wireframe</title>
+      <action>
+        - Compare with SH-03 wireframe for pixel-perfect alignment
+        - Verify colors match design tokens (light/dark modes)
+        - Test hover states on all buttons
+        - Verify dropdown styling (width, border, shadow)
+        - Test spacing and typography
+        - Verify badge positioning and styling
+      </action>
+    </step>
+
+    <styling-notes>
+      - Use Material Symbols Outlined for all icons
+      - Icon sizes: 16px (expand_more), 18px (search), 20px (menu items), 22px (notification/help)
+      - Use rgb(var(--color-*)) format for all color tokens
+      - Avatar gradients: workspace (primary to warning), user (info to purple)
+      - Hover states use tertiary background
+      - Dropdowns use shadow-xl
+      - Badge uses error-500 background
+      - Divider: 1px width, 28px height
+    </styling-notes>
+
+    <integration-points>
+      <point name="Epic 01 Authentication">
+        - useAuth() hook for user session
+        - signOut() function for signing out
+        - User name and email for display
+      </point>
+
+      <point name="Epic 02 Workspace Management">
+        - WorkspaceSelector component for dropdown
+        - currentWorkspaceId and currentWorkspaceName from session
+        - Workspace switching handled by Epic 02 component
+      </point>
+
+      <point name="Story 07-5 Dark/Light Mode">
+        - useTheme() hook from next-themes
+        - Theme toggle in user menu dropdown
+        - setTheme('light' | 'dark') to change theme
+      </point>
+
+      <point name="Story 07-6 Command Palette">
+        - openCommandPalette() from UI store
+        - Search trigger button calls this function
+        - Command palette renders when commandPaletteOpen is true
+      </point>
+
+      <point name="Story 07-7 Notification Center">
+        - NotificationDropdown component (to be created)
+        - useNotificationCount() hook for unread count
+        - Notification bell opens dropdown
+      </point>
+    </integration-points>
+  </implementation-guidance>
+
+  <!-- ========================================
+       TESTING REQUIREMENTS
+       ======================================== -->
+  <testing-requirements>
+    <unit-tests>
+      <test file="HeaderBreadcrumbs.test.tsx">
+        - Generates breadcrumbs from pathname
+        - Renders chevron separators between items
+        - Makes previous items clickable links
+        - Renders last item as non-clickable
+        - Handles dashboard root correctly
+        - Converts segments to readable labels
+      </test>
+
+      <test file="HeaderUserMenu.test.tsx">
+        - Renders user avatar with initials
+        - Displays user name and email in dropdown
+        - Renders profile and settings links
+        - Renders theme toggle with current theme selected
+        - Calls setTheme on theme button click
+        - Calls signOut on sign out click
+        - Redirects to /sign-in after sign out
+      </test>
+
+      <test file="HeaderNotificationBell.test.tsx">
+        - Renders notification icon
+        - Shows unread count badge when count > 0
+        - Hides badge when count is 0
+        - Opens dropdown on click
+      </test>
+    </unit-tests>
+
+    <interaction-tests>
+      <test name="Header renders all elements">
+        Navigate to /dashboard, verify header contains logo, workspace selector,
+        breadcrumbs, search trigger, notification bell, help button, user menu
+      </test>
+
+      <test name="Logo navigates to dashboard">
+        Click logo, verify navigation to /dashboard
+      </test>
+
+      <test name="Workspace selector opens dropdown">
+        Click workspace selector button, verify dropdown appears with workspace list
+      </test>
+
+      <test name="Breadcrumbs show current page path">
+        Navigate to /dashboard/settings/account, verify breadcrumbs show
+        "Dashboard → Settings → Account"
+      </test>
+
+      <test name="Search trigger opens command palette">
+        Click search trigger, verify command palette opens (Story 07-6 integration)
+      </test>
+
+      <test name="User menu opens dropdown">
+        Click user menu button, verify dropdown appears with user info and menu items
+      </test>
+
+      <test name="Theme toggle switches theme">
+        Open user menu, click Dark button, verify theme changes to dark mode
+      </test>
+
+      <test name="Sign out clears session">
+        Open user menu, click Sign Out, verify redirect to /sign-in
+      </test>
+
+      <test name="Breadcrumbs hide on mobile">
+        Resize viewport to &lt;768px width, verify breadcrumbs are hidden
+      </test>
+    </interaction-tests>
+
+    <accessibility-tests>
+      - Run axe DevTools on header (no violations)
+      - Test keyboard navigation (Tab through all buttons)
+      - Test with screen reader (NVDA/VoiceOver)
+      - Verify all buttons have accessible labels
+      - Verify color contrast ratios (4.5:1 for text)
+      - Test dropdown keyboard navigation (Escape to close)
+    </accessibility-tests>
+  </testing-requirements>
+
+  <!-- ========================================
+       DEFINITION OF DONE
+       ======================================== -->
+  <definition-of-done>
+    <checklist>
+      <item>All acceptance criteria met</item>
+      <item>All subcomponents created and integrated</item>
+      <item>UI store updated with command palette state</item>
+      <item>Epic 01 authentication integration complete</item>
+      <item>Epic 02 workspace selector integration complete</item>
+      <item>Unit tests written and passing (80%+ coverage)</item>
+      <item>Interaction tests passing (Playwright)</item>
+      <item>Accessibility tests passing (axe, keyboard nav)</item>
+      <item>Manual QA completed against wireframe</item>
+      <item>Code reviewed by senior developer</item>
+      <item>No console errors or warnings</item>
+      <item>Works in light and dark modes</item>
+      <item>Responsive behavior correct (mobile/tablet/desktop)</item>
+      <item>Integration points documented for Stories 07-6, 07-7</item>
+    </checklist>
+  </definition-of-done>
+</story-context>
