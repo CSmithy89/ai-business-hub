@@ -209,7 +209,7 @@ development_status:
   epic-09: contexted
 
   # Authentication Enhancements (8 stories, 21 points)
-  09-1-implement-microsoft-oauth: backlog
+  09-1-implement-microsoft-oauth: done
   09-2-implement-github-oauth: backlog
   09-3-implement-two-factor-authentication-setup: backlog
   09-4-implement-two-factor-authentication-login: backlog

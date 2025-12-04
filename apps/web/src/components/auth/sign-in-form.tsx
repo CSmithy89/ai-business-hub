@@ -20,6 +20,7 @@ export function SignInForm() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false)
   const [error, setError] = useState<ErrorType>(null)
   const [retryAfter, setRetryAfter] = useState<number | null>(null)
 
@@ -104,6 +105,22 @@ export function SignInForm() {
     }
   }
 
+  const handleMicrosoftSignIn = async () => {
+    setIsMicrosoftLoading(true)
+    setError(null)
+    try {
+      await authClient.signIn.social({
+        provider: 'microsoft',
+        callbackURL: '/dashboard',
+      })
+      // Redirect happens automatically
+    } catch (error) {
+      console.error('Microsoft sign-in error:', error)
+      setError('OAUTH_ERROR')
+      setIsMicrosoftLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -119,7 +136,7 @@ export function SignInForm() {
           variant="outline"
           className="w-full"
           onClick={handleGoogleSignIn}
-          disabled={isGoogleLoading || isSubmitting}
+          disabled={isGoogleLoading || isSubmitting || isMicrosoftLoading}
         >
           {isGoogleLoading ? (
             <>
@@ -147,6 +164,28 @@ export function SignInForm() {
                 />
               </svg>
               Continue with Google
+            </>
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleMicrosoftSignIn}
+          disabled={isMicrosoftLoading || isSubmitting || isGoogleLoading}
+        >
+          {isMicrosoftLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Connecting to Microsoft...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" />
+              </svg>
+              Continue with Microsoft
             </>
           )}
         </Button>
@@ -224,7 +263,7 @@ export function SignInForm() {
             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm text-red-600">
-                Unable to sign in with Google. Please try again or use email sign-in.
+                Unable to sign in with OAuth provider. Please try again or use email sign-in.
               </p>
             </div>
           </div>
