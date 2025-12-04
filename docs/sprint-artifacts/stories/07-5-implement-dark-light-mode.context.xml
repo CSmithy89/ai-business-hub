@@ -1,0 +1,391 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story id="07-5-implement-dark-light-mode" epic="EPIC-07">
+    <title>Implement Dark/Light Mode</title>
+    <status>done</status>
+    <priority>P0</priority>
+    <points>2</points>
+  </story>
+
+  <epic-context>
+    <epic-ref>docs/epics/EPIC-07/EPIC-07-ui-shell.md</epic-ref>
+    <tech-spec>docs/sprint-artifacts/tech-spec-epic-07.md</tech-spec>
+    <description>
+      UI Shell - Building the core application shell with navigation,
+      layout, theme support, and user interface components.
+    </description>
+  </epic-context>
+
+  <requirements>
+    <user-story>
+      As a user, I want to choose dark or light theme so that I can
+      work comfortably in different lighting conditions.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">Use next-themes for theme management</criterion>
+      <criterion id="AC2">Create theme toggle component with sun/moon icons</criterion>
+      <criterion id="AC3">Apply CSS variables from Style Guide for light and dark modes</criterion>
+      <criterion id="AC4">Persist user theme preference across sessions</criterion>
+      <criterion id="AC5">Support system preference detection</criterion>
+      <criterion id="AC6">Smooth transition on theme toggle</criterion>
+      <criterion id="AC7">Add theme toggle to HeaderUserMenu dropdown</criterion>
+    </acceptance-criteria>
+  </requirements>
+
+  <technical-design>
+    <architecture>
+      <component name="ThemeProvider">
+        <location>apps/web/src/app/providers.tsx</location>
+        <description>
+          Already configured with next-themes ThemeProvider.
+          Uses attribute="class" to add .dark class to html element.
+          Supports system preference with enableSystem=true.
+        </description>
+        <configuration>
+          - attribute="class"
+          - defaultTheme="light"
+          - enableSystem={true}
+          - disableTransitionOnChange
+        </configuration>
+      </component>
+
+      <component name="ThemeToggle">
+        <location>apps/web/src/components/theme/ThemeToggle.tsx</location>
+        <description>
+          Dropdown component for theme selection with three options:
+          - Light theme (sun icon)
+          - Dark theme (moon icon)
+          - System theme (computer icon)
+
+          Uses useTheme() hook from next-themes for state management.
+          Includes mounted state to prevent hydration mismatch.
+          Exports two variants: standalone and inline items.
+        </description>
+        <dependencies>
+          - next-themes (useTheme hook)
+          - @/components/ui/dropdown-menu (shadcn)
+          - Material Symbols icons
+        </dependencies>
+      </component>
+
+      <component name="ThemeToggleItems">
+        <location>apps/web/src/components/theme/ThemeToggle.tsx</location>
+        <description>
+          Inline variant of theme toggle for use inside existing menus.
+          Returns only DropdownMenuItems without trigger button.
+          Used in HeaderUserMenu.
+        </description>
+      </component>
+
+      <component name="HeaderUserMenu">
+        <location>apps/web/src/components/shell/HeaderUserMenu.tsx</location>
+        <description>
+          Updated to include ThemeToggleItems between Settings and Sign Out.
+          Menu now shows: Profile, Settings, [Theme Options], Sign Out.
+        </description>
+      </component>
+    </architecture>
+
+    <css-variables>
+      <design-tokens>
+        <file>src/styles/tokens.css</file>
+        <description>
+          Complete dark mode variable definitions already exist.
+          Uses cascading strategy with semantic aliases:
+          1. Raw RGB values in :root (e.g., --color-bg-cream: 255, 251, 245)
+          2. Semantic aliases (e.g., --color-bg-primary: var(--color-bg-cream))
+          3. Dark mode overrides under .dark selector
+          4. Components use rgb(var(--color-bg-primary))
+        </description>
+
+        <light-mode>
+          - Background: --color-bg-cream (#FFFBF5)
+          - Card: --color-bg-white (#FFFFFF)
+          - Text Primary: --color-slate-800 (#1e293b)
+          - Text Secondary: --color-slate-500 (#64748b)
+          - Border: --color-border-default (warm tones)
+        </light-mode>
+
+        <dark-mode>
+          - Background: --color-bg-primary (#0a0a0b)
+          - Card: --color-bg-secondary (#111113)
+          - Text Primary: --color-slate-50 (#f8fafc)
+          - Text Secondary: --color-slate-300 (#cbd5e1)
+          - Border: --color-border-default (cool tones)
+        </dark-mode>
+      </design-tokens>
+
+      <transitions>
+        <file>apps/web/src/app/globals.css</file>
+        <description>
+          Added smooth transitions for background and text color changes.
+          Duration: 150ms ease-in-out
+          Prevents jarring theme switches.
+        </description>
+      </transitions>
+    </css-variables>
+
+    <state-management>
+      <persistence>
+        <method>localStorage</method>
+        <key>theme</key>
+        <description>
+          next-themes automatically persists theme preference to localStorage.
+          Key: "theme"
+          Values: "light", "dark", "system"
+        </description>
+      </persistence>
+
+      <system-detection>
+        <method>prefers-color-scheme media query</method>
+        <description>
+          When theme is set to "system", next-themes automatically detects
+          and applies the system color scheme preference.
+          Updates dynamically when system preference changes.
+        </description>
+      </system-detection>
+
+      <hydration>
+        <strategy>mounted state</strategy>
+        <description>
+          Uses mounted state to prevent hydration mismatch between server
+          and client. Shows placeholder icon until component mounts.
+        </description>
+      </hydration>
+    </state-management>
+
+    <icons>
+      <source>Material Symbols Rounded</source>
+      <icons-used>
+        - light_mode: Sun icon for light theme
+        - dark_mode: Moon icon for dark theme
+        - computer: Monitor icon for system theme
+      </icons-used>
+      <description>
+        Already loaded via Material Symbols font in project.
+        Consistent with other UI icons.
+      </description>
+    </icons>
+  </technical-design>
+
+  <implementation-order>
+    <step number="1">
+      <action>Create ThemeToggle component</action>
+      <files>
+        - apps/web/src/components/theme/ThemeToggle.tsx
+      </files>
+      <description>
+        Implement both ThemeToggle (standalone) and ThemeToggleItems (inline)
+        variants with proper hydration handling and state management.
+      </description>
+    </step>
+
+    <step number="2">
+      <action>Update HeaderUserMenu</action>
+      <files>
+        - apps/web/src/components/shell/HeaderUserMenu.tsx
+      </files>
+      <description>
+        Add ThemeToggleItems import and render between Settings and Sign Out
+        with separators.
+      </description>
+    </step>
+
+    <step number="3">
+      <action>Update globals.css</action>
+      <files>
+        - apps/web/src/app/globals.css
+      </files>
+      <description>
+        Update body styles to use semantic aliases and add smooth transitions.
+        Ensure dark mode selector is properly configured.
+      </description>
+    </step>
+
+    <step number="4">
+      <action>Validate implementation</action>
+      <commands>
+        - pnpm turbo type-check --filter=@hyvve/web
+        - pnpm turbo lint --filter=@hyvve/web
+      </commands>
+      <description>
+        Run type-check and lint to ensure no errors.
+        Manually test theme switching in browser.
+      </description>
+    </step>
+  </implementation-order>
+
+  <design-references>
+    <wireframe>
+      <file>docs/design/wireframes/Finished wireframes and html files/st-08_appearance/code.html</file>
+      <description>
+        Appearance settings wireframe showing theme selection UI.
+        Our implementation uses a simpler dropdown in user menu instead
+        of a dedicated settings page (for now).
+      </description>
+    </wireframe>
+
+    <style-guide>
+      <file>docs/design/STYLE-GUIDE.md</file>
+      <section>2.3 Background Colors</section>
+      <description>
+        Complete color palette for light and dark modes.
+        Warm cream backgrounds for light, near-black for dark.
+      </description>
+    </style-guide>
+
+    <design-tokens>
+      <file>src/styles/tokens.css</file>
+      <description>
+        All CSS custom properties for theming.
+        Includes light mode defaults and dark mode overrides.
+      </description>
+    </design-tokens>
+  </design-references>
+
+  <testing-strategy>
+    <manual-testing>
+      <test-case id="TC1">
+        <description>Theme toggle appears in user menu</description>
+        <steps>
+          1. Open application
+          2. Click user avatar in header
+          3. Verify theme options appear in dropdown
+        </steps>
+        <expected>Three theme options visible with icons</expected>
+      </test-case>
+
+      <test-case id="TC2">
+        <description>Theme changes apply immediately</description>
+        <steps>
+          1. Select light theme
+          2. Select dark theme
+          3. Select system theme
+        </steps>
+        <expected>UI updates immediately with smooth transition</expected>
+      </test-case>
+
+      <test-case id="TC3">
+        <description>Theme preference persists</description>
+        <steps>
+          1. Select dark theme
+          2. Reload page
+        </steps>
+        <expected>Dark theme is still active after reload</expected>
+      </test-case>
+
+      <test-case id="TC4">
+        <description>System theme detection works</description>
+        <steps>
+          1. Set OS to dark mode
+          2. Select "System" theme in app
+          3. Change OS to light mode
+        </steps>
+        <expected>App theme follows OS preference</expected>
+      </test-case>
+    </manual-testing>
+
+    <automated-testing>
+      <type-check>
+        <command>pnpm turbo type-check --filter=@hyvve/web</command>
+        <expected>No TypeScript errors</expected>
+      </type-check>
+
+      <lint>
+        <command>pnpm turbo lint --filter=@hyvve/web</command>
+        <expected>No ESLint errors</expected>
+      </lint>
+    </automated-testing>
+  </testing-strategy>
+
+  <dependencies>
+    <internal>
+      <dependency>
+        <name>providers.tsx</name>
+        <type>existing configuration</type>
+        <description>ThemeProvider already configured</description>
+      </dependency>
+
+      <dependency>
+        <name>tokens.css</name>
+        <type>design tokens</type>
+        <description>Dark mode CSS variables already defined</description>
+      </dependency>
+
+      <dependency>
+        <name>DropdownMenu</name>
+        <type>shadcn component</type>
+        <description>Used for theme selection UI</description>
+      </dependency>
+
+      <dependency>
+        <name>HeaderUserMenu</name>
+        <type>existing component</type>
+        <description>Updated to include theme toggle</description>
+      </dependency>
+    </internal>
+
+    <external>
+      <dependency>
+        <name>next-themes</name>
+        <version>0.3.0</version>
+        <type>npm package</type>
+        <status>installed</status>
+        <description>Theme management and persistence</description>
+      </dependency>
+
+      <dependency>
+        <name>Material Symbols</name>
+        <type>icon font</type>
+        <status>loaded</status>
+        <description>Theme icons (sun, moon, computer)</description>
+      </dependency>
+    </external>
+  </dependencies>
+
+  <completion-checklist>
+    <item checked="true">ThemeToggle component created</item>
+    <item checked="true">ThemeToggleItems inline variant created</item>
+    <item checked="true">HeaderUserMenu updated with theme toggle</item>
+    <item checked="true">globals.css updated with transitions</item>
+    <item checked="true">TypeScript type-check passes</item>
+    <item checked="true">ESLint passes</item>
+    <item checked="true">Theme switching works in UI</item>
+    <item checked="true">Theme preference persists</item>
+    <item checked="true">System theme detection works</item>
+    <item checked="true">Smooth transitions implemented</item>
+    <item checked="true">Story file created</item>
+    <item checked="true">Context file created</item>
+    <item checked="true">Sprint status updated</item>
+  </completion-checklist>
+
+  <notes>
+    <note type="implementation">
+      The ThemeProvider was already configured in a previous story (07-3 or earlier),
+      so we only needed to create the UI components for theme selection.
+    </note>
+
+    <note type="design">
+      The design tokens in tokens.css already had complete dark mode support,
+      making implementation straightforward. All components using semantic
+      aliases automatically support dark mode.
+    </note>
+
+    <note type="ux">
+      Theme toggle is placed in the user menu rather than a dedicated settings
+      page for quick access. This follows the pattern of Linear and other
+      modern tools.
+    </note>
+
+    <note type="performance">
+      Using next-themes with disableTransitionOnChange prevents flash of
+      unstyled content during initial page load.
+    </note>
+
+    <note type="accessibility">
+      All theme options have clear labels and icons. The current theme is
+      indicated with a checkmark for screen readers.
+    </note>
+  </notes>
+</story-context>

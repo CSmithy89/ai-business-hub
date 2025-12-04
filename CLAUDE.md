@@ -294,6 +294,35 @@ export function MyComponent({ prop }: Props) {
 }
 ```
 
+### Tailwind CSS Guidelines
+
+**Dynamic Classes Limitation:**
+Tailwind's JIT compiler needs to see complete class strings in source code. Dynamic string construction may fail.
+
+```typescript
+// ❌ WRONG - JIT can't detect these classes
+const width = isWide ? 'w-64' : 'w-16';
+className={`ml-${collapsed ? '16' : '64'}`}
+
+// ✅ CORRECT - Full class strings visible
+className={collapsed ? 'ml-16' : 'ml-64'}
+
+// ✅ CORRECT - Use inline styles for truly dynamic values
+style={{ marginLeft: collapsed ? 64 : 256 }}
+```
+
+**Responsive Design Notes:**
+- Tailwind uses mobile-first breakpoints: `sm:640px`, `md:768px`, `lg:1024px`, `xl:1280px`
+- Use `max-sm:` prefix for styles that only apply below a breakpoint
+- See `@/lib/layout-constants.ts` for standard layout dimensions
+
+**Layout Constants:**
+For consistent spacing, import from `@/lib/layout-constants.ts`:
+```typescript
+import { LAYOUT } from '@/lib/layout-constants';
+// LAYOUT.HEADER_HEIGHT, LAYOUT.SIDEBAR_COLLAPSED_WIDTH, etc.
+```
+
 ---
 
 ## Pre-Commit Hooks

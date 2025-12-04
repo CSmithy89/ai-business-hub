@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @import '../../../../src/styles/tokens.css';
 
-/* Base styles with warm cream background */
+/* Base styles with theme support */
 @layer base {
   html {
     font-family: var(--font-sans);
@@ -10,7 +10,89 @@
   }
 
   body {
-    background-color: rgb(var(--color-bg-cream));
+    background-color: rgb(var(--color-bg-primary));
+    color: rgb(var(--color-text-primary));
+    transition: background-color 150ms ease-in-out, color 150ms ease-in-out;
+  }
+
+  /* Dark mode support */
+  .dark body {
+    background-color: rgb(var(--color-bg-primary));
     color: rgb(var(--color-text-primary));
   }
+}
+
+/* Command palette (cmdk) styles */
+[cmdk-root] {
+  background: rgb(var(--color-bg-surface));
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.04);
+  max-width: 580px;
+  width: 100%;
+}
+
+[cmdk-dialog] {
+  z-index: 50;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+}
+
+[cmdk-input] {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  padding: 0;
+}
+
+[cmdk-list] {
+  max-height: 400px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+[cmdk-item] {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  user-select: none;
+  transition: all 100ms ease;
+}
+
+[cmdk-item][aria-selected="true"] {
+  background: rgb(var(--color-bg-tertiary));
+  border-left: 2px solid rgb(var(--color-primary));
+}
+
+[cmdk-group-heading] {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgb(var(--color-text-muted));
+  padding: 8px 16px;
+}
+
+[cmdk-separator] {
+  height: 1px;
+  background: rgb(var(--color-border));
+  margin: 8px 0;
+}
+
+[cmdk-empty] {
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: rgb(var(--color-text-secondary));
 }

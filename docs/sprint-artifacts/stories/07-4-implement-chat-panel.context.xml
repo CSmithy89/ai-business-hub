@@ -1,0 +1,621 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>07-4</story-id>
+    <title>Implement Chat Panel</title>
+    <epic>EPIC-07 - UI Shell</epic>
+    <status>ready-for-dev</status>
+    <points>3</points>
+    <priority>P0 - Critical</priority>
+    <generated>2025-12-04</generated>
+  </metadata>
+
+  <!-- ========================================
+       STORY OVERVIEW
+       ======================================== -->
+  <story-summary>
+    <description>
+      Implement the full Chat Panel component with message display (user, agent, system types),
+      streaming indicators, auto-scroll message list, and input area with @mention support.
+
+      The chat panel is the primary interface for AI agent interactions on the HYVVE platform.
+      It provides a persistent, collapsible chat interface fixed to the right side of the viewport
+      (width: 380px). Users can send messages, receive responses from various AI agents, and
+      view conversation history.
+
+      This story refactors the placeholder ChatPanel from Story 07-1 into a fully functional
+      chat interface with rich message types, typing indicators, and smooth auto-scroll behavior.
+    </description>
+
+    <user-story>
+      As a user
+      I want a persistent chat panel so that
+      I can interact with AI agents for business automation tasks
+    </user-story>
+
+    <dependencies>
+      <dependency status="complete">Story 07-1: Dashboard Layout (provides chat panel container)</dependency>
+      <dependency status="complete">UI Store: Chat panel state management (toggleChatPanel, chatPanelWidth)</dependency>
+      <dependency status="complete">Epic 01: Authentication (user context)</dependency>
+      <dependency status="future">WebSocket Backend: Real-time chat integration (deferred)</dependency>
+    </dependencies>
+  </story-summary>
+
+  <!-- ========================================
+       ACCEPTANCE CRITERIA
+       ======================================== -->
+  <acceptance-criteria>
+    <criterion id="AC-1">
+      <title>Chat Panel Structure</title>
+      <requirements>
+        - Chat panel renders at fixed right position (width: 380px)
+        - Header displays agent selector with avatar and status
+        - Messages area scrollable with custom scrollbar (6px width, gray thumb)
+        - Input area fixed at bottom
+        - Collapse/expand toggle works correctly
+        - Collapsed state shows icon button only (48px width)
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-2">
+      <title>Message Display - User Messages</title>
+      <requirements>
+        - User messages display right-aligned
+        - Primary color background (#FF6B6B)
+        - White text color
+        - Rounded corners: rounded-t-xl rounded-bl-xl rounded-br-sm
+        - Timestamp below message (11px, muted color)
+        - Max width 85% of panel
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-3">
+      <title>Message Display - Agent Messages</title>
+      <requirements>
+        - Agent messages display left-aligned
+        - Agent avatar on left (circular, 28px, agent color background)
+        - Agent name above message bubble (xs font, agent color)
+        - Tertiary background for message bubble
+        - Rounded corners: rounded-t-xl rounded-br-xl rounded-bl-sm
+        - Timestamp below message (11px, muted color)
+        - Max width 85% of panel
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-4">
+      <title>Message Display - System Messages</title>
+      <requirements>
+        - System messages centered (flex justify-center)
+        - Muted text color (--color-text-muted)
+        - Smaller font size (xs, 12px)
+        - No background bubble
+        - Used for timestamp dividers ("Today", "Yesterday")
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-5">
+      <title>Streaming Indicator</title>
+      <requirements>
+        - Typing indicator shows animated dots
+        - Displays in agent message bubble format
+        - Three dots (2px circles) with staggered bounce animation
+        - Animation delays: 0s, 0.2s, 0.4s
+        - Muted gray color (--color-text-muted)
+        - Appears/disappears smoothly
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-6">
+      <title>Message List Behavior</title>
+      <requirements>
+        - Auto-scroll to bottom on new messages (smooth behavior)
+        - Custom scrollbar: 6px width, transparent track, gray thumb
+        - Smooth scrolling with scroll-behavior: smooth
+        - Messages have 16px gap between them
+        - Empty ref div at bottom for scroll anchor
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-7">
+      <title>Chat Input</title>
+      <requirements>
+        - Textarea auto-expands (1-6 lines, max 144px height)
+        - Placeholder: "Message [Agent Name]..."
+        - @mention button inserts @ symbol and focuses textarea
+        - Attachment button (visual placeholder, console.log on click)
+        - Send button: arrow_upward icon, primary color background
+        - Send on Enter (Shift+Enter for newline)
+        - Disable send button when input empty
+        - Input clears after successful send
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-8">
+      <title>Header Controls</title>
+      <requirements>
+        - Agent selector: avatar (primary color) + "Hub" name + "Online" status
+        - History button (history icon, placeholder functionality)
+        - Minimize button: remove icon, collapses panel to 48px
+        - Expand button: open_in_full icon (placeholder for full screen)
+        - Pop-out button: open_in_new icon (placeholder for new window)
+        - All buttons have hover states (tertiary background)
+      </requirements>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- ========================================
+       WIREFRAME REFERENCES
+       ======================================== -->
+  <wireframe-references>
+    <wireframe>
+      <name>CH-01: Chat Panel</name>
+      <path>/home/chris/projects/work/Ai Bussiness Hub/docs/design/wireframes/Finished wireframes and html files/ch-01_chat_panel/code.html</path>
+      <key-elements>
+        - Fixed right panel: 380px width, top-[60px] to bottom-0
+        - Header: 56px height, agent selector + action buttons
+        - Messages area: flex-1, overflow-y-auto, padding 16px
+        - Input footer: shrink-0, border-top, padding 12px 16px
+        - Rounded input container: rounded-full, tertiary background
+        - Custom scrollbar: 6px width, gray-300 thumb
+      </key-elements>
+    </wireframe>
+
+    <wireframe>
+      <name>CH-02: Chat Messages (All Types)</name>
+      <path>/home/chris/projects/work/Ai Bussiness Hub/docs/design/wireframes/Finished wireframes and html files/ch-02_chat_messages_(all_types)_/code.html</path>
+      <key-elements>
+        - User message: max-w-[85%], self-end, primary background
+        - Agent message: max-w-[85%], self-start, avatar + name + bubble
+        - System message: centered, xs font, muted color
+        - Typing indicator: agent format with 3 animated dots
+        - Timestamps: text-[11px], muted color, below bubbles
+        - Message spacing: gap-4 (16px) between messages
+      </key-elements>
+    </wireframe>
+
+    <wireframe>
+      <name>CH-03: Chat Input Component</name>
+      <path>/home/chris/projects/work/Ai Bussiness Hub/docs/design/wireframes/Finished wireframes and html files/ch-03_chat_input_component/code.html</path>
+      <key-elements>
+        - Input container: rounded-full, min-h-[44px], tertiary background
+        - Left icons: absolute bottom-3 left-3, gap-1
+        - Textarea: resize-none, max-h-24 (6 lines), transparent background
+        - Send button: h-9 w-9, rounded-full, primary background
+        - @mention button: alternate_email icon, hover state
+        - Attachment button: attachment icon, hover state
+      </key-elements>
+    </wireframe>
+
+    <wireframe>
+      <name>CH-04: Typing Indicator</name>
+      <path>/home/chris/projects/work/Ai Bussiness Hub/docs/design/wireframes/Finished wireframes and html files/ch-04_typing_indicator/code.html</path>
+      <key-elements>
+        - Format: agent message bubble with dots instead of text
+        - Three dots: h-2 w-2, rounded-full, muted color
+        - Animation: bounce 1.4s infinite ease-in-out
+        - Staggered delays: 0s, 0.2s, 0.4s
+        - Appears when isTyping=true
+      </key-elements>
+    </wireframe>
+  </wireframe-references>
+
+  <!-- ========================================
+       TECHNICAL CONTEXT
+       ======================================== -->
+  <technical-context>
+    <architecture>
+      <component-structure>
+        apps/web/src/components/
+        ├── shell/
+        │   └── ChatPanel.tsx              # Main container (refactor from placeholder)
+        └── chat/
+            ├── ChatMessage.tsx            # Individual message (user/agent/system)
+            ├── ChatMessageList.tsx        # Scrollable container with auto-scroll
+            ├── ChatInput.tsx              # Input area with @mentions
+            └── TypingIndicator.tsx        # Animated typing dots
+      </component-structure>
+
+      <state-management>
+        - UI Store (Zustand): chatPanelOpen, chatPanelWidth, toggleChatPanel()
+        - Local hook: useChatMessages() for message state and mock data
+        - Message state: messages[], isTyping, sendMessage()
+        - Auto-scroll: useEffect with messagesEndRef on messages change
+      </state-management>
+
+      <styling-approach>
+        - Tailwind CSS with design tokens (rgb(var(--color-*)))
+        - Material Symbols Outlined for icons
+        - Custom scrollbar styles with scrollbar-thin utilities
+        - Keyframe animations for typing indicator bounce
+        - Responsive text wrapping with leading-relaxed
+      </styling-approach>
+    </architecture>
+
+    <data-models>
+      <model name="Message">
+        interface Message {
+          id: string;
+          type: 'user' | 'agent' | 'system';
+          content: string;
+          timestamp: Date;
+          agentName?: string;      // e.g., 'Hub', 'Maya'
+          agentIcon?: string;      // emoji or icon
+          agentColor?: string;     // hex color
+        }
+      </model>
+
+      <model name="CurrentAgent">
+        interface CurrentAgent {
+          name: string;
+          icon?: string;
+          color?: string;
+        }
+      </model>
+    </data-models>
+
+    <integration-points>
+      <integration name="UI Store">
+        - Import: useUIStore from '@/stores/ui'
+        - State: chatPanelOpen, chatPanelWidth
+        - Actions: toggleChatPanel(), setChatPanelWidth()
+        - Used in: ChatPanel header minimize button
+      </integration>
+
+      <integration name="Mock Data Hook">
+        - Location: apps/web/src/hooks/use-chat-messages.ts
+        - Returns: { messages, isTyping, sendMessage }
+        - Provides: Sample conversation data for demo
+        - Simulates: 2-second typing delay before agent response
+      </integration>
+
+      <integration name="Future WebSocket">
+        - Backend: apps/api/src/chat/ (not yet implemented)
+        - Events: message.sent, message.received, agent.typing
+        - Replace: useChatMessages hook with real WebSocket connection
+      </integration>
+    </integration-points>
+  </technical-context>
+
+  <!-- ========================================
+       EXISTING CODE REFERENCES
+       ======================================== -->
+  <existing-code>
+    <file>
+      <path>/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/shell/ChatPanel.tsx</path>
+      <description>
+        Placeholder ChatPanel component created in Story 07-1.
+        Contains basic header and collapsed state logic.
+        Will be refactored to integrate ChatMessageList and ChatInput components.
+      </description>
+      <key-exports>
+        - ChatPanel component (default export)
+        - Uses: useUIStore for chatPanelOpen, toggleChatPanel
+        - Header: agent info, close button
+        - Placeholder content area
+      </key-exports>
+    </file>
+
+    <file>
+      <path>/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/stores/ui.ts</path>
+      <description>
+        UI state store with Zustand.
+        Contains chat panel state management.
+      </description>
+      <relevant-state>
+        - chatPanelOpen: boolean
+        - chatPanelWidth: number (320-480px, default 380)
+        - toggleChatPanel: () => void
+        - setChatPanelWidth: (width: number) => void
+      </relevant-state>
+    </file>
+
+    <file>
+      <path>/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/shell/Header.tsx</path>
+      <description>
+        Header component from Story 07-3.
+        Example of using Material Symbols icons and design tokens.
+      </description>
+      <patterns-to-follow>
+        - Material Symbols: &lt;span className="material-symbols-outlined"&gt;
+        - Design tokens: rgb(var(--color-*))
+        - Hover states: hover:bg-[rgb(var(--color-bg-tertiary))]
+        - Icon sizing: style={{ fontSize: '20px' }}
+      </patterns-to-follow>
+    </file>
+  </existing-code>
+
+  <!-- ========================================
+       DESIGN TOKENS
+       ======================================== -->
+  <design-tokens>
+    <color-tokens>
+      --color-primary-500: #FF6B6B (user messages, Hub agent)
+      --color-accent-500: #20B2AA (Maya agent, secondary)
+      --color-bg-surface: Light #ffffff / Dark #232326 (panel background)
+      --color-bg-secondary: Light #f9f7f2 / Dark #111113 (header background)
+      --color-bg-tertiary: Light #f5f3ee / Dark #1a1a1d (agent bubbles, input)
+      --color-border-default: Light #e5e5e5 / Dark #27272a (borders)
+      --color-text-primary: Light #1a1a1a / Dark #fafafa (message text)
+      --color-text-secondary: Light #6b7280 / Dark #a1a1aa (secondary text)
+      --color-text-muted: Light #9ca3af / Dark #71717a (timestamps, typing dots)
+    </color-tokens>
+
+    <agent-colors>
+      Hub: #FF6B6B (primary) - 🎯 target icon
+      Maya: #20B2AA (secondary) - 🐚 shell emoji
+      Atlas: #FF9F43 (warning) - 🗺️ map emoji
+      Sage: #2ECC71 (success) - 🌿 herb emoji
+    </agent-colors>
+
+    <spacing>
+      Panel width: 380px
+      Header height: 56px
+      Message gap: 16px (gap-4)
+      Input padding: 12px 16px (p-3 px-4)
+      Scrollbar width: 6px
+      Avatar size: 28px (h-7 w-7)
+      Send button: 36px (h-9 w-9)
+    </spacing>
+
+    <typography>
+      Message text: text-sm (14px), leading-relaxed
+      Agent name: text-xs (12px), font-semibold
+      Timestamp: text-[11px], muted color
+      System message: text-xs (12px), centered
+      Input placeholder: text-sm (14px), muted
+    </typography>
+
+    <animations>
+      Bounce (typing dots):
+        @keyframes bounce {
+          0%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-8px); }
+        }
+        animation: bounce 1.4s infinite ease-in-out
+        delays: 0s, 0.2s, 0.4s
+
+      Smooth scroll:
+        scroll-behavior: smooth
+        scrollIntoView({ behavior: 'smooth' })
+
+      Button hover:
+        transition-colors duration-150
+        hover:scale-105 active:scale-95 (send button)
+    </animations>
+  </design-tokens>
+
+  <!-- ========================================
+       MOCK DATA
+       ======================================== -->
+  <mock-data>
+    <sample-conversation>
+      [
+        {
+          id: '1',
+          type: 'system',
+          content: 'Today',
+          timestamp: new Date()
+        },
+        {
+          id: '2',
+          type: 'user',
+          content: 'Create a follow-up email for the Johnson deal with a friendly tone.',
+          timestamp: new Date(Date.now() - 5 * 60 * 1000)
+        },
+        {
+          id: '3',
+          type: 'agent',
+          content: 'Of course. Here is a draft based on our last conversation. I\'ve included a friendly opening and a clear call to action.',
+          timestamp: new Date(Date.now() - 4 * 60 * 1000),
+          agentName: 'Hub',
+          agentIcon: '🎯',
+          agentColor: '#FF6B6B'
+        }
+      ]
+    </sample-conversation>
+
+    <typing-simulation>
+      1. User sends message via sendMessage()
+      2. Add user message to messages array
+      3. Set isTyping = true
+      4. Wait 2000ms (setTimeout)
+      5. Set isTyping = false
+      6. Add agent response to messages array
+      7. Auto-scroll to bottom
+    </typing-simulation>
+  </mock-data>
+
+  <!-- ========================================
+       IMPLEMENTATION CHECKLIST
+       ======================================== -->
+  <implementation-checklist>
+    <task id="1" priority="high">
+      Create components/chat/ directory structure
+    </task>
+
+    <task id="2" priority="high">
+      Implement ChatMessage.tsx with three variants (user, agent, system)
+    </task>
+
+    <task id="3" priority="high">
+      Implement TypingIndicator.tsx with bounce animation
+    </task>
+
+    <task id="4" priority="high">
+      Implement ChatMessageList.tsx with auto-scroll behavior
+    </task>
+
+    <task id="5" priority="high">
+      Implement ChatInput.tsx with auto-expand textarea
+    </task>
+
+    <task id="6" priority="high">
+      Create useChatMessages hook with mock data
+    </task>
+
+    <task id="7" priority="high">
+      Refactor ChatPanel.tsx to integrate all components
+    </task>
+
+    <task id="8" priority="medium">
+      Add custom scrollbar styles to globals.css
+    </task>
+
+    <task id="9" priority="medium">
+      Test message display in light and dark modes
+    </task>
+
+    <task id="10" priority="medium">
+      Test auto-scroll behavior with multiple messages
+    </task>
+
+    <task id="11" priority="low">
+      Test collapsed state toggle
+    </task>
+
+    <task id="12" priority="low">
+      Verify typing indicator animation timing
+    </task>
+  </implementation-checklist>
+
+  <!-- ========================================
+       TESTING STRATEGY
+       ======================================== -->
+  <testing-strategy>
+    <unit-tests>
+      - ChatMessage renders all three types correctly
+      - ChatMessage formats timestamps correctly
+      - ChatInput sends on Enter, newline on Shift+Enter
+      - ChatInput disables send when empty
+      - ChatInput clears after send
+      - TypingIndicator displays animated dots
+    </unit-tests>
+
+    <integration-tests>
+      - ChatMessageList auto-scrolls on new message
+      - useChatMessages hook updates state correctly
+      - sendMessage adds user message and triggers typing
+      - Panel collapse/expand works with UI store
+    </integration-tests>
+
+    <visual-tests>
+      - Message alignment (user right, agent left)
+      - Agent avatars display with correct colors
+      - Scrollbar appears when content overflows
+      - Input expands up to 6 lines
+      - Hover states on all interactive elements
+    </visual-tests>
+
+    <e2e-tests>
+      - User can send message and see it appear
+      - Typing indicator shows after user message
+      - Agent response appears after delay
+      - Panel collapses to icon button
+      - @mention button inserts @ symbol
+    </e2e-tests>
+  </testing-strategy>
+
+  <!-- ========================================
+       DEFINITION OF DONE
+       ======================================== -->
+  <definition-of-done>
+    <technical>
+      - All acceptance criteria met
+      - TypeScript type-check passes (pnpm turbo type-check --filter=@hyvve/web)
+      - ESLint passes with no warnings (pnpm turbo lint --filter=@hyvve/web)
+      - Unit tests written and passing
+      - Components render in Storybook
+    </technical>
+
+    <functional>
+      - Chat panel displays messages correctly
+      - User can send messages and receive mock responses
+      - Typing indicator shows during simulated agent response
+      - Auto-scroll works on new messages
+      - Panel collapse/expand functions correctly
+      - @mention button inserts @ symbol
+      - Works in both light and dark modes
+    </functional>
+
+    <quality>
+      - Code follows project conventions
+      - Components use design tokens consistently
+      - Accessibility: keyboard navigation works
+      - Performance: no unnecessary re-renders
+      - Responsive: panel width consistent at 380px
+    </quality>
+
+    <documentation>
+      - Story file complete with technical details
+      - Context file generated with full specifications
+      - Component files have JSDoc comments
+      - Sprint status updated to 'done'
+    </documentation>
+  </definition-of-done>
+
+  <!-- ========================================
+       RELATED STORIES
+       ======================================== -->
+  <related-stories>
+    <story>
+      <id>07-1</id>
+      <title>Create Dashboard Layout Component</title>
+      <relationship>dependency (complete) - provides chat panel container</relationship>
+    </story>
+
+    <story>
+      <id>07-5</id>
+      <title>Implement Dark/Light Mode</title>
+      <relationship>integration - chat panel must work in both themes</relationship>
+    </story>
+
+    <story>
+      <id>07-6</id>
+      <title>Create Command Palette</title>
+      <relationship>related - similar interaction pattern</relationship>
+    </story>
+
+    <story>
+      <id>07-7</id>
+      <title>Create Notification Center</title>
+      <relationship>related - similar dropdown/panel pattern</relationship>
+    </story>
+  </related-stories>
+
+  <!-- ========================================
+       FUTURE ENHANCEMENTS
+       ======================================== -->
+  <future-enhancements>
+    <enhancement priority="high">
+      WebSocket integration for real-time chat (replace mock hook)
+    </enhancement>
+
+    <enhancement priority="medium">
+      Message reactions (emoji reactions on messages)
+    </enhancement>
+
+    <enhancement priority="medium">
+      File attachments upload and display
+    </enhancement>
+
+    <enhancement priority="medium">
+      Rich text formatting (markdown support)
+    </enhancement>
+
+    <enhancement priority="low">
+      Agent switching dropdown in header
+    </enhancement>
+
+    <enhancement priority="low">
+      Chat history navigation (previous conversations)
+    </enhancement>
+
+    <enhancement priority="low">
+      Message search functionality
+    </enhancement>
+
+    <enhancement priority="low">
+      Voice input support
+    </enhancement>
+  </future-enhancements>
+</story-context>
