@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { PasswordInput } from './password-input'
+import { TwoFactorVerify } from './two-factor-verify'
 import { Loader2, AlertCircle, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
@@ -24,6 +25,8 @@ export function SignInForm() {
   const [isGitHubLoading, setIsGitHubLoading] = useState(false)
   const [error, setError] = useState<ErrorType>(null)
   const [retryAfter, setRetryAfter] = useState<number | null>(null)
+  const [show2FA, setShow2FA] = useState(false)
+  const [verifyingUserId, setVerifyingUserId] = useState<string | null>(null)
 
   const {
     register,
@@ -73,8 +76,31 @@ export function SignInForm() {
           setError('INVALID_CREDENTIALS')
         }
       } else {
-        // Success - redirect to dashboard
-        router.push('/dashboard')
+        // Check if 2FA is enabled for this user
+        // Need to fetch 2FA status separately as better-auth doesn't include it in sign-in response
+        const userId = result.data?.user?.id
+        if (userId) {
+          try {
+            const statusResponse = await fetch('/api/auth/2fa/status')
+            const statusData = await statusResponse.json()
+
+            if (statusData.enabled) {
+              // Show 2FA verification component
+              setShow2FA(true)
+              setVerifyingUserId(userId)
+            } else {
+              // Success - redirect to dashboard
+              router.push('/dashboard')
+            }
+          } catch (error) {
+            console.error('Failed to check 2FA status:', error)
+            // On error, redirect to dashboard (fail open for better UX)
+            router.push('/dashboard')
+          }
+        } else {
+          // Success - redirect to dashboard
+          router.push('/dashboard')
+        }
       }
     } catch (err) {
       console.error('Sign-in error:', err)
@@ -138,13 +164,30 @@ export function SignInForm() {
     }
   }
 
+  const handle2FASuccess = () => {
+    router.push('/dashboard')
+  }
+
+  const handle2FACancel = () => {
+    setShow2FA(false)
+    setVerifyingUserId(null)
+  }
+
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
-        <p className="text-gray-600">Sign in to your account</p>
-      </div>
+      {show2FA && verifyingUserId ? (
+        <TwoFactorVerify
+          userId={verifyingUserId}
+          onSuccess={handle2FASuccess}
+          onCancel={handle2FACancel}
+        />
+      ) : (
+        <>
+          {/* Page Header */}
+          <div className="space-y-2 text-center">
+            <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
+            <p className="text-gray-600">Sign in to your account</p>
+          </div>
 
       {/* Social Sign-In Buttons */}
       <div className="space-y-3">
@@ -387,6 +430,8 @@ export function SignInForm() {
           Sign up
         </Link>
       </p>
+        </>
+      )}
     </div>
   )
 }
