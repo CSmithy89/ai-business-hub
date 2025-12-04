@@ -36,6 +36,7 @@ import { CurrentWorkspace } from '../common/decorators/current-workspace.decorat
 import { AIProvidersService } from './ai-providers.service';
 import { TokenUsageService, UsageStats, DailyUsage, AgentUsage } from './token-usage.service';
 import { TokenLimitService, TokenLimitStatus } from './token-limit.service';
+import { ProviderHealthService, HealthCheckResult, HealthSummary } from './provider-health.service';
 import {
   CreateProviderDto,
   createProviderSchema,
@@ -70,6 +71,7 @@ export class AIProvidersController {
     private readonly providersService: AIProvidersService,
     private readonly tokenUsageService: TokenUsageService,
     private readonly tokenLimitService: TokenLimitService,
+    private readonly providerHealthService: ProviderHealthService,
   ) {}
 
   /**
@@ -271,6 +273,48 @@ export class AIProvidersController {
       message: 'Token limit updated successfully',
       data: status,
     };
+  }
+
+  /**
+   * Get health status for all providers in workspace
+   */
+  @Get('health')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get health status for all providers' })
+  @ApiResponse({
+    status: 200,
+    description: 'Health status for all providers',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  async getWorkspaceHealth(
+    @CurrentWorkspace() workspace: { id: string },
+  ): Promise<{ data: HealthSummary }> {
+    const health = await this.providerHealthService.getWorkspaceHealth(workspace.id);
+    return { data: health };
+  }
+
+  /**
+   * Trigger health check for a specific provider
+   */
+  @Post(':providerId/health-check')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Trigger health check for a provider' })
+  @ApiResponse({
+    status: 200,
+    description: 'Health check result',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'providerId', description: 'Provider ID' })
+  async triggerHealthCheck(
+    @Param('providerId') providerId: string,
+  ): Promise<{ data: HealthCheckResult }> {
+    const result = await this.providerHealthService.triggerHealthCheck(providerId);
+
+    this.logger.log(
+      `Health check for provider ${providerId}: valid=${result.isValid}, latency=${result.latency}ms`,
+    );
+
+    return { data: result };
   }
 
   /**

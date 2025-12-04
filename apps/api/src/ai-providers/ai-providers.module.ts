@@ -16,6 +16,7 @@ import { AIProviderFactory } from './ai-provider-factory.service';
 import { TokenUsageService } from './token-usage.service';
 import { TokenResetService } from './token-reset.service';
 import { TokenLimitService } from './token-limit.service';
+import { ProviderHealthService } from './provider-health.service';
 import { EventsModule } from '../events/events.module';
 
 @Global()
@@ -32,7 +33,8 @@ import { EventsModule } from '../events/events.module';
     TokenUsageService,
     TokenResetService,
     TokenLimitService,
+    ProviderHealthService,
   ],
-  exports: [AIProvidersService, AIProviderFactory, TokenUsageService, TokenLimitService],
+  exports: [AIProvidersService, AIProviderFactory, TokenUsageService, TokenLimitService, ProviderHealthService],
 })
 export class AIProvidersModule {}
