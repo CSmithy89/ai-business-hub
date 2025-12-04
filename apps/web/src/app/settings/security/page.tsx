@@ -28,6 +28,24 @@ export default function SettingsSecurityPage() {
         {/* Two-Factor Authentication Section - Story 09-3 */}
         <TwoFactorCard />
 
+        {/* Linked Accounts Section - Story 09-7 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Linked Accounts</CardTitle>
+            <CardDescription>Manage your connected OAuth providers</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-500">
+              Connect your account with OAuth providers like Google, Microsoft, and GitHub for
+              easier sign-in.{' '}
+              <a href="/settings/linked-accounts" className="text-blue-600 hover:underline">
+                Manage linked accounts
+              </a>
+              .
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Session Management - Story 01-7 (already implemented) */}
         <Card>
           <CardHeader>

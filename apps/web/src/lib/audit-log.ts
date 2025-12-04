@@ -15,6 +15,10 @@ export type AuditEventType =
   | '2fa.backup_code.used'
   | '2fa.backup_code.regenerated'
   | '2fa.backup_code.regenerate_failed'
+  | 'account.linked'
+  | 'account.unlinked'
+  | 'account.link_failed'
+  | 'account.unlink_failed'
 
 export interface AuditLogData {
   userId: string
