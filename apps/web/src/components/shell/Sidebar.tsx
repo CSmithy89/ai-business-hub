@@ -1,56 +1,58 @@
 /**
- * Sidebar Component (Placeholder)
+ * Sidebar Component
  *
- * This is a placeholder for the full Sidebar implementation in Story 07.2.
- * Currently shows a basic sidebar with collapse/expand functionality.
+ * Main navigation sidebar with:
+ * - Collapsible/expandable states (64px / 256px)
+ * - Navigation items with active state highlighting
+ * - Badge support for approval count
+ * - Tooltips in collapsed state
+ * - Workspace switcher at bottom
+ * - Smooth 200ms transitions
+ *
+ * Epic: 07 - UI Shell
+ * Story: 07-2 - Create Sidebar Navigation
  */
 
 'use client';
 
 import { useUIStore } from '@/stores/ui';
+import { SidebarNav } from './SidebarNav';
+import { SidebarWorkspaceSwitcher } from './SidebarWorkspaceSwitcher';
+import { cn } from '@/lib/utils';
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
 
   return (
     <aside
-      className={`
-        fixed top-[60px] left-0 bottom-0 z-20 flex flex-col
-        border-r border-[rgb(var(--color-border-default))]
-        bg-[rgb(var(--color-bg-secondary))] p-3
-        transition-all duration-300 ease-in-out
-        ${sidebarCollapsed ? 'w-16' : 'w-64'}
-      `}
+      className={cn(
+        'fixed top-[60px] left-0 bottom-0 z-20 flex flex-col',
+        'border-r border-[rgb(var(--color-border-default))]',
+        'bg-[rgb(var(--color-bg-secondary))]',
+        'transition-all duration-200 ease-out',
+        sidebarCollapsed ? 'w-16' : 'w-64'
+      )}
     >
-      {/* Sidebar content placeholder */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-sm text-[rgb(var(--color-text-secondary))] text-center">
-          {sidebarCollapsed ? (
-            <div className="flex flex-col items-center gap-2">
-              <div className="text-xl">☰</div>
-            </div>
-          ) : (
-            <>
-              Sidebar placeholder
-              <br />
-              Story 07.2
-            </>
-          )}
-        </div>
+      {/* Navigation Items */}
+      <SidebarNav collapsed={sidebarCollapsed} />
+
+      {/* Workspace Switcher */}
+      <div className="mt-auto border-t border-[rgb(var(--color-border-default))] p-4">
+        <SidebarWorkspaceSwitcher collapsed={sidebarCollapsed} />
       </div>
 
-      {/* Collapse/Expand toggle button */}
+      {/* Collapse/Expand Toggle Button */}
       <button
         onClick={toggleSidebar}
-        className="mt-auto flex h-9 w-full items-center justify-center rounded-md
-                   text-[rgb(var(--color-text-secondary))]
-                   transition-colors duration-150
-                   hover:bg-[rgb(var(--color-bg-hover))]"
+        className={cn(
+          'absolute -right-3 top-4 z-30 flex h-6 w-6 items-center justify-center',
+          'rounded-full border border-[rgb(var(--color-border-default))]',
+          'bg-[rgb(var(--color-bg-primary))] text-[rgb(var(--color-text-secondary))]',
+          'shadow-sm transition-colors hover:bg-[rgb(var(--color-bg-tertiary))]'
+        )}
         aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
-        <span className="text-lg">
-          {sidebarCollapsed ? '→' : '←'}
-        </span>
+        <span className="text-sm">{sidebarCollapsed ? '→' : '←'}</span>
       </button>
     </aside>
   );

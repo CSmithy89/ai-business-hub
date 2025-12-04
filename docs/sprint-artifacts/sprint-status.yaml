@@ -149,7 +149,7 @@ development_status:
   # ===========================================
   epic-07: contexted
   07-1-create-dashboard-layout-component: done
-  07-2-create-sidebar-navigation: backlog
+  07-2-create-sidebar-navigation: done
   07-3-create-header-bar: backlog
   07-4-implement-chat-panel: backlog
   07-5-implement-dark-light-mode: backlog
