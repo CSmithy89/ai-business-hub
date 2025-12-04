@@ -176,7 +176,7 @@ development_status:
   # Section 2: Validation Team - BMV (7 stories, 23 points)
   08-5-implement-validation-team-agno-configuration: done
   08-6-create-validation-chat-interface: done
-  08-7-implement-idea-intake-workflow: backlog
+  08-7-implement-idea-intake-workflow: done
   08-8-implement-market-sizing-workflow: backlog
   08-9-implement-competitor-mapping-workflow: backlog
   08-10-implement-customer-discovery-workflow: backlog
