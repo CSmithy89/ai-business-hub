@@ -16,6 +16,7 @@ import { HeaderBreadcrumbs } from './HeaderBreadcrumbs';
 import { HeaderSearchTrigger } from './HeaderSearchTrigger';
 import { HeaderNotificationBell } from './HeaderNotificationBell';
 import { HeaderUserMenu } from './HeaderUserMenu';
+import { MobileHamburger } from '@/components/mobile';
 
 export function Header() {
   return (
@@ -26,6 +27,8 @@ export function Header() {
     >
       {/* Left section: Logo and workspace */}
       <div className="flex items-center gap-4">
+        {/* Mobile hamburger menu */}
+        <MobileHamburger />
         {/* Logo */}
         <Link
           className="flex items-center gap-2 transition-opacity hover:opacity-80"

@@ -27,6 +27,8 @@ interface UIState {
   // Mobile state
   mobileMenuOpen: boolean;
   toggleMobileMenu: () => void;
+  openMobileMenu: () => void;
+  closeMobileMenu: () => void;
 
   // Command palette state
   isCommandPaletteOpen: boolean;
@@ -67,6 +69,8 @@ export const useUIStore = create<UIState>()(
         set((state) => ({
           mobileMenuOpen: !state.mobileMenuOpen,
         })),
+      openMobileMenu: () => set({ mobileMenuOpen: true }),
+      closeMobileMenu: () => set({ mobileMenuOpen: false }),
 
       // Command palette actions
       isCommandPaletteOpen: false,

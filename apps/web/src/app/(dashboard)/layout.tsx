@@ -26,6 +26,7 @@ import { Sidebar } from '@/components/shell/Sidebar';
 import { ChatPanel } from '@/components/shell/ChatPanel';
 import { CommandPalette } from '@/components/command';
 import { KeyboardShortcuts } from '@/components/keyboard';
+import { MobileDrawer, MobileBottomNav } from '@/components/mobile';
 import { useUIStore } from '@/stores/ui';
 
 interface DashboardLayoutProps {
@@ -77,6 +78,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Global Keyboard Shortcuts - Handles Cmd+K, Cmd+B, Cmd+/, etc. */}
       <KeyboardShortcuts />
+
+      {/* Mobile Navigation Components */}
+      <MobileDrawer />
+      <MobileBottomNav />
     </div>
   );
 }
