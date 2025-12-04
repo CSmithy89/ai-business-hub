@@ -135,7 +135,7 @@ development_status:
   06-3-create-ai-provider-api-endpoints: done
   06-4-create-ai-provider-settings-ui: done
   06-5-implement-token-usage-tracking: done
-  06-6-create-token-usage-dashboard: backlog
+  06-6-create-token-usage-dashboard: done
   06-7-implement-daily-token-limits: backlog
   06-8-implement-provider-health-monitoring: backlog
   06-9-integrate-agentos-with-byoai-providers: backlog
