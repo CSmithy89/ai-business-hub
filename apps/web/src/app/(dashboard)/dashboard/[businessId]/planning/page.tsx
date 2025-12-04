@@ -6,6 +6,7 @@
  * to develop their business plan.
  *
  * Story: 08.13 - Create Planning Page with Workflow Progress
+ * Story: 08.14 - Integrate Business Model Canvas Workflow
  */
 
 'use client'
@@ -32,6 +33,7 @@ import {
   FileText,
   Download,
 } from 'lucide-react'
+import { BusinessModelCanvasPreview } from '@/components/planning/business-model-canvas-preview'
 
 // ============================================================================
 // Types
@@ -51,6 +53,31 @@ interface WorkflowStep {
   name: string
   status: 'completed' | 'in_progress' | 'pending'
   icon: React.ReactNode
+}
+
+interface CanvasBlock {
+  items: string[]
+  notes: string
+  confidence: 'high' | 'medium' | 'low'
+  sources: string[]
+}
+
+interface BusinessModelCanvas {
+  customer_segments?: CanvasBlock
+  value_propositions?: CanvasBlock
+  channels?: CanvasBlock
+  customer_relationships?: CanvasBlock
+  revenue_streams?: CanvasBlock
+  key_resources?: CanvasBlock
+  key_activities?: CanvasBlock
+  key_partnerships?: CanvasBlock
+  cost_structure?: CanvasBlock
+  metadata?: {
+    version: string
+    createdAt: string
+    updatedAt: string
+    completionPercentage: number
+  }
 }
 
 // ============================================================================
@@ -236,34 +263,52 @@ function ChatInput({ onSend, disabled }: { onSend: (message: string) => void; di
   )
 }
 
-function ArtifactsPanel({ artifacts }: { artifacts: Array<{ name: string; status: string; icon: React.ReactNode }> }) {
+function ArtifactsPanel({
+  artifacts,
+  canvas,
+  onCanvasBlockClick,
+}: {
+  artifacts: Array<{ name: string; status: string; icon: React.ReactNode }>
+  canvas: BusinessModelCanvas | null
+  onCanvasBlockClick?: (block: string) => void
+}) {
   return (
-    <Card className="m-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">Planning Artifacts</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {artifacts.map((artifact, idx) => (
-            <div key={idx} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {artifact.icon}
-                <span className="text-sm">{artifact.name}</span>
+    <div className="m-4 space-y-4">
+      {/* Business Model Canvas Preview */}
+      <BusinessModelCanvasPreview
+        canvas={canvas}
+        compact={false}
+        onBlockClick={onCanvasBlockClick}
+      />
+
+      {/* Other Artifacts */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Other Artifacts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {artifacts.slice(1).map((artifact, idx) => (
+              <div key={idx} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {artifact.icon}
+                  <span className="text-sm">{artifact.name}</span>
+                </div>
+                {artifact.status === 'completed' ? (
+                  <Button variant="ghost" size="sm">
+                    <Download className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <Badge variant="secondary" className="text-xs">
+                    {artifact.status}
+                  </Badge>
+                )}
               </div>
-              {artifact.status === 'completed' ? (
-                <Button variant="ghost" size="sm">
-                  <Download className="w-4 h-4" />
-                </Button>
-              ) : (
-                <Badge variant="secondary" className="text-xs">
-                  {artifact.status}
-                </Badge>
-              )}
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
@@ -278,10 +323,12 @@ export default function PlanningPage() {
 
   const [messages, setMessages] = useState<ChatMessageData[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [canvas, setCanvas] = useState<BusinessModelCanvas | null>(null)
+  const [currentWorkflow, setCurrentWorkflow] = useState<string>('canvas')
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
-  // Workflow steps
-  const [workflowSteps] = useState<WorkflowStep[]>([
+  // Workflow steps - dynamic based on completed workflows
+  const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([
     { id: 'canvas', name: 'Canvas', status: 'in_progress', icon: <LayoutGrid className="w-4 h-4" /> },
     { id: 'financials', name: 'Financials', status: 'pending', icon: <Calculator className="w-4 h-4" /> },
     { id: 'pricing', name: 'Pricing', status: 'pending', icon: <DollarSign className="w-4 h-4" /> },
@@ -289,16 +336,52 @@ export default function PlanningPage() {
     { id: 'plan', name: 'Plan', status: 'pending', icon: <FileText className="w-4 h-4" /> },
   ])
 
-  // Artifacts
-  const [artifacts] = useState([
-    { name: 'Business Model Canvas', status: 'in progress', icon: <LayoutGrid className="w-4 h-4" /> },
+  // Artifacts - computed from canvas state
+  const artifacts = [
+    {
+      name: 'Business Model Canvas',
+      status: canvas?.metadata?.completionPercentage === 100 ? 'completed' : 'in progress',
+      icon: <LayoutGrid className="w-4 h-4" />,
+    },
     { name: 'Financial Projections', status: 'pending', icon: <Calculator className="w-4 h-4" /> },
     { name: 'Pricing Strategy', status: 'pending', icon: <DollarSign className="w-4 h-4" /> },
     { name: 'Growth Forecast', status: 'pending', icon: <TrendingUp className="w-4 h-4" /> },
     { name: 'Business Plan', status: 'pending', icon: <FileText className="w-4 h-4" /> },
-  ])
+  ]
 
   const completedCount = workflowSteps.filter((s) => s.status === 'completed').length
+
+  // Fetch initial canvas state
+  useEffect(() => {
+    const fetchCanvasStatus = async () => {
+      try {
+        const response = await fetch(`/api/planning/${businessId}/business-model-canvas`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.data.canvas) {
+            setCanvas(data.data.canvas)
+            // Update workflow steps based on completion
+            if (data.data.status === 'completed') {
+              setWorkflowSteps((prev) =>
+                prev.map((step) =>
+                  step.id === 'canvas'
+                    ? { ...step, status: 'completed' }
+                    : step.id === 'financials'
+                      ? { ...step, status: 'in_progress' }
+                      : step
+                )
+              )
+              setCurrentWorkflow('financials')
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch canvas status:', error)
+      }
+    }
+
+    fetchCanvasStatus()
+  }, [businessId])
 
   // Initial welcome message
   useEffect(() => {
@@ -343,19 +426,93 @@ Your business has been validated - now let's turn that validated idea into an in
     setMessages((prev) => [...prev, userMessage])
     setIsLoading(true)
 
-    // Simulate agent response (mock for MVP)
-    setTimeout(() => {
-      const agentMessage: ChatMessageData = {
+    // Determine if this is a canvas workflow message
+    const isCanvasMessage =
+      currentWorkflow === 'canvas' ||
+      content.toLowerCase().includes('canvas') ||
+      content.toLowerCase().includes('customer segment') ||
+      content.toLowerCase().includes('value prop') ||
+      content.toLowerCase().includes('channel') ||
+      content.toLowerCase().includes('revenue stream') ||
+      content.toLowerCase().includes('key resource') ||
+      content.toLowerCase().includes('key activit') ||
+      content.toLowerCase().includes('key partner') ||
+      content.toLowerCase().includes('cost struct')
+
+    try {
+      if (isCanvasMessage) {
+        // Call canvas API
+        const response = await fetch(`/api/planning/${businessId}/business-model-canvas`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: content }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            const agentMessage: ChatMessageData = {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              agent: 'model',
+              content: data.data.message.content,
+              timestamp: new Date(data.data.message.timestamp),
+              suggestedActions: data.data.message.suggestedActions,
+            }
+            setMessages((prev) => [...prev, agentMessage])
+
+            // Update canvas state if output included
+            if (data.data.output?.canvas) {
+              setCanvas(data.data.output.canvas)
+            }
+
+            // Update workflow status if completed
+            if (data.data.workflow_status === 'completed') {
+              setWorkflowSteps((prev) =>
+                prev.map((step) =>
+                  step.id === 'canvas'
+                    ? { ...step, status: 'completed' }
+                    : step.id === 'financials'
+                      ? { ...step, status: 'in_progress' }
+                      : step
+                )
+              )
+              setCurrentWorkflow('financials')
+            }
+          } else {
+            throw new Error(data.message || 'Failed to process message')
+          }
+        } else {
+          throw new Error('API request failed')
+        }
+      } else {
+        // Fallback to mock response for other workflows
+        const agentMessage: ChatMessageData = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          agent: getResponsibleAgent(content),
+          content: getMockResponse(content),
+          timestamp: new Date(),
+          suggestedActions: getSuggestedActions(content),
+        }
+        setTimeout(() => {
+          setMessages((prev) => [...prev, agentMessage])
+        }, 1000)
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+      const errorMessage: ChatMessageData = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        agent: getResponsibleAgent(content),
-        content: getMockResponse(content),
+        agent: 'blake',
+        content: 'I apologize, but I encountered an error processing your message. Please try again.',
         timestamp: new Date(),
-        suggestedActions: getSuggestedActions(content),
+        suggestedActions: ['Try again', 'Ask a different question'],
       }
-      setMessages((prev) => [...prev, agentMessage])
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   // Determine which agent should respond
@@ -485,8 +642,26 @@ Is there a specific area you'd like to dive deeper into?`
         </div>
 
         {/* Sidebar - Artifacts */}
-        <div className="w-80 border-l hidden lg:block">
-          <ArtifactsPanel artifacts={artifacts} />
+        <div className="w-80 border-l hidden lg:block overflow-y-auto">
+          <ArtifactsPanel
+            artifacts={artifacts}
+            canvas={canvas}
+            onCanvasBlockClick={(block) => {
+              // Send a message asking about the clicked block
+              const blockNames: Record<string, string> = {
+                customer_segments: 'Customer Segments',
+                value_propositions: 'Value Propositions',
+                channels: 'Channels',
+                customer_relationships: 'Customer Relationships',
+                revenue_streams: 'Revenue Streams',
+                key_resources: 'Key Resources',
+                key_activities: 'Key Activities',
+                key_partnerships: 'Key Partnerships',
+                cost_structure: 'Cost Structure',
+              }
+              handleSendMessage(`Let's work on the ${blockNames[block] || block} section of the canvas.`)
+            }}
+          />
         </div>
       </div>
 
