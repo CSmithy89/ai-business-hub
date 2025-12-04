@@ -18,6 +18,7 @@ import {
   Legend,
 } from 'recharts'
 import { Download, RefreshCw, Calendar } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -143,9 +144,9 @@ export function TokenUsageDashboard() {
       : dailyUsage
 
     if (isTruncated) {
-      console.warn(
-        `CSV export truncated: ${dailyUsage.length} rows limited to ${MAX_CSV_EXPORT_ROWS}. ` +
-        `Use the API for full data export.`
+      toast.warning(
+        `Export limited to ${MAX_CSV_EXPORT_ROWS} of ${dailyUsage.length} rows. Use the API for complete data.`,
+        { duration: 5000 }
       )
     }
 
@@ -160,7 +161,7 @@ export function TokenUsageDashboard() {
     // Add truncation notice as first row if data was limited
     const csvRows = isTruncated
       ? [
-          `"Note: Export limited to ${MAX_CSV_EXPORT_ROWS} rows. Use API for full data."`,
+          `"Note: Export limited to ${MAX_CSV_EXPORT_ROWS} of ${dailyUsage.length} rows. For complete data, use GET /api/workspaces/{workspaceId}/token-usage"`,
           headers.map(h => sanitizeCSVValue(h)).join(','),
           ...rows.map((r) => r.join(','))
         ]

@@ -84,7 +84,9 @@ aws secretsmanager update-secret \
 
 #### 2. Re-encrypt Existing Credentials
 
-Run the key rotation script during a maintenance window:
+Re-encrypt during a maintenance window using one of these methods:
+
+**Option A: Automated Script (Recommended)**
 
 ```bash
 # From the API server
@@ -94,12 +96,61 @@ cd apps/api
 export ENCRYPTION_MASTER_KEY="old-key-here"
 export NEW_ENCRYPTION_MASTER_KEY="new-key-here"
 
-# Run rotation script (to be implemented)
+# Run rotation script
 pnpm run rotate-encryption-keys
 ```
 
-**Note:** The rotation script should:
-1. Fetch all `AIProviderConfig` records
+> **TODO:** Implement `rotate-encryption-keys` script. Track in issue #TBD.
+
+**Option B: Manual Database Procedure**
+
+If the automated script is not available, use this manual procedure:
+
+```sql
+-- 1. Export affected records (do this BEFORE rotation)
+SELECT id, "workspaceId", provider, "apiKeyEncrypted"
+FROM ai_provider_configs
+WHERE "apiKeyEncrypted" IS NOT NULL;
+```
+
+```typescript
+// 2. Create a one-time migration script (apps/api/scripts/rotate-keys.ts)
+import { PrismaClient } from '@prisma/client';
+import { EncryptionService } from '../src/ai-providers/encryption.service';
+
+async function rotateKeys() {
+  const prisma = new PrismaClient();
+  const oldEncryption = new EncryptionService(process.env.ENCRYPTION_MASTER_KEY!);
+  const newEncryption = new EncryptionService(process.env.NEW_ENCRYPTION_MASTER_KEY!);
+
+  const configs = await prisma.aIProviderConfig.findMany({
+    where: { apiKeyEncrypted: { not: null } }
+  });
+
+  for (const config of configs) {
+    const decrypted = oldEncryption.decrypt(config.apiKeyEncrypted!);
+    const reEncrypted = newEncryption.encrypt(decrypted);
+
+    await prisma.aIProviderConfig.update({
+      where: { id: config.id },
+      data: { apiKeyEncrypted: reEncrypted }
+    });
+    console.log(`Rotated key for provider ${config.id}`);
+  }
+
+  console.log(`Successfully rotated ${configs.length} provider keys`);
+}
+
+rotateKeys();
+```
+
+```bash
+# 3. Run the migration
+npx ts-node scripts/rotate-keys.ts
+```
+
+**Rotation script requirements:**
+1. Fetch all `AIProviderConfig` records with encrypted keys
 2. Decrypt each `apiKeyEncrypted` with old key
 3. Re-encrypt with new key
 4. Update the database record
