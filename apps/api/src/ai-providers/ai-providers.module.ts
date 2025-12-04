@@ -18,6 +18,7 @@ import { TokenResetService } from './token-reset.service';
 import { TokenLimitService } from './token-limit.service';
 import { ProviderHealthService } from './provider-health.service';
 import { AssistantClientFactory } from './assistant-client-factory.service';
+import { AgentPreferencesService } from './agent-preferences.service';
 import { EventsModule } from '../events/events.module';
 
 @Global()
@@ -36,6 +37,7 @@ import { EventsModule } from '../events/events.module';
     TokenLimitService,
     ProviderHealthService,
     AssistantClientFactory,
+    AgentPreferencesService,
   ],
   exports: [
     AIProvidersService,

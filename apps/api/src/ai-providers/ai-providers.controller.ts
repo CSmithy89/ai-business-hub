@@ -38,6 +38,11 @@ import { TokenUsageService, UsageStats, DailyUsage, AgentUsage } from './token-u
 import { TokenLimitService, TokenLimitStatus } from './token-limit.service';
 import { ProviderHealthService, HealthCheckResult, HealthSummary } from './provider-health.service';
 import {
+  AgentPreferencesService,
+  AgentPreference,
+  AvailableModel,
+} from './agent-preferences.service';
+import {
   CreateProviderDto,
   createProviderSchema,
   UpdateProviderDto,
@@ -72,6 +77,7 @@ export class AIProvidersController {
     private readonly tokenUsageService: TokenUsageService,
     private readonly tokenLimitService: TokenLimitService,
     private readonly providerHealthService: ProviderHealthService,
+    private readonly agentPreferencesService: AgentPreferencesService,
   ) {}
 
   /**
@@ -445,5 +451,117 @@ export class AIProvidersController {
     );
 
     return result;
+  }
+
+  // ============================================
+  // Agent Model Preferences Endpoints
+  // ============================================
+
+  /**
+   * Get all agent preferences for a workspace
+   */
+  @Get('agents/preferences')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Get agent model preferences' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of agent preferences',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  async getAgentPreferences(
+    @CurrentWorkspace() workspace: { id: string },
+  ): Promise<{ data: AgentPreference[] }> {
+    const preferences = await this.agentPreferencesService.getAgentPreferences(
+      workspace.id,
+    );
+    return { data: preferences };
+  }
+
+  /**
+   * Get available models for agent preferences
+   */
+  @Get('agents/models')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Get available models for agents' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of available models',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  async getAvailableModels(
+    @CurrentWorkspace() workspace: { id: string },
+  ): Promise<{ data: AvailableModel[] }> {
+    const models = await this.agentPreferencesService.getAvailableModels(
+      workspace.id,
+    );
+    return { data: models };
+  }
+
+  /**
+   * Update model preference for a specific agent
+   */
+  @Patch('agents/:agentId/preference')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Update agent model preference' })
+  @ApiResponse({
+    status: 200,
+    description: 'Preference updated',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Agent or provider not found',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'agentId', description: 'Agent ID' })
+  async updateAgentPreference(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('agentId') agentId: string,
+    @Body() body: { providerId: string; model: string },
+  ): Promise<{ data: AgentPreference }> {
+    if (!body.providerId || !body.model) {
+      throw new BadRequestException('providerId and model are required');
+    }
+
+    const preference = await this.agentPreferencesService.updateAgentPreference(
+      workspace.id,
+      agentId,
+      body,
+    );
+
+    this.logger.log(
+      `Updated agent ${agentId} preference to ${body.providerId}/${body.model}`,
+    );
+
+    return { data: preference };
+  }
+
+  /**
+   * Reset agent preference to default
+   */
+  @Delete('agents/:agentId/preference')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Reset agent preference to default' })
+  @ApiResponse({
+    status: 200,
+    description: 'Preference reset to default',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Agent not found',
+  })
+  @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
+  @ApiParam({ name: 'agentId', description: 'Agent ID' })
+  async resetAgentPreference(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('agentId') agentId: string,
+  ): Promise<{ data: AgentPreference }> {
+    const preference = await this.agentPreferencesService.resetAgentPreference(
+      workspace.id,
+      agentId,
+    );
+
+    this.logger.log(`Reset agent ${agentId} preference to default`);
+
+    return { data: preference };
   }
 }
