@@ -17,7 +17,7 @@
  * Story: 07-8 - Implement Keyboard Shortcuts
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface KeyboardShortcutOptions {
   /** Accept Cmd (Mac) or Ctrl (Windows/Linux) - standard cross-platform modifier */
@@ -63,6 +63,11 @@ export function useKeyboardShortcut(
   options: KeyboardShortcutOptions,
   callback: () => void
 ) {
+  // Use ref to store callback to avoid re-registering listener on every render
+  // This allows callers to pass inline functions without memoizing
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
+
   useEffect(() => {
     const {
       meta = false,
@@ -100,7 +105,8 @@ export function useKeyboardShortcut(
         if (preventDefault) {
           event.preventDefault();
         }
-        callback();
+        // Use ref to get latest callback without adding it to dependencies
+        callbackRef.current();
       }
     };
 
@@ -109,7 +115,7 @@ export function useKeyboardShortcut(
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [key, options, callback]);
+  }, [key, options]); // callback removed from deps - using ref instead
 }
 
 /**

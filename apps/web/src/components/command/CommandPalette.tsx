@@ -120,8 +120,7 @@ export function CommandPalette() {
       label: 'New Contact',
       icon: UserPlus,
       onSelect: () => {
-        // Placeholder - will be implemented in CRM module
-        console.log('Creating new contact...');
+        // TODO: Implement in CRM module
         addToRecent('New Contact');
         closeCommandPalette();
       },
@@ -131,8 +130,7 @@ export function CommandPalette() {
       label: 'New Task',
       icon: Plus,
       onSelect: () => {
-        // Placeholder - will be implemented in task module
-        console.log('Creating new task...');
+        // TODO: Implement in task module
         addToRecent('New Task');
         closeCommandPalette();
       },

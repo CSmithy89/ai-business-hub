@@ -12,17 +12,29 @@
 'use client';
 
 import { memo } from 'react';
-import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
 import { formatChatTime } from '@/lib/date-utils';
 
 /**
  * Sanitize user-generated content to prevent XSS attacks
  * Strips all HTML tags and returns plain text
+ *
+ * SSR-safe: DOMPurify is only loaded client-side where window exists
  */
 function sanitizeContent(content: string): string {
-  // Use DOMPurify with ALLOWED_TAGS=[] to strip all HTML
-  // This is the safest approach for chat messages
+  // SSR guard: DOMPurify requires window/document
+  if (typeof window === 'undefined') {
+    // During SSR, return escaped content (no XSS risk on server)
+    return content
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  // Client-side: use DOMPurify for robust sanitization
+  // Dynamic import to avoid SSR issues
+   
+  const DOMPurify = require('dompurify');
   return DOMPurify.sanitize(content, { ALLOWED_TAGS: [] });
 }
 

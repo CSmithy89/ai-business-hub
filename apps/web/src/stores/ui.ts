@@ -6,9 +6,13 @@
  * - Chat panel open/close and width state
  * - Mobile menu state
  *
- * State persists in localStorage via Zustand persist middleware
+ * State persists in localStorage via Zustand persist middleware.
+ *
+ * SSR/Hydration: Uses skipHydration to prevent hydration mismatches.
+ * Components should use useUIStoreHydrated() to check if store is ready.
  */
 
+import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -94,6 +98,47 @@ export const useUIStore = create<UIState>()(
         chatPanelWidth: state.chatPanelWidth,
         chatPanelOpen: state.chatPanelOpen,
       }),
+      // Skip automatic hydration to prevent SSR mismatches
+      // Call useUIStore.persist.rehydrate() manually after mount
+      skipHydration: true,
     }
   )
 );
+
+/**
+ * Hook to check if the UI store has been hydrated from localStorage.
+ * Use this to prevent hydration mismatches with persisted state.
+ *
+ * @example
+ * ```tsx
+ * const isHydrated = useUIStoreHydrated();
+ * const { sidebarCollapsed } = useUIStore();
+ *
+ * // Use default until hydrated to prevent mismatch
+ * const actualCollapsed = isHydrated ? sidebarCollapsed : false;
+ * ```
+ */
+export function useUIStoreHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    // Rehydrate the store on mount
+    useUIStore.persist.rehydrate();
+
+    // Mark as hydrated after rehydration completes
+    const unsubFinishHydration = useUIStore.persist.onFinishHydration(() => {
+      setHydrated(true);
+    });
+
+    // Check if already hydrated (in case rehydrate was sync)
+    if (useUIStore.persist.hasHydrated()) {
+      setHydrated(true);
+    }
+
+    return () => {
+      unsubFinishHydration();
+    };
+  }, []);
+
+  return hydrated;
+}
