@@ -55,3 +55,7 @@ credentials.json
 *.pem
 *.key
 *.tsbuildinfo
+
+# Uploaded files (keep .gitkeep only)
+public/uploads/**/*
+!public/uploads/**/.gitkeep

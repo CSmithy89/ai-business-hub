@@ -70,7 +70,38 @@ export const businessCreateSchema = z.object({
   }),
 })
 
+/**
+ * Document Upload Schema (Step 4)
+ *
+ * Validates:
+ * - File type: PDF, DOCX, or MD only
+ * - File size: Max 10MB per file
+ * - File count: Max 5 files
+ */
+export const documentUploadSchema = z.object({
+  files: z
+    .array(z.instanceof(File))
+    .min(1, 'At least one file is required')
+    .max(5, 'Maximum 5 files allowed')
+    .refine(
+      (files) => files.every((f) => f.size <= 10 * 1024 * 1024),
+      'Each file must be less than 10MB'
+    )
+    .refine(
+      (files) =>
+        files.every((f) =>
+          [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/markdown',
+          ].includes(f.type)
+        ),
+      'Only PDF, DOCX, and MD files are allowed'
+    ),
+})
+
 // Type exports
 export type BusinessDetailsFormData = z.infer<typeof businessDetailsSchema>
 export type BusinessIdeaFormData = z.infer<typeof businessIdeaSchema>
 export type BusinessCreateData = z.infer<typeof businessCreateSchema>
+export type DocumentUploadData = z.infer<typeof documentUploadSchema>
