@@ -48,10 +48,16 @@ export class AIProvidersService {
   async findAll(workspaceId: string): Promise<ProviderResponseDto[]> {
     const providers = await this.prisma.aIProviderConfig.findMany({
       where: { workspaceId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' }, // Order by creation to determine default
     });
 
-    return providers.map(toProviderResponse);
+    // First valid provider is considered the default
+    let defaultSet = false;
+    return providers.map((provider) => {
+      const isDefault = !defaultSet && provider.isValid;
+      if (isDefault) defaultSet = true;
+      return toProviderResponse(provider, isDefault);
+    });
   }
 
   /**
@@ -72,7 +78,28 @@ export class AIProvidersService {
       throw new NotFoundException(`Provider with ID ${providerId} not found`);
     }
 
-    return toProviderResponse(provider);
+    // Check if this is the default provider (first valid one created)
+    const isDefault = await this.isDefaultProvider(workspaceId, providerId);
+    return toProviderResponse(provider, isDefault);
+  }
+
+  /**
+   * Check if a provider is the default (first valid provider in workspace)
+   */
+  private async isDefaultProvider(
+    workspaceId: string,
+    providerId: string,
+  ): Promise<boolean> {
+    const firstValidProvider = await this.prisma.aIProviderConfig.findFirst({
+      where: {
+        workspaceId,
+        isValid: true,
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+
+    return firstValidProvider?.id === providerId;
   }
 
   /**
@@ -115,7 +142,8 @@ export class AIProvidersService {
       `Created ${dto.provider} provider for workspace ${workspaceId}`,
     );
 
-    return toProviderResponse(provider);
+    // New provider is not valid yet, so can't be default
+    return toProviderResponse(provider, false);
   }
 
   /**
@@ -174,7 +202,8 @@ export class AIProvidersService {
       `Updated provider ${providerId} for workspace ${workspaceId}`,
     );
 
-    return toProviderResponse(provider);
+    const isDefault = await this.isDefaultProvider(workspaceId, providerId);
+    return toProviderResponse(provider, isDefault);
   }
 
   /**
@@ -302,5 +331,39 @@ export class AIProvidersService {
       apiKeyEncrypted: provider.apiKeyEncrypted,
       defaultModel: provider.defaultModel,
     });
+  }
+
+  /**
+   * Get decrypted API key for a provider
+   *
+   * @param workspaceId Workspace ID
+   * @param providerId Provider ID
+   * @returns Decrypted API key or null if not found
+   */
+  async getDecryptedApiKey(
+    workspaceId: string,
+    providerId: string,
+  ): Promise<string | null> {
+    const provider = await this.prisma.aIProviderConfig.findFirst({
+      where: {
+        id: providerId,
+        workspaceId,
+      },
+      select: {
+        apiKeyEncrypted: true,
+      },
+    });
+
+    if (!provider || !provider.apiKeyEncrypted) {
+      return null;
+    }
+
+    try {
+      const encryption = this.getEncryptionService();
+      return encryption.decrypt(provider.apiKeyEncrypted);
+    } catch (error) {
+      this.logger.error(`Failed to decrypt API key: ${error}`);
+      return null;
+    }
   }
 }

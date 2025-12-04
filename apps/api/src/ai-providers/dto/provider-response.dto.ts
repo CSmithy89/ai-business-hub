@@ -12,6 +12,7 @@ export interface ProviderResponseDto {
   id: string;
   provider: string;
   defaultModel: string;
+  isDefault: boolean; // Computed field: true if first valid provider in workspace
   isValid: boolean;
   lastValidatedAt: string | null;
   validationError: string | null;
@@ -33,23 +34,30 @@ export interface TestProviderResponseDto {
 
 /**
  * Transform database model to response DTO
+ *
+ * @param provider Database provider record
+ * @param isDefault Whether this is the default provider (computed externally)
  */
-export function toProviderResponse(provider: {
-  id: string;
-  provider: string;
-  defaultModel: string;
-  isValid: boolean;
-  lastValidatedAt: Date | null;
-  validationError: string | null;
-  maxTokensPerDay: number;
-  tokensUsedToday: number;
-  createdAt: Date;
-  updatedAt: Date;
-}): ProviderResponseDto {
+export function toProviderResponse(
+  provider: {
+    id: string;
+    provider: string;
+    defaultModel: string;
+    isValid: boolean;
+    lastValidatedAt: Date | null;
+    validationError: string | null;
+    maxTokensPerDay: number;
+    tokensUsedToday: number;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+  isDefault: boolean = false,
+): ProviderResponseDto {
   return {
     id: provider.id,
     provider: provider.provider,
     defaultModel: provider.defaultModel,
+    isDefault,
     isValid: provider.isValid,
     lastValidatedAt: provider.lastValidatedAt?.toISOString() ?? null,
     validationError: provider.validationError,

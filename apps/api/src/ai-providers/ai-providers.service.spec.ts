@@ -98,7 +98,7 @@ describe('AIProvidersService', () => {
       expect(result[0].provider).toBe('claude');
       expect(prismaService.aIProviderConfig.findMany).toHaveBeenCalledWith({
         where: { workspaceId: mockWorkspaceId },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
       });
     });
 
