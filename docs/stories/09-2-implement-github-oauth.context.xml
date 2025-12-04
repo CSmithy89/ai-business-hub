@@ -1,0 +1,547 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story>
+    <id>09-2</id>
+    <title>Implement GitHub OAuth</title>
+    <status>ready-for-dev</status>
+    <points>2</points>
+    <priority>P2</priority>
+  </story>
+
+  <objective>
+    Enable users to sign in with their GitHub accounts using better-auth's built-in GitHub OAuth provider. This is particularly useful for developer users who prefer GitHub authentication.
+  </objective>
+
+  <implementation-guide>
+    <step order="1">
+      <action>Configure GitHub OAuth provider in better-auth server config</action>
+      <file>apps/web/src/lib/auth.ts</file>
+      <details>
+        Add github provider to socialProviders config (after microsoft provider, lines 64-69).
+        Follow the existing Google and Microsoft OAuth pattern.
+        Use environment variables for client credentials.
+      </details>
+      <code-reference>
+        <existing>
+          socialProviders: {
+            google: {
+              clientId: process.env.GOOGLE_CLIENT_ID!,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+              redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/google`,
+            },
+            microsoft: {
+              clientId: process.env.MICROSOFT_CLIENT_ID!,
+              clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
+              redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/microsoft`,
+            },
+          }
+        </existing>
+        <add-after>
+          github: {
+            clientId: process.env.GITHUB_CLIENT_ID!,
+            clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+            redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/github`,
+          }
+        </add-after>
+      </code-reference>
+    </step>
+
+    <step order="2">
+      <action>Add GitHub sign-in button to SignInForm component</action>
+      <file>apps/web/src/components/auth/sign-in-form.tsx</file>
+      <details>
+        Add a handleGitHubSignIn function following the handleMicrosoftSignIn pattern (lines 108-122).
+        Add GitHub button in the social sign-in buttons section (after Microsoft button, after line 192).
+        Use the GitHub icon SVG provided below.
+        Add loading state (isGitHubLoading) and error handling matching other OAuth implementations.
+        Disable all OAuth buttons during any OAuth operation.
+      </details>
+      <code-reference>
+        <new-state>
+          const [isGitHubLoading, setIsGitHubLoading] = useState(false)
+        </new-state>
+        <new-function>
+          const handleGitHubSignIn = async () => {
+            setIsGitHubLoading(true)
+            setError(null)
+            try {
+              await authClient.signIn.social({
+                provider: 'github',
+                callbackURL: '/dashboard',
+              })
+              // Redirect happens automatically
+            } catch (error) {
+              console.error('GitHub sign-in error:', error)
+              setError('OAUTH_ERROR')
+              setIsGitHubLoading(false)
+            }
+          }
+        </new-function>
+        <new-button>
+          &lt;Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleGitHubSignIn}
+            disabled={isGitHubLoading || isSubmitting || isGoogleLoading || isMicrosoftLoading}
+          &gt;
+            {isGitHubLoading ? (
+              &lt;&gt;
+                &lt;Loader2 className="w-4 h-4 mr-2 animate-spin" /&gt;
+                Connecting to GitHub...
+              &lt;/&gt;
+            ) : (
+              &lt;&gt;
+                &lt;svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor"&gt;
+                  &lt;path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" /&gt;
+                &lt;/svg&gt;
+                Continue with GitHub
+              &lt;/&gt;
+            )}
+          &lt;/Button&gt;
+        </new-button>
+      </code-reference>
+    </step>
+
+    <step order="3">
+      <action>Add GitHub button to SignUpPage</action>
+      <file>apps/web/src/app/(auth)/sign-up/page.tsx</file>
+      <details>
+        Add a new GitHub button after the Microsoft button (after line 62).
+        Use the same onClick pattern as Microsoft button.
+        Include the GitHub SVG icon.
+      </details>
+      <code-reference>
+        <add-after-microsoft>
+          &lt;Button
+            variant="outline"
+            className="w-full"
+            onClick={() => (window.location.href = '/api/auth/signin/github')}
+          &gt;
+            &lt;svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor"&gt;
+              &lt;path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" /&gt;
+            &lt;/svg&gt;
+            Continue with GitHub
+          &lt;/Button&gt;
+        </add-after-microsoft>
+      </code-reference>
+    </step>
+
+    <step order="4">
+      <action>Update environment variables example file</action>
+      <file>apps/web/.env.example</file>
+      <details>
+        Add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET variables.
+        Include comments about GitHub OAuth App setup.
+      </details>
+      <code-reference>
+        <add>
+          # GitHub OAuth
+          GITHUB_CLIENT_ID=
+          GITHUB_CLIENT_SECRET=
+        </add>
+      </code-reference>
+    </step>
+
+    <step order="5">
+      <action>Test OAuth flow manually</action>
+      <details>
+        1. Set up GitHub OAuth App (see github-oauth-setup section)
+        2. Add environment variables to .env.local
+        3. Restart dev server
+        4. Test sign-in with GitHub button
+        5. Verify callback creates user account
+        6. Test account linking (same email)
+        7. Test with both personal and organization GitHub accounts
+      </details>
+    </step>
+  </implementation-guide>
+
+  <existing-code>
+    <file path="apps/web/src/lib/auth.ts">
+      <description>Better-auth server configuration with Google and Microsoft OAuth configured</description>
+      <relevant-sections>
+        <section name="OAuth Configuration" lines="57-69">
+          socialProviders: {
+            google: {
+              clientId: process.env.GOOGLE_CLIENT_ID!,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+              redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/google`,
+            },
+            microsoft: {
+              clientId: process.env.MICROSOFT_CLIENT_ID!,
+              clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
+              redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/microsoft`,
+            },
+          }
+          // Add github here
+        </section>
+      </relevant-sections>
+    </file>
+
+    <file path="apps/web/src/components/auth/sign-in-form.tsx">
+      <description>Sign-in form with Google and Microsoft OAuth buttons</description>
+      <relevant-sections>
+        <section name="State Management" lines="22-24">
+          const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+          const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false)
+          // Add: const [isGitHubLoading, setIsGitHubLoading] = useState(false)
+        </section>
+        <section name="Microsoft OAuth Handler" lines="108-122">
+          const handleMicrosoftSignIn = async () => {
+            setIsMicrosoftLoading(true)
+            setError(null)
+            try {
+              await authClient.signIn.social({
+                provider: 'microsoft',
+                callbackURL: '/dashboard',
+              })
+            } catch (error) {
+              console.error('Microsoft sign-in error:', error)
+              setError('OAUTH_ERROR')
+              setIsMicrosoftLoading(false)
+            }
+          }
+          // Pattern to follow for GitHub
+        </section>
+        <section name="Social Buttons Section" lines="133-192">
+          &lt;div className="space-y-3"&gt;
+            {/* Google button */}
+            {/* Microsoft button */}
+            {/* Add GitHub button here */}
+          &lt;/div&gt;
+        </section>
+      </relevant-sections>
+    </file>
+
+    <file path="apps/web/src/app/(auth)/sign-up/page.tsx">
+      <description>Sign-up page with Google and Microsoft buttons</description>
+      <relevant-sections>
+        <section name="Microsoft Button" lines="52-62">
+          &lt;Button
+            variant="outline"
+            className="w-full"
+            onClick={() => (window.location.href = '/api/auth/signin/microsoft')}
+          &gt;
+            {/* Microsoft icon and text */}
+          &lt;/Button&gt;
+          // Add GitHub button after this
+        </section>
+      </relevant-sections>
+    </file>
+  </existing-code>
+
+  <code-patterns>
+    <pattern name="GitHub Icon SVG">
+      <description>GitHub Octocat logo in monochrome</description>
+      <svg>
+        &lt;svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor"&gt;
+          &lt;path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" /&gt;
+        &lt;/svg&gt;
+      </svg>
+    </pattern>
+
+    <pattern name="OAuth Button Order">
+      <description>Consistent button order across sign-in and sign-up pages</description>
+      <order>
+        1. Google (established standard, highest adoption)
+        2. Microsoft (enterprise focus)
+        3. GitHub (developer focus)
+      </order>
+    </pattern>
+  </code-patterns>
+
+  <environment-variables>
+    <variable name="GITHUB_CLIENT_ID" required="true">
+      <description>GitHub OAuth App Client ID</description>
+      <location>GitHub → Settings → Developer settings → OAuth Apps → Client ID</location>
+    </variable>
+    <variable name="GITHUB_CLIENT_SECRET" required="true">
+      <description>GitHub OAuth App Client Secret</description>
+      <location>GitHub → Settings → Developer settings → OAuth Apps → Client secrets</location>
+      <security>Store securely, never commit to git</security>
+    </variable>
+    <variable name="BETTER_AUTH_URL" required="true" existing="true">
+      <description>Base URL for OAuth callbacks</description>
+      <value>http://localhost:3000 (dev) or production URL</value>
+    </variable>
+  </environment-variables>
+
+  <github-oauth-setup>
+    <step order="1">
+      <action>Navigate to GitHub Developer Settings</action>
+      <url>https://github.com/settings/developers</url>
+      <details>
+        1. Go to your GitHub account settings
+        2. Click "Developer settings" in the left sidebar
+        3. Click "OAuth Apps"
+        4. Click "New OAuth App"
+      </details>
+    </step>
+
+    <step order="2">
+      <action>Register OAuth Application</action>
+      <details>
+        Fill in the application details:
+
+        - Application name: "HYVVE Platform" (or your app name)
+        - Homepage URL: http://localhost:3000 (for dev) or your production URL
+        - Application description: "AI-powered business automation platform" (optional)
+        - Authorization callback URL: http://localhost:3000/api/auth/callback/github
+
+        Click "Register application"
+      </details>
+    </step>
+
+    <step order="3">
+      <action>Copy Client ID</action>
+      <details>
+        From the OAuth App page, copy the Client ID.
+        This is your GITHUB_CLIENT_ID.
+      </details>
+    </step>
+
+    <step order="4">
+      <action>Generate Client Secret</action>
+      <details>
+        1. Click "Generate a new client secret"
+        2. IMPORTANT: Copy the secret immediately (it won't be shown again)
+        3. This is your GITHUB_CLIENT_SECRET
+        4. Store it securely in your .env.local file
+      </details>
+    </step>
+
+    <step order="5">
+      <action>Add Production Callback URL</action>
+      <details>
+        When deploying to production:
+        1. Return to the OAuth App settings
+        2. Add production callback URL: https://your-domain.com/api/auth/callback/github
+        3. You can have multiple callback URLs registered
+      </details>
+    </step>
+
+    <note>
+      GitHub OAuth automatically requests:
+      - user:email scope (read user's email addresses)
+      - read:user scope (read user profile data)
+
+      These are the default scopes and provide sufficient access for authentication.
+      No additional scope configuration needed.
+    </note>
+  </github-oauth-setup>
+
+  <testing-checklist>
+    <manual-tests>
+      <test>GitHub button appears on sign-in page</test>
+      <test>GitHub button appears on sign-up page</test>
+      <test>Button appears after Google and Microsoft (third position)</test>
+      <test>Clicking button redirects to GitHub authorization page</test>
+      <test>Successful GitHub auth creates new user account</test>
+      <test>GitHub auth with existing email links to existing user</test>
+      <test>User can sign in with GitHub after initial setup</test>
+      <test>Error messages display for failed OAuth attempts</test>
+      <test>Button shows loading state during OAuth flow</test>
+      <test>All OAuth buttons disabled during GitHub OAuth flow</test>
+      <test>Works with personal GitHub accounts</test>
+      <test>Works with GitHub Enterprise accounts</test>
+      <test>Primary email from GitHub is used for account</test>
+      <test>Button styling matches Google and Microsoft buttons</test>
+    </manual-tests>
+
+    <unit-tests>
+      <test file="apps/web/src/lib/__tests__/oauth-providers.test.ts">
+        Test that github provider config has valid clientId and redirectURI
+      </test>
+    </unit-tests>
+
+    <integration-tests>
+      <test file="apps/web/tests/e2e/oauth-signin.spec.ts">
+        Test complete GitHub OAuth flow from button click to dashboard redirect
+      </test>
+    </integration-tests>
+  </testing-checklist>
+
+  <security-considerations>
+    <consideration>
+      <title>Email Verification</title>
+      <description>
+        GitHub OAuth accounts come with verified emails by default.
+        Better-auth sets emailVerified=true automatically for OAuth accounts.
+        GitHub provides the user's primary verified email address.
+      </description>
+    </consideration>
+
+    <consideration>
+      <title>Account Linking via Email</title>
+      <description>
+        When a user signs in with GitHub using an email that already exists in the system,
+        better-auth automatically links the GitHub account to the existing user.
+        This is handled by the organization plugin and is secure because GitHub emails are verified.
+      </description>
+    </consideration>
+
+    <consideration>
+      <title>Scope Permissions</title>
+      <description>
+        GitHub OAuth requests minimal scopes (user:email, read:user).
+        These scopes only allow reading public profile and email - no repo access.
+        This follows the principle of least privilege.
+      </description>
+    </consideration>
+
+    <consideration>
+      <title>Token Storage</title>
+      <description>
+        GitHub access tokens are stored in the Account model.
+        Tokens are automatically refreshed by better-auth if refresh tokens are available.
+        Never expose tokens in client-side code or logs.
+      </description>
+    </consideration>
+
+    <consideration>
+      <title>Callback URL Validation</title>
+      <description>
+        GitHub validates callback URLs against registered list in OAuth App settings.
+        URLs must match exactly (including protocol and path).
+        Register both dev and prod URLs in GitHub OAuth App settings.
+      </description>
+    </consideration>
+  </security-considerations>
+
+  <acceptance-criteria>
+    <criterion status="pending">GitHub OAuth provider configured in auth.ts</criterion>
+    <criterion status="pending">GitHub button added to sign-in page (third position)</criterion>
+    <criterion status="pending">GitHub button added to sign-up page (third position)</criterion>
+    <criterion status="pending">OAuth callback creates user account</criterion>
+    <criterion status="pending">Account linking works for existing users with same email</criterion>
+    <criterion status="pending">Button styling matches Google and Microsoft buttons</criterion>
+  </acceptance-criteria>
+
+  <wireframe-reference>
+    <wireframe id="AU-01" name="Sign-In Page">
+      <location>docs/design/wireframes/Finished wireframes and html files/au-01_login_page/</location>
+      <note>Original wireframe shows Google and Microsoft. GitHub should be added following the same pattern.</note>
+    </wireframe>
+    <wireframe id="AU-02" name="Sign-Up Page">
+      <location>docs/design/wireframes/Finished wireframes and html files/au-02_register/sign_up/</location>
+      <note>Original wireframe shows Google and Microsoft. GitHub should be added as third option.</note>
+    </wireframe>
+  </wireframe-reference>
+
+  <dependencies>
+    <dependency type="epic" status="complete">
+      <id>EPIC-01</id>
+      <name>Authentication System</name>
+      <note>Better-auth infrastructure already in place</note>
+    </dependency>
+
+    <dependency type="story" status="complete">
+      <id>01-5</id>
+      <name>Implement Google OAuth</name>
+      <note>Established OAuth pattern and infrastructure</note>
+    </dependency>
+
+    <dependency type="story" status="complete">
+      <id>09-1</id>
+      <name>Implement Microsoft OAuth</name>
+      <note>Provides immediate pattern to follow for GitHub OAuth</note>
+    </dependency>
+  </dependencies>
+
+  <related-stories>
+    <story id="09-1" name="Implement Microsoft OAuth">
+      <relationship>Same implementation pattern, different provider</relationship>
+    </story>
+    <story id="09-7" name="Implement Account Linking">
+      <relationship>Builds on multi-provider support enabled by this story</relationship>
+    </story>
+  </related-stories>
+
+  <technical-notes>
+    <note>
+      <title>GitHub OAuth Simplicity</title>
+      <content>
+        GitHub OAuth is simpler than Microsoft OAuth because:
+        - No tenant configuration needed (unlike Azure AD)
+        - Single endpoint for all users
+        - Automatic email verification
+        - Default scopes are sufficient for authentication
+      </content>
+    </note>
+
+    <note>
+      <title>Better-Auth GitHub Support</title>
+      <content>
+        Better-auth has built-in support for GitHub OAuth.
+        No need to install additional packages.
+        The github provider is part of the core better-auth library.
+        Configuration is identical to other social providers.
+      </content>
+    </note>
+
+    <note>
+      <title>GitHub Email Selection</title>
+      <content>
+        GitHub provides the user's primary verified email address.
+        Users with multiple emails on GitHub: the primary email is used.
+        If the primary email is not verified, OAuth will fail (GitHub requirement).
+      </content>
+    </note>
+
+    <note>
+      <title>Developer Audience</title>
+      <content>
+        GitHub OAuth is particularly popular among technical users and developers.
+        This aligns well with HYVVE's AI automation platform which appeals to technical teams.
+        Consider promoting GitHub sign-in to developer-focused marketing materials.
+      </content>
+    </note>
+  </technical-notes>
+
+  <implementation-hints>
+    <hint>Follow the Microsoft OAuth pattern exactly - it's the most recent implementation</hint>
+    <hint>GitHub OAuth setup is faster than Azure AD - good for quick testing</hint>
+    <hint>The GitHub icon SVG is monochrome - no need for multi-color logos</hint>
+    <hint>Test with accounts that have multiple emails to verify primary email is used</hint>
+    <hint>Reuse the same error handling pattern as Microsoft OAuth (generic OAUTH_ERROR)</hint>
+    <hint>Better-auth handles all OAuth complexity - just provide credentials and callback URL</hint>
+    <hint>Add GitHub button as third option to maintain consistent ordering</hint>
+  </implementation-hints>
+
+  <rollback-plan>
+    <step>If issues occur, comment out github provider in auth.ts</step>
+    <step>Remove GitHub buttons from UI (or comment them out)</step>
+    <step>No database changes needed - Account model already supports this</step>
+    <step>Can be re-enabled without data loss once issues are resolved</step>
+    <step>Independent of Microsoft and Google OAuth - disabling one doesn't affect others</step>
+  </rollback-plan>
+
+  <documentation-requirements>
+    <requirement>Update .env.example with GitHub OAuth variables</requirement>
+    <requirement>Document GitHub OAuth App setup process for other developers</requirement>
+    <requirement>Add GitHub OAuth to authentication architecture docs</requirement>
+    <requirement>Include GitHub option in user onboarding guides</requirement>
+    <requirement>Update API documentation with GitHub provider option</requirement>
+  </documentation-requirements>
+
+  <success-metrics>
+    <metric>GitHub OAuth button functional on both sign-in and sign-up pages</metric>
+    <metric>Users can successfully authenticate with GitHub accounts</metric>
+    <metric>Account linking works seamlessly for existing users</metric>
+    <metric>Zero authentication errors in logs after implementation</metric>
+    <metric>Button UI consistent with Google and Microsoft buttons</metric>
+    <metric>GitHub button appears as third option (after Google and Microsoft)</metric>
+  </success-metrics>
+
+  <comparison-with-microsoft>
+    <similarity>Same better-auth configuration pattern</similarity>
+    <similarity>Same button implementation pattern</similarity>
+    <similarity>Same error handling approach</similarity>
+    <similarity>Same account linking behavior</similarity>
+    <difference>GitHub OAuth setup is simpler (no Azure AD tenant complexity)</difference>
+    <difference>GitHub icon is monochrome vs Microsoft's 4-color logo</difference>
+    <difference>GitHub has different scopes (user:email vs Microsoft's User.Read)</difference>
+    <difference>GitHub callback URL is simpler (no tenant parameter)</difference>
+  </comparison-with-microsoft>
+</story-context>

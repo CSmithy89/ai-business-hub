@@ -54,7 +54,7 @@ export const auth = betterAuth({
     },
   },
 
-  // OAuth configuration - Google OAuth (Story 01.5), Microsoft OAuth (Story 09.1)
+  // OAuth configuration - Google OAuth (Story 01.5), Microsoft OAuth (Story 09.1), GitHub OAuth (Story 09.2)
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -65,6 +65,11 @@ export const auth = betterAuth({
       clientId: process.env.MICROSOFT_CLIENT_ID!,
       clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
       redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/microsoft`,
+    },
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/github`,
     },
   },
 })
