@@ -201,3 +201,32 @@ development_status:
   08-23-implement-onboarding-completion-and-handoff-to-bm-pm: backlog
 
   epic-08-retrospective: optional
+
+  # ===========================================
+  # EPIC-09: UI & Authentication Enhancements
+  # Post-MVP Enhancement | 15 stories | 42 points
+  # ===========================================
+  epic-09: contexted
+
+  # Authentication Enhancements (8 stories, 21 points)
+  09-1-implement-microsoft-oauth: backlog
+  09-2-implement-github-oauth: backlog
+  09-3-implement-two-factor-authentication-setup: backlog
+  09-4-implement-two-factor-authentication-login: backlog
+  09-5-implement-2fa-management: backlog
+  09-6-implement-magic-link-authentication: backlog
+  09-7-implement-account-linking: backlog
+  09-8-implement-otp-code-verification: backlog
+
+  # Team Members UI Enhancements (5 stories, 11 points)
+  09-9-implement-team-members-stats-cards: backlog
+  09-10-implement-team-members-search-and-filters: backlog
+  09-11-implement-invite-member-modal: backlog
+  09-12-implement-pending-invitations-section: backlog
+  09-13-add-last-active-and-status-to-members-table: backlog
+
+  # Advanced RBAC (2 stories, 8 points)
+  09-14-implement-custom-role-creation: backlog
+  09-15-implement-permission-templates: backlog
+
+  epic-09-retrospective: optional
