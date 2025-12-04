@@ -165,7 +165,7 @@ development_status:
   # Phase 5-6 | 23 stories | 82 points
   # BMV (Validation) + BMP (Planning) + BM-Brand (Branding)
   # ===========================================
-  epic-08: backlog
+  epic-08: contexted
 
   # Section 1: Foundation Infrastructure (4 stories, 18 points)
   08-1-create-business-onboarding-database-models: backlog
