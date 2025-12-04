@@ -152,7 +152,7 @@ development_status:
   07-2-create-sidebar-navigation: done
   07-3-create-header-bar: done
   07-4-implement-chat-panel: done
-  07-5-implement-dark-light-mode: backlog
+  07-5-implement-dark-light-mode: done
   07-6-create-command-palette: backlog
   07-7-create-notification-center: backlog
   07-8-implement-keyboard-shortcuts: backlog

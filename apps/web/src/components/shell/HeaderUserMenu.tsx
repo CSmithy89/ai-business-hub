@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ThemeToggleItems } from '@/components/theme/ThemeToggle';
 
 // Mock user data - will be replaced with auth session
 function useCurrentUser() {
@@ -73,6 +74,8 @@ export function HeaderUserMenu() {
             Settings
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <ThemeToggleItems />
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="text-destructive focus:text-destructive"

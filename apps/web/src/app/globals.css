@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @import '../../../../src/styles/tokens.css';
 
-/* Base styles with warm cream background */
+/* Base styles with theme support */
 @layer base {
   html {
     font-family: var(--font-sans);
@@ -10,7 +10,14 @@
   }
 
   body {
-    background-color: rgb(var(--color-bg-cream));
+    background-color: rgb(var(--color-bg-primary));
+    color: rgb(var(--color-text-primary));
+    transition: background-color 150ms ease-in-out, color 150ms ease-in-out;
+  }
+
+  /* Dark mode support */
+  .dark body {
+    background-color: rgb(var(--color-bg-primary));
     color: rgb(var(--color-text-primary));
   }
 }
