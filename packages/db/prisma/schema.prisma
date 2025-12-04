@@ -219,6 +219,8 @@ model TokenUsage {
   @@index([workspaceId])
   @@index([providerId])
   @@index([requestedAt])
+  @@index([providerId, requestedAt]) // Composite index for provider usage queries
+  @@index([workspaceId, requestedAt]) // Composite index for workspace usage queries
   @@map("token_usage")
 }
 

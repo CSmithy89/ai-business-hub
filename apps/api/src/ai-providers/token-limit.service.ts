@@ -112,6 +112,12 @@ export class TokenLimitService {
    * Enforce token limit before making an AI request.
    * Throws TokenLimitExceededError if limit is exceeded.
    * Emits warning event at 80% threshold.
+   *
+   * NOTE: This is soft enforcement for usage tracking, not a security boundary.
+   * There is a small window between check and token recording where concurrent
+   * requests could slip through. This is intentional - going slightly over the
+   * daily limit is acceptable, and adding Redis atomic operations would add
+   * unnecessary complexity for a non-critical advisory feature.
    */
   async enforceLimit(
     providerId: string,

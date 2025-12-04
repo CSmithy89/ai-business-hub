@@ -336,6 +336,11 @@ export class AIProvidersService {
   /**
    * Get decrypted API key for a provider
    *
+   * @internal This method is for INTERNAL USE ONLY. It exposes decrypted
+   * API keys and should NEVER be exposed through public APIs or returned
+   * to clients. Only use this for server-to-server communication with
+   * AI providers or internal agent operations.
+   *
    * @param workspaceId Workspace ID
    * @param providerId Provider ID
    * @returns Decrypted API key or null if not found
