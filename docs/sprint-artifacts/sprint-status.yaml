@@ -179,8 +179,8 @@ development_status:
   08-7-implement-idea-intake-workflow: done
   08-8-implement-market-sizing-workflow: done
   08-9-implement-competitor-mapping-workflow: done
-  08-10-implement-customer-discovery-workflow: backlog
-  08-11-implement-validation-synthesis-workflow: backlog
+  08-10-implement-customer-discovery-workflow: done
+  08-11-implement-validation-synthesis-workflow: done
 
   # Section 3: Planning Team - BMP (5 stories, 17 points)
   08-12-implement-planning-team-agno-configuration: backlog
