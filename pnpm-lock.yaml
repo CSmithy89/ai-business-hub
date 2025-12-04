@@ -46,7 +46,7 @@ importers:
     dependencies:
       '@anthropic-ai/sdk':
         specifier: ^0.71.0
-        version: 0.71.0(zod@4.1.13)
+        version: 0.71.0(zod@3.25.76)
       '@google/generative-ai':
         specifier: ^0.24.1
         version: 0.24.1
@@ -100,7 +100,7 @@ importers:
         version: 0.14.3
       openai:
         specifier: ^6.9.1
-        version: 6.9.1(zod@4.1.13)
+        version: 6.9.1(zod@3.25.76)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -110,6 +110,9 @@ importers:
       uuid:
         specifier: ^13.0.0
         version: 13.0.0
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
     devDependencies:
       '@nestjs/cli':
         specifier: ^10.0.0
@@ -6484,6 +6487,9 @@ packages:
     resolution: {integrity: sha512-CzhO+pFNo8ajLM2d2IW/R93ipy99LWjtwblvC1RsoSUMZgyLbYFr221TnSNT7GjGdYui6P459mw9JH/g/zW2ug==}
     engines: {node: '>=18'}
 
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
   zod@4.1.13:
     resolution: {integrity: sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig==}
 
@@ -6523,11 +6529,11 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@anthropic-ai/sdk@0.71.0(zod@4.1.13)':
+  '@anthropic-ai/sdk@0.71.0(zod@3.25.76)':
     dependencies:
       json-schema-to-ts: 3.1.1
     optionalDependencies:
-      zod: 4.1.13
+      zod: 3.25.76
 
   '@babel/code-frame@7.27.1':
     dependencies:
@@ -11690,9 +11696,9 @@ snapshots:
     dependencies:
       mimic-function: 5.0.1
 
-  openai@6.9.1(zod@4.1.13):
+  openai@6.9.1(zod@3.25.76):
     optionalDependencies:
-      zod: 4.1.13
+      zod: 3.25.76
 
   optionator@0.9.4:
     dependencies:
@@ -13240,5 +13246,7 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   yoctocolors@2.1.2: {}
+
+  zod@3.25.76: {}
 
   zod@4.1.13: {}

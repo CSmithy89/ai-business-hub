@@ -29,19 +29,19 @@ export const createProviderSchema = z.object({
 
   apiKey: z
     .string()
-    .min(1, 'API key is required')
-    .max(500, 'API key is too long'),
+    .min(1, { message: 'API key is required' })
+    .max(500, { message: 'API key is too long' }),
 
   defaultModel: z
     .string()
-    .min(1, 'Default model is required')
-    .max(100, 'Model name is too long'),
+    .min(1, { message: 'Default model is required' })
+    .max(100, { message: 'Model name is too long' }),
 
   maxTokensPerDay: z
     .number()
     .int()
-    .min(1000, 'Minimum tokens per day is 1000')
-    .max(10_000_000, 'Maximum tokens per day is 10 million')
+    .min(1000, { message: 'Minimum tokens per day is 1000' })
+    .max(10_000_000, { message: 'Maximum tokens per day is 10 million' })
     .optional()
     .default(100_000),
 });
