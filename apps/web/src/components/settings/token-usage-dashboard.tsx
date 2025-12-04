@@ -18,6 +18,7 @@ import {
   Legend,
 } from 'recharts'
 import { Download, RefreshCw, Calendar } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -32,6 +33,12 @@ import { useUsageStats, useDailyUsage, useUsageByAgent, DailyUsage, AgentUsage }
 import { useAIProviders, PROVIDER_INFO } from '@/hooks/use-ai-providers'
 
 const CHART_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
+
+/**
+ * Maximum rows to export in CSV to prevent browser memory issues.
+ * For datasets larger than this, users should use the API directly.
+ */
+const MAX_CSV_EXPORT_ROWS = 1000
 
 /**
  * Sanitize a value for CSV export to prevent CSV injection attacks.
@@ -130,18 +137,40 @@ export function TokenUsageDashboard() {
   const handleExportCSV = () => {
     if (!dailyUsage.length) return
 
+    // Limit export size to prevent browser memory issues
+    const isTruncated = dailyUsage.length > MAX_CSV_EXPORT_ROWS
+    const exportData = isTruncated
+      ? dailyUsage.slice(0, MAX_CSV_EXPORT_ROWS)
+      : dailyUsage
+
+    if (isTruncated) {
+      toast.warning(
+        `Export limited to ${MAX_CSV_EXPORT_ROWS} of ${dailyUsage.length} rows. Use the API for complete data.`,
+        { duration: 5000 }
+      )
+    }
+
     const headers = ['Date', 'Total Tokens', 'Estimated Cost ($)', 'Request Count']
-    const rows = dailyUsage.map((d: DailyUsage) => [
+    const rows = exportData.map((d: DailyUsage) => [
       sanitizeCSVValue(d.date),
       sanitizeCSVValue(d.totalTokens),
       sanitizeCSVValue(d.totalCost.toFixed(4)),
       sanitizeCSVValue(d.requestCount),
     ])
 
-    const csv = [
-      headers.map(h => sanitizeCSVValue(h)).join(','),
-      ...rows.map((r) => r.join(','))
-    ].join('\n')
+    // Add truncation notice as first row if data was limited
+    const csvRows = isTruncated
+      ? [
+          `"Note: Export limited to ${MAX_CSV_EXPORT_ROWS} of ${dailyUsage.length} rows. For complete data, use GET /api/workspaces/{workspaceId}/token-usage"`,
+          headers.map(h => sanitizeCSVValue(h)).join(','),
+          ...rows.map((r) => r.join(','))
+        ]
+      : [
+          headers.map(h => sanitizeCSVValue(h)).join(','),
+          ...rows.map((r) => r.join(','))
+        ]
+
+    const csv = csvRows.join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
