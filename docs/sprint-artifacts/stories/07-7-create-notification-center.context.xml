@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story>
+    <id>07-7-create-notification-center</id>
+    <title>Create Notification Center</title>
+    <epic>EPIC-07 - UI Shell</epic>
+    <status>done</status>
+    <points>2</points>
+  </story>
+
+  <technical-context>
+    <architecture>
+      <component name="NotificationCenter">
+        <location>apps/web/src/components/notifications/NotificationCenter.tsx</location>
+        <purpose>Main notification dropdown component with popover</purpose>
+        <dependencies>
+          <dependency>shadcn/ui Popover</dependency>
+          <dependency>use-notifications hook</dependency>
+          <dependency>NotificationList component</dependency>
+        </dependencies>
+      </component>
+
+      <component name="NotificationList">
+        <location>apps/web/src/components/notifications/NotificationList.tsx</location>
+        <purpose>Groups notifications by time period and renders items</purpose>
+        <dependencies>
+          <dependency>NotificationItem component</dependency>
+          <dependency>date-fns for time grouping</dependency>
+        </dependencies>
+      </component>
+
+      <component name="NotificationItem">
+        <location>apps/web/src/components/notifications/NotificationItem.tsx</location>
+        <purpose>Individual notification display with type icon and actions</purpose>
+        <dependencies>
+          <dependency>Material Symbols icons</dependency>
+        </dependencies>
+      </component>
+
+      <component name="use-notifications">
+        <location>apps/web/src/hooks/use-notifications.ts</location>
+        <purpose>Hook for notification state management with mock data</purpose>
+        <dependencies>
+          <dependency>React useState</dependency>
+        </dependencies>
+      </component>
+    </architecture>
+
+    <design-tokens>
+      <token name="Colors">
+        <value>rgb(var(--color-bg-primary))</value>
+        <value>rgb(var(--color-bg-secondary))</value>
+        <value>rgb(var(--color-text-primary))</value>
+        <value>rgb(var(--color-text-secondary))</value>
+        <value>rgb(var(--color-primary-500))</value>
+        <value>rgb(var(--color-border-default))</value>
+      </token>
+      <token name="Icons">Material Symbols Rounded</token>
+      <token name="Shadows">var(--shadow-lg)</token>
+      <token name="Border Radius">var(--radius-lg)</token>
+    </design-tokens>
+
+    <notification-types>
+      <type name="approval" icon="task_alt" priority="high" />
+      <type name="system" icon="info" priority="medium" />
+      <type name="mention" icon="alternate_email" priority="high" />
+      <type name="update" icon="refresh" priority="low" />
+    </notification-types>
+
+    <time-grouping>
+      <group name="Just now" condition="&lt; 5 minutes" />
+      <group name="Today" condition="same day, &gt;= 5 minutes" />
+      <group name="Yesterday" condition="previous day" />
+      <group name="This Week" condition="last 7 days" />
+      <group name="Earlier" condition="&gt; 7 days" />
+    </time-grouping>
+  </technical-context>
+
+  <related-files>
+    <file path="apps/web/src/components/shell/HeaderNotificationBell.tsx">
+      Existing notification bell - will be updated to use NotificationCenter
+    </file>
+    <file path="apps/web/src/stores/ui.ts">
+      UI state store pattern for reference
+    </file>
+    <file path="apps/web/src/components/ui/popover.tsx">
+      shadcn/ui Popover component
+    </file>
+    <file path="src/styles/tokens.css">
+      Design tokens and CSS variables
+    </file>
+    <file path="docs/design/wireframes/Finished wireframes and html files/pm-16_notifications_center/code.html">
+      Wireframe reference for notification center design
+    </file>
+  </related-files>
+
+  <acceptance-criteria>
+    <criterion id="1" status="met">NotificationCenter component renders</criterion>
+    <criterion id="2" status="met">Dropdown from header bell icon</criterion>
+    <criterion id="3" status="met">Lists notifications with icon, title, message, timestamp, read/unread indicator</criterion>
+    <criterion id="4" status="met">Mark as read on click</criterion>
+    <criterion id="5" status="met">"Mark all as read" button at top</criterion>
+    <criterion id="6" status="met">Empty state when no notifications</criterion>
+    <criterion id="7" status="met">Link to full notification settings (placeholder for future)</criterion>
+  </acceptance-criteria>
+
+  <implementation-notes>
+    <note priority="high">
+      Uses mock data in use-notifications hook. Real API integration in future epic.
+    </note>
+    <note priority="medium">
+      Mark as read updates local state only. No backend API calls yet.
+    </note>
+    <note priority="medium">
+      Time grouping uses date-fns for relative time calculation.
+    </note>
+    <note priority="low">
+      Empty state includes helpful message about setting up integrations.
+    </note>
+  </implementation-notes>
+
+  <testing-approach>
+    <test type="manual">
+      <description>Verify notification bell shows unread count badge</description>
+    </test>
+    <test type="manual">
+      <description>Click bell to open dropdown, verify positioning</description>
+    </test>
+    <test type="manual">
+      <description>Verify time grouping (Just now, Today, Yesterday, etc.)</description>
+    </test>
+    <test type="manual">
+      <description>Click notification to mark as read, verify badge count updates</description>
+    </test>
+    <test type="manual">
+      <description>Click "Mark all as read" button, verify all notifications marked</description>
+    </test>
+    <test type="manual">
+      <description>Verify empty state displays when no notifications</description>
+    </test>
+    <test type="accessibility">
+      <description>Keyboard navigation with Tab, Enter, Escape</description>
+    </test>
+    <test type="accessibility">
+      <description>Screen reader ARIA labels on all interactive elements</description>
+    </test>
+  </testing-approach>
+
+  <future-enhancements>
+    <enhancement>Real-time notification updates via WebSocket</enhancement>
+    <enhancement>Notification preferences and filtering</enhancement>
+    <enhancement>Rich notification content (images, attachments)</enhancement>
+    <enhancement>Desktop browser notifications</enhancement>
+    <enhancement>Email notification digests</enhancement>
+  </future-enhancements>
+</story-context>
