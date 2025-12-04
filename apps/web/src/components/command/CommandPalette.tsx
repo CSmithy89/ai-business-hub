@@ -185,19 +185,6 @@ export function CommandPalette() {
       .filter((item): item is CommandItemData => item !== undefined);
   };
 
-  // Handle keyboard shortcut (Cmd+K / Ctrl+K)
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        useUIStore.getState().toggleCommandPalette();
-      }
-    };
-
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
-  }, []);
-
   // Reset search when dialog closes
   useEffect(() => {
     if (!isCommandPaletteOpen) {

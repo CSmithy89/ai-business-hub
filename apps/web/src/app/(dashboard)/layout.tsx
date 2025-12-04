@@ -25,6 +25,7 @@ import { Header } from '@/components/shell/Header';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { ChatPanel } from '@/components/shell/ChatPanel';
 import { CommandPalette } from '@/components/command';
+import { KeyboardShortcuts } from '@/components/keyboard';
 import { useUIStore } from '@/stores/ui';
 
 interface DashboardLayoutProps {
@@ -73,6 +74,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Command Palette - Global keyboard shortcut (Cmd/Ctrl+K) */}
       <CommandPalette />
+
+      {/* Global Keyboard Shortcuts - Handles Cmd+K, Cmd+B, Cmd+/, etc. */}
+      <KeyboardShortcuts />
     </div>
   );
 }

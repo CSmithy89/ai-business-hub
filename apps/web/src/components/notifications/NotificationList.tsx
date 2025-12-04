@@ -83,7 +83,7 @@ export function NotificationList({ notifications, onMarkAsRead }: NotificationLi
           No notifications
         </p>
         <p className="text-xs text-[rgb(var(--color-text-secondary))]">
-          You're all caught up!
+          You&apos;re all caught up!
         </p>
       </div>
     );
