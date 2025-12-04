@@ -34,6 +34,15 @@ from .team import (
     run_validation_synthesis,
 )
 
+# Validation tools (HITL & anti-hallucination)
+from .tools import (
+    record_source,
+    verify_sources,
+    request_validation_approval,
+    save_validation_progress,
+    get_validation_context,
+)
+
 # Legacy agent classes (for data models)
 from .validation_orchestrator_agent import (
     ValidationSession,
@@ -69,6 +78,12 @@ __all__ = [
     "run_competitor_analysis",
     "run_customer_discovery",
     "run_validation_synthesis",
+    # Validation Tools (HITL & anti-hallucination)
+    "record_source",
+    "verify_sources",
+    "request_validation_approval",
+    "save_validation_progress",
+    "get_validation_context",
     # Data Models - Orchestrator
     "ValidationSession",
     "ValidationStatus",
