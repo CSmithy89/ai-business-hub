@@ -168,7 +168,7 @@ development_status:
   epic-08: contexted
 
   # Section 1: Foundation Infrastructure (4 stories, 18 points)
-  08-1-create-business-onboarding-database-models: backlog
+  08-1-create-business-onboarding-database-models: done
   08-2-implement-portfolio-dashboard-with-business-cards: backlog
   08-3-implement-onboarding-wizard-ui: backlog
   08-4-implement-document-upload-and-extraction-pipeline: backlog
