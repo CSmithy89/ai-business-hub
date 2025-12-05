@@ -7,6 +7,7 @@ import { TeamStatsCards } from '@/components/settings/team-stats-cards'
 import { MembersList, type MemberFilters } from '@/components/settings/members-list'
 import { MembersSearchFilter } from '@/components/settings/members-search-filter'
 import { InviteMemberModal } from '@/components/settings/invite-member-modal'
+import { PendingInvitationsSection } from '@/components/settings/pending-invitations-section'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 
@@ -47,6 +48,7 @@ function WorkspaceMembersContent() {
       <TeamStatsCards />
       <MembersSearchFilter filters={filters} onFiltersChange={setFilters} />
       <MembersList filters={filters} />
+      <PendingInvitationsSection />
     </div>
   )
 }
