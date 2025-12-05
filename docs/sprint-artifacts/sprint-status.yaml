@@ -243,7 +243,7 @@ development_status:
   10-4-enable-global-validation-pipe: done
   10-5-database-migration-verification: done
   10-6-csrf-protection: done
-  10-7-xss-sanitization-hardening: backlog
+  10-7-xss-sanitization-hardening: done
   10-8-backup-code-race-condition-fix: backlog
   epic-10-retrospective: optional
 
