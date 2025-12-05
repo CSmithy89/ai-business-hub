@@ -19,6 +19,9 @@ from platform.approval_agent import ApprovalAgent
 # Import validation team
 from validation.team import create_validation_team
 
+# Import planning team
+from planning.team import create_planning_team
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -546,6 +549,115 @@ async def validation_team_health():
         return {
             "status": "error",
             "team": "validation",
+            "error": str(e)
+        }
+
+
+# ============================================================================
+# Planning Team Endpoints
+# ============================================================================
+
+@app.post("/agents/planning/runs", response_model=TeamRunResponse)
+async def run_planning_team(request_data: TeamRunRequest, req: Request):
+    """
+    Run the Planning Team (Blake + specialists).
+
+    Develops comprehensive business plans including business model canvas,
+    financial projections, pricing strategy, and growth forecasts.
+
+    Security:
+    - Requires valid JWT token (validated by TenantMiddleware)
+    - Workspace context extracted from JWT
+    - All tool calls use workspace-scoped permissions
+
+    Request Body:
+    - message: User's message/query for the planning team
+    - business_id: Business context identifier (required)
+    - session_id: Optional session ID for conversation continuity
+    - model_override: Optional model override
+    - context: Optional context data for workflow handoff (validationData)
+
+    Returns:
+    - TeamRunResponse with agent's response and metadata
+    """
+    # Extract workspace context from middleware
+    workspace_id = getattr(req.state, "workspace_id", None)
+    user_id = getattr(req.state, "user_id", None)
+
+    if not workspace_id or not user_id:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Valid JWT token with workspace context needed."
+        )
+
+    logger.info(
+        f"PlanningTeam run: workspace={workspace_id}, "
+        f"user={user_id}, business={request_data.business_id}"
+    )
+
+    try:
+        # Generate session ID if not provided
+        import time
+        session_id = request_data.session_id or f"plan_{user_id}_{int(time.time())}"
+
+        # Create team instance (stateless - per request)
+        team = create_planning_team(
+            session_id=session_id,
+            user_id=user_id,
+            business_id=request_data.business_id,
+            model=request_data.model_override,
+        )
+
+        # Run team
+        response = await team.arun(message=request_data.message)
+
+        return TeamRunResponse(
+            success=True,
+            content=response.content,
+            session_id=session_id,
+            agent_name=getattr(response, 'agent_name', 'Blake'),
+            metadata={
+                "business_id": request_data.business_id,
+                "team": "planning",
+                "workspace_id": workspace_id,
+            }
+        )
+    except Exception as e:
+        logger.error(f"PlanningTeam run failed: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Planning team execution failed: {str(e)}"
+        )
+
+
+@app.get("/agents/planning/health")
+async def planning_team_health():
+    """
+    Health check for planning team.
+
+    Returns team status, leader, and member information.
+    Does not require authentication.
+    """
+    try:
+        # Quick validation that team can be created
+        team = create_planning_team(
+            session_id="health_check",
+            user_id="system",
+        )
+
+        return {
+            "status": "ok",
+            "team": "planning",
+            "leader": "Blake",
+            "members": ["Model", "Finance", "Revenue", "Forecast"],
+            "version": "0.1.0",
+            "storage": "bmp_planning_sessions",
+        }
+    except Exception as e:
+        logger.error(f"Planning health check failed: {str(e)}")
+        return {
+            "status": "error",
+            "team": "planning",
             "error": str(e)
         }
 
