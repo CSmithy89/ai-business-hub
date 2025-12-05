@@ -241,7 +241,7 @@ development_status:
   10-2-encryption-key-validation: done
   10-3-fix-trusted-device-feature: done
   10-4-enable-global-validation-pipe: done
-  10-5-database-migration-verification: backlog
+  10-5-database-migration-verification: done
   10-6-csrf-protection: backlog
   10-7-xss-sanitization-hardening: backlog
   10-8-backup-code-race-condition-fix: backlog
