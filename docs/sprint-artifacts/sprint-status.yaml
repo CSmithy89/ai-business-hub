@@ -265,7 +265,7 @@ development_status:
   # Frontend Wireframe Gaps | 8 stories | 18 points
   # Parallel with: EPIC-10, EPIC-11
   # ===========================================
-  epic-12: backlog
+  epic-12: contexted
   12-1-oauth-provider-buttons: backlog
   12-2-confirm-password-field: backlog
   12-3-approval-queue-quick-actions: backlog
