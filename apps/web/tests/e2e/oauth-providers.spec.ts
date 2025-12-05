@@ -4,7 +4,7 @@
  * Tests for Microsoft OAuth, GitHub OAuth, and account linking.
  * @see docs/epics/EPIC-09-ui-auth-enhancements.md
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../support/fixtures';
 
 test.describe('OAuth Providers', () => {
   test.describe('Microsoft OAuth (Story 09.1)', () => {
