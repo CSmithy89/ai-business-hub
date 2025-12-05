@@ -43,6 +43,8 @@ tags:
     description: BYOAI configuration
   - name: Notifications
     description: User notifications
+  - name: Agents
+    description: Agent team execution and health monitoring
 
 paths:
   # ============================================
@@ -842,6 +844,168 @@ paths:
         '200':
           description: Notifications marked as read
 
+  # ============================================
+  # AGENTS
+  # ============================================
+  /agents/validation/runs:
+    post:
+      tags: [Agents]
+      summary: Execute Vera's validation team workflow
+      operationId: runValidationWorkflow
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workflow, input]
+              properties:
+                workflow:
+                  type: string
+                  enum: [idea_intake, market_sizing, competitor_mapping, customer_discovery, validation_synthesis]
+                  description: Validation workflow to execute
+                input:
+                  type: object
+                  description: Workflow-specific input data
+                context:
+                  type: object
+                  description: Additional context for the workflow
+      responses:
+        '200':
+          description: Workflow execution with streaming updates (SSE)
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-Sent Events stream with JSON events
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /agents/validation/health:
+    get:
+      tags: [Agents]
+      summary: Health check for Vera's validation team
+      operationId: checkValidationHealth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Team health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentHealthResponse'
+
+  /agents/planning/runs:
+    post:
+      tags: [Agents]
+      summary: Execute Blake's planning team workflow
+      operationId: runPlanningWorkflow
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workflow, input]
+              properties:
+                workflow:
+                  type: string
+                  enum: [business_model_canvas, financial_projections, business_plan_synthesis]
+                  description: Planning workflow to execute
+                input:
+                  type: object
+                  description: Workflow-specific input data
+                context:
+                  type: object
+                  description: Additional context for the workflow
+      responses:
+        '200':
+          description: Workflow execution with streaming updates (SSE)
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-Sent Events stream with JSON events
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /agents/planning/health:
+    get:
+      tags: [Agents]
+      summary: Health check for Blake's planning team
+      operationId: checkPlanningHealth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Team health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentHealthResponse'
+
+  /agents/branding/runs:
+    post:
+      tags: [Agents]
+      summary: Execute Bella's branding team workflow
+      operationId: runBrandingWorkflow
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workflow, input]
+              properties:
+                workflow:
+                  type: string
+                  enum: [brand_strategy, brand_voice, visual_identity, asset_generation]
+                  description: Branding workflow to execute
+                input:
+                  type: object
+                  description: Workflow-specific input data
+                context:
+                  type: object
+                  description: Additional context for the workflow
+      responses:
+        '200':
+          description: Workflow execution with streaming updates (SSE)
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-Sent Events stream with JSON events
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /agents/branding/health:
+    get:
+      tags: [Agents]
+      summary: Health check for Bella's branding team
+      operationId: checkBrandingHealth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Team health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentHealthResponse'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1211,3 +1375,50 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    AgentHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall health status of the agent team
+        team:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Team name (e.g., "Validation Team")
+            id:
+              type: string
+              description: Team identifier (e.g., "validation")
+            agents:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  role:
+                    type: string
+                  status:
+                    type: string
+                    enum: [active, idle, error]
+        workflows:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              status:
+                type: string
+                enum: [available, running, error]
+        lastCheck:
+          type: string
+          format: date-time
+        error:
+          type: string
+          description: Error message if status is unhealthy

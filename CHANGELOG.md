@@ -6,6 +6,39 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
+## EPIC-11: Agent Integration (4 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-06
+
+### Agent API Endpoints
+
+- POST /agents/validation/runs - Execute Vera's validation team workflow
+- GET /agents/validation/health - Health check for validation team
+- POST /agents/planning/runs - Execute Blake's planning team workflow
+- GET /agents/planning/health - Health check for planning team
+- POST /agents/branding/runs - Execute Bella's branding team workflow
+- GET /agents/branding/health - Health check for branding team
+
+### Frontend Integration
+
+- agent-client.ts - Frontend API client with Server-Sent Events (SSE) support
+- Real-time agent execution with streaming updates
+- Validation page connected to Vera's validation team
+- Planning page connected to Blake's planning team
+- Branding page connected to Bella's branding team
+- Agent name display from team metadata
+
+### Testing
+
+- 11 comprehensive E2E tests for agent integration
+- Health check endpoint tests
+- Workflow execution tests
+- Real-time streaming validation
+- Error handling and edge case coverage
+
+---
+
 ## EPIC-09: UI & Authentication Enhancements (15 stories)
 
 **Status:** Complete
