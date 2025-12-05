@@ -19,9 +19,23 @@ const MAX_PAGE_SIZE = 100
  * GET /api/businesses
  *
  * List all businesses for the current workspace.
- * Supports pagination with ?take=N&skip=N query params.
+ *
+ * Supports two pagination modes:
+ * 1. Offset-based: ?take=N&skip=N (simple, good for small datasets)
+ * 2. Cursor-based: ?take=N&cursor=<id> (efficient for large datasets, no page drift)
+ *
  * Includes related session data for status display (prevents N+1 queries).
  * Sorted by most recently updated.
+ *
+ * @example
+ * // Offset pagination
+ * GET /api/businesses?take=20&skip=0
+ * GET /api/businesses?take=20&skip=20
+ *
+ * @example
+ * // Cursor pagination (more efficient for large datasets)
+ * GET /api/businesses?take=20
+ * GET /api/businesses?take=20&cursor=<lastItemId>
  */
 export async function GET(req: Request) {
   try {
@@ -56,60 +70,96 @@ export async function GET(req: Request) {
     const url = new URL(req.url)
     const takeParam = url.searchParams.get('take')
     const skipParam = url.searchParams.get('skip')
+    const cursorParam = url.searchParams.get('cursor')
 
     const take = Math.min(
       Math.max(1, parseInt(takeParam || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE),
       MAX_PAGE_SIZE
     )
-    const skip = Math.max(0, parseInt(skipParam || '0', 10) || 0)
 
-    // Query businesses with pagination and include related data (prevents N+1)
-    const [businesses, total] = await Promise.all([
-      prisma.business.findMany({
-        where: {
-          workspaceId,
-        },
-        include: {
-          validationData: {
-            select: {
-              validationScore: true,
-              completedWorkflows: true,
-            },
-          },
-          planningData: {
-            select: {
-              completedWorkflows: true,
-            },
-          },
-          brandingData: {
-            select: {
-              completedWorkflows: true,
-            },
-          },
-        },
-        orderBy: {
-          updatedAt: 'desc',
-        },
-        take,
-        skip,
-      }),
-      prisma.business.count({
-        where: {
-          workspaceId,
-        },
-      }),
-    ])
+    // Determine pagination mode: cursor-based takes precedence
+    const useCursor = cursorParam && !skipParam
 
-    return NextResponse.json({
-      success: true,
-      data: businesses,
-      pagination: {
-        total,
-        take,
-        skip,
-        hasMore: skip + businesses.length < total,
+    // Build include clause for related data (prevents N+1)
+    const includeClause = {
+      validationData: {
+        select: {
+          validationScore: true,
+          completedWorkflows: true,
+        },
       },
-    })
+      planningData: {
+        select: {
+          completedWorkflows: true,
+        },
+      },
+      brandingData: {
+        select: {
+          completedWorkflows: true,
+        },
+      },
+    }
+
+    if (useCursor) {
+      // Cursor-based pagination
+      // Request one extra to determine if there are more results
+      const businesses = await prisma.business.findMany({
+        where: { workspaceId },
+        include: includeClause,
+        orderBy: { updatedAt: 'desc' },
+        take: take + 1,
+        cursor: { id: cursorParam },
+        skip: 1, // Skip the cursor item itself
+      })
+
+      const hasMore = businesses.length > take
+      const results = hasMore ? businesses.slice(0, take) : businesses
+      const nextCursor = hasMore ? results[results.length - 1]?.id : undefined
+
+      return NextResponse.json({
+        success: true,
+        data: results,
+        pagination: {
+          take,
+          hasMore,
+          nextCursor,
+          paginationType: 'cursor',
+        },
+      })
+    } else {
+      // Offset-based pagination (default)
+      const skip = Math.max(0, parseInt(skipParam || '0', 10) || 0)
+
+      const [businesses, total] = await Promise.all([
+        prisma.business.findMany({
+          where: { workspaceId },
+          include: includeClause,
+          orderBy: { updatedAt: 'desc' },
+          take,
+          skip,
+        }),
+        prisma.business.count({
+          where: { workspaceId },
+        }),
+      ])
+
+      // Also provide a cursor for transitioning to cursor-based
+      const lastItem = businesses[businesses.length - 1]
+      const nextCursor = lastItem?.id
+
+      return NextResponse.json({
+        success: true,
+        data: businesses,
+        pagination: {
+          total,
+          take,
+          skip,
+          hasMore: skip + businesses.length < total,
+          nextCursor, // Allow switching to cursor-based pagination
+          paginationType: 'offset',
+        },
+      })
+    }
   } catch (error) {
     console.error('Error listing businesses:', error)
 

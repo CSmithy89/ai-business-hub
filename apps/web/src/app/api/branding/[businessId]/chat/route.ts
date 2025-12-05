@@ -140,7 +140,8 @@ interface VisualIdentity {
 // Agent Definitions
 // ============================================================================
 
-const BRANDING_AGENTS = {
+// Agent configuration for future integration with Agno
+const _BRANDING_AGENTS = {
   bella: {
     name: 'Bella',
     role: 'Brand Team Lead',
@@ -794,4 +795,5 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   }
 }
 
-export { BRANDING_AGENTS }
+// Suppress unused variable warning - will be used with Agno integration
+void _BRANDING_AGENTS

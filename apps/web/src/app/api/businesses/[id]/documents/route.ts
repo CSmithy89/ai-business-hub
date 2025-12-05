@@ -26,9 +26,10 @@ import {
  */
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: businessId } = await params
     // Get authenticated session
     const session = await getSession()
 
@@ -56,8 +57,7 @@ export async function POST(
       )
     }
 
-    const businessId = params.id
-
+    
     // Verify business exists and belongs to workspace
     const business = await prisma.business.findFirst({
       where: {
@@ -250,9 +250,10 @@ export async function POST(
  */
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: businessId } = await params
     // Get authenticated session
     const session = await getSession()
 
@@ -280,8 +281,7 @@ export async function GET(
       )
     }
 
-    const businessId = params.id
-
+    
     // Verify business exists and belongs to workspace
     const business = await prisma.business.findFirst({
       where: {

@@ -25,3 +25,12 @@ export {
   withPermission,
   type PermissionHandler,
 } from './with-permission'
+
+// Rate limiting middleware
+export {
+  withRateLimit,
+  withStandardRateLimit,
+  withSensitiveRateLimit,
+  RATE_LIMIT_CONFIGS,
+  type RateLimitConfig,
+} from './with-rate-limit'

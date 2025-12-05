@@ -755,3 +755,70 @@ enum ValidationRecommendation {
   PIVOT
   NO_GO
 }
+
+// ============================================
+// AGENT CHAT PERSISTENCE (P1 Enhancement)
+// ============================================
+
+/// Stores chat messages for agent sessions
+/// Enables conversation continuity across page reloads/sessions
+model AgentChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String   @map("session_id")
+
+  // Message content
+  role      ChatMessageRole
+  agentId   String?  @map("agent_id")  // Which agent sent this (vera, marco, etc.)
+  content   String   @db.Text
+
+  // Optional structured data
+  metadata  Json?    // { suggestedActions: [], attachments: [], etc. }
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([sessionId, createdAt])
+  @@map("agent_chat_messages")
+}
+
+/// Links agent sessions to their source (validation, planning, branding)
+model AgentSession {
+  id              String   @id @default(cuid())
+
+  // Which module this session belongs to
+  moduleType      AgentModuleType @map("module_type")
+  moduleSessionId String   @map("module_session_id")  // ValidationSession.id, PlanningSession.id, etc.
+
+  // Session metadata
+  currentAgent    String?  @map("current_agent")  // Currently active agent
+  workflowStep    String?  @map("workflow_step")  // Current workflow step
+  status          AgentSessionStatus @default(ACTIVE)
+
+  // Timestamps
+  startedAt       DateTime @default(now()) @map("started_at")
+  lastActivityAt  DateTime @default(now()) @map("last_activity_at")
+  endedAt         DateTime? @map("ended_at")
+
+  @@index([moduleType, moduleSessionId])
+  @@index([status, lastActivityAt])
+  @@map("agent_sessions")
+}
+
+enum ChatMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum AgentModuleType {
+  VALIDATION
+  PLANNING
+  BRANDING
+}
+
+enum AgentSessionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ABANDONED
+}
