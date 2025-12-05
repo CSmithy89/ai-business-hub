@@ -236,7 +236,7 @@ development_status:
   # P0/P1 Critical Security & Infrastructure | 8 stories | 21 points
   # Parallel with: EPIC-11, EPIC-12
   # ===========================================
-  epic-10: backlog
+  epic-10: contexted
   10-1-redis-rate-limiting-migration: backlog
   10-2-encryption-key-validation: backlog
   10-3-fix-trusted-device-feature: backlog
