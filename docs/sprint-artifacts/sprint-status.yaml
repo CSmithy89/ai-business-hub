@@ -257,7 +257,7 @@ development_status:
   11-2-wire-planning-team-api-endpoint: done
   11-3-wire-branding-team-api-endpoint: done
   11-4-connect-frontend-workflow-pages: done
-  11-5-agent-integration-e2e-tests: backlog
+  11-5-agent-integration-e2e-tests: done
   epic-11-retrospective: optional
 
   # ===========================================
