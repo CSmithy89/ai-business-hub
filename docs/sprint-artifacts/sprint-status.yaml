@@ -197,7 +197,7 @@ development_status:
   08-21-implement-asset-generation-workflow: done
 
   # Section 5: Integration & Handoff (2 stories, 5 points)
-  08-22-implement-module-handoff-workflows: backlog
-  08-23-implement-onboarding-completion-and-handoff-to-bm-pm: backlog
+  08-22-implement-module-handoff-workflows: done
+  08-23-implement-onboarding-completion-and-handoff-to-bm-pm: done
 
   epic-08-retrospective: optional
