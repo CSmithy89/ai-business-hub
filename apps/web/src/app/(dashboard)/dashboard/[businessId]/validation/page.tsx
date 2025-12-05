@@ -172,11 +172,16 @@ function AgentAvatar({ agent }: { agent: string }) {
 function ChatMessage({ message }: { message: ChatMessageData }) {
   const isUser = message.role === 'user'
   const agentInfo = AGENTS[message.agent as keyof typeof AGENTS] || AGENTS.vera
+  const senderLabel = isUser ? 'You' : `${agentInfo.name}, ${agentInfo.role}`
 
   return (
-    <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <article
+      role="article"
+      aria-label={`Message from ${senderLabel}`}
+      className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
+    >
       {isUser ? (
-        <Avatar className="w-8 h-8">
+        <Avatar className="w-8 h-8" aria-hidden="true">
           <AvatarFallback className="bg-primary">
             <User className="w-4 h-4 text-primary-foreground" />
           </AvatarFallback>
@@ -186,7 +191,7 @@ function ChatMessage({ message }: { message: ChatMessageData }) {
       )}
       <div className={`flex flex-col max-w-[80%] ${isUser ? 'items-end' : ''}`}>
         {!isUser && agentInfo && (
-          <span className="text-xs text-muted-foreground mb-1">
+          <span className="text-xs text-muted-foreground mb-1" aria-hidden="true">
             {agentInfo.name} ({agentInfo.role})
           </span>
         )}
@@ -202,7 +207,11 @@ function ChatMessage({ message }: { message: ChatMessageData }) {
           </div>
         </div>
         {message.suggestedActions && message.suggestedActions.length > 0 && (
-          <div className="flex gap-2 mt-2 flex-wrap">
+          <div
+            className="flex gap-2 mt-2 flex-wrap"
+            role="group"
+            aria-label="Suggested actions"
+          >
             {message.suggestedActions.map((action, idx) => (
               <Button key={idx} variant="outline" size="sm">
                 {action}
@@ -211,7 +220,7 @@ function ChatMessage({ message }: { message: ChatMessageData }) {
           </div>
         )}
       </div>
-    </div>
+    </article>
   )
 }
 
@@ -233,7 +242,7 @@ function ChatInput({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 border-t">
+    <form onSubmit={handleSubmit} className="p-4 border-t" aria-label="Chat message form">
       <div className="flex gap-2">
         <Input
           value={input}
@@ -241,12 +250,17 @@ function ChatInput({
           placeholder="Type your message..."
           disabled={disabled}
           className="flex-1"
+          aria-label="Chat message input"
         />
-        <Button type="submit" disabled={disabled || !input.trim()}>
+        <Button
+          type="submit"
+          disabled={disabled || !input.trim()}
+          aria-label={disabled ? 'Sending message' : 'Send message'}
+        >
           {disabled ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
           ) : (
-            <Send className="w-4 h-4" />
+            <Send className="w-4 h-4" aria-hidden="true" />
           )}
         </Button>
       </div>
@@ -288,8 +302,7 @@ export default function ValidationPage() {
   const [messages, setMessages] = useState<ChatMessageData[]>([])
   const [isLoading, setIsLoading] = useState(false)
   // Score will be set when validation is complete (future workflow integration)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [score, _setScore] = useState<number | null>(null)
+  const [score] = useState<number | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   // Workflow steps
@@ -402,14 +415,24 @@ Is there anything specific you'd like us to focus on?`
       <div className="flex flex-1 overflow-hidden">
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col">
-          <div ref={scrollAreaRef} className="flex-1 overflow-y-auto p-4">
+          <div
+            ref={scrollAreaRef}
+            className="flex-1 overflow-y-auto p-4"
+            role="log"
+            aria-live="polite"
+            aria-label="Agent conversation"
+          >
             <div className="space-y-4">
               {messages.map((message) => (
                 <ChatMessage key={message.id} message={message} />
               ))}
               {isLoading && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                <div
+                  className="flex items-center gap-2 text-muted-foreground"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                   <span className="text-sm">Vera is thinking...</span>
                 </div>
               )}

@@ -59,7 +59,7 @@ export function WizardStepIdea({ initialData, onContinue, onBack }: WizardStepId
       <div>
         <h2 className="text-2xl font-bold mb-2">Capture your business idea</h2>
         <p className="text-muted-foreground">
-          Help us understand the problem you're solving and who you're solving it for
+          Help us understand the problem you&apos;re solving and who you&apos;re solving it for
         </p>
       </div>
 

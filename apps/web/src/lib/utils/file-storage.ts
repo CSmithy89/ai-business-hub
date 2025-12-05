@@ -13,9 +13,15 @@
 
 import { writeFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
-import { join } from 'path'
+import { join, extname, basename } from 'path'
 
 const UPLOAD_DIR = join(process.cwd(), 'public', 'uploads', 'business-documents')
+
+/**
+ * Allowed file extensions for upload
+ * Security: Only these extensions are permitted
+ */
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.md'] as const
 
 /**
  * Ensure upload directory exists
@@ -27,17 +33,48 @@ async function ensureUploadDir() {
 }
 
 /**
- * Generate unique filename with timestamp
+ * Validate and extract file extension
+ * Security: Prevents path traversal and validates extension
  *
- * @param businessId - Business ID
+ * @param filename - Original filename
+ * @returns Validated extension or throws error
+ */
+function validateExtension(filename: string): string {
+  const ext = extname(filename).toLowerCase()
+  if (!ALLOWED_EXTENSIONS.includes(ext as typeof ALLOWED_EXTENSIONS[number])) {
+    throw new Error(`Invalid file extension: ${ext}. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`)
+  }
+  return ext
+}
+
+/**
+ * Generate unique filename with timestamp
+ * Security: Properly sanitizes to prevent path traversal
+ *
+ * @param businessId - Business ID (must be CUID format)
  * @param originalName - Original filename
- * @returns Unique filename
+ * @returns Unique filename with preserved extension
+ * @throws Error if extension is not allowed
  */
 function generateFilename(businessId: string, originalName: string): string {
   const timestamp = Date.now()
-  // Remove dots and path separators to prevent path traversal
-  const sanitized = originalName.replace(/[^a-zA-Z0-9_-]/g, '_')
-  return `${businessId}-${timestamp}-${sanitized}`
+
+  // Validate and extract extension first (throws if invalid)
+  const ext = validateExtension(originalName)
+
+  // Extract basename without extension
+  const baseFilename = basename(originalName, ext)
+
+  // Sanitize basename only (alphanumeric, underscore, hyphen)
+  // Limit length to prevent filesystem issues
+  const sanitizedBasename = baseFilename
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .slice(0, 100)
+
+  // Sanitize businessId (should be CUID, but sanitize anyway)
+  const sanitizedBusinessId = businessId.replace(/[^a-zA-Z0-9_-]/g, '_')
+
+  return `${sanitizedBusinessId}-${timestamp}-${sanitizedBasename}${ext}`
 }
 
 /**
@@ -83,12 +120,14 @@ export interface StoredFile {
 
 /**
  * Store file locally in uploads directory
+ * Security: Validates extension and sanitizes all path components
  *
  * @param businessId - Business ID
  * @param file - File to store (Buffer or Uint8Array)
  * @param originalName - Original filename
  * @param mimeType - MIME type
  * @returns Stored file information
+ * @throws Error if file extension is not allowed
  */
 export async function storeFileLocally(
   businessId: string,
@@ -98,9 +137,15 @@ export async function storeFileLocally(
 ): Promise<StoredFile> {
   await ensureUploadDir()
 
-  // Sanitize businessId to prevent path traversal
-  const safeBusinessId = businessId.replace(/[^a-zA-Z0-9_-]/g, '_')
-  const filename = generateFilename(safeBusinessId, originalName)
+  // generateFilename now handles all sanitization and validation
+  // Throws if extension is invalid
+  const filename = generateFilename(businessId, originalName)
+
+  // Final safety check: ensure no path separators in generated filename
+  if (filename.includes('/') || filename.includes('\\')) {
+    throw new Error('Invalid filename generated')
+  }
+
   const filepath = join(UPLOAD_DIR, filename)
 
   // Write file to disk

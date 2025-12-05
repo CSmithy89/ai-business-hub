@@ -127,7 +127,7 @@ export default function OnboardingDocumentsPage() {
 
           <h1 className="text-3xl font-bold tracking-tight">Upload Business Documents</h1>
           <p className="text-muted-foreground mt-2">
-            Upload existing business documents to accelerate your onboarding. We'll extract
+            Upload existing business documents to accelerate your onboarding. We&apos;ll extract
             key information automatically.
           </p>
         </div>
@@ -179,7 +179,7 @@ export default function OnboardingDocumentsPage() {
           <Card className="border-muted">
             <CardContent className="flex items-center justify-between py-6">
               <div>
-                <h3 className="font-semibold">Don't have documents?</h3>
+                <h3 className="font-semibold">Don&apos;t have documents?</h3>
                 <p className="text-sm text-muted-foreground">
                   You can skip this step and enter information manually during validation.
                 </p>

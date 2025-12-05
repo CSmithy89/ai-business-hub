@@ -61,7 +61,7 @@ export function WizardStepDetails({ initialData, onContinue, onBack }: WizardSte
       <div>
         <h2 className="text-2xl font-bold mb-2">Tell us about your business</h2>
         <p className="text-muted-foreground">
-          We'll use this information to personalize your experience
+          We&apos;ll use this information to personalize your experience
         </p>
       </div>
 

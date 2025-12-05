@@ -56,10 +56,12 @@ export default function WizardPage() {
   } = useOnboardingWizardStore()
 
   // Sync URL with current step
+  // Extract step param to a stable variable for dependency array
+  const stepParam = searchParams.get('step')
+
   useEffect(() => {
     if (!isHydrated) return
 
-    const stepParam = searchParams.get('step')
     const urlStep = parseInt(stepParam || '1', 10)
 
     // Handle invalid parse result
@@ -75,7 +77,7 @@ export default function WizardPage() {
         router.replace(`/onboarding/wizard?step=${currentStep}` as Parameters<typeof router.replace>[0])
       }
     }
-  }, [searchParams?.toString(), currentStep, setCurrentStep, router, isHydrated])
+  }, [stepParam, currentStep, setCurrentStep, router, isHydrated])
 
   // Navigation handlers
   const goToStep = (step: number) => {

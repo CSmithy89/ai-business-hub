@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@hyvve/db'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
+import { z } from 'zod'
+import { brandPositioningSchema } from '@/lib/validations/business-json-schemas'
 
 // Brand archetypes from classic brand archetype model
 const BRAND_ARCHETYPES = [
@@ -33,6 +35,34 @@ interface BrandPositioning {
   functionalBenefits: string[]
 }
 
+// Request validation schemas
+const brandStrategyRequestSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('analyze'),
+    data: z.record(z.string(), z.unknown()).optional(),
+  }),
+  z.object({
+    action: z.literal('select_archetype'),
+    data: z.object({
+      archetype: z.enum(BRAND_ARCHETYPES),
+      context: z.record(z.string(), z.unknown()).optional(),
+    }),
+  }),
+  z.object({
+    action: z.literal('generate_taglines'),
+    data: z.object({
+      archetype: z.string().max(50),
+      brandPromise: z.string().max(500),
+    }),
+  }),
+  z.object({
+    action: z.literal('finalize'),
+    data: z.object({
+      positioning: brandPositioningSchema,
+    }),
+  }),
+])
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ businessId: string }> }
@@ -59,13 +89,26 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { action, data } = body
+
+    // Validate request body
+    const validation = brandStrategyRequestSchema.safeParse(body)
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: 'Invalid request data',
+          details: validation.error.issues,
+        },
+        { status: 400 }
+      )
+    }
+
+    const { action, data } = validation.data
 
     // Handle different brand strategy actions
     switch (action) {
       case 'analyze': {
         // Sage agent analyzes business context to recommend archetype
-        const mockAnalysis = generateBrandStrategyAnalysis(business.name, data)
+        const mockAnalysis = generateBrandStrategyAnalysis(business.name, data ?? {})
         return NextResponse.json({
           success: true,
           analysis: mockAnalysis,
@@ -74,20 +117,14 @@ export async function POST(
       }
 
       case 'select_archetype': {
-        // User selects or confirms archetype
-        const archetype = data?.archetype
-        if (typeof archetype !== 'string' || !BRAND_ARCHETYPES.includes(archetype)) {
-          return NextResponse.json(
-            { error: 'Invalid or missing archetype' },
-            { status: 400 }
-          )
-        }
+        // User selects or confirms archetype (already validated by schema)
+        const { archetype, context } = data
 
         // Update branding session with selected archetype
         const positioning = generatePositioningForArchetype(
           archetype,
           business.name,
-          data.context
+          context
         )
 
         await updateBrandingSession(businessId, business.brandingData?.id, {
@@ -117,17 +154,11 @@ export async function POST(
       }
 
       case 'finalize': {
-        // Finalize brand strategy
-        const finalPositioning = data?.positioning
-        if (!finalPositioning) {
-          return NextResponse.json(
-            { error: 'Missing positioning data' },
-            { status: 400 }
-          )
-        }
+        // Finalize brand strategy (already validated by schema)
+        const { positioning: finalPositioning } = data
 
         await updateBrandingSession(businessId, business.brandingData?.id, {
-          positioning: finalPositioning,
+          positioning: finalPositioning as unknown as BrandPositioning,
           completedWorkflows: ['brand_strategy'],
         })
 

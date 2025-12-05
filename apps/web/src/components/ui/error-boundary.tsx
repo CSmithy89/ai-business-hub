@@ -98,12 +98,98 @@ export function SidebarErrorFallback() {
 
 export function ChatPanelErrorFallback() {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center p-4 text-[rgb(var(--color-text-secondary))]">
-      <span className="material-symbols-rounded text-2xl text-[rgb(var(--color-error))]">
+    <div
+      role="alert"
+      aria-live="assertive"
+      className="flex h-full w-full flex-col items-center justify-center p-4 text-[rgb(var(--color-text-secondary))]"
+    >
+      <span className="material-symbols-rounded text-2xl text-[rgb(var(--color-error))]" aria-hidden="true">
         chat_error
       </span>
       <p className="mt-2 text-xs">Chat unavailable</p>
     </div>
+  );
+}
+
+/**
+ * Chat interface error boundary
+ * Preserves conversation context and provides helpful recovery
+ */
+export function ChatErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex h-full w-full flex-col items-center justify-center p-8 text-[rgb(var(--color-text-secondary))]"
+        >
+          <span className="material-symbols-rounded text-4xl text-[rgb(var(--color-error))]" aria-hidden="true">
+            error
+          </span>
+          <h3 className="mt-4 text-base font-medium">Chat Error</h3>
+          <p className="mt-2 text-sm text-center max-w-sm">
+            The chat interface encountered an error. Your conversation data is safe.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-4 rounded-lg bg-[rgb(var(--color-primary))] px-4 py-2 text-sm text-white hover:opacity-90"
+          >
+            Reload chat
+          </button>
+        </div>
+      }
+      onError={(error) => {
+        console.error('Chat interface error:', error);
+      }}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+/**
+ * Workflow component error boundary
+ * Shows workflow-specific error message
+ */
+export function WorkflowErrorBoundary({
+  children,
+  workflowName,
+}: {
+  children: ReactNode;
+  workflowName: string;
+}) {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex h-full w-full flex-col items-center justify-center p-8 text-[rgb(var(--color-text-secondary))]"
+        >
+          <span className="material-symbols-rounded text-4xl text-[rgb(var(--color-error))]" aria-hidden="true">
+            error_outline
+          </span>
+          <h3 className="mt-4 text-base font-medium">{workflowName} Error</h3>
+          <p className="mt-2 text-sm text-center max-w-sm">
+            The {workflowName} workflow encountered an error. Your progress has been saved.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-4 rounded-lg bg-[rgb(var(--color-primary))] px-4 py-2 text-sm text-white hover:opacity-90"
+          >
+            Retry workflow
+          </button>
+        </div>
+      }
+      onError={(error) => {
+        console.error(`${workflowName} workflow error:`, error);
+      }}
+    >
+      {children}
+    </ErrorBoundary>
   );
 }
 

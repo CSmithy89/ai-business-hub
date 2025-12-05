@@ -30,7 +30,7 @@ import {
   MessageSquare,
   Palette,
   Type,
-  Image,
+  Image as ImageIcon,
   FileText,
   Package,
   CheckSquare,
@@ -449,7 +449,7 @@ function LogoPreview({ logo }: { logo?: VisualIdentity['logo'] }) {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
-          <Image className="w-4 h-4" />
+          <ImageIcon className="w-4 h-4" />
           Logo Concept
         </CardTitle>
       </CardHeader>
@@ -507,7 +507,7 @@ function AssetGallery({ assets }: { assets?: BrandingSession['generatedAssets'] 
             <div key={idx} className="flex items-center justify-between py-2 border-b last:border-0">
               <div className="flex items-center gap-2">
                 {asset.type === 'logo' ? (
-                  <Image className="w-4 h-4 text-muted-foreground" />
+                  <ImageIcon className="w-4 h-4 text-muted-foreground" />
                 ) : asset.type === 'social' ? (
                   <Sparkles className="w-4 h-4 text-muted-foreground" />
                 ) : (

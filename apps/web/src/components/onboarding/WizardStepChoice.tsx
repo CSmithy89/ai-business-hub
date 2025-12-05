@@ -44,7 +44,7 @@ export function WizardStepChoice({ initialValue, onContinue }: WizardStepChoiceP
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold mb-2">Do you have existing business documents?</h2>
-        <p className="text-muted-foreground">Choose how you'd like to start</p>
+        <p className="text-muted-foreground">Choose how you&apos;d like to start</p>
       </div>
 
       {/* Option Cards */}
