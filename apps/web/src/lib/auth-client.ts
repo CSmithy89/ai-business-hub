@@ -1,6 +1,7 @@
 'use client'
 
 import { createAuthClient } from 'better-auth/react'
+import { magicLinkClient } from 'better-auth/client/plugins'
 
 /**
  * Better Auth client for React components
@@ -9,11 +10,15 @@ import { createAuthClient } from 'better-auth/react'
  * - signUp.email() - Register with email/password
  * - signIn.email() - Sign in with email/password
  * - signIn.social() - OAuth sign in
+ * - signIn.magicLink() - Request magic link
  * - signOut() - Sign out
  * - useSession() - Get current session
  */
 export const authClient = createAuthClient({
   baseURL: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+  plugins: [
+    magicLinkClient(),
+  ],
 })
 
 /**
@@ -141,4 +146,21 @@ export function getCurrentSessionToken(): string | undefined {
   if (!sessionCookie) return undefined
 
   return sessionCookie.split('=')[1]
+}
+
+/**
+ * Request magic link to be sent to email
+ *
+ * @param email - Email address to send magic link
+ * @param callbackURL - URL to redirect after successful sign-in (default: /dashboard)
+ * @returns Promise with success/error status
+ */
+export async function sendMagicLink(data: {
+  email: string
+  callbackURL?: string
+}) {
+  return authClient.signIn.magicLink({
+    email: data.email,
+    callbackURL: data.callbackURL || '/dashboard',
+  })
 }

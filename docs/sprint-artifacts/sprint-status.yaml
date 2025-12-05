@@ -207,6 +207,8 @@ development_status:
   # Post-MVP Enhancement | 15 stories | 42 points
   # ===========================================
   epic-09: contexted
+
+  # Authentication Enhancements (8 stories, 21 points)
   09-1-implement-microsoft-oauth: done
   09-2-implement-github-oauth: done
   09-3-implement-two-factor-authentication-setup: done
@@ -215,11 +217,16 @@ development_status:
   09-6-implement-magic-link-authentication: done
   09-7-implement-account-linking: done
   09-8-implement-otp-code-verification: done
+
+  # Team Members UI Enhancements (5 stories, 11 points)
   09-9-implement-team-members-stats-cards: done
   09-10-implement-team-members-search-and-filters: done
   09-11-implement-invite-member-modal: done
   09-12-implement-pending-invitations-section: done
   09-13-add-last-active-and-status-to-members-table: done
+
+  # Advanced RBAC (2 stories, 8 points)
   09-14-implement-custom-role-creation: done
   09-15-implement-permission-templates: done
+
   epic-09-retrospective: completed

@@ -19,8 +19,8 @@ export async function POST(request: Request) {
     const realIp = request.headers.get('x-real-ip')
     const ip = forwarded?.split(',')[0].trim() || realIp || 'unknown'
 
-    // Check rate limit for this IP
-    const { isRateLimited, retryAfter } = checkRateLimit(
+    // Check rate limit for this IP using unified rate limiter (Redis in production)
+    const { isRateLimited, retryAfter } = await checkRateLimit(
       `signin:${ip}`,
       5,        // 5 attempts
       15 * 60   // 15 minutes in seconds

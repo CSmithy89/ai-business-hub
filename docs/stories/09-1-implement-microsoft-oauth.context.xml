@@ -1,0 +1,576 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story>
+    <id>09-1</id>
+    <title>Implement Microsoft OAuth</title>
+    <status>ready-for-dev</status>
+    <points>3</points>
+    <priority>P2</priority>
+  </story>
+
+  <objective>
+    Enable users to sign in with their Microsoft accounts (personal or corporate Azure AD) using better-auth's built-in Microsoft OAuth provider.
+  </objective>
+
+  <implementation-guide>
+    <step order="1">
+      <action>Configure Microsoft OAuth provider in better-auth server config</action>
+      <file>apps/web/src/lib/auth.ts</file>
+      <details>
+        Add microsoft provider to socialProviders config (lines 58-64).
+        Follow the existing Google OAuth pattern.
+        Use environment variables for client credentials.
+      </details>
+      <code-reference>
+        <existing>
+          socialProviders: {
+            google: {
+              clientId: process.env.GOOGLE_CLIENT_ID!,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+              redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/google`,
+            },
+          }
+        </existing>
+        <add-after>
+          microsoft: {
+            clientId: process.env.MICROSOFT_CLIENT_ID!,
+            clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
+            redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/microsoft`,
+          }
+        </add-after>
+      </code-reference>
+    </step>
+
+    <step order="2">
+      <action>Add Microsoft sign-in button to SignInForm component</action>
+      <file>apps/web/src/components/auth/sign-in-form.tsx</file>
+      <details>
+        Add a handleMicrosoftSignIn function following the handleGoogleSignIn pattern (lines 91-105).
+        Add Microsoft button in the social sign-in buttons section (after line 152).
+        Use the existing Microsoft SVG icon from the disabled button in sign-up page.
+        Add loading state and error handling matching Google OAuth implementation.
+      </details>
+      <code-reference>
+        <pattern>
+          const handleGoogleSignIn = async () => {
+            setIsGoogleLoading(true)
+            setError(null)
+            try {
+              await authClient.signIn.social({
+                provider: 'google',
+                callbackURL: '/dashboard',
+              })
+            } catch (error) {
+              console.error('Google sign-in error:', error)
+              setError('OAUTH_ERROR')
+              setIsGoogleLoading(false)
+            }
+          }
+        </pattern>
+        <new-function>
+          const handleMicrosoftSignIn = async () => {
+            setIsMicrosoftLoading(true)
+            setError(null)
+            try {
+              await authClient.signIn.social({
+                provider: 'microsoft',
+                callbackURL: '/dashboard',
+              })
+            } catch (error) {
+              console.error('Microsoft sign-in error:', error)
+              setError('OAUTH_ERROR')
+              setIsMicrosoftLoading(false)
+            }
+          }
+        </new-function>
+      </code-reference>
+    </step>
+
+    <step order="3">
+      <action>Enable Microsoft button in SignUpPage</action>
+      <file>apps/web/src/app/(auth)/sign-up/page.tsx</file>
+      <details>
+        Convert the disabled Microsoft button (lines 52-62) into a functional button.
+        Add onClick handler that redirects to Microsoft OAuth flow.
+        Remove disabled={true} attribute.
+        Keep the existing Microsoft SVG icon (4-square logo).
+      </details>
+      <code-reference>
+        <current>
+          &lt;Button
+            variant="outline"
+            className="w-full"
+            disabled={true}
+            title="Microsoft sign-in coming soon"
+          &gt;
+        </current>
+        <replace-with>
+          &lt;Button
+            variant="outline"
+            className="w-full"
+            onClick={() => window.location.href = '/api/auth/signin/microsoft'}
+          &gt;
+        </replace-with>
+      </code-reference>
+    </step>
+
+    <step order="4">
+      <action>Update environment variables example file</action>
+      <file>apps/web/.env.example</file>
+      <details>
+        Add MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET variables.
+        Include comments about Azure AD setup.
+      </details>
+      <code-reference>
+        <add>
+          # Microsoft OAuth (Azure AD)
+          MICROSOFT_CLIENT_ID=
+          MICROSOFT_CLIENT_SECRET=
+        </add>
+      </code-reference>
+    </step>
+
+    <step order="5">
+      <action>Test OAuth flow manually</action>
+      <details>
+        1. Set up Azure AD app registration (see azure-ad-setup section)
+        2. Add environment variables to .env.local
+        3. Restart dev server
+        4. Test sign-in with Microsoft button
+        5. Verify callback creates user account
+        6. Test account linking (same email)
+      </details>
+    </step>
+  </implementation-guide>
+
+  <existing-code>
+    <file path="apps/web/src/lib/auth.ts">
+      <description>Better-auth server configuration with Google OAuth already configured</description>
+      <relevant-sections>
+        <section name="OAuth Configuration" lines="57-64">
+          socialProviders: {
+            google: {
+              clientId: process.env.GOOGLE_CLIENT_ID!,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+              redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/google`,
+            },
+          }
+        </section>
+      </relevant-sections>
+    </file>
+
+    <file path="apps/web/src/lib/auth-client.ts">
+      <description>Client-side auth utilities - no changes needed</description>
+      <note>The authClient.signIn.social() method already supports multiple providers</note>
+    </file>
+
+    <file path="apps/web/src/components/auth/sign-in-form.tsx">
+      <description>Sign-in form with Google OAuth button implementation</description>
+      <relevant-sections>
+        <section name="State Management" lines="22-24">
+          const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+          // Add: const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false)
+        </section>
+        <section name="Google OAuth Handler" lines="91-105">
+          const handleGoogleSignIn = async () => {
+            setIsGoogleLoading(true)
+            setError(null)
+            try {
+              await authClient.signIn.social({
+                provider: 'google',
+                callbackURL: '/dashboard',
+              })
+            } catch (error) {
+              console.error('Google sign-in error:', error)
+              setError('OAUTH_ERROR')
+              setIsGoogleLoading(false)
+            }
+          }
+          // Pattern to follow for Microsoft
+        </section>
+        <section name="Social Buttons Section" lines="115-153">
+          &lt;div className="space-y-3"&gt;
+            {/* Google button here */}
+            {/* Add Microsoft button after Google */}
+          &lt;/div&gt;
+        </section>
+      </relevant-sections>
+    </file>
+
+    <file path="apps/web/src/app/(auth)/sign-up/page.tsx">
+      <description>Sign-up page with disabled Microsoft button placeholder</description>
+      <relevant-sections>
+        <section name="Microsoft Button (Disabled)" lines="52-62">
+          &lt;Button
+            variant="outline"
+            className="w-full"
+            disabled={true}
+            title="Microsoft sign-in coming soon"
+          &gt;
+            &lt;svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor"&gt;
+              &lt;path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" /&gt;
+            &lt;/svg&gt;
+            Continue with Microsoft
+          &lt;/Button&gt;
+          // Enable this button
+        </section>
+      </relevant-sections>
+    </file>
+
+    <file path="packages/db/prisma/schema.prisma">
+      <description>Database schema - no changes needed</description>
+      <note>Account model already supports multiple OAuth providers via provider field</note>
+      <relevant-model>
+        model Account {
+          id                String    @id @default(uuid())
+          userId            String    @map("user_id")
+          provider          String    // Can be 'google', 'microsoft', etc.
+          providerAccountId String    @map("provider_account_id")
+          accessToken       String?   @map("access_token") @db.Text
+          refreshToken      String?   @map("refresh_token") @db.Text
+          expiresAt         DateTime? @map("expires_at")
+
+          @@unique([provider, providerAccountId])
+        }
+      </relevant-model>
+    </file>
+  </existing-code>
+
+  <code-patterns>
+    <pattern name="OAuth Provider Configuration">
+      <description>How to add a new OAuth provider to better-auth</description>
+      <example>
+        // In apps/web/src/lib/auth.ts
+        socialProviders: {
+          google: {
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+            redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/google`,
+          },
+          microsoft: {
+            clientId: process.env.MICROSOFT_CLIENT_ID!,
+            clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
+            redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/microsoft`,
+          },
+        }
+      </example>
+    </pattern>
+
+    <pattern name="OAuth Sign-In Button">
+      <description>Standard pattern for OAuth buttons in auth forms</description>
+      <example>
+        const [isProviderLoading, setIsProviderLoading] = useState(false)
+
+        const handleProviderSignIn = async () => {
+          setIsProviderLoading(true)
+          setError(null)
+          try {
+            await authClient.signIn.social({
+              provider: 'provider-name',
+              callbackURL: '/dashboard',
+            })
+            // Redirect happens automatically via better-auth
+          } catch (error) {
+            console.error('Provider sign-in error:', error)
+            setError('OAUTH_ERROR')
+            setIsProviderLoading(false)
+          }
+        }
+
+        &lt;Button
+          variant="outline"
+          className="w-full"
+          onClick={handleProviderSignIn}
+          disabled={isProviderLoading || isSubmitting}
+        &gt;
+          {isProviderLoading ? (
+            &lt;&gt;
+              &lt;Loader2 className="w-4 h-4 mr-2 animate-spin" /&gt;
+              Connecting to Provider...
+            &lt;/&gt;
+          ) : (
+            &lt;&gt;
+              &lt;ProviderIcon className="w-5 h-5 mr-2" /&gt;
+              Continue with Provider
+            &lt;/&gt;
+          )}
+        &lt;/Button&gt;
+      </example>
+    </pattern>
+
+    <pattern name="Microsoft Icon SVG">
+      <description>4-square Microsoft logo used in UI</description>
+      <svg>
+        &lt;svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor"&gt;
+          &lt;path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" /&gt;
+        &lt;/svg&gt;
+      </svg>
+    </pattern>
+
+    <pattern name="Account Linking via Email">
+      <description>Better-auth automatically links accounts with same email</description>
+      <note>
+        When a user signs in with Microsoft using an email that already exists:
+        - better-auth checks Account model for existing user with that email
+        - If found, creates new Account record linked to existing User
+        - If not found, creates new User + Account records
+        - This is handled automatically by the organization plugin
+      </note>
+    </pattern>
+  </code-patterns>
+
+  <environment-variables>
+    <variable name="MICROSOFT_CLIENT_ID" required="true">
+      <description>Azure AD Application (client) ID</description>
+      <location>Azure Portal → App registrations → Application (client) ID</location>
+    </variable>
+    <variable name="MICROSOFT_CLIENT_SECRET" required="true">
+      <description>Azure AD Client Secret value</description>
+      <location>Azure Portal → App registrations → Certificates & secrets → Client secrets</location>
+      <security>Store securely, never commit to git</security>
+    </variable>
+    <variable name="BETTER_AUTH_URL" required="true" existing="true">
+      <description>Base URL for OAuth callbacks</description>
+      <value>http://localhost:3000 (dev) or production URL</value>
+    </variable>
+    <variable name="BETTER_AUTH_SECRET" required="true" existing="true">
+      <description>Secret key for session encryption</description>
+      <note>Already configured, no changes needed</note>
+    </variable>
+  </environment-variables>
+
+  <azure-ad-setup>
+    <step order="1">
+      <action>Register Application in Azure Portal</action>
+      <url>https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps</url>
+      <details>
+        1. Click "New registration"
+        2. Name: "HYVVE Platform" (or your app name)
+        3. Supported account types: "Accounts in any organizational directory and personal Microsoft accounts"
+        4. Click "Register"
+      </details>
+    </step>
+
+    <step order="2">
+      <action>Copy Application (client) ID</action>
+      <details>
+        From the app registration overview page, copy the Application (client) ID.
+        This is your MICROSOFT_CLIENT_ID.
+      </details>
+    </step>
+
+    <step order="3">
+      <action>Add Redirect URI</action>
+      <details>
+        1. Go to "Authentication" tab
+        2. Click "Add a platform" → "Web"
+        3. Add redirect URI: http://localhost:3000/api/auth/callback/microsoft (for dev)
+        4. Add redirect URI: https://your-domain.com/api/auth/callback/microsoft (for prod)
+        5. Save
+      </details>
+    </step>
+
+    <step order="4">
+      <action>Generate Client Secret</action>
+      <details>
+        1. Go to "Certificates & secrets" tab
+        2. Click "New client secret"
+        3. Description: "HYVVE OAuth"
+        4. Expires: Choose appropriate duration
+        5. Click "Add"
+        6. IMPORTANT: Copy the secret VALUE immediately (it won't be shown again)
+        7. This is your MICROSOFT_CLIENT_SECRET
+      </details>
+    </step>
+
+    <step order="5">
+      <action>Configure API Permissions</action>
+      <details>
+        1. Go to "API permissions" tab
+        2. Ensure these Microsoft Graph permissions are present:
+           - User.Read (default, allows reading user profile)
+           - email (read user's email)
+           - profile (read user's basic profile)
+           - openid (sign in and read user profile)
+        3. These are typically added by default, but verify
+        4. Click "Grant admin consent" if required by your organization
+      </details>
+    </step>
+  </azure-ad-setup>
+
+  <testing-checklist>
+    <manual-tests>
+      <test>Microsoft button appears on sign-in page</test>
+      <test>Microsoft button appears on sign-up page</test>
+      <test>Clicking button redirects to Microsoft login page</test>
+      <test>Successful Microsoft auth creates new user account</test>
+      <test>Microsoft auth with existing email links to existing user</test>
+      <test>User can sign in with Microsoft after initial setup</test>
+      <test>Error messages display for failed OAuth attempts</test>
+      <test>Button shows loading state during OAuth flow</test>
+      <test>Works with personal Microsoft accounts (@outlook.com, @hotmail.com)</test>
+      <test>Works with Azure AD work accounts</test>
+    </manual-tests>
+
+    <unit-tests>
+      <test file="apps/web/src/lib/__tests__/oauth-providers.test.ts">
+        Test that microsoft provider config has valid clientId and redirectURI
+      </test>
+    </unit-tests>
+
+    <integration-tests>
+      <test file="apps/web/tests/e2e/oauth-signin.spec.ts">
+        Test complete Microsoft OAuth flow from button click to dashboard redirect
+      </test>
+    </integration-tests>
+  </testing-checklist>
+
+  <security-considerations>
+    <consideration>
+      <title>Email Verification</title>
+      <description>
+        Microsoft OAuth accounts come with verified emails by default.
+        Better-auth sets emailVerified=true automatically for OAuth accounts.
+      </description>
+    </consideration>
+
+    <consideration>
+      <title>Account Linking Security</title>
+      <description>
+        Only accounts with verified emails can be linked to existing users.
+        This prevents account hijacking via OAuth providers.
+        Better-auth handles this automatically.
+      </description>
+    </consideration>
+
+    <consideration>
+      <title>Token Storage</title>
+      <description>
+        Microsoft access tokens are stored in Account model.
+        Tokens are automatically refreshed by better-auth.
+        Never expose tokens in client-side code or logs.
+      </description>
+    </consideration>
+
+    <consideration>
+      <title>Redirect URI Validation</title>
+      <description>
+        Azure AD validates redirect URIs against registered list.
+        Must match exactly (including http/https and trailing slashes).
+        Register both dev and prod URLs in Azure Portal.
+      </description>
+    </consideration>
+  </security-considerations>
+
+  <acceptance-criteria>
+    <criterion status="pending">Microsoft OAuth provider configured in auth.ts</criterion>
+    <criterion status="pending">Microsoft button added to sign-in page</criterion>
+    <criterion status="pending">Microsoft button enabled on sign-up page</criterion>
+    <criterion status="pending">OAuth callback creates user account</criterion>
+    <criterion status="pending">Account linking works for existing users</criterion>
+    <criterion status="pending">Button styling matches wireframes (AU-01, AU-02)</criterion>
+  </acceptance-criteria>
+
+  <wireframe-reference>
+    <wireframe id="AU-01" name="Sign-In Page">
+      <location>docs/design/wireframes/Finished wireframes and html files/au-01_login_page/</location>
+      <note>Shows sign-in page with OAuth buttons above email/password form</note>
+    </wireframe>
+    <wireframe id="AU-02" name="Sign-Up Page">
+      <location>docs/design/wireframes/Finished wireframes and html files/au-02_register/sign_up/</location>
+      <note>Shows sign-up page with OAuth buttons at top</note>
+    </wireframe>
+  </wireframe-reference>
+
+  <dependencies>
+    <dependency type="epic" status="complete">
+      <id>EPIC-01</id>
+      <name>Authentication System</name>
+      <note>Better-auth infrastructure already in place</note>
+    </dependency>
+
+    <dependency type="story" status="complete">
+      <id>01-5</id>
+      <name>Implement Google OAuth</name>
+      <note>Provides pattern to follow for Microsoft OAuth</note>
+    </dependency>
+  </dependencies>
+
+  <related-stories>
+    <story id="09-2" name="Implement GitHub OAuth">
+      <relationship>Same implementation pattern, different provider</relationship>
+    </story>
+    <story id="09-7" name="Implement Account Linking">
+      <relationship>Builds on multi-provider support enabled by this story</relationship>
+    </story>
+  </related-stories>
+
+  <technical-notes>
+    <note>
+      <title>Azure AD vs Microsoft Identity Platform</title>
+      <content>
+        Better-auth uses the Microsoft Identity Platform v2.0 endpoints.
+        These support both personal Microsoft accounts (MSA) and Azure AD accounts.
+        No need to configure separate providers for personal vs work accounts.
+      </content>
+    </note>
+
+    <note>
+      <title>Token Refresh</title>
+      <content>
+        Better-auth automatically handles token refresh using the refreshToken.
+        The Account model stores both accessToken and refreshToken.
+        Refresh happens transparently when accessToken expires.
+      </content>
+    </note>
+
+    <note>
+      <title>Multi-Tenant Azure AD</title>
+      <content>
+        The "Accounts in any organizational directory" setting allows users from any
+        Azure AD tenant to sign in. This is correct for a SaaS application.
+        Individual organizations will see HYVVE in their Azure AD consent screen.
+      </content>
+    </note>
+
+    <note>
+      <title>Better-Auth Social Provider Support</title>
+      <content>
+        Better-auth has built-in support for Microsoft OAuth.
+        No need to install additional packages.
+        The microsoft provider is part of the core better-auth library.
+      </content>
+    </note>
+  </technical-notes>
+
+  <implementation-hints>
+    <hint>Follow the Google OAuth pattern exactly - it's a proven implementation</hint>
+    <hint>Test with both personal (@outlook.com) and work (@company.com) Microsoft accounts</hint>
+    <hint>The Azure AD setup is the most time-consuming part - document the steps</hint>
+    <hint>Use the same error handling pattern as Google OAuth (generic OAUTH_ERROR)</hint>
+    <hint>The Microsoft icon SVG is already in the sign-up page - reuse it</hint>
+    <hint>Better-auth handles all the OAuth complexity - just provide credentials</hint>
+  </implementation-hints>
+
+  <rollback-plan>
+    <step>If issues occur, comment out microsoft provider in auth.ts</step>
+    <step>Remove Microsoft buttons from UI (or disable them)</step>
+    <step>No database changes needed - Account model already supports this</step>
+    <step>Can be re-enabled without data loss once issues are resolved</step>
+  </rollback-plan>
+
+  <documentation-requirements>
+    <requirement>Update .env.example with Microsoft OAuth variables</requirement>
+    <requirement>Document Azure AD setup process for other developers</requirement>
+    <requirement>Add Microsoft OAuth to authentication architecture docs</requirement>
+    <requirement>Include Microsoft option in user onboarding guides</requirement>
+  </documentation-requirements>
+
+  <success-metrics>
+    <metric>Microsoft OAuth button functional on both sign-in and sign-up pages</metric>
+    <metric>Users can successfully authenticate with Microsoft accounts</metric>
+    <metric>Account linking works seamlessly for existing users</metric>
+    <metric>Zero authentication errors in logs after implementation</metric>
+    <metric>Button UI matches wireframe designs (AU-01, AU-02)</metric>
+  </success-metrics>
+</story-context>

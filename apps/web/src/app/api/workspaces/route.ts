@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id
 
-    // Check rate limit (5 workspaces per hour)
+    // Check rate limit (5 workspaces per hour) using unified rate limiter
     const rateLimitKey = `create-workspace:${userId}`
-    const rateLimit = checkRateLimit(rateLimitKey, 5, 60 * 60) // 5 attempts, 1 hour
+    const rateLimit = await checkRateLimit(rateLimitKey, 5, 60 * 60) // 5 attempts, 1 hour
 
     if (rateLimit.isRateLimited) {
       return NextResponse.json(

@@ -14,7 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { checkRateLimitSync } from '@/lib/utils/rate-limit'
 import type { AuthContext } from './with-auth'
 
 /**
@@ -161,8 +161,8 @@ export function withRateLimit<T>(
 
     const rateLimitKey = `${config.keyPrefix}:${clientId}`
 
-    // Check rate limit
-    const { isRateLimited, remaining, resetAt, retryAfter } = checkRateLimit(
+    // Check rate limit (using sync version for middleware)
+    const { isRateLimited, remaining, resetAt, retryAfter } = checkRateLimitSync(
       rateLimitKey,
       config.limit,
       config.windowSeconds

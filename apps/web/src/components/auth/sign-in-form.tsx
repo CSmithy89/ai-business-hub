@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { PasswordInput } from './password-input'
+import { TwoFactorVerify } from './two-factor-verify'
 import { Loader2, AlertCircle, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
@@ -20,8 +21,12 @@ export function SignInForm() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false)
+  const [isGitHubLoading, setIsGitHubLoading] = useState(false)
   const [error, setError] = useState<ErrorType>(null)
   const [retryAfter, setRetryAfter] = useState<number | null>(null)
+  const [show2FA, setShow2FA] = useState(false)
+  const [verifyingUserId, setVerifyingUserId] = useState<string | null>(null)
 
   const {
     register,
@@ -71,8 +76,31 @@ export function SignInForm() {
           setError('INVALID_CREDENTIALS')
         }
       } else {
-        // Success - redirect to dashboard
-        router.push('/dashboard')
+        // Check if 2FA is enabled for this user
+        // Need to fetch 2FA status separately as better-auth doesn't include it in sign-in response
+        const userId = result.data?.user?.id
+        if (userId) {
+          try {
+            const statusResponse = await fetch('/api/auth/2fa/status')
+            const statusData = await statusResponse.json()
+
+            if (statusData.enabled) {
+              // Show 2FA verification component
+              setShow2FA(true)
+              setVerifyingUserId(userId)
+            } else {
+              // Success - redirect to dashboard
+              router.push('/dashboard')
+            }
+          } catch (error) {
+            console.error('Failed to check 2FA status:', error)
+            // Fail closed - show error, don't let user through without 2FA verification
+            setError('NETWORK_ERROR')
+          }
+        } else {
+          // Success - redirect to dashboard
+          router.push('/dashboard')
+        }
       }
     } catch (err) {
       console.error('Sign-in error:', err)
@@ -104,13 +132,62 @@ export function SignInForm() {
     }
   }
 
+  const handleMicrosoftSignIn = async () => {
+    setIsMicrosoftLoading(true)
+    setError(null)
+    try {
+      await authClient.signIn.social({
+        provider: 'microsoft',
+        callbackURL: '/dashboard',
+      })
+      // Redirect happens automatically
+    } catch (error) {
+      console.error('Microsoft sign-in error:', error)
+      setError('OAUTH_ERROR')
+      setIsMicrosoftLoading(false)
+    }
+  }
+
+  const handleGitHubSignIn = async () => {
+    setIsGitHubLoading(true)
+    setError(null)
+    try {
+      await authClient.signIn.social({
+        provider: 'github',
+        callbackURL: '/dashboard',
+      })
+      // Redirect happens automatically
+    } catch (error) {
+      console.error('GitHub sign-in error:', error)
+      setError('OAUTH_ERROR')
+      setIsGitHubLoading(false)
+    }
+  }
+
+  const handle2FASuccess = () => {
+    router.push('/dashboard')
+  }
+
+  const handle2FACancel = () => {
+    setShow2FA(false)
+    setVerifyingUserId(null)
+  }
+
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
-        <p className="text-gray-600">Sign in to your account</p>
-      </div>
+      {show2FA && verifyingUserId ? (
+        <TwoFactorVerify
+          userId={verifyingUserId}
+          onSuccess={handle2FASuccess}
+          onCancel={handle2FACancel}
+        />
+      ) : (
+        <>
+          {/* Page Header */}
+          <div className="space-y-2 text-center">
+            <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
+            <p className="text-gray-600">Sign in to your account</p>
+          </div>
 
       {/* Social Sign-In Buttons */}
       <div className="space-y-3">
@@ -119,7 +196,7 @@ export function SignInForm() {
           variant="outline"
           className="w-full"
           onClick={handleGoogleSignIn}
-          disabled={isGoogleLoading || isSubmitting}
+          disabled={isGoogleLoading || isSubmitting || isMicrosoftLoading || isGitHubLoading}
         >
           {isGoogleLoading ? (
             <>
@@ -147,6 +224,50 @@ export function SignInForm() {
                 />
               </svg>
               Continue with Google
+            </>
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleMicrosoftSignIn}
+          disabled={isMicrosoftLoading || isSubmitting || isGoogleLoading || isGitHubLoading}
+        >
+          {isMicrosoftLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Connecting to Microsoft...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" />
+              </svg>
+              Continue with Microsoft
+            </>
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleGitHubSignIn}
+          disabled={isGitHubLoading || isSubmitting || isGoogleLoading || isMicrosoftLoading}
+        >
+          {isGitHubLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Connecting to GitHub...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+              </svg>
+              Continue with GitHub
             </>
           )}
         </Button>
@@ -224,7 +345,7 @@ export function SignInForm() {
             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm text-red-600">
-                Unable to sign in with Google. Please try again or use email sign-in.
+                Unable to sign in with OAuth provider. Please try again or use email sign-in.
               </p>
             </div>
           </div>
@@ -309,6 +430,16 @@ export function SignInForm() {
           Sign up
         </Link>
       </p>
+
+      {/* Magic Link Option */}
+      <p className="text-center text-sm text-gray-600">
+        Prefer passwordless sign-in?{' '}
+        <Link href="/magic-link" prefetch={false} className="text-[#FF6B6B] hover:underline font-medium">
+          Email me a login link
+        </Link>
+      </p>
+        </>
+      )}
     </div>
   )
 }

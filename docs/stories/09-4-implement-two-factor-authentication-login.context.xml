@@ -1,0 +1,1468 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-id>09-4-implement-two-factor-authentication-login</story-id>
+  <title>Implement Two-Factor Authentication Login</title>
+  <epic>EPIC-09: UI &amp; Authentication Enhancements</epic>
+  <status>ready-for-dev</status>
+  <priority>P2</priority>
+  <points>3</points>
+
+  <!-- ============================================ -->
+  <!-- OVERVIEW -->
+  <!-- ============================================ -->
+
+  <overview>
+    <description>
+      Implement the 2FA verification step during login for users with 2FA enabled. After password verification,
+      prompt for TOTP code or backup code before granting access. Support "Trust this device for 30 days" option
+      to reduce login friction.
+    </description>
+
+    <acceptance-criteria>
+      <criterion id="AC-1">Show 2FA prompt after password verification</criterion>
+      <criterion id="AC-2">Accept 6-digit authenticator code</criterion>
+      <criterion id="AC-3">Accept backup code as alternative</criterion>
+      <criterion id="AC-4">Implement "Trust this device for 30 days" option</criterion>
+      <criterion id="AC-5">Handle invalid/expired codes gracefully</criterion>
+      <criterion id="AC-6">Rate limit verification attempts</criterion>
+    </acceptance-criteria>
+
+    <dependencies>
+      <dependency status="complete">Story 09.3 - Two-Factor Authentication Setup</dependency>
+    </dependencies>
+  </overview>
+
+  <!-- ============================================ -->
+  <!-- TECHNICAL APPROACH -->
+  <!-- ============================================ -->
+
+  <technical-approach>
+    <implementation-flow>
+      <step order="1">
+        <name>Modify Sign-In Form</name>
+        <description>
+          Update SignInForm to check for 2FA status after password verification.
+          If user.twoFactorEnabled is true, show 2FA verification component instead of redirecting.
+        </description>
+      </step>
+
+      <step order="2">
+        <name>Create TwoFactorVerify Component</name>
+        <description>
+          Build UI component for 2FA code entry with:
+          - 6-digit code input (auto-focus, numeric only)
+          - "Use backup code instead" toggle
+          - "Trust this device for 30 days" checkbox
+          - Submit button
+          - Rate limiting indicator
+          - Error messages
+        </description>
+      </step>
+
+      <step order="3">
+        <name>Implement verify-login API Endpoint</name>
+        <description>
+          Create POST /api/auth/2fa/verify-login endpoint to:
+          - Verify TOTP code or backup code
+          - Mark backup code as used if verified
+          - Create trusted device token if requested
+          - Complete sign-in and return session
+          - Rate limit: 5 attempts per 15 minutes
+        </description>
+      </step>
+
+      <step order="4">
+        <name>Trusted Device Implementation</name>
+        <description>
+          Create device fingerprint from User-Agent + IP hash.
+          Store in session/cookie with 30-day expiry.
+          Skip 2FA prompt if trusted device token exists and not expired.
+        </description>
+      </step>
+    </implementation-flow>
+
+    <authentication-flow>
+      <flow-diagram>
+        <![CDATA[
+        User enters email/password
+        ↓
+        Password verification succeeds
+        ↓
+        Check if user.twoFactorEnabled = true
+        ↓
+        [No] → Complete sign-in, redirect to dashboard
+        [Yes] → Check for valid trusted device token
+          ↓
+          [Trusted device found] → Complete sign-in, redirect to dashboard
+          [No trusted device] → Show 2FA verification prompt
+            ↓
+            User enters 6-digit TOTP code or backup code
+            ↓
+            Submit to /api/auth/2fa/verify-login
+            ↓
+            [Invalid] → Show error, decrement attempts
+              [0 attempts remaining] → Rate limited for 15 minutes
+            [Valid] → Mark backup code as used (if backup code)
+              → Create trusted device token (if checkbox selected)
+              → Complete sign-in, redirect to dashboard
+        ]]>
+      </flow-diagram>
+    </authentication-flow>
+  </technical-approach>
+
+  <!-- ============================================ -->
+  <!-- EXISTING CODE REFERENCES -->
+  <!-- ============================================ -->
+
+  <existing-code>
+    <file path="apps/web/src/lib/auth.ts">
+      <relevant-sections>
+        <section>
+          <lines>33-36</lines>
+          <description>twoFactor plugin configured with issuer 'HYVVE'</description>
+          <code-snippet>
+            <![CDATA[
+    twoFactor({
+      issuer: 'HYVVE',
+    }),
+            ]]>
+          </code-snippet>
+        </section>
+      </relevant-sections>
+    </file>
+
+    <file path="apps/web/src/lib/two-factor.ts">
+      <relevant-sections>
+        <section>
+          <lines>77-96</lines>
+          <description>verifyTOTPCode function - use for TOTP verification</description>
+          <code-snippet>
+            <![CDATA[
+export function verifyTOTPCode(secret: string, code: string): boolean {
+  try {
+    const totp = new TOTP({
+      secret: secret,
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+    })
+
+    // Verify with time window for clock drift
+    const delta = totp.validate({
+      token: code,
+      window: 1, // Check current, previous, and next time step
+    })
+
+    return delta !== null
+  } catch (error) {
+    return false
+  }
+}
+            ]]>
+          </code-snippet>
+        </section>
+
+        <section>
+          <lines>152-160</lines>
+          <description>verifyBackupCode function - use for backup code verification</description>
+          <code-snippet>
+            <![CDATA[
+export async function verifyBackupCode(code: string, hash: string): Promise<boolean> {
+  const bcrypt = await import('bcrypt')
+  return bcrypt.compare(code, hash)
+}
+            ]]>
+          </code-snippet>
+        </section>
+      </relevant-sections>
+    </file>
+
+    <file path="apps/web/src/lib/two-factor-session.ts">
+      <relevant-sections>
+        <section>
+          <lines>66-99</lines>
+          <description>Rate limiting implementation - reuse pattern for verify-login</description>
+          <code-snippet>
+            <![CDATA[
+export function recordVerificationAttempt(sessionId: string): { allowed: boolean; remainingAttempts: number } {
+  const session = setupSessions.get(sessionId)
+  if (!session) {
+    return { allowed: false, remainingAttempts: 0 }
+  }
+
+  // Check rate limit
+  const rateLimit = rateLimitMap.get(session.userId)
+  const now = Date.now()
+
+  if (rateLimit) {
+    // Reset if window has passed
+    if (now > rateLimit.resetAt) {
+      rateLimitMap.delete(session.userId)
+    } else if (rateLimit.count >= MAX_ATTEMPTS) {
+      return { allowed: false, remainingAttempts: 0 }
+    }
+  }
+
+  // Update rate limit
+  const currentLimit = rateLimitMap.get(session.userId) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW }
+  currentLimit.count++
+  rateLimitMap.set(session.userId, currentLimit)
+
+  // Update session
+  session.verificationAttempts++
+  session.lastAttemptAt = now
+
+  return {
+    allowed: true,
+    remainingAttempts: MAX_ATTEMPTS - currentLimit.count,
+  }
+}
+            ]]>
+          </code-snippet>
+          <notes>
+            MAX_ATTEMPTS = 5, RATE_LIMIT_WINDOW = 15 * 60 * 1000 (15 minutes)
+            Create similar rate limiting for verify-login endpoint
+          </notes>
+        </section>
+      </relevant-sections>
+    </file>
+
+    <file path="apps/web/src/components/auth/sign-in-form.tsx">
+      <relevant-sections>
+        <section>
+          <lines>44-85</lines>
+          <description>onSubmit handler - modify to check for 2FA and show verification prompt</description>
+          <code-snippet>
+            <![CDATA[
+  const onSubmit = async (data: SignInFormData) => {
+    setIsSubmitting(true)
+    setError(null)
+    setRetryAfter(null)
+
+    try {
+      const result = await signIn({
+        email: data.email,
+        password: data.password,
+        rememberMe: data.rememberMe,
+      })
+
+      if (result.error) {
+        // Handle specific error types
+        const errorMessage = result.error.message?.toLowerCase() || ''
+
+        if (errorMessage.includes('not verified') || errorMessage.includes('email verification')) {
+          setError('EMAIL_NOT_VERIFIED')
+        } else if (errorMessage.includes('rate limit') || errorMessage.includes('too many')) {
+          setError('RATE_LIMITED')
+          // Extract retry time if available (parse from message or use default)
+          const retryMatch = errorMessage.match(/(\d+)\s*(minute|second)/i)
+          if (retryMatch) {
+            const time = parseInt(retryMatch[1])
+            const unit = retryMatch[2].toLowerCase()
+            setRetryAfter(unit === 'minute' ? time * 60 : time)
+          }
+        } else {
+          // Generic error for invalid credentials (prevents user enumeration)
+          setError('INVALID_CREDENTIALS')
+        }
+      } else {
+        // Success - redirect to dashboard
+        router.push('/dashboard')
+      }
+    } catch (err) {
+      console.error('Sign-in error:', err)
+      setError('NETWORK_ERROR')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+            ]]>
+          </code-snippet>
+          <modification-needed>
+            After successful password verification, check if result.user.twoFactorEnabled is true.
+            If true, set state to show 2FA verification component instead of redirecting.
+            Store email/password temporarily for 2FA verification step.
+          </modification-needed>
+        </section>
+      </relevant-sections>
+    </file>
+
+    <file path="packages/db/prisma/schema.prisma">
+      <relevant-sections>
+        <section>
+          <lines>28-30</lines>
+          <description>User model - 2FA fields</description>
+          <code-snippet>
+            <![CDATA[
+  // Two-Factor Authentication (Story 09-3)
+  twoFactorEnabled  Boolean @default(false) @map("two_factor_enabled")
+  twoFactorSecret   String? @map("two_factor_secret") // Encrypted TOTP secret
+            ]]>
+          </code-snippet>
+        </section>
+
+        <section>
+          <lines>456-469</lines>
+          <description>BackupCode model - for backup code verification</description>
+          <code-snippet>
+            <![CDATA[
+model BackupCode {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  code      String    // Hashed backup code
+  used      Boolean   @default(false)
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, used])
+  @@map("backup_codes")
+}
+            ]]>
+          </code-snippet>
+        </section>
+      </relevant-sections>
+    </file>
+  </existing-code>
+
+  <!-- ============================================ -->
+  <!-- IMPLEMENTATION GUIDE -->
+  <!-- ============================================ -->
+
+  <implementation-guide>
+    <!-- FILE 1: TwoFactorVerify Component -->
+    <file-to-create path="apps/web/src/components/auth/two-factor-verify.tsx">
+      <description>
+        2FA verification component shown after password authentication.
+        Supports TOTP code and backup code entry with "Trust this device" option.
+      </description>
+
+      <implementation-notes>
+        <note priority="high">
+          Auto-focus on code input field when component mounts.
+          Input should only accept numeric characters (0-9).
+          Auto-submit when 6 digits entered (optional UX improvement).
+        </note>
+        <note priority="high">
+          Show "Use backup code instead" button to toggle between TOTP and backup code modes.
+          Backup code input should accept format: XXXX-XXXX (8 alphanumeric with hyphen).
+        </note>
+        <note priority="medium">
+          Display remaining attempts after failed verification.
+          Show rate limit message when attempts exhausted.
+        </note>
+      </implementation-notes>
+
+      <component-structure>
+        <![CDATA[
+'use client'
+
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Loader2, AlertCircle } from 'lucide-react'
+
+interface TwoFactorVerifyProps {
+  userId: string
+  onSuccess: () => void
+  onCancel: () => void
+}
+
+export function TwoFactorVerify({ userId, onSuccess, onCancel }: TwoFactorVerifyProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null)
+  const [useBackupCode, setUseBackupCode] = useState(false)
+  const [trustDevice, setTrustDevice] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm()
+
+  const onSubmit = async (data: any) => {
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/auth/2fa/verify-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          code: data.code,
+          isBackupCode: useBackupCode,
+          trustDevice,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        onSuccess()
+      } else {
+        setError(result.error.message)
+        setRemainingAttempts(result.remainingAttempts)
+        reset()
+      }
+    } catch (err) {
+      setError('Unable to verify code. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2 text-center">
+        <h2 className="text-2xl font-bold text-gray-900">Two-Factor Authentication</h2>
+        <p className="text-gray-600">
+          {useBackupCode
+            ? 'Enter one of your backup codes'
+            : 'Enter the 6-digit code from your authenticator app'}
+        </p>
+      </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm text-red-600">{error}</p>
+            {remainingAttempts !== null && remainingAttempts > 0 && (
+              <p className="text-xs text-red-500 mt-1">
+                {remainingAttempts} {remainingAttempts === 1 ? 'attempt' : 'attempts'} remaining
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="code">
+            {useBackupCode ? 'Backup Code' : 'Verification Code'}
+          </Label>
+          <Input
+            id="code"
+            type="text"
+            placeholder={useBackupCode ? 'XXXX-XXXX' : '000000'}
+            maxLength={useBackupCode ? 9 : 6}
+            pattern={useBackupCode ? '[A-Z0-9]{4}-[A-Z0-9]{4}' : '[0-9]{6}'}
+            {...register('code', {
+              required: 'Code is required',
+              pattern: {
+                value: useBackupCode ? /^[A-Z0-9]{4}-[A-Z0-9]{4}$/ : /^[0-9]{6}$/,
+                message: useBackupCode
+                  ? 'Backup code must be in format XXXX-XXXX'
+                  : 'Code must be 6 digits',
+              },
+            })}
+            disabled={isSubmitting}
+            autoFocus
+            autoComplete="off"
+          />
+          {errors.code && (
+            <p className="text-sm text-red-600">{errors.code.message}</p>
+          )}
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="trustDevice"
+            checked={trustDevice}
+            onCheckedChange={(checked) => setTrustDevice(!!checked)}
+            disabled={isSubmitting}
+          />
+          <Label
+            htmlFor="trustDevice"
+            className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+          >
+            Trust this device for 30 days
+          </Label>
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full bg-[#FF6B6B] hover:bg-[#FF6B6B]/90"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Verifying...
+            </>
+          ) : (
+            'Verify & Sign In'
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full"
+          onClick={() => setUseBackupCode(!useBackupCode)}
+          disabled={isSubmitting}
+        >
+          {useBackupCode ? 'Use authenticator code instead' : 'Use backup code instead'}
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full text-gray-600"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
+          Cancel
+        </Button>
+      </form>
+    </div>
+  )
+}
+        ]]>
+      </component-structure>
+    </file-to-create>
+
+    <!-- FILE 2: Sign-In Form Modifications -->
+    <file-to-modify path="apps/web/src/components/auth/sign-in-form.tsx">
+      <description>
+        Modify sign-in form to detect 2FA status and show verification component.
+      </description>
+
+      <modifications>
+        <modification>
+          <section>Add state for 2FA verification</section>
+          <code>
+            <![CDATA[
+// Add after existing state declarations (around line 26)
+const [show2FA, setShow2FA] = useState(false)
+const [verifyingUserId, setVerifyingUserId] = useState<string | null>(null)
+            ]]>
+          </code>
+        </modification>
+
+        <modification>
+          <section>Modify onSubmit to check for 2FA</section>
+          <code>
+            <![CDATA[
+// Replace the success case (around line 75)
+} else {
+  // Check if 2FA is enabled for this user
+  if (result.user?.twoFactorEnabled) {
+    // Show 2FA verification component
+    setShow2FA(true)
+    setVerifyingUserId(result.user.id)
+  } else {
+    // Success - redirect to dashboard
+    router.push('/dashboard')
+  }
+}
+            ]]>
+          </code>
+        </modification>
+
+        <modification>
+          <section>Add 2FA verification handlers</section>
+          <code>
+            <![CDATA[
+// Add after handleGitHubSignIn function (around line 140)
+const handle2FASuccess = () => {
+  router.push('/dashboard')
+}
+
+const handle2FACancel = () => {
+  setShow2FA(false)
+  setVerifyingUserId(null)
+}
+            ]]>
+          </code>
+        </modification>
+
+        <modification>
+          <section>Conditionally render 2FA component</section>
+          <code>
+            <![CDATA[
+// Replace the return statement to conditionally show 2FA verification
+return (
+  <div className="space-y-6">
+    {show2FA && verifyingUserId ? (
+      <TwoFactorVerify
+        userId={verifyingUserId}
+        onSuccess={handle2FASuccess}
+        onCancel={handle2FACancel}
+      />
+    ) : (
+      <>
+        {/* Existing sign-in form content */}
+        {/* ... all existing JSX ... */}
+      </>
+    )}
+  </div>
+)
+            ]]>
+          </code>
+        </modification>
+
+        <modification>
+          <section>Add import for TwoFactorVerify</section>
+          <code>
+            <![CDATA[
+// Add to imports at top of file
+import { TwoFactorVerify } from './two-factor-verify'
+            ]]>
+          </code>
+        </modification>
+      </modifications>
+    </file-to-modify>
+
+    <!-- FILE 3: Verify Login API Endpoint -->
+    <file-to-create path="apps/web/src/app/api/auth/2fa/verify-login/route.ts">
+      <description>
+        API endpoint to verify 2FA code during login and complete authentication.
+      </description>
+
+      <implementation-notes>
+        <note priority="high">
+          Verify TOTP code using verifyTOTPCode from @/lib/two-factor.
+          For backup codes, query BackupCode table, verify with verifyBackupCode, mark as used.
+        </note>
+        <note priority="high">
+          Rate limiting: 5 attempts per 15 minutes per userId.
+          Store rate limit data in memory Map (or Redis in production).
+        </note>
+        <note priority="high">
+          Trusted device: Create device fingerprint from User-Agent + IP hash.
+          Store in cookie/session with 30-day expiry.
+          Check for valid trusted device token before prompting for 2FA.
+        </note>
+        <note priority="medium">
+          Complete sign-in by calling better-auth session creation.
+          Return session cookie and redirect to dashboard.
+        </note>
+      </implementation-notes>
+
+      <api-implementation>
+        <![CDATA[
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@hyvve/db'
+import { verifyTOTPCode, verifyBackupCode, decryptSecret } from '@/lib/two-factor'
+import { auth } from '@/lib/auth'
+import crypto from 'crypto'
+
+// Rate limiting storage (use Redis in production)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000 // 15 minutes
+const MAX_ATTEMPTS = 5
+
+interface VerifyLoginRequest {
+  userId: string
+  code: string
+  isBackupCode?: boolean
+  trustDevice?: boolean
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body: VerifyLoginRequest = await request.json()
+    const { userId, code, isBackupCode = false, trustDevice = false } = body
+
+    // Validate input
+    if (!userId || !code) {
+      return NextResponse.json(
+        { error: { code: 'INVALID_INPUT', message: 'User ID and code are required' } },
+        { status: 400 }
+      )
+    }
+
+    // Check rate limiting
+    const now = Date.now()
+    const rateLimit = rateLimitMap.get(userId)
+
+    if (rateLimit) {
+      if (now > rateLimit.resetAt) {
+        rateLimitMap.delete(userId)
+      } else if (rateLimit.count >= MAX_ATTEMPTS) {
+        const remainingTime = Math.ceil((rateLimit.resetAt - now) / 60000)
+        return NextResponse.json(
+          {
+            error: {
+              code: 'RATE_LIMITED',
+              message: `Too many attempts. Try again in ${remainingTime} minutes.`,
+            },
+            remainingAttempts: 0,
+          },
+          { status: 429 }
+        )
+      }
+    }
+
+    // Get user with 2FA data
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        twoFactorEnabled: true,
+        twoFactorSecret: true,
+      },
+    })
+
+    if (!user || !user.twoFactorEnabled) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: '2FA not enabled for this user' } },
+        { status: 404 }
+      )
+    }
+
+    let isValid = false
+
+    if (isBackupCode) {
+      // Verify backup code
+      const backupCodes = await prisma.backupCode.findMany({
+        where: {
+          userId,
+          used: false,
+        },
+      })
+
+      for (const backupCode of backupCodes) {
+        if (await verifyBackupCode(code, backupCode.code)) {
+          isValid = true
+          // Mark backup code as used
+          await prisma.backupCode.update({
+            where: { id: backupCode.id },
+            data: {
+              used: true,
+              usedAt: new Date(),
+            },
+          })
+          break
+        }
+      }
+    } else {
+      // Verify TOTP code
+      if (!user.twoFactorSecret) {
+        return NextResponse.json(
+          { error: { code: 'INVALID_SETUP', message: '2FA secret not found' } },
+          { status: 400 }
+        )
+      }
+
+      const decryptedSecret = await decryptSecret(
+        user.twoFactorSecret,
+        process.env.BETTER_AUTH_SECRET!
+      )
+      isValid = verifyTOTPCode(decryptedSecret, code)
+    }
+
+    if (!isValid) {
+      // Update rate limit
+      const currentLimit = rateLimitMap.get(userId) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW }
+      currentLimit.count++
+      rateLimitMap.set(userId, currentLimit)
+
+      const remainingAttempts = MAX_ATTEMPTS - currentLimit.count
+
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INVALID_CODE',
+            message: 'Invalid or expired code',
+          },
+          remainingAttempts,
+        },
+        { status: 400 }
+      )
+    }
+
+    // Clear rate limit on success
+    rateLimitMap.delete(userId)
+
+    // Create trusted device token if requested
+    if (trustDevice) {
+      const deviceFingerprint = createDeviceFingerprint(request)
+      const trustedDeviceToken = crypto.randomBytes(32).toString('hex')
+
+      // Store trusted device token in cookie (30 days)
+      const response = NextResponse.json({ success: true })
+      response.cookies.set('hyvve_trusted_device', trustedDeviceToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+      })
+
+      // Store device fingerprint in session metadata
+      // (better-auth will handle this in the session)
+    }
+
+    // Complete sign-in via better-auth
+    // Create session and return
+    const session = await auth.api.createSession({
+      userId: user.id,
+      request,
+    })
+
+    return NextResponse.json({
+      success: true,
+      session,
+    })
+  } catch (error) {
+    console.error('2FA verification error:', error)
+    return NextResponse.json(
+      { error: { code: 'INTERNAL_ERROR', message: 'Failed to verify code' } },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * Create device fingerprint from User-Agent and IP
+ */
+function createDeviceFingerprint(request: NextRequest): string {
+  const userAgent = request.headers.get('user-agent') || ''
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+
+  const fingerprint = `${userAgent}:${ip}`
+  return crypto.createHash('sha256').update(fingerprint).digest('hex')
+}
+
+/**
+ * Clean up expired rate limits (call periodically)
+ */
+function cleanupRateLimits() {
+  const now = Date.now()
+  for (const [userId, limit] of rateLimitMap.entries()) {
+    if (now > limit.resetAt) {
+      rateLimitMap.delete(userId)
+    }
+  }
+}
+
+// Cleanup every 5 minutes
+setInterval(cleanupRateLimits, 5 * 60 * 1000)
+        ]]>
+      </api-implementation>
+    </file-to-create>
+
+    <!-- FILE 4: Trusted Device Middleware -->
+    <file-to-create path="apps/web/src/lib/trusted-device.ts">
+      <description>
+        Utility functions for trusted device management.
+      </description>
+
+      <implementation>
+        <![CDATA[
+import crypto from 'crypto'
+import { NextRequest } from 'next/server'
+
+/**
+ * Create device fingerprint from User-Agent and IP
+ */
+export function createDeviceFingerprint(request: NextRequest): string {
+  const userAgent = request.headers.get('user-agent') || ''
+  const ip = getClientIP(request)
+
+  const fingerprint = `${userAgent}:${ip}`
+  return crypto.createHash('sha256').update(fingerprint).digest('hex')
+}
+
+/**
+ * Get client IP from request headers
+ */
+export function getClientIP(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for')
+  const realIP = request.headers.get('x-real-ip')
+
+  if (forwarded) {
+    // x-forwarded-for may contain multiple IPs, get the first one
+    return forwarded.split(',')[0].trim()
+  }
+
+  return realIP || 'unknown'
+}
+
+/**
+ * Check if device is trusted
+ */
+export function isTrustedDevice(request: NextRequest): boolean {
+  const trustedDeviceToken = request.cookies.get('hyvve_trusted_device')?.value
+
+  if (!trustedDeviceToken) {
+    return false
+  }
+
+  // Verify device fingerprint matches stored token
+  // In production, store device fingerprints in database
+  // For now, trust the cookie existence
+  return true
+}
+
+/**
+ * Get device name from User-Agent
+ */
+export function getDeviceName(request: NextRequest): string {
+  const userAgent = request.headers.get('user-agent') || ''
+
+  // Parse user agent to extract browser and OS
+  let browser = 'Unknown Browser'
+  let os = 'Unknown OS'
+
+  if (userAgent.includes('Chrome')) browser = 'Chrome'
+  else if (userAgent.includes('Firefox')) browser = 'Firefox'
+  else if (userAgent.includes('Safari')) browser = 'Safari'
+  else if (userAgent.includes('Edge')) browser = 'Edge'
+
+  if (userAgent.includes('Windows')) os = 'Windows'
+  else if (userAgent.includes('Mac')) os = 'macOS'
+  else if (userAgent.includes('Linux')) os = 'Linux'
+  else if (userAgent.includes('Android')) os = 'Android'
+  else if (userAgent.includes('iOS')) os = 'iOS'
+
+  return `${browser} on ${os}`
+}
+        ]]>
+      </implementation>
+    </file-to-create>
+
+    <!-- FILE 5: Sign-In Flow with Trusted Device Check -->
+    <file-to-modify path="apps/web/src/lib/auth-client.ts">
+      <description>
+        Modify signIn function to check for trusted device before prompting 2FA.
+      </description>
+
+      <modifications>
+        <modification>
+          <section>Add trusted device check</section>
+          <code>
+            <![CDATA[
+// In signIn function, after password verification:
+export async function signIn(credentials: SignInCredentials) {
+  const result = await authClient.signIn.email({
+    email: credentials.email,
+    password: credentials.password,
+  })
+
+  if (result.error) {
+    return result
+  }
+
+  // Check if 2FA is enabled
+  if (result.user?.twoFactorEnabled) {
+    // Check for trusted device token
+    const trustedDevice = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('hyvve_trusted_device='))
+
+    if (trustedDevice) {
+      // Device is trusted, skip 2FA
+      return result
+    }
+
+    // Require 2FA verification
+    return {
+      ...result,
+      requiresTwoFactor: true,
+    }
+  }
+
+  return result
+}
+            ]]>
+          </code>
+        </modification>
+      </modifications>
+    </file-to-modify>
+  </implementation-guide>
+
+  <!-- ============================================ -->
+  <!-- TESTING CHECKLIST -->
+  <!-- ============================================ -->
+
+  <testing>
+    <test-cases>
+      <test-case id="TC-1" priority="high">
+        <description>2FA prompt shows after correct password for enabled users</description>
+        <steps>
+          1. Sign in with credentials for user with 2FA enabled
+          2. Enter correct password
+          3. Verify 2FA verification component displays
+          4. Verify "Enter 6-digit code" message shown
+        </steps>
+        <expected-result>TwoFactorVerify component shown, not redirected to dashboard</expected-result>
+      </test-case>
+
+      <test-case id="TC-2" priority="high">
+        <description>Valid TOTP code allows login</description>
+        <steps>
+          1. Reach 2FA verification step
+          2. Open authenticator app and get current 6-digit code
+          3. Enter code and submit
+          4. Verify success and redirect to dashboard
+        </steps>
+        <expected-result>User signed in successfully, session created, redirected to dashboard</expected-result>
+      </test-case>
+
+      <test-case id="TC-3" priority="high">
+        <description>Invalid code shows error message</description>
+        <steps>
+          1. Reach 2FA verification step
+          2. Enter invalid 6-digit code (e.g., "000000")
+          3. Submit form
+          4. Verify error message displayed
+          5. Verify remaining attempts shown
+        </steps>
+        <expected-result>Error: "Invalid or expired code", remaining attempts displayed</expected-result>
+      </test-case>
+
+      <test-case id="TC-4" priority="high">
+        <description>Backup code works as alternative</description>
+        <steps>
+          1. Reach 2FA verification step
+          2. Click "Use backup code instead"
+          3. Enter valid backup code (format: XXXX-XXXX)
+          4. Submit form
+          5. Verify success and redirect
+        </steps>
+        <expected-result>User signed in, backup code marked as used in database</expected-result>
+      </test-case>
+
+      <test-case id="TC-5" priority="high">
+        <description>Used backup code cannot be reused</description>
+        <steps>
+          1. Use backup code to sign in (TC-4)
+          2. Sign out
+          3. Sign in again and reach 2FA step
+          4. Try to use same backup code
+          5. Verify error shown
+        </steps>
+        <expected-result>Error: "Invalid or expired code", code already marked as used</expected-result>
+      </test-case>
+
+      <test-case id="TC-6" priority="high">
+        <description>Trust device skips 2FA for 30 days</description>
+        <steps>
+          1. Reach 2FA verification step
+          2. Check "Trust this device for 30 days"
+          3. Enter valid TOTP code and submit
+          4. Sign out
+          5. Sign in again with same device
+          6. Verify 2FA step skipped
+        </steps>
+        <expected-result>After first verification, subsequent logins skip 2FA prompt</expected-result>
+      </test-case>
+
+      <test-case id="TC-7" priority="high">
+        <description>Rate limiting after 5 failed attempts</description>
+        <steps>
+          1. Reach 2FA verification step
+          2. Enter invalid code 5 times
+          3. Verify rate limit message shown
+          4. Try to submit again
+          5. Verify blocked for 15 minutes
+        </steps>
+        <expected-result>After 5 attempts: "Too many attempts. Try again in 15 minutes."</expected-result>
+      </test-case>
+
+      <test-case id="TC-8" priority="medium">
+        <description>Users without 2FA skip verification step</description>
+        <steps>
+          1. Sign in with user who has 2FA disabled
+          2. Enter correct password
+          3. Verify immediate redirect to dashboard
+        </steps>
+        <expected-result>No 2FA prompt shown, normal sign-in flow</expected-result>
+      </test-case>
+
+      <test-case id="TC-9" priority="medium">
+        <description>Cancel button returns to sign-in form</description>
+        <steps>
+          1. Reach 2FA verification step
+          2. Click "Cancel" button
+          3. Verify sign-in form shown again
+        </steps>
+        <expected-result>Back to email/password sign-in form, no session created</expected-result>
+      </test-case>
+
+      <test-case id="TC-10" priority="medium">
+        <description>Expired TOTP code shows error</description>
+        <steps>
+          1. Get TOTP code from authenticator app
+          2. Wait 60 seconds (past 30-second validity window + buffer)
+          3. Enter expired code
+          4. Verify error shown
+        </steps>
+        <expected-result>Error: "Invalid or expired code"</expected-result>
+      </test-case>
+
+      <test-case id="TC-11" priority="low">
+        <description>Input validation for 6-digit TOTP code</description>
+        <steps>
+          1. Reach 2FA verification step
+          2. Try to enter letters (e.g., "abcdef")
+          3. Verify only numbers accepted
+          4. Try to enter 7 digits
+          5. Verify max length enforced
+        </steps>
+        <expected-result>Input restricted to 6 numeric characters</expected-result>
+      </test-case>
+
+      <test-case id="TC-12" priority="low">
+        <description>Input validation for backup code format</description>
+        <steps>
+          1. Reach 2FA verification step
+          2. Click "Use backup code instead"
+          3. Try to enter invalid format (e.g., "123456")
+          4. Verify validation message shown
+        </steps>
+        <expected-result>Validation: "Backup code must be in format XXXX-XXXX"</expected-result>
+      </test-case>
+    </test-cases>
+
+    <edge-cases>
+      <edge-case id="EC-1">
+        <description>User enables 2FA after signing in</description>
+        <handling>
+          Next sign-in will require 2FA verification.
+          Current session remains valid until expiry.
+        </handling>
+      </edge-case>
+
+      <edge-case id="EC-2">
+        <description>User disables 2FA while trusted device cookie exists</description>
+        <handling>
+          Trusted device cookie harmless but unused.
+          Can be cleared on next 2FA status check.
+        </handling>
+      </edge-case>
+
+      <edge-case id="EC-3">
+        <description>Clock drift between server and authenticator app</description>
+        <handling>
+          TOTP window set to 1 (checks current, previous, and next 30-second period).
+          Allows up to 60 seconds of clock drift.
+        </handling>
+      </edge-case>
+
+      <edge-case id="EC-4">
+        <description>User switches devices mid-session</description>
+        <handling>
+          New device won't have trusted device cookie.
+          Will require 2FA verification on next sign-in.
+        </handling>
+      </edge-case>
+
+      <edge-case id="EC-5">
+        <description>Rate limit expires during verification attempt</description>
+        <handling>
+          Rate limit checked at request time.
+          If expired, reset counter and allow attempt.
+        </handling>
+      </edge-case>
+    </edge-cases>
+
+    <manual-testing>
+      <scenario id="MT-1">
+        <description>Test with Google Authenticator</description>
+        <steps>
+          1. Set up 2FA with Google Authenticator (Story 09.3)
+          2. Sign out
+          3. Sign in and verify TOTP code works
+        </steps>
+      </scenario>
+
+      <scenario id="MT-2">
+        <description>Test with Authy</description>
+        <steps>
+          1. Set up 2FA with Authy app
+          2. Sign out
+          3. Sign in and verify TOTP code works
+        </steps>
+      </scenario>
+
+      <scenario id="MT-3">
+        <description>Test with 1Password</description>
+        <steps>
+          1. Set up 2FA with 1Password
+          2. Sign out
+          3. Sign in and verify TOTP code works
+        </steps>
+      </scenario>
+
+      <scenario id="MT-4">
+        <description>Test trusted device across browsers</description>
+        <steps>
+          1. Sign in with Chrome, trust device
+          2. Sign out
+          3. Sign in with Firefox on same machine
+          4. Verify 2FA required (different browser = different device)
+        </steps>
+      </scenario>
+
+      <scenario id="MT-5">
+        <description>Test rate limiting recovery</description>
+        <steps>
+          1. Trigger rate limit (5 failed attempts)
+          2. Wait 15 minutes
+          3. Try sign in again
+          4. Verify rate limit cleared, can attempt again
+        </steps>
+      </scenario>
+    </manual-testing>
+  </testing>
+
+  <!-- ============================================ -->
+  <!-- SECURITY CONSIDERATIONS -->
+  <!-- ============================================ -->
+
+  <security>
+    <considerations>
+      <consideration priority="critical">
+        <title>Rate Limiting</title>
+        <description>
+          Limit verification attempts to 5 per 15 minutes to prevent brute-force attacks.
+          Store rate limit data per userId, not per session (prevent bypass via new sessions).
+        </description>
+      </consideration>
+
+      <consideration priority="critical">
+        <title>Backup Code Security</title>
+        <description>
+          Hash backup codes before storing in database (bcrypt).
+          Mark codes as used after verification (single-use only).
+          Prevent timing attacks by always checking all codes, not exiting early on match.
+        </description>
+      </consideration>
+
+      <consideration priority="high">
+        <title>Trusted Device Token</title>
+        <description>
+          Use secure random token generation (crypto.randomBytes).
+          Store token in httpOnly cookie to prevent XSS access.
+          Include device fingerprint (User-Agent + IP hash) for additional validation.
+        </description>
+      </consideration>
+
+      <consideration priority="high">
+        <title>TOTP Secret Decryption</title>
+        <description>
+          Decrypt TOTP secret only when needed for verification.
+          Never expose decrypted secret in API responses.
+          Use BETTER_AUTH_SECRET as master encryption key.
+        </description>
+      </consideration>
+
+      <consideration priority="medium">
+        <title>Error Messages</title>
+        <description>
+          Use generic error messages to prevent information leakage.
+          Don't distinguish between "invalid code" and "expired code" to attackers.
+          Log detailed errors server-side for debugging.
+        </description>
+      </consideration>
+
+      <consideration priority="medium">
+        <title>Session Management</title>
+        <description>
+          Complete sign-in only after successful 2FA verification.
+          Don't create partial/intermediate sessions that could be exploited.
+          Use better-auth's session creation to maintain consistency.
+        </description>
+      </consideration>
+    </considerations>
+
+    <threat-model>
+      <threat id="T-1">
+        <name>Brute Force Attack</name>
+        <description>Attacker tries many codes to bypass 2FA</description>
+        <mitigation>Rate limiting: 5 attempts per 15 minutes</mitigation>
+      </threat>
+
+      <threat id="T-2">
+        <name>Replay Attack</name>
+        <description>Attacker intercepts and reuses valid TOTP code</description>
+        <mitigation>TOTP codes valid for 30 seconds only, window prevents reuse</mitigation>
+      </threat>
+
+      <threat id="T-3">
+        <name>Backup Code Theft</name>
+        <description>Attacker gains access to user's backup codes</description>
+        <mitigation>Single-use codes, hashed storage, user warned to store securely</mitigation>
+      </threat>
+
+      <threat id="T-4">
+        <name>Device Token Theft</name>
+        <description>Attacker steals trusted device cookie</description>
+        <mitigation>httpOnly cookie, device fingerprint validation, 30-day expiry</mitigation>
+      </threat>
+
+      <threat id="T-5">
+        <name>Session Fixation</name>
+        <description>Attacker pre-sets session ID before 2FA verification</description>
+        <mitigation>Use better-auth session creation after 2FA, regenerate session ID</mitigation>
+      </threat>
+    </threat-model>
+  </security>
+
+  <!-- ============================================ -->
+  <!-- UI/UX NOTES -->
+  <!-- ============================================ -->
+
+  <ux-notes>
+    <note id="UX-1" priority="high">
+      <title>Auto-focus on Code Input</title>
+      <description>
+        Automatically focus the verification code input when component mounts.
+        Users should be able to immediately start typing without clicking.
+      </description>
+    </note>
+
+    <note id="UX-2" priority="high">
+      <title>Clear Error Messaging</title>
+      <description>
+        Show specific, actionable error messages:
+        - "Invalid code" - user knows to try again
+        - "Too many attempts" - user knows to wait
+        - Show remaining attempts count
+        - Show time remaining for rate limit
+      </description>
+    </note>
+
+    <note id="UX-3" priority="medium">
+      <title>Input Formatting</title>
+      <description>
+        For backup codes, auto-format input with hyphen (XXXX-XXXX).
+        For TOTP codes, restrict to numeric input only.
+        Consider auto-submitting when 6 digits entered (optional).
+      </description>
+    </note>
+
+    <note id="UX-4" priority="medium">
+      <title>Loading States</title>
+      <description>
+        Show loading spinner on submit button while verifying.
+        Disable all inputs during verification to prevent double-submission.
+        Clear form after failed attempt to allow re-entry.
+      </description>
+    </note>
+
+    <note id="UX-5" priority="low">
+      <title>Accessibility</title>
+      <description>
+        Code input should have proper aria-label.
+        Error messages should have role="alert" for screen readers.
+        Keyboard navigation: Tab through inputs, Enter to submit, Escape to cancel.
+      </description>
+    </note>
+  </ux-notes>
+
+  <!-- ============================================ -->
+  <!-- WIREFRAME REFERENCE -->
+  <!-- ============================================ -->
+
+  <wireframe-reference>
+    <wireframe id="AU-06">
+      <name>Two-Factor Authentication - Login Flow</name>
+      <location>docs/design/wireframes/Finished wireframes and html files/AU-06.png</location>
+      <states>
+        <state id="4">2FA Login Prompt (TOTP Code Entry)</state>
+        <state id="5">Backup Code Entry</state>
+      </states>
+      <key-elements>
+        - 6-digit code input field (large, centered)
+        - "Trust this device for 30 days" checkbox
+        - "Verify &amp; Sign In" button
+        - "Use backup code instead" link
+        - Error message area
+        - Rate limit indicator
+      </key-elements>
+    </wireframe>
+  </wireframe-reference>
+
+  <!-- ============================================ -->
+  <!-- COMPLETION CHECKLIST -->
+  <!-- ============================================ -->
+
+  <completion-checklist>
+    <item id="IMPL-1" status="pending">Create TwoFactorVerify component</item>
+    <item id="IMPL-2" status="pending">Modify SignInForm to check 2FA status</item>
+    <item id="IMPL-3" status="pending">Implement verify-login API endpoint</item>
+    <item id="IMPL-4" status="pending">Add trusted device utilities</item>
+    <item id="IMPL-5" status="pending">Implement rate limiting</item>
+    <item id="IMPL-6" status="pending">Add backup code verification logic</item>
+    <item id="IMPL-7" status="pending">Test with Google Authenticator</item>
+    <item id="IMPL-8" status="pending">Test with Authy</item>
+    <item id="IMPL-9" status="pending">Test rate limiting</item>
+    <item id="IMPL-10" status="pending">Test trusted device functionality</item>
+    <item id="IMPL-11" status="pending">Update sprint status to complete</item>
+  </completion-checklist>
+
+  <!-- ============================================ -->
+  <!-- RELATED DOCUMENTATION -->
+  <!-- ============================================ -->
+
+  <related-docs>
+    <doc path="docs/sprint-artifacts/tech-spec-epic-09.md">
+      <section>ADR-009-04: Two-Factor Authentication Implementation</section>
+      <section>API Endpoints: Two-Factor Authentication Login (lines 693-736)</section>
+    </doc>
+
+    <doc path="docs/stories/09-3-implement-two-factor-authentication-setup.md">
+      <section>2FA Setup Flow (prerequisite)</section>
+    </doc>
+
+    <doc path="docs/stories/09-5-add-two-factor-authentication-management.md">
+      <section>2FA Management (follow-up story)</section>
+    </doc>
+
+    <doc path="docs/architecture.md">
+      <section>ADR-005: Authentication with better-auth</section>
+    </doc>
+  </related-docs>
+
+  <!-- ============================================ -->
+  <!-- NOTES -->
+  <!-- ============================================ -->
+
+  <implementation-notes>
+    <note priority="high">
+      This story builds directly on Story 09.3 (2FA Setup).
+      Ensure Story 09.3 is complete and tested before starting this story.
+    </note>
+
+    <note priority="high">
+      Rate limiting should use Redis in production for distributed systems.
+      Current implementation uses in-memory Map for development.
+    </note>
+
+    <note priority="medium">
+      Trusted device implementation is simplified for MVP.
+      Consider adding database table for trusted devices in future (Story 09.5).
+    </note>
+
+    <note priority="medium">
+      Device fingerprinting is basic (User-Agent + IP).
+      Consider more sophisticated fingerprinting libraries for production.
+    </note>
+
+    <note priority="low">
+      Auto-submit on 6 digits entered is optional UX enhancement.
+      Can be added after core functionality is working.
+    </note>
+  </implementation-notes>
+
+  <follow-up-work>
+    <item priority="high">Story 09.5 - Add 2FA management (view backup codes, regenerate, disable)</item>
+    <item priority="medium">Add database table for trusted devices (track creation, last used, revocation)</item>
+    <item priority="low">Consider SMS 2FA as alternative to TOTP (future enhancement)</item>
+    <item priority="low">Add analytics for 2FA adoption rate</item>
+  </follow-up-work>
+</story-context>

@@ -29,7 +29,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     // Verify membership (any role can view)
     await requireWorkspaceMembership(workspaceId)
 
-    // Get all members with user details
+    // Get all members with user details and last activity from sessions
     const members = await prisma.workspaceMember.findMany({
       where: { workspaceId },
       include: {
@@ -39,6 +39,15 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
             name: true,
             email: true,
             image: true,
+            sessions: {
+              select: {
+                updatedAt: true,
+              },
+              orderBy: {
+                updatedAt: 'desc',
+              },
+              take: 1,
+            },
           },
         },
         invitedBy: {
@@ -77,6 +86,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
         role: member.role,
         invitedAt: member.invitedAt.toISOString(),
         acceptedAt: member.acceptedAt?.toISOString() ?? null,
+        lastActiveAt: member.user.sessions[0]?.updatedAt?.toISOString() ?? null,
         invitedBy: member.invitedBy
           ? {
               id: member.invitedBy.id,

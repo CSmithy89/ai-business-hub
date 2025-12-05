@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { VerificationEmail } from '../emails/verification-email'
+import { deriveOTPFromToken } from './otp'
 
 /**
  * Initialize Resend client
@@ -35,6 +36,7 @@ export async function sendVerificationEmail(
   userName?: string
 ): Promise<void> {
   const verificationUrl = `${baseUrl}/verify-email?token=${token}`
+  const otpCode = deriveOTPFromToken(token)
 
   // For local development without Resend API key
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'test') {
@@ -43,6 +45,7 @@ export async function sendVerificationEmail(
     console.log(`To: ${to}`)
     console.log(`Subject: Verify your email address for HYVVE`)
     console.log(`Verification Link: ${verificationUrl}`)
+    console.log(`OTP Code: ${otpCode}`)
     console.log(`Token: ${token}`)
     console.log('═══════════════════════════════════════\n')
     return
@@ -57,6 +60,7 @@ export async function sendVerificationEmail(
       react: VerificationEmail({
         verificationUrl,
         userName,
+        otpCode,
       }),
     })
 
@@ -70,6 +74,98 @@ export async function sendVerificationEmail(
     console.error('Error sending verification email:', error)
     // Don't throw error to prevent blocking user registration
     // Log error and continue - user can request resend later
+  }
+}
+
+/**
+ * Send magic link email
+ *
+ * @param to - Recipient email address
+ * @param url - Full magic link URL with token
+ * @param token - Raw token for logging in dev mode
+ * @returns Promise that resolves when email is sent
+ */
+export async function sendMagicLinkEmail(
+  to: string,
+  url: string,
+  token: string
+): Promise<void> {
+  // For local development
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'test') {
+    console.log('\n📧 Magic Link Email (Local Dev Mode)')
+    console.log('═══════════════════════════════════════')
+    console.log(`To: ${to}`)
+    console.log(`Subject: Your Sign-In Link for HYVVE`)
+    console.log(`Magic Link URL: ${url}`)
+    console.log(`Token: ${token}`)
+    console.log(`Expires: 15 minutes`)
+    console.log('═══════════════════════════════════════\n')
+    return
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to,
+      replyTo: EMAIL_CONFIG.replyTo,
+      subject: 'Your Sign-In Link for HYVVE',
+      html: `
+        <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+          <div style="text-align: center; margin-bottom: 40px;">
+            <h1 style="color: #111827; font-size: 24px; margin: 0;">Sign in to HYVVE</h1>
+          </div>
+
+          <div style="background-color: #f9fafb; border-radius: 12px; padding: 32px; margin-bottom: 32px;">
+            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+              Hello,
+            </p>
+            <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+              Click the button below to sign in to your HYVVE account:
+            </p>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${url}"
+                 style="display: inline-block; background-color: #FF6B6B; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                Sign In to HYVVE
+              </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0;">
+              Or copy and paste this link into your browser:
+            </p>
+            <p style="color: #4f46e5; font-size: 14px; word-break: break-all; margin: 8px 0 0 0;">
+              ${url}
+            </p>
+          </div>
+
+          <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 16px; margin-bottom: 32px; border-radius: 4px;">
+            <p style="color: #991b1b; font-size: 14px; line-height: 1.6; margin: 0; font-weight: 600;">
+              ⏱️ This link expires in 15 minutes
+            </p>
+          </div>
+
+          <div style="border-top: 1px solid #e5e7eb; padding-top: 24px;">
+            <p style="color: #9ca3af; font-size: 12px; line-height: 1.6; margin: 0;">
+              If you didn't request this sign-in link, you can safely ignore this email.
+              The link will expire automatically.
+            </p>
+            <p style="color: #9ca3af; font-size: 12px; margin: 16px 0 0 0;">
+              This is an automated message from HYVVE. Please do not reply to this email.
+            </p>
+          </div>
+        </div>
+      `,
+    })
+
+    if (error) {
+      console.error('Failed to send magic link email:', error)
+      throw new Error(`Email sending failed: ${error.message}`)
+    }
+
+    console.log('Magic link email sent successfully:', data?.id)
+  } catch (error) {
+    console.error('Error sending magic link email:', error)
+    throw error
   }
 }
 

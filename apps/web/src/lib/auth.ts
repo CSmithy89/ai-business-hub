@@ -1,8 +1,12 @@
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
-import { organization } from 'better-auth/plugins'
+import { organization, twoFactor, magicLink } from 'better-auth/plugins'
 import { prisma } from '@hyvve/db'
-import { sendVerificationEmail, sendPasswordResetEmail } from './email'
+import { sendVerificationEmail, sendPasswordResetEmail, sendMagicLinkEmail } from './email'
+import { validateEncryptionKeyOnStartup } from './utils/validate-encryption-key'
+
+// Validate encryption key entropy on module load
+validateEncryptionKeyOnStartup()
 
 export const auth = betterAuth({
   // Database adapter using Prisma
@@ -30,6 +34,16 @@ export const auth = betterAuth({
       allowUserToCreateOrganization: true,
       // Role definitions will be fully implemented in Epic 02
     }),
+    twoFactor({
+      issuer: 'HYVVE',
+    }),
+    magicLink({
+      sendMagicLink: async ({ email, token, url }) => {
+        await sendMagicLinkEmail(email, url, token)
+      },
+      expiresIn: 900, // 15 minutes (900 seconds)
+      disableSignUp: false, // Allow new users to sign up via magic link
+    }),
   ],
 
   // Email and password authentication
@@ -54,12 +68,22 @@ export const auth = betterAuth({
     },
   },
 
-  // OAuth configuration - Google OAuth (Story 01.5)
+  // OAuth configuration - Google OAuth (Story 01.5), Microsoft OAuth (Story 09.1), GitHub OAuth (Story 09.2)
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/google`,
+    },
+    microsoft: {
+      clientId: process.env.MICROSOFT_CLIENT_ID!,
+      clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
+      redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/microsoft`,
+    },
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/github`,
     },
   },
 })
