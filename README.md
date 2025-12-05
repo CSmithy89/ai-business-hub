@@ -1,5 +1,11 @@
 # HYVVE - AI Business Hub
 
+[![Build Status](https://github.com/CSmithy89/ai-business-hub/actions/workflows/test.yml/badge.svg)](https://github.com/CSmithy89/ai-business-hub/actions)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-10-red.svg)](https://nestjs.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > **Transform your business with 90% automation, requiring only ~5 hours/week of human involvement.**
 
 HYVVE is an AI-powered business orchestration platform that combines multi-agent AI teams with human-in-the-loop approval gates. Think of it as your AI workforce - a team of specialized agents handling market research, content creation, marketing, sales, and operations while you focus on strategic decisions.
@@ -15,7 +21,9 @@ Most business software requires constant human attention. HYVVE flips this model
 - **Confidence-based routing** means high-confidence actions auto-execute
 - **One SMB owner can operate with the efficiency of a much larger team**
 
-```
+<!-- Diagram: Comparison of traditional software (100% manual) vs HYVVE (5 hrs/week human, 90% AI automated) -->
+
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    THE 90/5 PROMISE                              │
 ├─────────────────────────────────────────────────────────────────┤
@@ -33,6 +41,18 @@ Most business software requires constant human attention. HYVVE flips this model
 
 ---
 
+## Preview
+
+<!-- TODO: Add dashboard screenshots when UI is ready for demonstration -->
+
+| Dashboard | Approval Queue | AI Chat |
+|-----------|----------------|---------|
+| *Coming soon* | *Coming soon* | *Coming soon* |
+
+> **Note:** Screenshots will be added once the UI is deployed to a demo environment.
+
+---
+
 ## Key Features
 
 ### BYOAI - Bring Your Own AI
@@ -45,7 +65,10 @@ Use your existing AI subscriptions. No vendor lock-in.
 - **Local Models** (Ollama)
 
 ### Confidence-Based Approval System
-```
+
+<!-- Diagram: Confidence threshold routing - high auto-executes, medium needs quick approval, low needs full review -->
+
+```text
 High Confidence (>85%)     → Auto-execute with audit log
 Medium Confidence (60-85%) → 1-click quick approval
 Low Confidence (<60%)      → Full human review required
@@ -70,7 +93,9 @@ Each module works standalone or integrates with others:
 
 ## Platform Architecture
 
-```
+<!-- Diagram: Four-layer architecture - Presentation (Next.js), API (NestJS), Orchestration (AgentOS/Python), Data (PostgreSQL/Redis) -->
+
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     HYVVE PLATFORM ARCHITECTURE                      │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -156,7 +181,9 @@ Each module works standalone or integrates with others:
 ### BUILD Phase (Sequential)
 For new projects and products:
 
-```
+<!-- Diagram: Sequential workflow from idea submission through market research, planning, product creation, to launch -->
+
+```text
 Discovery → Validation → Planning → Building → Launch
     │           │            │          │         │
     ▼           ▼            ▼          ▼         ▼
@@ -167,7 +194,9 @@ Discovery → Validation → Planning → Building → Launch
 ### OPERATE Phase (Continuous)
 For ongoing operations:
 
-```
+<!-- Diagram: Four continuous operational loops - Intelligence (hourly), Content (daily), Marketing (weekly), Analytics (real-time) -->
+
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │  Intelligence Loop (hourly)    │  Trend scanning            │
 │  Content Loop (daily)          │  Automated creation        │
@@ -233,7 +262,7 @@ For ongoing operations:
 
 ## Current Development Status
 
-### Phase: Foundation Build (EPIC-00 - EPIC-08)
+### Foundation Complete - Ready for Production Features
 
 | Epic | Name | Stories | Status |
 |------|------|---------|--------|
@@ -244,116 +273,13 @@ For ongoing operations:
 | EPIC-04 | Approval Queue System | 12/12 | ✅ Complete |
 | EPIC-05 | Event Bus Infrastructure | 7/7 | ✅ Complete |
 | EPIC-06 | BYOAI Configuration | 11/11 | ✅ Complete |
-| EPIC-07 | UI Shell & Navigation | 0/10 | 🔄 Ready for Dev |
-| EPIC-08 | Business Onboarding & Foundation Modules | 0/23 | ⏳ Backlog |
+| EPIC-07 | UI Shell & Navigation | 10/10 | ✅ Complete |
+| EPIC-08 | Business Onboarding & Foundation Modules | 23/23 | ✅ Complete |
+| EPIC-09 | UI & Authentication Enhancements | 15/15 | ✅ Complete |
 
-**Progress: 59/83 stories completed (71%)**
+**Progress: 106/107 stories completed (99%)**
 
-### Completed Features (EPIC-00 through EPIC-06)
-
-#### Project Foundation (EPIC-00)
-- Turborepo monorepo with pnpm workspaces
-- Next.js 15 frontend with App Router
-- NestJS 10 backend with modular architecture
-- Prisma ORM with PostgreSQL
-- Docker Compose development environment
-- Shared TypeScript types package
-- AgentOS Python runtime (FastAPI + Agno)
-
-#### Authentication System (EPIC-01)
-- Better-Auth integration with email/password
-- Google OAuth social login
-- Email verification flow
-- Password reset functionality
-- Session management with secure cookies
-- Auth UI components (SignIn, SignUp, ForgotPassword)
-
-#### Workspace Management (EPIC-02)
-- Workspace CRUD operations
-- Member invitation system with email notifications
-- Workspace switching and context
-- Member role management (Owner, Admin, Member)
-- Workspace settings and deletion
-
-#### RBAC & Multi-Tenancy (EPIC-03)
-- Hierarchical permission matrix
-- NestJS auth guards with role checks
-- Next.js middleware for route protection
-- Prisma tenant extension for automatic filtering
-- PostgreSQL Row-Level Security (RLS) policies
-- Module-level permission overrides
-- Audit logging for permission changes
-
-#### Approval Queue System (EPIC-04)
-- Confidence calculator service (auto/quick/full review routing)
-- Approval queue API with filtering and pagination
-- Approval router with confidence-based routing
-- Approval queue dashboard UI
-- Approval card components with AI reasoning display
-- Bulk approval functionality
-- Escalation and reassignment
-- Complete audit trail
-- AgentOS integration with NestJS bridge
-- Control plane connection for agent runs
-
-#### Event Bus Infrastructure (EPIC-05)
-- Redis Streams setup with consumer groups
-- Event publisher service with correlation tracking
-- Event subscriber with decorator-based handlers
-- Retry mechanism with exponential backoff
-- Dead letter queue (DLQ) for failed events
-- Core platform event type definitions
-- Event replay service for historical reprocessing
-- Admin monitoring dashboard at `/admin/events`
-
-#### BYOAI Configuration (EPIC-06)
-- **Multi-Provider AI Support**
-  - Claude, OpenAI, Gemini, DeepSeek, OpenRouter integration
-  - Encrypted API key storage (AES-256-GCM)
-  - Provider validation and health monitoring
-- **Token Usage Tracking**
-  - Per-provider daily token consumption
-  - Per-agent usage breakdown
-  - Token cost estimation by model
-- **Daily Token Limits**
-  - Configurable limits per provider
-  - Usage alerts at 80%/90%/100% thresholds
-  - Automatic reset at midnight
-- **Provider Health Monitoring**
-  - Latency tracking and status indicators
-  - 5-minute auto-refresh with exponential backoff
-  - Failure detection and alerting
-- **Agent Model Preferences**
-  - Per-agent AI model configuration
-  - Override default models for any agent team
-  - Cost visibility for model selection
-- **IAssistantClient Interface**
-  - Unified abstraction for AI communication
-  - Support for streaming and non-streaming responses
-  - Tool call handling with structured outputs
-  - Factory pattern for provider-specific clients
-- **Settings UI**
-  - Provider configuration at `/settings/ai-config`
-  - Token usage dashboard with charts
-  - Agent preferences management
-
-### CI/CD Pipeline
-- GitHub Actions workflow for CI
-- TypeScript type checking
-- ESLint with strict rules
-- Prisma client generation
-- Husky pre-commit hooks (type-check, lint, Semgrep security scan)
-- Multi-AI code review pipeline (CodeAnt, Gemini, CodeRabbit, Claude)
-
-### Completed Research
-- [x] Taskosaur analysis (conversational UI patterns)
-- [x] Twenty CRM analysis (record architecture)
-- [x] Plane analysis (project management)
-- [x] Agno Framework analysis (multi-agent orchestration)
-- [x] Multi-tenant isolation strategies
-- [x] RBAC specification patterns
-- [x] Authentication system patterns
-- [x] AgentOS integration analysis
+See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 
 ---
 
@@ -448,14 +374,17 @@ This project uses the **BMAD Method** (Business Model Agile Development):
 
 ## Contributing
 
-Contributions are welcome! Please read the development documentation before submitting PRs.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting PRs.
 
-### Development Workflow
+### Quick Start
+
 1. Check sprint status in `docs/sprint-artifacts/sprint-status.yaml`
 2. Pick a story from the current epic
 3. Run story context to gather requirements
 4. Implement following architecture patterns
 5. Submit PR with tests
+
+See the full [Contributing Guide](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
