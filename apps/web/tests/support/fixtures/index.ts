@@ -7,6 +7,7 @@
 import { test as base, mergeTests } from '@playwright/test';
 import { UserFactory } from './factories/user-factory';
 import { WorkspaceFactory } from './factories/workspace-factory';
+import { BusinessFactory } from './factories/business-factory';
 
 // Auth fixture type definition
 type AuthFixture = {
@@ -60,8 +61,23 @@ const workspaceFactoryFixture = base.extend<{ workspaceFactory: WorkspaceFactory
   },
 });
 
+// Business factory fixture - creates test businesses with auto-cleanup
+const businessFactoryFixture = base.extend<{ businessFactory: BusinessFactory }>({
+  businessFactory: async ({}, use) => {
+    const factory = new BusinessFactory();
+    await use(factory);
+    await factory.cleanup();
+  },
+});
+
 // Merged test export - compose all fixtures
-export const test = mergeTests(base, authFixture, userFactoryFixture, workspaceFactoryFixture);
+export const test = mergeTests(
+  base,
+  authFixture,
+  userFactoryFixture,
+  workspaceFactoryFixture,
+  businessFactoryFixture
+);
 
 // Re-export expect for convenience
 export { expect } from '@playwright/test';

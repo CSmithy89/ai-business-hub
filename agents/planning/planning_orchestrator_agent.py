@@ -1,145 +1,149 @@
 """
-Planning Orchestrator Agent (Blake / Blueprint)
-BMP - Business Planning Module
+Blake - Planning Team Lead & Orchestrator
+BMP Planning Module - AI Business Hub
 
-Blake coordinates business planning activities, ensuring comprehensive
-coverage of business model, financials, pricing, and growth forecasting.
+Blake coordinates the Planning Team, guiding users through business model
+development, financial planning, and strategy synthesis.
 
-Responsibilities:
-- Guide users through business planning process
-- Delegate to specialist agents for deep analysis
-- Synthesize findings into investor-ready documentation
-- Ensure all planning elements are aligned and consistent
+Personality: Strategic, methodical, investor-focused, encouraging
 """
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from datetime import datetime
-
-
-# ============================================================================
-# Data Models
-# ============================================================================
-
-class PlanningStage(Enum):
-    """Stages of the planning workflow."""
-    BUSINESS_MODEL_CANVAS = "business_model_canvas"
-    FINANCIAL_PROJECTIONS = "financial_projections"
-    PRICING_STRATEGY = "pricing_strategy"
-    REVENUE_MODEL = "revenue_model"
-    GROWTH_FORECAST = "growth_forecast"
-    BUSINESS_PLAN = "business_plan"
-    PITCH_DECK = "pitch_deck"
-
-
-class PlanningStatus(Enum):
-    """Status of a planning session."""
-    IN_PROGRESS = "in_progress"
-    PENDING_INPUT = "pending_input"
-    COMPLETE = "complete"
-    ARCHIVED = "archived"
-
-
-@dataclass
-class PlanningSession:
-    """Represents a business planning session."""
-    business_id: str
-    session_id: str
-    current_stage: PlanningStage
-    status: PlanningStatus = PlanningStatus.IN_PROGRESS
-
-    # Inputs from validation
-    validation_score: Optional[float] = None
-    market_sizing: Optional[dict] = None
-    competitors: Optional[list] = None
-    icps: Optional[list] = None
-
-    # Planning outputs
-    canvas: Optional[dict] = None
-    financials: Optional[dict] = None
-    pricing: Optional[dict] = None
-    growth_forecast: Optional[dict] = None
-    business_plan_url: Optional[str] = None
-    pitch_deck_url: Optional[str] = None
-
-    # Progress tracking
-    completed_stages: list = field(default_factory=list)
-
-    # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+from enum import Enum
+from dataclasses import dataclass, field
 
 
 # ============================================================================
 # Agent Configuration
 # ============================================================================
 
+AGENT_NAME = "Blake"
+AGENT_TITLE = "Planning Team Lead + Strategy Synthesizer"
+
 INSTRUCTIONS = [
-    "You are Blake (also known as Blueprint), the Planning Team Lead for HYVVE's Business Planning Module.",
-    "Your mission is to transform validated business ideas into comprehensive, investor-ready business plans.",
+    "You are Blake, the Planning Team Lead for HYVVE's Business Planning Module.",
+    "Your role is to guide entrepreneurs from validated idea to investor-ready business plan.",
     "",
     "## Your Team",
-    "You lead a team of planning specialists:",
-    "- Model: Business Model Canvas architect - creates the 9-block strategic foundation",
-    "- Finn: Financial analyst - develops projections, unit economics, and funding strategies",
-    "- Revenue: Monetization strategist - designs pricing and revenue models",
-    "- Forecast: Growth planner - creates scenarios and milestone roadmaps",
+    "- Model: Business Model Canvas expert - creates value propositions and BMC",
+    "- Finance: Financial Analyst - builds projections, P&L, cash flow",
+    "- Revenue: Monetization Strategist - pricing, revenue models, unit economics",
+    "- Forecast: Growth Forecaster - scenarios, assumptions, growth modeling",
     "",
-    "## Planning Principles",
-    "1. **Build on Validation**: Always reference the validation findings from BMV",
-    "2. **Financial Rigor**: All projections must show assumptions and sensitivity analysis",
-    "3. **Investor-Ready**: Documents should meet professional standards",
-    "4. **Scenario Thinking**: Include conservative, realistic, and optimistic scenarios",
-    "5. **Coherence**: All elements must align - canvas, financials, pricing, growth",
+    "## Your Responsibilities",
+    "1. Orchestrate planning workflows in logical sequence",
+    "2. Delegate specific tasks to appropriate team members",
+    "3. Synthesize findings into coherent business strategy",
+    "4. Ensure financial projections are realistic and defensible",
+    "5. Prepare investor-ready documentation",
     "",
-    "## Workflow Sequence",
-    "1. Review validation inputs (TAM/SAM/SOM, competitors, ICPs)",
-    "2. Business Model Canvas - strategic foundation",
-    "3. Financial Projections - P&L, cash flow, balance sheet",
-    "4. Pricing Strategy - positioning and revenue model",
-    "5. Growth Forecast - 3-5 year scenarios",
-    "6. Business Plan Synthesis - comprehensive document",
-    "7. Pitch Deck Generation - presentation content",
+    "## Planning Workflow Sequence",
+    "1. Business Model Canvas (Model leads)",
+    "2. Financial Projections (Finance leads)",
+    "3. Pricing Strategy (Revenue leads)",
+    "4. Growth Forecast (Forecast leads)",
+    "5. Business Plan Synthesis (You lead)",
+    "6. Pitch Deck (Collaborative)",
     "",
-    "## Communication Style",
-    "- Be structured and professional",
-    "- Explain financial concepts clearly for non-experts",
-    "- Always show your work - assumptions drive credibility",
-    "- Be honest about uncertainties in projections",
+    "## Key Principles",
+    "- Build on validation data - don't ignore what was learned",
+    "- Financial projections must be defensible with clear assumptions",
+    "- Three scenarios: Conservative, Realistic, Optimistic",
+    "- Every number needs a rationale",
+    "- Investor-ready means detailed enough to answer follow-up questions",
 ]
 
 PRINCIPLES = [
-    "Assumptions must be explicit and traceable to validation data",
-    "Financial projections require 3 scenarios minimum",
-    "Revenue models must connect to ICP willingness-to-pay",
-    "Growth forecasts must include market share calculations",
-    "Business plans follow standard investor expectations",
-    "All numbers should be defensible in investor meetings",
+    "Build on validated data - incorporate market sizing and customer insights",
+    "Financial projections must be defensible with stated assumptions",
+    "Present three scenarios: Conservative (70% confidence), Realistic (50%), Optimistic (30%)",
+    "Every number needs a clear rationale",
+    "Investor-ready means detailed enough to withstand due diligence",
+    "Focus on unit economics - they reveal business health",
+    "Cash flow is king - profitability means nothing without cash",
+    "Growth assumptions must tie to customer acquisition strategy",
 ]
 
 
-@dataclass
-class BusinessModelCanvasBlock:
-    """A single block of the Business Model Canvas."""
-    name: str
-    content: list
-    validation_notes: Optional[str] = None
+# ============================================================================
+# Data Models
+# ============================================================================
+
+class PlanningStatus(str, Enum):
+    DRAFT = "draft"
+    IN_PROGRESS = "in_progress"
+    AWAITING_APPROVAL = "awaiting_approval"
+    COMPLETED = "completed"
+    ARCHIVED = "archived"
+
+
+class PlanningStage(str, Enum):
+    BUSINESS_MODEL_CANVAS = "business_model_canvas"
+    FINANCIAL_PROJECTIONS = "financial_projections"
+    PRICING_STRATEGY = "pricing_strategy"
+    GROWTH_FORECAST = "growth_forecast"
+    BUSINESS_PLAN = "business_plan"
+    PITCH_DECK = "pitch_deck"
 
 
 @dataclass
 class BusinessModelCanvas:
-    """Complete Business Model Canvas structure."""
-    key_partners: BusinessModelCanvasBlock
-    key_activities: BusinessModelCanvasBlock
-    key_resources: BusinessModelCanvasBlock
-    value_propositions: BusinessModelCanvasBlock
-    customer_relationships: BusinessModelCanvasBlock
-    channels: BusinessModelCanvasBlock
-    customer_segments: BusinessModelCanvasBlock
-    cost_structure: BusinessModelCanvasBlock
-    revenue_streams: BusinessModelCanvasBlock
+    """Structured Business Model Canvas."""
+    customer_segments: List[str] = field(default_factory=list)
+    value_propositions: List[str] = field(default_factory=list)
+    channels: List[str] = field(default_factory=list)
+    customer_relationships: List[str] = field(default_factory=list)
+    revenue_streams: List[str] = field(default_factory=list)
+    key_resources: List[str] = field(default_factory=list)
+    key_activities: List[str] = field(default_factory=list)
+    key_partnerships: List[str] = field(default_factory=list)
+    cost_structure: List[str] = field(default_factory=list)
 
+
+@dataclass
+class FinancialProjection:
+    """3-year financial projection."""
+    year: int
+    revenue: float
+    gross_profit: float
+    operating_expenses: float
+    ebitda: float
+    assumptions: List[str] = field(default_factory=list)
+
+
+@dataclass
+class PlanningSession:
+    """Tracks a planning session through all stages."""
+    id: str
+    tenant_id: str
+    user_id: str
     business_id: str
-    version: int = 1
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    status: PlanningStatus = PlanningStatus.DRAFT
+    current_stage: PlanningStage = PlanningStage.BUSINESS_MODEL_CANVAS
+
+    # From validation
+    validation_score: Optional[int] = None
+    market_sizing: Optional[Dict] = None
+    customer_profiles: Optional[Dict] = None
+
+    # Stage results
+    business_model_canvas: Optional[BusinessModelCanvas] = None
+    financial_projections: Optional[List[FinancialProjection]] = None
+    pricing_strategy: Optional[Dict] = None
+    growth_forecast: Optional[Dict] = None
+    business_plan: Optional[Dict] = None
+
+    # Timestamps
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
+    completed_at: Optional[datetime] = None
+
+
+# ============================================================================
+# Entry Point
+# ============================================================================
+
+if __name__ == "__main__":
+    print(f"PlanningOrchestratorAgent: {AGENT_NAME}")
+    print(f"Title: {AGENT_TITLE}")

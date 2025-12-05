@@ -87,7 +87,8 @@ export function CreateRoleModal({ existingRole, onClose }: CreateRoleModalProps)
     watch,
     reset,
   } = useForm<CreateRoleFormData>({
-    resolver: zodResolver(createRoleSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createRoleSchema as any),
     defaultValues: existingRole
       ? {
           name: existingRole.name,

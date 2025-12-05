@@ -124,6 +124,7 @@ model Workspace {
   tokenUsage  TokenUsage[]
   settings    WorkspaceSettings?
   customRoles CustomRole[]
+  businesses  Business[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -585,4 +586,292 @@ model CustomRole {
   @@unique([workspaceId, name])
   @@index([workspaceId])
   @@map("custom_roles")
+}
+
+// ============================================
+// BUSINESS ONBOARDING (EPIC-08)
+// ============================================
+
+model Business {
+  id              String   @id @default(cuid())
+  workspaceId     String   @map("workspace_id")
+  userId          String   @map("user_id")  // Creator
+
+  // Basic info
+  name            String
+  description     String?  @db.Text
+  industry        String?
+  stage           BusinessStage @default(IDEA)
+
+  // Onboarding tracking
+  onboardingStatus    OnboardingStatus @default(WIZARD)
+  onboardingProgress  Int @default(0)  // 0-100
+
+  // Module status
+  validationStatus  ModuleStatus @default(NOT_STARTED)
+  planningStatus    ModuleStatus @default(NOT_STARTED)
+  brandingStatus    ModuleStatus @default(NOT_STARTED)
+
+  // Validation outputs
+  validationScore          Int?     // 0-100
+  validationRecommendation ValidationRecommendation?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  validationData  ValidationSession?
+  planningData    PlanningSession?
+  brandingData    BrandingSession?
+  documents       OnboardingDocument[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@index([userId])
+  @@map("businesses")
+}
+
+// BMV - Validation Session
+model ValidationSession {
+  id              String   @id @default(cuid())
+  businessId      String   @unique @map("business_id")
+
+  // Idea Intake (Story 08.7)
+  ideaDescription     String?  @db.Text
+  problemStatement    String?  @db.Text
+  targetCustomer      String?  @db.Text
+  proposedSolution    String?  @db.Text
+  initialHypothesis   Json?    // { value_proposition, revenue_model }
+
+  // Market Sizing (Story 08.8)
+  tam                 Json?    // { value, formatted, methodology, confidence, sources[] }
+  sam                 Json?
+  som                 Json?
+
+  // Competitor Mapping (Story 08.9)
+  competitors         Json?    // [{ name, type, pricing, features, strengths, weaknesses, source_url }]
+  positioningMap      Json?    // { axes: [], positions: [] }
+  opportunityGaps     Json?    // []
+
+  // Customer Discovery (Story 08.10)
+  icps                Json?    // [{ name, company_size, industry, personas[] }]
+
+  // Validation Synthesis (Story 08.11)
+  validationScore     Int?
+  recommendation      ValidationRecommendation?
+  strengths           Json?
+  risks               Json?    // [{ risk, severity, mitigation }]
+  nextSteps           Json?
+
+  // Workflow tracking
+  completedWorkflows  String[]  @default([])
+  agentSessionId      String?   @map("agent_session_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  sources  ValidationSource[]
+
+  @@index([businessId])
+  @@map("validation_sessions")
+}
+
+// Anti-hallucination tracking
+model ValidationSource {
+  id        String @id @default(cuid())
+  sessionId String @map("session_id")
+
+  claimType String  @map("claim_type")  // market_size, competitor, customer
+  claim     String  @db.Text
+  sourceUrl String  @map("source_url")
+  sourceName String @map("source_name")
+  sourceDate DateTime @map("source_date")
+  confidence String  // high, medium, low
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session ValidationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("validation_sources")
+}
+
+// BMP - Planning Session
+model PlanningSession {
+  id              String   @id @default(cuid())
+  businessId      String   @unique @map("business_id")
+
+  // Business Model Canvas (Story 08.14)
+  canvas          Json?    // { customer_segments, value_propositions, channels, ... }
+
+  // Financial Projections (Story 08.15)
+  financials      Json?    // { revenue, costs, pnl, cash_flow, unit_economics }
+
+  // Business Plan (Story 08.16)
+  businessPlanUrl String?  @map("business_plan_url")
+  pitchDeckUrl    String?  @map("pitch_deck_url")
+
+  // Workflow tracking
+  completedWorkflows  String[]  @default([])
+  agentSessionId      String?   @map("agent_session_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("planning_sessions")
+}
+
+// BM-Brand - Branding Session
+model BrandingSession {
+  id              String   @id @default(cuid())
+  businessId      String   @unique @map("business_id")
+
+  // Brand Strategy (Story 08.19)
+  positioning     Json?    // { archetype, values, personality, positioning_statement, taglines }
+  voiceGuidelines Json?    // { tone, vocabulary_dos, vocabulary_donts, messaging_templates, content_pillars }
+
+  // Visual Identity (Story 08.20)
+  visualIdentity  Json?    // { colors, typography, logo_concept }
+
+  // Generated Assets (Story 08.21)
+  generatedAssets Json?    // [{ type, name, url, size, format }]
+  assetPackageUrl String?  @map("asset_package_url")
+  guidelinesUrl   String?  @map("guidelines_url")
+
+  // Workflow tracking
+  completedWorkflows  String[]  @default([])
+  agentSessionId      String?   @map("agent_session_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("branding_sessions")
+}
+
+// Document upload tracking
+model OnboardingDocument {
+  id         String @id @default(cuid())
+  businessId String @map("business_id")
+
+  fileName     String  @map("file_name")
+  fileUrl      String  @map("file_url")
+  fileType     String  @map("file_type")  // pdf, docx, md
+  fileSize     Int     @map("file_size")
+
+  // Extraction results
+  extractedData  Json?   @map("extracted_data")
+  extractionStatus String @default("pending") @map("extraction_status")
+  extractionError String? @map("extraction_error") @db.Text
+
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("onboarding_documents")
+}
+
+// Business Onboarding Enums (Story 08.1)
+enum BusinessStage {
+  IDEA
+  VALIDATION
+  MVP
+  GROWTH
+  SCALE
+}
+
+enum OnboardingStatus {
+  WIZARD
+  VALIDATION
+  PLANNING
+  BRANDING
+  COMPLETE
+}
+
+enum ModuleStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
+}
+
+enum ValidationRecommendation {
+  GO
+  CONDITIONAL_GO
+  PIVOT
+  NO_GO
+}
+
+// ============================================
+// AGENT CHAT PERSISTENCE (P1 Enhancement)
+// ============================================
+
+/// Stores chat messages for agent sessions
+/// Enables conversation continuity across page reloads/sessions
+model AgentChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String   @map("session_id")
+
+  // Message content
+  role      ChatMessageRole
+  agentId   String?  @map("agent_id")  // Which agent sent this (vera, marco, etc.)
+  content   String   @db.Text
+
+  // Optional structured data
+  metadata  Json?    // { suggestedActions: [], attachments: [], etc. }
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([sessionId, createdAt])
+  @@map("agent_chat_messages")
+}
+
+/// Links agent sessions to their source (validation, planning, branding)
+model AgentSession {
+  id              String   @id @default(cuid())
+
+  // Which module this session belongs to
+  moduleType      AgentModuleType @map("module_type")
+  moduleSessionId String   @map("module_session_id")  // ValidationSession.id, PlanningSession.id, etc.
+
+  // Session metadata
+  currentAgent    String?  @map("current_agent")  // Currently active agent
+  workflowStep    String?  @map("workflow_step")  // Current workflow step
+  status          AgentSessionStatus @default(ACTIVE)
+
+  // Timestamps
+  startedAt       DateTime @default(now()) @map("started_at")
+  lastActivityAt  DateTime @default(now()) @map("last_activity_at")
+  endedAt         DateTime? @map("ended_at")
+
+  @@index([moduleType, moduleSessionId])
+  @@index([status, lastActivityAt])
+  @@map("agent_sessions")
+}
+
+enum ChatMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum AgentModuleType {
+  VALIDATION
+  PLANNING
+  BRANDING
+}
+
+enum AgentSessionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ABANDONED
 }
