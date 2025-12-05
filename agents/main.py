@@ -16,6 +16,9 @@ import logging
 # Import platform agents
 from platform.approval_agent import ApprovalAgent
 
+# Import validation team
+from validation.team import create_validation_team
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -75,6 +78,25 @@ class AgentRunResponse(BaseModel):
     session_id: Optional[str] = None
     error: Optional[str] = None
     message: Optional[str] = None
+    metadata: dict = {}
+
+
+class TeamRunRequest(BaseModel):
+    """Request model for team run endpoint."""
+    message: str
+    business_id: str  # Required for team context
+    session_id: Optional[str] = None
+    model_override: Optional[str] = None
+    context: Optional[dict] = None  # For workflow handoff data
+
+
+class TeamRunResponse(BaseModel):
+    """Response model for team run endpoint."""
+    success: bool
+    content: Optional[str] = None
+    session_id: str
+    agent_name: Optional[str] = None  # Which agent responded
+    error: Optional[str] = None
     metadata: dict = {}
 
 
@@ -417,6 +439,115 @@ async def approval_agent_info():
         "endpoint": "/agents/approval/runs",
         "version": "0.1.0",
     }
+
+
+# ============================================================================
+# Validation Team Endpoints
+# ============================================================================
+
+@app.post("/agents/validation/runs", response_model=TeamRunResponse)
+async def run_validation_team(request_data: TeamRunRequest, req: Request):
+    """
+    Run the Validation Team (Vera + specialists).
+
+    Validates business ideas through market sizing, competitor analysis,
+    customer discovery, and feasibility assessment.
+
+    Security:
+    - Requires valid JWT token (validated by TenantMiddleware)
+    - Workspace context extracted from JWT
+    - All tool calls use workspace-scoped permissions
+
+    Request Body:
+    - message: User's message/query for the validation team
+    - business_id: Business context identifier (required)
+    - session_id: Optional session ID for conversation continuity
+    - model_override: Optional model override
+    - context: Optional context data for workflow handoff
+
+    Returns:
+    - TeamRunResponse with agent's response and metadata
+    """
+    # Extract workspace context from middleware
+    workspace_id = getattr(req.state, "workspace_id", None)
+    user_id = getattr(req.state, "user_id", None)
+
+    if not workspace_id or not user_id:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Valid JWT token with workspace context needed."
+        )
+
+    logger.info(
+        f"ValidationTeam run: workspace={workspace_id}, "
+        f"user={user_id}, business={request_data.business_id}"
+    )
+
+    try:
+        # Generate session ID if not provided
+        import time
+        session_id = request_data.session_id or f"val_{user_id}_{int(time.time())}"
+
+        # Create team instance (stateless - per request)
+        team = create_validation_team(
+            session_id=session_id,
+            user_id=user_id,
+            business_id=request_data.business_id,
+            model=request_data.model_override,
+        )
+
+        # Run team
+        response = await team.arun(message=request_data.message)
+
+        return TeamRunResponse(
+            success=True,
+            content=response.content,
+            session_id=session_id,
+            agent_name=getattr(response, 'agent_name', 'Vera'),
+            metadata={
+                "business_id": request_data.business_id,
+                "team": "validation",
+                "workspace_id": workspace_id,
+            }
+        )
+    except Exception as e:
+        logger.error(f"ValidationTeam run failed: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Validation team execution failed: {str(e)}"
+        )
+
+
+@app.get("/agents/validation/health")
+async def validation_team_health():
+    """
+    Health check for validation team.
+
+    Returns team status, leader, and member information.
+    Does not require authentication.
+    """
+    try:
+        # Quick validation that team can be created
+        team = create_validation_team(
+            session_id="health_check",
+            user_id="system",
+        )
+
+        return {
+            "status": "ok",
+            "team": "validation",
+            "leader": "Vera",
+            "members": ["Marco", "Cipher", "Persona", "Risk"],
+            "version": "0.1.0",
+            "storage": "bmv_validation_sessions",
+        }
+    except Exception as e:
+        logger.error(f"Validation health check failed: {str(e)}")
+        return {
+            "status": "error",
+            "team": "validation",
+            "error": str(e)
+        }
 
 
 if __name__ == "__main__":
