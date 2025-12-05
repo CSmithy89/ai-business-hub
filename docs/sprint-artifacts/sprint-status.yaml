@@ -220,7 +220,7 @@ development_status:
 
   # Team Members UI Enhancements (5 stories, 11 points)
   09-9-implement-team-members-stats-cards: done
-  09-10-implement-team-members-search-and-filters: backlog
+  09-10-implement-team-members-search-and-filters: done
   09-11-implement-invite-member-modal: backlog
   09-12-implement-pending-invitations-section: backlog
   09-13-add-last-active-and-status-to-members-table: backlog

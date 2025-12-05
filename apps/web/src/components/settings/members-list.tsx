@@ -118,11 +118,67 @@ async function removeMember(workspaceId: string, userId: string): Promise<void> 
 }
 
 /**
+ * Filter values
+ */
+export interface MemberFilters {
+  search: string
+  role: string
+  status: string
+}
+
+/**
+ * MembersList Props
+ */
+interface MembersListProps {
+  filters?: MemberFilters
+}
+
+/**
+ * Filter members based on search and filter criteria
+ */
+function filterMembers(members: Member[], filters?: MemberFilters): Member[] {
+  if (!filters) return members
+
+  return members.filter((member) => {
+    // Search filter (name or email)
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase()
+      const nameMatch = member.name?.toLowerCase().includes(searchLower)
+      const emailMatch = member.email.toLowerCase().includes(searchLower)
+      if (!nameMatch && !emailMatch) {
+        return false
+      }
+    }
+
+    // Role filter
+    if (filters.role && filters.role !== 'all') {
+      if (member.role !== filters.role) {
+        return false
+      }
+    }
+
+    // Status filter (active = has acceptedAt, pending = no acceptedAt)
+    if (filters.status && filters.status !== 'all') {
+      const isActive = !!member.acceptedAt
+      if (filters.status === 'active' && !isActive) {
+        return false
+      }
+      if (filters.status === 'pending' && isActive) {
+        return false
+      }
+    }
+
+    return true
+  })
+}
+
+/**
  * MembersList Component
  *
  * Displays workspace members with role management capabilities.
+ * Supports filtering by search term, role, and status.
  */
-export function MembersList() {
+export function MembersList({ filters }: MembersListProps) {
   const { data: session } = useSession()
   const queryClient = useQueryClient()
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
@@ -147,6 +203,9 @@ export function MembersList() {
 
   // Can the current user manage members?
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin'
+
+  // Apply filters to members
+  const filteredMembers = members ? filterMembers(members, filters) : []
 
   // Update role mutation
   const updateRoleMutation = useMutation({
@@ -226,77 +285,87 @@ export function MembersList() {
     <>
       <Card>
         <CardContent className="p-0">
-          <div className="divide-y">
-            {members?.map((member) => (
-              <div
-                key={member.id}
-                className="flex items-center justify-between p-4 hover:bg-gray-50"
-              >
-                {/* Member Info */}
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={member.image || undefined} alt={member.name || member.email} />
-                    <AvatarFallback>
-                      {(member.name || member.email).charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">
-                        {member.name || member.email}
-                      </span>
-                      {member.userId === currentUserId && (
-                        <Badge variant="outline" className="text-xs">
-                          You
-                        </Badge>
-                      )}
+          {filteredMembers.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-gray-500">
+                {members && members.length > 0
+                  ? 'No members match your filters'
+                  : 'No members found'}
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {filteredMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-4 hover:bg-gray-50"
+                >
+                  {/* Member Info */}
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={member.image || undefined} alt={member.name || member.email} />
+                      <AvatarFallback>
+                        {(member.name || member.email).charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">
+                          {member.name || member.email}
+                        </span>
+                        {member.userId === currentUserId && (
+                          <Badge variant="outline" className="text-xs">
+                            You
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-500">{member.email}</span>
                     </div>
-                    <span className="text-sm text-gray-500">{member.email}</span>
+                  </div>
+
+                  {/* Role & Actions */}
+                  <div className="flex items-center gap-3">
+                    <Badge className={ROLE_COLORS[member.role] || ROLE_COLORS.member}>
+                      {ROLE_LABELS[member.role] || member.role}
+                    </Badge>
+
+                    {/* Actions dropdown - only for non-owners and if user can manage */}
+                    {canManageMembers && member.role !== 'owner' && member.userId !== currentUserId && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {/* Role options */}
+                          {ROLES.map((role) => (
+                            <DropdownMenuItem
+                              key={role}
+                              onClick={() => handleRoleChange(member.userId, role)}
+                              disabled={member.role === role}
+                            >
+                              <Shield className="mr-2 h-4 w-4" />
+                              Make {ROLE_LABELS[role]}
+                            </DropdownMenuItem>
+                          ))}
+                          <DropdownMenuSeparator />
+                          {/* Remove option */}
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => setMemberToRemove(member)}
+                          >
+                            <UserMinus className="mr-2 h-4 w-4" />
+                            Remove from workspace
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
-
-                {/* Role & Actions */}
-                <div className="flex items-center gap-3">
-                  <Badge className={ROLE_COLORS[member.role] || ROLE_COLORS.member}>
-                    {ROLE_LABELS[member.role] || member.role}
-                  </Badge>
-
-                  {/* Actions dropdown - only for non-owners and if user can manage */}
-                  {canManageMembers && member.role !== 'owner' && member.userId !== currentUserId && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {/* Role options */}
-                        {ROLES.map((role) => (
-                          <DropdownMenuItem
-                            key={role}
-                            onClick={() => handleRoleChange(member.userId, role)}
-                            disabled={member.role === role}
-                          >
-                            <Shield className="mr-2 h-4 w-4" />
-                            Make {ROLE_LABELS[role]}
-                          </DropdownMenuItem>
-                        ))}
-                        <DropdownMenuSeparator />
-                        {/* Remove option */}
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => setMemberToRemove(member)}
-                        >
-                          <UserMinus className="mr-2 h-4 w-4" />
-                          Remove from workspace
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
