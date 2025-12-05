@@ -13,7 +13,7 @@ interface SetupSession {
 }
 
 // In-memory storage for development
-// In production, replace with Redis
+// In production, replace with Redis for scalability
 const setupSessions = new Map<string, SetupSession>()
 
 // Rate limiting storage
@@ -22,11 +22,17 @@ const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 const SESSION_TIMEOUT = 15 * 60 * 1000 // 15 minutes
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000 // 15 minutes
 const MAX_ATTEMPTS = 5
+const MAX_SESSIONS = 10000 // Prevent unbounded map growth
+const MAX_RATE_LIMIT_ENTRIES = 10000
 
 /**
  * Create a new 2FA setup session
  */
 export function createSetupSession(userId: string, secret: string): string {
+  // Ensure capacity before adding
+  if (setupSessions.size >= MAX_SESSIONS) {
+    cleanupExpiredSessions()
+  }
   const sessionId = generateSessionId()
   setupSessions.set(sessionId, {
     secret,
@@ -83,7 +89,10 @@ export function recordVerificationAttempt(sessionId: string): { allowed: boolean
     }
   }
 
-  // Update rate limit
+  // Update rate limit (with capacity check)
+  if (rateLimitMap.size >= MAX_RATE_LIMIT_ENTRIES && !rateLimitMap.has(session.userId)) {
+    cleanupExpiredSessions()
+  }
   const currentLimit = rateLimitMap.get(session.userId) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW }
   currentLimit.count++
   rateLimitMap.set(session.userId, currentLimit)
@@ -99,7 +108,7 @@ export function recordVerificationAttempt(sessionId: string): { allowed: boolean
 }
 
 /**
- * Clean up expired sessions (call periodically)
+ * Clean up expired sessions and enforce max entries (call periodically)
  */
 export function cleanupExpiredSessions(): void {
   const now = Date.now()
@@ -113,6 +122,26 @@ export function cleanupExpiredSessions(): void {
   for (const [userId, limit] of rateLimitMap.entries()) {
     if (now > limit.resetAt) {
       rateLimitMap.delete(userId)
+    }
+  }
+
+  // Enforce max entries for sessions
+  if (setupSessions.size > MAX_SESSIONS) {
+    const entries = Array.from(setupSessions.entries())
+    entries.sort((a, b) => a[1].createdAt - b[1].createdAt) // Oldest first
+    const toRemove = entries.slice(0, setupSessions.size - MAX_SESSIONS)
+    for (const [key] of toRemove) {
+      setupSessions.delete(key)
+    }
+  }
+
+  // Enforce max entries for rate limits
+  if (rateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
+    const entries = Array.from(rateLimitMap.entries())
+    entries.sort((a, b) => a[1].resetAt - b[1].resetAt) // Oldest first
+    const toRemove = entries.slice(0, rateLimitMap.size - MAX_RATE_LIMIT_ENTRIES)
+    for (const [key] of toRemove) {
+      rateLimitMap.delete(key)
     }
   }
 }

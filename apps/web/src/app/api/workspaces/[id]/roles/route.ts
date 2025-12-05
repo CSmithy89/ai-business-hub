@@ -19,11 +19,29 @@ import {
 import { getAllPermissionIds, isBuiltInRole } from '@/lib/permissions'
 
 interface RouteParams {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 // Precompute valid permission IDs once to avoid repeated array construction during validation
 const ALL_PERMISSION_IDS = getAllPermissionIds()
+
+/**
+ * Sanitize string input to prevent XSS and control characters
+ * Removes HTML tags, script content, and control characters
+ */
+function sanitizeInput(input: string): string {
+  return input
+    // Remove HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Remove potential script content patterns
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
+    // Remove control characters except newlines and tabs for descriptions
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    // Normalize whitespace
+    .trim()
+}
 
 /**
  * Schema for creating a custom role
@@ -34,10 +52,18 @@ const CreateCustomRoleSchema = z.object({
     .min(3, 'Role name must be at least 3 characters')
     .max(50, 'Role name must be under 50 characters')
     .trim()
+    .transform(sanitizeInput)
+    .refine((name) => name.length >= 3, {
+      message: 'Role name must be at least 3 characters after sanitization',
+    })
     .refine((name) => !isBuiltInRole(name), {
       message: 'Cannot use built-in role names (owner, admin, member, viewer, guest)',
     }),
-  description: z.string().max(200).optional(),
+  description: z
+    .string()
+    .max(200)
+    .optional()
+    .transform((val) => (val ? sanitizeInput(val) : val)),
   permissions: z
     .array(z.string())
     .min(1, 'At least one permission is required')
@@ -58,7 +84,7 @@ const CreateCustomRoleSchema = z.object({
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId } = params
+    const { id: workspaceId } = await params
 
     // Verify membership (any member can view roles)
     await requireWorkspaceMembership(workspaceId)
@@ -124,7 +150,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId } = params
+    const { id: workspaceId } = await params
 
     // Verify ownership (only owners can create custom roles)
     const membership = await requireWorkspaceMembership(workspaceId)

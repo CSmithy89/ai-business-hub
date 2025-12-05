@@ -18,7 +18,25 @@ import {
 import { getAllPermissionIds, isBuiltInRole } from '@/lib/permissions'
 
 interface RouteParams {
-  params: { id: string; roleId: string }
+  params: Promise<{ id: string; roleId: string }>
+}
+
+/**
+ * Sanitize string input to prevent XSS and control characters
+ * Removes HTML tags, script content, and control characters
+ */
+function sanitizeInput(input: string): string {
+  return input
+    // Remove HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Remove potential script content patterns
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
+    // Remove control characters except newlines and tabs for descriptions
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    // Normalize whitespace
+    .trim()
 }
 
 /**
@@ -30,11 +48,20 @@ const UpdateCustomRoleSchema = z.object({
     .min(3, 'Role name must be at least 3 characters')
     .max(50, 'Role name must be under 50 characters')
     .trim()
+    .transform(sanitizeInput)
+    .refine((name) => name.length >= 3, {
+      message: 'Role name must be at least 3 characters after sanitization',
+    })
     .refine((name) => !isBuiltInRole(name), {
       message: 'Cannot use built-in role names (owner, admin, member, viewer, guest)',
     })
     .optional(),
-  description: z.string().max(200).nullable().optional(),
+  description: z
+    .string()
+    .max(200)
+    .nullable()
+    .optional()
+    .transform((val) => (val ? sanitizeInput(val) : val)),
   permissions: z
     .array(z.string())
     .min(1, 'At least one permission is required')
@@ -56,7 +83,7 @@ const UpdateCustomRoleSchema = z.object({
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId, roleId } = params
+    const { id: workspaceId, roleId } = await params
 
     // Verify ownership (only owners can update custom roles)
     const membership = await requireWorkspaceMembership(workspaceId)
@@ -211,7 +238,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId, roleId } = params
+    const { id: workspaceId, roleId } = await params
 
     // Verify ownership (only owners can delete custom roles)
     const membership = await requireWorkspaceMembership(workspaceId)

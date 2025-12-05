@@ -2,6 +2,21 @@ import crypto from 'crypto'
 import { NextRequest } from 'next/server'
 
 /**
+ * Trusted Device Feature
+ *
+ * STATUS: INCOMPLETE - DO NOT USE IN PRODUCTION
+ *
+ * This feature is partially implemented. To complete it:
+ * 1. Add TrustedDevice model to Prisma schema
+ * 2. Store device tokens with fingerprints in database
+ * 3. Verify tokens against stored fingerprints on login
+ * 4. Implement device management UI for users
+ *
+ * Current state: Creates fingerprints but only checks cookie existence.
+ * Security note: Cookie existence check alone is not secure.
+ */
+
+/**
  * Create device fingerprint from User-Agent and IP
  */
 export function createDeviceFingerprint(request: NextRequest): string {
@@ -29,18 +44,19 @@ export function getClientIP(request: NextRequest): string {
 
 /**
  * Check if device is trusted
+ *
+ * WARNING: INCOMPLETE IMPLEMENTATION
+ * Currently only checks cookie existence, which is NOT secure.
+ * Always returns false to disable this feature until properly implemented.
+ *
+ * @see File header for implementation requirements
  */
-export function isTrustedDevice(request: NextRequest): boolean {
-  const trustedDeviceToken = request.cookies.get('hyvve_trusted_device')?.value
-
-  if (!trustedDeviceToken) {
-    return false
-  }
-
-  // Verify device fingerprint matches stored token
-  // In production, store device fingerprints in database
-  // For now, trust the cookie existence
-  return true
+export function isTrustedDevice(_request: NextRequest): boolean {
+  // DISABLED: Returns false until database storage is implemented
+  // const trustedDeviceToken = request.cookies.get('hyvve_trusted_device')?.value
+  // if (!trustedDeviceToken) return false
+  // TODO: Verify token against database-stored fingerprints
+  return false
 }
 
 /**

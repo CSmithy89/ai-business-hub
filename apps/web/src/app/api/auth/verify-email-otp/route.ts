@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@hyvve/db'
 import { verifyOTP } from '@/lib/otp'
 
-// Rate limiting storage (use Redis in production)
+// Rate limiting storage (use Redis in production for scalability)
+// Max entries limit prevents unbounded memory growth in edge cases
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000 // 15 minutes
 const MAX_ATTEMPTS = 5
+const MAX_ENTRIES = 10000 // Prevent unbounded map growth
 
 interface VerifyEmailOtpRequest {
   email: string
@@ -75,6 +77,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       // Increment rate limit even for non-existent users (prevent enumeration)
+      ensureMapCapacity()
       const currentLimit = rateLimitMap.get(normalizedEmail) || {
         count: 0,
         resetAt: now + RATE_LIMIT_WINDOW,
@@ -122,6 +125,7 @@ export async function POST(request: NextRequest) {
 
     if (!verificationRecord) {
       // Increment rate limit
+      ensureMapCapacity()
       const currentLimit = rateLimitMap.get(normalizedEmail) || {
         count: 0,
         resetAt: now + RATE_LIMIT_WINDOW,
@@ -145,6 +149,7 @@ export async function POST(request: NextRequest) {
 
     if (!isValidOtp) {
       // Increment rate limit on failed verification
+      ensureMapCapacity()
       const currentLimit = rateLimitMap.get(normalizedEmail) || {
         count: 0,
         resetAt: now + RATE_LIMIT_WINDOW,
@@ -204,7 +209,8 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Clean up expired rate limits (call periodically)
+ * Clean up expired rate limits and enforce max entries
+ * Called on module init and when map exceeds MAX_ENTRIES
  */
 function cleanupRateLimits() {
   const now = Date.now()
@@ -213,7 +219,23 @@ function cleanupRateLimits() {
       rateLimitMap.delete(email)
     }
   }
+  // If still over limit after cleanup, remove oldest entries
+  if (rateLimitMap.size > MAX_ENTRIES) {
+    const entries = Array.from(rateLimitMap.entries())
+    entries.sort((a, b) => a[1].resetAt - b[1].resetAt) // Sort by oldest first
+    const toRemove = entries.slice(0, rateLimitMap.size - MAX_ENTRIES)
+    for (const [key] of toRemove) {
+      rateLimitMap.delete(key)
+    }
+  }
 }
 
 // Run cleanup once on module initialization (avoid setInterval in serverless/edge)
 cleanupRateLimits()
+
+// Trigger cleanup if map size exceeds limit (checked before adding new entries)
+function ensureMapCapacity() {
+  if (rateLimitMap.size >= MAX_ENTRIES) {
+    cleanupRateLimits()
+  }
+}

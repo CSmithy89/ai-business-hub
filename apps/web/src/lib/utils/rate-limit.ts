@@ -13,18 +13,33 @@ interface RateLimitEntry {
 
 // In-memory store (cleared on server restart)
 const rateLimitStore = new Map<string, RateLimitEntry>()
+const MAX_ENTRIES = 10000 // Prevent unbounded memory growth
 
 /**
- * Clean up expired entries periodically (every 5 minutes)
+ * Clean up expired entries and enforce max entries
  */
-setInterval(() => {
+function cleanupRateLimits() {
   const now = Date.now()
   for (const [key, entry] of rateLimitStore.entries()) {
     if (entry.resetAt < now) {
       rateLimitStore.delete(key)
     }
   }
-}, 5 * 60 * 1000) // 5 minutes
+  // Enforce max entries if still over limit
+  if (rateLimitStore.size > MAX_ENTRIES) {
+    const entries = Array.from(rateLimitStore.entries())
+    entries.sort((a, b) => a[1].resetAt - b[1].resetAt) // Oldest first
+    const toRemove = entries.slice(0, rateLimitStore.size - MAX_ENTRIES)
+    for (const [key] of toRemove) {
+      rateLimitStore.delete(key)
+    }
+  }
+}
+
+/**
+ * Clean up expired entries periodically (every 5 minutes)
+ */
+setInterval(cleanupRateLimits, 5 * 60 * 1000)
 
 /**
  * Check if a rate limit key has exceeded the limit
@@ -51,6 +66,10 @@ export function checkRateLimit(
 
   // If entry doesn't exist or window has expired, create new entry
   if (!entry || entry.resetAt < now) {
+    // Ensure capacity before adding new entry
+    if (rateLimitStore.size >= MAX_ENTRIES && !rateLimitStore.has(key)) {
+      cleanupRateLimits()
+    }
     entry = {
       count: 0,
       resetAt: now + windowMs,

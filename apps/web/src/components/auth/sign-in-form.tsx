@@ -94,8 +94,8 @@ export function SignInForm() {
             }
           } catch (error) {
             console.error('Failed to check 2FA status:', error)
-            // On error, redirect to dashboard (fail open for better UX)
-            router.push('/dashboard')
+            // Fail closed - show error, don't let user through without 2FA verification
+            setError('NETWORK_ERROR')
           }
         } else {
           // Success - redirect to dashboard

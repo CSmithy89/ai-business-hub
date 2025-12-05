@@ -4,10 +4,12 @@ import { verifyTOTPCode, verifyBackupCode, decryptSecret } from '@/lib/two-facto
 import crypto from 'crypto'
 import { createDeviceFingerprint } from '@/lib/trusted-device'
 
-// Rate limiting storage (use Redis in production)
+// Rate limiting storage (use Redis in production for scalability)
+// Max entries limit prevents unbounded memory growth in edge cases
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000 // 15 minutes
 const MAX_ATTEMPTS = 5
+const MAX_ENTRIES = 10000 // Prevent unbounded map growth
 
 interface VerifyLoginRequest {
   userId: string
@@ -118,7 +120,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (!isValid) {
-      // Update rate limit
+      // Update rate limit (with capacity check to prevent memory issues)
+      ensureMapCapacity()
       const currentLimit = rateLimitMap.get(userId) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW }
       currentLimit.count++
       rateLimitMap.set(userId, currentLimit)
@@ -144,9 +147,12 @@ export async function POST(request: NextRequest) {
     let response: NextResponse
 
     // Create trusted device token if requested
+    // NOTE: Trusted device feature is INCOMPLETE - tokens are created but not verified on login
+    // The isTrustedDevice() function is disabled until database storage is implemented
+    // See: apps/web/src/lib/trusted-device.ts for implementation requirements
     if (trustDevice) {
       // Create device fingerprint for future validation
-      // In production, store this in database with the trusted device token
+      // TODO: Store fingerprint in database with the trusted device token
       const deviceFingerprint = createDeviceFingerprint(request)
       void deviceFingerprint // Reserved for future use in database storage
       const trustedDeviceToken = crypto.randomBytes(32).toString('hex')
@@ -173,7 +179,8 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Clean up expired rate limits (call periodically)
+ * Clean up expired rate limits and enforce max entries
+ * Called on module init and when map exceeds MAX_ENTRIES
  */
 function cleanupRateLimits() {
   const now = Date.now()
@@ -182,7 +189,23 @@ function cleanupRateLimits() {
       rateLimitMap.delete(userId)
     }
   }
+  // If still over limit after cleanup, remove oldest entries
+  if (rateLimitMap.size > MAX_ENTRIES) {
+    const entries = Array.from(rateLimitMap.entries())
+    entries.sort((a, b) => a[1].resetAt - b[1].resetAt) // Sort by oldest first
+    const toRemove = entries.slice(0, rateLimitMap.size - MAX_ENTRIES)
+    for (const [key] of toRemove) {
+      rateLimitMap.delete(key)
+    }
+  }
 }
 
 // Run cleanup once on module initialization (avoid setInterval in serverless/edge)
 cleanupRateLimits()
+
+// Trigger cleanup if map size exceeds limit (checked before adding new entries)
+function ensureMapCapacity() {
+  if (rateLimitMap.size >= MAX_ENTRIES) {
+    cleanupRateLimits()
+  }
+}
