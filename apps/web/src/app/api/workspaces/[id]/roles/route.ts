@@ -19,8 +19,11 @@ import {
 import { getAllPermissionIds, isBuiltInRole } from '@/lib/permissions'
 
 interface RouteParams {
-  params: Promise<{ id: string }>
+  params: { id: string }
 }
+
+// Precompute valid permission IDs once to avoid repeated array construction during validation
+const ALL_PERMISSION_IDS = getAllPermissionIds()
 
 /**
  * Schema for creating a custom role
@@ -39,7 +42,7 @@ const CreateCustomRoleSchema = z.object({
     .array(z.string())
     .min(1, 'At least one permission is required')
     .refine(
-      (permissions) => permissions.every((p) => getAllPermissionIds().includes(p)),
+      (permissions) => permissions.every((p) => ALL_PERMISSION_IDS.includes(p)),
       {
         message: 'Invalid permission ID',
       }
@@ -55,7 +58,7 @@ const CreateCustomRoleSchema = z.object({
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId } = await params
+    const { id: workspaceId } = params
 
     // Verify membership (any member can view roles)
     await requireWorkspaceMembership(workspaceId)
@@ -121,7 +124,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId } = await params
+    const { id: workspaceId } = params
 
     // Verify ownership (only owners can create custom roles)
     const membership = await requireWorkspaceMembership(workspaceId)
@@ -167,30 +170,33 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Create custom role
-    const customRole = await prisma.customRole.create({
-      data: {
-        workspaceId,
-        name,
-        description: description || null,
-        permissions,
-      },
-    })
-
-    // Create audit log entry
-    await prisma.auditLog.create({
-      data: {
-        workspaceId,
-        action: 'custom_role.created',
-        entity: 'custom_role',
-        entityId: customRole.id,
-        userId: membership.userId,
-        newValues: {
+    // Create custom role and audit log inside a single transaction
+    const customRole = await prisma.$transaction(async (tx) => {
+      const role = await tx.customRole.create({
+        data: {
+          workspaceId,
           name,
-          description,
+          description: description || null,
           permissions,
         },
-      },
+      })
+
+      await tx.auditLog.create({
+        data: {
+          workspaceId,
+          action: 'custom_role.created',
+          entity: 'custom_role',
+          entityId: role.id,
+          userId: membership.userId,
+          newValues: {
+            name,
+            description,
+            permissions,
+          },
+        },
+      })
+
+      return role
     })
 
     return NextResponse.json(

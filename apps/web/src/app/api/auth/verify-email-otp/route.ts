@@ -215,5 +215,5 @@ function cleanupRateLimits() {
   }
 }
 
-// Cleanup every 5 minutes
-setInterval(cleanupRateLimits, 5 * 60 * 1000)
+// Run cleanup once on module initialization (avoid setInterval in serverless/edge)
+cleanupRateLimits()

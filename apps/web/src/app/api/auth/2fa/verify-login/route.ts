@@ -83,15 +83,17 @@ export async function POST(request: NextRequest) {
 
       for (const backupCode of backupCodes) {
         if (await verifyBackupCode(code.toUpperCase(), backupCode.code)) {
-          isValid = true
-          // Mark backup code as used
-          await prisma.backupCode.update({
-            where: { id: backupCode.id },
+          // Attempt atomic mark-as-used; updateMany returns count to guard against races
+          const updated = await prisma.backupCode.updateMany({
+            where: { id: backupCode.id, used: false },
             data: {
               used: true,
               usedAt: new Date(),
             },
           })
+          if (updated.count > 0) {
+            isValid = true
+          }
           break
         }
       }
@@ -104,10 +106,14 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const decryptedSecret = await decryptSecret(
-        user.twoFactorSecret,
-        process.env.BETTER_AUTH_SECRET!
-      )
+      const masterKey = process.env.BETTER_AUTH_SECRET
+      if (!masterKey) {
+        return NextResponse.json(
+          { error: { code: 'SERVER_ERROR', message: 'Encryption key not configured' } },
+          { status: 500 }
+        )
+      }
+      const decryptedSecret = await decryptSecret(user.twoFactorSecret, masterKey)
       isValid = verifyTOTPCode(decryptedSecret, code)
     }
 
@@ -178,5 +184,5 @@ function cleanupRateLimits() {
   }
 }
 
-// Cleanup every 5 minutes
-setInterval(cleanupRateLimits, 5 * 60 * 1000)
+// Run cleanup once on module initialization (avoid setInterval in serverless/edge)
+cleanupRateLimits()

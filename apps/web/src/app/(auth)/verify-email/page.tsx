@@ -107,7 +107,10 @@ function VerifyEmailContent() {
         setState({ type: 'success' })
       } else {
         // Handle errors
-        let errorMessage = data.error?.message || 'Invalid or expired code'
+        let errorMessage =
+          data.message ||
+          (typeof data.error === 'string' ? data.error : data.error?.message) ||
+          'Invalid or expired code'
 
         if (response.status === 429) {
           errorMessage = data.message || 'Too many attempts. Please try again later.'
@@ -222,7 +225,7 @@ function VerifyEmailContent() {
             <OtpCodeInput
               length={6}
               onComplete={handleOtpSubmit}
-              disabled={false}
+              disabled={!state.email || resending}
               error={!!otpError}
               autoSubmit={true}
             />

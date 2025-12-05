@@ -143,9 +143,9 @@ function generateRandomString(length: number): string {
  * @returns Promise resolving to hashed code
  */
 export async function hashBackupCode(code: string): Promise<string> {
-  // Use bcrypt with cost factor of 10 (recommended for backup codes)
+  // Use bcrypt with cost factor of 12 as per style guide
   const bcrypt = await import('bcrypt')
-  return bcrypt.hash(code, 10)
+  return bcrypt.hash(code, 12)
 }
 
 /**

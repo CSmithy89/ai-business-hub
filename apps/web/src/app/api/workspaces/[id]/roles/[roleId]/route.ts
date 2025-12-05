@@ -18,7 +18,7 @@ import {
 import { getAllPermissionIds, isBuiltInRole } from '@/lib/permissions'
 
 interface RouteParams {
-  params: Promise<{ id: string; roleId: string }>
+  params: { id: string; roleId: string }
 }
 
 /**
@@ -56,7 +56,7 @@ const UpdateCustomRoleSchema = z.object({
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId, roleId } = await params
+    const { id: workspaceId, roleId } = params
 
     // Verify ownership (only owners can update custom roles)
     const membership = await requireWorkspaceMembership(workspaceId)
@@ -211,7 +211,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId, roleId } = await params
+    const { id: workspaceId, roleId } = params
 
     // Verify ownership (only owners can delete custom roles)
     const membership = await requireWorkspaceMembership(workspaceId)
@@ -244,14 +244,23 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Check if any members are assigned to this role
-    // Note: This check assumes custom role names are stored in WorkspaceMember.role
-    // If you implement a different relationship model, adjust this query
-    const membersWithRole = await prisma.workspaceMember.count({
-      where: {
-        workspaceId,
-        role: existingRole.name,
-      },
+    // Check if any members are assigned to this role and delete in a single transaction
+    const membersWithRole = await prisma.$transaction(async (tx) => {
+      const count = await tx.workspaceMember.count({
+        where: {
+          workspaceId,
+          role: existingRole.name,
+        },
+      })
+      if (count > 0) {
+        // Return the count without performing the delete
+        return count
+      }
+      // No members found, perform delete within the same transaction
+      await tx.customRole.delete({
+        where: { id: roleId },
+      })
+      return 0
     })
 
     if (membersWithRole > 0) {
@@ -265,11 +274,6 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
         { status: 409 }
       )
     }
-
-    // Delete the custom role
-    await prisma.customRole.delete({
-      where: { id: roleId },
-    })
 
     // Create audit log entry
     await prisma.auditLog.create({

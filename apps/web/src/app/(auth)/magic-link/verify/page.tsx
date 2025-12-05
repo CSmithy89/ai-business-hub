@@ -13,6 +13,8 @@ function VerifyContent() {
   const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
+    let redirectTimeout: ReturnType<typeof setTimeout> | null = null
+
     const verifyToken = async () => {
       const token = searchParams.get('token')
 
@@ -36,7 +38,7 @@ function VerifyContent() {
         if (response.ok) {
           setStatus('success')
           // Redirect to dashboard after 2 seconds
-          setTimeout(() => {
+          redirectTimeout = setTimeout(() => {
             router.push('/dashboard')
           }, 2000)
         } else {
@@ -61,6 +63,12 @@ function VerifyContent() {
     }
 
     verifyToken()
+
+    return () => {
+      if (redirectTimeout) {
+        clearTimeout(redirectTimeout)
+      }
+    }
   }, [searchParams, router])
 
   return (

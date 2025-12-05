@@ -70,8 +70,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const body = await request.json()
-    const { password } = body
+    let body: any
+    try {
+      body = await request.json()
+    } catch (err) {
+      return NextResponse.json(
+        { error: { code: 'INVALID_REQUEST', message: 'Invalid JSON body' } },
+        { status: 400 }
+      )
+    }
+    const { password } = body || {}
 
     if (!password) {
       return NextResponse.json(
@@ -137,6 +145,11 @@ export async function POST(request: NextRequest) {
       }))
     )
 
+    // Record the current count before deletion so the audit log is accurate
+    const oldCodesCount = await prisma.backupCode.count({
+      where: { userId: session.user.id },
+    })
+
     // Delete old codes and create new ones in a transaction
     await prisma.$transaction([
       prisma.backupCode.deleteMany({
@@ -157,8 +170,8 @@ export async function POST(request: NextRequest) {
       ipAddress: getClientIp(request.headers),
       userAgent: getUserAgent(request.headers),
       metadata: {
-        oldCodesCount: 10,
-        newCodesCount: 10,
+        oldCodesCount,
+        newCodesCount: newCodes.length,
       },
     })
 

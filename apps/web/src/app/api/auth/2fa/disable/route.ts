@@ -24,9 +24,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Parse request body
-    const body = await request.json()
-    const { password } = body
+    // Parse request body (handle invalid JSON)
+    let body
+    try {
+      body = await request.json()
+    } catch (err) {
+      return NextResponse.json(
+        { error: { code: 'INVALID_REQUEST', message: 'Invalid JSON body' } },
+        { status: 400 }
+      )
+    }
+    const { password } = body || {}
 
     if (!password) {
       return NextResponse.json(
@@ -36,6 +44,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user with accounts
+    if (!session.user?.id) {
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
+        { status: 401 }
+      )
+    }
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: { accounts: true },
@@ -65,8 +79,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const bcrypt = await import('bcrypt')
-    const isValid = await bcrypt.compare(password, passwordAccount.accessToken)
+    const bcryptModule = await import('bcrypt')
+    const compare = (bcryptModule as any).compare ?? (bcryptModule as any).default?.compare
+    if (typeof compare !== 'function') {
+      throw new Error('bcrypt.compare is not available')
+    }
+    const isValid = await compare(password, passwordAccount.accessToken)
 
     if (!isValid) {
       await createAuditLog({

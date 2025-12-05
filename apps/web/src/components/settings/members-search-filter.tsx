@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -67,6 +67,18 @@ export function MembersSearchFilter({ filters, onFiltersChange }: MembersSearchF
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  /**
+   * Clean up debounce timer on unmount
+   */
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [])
 
   /**
    * Update URL with new filter values
@@ -105,12 +117,20 @@ export function MembersSearchFilter({ filters, onFiltersChange }: MembersSearchF
   )
 
   /**
-   * Handle search input change
+   * Handle search input change (debounced)
    */
   const handleSearchChange = (value: string) => {
+    // Immediately update local state
     const newFilters = { ...filters, search: value }
     onFiltersChange(newFilters)
-    updateURL(newFilters)
+
+    // Debounce URL update
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      updateURL(newFilters)
+    }, 300) // 300ms debounce delay
   }
 
   /**

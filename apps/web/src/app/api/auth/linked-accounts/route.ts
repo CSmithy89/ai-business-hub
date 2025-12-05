@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     // Map accounts to response format
     const linkedAccounts: LinkedAccount[] = user.accounts
-      .filter(account => account.provider !== 'credential') // Exclude password accounts
+      .filter(account => account.provider !== 'credential' && account.provider !== 'credentials') // Exclude password accounts
       .map(account => ({
         provider: account.provider,
         providerId: account.providerAccountId,

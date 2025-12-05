@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         updatedAt: true,
         accounts: {
           where: { provider: 'credential' },
-          select: { accessToken: true },
+          select: { id: true },
         },
         backupCodes: {
           where: { used: false },
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         method: 'totp',
         enabledAt: user.updatedAt.toISOString(),
         backupCodesRemaining: user.backupCodes.length,
-        hasPassword: !!user.accounts[0]?.accessToken,
+        hasPassword: !!user.accounts[0]?.id,
       })
     }
 

@@ -48,13 +48,22 @@ export function TwoFactorVerify({ userId, onSuccess, onCancel }: TwoFactorVerify
         }),
       })
 
-      const result = await response.json()
+      let result: any = {}
+      const contentType = response.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        try {
+          result = await response.json()
+        } catch (parseErr) {
+          console.warn('Failed to parse JSON response for 2FA verification:', parseErr)
+          result = {}
+        }
+      }
 
       if (response.ok) {
         onSuccess()
       } else {
-        setError(result.error?.message || 'Verification failed')
-        if (result.remainingAttempts !== undefined) {
+        setError(result?.error?.message || 'Verification failed')
+        if (result?.remainingAttempts !== undefined) {
           setRemainingAttempts(result.remainingAttempts)
         }
         reset()
@@ -156,9 +165,10 @@ export function TwoFactorVerify({ userId, onSuccess, onCancel }: TwoFactorVerify
           variant="ghost"
           className="w-full"
           onClick={() => {
-            setUseBackupCode(!useBackupCode)
+            setUseBackupCode((prev) => !prev)
             reset()
             setError(null)
+            setRemainingAttempts(null)
           }}
           disabled={isSubmitting}
         >

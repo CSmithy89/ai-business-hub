@@ -94,6 +94,12 @@ export async function POST(request: NextRequest) {
     const secret = generateTOTPSecret()
 
     // Create TOTP URI for QR code
+    if (!session.user.email) {
+      return NextResponse.json(
+        { error: { code: 'INVALID_USER', message: 'User email is required to generate TOTP URI' } },
+        { status: 400 }
+      )
+    }
     const totpUri = createTOTPUri(secret, session.user.email)
 
     // Generate QR code (as data URI)
