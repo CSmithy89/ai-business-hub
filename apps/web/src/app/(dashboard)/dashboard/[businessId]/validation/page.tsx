@@ -171,7 +171,7 @@ function AgentAvatar({ agent }: { agent: string }) {
 
 function ChatMessage({ message }: { message: ChatMessageData }) {
   const isUser = message.role === 'user'
-  const agentInfo = message.agent ? AGENTS[message.agent as keyof typeof AGENTS] : null
+  const agentInfo = AGENTS[message.agent as keyof typeof AGENTS] || AGENTS.vera
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
@@ -428,7 +428,7 @@ Is there anything specific you'd like us to focus on?`
       </div>
 
       {/* Continue to Planning Button (shown when validation complete) */}
-      {score !== null && score >= 60 && (
+      {score !== null && score >= 60 && businessId && (
         <div className="p-4 border-t bg-muted/30">
           <Button
             className="w-full"

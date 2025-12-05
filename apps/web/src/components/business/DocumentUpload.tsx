@@ -9,7 +9,7 @@
 
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -158,6 +158,17 @@ export function DocumentUpload({
       setUploading(false)
     }
   }
+
+  // Cleanup Object URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      files.forEach((file) => {
+        if (file.preview) {
+          URL.revokeObjectURL(file.preview)
+        }
+      })
+    }
+  }, [files])
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`

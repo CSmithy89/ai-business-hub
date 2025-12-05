@@ -292,8 +292,12 @@ function ChatInput({ onSend, disabled }: { onSend: (message: string) => void; di
 }
 
 function ColorPalettePreview({ colors }: { colors?: VisualIdentity['colors'] }) {
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err)
+    }
   }
 
   if (!colors) {
@@ -546,7 +550,7 @@ function PreviewPanel({ brandingData }: { brandingData: BrandingSession | null }
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {brandingData?.completedWorkflows.includes('guidelines') ? (
+          {brandingData?.completedWorkflows?.includes('guidelines') ? (
             <div className="space-y-3">
               <p className="text-sm">Your brand guidelines document is ready!</p>
               <Button className="w-full">

@@ -478,7 +478,7 @@ Your business has been validated - now let's turn that validated idea into an in
               role: 'assistant',
               agent: 'model',
               content: data.data.message.content,
-              timestamp: new Date(data.data.message.timestamp),
+              timestamp: new Date(data.data.message.timestamp ?? Date.now()),
               suggestedActions: data.data.message.suggestedActions,
             }
             setMessages((prev) => [...prev, agentMessage])
@@ -523,7 +523,7 @@ Your business has been validated - now let's turn that validated idea into an in
               role: 'assistant',
               agent: 'finance',
               content: data.data.message.content,
-              timestamp: new Date(data.data.message.timestamp),
+              timestamp: new Date(data.data.message.timestamp ?? Date.now()),
               suggestedActions: data.data.message.suggestedActions,
             }
             setMessages((prev) => [...prev, agentMessage])
@@ -563,7 +563,7 @@ Your business has been validated - now let's turn that validated idea into an in
               role: 'assistant',
               agent: 'blake',
               content: data.data.message.content,
-              timestamp: new Date(data.data.message.timestamp),
+              timestamp: new Date(data.data.message.timestamp ?? Date.now()),
               suggestedActions: data.data.message.suggestedActions,
             }
             setMessages((prev) => [...prev, agentMessage])

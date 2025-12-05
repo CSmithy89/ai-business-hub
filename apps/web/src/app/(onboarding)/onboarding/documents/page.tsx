@@ -73,16 +73,22 @@ export default function OnboardingDocumentsPage() {
     // Aggregate extraction results from all documents
     const aggregated: ExtractionResult = {}
 
+    // Rank confidences so we can prefer higher-confidence values
+    const rankConfidence = (c?: 'high' | 'medium' | 'low') =>
+      c === 'high' ? 3 : c === 'medium' ? 2 : c === 'low' ? 1 : 0
+
     for (const doc of data.documents) {
       if (doc.extractedData) {
         for (const [key, value] of Object.entries(doc.extractedData)) {
           if (value) {
-            // Use highest confidence data
-            if (!aggregated[key as keyof ExtractionResult]) {
+            const existing = aggregated[key as keyof ExtractionResult] as any
+            if (!existing) {
               aggregated[key as keyof ExtractionResult] = value as any
             } else {
-              const existing = aggregated[key as keyof ExtractionResult]
-              if (existing && (value as any).confidence === 'high') {
+              const existingRank = rankConfidence(existing.confidence)
+              const newRank = rankConfidence((value as any).confidence)
+              // Replace when new value has higher confidence
+              if (newRank > existingRank) {
                 aggregated[key as keyof ExtractionResult] = value as any
               }
             }

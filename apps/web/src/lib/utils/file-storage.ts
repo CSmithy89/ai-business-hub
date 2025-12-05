@@ -2,8 +2,11 @@
  * File Storage Utility
  *
  * Handles file storage operations for document uploads.
- * For MVP, stores files locally in public/uploads directory.
- * In production, would use Supabase Storage or S3.
+ *
+ * ⚠️ MVP ONLY - For production:
+ * - Replace fs operations with cloud storage (Supabase/S3)
+ * - This won't work in edge runtime or serverless environments
+ * - Add rate limiting middleware to prevent DOS attacks
  *
  * Story: 08.4 - Implement Document Upload and Extraction Pipeline
  */
@@ -32,7 +35,8 @@ async function ensureUploadDir() {
  */
 function generateFilename(businessId: string, originalName: string): string {
   const timestamp = Date.now()
-  const sanitized = originalName.replace(/[^a-zA-Z0-9.-]/g, '_')
+  // Remove dots and path separators to prevent path traversal
+  const sanitized = originalName.replace(/[^a-zA-Z0-9_-]/g, '_')
   return `${businessId}-${timestamp}-${sanitized}`
 }
 
@@ -94,7 +98,9 @@ export async function storeFileLocally(
 ): Promise<StoredFile> {
   await ensureUploadDir()
 
-  const filename = generateFilename(businessId, originalName)
+  // Sanitize businessId to prevent path traversal
+  const safeBusinessId = businessId.replace(/[^a-zA-Z0-9_-]/g, '_')
+  const filename = generateFilename(safeBusinessId, originalName)
   const filepath = join(UPLOAD_DIR, filename)
 
   // Write file to disk

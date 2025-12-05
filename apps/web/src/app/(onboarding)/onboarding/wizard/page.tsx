@@ -59,7 +59,15 @@ export default function WizardPage() {
   useEffect(() => {
     if (!isHydrated) return
 
-    const urlStep = parseInt(searchParams.get('step') || '1')
+    const stepParam = searchParams.get('step')
+    const urlStep = parseInt(stepParam || '1', 10)
+
+    // Handle invalid parse result
+    if (Number.isNaN(urlStep)) {
+      router.replace(`/onboarding/wizard?step=${currentStep}` as Parameters<typeof router.replace>[0])
+      return
+    }
+
     if (urlStep !== currentStep) {
       if (urlStep >= 1 && urlStep <= 4) {
         setCurrentStep(urlStep)
@@ -67,7 +75,7 @@ export default function WizardPage() {
         router.replace(`/onboarding/wizard?step=${currentStep}` as Parameters<typeof router.replace>[0])
       }
     }
-  }, [searchParams, currentStep, setCurrentStep, router, isHydrated])
+  }, [searchParams?.toString(), currentStep, setCurrentStep, router, isHydrated])
 
   // Navigation handlers
   const goToStep = (step: number) => {

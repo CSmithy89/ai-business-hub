@@ -75,10 +75,10 @@ export async function POST(
 
       case 'select_archetype': {
         // User selects or confirms archetype
-        const { archetype } = data
-        if (!BRAND_ARCHETYPES.includes(archetype)) {
+        const archetype = data?.archetype
+        if (typeof archetype !== 'string' || !BRAND_ARCHETYPES.includes(archetype)) {
           return NextResponse.json(
-            { error: 'Invalid archetype selected' },
+            { error: 'Invalid or missing archetype' },
             { status: 400 }
           )
         }
@@ -118,7 +118,13 @@ export async function POST(
 
       case 'finalize': {
         // Finalize brand strategy
-        const finalPositioning: BrandPositioning = data.positioning
+        const finalPositioning = data?.positioning
+        if (!finalPositioning) {
+          return NextResponse.json(
+            { error: 'Missing positioning data' },
+            { status: 400 }
+          )
+        }
 
         await updateBrandingSession(businessId, business.brandingData?.id, {
           positioning: finalPositioning,

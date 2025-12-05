@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@hyvve/db'
+import { getSession } from '@/lib/auth-server'
 
 // ============================================================================
 // Types
@@ -643,6 +644,18 @@ Shall we start with brand strategy?`,
 export async function POST(request: NextRequest, { params }: { params: Promise<{ businessId: string }> }) {
   try {
     const { businessId } = await params
+
+    // Authenticate user
+    const session = await getSession()
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    }
+
+    const workspaceId = session.session.activeWorkspaceId
+    if (!workspaceId) {
+      return NextResponse.json({ success: false, message: 'No active workspace' }, { status: 400 })
+    }
+
     const body = await request.json()
     const { message } = body
 
@@ -650,9 +663,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ success: false, message: 'Message is required' }, { status: 400 })
     }
 
-    // Fetch business and branding session
-    const business = await prisma.business.findUnique({
-      where: { id: businessId },
+    // Fetch business and verify ownership
+    const business = await prisma.business.findFirst({
+      where: {
+        id: businessId,
+        workspaceId,
+      },
       include: {
         brandingData: true,
       },

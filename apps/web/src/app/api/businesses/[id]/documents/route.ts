@@ -204,14 +204,8 @@ export async function POST(
       } catch (fileError) {
         console.error(`Error processing file ${file.name}:`, fileError)
 
-        // Continue processing other files
-        documents.push({
-          id: null,
-          fileName: file.name,
-          extractionStatus: 'error',
-          extractionError:
-            fileError instanceof Error ? fileError.message : 'Failed to process file',
-        })
+        // Continue processing other files - omit document from results if creation failed
+        // Frontend will handle missing documents gracefully
       }
     }
 
