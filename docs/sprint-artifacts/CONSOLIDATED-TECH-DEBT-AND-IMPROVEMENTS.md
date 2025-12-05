@@ -32,7 +32,7 @@
 | Outstanding High Priority Issues | 12 |
 | Outstanding Medium Priority Issues | 18 |
 | Outstanding Low Priority Issues | 15 |
-| Testing Gaps | 12 |
+| Testing Gaps | 6 (was 12, 6 resolved) |
 | Documentation Gaps | 6 |
 
 ---
@@ -532,20 +532,29 @@
 
 ### Critical Testing Needed
 
-| Test Suite | Epic | Status |
-|------------|------|--------|
-| 2FA setup flow (happy path + errors) | 09 | Pending |
-| Rate limiting concurrency behavior | 09 | Pending |
-| Backup code regeneration | 09 | Pending |
-| Permission validation edge cases | 09 | Pending |
-| OAuth failure states and recovery | 09 | Pending |
-| Account unlinking safeguards | 09 | Pending |
-| E2E permission flow tests (RLS + Prisma + Guards) | 03, 04 | Pending |
-| Workflow API tests (validation, planning, branding) | 08 | Pending |
-| File upload/extraction pipeline | 08 | Pending |
-| Agent team configurations | 08 | Pending |
-| Integration tests for handoff workflows | 08 | Pending |
-| Unit tests for Zustand store transitions | 07 | Pending |
+| Test Suite | Epic | Status | Test File |
+|------------|------|--------|-----------|
+| 2FA setup flow (happy path + errors) | 09 | ✅ Done | `two-factor-auth.spec.ts` |
+| Rate limiting concurrency behavior | 09 | Pending | - |
+| Backup code regeneration | 09 | ✅ Done | `two-factor-auth.spec.ts` |
+| Permission validation edge cases | 09 | ✅ Done | `team-members.spec.ts` |
+| OAuth failure states and recovery | 09 | ✅ Done | `oauth-providers.spec.ts` |
+| Account unlinking safeguards | 09 | ✅ Done | `oauth-providers.spec.ts` |
+| E2E permission flow tests (RLS + Prisma + Guards) | 03, 04 | ✅ Done | `rls.integration.spec.ts` |
+| Workflow API tests (validation, planning, branding) | 08 | Pending | - |
+| File upload/extraction pipeline | 08 | Pending | - |
+| Agent team configurations | 08 | Pending | - |
+| Integration tests for handoff workflows | 08 | Pending | - |
+| Unit tests for Zustand store transitions | 07 | Pending | -|
+
+### Additional Test Coverage Added (2025-12-05)
+
+| Test Suite | Epic | Test File |
+|------------|------|-----------|
+| Approval queue E2E (cards, bulk, confidence routing) | 04 | `approvals.spec.ts` |
+| Event bus E2E (health, DLQ, replay, stats) | 05 | `events.spec.ts` |
+| BYOAI configuration E2E (providers, tokens, health) | 06 | `ai-providers.spec.ts` |
+| Team members UI E2E (stats, search, invitations) | 09 | `team-members.spec.ts` |
 
 ---
 
@@ -798,4 +807,4 @@ Epic 08 built the **infrastructure** for Business Onboarding (database models, A
 ---
 
 *Document compiled from Epic 00-09 retrospectives and PRD analysis*
-*Last Updated: 2025-12-05*
+*Last Updated: 2025-12-05 (Testing gaps updated with new E2E test coverage)*
