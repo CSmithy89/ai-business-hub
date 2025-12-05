@@ -22,6 +22,9 @@ from validation.team import create_validation_team
 # Import planning team
 from planning.team import create_planning_team
 
+# Import branding team
+from branding.team import create_branding_team
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -658,6 +661,115 @@ async def planning_team_health():
         return {
             "status": "error",
             "team": "planning",
+            "error": str(e)
+        }
+
+
+# ============================================================================
+# Branding Team Endpoints
+# ============================================================================
+
+@app.post("/agents/branding/runs", response_model=TeamRunResponse)
+async def run_branding_team(request_data: TeamRunRequest, req: Request):
+    """
+    Run the Branding Team (Bella + specialists).
+
+    Creates comprehensive brand identity systems including brand strategy,
+    voice guidelines, visual identity, and asset specifications.
+
+    Security:
+    - Requires valid JWT token (validated by TenantMiddleware)
+    - Workspace context extracted from JWT
+    - All tool calls use workspace-scoped permissions
+
+    Request Body:
+    - message: User's message/query for the branding team
+    - business_id: Business context identifier (required)
+    - session_id: Optional session ID for conversation continuity
+    - model_override: Optional model override
+    - context: Optional context data for workflow handoff (planningData)
+
+    Returns:
+    - TeamRunResponse with agent's response and metadata
+    """
+    # Extract workspace context from middleware
+    workspace_id = getattr(req.state, "workspace_id", None)
+    user_id = getattr(req.state, "user_id", None)
+
+    if not workspace_id or not user_id:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Valid JWT token with workspace context needed."
+        )
+
+    logger.info(
+        f"BrandingTeam run: workspace={workspace_id}, "
+        f"user={user_id}, business={request_data.business_id}"
+    )
+
+    try:
+        # Generate session ID if not provided
+        import time
+        session_id = request_data.session_id or f"brand_{user_id}_{int(time.time())}"
+
+        # Create team instance (stateless - per request)
+        team = create_branding_team(
+            session_id=session_id,
+            user_id=user_id,
+            business_id=request_data.business_id,
+            model=request_data.model_override,
+        )
+
+        # Run team
+        response = await team.arun(message=request_data.message)
+
+        return TeamRunResponse(
+            success=True,
+            content=response.content,
+            session_id=session_id,
+            agent_name=getattr(response, 'agent_name', 'Bella'),
+            metadata={
+                "business_id": request_data.business_id,
+                "team": "branding",
+                "workspace_id": workspace_id,
+            }
+        )
+    except Exception as e:
+        logger.error(f"BrandingTeam run failed: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Branding team execution failed: {str(e)}"
+        )
+
+
+@app.get("/agents/branding/health")
+async def branding_team_health():
+    """
+    Health check for branding team.
+
+    Returns team status, leader, and member information.
+    Does not require authentication.
+    """
+    try:
+        # Quick validation that team can be created
+        team = create_branding_team(
+            session_id="health_check",
+            user_id="system",
+        )
+
+        return {
+            "status": "ok",
+            "team": "branding",
+            "leader": "Bella",
+            "members": ["Sage", "Vox", "Iris", "Artisan", "Audit"],
+            "version": "0.1.0",
+            "storage": "bmb_branding_sessions",
+        }
+    except Exception as e:
+        logger.error(f"Branding health check failed: {str(e)}")
+        return {
+            "status": "error",
+            "team": "branding",
             "error": str(e)
         }
 
