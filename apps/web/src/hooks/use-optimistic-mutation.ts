@@ -162,7 +162,6 @@ export function useOptimisticMutation<
  * Options for optimistic list operations
  * Note: _TError is passed through to useMutation but not used in interface fields
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface OptimisticListOptions<TItem, _TError, TAddVariables, TRemoveVariables> {
   /** Query key for the list */
   queryKey: unknown[]

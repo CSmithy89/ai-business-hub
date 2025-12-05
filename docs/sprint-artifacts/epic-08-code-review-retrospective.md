@@ -118,6 +118,189 @@ The implementation includes:
 
 ---
 
+## Areas of Concern & Recommendations
+
+### Priority 0 - Critical (Address Before Production)
+
+#### P0.1 Missing Rate Limiting
+
+**Status:** ✅ RESOLVED (Previous commit)
+
+**Location:** All API routes, especially:
+- `/api/businesses/[id]/documents/route.ts`
+- `/api/validation/[businessId]/*`
+- `/api/planning/[businessId]/*`
+- `/api/branding/[businessId]/*`
+
+**Issue:** No rate limiting on document uploads or AI workflow endpoints. This is a DoS vulnerability.
+
+**Resolution:** Rate limiting middleware implemented in previous commit:
+- `apps/web/src/lib/middleware/with-rate-limit.ts` - Full implementation with X-RateLimit headers
+- Supports IP-based rate limiting with configurable windows
+
+**Remaining Work:** Apply rate limiting middleware to all workflow routes.
+
+#### P0.2 File Storage in Production
+
+**Status:** ✅ RESOLVED (Previous commit)
+
+**Location:** `apps/web/src/lib/utils/file-storage.ts`
+
+**Issue:** Local file system storage won't work in serverless/edge deployments and doesn't scale.
+
+**Resolution:** Storage adapter pattern implemented:
+- `apps/web/src/lib/storage/types.ts` - Interface definitions
+- `apps/web/src/lib/storage/adapters/local.ts` - Local adapter
+- `apps/web/src/lib/storage/adapters/s3.ts` - S3 adapter (stub)
+- `apps/web/src/lib/storage/adapters/supabase.ts` - Supabase adapter (stub)
+- `apps/web/src/lib/storage/index.ts` - Factory function
+
+**Remaining Work:** Implement full S3/Supabase adapters for production deployment.
+
+---
+
+### Priority 1 - High (Should Fix)
+
+#### P1.1 JSON Field Validation Missing
+
+**Status:** ⏳ PENDING
+
+**Location:** Database schema - JSON columns in ValidationSession, PlanningSession, BrandingSession
+
+**Issue:** No JSON schema validation on JSON fields. Malformed data could cause runtime errors.
+
+**Recommendation:**
+```typescript
+// Define Zod schemas for JSON fields
+const TAMSchema = z.object({
+  value: z.number(),
+  formatted: z.string(),
+  methodology: z.string(),
+  confidence: z.enum(['high', 'medium', 'low']),
+  sources: z.array(z.object({
+    url: z.string(),
+    name: z.string(),
+  }))
+})
+
+// Validate before saving
+const tamData = TAMSchema.parse(tam)
+```
+
+#### P1.2 Error Handling Inconsistencies
+
+**Status:** ⏳ PARTIAL
+
+**Location:** Various API routes
+
+**Issue:** Some endpoints return generic errors without logging or proper error codes.
+
+**Example improvement:**
+```typescript
+// Better approach with specific error handling
+} catch (error) {
+  logger.error('Business creation failed', { error, userId, workspaceId })
+
+  if (error instanceof PrismaClientKnownRequestError) {
+    if (error.code === 'P2002') {
+      return NextResponse.json({
+        error: 'Business name already exists in this workspace'
+      }, { status: 409 })
+    }
+  }
+
+  return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+}
+```
+
+**Note:** Error telemetry infrastructure exists but needs integration.
+
+#### P1.3 Agent Session Persistence
+
+**Status:** ⏳ PENDING
+
+**Location:** Agent chat interfaces
+
+**Issue:** AgentChatMessage and AgentSession models exist in Prisma schema but aren't used in validation/planning/branding chat APIs.
+
+**Recommendation:**
+- Actually persist messages to enable conversation continuity
+- This will improve UX when users refresh the page
+- Should be implemented before GA
+
+#### P1.4 Missing CSRF Protection
+
+**Status:** ⏳ PENDING
+
+**Location:** All POST/PUT/DELETE routes
+
+**Issue:** No CSRF token validation on state-changing operations.
+
+**Recommendation:** Add CSRF middleware or use Next.js built-in protection if using Server Actions.
+
+---
+
+### Priority 2 - Medium (Nice to Have)
+
+#### P2.1 TypeScript Strictness
+
+**Status:** ⏳ PENDING
+
+Some files use optional chaining that could be replaced with proper null checks:
+
+```typescript
+// Current
+const isComplete = completedWorkflows?.includes('idea-intake')
+
+// Better with guard
+const isComplete = Array.isArray(completedWorkflows) &&
+                   completedWorkflows.includes('idea-intake')
+```
+
+#### P2.2 Magic Numbers & Constants
+
+**Status:** ✅ PARTIAL
+
+Extract magic numbers to constants. Some already done:
+
+```typescript
+// In file-storage.ts - DONE
+export const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+
+// In businesses API - DONE
+export const DEFAULT_PAGE_SIZE = 20
+export const MAX_PAGE_SIZE = 100
+```
+
+**Remaining:** Review other files for magic numbers.
+
+#### P2.3 Accessibility Improvements
+
+**Status:** ✅ PARTIAL
+
+**Previous Work:** Accessibility utilities added:
+- `apps/web/src/lib/accessibility/index.ts` - ARIA announcer, focus management
+
+**Remaining Work:**
+- Add more aria-label attributes to interactive elements
+- Ensure keyboard navigation works throughout wizard
+- Add skip links for screen readers
+- Test with actual screen readers
+
+#### P2.4 Testing Coverage
+
+**Status:** ⏳ NEEDS EXPANSION
+
+**Current:** Multiple test files exist (170 tests passing)
+
+**Recommendation - Additional Tests Needed:**
+- Add tests for critical workflows (validation, planning, branding APIs)
+- Add tests for file upload/extraction pipeline
+- Add tests for agent team configurations
+- Add integration tests for handoff workflows
+
+---
+
 ## Testing Summary
 
 **Test Results:** 170/170 tests passing
@@ -145,9 +328,26 @@ The implementation includes:
 
 ## Tech Debt Items
 
-1. **Agno Integration** - Financial projections need actual AI integration
-2. **Error Correlation IDs** - Need to wire up error tracking throughout routes
-3. **Database Migration** - Need to run migration when DB is available
+### Critical (P0)
+- [x] **Rate Limiting** - Middleware created, needs application to routes
+- [x] **File Storage Adapters** - Pattern implemented, S3/Supabase stubs need completion
+
+### High Priority (P1)
+- [ ] **JSON Field Validation** - Add Zod schemas for JSON columns
+- [ ] **Error Handling** - Improve error specificity and logging
+- [ ] **Agent Session Persistence** - Wire up AgentChatMessage/AgentSession models
+- [ ] **CSRF Protection** - Add CSRF middleware to state-changing routes
+- [ ] **Agno Integration** - Financial projections need actual AI integration
+
+### Medium Priority (P2)
+- [ ] **TypeScript Strictness** - Replace optional chaining with proper guards
+- [ ] **Magic Numbers** - Extract remaining hardcoded values to constants
+- [ ] **Accessibility** - Complete ARIA labels, keyboard nav, skip links
+- [ ] **Test Coverage** - Add workflow, upload, and integration tests
+
+### Pending (Requires Resources)
+- [ ] **Database Migration** - Need to run migration when DB is available
+- [ ] **Error Correlation IDs** - Wire up telemetry throughout routes
 
 ---
 

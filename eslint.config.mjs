@@ -36,7 +36,14 @@ export default [
       'no-unused-vars': 'off',
       'no-undef': 'off',
       // Use TypeScript versions instead
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/no-explicit-any': 'warn',
       // React rules
       // Require explicit type attribute on buttons to prevent unintended form submissions
