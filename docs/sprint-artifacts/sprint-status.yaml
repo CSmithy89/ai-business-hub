@@ -266,7 +266,7 @@ development_status:
   # Parallel with: EPIC-10, EPIC-11
   # ===========================================
   epic-12: contexted
-  12-1-oauth-provider-buttons: backlog
+  12-1-oauth-provider-buttons: done
   12-2-confirm-password-field: backlog
   12-3-approval-queue-quick-actions: backlog
   12-4-chat-streaming-ui: backlog
