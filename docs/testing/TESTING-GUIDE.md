@@ -1,0 +1,537 @@
+# HYVVE Platform Testing Guide
+
+**Created:** 2025-12-05
+**Version:** 1.0
+**Covers:** Epics 00-09
+
+---
+
+## Quick Start
+
+```bash
+# Run all tests (recommended order)
+pnpm test:all
+
+# Or run by category:
+pnpm test:unit      # Fast unit tests (~30 seconds)
+pnpm test:api       # API unit tests (~1 minute)
+pnpm test:e2e       # E2E tests (~5-10 minutes)
+```
+
+---
+
+## Test Execution Order
+
+Risk-based execution order - fail fast on critical paths:
+
+### Level 1: Smoke Tests (Run First)
+**Purpose:** Verify app is alive before burning CI minutes.
+**Duration:** ~15 seconds
+
+```bash
+cd apps/web && pnpm test:e2e -- --grep "Smoke"
+```
+
+| Test | Validates |
+|------|-----------|
+| Homepage loads | Next.js running |
+| Sign-in page loads | Auth routes functional |
+| Sign-up page loads | Registration routes functional |
+
+---
+
+### Level 2: Unit Tests
+**Purpose:** Validate business logic isolation.
+**Duration:** ~1 minute
+
+```bash
+# API unit tests (NestJS/Jest)
+cd apps/api && pnpm test
+
+# Web unit tests (Vitest) - when added
+cd apps/web && pnpm test
+```
+
+---
+
+### Level 3: Integration Tests
+**Purpose:** Validate cross-boundary communication.
+**Duration:** ~2 minutes
+
+```bash
+cd apps/api && pnpm test -- --testPathPattern="integration"
+```
+
+---
+
+### Level 4: E2E Tests
+**Purpose:** Validate user journeys end-to-end.
+**Duration:** ~5-10 minutes
+
+```bash
+cd apps/web && pnpm test:e2e
+```
+
+**Headed mode (debugging):**
+```bash
+cd apps/web && pnpm test:e2e:headed
+```
+
+**UI mode (interactive):**
+```bash
+cd apps/web && pnpm test:e2e:ui
+```
+
+---
+
+## Epic-to-Test Traceability Matrix
+
+### Coverage Summary
+
+| Epic | Name | E2E Tests | Unit Tests | Coverage |
+|------|------|-----------|------------|----------|
+| 00 | Project Scaffolding | smoke.spec.ts | app.controller.spec.ts | ⚠️ Partial |
+| 01 | Authentication | auth.spec.ts | - | ✅ Good |
+| 02 | Workspace Management | workspace.spec.ts | - | ✅ Good |
+| 03 | RBAC & Multi-tenancy | - | guards/*.spec.ts | ⚠️ Partial |
+| 04 | Approval System | - | approvals/*.spec.ts, audit/*.spec.ts | ⚠️ Partial |
+| 05 | Event Bus | - | events/*.spec.ts | ⚠️ Partial |
+| 06 | BYOAI Configuration | - | ai-providers/*.spec.ts | ⚠️ Partial |
+| 07 | UI Shell | ui-shell.spec.ts | - | ✅ Good |
+| 08 | Business Onboarding | onboarding.spec.ts | - | ✅ Good |
+| 09 | UI & Auth Enhancements | - | - | ❌ Missing |
+
+---
+
+### Detailed Traceability
+
+#### EPIC-00: Project Scaffolding
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 00.1 | Monorepo setup | smoke.spec.ts | ✅ |
+| 00.2 | Next.js scaffold | smoke.spec.ts | ✅ |
+| 00.3 | NestJS scaffold | app.controller.spec.ts | ✅ |
+| 00.4 | Prisma schema | - | ⚠️ Schema tests needed |
+| 00.5 | Docker setup | - | 🔲 Manual verification |
+| 00.6 | CI/CD pipeline | - | 🔲 GitHub Actions |
+| 00.7 | AgentOS setup | - | ⚠️ Missing |
+
+**Recommended additions:**
+- Database migration tests
+- Health check endpoint tests
+
+---
+
+#### EPIC-01: Authentication
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 01.1 | Better-auth setup | auth.spec.ts | ✅ |
+| 01.2 | Registration | auth.spec.ts:Registration | ✅ |
+| 01.3 | Email verification | - | ⚠️ Partial (no complete flow) |
+| 01.4 | Sign-in | auth.spec.ts:Sign In | ✅ |
+| 01.5 | Google OAuth | auth.spec.ts:Google OAuth | ✅ |
+| 01.6 | Password reset | auth.spec.ts:Password Reset | ✅ |
+| 01.7 | Session management | auth.spec.ts:Session Management | ✅ |
+| 01.8 | Auth UI components | - | ⚠️ Unit tests needed |
+
+**Test cases covered:**
+- ✅ Register with valid credentials
+- ✅ Reject weak password
+- ✅ Reject duplicate email
+- ✅ Sign in with valid credentials
+- ✅ Reject invalid credentials
+- ✅ Reject unverified user
+- ✅ Initiate Google OAuth
+- ✅ Send password reset email
+- ✅ Persist session across page loads
+- ✅ Sign out successfully
+
+---
+
+#### EPIC-02: Workspace Management
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 02.1 | Workspace CRUD | workspace.spec.ts:Workspace CRUD | ✅ |
+| 02.2 | Member invitation | workspace.spec.ts:Member Invitation | ✅ |
+| 02.3 | Invitation acceptance | workspace.spec.ts:Invitation Acceptance | ✅ |
+| 02.4 | Workspace switching | workspace.spec.ts:Workspace Switching | ✅ |
+| 02.5 | Member management | workspace.spec.ts:Member Management | ✅ |
+| 02.6 | Workspace settings | workspace.spec.ts:Workspace Settings | ✅ |
+| 02.7 | Workspace deletion | workspace.spec.ts:Workspace Deletion | ✅ |
+
+**Test cases covered:**
+- ✅ Create workspace with user as owner
+- ✅ Auto-generate unique slug
+- ✅ List all user workspaces
+- ✅ Member role restrictions
+- ✅ Soft delete workspace
+- ✅ Invite members
+- ✅ Block duplicate invitations
+- ✅ Accept/reject invitations
+- ✅ Switch between workspaces
+- ✅ Update member roles
+- ✅ Leave workspace
+- ✅ Delete with confirmation
+
+---
+
+#### EPIC-03: RBAC & Multi-tenancy
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 03.1 | Permission definition | guards/*.spec.ts | ✅ |
+| 03.2 | Auth guard | auth.guard.spec.ts | ✅ |
+| 03.3 | Tenant guard | tenant.guard.spec.ts | ✅ |
+| 03.4 | Roles guard | roles.guard.spec.ts | ✅ |
+| 03.5 | Guards integration | guards.integration.spec.ts | ✅ |
+| 03.6 | RLS policies | - | ❌ Missing |
+| 03.7 | Prisma extension | - | ❌ Missing |
+
+**Recommended additions:**
+- RLS integration tests (cross-tenant data isolation)
+- Prisma extension tests (automatic tenantId injection)
+
+---
+
+#### EPIC-04: Approval System
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 04.1 | Approval queue schema | - | ⚠️ Schema only |
+| 04.2 | Approval service | approvals.service.spec.ts | ✅ |
+| 04.3 | Approval controller | approvals.controller.spec.ts | ✅ |
+| 04.4 | Confidence calculator | confidence-calculator.service.spec.ts | ✅ |
+| 04.5 | Approval router | approval-router.service.spec.ts | ✅ |
+| 04.6 | Audit service | audit.service.spec.ts | ✅ |
+| 04.7 | Audit controller | audit.controller.spec.ts | ✅ |
+| 04.8-12 | UI & Integrations | - | ❌ E2E Missing |
+
+**Recommended additions:**
+- E2E: Approval queue UI tests
+- E2E: Approval card interactions
+- E2E: Bulk approval flow
+
+---
+
+#### EPIC-05: Event Bus
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 05.1 | Event publisher | event-publisher.service.spec.ts | ✅ |
+| 05.2 | Event consumer | event-consumer.service.spec.ts | ✅ |
+| 05.3 | Event replay | event-replay.service.spec.ts | ✅ |
+| 05.4 | Event retry | event-retry.service.spec.ts | ✅ |
+| 05.5 | DLQ handling | - | ⚠️ Partial |
+| 05.6 | Event schema validation | - | ❌ Missing |
+| 05.7 | Cross-module events | - | ❌ Integration missing |
+
+**Recommended additions:**
+- Integration: Event flow between modules
+- E2E: Event-triggered UI updates
+
+---
+
+#### EPIC-06: BYOAI Configuration
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 06.1 | Provider factory | ai-provider-factory.service.spec.ts | ✅ |
+| 06.2 | Provider service | ai-providers.service.spec.ts | ✅ |
+| 06.3 | Token limits | token-limit.service.spec.ts | ✅ |
+| 06.4 | Token reset | token-reset.service.spec.ts | ✅ |
+| 06.5 | Token usage | token-usage.service.spec.ts | ✅ |
+| 06.6 | Provider health | provider-health.service.spec.ts | ✅ |
+| 06.7-11 | UI & AgentOS | - | ❌ E2E Missing |
+
+**Recommended additions:**
+- E2E: AI provider configuration UI
+- E2E: Token usage dashboard
+- Integration: AgentOS BYOAI flow
+
+---
+
+#### EPIC-07: UI Shell
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 07.1 | Layout & Sidebar | ui-shell.spec.ts | ✅ |
+| 07.2 | Header | ui-shell.spec.ts | ✅ |
+| 07.3 | Command palette | ui-shell.spec.ts:Command Palette | ✅ |
+| 07.4 | Mobile drawer | ui-shell.spec.ts:Mobile Drawer | ✅ |
+| 07.5 | Theme persistence | ui-shell.spec.ts:Theme Persistence | ✅ |
+| 07.6 | Keyboard shortcuts | ui-shell.spec.ts:Keyboard Shortcuts | ✅ |
+| 07.7 | Sidebar persistence | ui-shell.spec.ts:Sidebar State | ✅ |
+| 07.8 | Chat panel | ui-shell.spec.ts:Chat Panel | ✅ |
+| 07.9-10 | Notifications | - | ⚠️ Partial |
+
+**Test cases covered:**
+- ✅ Command palette opens with Cmd+K / Ctrl+K
+- ✅ Command palette closes with Escape
+- ✅ Search filtering in command palette
+- ✅ Navigation on item selection
+- ✅ Keyboard navigation
+- ✅ Mobile drawer toggle
+- ✅ Theme persistence across refresh
+- ✅ System preference respect
+- ✅ Sidebar collapse persistence
+- ✅ Chat panel toggle
+
+---
+
+#### EPIC-08: Business Onboarding
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 08.1 | Database models | - | ⚠️ Schema only |
+| 08.2 | Business list | onboarding.spec.ts:Business List | ✅ |
+| 08.3 | Creation wizard | onboarding.spec.ts:Business Creation Wizard | ✅ |
+| 08.4 | Document upload | onboarding.spec.ts:Document Upload | ✅ |
+| 08.5 | Progress tracking | onboarding.spec.ts:Onboarding Progress | ✅ |
+| 08.6-23 | Validation/Planning/Branding | - | ❌ Missing |
+
+**Test cases covered:**
+- ✅ Display onboarding wizard
+- ✅ Navigate through wizard steps
+- ✅ Validate required fields
+- ✅ Create business successfully
+- ✅ Prevent duplicate business names
+- ✅ Document upload zone
+- ✅ File type validation
+- ✅ Business list display
+- ✅ Navigation to business detail
+- ✅ Progress indicator
+- ✅ Responsive design (mobile/tablet)
+- ✅ Accessibility (focus, keyboard, ARIA)
+
+---
+
+#### EPIC-09: UI & Auth Enhancements
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 09.1 | Microsoft OAuth | - | ❌ Missing |
+| 09.2 | GitHub OAuth | - | ❌ Missing |
+| 09.3-5 | 2FA (Setup/Login/Manage) | - | ❌ Missing |
+| 09.6 | Magic Link | - | ❌ Missing |
+| 09.7 | Account Linking | - | ❌ Missing |
+| 09.8 | OTP Verification | - | ❌ Missing |
+| 09.9-13 | Team Members UI | - | ❌ Missing |
+| 09.14-15 | Custom Roles | - | ❌ Missing |
+
+**This epic needs full test coverage.**
+
+---
+
+## Test Infrastructure
+
+### Fixtures Available
+
+```typescript
+// Import from test fixtures
+import { test, expect } from '../support/fixtures';
+
+// Available fixtures:
+test('example', async ({ page, auth, userFactory, workspaceFactory, businessFactory }) => {
+  // auth: Login/logout helpers
+  await auth.loginAsTestUser();
+  await auth.loginAs('email', 'password');
+  await auth.logout();
+
+  // userFactory: Create test users
+  const user = await userFactory.createUser({ password: '...' });
+  const verifiedUser = await userFactory.createVerifiedUser();
+
+  // workspaceFactory: Create test workspaces
+  const workspace = await workspaceFactory.createWorkspace(authCookie, { name: '...' });
+
+  // businessFactory: Create test businesses
+  const business = await businessFactory.createBusiness(authCookie, { name: '...' });
+});
+```
+
+### Environment Variables
+
+```bash
+# Required for E2E tests
+TEST_USER_EMAIL=test@example.com
+TEST_USER_PASSWORD=Test1234!
+BASE_URL=http://localhost:3000
+```
+
+---
+
+## Test Commands Reference
+
+### Root Level (Turborepo)
+
+```bash
+# Run all tests across monorepo
+pnpm test
+
+# Run specific workspace tests
+pnpm --filter @hyvve/web test
+pnpm --filter @hyvve/api test
+```
+
+### Web App (Next.js)
+
+```bash
+cd apps/web
+
+# Unit tests (Vitest)
+pnpm test              # Run once
+pnpm test:watch        # Watch mode
+pnpm test:coverage     # With coverage
+
+# E2E tests (Playwright)
+pnpm test:e2e          # Run headless
+pnpm test:e2e:ui       # Interactive UI mode
+pnpm test:e2e:headed   # Visible browser
+
+# Run specific test file
+pnpm test:e2e -- auth.spec.ts
+
+# Run specific test by name
+pnpm test:e2e -- --grep "should sign in"
+```
+
+### API (NestJS)
+
+```bash
+cd apps/api
+
+# Unit tests (Jest)
+pnpm test              # Run once
+pnpm test:watch        # Watch mode
+pnpm test:cov          # With coverage
+
+# Run specific test file
+pnpm test -- auth.guard.spec.ts
+
+# Run tests matching pattern
+pnpm test -- --testNamePattern="should validate"
+```
+
+---
+
+## CI Pipeline Integration
+
+### GitHub Actions Workflow
+
+```yaml
+# .github/workflows/test.yml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+      - uses: actions/setup-node@v4
+
+      # Type check first (fast fail)
+      - run: pnpm turbo type-check
+
+      # Lint
+      - run: pnpm turbo lint
+
+      # Unit tests
+      - run: pnpm turbo test
+
+      # E2E tests (requires services)
+      - run: pnpm turbo test:e2e
+```
+
+### Test Artifacts
+
+On failure, Playwright captures:
+- Screenshots (`test-results/*.png`)
+- Videos (`test-results/*.webm`)
+- Traces (`test-results/*.zip`)
+
+View traces:
+```bash
+npx playwright show-trace test-results/trace.zip
+```
+
+---
+
+## Coverage Gaps & Recommendations
+
+### High Priority (P0)
+
+1. **EPIC-09 Tests** - No coverage at all
+   - Add auth.2fa.spec.ts for 2FA flows
+   - Add team-members.spec.ts for team UI
+
+2. **RLS Integration Tests** - Security critical
+   - Verify cross-tenant data isolation
+   - Test row-level security policies
+
+3. **Approval E2E Tests** - Core business flow
+   - Test approval queue UI
+   - Test confidence routing UI
+
+### Medium Priority (P1)
+
+4. **Event Bus Integration** - Cross-module communication
+   - Test event flow between modules
+   - Test DLQ handling
+
+5. **BYOAI UI Tests** - User-facing configuration
+   - Test provider setup flow
+   - Test token dashboard
+
+### Low Priority (P2)
+
+6. **Component Unit Tests** - UI reliability
+   - Test shared components in packages/ui
+   - Test complex form components
+
+---
+
+## Flakiness Prevention
+
+Per TEA knowledge base (`ci-burn-in.md`):
+
+1. **Network-first approach** - Intercept before navigate
+2. **Deterministic waits** - Use `waitForSelector`, not `waitForTimeout`
+3. **Retry on CI** - `retries: 2` in CI, `0` locally
+4. **Single worker on CI** - Prevent resource contention
+5. **Artifact capture** - `retain-on-failure` for debugging
+
+---
+
+## Running Full Test Suite
+
+**Recommended execution order:**
+
+```bash
+# 1. Type check (catches compilation errors)
+pnpm turbo type-check
+
+# 2. Lint (catches style/security issues)
+pnpm turbo lint
+
+# 3. Unit tests (fast feedback)
+cd apps/api && pnpm test
+cd apps/web && pnpm test
+
+# 4. E2E smoke tests (verify app alive)
+cd apps/web && pnpm test:e2e -- --grep "Smoke"
+
+# 5. Full E2E suite
+cd apps/web && pnpm test:e2e
+```
+
+**All-in-one command (if configured):**
+```bash
+pnpm test:all
+```
+
+---
+
+_Generated by Master Test Architect (TEA)_
+_Risk-based testing. Depth scales with impact._

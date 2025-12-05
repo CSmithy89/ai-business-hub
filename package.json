@@ -30,7 +30,12 @@
     "docker:logs": "docker compose -f docker/docker-compose.yml logs -f",
     "docker:reset": "docker compose -f docker/docker-compose.yml down -v && docker compose -f docker/docker-compose.yml up -d",
     "docker:ps": "docker compose -f docker/docker-compose.yml ps",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "turbo test",
+    "test:unit": "turbo test --filter=@hyvve/api --filter=@hyvve/web",
+    "test:e2e": "pnpm --filter @hyvve/web test:e2e",
+    "test:e2e:ui": "pnpm --filter @hyvve/web test:e2e:ui",
+    "test:all": "pnpm type-check && pnpm lint && pnpm test && pnpm test:e2e"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
