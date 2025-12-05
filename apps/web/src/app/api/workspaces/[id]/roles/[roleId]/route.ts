@@ -16,27 +16,10 @@ import {
   WorkspaceAuthError,
 } from '@/middleware/workspace-auth'
 import { getAllPermissionIds, isBuiltInRole } from '@/lib/permissions'
+import { sanitizeInput } from '@/lib/utils/sanitize'
 
 interface RouteParams {
   params: Promise<{ id: string; roleId: string }>
-}
-
-/**
- * Sanitize string input to prevent XSS and control characters
- * Removes HTML tags, script content, and control characters
- */
-function sanitizeInput(input: string): string {
-  return input
-    // Remove HTML tags
-    .replace(/<[^>]*>/g, '')
-    // Remove potential script content patterns
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+\s*=/gi, '')
-    // Remove control characters except newlines and tabs for descriptions
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    // Normalize whitespace
-    .trim()
 }
 
 /**

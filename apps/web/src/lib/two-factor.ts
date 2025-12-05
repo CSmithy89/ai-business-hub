@@ -6,8 +6,20 @@
 import QRCode from 'qrcode'
 import { TOTP } from 'otpauth'
 import crypto from 'crypto'
+import {
+  PBKDF2_ITERATIONS,
+  AES_KEY_LENGTH,
+  AES_IV_LENGTH,
+  SALT_LENGTH,
+  GCM_AUTH_TAG_LENGTH,
+  BACKUP_CODE_COUNT,
+  BACKUP_CODE_HASH_ROUNDS,
+  TOTP_WINDOW,
+  TOTP_PERIOD,
+  TOTP_DIGITS,
+} from './constants/security'
 
-const SAFE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // Exclude 0, O, 1, I, L
+const SAFE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789' // Excludes 0, O, 1, I, L
 
 /**
  * Generate a TOTP secret for two-factor authentication
@@ -17,8 +29,8 @@ export function generateTOTPSecret(): string {
   const totp = new TOTP({
     issuer: 'HYVVE',
     algorithm: 'SHA1',
-    digits: 6,
-    period: 30,
+    digits: TOTP_DIGITS,
+    period: TOTP_PERIOD,
   })
   return totp.secret.base32
 }
@@ -61,8 +73,8 @@ export function createTOTPUri(secret: string, email: string): string {
     issuer: 'HYVVE',
     label: email,
     algorithm: 'SHA1',
-    digits: 6,
-    period: 30,
+    digits: TOTP_DIGITS,
+    period: TOTP_PERIOD,
     secret: secret,
   })
   return totp.toString()
@@ -79,14 +91,14 @@ export function verifyTOTPCode(secret: string, code: string): boolean {
     const totp = new TOTP({
       secret: secret,
       algorithm: 'SHA1',
-      digits: 6,
-      period: 30,
+      digits: TOTP_DIGITS,
+      period: TOTP_PERIOD,
     })
 
     // Verify with time window for clock drift
     const delta = totp.validate({
       token: code,
-      window: 1, // Check current, previous, and next time step
+      window: TOTP_WINDOW,
     })
 
     return delta !== null
@@ -97,10 +109,10 @@ export function verifyTOTPCode(secret: string, code: string): boolean {
 
 /**
  * Generate backup codes for 2FA recovery
- * @param count - Number of codes to generate (default 10)
+ * @param count - Number of codes to generate (default from constants)
  * @returns Array of backup codes in XXXX-XXXX format
  */
-export function generateBackupCodes(count: number = 10): string[] {
+export function generateBackupCodes(count: number = BACKUP_CODE_COUNT): string[] {
   const codes = new Set<string>()
 
   while (codes.size < count) {
@@ -143,9 +155,9 @@ function generateRandomString(length: number): string {
  * @returns Promise resolving to hashed code
  */
 export async function hashBackupCode(code: string): Promise<string> {
-  // Use bcrypt with cost factor of 12 as per style guide
+  // Use bcrypt with cost factor from constants
   const bcrypt = await import('bcrypt')
-  return bcrypt.hash(code, 12)
+  return bcrypt.hash(code, BACKUP_CODE_HASH_ROUNDS)
 }
 
 /**
@@ -167,16 +179,13 @@ export async function verifyBackupCode(code: string, hash: string): Promise<bool
  */
 export async function encryptSecret(plaintext: string, masterKey: string): Promise<string> {
   const ALGORITHM = 'aes-256-gcm'
-  const KEY_LENGTH = 32
-  const IV_LENGTH = 16
-  const SALT_LENGTH = 64
 
   // Derive encryption key from master key
   const salt = crypto.randomBytes(SALT_LENGTH)
-  const key = crypto.pbkdf2Sync(masterKey, salt, 100000, KEY_LENGTH, 'sha256')
+  const key = crypto.pbkdf2Sync(masterKey, salt, PBKDF2_ITERATIONS, AES_KEY_LENGTH, 'sha256')
 
   // Encrypt with AES-256-GCM
-  const iv = crypto.randomBytes(IV_LENGTH)
+  const iv = crypto.randomBytes(AES_IV_LENGTH)
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
 
   let encrypted = cipher.update(plaintext, 'utf8', 'hex')
@@ -202,21 +211,16 @@ export async function encryptSecret(plaintext: string, masterKey: string): Promi
  * @returns Promise resolving to decrypted secret
  */
 export async function decryptSecret(encrypted: string, masterKey: string): Promise<string> {
-  const KEY_LENGTH = 32
-  const IV_LENGTH = 16
-  const SALT_LENGTH = 64
-  const TAG_LENGTH = 16
-
   const combined = Buffer.from(encrypted, 'base64')
 
   // Extract components
   const salt = combined.slice(0, SALT_LENGTH)
-  const iv = combined.slice(SALT_LENGTH, SALT_LENGTH + IV_LENGTH)
-  const ciphertext = combined.slice(SALT_LENGTH + IV_LENGTH, -TAG_LENGTH)
-  const authTag = combined.slice(-TAG_LENGTH as number)
+  const iv = combined.slice(SALT_LENGTH, SALT_LENGTH + AES_IV_LENGTH)
+  const ciphertext = combined.slice(SALT_LENGTH + AES_IV_LENGTH, -GCM_AUTH_TAG_LENGTH)
+  const authTag = combined.slice(-GCM_AUTH_TAG_LENGTH as number)
 
   // Derive encryption key
-  const key = crypto.pbkdf2Sync(masterKey, salt, 100000, KEY_LENGTH, 'sha256')
+  const key = crypto.pbkdf2Sync(masterKey, salt, PBKDF2_ITERATIONS, AES_KEY_LENGTH, 'sha256')
 
   // Decrypt
   const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv)

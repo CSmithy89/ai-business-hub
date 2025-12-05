@@ -42,15 +42,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch user's current auth methods
+    // better-auth stores password hash in Account.accessToken for 'credential' provider
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
-        passwordHash: true,
         twoFactorEnabled: true,
         accounts: {
           select: {
             id: true,
             provider: true,
+            accessToken: true, // Contains password hash for credential accounts
           },
         },
       },
@@ -72,14 +73,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user has at least one other auth method
-    const hasPassword = !!user.passwordHash
+    // Check if user has at least one other valid auth method
+    // A credential account is valid only if it has an accessToken (password hash)
+    const credentialAccount = user.accounts.find(acc => acc.provider === 'credential')
+    const hasValidPassword = !!(credentialAccount?.accessToken)
+
     const otherOAuthAccounts = user.accounts.filter(
       acc => acc.provider !== provider && acc.provider !== 'credential'
     )
 
-    // User must have either a password or at least one other OAuth provider
-    if (!hasPassword && otherOAuthAccounts.length === 0) {
+    // User must have either a valid password or at least one other OAuth provider
+    if (!hasValidPassword && otherOAuthAccounts.length === 0) {
       return NextResponse.json(
         {
           error: {
@@ -99,13 +103,13 @@ export async function POST(request: NextRequest) {
     // Audit log
     await createAuditLog({
       userId: session.user.id,
-      eventType: 'account.unlinked' as any,
+      eventType: 'account.unlinked',
       ipAddress: getClientIp(request.headers),
       userAgent: getUserAgent(request.headers),
       metadata: {
         provider,
         remainingAuthMethods: {
-          hasPassword,
+          hasPassword: hasValidPassword,
           linkedProviders: otherOAuthAccounts.map(acc => acc.provider),
         },
       },

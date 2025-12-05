@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@hyvve/db'
 import { verifyOTP } from '@/lib/otp'
-
-// Rate limiting storage (use Redis in production for scalability)
-// Max entries limit prevents unbounded memory growth in edge cases
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000 // 15 minutes
-const MAX_ATTEMPTS = 5
-const MAX_ENTRIES = 10000 // Prevent unbounded map growth
+import { checkRateLimit, resetRateLimit, DEFAULT_RATE_LIMIT_MAX_ATTEMPTS } from '@/lib/utils/rate-limit'
 
 interface VerifyEmailOtpRequest {
   email: string
@@ -19,6 +13,7 @@ interface VerifyEmailOtpRequest {
  *
  * Verify email using OTP code instead of token link.
  * Rate limited to 5 attempts per 15 minutes per email.
+ * Uses unified rate limiter (Redis in production, in-memory fallback).
  *
  * Story: 09.8 - Implement OTP Code Verification
  */
@@ -42,27 +37,23 @@ export async function POST(request: NextRequest) {
 
     // Normalize email
     const normalizedEmail = email.toLowerCase().trim()
+    const rateLimitKey = `email-otp:${normalizedEmail}`
 
-    // Check rate limiting
-    const now = Date.now()
-    const rateLimit = rateLimitMap.get(normalizedEmail)
+    // Check rate limiting using unified rate limiter
+    const rateLimitResult = await checkRateLimit(rateLimitKey, DEFAULT_RATE_LIMIT_MAX_ATTEMPTS, 900)
 
-    if (rateLimit) {
-      if (now > rateLimit.resetAt) {
-        rateLimitMap.delete(normalizedEmail)
-      } else if (rateLimit.count >= MAX_ATTEMPTS) {
-        const remainingTime = Math.ceil((rateLimit.resetAt - now) / 60000)
-        return NextResponse.json(
-          {
-            error: {
-              code: 'RATE_LIMITED',
-              message: `Too many attempts. Try again in ${remainingTime} minutes.`,
-            },
-            remainingAttempts: 0,
+    if (rateLimitResult.isRateLimited) {
+      const remainingTime = Math.ceil((rateLimitResult.retryAfter || 0) / 60)
+      return NextResponse.json(
+        {
+          error: {
+            code: 'RATE_LIMITED',
+            message: `Too many attempts. Try again in ${remainingTime} minutes.`,
           },
-          { status: 429 }
-        )
-      }
+          remainingAttempts: 0,
+        },
+        { status: 429 }
+      )
     }
 
     // Find user by email
@@ -76,15 +67,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user) {
-      // Increment rate limit even for non-existent users (prevent enumeration)
-      ensureMapCapacity()
-      const currentLimit = rateLimitMap.get(normalizedEmail) || {
-        count: 0,
-        resetAt: now + RATE_LIMIT_WINDOW,
-      }
-      currentLimit.count++
-      rateLimitMap.set(normalizedEmail, currentLimit)
-
+      // Rate limit already incremented by checkRateLimit above
       return NextResponse.json(
         {
           error: {
@@ -124,15 +107,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!verificationRecord) {
-      // Increment rate limit
-      ensureMapCapacity()
-      const currentLimit = rateLimitMap.get(normalizedEmail) || {
-        count: 0,
-        resetAt: now + RATE_LIMIT_WINDOW,
-      }
-      currentLimit.count++
-      rateLimitMap.set(normalizedEmail, currentLimit)
-
+      // Rate limit already incremented by checkRateLimit above
       return NextResponse.json(
         {
           error: {
@@ -148,24 +123,14 @@ export async function POST(request: NextRequest) {
     const isValidOtp = verifyOTP(code, verificationRecord.token)
 
     if (!isValidOtp) {
-      // Increment rate limit on failed verification
-      ensureMapCapacity()
-      const currentLimit = rateLimitMap.get(normalizedEmail) || {
-        count: 0,
-        resetAt: now + RATE_LIMIT_WINDOW,
-      }
-      currentLimit.count++
-      rateLimitMap.set(normalizedEmail, currentLimit)
-
-      const remainingAttempts = MAX_ATTEMPTS - currentLimit.count
-
+      // Rate limit already incremented by checkRateLimit above
       return NextResponse.json(
         {
           error: {
             code: 'INVALID_CODE',
             message: 'Invalid verification code',
           },
-          remainingAttempts,
+          remainingAttempts: rateLimitResult.remaining,
         },
         { status: 400 }
       )
@@ -185,7 +150,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Clear rate limit on success
-    rateLimitMap.delete(normalizedEmail)
+    await resetRateLimit(rateLimitKey)
 
     // Log success (audit trail)
     console.log(`Email verified via OTP for user: ${user.id} (${user.email})`)
@@ -205,37 +170,5 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     )
-  }
-}
-
-/**
- * Clean up expired rate limits and enforce max entries
- * Called on module init and when map exceeds MAX_ENTRIES
- */
-function cleanupRateLimits() {
-  const now = Date.now()
-  for (const [email, limit] of rateLimitMap.entries()) {
-    if (now > limit.resetAt) {
-      rateLimitMap.delete(email)
-    }
-  }
-  // If still over limit after cleanup, remove oldest entries
-  if (rateLimitMap.size > MAX_ENTRIES) {
-    const entries = Array.from(rateLimitMap.entries())
-    entries.sort((a, b) => a[1].resetAt - b[1].resetAt) // Sort by oldest first
-    const toRemove = entries.slice(0, rateLimitMap.size - MAX_ENTRIES)
-    for (const [key] of toRemove) {
-      rateLimitMap.delete(key)
-    }
-  }
-}
-
-// Run cleanup once on module initialization (avoid setInterval in serverless/edge)
-cleanupRateLimits()
-
-// Trigger cleanup if map size exceeds limit (checked before adding new entries)
-function ensureMapCapacity() {
-  if (rateLimitMap.size >= MAX_ENTRIES) {
-    cleanupRateLimits()
   }
 }

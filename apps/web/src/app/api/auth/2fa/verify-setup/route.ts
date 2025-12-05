@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check rate limiting
-    const rateLimitResult = recordVerificationAttempt(setupSessionId)
+    // Check rate limiting using unified rate limiter (Redis in production)
+    const rateLimitResult = await recordVerificationAttempt(setupSessionId)
     if (!rateLimitResult.allowed) {
       await createAuditLog({
         userId: session.user.id,

@@ -1,15 +1,24 @@
+/**
+ * Two-Factor Authentication Verification API
+ * Story 09-4: Verify TOTP/backup code during login and optionally trust device
+ *
+ * POST /api/auth/2fa/verify-login
+ *
+ * SECURITY:
+ * - Rate limiting: 5 attempts per 15 minutes (Redis in production)
+ * - Backup codes are hashed with bcrypt
+ * - Trusted device tokens are hashed with SHA-256
+ * - Device fingerprint verified on trusted device use
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@hyvve/db'
 import { verifyTOTPCode, verifyBackupCode, decryptSecret } from '@/lib/two-factor'
-import crypto from 'crypto'
-import { createDeviceFingerprint } from '@/lib/trusted-device'
-
-// Rate limiting storage (use Redis in production for scalability)
-// Max entries limit prevents unbounded memory growth in edge cases
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000 // 15 minutes
-const MAX_ATTEMPTS = 5
-const MAX_ENTRIES = 10000 // Prevent unbounded map growth
+import { checkTwoFactorRateLimit, resetRateLimit } from '@/lib/utils/rate-limit'
+import {
+  createTrustedDevice,
+  setTrustedDeviceCookie,
+} from '@/lib/trusted-device'
 
 interface VerifyLoginRequest {
   userId: string
@@ -31,26 +40,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check rate limiting
-    const now = Date.now()
-    const rateLimit = rateLimitMap.get(userId)
-
-    if (rateLimit) {
-      if (now > rateLimit.resetAt) {
-        rateLimitMap.delete(userId)
-      } else if (rateLimit.count >= MAX_ATTEMPTS) {
-        const remainingTime = Math.ceil((rateLimit.resetAt - now) / 60000)
-        return NextResponse.json(
-          {
-            error: {
-              code: 'RATE_LIMITED',
-              message: `Too many attempts. Try again in ${remainingTime} minutes.`,
-            },
-            remainingAttempts: 0,
+    // Check rate limiting using unified rate limiter (Redis in production, in-memory fallback)
+    const rateLimitResult = await checkTwoFactorRateLimit(userId)
+    if (rateLimitResult.isRateLimited) {
+      const remainingTime = Math.ceil((rateLimitResult.retryAfter || 0) / 60)
+      return NextResponse.json(
+        {
+          error: {
+            code: 'RATE_LIMITED',
+            message: `Too many attempts. Try again in ${remainingTime} minutes.`,
           },
-          { status: 429 }
-        )
-      }
+          remainingAttempts: 0,
+        },
+        { status: 429 }
+      )
     }
 
     // Get user with 2FA data
@@ -75,30 +78,41 @@ export async function POST(request: NextRequest) {
     let isValid = false
 
     if (isBackupCode) {
-      // Verify backup code
-      const backupCodes = await prisma.backupCode.findMany({
-        where: {
-          userId,
-          used: false,
-        },
-      })
-
-      for (const backupCode of backupCodes) {
-        if (await verifyBackupCode(code.toUpperCase(), backupCode.code)) {
-          // Attempt atomic mark-as-used; updateMany returns count to guard against races
-          const updated = await prisma.backupCode.updateMany({
-            where: { id: backupCode.id, used: false },
-            data: {
-              used: true,
-              usedAt: new Date(),
+      // Verify backup code using serializable transaction to prevent race conditions
+      // This ensures atomicity between verification and mark-as-used
+      isValid = await prisma.$transaction(
+        async (tx) => {
+          // Fetch backup codes within the transaction
+          const backupCodes = await tx.backupCode.findMany({
+            where: {
+              userId,
+              used: false,
             },
           })
-          if (updated.count > 0) {
-            isValid = true
+
+          for (const backupCode of backupCodes) {
+            if (await verifyBackupCode(code.toUpperCase(), backupCode.code)) {
+              // Atomic mark-as-used with optimistic lock check
+              // Even within transaction, check used: false to handle edge cases
+              const updated = await tx.backupCode.updateMany({
+                where: { id: backupCode.id, used: false },
+                data: {
+                  used: true,
+                  usedAt: new Date(),
+                },
+              })
+              // Only valid if we successfully marked it as used
+              return updated.count > 0
+            }
           }
-          break
+          return false
+        },
+        {
+          // Use serializable isolation to prevent concurrent reads of same unused codes
+          isolationLevel: 'Serializable',
+          timeout: 10000, // 10 second timeout for bcrypt operations
         }
-      }
+      )
     } else {
       // Verify TOTP code
       if (!user.twoFactorSecret) {
@@ -120,52 +134,35 @@ export async function POST(request: NextRequest) {
     }
 
     if (!isValid) {
-      // Update rate limit (with capacity check to prevent memory issues)
-      ensureMapCapacity()
-      const currentLimit = rateLimitMap.get(userId) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW }
-      currentLimit.count++
-      rateLimitMap.set(userId, currentLimit)
-
-      const remainingAttempts = MAX_ATTEMPTS - currentLimit.count
-
+      // Rate limit was already incremented by checkTwoFactorRateLimit above
+      // Just return error with remaining attempts from the rate limit result
       return NextResponse.json(
         {
           error: {
             code: 'INVALID_CODE',
             message: 'Invalid or expired code',
           },
-          remainingAttempts,
+          remainingAttempts: rateLimitResult.remaining,
         },
         { status: 400 }
       )
     }
 
     // Clear rate limit on success
-    rateLimitMap.delete(userId)
+    await resetRateLimit(`2fa:${userId}`)
 
     // Create response
-    let response: NextResponse
+    const response = NextResponse.json({ success: true })
 
-    // Create trusted device token if requested
-    // NOTE: Trusted device feature is INCOMPLETE - tokens are created but not verified on login
-    // The isTrustedDevice() function is disabled until database storage is implemented
-    // See: apps/web/src/lib/trusted-device.ts for implementation requirements
+    // Create trusted device if requested
     if (trustDevice) {
-      // Create device fingerprint for future validation
-      // TODO: Store fingerprint in database with the trusted device token
-      const deviceFingerprint = createDeviceFingerprint(request)
-      void deviceFingerprint // Reserved for future use in database storage
-      const trustedDeviceToken = crypto.randomBytes(32).toString('hex')
+      const trustedDeviceResult = await createTrustedDevice(request, userId)
 
-      response = NextResponse.json({ success: true })
-      response.cookies.set('hyvve_trusted_device', trustedDeviceToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 30 * 24 * 60 * 60, // 30 days
-      })
-    } else {
-      response = NextResponse.json({ success: true })
+      if (trustedDeviceResult.success && trustedDeviceResult.token) {
+        setTrustedDeviceCookie(response, trustedDeviceResult.token)
+      }
+      // If trusted device creation fails, we still return success for 2FA
+      // Just without the trusted device cookie
     }
 
     return response
@@ -175,37 +172,5 @@ export async function POST(request: NextRequest) {
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to verify code' } },
       { status: 500 }
     )
-  }
-}
-
-/**
- * Clean up expired rate limits and enforce max entries
- * Called on module init and when map exceeds MAX_ENTRIES
- */
-function cleanupRateLimits() {
-  const now = Date.now()
-  for (const [userId, limit] of rateLimitMap.entries()) {
-    if (now > limit.resetAt) {
-      rateLimitMap.delete(userId)
-    }
-  }
-  // If still over limit after cleanup, remove oldest entries
-  if (rateLimitMap.size > MAX_ENTRIES) {
-    const entries = Array.from(rateLimitMap.entries())
-    entries.sort((a, b) => a[1].resetAt - b[1].resetAt) // Sort by oldest first
-    const toRemove = entries.slice(0, rateLimitMap.size - MAX_ENTRIES)
-    for (const [key] of toRemove) {
-      rateLimitMap.delete(key)
-    }
-  }
-}
-
-// Run cleanup once on module initialization (avoid setInterval in serverless/edge)
-cleanupRateLimits()
-
-// Trigger cleanup if map size exceeds limit (checked before adding new entries)
-function ensureMapCapacity() {
-  if (rateLimitMap.size >= MAX_ENTRIES) {
-    cleanupRateLimits()
   }
 }

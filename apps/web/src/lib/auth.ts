@@ -3,6 +3,10 @@ import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { organization, twoFactor, magicLink } from 'better-auth/plugins'
 import { prisma } from '@hyvve/db'
 import { sendVerificationEmail, sendPasswordResetEmail, sendMagicLinkEmail } from './email'
+import { validateEncryptionKeyOnStartup } from './utils/validate-encryption-key'
+
+// Validate encryption key entropy on module load
+validateEncryptionKeyOnStartup()
 
 export const auth = betterAuth({
   // Database adapter using Prisma

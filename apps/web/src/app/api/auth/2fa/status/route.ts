@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@hyvve/db'
+import { getTrustedDevices, TRUSTED_DEVICE_COOKIE_NAME } from '@/lib/trusted-device'
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,12 +48,19 @@ export async function GET(request: NextRequest) {
 
     // Return enhanced metadata when 2FA is enabled
     if (user.twoFactorEnabled) {
+      // Get trusted devices count
+      const currentToken = request.cookies.get(TRUSTED_DEVICE_COOKIE_NAME)?.value
+      const trustedDevices = await getTrustedDevices(session.user.id, currentToken)
+      const currentDeviceTrusted = trustedDevices.some((d) => d.isCurrent)
+
       return NextResponse.json({
         twoFactorEnabled: true,
         method: 'totp',
         enabledAt: user.updatedAt.toISOString(),
         backupCodesRemaining: user.backupCodes.length,
         hasPassword: !!user.accounts[0]?.id,
+        trustedDevicesCount: trustedDevices.length,
+        currentDeviceTrusted,
       })
     }
 

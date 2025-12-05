@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
 
     const { email } = result.data
 
-    // Check rate limit (3 attempts per hour)
+    // Check rate limit (3 attempts per hour) using unified rate limiter
     const rateLimitKey = `resend-verification:${email.toLowerCase()}`
-    const rateLimit = checkRateLimit(rateLimitKey, 3, 60 * 60) // 3 attempts, 1 hour window
+    const rateLimit = await checkRateLimit(rateLimitKey, 3, 60 * 60) // 3 attempts, 1 hour window
 
     if (rateLimit.isRateLimited) {
       return NextResponse.json(

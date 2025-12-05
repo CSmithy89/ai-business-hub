@@ -4,6 +4,8 @@
  * In production, this should use Redis for distributed systems
  */
 
+import { checkTwoFactorRateLimit } from '@/lib/utils/rate-limit'
+
 interface SetupSession {
   secret: string
   userId: string
@@ -16,14 +18,8 @@ interface SetupSession {
 // In production, replace with Redis for scalability
 const setupSessions = new Map<string, SetupSession>()
 
-// Rate limiting storage
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-
 const SESSION_TIMEOUT = 15 * 60 * 1000 // 15 minutes
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000 // 15 minutes
-const MAX_ATTEMPTS = 5
 const MAX_SESSIONS = 10000 // Prevent unbounded map growth
-const MAX_RATE_LIMIT_ENTRIES = 10000
 
 /**
  * Create a new 2FA setup session
@@ -69,33 +65,21 @@ export function deleteSetupSession(sessionId: string): void {
 
 /**
  * Record a verification attempt and check rate limit
+ * Uses the unified rate limiter (Redis in production, in-memory fallback)
  */
-export function recordVerificationAttempt(sessionId: string): { allowed: boolean; remainingAttempts: number } {
+export async function recordVerificationAttempt(sessionId: string): Promise<{ allowed: boolean; remainingAttempts: number }> {
   const session = setupSessions.get(sessionId)
   if (!session) {
     return { allowed: false, remainingAttempts: 0 }
   }
 
-  // Check rate limit
-  const rateLimit = rateLimitMap.get(session.userId)
+  // Check rate limit using unified rate limiter
+  const rateLimitResult = await checkTwoFactorRateLimit(session.userId)
   const now = Date.now()
 
-  if (rateLimit) {
-    // Reset if window has passed
-    if (now > rateLimit.resetAt) {
-      rateLimitMap.delete(session.userId)
-    } else if (rateLimit.count >= MAX_ATTEMPTS) {
-      return { allowed: false, remainingAttempts: 0 }
-    }
+  if (rateLimitResult.isRateLimited) {
+    return { allowed: false, remainingAttempts: 0 }
   }
-
-  // Update rate limit (with capacity check)
-  if (rateLimitMap.size >= MAX_RATE_LIMIT_ENTRIES && !rateLimitMap.has(session.userId)) {
-    cleanupExpiredSessions()
-  }
-  const currentLimit = rateLimitMap.get(session.userId) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW }
-  currentLimit.count++
-  rateLimitMap.set(session.userId, currentLimit)
 
   // Update session
   session.verificationAttempts++
@@ -103,25 +87,19 @@ export function recordVerificationAttempt(sessionId: string): { allowed: boolean
 
   return {
     allowed: true,
-    remainingAttempts: MAX_ATTEMPTS - currentLimit.count,
+    remainingAttempts: rateLimitResult.remaining,
   }
 }
 
 /**
  * Clean up expired sessions and enforce max entries (call periodically)
+ * Note: Rate limiting is now handled by the unified rate limiter in @/lib/utils/rate-limit
  */
 export function cleanupExpiredSessions(): void {
   const now = Date.now()
   for (const [sessionId, session] of setupSessions.entries()) {
     if (now - session.createdAt > SESSION_TIMEOUT) {
       setupSessions.delete(sessionId)
-    }
-  }
-
-  // Clean up expired rate limits
-  for (const [userId, limit] of rateLimitMap.entries()) {
-    if (now > limit.resetAt) {
-      rateLimitMap.delete(userId)
     }
   }
 
@@ -132,16 +110,6 @@ export function cleanupExpiredSessions(): void {
     const toRemove = entries.slice(0, setupSessions.size - MAX_SESSIONS)
     for (const [key] of toRemove) {
       setupSessions.delete(key)
-    }
-  }
-
-  // Enforce max entries for rate limits
-  if (rateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
-    const entries = Array.from(rateLimitMap.entries())
-    entries.sort((a, b) => a[1].resetAt - b[1].resetAt) // Oldest first
-    const toRemove = entries.slice(0, rateLimitMap.size - MAX_RATE_LIMIT_ENTRIES)
-    for (const [key] of toRemove) {
-      rateLimitMap.delete(key)
     }
   }
 }

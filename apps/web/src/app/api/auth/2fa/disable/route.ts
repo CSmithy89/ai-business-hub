@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@hyvve/db'
 import { createAuditLog, getClientIp, getUserAgent } from '@/lib/audit-log'
+import { revokeAllTrustedDevices } from '@/lib/trusted-device'
 
 /**
  * POST - Disable 2FA (requires password)
@@ -114,6 +115,9 @@ export async function POST(request: NextRequest) {
         where: { userId: session.user.id },
       }),
     ])
+
+    // Revoke all trusted devices (no longer needed without 2FA)
+    await revokeAllTrustedDevices(session.user.id)
 
     // Audit log
     await createAuditLog({
