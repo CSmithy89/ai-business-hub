@@ -122,6 +122,7 @@ model Workspace {
   events      EventLog[]
   tokenUsage  TokenUsage[]
   settings    WorkspaceSettings?
+  customRoles CustomRole[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -528,4 +529,28 @@ enum ReplayJobStatus {
   RUNNING
   COMPLETED
   FAILED
+}
+
+// ============================================
+// CUSTOM ROLES (Story 09-14)
+// ============================================
+
+/// Custom roles for workspace-specific RBAC
+/// Built-in roles (owner, admin, member, viewer, guest) are read-only
+/// Custom roles allow workspace owners to define granular permissions
+model CustomRole {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  name        String
+  description String?
+  permissions Json     // Array of permission strings (e.g., ["workspace:read", "records:create"])
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@map("custom_roles")
 }

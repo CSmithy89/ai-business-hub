@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { User, Lock, Shield, Key, Bot, Palette, Settings, Users } from 'lucide-react'
+import { User, Lock, Shield, Key, Bot, Palette, Settings, Users, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Route } from 'next'
 
@@ -68,6 +68,11 @@ const settingsNavGroups: NavGroup[] = [
         title: 'Members',
         href: '/settings/workspace/members' as Route,
         icon: Users,
+      },
+      {
+        title: 'Roles',
+        href: '/settings/workspace/roles' as Route,
+        icon: ShieldCheck,
       },
     ],
   },

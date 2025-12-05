@@ -226,7 +226,7 @@ development_status:
   09-13-add-last-active-and-status-to-members-table: done
 
   # Advanced RBAC (2 stories, 8 points)
-  09-14-implement-custom-role-creation: backlog
+  09-14-implement-custom-role-creation: done
   09-15-implement-permission-templates: backlog
 
   epic-09-retrospective: optional
