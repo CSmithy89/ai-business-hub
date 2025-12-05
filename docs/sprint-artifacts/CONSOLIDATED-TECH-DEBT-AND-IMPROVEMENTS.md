@@ -563,6 +563,8 @@
 | Redis-based distributed rate limiting | 09, 01 | High |
 | Full trusted device implementation | 09 | Medium |
 | Multi-factor authentication expansion (SMS, WebAuthn) | 09 | Low |
+| SAML/SSO integration | PRD (Enterprise) | Future |
+| SCIM user provisioning | PRD (Enterprise) | Future |
 
 ### User Experience
 
@@ -583,6 +585,50 @@
 | Agno AI integration for workflows | 08 | High |
 | Prometheus metrics export | 05 | Medium |
 | Hard delete scheduler | 02 | Low |
+| Custom data retention policies | PRD (Enterprise) | Future |
+| White-labeling options | PRD (Enterprise) | Future |
+| Dedicated tenant infrastructure | PRD (Enterprise) | Future |
+| Multi-region deployment | PRD (Vision) | Future |
+| Marketplace for community modules | PRD (Vision) | Future |
+
+### RBAC Enhancements (from PRD)
+
+| Enhancement | Source | Priority |
+|-------------|--------|----------|
+| Custom role creation | PRD (Advanced RBAC) | Medium |
+| Permission templates | PRD (Advanced RBAC) | Medium |
+| Time-limited access grants | PRD (Advanced RBAC) | Medium |
+| Audit log export for compliance | PRD (Advanced RBAC) | Medium |
+
+### Mobile & Offline (from PRD Vision)
+
+| Enhancement | Source | Priority |
+|-------------|--------|----------|
+| Mobile applications (iOS/Android) | PRD (Vision) | Future |
+| Offline mode with sync | PRD (Vision) | Future |
+| AI model fine-tuning per tenant | PRD (Vision) | Future |
+| SOC2 Type II certification | PRD (Vision) | Future |
+
+### Agent Team Implementations (from PRD)
+
+| Enhancement | Source | Priority |
+|-------------|--------|----------|
+| Vera's Team (Validation) - Agno configuration | PRD + Epic 08 | High |
+| Marco (Market Researcher) agent | PRD | High |
+| Cipher (Competitor Analyst) agent | PRD | High |
+| Persona (Customer Profiler) agent | PRD | High |
+| Risk (Feasibility Assessor) agent | PRD | High |
+| Blake's Team (Planning) - Agno configuration | PRD + Epic 08 | Medium |
+| Model (Business Model Architect) agent | PRD | Medium |
+| Finn (Financial Analyst) agent | PRD | Medium |
+| Revenue (Monetization Strategist) agent | PRD | Medium |
+| Forecast (Growth Forecaster) agent | PRD | Medium |
+| Bella's Team (Branding) - Agno configuration | PRD + Epic 08 | Low |
+| Sage (Brand Strategist) agent | PRD | Low |
+| Vox (Voice Architect) agent | PRD | Low |
+| Iris (Visual Identity Designer) agent | PRD | Low |
+| Artisan (Asset Generator) agent | PRD | Low |
+| Audit (Brand Auditor) agent | PRD | Low |
 
 ### Developer Experience
 
@@ -671,5 +717,56 @@
 
 ---
 
-*Document compiled from Epic 00-09 retrospectives*
+## PRD Status Notes
+
+### Items Completed But Not Marked in PRD
+
+The following items from the PRD "Growth Features (Post-MVP)" section were **implemented in Epic 09** but the PRD checkboxes haven't been updated:
+
+- [x] GitHub OAuth provider - **Done** (Story 09.2)
+- [x] Microsoft OAuth provider (enterprise) - **Done** (Story 09.1)
+- [x] Magic link / passwordless authentication - **Done** (Story 09.6)
+- [x] 2FA/TOTP support - **Done** (Story 09.3, 09.4, 09.5)
+- [x] Account linking (multiple OAuth providers) - **Done** (Story 09.7)
+
+**Action:** Update `docs/prd.md` to check these items as complete.
+
+### Items Not Yet Implemented from PRD
+
+**Advanced RBAC (Post-MVP):**
+- [ ] Custom role creation
+- [ ] Permission templates
+- [ ] Time-limited access grants
+- [ ] Audit log export for compliance
+
+**Enterprise Features:**
+- [ ] SAML/SSO integration
+- [ ] SCIM user provisioning
+- [ ] Custom data retention policies
+- [ ] White-labeling options
+- [ ] Dedicated tenant infrastructure
+
+**Vision (Future):**
+- [ ] Mobile applications (iOS/Android)
+- [ ] Offline mode with sync
+- [ ] AI model fine-tuning per tenant
+- [ ] Marketplace for community modules
+- [ ] Multi-region deployment
+- [ ] SOC2 Type II certification
+
+### Business Onboarding - Infrastructure vs Implementation
+
+Epic 08 built the **infrastructure** for Business Onboarding (database models, APIs, workflows, UI pages), but the **Agno agent team implementations** described in the PRD are not yet built:
+
+| Team | PRD Description | Epic 08 Status |
+|------|-----------------|----------------|
+| Vera's Team (Validation) | 5 agents: Vera, Marco, Cipher, Persona, Risk | Infrastructure only |
+| Blake's Team (Planning) | 5 agents: Blake, Model, Finn, Revenue, Forecast | Infrastructure only |
+| Bella's Team (Branding) | 6 agents: Bella, Sage, Vox, Iris, Artisan, Audit | Infrastructure only |
+
+**Next Steps:** Implement actual Agno agent configurations and AI workflows.
+
+---
+
+*Document compiled from Epic 00-09 retrospectives and PRD analysis*
 *Last Updated: 2025-12-05*
