@@ -1,0 +1,822 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>08.2</story-id>
+    <story-title>Implement Portfolio Dashboard with Business Cards</story-title>
+    <epic>EPIC-08 - Business Onboarding &amp; Foundation Modules</epic>
+    <priority>P0 - Critical</priority>
+    <points>5</points>
+    <generated>2025-12-04</generated>
+    <dependencies>
+      <dependency>Story 08.1 - Business Onboarding Database Models (DONE)</dependency>
+      <dependency>EPIC-01 - Authentication (DONE)</dependency>
+      <dependency>EPIC-02 - Workspace Management (DONE)</dependency>
+      <dependency>EPIC-07 - UI Shell (DONE)</dependency>
+    </dependencies>
+  </metadata>
+
+  <summary>
+    <description>
+      Create the Portfolio Dashboard at /dashboard route that displays all of a user's businesses as interactive cards.
+      This establishes the two-level dashboard pattern (portfolio view → business view) and enables users to manage
+      multiple businesses, start new ones, and navigate to business-specific pages.
+    </description>
+    <business-value>
+      - Enables core value proposition: managing multiple businesses from one platform
+      - First user-facing implementation of Business entity from Story 08.1
+      - Establishes navigation pattern for all business modules
+      - Creates foundation for business onboarding flow
+    </business-value>
+  </summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-08.2.1">
+      <title>Portfolio Dashboard Route</title>
+      <requirements>
+        - /dashboard route displays as Portfolio Dashboard (no business context)
+        - Route is distinct from /dashboard/[businessId]/* (future business-scoped routes)
+        - Page metadata includes proper title and description
+        - Dashboard follows existing layout patterns from Epic 07
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-08.2.2">
+      <title>Business Cards Display</title>
+      <requirements>
+        - Business cards displayed in responsive grid layout (1 col mobile, 2 col tablet, 3 col desktop)
+        - Each card shows: name, description (truncated), status badge, current phase, validation score (if available)
+        - Cards have hover states and click affordance
+        - Cards display skeleton loading state while fetching
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-08.2.3">
+      <title>Key Metrics Per Business</title>
+      <requirements>
+        - Validation score displayed prominently (0-100) if available
+        - Current phase shown with visual indicator and color coding
+        - Module completion status shown for Validation, Planning, Branding
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-08.2.4">
+      <title>"Start New Business" CTA Card</title>
+      <requirements>
+        - Prominent CTA card appears at start of grid
+        - Visual design differentiates it from business cards (dashed border, icon)
+        - Click navigates to onboarding wizard
+        - Card includes compelling copy
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-08.2.5">
+      <title>Business Card Click Navigation</title>
+      <requirements>
+        - Clicking business card navigates to appropriate route based on onboardingStatus
+        - Navigation logic: WIZARD → wizard, VALIDATION → validation page, PLANNING → planning page,
+          BRANDING → branding page, COMPLETE → overview
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-08.2.6">
+      <title>Business Switcher Dropdown in Sidebar</title>
+      <requirements>
+        - Business switcher appears in sidebar (below workspace switcher)
+        - Dropdown shows all user's businesses
+        - Current business highlighted (if in business context)
+        - "All Businesses" option to return to portfolio dashboard
+        - Business switcher hidden when on portfolio dashboard
+      </requirements>
+    </criterion>
+
+    <criterion id="AC-08.2.7">
+      <title>Empty State for No Businesses</title>
+      <requirements>
+        - Empty state displays when user has no businesses
+        - Includes illustration/icon, heading, description, and primary CTA
+        - CTA navigates to onboarding wizard
+      </requirements>
+    </criterion>
+  </acceptance-criteria>
+
+  <existing-patterns>
+    <pattern category="api-routes">
+      <name>API Route Pattern</name>
+      <location>/apps/web/src/app/api/workspaces/route.ts</location>
+      <example><![CDATA[
+// GET endpoint pattern
+export async function GET() {
+  try {
+    const session = await getSession()
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'UNAUTHORIZED', message: 'You must be signed in' },
+        { status: 401 }
+      )
+    }
+
+    const userId = session.user.id
+    const workspaceId = session.activeWorkspaceId // Get from session
+
+    const data = await prisma.model.findMany({
+      where: { workspaceId },
+      orderBy: { updatedAt: 'desc' }
+    })
+
+    return NextResponse.json({ success: true, data })
+  } catch (error) {
+    console.error('Error:', error)
+    return NextResponse.json(
+      { success: false, error: 'INTERNAL_ERROR', message: 'An error occurred' },
+      { status: 500 }
+    )
+  }
+}
+      ]]></example>
+      <notes>
+        - Always use getSession() from @/lib/auth-server
+        - Return consistent response format: { success, data?, error?, message? }
+        - Handle errors with proper status codes
+        - Get workspaceId from session for tenant isolation
+      </notes>
+    </pattern>
+
+    <pattern category="react-query">
+      <name>React Query Hook Pattern</name>
+      <location>/apps/web/src/hooks/use-approvals.ts</location>
+      <example><![CDATA[
+// Query hook pattern
+export function useBusinesses() {
+  return useQuery({
+    queryKey: ['businesses'],
+    queryFn: async () => {
+      const res = await fetch('/api/businesses', {
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: 'Failed to fetch' }))
+        throw new Error(error.message || 'Failed to fetch businesses')
+      }
+      const json = await res.json()
+      return json.data
+    },
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: true,
+  })
+}
+      ]]></example>
+      <notes>
+        - Use @tanstack/react-query for data fetching
+        - Cache key should be descriptive: ['businesses'] or ['businesses', filters]
+        - Set appropriate staleTime based on data volatility
+        - Always include credentials: 'include' for session cookies
+      </notes>
+    </pattern>
+
+    <pattern category="ui-components">
+      <name>shadcn/ui Card Component</name>
+      <location>/apps/web/src/components/ui/card.tsx</location>
+      <example><![CDATA[
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
+
+<Card className="cursor-pointer hover:shadow-lg transition-shadow">
+  <CardHeader>
+    <CardTitle>Business Name</CardTitle>
+    <CardDescription>Business description...</CardDescription>
+  </CardHeader>
+
+  <CardContent>
+    <div>Content here</div>
+  </CardContent>
+
+  <CardFooter>
+    <div>Footer content</div>
+  </CardFooter>
+</Card>
+      ]]></example>
+      <notes>
+        - Card components from shadcn/ui already installed
+        - Use semantic structure: Header → Content → Footer
+        - Add hover states with transition-shadow for interactivity
+      </notes>
+    </pattern>
+
+    <pattern category="ui-components">
+      <name>Badge Component with Variants</name>
+      <location>/apps/web/src/components/ui/badge.tsx</location>
+      <example><![CDATA[
+import { Badge } from '@/components/ui/badge'
+
+// Available variants: default, secondary, destructive, outline, success
+<Badge variant="default">Getting Started</Badge>
+<Badge variant="success">Active</Badge>
+      ]]></example>
+      <notes>
+        - Badge supports variants: default, secondary, destructive, outline, success
+        - Use success variant for COMPLETE status
+        - Use default/secondary for other statuses
+      </notes>
+    </pattern>
+
+    <pattern category="layout">
+      <name>Dashboard Page Structure</name>
+      <location>/apps/web/src/app/(dashboard)/dashboard/page.tsx</location>
+      <example><![CDATA[
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Portfolio | HYVVE',
+  description: 'Manage your business portfolio',
+}
+
+export default function PortfolioDashboardPage() {
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Your Businesses</h1>
+          <p className="text-muted-foreground">Manage and track your business portfolio</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Cards here */}
+      </div>
+    </div>
+  )
+}
+      ]]></example>
+      <notes>
+        - Layout automatically includes Header, Sidebar, ChatPanel from layout.tsx
+        - Use space-y-8 for vertical spacing between sections
+        - Responsive grid: 1 col mobile, 2 col tablet (md:), 3 col desktop (lg:)
+      </notes>
+    </pattern>
+
+    <pattern category="sidebar">
+      <name>Sidebar Component Structure</name>
+      <location>/apps/web/src/components/shell/Sidebar.tsx</location>
+      <example><![CDATA[
+// Sidebar.tsx structure
+<aside className={cn(
+  'fixed top-[60px] left-0 bottom-0 z-20 flex flex-col',
+  'border-r border-[rgb(var(--color-border-default))]',
+  'bg-[rgb(var(--color-bg-secondary))]',
+  'transition-all duration-200 ease-out',
+  sidebarCollapsed ? 'w-16' : 'w-64'
+)}>
+  <SidebarNav collapsed={sidebarCollapsed} />
+
+  {/* Workspace Switcher at bottom */}
+  <div className="mt-auto border-t p-4">
+    <SidebarWorkspaceSwitcher collapsed={sidebarCollapsed} />
+    {/* Business Switcher will go here (AC-08.2.6) */}
+  </div>
+</aside>
+      ]]></example>
+      <notes>
+        - Sidebar is 64px (w-16) collapsed, 256px (w-64) expanded
+        - Fixed positioning with top-[60px] (below header)
+        - Workspace switcher at bottom (mt-auto)
+        - Business switcher should be added below workspace switcher
+      </notes>
+    </pattern>
+
+    <pattern category="tailwind">
+      <name>Tailwind CSS Guidelines</name>
+      <example><![CDATA[
+// ✅ CORRECT - Full class strings visible to JIT compiler
+className={collapsed ? 'ml-16' : 'ml-64'}
+className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+
+// ❌ WRONG - Dynamic string construction breaks JIT
+className={`ml-${collapsed ? '16' : '64'}`}
+const width = isWide ? 'w-64' : 'w-16'
+
+// For truly dynamic values, use inline styles
+style={{ marginLeft: collapsed ? 64 : 256 }}
+      ]]></example>
+      <notes>
+        - Tailwind JIT compiler needs complete class strings in source code
+        - Avoid string interpolation for dynamic classes
+        - Use conditional expressions with full class names
+        - Use inline styles for truly dynamic values (e.g., user-configurable dimensions)
+      </notes>
+    </pattern>
+  </existing-patterns>
+
+  <data-models>
+    <model name="Business">
+      <location>/packages/db/prisma/schema.prisma (lines 700-760)</location>
+      <schema><![CDATA[
+model Business {
+  id              String   @id @default(cuid())
+  workspaceId     String   @map("workspace_id")
+  userId          String   @map("user_id")
+
+  name            String
+  description     String?  @db.Text
+  industry        String?
+  stage           BusinessStage @default(IDEA)
+
+  onboardingStatus    OnboardingStatus @default(WIZARD)
+  onboardingProgress  Int @default(0)  // 0-100
+
+  validationStatus  ModuleStatus @default(NOT_STARTED)
+  planningStatus    ModuleStatus @default(NOT_STARTED)
+  brandingStatus    ModuleStatus @default(NOT_STARTED)
+
+  validationScore          Int?     // 0-100
+  validationRecommendation ValidationRecommendation?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace       Workspace @relation(fields: [workspaceId], references: [id])
+  validationData  ValidationSession?
+  planningData    PlanningSession?
+  brandingData    BrandingSession?
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@index([userId])
+  @@map("businesses")
+}
+
+enum BusinessStage {
+  IDEA
+  VALIDATION
+  MVP
+  GROWTH
+  SCALE
+}
+
+enum OnboardingStatus {
+  WIZARD
+  VALIDATION
+  PLANNING
+  BRANDING
+  COMPLETE
+}
+
+enum ModuleStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
+}
+
+enum ValidationRecommendation {
+  GO
+  CONDITIONAL_GO
+  PIVOT
+  NO_GO
+}
+      ]]></schema>
+      <notes>
+        - Business belongs to workspace (tenant isolation)
+        - onboardingStatus drives navigation logic
+        - validationScore is nullable (only available after validation)
+        - Module statuses track progress through onboarding
+      </notes>
+    </model>
+
+    <model name="Prisma Client Import">
+      <location>/packages/db/src/index.ts</location>
+      <import><![CDATA[
+import { prisma } from '@hyvve/db'
+import type { Business, OnboardingStatus, ModuleStatus, ValidationRecommendation } from '@hyvve/db'
+
+// Query businesses for workspace
+const businesses = await prisma.business.findMany({
+  where: { workspaceId },
+  orderBy: { updatedAt: 'desc' }
+})
+      ]]></import>
+      <notes>
+        - Import prisma singleton from @hyvve/db
+        - Import types from @hyvve/db for TypeScript
+        - Prisma Client auto-generates types from schema
+      </notes>
+    </model>
+  </data-models>
+
+  <implementation-steps>
+    <step number="1">
+      <title>Create GET /api/businesses API Route</title>
+      <location>/apps/web/src/app/api/businesses/route.ts</location>
+      <tasks>
+        - Create new file with GET handler
+        - Use getSession() to authenticate and get workspaceId
+        - Query prisma.business.findMany({ where: { workspaceId } })
+        - Order by updatedAt desc (most recent first)
+        - Return { success: true, data: businesses }
+        - Handle errors with appropriate status codes
+      </tasks>
+      <reference>See existing-patterns/api-routes for template</reference>
+    </step>
+
+    <step number="2">
+      <title>Create useBusinesses React Query Hook</title>
+      <location>/apps/web/src/hooks/use-businesses.ts</location>
+      <tasks>
+        - Create hook using useQuery from @tanstack/react-query
+        - Query key: ['businesses']
+        - Fetch from /api/businesses
+        - Set staleTime: 30000 (30 seconds)
+        - Enable refetchOnWindowFocus
+        - Return typed data (Business[])
+      </tasks>
+      <reference>See existing-patterns/react-query for template</reference>
+    </step>
+
+    <step number="3">
+      <title>Create BusinessCard Component</title>
+      <location>/apps/web/src/components/business/BusinessCard.tsx</location>
+      <tasks>
+        - Create component accepting business prop (type: Business)
+        - Use Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter from ui/card
+        - Display business name, description (truncated with line-clamp-2)
+        - Show status badge with getStatusVariant helper
+        - Display validation score if available (validationScore != null)
+        - Show module status indicators (icons or text)
+        - Add hover:shadow-lg transition-shadow
+        - onClick handler to navigate using getBusinessDefaultRoute helper
+      </tasks>
+      <reference>See existing-patterns/ui-components for Card structure</reference>
+    </step>
+
+    <step number="4">
+      <title>Create StartBusinessCard Component</title>
+      <location>/apps/web/src/components/business/StartBusinessCard.tsx</location>
+      <tasks>
+        - Create CTA card with dashed border (border-dashed border-2)
+        - Center content with flex-col items-center justify-center
+        - Add icon (PlusCircle or similar) in bg-primary/10 circle
+        - Add heading: "Start a New Business"
+        - Add description text
+        - Add Button component: "Get Started"
+        - onClick navigates to /onboarding/wizard (placeholder for Story 08.3)
+      </tasks>
+      <notes>Visual distinction from business cards is important</notes>
+    </step>
+
+    <step number="5">
+      <title>Create EmptyBusinessState Component</title>
+      <location>/apps/web/src/components/business/EmptyBusinessState.tsx</location>
+      <tasks>
+        - Create centered empty state with py-20
+        - Add icon (Building2 or similar) in bg-muted circle
+        - Heading: "No businesses yet"
+        - Description paragraph (max-w-md, text-center)
+        - Primary Button: "Start Your First Business"
+        - onClick navigates to /onboarding/wizard
+      </tasks>
+      <notes>Friendly, encouraging tone to guide new users</notes>
+    </step>
+
+    <step number="6">
+      <title>Create Helper Functions</title>
+      <location>/apps/web/src/lib/business-status.ts</location>
+      <tasks>
+        - Create getStatusVariant(status: OnboardingStatus): BadgeVariant
+          * WIZARD → 'secondary'
+          * VALIDATION → 'default'
+          * PLANNING → 'default' (or create 'warning' variant)
+          * BRANDING → 'default'
+          * COMPLETE → 'success'
+
+        - Create getStatusLabel(status: OnboardingStatus): string
+          * WIZARD → 'Getting Started'
+          * VALIDATION → 'Validating'
+          * PLANNING → 'Planning'
+          * BRANDING → 'Branding'
+          * COMPLETE → 'Active'
+
+        - Create getBusinessDefaultRoute(business: Business): string
+          * WIZARD → '/onboarding/wizard?businessId={id}'
+          * VALIDATION → '/dashboard/{id}/validation'
+          * PLANNING → '/dashboard/{id}/planning'
+          * BRANDING → '/dashboard/{id}/branding'
+          * COMPLETE → '/dashboard/{id}/overview'
+      </tasks>
+      <notes>These helpers centralize business status logic</notes>
+    </step>
+
+    <step number="7">
+      <title>Update Portfolio Dashboard Page</title>
+      <location>/apps/web/src/app/(dashboard)/dashboard/page.tsx</location>
+      <tasks>
+        - Replace existing placeholder content
+        - Update metadata: title='Portfolio | HYVVE', description='Manage your business portfolio'
+        - Use 'use client' directive (needed for React Query)
+        - Call useBusinesses() hook
+        - Handle loading state (show skeleton cards)
+        - Handle error state (show error message)
+        - Render empty state if businesses.length === 0
+        - Render grid with StartBusinessCard + BusinessCard components
+        - Grid classes: grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3
+      </tasks>
+      <reference>See existing-patterns/layout for page structure</reference>
+    </step>
+
+    <step number="8">
+      <title>Create BusinessSwitcher Component</title>
+      <location>/apps/web/src/components/shell/BusinessSwitcher.tsx</location>
+      <tasks>
+        - Create dropdown component using DropdownMenu from ui/dropdown-menu
+        - Fetch businesses with useBusinesses()
+        - Use useParams() to get current businessId from URL
+        - Show "All Businesses" option (navigates to /dashboard)
+        - DropdownMenuSeparator
+        - List all businesses as DropdownMenuItem
+        - Highlight current business with Check icon
+        - Each item onClick navigates to /dashboard/{businessId}/overview
+      </tasks>
+      <notes>Hidden when businessId is not in URL (on portfolio dashboard)</notes>
+    </step>
+
+    <step number="9">
+      <title>Integrate BusinessSwitcher into Sidebar</title>
+      <location>/apps/web/src/components/shell/Sidebar.tsx</location>
+      <tasks>
+        - Import BusinessSwitcher component
+        - Add below SidebarWorkspaceSwitcher in the mt-auto section
+        - Conditionally render based on current route (hide on /dashboard)
+        - Use useParams() to detect if in business context
+      </tasks>
+      <reference>See existing-patterns/sidebar for structure</reference>
+    </step>
+
+    <step number="10">
+      <title>Create Skeleton Loading Components</title>
+      <location>/apps/web/src/components/business/BusinessCardSkeleton.tsx</location>
+      <tasks>
+        - Create skeleton placeholder matching BusinessCard layout
+        - Use Skeleton component from ui/skeleton (or create with animate-pulse)
+        - Match card dimensions and spacing
+        - Render 3-6 skeletons in grid while loading
+      </tasks>
+      <notes>Prevents layout shift during loading</notes>
+    </step>
+  </implementation-steps>
+
+  <testing-guidance>
+    <test-level type="unit">
+      <test>
+        <component>BusinessCard</component>
+        <scenarios>
+          - Renders business name and description
+          - Displays validation score when available
+          - Shows correct status badge variant
+          - Shows module status indicators
+          - Calls onClick handler when clicked
+        </scenarios>
+      </test>
+      <test>
+        <component>StartBusinessCard</component>
+        <scenarios>
+          - Renders CTA text correctly
+          - Navigates to wizard on click
+        </scenarios>
+      </test>
+      <test>
+        <component>EmptyBusinessState</component>
+        <scenarios>
+          - Renders empty state messaging
+          - CTA button navigates to wizard
+        </scenarios>
+      </test>
+      <test>
+        <component>getBusinessDefaultRoute</component>
+        <scenarios>
+          - Returns correct route for each OnboardingStatus
+          - Includes businessId in route
+        </scenarios>
+      </test>
+    </test-level>
+
+    <test-level type="integration">
+      <test>
+        <feature>Portfolio Dashboard</feature>
+        <scenarios>
+          - Fetches businesses from API on mount
+          - Displays loading skeleton during fetch
+          - Renders business cards after successful fetch
+          - Displays empty state when no businesses
+          - Error handling for failed API calls
+          - Business card navigation works correctly
+        </scenarios>
+      </test>
+      <test>
+        <feature>Business Switcher</feature>
+        <scenarios>
+          - Shows all businesses in dropdown
+          - Highlights current business
+          - Navigation changes URL parameter
+          - "All Businesses" navigates to portfolio
+          - Hidden when on portfolio dashboard
+        </scenarios>
+      </test>
+    </test-level>
+
+    <test-level type="e2e">
+      <test>
+        <flow>Portfolio Dashboard Flow</flow>
+        <steps>
+          1. User logs in, sees portfolio dashboard
+          2. If no businesses: sees empty state, clicks CTA, navigates to wizard
+          3. If businesses exist: sees business cards with status
+          4. Click business card, navigates to appropriate page based on onboardingStatus
+          5. Use business switcher to change business context
+          6. Return to portfolio via "All Businesses"
+        </steps>
+      </test>
+    </test-level>
+
+    <edge-cases>
+      - User has 0 businesses (empty state)
+      - User has 1 business (grid still renders properly)
+      - User has 50+ businesses (consider pagination in future)
+      - Business has no validation score yet (handle null)
+      - Business has very long name or description (truncation)
+      - API timeout or error (error state)
+      - User clicks business card rapidly (prevent double navigation)
+    </edge-cases>
+  </testing-guidance>
+
+  <files-to-create>
+    <file>
+      <path>/apps/web/src/app/api/businesses/route.ts</path>
+      <type>API Route</type>
+      <purpose>GET endpoint to fetch businesses for workspace</purpose>
+    </file>
+    <file>
+      <path>/apps/web/src/hooks/use-businesses.ts</path>
+      <type>React Query Hook</type>
+      <purpose>Hook to fetch and cache businesses data</purpose>
+    </file>
+    <file>
+      <path>/apps/web/src/components/business/BusinessCard.tsx</path>
+      <type>React Component</type>
+      <purpose>Display individual business as interactive card</purpose>
+    </file>
+    <file>
+      <path>/apps/web/src/components/business/StartBusinessCard.tsx</path>
+      <type>React Component</type>
+      <purpose>CTA card to start new business</purpose>
+    </file>
+    <file>
+      <path>/apps/web/src/components/business/EmptyBusinessState.tsx</path>
+      <type>React Component</type>
+      <purpose>Empty state when user has no businesses</purpose>
+    </file>
+    <file>
+      <path>/apps/web/src/components/business/BusinessCardSkeleton.tsx</path>
+      <type>React Component</type>
+      <purpose>Loading skeleton for business cards</purpose>
+    </file>
+    <file>
+      <path>/apps/web/src/components/shell/BusinessSwitcher.tsx</path>
+      <type>React Component</type>
+      <purpose>Dropdown to switch between businesses in sidebar</purpose>
+    </file>
+    <file>
+      <path>/apps/web/src/lib/business-status.ts</path>
+      <type>Utility Functions</type>
+      <purpose>Helper functions for business status labels and routing</purpose>
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file>
+      <path>/apps/web/src/app/(dashboard)/dashboard/page.tsx</path>
+      <changes>Replace placeholder content with Portfolio Dashboard implementation</changes>
+    </file>
+    <file>
+      <path>/apps/web/src/components/shell/Sidebar.tsx</path>
+      <changes>Add BusinessSwitcher component below WorkspaceSwitcher</changes>
+    </file>
+  </files-to-modify>
+
+  <technical-notes>
+    <note category="routing">
+      <title>Two-Level Dashboard Pattern</title>
+      <description>
+        This story establishes the two-level dashboard architecture:
+        - Portfolio Dashboard: /dashboard (no business context)
+        - Business Dashboard: /dashboard/[businessId]/* (business context)
+
+        Business context is passed via URL parameter for deep linking.
+        Portfolio dashboard derives workspace context from session.
+      </description>
+    </note>
+
+    <note category="performance">
+      <title>React Query Caching</title>
+      <description>
+        - Cache key: ['businesses']
+        - Stale time: 30 seconds (businesses don't change frequently)
+        - Refetch on window focus to keep data fresh
+        - Automatic cache invalidation on business creation (future stories)
+      </description>
+    </note>
+
+    <note category="accessibility">
+      <title>Keyboard Navigation and Screen Readers</title>
+      <description>
+        - Business cards should be keyboard navigable (Tab to card, Enter to open)
+        - Status badges should have aria-labels for screen readers
+        - Empty state should have semantic heading structure (h1 → h2 → p)
+        - Ensure proper focus management when navigating
+      </description>
+    </note>
+
+    <note category="responsive">
+      <title>Responsive Grid Breakpoints</title>
+      <description>
+        - Mobile (&lt;640px): 1 column
+        - Tablet (≥768px, md:): 2 columns
+        - Desktop (≥1024px, lg:): 3 columns
+
+        Cards should stack gracefully on mobile.
+        Sidebar collapses to icon-only on mobile (handled by Epic 07).
+      </description>
+    </note>
+
+    <note category="future">
+      <title>Future Enhancements (Out of Scope)</title>
+      <description>
+        - Business search/filter (defer until user has many businesses)
+        - Business archiving/deletion (defer to future story)
+        - Recent activity preview on cards (defer to future story)
+        - Business templates (defer to future epic)
+        - Batch operations (archive multiple, delete multiple)
+      </description>
+    </note>
+  </technical-notes>
+
+  <design-references>
+    <wireframe>
+      <title>Portfolio Dashboard Layout</title>
+      <description>
+        Grid layout with StartBusinessCard as first card, followed by business cards.
+        Each business card shows: name, description, status badge, validation score, module status.
+      </description>
+      <location>docs/design/wireframes/prompts/BATCH-10-BUSINESS-ONBOARDING.md - BO-01</location>
+    </wireframe>
+
+    <wireframe>
+      <title>Empty State</title>
+      <description>
+        Centered empty state with icon, heading, description, and CTA button.
+        Friendly, encouraging tone to guide new users.
+      </description>
+      <location>Story file section: UI Wireframe</location>
+    </wireframe>
+  </design-references>
+
+  <related-stories>
+    <story>
+      <id>08.1</id>
+      <title>Create Business Onboarding Database Models</title>
+      <status>DONE</status>
+      <relationship>Provides Business entity and enums used in this story</relationship>
+    </story>
+    <story>
+      <id>08.3</id>
+      <title>Implement Onboarding Wizard UI</title>
+      <status>Backlog</status>
+      <relationship>StartBusinessCard will link to wizard (placeholder for now)</relationship>
+    </story>
+    <story>
+      <id>08.6</id>
+      <title>Create Validation Chat Interface</title>
+      <status>Backlog</status>
+      <relationship>Business cards will navigate to validation page</relationship>
+    </story>
+  </related-stories>
+
+  <definition-of-done>
+    <checklist>
+      <item>All acceptance criteria met (AC-08.2.1 through AC-08.2.7)</item>
+      <item>All React components created and functional</item>
+      <item>API endpoint implemented: GET /api/businesses</item>
+      <item>TypeScript types defined for Business entity</item>
+      <item>Helper functions created for status labels/variants</item>
+      <item>React Query hook (useBusinesses) implemented</item>
+      <item>Navigation routing works correctly based on onboardingStatus</item>
+      <item>Responsive design works on mobile, tablet, desktop</item>
+      <item>Loading states (skeleton) display correctly</item>
+      <item>Empty state displays when no businesses</item>
+      <item>Error handling for API failures</item>
+      <item>Business switcher integrated into sidebar</item>
+      <item>Unit tests written and passing (&gt;80% coverage)</item>
+      <item>Integration tests written and passing</item>
+      <item>E2E test for portfolio dashboard flow</item>
+      <item>Code reviewed and approved</item>
+      <item>Documentation updated (if needed)</item>
+      <item>sprint-status.yaml updated: 08-2 → ready-for-dev</item>
+    </checklist>
+  </definition-of-done>
+</story-context>

@@ -21,13 +21,22 @@ Usage:
 """
 
 import os
-from typing import Optional
+from typing import Optional, Dict, Any
 from agno.agent import Agent
 from agno.team import Team
 from agno.models.anthropic import Claude
 from agno.storage.postgres import PostgresStorage
 from agno.tools.web import WebSearchTool
 from agno.tools.file import FileTools
+
+# Import validation-specific tools
+from .tools import (
+    record_source,
+    verify_sources,
+    request_validation_approval,
+    save_validation_progress,
+    get_validation_context,
+)
 
 # Import agent configurations
 from .validation_orchestrator_agent import (
@@ -111,10 +120,14 @@ def create_marco_agent(
         instructions=MARCO_INSTRUCTIONS + [
             "Calculate TAM/SAM/SOM using top-down, bottom-up, and value theory methods.",
             "ALWAYS cite sources - market claims require 2+ independent sources.",
+            "Use the record_source tool to track every source you cite.",
+            "Use verify_sources to ensure claims meet minimum source requirements.",
             "Use ranges instead of point estimates when uncertain.",
             "Mark confidence levels: [Verified], [Single Source], [Estimated].",
+            "Sources must be from reputable providers (Gartner, Forrester, govt data).",
+            "Sources older than 24 months should be marked as potentially outdated.",
         ],
-        tools=[WebSearchTool()],
+        tools=[WebSearchTool(), record_source, verify_sources],
         storage=storage,
         add_datetime_to_instructions=True,
         markdown=True,
@@ -140,8 +153,11 @@ def create_cipher_agent(
             "Create feature matrices and positioning maps.",
             "Apply Porter's Five Forces framework.",
             "Find gaps that are true opportunities, not just underserved areas.",
+            "Use record_source for all competitor claims (pricing, features, market share).",
+            "Include competitor website URLs as sources.",
+            "Distinguish between verified facts and competitive intelligence estimates.",
         ],
-        tools=[WebSearchTool()],
+        tools=[WebSearchTool(), record_source],
         storage=storage,
         add_datetime_to_instructions=True,
         markdown=True,
@@ -193,7 +209,11 @@ def create_risk_agent(
             "Score risks using Impact x Probability matrix.",
             "Distinguish fatal risks from manageable risks.",
             "Every risk needs a mitigation strategy or it's a constraint.",
+            "Use request_validation_approval for go/no-go recommendations.",
+            "HITL approval is REQUIRED before finalizing any recommendation.",
+            "Present confidence honestly - uncertainty is valuable information.",
         ],
+        tools=[request_validation_approval],
         storage=storage,
         add_datetime_to_instructions=True,
         markdown=True,

@@ -1,0 +1,927 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>08-1</story-id>
+    <story-title>Create Business Onboarding Database Models</story-title>
+    <epic>EPIC-08 - Business Onboarding &amp; Foundation Modules</epic>
+    <priority>P0 (Critical)</priority>
+    <points>3</points>
+    <status>ready-for-dev</status>
+    <generated-at>2025-12-04</generated-at>
+  </metadata>
+
+  <story-summary>
+    <user-story>
+      As a developer, I want database models for business onboarding data so that all validation, planning, and branding data persists correctly with proper tenant isolation.
+    </user-story>
+
+    <description>
+      This story creates the foundation database schema for the Business Onboarding system. It introduces the Business entity as a first-class tenant-scoped object and establishes the data models for the three foundation modules: BMV (Validation), BMP (Planning), and BM-Brand (Branding).
+
+      Key architectural decisions:
+      - Business entity is scoped to Workspace (multi-tenant isolation)
+      - One-to-one relationships between Business and session tables (ValidationSession, PlanningSession, BrandingSession)
+      - JSON columns for flexible agent output storage
+      - Anti-hallucination pattern via ValidationSource table
+      - Cascade deletion to maintain referential integrity
+    </description>
+
+    <dependencies>
+      <upstream>
+        <dependency>EPIC-00</dependency>
+        <detail>Prisma setup and database infrastructure must be in place</detail>
+      </upstream>
+      <downstream>
+        <dependency>Story 08.2</dependency>
+        <detail>Portfolio Dashboard requires Business model</detail>
+        <dependency>Story 08.5</dependency>
+        <detail>Validation Team requires ValidationSession model</detail>
+        <dependency>Story 08.12</dependency>
+        <detail>Planning Team requires PlanningSession model</detail>
+        <dependency>Story 08.17</dependency>
+        <detail>Branding Team requires BrandingSession model</detail>
+      </downstream>
+    </dependencies>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <title>Business Model</title>
+      <requirements>
+        - Create Business model with all specified fields
+        - Include workspaceId, userId, name, description, industry, stage
+        - Add onboarding tracking: onboardingStatus, onboardingProgress
+        - Add module status fields: validationStatus, planningStatus, brandingStatus
+        - Add validation output fields: validationScore, validationRecommendation
+        - Implement unique constraint on [workspaceId, name]
+        - Add indexes on workspaceId and userId for tenant isolation
+        - Establish relationship with Workspace (onDelete: Cascade)
+      </requirements>
+    </criterion>
+
+    <criterion id="AC2">
+      <title>Enums</title>
+      <requirements>
+        - Define BusinessStage enum: IDEA, VALIDATION, MVP, GROWTH, SCALE
+        - Define OnboardingStatus enum: WIZARD, VALIDATION, PLANNING, BRANDING, COMPLETE
+        - Define ModuleStatus enum: NOT_STARTED, IN_PROGRESS, COMPLETE
+        - Define ValidationRecommendation enum: GO, CONDITIONAL_GO, PIVOT, NO_GO
+      </requirements>
+    </criterion>
+
+    <criterion id="AC3">
+      <title>ValidationSession Model</title>
+      <requirements>
+        - Create ValidationSession model with unique businessId foreign key
+        - Add idea intake fields: ideaDescription, problemStatement, targetCustomer, proposedSolution, initialHypothesis (JSON)
+        - Add market sizing fields: tam, sam, som (JSON with sources)
+        - Add competitor fields: competitors, positioningMap, opportunityGaps (JSON)
+        - Add customer fields: icps (JSON)
+        - Add synthesis fields: validationScore, recommendation, strengths, risks, nextSteps (JSON)
+        - Add workflow tracking: completedWorkflows (String[]), agentSessionId
+        - Add timestamps: createdAt, updatedAt
+        - Establish relationship with Business (onDelete: Cascade)
+      </requirements>
+    </criterion>
+
+    <criterion id="AC4">
+      <title>ValidationSource Model (Anti-hallucination)</title>
+      <requirements>
+        - Create ValidationSource model for tracking research sources
+        - Add fields: sessionId, claimType, claim, sourceUrl, sourceName, sourceDate, confidence
+        - Establish relationship with ValidationSession (onDelete: Cascade)
+        - Add index on sessionId for efficient querying
+      </requirements>
+    </criterion>
+
+    <criterion id="AC5">
+      <title>PlanningSession Model</title>
+      <requirements>
+        - Create PlanningSession model with unique businessId foreign key
+        - Add canvas field: canvas (JSON for Business Model Canvas)
+        - Add financial fields: financials (JSON for projections)
+        - Add document field: businessPlanUrl (String)
+        - Add workflow tracking: completedWorkflows (String[]), agentSessionId
+        - Add timestamps: createdAt, updatedAt
+        - Establish relationship with Business (onDelete: Cascade)
+      </requirements>
+    </criterion>
+
+    <criterion id="AC6">
+      <title>BrandingSession Model</title>
+      <requirements>
+        - Create BrandingSession model with unique businessId foreign key
+        - Add strategy fields: positioning, voiceGuidelines (JSON)
+        - Add visual fields: visualIdentity (JSON)
+        - Add asset fields: generatedAssets (JSON array), assetPackageUrl, guidelinesUrl
+        - Add workflow tracking: completedWorkflows (String[]), agentSessionId
+        - Add timestamps: createdAt, updatedAt
+        - Establish relationship with Business (onDelete: Cascade)
+      </requirements>
+    </criterion>
+
+    <criterion id="AC7">
+      <title>OnboardingDocument Model</title>
+      <requirements>
+        - Create OnboardingDocument model for uploaded files
+        - Add fields: businessId, fileName, fileUrl, fileType, fileSize
+        - Add extraction fields: extractedData (JSON), extractionStatus, extractionError
+        - Add timestamp: uploadedAt
+        - Establish relationship with Business (onDelete: Cascade)
+        - Add index on businessId
+      </requirements>
+    </criterion>
+
+    <criterion id="AC8">
+      <title>Migration &amp; Validation</title>
+      <requirements>
+        - Create and run Prisma migration successfully
+        - Verify Prisma Client generates types for all new models
+        - Test foreign key constraints work correctly
+        - Verify tenant isolation with workspace indexes
+        - Document migration in migration history
+      </requirements>
+    </criterion>
+  </acceptance-criteria>
+
+  <existing-patterns>
+    <section name="Database Schema Patterns">
+      <pattern name="Multi-Tenant Scoping">
+        <description>All tenant-scoped models include workspaceId field with cascading delete</description>
+        <example><![CDATA[
+model AIProviderConfig {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+
+  // ... other fields
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, provider])
+  @@index([workspaceId])
+  @@map("ai_provider_configs")
+}
+        ]]></example>
+        <notes>
+          - workspaceId MUST be indexed for query performance
+          - onDelete: Cascade ensures cleanup when workspace deleted
+          - Unique constraints should include workspaceId to prevent cross-tenant duplication
+        </notes>
+      </pattern>
+
+      <pattern name="Timestamp Convention">
+        <description>Standard created/updated timestamps with snake_case mapping</description>
+        <example><![CDATA[
+createdAt DateTime @default(now()) @map("created_at")
+updatedAt DateTime @updatedAt @map("updated_at")
+        ]]></example>
+      </pattern>
+
+      <pattern name="Field Naming Convention">
+        <description>camelCase in Prisma schema, snake_case in database</description>
+        <example><![CDATA[
+workspaceId     String @map("workspace_id")
+createdAt       DateTime @map("created_at")
+emailVerified   Boolean @map("email_verified")
+        ]]></example>
+      </pattern>
+
+      <pattern name="Table Naming Convention">
+        <description>Plural snake_case table names via @@map directive</description>
+        <example><![CDATA[
+model Workspace {
+  // ... fields
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  // ... fields
+  @@map("workspace_members")
+}
+        ]]></example>
+      </pattern>
+
+      <pattern name="ID Generation">
+        <description>Use uuid() for most models, cuid() for high-write-volume tables</description>
+        <example><![CDATA[
+// Standard pattern (most models)
+id String @id @default(uuid())
+
+// High-write pattern (events, logs, session-heavy tables)
+id String @id @default(cuid())
+        ]]></example>
+        <notes>
+          - uuid() provides better distribution across indexes
+          - cuid() is sortable and collision-resistant, better for distributed systems
+          - For Business models, use cuid() as they may have high creation rate
+        </notes>
+      </pattern>
+
+      <pattern name="JSON Column Usage">
+        <description>Use Json type for flexible, schema-less data storage</description>
+        <example><![CDATA[
+confidenceFactors Json? @map("confidence_factors")
+previewData       Json? @map("preview_data")
+metadata          Json?
+        ]]></example>
+        <notes>
+          - JSON columns allow agent output evolution without migrations
+          - Always nullable (Json?) unless required by business logic
+          - Use TypeScript interfaces in application layer for type safety
+        </notes>
+      </pattern>
+
+      <pattern name="Enum Definitions">
+        <description>PascalCase enum names, SCREAMING_SNAKE_CASE values</description>
+        <example><![CDATA[
+enum EventStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DLQ
+}
+
+enum ReplayJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+        ]]></example>
+      </pattern>
+
+      <pattern name="One-to-Many Relationships">
+        <description>Standard foreign key with cascade delete and indexed</description>
+        <example><![CDATA[
+model ApprovalItem {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("approval_items")
+}
+
+model Workspace {
+  id String @id @default(uuid())
+  approvals ApprovalItem[]
+  @@map("workspaces")
+}
+        ]]></example>
+      </pattern>
+
+      <pattern name="One-to-One Relationships">
+        <description>Use @unique on foreign key for one-to-one relationships</description>
+        <example><![CDATA[
+model WorkspaceSettings {
+  id          String @id @default(uuid())
+  workspaceId String @unique @map("workspace_id")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@map("workspace_settings")
+}
+
+model Workspace {
+  id String @id @default(uuid())
+  settings WorkspaceSettings?
+  @@map("workspaces")
+}
+        ]]></example>
+      </pattern>
+
+      <pattern name="Composite Indexes">
+        <description>Multi-column indexes for common query patterns</description>
+        <example><![CDATA[
+@@index([workspaceId, status])
+@@index([assignedToId, status])
+@@index([status, priority])
+        ]]></example>
+        <notes>
+          - Put most selective column first
+          - Consider query WHERE clauses when designing
+        </notes>
+      </pattern>
+    </section>
+
+    <section name="Existing Workspace Model">
+      <description>Current Workspace model that Business will relate to</description>
+      <code><![CDATA[
+model Workspace {
+  id       String  @id @default(uuid())
+  name     String
+  slug     String  @unique
+  image    String?
+  timezone String  @default("UTC")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  members     WorkspaceMember[]
+  invitations WorkspaceInvitation[]
+  aiProviders AIProviderConfig[]
+  approvals   ApprovalItem[]
+  apiKeys     ApiKey[]
+  auditLogs   AuditLog[]
+  events      EventLog[]
+  tokenUsage  TokenUsage[]
+  settings    WorkspaceSettings?
+
+  @@index([slug])
+  @@index([deletedAt])
+  @@map("workspaces")
+}
+      ]]></code>
+      <update-required>
+        Add Business relation to Workspace model:
+        businesses  Business[]
+      </update-required>
+    </section>
+  </existing-patterns>
+
+  <implementation-guide>
+    <step number="1">
+      <title>Add Enums to Schema</title>
+      <description>Add all four enums at the bottom of schema.prisma (after existing enums)</description>
+      <location>packages/db/prisma/schema.prisma</location>
+      <code><![CDATA[
+// Business Onboarding Enums (Story 08.1)
+enum BusinessStage {
+  IDEA
+  VALIDATION
+  MVP
+  GROWTH
+  SCALE
+}
+
+enum OnboardingStatus {
+  WIZARD
+  VALIDATION
+  PLANNING
+  BRANDING
+  COMPLETE
+}
+
+enum ModuleStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
+}
+
+enum ValidationRecommendation {
+  GO
+  CONDITIONAL_GO
+  PIVOT
+  NO_GO
+}
+      ]]></code>
+    </step>
+
+    <step number="2">
+      <title>Add Business Model</title>
+      <description>Add Business model after Workspace-related models</description>
+      <location>packages/db/prisma/schema.prisma</location>
+      <code><![CDATA[
+// ============================================
+// BUSINESS ONBOARDING (EPIC-08)
+// ============================================
+
+model Business {
+  id              String   @id @default(cuid())
+  workspaceId     String   @map("workspace_id")
+  userId          String   @map("user_id")  // Creator
+
+  // Basic info
+  name            String
+  description     String?  @db.Text
+  industry        String?
+  stage           BusinessStage @default(IDEA)
+
+  // Onboarding tracking
+  onboardingStatus    OnboardingStatus @default(WIZARD)
+  onboardingProgress  Int @default(0)  // 0-100
+
+  // Module status
+  validationStatus  ModuleStatus @default(NOT_STARTED)
+  planningStatus    ModuleStatus @default(NOT_STARTED)
+  brandingStatus    ModuleStatus @default(NOT_STARTED)
+
+  // Validation outputs
+  validationScore          Int?     // 0-100
+  validationRecommendation ValidationRecommendation?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  validationData  ValidationSession?
+  planningData    PlanningSession?
+  brandingData    BrandingSession?
+  documents       OnboardingDocument[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@index([userId])
+  @@map("businesses")
+}
+      ]]></code>
+    </step>
+
+    <step number="3">
+      <title>Add ValidationSession and ValidationSource Models</title>
+      <description>Add validation-related models after Business model</description>
+      <location>packages/db/prisma/schema.prisma</location>
+      <code><![CDATA[
+// BMV - Validation Session
+model ValidationSession {
+  id              String   @id @default(cuid())
+  businessId      String   @unique @map("business_id")
+
+  // Idea Intake (Story 08.7)
+  ideaDescription     String?  @db.Text
+  problemStatement    String?  @db.Text
+  targetCustomer      String?  @db.Text
+  proposedSolution    String?  @db.Text
+  initialHypothesis   Json?    // { value_proposition, revenue_model }
+
+  // Market Sizing (Story 08.8)
+  tam                 Json?    // { value, formatted, methodology, confidence, sources[] }
+  sam                 Json?
+  som                 Json?
+
+  // Competitor Mapping (Story 08.9)
+  competitors         Json?    // [{ name, type, pricing, features, strengths, weaknesses, source_url }]
+  positioningMap      Json?    // { axes: [], positions: [] }
+  opportunityGaps     Json?    // []
+
+  // Customer Discovery (Story 08.10)
+  icps                Json?    // [{ name, company_size, industry, personas[] }]
+
+  // Validation Synthesis (Story 08.11)
+  validationScore     Int?
+  recommendation      ValidationRecommendation?
+  strengths           Json?
+  risks               Json?    // [{ risk, severity, mitigation }]
+  nextSteps           Json?
+
+  // Workflow tracking
+  completedWorkflows  String[]  @default([])
+  agentSessionId      String?   @map("agent_session_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  sources  ValidationSource[]
+
+  @@index([businessId])
+  @@map("validation_sessions")
+}
+
+// Anti-hallucination tracking
+model ValidationSource {
+  id        String @id @default(cuid())
+  sessionId String @map("session_id")
+
+  claimType String  @map("claim_type")  // market_size, competitor, customer
+  claim     String  @db.Text
+  sourceUrl String  @map("source_url")
+  sourceName String @map("source_name")
+  sourceDate DateTime @map("source_date")
+  confidence String  // high, medium, low
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session ValidationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("validation_sources")
+}
+      ]]></code>
+    </step>
+
+    <step number="4">
+      <title>Add PlanningSession Model</title>
+      <description>Add planning model after validation models</description>
+      <location>packages/db/prisma/schema.prisma</location>
+      <code><![CDATA[
+// BMP - Planning Session
+model PlanningSession {
+  id              String   @id @default(cuid())
+  businessId      String   @unique @map("business_id")
+
+  // Business Model Canvas (Story 08.14)
+  canvas          Json?    // { customer_segments, value_propositions, channels, ... }
+
+  // Financial Projections (Story 08.15)
+  financials      Json?    // { revenue, costs, pnl, cash_flow, unit_economics }
+
+  // Business Plan (Story 08.16)
+  businessPlanUrl String?  @map("business_plan_url")
+
+  // Workflow tracking
+  completedWorkflows  String[]  @default([])
+  agentSessionId      String?   @map("agent_session_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("planning_sessions")
+}
+      ]]></code>
+    </step>
+
+    <step number="5">
+      <title>Add BrandingSession Model</title>
+      <description>Add branding model after planning model</description>
+      <location>packages/db/prisma/schema.prisma</location>
+      <code><![CDATA[
+// BM-Brand - Branding Session
+model BrandingSession {
+  id              String   @id @default(cuid())
+  businessId      String   @unique @map("business_id")
+
+  // Brand Strategy (Story 08.19)
+  positioning     Json?    // { archetype, values, personality, positioning_statement, taglines }
+  voiceGuidelines Json?    // { tone, vocabulary_dos, vocabulary_donts, messaging_templates, content_pillars }
+
+  // Visual Identity (Story 08.20)
+  visualIdentity  Json?    // { colors, typography, logo_concept }
+
+  // Generated Assets (Story 08.21)
+  generatedAssets Json?    // [{ type, name, url, size, format }]
+  assetPackageUrl String?  @map("asset_package_url")
+  guidelinesUrl   String?  @map("guidelines_url")
+
+  // Workflow tracking
+  completedWorkflows  String[]  @default([])
+  agentSessionId      String?   @map("agent_session_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("branding_sessions")
+}
+      ]]></code>
+    </step>
+
+    <step number="6">
+      <title>Add OnboardingDocument Model</title>
+      <description>Add document upload tracking model</description>
+      <location>packages/db/prisma/schema.prisma</location>
+      <code><![CDATA[
+// Document upload tracking
+model OnboardingDocument {
+  id         String @id @default(cuid())
+  businessId String @map("business_id")
+
+  fileName     String  @map("file_name")
+  fileUrl      String  @map("file_url")
+  fileType     String  @map("file_type")  // pdf, docx, md
+  fileSize     Int     @map("file_size")
+
+  // Extraction results
+  extractedData  Json?   @map("extracted_data")
+  extractionStatus String @default("pending") @map("extraction_status")
+  extractionError String? @map("extraction_error") @db.Text
+
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("onboarding_documents")
+}
+      ]]></code>
+    </step>
+
+    <step number="7">
+      <title>Update Workspace Model</title>
+      <description>Add Business relation to Workspace model</description>
+      <location>packages/db/prisma/schema.prisma (Workspace model)</location>
+      <code><![CDATA[
+model Workspace {
+  // ... existing fields ...
+
+  members     WorkspaceMember[]
+  invitations WorkspaceInvitation[]
+  aiProviders AIProviderConfig[]
+  approvals   ApprovalItem[]
+  apiKeys     ApiKey[]
+  auditLogs   AuditLog[]
+  events      EventLog[]
+  tokenUsage  TokenUsage[]
+  settings    WorkspaceSettings?
+  businesses  Business[]  // ADD THIS LINE
+
+  @@index([slug])
+  @@index([deletedAt])
+  @@map("workspaces")
+}
+      ]]></code>
+    </step>
+
+    <step number="8">
+      <title>Create Migration</title>
+      <description>Generate and run Prisma migration</description>
+      <commands>
+        <command>cd packages/db</command>
+        <command>pnpm prisma migrate dev --name add_business_onboarding_models</command>
+      </commands>
+      <notes>
+        - Migration name should be descriptive: add_business_onboarding_models
+        - Review generated SQL before applying
+        - Verify all indexes are created
+        - Check foreign key constraints are correct
+      </notes>
+    </step>
+
+    <step number="9">
+      <title>Generate Prisma Client</title>
+      <description>Regenerate TypeScript types</description>
+      <commands>
+        <command>cd packages/db</command>
+        <command>pnpm prisma generate</command>
+      </commands>
+      <validation>
+        - Verify types are available in IDE autocomplete
+        - Check Business type exports from @prisma/client
+        - Verify enum types are generated
+      </validation>
+    </step>
+
+    <step number="10">
+      <title>Verify Migration</title>
+      <description>Test migration and schema integrity</description>
+      <checks>
+        - Migration file created in prisma/migrations/
+        - All tables created with correct column types
+        - Foreign keys established correctly
+        - Indexes created (check with EXPLAIN queries)
+        - Cascade delete behavior works
+        - Unique constraints enforced
+      </checks>
+    </step>
+  </implementation-guide>
+
+  <technical-notes>
+    <note category="Tenant Isolation">
+      <title>Multi-Tenant Strategy</title>
+      <description>
+        Every Business record includes workspaceId for Row-Level Security:
+        - Unique constraint on [workspaceId, name] prevents duplicate business names within workspace
+        - All related models (sessions, documents) inherit workspace context via Business relationship
+        - Prisma Client Extension will automatically filter queries by workspace_id
+      </description>
+    </note>
+
+    <note category="Data Modeling">
+      <title>JSON Column Usage</title>
+      <description>
+        JSON columns provide flexibility for agent output storage:
+        - Agent responses can evolve without schema changes
+        - Use typed interfaces in application code for type safety
+        - Example: ValidationSession.tam stores { value, formatted, methodology, confidence, sources[] }
+      </description>
+    </note>
+
+    <note category="Anti-Hallucination">
+      <title>ValidationSource Pattern</title>
+      <description>
+        ValidationSource table enforces source citation:
+        - Marco agent (market researcher) must save sources for all claims
+        - Minimum 2 sources required for market sizing (enforced at application level)
+        - Sources tracked with: URL, name, date, confidence level
+        - Enables "show sources" UI feature
+      </description>
+    </note>
+
+    <note category="Relationships">
+      <title>One-to-One Session Pattern</title>
+      <description>
+        Each Business has at most one ValidationSession, PlanningSession, BrandingSession:
+        - @unique on businessId foreign key enforces one-to-one
+        - Nullable relations on Business (ValidationSession?) allow progressive creation
+        - Cascade delete ensures cleanup when Business is deleted
+      </description>
+    </note>
+
+    <note category="ID Generation">
+      <title>CUID vs UUID</title>
+      <description>
+        Using cuid() for Business and session models:
+        - Sortable by creation time
+        - Better for distributed systems
+        - Lower collision probability than uuid v4
+        - Recommended for high-write-volume tables
+      </description>
+    </note>
+
+    <note category="Workflow Tracking">
+      <title>Completed Workflows Array</title>
+      <description>
+        completedWorkflows: String[] @default([]) tracks workflow progress:
+        - Example values: ["idea-intake", "market-sizing", "competitor-mapping"]
+        - Enables UI progress indicators
+        - Prevents re-running completed workflows
+        - AgentOS can query this to determine next steps
+      </description>
+    </note>
+  </technical-notes>
+
+  <testing-requirements>
+    <test-category name="Migration Tests">
+      <test>
+        <name>Migration runs successfully</name>
+        <command>pnpm prisma migrate dev</command>
+        <expected>Migration completes without errors</expected>
+      </test>
+      <test>
+        <name>Prisma Client generates types</name>
+        <command>pnpm prisma generate</command>
+        <expected>Types available in @prisma/client</expected>
+      </test>
+      <test>
+        <name>Database schema matches Prisma schema</name>
+        <method>Manual inspection of PostgreSQL schema</method>
+        <expected>All tables, columns, indexes, constraints present</expected>
+      </test>
+    </test-category>
+
+    <test-category name="Model Creation Tests">
+      <test>
+        <name>Create Business with minimum fields</name>
+        <code><![CDATA[
+const business = await prisma.business.create({
+  data: {
+    name: 'Test Business',
+    workspaceId: workspace.id,
+    userId: user.id,
+  },
+});
+
+expect(business.onboardingStatus).toBe('WIZARD');
+expect(business.stage).toBe('IDEA');
+expect(business.validationStatus).toBe('NOT_STARTED');
+        ]]></code>
+      </test>
+      <test>
+        <name>Unique constraint on [workspaceId, name]</name>
+        <code><![CDATA[
+// First business succeeds
+await prisma.business.create({
+  data: { name: 'Business A', workspaceId: ws1.id, userId: user.id },
+});
+
+// Duplicate name in same workspace fails
+await expect(
+  prisma.business.create({
+    data: { name: 'Business A', workspaceId: ws1.id, userId: user.id },
+  })
+).rejects.toThrow();
+
+// Same name in different workspace succeeds
+await prisma.business.create({
+  data: { name: 'Business A', workspaceId: ws2.id, userId: user.id },
+});
+        ]]></code>
+      </test>
+      <test>
+        <name>Cascade delete removes related sessions</name>
+        <code><![CDATA[
+const business = await prisma.business.create({
+  data: { name: 'Test', workspaceId: ws.id, userId: user.id },
+});
+
+await prisma.validationSession.create({
+  data: { businessId: business.id },
+});
+
+await prisma.business.delete({ where: { id: business.id } });
+
+const session = await prisma.validationSession.findUnique({
+  where: { businessId: business.id },
+});
+
+expect(session).toBeNull();
+        ]]></code>
+      </test>
+    </test-category>
+
+    <test-category name="Relationship Tests">
+      <test>
+        <name>Business to Workspace relationship</name>
+        <code><![CDATA[
+const business = await prisma.business.create({
+  data: {
+    name: 'Test',
+    workspace: { connect: { id: workspace.id } },
+    userId: user.id,
+  },
+  include: { workspace: true },
+});
+
+expect(business.workspace.id).toBe(workspace.id);
+        ]]></code>
+      </test>
+      <test>
+        <name>ValidationSession one-to-one with Business</name>
+        <code><![CDATA[
+const business = await prisma.business.create({
+  data: { name: 'Test', workspaceId: ws.id, userId: user.id },
+});
+
+const session = await prisma.validationSession.create({
+  data: { businessId: business.id },
+});
+
+// Second session fails due to unique constraint
+await expect(
+  prisma.validationSession.create({
+    data: { businessId: business.id },
+  })
+).rejects.toThrow();
+        ]]></code>
+      </test>
+    </test-category>
+
+    <test-category name="JSON Field Tests">
+      <test>
+        <name>Store and retrieve JSON data</name>
+        <code><![CDATA[
+const session = await prisma.validationSession.create({
+  data: {
+    businessId: business.id,
+    tam: {
+      value: 1000000000,
+      formatted: '$1B',
+      methodology: 'top-down',
+      confidence: 'high',
+      sources: [
+        { name: 'Gartner', url: 'https://...', date: '2024-01-01' },
+      ],
+    },
+  },
+});
+
+expect(session.tam.value).toBe(1000000000);
+expect(session.tam.sources).toHaveLength(1);
+        ]]></code>
+      </test>
+    </test-category>
+  </testing-requirements>
+
+  <related-files>
+    <file>
+      <path>/home/chris/projects/work/Ai Bussiness Hub/packages/db/prisma/schema.prisma</path>
+      <purpose>Primary implementation file - add all models here</purpose>
+      <action>ADD enums, models, update Workspace relation</action>
+    </file>
+    <file>
+      <path>/home/chris/projects/work/Ai Bussiness Hub/docs/sprint-artifacts/tech-spec-epic-08.md</path>
+      <purpose>Technical specification reference</purpose>
+      <action>READ for context and data model details</action>
+    </file>
+    <file>
+      <path>/home/chris/projects/work/Ai Bussiness Hub/docs/architecture.md</path>
+      <purpose>Architecture patterns and conventions</purpose>
+      <action>READ for multi-tenant patterns, naming conventions</action>
+    </file>
+    <file>
+      <path>/home/chris/projects/work/Ai Bussiness Hub/docs/stories/story-08-1-create-business-onboarding-database-models.md</path>
+      <purpose>Original story file with acceptance criteria</purpose>
+      <action>REFERENCE for detailed AC requirements</action>
+    </file>
+  </related-files>
+
+  <definition-of-done>
+    <checklist>
+      <item>All enums added to schema.prisma</item>
+      <item>Business model added with all fields</item>
+      <item>ValidationSession model added</item>
+      <item>ValidationSource model added</item>
+      <item>PlanningSession model added</item>
+      <item>BrandingSession model added</item>
+      <item>OnboardingDocument model added</item>
+      <item>Workspace model updated with businesses relation</item>
+      <item>Migration created and runs successfully</item>
+      <item>Prisma Client regenerated with new types</item>
+      <item>Foreign key relationships verified</item>
+      <item>Indexes created for tenant isolation</item>
+      <item>Unique constraints enforced</item>
+      <item>Cascade delete behavior verified</item>
+      <item>TypeScript types available in IDE</item>
+      <item>Migration documented in migration history</item>
+      <item>No TypeScript or linting errors</item>
+    </checklist>
+  </definition-of-done>
+</story-context>

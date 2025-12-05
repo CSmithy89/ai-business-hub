@@ -95,38 +95,41 @@ export function TokenUsageDashboard() {
   const isLoading = statsLoading || dailyLoading || agentLoading || providersLoading
 
   const stats = statsData?.data
-  const dailyUsage = dailyData?.data || []
-  const agentUsage = agentData?.data || []
-  const providers = providersData?.data || []
 
   // Prepare provider usage data for pie chart
   const providerUsageData = useMemo(() => {
+    const providers = providersData?.data || []
     return providers.map((p) => ({
       name: PROVIDER_INFO[p.provider]?.name || p.provider,
       value: p.tokensUsedToday,
       provider: p.provider,
     }))
-  }, [providers])
+  }, [providersData?.data])
 
   // Format daily usage for chart
   const formattedDailyUsage = useMemo(() => {
+    const dailyUsage = dailyData?.data || []
     return dailyUsage.map((d: DailyUsage) => ({
       ...d,
       date: format(new Date(d.date), 'MMM d'),
       tokens: d.totalTokens,
       cost: d.totalCost,
     }))
-  }, [dailyUsage])
+  }, [dailyData?.data])
 
   // Format agent usage for bar chart
   const formattedAgentUsage = useMemo(() => {
+    const agentUsage = agentData?.data || []
     return agentUsage.map((a: AgentUsage) => ({
       ...a,
       name: a.agentId.split('-')[0] || 'Unknown',
       tokens: a.totalTokens,
       cost: a.totalCost,
     }))
-  }, [agentUsage])
+  }, [agentData?.data])
+
+  // Raw data for export
+  const dailyUsage = dailyData?.data || []
 
   const handleRefresh = () => {
     refetchStats()
