@@ -237,7 +237,7 @@ development_status:
   # Parallel with: EPIC-11, EPIC-12
   # ===========================================
   epic-10: contexted
-  10-1-redis-rate-limiting-migration: backlog
+  10-1-redis-rate-limiting-migration: done
   10-2-encryption-key-validation: backlog
   10-3-fix-trusted-device-feature: backlog
   10-4-enable-global-validation-pipe: backlog
@@ -266,7 +266,7 @@ development_status:
   # Parallel with: EPIC-10, EPIC-11
   # ===========================================
   epic-12: backlog
-  12-1-oauth-provider-buttons: backlog
+  12-1-oauth-provider-buttons: drafted
   12-2-confirm-password-field: backlog
   12-3-approval-queue-quick-actions: backlog
   12-4-chat-streaming-ui: backlog
