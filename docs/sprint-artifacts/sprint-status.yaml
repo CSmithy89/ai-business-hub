@@ -223,7 +223,7 @@ development_status:
   09-10-implement-team-members-search-and-filters: done
   09-11-implement-invite-member-modal: done
   09-12-implement-pending-invitations-section: done
-  09-13-add-last-active-and-status-to-members-table: backlog
+  09-13-add-last-active-and-status-to-members-table: done
 
   # Advanced RBAC (2 stories, 8 points)
   09-14-implement-custom-role-creation: backlog

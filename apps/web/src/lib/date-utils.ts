@@ -141,3 +141,71 @@ export function formatRelativeTime(
   // Fall back to formatted date for older timestamps
   return formatDateTime(timestamp, options);
 }
+
+/**
+ * User activity status types
+ */
+export type ActivityStatus = 'online' | 'away' | 'offline';
+
+/**
+ * Calculates activity status based on last active timestamp.
+ * - Online: active within 5 minutes
+ * - Away: active within 30 minutes
+ * - Offline: more than 30 minutes ago
+ *
+ * @param lastActiveAt - Date object, ISO string, numeric timestamp, or null/undefined
+ * @returns Activity status
+ *
+ * @example
+ * ```ts
+ * getActivityStatus(new Date()); // 'online'
+ * getActivityStatus(Date.now() - 10 * 60 * 1000); // 'away'
+ * getActivityStatus(Date.now() - 60 * 60 * 1000); // 'offline'
+ * getActivityStatus(null); // 'offline'
+ * ```
+ */
+export function getActivityStatus(
+  lastActiveAt: Date | string | number | null | undefined
+): ActivityStatus {
+  if (!lastActiveAt) {
+    return 'offline';
+  }
+
+  const date = normalizeTimestamp(lastActiveAt);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / 1000 / 60);
+
+  if (diffMinutes < 5) {
+    return 'online';
+  }
+  if (diffMinutes < 30) {
+    return 'away';
+  }
+  return 'offline';
+}
+
+/**
+ * Formats last active time with "Never" fallback.
+ * Used for displaying user activity in member lists.
+ *
+ * @param lastActiveAt - Date object, ISO string, numeric timestamp, or null/undefined
+ * @param options - Optional formatting options including timezone
+ * @returns Relative time string or "Never"
+ *
+ * @example
+ * ```ts
+ * formatLastActive(new Date()); // "just now"
+ * formatLastActive(Date.now() - 2 * 60 * 1000); // "2 minutes ago"
+ * formatLastActive(null); // "Never"
+ * ```
+ */
+export function formatLastActive(
+  lastActiveAt: Date | string | number | null | undefined,
+  options?: DateFormatOptions
+): string {
+  if (!lastActiveAt) {
+    return 'Never';
+  }
+  return formatRelativeTime(lastActiveAt, options);
+}
