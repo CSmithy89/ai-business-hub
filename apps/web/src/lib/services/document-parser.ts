@@ -2,58 +2,143 @@
  * Document Parser Service
  *
  * Parses uploaded documents (PDF, DOCX, MD) and extracts text content.
- * For MVP, uses simple text extraction without OCR.
+ * Uses pdf-parse for PDFs and mammoth for DOCX files.
  *
  * Story: 08.4 - Implement Document Upload and Extraction Pipeline
  */
 
+import { PDFParse } from 'pdf-parse'
+import mammoth from 'mammoth'
+
+/**
+ * Maximum file size for document parsing (10MB)
+ */
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+
 /**
  * Parse PDF file to extract text
- * Note: For MVP, this is a placeholder that returns basic info.
- * In production, use pdf-parse or similar library.
+ *
+ * Uses pdf-parse library for text extraction.
+ * Handles multi-page documents and returns plain text.
+ *
+ * @param buffer - PDF file buffer
+ * @returns Extracted text content
  */
 async function parsePdf(buffer: Buffer): Promise<string> {
-  // MVP: Return placeholder text indicating PDF parsing needed
-  // Production: Use pdf-parse library
-  try {
-    // Basic text extraction - in production use pdf-parse
-    const text = buffer.toString('utf-8', 0, Math.min(buffer.length, 5000))
+  if (buffer.length > MAX_FILE_SIZE) {
+    throw new Error('PDF file exceeds maximum size of 10MB')
+  }
 
-    // Check if it's a valid PDF
-    if (!text.startsWith('%PDF')) {
-      throw new Error('Invalid PDF file')
+  // Verify PDF signature
+  const header = buffer.slice(0, 5).toString('ascii')
+  if (!header.startsWith('%PDF')) {
+    throw new Error('Invalid PDF file: missing PDF header')
+  }
+
+  let parser: PDFParse | null = null
+  try {
+    // Create parser with buffer data
+    parser = new PDFParse({ data: buffer })
+
+    // Get document info for page count
+    const info = await parser.getInfo()
+    const numPages = info.pages?.length ?? 0
+
+    // Extract text from all pages (first 100 pages for performance)
+    const textResult = await parser.getText({
+      first: 100, // Limit to first 100 pages for performance
+    })
+
+    const text = textResult.text?.trim()
+
+    if (!text || text.length === 0) {
+      return `[PDF Document - ${Math.round(buffer.length / 1024)}KB, ${numPages} pages]\n\nNote: This PDF contains no extractable text. It may be a scanned document or image-based PDF. Please use a text-based document or manually enter your business information.`
     }
 
-    return `[PDF Document - ${Math.round(buffer.length / 1024)}KB]\n\nNote: For MVP, full PDF text extraction is not implemented. Please use DOCX or MD format for best results, or manually enter your business information.\n\nDocument appears to be a valid PDF file ready for processing.`
+    return text
   } catch (error) {
-    throw new Error('Failed to parse PDF file')
+    // Handle pdf-parse specific errors
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+    if (errorMessage.includes('encrypted') || errorMessage.includes('password')) {
+      throw new Error('Cannot parse password-protected PDF. Please remove password protection and try again.')
+    }
+
+    if (errorMessage.includes('Invalid') || errorMessage.includes('corrupt')) {
+      throw new Error('Invalid or corrupted PDF file. Please try a different file.')
+    }
+
+    throw new Error(`Failed to parse PDF: ${errorMessage}`)
+  } finally {
+    // Clean up parser resources
+    if (parser) {
+      await parser.destroy().catch(() => {})
+    }
   }
 }
 
 /**
  * Parse DOCX file to extract text
- * Note: For MVP, this is a placeholder.
- * In production, use mammoth or similar library.
+ *
+ * Uses mammoth library for DOCX parsing.
+ * Extracts plain text, preserving paragraph structure.
+ *
+ * @param buffer - DOCX file buffer
+ * @returns Extracted text content
  */
 async function parseDocx(buffer: Buffer): Promise<string> {
-  // MVP: Return placeholder text indicating DOCX parsing needed
-  // Production: Use mammoth library
+  if (buffer.length > MAX_FILE_SIZE) {
+    throw new Error('DOCX file exceeds maximum size of 10MB')
+  }
+
+  // Verify DOCX signature (PK zip file header)
+  if (buffer[0] !== 0x50 || buffer[1] !== 0x4b) {
+    throw new Error('Invalid DOCX file: not a valid Office document')
+  }
+
   try {
-    // Check for DOCX signature (PK zip file)
-    if (buffer[0] !== 0x50 || buffer[1] !== 0x4b) {
-      throw new Error('Invalid DOCX file')
+    const result = await mammoth.extractRawText({ buffer })
+
+    const text = result.value?.trim()
+
+    // Log any conversion warnings
+    if (result.messages?.length > 0) {
+      console.warn('DOCX parsing warnings:', result.messages)
     }
 
-    return `[DOCX Document - ${Math.round(buffer.length / 1024)}KB]\n\nNote: For MVP, full DOCX text extraction is not implemented. Please use MD format for best results, or manually enter your business information.\n\nDocument appears to be a valid DOCX file ready for processing.`
+    if (!text || text.length === 0) {
+      return `[DOCX Document - ${Math.round(buffer.length / 1024)}KB]\n\nNote: This document contains no extractable text. Please ensure the document has text content and try again.`
+    }
+
+    return text
   } catch (error) {
-    throw new Error('Failed to parse DOCX file')
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+    if (errorMessage.includes('encrypted') || errorMessage.includes('password')) {
+      throw new Error('Cannot parse password-protected document. Please remove password protection and try again.')
+    }
+
+    if (errorMessage.includes('Could not find')) {
+      throw new Error('Invalid DOCX file: corrupted or missing content.')
+    }
+
+    throw new Error(`Failed to parse DOCX: ${errorMessage}`)
   }
 }
 
 /**
  * Parse Markdown file to extract text
+ *
+ * Returns raw markdown content as-is.
+ *
+ * @param buffer - Markdown file buffer
+ * @returns Markdown text content
  */
 async function parseMarkdown(buffer: Buffer): Promise<string> {
+  if (buffer.length > MAX_FILE_SIZE) {
+    throw new Error('Markdown file exceeds maximum size of 10MB')
+  }
+
   try {
     const text = buffer.toString('utf-8')
 
@@ -63,8 +148,31 @@ async function parseMarkdown(buffer: Buffer): Promise<string> {
 
     return text
   } catch (error) {
-    throw new Error('Failed to parse markdown file')
+    if (error instanceof Error && error.message === 'Empty markdown file') {
+      throw error
+    }
+    throw new Error('Failed to parse markdown file: invalid encoding')
   }
+}
+
+/**
+ * Parse plain text file
+ *
+ * @param buffer - Text file buffer
+ * @returns Text content
+ */
+async function parseText(buffer: Buffer): Promise<string> {
+  if (buffer.length > MAX_FILE_SIZE) {
+    throw new Error('Text file exceeds maximum size of 10MB')
+  }
+
+  const text = buffer.toString('utf-8')
+
+  if (!text || text.trim().length === 0) {
+    throw new Error('Empty text file')
+  }
+
+  return text
 }
 
 /**
@@ -86,7 +194,11 @@ export async function parseDocument(
       return await parseDocx(buffer)
 
     case 'text/markdown':
+    case 'text/x-markdown':
       return await parseMarkdown(buffer)
+
+    case 'text/plain':
+      return await parseText(buffer)
 
     default:
       throw new Error(`Unsupported file type: ${mimeType}`)
@@ -155,4 +267,24 @@ export function inferDocumentType(
   }
 
   return 'unknown'
+}
+
+/**
+ * Get supported MIME types for document upload
+ */
+export function getSupportedMimeTypes(): string[] {
+  return [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/markdown',
+    'text/x-markdown',
+    'text/plain',
+  ]
+}
+
+/**
+ * Check if a MIME type is supported
+ */
+export function isSupportedMimeType(mimeType: string): boolean {
+  return getSupportedMimeTypes().includes(mimeType)
 }

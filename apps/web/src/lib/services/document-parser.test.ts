@@ -4,39 +4,118 @@
  * Unit tests for document parsing and type inference.
  */
 
-import { describe, it, expect } from 'vitest'
-import { parseDocument, inferDocumentType } from './document-parser'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+// Mock functions that will be used by the mock class
+const mockGetInfo = vi.fn()
+const mockGetText = vi.fn()
+const mockDestroy = vi.fn()
+
+// Mock pdf-parse before importing the module under test
+vi.mock('pdf-parse', () => {
+  return {
+    PDFParse: class MockPDFParse {
+      getInfo = mockGetInfo
+      getText = mockGetText
+      destroy = mockDestroy
+    },
+  }
+})
+
+// Mock mammoth
+vi.mock('mammoth', () => ({
+  default: {
+    extractRawText: vi.fn(),
+  },
+}))
+
+// Import module under test AFTER mocks are set up
+import { parseDocument, inferDocumentType, getSupportedMimeTypes, isSupportedMimeType } from './document-parser'
+import mammoth from 'mammoth'
+
+const mockMammoth = vi.mocked(mammoth)
 
 describe('parseDocument', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockDestroy.mockResolvedValue(undefined)
+  })
+
   describe('PDF parsing', () => {
-    it('should recognize valid PDF files', async () => {
-      // Create a minimal PDF-like buffer
+    it('should parse valid PDF files and return text', async () => {
       const pdfBuffer = Buffer.from('%PDF-1.4 test content here')
+      mockGetInfo.mockResolvedValue({ pages: [{}, {}, {}, {}, {}] })
+      mockGetText.mockResolvedValue({ text: 'Extracted PDF text content' })
 
       const result = await parseDocument(pdfBuffer, 'application/pdf')
 
-      expect(result).toContain('[PDF Document')
-      expect(result).toContain('valid PDF file')
+      expect(result).toBe('Extracted PDF text content')
+      expect(mockGetText).toHaveBeenCalled()
     })
 
-    it('should throw error for invalid PDF files', async () => {
+    it('should return info message for PDFs with no extractable text', async () => {
+      const pdfBuffer = Buffer.from('%PDF-1.4 test content here')
+      mockGetInfo.mockResolvedValue({ pages: [{}, {}, {}] })
+      mockGetText.mockResolvedValue({ text: '' })
+
+      const result = await parseDocument(pdfBuffer, 'application/pdf')
+
+      expect(result).toContain('PDF contains no extractable text')
+      expect(result).toContain('3 pages')
+    })
+
+    it('should throw error for invalid PDF header', async () => {
       const invalidBuffer = Buffer.from('not a pdf file')
 
       await expect(
         parseDocument(invalidBuffer, 'application/pdf')
-      ).rejects.toThrow('Failed to parse PDF file')
+      ).rejects.toThrow('Invalid PDF file: missing PDF header')
+    })
+
+    it('should throw error for password-protected PDFs', async () => {
+      const pdfBuffer = Buffer.from('%PDF-1.4 test content here')
+      mockGetInfo.mockRejectedValue(new Error('File is encrypted'))
+
+      await expect(
+        parseDocument(pdfBuffer, 'application/pdf')
+      ).rejects.toThrow('Cannot parse password-protected PDF')
+    })
+
+    it('should throw error for corrupted PDFs', async () => {
+      const pdfBuffer = Buffer.from('%PDF-1.4 test content here')
+      mockGetInfo.mockRejectedValue(new Error('Invalid PDF structure'))
+
+      await expect(
+        parseDocument(pdfBuffer, 'application/pdf')
+      ).rejects.toThrow('Invalid or corrupted PDF file')
     })
   })
 
   describe('DOCX parsing', () => {
-    it('should recognize valid DOCX files', async () => {
+    it('should parse valid DOCX files and return text', async () => {
       // DOCX files start with PK (zip signature)
       const docxBuffer = Buffer.from([0x50, 0x4b, 0x03, 0x04, ...Array(100).fill(0)])
+      mockMammoth.extractRawText.mockResolvedValue({
+        value: 'Extracted DOCX text content',
+        messages: [],
+      })
 
       const result = await parseDocument(docxBuffer, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
 
-      expect(result).toContain('[DOCX Document')
-      expect(result).toContain('valid DOCX file')
+      expect(result).toBe('Extracted DOCX text content')
+      expect(mockMammoth.extractRawText).toHaveBeenCalled()
+    })
+
+    it('should return info message for DOCX with no extractable text', async () => {
+      const docxBuffer = Buffer.from([0x50, 0x4b, 0x03, 0x04, ...Array(100).fill(0)])
+      mockMammoth.extractRawText.mockResolvedValue({
+        value: '',
+        messages: [],
+      })
+
+      const result = await parseDocument(docxBuffer, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+
+      expect(result).toContain('contains no extractable text')
     })
 
     it('should throw error for invalid DOCX files', async () => {
@@ -44,7 +123,16 @@ describe('parseDocument', () => {
 
       await expect(
         parseDocument(invalidBuffer, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-      ).rejects.toThrow('Failed to parse DOCX file')
+      ).rejects.toThrow('Invalid DOCX file: not a valid Office document')
+    })
+
+    it('should throw error for password-protected DOCX', async () => {
+      const docxBuffer = Buffer.from([0x50, 0x4b, 0x03, 0x04, ...Array(100).fill(0)])
+      mockMammoth.extractRawText.mockRejectedValue(new Error('File is encrypted'))
+
+      await expect(
+        parseDocument(docxBuffer, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+      ).rejects.toThrow('Cannot parse password-protected document')
     })
   })
 
@@ -69,12 +157,21 @@ The market size is $10B.`
       expect(result).toContain('Executive Summary')
     })
 
+    it('should also accept text/x-markdown MIME type', async () => {
+      const mdContent = '# Test Document'
+      const mdBuffer = Buffer.from(mdContent)
+
+      const result = await parseDocument(mdBuffer, 'text/x-markdown')
+
+      expect(result).toBe(mdContent)
+    })
+
     it('should throw error for empty markdown files', async () => {
       const emptyBuffer = Buffer.from('')
 
       await expect(
         parseDocument(emptyBuffer, 'text/markdown')
-      ).rejects.toThrow('Failed to parse markdown file')
+      ).rejects.toThrow('Empty markdown file')
     })
 
     it('should throw error for whitespace-only markdown files', async () => {
@@ -82,7 +179,26 @@ The market size is $10B.`
 
       await expect(
         parseDocument(whitespaceBuffer, 'text/markdown')
-      ).rejects.toThrow('Failed to parse markdown file')
+      ).rejects.toThrow('Empty markdown file')
+    })
+  })
+
+  describe('Plain text parsing', () => {
+    it('should parse plain text files', async () => {
+      const textContent = 'This is plain text content.'
+      const textBuffer = Buffer.from(textContent)
+
+      const result = await parseDocument(textBuffer, 'text/plain')
+
+      expect(result).toBe(textContent)
+    })
+
+    it('should throw error for empty text files', async () => {
+      const emptyBuffer = Buffer.from('')
+
+      await expect(
+        parseDocument(emptyBuffer, 'text/plain')
+      ).rejects.toThrow('Empty text file')
     })
   })
 
@@ -209,5 +325,31 @@ describe('inferDocumentType', () => {
       const content = 'EXECUTIVE SUMMARY and BUSINESS MODEL and FINANCIAL PROJECTIONS'
       expect(inferDocumentType('doc.md', content)).toBe('business_plan')
     })
+  })
+})
+
+describe('getSupportedMimeTypes', () => {
+  it('should return all supported MIME types', () => {
+    const types = getSupportedMimeTypes()
+
+    expect(types).toContain('application/pdf')
+    expect(types).toContain('application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    expect(types).toContain('text/markdown')
+    expect(types).toContain('text/x-markdown')
+    expect(types).toContain('text/plain')
+  })
+})
+
+describe('isSupportedMimeType', () => {
+  it('should return true for supported types', () => {
+    expect(isSupportedMimeType('application/pdf')).toBe(true)
+    expect(isSupportedMimeType('text/markdown')).toBe(true)
+    expect(isSupportedMimeType('text/plain')).toBe(true)
+  })
+
+  it('should return false for unsupported types', () => {
+    expect(isSupportedMimeType('application/json')).toBe(false)
+    expect(isSupportedMimeType('image/png')).toBe(false)
+    expect(isSupportedMimeType('video/mp4')).toBe(false)
   })
 })

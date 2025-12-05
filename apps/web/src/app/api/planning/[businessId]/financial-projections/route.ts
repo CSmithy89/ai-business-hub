@@ -6,6 +6,14 @@
  * GET /api/planning/[businessId]/financial-projections - Get projections status
  *
  * Story: 08.15 - Implement Financial Projections Workflow
+ *
+ * ⚠️ PHASE 1 IMPLEMENTATION NOTE:
+ * This implementation uses mock response generators instead of actual Agno AI integration.
+ * The responses provide realistic financial projections based on business context, but
+ * are not powered by actual AI analysis. Full Agno integration is tracked as follow-up work.
+ *
+ * Tech Debt: Implement actual Agno agent integration for AI-powered financial analysis.
+ * See: docs/epics/EPIC-09 for Agno integration planning.
  */
 
 import { NextResponse } from 'next/server'
