@@ -33,7 +33,7 @@
 | Outstanding Medium Priority Issues | 18 |
 | Outstanding Low Priority Issues | 15 |
 | Testing Gaps | 6 (was 12, 6 resolved) |
-| Documentation Gaps | 6 |
+| Documentation Gaps | 1 (was 6, 5 resolved 2025-12-05) |
 
 ---
 
@@ -562,12 +562,28 @@
 
 | Document | Epic | Status |
 |----------|------|--------|
-| Epic 09 Migration Guide (env vars, schema changes) | 09 | Pending |
+| Epic 09 Migration Guide (env vars, schema changes) | 09 | **Resolved** - `docs/MIGRATION-GUIDE-EPIC-09.md` |
 | API Documentation (JSDoc/OpenAPI) for all new routes | 09 | Pending |
-| Event Bus Operational Runbook | 05 | Pending |
-| ENCRYPTION_MASTER_KEY deployment guide | 06 | Pending |
-| PgBouncer session mode requirements | 03 | Pending |
+| Event Bus Operational Runbook | 05 | **Resolved** - `docs/runbooks/event-bus.md` |
+| ENCRYPTION_MASTER_KEY deployment guide | 06 | **Resolved** - `docs/DEPLOYMENT.md` |
+| PgBouncer session mode requirements | 03 | **Resolved** - `docs/DEPLOYMENT.md` |
 | Docker environment verification | 00 | Resolved |
+
+### Additional Documentation Created (2025-12-05)
+
+| Document | Purpose |
+|----------|---------|
+| `LICENSE` | MIT License |
+| `SECURITY.md` | Security policy and vulnerability reporting |
+| `CONTRIBUTING.md` | Contribution guidelines |
+| `CHANGELOG.md` | Feature history by epic |
+| `docs/GETTING-STARTED.md` | Development setup guide |
+| `docs/DEPLOYMENT.md` | Production deployment guide (includes encryption, PgBouncer, Redis) |
+| `docs/runbooks/event-bus.md` | Event bus operational runbook |
+| `docs/MIGRATION-GUIDE-EPIC-09.md` | Epic 09 migration guide |
+| `.github/PULL_REQUEST_TEMPLATE.md` | PR template |
+| `.github/ISSUE_TEMPLATE/bug_report.md` | Bug report template |
+| `.github/ISSUE_TEMPLATE/feature_request.md` | Feature request template |
 
 ---
 

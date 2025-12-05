@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/CSmithy89/ai-business-hub/tree/main/docs
+    about: Check out our documentation before opening an issue
+  - name: Security Vulnerability
+    url: https://github.com/CSmithy89/ai-business-hub/security/policy
+    about: Please report security vulnerabilities privately via our security policy
