@@ -356,6 +356,211 @@ After completing all steps for a story:
 
 ---
 
+### Epic Step 3.5: Test Validation Gate (TEA Agent)
+
+**Execute after all stories complete - EPIC-LEVEL QUALITY GATE:**
+
+This step invokes the **TEA (Master Test Architect)** agent to validate the entire epic's test quality before pushing.
+
+```
+Task(subagent_type="general-purpose",
+     prompt="You are the TEA (Master Test Architect) executing an EPIC-LEVEL TEST VALIDATION GATE.
+
+             CONTEXT:
+             - Epic: [N] - [Title]
+             - Stories completed: [X] stories
+             - Branch: epic/[NN]-[short-description]
+             - This is the final quality gate before the epic PR is created
+
+             EXECUTE THESE STEPS:
+
+             1. **Run Full Test Suite:**
+                pnpm turbo test --filter=...
+                (Run ALL tests, not just changed files)
+
+             2. **Run Type Checking:**
+                pnpm turbo type-check
+                (Must have zero type errors)
+
+             3. **Run Linting:**
+                pnpm turbo lint
+                (No blocking errors allowed)
+
+             4. **Run Security Scan (if available):**
+                Check for semgrep or similar security scanning
+
+             5. **Analyze Coverage (if configured):**
+                - Check test coverage thresholds
+                - Identify any uncovered critical paths
+
+             6. **Create EPIC TEST REPORT:**
+                Generate docs/epics/epic-[N]-test-report.md with:
+                ```markdown
+                # Epic [N] Test Validation Report
+
+                **Date:** [timestamp]
+                **Branch:** epic/[NN]-[short-description]
+
+                ## Test Results
+                - Total tests: [count]
+                - Passed: [count] ✅
+                - Failed: [count] ❌
+                - Skipped: [count] ⏭️
+
+                ## Type Check
+                - Status: PASS/FAIL
+                - Errors: [count]
+
+                ## Lint Check
+                - Status: PASS/FAIL
+                - Errors: [count]
+                - Warnings: [count]
+
+                ## Security Scan
+                - Status: PASS/FAIL/SKIPPED
+                - Findings: [count]
+
+                ## Coverage (if available)
+                - Line coverage: [X]%
+                - Branch coverage: [X]%
+
+                ## Gate Decision
+                **[PASS / FAIL]**
+
+                [If FAIL: List specific blocking issues]
+                ```
+
+             7. **Make GATE DECISION:**
+                - PASS: All tests pass, no type errors, no critical issues
+                - FAIL: Any test failures, type errors, or security vulnerabilities
+
+             8. Return gate decision and summary in response.
+
+             CRITICAL: If gate FAILS, the epic cannot proceed to PR creation.
+             List specific issues that must be resolved.")
+```
+
+**Wait**: Confirm subagent fully exited
+
+**Verify**:
+- Check `docs/epics/epic-[N]-test-report.md` exists
+- Parse gate decision from report
+
+**Gate Logic:**
+- If gate = "PASS": Continue to Epic Step 3.6 (Documentation Pass)
+- If gate = "FAIL":
+  - Report specific failures to user
+  - List which story/stories likely caused the failure
+  - STOP and ask user how to proceed:
+    - Option A: Fix issues manually and re-run validation
+    - Option B: Re-run specific story's dev workflow
+    - Option C: Abort epic orchestration
+
+**Report**: "✅ Epic Step 3.5: Test validation [PASS/FAIL]"
+
+---
+
+### Epic Step 3.6: Documentation Pass (Tech Writer Agent)
+
+**Execute after test validation passes - EPIC-LEVEL DOCUMENTATION:**
+
+This step invokes the **Tech Writer (Paige)** agent to ensure the epic's documentation is complete and high-quality.
+
+```
+Task(subagent_type="general-purpose",
+     prompt="You are Paige the Tech Writer executing an EPIC-LEVEL DOCUMENTATION PASS.
+
+             CONTEXT:
+             - Epic: [N] - [Title]
+             - Stories completed: [X] stories
+             - Branch: epic/[NN]-[short-description]
+             - Test validation: PASSED
+             - This ensures documentation is ready for the PR
+
+             EXECUTE THESE STEPS:
+
+             1. **Scan Completed Stories for Documentation Needs:**
+                Read all story files in docs/stories/[N]-*.md
+                Identify:
+                - New public APIs or components
+                - Changed interfaces or behaviors
+                - New configuration options
+                - Breaking changes (if any)
+
+             2. **Check/Update API Documentation:**
+                If new APIs were added:
+                - Verify JSDoc/TSDoc comments exist
+                - Check if OpenAPI spec needs updates (if applicable)
+                - Ensure type exports are documented
+
+             3. **Create/Update Changelog Entry:**
+                Add entry to CHANGELOG.md (or create if doesn't exist):
+                ```markdown
+                ## [Epic N] - [Title] - [Date]
+
+                ### Added
+                - [New features from stories]
+
+                ### Changed
+                - [Modified behaviors]
+
+                ### Fixed
+                - [Bug fixes if any]
+                ```
+
+             4. **Verify Architecture Decision Records (ADRs):**
+                If architectural decisions were made during the epic:
+                - Check docs/architecture/ or docs/adr/ for existing ADRs
+                - Create new ADR if significant decisions lack documentation
+                - Format: ADR-[NNN]-[decision-title].md
+
+             5. **Review README Accuracy:**
+                - Verify features mentioned in README match implementation
+                - Check that setup instructions are still accurate
+                - Ensure links to documentation are not broken
+
+             6. **Create DOCUMENTATION REPORT:**
+                Generate summary of documentation work:
+                ```markdown
+                # Epic [N] Documentation Summary
+
+                ## Documentation Updates
+                - [x] Changelog updated
+                - [x] README verified
+                - [ ] API docs: [status]
+                - [ ] ADRs: [status]
+
+                ## New Documentation Created
+                - [list of new doc files]
+
+                ## Documentation Gaps Identified
+                - [any remaining gaps for future epics]
+                ```
+
+             7. **Commit Documentation Changes:**
+                Stage and commit any documentation updates:
+                git add docs/ CHANGELOG.md README.md
+                git commit -m 'docs: update documentation for Epic [N]
+
+                - Updated CHANGELOG with new features
+                - Verified README accuracy
+                - [Other doc updates]'
+
+             CRITICAL: Documentation is teaching. Every epic should leave the codebase
+             more understandable than before. Focus on clarity and completeness.")
+```
+
+**Wait**: Confirm subagent fully exited
+
+**Verify**:
+- CHANGELOG.md has been updated (or created)
+- Any new documentation files exist
+- Documentation commit was created
+
+**Report**: "✅ Epic Step 3.6: Documentation pass complete"
+
+---
+
 ### Epic Step 4: Push Epic Branch
 
 ```bash
@@ -537,6 +742,7 @@ The user must manually clear context and load the SM agent to run the retrospect
 ## Quality Assurance
 
 After EACH workflow step:
+
 - [ ] Verify expected artifacts exist on disk
 - [ ] Confirm status transitions in sprint-status.yaml
 - [ ] Report completion before proceeding
@@ -544,11 +750,27 @@ After EACH workflow step:
 - [ ] Verify context isolation (no cached knowledge)
 
 After EACH story:
+
 - [ ] All story steps completed successfully
 - [ ] Story status = "done" in sprint-status.yaml
 - [ ] Story file shows "Status: done"
 - [ ] Changes committed to epic branch
 - [ ] Background processes cleaned up
+
+After Epic Test Validation (Step 3.5):
+
+- [ ] All tests pass (zero failures)
+- [ ] Type check passes (zero errors)
+- [ ] Lint check passes (no blocking errors)
+- [ ] Test report generated: docs/epics/epic-[N]-test-report.md
+- [ ] Gate decision is PASS before continuing
+
+After Documentation Pass (Step 3.6):
+
+- [ ] CHANGELOG.md updated with epic changes
+- [ ] README verified for accuracy
+- [ ] Any new ADRs created for architectural decisions
+- [ ] Documentation commit created
 
 **Never skip steps. Never assume success. Always verify.**
 
@@ -567,6 +789,8 @@ Epic [N] Orchestration:
 [ ] Story [X.3] (7 sub-steps)
 ...
 [ ] Epic Step 3: Update README.md
+[ ] Epic Step 3.5: Test validation gate (TEA Agent) ← NEW
+[ ] Epic Step 3.6: Documentation pass (Tech Writer) ← NEW
 [ ] Epic Step 4: Push epic branch
 [ ] Epic Step 5: Create epic PR
 [ ] Epic Step 6: Report PR for review
