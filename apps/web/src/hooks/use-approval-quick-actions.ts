@@ -90,7 +90,7 @@ export function useApprovalQuickActions() {
       const previousApprovals = queryClient.getQueryData(['approvals'])
 
       // Optimistically update to the new value
-      queryClient.setQueriesData<{ data: ApprovalItem[]; meta: any }>(
+      queryClient.setQueriesData<{ data: ApprovalItem[]; meta: Record<string, unknown> }>(
         { queryKey: ['approvals'] },
         (old) => {
           if (!old) return old
@@ -145,7 +145,7 @@ export function useApprovalQuickActions() {
       const previousApprovals = queryClient.getQueryData(['approvals'])
 
       // Optimistically update to the new value
-      queryClient.setQueriesData<{ data: ApprovalItem[]; meta: any }>(
+      queryClient.setQueriesData<{ data: ApprovalItem[]; meta: Record<string, unknown> }>(
         { queryKey: ['approvals'] },
         (old) => {
           if (!old) return old
