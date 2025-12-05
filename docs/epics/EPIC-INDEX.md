@@ -19,11 +19,17 @@
 | EPIC-07 | UI Shell | 10 | 24 | P0 | Phase 1-3 | ✅ 43 wireframes (SH, CH, AI, DB, DC, FI, FS, ST-01/07/08, PM-16-20) |
 | EPIC-08 | Business Onboarding | 23 | 82 | P0/P1/P2 | Phase 5-6 | ✅ 18 wireframes (BO-01 to BO-18) |
 | EPIC-09 | UI & Auth Enhancements | 15 | 42 | P2/P3 | Post-MVP | ✅ AU-06, ST-06 enhancements |
-| **Total** | | **107** | **289** | | | **79 linked** + 30 future (CRM, PM) |
+| EPIC-10 | Platform Hardening | 8 | 21 | P0/P1 | Stabilization | - (security/infrastructure) |
+| EPIC-11 | Agent Integration | 5 | 13 | P0 | Post-Foundation | - (API wiring) |
+| EPIC-12 | UX Polish | 8 | 18 | P1/P2 | Post-Foundation | ✅ Multiple wireframe gaps |
+| EPIC-13 | AI Agent Management | 6 | 25 | P1/P2 | Post-Foundation | ✅ AI-02 to AI-05 |
+| EPIC-14 | Testing & Observability | 5 | 15 | P2/P3 | Post-Foundation | - (testing/monitoring) |
+| **Total** | | **139** | **381** | | | **79 linked** + AI-02 to AI-05 |
 
 > **Note:** Story counts updated 2025-12-01 to include AgentOS integration (ADR-007), IAssistantClient (06.10), Agent Model Preferences (06.11)
 > **Note:** EPIC-08 added 2025-12-01 - Business Onboarding with BMV, BMP, BM-Brand modules (23 stories, 82 points)
 > **Note:** EPIC-09 added 2025-12-02 - UI & Auth Enhancements from wireframe gap analysis (15 stories, 42 points)
+> **Note:** EPIC-10 to EPIC-14 added 2025-12-05 - Tech debt, agent wiring, UX polish, and observability (32 stories, 92 points)
 
 ---
 
@@ -243,6 +249,48 @@ EPIC-00 (Scaffolding + AgentOS)
 | EPIC-07 | `docs/epics/EPIC-07-ui-shell.md` |
 | EPIC-08 | `docs/epics/EPIC-08-business-onboarding.md` |
 | EPIC-09 | `docs/epics/EPIC-09-ui-auth-enhancements.md` |
+| EPIC-10 | `docs/epics/EPIC-10-platform-hardening.md` |
+| EPIC-11 | `docs/epics/EPIC-11-agent-integration.md` |
+| EPIC-12 | `docs/epics/EPIC-12-ux-polish.md` |
+| EPIC-13 | `docs/epics/EPIC-13-ai-agent-management.md` |
+| EPIC-14 | `docs/epics/EPIC-14-testing-observability.md` |
+
+---
+
+## Post-Foundation Phase (EPIC-10 to EPIC-14)
+
+### Parallel Execution Plan
+
+```
+Week 1-2: ┌─── EPIC-10 (Platform Hardening) ────┐
+          ├─── EPIC-11 (Agent Integration) ─────┤  ← 3 epics in parallel
+          └─── EPIC-12 (UX Polish) ─────────────┘
+
+Week 3-4: ┌─── EPIC-13 (AI Agent Management) ───┐
+          └─── EPIC-14 (Testing & Observability)┘  ← 2 epics in parallel
+```
+
+### Dependency Graph
+
+```
+EPIC-10 (Platform Hardening) ───────────────────────┐
+                                                    │
+EPIC-11 (Agent Integration) ────┬───────────────────┤
+                                │                   │
+EPIC-12 (UX Polish) ────────────┤                   │
+                                │                   ▼
+                                ├───► EPIC-13 (AI Agent Management)
+                                │
+                                └───► EPIC-14 (Testing & Observability)
+```
+
+### Priority Matrix
+
+| Priority | Epics | Focus |
+|----------|-------|-------|
+| P0 Critical | EPIC-10, EPIC-11 | Security fixes, agent wiring |
+| P1 High | EPIC-12, EPIC-13 | UX completion, agent management |
+| P2 Medium | EPIC-14 | Testing and observability |
 
 ---
 

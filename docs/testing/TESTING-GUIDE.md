@@ -97,8 +97,8 @@ cd apps/web && pnpm test:e2e:ui
 | 04 | Approval System | approvals.spec.ts | approvals/*.spec.ts, audit/*.spec.ts | ✅ Good |
 | 05 | Event Bus | events.spec.ts | events/*.spec.ts | ✅ Good |
 | 06 | BYOAI Configuration | ai-providers.spec.ts | ai-providers/*.spec.ts | ✅ Good |
-| 07 | UI Shell | ui-shell.spec.ts | - | ✅ Good |
-| 08 | Business Onboarding | onboarding.spec.ts | - | ✅ Good |
+| 07 | UI Shell | ui-shell.spec.ts | ui.test.ts, onboarding-wizard-store.test.ts | ✅ Good |
+| 08 | Business Onboarding | onboarding.spec.ts | workflow-*.test.ts, documents-upload.test.ts | ✅ Good |
 | 09 | UI & Auth Enhancements | two-factor-auth.spec.ts, oauth-providers.spec.ts, team-members.spec.ts | - | ✅ Good |
 
 ---
@@ -318,11 +318,11 @@ cd apps/web && pnpm test:e2e:ui
 | 07.4 | Mobile drawer | ui-shell.spec.ts:Mobile Drawer | ✅ |
 | 07.5 | Theme persistence | ui-shell.spec.ts:Theme Persistence | ✅ |
 | 07.6 | Keyboard shortcuts | ui-shell.spec.ts:Keyboard Shortcuts | ✅ |
-| 07.7 | Sidebar persistence | ui-shell.spec.ts:Sidebar State | ✅ |
-| 07.8 | Chat panel | ui-shell.spec.ts:Chat Panel | ✅ |
+| 07.7 | Sidebar persistence | ui-shell.spec.ts:Sidebar State, ui.test.ts | ✅ |
+| 07.8 | Chat panel | ui-shell.spec.ts:Chat Panel, ui.test.ts | ✅ |
 | 07.9-10 | Notifications | - | ⚠️ Partial |
 
-**Test cases covered:**
+**E2E Test cases covered (ui-shell.spec.ts):**
 - ✅ Command palette opens with Cmd+K / Ctrl+K
 - ✅ Command palette closes with Escape
 - ✅ Search filtering in command palette
@@ -334,6 +334,32 @@ cd apps/web && pnpm test:e2e:ui
 - ✅ Sidebar collapse persistence
 - ✅ Chat panel toggle
 
+**Unit Test cases covered (ui.test.ts):**
+- ✅ Sidebar initialization (expanded)
+- ✅ Sidebar toggle state transitions
+- ✅ Sidebar direct state setting
+- ✅ Chat panel initialization (open)
+- ✅ Chat panel default width (380px)
+- ✅ Chat panel toggle state
+- ✅ Chat panel width clamping (320-480px)
+- ✅ Mobile menu initialization (closed)
+- ✅ Mobile menu toggle/open/close
+- ✅ Command palette state management
+- ✅ LocalStorage persistence (selective)
+- ✅ Rapid state change handling
+- ✅ State isolation between properties
+
+**Unit Test cases covered (onboarding-wizard-store.test.ts):**
+- ✅ Initial state (step 1, null hasDocuments)
+- ✅ Step navigation and timestamp updates
+- ✅ Documents choice state (hasDocuments)
+- ✅ Business details state (name, description)
+- ✅ Initial idea state (problem, customer, solution)
+- ✅ Reset functionality
+- ✅ State persistence with correct key
+- ✅ Complete workflow simulation
+- ✅ State isolation between fields
+
 ---
 
 #### EPIC-08: Business Onboarding
@@ -343,11 +369,14 @@ cd apps/web && pnpm test:e2e:ui
 | 08.1 | Database models | - | ⚠️ Schema only |
 | 08.2 | Business list | onboarding.spec.ts:Business List | ✅ |
 | 08.3 | Creation wizard | onboarding.spec.ts:Business Creation Wizard | ✅ |
-| 08.4 | Document upload | onboarding.spec.ts:Document Upload | ✅ |
+| 08.4 | Document upload | onboarding.spec.ts, documents-upload.test.ts | ✅ |
 | 08.5 | Progress tracking | onboarding.spec.ts:Onboarding Progress | ✅ |
-| 08.6-23 | Validation/Planning/Branding | - | ❌ Missing |
+| 08.6-9 | Validation workflows | workflow-validation.test.ts | ✅ |
+| 08.10-16 | Planning workflows | workflow-planning.test.ts | ✅ |
+| 08.17-23 | Branding workflows | workflow-branding.test.ts | ✅ |
+| Handoff | Workflow transitions | workflow-handoff.test.ts | ✅ |
 
-**Test cases covered:**
+**E2E Test cases covered (onboarding.spec.ts):**
 - ✅ Display onboarding wizard
 - ✅ Navigate through wizard steps
 - ✅ Validate required fields
@@ -360,6 +389,71 @@ cd apps/web && pnpm test:e2e:ui
 - ✅ Progress indicator
 - ✅ Responsive design (mobile/tablet)
 - ✅ Accessibility (focus, keyboard, ARIA)
+
+**Unit Test cases covered (documents-upload.test.ts):**
+- ✅ Authentication requirements (401 for unauthenticated)
+- ✅ Workspace validation (400 for no workspace)
+- ✅ Business not found handling (404)
+- ✅ No files provided error (400)
+- ✅ Too many files error (max 5)
+- ✅ File size validation (10MB limit)
+- ✅ File type validation (PDF, DOCX, MD only)
+- ✅ Successful file upload and processing
+- ✅ Multiple file processing
+- ✅ Business progress update on success
+- ✅ Extraction error handling (graceful)
+- ✅ GET documents endpoint
+
+**Unit Test cases covered (workflow-validation.test.ts):**
+- ✅ Authentication and authorization
+- ✅ Request body validation (Zod schemas)
+- ✅ Business not found handling
+- ✅ Idea intake message processing
+- ✅ Problem statement keyword detection
+- ✅ Workflow status tracking
+- ✅ GET status with completion state
+- ✅ PUT update for idea data
+- ✅ Schema validation for intake/update
+
+**Unit Test cases covered (workflow-planning.test.ts):**
+- ✅ Business model canvas authentication
+- ✅ Canvas message validation
+- ✅ Business not found handling
+- ✅ Canvas block processing (all 9 blocks)
+- ✅ Pre-fill from validation data
+- ✅ GET canvas status (not_started/in_progress/completed)
+- ✅ PUT canvas block update
+- ✅ Block name validation (enum)
+- ✅ Confidence level validation
+- ✅ Canvas completion with next workflow
+
+**Unit Test cases covered (workflow-branding.test.ts):**
+- ✅ Brand strategy authentication
+- ✅ Analyze action (archetype recommendation)
+- ✅ Select archetype action (positioning creation)
+- ✅ Generate taglines action
+- ✅ Finalize strategy action
+- ✅ GET brand strategy status
+- ✅ All 12 brand archetypes validated
+- ✅ Request schema validation (discriminated union)
+- ✅ Positioning generation for archetypes
+- ✅ Tagline generation by archetype
+
+**Unit Test cases covered (workflow-handoff.test.ts):**
+- ✅ Validation-to-planning authentication
+- ✅ Business not found handling
+- ✅ Validation session required check
+- ✅ Incomplete workflows detection
+- ✅ Missing workflows list (all 4)
+- ✅ Successful handoff execution
+- ✅ Handoff summary with market data
+- ✅ Planning session creation
+- ✅ Business phase update
+- ✅ Event emission (validation.completed)
+- ✅ GET handoff status
+- ✅ Handoff completion indicators
+- ✅ Planning-to-branding requirements
+- ✅ Handoff data integrity (validation score, timestamp)
 
 ---
 
@@ -632,6 +726,24 @@ All high-priority gaps have been filled:
 
 5. **BYOAI UI Tests** - ✅ Complete
    - ai-providers.spec.ts tests provider config, tokens, health
+
+6. **Zustand Store Unit Tests** - ✅ Complete (New)
+   - ui.test.ts for UI store state transitions
+   - onboarding-wizard-store.test.ts for wizard state
+   - Tests for persistence, clamping, and rapid changes
+
+7. **Workflow API Tests** - ✅ Complete (New)
+   - workflow-validation.test.ts for idea intake workflow
+   - workflow-planning.test.ts for business model canvas
+   - workflow-branding.test.ts for brand strategy
+   - workflow-handoff.test.ts for phase transitions
+
+8. **Document Upload Tests** - ✅ Complete (New)
+   - documents-upload.test.ts for file upload API
+   - Validation, processing, and extraction tests
+
+9. **Rate Limiting Tests** - ✅ Already covered
+   - rate-limit.test.ts includes concurrency tests
 
 ### Remaining Lower Priority (P2)
 

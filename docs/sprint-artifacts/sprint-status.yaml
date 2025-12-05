@@ -230,3 +230,75 @@ development_status:
   09-15-implement-permission-templates: done
 
   epic-09-retrospective: completed
+
+  # ===========================================
+  # EPIC-10: Platform Hardening
+  # P0/P1 Critical Security & Infrastructure | 8 stories | 21 points
+  # Parallel with: EPIC-11, EPIC-12
+  # ===========================================
+  epic-10: backlog
+  10-1-redis-rate-limiting-migration: backlog
+  10-2-encryption-key-validation: backlog
+  10-3-fix-trusted-device-feature: backlog
+  10-4-enable-global-validation-pipe: backlog
+  10-5-database-migration-verification: backlog
+  10-6-csrf-protection: backlog
+  10-7-xss-sanitization-hardening: backlog
+  10-8-backup-code-race-condition-fix: backlog
+  epic-10-retrospective: optional
+
+  # ===========================================
+  # EPIC-11: Agent Integration
+  # Wire Existing Agno Agents to API | 5 stories | 13 points
+  # Parallel with: EPIC-10, EPIC-12 | Enables: EPIC-13, EPIC-14
+  # ===========================================
+  epic-11: backlog
+  11-1-wire-validation-team-api-endpoint: backlog
+  11-2-wire-planning-team-api-endpoint: backlog
+  11-3-wire-branding-team-api-endpoint: backlog
+  11-4-connect-frontend-workflow-pages: backlog
+  11-5-agent-integration-e2e-tests: backlog
+  epic-11-retrospective: optional
+
+  # ===========================================
+  # EPIC-12: UX Polish
+  # Frontend Wireframe Gaps | 8 stories | 18 points
+  # Parallel with: EPIC-10, EPIC-11
+  # ===========================================
+  epic-12: backlog
+  12-1-oauth-provider-buttons: backlog
+  12-2-confirm-password-field: backlog
+  12-3-approval-queue-quick-actions: backlog
+  12-4-chat-streaming-ui: backlog
+  12-5-settings-ux-enhancements: backlog
+  12-6-countdown-timers: backlog
+  12-7-approval-metrics-calculation: backlog
+  12-8-chat-error-and-preview-cards: backlog
+  epic-12-retrospective: optional
+
+  # ===========================================
+  # EPIC-13: AI Agent Management
+  # Agent Dashboard & Configuration | 6 stories | 25 points
+  # Depends on: EPIC-11
+  # ===========================================
+  epic-13: backlog
+  13-1-agent-card-components: backlog
+  13-2-agent-detail-modal: backlog
+  13-3-agent-activity-feed: backlog
+  13-4-agent-configuration-page: backlog
+  13-5-agent-dashboard-page: backlog
+  13-6-confidence-breakdown-system: backlog
+  epic-13-retrospective: optional
+
+  # ===========================================
+  # EPIC-14: Testing & Observability
+  # Testing Gaps & Monitoring | 5 stories | 15 points
+  # Partial dependencies on: EPIC-10, EPIC-11
+  # ===========================================
+  epic-14: backlog
+  14-1-rate-limit-concurrency-tests: backlog
+  14-2-zustand-store-unit-tests: backlog
+  14-3-file-upload-pipeline-tests: backlog
+  14-4-prometheus-metrics-export: backlog
+  14-5-operational-runbooks: backlog
+  epic-14-retrospective: optional
