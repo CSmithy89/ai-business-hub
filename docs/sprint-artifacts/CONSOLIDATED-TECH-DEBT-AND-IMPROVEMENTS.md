@@ -210,10 +210,18 @@
 
 ---
 
-#### 12. Agno Integration for AI Workflows
+#### 12. Agno Agent API Wiring
 **Epic:** 08 | **Status:** PENDING
 
-**Issue:** Financial projections use mock response generators instead of actual AI.
+**Issue:** Agent code EXISTS in `/agents/` but only ApprovalAgent is exposed via API. Validation, Planning, and Branding teams need endpoints added to `agents/main.py`.
+
+**What EXISTS:** Full Agno implementations (~55K lines) for all 16 agents across 3 teams.
+
+**What's NEEDED:**
+- Add `/agents/validation/runs` endpoint
+- Add `/agents/planning/runs` endpoint
+- Add `/agents/branding/runs` endpoint
+- Connect frontend workflow pages to these endpoints
 
 ---
 
@@ -609,26 +617,36 @@
 | AI model fine-tuning per tenant | PRD (Vision) | Future |
 | SOC2 Type II certification | PRD (Vision) | Future |
 
-### Agent Team Implementations (from PRD)
+### Agent Team Integration (API Wiring Required)
 
-| Enhancement | Source | Priority |
-|-------------|--------|----------|
-| Vera's Team (Validation) - Agno configuration | PRD + Epic 08 | High |
-| Marco (Market Researcher) agent | PRD | High |
-| Cipher (Competitor Analyst) agent | PRD | High |
-| Persona (Customer Profiler) agent | PRD | High |
-| Risk (Feasibility Assessor) agent | PRD | High |
-| Blake's Team (Planning) - Agno configuration | PRD + Epic 08 | Medium |
-| Model (Business Model Architect) agent | PRD | Medium |
-| Finn (Financial Analyst) agent | PRD | Medium |
-| Revenue (Monetization Strategist) agent | PRD | Medium |
-| Forecast (Growth Forecaster) agent | PRD | Medium |
-| Bella's Team (Branding) - Agno configuration | PRD + Epic 08 | Low |
-| Sage (Brand Strategist) agent | PRD | Low |
-| Vox (Voice Architect) agent | PRD | Low |
-| Iris (Visual Identity Designer) agent | PRD | Low |
-| Artisan (Asset Generator) agent | PRD | Low |
-| Audit (Brand Auditor) agent | PRD | Low |
+**Status Update (2025-12-05):** Agent code EXISTS in `/agents/` directory with full Agno configurations. What's missing is API integration.
+
+#### ✅ Agent Code EXISTS (Implemented)
+
+| Team | Location | Agents | Lines of Code |
+|------|----------|--------|---------------|
+| **Validation** | `agents/validation/` | Vera, Marco, Cipher, Persona, Risk | ~17K lines |
+| **Planning** | `agents/planning/` | Blake, Model, Finn, Revenue, Forecast | ~17K lines |
+| **Branding** | `agents/branding/` | Bella, Sage, Vox, Iris, Artisan, Audit | ~21K lines |
+
+All agents use proper Agno framework:
+- `agno.agent.Agent` and `agno.team.Team`
+- `agno.models.anthropic.Claude`
+- `agno.storage.postgres.PostgresStorage`
+- Custom tools for each domain
+
+#### ❌ What's NOT Done (Integration Tasks)
+
+| Task | Priority | Effort |
+|------|----------|--------|
+| Add `/agents/validation/runs` endpoint to `main.py` | High | Small |
+| Add `/agents/planning/runs` endpoint to `main.py` | High | Small |
+| Add `/agents/branding/runs` endpoint to `main.py` | High | Small |
+| Connect Next.js workflow pages to agent endpoints | High | Medium |
+| Test end-to-end with actual AI providers | High | Medium |
+| Add session persistence for agent conversations | Medium | Small |
+
+**Note:** Only `/agents/approval/runs` (ApprovalAgent) is currently exposed in `main.py`.
 
 ### Developer Experience
 
@@ -754,17 +772,28 @@ The following items from the PRD "Growth Features (Post-MVP)" section were **imp
 - [ ] Multi-region deployment
 - [ ] SOC2 Type II certification
 
-### Business Onboarding - Infrastructure vs Implementation
+### Business Onboarding - Agent Integration Status
 
-Epic 08 built the **infrastructure** for Business Onboarding (database models, APIs, workflows, UI pages), but the **Agno agent team implementations** described in the PRD are not yet built:
+Epic 08 built the **infrastructure** for Business Onboarding (database models, APIs, workflows, UI pages). The **Agno agent code also EXISTS** in `/agents/` directory:
 
-| Team | PRD Description | Epic 08 Status |
-|------|-----------------|----------------|
-| Vera's Team (Validation) | 5 agents: Vera, Marco, Cipher, Persona, Risk | Infrastructure only |
-| Blake's Team (Planning) | 5 agents: Blake, Model, Finn, Revenue, Forecast | Infrastructure only |
-| Bella's Team (Branding) | 6 agents: Bella, Sage, Vox, Iris, Artisan, Audit | Infrastructure only |
+| Team | PRD Description | Code Status | API Status |
+|------|-----------------|-------------|------------|
+| Vera's Team (Validation) | 5 agents | ✅ Implemented | ❌ Not wired up |
+| Blake's Team (Planning) | 5 agents | ✅ Implemented | ❌ Not wired up |
+| Bella's Team (Branding) | 6 agents | ✅ Implemented | ❌ Not wired up |
 
-**Next Steps:** Implement actual Agno agent configurations and AI workflows.
+**What EXISTS:**
+- Full Agno agent configurations in `agents/validation/`, `agents/planning/`, `agents/branding/`
+- Team orchestration with `agno.team.Team`
+- Custom tools for each domain (market research, competitor analysis, etc.)
+- PostgreSQL storage integration
+
+**What's MISSING:**
+- API endpoints in `agents/main.py` (only ApprovalAgent exposed)
+- Frontend integration with workflow pages
+- End-to-end testing with AI providers
+
+**Next Steps:** Wire up existing agent code to API endpoints and connect to frontend.
 
 ---
 
