@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { PasswordStrengthIndicator } from './password-strength-indicator'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Check, X } from 'lucide-react'
 
 export function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false)
@@ -33,6 +33,9 @@ export function SignUpForm() {
   })
 
   const password = watch('password', '')
+  const confirmPassword = watch('confirmPassword', '')
+  const passwordsMatch = password && confirmPassword && password === confirmPassword
+  const showMatchIndicator = confirmPassword.length > 0
 
   const handleGoogleSignUp = async () => {
     setIsGoogleLoading(true)
@@ -328,8 +331,17 @@ export function SignUpForm() {
             {...register('confirmPassword')}
             disabled={isSubmitting}
             aria-invalid={errors.confirmPassword ? 'true' : 'false'}
-            className="pr-10"
+            className="pr-20"
           />
+          {showMatchIndicator && (
+            <div className="absolute right-12 top-1/2 -translate-y-1/2">
+              {passwordsMatch ? (
+                <Check className="w-4 h-4 text-green-600" aria-label="Passwords match" />
+              ) : (
+                <X className="w-4 h-4 text-red-600" aria-label="Passwords do not match" />
+              )}
+            </div>
+          )}
           <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
