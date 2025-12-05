@@ -289,7 +289,6 @@ test.describe('Agent Integration', () => {
 
     test('should return 422 when missing required fields (AC6)', async ({
       page,
-      businessFactory,
     }) => {
       const cookies = await page.context().cookies();
       const authCookie = cookies.find((c) => c.name === 'better-auth.session_token');
@@ -362,7 +361,8 @@ test.describe('Agent Integration', () => {
       const authCookie1 = cookies1.find((c) => c.name === 'better-auth.session_token');
       expect(authCookie1).toBeDefined();
 
-      const workspace1 = await workspaceFactory.createWorkspace(authCookie1!.value);
+      // Create workspace for user1 (needed for business creation)
+      await workspaceFactory.createWorkspace(authCookie1!.value);
       const business1 = await businessFactory.createBusiness(authCookie1!.value);
 
       // Logout user1
