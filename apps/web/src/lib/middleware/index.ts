@@ -34,3 +34,12 @@ export {
   RATE_LIMIT_CONFIGS,
   type RateLimitConfig,
 } from './with-rate-limit'
+
+// CSRF protection middleware (Story 10.6)
+export {
+  withCSRF,
+  validateCSRF,
+  extractCSRFToken,
+  type CSRFHandler,
+  type CSRFValidationResult,
+} from './with-csrf'

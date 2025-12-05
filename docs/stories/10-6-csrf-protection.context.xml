@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-id>10.6</story-id>
+  <title>CSRF Protection</title>
+  <epic>EPIC-10 Platform Hardening</epic>
+  <priority>P1 High</priority>
+  <points>3</points>
+  <status>Done</status>
+
+  <objective>
+    Implement CSRF (Cross-Site Request Forgery) protection on all state-changing routes
+    (POST, PUT, DELETE, PATCH) to prevent attackers from tricking users into making
+    unwanted requests to the application.
+  </objective>
+
+  <implementation-approach>
+    <evaluation>
+      - Evaluated Server Actions: Codebase uses API routes, not Server Actions
+      - Decision: Implement traditional CSRF token-based protection
+      - Pattern: Composable middleware matching existing withAuth/withTenant pattern
+    </evaluation>
+    <token-strategy>
+      - HMAC-SHA256 based token generation
+      - Tied to session ID for security binding
+      - Deterministic: same session = same token
+      - Uses CSRF_SECRET or falls back to BETTER_AUTH_SECRET
+    </token-strategy>
+  </implementation-approach>
+
+  <key-files>
+    <file path="apps/web/src/lib/csrf.ts" role="core-utility">
+      CSRF token generation and verification utilities.
+      - generateCSRFToken(sessionId): HMAC-SHA256 based
+      - verifyCSRFToken(token, sessionId): Constant-time comparison
+      - isCSRFExemptRoute(pathname): Route exemption checking
+      - isSafeMethod(method): GET/HEAD/OPTIONS detection
+    </file>
+    <file path="apps/web/src/lib/middleware/with-csrf.ts" role="middleware">
+      Composable CSRF middleware for API routes.
+      - Validates x-csrf-token header
+      - Skips safe methods and exempt routes
+      - Returns 403 for invalid/missing tokens
+    </file>
+    <file path="apps/web/src/app/api/auth/csrf-token/route.ts" role="api-endpoint">
+      GET endpoint for fetching CSRF token.
+      - Requires authenticated session
+      - Sets token as cookie for client-side access
+    </file>
+    <file path="apps/web/src/lib/api-client.ts" role="client-utility">
+      Fetch wrapper with automatic CSRF token inclusion.
+      - apiClient(): Base fetch with CSRF
+      - apiGet/apiPost/apiPut/apiPatch/apiDelete: Convenience methods
+      - getCSRFToken(): Read from cookie
+      - fetchCSRFToken(): Fetch from server
+    </file>
+    <file path="apps/web/src/hooks/use-csrf.ts" role="react-hook">
+      React hook for CSRF token management.
+      - useCSRF(): Auto-fetches token on mount
+      - Provides token, loading state, error, refresh
+    </file>
+    <file path="apps/web/src/lib/csrf.test.ts" role="tests">
+      Unit tests for CSRF functionality.
+    </file>
+    <file path="apps/web/src/lib/middleware/index.ts" role="barrel-export">
+      Updated to export CSRF middleware.
+    </file>
+  </key-files>
+
+  <exempt-routes>
+    <route>/api/auth/callback</route>
+    <route>/api/webhooks</route>
+    <route>/api/auth/signin</route>
+    <route>/api/auth/signout</route>
+    <route>/api/auth/session</route>
+    <route>/api/auth/error</route>
+    <route>/api/auth/verify-request</route>
+    <route>/api/auth/csrf-token</route>
+  </exempt-routes>
+
+  <usage-examples>
+    <example name="protecting-route">
+      <description>Protect an API route with CSRF validation</description>
+      <code>
+export const POST = withAuth(
+  withCSRF(async (req, { user }) => {
+    // Handler is only called if CSRF token is valid
+    return NextResponse.json({ success: true })
+  })
+)
+      </code>
+    </example>
+    <example name="making-request">
+      <description>Making a request with automatic CSRF</description>
+      <code>
+import { apiPost } from '@/lib/api-client'
+
+const response = await apiPost('/api/businesses', { name: 'My Business' })
+      </code>
+    </example>
+    <example name="skip-csrf">
+      <description>Skipping CSRF for specific request</description>
+      <code>
+const response = await apiClient('/api/webhooks/stripe', {
+  method: 'POST',
+  skipCSRF: true,
+  body: webhookPayload
+})
+      </code>
+    </example>
+    <example name="react-hook">
+      <description>Using CSRF hook in React component</description>
+      <code>
+const { token, isLoading, error, refresh } = useCSRF()
+
+// Token is automatically managed
+// Use for custom fetch scenarios
+      </code>
+    </example>
+  </usage-examples>
+
+  <error-responses>
+    <response code="CSRF_TOKEN_MISSING" status="403">
+      <message>CSRF token is required for this request</message>
+      <hint>Include token in x-csrf-token header</hint>
+    </response>
+    <response code="CSRF_TOKEN_INVALID" status="403">
+      <message>Invalid CSRF token</message>
+      <hint>Token may have expired or session changed</hint>
+    </response>
+    <response code="CSRF_NO_SESSION" status="403">
+      <message>Session required for CSRF validation</message>
+    </response>
+  </error-responses>
+
+  <security-features>
+    <feature name="timing-safe-comparison">
+      Uses crypto.timingSafeEqual() to prevent timing attacks
+    </feature>
+    <feature name="session-binding">
+      Tokens are bound to session ID via HMAC
+    </feature>
+    <feature name="samesite-cookies">
+      Token cookie uses SameSite=Strict
+    </feature>
+    <feature name="secret-management">
+      Uses dedicated CSRF_SECRET or falls back to BETTER_AUTH_SECRET
+    </feature>
+  </security-features>
+
+  <environment-variables>
+    <variable name="CSRF_SECRET" required="false">
+      Optional: Separate secret for CSRF token generation.
+      Falls back to BETTER_AUTH_SECRET if not set.
+      Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+    </variable>
+  </environment-variables>
+
+  <migration-notes>
+    <note priority="1">
+      CSRF protection is opt-in via withCSRF middleware.
+      Routes can be protected incrementally.
+    </note>
+    <note priority="2">
+      Existing fetch calls can migrate to apiClient for automatic CSRF.
+    </note>
+    <note priority="3">
+      For gradual rollout:
+      Phase 1: Add to sensitive routes (workspace, settings)
+      Phase 2: Add to all state-changing routes
+      Phase 3: Remove skipCSRF option for full enforcement
+    </note>
+  </migration-notes>
+
+  <acceptance-criteria-status>
+    <ac number="1" status="completed">
+      Evaluated Next.js Server Actions - codebase uses API routes instead
+    </ac>
+    <ac number="2" status="completed">
+      Implemented CSRF middleware (withCSRF) for API routes
+    </ac>
+    <ac number="3" status="completed">
+      Token generated from session ID via HMAC-SHA256
+    </ac>
+    <ac number="4" status="completed">
+      API client and hook provide token inclusion for requests
+    </ac>
+    <ac number="5" status="completed">
+      Middleware validates on POST/PUT/DELETE/PATCH methods
+    </ac>
+    <ac number="6" status="completed">
+      Returns 403 Forbidden with structured error for invalid/missing tokens
+    </ac>
+    <ac number="7" status="completed">
+      apiClient automatically includes CSRF token in requests
+    </ac>
+  </acceptance-criteria-status>
+
+  <testing>
+    <unit-tests file="csrf.test.ts">
+      - Token generation determinism
+      - Token verification with valid/invalid tokens
+      - Session binding validation
+      - Constant-time comparison behavior
+      - Route exemption logic
+      - Safe method detection
+    </unit-tests>
+  </testing>
+
+  <related-stories>
+    <story id="10.2" title="Encryption Key Validation">
+      CSRF uses same BETTER_AUTH_SECRET as fallback
+    </story>
+    <story id="01.7" title="Session Management">
+      CSRF tokens bound to session from better-auth
+    </story>
+  </related-stories>
+
+  <conclusion>
+    CSRF protection fully implemented with:
+    - HMAC-SHA256 based token generation bound to session
+    - Composable middleware for API route protection
+    - API client for automatic token inclusion
+    - React hook for client-side token management
+    - Comprehensive unit tests
+
+    Ready for gradual rollout across API routes.
+  </conclusion>
+</story-context>
