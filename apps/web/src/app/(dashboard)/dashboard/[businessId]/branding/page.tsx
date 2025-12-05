@@ -37,6 +37,7 @@ import {
   Download,
   Copy,
 } from 'lucide-react'
+import { agentClient } from '@/lib/agent-client'
 
 // ============================================================================
 // Types
@@ -582,6 +583,7 @@ export default function BrandingPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [brandingData, setBrandingData] = useState<BrandingSession | null>(null)
   const [currentWorkflow, setCurrentWorkflow] = useState<string>('overview')
+  const [sessionId, setSessionId] = useState<string | undefined>()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   // Workflow steps
@@ -681,58 +683,56 @@ I'll have Sage guide you through:
     setIsLoading(true)
 
     try {
-      const response = await fetch(`/api/branding/${businessId}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: content }),
+      // Call real agent API
+      const response = await agentClient.runBranding({
+        message: content,
+        business_id: businessId,
+        session_id: sessionId,
+        context: {
+          current_workflow: currentWorkflow,
+          branding_data: brandingData || undefined,
+          completed_workflows: workflowSteps
+            .filter((s) => s.status === 'completed')
+            .map((s) => s.id),
+        },
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          const agentMessage: ChatMessageData = {
-            id: (Date.now() + 1).toString(),
-            role: 'assistant',
-            agent: data.data.message.agent,
-            content: data.data.message.content,
-            timestamp: new Date(data.data.message.timestamp),
-            suggestedActions: data.data.message.suggestedActions,
-          }
-          setMessages((prev) => [...prev, agentMessage])
+      // Store session ID for continuity
+      if (response.session_id) {
+        setSessionId(response.session_id)
+      }
 
-          // Update branding data if output included
-          if (data.data.output) {
-            setBrandingData((prev) => ({
-              ...prev,
-              completedWorkflows: prev?.completedWorkflows || [],
-              ...data.data.output,
+      // Create agent message from response
+      const agentMessage: ChatMessageData = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        agent: response.agent_name?.toLowerCase() || 'bella',
+        content: response.content || 'I apologize, but I encountered an issue. Could you try again?',
+        timestamp: new Date(),
+        suggestedActions: getSuggestedActions(content),
+      }
+      setMessages((prev) => [...prev, agentMessage])
+
+      // Parse metadata for workflow updates
+      if (response.metadata.current_workflow) {
+        setCurrentWorkflow(response.metadata.current_workflow as string)
+        // Mark previous workflow as complete if we moved to a new one
+        const workflowOrder = ['strategy', 'voice', 'visual', 'guidelines', 'assets', 'audit']
+        const currentIdx = workflowOrder.indexOf(response.metadata.current_workflow as string)
+        if (currentIdx > 0) {
+          setWorkflowSteps((prev) =>
+            prev.map((step, idx) => ({
+              ...step,
+              status:
+                idx < currentIdx ? 'completed' : idx === currentIdx ? 'in_progress' : step.status,
             }))
-          }
-
-          // Update workflow status
-          if (data.data.current_workflow) {
-            setCurrentWorkflow(data.data.current_workflow)
-            // Mark previous workflow as complete if we moved to a new one
-            const workflowOrder = ['strategy', 'voice', 'visual', 'guidelines', 'assets', 'audit']
-            const currentIdx = workflowOrder.indexOf(data.data.current_workflow)
-            if (currentIdx > 0) {
-              setWorkflowSteps((prev) =>
-                prev.map((step, idx) => ({
-                  ...step,
-                  status:
-                    idx < currentIdx ? 'completed' : idx === currentIdx ? 'in_progress' : step.status,
-                }))
-              )
-            }
-          }
-        } else {
-          throw new Error(data.message || 'Failed to process message')
+          )
         }
-      } else {
-        throw new Error('API request failed')
       }
     } catch (error) {
-      console.error('Error sending message:', error)
+      console.error('Error calling branding agent:', error)
+
+      // Fallback error message
       const errorMessage: ChatMessageData = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -745,6 +745,25 @@ I'll have Sage guide you through:
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Get suggested actions based on current workflow
+  const getSuggestedActions = (userInput: string): string[] => {
+    const lowerInput = userInput.toLowerCase()
+
+    if (lowerInput.includes('strategy') || currentWorkflow === 'strategy') {
+      return ['Continue to Voice & Tone', 'Refine brand values', 'Review positioning']
+    }
+    if (lowerInput.includes('voice') || currentWorkflow === 'voice') {
+      return ['Move to Visual Identity', 'Add messaging examples', 'Review tone guidelines']
+    }
+    if (lowerInput.includes('visual') || currentWorkflow === 'visual') {
+      return ['Generate brand guidelines', 'Refine color palette', 'Create logo concepts']
+    }
+    if (lowerInput.includes('asset') || currentWorkflow === 'assets') {
+      return ['Download assets', 'Generate more templates', 'Run brand audit']
+    }
+    return ['Continue', 'Ask a question', 'Review progress']
   }
 
   return (

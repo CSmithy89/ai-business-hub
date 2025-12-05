@@ -30,6 +30,7 @@ import {
   Users,
   ShieldCheck,
 } from 'lucide-react'
+import { agentClient } from '@/lib/agent-client'
 
 // ============================================================================
 // Types
@@ -303,6 +304,7 @@ export default function ValidationPage() {
   const [isLoading, setIsLoading] = useState(false)
   // Score will be set when validation is complete (future workflow integration)
   const [score] = useState<number | null>(null)
+  const [sessionId, setSessionId] = useState<string | undefined>()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   // Workflow steps
@@ -358,8 +360,38 @@ Let's start by understanding your business idea better. **What problem are you t
     setMessages((prev) => [...prev, userMessage])
     setIsLoading(true)
 
-    // Simulate agent response (mock for MVP)
-    setTimeout(() => {
+    try {
+      // Call real agent API
+      const response = await agentClient.runValidation({
+        message: content,
+        business_id: businessId,
+        session_id: sessionId,
+        context: {
+          completed_workflows: workflowSteps
+            .filter((s) => s.status === 'completed')
+            .map((s) => s.id),
+        },
+      })
+
+      // Store session ID for continuity
+      if (response.session_id) {
+        setSessionId(response.session_id)
+      }
+
+      // Create agent message from response
+      const agentMessage: ChatMessageData = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        agent: response.agent_name?.toLowerCase() || 'vera',
+        content: response.content || 'I apologize, but I encountered an issue. Could you try again?',
+        timestamp: new Date(),
+        suggestedActions: ['Continue to Market Research', 'Add more details'],
+      }
+      setMessages((prev) => [...prev, agentMessage])
+    } catch (error) {
+      console.error('Error calling validation agent:', error)
+
+      // Fallback to mock response on error
       const agentMessage: ChatMessageData = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -369,8 +401,9 @@ Let's start by understanding your business idea better. **What problem are you t
         suggestedActions: ['Continue to Market Research', 'Add more details'],
       }
       setMessages((prev) => [...prev, agentMessage])
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   // Mock response generator
