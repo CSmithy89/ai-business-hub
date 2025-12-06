@@ -18,3 +18,13 @@ export { AgentStatusBadge } from './AgentStatusBadge'
 export { AgentCardCompact } from './AgentCardCompact'
 export { AgentCardStandard } from './AgentCardStandard'
 export { AgentCardExpanded } from './AgentCardExpanded'
+
+// Modal
+export { AgentDetailModal } from './AgentDetailModal'
+
+// Tab components
+export { OverviewTab } from './tabs/OverviewTab'
+export { ActivityTab } from './tabs/ActivityTab'
+export { ConfigurationTab } from './tabs/ConfigurationTab'
+export { PermissionsTab } from './tabs/PermissionsTab'
+export { AnalyticsTab } from './tabs/AnalyticsTab'
