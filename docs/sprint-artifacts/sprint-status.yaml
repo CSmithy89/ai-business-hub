@@ -292,7 +292,7 @@ development_status:
 
   # ===========================================
   # EPIC-14: Testing & Observability
-  # Testing Gaps & Monitoring | 6 stories | 18 points
+  # Testing Gaps & Monitoring | 10 stories | 26 points
   # Partial dependencies on: EPIC-10, EPIC-11
   # ===========================================
   epic-14: backlog
@@ -301,5 +301,9 @@ development_status:
   14-3-file-upload-pipeline-tests: backlog
   14-4-prometheus-metrics-export: backlog
   14-5-operational-runbooks: backlog
-  14-6-csrf-integration-tests: backlog  # NEW - Added from Epic 10 tech debt
+  14-6-csrf-integration-tests: backlog  # Added from Epic 10 tech debt
+  14-7-agent-endpoint-rate-limiting: backlog  # Added from Epic 11 tech debt (HIGH)
+  14-8-business-id-ownership-validation: backlog  # Added from Epic 11 tech debt (HIGH)
+  14-9-agent-client-unit-tests: backlog  # Added from Epic 11 tech debt
+  14-10-agent-response-runtime-validation: backlog  # Added from Epic 11 tech debt (Zod + session)
   epic-14-retrospective: optional
