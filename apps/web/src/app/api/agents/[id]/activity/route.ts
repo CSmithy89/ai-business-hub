@@ -17,9 +17,10 @@ interface AgentActivity {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await props.params
     const session = await getSession()
 
     if (!session?.user) {
@@ -53,9 +54,9 @@ export async function GET(
             : statuses[i % statuses.length]
 
       return {
-        id: `act_${params.id}_${i}`,
-        agentId: params.id,
-        agentName: params.id === 'vera' ? 'Vera' : params.id === 'sam' ? 'Sam' : 'Agent',
+        id: `act_${id}_${i}`,
+        agentId: id,
+        agentName: id === 'vera' ? 'Vera' : id === 'sam' ? 'Sam' : 'Agent',
         type: activityType,
         action:
           activityType === 'task_completed'

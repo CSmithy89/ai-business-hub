@@ -4,9 +4,10 @@ import type { Agent } from '@hyvve/shared'
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await props.params
     const session = await getSession()
 
     if (!session?.user) {
@@ -14,34 +15,34 @@ export async function GET(
     }
 
     // TODO: Replace with real database query when Prisma is connected
-    // This should fetch from the database: await prisma.agent.findUnique({ where: { id: params.id } })
+    // This should fetch from the database: await prisma.agent.findUnique({ where: { id } })
     const mockAgent: Agent = {
-      id: params.id,
-      name: params.id === 'vera' ? 'Vera' : params.id === 'sam' ? 'Sam' : 'Agent',
+      id,
+      name: id === 'vera' ? 'Vera' : id === 'sam' ? 'Sam' : 'Agent',
       role:
-        params.id === 'vera'
+        id === 'vera'
           ? 'Validation Orchestrator'
-          : params.id === 'sam'
+          : id === 'sam'
             ? 'Strategy & Research Lead'
             : 'Agent Role',
       team:
-        params.id === 'vera'
+        id === 'vera'
           ? 'validation'
-          : params.id === 'sam'
+          : id === 'sam'
             ? 'planning'
             : 'orchestrator',
       description:
-        params.id === 'vera'
+        id === 'vera'
           ? 'Leads the validation team to assess market viability and identify potential risks'
-          : params.id === 'sam'
+          : id === 'sam'
             ? 'Conducts deep market research and competitive analysis for strategic planning'
             : 'Agent description',
-      avatar: params.id === 'vera' ? '🔍' : params.id === 'sam' ? '📊' : '🤖',
-      themeColor: params.id === 'vera' ? '#3b82f6' : params.id === 'sam' ? '#8b5cf6' : '#10b981',
+      avatar: id === 'vera' ? '🔍' : id === 'sam' ? '📊' : '🤖',
+      themeColor: id === 'vera' ? '#3b82f6' : id === 'sam' ? '#8b5cf6' : '#10b981',
       status: 'online',
       lastActive: new Date(),
       capabilities:
-        params.id === 'vera'
+        id === 'vera'
           ? [
               'Market sizing analysis',
               'Competitor mapping',
@@ -49,7 +50,7 @@ export async function GET(
               'Risk assessment',
               'Data validation',
             ]
-          : params.id === 'sam'
+          : id === 'sam'
             ? [
                 'Market research',
                 'Competitive analysis',
@@ -100,9 +101,10 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await props.params
     const session = await getSession()
 
     if (!session?.user) {
@@ -112,7 +114,7 @@ export async function PATCH(
     const body = await request.json()
 
     // TODO: Replace with real database update when Prisma is connected
-    // This should update the database: await prisma.agent.update({ where: { id: params.id }, data: body })
+    // This should update the database: await prisma.agent.update({ where: { id }, data: body })
 
     // Validate configuration fields
     if (body.temperature !== undefined && (body.temperature < 0 || body.temperature > 2)) {
@@ -149,23 +151,23 @@ export async function PATCH(
 
     // Return updated agent (in real implementation, this would be from DB)
     const updatedAgent: Agent = {
-      id: params.id,
-      name: params.id === 'vera' ? 'Vera' : params.id === 'sam' ? 'Sam' : 'Agent',
+      id,
+      name: id === 'vera' ? 'Vera' : id === 'sam' ? 'Sam' : 'Agent',
       role:
-        params.id === 'vera'
+        id === 'vera'
           ? 'Validation Orchestrator'
-          : params.id === 'sam'
+          : id === 'sam'
             ? 'Strategy & Research Lead'
             : 'Agent Role',
       team:
-        params.id === 'vera'
+        id === 'vera'
           ? 'validation'
-          : params.id === 'sam'
+          : id === 'sam'
             ? 'planning'
             : 'orchestrator',
       description: 'Agent description',
-      avatar: params.id === 'vera' ? '🔍' : params.id === 'sam' ? '📊' : '🤖',
-      themeColor: params.id === 'vera' ? '#3b82f6' : params.id === 'sam' ? '#8b5cf6' : '#10b981',
+      avatar: id === 'vera' ? '🔍' : id === 'sam' ? '📊' : '🤖',
+      themeColor: id === 'vera' ? '#3b82f6' : id === 'sam' ? '#8b5cf6' : '#10b981',
       status: 'online',
       lastActive: new Date(),
       capabilities: ['Capability 1', 'Capability 2'],
@@ -206,5 +208,58 @@ export async function PATCH(
   } catch (error) {
     console.error('Error updating agent:', error)
     return NextResponse.json({ error: 'Failed to update agent' }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  props: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await props.params
+    const session = await getSession()
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+
+    // Validate confirmation name
+    if (!body.confirmName) {
+      return NextResponse.json(
+        { error: 'Confirmation name is required' },
+        { status: 400 }
+      )
+    }
+
+    // TODO: Replace with real database query to get agent name
+    const agentName = id === 'vera' ? 'Vera' : id === 'sam' ? 'Sam' : 'Agent'
+
+    if (body.confirmName !== agentName) {
+      return NextResponse.json(
+        { error: 'Confirmation name does not match agent name' },
+        { status: 400 }
+      )
+    }
+
+    // TODO: Replace with real database delete when Prisma is connected
+    // This should delete the agent config (soft delete or hard delete based on requirements)
+    // await prisma.agentConfig.delete({
+    //   where: { agentId: id, workspaceId: session.workspaceId },
+    // })
+
+    return NextResponse.json(
+      { message: 'Agent configuration deleted successfully' },
+      {
+        headers: { 'Cache-Control': 'no-store, max-age=0' },
+      }
+    )
+  } catch (error) {
+    console.error('Error deleting agent:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete agent configuration' },
+      { status: 500 }
+    )
   }
 }

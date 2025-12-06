@@ -9,7 +9,7 @@ interface AnalyticsData {
 
 export async function GET(
   _request: Request,
-  _params: { params: { id: string } }
+  _props: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession()
