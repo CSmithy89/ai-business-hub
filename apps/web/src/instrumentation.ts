@@ -15,7 +15,11 @@ import { validateEncryptionKeyOnStartup } from './lib/utils/validate-encryption-
  * Runs before any page or API route is processed.
  */
 export async function register() {
-  // Validate encryption key before anything else
-  // This ensures the app fails fast in production with weak keys
-  validateEncryptionKeyOnStartup()
+  // Instrumentation can run in edge/browser contexts in some configurations
+  // Only validate on server-side to avoid client-side errors
+  if (typeof window === 'undefined') {
+    // Validate encryption key before anything else
+    // This ensures the app fails fast in production with weak keys
+    validateEncryptionKeyOnStartup()
+  }
 }

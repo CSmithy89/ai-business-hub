@@ -166,8 +166,11 @@ export async function apiClient(
   let body = fetchOptions.body
   if (json !== undefined) {
     if (SAFE_METHODS.includes(method)) {
-      // Do not attach a body for safe methods; warn and ignore the json payload
-      console.warn('Ignoring request body for safe HTTP method:', method)
+      // Do not attach a body for safe methods; debug log and ignore the json payload
+      // Downgraded from warn since shorthand methods (apiPost, apiPut) enforce method type
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Ignoring request body for safe HTTP method:', method)
+      }
     } else {
       body = JSON.stringify(json)
       if (!headers.has('Content-Type')) {

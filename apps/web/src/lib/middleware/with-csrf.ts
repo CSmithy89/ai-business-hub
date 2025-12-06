@@ -35,10 +35,10 @@ export interface CSRFValidationResult {
  * Route handler that requires CSRF protection
  * Must be composed with withAuth (needs session for token validation)
  */
-export type CSRFHandler<T = any> = (
+export type CSRFHandler<T = NextResponse | Response> = (
   req: NextRequest,
   context: AuthContext,
-  ...args: any[]
+  ...args: unknown[]
 ) => Promise<T> | T
 
 /**
@@ -110,7 +110,7 @@ function getSessionIdFromCookie(req: NextRequest): string | null {
  * ```
  */
 export function withCSRF<T>(handler: CSRFHandler<T>) {
-  return async (req: NextRequest, context: AuthContext, ...args: any[]) => {
+  return async (req: NextRequest, context: AuthContext, ...args: unknown[]) => {
     const { pathname } = req.nextUrl
     const method = req.method
 

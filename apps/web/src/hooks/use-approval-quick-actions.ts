@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { ApprovalItem } from '@hyvve/shared'
+import { apiPost } from '@/lib/api-client'
 
 /**
  * API base URL for the NestJS backend
@@ -31,6 +32,9 @@ type ApprovalActionType = 'approve' | 'reject'
 /**
  * Perform an approval action (approve or reject)
  *
+ * Uses apiPost to automatically include CSRF token for protection
+ * against cross-site request forgery attacks.
+ *
  * @param id - Approval item ID
  * @param action - Action type ('approve' or 'reject')
  * @param data - Optional request body with notes
@@ -41,13 +45,8 @@ async function performApprovalAction(
   action: ApprovalActionType,
   data: ApprovalActionRequest = {}
 ): Promise<ApprovalResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/approvals/${id}/${action}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify(data),
+  const response = await apiPost(`/api/approvals/${id}/${action}`, data, {
+    baseURL: API_BASE_URL,
   })
 
   if (!response.ok) {
