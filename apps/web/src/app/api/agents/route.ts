@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth-server'
 import type { Agent, AgentTeam, AgentStatus } from '@hyvve/shared'
 
 // Mock agent data - will be replaced with real database queries
@@ -534,6 +535,15 @@ const MOCK_AGENTS: Agent[] = [
  */
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession()
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // TODO: Filter by workspaceId when real database is connected
+    // const workspaceId = session.session?.activeWorkspaceId
+
     // Get query parameters
     const searchParams = request.nextUrl.searchParams
     const team = searchParams.get('team') as AgentTeam | null

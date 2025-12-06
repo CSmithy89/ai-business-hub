@@ -28,9 +28,19 @@ export async function GET(
     }
 
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1', 10)
-    const limit = parseInt(searchParams.get('limit') || '50', 10)
-    const type = searchParams.get('type')
+
+    // Validate and normalize pagination parameters
+    let page = parseInt(searchParams.get('page') || '1', 10)
+    if (Number.isNaN(page) || page < 1) page = 1
+
+    let limit = parseInt(searchParams.get('limit') || '50', 10)
+    if (Number.isNaN(limit) || limit < 1) limit = 50
+    limit = Math.min(limit, 200) // Cap limit to prevent abuse
+
+    // Validate type parameter
+    const typeParam = searchParams.get('type')
+    const validTypes = ['task_started', 'task_completed', 'approval_requested', 'error']
+    const type = typeParam && validTypes.includes(typeParam) ? typeParam : null
 
     // TODO: Replace with real database query when Prisma is connected
     // This should fetch from the database with pagination and filtering

@@ -64,6 +64,8 @@ export default function AgentConfigurePage() {
     }
 
     window.addEventListener('scroll', handleScroll)
+    // Run once on mount to set the initial active section
+    handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
@@ -100,7 +102,7 @@ export default function AgentConfigurePage() {
           <p className="text-muted-foreground mb-6">
             The agent you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
           </p>
-          <Button onClick={() => window.location.href = '/agents'}>
+          <Button onClick={() => router.push('/agents')}>
             Back to Agents
           </Button>
         </div>
@@ -114,7 +116,7 @@ export default function AgentConfigurePage() {
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <button
           type="button"
-          onClick={() => window.location.href = '/agents'}
+          onClick={() => router.push('/agents')}
           className="hover:text-foreground transition-colors"
         >
           Agents

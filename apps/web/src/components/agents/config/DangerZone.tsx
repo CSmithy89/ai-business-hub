@@ -72,7 +72,7 @@ export function DangerZone({ agentId, agentName }: DangerZoneProps) {
 
       toast.success('Agent has been disabled')
       setDisableDialogOpen(false)
-      window.location.href = '/agents'
+      router.push('/agents')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to disable agent')
     } finally {
@@ -102,7 +102,7 @@ export function DangerZone({ agentId, agentName }: DangerZoneProps) {
 
       toast.success('Agent configuration deleted')
       setDeleteDialogOpen(false)
-      window.location.href = '/agents'
+      router.push('/agents')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to delete configuration')
     } finally {

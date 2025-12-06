@@ -129,7 +129,7 @@ export async function GET(request: Request) {
               }
             : undefined,
         error:
-          activityStatus === 'failed' ? `Failed to process ${module} task: Connection timeout` : undefined,
+          activityStatus === 'failed' ? `Failed to process ${activityModule} task: Connection timeout` : undefined,
         entityId: i % 2 === 0 ? `entity_${i}` : undefined,
         entityType: i % 2 === 0 ? 'project' : undefined,
       }

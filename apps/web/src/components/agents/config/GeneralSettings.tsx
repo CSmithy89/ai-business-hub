@@ -4,16 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import type { Agent } from '@hyvve/shared'
 
 interface GeneralSettingsProps {
-  formData: Record<string, unknown>
-  onChange: (field: string, value: unknown) => void
+  formData: Partial<Agent['config']>
+  onChange: (field: keyof Agent['config'], value: string | number | null) => void
 }
 
 /**
  * GeneralSettings Component
  *
  * General agent settings including display name, description, avatar, and theme.
+ * Note: Currently read-only as agent names are fixed character identities.
  */
 export function GeneralSettings(_props: GeneralSettingsProps) {
   return (

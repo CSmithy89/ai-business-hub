@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useActivityStream } from '@/hooks/use-activity-stream'
 import { ActivityCard } from '@/components/agents/ActivityCard'
 import { ActivityFilters } from '@/components/agents/ActivityFilters'
@@ -34,7 +34,14 @@ export default function AgentActivityPage() {
   const { activities, newCount, isConnected, isLoading, error, clearNewCount, loadMore, hasMore } =
     useActivityStream(filters)
 
+  // Stabilize loadMore callback reference for IntersectionObserver
+  const loadMoreRef2 = useRef(loadMore)
+  useEffect(() => {
+    loadMoreRef2.current = loadMore
+  }, [loadMore])
+
   // Available agents for filter dropdown
+  // TODO: Fetch dynamically from /api/agents endpoint
   const availableAgents = [
     { id: 'vera', name: 'Vera' },
     { id: 'sam', name: 'Sam' },
@@ -42,22 +49,23 @@ export default function AgentActivityPage() {
     { id: 'charlie', name: 'Charlie' },
   ]
 
-  // Scroll to first new activity
-  const handleScrollToNew = () => {
+  // Scroll to first new activity (the earliest in the new batch)
+  const handleScrollToNew = useCallback(() => {
     if (firstNewActivityRef.current) {
       firstNewActivityRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
     clearNewCount()
-  }
+  }, [clearNewCount])
 
-  // Infinite scroll observer
+  // Infinite scroll observer with stable callback reference
   useEffect(() => {
     if (!loadMoreRef.current) return
 
     const observer = new IntersectionObserver(
       entries => {
+        if (entries.length === 0) return
         if (entries[0].isIntersecting && hasMore && !isLoading) {
-          loadMore()
+          loadMoreRef2.current?.()
         }
       },
       { threshold: 0.1 }
@@ -66,7 +74,7 @@ export default function AgentActivityPage() {
     observer.observe(loadMoreRef.current)
 
     return () => observer.disconnect()
-  }, [hasMore, isLoading, loadMore])
+  }, [hasMore, isLoading])
 
   return (
     <div className="space-y-8">
@@ -128,7 +136,7 @@ export default function AgentActivityPage() {
               {activities.map((activity, index) => (
                 <div
                   key={activity.id}
-                  ref={index === 0 && newCount > 0 ? firstNewActivityRef : null}
+                  ref={index === newCount - 1 && newCount > 0 ? firstNewActivityRef : null}
                 >
                   <ActivityCard activity={activity} isNew={index < newCount} />
                 </div>

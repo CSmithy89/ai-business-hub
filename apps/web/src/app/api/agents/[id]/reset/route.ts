@@ -80,7 +80,7 @@ export async function POST(
         canExecuteActions: true,
         requiresApproval: false,
       },
-      workspaceId: 'workspace-1',
+      workspaceId: session.session?.activeWorkspaceId ?? 'workspace-1',
       enabled: true,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date(),

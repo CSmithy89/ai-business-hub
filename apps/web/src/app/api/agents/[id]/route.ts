@@ -111,40 +111,57 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
 
     // TODO: Replace with real database update when Prisma is connected
     // This should update the database: await prisma.agent.update({ where: { id }, data: body })
 
-    // Validate configuration fields
-    if (body.temperature !== undefined && (body.temperature < 0 || body.temperature > 2)) {
-      return NextResponse.json({ error: 'Temperature must be between 0 and 2' }, { status: 400 })
+    // Validate configuration fields with proper type checking
+    if (
+      body.temperature !== undefined &&
+      (typeof body.temperature !== 'number' || body.temperature < 0 || body.temperature > 2)
+    ) {
+      return NextResponse.json({ error: 'Temperature must be a number between 0 and 2' }, { status: 400 })
     }
 
-    if (body.maxTokens !== undefined && (body.maxTokens < 100 || body.maxTokens > 100000)) {
+    if (
+      body.maxTokens !== undefined &&
+      (typeof body.maxTokens !== 'number' || body.maxTokens < 100 || body.maxTokens > 100000)
+    ) {
       return NextResponse.json(
-        { error: 'Max tokens must be between 100 and 100000' },
+        { error: 'Max tokens must be a number between 100 and 100000' },
         { status: 400 }
       )
     }
 
     if (
       body.confidenceThreshold !== undefined &&
-      (body.confidenceThreshold < 0 || body.confidenceThreshold > 100)
+      (typeof body.confidenceThreshold !== 'number' || body.confidenceThreshold < 0 || body.confidenceThreshold > 100)
     ) {
       return NextResponse.json(
-        { error: 'Confidence threshold must be between 0 and 100' },
+        { error: 'Confidence threshold must be a number between 0 and 100' },
         { status: 400 }
       )
     }
 
-    if (body.tone !== undefined && (body.tone < 0 || body.tone > 100)) {
-      return NextResponse.json({ error: 'Tone must be between 0 and 100' }, { status: 400 })
+    if (
+      body.tone !== undefined &&
+      (typeof body.tone !== 'number' || body.tone < 0 || body.tone > 100)
+    ) {
+      return NextResponse.json({ error: 'Tone must be a number between 0 and 100' }, { status: 400 })
     }
 
-    if (body.customInstructions !== undefined && body.customInstructions.length > 500) {
+    if (
+      body.customInstructions !== undefined &&
+      (typeof body.customInstructions !== 'string' || body.customInstructions.length > 500)
+    ) {
       return NextResponse.json(
-        { error: 'Custom instructions must be 500 characters or less' },
+        { error: 'Custom instructions must be a string of 500 characters or less' },
         { status: 400 }
       )
     }
@@ -178,15 +195,15 @@ export async function PATCH(
         confidenceAvg: 82,
       },
       config: {
-        providerId: body.providerId ?? null,
-        model: body.model ?? null,
-        temperature: body.temperature ?? 1.0,
-        maxTokens: body.maxTokens ?? 4000,
-        contextWindow: body.contextWindow ?? 8000,
-        automationLevel: body.automationLevel ?? 'smart',
-        confidenceThreshold: body.confidenceThreshold ?? 70,
-        tone: body.tone ?? 50,
-        customInstructions: body.customInstructions ?? '',
+        providerId: (body.providerId as string | null) ?? null,
+        model: (body.model as string | null) ?? null,
+        temperature: (body.temperature as number) ?? 1.0,
+        maxTokens: (body.maxTokens as number) ?? 4000,
+        contextWindow: (body.contextWindow as number) ?? 8000,
+        automationLevel: (body.automationLevel as 'manual' | 'smart' | 'full_auto') ?? 'smart',
+        confidenceThreshold: (body.confidenceThreshold as number) ?? 70,
+        tone: (body.tone as number) ?? 50,
+        customInstructions: (body.customInstructions as string) ?? '',
       },
       permissions: {
         dataAccess: ['crm', 'content', 'analytics'],
@@ -223,12 +240,17 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try {
+      body = await request.json()
+    } catch {
+      body = {}
+    }
 
-    // Validate confirmation name
-    if (!body.confirmName) {
+    // Validate confirmation name with proper type checking
+    if (!body || typeof body.confirmName !== 'string' || body.confirmName.trim() === '') {
       return NextResponse.json(
-        { error: 'Confirmation name is required' },
+        { error: 'Confirmation name is required and must be a non-empty string' },
         { status: 400 }
       )
     }
@@ -236,7 +258,7 @@ export async function DELETE(
     // TODO: Replace with real database query to get agent name
     const agentName = id === 'vera' ? 'Vera' : id === 'sam' ? 'Sam' : 'Agent'
 
-    if (body.confirmName !== agentName) {
+    if (body.confirmName.trim() !== agentName) {
       return NextResponse.json(
         { error: 'Confirmation name does not match agent name' },
         { status: 400 }
