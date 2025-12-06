@@ -674,7 +674,7 @@ I'll have Sage guide you through:
   const handleSendMessage = async (content: string) => {
     // Add user message
     const userMessage: ChatMessageData = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID?.() ?? Date.now().toString(),
       role: 'user',
       content,
       timestamp: new Date(),

@@ -422,7 +422,7 @@ Your business has been validated - now let's turn that validated idea into an in
   const handleSendMessage = async (content: string) => {
     // Add user message
     const userMessage: ChatMessageData = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID?.() ?? Date.now().toString(),
       role: 'user',
       content,
       timestamp: new Date(),

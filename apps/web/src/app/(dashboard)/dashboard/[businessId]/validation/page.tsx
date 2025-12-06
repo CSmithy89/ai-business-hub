@@ -352,7 +352,7 @@ Let's start by understanding your business idea better. **What problem are you t
   const handleSendMessage = async (content: string) => {
     // Add user message
     const userMessage: ChatMessageData = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID?.() ?? Date.now().toString(),
       role: 'user',
       content,
       timestamp: new Date(),
