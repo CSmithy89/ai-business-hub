@@ -1,7 +1,7 @@
 # Story 14-19: Rate Limit Header Implementation
 
 **Epic:** EPIC-14 - Testing & Observability  
-**Status:** drafted  
+**Status:** ready-for-dev  
 **Points:** 2  
 **Priority:** P2 Medium
 
@@ -24,3 +24,17 @@ As an API consumer, I want every rate-limited endpoint to emit standard `X-RateL
 - [ ] Headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`) are returned by all rate-limited endpoints.
 - [ ] Automated tests cover header presence for representative routes.
 - [ ] Story file captures implementation details and testing evidence.
+
+## Dev Agent Record
+
+### Context Reference
+
+- docs/sprint-artifacts/14-19-rate-limit-headers.context.xml
+
+### Agent Model Used
+
+### Debug Log References
+
+### Completion Notes List
+
+### File List
