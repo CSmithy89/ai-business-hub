@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { PasswordStrengthIndicator } from './password-strength-indicator'
 import { Eye, EyeOff, Loader2, Check, X } from 'lucide-react'
+import { getPasswordMatchState, DEFAULT_PASSWORD_MIN_LENGTH_FOR_MATCH } from '@/hooks/use-password-match'
 
 export function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false)
@@ -35,12 +36,12 @@ export function SignUpForm() {
   const password = watch('password', '')
   const confirmPassword = watch('confirmPassword', '')
 
-  // Only show match indicator after user has typed enough for meaningful comparison
-  const MIN_PASSWORD_LENGTH_FOR_MATCH = 4
-  const passwordsMatch = password && confirmPassword && password === confirmPassword
-  const showMatchIndicator =
-    password.length >= MIN_PASSWORD_LENGTH_FOR_MATCH &&
-    confirmPassword.length >= MIN_PASSWORD_LENGTH_FOR_MATCH
+  const passwordMatchState = getPasswordMatchState(
+    password,
+    confirmPassword,
+    DEFAULT_PASSWORD_MIN_LENGTH_FOR_MATCH
+  )
+  const { passwordsMatch, showMatchIndicator } = passwordMatchState
 
   // Generalized social sign-up handler to reduce code duplication
   const handleSocialSignUp = async (
