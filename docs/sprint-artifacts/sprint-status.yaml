@@ -296,9 +296,9 @@ development_status:
   # Partial dependencies on: EPIC-10, EPIC-11, EPIC-12
   # ===========================================
   epic-14: contexted
-  14-1-rate-limit-concurrency-tests: review
-  14-2-zustand-store-unit-tests: review
-  14-3-file-upload-pipeline-tests: backlog
+  14-1-rate-limit-concurrency-tests: done
+  14-2-zustand-store-unit-tests: done
+  14-3-file-upload-pipeline-tests: done
   14-4-prometheus-metrics-export: done
   14-5-operational-runbooks: backlog
   14-6-csrf-integration-tests: backlog  # Added from Epic 10 tech debt

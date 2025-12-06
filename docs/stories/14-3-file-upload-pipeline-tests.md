@@ -1,7 +1,7 @@
 # Story 14-3: File Upload Pipeline Tests
 
 **Epic:** EPIC-14 - Testing & Observability
-**Status:** In Review
+**Status:** done
 **Points:** 3
 **Priority:** P2 Medium
 **Created:** 2025-12-06
@@ -229,3 +229,8 @@ Together, these provide comprehensive coverage of the file upload pipeline from 
 - File Storage: `apps/web/src/lib/utils/file-storage.ts`
 - Document Parser: `apps/web/src/lib/services/document-parser.ts`
 - Document Extraction: `apps/web/src/lib/services/document-extraction.ts`
+
+## Senior Developer Review
+
+**Status:** APPROVED  
+**Reviewer Notes:** Unit coverage spans validation, parsing paths, and progress simulation with mocks aligned to existing parser tests. No blockers—marking story done.
