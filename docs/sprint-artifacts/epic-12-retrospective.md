@@ -294,11 +294,11 @@ The following items have been added to EPIC-14 backlog:
 
 1. **14-11: API URL Centralization** - Fix API_BASE_URL duplication in use-approval-quick-actions.ts
 2. **14-12: Optimistic Update Type Safety** - Fix reviewedAt type consistency
-3. **14-13: Countdown Timer Optimization** - Optimize interval recreation
-4. **14-14: Password Match Validation** - Check both fields before showing indicator
-5. **14-15: Error Boundary Monitoring Integration** - Add Sentry/DataDog hooks
-6. **14-16: Mock Data Extraction** - Move mock data to separate file
-7. **14-17: Approval Quick Actions Tests** - Add unit tests for optimistic updates
+3. **14-13: Approval Quick Actions Tests** - Add unit tests for optimistic updates
+4. **14-14: Countdown Timer Optimization** - Optimize interval recreation
+5. **14-15: Password Match Validation** - Check both fields before showing indicator
+6. **14-16: Error Boundary Monitoring Integration** - Add Sentry/DataDog hooks
+7. **14-17: Mock Data Extraction** - Move mock data to separate file
 8. **14-18: OAuth Flow E2E Tests** - Add Playwright tests for OAuth buttons
 
 ---

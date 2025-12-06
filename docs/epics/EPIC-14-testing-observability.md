@@ -197,16 +197,124 @@ Confidence in production deployments through comprehensive testing. Real-time vi
 
 ---
 
+### Story 14.7: Agent Endpoint Rate Limiting (NEW - Epic 11 Tech Debt)
+
+**Points:** 2
+**Priority:** P1 High
+**Depends on:** EPIC-11 (Agent Integration), EPIC-10 Story 10.1 (Redis Rate Limiting)
+
+**As a** platform operator
+**I want** rate limiting on agent API endpoints
+**So that** the system is protected from API abuse
+
+**Acceptance Criteria:**
+- [ ] AC1: Apply Redis rate limiting to `/agents/validation/runs`
+- [ ] AC2: Apply Redis rate limiting to `/agents/planning/runs`
+- [ ] AC3: Apply Redis rate limiting to `/agents/branding/runs`
+- [ ] AC4: Configure appropriate limits (e.g., 10 requests/minute per user)
+- [ ] AC5: Return 429 Too Many Requests with Retry-After header
+- [ ] AC6: Log rate limit violations for monitoring
+- [ ] AC7: Add rate limit headers to responses
+
+**Files:**
+- `agents/middleware/rate_limit.py` (create)
+- `agents/main.py` (modify - add rate limit middleware)
+
+**Tech Debt Addressed:** "Add rate limiting to agent endpoints" from Epic 11 retrospective
+
+---
+
+### Story 14.8: Business ID Ownership Validation (NEW - Epic 11 Tech Debt)
+
+**Points:** 2
+**Priority:** P1 High
+**Depends on:** EPIC-11 (Agent Integration)
+
+**As a** security engineer
+**I want** validation that users can only access their own businesses
+**So that** tenant isolation is enforced at the API level
+
+**Acceptance Criteria:**
+- [ ] AC1: Validate business_id belongs to user's workspace in validation endpoint
+- [ ] AC2: Validate business_id belongs to user's workspace in planning endpoint
+- [ ] AC3: Validate business_id belongs to user's workspace in branding endpoint
+- [ ] AC4: Return 403 Forbidden for unauthorized business access
+- [ ] AC5: Log unauthorized access attempts
+- [ ] AC6: Add integration tests for ownership validation
+
+**Files:**
+- `agents/middleware/business_validator.py` (create)
+- `agents/main.py` (modify - add validation)
+- `agents/tests/test_business_ownership.py` (create)
+
+**Security Gap Addressed:** "Validate business_id ownership" from Epic 11 retrospective
+
+---
+
+### Story 14.9: Agent Client Unit Tests (NEW - Epic 11 Tech Debt)
+
+**Points:** 2
+**Priority:** P2 Medium
+**Depends on:** EPIC-11 (Agent Integration)
+
+**As a** developer
+**I want** unit tests for the agent-client.ts module
+**So that** API client behavior is verified
+
+**Acceptance Criteria:**
+- [ ] AC1: Create test file `apps/web/src/lib/__tests__/agent-client.test.ts`
+- [ ] AC2: Test runTeamChat with successful response
+- [ ] AC3: Test runTeamChat with network error
+- [ ] AC4: Test runTeamChat with timeout
+- [ ] AC5: Test JSON parsing error handling
+- [ ] AC6: Mock fetch for isolated testing
+- [ ] AC7: Test all three team clients (validation, planning, branding)
+
+**Files:**
+- `apps/web/src/lib/__tests__/agent-client.test.ts` (create)
+
+**Testing Gap Addressed:** "Add agent-client.ts unit tests" from Epic 11 retrospective
+
+---
+
+### Story 14.10: Agent Response Runtime Validation (NEW - Epic 11 Tech Debt)
+
+**Points:** 2
+**Priority:** P2 Medium
+**Depends on:** EPIC-11 (Agent Integration)
+
+**As a** developer
+**I want** Zod runtime validation for agent API responses
+**So that** type safety is guaranteed at runtime
+
+**Acceptance Criteria:**
+- [ ] AC1: Create Zod schema for TeamRunResponse
+- [ ] AC2: Validate agent responses before processing in frontend
+- [ ] AC3: Handle validation errors gracefully with fallback
+- [ ] AC4: Log validation failures for debugging
+- [ ] AC5: Add session persistence using localStorage
+- [ ] AC6: Restore session_id on page refresh
+
+**Files:**
+- `apps/web/src/lib/agent-client.ts` (modify - add Zod)
+- `apps/web/src/lib/schemas/agent-response.ts` (create)
+
+**Tech Debt Addressed:** "Add Zod runtime validation" and "Implement session persistence" from Epic 11 retrospective
+
+---
+
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Total Stories | 6 |
-| Total Points | 18 |
-| P2 Medium | 5 stories (14 points) |
+| Total Stories | 10 |
+| Total Points | 26 |
+| P1 High | 2 stories (4 points) |
+| P2 Medium | 7 stories (18 points) |
 | P3 Low | 1 story (4 points) |
 | Dependencies | Partial (EPIC-10, EPIC-11) |
-| Can Start Immediately | Stories 14.2, 14.3, 14.4, 14.5, 14.6 |
+| Can Start Immediately | Stories 14.2, 14.3, 14.4, 14.5 |
+| Requires EPIC-11 | Stories 14.7, 14.8, 14.9, 14.10 |
 
 ---
 
@@ -221,7 +329,17 @@ From `docs/sprint-artifacts/CONSOLIDATED-TECH-DEBT-AND-IMPROVEMENTS.md`:
 | File upload/extraction pipeline | 14.3 | Resolved |
 | CSRF integration tests (Epic 10 tech debt) | 14.6 | Resolved |
 
-**Note:** Agent-related testing gaps are covered in EPIC-11 Story 11.5.
+From Epic 11 Retrospective (`docs/sprint-artifacts/epic-11-retro-2025-12-06.md`):
+
+| Gap | Story | Status After Epic |
+|-----|-------|-------------------|
+| Add rate limiting to agent endpoints | 14.7 | Resolved |
+| Validate business_id ownership | 14.8 | Resolved |
+| Add agent-client.ts unit tests | 14.9 | Resolved |
+| Add Zod runtime validation | 14.10 | Resolved |
+| Implement session persistence | 14.10 | Resolved |
+
+**Note:** Agent-related E2E tests were completed in EPIC-11 Story 11.5.
 
 ---
 
