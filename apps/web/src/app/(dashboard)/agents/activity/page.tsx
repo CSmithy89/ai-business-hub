@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useActivityStream } from '@/hooks/use-activity-stream'
+import { useAgents } from '@/hooks/use-agents'
 import { ActivityCard } from '@/components/agents/ActivityCard'
 import { ActivityFilters } from '@/components/agents/ActivityFilters'
 import { ActivitySidebar } from '@/components/agents/ActivitySidebar'
@@ -40,17 +41,11 @@ export default function AgentActivityPage() {
     loadMoreRef2.current = loadMore
   }, [loadMore])
 
-  // Available agents for filter dropdown
-  // TODO: Replace hardcoded list with dynamic fetch from /api/agents endpoint:
-  // const { data: agentsData } = useAgents()
-  // const availableAgents = agentsData?.map(a => ({ id: a.id, name: a.name })) ?? []
-  // This ensures the filter dropdown stays in sync with actual agents.
-  const availableAgents = [
-    { id: 'vera', name: 'Vera' },
-    { id: 'sam', name: 'Sam' },
-    { id: 'bella', name: 'Bella' },
-    { id: 'charlie', name: 'Charlie' },
-  ]
+  const { data: agentsData, isError: isAgentsError } = useAgents()
+  const availableAgents = useMemo(
+    () => agentsData?.map(agent => ({ id: agent.id, name: agent.name })) ?? [],
+    [agentsData]
+  )
 
   // Scroll to first new activity (the earliest in the new batch)
   const handleScrollToNew = useCallback(() => {
@@ -99,6 +94,11 @@ export default function AgentActivityPage() {
             onFiltersChange={setFilters}
             availableAgents={availableAgents}
           />
+          {isAgentsError && (
+            <p className="text-sm text-destructive">
+              Failed to load agent list for filters. Please refresh to try again.
+            </p>
+          )}
 
           {/* New Activities Banner */}
           <NewActivitiesBanner count={newCount} onClick={handleScrollToNew} />

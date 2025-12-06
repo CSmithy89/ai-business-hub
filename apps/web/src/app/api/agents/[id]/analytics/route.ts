@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth-server'
+import { MOCK_AGENTS } from '../../mock-data'
 
 interface AnalyticsData {
   tasksOverTime: Array<{ date: string; tasks: number }>
@@ -9,13 +10,23 @@ interface AnalyticsData {
 
 export async function GET(
   _request: Request,
-  _props: { params: Promise<{ id: string }> }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await props.params
     const session = await getSession()
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const workspaceId = session.session?.activeWorkspaceId ?? 'default'
+    const agent = MOCK_AGENTS.find(
+      mockAgent => mockAgent.id === id && mockAgent.workspaceId === workspaceId
+    )
+
+    if (!agent) {
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
     }
 
     // TODO: Replace with real database query when Prisma is connected

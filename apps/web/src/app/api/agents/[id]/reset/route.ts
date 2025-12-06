@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth-server'
 import type { Agent } from '@hyvve/shared'
+import { MOCK_AGENTS } from '../../mock-data'
 
 /**
  * POST /api/agents/:id/reset
@@ -17,6 +18,15 @@ export async function POST(
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const workspaceId = session.session?.activeWorkspaceId ?? 'default'
+    const agent = MOCK_AGENTS.find(
+      mockAgent => mockAgent.id === id && mockAgent.workspaceId === workspaceId
+    )
+
+    if (!agent) {
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
     }
 
     // TODO: Replace with real database update when Prisma is connected
@@ -38,32 +48,7 @@ export async function POST(
 
     // Return reset agent (mock data)
     const resetAgent: Agent = {
-      id,
-      name: id === 'vera' ? 'Vera' : id === 'sam' ? 'Sam' : 'Agent',
-      role:
-        id === 'vera'
-          ? 'Validation Orchestrator'
-          : id === 'sam'
-            ? 'Strategy & Research Lead'
-            : 'Agent Role',
-      team:
-        id === 'vera'
-          ? 'validation'
-          : id === 'sam'
-            ? 'planning'
-            : 'orchestrator',
-      description: 'Agent description',
-      avatar: id === 'vera' ? '🔍' : id === 'sam' ? '📊' : '🤖',
-      themeColor: id === 'vera' ? '#3b82f6' : id === 'sam' ? '#8b5cf6' : '#10b981',
-      status: 'online',
-      lastActive: new Date(),
-      capabilities: ['Capability 1', 'Capability 2'],
-      metrics: {
-        tasksCompleted: 145,
-        successRate: 87,
-        avgResponseTime: 2400,
-        confidenceAvg: 82,
-      },
+      ...agent,
       config: {
         providerId: null,
         model: null,
@@ -75,14 +60,6 @@ export async function POST(
         tone: 50,
         customInstructions: '',
       },
-      permissions: {
-        dataAccess: ['crm', 'content', 'analytics'],
-        canExecuteActions: true,
-        requiresApproval: false,
-      },
-      workspaceId: session.session?.activeWorkspaceId ?? 'workspace-1',
-      enabled: true,
-      createdAt: new Date('2024-01-01'),
       updatedAt: new Date(),
     }
 

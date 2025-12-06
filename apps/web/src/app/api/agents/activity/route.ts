@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getSession } from '@/lib/auth-server'
+import { MOCK_AGENTS } from '../mock-data'
 
 interface AgentActivity {
   id: string
@@ -22,6 +24,25 @@ interface AgentActivity {
   createdAt: string
 }
 
+const ActivityQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    agent: z.string().min(1).optional(),
+    type: z
+      .enum([
+        'task_started',
+        'task_completed',
+        'approval_requested',
+        'approval_processed',
+        'error',
+        'config_changed',
+      ])
+      .optional(),
+    status: z.enum(['pending', 'completed', 'failed']).optional(),
+  })
+  .strict()
+
 /**
  * GET /api/agents/activity
  *
@@ -36,12 +57,44 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const workspaceId = session.session?.activeWorkspaceId ?? 'default'
+    const workspaceAgents = MOCK_AGENTS.filter(
+      agent => agent.workspaceId === workspaceId
+    )
+    const allowedAgentIds = new Set(workspaceAgents.map(agent => agent.id))
+
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1', 10)
-    const limit = parseInt(searchParams.get('limit') || '20', 10)
-    const agentFilter = searchParams.get('agent')
-    const typeFilter = searchParams.get('type')
-    const statusFilter = searchParams.get('status')
+    const parsedQuery = ActivityQuerySchema.safeParse({
+      page: searchParams.get('page') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
+      agent: searchParams.get('agent') ?? undefined,
+      type: searchParams.get('type') ?? undefined,
+      status: searchParams.get('status') ?? undefined,
+    })
+
+    if (!parsedQuery.success) {
+      return NextResponse.json(
+        { error: 'Invalid query parameters', details: parsedQuery.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    const { page, limit, agent: agentFilter, type: typeFilter, status: statusFilter } =
+      parsedQuery.data
+
+    if (agentFilter && !allowedAgentIds.has(agentFilter)) {
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
+    }
+
+    if (workspaceAgents.length === 0) {
+      return NextResponse.json(
+        {
+          data: [],
+          meta: { total: 0, page, limit, totalPages: 0 },
+        },
+        { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+      )
+    }
 
     // TODO: Replace with real database query when Prisma is connected
     // This should fetch from the AgentActivity table with:
@@ -53,12 +106,8 @@ export async function GET(request: Request) {
     // - Order by createdAt DESC
 
     // Mock data generator for multiple agents
-    const agents = [
-      { id: 'vera', name: 'Vera' },
-      { id: 'sam', name: 'Sam' },
-      { id: 'bella', name: 'Bella' },
-      { id: 'charlie', name: 'Charlie' },
-    ]
+    const agentPool =
+      workspaceAgents.map(agent => ({ id: agent.id, name: agent.name })) || []
 
     const types: AgentActivity['type'][] = [
       'task_started',
@@ -73,7 +122,7 @@ export async function GET(request: Request) {
 
     // Generate 100 mock activities across all agents
     const allActivities: AgentActivity[] = Array.from({ length: 100 }, (_, i) => {
-      const agent = agents[i % agents.length]
+      const agent = agentPool[i % agentPool.length]
       const activityType = types[i % types.length]
       const activityModule = modules[i % modules.length]
       const startedAt = new Date(Date.now() - i * 1800000).toISOString() // 30 minutes apart
@@ -89,7 +138,7 @@ export async function GET(request: Request) {
         id: `act_${agent.id}_${i}`,
         agentId: agent.id,
         agentName: agent.name,
-        workspaceId: 'workspace_1', // TODO: Get from session
+        workspaceId,
         type: activityType,
         action:
           activityType === 'task_completed'
