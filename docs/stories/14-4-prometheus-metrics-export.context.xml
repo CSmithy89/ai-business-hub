@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>14-4</story-id>
+    <story-title>Prometheus Metrics Export</story-title>
+    <epic>EPIC-14 - Testing &amp; Observability</epic>
+    <generated-date>2025-12-08</generated-date>
+    <dependencies>
+      <dependency epic="14" story="tech-spec" status="complete">
+        Refer to docs/sprint-artifacts/tech-spec-epic-14.md (Story 14.4 section)
+      </dependency>
+    </dependencies>
+  </metadata>
+
+  <section name="Prometheus Requirements">
+    <file path="docs/sprint-artifacts/tech-spec-epic-14.md#L435">
+      <description>
+        Defines MetricsModule topology and metrics list (event bus throughput/lag/DLQ, HTTP histograms,
+        approval queue depth, AI provider health, websocket connections).
+      </description>
+    </file>
+  </section>
+
+  <section name="Existing Event Bus Stats">
+    <file path="apps/api/src/events/events.controller.ts#L520">
+      <description>getEventStats already queries Redis Streams &amp; Prisma counts for throughput.</description>
+      <important>
+        <point>Uses RedisProvider to inspect stream length, DLQ size, consumer lag.</point>
+        <point>Throughput derived from `eventMetadata` counts last hour/day.</point>
+      </important>
+    </file>
+    <file path="apps/api/src/events/redis.provider.ts">
+      <description>Shared Redis connection wrapper exported by EventsModule.</description>
+    </file>
+  </section>
+
+  <section name="Approval Queue Data">
+    <file path="apps/api/src/approvals/approvals.service.ts">
+      <description>
+        Uses Prisma to access `approvalItem` records with `status` union (pending/approved/rejected/auto_approved).
+      </description>
+    </file>
+  </section>
+
+  <section name="AI Provider Health">
+    <file path="apps/api/src/ai-providers/provider-health.service.ts">
+      <description>
+        Persists `isValid` per provider config plus `lastValidatedAt`; metrics should expose 1/0 gauge per config.
+      </description>
+    </file>
+  </section>
+
+  <section name="HTTP Bootstrap">
+    <file path="apps/api/src/main.ts">
+      <description>
+        Register new MetricsModule, apply global interceptors, and bind server connection trackers.
+      </description>
+    </file>
+  </section>
+</story-context>

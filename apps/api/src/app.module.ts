@@ -10,6 +10,7 @@ import { MembersModule } from './members/members.module';
 import { ApprovalsModule } from './approvals/approvals.module';
 import { AgentOSModule } from './agentos/agentos.module';
 import { AIProvidersModule } from './ai-providers/ai-providers.module';
+import { MetricsModule } from './metrics/metrics.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -37,6 +38,7 @@ import { validate } from './config/env.validation';
     ApprovalsModule,
     AgentOSModule,
     AIProvidersModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

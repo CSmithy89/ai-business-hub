@@ -299,7 +299,7 @@ development_status:
   14-1-rate-limit-concurrency-tests: review
   14-2-zustand-store-unit-tests: review
   14-3-file-upload-pipeline-tests: review
-  14-4-prometheus-metrics-export: backlog
+  14-4-prometheus-metrics-export: done
   14-5-operational-runbooks: backlog
   14-6-csrf-integration-tests: backlog  # Added from Epic 10 tech debt
   14-7-agent-endpoint-rate-limiting: backlog  # Added from Epic 11 tech debt (HIGH)
