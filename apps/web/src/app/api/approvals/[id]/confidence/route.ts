@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth-server'
 import type { ConfidenceFactor, SuggestedAction, ConfidenceBreakdown } from '@hyvve/shared'
 
@@ -11,8 +11,8 @@ import type { ConfidenceFactor, SuggestedAction, ConfidenceBreakdown } from '@hy
  * - Overall weighted confidence score
  */
 export async function GET(
-  _request: Request,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession()
@@ -21,7 +21,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const approvalId = params.id
+    const { id: approvalId } = await context.params
 
     // TODO(EPIC-14): When Prisma is connected, replace with real database query
     // For now, return calculated mock data based on approval ID

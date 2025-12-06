@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react'
+import { act, render, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest'
 
 import { useOptimizedCountdown, CountdownTimer } from './countdown-timer'
@@ -52,9 +52,7 @@ describe('useOptimizedCountdown', () => {
 
 describe('CountdownTimer component snapshot', () => {
   it('renders the time left text when no custom render provided', () => {
-    const { getByRole } = renderHook(() =>
-      useOptimizedCountdown(5, { autoStart: false })
-    )
-    expect(getByRole).toBeDefined()
+    const { getByRole } = render(<CountdownTimer seconds={5} autoStart={false} />)
+    expect(getByRole('timer')).toBeTruthy()
   })
 })

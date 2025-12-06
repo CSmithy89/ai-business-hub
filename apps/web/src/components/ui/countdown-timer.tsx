@@ -82,7 +82,7 @@ type OptimizedCountdownOptions = {
   autoStart?: boolean
 }
 
-function useOptimizedCountdown(
+export function useOptimizedCountdown(
   initialSeconds: number,
   options?: OptimizedCountdownOptions
 ) {

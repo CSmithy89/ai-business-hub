@@ -8,7 +8,6 @@ import type { Request, Response } from 'express';
 import { Observable, catchError, tap, throwError } from 'rxjs';
 import { MetricsService } from './metrics-service';
 
-@Injectable()
 type RouteAwareRequest = Request & { route?: { path?: string } };
 
 @Injectable()

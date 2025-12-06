@@ -1,6 +1,10 @@
+import path from 'path';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // Ensure Next.js resolves workspace roots correctly in monorepo/lockfile setups
+  outputFileTracingRoot: path.join(__dirname, '..', '..'),
+
   // Enable type-safe routing
   typedRoutes: true,
 

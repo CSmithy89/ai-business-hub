@@ -219,7 +219,9 @@ export function useApprovalQuickActions() {
 
   return {
     approve: approveMutation.mutate,
+    approveAsync: approveMutation.mutateAsync,
     reject: rejectMutation.mutate,
+    rejectAsync: rejectMutation.mutateAsync,
     isApproving: approveMutation.isPending,
     isRejecting: rejectMutation.isPending,
     approveError: approveMutation.error,

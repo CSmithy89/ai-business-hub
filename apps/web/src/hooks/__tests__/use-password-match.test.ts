@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getPasswordMatchState, DEFAULT_PASSWORD_MIN_LENGTH_FOR_MATCH } from '../use-password-match'
+import { getPasswordMatchState } from '../use-password-match'
 
 describe('getPasswordMatchState', () => {
   it('does not show indicator until both fields meet minimum length', () => {

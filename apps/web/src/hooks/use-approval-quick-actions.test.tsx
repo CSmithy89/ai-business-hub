@@ -1,5 +1,5 @@
 import React from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook } from '@testing-library/react'
 import * as apiClient from '@/lib/api-client'
@@ -36,6 +36,7 @@ const createApprovalItem = () => ({
   createdBy: 'agent',
   priority: 1,
   createdAt: new Date(),
+  reviewedAt: undefined as any,
 })
 
 const renderHookWithClient = () => {
@@ -81,7 +82,11 @@ describe('Optimistic update type safety (Story 14-12)', () => {
 
     const updated = buildOptimisticReviewedItem(baseItem as any, 'approved')
     expect(updated.reviewedAt instanceof Date).toBe(true)
-    expect(updated.reviewedAt?.getTime()).toBeGreaterThan(0)
+    if (updated.reviewedAt instanceof Date) {
+      expect(updated.reviewedAt.getTime()).toBeGreaterThan(0)
+    } else {
+      throw new Error('reviewedAt should be a Date')
+    }
   })
 })
 
@@ -100,7 +105,7 @@ describe('Approval quick actions regressions (Story 14-13)', () => {
     vi.mocked(apiClient.apiPost).mockResolvedValueOnce(mockResponse)
 
     const { hook } = renderHookWithClient()
-    await hook.result.current.approveMutation.mutateAsync({ id: 'a1' })
+    await hook.result.current.approveAsync({ id: 'a1' })
 
     expect(apiClient.apiPost).toHaveBeenCalledWith(
       API_ENDPOINTS.approvals.approve('a1'),
@@ -125,9 +130,9 @@ describe('Approval quick actions regressions (Story 14-13)', () => {
     }
     client.setQueryData(['approvals'], baseline)
 
-    await expect(
-      hook.result.current.approveMutation.mutateAsync({ id: 'a1' })
-    ).rejects.toThrow('Failed to approve')
+    await expect(hook.result.current.approveAsync({ id: 'a1' })).rejects.toThrow(
+      'Failed to approve'
+    )
 
     const after = client.getQueryData<{ data: ReturnType<typeof createApprovalItem>[] }>(['approvals'])
     expect(after?.data[0].status).toBe('pending')
