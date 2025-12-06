@@ -5,7 +5,7 @@
 - [x] Story 14-3: File Upload Pipeline Tests
 - [x] Story 14-4: Prometheus Metrics Export
 - [x] Story 14-5: Operational Runbooks
-- [ ] Story 14-6: CSRF Integration Tests
+- [x] Story 14-6: CSRF Integration Tests
 - [ ] Story 14-7: Agent Endpoint Rate Limiting
 - [ ] Story 14-8: Business ID Ownership Validation
 - [ ] Story 14-9: Agent Client Unit Tests

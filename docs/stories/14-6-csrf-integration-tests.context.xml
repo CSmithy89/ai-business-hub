@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>14-6</story-id>
+    <story-title>CSRF Integration Tests</story-title>
+    <epic>EPIC-14</epic>
+    <generated-date>2025-12-07</generated-date>
+    <dependencies>
+      <dependency epic="10" story="10-6" status="complete">CSRF protection implemented in Epic 10</dependency>
+    </dependencies>
+  </metadata>
+
+  <section name="csrf-flow">
+    <description>CSRF token issued via /api/auth/csrf; required on state-changing endpoints via x-csrf-token header. Session cookie ties token to session.</description>
+    <endpoint path="/api/auth/csrf" method="GET" purpose="issue CSRF token" />
+    <endpoint path="/api/approvals/quick-actions" method="POST" purpose="approve/reject quick actions; must validate CSRF" />
+  </section>
+
+  <section name="test-scope">
+    <description>Integration tests to create/verify CSRF behavior.</description>
+    <file path="apps/web/src/__tests__/csrf-integration.test.ts" />
+    <file path="apps/web/src/__tests__/quick-actions-csrf.test.ts" />
+    <cases>
+      <case>Valid token fetch + use</case>
+      <case>Expired token rejected (&gt;1h)</case>
+      <case>Invalid token rejected</case>
+      <case>Missing token rejected</case>
+      <case>Session change invalidates token</case>
+      <case>Concurrent requests with same token</case>
+      <case>Quick actions approve/reject enforce CSRF</case>
+      <case>Token refresh flow</case>
+    </cases>
+  </section>
+</story-context>

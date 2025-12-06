@@ -301,7 +301,7 @@ development_status:
   14-3-file-upload-pipeline-tests: done
   14-4-prometheus-metrics-export: done
   14-5-operational-runbooks: done
-  14-6-csrf-integration-tests: backlog  # Added from Epic 10 tech debt
+  14-6-csrf-integration-tests: done  # Added from Epic 10 tech debt
   14-7-agent-endpoint-rate-limiting: backlog  # Added from Epic 11 tech debt (HIGH)
   14-8-business-id-ownership-validation: backlog  # Added from Epic 11 tech debt (HIGH)
   14-9-agent-client-unit-tests: backlog  # Added from Epic 11 tech debt
