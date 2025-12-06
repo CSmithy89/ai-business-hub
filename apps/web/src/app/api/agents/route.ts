@@ -541,8 +541,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // TODO: Filter by workspaceId when real database is connected
-    // const workspaceId = session.session?.activeWorkspaceId
+    // SECURITY: Tenant isolation required before production deployment
+    // TODO: Replace mock data with database query filtered by workspaceId:
+    // const agents = await prisma.agent.findMany({
+    //   where: { workspaceId: session.session?.activeWorkspaceId },
+    // })
+    // Without this filter, users could access agents from other workspaces.
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams

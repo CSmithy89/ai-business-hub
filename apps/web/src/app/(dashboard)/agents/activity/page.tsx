@@ -41,7 +41,10 @@ export default function AgentActivityPage() {
   }, [loadMore])
 
   // Available agents for filter dropdown
-  // TODO: Fetch dynamically from /api/agents endpoint
+  // TODO: Replace hardcoded list with dynamic fetch from /api/agents endpoint:
+  // const { data: agentsData } = useAgents()
+  // const availableAgents = agentsData?.map(a => ({ id: a.id, name: a.name })) ?? []
+  // This ensures the filter dropdown stays in sync with actual agents.
   const availableAgents = [
     { id: 'vera', name: 'Vera' },
     { id: 'sam', name: 'Sam' },

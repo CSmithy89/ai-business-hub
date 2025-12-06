@@ -111,6 +111,20 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // TODO: Replace manual validation with Zod schema for comprehensive validation:
+    // import { z } from 'zod'
+    // const AgentConfigSchema = z.object({
+    //   temperature: z.number().min(0).max(2).optional(),
+    //   maxTokens: z.number().min(100).max(100000).optional(),
+    //   confidenceThreshold: z.number().min(0).max(100).optional(),
+    //   tone: z.number().min(0).max(100).optional(),
+    //   customInstructions: z.string().max(500).optional(),
+    //   providerId: z.string().nullable().optional(),
+    //   model: z.string().nullable().optional(),
+    //   automationLevel: z.enum(['manual', 'smart', 'full_auto']).optional(),
+    // })
+    // const body = AgentConfigSchema.parse(await request.json())
+
     let body: Record<string, unknown>
     try {
       body = await request.json()
