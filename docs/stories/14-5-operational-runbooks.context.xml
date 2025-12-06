@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>14-5</story-id>
+    <story-title>Operational Runbooks</story-title>
+    <epic>EPIC-14</epic>
+    <generated-date>2025-12-07</generated-date>
+    <dependencies/>
+  </metadata>
+
+  <section name="observability-sources">
+    <description>Key telemetry and health sources referenced by runbooks.</description>
+    <item>/api/metrics (Prometheus format) - Story 14-4</item>
+    <item>Grafana dashboards (API latency, event bus health, AI provider status)</item>
+    <item>Event bus health endpoints: /api/events/health, /api/events/dlq, /api/events/dlq/retry, /api/events/dlq/purge</item>
+    <item>Application logs (NestJS, FastAPI agents) streamed to centralized logging</item>
+  </section>
+
+  <section name="infrastructure">
+    <description>Core components relevant to operations.</description>
+    <item>PostgreSQL (Prisma) with scheduled snapshots</item>
+    <item>Redis Streams for event bus with DLQ</item>
+    <item>Agent services (FastAPI) integrated via AgentOS bridge</item>
+    <item>NestJS API hosting approval queue, metrics, and event bus endpoints</item>
+  </section>
+
+  <section name="runbook-scope">
+    <description>Runbooks to create per tech spec.</description>
+    <item>docs/runbooks/README.md</item>
+    <item>docs/runbooks/dlq-management.md</item>
+    <item>docs/runbooks/database-recovery.md</item>
+    <item>docs/runbooks/incident-response.md</item>
+    <item>docs/runbooks/key-rotation.md</item>
+    <item>docs/runbooks/troubleshooting/auth-failures.md</item>
+    <item>docs/runbooks/troubleshooting/agent-errors.md</item>
+    <item>docs/runbooks/troubleshooting/performance-issues.md</item>
+  </section>
+</story-context>
