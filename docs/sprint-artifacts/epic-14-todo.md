@@ -15,7 +15,7 @@
 - [ ] Story 14-13: Approval Quick Actions Tests
 - [x] Story 14-14: Countdown Timer Optimization
 - [x] Story 14-15: Password Match Validation Fix
-- [ ] Story 14-16: Error Boundary Monitoring
+- [ ] Story 14-16: Error Boundary Monitoring Integration
 - [ ] Story 14-17: Mock Data Extraction
 - [ ] Story 14-18: OAuth Flow E2E Tests
 - [ ] Story 14-19: Rate Limit Headers

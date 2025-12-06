@@ -4,6 +4,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { captureException, addBreadcrumb, withErrorTracking } from '@/lib/telemetry/error-tracking'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -47,8 +48,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error to monitoring service in production
-    console.error('ErrorBoundary caught error:', error, errorInfo)
+    addBreadcrumb({
+      category: 'error-boundary',
+      message: error.message,
+      level: 'error',
+      data: { componentStack: errorInfo.componentStack },
+    })
+    captureException(error, {
+      tags: { feature: 'error-boundary' },
+      extra: {
+        componentStack: errorInfo.componentStack.slice(0, 500),
+      },
+    })
   }
 
   handleRetry = () => {

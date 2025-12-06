@@ -311,7 +311,7 @@ development_status:
   14-13-approval-quick-actions-tests: drafted  # Added from Epic 12 tech debt
   14-14-countdown-timer-optimization: done  # Added from Epic 12 tech debt
   14-15-password-match-validation-fix: done  # Added from Epic 12 tech debt
-  14-16-error-boundary-monitoring: backlog  # Added from Epic 12 tech debt
+  14-16-error-boundary-monitoring: done  # Added from Epic 12 tech debt
   14-17-mock-data-extraction: backlog  # Added from Epic 12 tech debt
   14-18-oauth-flow-e2e-tests: backlog  # Added from Epic 12 tech debt
   14-19-rate-limit-headers: backlog  # Emit X-RateLimit-* headers across API routes
