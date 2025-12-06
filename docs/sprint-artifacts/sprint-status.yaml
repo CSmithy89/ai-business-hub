@@ -288,7 +288,7 @@ development_status:
   13-4-agent-configuration-page: done
   13-5-agent-dashboard-page: done
   13-6-confidence-breakdown-system: done
-  epic-13-retrospective: optional
+  epic-13-retrospective: completed
 
   # ===========================================
   # EPIC-14: Testing & Observability
