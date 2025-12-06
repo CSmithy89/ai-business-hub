@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -87,8 +87,8 @@ export function CreateRoleModal({ existingRole, onClose }: CreateRoleModalProps)
     watch,
     reset,
   } = useForm<CreateRoleFormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(createRoleSchema as any),
+    // Type assertion needed due to Zod version mismatch with @hookform/resolvers
+    resolver: zodResolver(createRoleSchema as unknown as Parameters<typeof zodResolver>[0]) as unknown as Resolver<CreateRoleFormData>,
     defaultValues: existingRole
       ? {
           name: existingRole.name,

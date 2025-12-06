@@ -265,16 +265,16 @@ development_status:
   # Frontend Wireframe Gaps | 8 stories | 18 points
   # Parallel with: EPIC-10, EPIC-11
   # ===========================================
-  epic-12: backlog
-  12-1-oauth-provider-buttons: review
-  12-2-confirm-password-field: backlog
+  epic-12: contexted
+  12-1-oauth-provider-buttons: done
+  12-2-confirm-password-field: done
   12-3-approval-queue-quick-actions: done
-  12-4-chat-streaming-ui: backlog
-  12-5-settings-ux-enhancements: backlog
-  12-6-countdown-timers: backlog
-  12-7-approval-metrics-calculation: backlog
-  12-8-chat-error-and-preview-cards: backlog
-  epic-12-retrospective: optional
+  12-4-chat-streaming-ui: done
+  12-5-settings-ux-enhancements: done
+  12-6-countdown-timers: done
+  12-7-approval-metrics-calculation: done
+  12-8-chat-error-and-preview-cards: done
+  epic-12-retrospective: completed
 
   # ===========================================
   # EPIC-13: AI Agent Management
@@ -292,8 +292,8 @@ development_status:
 
   # ===========================================
   # EPIC-14: Testing & Observability
-  # Testing Gaps & Monitoring | 10 stories | 26 points
-  # Partial dependencies on: EPIC-10, EPIC-11
+  # Testing Gaps & Monitoring | 18 stories | 38 points
+  # Partial dependencies on: EPIC-10, EPIC-11, EPIC-12
   # ===========================================
   epic-14: backlog
   14-1-rate-limit-concurrency-tests: backlog
@@ -306,4 +306,12 @@ development_status:
   14-8-business-id-ownership-validation: backlog  # Added from Epic 11 tech debt (HIGH)
   14-9-agent-client-unit-tests: backlog  # Added from Epic 11 tech debt
   14-10-agent-response-runtime-validation: backlog  # Added from Epic 11 tech debt (Zod + session)
+  14-11-api-url-centralization: backlog  # Added from Epic 12 tech debt (HIGH)
+  14-12-optimistic-update-type-safety: backlog  # Added from Epic 12 tech debt (HIGH)
+  14-13-approval-quick-actions-tests: backlog  # Added from Epic 12 tech debt
+  14-14-countdown-timer-optimization: backlog  # Added from Epic 12 tech debt
+  14-15-password-match-validation-fix: backlog  # Added from Epic 12 tech debt
+  14-16-error-boundary-monitoring: backlog  # Added from Epic 12 tech debt
+  14-17-mock-data-extraction: backlog  # Added from Epic 12 tech debt
+  14-18-oauth-flow-e2e-tests: backlog  # Added from Epic 12 tech debt
   epic-14-retrospective: optional

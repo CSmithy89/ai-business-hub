@@ -126,8 +126,7 @@ function VerifyContent() {
                     asChild
                     className="w-full bg-[#FF6B6B] hover:bg-[#FF6B6B]/90"
                   >
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    <Link href={"/magic-link" as any} prefetch={false}>Request New Magic Link</Link>
+                    <Link href="/magic-link" prefetch={false}>Request New Magic Link</Link>
                   </Button>
                   <Button
                     asChild

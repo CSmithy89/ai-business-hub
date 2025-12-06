@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -101,8 +101,8 @@ export function InviteMemberModal() {
     reset,
     formState: { errors },
   } = useForm<InviteMemberFormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(inviteMemberSchema as any),
+    // Type assertion needed due to Zod version mismatch with @hookform/resolvers
+    resolver: zodResolver(inviteMemberSchema as unknown as Parameters<typeof zodResolver>[0]) as unknown as Resolver<InviteMemberFormData>,
     defaultValues: {
       email: '',
       role: 'member',

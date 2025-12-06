@@ -15,6 +15,9 @@ import { memo } from 'react';
 import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
 import { formatChatTime } from '@/lib/date-utils';
+import { StreamingCursor } from './StreamingCursor';
+import { Button } from '@/components/ui/button';
+import { Square } from 'lucide-react';
 
 /**
  * Sanitize user-generated content to prevent XSS attacks
@@ -35,6 +38,10 @@ interface ChatMessageProps {
   agentName?: string;
   agentIcon?: string;
   agentColor?: string;
+  /** Whether this message is currently streaming */
+  isStreaming?: boolean;
+  /** Callback to stop streaming (shows stop button when provided) */
+  onStopStreaming?: () => void;
 }
 
 export const ChatMessage = memo(function ChatMessage({
@@ -44,6 +51,8 @@ export const ChatMessage = memo(function ChatMessage({
   agentName,
   agentIcon,
   agentColor,
+  isStreaming,
+  onStopStreaming,
 }: ChatMessageProps) {
   // Use standardized date utility - handles Date, string, and number inputs
   const formattedTime = formatChatTime(timestamp);
@@ -105,13 +114,32 @@ export const ChatMessage = memo(function ChatMessage({
             'text-[rgb(var(--color-text-primary))]'
           )}
         >
-          <p className="text-sm font-normal leading-relaxed">{safeContent}</p>
+          <p className="text-sm font-normal leading-relaxed">
+            {safeContent}
+            {isStreaming && <StreamingCursor />}
+          </p>
+
+          {/* Stop Generating Button */}
+          {isStreaming && onStopStreaming && (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={onStopStreaming}
+              className="mt-2 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Square className="h-3 w-3" />
+              Stop generating
+            </Button>
+          )}
         </div>
 
-        {/* Timestamp */}
-        <p className="text-[11px] text-[rgb(var(--color-text-muted))]">
-          {formattedTime}
-        </p>
+        {/* Timestamp - only show when not streaming */}
+        {!isStreaming && (
+          <p className="text-[11px] text-[rgb(var(--color-text-muted))]">
+            {formattedTime}
+          </p>
+        )}
       </div>
     </div>
   );

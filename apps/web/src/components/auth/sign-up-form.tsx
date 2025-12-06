@@ -10,13 +10,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { PasswordStrengthIndicator } from './password-strength-indicator'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Check, X } from 'lucide-react'
 
 export function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false)
+  const [isGitHubLoading, setIsGitHubLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,22 +33,40 @@ export function SignUpForm() {
   })
 
   const password = watch('password', '')
+  const confirmPassword = watch('confirmPassword', '')
 
-  const handleGoogleSignUp = async () => {
-    setIsGoogleLoading(true)
+  // Only show match indicator after user has typed enough for meaningful comparison
+  const MIN_PASSWORD_LENGTH_FOR_MATCH = 4
+  const passwordsMatch = password && confirmPassword && password === confirmPassword
+  const showMatchIndicator =
+    password.length >= MIN_PASSWORD_LENGTH_FOR_MATCH &&
+    confirmPassword.length >= MIN_PASSWORD_LENGTH_FOR_MATCH
+
+  // Generalized social sign-up handler to reduce code duplication
+  const handleSocialSignUp = async (
+    provider: 'google' | 'microsoft' | 'github',
+    setLoading: (loading: boolean) => void
+  ) => {
+    setLoading(true)
     setError(null)
     try {
       await authClient.signIn.social({
-        provider: 'google',
+        provider,
         callbackURL: '/dashboard',
       })
       // Redirect happens automatically
-    } catch (error) {
-      console.error('Google sign-up error:', error)
-      setError('Unable to sign up with Google. Please try again or use email registration.')
-      setIsGoogleLoading(false)
+    } catch (err) {
+      console.error(`${provider} sign-up error:`, err)
+      const providerName = provider.charAt(0).toUpperCase() + provider.slice(1)
+      setError(`Unable to sign up with ${providerName}. Please try again or use email registration.`)
+    } finally {
+      setLoading(false)
     }
   }
+
+  const handleGoogleSignUp = () => handleSocialSignUp('google', setIsGoogleLoading)
+  const handleMicrosoftSignUp = () => handleSocialSignUp('microsoft', setIsMicrosoftLoading)
+  const handleGitHubSignUp = () => handleSocialSignUp('github', setIsGitHubLoading)
 
   const onSubmit = async (data: SignUpFormData) => {
     setIsSubmitting(true)
@@ -118,16 +138,18 @@ export function SignUpForm() {
     )
   }
 
+  const isAnyOAuthLoading = isGoogleLoading || isMicrosoftLoading || isGitHubLoading
+
   return (
     <div className="space-y-6">
-      {/* Google Sign-Up Button */}
+      {/* Social Sign-Up Buttons */}
       <div className="space-y-3">
         <Button
           type="button"
           variant="outline"
           className="w-full"
           onClick={handleGoogleSignUp}
-          disabled={isGoogleLoading || isSubmitting}
+          disabled={isAnyOAuthLoading || isSubmitting}
         >
           {isGoogleLoading ? (
             <>
@@ -155,6 +177,50 @@ export function SignUpForm() {
                 />
               </svg>
               Continue with Google
+            </>
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleMicrosoftSignUp}
+          disabled={isAnyOAuthLoading || isSubmitting}
+        >
+          {isMicrosoftLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Connecting to Microsoft...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" />
+              </svg>
+              Continue with Microsoft
+            </>
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleGitHubSignUp}
+          disabled={isAnyOAuthLoading || isSubmitting}
+        >
+          {isGitHubLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Connecting to GitHub...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+              </svg>
+              Continue with GitHub
             </>
           )}
         </Button>
@@ -248,8 +314,17 @@ export function SignUpForm() {
             {...register('confirmPassword')}
             disabled={isSubmitting}
             aria-invalid={errors.confirmPassword ? 'true' : 'false'}
-            className="pr-10"
+            className="pr-16"
           />
+          {showMatchIndicator && (
+            <div className="absolute right-10 top-1/2 -translate-y-1/2">
+              {passwordsMatch ? (
+                <Check className="w-4 h-4 text-green-600" aria-label="Passwords match" />
+              ) : (
+                <X className="w-4 h-4 text-red-600" aria-label="Passwords do not match" />
+              )}
+            </div>
+          )}
           <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}

@@ -138,10 +138,6 @@ export default function ApprovalsPage() {
   // Fetch approvals data
   const { data, isLoading, error } = useApprovals(filters)
 
-  // Calculate stats
-  const pendingCount = data?.meta.total || 0
-  const autoApprovedToday = 0 // Placeholder - will be implemented in later stories
-
   // Handle filter changes - reset to page 1
   const handleFilterChange = (callback: () => void) => {
     callback()
@@ -263,12 +259,7 @@ export default function ApprovalsPage() {
 
         {/* Stats */}
         <div className="mb-8">
-          <ApprovalStats
-            pendingCount={pendingCount}
-            autoApprovedToday={autoApprovedToday}
-            avgResponseTime="2.5h"
-            approvalRate={92}
-          />
+          <ApprovalStats />
         </div>
 
         {/* Filters */}

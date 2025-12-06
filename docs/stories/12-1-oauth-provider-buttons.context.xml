@@ -1,0 +1,629 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story>
+    <id>12-1</id>
+    <title>OAuth Provider Buttons</title>
+    <status>ready-for-dev</status>
+    <points>2</points>
+    <priority>P1</priority>
+    <epic>EPIC-12</epic>
+  </story>
+
+  <objective>
+    Add Microsoft and GitHub OAuth sign-in buttons to the sign-up page. The backend OAuth configuration already exists from EPIC-09 (Stories 09-1 and 09-2), but the sign-up form is missing these OAuth buttons while the sign-in form already has them.
+  </objective>
+
+  <background>
+    <existing-implementation>
+      <item>Microsoft OAuth backend configured in auth.ts (Story 09-1)</item>
+      <item>GitHub OAuth backend configured in auth.ts (Story 09-2)</item>
+      <item>Sign-in form already has functional Microsoft and GitHub buttons</item>
+      <item>Sign-up form only has Google OAuth button</item>
+      <item>Environment variables already documented in .env.example</item>
+    </existing-implementation>
+    <gap>
+      Sign-up form needs Microsoft and GitHub buttons added to match sign-in form parity.
+    </gap>
+  </background>
+
+  <implementation-guide>
+    <step order="1">
+      <action>Add Microsoft OAuth button to sign-up form</action>
+      <file>apps/web/src/components/auth/sign-up-form.tsx</file>
+      <details>
+        Add Microsoft button in the social sign-in section (lines 123-161).
+        Follow the exact pattern from sign-in-form.tsx lines 231-251.
+        Add state management for isMicrosoftLoading.
+        Add handleMicrosoftSignUp function following handleGoogleSignUp pattern.
+        Place Microsoft button between Google and the divider.
+      </details>
+      <code-reference>
+        <pattern-source>apps/web/src/components/auth/sign-in-form.tsx lines 135-149, 231-251</pattern-source>
+        <add-state>
+          const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false)
+        </add-state>
+        <add-handler>
+          const handleMicrosoftSignUp = async () => {
+            setIsMicrosoftLoading(true)
+            setError(null)
+            try {
+              await authClient.signIn.social({
+                provider: 'microsoft',
+                callbackURL: '/dashboard',
+              })
+              // Redirect happens automatically
+            } catch (error) {
+              console.error('Microsoft sign-up error:', error)
+              setError('Unable to sign up with Microsoft. Please try again or use email registration.')
+              setIsMicrosoftLoading(false)
+            }
+          }
+        </add-handler>
+        <add-button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleMicrosoftSignUp}
+            disabled={isMicrosoftLoading || isSubmitting || isGoogleLoading}
+          >
+            {isMicrosoftLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Connecting to Microsoft...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" />
+                </svg>
+                Continue with Microsoft
+              </>
+            )}
+          </Button>
+        </add-button>
+      </code-reference>
+    </step>
+
+    <step order="2">
+      <action>Add GitHub OAuth button to sign-up form</action>
+      <file>apps/web/src/components/auth/sign-up-form.tsx</file>
+      <details>
+        Add GitHub button after Microsoft button.
+        Follow the exact pattern from sign-in-form.tsx lines 253-273.
+        Add state management for isGitHubLoading.
+        Add handleGitHubSignUp function.
+        Place GitHub button between Microsoft and the divider.
+      </details>
+      <code-reference>
+        <pattern-source>apps/web/src/components/auth/sign-in-form.tsx lines 151-165, 253-273</pattern-source>
+        <add-state>
+          const [isGitHubLoading, setIsGitHubLoading] = useState(false)
+        </add-state>
+        <add-handler>
+          const handleGitHubSignUp = async () => {
+            setIsGitHubLoading(true)
+            setError(null)
+            try {
+              await authClient.signIn.social({
+                provider: 'github',
+                callbackURL: '/dashboard',
+              })
+              // Redirect happens automatically
+            } catch (error) {
+              console.error('GitHub sign-up error:', error)
+              setError('Unable to sign up with GitHub. Please try again or use email registration.')
+              setIsGitHubLoading(false)
+            }
+          }
+        </add-handler>
+        <add-button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleGitHubSignUp}
+            disabled={isGitHubLoading || isSubmitting || isGoogleLoading || isMicrosoftLoading}
+          >
+            {isGitHubLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Connecting to GitHub...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                </svg>
+                Continue with GitHub
+              </>
+            )}
+          </Button>
+        </add-button>
+      </code-reference>
+    </step>
+
+    <step order="3">
+      <action>Update button disabled states</action>
+      <file>apps/web/src/components/auth/sign-up-form.tsx</file>
+      <details>
+        Update Google button disabled state to include isMicrosoftLoading and isGitHubLoading.
+        Ensure all three OAuth buttons are mutually exclusive (disable all when any is loading).
+        This prevents concurrent OAuth operations and race conditions.
+      </details>
+      <code-reference>
+        <update-google-button>
+          disabled={isGoogleLoading || isSubmitting || isMicrosoftLoading || isGitHubLoading}
+        </update-google-button>
+      </code-reference>
+    </step>
+
+    <step order="4">
+      <action>Verify error handling</action>
+      <file>apps/web/src/components/auth/sign-up-form.tsx</file>
+      <details>
+        Confirm error messages are user-friendly and consistent.
+        Use the same error message pattern for all OAuth providers.
+        Ensure errors don't leak provider-specific details.
+      </details>
+    </step>
+  </implementation-guide>
+
+  <existing-code>
+    <file path="apps/web/src/lib/auth.ts">
+      <description>OAuth providers already configured</description>
+      <relevant-sections>
+        <section name="OAuth Configuration" lines="71-88">
+          socialProviders: {
+            google: {
+              clientId: process.env.GOOGLE_CLIENT_ID!,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+              redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/google`,
+            },
+            microsoft: {
+              clientId: process.env.MICROSOFT_CLIENT_ID!,
+              clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
+              redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/microsoft`,
+            },
+            github: {
+              clientId: process.env.GITHUB_CLIENT_ID!,
+              clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+              redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/github`,
+            },
+          }
+        </section>
+      </relevant-sections>
+      <note>No changes needed - all providers already configured</note>
+    </file>
+
+    <file path="apps/web/src/components/auth/sign-in-form.tsx">
+      <description>Reference implementation with all three OAuth buttons working</description>
+      <relevant-sections>
+        <section name="State Management" lines="22-25">
+          const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+          const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false)
+          const [isGitHubLoading, setIsGitHubLoading] = useState(false)
+        </section>
+        <section name="Microsoft Handler" lines="135-149">
+          const handleMicrosoftSignIn = async () => {
+            setIsMicrosoftLoading(true)
+            setError(null)
+            try {
+              await authClient.signIn.social({
+                provider: 'microsoft',
+                callbackURL: '/dashboard',
+              })
+              // Redirect happens automatically
+            } catch (error) {
+              console.error('Microsoft sign-in error:', error)
+              setError('OAUTH_ERROR')
+              setIsMicrosoftLoading(false)
+            }
+          }
+        </section>
+        <section name="GitHub Handler" lines="151-165">
+          const handleGitHubSignIn = async () => {
+            setIsGitHubLoading(true)
+            setError(null)
+            try {
+              await authClient.signIn.social({
+                provider: 'github',
+                callbackURL: '/dashboard',
+              })
+              // Redirect happens automatically
+            } catch (error) {
+              console.error('GitHub sign-in error:', error)
+              setError('OAUTH_ERROR')
+              setIsGitHubLoading(false)
+            }
+          }
+        </section>
+        <section name="Microsoft Button" lines="231-251">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleMicrosoftSignIn}
+            disabled={isMicrosoftLoading || isSubmitting || isGoogleLoading || isGitHubLoading}
+          >
+            {isMicrosoftLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Connecting to Microsoft...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" />
+                </svg>
+                Continue with Microsoft
+              </>
+            )}
+          </Button>
+        </section>
+        <section name="GitHub Button" lines="253-273">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleGitHubSignIn}
+            disabled={isGitHubLoading || isSubmitting || isGoogleLoading || isMicrosoftLoading}
+          >
+            {isGitHubLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Connecting to GitHub...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                </svg>
+                Continue with GitHub
+              </>
+            )}
+          </Button>
+        </section>
+      </relevant-sections>
+      <note>This file is the reference implementation to replicate in sign-up-form.tsx</note>
+    </file>
+
+    <file path="apps/web/src/components/auth/sign-up-form.tsx">
+      <description>Sign-up form with only Google OAuth button currently</description>
+      <relevant-sections>
+        <section name="Current State" lines="15-21">
+          const [showPassword, setShowPassword] = useState(false)
+          const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+          const [isSubmitting, setIsSubmitting] = useState(false)
+          const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+          const [success, setSuccess] = useState(false)
+          const [error, setError] = useState&lt;string | null&gt;(null)
+        </section>
+        <section name="Google Handler" lines="35-49">
+          const handleGoogleSignUp = async () => {
+            setIsGoogleLoading(true)
+            setError(null)
+            try {
+              await authClient.signIn.social({
+                provider: 'google',
+                callbackURL: '/dashboard',
+              })
+              // Redirect happens automatically
+            } catch (error) {
+              console.error('Google sign-up error:', error)
+              setError('Unable to sign up with Google. Please try again or use email registration.')
+              setIsGoogleLoading(false)
+            }
+          }
+        </section>
+        <section name="Google Button Section" lines="123-161">
+          {/* Google Sign-Up Button */}
+          <div className="space-y-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleGoogleSignUp}
+              disabled={isGoogleLoading || isSubmitting}
+            >
+              {isGoogleLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Connecting to Google...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                    {/* Google icon paths */}
+                  </svg>
+                  Continue with Google
+                </>
+              )}
+            </Button>
+          </div>
+        </section>
+      </relevant-sections>
+      <note>Add Microsoft and GitHub buttons in the same space-y-3 div after Google button</note>
+    </file>
+
+    <file path="apps/web/src/lib/auth-client.ts">
+      <description>Auth client with social sign-in method</description>
+      <note>No changes needed - authClient.signIn.social() already supports all providers</note>
+    </file>
+  </existing-code>
+
+  <code-patterns>
+    <pattern name="OAuth Sign-Up Button">
+      <description>Standard pattern for OAuth buttons in sign-up form</description>
+      <example>
+        // State
+        const [isProviderLoading, setIsProviderLoading] = useState(false)
+
+        // Handler
+        const handleProviderSignUp = async () => {
+          setIsProviderLoading(true)
+          setError(null)
+          try {
+            await authClient.signIn.social({
+              provider: 'provider-name',
+              callbackURL: '/dashboard',
+            })
+            // Redirect happens automatically
+          } catch (error) {
+            console.error('Provider sign-up error:', error)
+            setError('Unable to sign up with Provider. Please try again or use email registration.')
+            setIsProviderLoading(false)
+          }
+        }
+
+        // Button
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleProviderSignUp}
+          disabled={isProviderLoading || isSubmitting || isGoogleLoading || ...other OAuth loading states}
+        >
+          {isProviderLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Connecting to Provider...
+            </>
+          ) : (
+            <>
+              <ProviderIcon className="w-5 h-5 mr-2" />
+              Continue with Provider
+            </>
+          )}
+        </Button>
+      </example>
+    </pattern>
+
+    <pattern name="Microsoft Icon SVG">
+      <description>4-square Microsoft logo</description>
+      <svg>
+        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" />
+        </svg>
+      </svg>
+    </pattern>
+
+    <pattern name="GitHub Icon SVG">
+      <description>GitHub logo</description>
+      <svg>
+        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+        </svg>
+      </svg>
+    </pattern>
+
+    <pattern name="Button Order">
+      <description>OAuth buttons should appear in this order</description>
+      <order>
+        1. Google (already implemented)
+        2. Microsoft (add this)
+        3. GitHub (add this)
+        4. Divider with "Or sign up with email"
+        5. Email/password form
+      </order>
+    </pattern>
+  </code-patterns>
+
+  <files-to-modify>
+    <file>
+      <path>apps/web/src/components/auth/sign-up-form.tsx</path>
+      <changes>
+        <change>Add isMicrosoftLoading and isGitHubLoading state variables</change>
+        <change>Add handleMicrosoftSignUp handler function</change>
+        <change>Add handleGitHubSignUp handler function</change>
+        <change>Add Microsoft OAuth button between Google and divider</change>
+        <change>Add GitHub OAuth button between Microsoft and divider</change>
+        <change>Update all button disabled states to be mutually exclusive</change>
+      </changes>
+      <lines-affected>
+        <range>19-21 (state additions)</range>
+        <range>35-65 (add two new handler functions after handleGoogleSignUp)</range>
+        <range>123-161 (button additions in social sign-in section)</range>
+      </lines-affected>
+    </file>
+  </files-to-modify>
+
+  <testing-requirements>
+    <manual-tests>
+      <test>Microsoft button appears on sign-up page below Google button</test>
+      <test>GitHub button appears on sign-up page below Microsoft button</test>
+      <test>All three OAuth buttons have consistent styling</test>
+      <test>Microsoft button shows loading state during OAuth flow</test>
+      <test>GitHub button shows loading state during OAuth flow</test>
+      <test>All buttons are disabled when any OAuth flow is in progress</test>
+      <test>Error messages display correctly for failed OAuth attempts</test>
+      <test>Successful OAuth sign-up redirects to dashboard</test>
+      <test>Button icons match sign-in page implementation</test>
+      <test>Button spacing and layout matches wireframe AU-02</test>
+    </manual-tests>
+
+    <visual-tests>
+      <test>Compare sign-up page OAuth buttons to sign-in page (should match exactly)</test>
+      <test>Verify button order: Google → Microsoft → GitHub → Divider</test>
+      <test>Check icon sizes are consistent (w-5 h-5)</test>
+      <test>Verify spacing between buttons (space-y-3)</test>
+    </visual-tests>
+
+    <integration-tests>
+      <test>Test Microsoft OAuth flow from sign-up page to dashboard</test>
+      <test>Test GitHub OAuth flow from sign-up page to dashboard</test>
+      <test>Test account creation with new Microsoft account</test>
+      <test>Test account creation with new GitHub account</test>
+      <test>Test account linking when email already exists</test>
+    </integration-tests>
+  </testing-requirements>
+
+  <acceptance-criteria>
+    <criterion id="AC1" status="pending">Add Microsoft OAuth button to sign-in page</criterion>
+    <note>Sign-in page already has Microsoft button from Story 09-1 - NO CHANGES NEEDED</note>
+
+    <criterion id="AC2" status="pending">Add GitHub OAuth button to sign-in page</criterion>
+    <note>Sign-in page already has GitHub button from Story 09-2 - NO CHANGES NEEDED</note>
+
+    <criterion id="AC3" status="pending">Configure better-auth for Microsoft provider</criterion>
+    <note>Already configured in auth.ts from Story 09-1 - NO CHANGES NEEDED</note>
+
+    <criterion id="AC4" status="pending">Configure better-auth for GitHub provider</criterion>
+    <note>Already configured in auth.ts from Story 09-2 - NO CHANGES NEEDED</note>
+
+    <criterion id="AC5" status="pending">Match wireframe styling (icon + text, proper spacing)</criterion>
+    <note>Follow sign-in-form.tsx implementation exactly - buttons already match wireframes</note>
+
+    <criterion id="AC6" status="pending">Add buttons to sign-up page as well</criterion>
+    <note>THIS IS THE ACTUAL WORK - Add Microsoft and GitHub buttons to sign-up-form.tsx</note>
+
+    <criterion id="AC7" status="pending">Handle OAuth errors gracefully with user-friendly messages</criterion>
+    <note>Follow existing error pattern from sign-up form Google OAuth</note>
+
+    <criterion id="AC8" status="pending">Update environment variables documentation</criterion>
+    <note>Already documented in .env.example from Stories 09-1 and 09-2 - NO CHANGES NEEDED</note>
+  </acceptance-criteria>
+
+  <wireframe-reference>
+    <wireframe id="AU-01" name="Sign-In Page">
+      <location>docs/design/wireframes/Finished wireframes and html files/au-01_login_page/</location>
+      <note>Reference for button styling - sign-in already implemented</note>
+    </wireframe>
+    <wireframe id="AU-02" name="Sign-Up Page">
+      <location>docs/design/wireframes/Finished wireframes and html files/au-02_register/sign_up/</location>
+      <note>Target page for implementation - shows OAuth buttons at top</note>
+    </wireframe>
+  </wireframe-reference>
+
+  <dependencies>
+    <dependency type="story" status="complete">
+      <id>09-1</id>
+      <name>Implement Microsoft OAuth</name>
+      <note>Backend configuration complete, sign-in button implemented</note>
+    </dependency>
+
+    <dependency type="story" status="complete">
+      <id>09-2</id>
+      <name>Implement GitHub OAuth</name>
+      <note>Backend configuration complete, sign-in button implemented</note>
+    </dependency>
+  </dependencies>
+
+  <implementation-notes>
+    <note>
+      <title>This is UI-Only Work</title>
+      <content>
+        All backend OAuth configuration is already complete from EPIC-09.
+        This story only adds the missing buttons to the sign-up form.
+        No changes needed to auth.ts, auth-client.ts, or environment variables.
+        Simply replicate the sign-in form's OAuth buttons in the sign-up form.
+      </content>
+    </note>
+
+    <note>
+      <title>Pattern Consistency</title>
+      <content>
+        The sign-in-form.tsx file is the reference implementation.
+        Copy the exact pattern for state management, handlers, and button structure.
+        Only difference: use "sign-up" instead of "sign-in" in error messages and console logs.
+      </content>
+    </note>
+
+    <note>
+      <title>Button Placement</title>
+      <content>
+        Insert Microsoft and GitHub buttons within the existing space-y-3 div that contains the Google button.
+        Maintain the order: Google → Microsoft → GitHub → Divider → Email form.
+        This matches the sign-in page layout.
+      </content>
+    </note>
+
+    <note>
+      <title>Error Message Wording</title>
+      <content>
+        Sign-up form uses more descriptive error messages than sign-in form.
+        Sign-in uses generic "OAUTH_ERROR" constant.
+        Sign-up uses string: "Unable to sign up with [Provider]. Please try again or use email registration."
+        Follow sign-up form's existing Google OAuth error message pattern.
+      </content>
+    </note>
+
+    <note>
+      <title>Loading State Management</title>
+      <content>
+        All three OAuth buttons must be disabled when any one is loading.
+        This prevents concurrent OAuth operations and race conditions.
+        Update Google button's disabled prop to include isMicrosoftLoading and isGitHubLoading.
+      </content>
+    </note>
+  </implementation-notes>
+
+  <security-considerations>
+    <consideration>
+      <title>OAuth Security Already Implemented</title>
+      <description>
+        All OAuth security measures are in the backend configuration from Stories 09-1 and 09-2.
+        Account linking is secured via email verification.
+        Tokens are stored securely in the Account model.
+        This story only adds UI buttons - no security changes needed.
+      </description>
+    </consideration>
+
+    <consideration>
+      <title>Error Message Safety</title>
+      <description>
+        Use generic error messages that don't leak provider-specific details.
+        Follow the existing pattern from Google OAuth in sign-up form.
+        Don't expose whether an account exists or other sensitive information.
+      </description>
+    </consideration>
+  </security-considerations>
+
+  <success-metrics>
+    <metric>Sign-up page has three OAuth buttons (Google, Microsoft, GitHub) matching sign-in page</metric>
+    <metric>Button styling is consistent between sign-in and sign-up pages</metric>
+    <metric>All buttons show proper loading states during OAuth flows</metric>
+    <metric>Error handling works correctly for all three providers</metric>
+    <metric>Users can successfully sign up via Microsoft or GitHub OAuth</metric>
+  </success-metrics>
+
+  <implementation-hints>
+    <hint>This is a straightforward copy-paste task - follow sign-in-form.tsx exactly</hint>
+    <hint>The hardest part is already done (backend config) - this is just UI</hint>
+    <hint>Test with actual Microsoft and GitHub OAuth credentials to verify flows work</hint>
+    <hint>Use browser dev tools to compare sign-in and sign-up button styling side-by-side</hint>
+    <hint>All three buttons should look identical in terms of size, spacing, and behavior</hint>
+  </implementation-hints>
+
+  <related-stories>
+    <story id="09-1" name="Implement Microsoft OAuth">
+      <relationship>Backend configuration that this story builds upon</relationship>
+    </story>
+    <story id="09-2" name="Implement GitHub OAuth">
+      <relationship>Backend configuration that this story builds upon</relationship>
+    </story>
+    <story id="12-2" name="Confirm Password Field">
+      <relationship>Next story in EPIC-12, also enhances sign-up form</relationship>
+    </story>
+  </related-stories>
+</story-context>

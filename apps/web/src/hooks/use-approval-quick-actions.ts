@@ -4,11 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { ApprovalItem } from '@hyvve/shared'
 import { apiPost } from '@/lib/api-client'
-
-/**
- * API base URL for the NestJS backend
- */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+import { NESTJS_API_URL } from '@/lib/api-config'
 
 /**
  * Request body for approve/reject actions
@@ -45,11 +41,23 @@ async function performApprovalAction(
   action: ApprovalActionType,
   data: ApprovalActionRequest = {}
 ): Promise<ApprovalResponse> {
-  const response = await apiPost(`/api/approvals/${id}/${action}`, data, {
-    baseURL: API_BASE_URL,
-  })
+  let response: Response
+
+  try {
+    response = await apiPost(`/api/approvals/${id}/${action}`, data, {
+      baseURL: NESTJS_API_URL,
+    })
+  } catch (err) {
+    // Network error - API server may not be running
+    console.error(`[ApprovalService] Network error during ${action}:`, err)
+    throw new Error('Unable to connect to approval service. Please try again later.')
+  }
 
   if (!response.ok) {
+    if (response.status === 404) {
+      console.warn(`[ApprovalService] ${action} endpoint not found (404) - backend may not be configured`)
+      throw new Error('Approval endpoint not found. Backend may not be configured.')
+    }
     const error = await response.json().catch(() => ({ message: `Failed to ${action}` }))
     throw new Error(error.message || `Failed to ${action}`)
   }
@@ -194,8 +202,8 @@ export function useApprovalQuickActions() {
   })
 
   return {
-    approve: approveMutation.mutateAsync,
-    reject: rejectMutation.mutateAsync,
+    approve: approveMutation.mutate,
+    reject: rejectMutation.mutate,
     isApproving: approveMutation.isPending,
     isRejecting: rejectMutation.isPending,
     approveError: approveMutation.error,
