@@ -282,7 +282,7 @@ development_status:
   # Depends on: EPIC-11
   # ===========================================
   epic-13: contexted
-  13-1-agent-card-components: drafted
+  13-1-agent-card-components: done
   13-2-agent-detail-modal: backlog
   13-3-agent-activity-feed: backlog
   13-4-agent-configuration-page: backlog
