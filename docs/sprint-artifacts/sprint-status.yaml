@@ -274,7 +274,7 @@ development_status:
   12-6-countdown-timers: done
   12-7-approval-metrics-calculation: done
   12-8-chat-error-and-preview-cards: done
-  epic-12-retrospective: optional
+  epic-12-retrospective: completed
 
   # ===========================================
   # EPIC-13: AI Agent Management
@@ -292,8 +292,8 @@ development_status:
 
   # ===========================================
   # EPIC-14: Testing & Observability
-  # Testing Gaps & Monitoring | 6 stories | 18 points
-  # Partial dependencies on: EPIC-10, EPIC-11
+  # Testing Gaps & Monitoring | 14 stories | 32 points
+  # Partial dependencies on: EPIC-10, EPIC-11, EPIC-12
   # ===========================================
   epic-14: backlog
   14-1-rate-limit-concurrency-tests: backlog
@@ -301,5 +301,13 @@ development_status:
   14-3-file-upload-pipeline-tests: backlog
   14-4-prometheus-metrics-export: backlog
   14-5-operational-runbooks: backlog
-  14-6-csrf-integration-tests: backlog  # NEW - Added from Epic 10 tech debt
+  14-6-csrf-integration-tests: backlog  # Added from Epic 10 tech debt
+  14-7-api-url-centralization: backlog  # NEW - Added from Epic 12 tech debt (HIGH)
+  14-8-optimistic-update-type-safety: backlog  # NEW - Added from Epic 12 tech debt (HIGH)
+  14-9-approval-quick-actions-tests: backlog  # NEW - Added from Epic 12 tech debt
+  14-10-countdown-timer-optimization: backlog  # NEW - Added from Epic 12 tech debt
+  14-11-password-match-validation-fix: backlog  # NEW - Added from Epic 12 tech debt
+  14-12-error-boundary-monitoring: backlog  # NEW - Added from Epic 12 tech debt
+  14-13-mock-data-extraction: backlog  # NEW - Added from Epic 12 tech debt
+  14-14-oauth-flow-e2e-tests: backlog  # NEW - Added from Epic 12 tech debt
   epic-14-retrospective: optional
