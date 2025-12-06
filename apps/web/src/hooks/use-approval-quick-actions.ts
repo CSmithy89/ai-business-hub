@@ -25,6 +25,17 @@ export interface ApprovalResponse {
  */
 type ApprovalActionType = 'approve' | 'reject'
 
+export function buildOptimisticReviewedItem(
+  item: ApprovalItem,
+  status: 'approved' | 'rejected'
+): ApprovalItem {
+  return {
+    ...item,
+    status,
+    reviewedAt: new Date().toISOString(),
+  }
+}
+
 /**
  * Perform an approval action (approve or reject)
  *
@@ -117,7 +128,7 @@ export function useApprovalQuickActions() {
             ...old,
             data: old.data.map((item) =>
               item.id === id
-                ? { ...item, status: 'approved' as const, reviewedAt: new Date() }
+                ? buildOptimisticReviewedItem(item, 'approved')
                 : item
             ),
           }
@@ -172,7 +183,7 @@ export function useApprovalQuickActions() {
             ...old,
             data: old.data.map((item) =>
               item.id === id
-                ? { ...item, status: 'rejected' as const, reviewedAt: new Date() }
+                ? buildOptimisticReviewedItem(item, 'rejected')
                 : item
             ),
           }
