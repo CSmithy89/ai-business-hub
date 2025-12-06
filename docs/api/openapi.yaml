@@ -43,6 +43,8 @@ tags:
     description: BYOAI configuration
   - name: Notifications
     description: User notifications
+  - name: Agents
+    description: Agent team execution and health monitoring
 
 paths:
   # ============================================
@@ -842,6 +844,135 @@ paths:
         '200':
           description: Notifications marked as read
 
+  # ============================================
+  # AGENTS
+  # ============================================
+  /agents/validation/runs:
+    post:
+      tags: [Agents]
+      summary: Run Vera's validation team
+      description: |
+        Execute the validation team to analyze business ideas. Includes market sizing,
+        competitor analysis, customer discovery, and risk assessment.
+      operationId: runValidationTeam
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamRunRequest'
+      responses:
+        '200':
+          description: Team execution result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamRunResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /agents/validation/health:
+    get:
+      tags: [Agents]
+      summary: Health check for validation team
+      description: Returns team status, leader, and member information. Does not require authentication.
+      operationId: checkValidationHealth
+      responses:
+        '200':
+          description: Team health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamHealthResponse'
+
+  /agents/planning/runs:
+    post:
+      tags: [Agents]
+      summary: Run Blake's planning team
+      description: |
+        Execute the planning team to create business plans. Includes business model canvas,
+        financial projections, and go-to-market strategy.
+      operationId: runPlanningTeam
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamRunRequest'
+      responses:
+        '200':
+          description: Team execution result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamRunResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /agents/planning/health:
+    get:
+      tags: [Agents]
+      summary: Health check for planning team
+      description: Returns team status, leader, and member information. Does not require authentication.
+      operationId: checkPlanningHealth
+      responses:
+        '200':
+          description: Team health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamHealthResponse'
+
+  /agents/branding/runs:
+    post:
+      tags: [Agents]
+      summary: Run Bella's branding team
+      description: |
+        Execute the branding team to create brand identity. Includes brand strategy,
+        voice guidelines, visual identity, and asset specifications.
+      operationId: runBrandingTeam
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamRunRequest'
+      responses:
+        '200':
+          description: Team execution result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamRunResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /agents/branding/health:
+    get:
+      tags: [Agents]
+      summary: Health check for branding team
+      description: Returns team status, leader, and member information. Does not require authentication.
+      operationId: checkBrandingHealth
+      responses:
+        '200':
+          description: Team health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamHealthResponse'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1211,3 +1342,98 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    TeamRunRequest:
+      type: object
+      required: [message, business_id]
+      properties:
+        message:
+          type: string
+          description: User's message/query for the team
+          example: "Please validate my SaaS business idea"
+        business_id:
+          type: string
+          description: Business context identifier
+          example: "biz_abc123"
+        session_id:
+          type: string
+          description: Optional session ID for conversation continuity (auto-generated if not provided)
+          example: "val_user123_1701878400"
+        model_override:
+          type: string
+          description: Optional model override (defaults to claude-sonnet-4-20250514)
+          example: "claude-sonnet-4-20250514"
+        context:
+          type: object
+          description: Additional context for workflow handoff
+          additionalProperties: true
+          example:
+            validation_output: "Previous validation results..."
+            validation_session: "val_123"
+
+    TeamRunResponse:
+      type: object
+      required: [success, session_id, metadata]
+      properties:
+        success:
+          type: boolean
+          description: Whether the team execution succeeded
+        content:
+          type: string
+          description: Team's response content (markdown formatted)
+        session_id:
+          type: string
+          description: Session ID for conversation continuity
+        agent_name:
+          type: string
+          description: Name of the agent that responded (e.g., "Vera", "Blake", "Bella")
+        error:
+          type: string
+          description: Error message if execution failed
+        metadata:
+          type: object
+          required: [business_id, team, workspace_id]
+          properties:
+            business_id:
+              type: string
+              description: Business context identifier
+            team:
+              type: string
+              description: Team identifier (validation, planning, branding)
+            workspace_id:
+              type: string
+              description: Workspace context from JWT
+
+    TeamHealthResponse:
+      type: object
+      required: [status, team]
+      properties:
+        status:
+          type: string
+          enum: [ok, error]
+          description: Health check status
+        team:
+          type: string
+          enum: [validation, planning, branding]
+          description: Team identifier
+        leader:
+          type: string
+          description: Team leader name
+          example: "Vera"
+        members:
+          type: array
+          items:
+            type: string
+          description: List of team member names
+          example: ["Marco", "Cipher", "Persona", "Risk"]
+        version:
+          type: string
+          description: API version
+          example: "0.1.0"
+        storage:
+          type: string
+          description: Session storage table name
+          example: "bmv_validation_sessions"
+        error:
+          type: string
+          description: Error message if status is error

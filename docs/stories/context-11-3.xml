@@ -1,0 +1,115 @@
+<story_context>
+  <story_id>11.3</story_id>
+  <title>Wire Branding Team API Endpoint</title>
+
+  <existing_patterns>
+    <validation_team_endpoint>
+      <location>agents/main.py:451-553</location>
+      <pattern>
+        - Import: from validation.team import create_validation_team
+        - POST endpoint: /agents/validation/runs
+        - GET health endpoint: /agents/validation/health
+        - Session ID prefix: val_
+        - Extract workspace_id and user_id from middleware
+        - Validate authentication (401 if missing)
+        - Create team with session context
+        - Call team.arun(message) asynchronously
+        - Return TeamRunResponse
+        - Error handling with logging and 500 status
+      </pattern>
+    </validation_team_endpoint>
+
+    <planning_team_endpoint>
+      <location>agents/main.py:560-662</location>
+      <pattern>
+        - Import: from planning.team import create_planning_team
+        - POST endpoint: /agents/planning/runs
+        - GET health endpoint: /agents/planning/health
+        - Session ID prefix: plan_
+        - Same authentication pattern as validation
+        - TeamRunRequest.context field for handoff data (validationData)
+        - Returns TeamRunResponse with Blake as agent_name
+        - Health check returns team info without auth
+      </pattern>
+    </planning_team_endpoint>
+  </existing_patterns>
+
+  <branding_team_structure>
+    <factory_function>create_branding_team</factory_function>
+    <location>agents/branding/team.py:235-347</location>
+    <parameters>
+      - session_id: str (required)
+      - user_id: str (required)
+      - business_id: Optional[str] = None
+      - model: Optional[str] = None
+      - debug_mode: bool = False
+      - business_context: Optional[dict] = None
+    </parameters>
+    <leader>Bella (Brand Orchestrator)</leader>
+    <members>
+      - Sage (Brand Strategist)
+      - Vox (Voice Architect)
+      - Iris (Visual Identity Designer)
+      - Artisan (Asset Generator)
+      - Audit (Brand Auditor)
+    </members>
+    <storage_table>bmb_branding_sessions</storage_table>
+    <default_model>claude-sonnet-4-20250514</default_model>
+  </branding_team_structure>
+
+  <request_models>
+    <TeamRunRequest>
+      <fields>
+        - message: str (required)
+        - business_id: str (required)
+        - session_id: Optional[str] = None
+        - model_override: Optional[str] = None
+        - context: Optional[dict] = None  # For planningData handoff
+      </fields>
+      <location>agents/main.py:87-93</location>
+    </TeamRunRequest>
+
+    <TeamRunResponse>
+      <fields>
+        - success: bool
+        - content: Optional[str] = None
+        - session_id: str
+        - agent_name: Optional[str] = None
+        - error: Optional[str] = None
+        - metadata: dict = {}
+      </fields>
+      <location>agents/main.py:96-103</location>
+    </TeamRunResponse>
+  </request_models>
+
+  <implementation_requirements>
+    <ac1>Add POST /agents/branding/runs endpoint</ac1>
+    <ac2>Import create_branding_team from agents/branding/team.py</ac2>
+    <ac3>Accept TeamRunRequest with planningData in context field</ac3>
+    <ac4>SSE streaming handled by team.arun() - no extra config needed</ac4>
+    <ac5>Pass context field to team for planning output continuity</ac5>
+    <ac6>Tenant isolation via middleware (workspace_id, user_id)</ac6>
+    <ac7>Add GET /agents/branding/health endpoint</ac7>
+  </implementation_requirements>
+
+  <key_differences>
+    <session_prefix>brand_</session_prefix>
+    <team_name>branding</team_name>
+    <leader_name>Bella</leader_name>
+    <storage_table>bmb_branding_sessions</storage_table>
+    <context_field>planningData (from planning team output)</context_field>
+    <members_list>["Sage", "Vox", "Iris", "Artisan", "Audit"]</members_list>
+  </key_differences>
+
+  <middleware_context>
+    <tenant_middleware>
+      <location>middleware/tenant.py</location>
+      <provides>
+        - request.state.workspace_id: Workspace ID from JWT
+        - request.state.user_id: User ID from JWT
+        - request.state.jwt_token: Original JWT token
+      </provides>
+      <validation>Returns 401 if JWT invalid or missing workspace context</validation>
+    </tenant_middleware>
+  </middleware_context>
+</story_context>

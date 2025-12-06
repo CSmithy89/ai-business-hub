@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>11-4-connect-frontend-workflow-pages</story-id>
+    <epic>EPIC-11</epic>
+    <title>Connect Frontend Workflow Pages</title>
+    <generated-date>2025-12-06</generated-date>
+  </metadata>
+
+  <exploration>
+    <summary>
+      Explored the existing workflow pages and agent API structure to understand
+      how to connect frontend to the real FastAPI agent endpoints.
+    </summary>
+
+    <key-findings>
+      <finding category="page-locations">
+        The workflow pages exist at:
+        - /apps/web/src/app/(dashboard)/dashboard/[businessId]/validation/page.tsx
+        - /apps/web/src/app/(dashboard)/dashboard/[businessId]/planning/page.tsx
+        - /apps/web/src/app/(dashboard)/dashboard/[businessId]/branding/page.tsx
+
+        NOT at the (onboarding)/onboarding/[businessId] paths mentioned in the epic.
+        The epic file references are incorrect - pages are in (dashboard) route group.
+      </finding>
+
+      <finding category="current-implementation">
+        All three pages currently use mock data:
+        - validation/page.tsx: Uses getMockResponse() function (lines 376-407)
+        - planning/page.tsx: Calls real APIs for canvas/financials/plan but has fallback mocks
+        - branding/page.tsx: Uses mock data entirely
+
+        The planning page shows the pattern we need:
+        - It already calls API routes at /api/planning/{businessId}/{workflow}
+        - These are Next.js API routes, not direct FastAPI calls
+      </finding>
+
+      <finding category="fastapi-endpoints">
+        From Story 11.1-11.3, the FastAPI endpoints are:
+        - POST /agents/validation/runs
+        - POST /agents/planning/runs
+        - POST /agents/branding/runs
+
+        Each accepts TeamRunRequest:
+        {
+          message: string,
+          business_id: string,
+          session_id?: string,
+          model_override?: string,
+          context?: dict
+        }
+
+        Each returns TeamRunResponse:
+        {
+          success: bool,
+          content?: string,
+          session_id: string,
+          agent_name?: string,
+          error?: string,
+          metadata: dict
+        }
+      </finding>
+
+      <finding category="authentication">
+        FastAPI uses TenantMiddleware which:
+        - Expects JWT in Authorization header
+        - Extracts workspace_id and user_id from JWT
+        - Returns 401 if auth is missing
+
+        NestJS backend (port 3001) uses cookies with credentials: 'include'
+        FastAPI (port 8001) will need JWT token from Next.js session
+      </finding>
+
+      <finding category="environment-variables">
+        Existing pattern uses:
+        - NEXT_PUBLIC_API_URL for NestJS backend (http://localhost:3001)
+
+        Need to add:
+        - NEXT_PUBLIC_AGENT_API_URL for FastAPI (http://localhost:8001)
+      </finding>
+
+      <finding category="auth-client">
+        Better Auth client at /apps/web/src/lib/auth-client.ts provides:
+        - useSession() hook to get current session
+        - Session includes token for JWT
+        - getCurrentSessionToken() helper
+      </finding>
+
+      <finding category="agent-teams">
+        Agent teams and members from pages:
+
+        Validation (Vera's team):
+        - vera: Validation Lead
+        - marco: Market Research
+        - cipher: Competitor Analysis
+        - persona: Customer Research
+        - risk: Feasibility Analyst
+
+        Planning (Blake's team):
+        - blake: Planning Lead
+        - model: Business Model Expert
+        - finance: Financial Analyst
+        - revenue: Monetization Strategist
+        - forecast: Growth Forecaster
+
+        Branding (Bella's team):
+        - bella: Brand Team Lead
+        - sage: Brand Strategist
+        - vox: Voice Architect
+        - iris: Visual Designer
+        - artisan: Asset Generator
+        - audit: Brand Auditor
+      </finding>
+
+      <finding category="sse-streaming">
+        Story 11.1-11.3 note that SSE streaming is NOT yet implemented.
+        The endpoints currently return synchronous responses.
+        AC2 requires SSE streaming handler, but may need to start with sync
+        and add SSE in a follow-up enhancement.
+      </finding>
+    </key-findings>
+
+    <files-examined>
+      <file path="docs/epics/EPIC-11-agent-integration.md">
+        Epic overview, story details, architecture diagram
+      </file>
+      <file path="docs/epics/EPIC-08-business-onboarding.md">
+        Business onboarding workflows, agent team structure
+      </file>
+      <file path="apps/web/src/app/(dashboard)/dashboard/[businessId]/validation/page.tsx">
+        Current validation page with mock responses
+      </file>
+      <file path="apps/web/src/app/(dashboard)/dashboard/[businessId]/planning/page.tsx">
+        Current planning page with mixed real/mock APIs
+      </file>
+      <file path="apps/web/src/app/(dashboard)/dashboard/[businessId]/branding/page.tsx">
+        Current branding page with mock responses
+      </file>
+      <file path="apps/web/src/lib/auth-client.ts">
+        Better Auth client, useSession hook
+      </file>
+      <file path="apps/web/src/hooks/use-approvals.ts">
+        Pattern for API calls with credentials: 'include'
+      </file>
+      <file path="docs/stories/11-1-wire-validation-team-api-endpoint.md">
+        FastAPI endpoint implementation details
+      </file>
+      <file path="apps/web/src/components/shell/ChatPanel.tsx">
+        Chat panel component structure
+      </file>
+    </files-examined>
+
+    <technical-constraints>
+      <constraint>
+        FastAPI runs on port 8001, NestJS on port 3001.
+        Need separate environment variable for agent API.
+      </constraint>
+      <constraint>
+        FastAPI expects JWT in Authorization header, not cookies.
+        Must extract token from Better Auth session.
+      </constraint>
+      <constraint>
+        SSE streaming not yet implemented in FastAPI endpoints.
+        May need to start with sync responses and add streaming later.
+      </constraint>
+      <constraint>
+        Pages expect specific message format with agent names.
+        Must map TeamRunResponse.agent_name to page's agent objects.
+      </constraint>
+    </technical-constraints>
+
+    <design-decisions>
+      <decision>
+        Create centralized agent-client.ts instead of modifying pages directly.
+        This provides:
+        - Single source of truth for API calls
+        - Consistent error handling
+        - Easy testing and mocking
+        - Type safety across all pages
+      </decision>
+
+      <decision>
+        Use fetch API with Authorization header for JWT.
+        Match existing pattern from use-approvals.ts but add JWT token.
+      </decision>
+
+      <decision>
+        Start with synchronous responses, add SSE streaming as enhancement.
+        FastAPI endpoints don't support SSE yet per Story 11.1-11.3 notes.
+      </decision>
+
+      <decision>
+        Keep existing mock fallback for development/testing.
+        Real API calls wrapped in try/catch with mock fallback.
+      </decision>
+    </design-decisions>
+  </exploration>
+
+  <implementation-plan>
+    <step number="1">
+      <description>Create agent-client.ts with core types and client class</description>
+      <files>
+        - apps/web/src/lib/agent-client.ts (create)
+      </files>
+      <details>
+        - AgentRequest interface
+        - AgentResponse interface
+        - AgentClient class with methods:
+          - runValidation()
+          - runPlanning()
+          - runBranding()
+        - Error handling and retry logic
+        - JWT token extraction from session
+      </details>
+    </step>
+
+    <step number="2">
+      <description>Update environment variables</description>
+      <files>
+        - apps/web/.env.example (modify)
+      </files>
+      <details>
+        Add NEXT_PUBLIC_AGENT_API_URL=http://localhost:8001
+      </details>
+    </step>
+
+    <step number="3">
+      <description>Update validation page to use agent client</description>
+      <files>
+        - apps/web/src/app/(dashboard)/dashboard/[businessId]/validation/page.tsx
+      </files>
+      <details>
+        - Import agent client
+        - Replace getMockResponse with real API call
+        - Handle loading states
+        - Handle errors gracefully
+        - Extract agent_name from response
+        - Pass business context (id, session)
+      </details>
+    </step>
+
+    <step number="4">
+      <description>Update planning page to use agent client</description>
+      <files>
+        - apps/web/src/app/(dashboard)/dashboard/[businessId]/planning/page.tsx
+      </files>
+      <details>
+        - Import agent client
+        - Replace existing API calls with agent client
+        - Keep canvas/financials/plan workflow logic
+        - Pass validation data as context
+        - Handle agent responses
+      </details>
+    </step>
+
+    <step number="5">
+      <description>Update branding page to use agent client</description>
+      <files>
+        - apps/web/src/app/(dashboard)/dashboard/[businessId]/branding/page.tsx
+      </files>
+      <details>
+        - Import agent client
+        - Replace mock responses with real API calls
+        - Pass planning data as context
+        - Handle agent responses
+        - Update agent name display
+      </details>
+    </step>
+
+    <step number="6">
+      <description>Optional: Update ChatPanel if needed</description>
+      <files>
+        - apps/web/src/components/chat/ChatPanel.tsx
+      </files>
+      <details>
+        Only if ChatPanel needs to be aware of real agents.
+        Based on current implementation, this may not be needed.
+      </details>
+    </step>
+  </implementation-plan>
+
+  <acceptance-criteria-mapping>
+    <criterion id="AC1">
+      <description>Create agent API client in apps/web/src/lib/agent-client.ts</description>
+      <implementation>
+        Create AgentClient class with methods for each team.
+        Include types, error handling, JWT auth.
+      </implementation>
+    </criterion>
+
+    <criterion id="AC2">
+      <description>Implement SSE streaming handler for agent responses</description>
+      <implementation>
+        Note: FastAPI endpoints don't support SSE yet.
+        Start with sync responses, add streaming support as enhancement.
+        Create placeholder for future SSE implementation.
+      </implementation>
+    </criterion>
+
+    <criterion id="AC3">
+      <description>Update validation page to call /agents/validation/runs</description>
+      <implementation>
+        Replace getMockResponse() with agent client call.
+        Handle TeamRunResponse and extract content/agent_name.
+      </implementation>
+    </criterion>
+
+    <criterion id="AC4">
+      <description>Update planning page to call /agents/planning/runs</description>
+      <implementation>
+        Replace existing API calls with agent client.
+        Pass validation data in context field.
+      </implementation>
+    </criterion>
+
+    <criterion id="AC5">
+      <description>Update branding page to call /agents/branding/runs</description>
+      <implementation>
+        Replace mock responses with agent client call.
+        Pass planning data in context field.
+      </implementation>
+    </criterion>
+
+    <criterion id="AC6">
+      <description>Show real agent names instead of mocks</description>
+      <implementation>
+        Extract agent_name from TeamRunResponse.
+        Map to existing AGENTS configuration in each page.
+        Display correct agent avatar and role.
+      </implementation>
+    </criterion>
+
+    <criterion id="AC7">
+      <description>Pass business context (id, session, history)</description>
+      <implementation>
+        Include business_id, session_id in TeamRunRequest.
+        Pass previous workflow data in context field:
+        - Planning receives validation data
+        - Branding receives planning data
+      </implementation>
+    </criterion>
+
+    <criterion id="AC8">
+      <description>Handle loading, error, and success states properly</description>
+      <implementation>
+        - Loading: Set isLoading state, show spinner
+        - Error: Catch errors, show error message, optional fallback to mock
+        - Success: Parse response, display content, update workflow state
+      </implementation>
+    </criterion>
+  </acceptance-criteria-mapping>
+
+  <api-contract>
+    <fastapi-endpoint>
+      <url>POST http://localhost:8001/agents/validation/runs</url>
+      <headers>
+        Authorization: Bearer {jwt_token}
+        Content-Type: application/json
+      </headers>
+      <request-body>
+        {
+          "message": "User's message",
+          "business_id": "biz_123",
+          "session_id": "val_user_12345",
+          "context": {}
+        }
+      </request-body>
+      <response-body>
+        {
+          "success": true,
+          "content": "Agent response text",
+          "session_id": "val_user_12345",
+          "agent_name": "Vera",
+          "metadata": {
+            "business_id": "biz_123",
+            "team": "validation",
+            "workspace_id": "ws_123"
+          }
+        }
+      </response-body>
+    </fastapi-endpoint>
+
+    <fastapi-endpoint>
+      <url>POST http://localhost:8001/agents/planning/runs</url>
+      <headers>
+        Authorization: Bearer {jwt_token}
+        Content-Type: application/json
+      </headers>
+      <request-body>
+        {
+          "message": "User's message",
+          "business_id": "biz_123",
+          "session_id": "plan_user_12345",
+          "context": {
+            "validation_data": {...}
+          }
+        }
+      </request-body>
+      <response-body>
+        {
+          "success": true,
+          "content": "Agent response text",
+          "session_id": "plan_user_12345",
+          "agent_name": "Blake",
+          "metadata": {
+            "business_id": "biz_123",
+            "team": "planning",
+            "workspace_id": "ws_123"
+          }
+        }
+      </response-body>
+    </fastapi-endpoint>
+
+    <fastapi-endpoint>
+      <url>POST http://localhost:8001/agents/branding/runs</url>
+      <headers>
+        Authorization: Bearer {jwt_token}
+        Content-Type: application/json
+      </headers>
+      <request-body>
+        {
+          "message": "User's message",
+          "business_id": "biz_123",
+          "session_id": "brand_user_12345",
+          "context": {
+            "planning_data": {...}
+          }
+        }
+      </request-body>
+      <response-body>
+        {
+          "success": true,
+          "content": "Agent response text",
+          "session_id": "brand_user_12345",
+          "agent_name": "Bella",
+          "metadata": {
+            "business_id": "biz_123",
+            "team": "branding",
+            "workspace_id": "ws_123"
+          }
+        }
+      </response-body>
+    </fastapi-endpoint>
+  </api-contract>
+
+  <risk-analysis>
+    <risk level="medium">
+      <description>FastAPI endpoints don't support SSE streaming yet</description>
+      <mitigation>
+        Start with synchronous responses. Add SSE support in follow-up enhancement.
+        Document this limitation in story notes.
+      </mitigation>
+    </risk>
+
+    <risk level="low">
+      <description>JWT token extraction from Better Auth session</description>
+      <mitigation>
+        Use getCurrentSessionToken() helper from auth-client.ts.
+        Add error handling for missing/expired tokens.
+      </mitigation>
+    </risk>
+
+    <risk level="low">
+      <description>CORS issues between Next.js (3000) and FastAPI (8001)</description>
+      <mitigation>
+        FastAPI should already have CORS configured from EPIC-04.
+        Verify CORS headers allow localhost:3000 origin.
+      </mitigation>
+    </risk>
+
+    <risk level="low">
+      <description>Session ID format mismatch between frontend and backend</description>
+      <mitigation>
+        Backend auto-generates session IDs with format: {team_prefix}_{user_id}_{timestamp}
+        Frontend can pass empty session_id on first call, then use returned value.
+      </mitigation>
+    </risk>
+  </risk-analysis>
+</story-context>
