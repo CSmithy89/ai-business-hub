@@ -4,11 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { ApprovalItem } from '@hyvve/shared'
 import { apiPost } from '@/lib/api-client'
-
-/**
- * API base URL for the NestJS backend
- */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+import { NESTJS_API_URL } from '@/lib/api-config'
 
 /**
  * Request body for approve/reject actions
@@ -49,7 +45,7 @@ async function performApprovalAction(
 
   try {
     response = await apiPost(`/api/approvals/${id}/${action}`, data, {
-      baseURL: API_BASE_URL,
+      baseURL: NESTJS_API_URL,
     })
   } catch (err) {
     // Network error - API server may not be running

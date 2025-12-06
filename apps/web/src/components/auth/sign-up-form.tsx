@@ -38,7 +38,9 @@ export function SignUpForm() {
   // Only show match indicator after user has typed enough for meaningful comparison
   const MIN_PASSWORD_LENGTH_FOR_MATCH = 4
   const passwordsMatch = password && confirmPassword && password === confirmPassword
-  const showMatchIndicator = confirmPassword.length >= MIN_PASSWORD_LENGTH_FOR_MATCH
+  const showMatchIndicator =
+    password.length >= MIN_PASSWORD_LENGTH_FOR_MATCH &&
+    confirmPassword.length >= MIN_PASSWORD_LENGTH_FOR_MATCH
 
   // Generalized social sign-up handler to reduce code duplication
   const handleSocialSignUp = async (
