@@ -309,10 +309,10 @@ export function SignUpForm() {
             {...register('confirmPassword')}
             disabled={isSubmitting}
             aria-invalid={errors.confirmPassword ? 'true' : 'false'}
-            className="pr-20"
+            className="pr-16"
           />
           {showMatchIndicator && (
-            <div className="absolute right-12 top-1/2 -translate-y-1/2">
+            <div className="absolute right-10 top-1/2 -translate-y-1/2">
               {passwordsMatch ? (
                 <Check className="w-4 h-4 text-green-600" aria-label="Passwords match" />
               ) : (

@@ -1,11 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-
-/**
- * API base URL for the Next.js API routes
- */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
+import { API_ENDPOINTS, IS_MOCK_DATA_ENABLED } from '@/lib/api-config'
 
 /**
  * Approval metrics data structure
@@ -32,7 +28,7 @@ interface ApprovalMetricsResponse {
  * Fetch approval metrics from the API
  */
 async function fetchApprovalMetrics(): Promise<ApprovalMetrics> {
-  const response = await fetch(`${API_BASE_URL}/api/approvals/metrics`, {
+  const response = await fetch(API_ENDPOINTS.metrics.approvals(), {
     credentials: 'include',
   })
 
@@ -56,8 +52,19 @@ async function fetchApprovalMetrics(): Promise<ApprovalMetrics> {
  * @example
  * const { data: metrics, isLoading, error } = useApprovalMetrics()
  */
-export function useApprovalMetrics() {
-  return useQuery<ApprovalMetrics>({
+/**
+ * Result type including mock data indicator
+ */
+export interface UseApprovalMetricsResult {
+  data: ApprovalMetrics | undefined
+  isLoading: boolean
+  error: Error | null
+  /** Whether the data is mock/demo data */
+  isMockData: boolean
+}
+
+export function useApprovalMetrics(): UseApprovalMetricsResult {
+  const query = useQuery<ApprovalMetrics>({
     queryKey: ['approval-metrics'],
     queryFn: fetchApprovalMetrics,
     staleTime: 5 * 60 * 1000, // 5 minutes cache
@@ -65,4 +72,11 @@ export function useApprovalMetrics() {
     retry: 3,
     refetchOnWindowFocus: false, // Don't refetch on focus (too expensive)
   })
+
+  return {
+    data: query.data,
+    isLoading: query.isLoading,
+    error: query.error,
+    isMockData: IS_MOCK_DATA_ENABLED,
+  }
 }

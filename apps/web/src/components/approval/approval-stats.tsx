@@ -2,8 +2,9 @@
 
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
 import { useApprovalMetrics, type ApprovalMetrics } from '@/hooks/use-approval-metrics'
-import { Clock, CheckCircle, Timer, TrendingUp } from 'lucide-react'
+import { Clock, CheckCircle, Timer, TrendingUp, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ReactNode } from 'react'
 
@@ -66,7 +67,7 @@ interface ApprovalStatsProps {
  * - Auto-refetch every 5 minutes
  */
 export function ApprovalStats({ initialData, className }: ApprovalStatsProps) {
-  const { data: metrics, isLoading, error } = useApprovalMetrics()
+  const { data: metrics, isLoading, error, isMockData } = useApprovalMetrics()
 
   // Use initial data or fetched data
   const displayMetrics = metrics || initialData
@@ -93,28 +94,47 @@ export function ApprovalStats({ initialData, className }: ApprovalStatsProps) {
   }
 
   return (
-    <div className={cn('grid gap-4 md:grid-cols-2 lg:grid-cols-4', className)}>
-      <StatCard
-        label="Pending Review"
-        value={displayMetrics?.pendingCount ?? 0}
-        icon={<Clock className="h-5 w-5" />}
-      />
-      <StatCard
-        label="Auto-Approved Today"
-        value={displayMetrics?.autoApprovedToday ?? 0}
-        icon={<CheckCircle className="h-5 w-5" />}
-        valueColor="text-green-600"
-      />
-      <StatCard
-        label="Avg Response Time"
-        value={displayMetrics?.avgResponseTime != null ? `${displayMetrics.avgResponseTime}h` : '--'}
-        icon={<Timer className="h-5 w-5" />}
-      />
-      <StatCard
-        label="Approval Rate"
-        value={displayMetrics?.approvalRate != null ? `${displayMetrics.approvalRate}%` : '--'}
-        icon={<TrendingUp className="h-5 w-5" />}
-      />
+    <div className={cn('space-y-2', className)}>
+      {/* Mock Data Indicator */}
+      {isMockData && (
+        <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <FlaskConical className="h-4 w-4" aria-hidden="true" />
+          <span>
+            <strong>Demo Mode:</strong> Showing sample data. Connect database in EPIC-14 for real metrics.
+          </span>
+          <Badge variant="outline" className="ml-auto text-amber-700 border-amber-300">
+            Mock Data
+          </Badge>
+        </div>
+      )}
+
+      <div
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+        aria-busy={isLoading}
+        aria-live="polite"
+      >
+        <StatCard
+          label="Pending Review"
+          value={displayMetrics?.pendingCount ?? 0}
+          icon={<Clock className="h-5 w-5" />}
+        />
+        <StatCard
+          label="Auto-Approved Today"
+          value={displayMetrics?.autoApprovedToday ?? 0}
+          icon={<CheckCircle className="h-5 w-5" />}
+          valueColor="text-green-600"
+        />
+        <StatCard
+          label="Avg Response Time"
+          value={displayMetrics?.avgResponseTime != null ? `${displayMetrics.avgResponseTime}h` : '--'}
+          icon={<Timer className="h-5 w-5" />}
+        />
+        <StatCard
+          label="Approval Rate"
+          value={displayMetrics?.approvalRate != null ? `${displayMetrics.approvalRate}%` : '--'}
+          icon={<TrendingUp className="h-5 w-5" />}
+        />
+      </div>
     </div>
   )
 }
