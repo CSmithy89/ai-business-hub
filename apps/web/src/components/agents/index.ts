@@ -28,3 +28,10 @@ export { ActivityTab } from './tabs/ActivityTab'
 export { ConfigurationTab } from './tabs/ConfigurationTab'
 export { PermissionsTab } from './tabs/PermissionsTab'
 export { AnalyticsTab } from './tabs/AnalyticsTab'
+
+// Activity Feed components (Story 13.3)
+export { LiveIndicator } from './LiveIndicator'
+export { NewActivitiesBanner } from './NewActivitiesBanner'
+export { ActivityCard } from './ActivityCard'
+export { ActivityFilters } from './ActivityFilters'
+export { ActivitySidebar } from './ActivitySidebar'
