@@ -36,11 +36,13 @@ async function approveApproval(id: string, data: ApprovalActionRequest = {}): Pr
     })
   } catch (err) {
     // Network error - API server may not be running
+    console.error('[ApprovalService] Network error during approve:', err)
     throw new Error('Unable to connect to approval service. Please try again later.')
   }
 
   if (!response.ok) {
     if (response.status === 404) {
+      console.warn('[ApprovalService] Approve endpoint not found (404) - backend may not be configured')
       throw new Error('Approval endpoint not found. Backend may not be configured.')
     }
     const error = await response.json().catch(() => ({ message: 'Failed to approve' }))
@@ -67,11 +69,13 @@ async function rejectApproval(id: string, data: ApprovalActionRequest = {}): Pro
     })
   } catch (err) {
     // Network error - API server may not be running
+    console.error('[ApprovalService] Network error during reject:', err)
     throw new Error('Unable to connect to approval service. Please try again later.')
   }
 
   if (!response.ok) {
     if (response.status === 404) {
+      console.warn('[ApprovalService] Reject endpoint not found (404) - backend may not be configured')
       throw new Error('Approval endpoint not found. Backend may not be configured.')
     }
     const error = await response.json().catch(() => ({ message: 'Failed to reject' }))

@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { API_ENDPOINTS, IS_MOCK_DATA_ENABLED } from '@/lib/api-config'
+import { API_ENDPOINTS, IS_MOCK_DATA_ENABLED, CACHE_DURATIONS } from '@/lib/api-config'
 
 /**
  * Approval metrics data structure
@@ -67,8 +67,8 @@ export function useApprovalMetrics(): UseApprovalMetricsResult {
   const query = useQuery<ApprovalMetrics>({
     queryKey: ['approval-metrics'],
     queryFn: fetchApprovalMetrics,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    staleTime: CACHE_DURATIONS.METRICS,
+    refetchInterval: CACHE_DURATIONS.METRICS,
     retry: 3,
     refetchOnWindowFocus: false, // Don't refetch on focus (too expensive)
   })

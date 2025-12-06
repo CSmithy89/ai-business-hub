@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { useApprovalQuickActions } from '@/hooks/use-approval-quick-actions'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
@@ -36,15 +37,15 @@ export function ApprovalQuickActions({
 
   const isLoading = isApproving || isRejecting
 
-  // Handle approve action
-  const handleApprove = () => {
+  // Handle approve action - memoized to prevent unnecessary re-renders
+  const handleApprove = useCallback(() => {
     approve({ id: approvalId })
-  }
+  }, [approve, approvalId])
 
-  // Handle reject action
-  const handleReject = () => {
+  // Handle reject action - memoized to prevent unnecessary re-renders
+  const handleReject = useCallback(() => {
     reject({ id: approvalId })
-  }
+  }, [reject, approvalId])
 
   return (
     <div className={cn('flex gap-2', className)}>
