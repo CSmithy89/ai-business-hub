@@ -150,3 +150,29 @@ export const CONFIDENCE_FACTORS = {
   VALUE_IMPACT: 'value_impact',
   PATTERN_MATCH: 'pattern_match',
 } as const;
+
+/**
+ * Suggested action based on low confidence factors
+ * Used in the confidence breakdown UI to recommend next steps
+ */
+export interface SuggestedAction {
+  id: string;                      // Unique action ID
+  action: string;                  // Action name (e.g., "Schedule Review Call")
+  reason: string;                  // Why suggested
+  priority: 'high' | 'medium' | 'low';
+}
+
+/**
+ * Complete confidence breakdown response
+ * Returned by the /api/approvals/:id/confidence endpoint
+ */
+export interface ConfidenceBreakdown {
+  overallScore: number;            // Overall confidence score (0-100)
+  factors: ConfidenceFactor[];     // Individual confidence factors
+  suggestedActions: SuggestedAction[];  // Recommended actions
+}
+
+/**
+ * Priority level for suggested actions
+ */
+export type ActionPriority = 'high' | 'medium' | 'low';

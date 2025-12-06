@@ -1,0 +1,816 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Story Context: Agent Activity Feed
+Story ID: 13-3-agent-activity-feed
+Epic: EPIC-13 - AI Agent Management
+Generated: 2025-12-06
+-->
+
+<story-context>
+  <metadata>
+    <story-id>13-3-agent-activity-feed</story-id>
+    <epic>EPIC-13</epic>
+    <title>Agent Activity Feed</title>
+    <points>4</points>
+    <priority>P2 Medium</priority>
+  </metadata>
+
+  <story-overview>
+    <user-story>
+      **As a** operator
+      **I want** a real-time feed of all agent activity
+      **So that** I can monitor what agents are doing across the platform
+    </user-story>
+
+    <key-requirements>
+      - Create `/agents/activity` page with real-time activity feed
+      - Implement Server-Sent Events (SSE) for real-time updates with polling fallback
+      - Filter controls: Agent (multi-select), Type, Status, Date range
+      - "Live" indicator with pulsing dot animation
+      - "X new activities" notification banner with auto-scroll
+      - Activity cards with inline action buttons
+      - Right sidebar showing activity summary and stats
+      - Infinite scroll for historical data
+    </key-requirements>
+
+    <design-reference>
+      - Wireframe: AI-04 (Agent Activity Feed)
+      - Location: `/home/chris/projects/work/Ai Bussiness Hub/docs/design/wireframes/Finished wireframes and html files/`
+    </design-reference>
+  </story-overview>
+
+  <technical-architecture>
+    <page-route>
+      <route>/agents/activity</route>
+      <file-path>apps/web/src/app/agents/activity/page.tsx</file-path>
+      <layout>Three-column desktop (filters, feed, sidebar), single column mobile</layout>
+    </page-route>
+
+    <components-to-create>
+      <component>
+        <name>ActivityFeed.tsx</name>
+        <location>apps/web/src/app/agents/activity/page.tsx</location>
+        <purpose>Main page component with layout and state management</purpose>
+        <dependencies>
+          - useActivityStream hook
+          - ActivityFilters component
+          - NewActivitiesBanner component
+          - ActivityCard component
+          - ActivitySidebar component
+        </dependencies>
+      </component>
+
+      <component>
+        <name>ActivityFilters.tsx</name>
+        <location>apps/web/src/components/agents/ActivityFilters.tsx</location>
+        <purpose>Filter controls for agent, type, status, date range</purpose>
+        <features>
+          - Agent dropdown with multi-select
+          - Type dropdown: task_started, task_completed, approval_requested, error, config_changed
+          - Status dropdown: pending, completed, failed
+          - Date range picker
+          - "Clear filters" button
+        </features>
+      </component>
+
+      <component>
+        <name>ActivityCard.tsx</name>
+        <location>apps/web/src/components/agents/ActivityCard.tsx</location>
+        <purpose>Individual activity item display</purpose>
+        <features>
+          - Agent avatar with name
+          - Action description
+          - Timestamp (relative)
+          - Status badge
+          - Inline buttons: "View Details", "Chat with Agent"
+          - Expandable to show input/output data
+          - Click to navigate to related entity
+        </features>
+      </component>
+
+      <component>
+        <name>ActivitySidebar.tsx</name>
+        <location>apps/web/src/components/agents/ActivitySidebar.tsx</location>
+        <purpose>Activity summary and statistics</purpose>
+        <features>
+          - Most active agents (top 5)
+          - Activity type distribution chart (recharts)
+          - "Live" indicator with pulsing dot
+          - Recent activity stats
+        </features>
+      </component>
+
+      <component>
+        <name>NewActivitiesBanner.tsx</name>
+        <location>apps/web/src/components/agents/NewActivitiesBanner.tsx</location>
+        <purpose>Notification banner for new activities</purpose>
+        <features>
+          - Shows count: "X new activities"
+          - Click to scroll to first new activity
+          - Auto-dismiss after viewing
+        </features>
+      </component>
+
+      <component>
+        <name>use-activity-stream.ts</name>
+        <location>apps/web/src/hooks/use-activity-stream.ts</location>
+        <purpose>Real-time activity stream hook</purpose>
+        <features>
+          - SSE connection to `/api/agents/activity/stream`
+          - Automatic reconnection on disconnect
+          - Fallback to polling (10s interval) on SSE failure
+          - New activity count tracking
+          - Connection status indicator
+        </features>
+      </component>
+    </components-to-create>
+
+    <api-endpoints>
+      <endpoint>
+        <method>GET</method>
+        <path>/api/agents/activity</path>
+        <query-params>
+          - agent: string[] (filter by agent IDs)
+          - type: ActivityType (filter by activity type)
+          - status: 'pending' | 'completed' | 'failed'
+          - page: number (pagination)
+          - limit: number (items per page)
+        </query-params>
+        <response>
+          {
+            "data": AgentActivity[],
+            "meta": {
+              "total": number,
+              "page": number,
+              "limit": number,
+              "totalPages": number
+            }
+          }
+        </response>
+        <notes>**TODO:** Needs to be created for cross-agent activity feed</notes>
+      </endpoint>
+
+      <endpoint>
+        <method>GET</method>
+        <path>/api/agents/activity/stream</path>
+        <description>Server-Sent Events endpoint for real-time activity stream</description>
+        <response>SSE stream with activity events</response>
+        <notes>**TODO:** Needs to be created</notes>
+      </endpoint>
+
+      <endpoint>
+        <method>GET</method>
+        <path>/api/agents/:id/activity</path>
+        <query-params>
+          - page: number
+          - limit: number
+          - type: ActivityType (optional)
+        </query-params>
+        <response>Same as /api/agents/activity</response>
+        <notes>**EXISTS:** Already implemented in apps/web/src/app/api/agents/[id]/activity/route.ts</notes>
+      </endpoint>
+    </api-endpoints>
+
+    <data-types>
+      <type>
+        <name>AgentActivity</name>
+        <source>Defined in story, should be added to @hyvve/shared/types/agent.ts</source>
+        <definition>
+interface AgentActivity {
+  id: string;
+  agentId: string;
+  agentName: string;
+  workspaceId: string;
+
+  // Action details
+  type: ActivityType;
+  action: string;
+  module: string;
+  entityId?: string;
+  entityType?: string;
+
+  // Status
+  status: 'pending' | 'completed' | 'failed';
+  confidenceScore?: number;
+
+  // Data
+  input?: Record&lt;string, unknown&gt;;
+  output?: Record&lt;string, unknown&gt;;
+  error?: string;
+
+  // Timestamps
+  startedAt: Date;
+  completedAt?: Date;
+  duration?: number;
+  createdAt: Date;
+}
+
+type ActivityType =
+  | 'task_started'
+  | 'task_completed'
+  | 'approval_requested'
+  | 'approval_processed'
+  | 'error'
+  | 'config_changed';
+
+interface ActivityFilters {
+  agentId?: string[];
+  type?: ActivityType;
+  status?: 'pending' | 'completed' | 'failed';
+  dateRange?: { start: Date; end: Date };
+}
+        </definition>
+      </type>
+    </data-types>
+  </technical-architecture>
+
+  <existing-patterns>
+    <pattern>
+      <name>Activity Timeline Pattern</name>
+      <reference>apps/web/src/components/agents/tabs/ActivityTab.tsx</reference>
+      <description>Existing activity tab for individual agents - reuse patterns</description>
+      <key-features>
+        - Filter dropdown using shadcn Select component
+        - Timeline layout with status dots
+        - Activity cards with badges
+        - Status color coding (green: completed, yellow: pending, red: failed)
+        - Module badges with color coding
+        - Relative timestamps using date-fns formatDistanceToNow
+        - Loading and error states
+        - Empty state handling
+      </key-features>
+      <code-reference>
+// Filter implementation
+&lt;Select value={activityType} onValueChange={setActivityType}&gt;
+  &lt;SelectTrigger className="w-[200px]"&gt;
+    &lt;SelectValue /&gt;
+  &lt;/SelectTrigger&gt;
+  &lt;SelectContent&gt;
+    &lt;SelectItem value="all"&gt;All Activities&lt;/SelectItem&gt;
+    &lt;SelectItem value="task_started"&gt;Task Started&lt;/SelectItem&gt;
+    &lt;SelectItem value="task_completed"&gt;Task Completed&lt;/SelectItem&gt;
+  &lt;/SelectContent&gt;
+&lt;/Select&gt;
+
+// Timeline with status dots
+&lt;div className="relative space-y-4 border-l-2 border-muted pl-6"&gt;
+  {activities.map(activity =&gt; (
+    &lt;div key={activity.id} className="relative"&gt;
+      &lt;Circle className={cn('absolute -left-[29px] top-1 h-4 w-4 fill-current',
+        activity.status === 'completed' &amp;&amp; 'text-green-600')} /&gt;
+      {/* Activity card */}
+    &lt;/div&gt;
+  ))}
+&lt;/div&gt;
+
+// Status badge colors
+const statusConfig = {
+  completed: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+  pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
+  failed: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+}
+      </code-reference>
+    </pattern>
+
+    <pattern>
+      <name>Agent Avatar with Status</name>
+      <reference>apps/web/src/components/agents/AgentAvatar.tsx</reference>
+      <description>Reusable avatar component with status indicator</description>
+      <usage>
+&lt;AgentAvatar
+  agent={agent}
+  size="md"
+  showStatus={true}
+/&gt;
+      </usage>
+      <features>
+        - Emoji or image avatar support
+        - Pulsing status dot (online: green, busy: yellow, offline: gray, error: red)
+        - Responsive sizing (sm: 32px, md: 48px, lg: 64px)
+        - Dark mode support
+      </features>
+    </pattern>
+
+    <pattern>
+      <name>API Hook Pattern</name>
+      <reference>apps/web/src/hooks/use-agent.ts</reference>
+      <description>React Query pattern for API data fetching</description>
+      <example>
+export function useAgentActivity(
+  agentId: string,
+  page = 1,
+  limit = 50,
+  type?: string
+) {
+  return useQuery({
+    queryKey: ['agent-activity', agentId, page, limit, type],
+    queryFn: () =&gt; fetchAgentActivity(agentId, page, limit, type),
+    enabled: !!agentId,
+    refetchInterval: 30000, // Refetch every 30s
+    staleTime: 1000 * 30, // 30 seconds
+  })
+}
+      </example>
+      <notes>
+        - Use queryKey with all filter params for proper caching
+        - Enable conditional fetching with 'enabled' flag
+        - Set appropriate refetch intervals for real-time data
+        - Define stale time for cache management
+      </notes>
+    </pattern>
+
+    <pattern>
+      <name>Page Layout Pattern</name>
+      <reference>apps/web/src/app/(dashboard)/dashboard/page.tsx</reference>
+      <description>Standard dashboard page layout</description>
+      <structure>
+&lt;div className="space-y-8"&gt;
+  {/* Header */}
+  &lt;div className="flex items-center justify-between"&gt;
+    &lt;div&gt;
+      &lt;h1 className="text-3xl font-bold"&gt;Title&lt;/h1&gt;
+      &lt;p className="text-muted-foreground"&gt;Description&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  {/* Loading State */}
+  {isLoading &amp;&amp; &lt;SkeletonGrid /&gt;}
+
+  {/* Error State */}
+  {error &amp;&amp; &lt;ErrorMessage /&gt;}
+
+  {/* Empty State */}
+  {!isLoading &amp;&amp; !error &amp;&amp; items.length === 0 &amp;&amp; &lt;EmptyState /&gt;}
+
+  {/* Content */}
+  {!isLoading &amp;&amp; !error &amp;&amp; items.length &gt; 0 &amp;&amp; &lt;Content /&gt;}
+&lt;/div&gt;
+      </structure>
+    </pattern>
+
+    <pattern>
+      <name>Responsive Grid Layout</name>
+      <reference>Tech Spec - EPIC-13</reference>
+      <description>Three-column desktop, single column mobile</description>
+      <implementation>
+&lt;div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6"&gt;
+  &lt;div className="space-y-4"&gt;
+    {/* Main content */}
+  &lt;/div&gt;
+  &lt;div className="hidden lg:block"&gt;
+    {/* Sidebar - hidden on mobile */}
+  &lt;/div&gt;
+&lt;/div&gt;
+      </implementation>
+    </pattern>
+  </existing-patterns>
+
+  <existing-components>
+    <component>
+      <name>shadcn/ui Select</name>
+      <location>apps/web/src/components/ui/select.tsx</location>
+      <usage>For dropdown filters (Type, Status)</usage>
+    </component>
+
+    <component>
+      <name>shadcn/ui Badge</name>
+      <location>apps/web/src/components/ui/badge.tsx</location>
+      <usage>For status badges and module tags</usage>
+      <variants>default, secondary, destructive, outline, success</variants>
+    </component>
+
+    <component>
+      <name>shadcn/ui Card</name>
+      <location>apps/web/src/components/ui/card.tsx</location>
+      <usage>For activity cards</usage>
+    </component>
+
+    <component>
+      <name>AgentAvatar</name>
+      <location>apps/web/src/components/agents/AgentAvatar.tsx</location>
+      <usage>For agent avatar in activity cards</usage>
+    </component>
+
+    <component>
+      <name>AgentStatusBadge</name>
+      <location>apps/web/src/components/agents/AgentStatusBadge.tsx</location>
+      <usage>For status badges if needed</usage>
+    </component>
+  </existing-components>
+
+  <styling-guidelines>
+    <tailwind-dynamic-classes>
+      <warning>
+Tailwind's JIT compiler needs to see complete class strings in source code.
+Dynamic string construction will fail at build time.
+      </warning>
+      <examples>
+        <bad>className={`ml-${collapsed ? '16' : '64'}`}</bad>
+        <good>className={collapsed ? 'ml-16' : 'ml-64'}</good>
+        <good>style={{ marginLeft: collapsed ? 64 : 256 }}</good>
+      </examples>
+    </tailwind-dynamic-classes>
+
+    <layout-constants>
+      <reference>apps/web/src/lib/layout-constants.ts</reference>
+      <constants>
+        - LAYOUT.HEADER_HEIGHT: 60px
+        - LAYOUT.SIDEBAR_COLLAPSED_WIDTH: 64px
+        - LAYOUT.SIDEBAR_EXPANDED_WIDTH: 256px
+        - Z_INDEX.MODAL: 200
+        - ANIMATION.DEFAULT: 200ms
+      </constants>
+    </layout-constants>
+
+    <responsive-breakpoints>
+      - sm: 640px
+      - md: 768px
+      - lg: 1024px
+      - xl: 1280px
+    </responsive-breakpoints>
+
+    <color-system>
+      <status-colors>
+        - completed: green-500/600 (bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300)
+        - pending: yellow-500/600 (bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300)
+        - failed: red-500/600 (bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300)
+      </status-colors>
+
+      <module-colors>
+        - validation: blue-100/700 dark:blue-900/300
+        - planning: purple-100/700 dark:purple-900/300
+        - branding: pink-100/700 dark:pink-900/300
+        - crm: green-100/700 dark:green-900/300
+      </module-colors>
+    </color-system>
+
+    <pulsing-animation>
+      <css>
+/* For "Live" indicator pulsing dot */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.status-dot-online {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+      </css>
+    </pulsing-animation>
+  </styling-guidelines>
+
+  <real-time-implementation>
+    <sse-pattern>
+      <description>Server-Sent Events for unidirectional real-time updates</description>
+      <implementation>
+// Hook: use-activity-stream.ts
+export function useActivityStream() {
+  const [activities, setActivities] = useState&lt;AgentActivity[]&gt;([]);
+  const [newCount, setNewCount] = useState(0);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() =&gt; {
+    const eventSource = new EventSource('/api/agents/activity/stream');
+
+    eventSource.onopen = () =&gt; {
+      setIsConnected(true);
+    };
+
+    eventSource.onmessage = (event) =&gt; {
+      const activity = JSON.parse(event.data);
+      setActivities(prev =&gt; [activity, ...prev]);
+      setNewCount(prev =&gt; prev + 1);
+    };
+
+    eventSource.onerror = () =&gt; {
+      setIsConnected(false);
+      eventSource.close();
+
+      // Fallback to polling
+      const interval = setInterval(async () =&gt; {
+        const response = await fetch('/api/agents/activity');
+        const { data } = await response.json();
+        setActivities(data);
+      }, 10000);
+
+      return () =&gt; clearInterval(interval);
+    };
+
+    return () =&gt; eventSource.close();
+  }, []);
+
+  const clearNewCount = () =&gt; setNewCount(0);
+
+  return { activities, newCount, clearNewCount, isConnected };
+}
+      </implementation>
+    </sse-pattern>
+
+    <polling-fallback>
+      <interval>10 seconds</interval>
+      <trigger>SSE connection failure</trigger>
+      <exponential-backoff>Consider implementing for repeated failures</exponential-backoff>
+    </polling-fallback>
+
+    <client-throttling>
+      <description>Batch rapid updates to prevent UI thrashing</description>
+      <window>100ms batching window recommended</window>
+      <implementation>Consider using debounce or throttle from lodash</implementation>
+    </client-throttling>
+  </real-time-implementation>
+
+  <performance-targets>
+    <metric name="Page Load">
+      <target>&lt; 1s</target>
+      <measurement>First Contentful Paint</measurement>
+    </metric>
+
+    <metric name="SSE Connection">
+      <target>&lt; 500ms</target>
+      <measurement>Connection established</measurement>
+    </metric>
+
+    <metric name="Filter Update">
+      <target>&lt; 100ms</target>
+      <measurement>Filter change to render</measurement>
+    </metric>
+
+    <metric name="Infinite Scroll">
+      <items-per-page>20 activities</items-per-page>
+      <detection>Intersection Observer</detection>
+    </metric>
+  </performance-targets>
+
+  <accessibility-requirements>
+    <requirement>Keyboard navigation for all filters and actions</requirement>
+    <requirement>ARIA labels for activity cards and status indicators</requirement>
+    <requirement>Screen reader announcements for new activities</requirement>
+    <requirement>Focus management for expandable sections</requirement>
+    <requirement>Color contrast WCAG AA compliance (4.5:1 for text)</requirement>
+  </accessibility-requirements>
+
+  <testing-requirements>
+    <unit-tests>
+      <test>ActivityCard renders with correct data</test>
+      <test>Status badge shows correct color based on status</test>
+      <test>Activity card expands to show input/output data</test>
+      <test>useActivityStream connects to SSE endpoint</test>
+      <test>useActivityStream updates activities on new events</test>
+      <test>useActivityStream falls back to polling on SSE error</test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>GET /api/agents/activity returns paginated activities</test>
+      <test>GET /api/agents/activity filters by agent ID</test>
+      <test>GET /api/agents/activity filters by type</test>
+      <test>GET /api/agents/activity filters by status</test>
+    </integration-tests>
+
+    <e2e-tests>
+      <test>User can view real-time activity feed</test>
+      <test>User can filter activities by agent</test>
+      <test>User can filter activities by type</test>
+      <test>User sees new activities notification banner</test>
+      <test>User can click banner to scroll to new activities</test>
+    </e2e-tests>
+  </testing-requirements>
+
+  <dependencies>
+    <package>
+      <name>recharts</name>
+      <purpose>Activity distribution chart in sidebar</purpose>
+      <version>Latest compatible with Next.js 15</version>
+    </package>
+
+    <package>
+      <name>date-fns</name>
+      <purpose>formatDistanceToNow for relative timestamps</purpose>
+      <status>Already installed</status>
+    </package>
+
+    <story-dependency>
+      <id>13-1-agent-card-components</id>
+      <status>done</status>
+      <needed>AgentAvatar component for activity cards</needed>
+    </story-dependency>
+
+    <story-dependency>
+      <id>13-2-agent-detail-modal</id>
+      <status>done</status>
+      <needed>ActivityTab pattern reference</needed>
+    </story-dependency>
+  </dependencies>
+
+  <risks-and-mitigations>
+    <risk priority="medium">
+      <description>SSE Connection Reliability - SSE may drop in certain network conditions</description>
+      <mitigation>
+        - Fallback to polling (10s interval)
+        - Automatic reconnection with exponential backoff
+        - Visual indicator of connection status
+      </mitigation>
+      <testing>Network throttling, connection loss scenarios</testing>
+    </risk>
+
+    <risk priority="medium">
+      <description>High Activity Volume - Overwhelming UI with too many updates</description>
+      <mitigation>
+        - Client-side throttling (100ms batching)
+        - Pagination and infinite scroll
+        - Limit to 50 most recent activities in memory
+      </mitigation>
+      <monitoring>Track SSE message rate</monitoring>
+    </risk>
+
+    <risk priority="low">
+      <description>Filter Complexity - Complex filter logic may be slow</description>
+      <mitigation>
+        - Server-side filtering for large datasets
+        - Client-side filtering for small datasets (&lt;100 items)
+        - Debounced filter inputs
+      </mitigation>
+    </risk>
+  </risks-and-mitigations>
+
+  <implementation-notes>
+    <note type="important">
+      Reuse patterns from ActivityTab.tsx for timeline layout, status colors, and badge styling.
+    </note>
+
+    <note type="important">
+      For multi-agent activity feed, create new GET /api/agents/activity endpoint (without [id]).
+      The existing /api/agents/[id]/activity endpoint is for single-agent activity only.
+    </note>
+
+    <note type="important">
+      SSE endpoint /api/agents/activity/stream needs to be created for real-time updates.
+      Reference chat streaming implementation for SSE patterns.
+    </note>
+
+    <note type="performance">
+      Implement infinite scroll using Intersection Observer API.
+      Load 20 activities per page. Provide "Load More" button as fallback.
+    </note>
+
+    <note type="ux">
+      "Live" indicator should use same pulsing animation as agent status dots in AgentAvatar.
+      Apply 'status-dot-online' class for pulsing animation.
+    </note>
+
+    <note type="ux">
+      Activity type distribution chart can be simple pie/donut chart.
+      Use recharts PieChart component for simplicity.
+    </note>
+
+    <note type="accessibility">
+      Ensure keyboard navigation works for all filters and activity cards.
+      Add aria-live region for new activity announcements.
+    </note>
+
+    <note type="data">
+      Consider using event bus (from EPIC-05) for real-time updates in future.
+      Activity types align with event bus event naming convention.
+    </note>
+  </implementation-notes>
+
+  <files-to-create>
+    <file>apps/web/src/app/agents/activity/page.tsx</file>
+    <file>apps/web/src/components/agents/ActivityFeed.tsx</file>
+    <file>apps/web/src/components/agents/ActivityCard.tsx</file>
+    <file>apps/web/src/components/agents/ActivityFilters.tsx</file>
+    <file>apps/web/src/components/agents/ActivitySidebar.tsx</file>
+    <file>apps/web/src/components/agents/NewActivitiesBanner.tsx</file>
+    <file>apps/web/src/hooks/use-activity-stream.ts</file>
+    <file>apps/web/src/app/api/agents/activity/route.ts</file>
+    <file>apps/web/src/app/api/agents/activity/stream/route.ts</file>
+  </files-to-create>
+
+  <files-to-reference>
+    <file>
+      <path>apps/web/src/components/agents/tabs/ActivityTab.tsx</path>
+      <purpose>Pattern reference for timeline layout, status colors, badge styling</purpose>
+    </file>
+
+    <file>
+      <path>apps/web/src/hooks/use-agent.ts</path>
+      <purpose>Pattern reference for React Query hooks and API data fetching</purpose>
+    </file>
+
+    <file>
+      <path>apps/web/src/app/api/agents/[id]/activity/route.ts</path>
+      <purpose>Reference for activity data structure and mock data patterns</purpose>
+    </file>
+
+    <file>
+      <path>apps/web/src/components/agents/AgentAvatar.tsx</path>
+      <purpose>Reusable avatar component with status indicator</purpose>
+    </file>
+
+    <file>
+      <path>apps/web/src/lib/layout-constants.ts</path>
+      <purpose>Standard layout dimensions and spacing constants</purpose>
+    </file>
+
+    <file>
+      <path>packages/shared/src/types/agent.ts</path>
+      <purpose>Agent type definitions - may need to add AgentActivity type</purpose>
+    </file>
+
+    <file>
+      <path>docs/sprint-artifacts/tech-spec-epic-13.md</path>
+      <purpose>Technical specification for EPIC-13 with detailed architecture</purpose>
+    </file>
+  </files-to-reference>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <description>Create `/agents/activity` page with full-page layout</description>
+      <details>Three-column layout on desktop, single column on mobile. Filters at top, feed in center, sidebar on right</details>
+    </criterion>
+
+    <criterion id="AC2">
+      <description>Filter controls: Agent dropdown, Type dropdown, Status dropdown</description>
+      <details>
+        - Agent dropdown with multi-select capability
+        - Type dropdown: task_started, task_completed, approval_requested, error, config_changed
+        - Status dropdown: pending, completed, failed
+        - Date range picker for historical filtering
+        - "Clear filters" button to reset all filters
+      </details>
+    </criterion>
+
+    <criterion id="AC3">
+      <description>"Live" indicator with pulsing dot animation</description>
+      <details>
+        - Green pulsing dot when SSE connection is active
+        - Gray dot when disconnected
+        - Tooltip showing connection status
+        - Auto-reconnect on disconnect
+      </details>
+    </criterion>
+
+    <criterion id="AC4">
+      <description>"X new activities" notification banner that scrolls to new items</description>
+      <details>
+        - Banner appears when new activities arrive
+        - Shows count of unviewed activities
+        - Click to scroll to first new activity
+        - Auto-dismiss after viewing new items
+      </details>
+    </criterion>
+
+    <criterion id="AC5">
+      <description>Activity cards with inline action buttons</description>
+      <details>
+        - Shows: Agent avatar, action, timestamp, status badge
+        - Inline action buttons: "View Details", "Chat with Agent"
+        - Expandable to show input/output data
+        - Click to navigate to related entity (if applicable)
+      </details>
+    </criterion>
+
+    <criterion id="AC6">
+      <description>Right sidebar showing recent activity summary</description>
+      <details>
+        - Most active agents (top 5)
+        - Activity type distribution chart
+        - "Live" indicator with pulsing dot
+        - Recent activity stats
+      </details>
+    </criterion>
+
+    <criterion id="AC7">
+      <description>Real-time updates via WebSocket or SSE</description>
+      <details>
+        - Use Server-Sent Events (SSE) for unidirectional updates
+        - Fallback to polling (10s interval) if SSE fails
+        - Automatic reconnection with exponential backoff
+        - Client-side throttling for high-volume activity
+      </details>
+    </criterion>
+
+    <criterion id="AC8">
+      <description>Pagination or infinite scroll for history</description>
+      <details>
+        - Infinite scroll implementation
+        - Load more activities as user scrolls down
+        - Show loading skeleton while fetching
+        - "Load More" button as fallback
+      </details>
+    </criterion>
+  </acceptance-criteria>
+
+  <definition-of-done>
+    <item>All acceptance criteria met</item>
+    <item>Unit tests written and passing (&gt;80% coverage)</item>
+    <item>Integration tests for API endpoints</item>
+    <item>E2E tests for critical user flows</item>
+    <item>Real-time SSE connection working with fallback</item>
+    <item>Responsive design tested on mobile/tablet/desktop</item>
+    <item>Dark mode support verified</item>
+    <item>Accessibility audit passed (keyboard nav, screen reader)</item>
+    <item>Performance targets met (Page load &lt; 1s, SSE &lt; 500ms, Filter &lt; 100ms)</item>
+    <item>Code reviewed and approved</item>
+    <item>Documentation updated (component Storybook, API docs)</item>
+  </definition-of-done>
+</story-context>

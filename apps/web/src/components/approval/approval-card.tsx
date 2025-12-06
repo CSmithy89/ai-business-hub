@@ -9,6 +9,7 @@ import { ConfidenceIndicator, ConfidenceBadge } from './confidence-indicator'
 import { ApprovalActions } from './approval-actions'
 import { ApprovalQuickActions } from './approval-quick-actions'
 import { AIReasoningSection } from './ai-reasoning-section'
+import { ConfidenceBreakdown } from './ConfidenceBreakdown'
 import { formatDistanceToNow } from 'date-fns'
 import type { ApprovalItem } from '@hyvve/shared'
 import Link from 'next/link'
@@ -247,6 +248,12 @@ export function ApprovalCard({
             showRecommendation
           />
         </div>
+
+        {/* Confidence Breakdown */}
+        <ConfidenceBreakdown
+          approvalId={approval.id}
+          initialConfidence={approval.confidenceScore}
+        />
 
         {/* Preview Data Section */}
         <div className="space-y-3">

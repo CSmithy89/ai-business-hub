@@ -281,23 +281,23 @@ development_status:
   # Agent Dashboard & Configuration | 6 stories | 25 points
   # Depends on: EPIC-11
   # ===========================================
-  epic-13: backlog
-  13-1-agent-card-components: backlog
-  13-2-agent-detail-modal: backlog
-  13-3-agent-activity-feed: backlog
-  13-4-agent-configuration-page: backlog
-  13-5-agent-dashboard-page: backlog
-  13-6-confidence-breakdown-system: backlog
-  epic-13-retrospective: optional
+  epic-13: contexted
+  13-1-agent-card-components: done
+  13-2-agent-detail-modal: done
+  13-3-agent-activity-feed: done
+  13-4-agent-configuration-page: done
+  13-5-agent-dashboard-page: done
+  13-6-confidence-breakdown-system: done
+  epic-13-retrospective: completed
 
   # ===========================================
   # EPIC-14: Testing & Observability
   # Testing Gaps & Monitoring | 18 stories | 38 points
   # Partial dependencies on: EPIC-10, EPIC-11, EPIC-12
   # ===========================================
-  epic-14: backlog
-  14-1-rate-limit-concurrency-tests: backlog
-  14-2-zustand-store-unit-tests: backlog
+  epic-14: contexted
+  14-1-rate-limit-concurrency-tests: review
+  14-2-zustand-store-unit-tests: review
   14-3-file-upload-pipeline-tests: backlog
   14-4-prometheus-metrics-export: backlog
   14-5-operational-runbooks: backlog

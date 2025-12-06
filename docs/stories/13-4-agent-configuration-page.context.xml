@@ -1,0 +1,1030 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>13-4</story-id>
+    <story-title>Agent Configuration Page</story-title>
+    <epic>EPIC-13 - AI Agent Management</epic>
+    <priority>P1 High</priority>
+    <points>5</points>
+    <generated-at>2025-12-06</generated-at>
+  </metadata>
+
+  <summary>
+    Implement a comprehensive agent configuration page at `/agents/[id]/configure` with an 8-section sidebar navigation system. The page provides detailed settings for customizing individual agent behavior, including AI model selection, automation levels, communication tone, integrations, and danger zone actions. This is the most complex story in EPIC-13, featuring extensive form validation, unsaved changes detection, and integration with BYOAI provider settings.
+  </summary>
+
+  <technical-overview>
+    <architecture>
+      The agent configuration page follows a two-column layout pattern similar to the existing SettingsLayout but with a sticky sidebar for section navigation. The main content area contains 8 distinct sections, each implemented as separate components for maintainability. Form state is managed through a custom hook (useAgentConfigForm) that provides unsaved changes detection, validation, and optimistic updates.
+    </architecture>
+
+    <key-technologies>
+      - Next.js 15 (App Router, dynamic routes)
+      - React Hook Form (form state management)
+      - Zod (schema validation)
+      - React Query (data fetching and mutations)
+      - shadcn/ui components (Input, Textarea, Slider, RadioGroup, Select, AlertDialog)
+      - Lucide icons (section icons)
+    </key-technologies>
+
+    <design-reference>
+      Wireframe: AI-05 (Agent Configuration Page)
+      Location: docs/design/wireframes/Finished wireframes and html files/ai-05_agent_configuration/
+
+      Key design elements:
+      - 240px sidebar with 8 navigation sections
+      - Sticky sidebar positioning
+      - Clean form layouts with inline help text
+      - Visual sliders and radio cards for better UX
+      - Danger zone with red accents at bottom of sidebar
+      - Sticky footer for Save/Cancel actions when form is dirty
+    </design-reference>
+  </technical-overview>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <title>Create /agents/[id]/configure page with sidebar navigation</title>
+      <details>
+        - Next.js dynamic route: apps/web/src/app/agents/[id]/configure/page.tsx
+        - Two-column layout: sticky sidebar (left, 240px) + main content area (right, flex-1)
+        - Sidebar sticky on desktop, dropdown on mobile (< 768px)
+        - Main content scrolls independently
+        - Breadcrumb: Agents > [Agent Name] > Configure
+        - Page header: agent avatar, name, role
+        - Loading state while fetching agent data
+        - 404 error state if agent not found
+        - Responsive: sidebar becomes dropdown on mobile
+      </details>
+    </criterion>
+
+    <criterion id="AC2">
+      <title>8-section sidebar navigation</title>
+      <details>
+        Sections:
+        1. General (Settings icon)
+        2. AI Model (Brain icon)
+        3. Behavior (Activity icon)
+        4. Memory (Database icon)
+        5. Integrations (Plug icon)
+        6. Notifications (Bell icon)
+        7. Advanced (Wrench icon)
+        8. Danger Zone (AlertTriangle icon, red accent)
+
+        Features:
+        - Active section highlighted with background color
+        - Smooth scroll to section on click (scrollIntoView)
+        - Keyboard navigation support (arrow keys)
+        - Unsaved changes badge on section if dirty
+        - Mobile: dropdown menu with all sections
+      </details>
+    </criterion>
+
+    <criterion id="AC3">
+      <title>General settings section</title>
+      <details>
+        Fields:
+        - Display name (text input, max 50 chars)
+        - Role description (textarea, max 200 chars)
+        - Avatar picker (emoji selector OR image upload, max 2MB, PNG/JPG)
+        - Theme color picker (8 preset swatches)
+        - Live preview of agent card with current settings
+        - Character counters for name and description
+        - Validation: Display name required, min 3 chars
+      </details>
+    </criterion>
+
+    <criterion id="AC4">
+      <title>AI Model settings section</title>
+      <details>
+        Fields:
+        - Primary model dropdown (grouped by provider: Claude, OpenAI, Gemini, DeepSeek)
+        - Fallback model dropdown (optional, defaults to workspace fallback)
+        - Temperature slider (0-2, step 0.1, with value display and descriptions)
+          * 0 = "Deterministic"
+          * 1 = "Balanced"
+          * 2 = "Creative"
+        - Max tokens input (number, min 100, max 32000, default 4000)
+        - Context window radio buttons (4K / 8K / 16K)
+        - Cost indicator (estimated cost per 1K requests based on selection)
+        - Reset to workspace defaults button
+        - Help text: "Override workspace AI settings for this agent. Leave blank to use workspace defaults."
+      </details>
+    </criterion>
+
+    <criterion id="AC5">
+      <title>Behavior settings section</title>
+      <details>
+        Fields:
+        - Automation level (3 radio cards with icons and descriptions):
+          * Manual: "Agent suggests, human approves all actions"
+          * Smart: "Agent auto-executes high-confidence tasks (>85%)"
+          * Full Auto: "Agent handles everything, notifies on completion"
+        - Confidence threshold slider (0-100%, step 5%, default 70%)
+          * Descriptions: <60% "Low", 60-85% "Medium", >85% "High"
+        - Tone slider (0-100, step 10)
+          * 0 = Professional, 100 = Casual
+          * Live preview text that updates based on slider
+        - Custom instructions textarea (500 char limit, Markdown supported)
+        - Character counter for custom instructions
+        - Help tooltips for each setting
+      </details>
+    </criterion>
+
+    <criterion id="AC6">
+      <title>Integrations section</title>
+      <details>
+        Features:
+        - List of available integrations (CRM, Email, Calendar, Slack, etc.)
+        - Each integration shows: icon, name, description, toggle switch, status badge
+        - Status badges: "Connected" (green), "Not Connected" (gray), "Error" (red)
+        - "Last synced" timestamp for connected integrations
+        - Toggle switch enables/disables integration for this agent
+        - "Connect New Service" button opens integration modal
+        - Disabled state if workspace doesn't have integration configured
+        - Empty state: "No integrations available. Configure workspace integrations first."
+        - Toggle saves immediately with optimistic update
+        - Toast on toggle success/failure
+      </details>
+    </criterion>
+
+    <criterion id="AC7">
+      <title>Danger zone section</title>
+      <details>
+        Features:
+        - Section titled "Danger Zone" with red border
+        - Warning icon and help text: "These actions are permanent and cannot be undone."
+        - Three action buttons (destructive style):
+          1. Reset to Defaults - Resets all config to workspace defaults
+          2. Disable Agent - Stops agent from running (soft delete)
+          3. Delete Agent Configuration - Removes all custom config
+        - Each button shows confirmation dialog before action
+        - Reset: Simple "Are you sure?" with Cancel/Confirm
+        - Disable: "Agent will stop processing tasks. Continue?"
+        - Delete: Type agent name to confirm (prevents accidental deletion)
+        - Success toast after each action
+        - Redirect to /agents after disable or delete
+        - Loading state on buttons during action
+      </details>
+    </criterion>
+
+    <criterion id="AC8">
+      <title>Save/Cancel buttons with unsaved changes detection</title>
+      <details>
+        Features:
+        - Sticky footer bar appears when form is dirty
+        - Save button: primary style, disabled until form is dirty
+        - Cancel button: secondary style, discards changes
+        - Footer shows "You have unsaved changes" indicator
+        - Browser warning on navigation with unsaved changes (beforeunload event)
+        - Validation runs before submit
+        - Loading state on Save button during API call
+        - Success toast: "Agent configuration saved"
+        - Error toast on failure with error message
+        - Optimistic update: UI updates immediately, rolls back on error
+        - Auto-save option: saves after 3s of inactivity (optional, off by default)
+      </details>
+    </criterion>
+
+    <criterion id="AC9">
+      <title>Form validation for all inputs</title>
+      <details>
+        Validation rules:
+        - Display name: required, 3-50 chars, no special characters except spaces
+        - Role description: max 200 chars
+        - Temperature: 0-2, step 0.1
+        - Max tokens: 100-32000
+        - Context window: must be one of 4000, 8000, 16000
+        - Confidence threshold: 0-100, step 5
+        - Tone: 0-100, step 10
+        - Custom instructions: max 500 chars
+
+        Behavior:
+        - Validation runs on blur and before save
+        - Inline error messages below each field (red text)
+        - Form submit disabled if any validation errors
+        - Scroll to first error field on submit failure
+        - Clear validation errors when field is corrected
+      </details>
+    </criterion>
+  </acceptance-criteria>
+
+  <existing-code-patterns>
+    <pattern name="ConfigurationTab from Story 13.2">
+      <location>apps/web/src/components/agents/tabs/ConfigurationTab.tsx</location>
+      <description>
+        Existing implementation of agent configuration within the detail modal. Provides patterns for:
+        - Form state management with useState and useEffect
+        - Dirty state detection (JSON.stringify comparison)
+        - AI Model settings (temperature slider, max tokens, context window radio)
+        - Automation settings (automation level radio, confidence threshold, tone slider)
+        - Custom instructions textarea with character counter
+        - Save/Cancel handling with toast notifications
+        - Integration with useUpdateAgent mutation hook
+      </description>
+      <reuse-notes>
+        The full-page implementation should expand on these patterns:
+        - Break sections into separate components for better organization
+        - Add more settings (General, Memory, Integrations, Notifications, Advanced, Danger Zone)
+        - Implement sidebar navigation
+        - Add sticky footer for save actions
+        - Enhance validation with Zod schema
+        - Add unsaved changes browser warning
+      </reuse-notes>
+    </pattern>
+
+    <pattern name="Settings Layout Pattern">
+      <location>apps/web/src/components/layouts/settings-layout.tsx</location>
+      <description>
+        Existing settings layout with sidebar navigation. Provides patterns for:
+        - Two-column layout (sidebar + main content)
+        - Sidebar navigation with icons and active state
+        - Responsive design (side-by-side on desktop, stacked on mobile)
+        - Navigation groups with section headers
+        - Active link highlighting
+      </description>
+      <reuse-notes>
+        Agent configuration page should adapt this pattern:
+        - Use similar two-column layout structure
+        - Sidebar should be sticky (position: sticky, top: 6)
+        - Main content should be scrollable with sections
+        - Consider mobile dropdown for section navigation
+        - Use similar active state styling
+      </reuse-notes>
+    </pattern>
+
+    <pattern name="Agent Hooks">
+      <location>apps/web/src/hooks/use-agent.ts</location>
+      <description>
+        Provides hooks for agent data management:
+        - useAgent(id): Fetch single agent with React Query
+        - useUpdateAgent(id): Mutation for updating agent config
+        - useAgentActivity(id): Fetch activity with pagination
+        - useAgentAnalytics(id): Fetch analytics data
+
+        Update mutation pattern:
+        - Accepts Partial&lt;Agent['config']&gt;
+        - Invalidates queries on success
+        - Returns mutation with isPending state
+      </description>
+      <reuse-notes>
+        Configuration page should:
+        - Use useAgent(id) to fetch initial agent data
+        - Use useUpdateAgent(id) for save mutation
+        - Implement optimistic updates for better UX
+        - Handle loading and error states
+      </reuse-notes>
+    </pattern>
+
+    <pattern name="Agent Types">
+      <location>packages/shared/src/types/agent.ts</location>
+      <description>
+        Defines Agent interface with config structure:
+        - providerId: string | null (AI provider override)
+        - model: string | null (model override)
+        - temperature: number (0-2)
+        - maxTokens: number (100-32000)
+        - contextWindow: number (4000 | 8000 | 16000)
+        - automationLevel: 'manual' | 'smart' | 'full_auto'
+        - confidenceThreshold: number (0-100)
+        - tone: number (0-100)
+        - customInstructions: string (max 500 chars)
+      </description>
+      <reuse-notes>
+        Configuration form should:
+        - Use Agent['config'] type for form data
+        - Validate against these type constraints
+        - Extend with additional settings for General section (displayName, avatar, themeColor)
+        - Consider creating AgentConfigFormData interface that extends Agent['config']
+      </reuse-notes>
+    </pattern>
+
+    <pattern name="Layout Constants">
+      <location>apps/web/src/lib/layout-constants.ts</location>
+      <description>
+        Centralized layout dimensions:
+        - LAYOUT.HEADER_HEIGHT: 60px
+        - LAYOUT.SIDEBAR_COLLAPSED_WIDTH: 64px
+        - LAYOUT.SIDEBAR_EXPANDED_WIDTH: 256px
+        - Z_INDEX layers for consistent stacking
+        - ANIMATION durations
+      </description>
+      <reuse-notes>
+        Configuration page should:
+        - Use LAYOUT constants for consistent spacing
+        - Consider adding CONFIG_SIDEBAR_WIDTH constant (240px from wireframe)
+        - Use Z_INDEX for proper stacking of sticky elements
+        - Use ANIMATION constants for smooth transitions
+      </reuse-notes>
+    </pattern>
+  </existing-code-patterns>
+
+  <api-integration>
+    <endpoint>
+      <method>GET</method>
+      <path>/api/agents/:id</path>
+      <description>Fetch single agent details (already implemented)</description>
+      <location>apps/web/src/app/api/agents/[id]/route.ts</location>
+      <response>
+        {
+          "data": {
+            "id": "string",
+            "name": "string",
+            "role": "string",
+            "config": {
+              "providerId": "string | null",
+              "model": "string | null",
+              "temperature": "number",
+              "maxTokens": "number",
+              "contextWindow": "number",
+              "automationLevel": "manual | smart | full_auto",
+              "confidenceThreshold": "number",
+              "tone": "number",
+              "customInstructions": "string"
+            },
+            ...
+          }
+        }
+      </response>
+    </endpoint>
+
+    <endpoint>
+      <method>PATCH</method>
+      <path>/api/agents/:id</path>
+      <description>Update agent configuration (already implemented)</description>
+      <location>apps/web/src/app/api/agents/[id]/route.ts</location>
+      <request-body>
+        {
+          "providerId": "string | null",
+          "model": "string | null",
+          "temperature": "number",
+          "maxTokens": "number",
+          "contextWindow": "number",
+          "automationLevel": "manual | smart | full_auto",
+          "confidenceThreshold": "number",
+          "tone": "number",
+          "customInstructions": "string"
+        }
+      </request-body>
+      <validation>
+        - temperature: 0-2
+        - maxTokens: 100-100000
+        - confidenceThreshold: 0-100
+        - tone: 0-100
+        - customInstructions: max 500 chars
+      </validation>
+      <response>
+        {
+          "data": Agent
+        }
+      </response>
+      <notes>
+        Current implementation validates ranges and returns updated agent.
+        Needs extension for:
+        - POST /api/agents/:id/reset (reset to defaults)
+        - POST /api/agents/:id/disable (disable agent)
+        - DELETE /api/agents/:id (delete agent config)
+      </notes>
+    </endpoint>
+
+    <endpoint status="needs-implementation">
+      <method>POST</method>
+      <path>/api/agents/:id/reset</path>
+      <description>Reset agent configuration to workspace defaults</description>
+      <request-body>{}</request-body>
+      <response>
+        {
+          "data": Agent,
+          "message": "Agent configuration reset to defaults"
+        }
+      </response>
+    </endpoint>
+
+    <endpoint status="needs-implementation">
+      <method>POST</method>
+      <path>/api/agents/:id/disable</path>
+      <description>Disable agent (soft delete - stops processing but preserves history)</description>
+      <request-body>{}</request-body>
+      <response>
+        {
+          "data": Agent,
+          "message": "Agent disabled successfully"
+        }
+      </response>
+    </endpoint>
+
+    <endpoint status="needs-implementation">
+      <method>DELETE</method>
+      <path>/api/agents/:id</path>
+      <description>Delete agent custom configuration (hard delete config only)</description>
+      <request-body>
+        {
+          "confirmName": "string" // Agent name for confirmation
+        }
+      </request-body>
+      <response>
+        {
+          "message": "Agent configuration deleted"
+        }
+      </response>
+    </endpoint>
+  </api-integration>
+
+  <file-structure>
+    <files-to-create>
+      <file>
+        <path>apps/web/src/app/agents/[id]/configure/page.tsx</path>
+        <purpose>Main configuration page component</purpose>
+        <responsibilities>
+          - Fetch agent data using useAgent(id)
+          - Initialize useAgentConfigForm hook
+          - Render page layout with breadcrumb and header
+          - Render ConfigSidebar and all settings sections
+          - Show sticky footer when form is dirty
+          - Handle loading and error states
+        </responsibilities>
+      </file>
+
+      <file>
+        <path>apps/web/src/components/agents/config/ConfigSidebar.tsx</path>
+        <purpose>8-section navigation sidebar</purpose>
+        <responsibilities>
+          - Render 8 navigation sections with icons
+          - Highlight active section based on scroll position
+          - Handle smooth scroll to section on click
+          - Show unsaved changes badges on sections
+          - Responsive: render as dropdown on mobile
+          - Keyboard navigation support
+        </responsibilities>
+      </file>
+
+      <file>
+        <path>apps/web/src/components/agents/config/GeneralSettings.tsx</path>
+        <purpose>General settings section (AC3)</purpose>
+        <responsibilities>
+          - Display name input with validation
+          - Role description textarea
+          - Avatar picker (emoji or image upload)
+          - Theme color picker with presets
+          - Live preview of agent card
+          - Character counters
+        </responsibilities>
+      </file>
+
+      <file>
+        <path>apps/web/src/components/agents/config/AIModelSettings.tsx</path>
+        <purpose>AI model settings section (AC4)</purpose>
+        <responsibilities>
+          - Primary model dropdown grouped by provider
+          - Fallback model dropdown
+          - Temperature slider with descriptions
+          - Max tokens input
+          - Context window radio buttons
+          - Cost indicator
+          - Reset to workspace defaults button
+        </responsibilities>
+      </file>
+
+      <file>
+        <path>apps/web/src/components/agents/config/BehaviorSettings.tsx</path>
+        <purpose>Behavior settings section (AC5)</purpose>
+        <responsibilities>
+          - Automation level radio cards
+          - Confidence threshold slider
+          - Tone slider with live preview
+          - Custom instructions textarea
+          - Help tooltips
+          - Character counter
+        </responsibilities>
+      </file>
+
+      <file>
+        <path>apps/web/src/components/agents/config/IntegrationsSettings.tsx</path>
+        <purpose>Integrations section (AC6)</purpose>
+        <responsibilities>
+          - List available integrations
+          - Toggle switches for each integration
+          - Status badges and last synced timestamps
+          - Connect new service button
+          - Empty state if no integrations
+          - Optimistic updates
+        </responsibilities>
+      </file>
+
+      <file>
+        <path>apps/web/src/components/agents/config/DangerZone.tsx</path>
+        <purpose>Danger zone section (AC7)</purpose>
+        <responsibilities>
+          - Reset to defaults button with confirmation
+          - Disable agent button with confirmation
+          - Delete configuration button with name confirmation
+          - Alert dialogs for confirmations
+          - Loading states
+          - Redirect handling
+        </responsibilities>
+      </file>
+
+      <file>
+        <path>apps/web/src/hooks/use-agent-config-form.ts</path>
+        <purpose>Form state management hook</purpose>
+        <responsibilities>
+          - Initialize form data from agent
+          - Track dirty state
+          - Handle field updates
+          - Validate with Zod schema
+          - Handle save with mutation
+          - Handle reset/cancel
+          - Browser warning for unsaved changes
+          - Optimistic updates
+        </responsibilities>
+      </file>
+
+      <file>
+        <path>apps/web/src/lib/agent-config-schema.ts</path>
+        <purpose>Zod validation schema</purpose>
+        <responsibilities>
+          - Define validation rules for all config fields
+          - Export schema type for TypeScript
+          - Provide error messages
+        </responsibilities>
+      </file>
+    </files-to-create>
+
+    <files-to-modify>
+      <file>
+        <path>apps/web/src/app/api/agents/[id]/route.ts</path>
+        <changes>
+          - Add POST handler for /api/agents/:id/reset
+          - Add POST handler for /api/agents/:id/disable
+          - Extend DELETE handler for /api/agents/:id (currently not implemented)
+        </changes>
+      </file>
+
+      <file>
+        <path>packages/shared/src/types/agent.ts</path>
+        <changes>
+          - Consider extending Agent interface with displayName, avatar, themeColor fields if needed
+          - Or create separate AgentGeneralSettings interface
+        </changes>
+      </file>
+    </files-to-modify>
+  </file-structure>
+
+  <implementation-guidance>
+    <step number="1">
+      <title>Create Zod validation schema</title>
+      <details>
+        Start with the validation schema (lib/agent-config-schema.ts) to establish types and rules.
+        This will be imported by the form hook and components.
+
+        Schema should include:
+        - All Agent['config'] fields with proper constraints
+        - Error messages for each rule
+        - Export inferred type for TypeScript
+      </details>
+    </step>
+
+    <step number="2">
+      <title>Create useAgentConfigForm hook</title>
+      <details>
+        Build the form state management hook (hooks/use-agent-config-form.ts).
+
+        Features:
+        - useState for form data and dirty state
+        - useEffect to initialize from agent data
+        - useEffect for beforeunload warning
+        - updateField function to track changes
+        - handleSave with validation and mutation
+        - handleReset to discard changes
+        - Return form state and handlers
+      </details>
+    </step>
+
+    <step number="3">
+      <title>Create section components</title>
+      <details>
+        Build individual section components in order of complexity:
+        1. BehaviorSettings (reuse patterns from ConfigurationTab)
+        2. AIModelSettings (reuse patterns from ConfigurationTab)
+        3. GeneralSettings (new, with avatar picker and color picker)
+        4. IntegrationsSettings (new, with toggle switches)
+        5. DangerZone (new, with confirmations)
+
+        Each component should:
+        - Accept formData and onChange props
+        - Use shadcn/ui components
+        - Include proper labels and help text
+        - Show validation errors
+        - Match wireframe design
+      </details>
+    </step>
+
+    <step number="4">
+      <title>Create ConfigSidebar component</title>
+      <details>
+        Build the sidebar navigation (components/agents/config/ConfigSidebar.tsx).
+
+        Features:
+        - Define sections array with id, label, icon, variant
+        - Map sections to navigation buttons
+        - handleSectionClick with scrollIntoView
+        - Sticky positioning on desktop
+        - Active section highlighting
+        - Consider Intersection Observer for scroll-based active detection
+      </details>
+    </step>
+
+    <step number="5">
+      <title>Create main page component</title>
+      <details>
+        Build the page (app/agents/[id]/configure/page.tsx).
+
+        Structure:
+        - Use useAgent(id) to fetch data
+        - Use useAgentConfigForm(id) for form state
+        - Render breadcrumb navigation
+        - Render page header with agent info
+        - Two-column layout: ConfigSidebar + main content
+        - Main content renders all section components
+        - Sticky footer when isDirty
+        - Loading and error states
+      </details>
+    </step>
+
+    <step number="6">
+      <title>Implement API endpoints</title>
+      <details>
+        Add missing danger zone endpoints to api/agents/[id]/route.ts:
+        - POST reset handler
+        - POST disable handler
+        - DELETE handler with confirmation
+
+        Each should:
+        - Check authentication
+        - Validate request
+        - Update agent state (mock for now)
+        - Return success response
+      </details>
+    </step>
+
+    <step number="7">
+      <title>Add responsive mobile layout</title>
+      <details>
+        Enhance mobile experience:
+        - Convert sidebar to dropdown/select on mobile
+        - Ensure sections are easily scrollable
+        - Test on small screens (< 768px)
+        - Consider collapsible sections on mobile
+      </details>
+    </step>
+
+    <step number="8">
+      <title>Add advanced features</title>
+      <details>
+        Implement optional enhancements:
+        - Auto-save after 3s of inactivity
+        - Keyboard shortcuts for save (Cmd/Ctrl+S)
+        - Section-level dirty indicators
+        - Smooth scroll with offset for sticky header
+        - Intersection Observer for active section detection
+      </details>
+    </step>
+  </implementation-guidance>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-suite file="__tests__/components/agents/config/config-sidebar.test.tsx">
+        - Renders all 8 sections
+        - Highlights active section
+        - Scrolls to section on click
+        - Shows danger zone in red
+        - Keyboard navigation works
+      </test-suite>
+
+      <test-suite file="__tests__/hooks/use-agent-config-form.test.ts">
+        - Initializes with agent config
+        - Marks form as dirty on field change
+        - Validates before save
+        - Shows validation errors
+        - Handles save success
+        - Handles save failure
+        - Browser warning on unsaved changes
+        - Reset discards changes
+      </test-suite>
+
+      <test-suite file="__tests__/components/agents/config/general-settings.test.tsx">
+        - Renders all fields
+        - Character counters work
+        - Avatar picker opens
+        - Color picker updates
+        - Validation shows errors
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <test-suite file="__tests__/api/agents/update.test.ts">
+        - Updates agent configuration
+        - Validates temperature range
+        - Validates max tokens range
+        - Validates confidence threshold
+        - Validates tone range
+        - Validates custom instructions length
+        - Requires authentication
+      </test-suite>
+
+      <test-suite file="__tests__/api/agents/danger-zone.test.ts">
+        - Resets to defaults
+        - Disables agent
+        - Deletes configuration
+        - Requires confirmation for delete
+        - Returns proper error codes
+      </test-suite>
+    </integration-tests>
+
+    <e2e-tests>
+      <test-suite file="e2e/agent-config.spec.ts">
+        - User can navigate to configuration page
+        - User can change temperature and save
+        - User can change automation level
+        - User can add custom instructions
+        - User sees success toast on save
+        - Form is no longer dirty after save
+        - User gets warning on navigation with unsaved changes
+        - Danger zone actions require confirmation
+        - User can cancel dangerous actions
+        - User can complete dangerous actions
+      </test-suite>
+    </e2e-tests>
+  </testing-requirements>
+
+  <dependencies>
+    <package-dependencies>
+      <dependency>
+        <name>react-hook-form</name>
+        <version>^7.x</version>
+        <purpose>Form state management</purpose>
+        <status>check if installed, add if needed</status>
+      </dependency>
+
+      <dependency>
+        <name>zod</name>
+        <version>^3.x</version>
+        <purpose>Schema validation</purpose>
+        <status>likely already installed</status>
+      </dependency>
+
+      <dependency>
+        <name>@tanstack/react-query</name>
+        <version>^5.x</version>
+        <purpose>Data fetching and mutations</purpose>
+        <status>already installed</status>
+      </dependency>
+
+      <dependency>
+        <name>lucide-react</name>
+        <version>latest</version>
+        <purpose>Icons for sidebar sections</purpose>
+        <status>already installed</status>
+      </dependency>
+
+      <dependency>
+        <name>emoji-picker-react</name>
+        <version>latest</version>
+        <purpose>Emoji picker for avatar selection</purpose>
+        <status>needs installation (optional)</status>
+      </dependency>
+    </package-dependencies>
+
+    <component-dependencies>
+      <component>
+        <name>shadcn/ui components</name>
+        <items>
+          - Input (already installed)
+          - Textarea (already installed)
+          - Slider (already installed)
+          - RadioGroup (already installed)
+          - Select (already installed)
+          - Button (already installed)
+          - AlertDialog (check installation)
+          - Card (already installed)
+          - Label (already installed)
+        </items>
+      </component>
+    </component-dependencies>
+
+    <story-dependencies>
+      <dependency>
+        <story-id>13-1</story-id>
+        <title>Agent Card Components</title>
+        <status>done</status>
+        <reason>AgentCardStandard used for live preview in General Settings</reason>
+      </dependency>
+
+      <dependency>
+        <story-id>13-2</story-id>
+        <title>Agent Detail Modal</title>
+        <status>done</status>
+        <reason>ConfigurationTab provides patterns for form implementation</reason>
+      </dependency>
+    </story-dependencies>
+  </dependencies>
+
+  <validation-schema>
+    <code language="typescript">
+      <![CDATA[
+import { z } from 'zod';
+
+export const agentConfigSchema = z.object({
+  // General Settings
+  displayName: z.string()
+    .min(3, 'Display name must be at least 3 characters')
+    .max(50, 'Display name must be at most 50 characters')
+    .regex(/^[a-zA-Z0-9 ]+$/, 'Display name can only contain letters, numbers, and spaces'),
+
+  roleDescription: z.string()
+    .max(200, 'Role description must be at most 200 characters')
+    .optional(),
+
+  avatar: z.string().optional(),
+
+  themeColor: z.string()
+    .regex(/^#[0-9A-F]{6}$/i, 'Theme color must be a valid hex color')
+    .optional(),
+
+  // AI Model Settings
+  providerId: z.string().nullable().optional(),
+
+  model: z.string().nullable().optional(),
+
+  temperature: z.number()
+    .min(0, 'Temperature must be at least 0')
+    .max(2, 'Temperature must be at most 2')
+    .step(0.1),
+
+  maxTokens: z.number()
+    .min(100, 'Max tokens must be at least 100')
+    .max(32000, 'Max tokens must be at most 32000')
+    .int('Max tokens must be an integer'),
+
+  contextWindow: z.enum(['4000', '8000', '16000'])
+    .transform(val => parseInt(val)),
+
+  // Behavior Settings
+  automationLevel: z.enum(['manual', 'smart', 'full_auto']),
+
+  confidenceThreshold: z.number()
+    .min(0, 'Confidence threshold must be at least 0')
+    .max(100, 'Confidence threshold must be at most 100')
+    .step(5),
+
+  tone: z.number()
+    .min(0, 'Tone must be at least 0')
+    .max(100, 'Tone must be at most 100')
+    .step(10),
+
+  customInstructions: z.string()
+    .max(500, 'Custom instructions must be at most 500 characters')
+    .optional()
+    .default(''),
+});
+
+export type AgentConfigFormData = z.infer<typeof agentConfigSchema>;
+      ]]>
+    </code>
+  </validation-schema>
+
+  <notes>
+    <note type="complexity">
+      This is the most complex story in EPIC-13 due to:
+      - 9 acceptance criteria covering 8 distinct sections
+      - Extensive form validation rules
+      - Multiple interaction patterns (sliders, radio cards, toggles, etc.)
+      - Unsaved changes detection with browser warnings
+      - Danger zone actions requiring confirmations
+      - Responsive mobile layout considerations
+
+      Estimate: 12-16 hours implementation + 4-6 hours testing
+    </note>
+
+    <note type="reusability">
+      Focus on creating reusable form components:
+      - Section wrapper component with consistent styling
+      - Slider component with label and value display
+      - Radio card component for visual radio options
+      - Form field wrapper with label, help text, and error display
+
+      These can be extracted to shared UI package for use in other settings pages.
+    </note>
+
+    <note type="mobile-ux">
+      Mobile considerations:
+      - Sidebar should become a dropdown/select menu on small screens
+      - Section headers should be clearly visible for scrolling
+      - Consider collapsible sections to reduce scrolling
+      - Sticky footer should work on mobile without covering content
+      - Test on actual mobile devices, not just browser emulation
+    </note>
+
+    <note type="future-enhancement">
+      Features not in MVP but should be considered for architecture:
+      - Auto-save (mentioned as optional in AC8)
+      - Section-level undo/redo
+      - Compare with workspace defaults view
+      - Export/import configuration
+      - Configuration templates
+      - Version history of configuration changes
+      - Memory settings section (placeholder in wireframe)
+      - Notifications settings section (placeholder in wireframe)
+      - Advanced settings section (placeholder in wireframe)
+    </note>
+
+    <note type="accessibility">
+      Ensure WCAG AA compliance:
+      - All form fields have proper labels
+      - Error messages are announced to screen readers
+      - Keyboard navigation works for all interactive elements
+      - Focus management for modals and confirmations
+      - Color contrast meets AA standards (especially danger zone red)
+      - Slider components are keyboard accessible
+    </note>
+
+    <note type="performance">
+      Optimization considerations:
+      - Lazy load section components (React.lazy)
+      - Debounce form field updates for expensive operations
+      - Optimize re-renders with React.memo where appropriate
+      - Consider using Intersection Observer for active section detection
+      - Avoid unnecessary validation on every keystroke
+    </note>
+  </notes>
+
+  <related-documentation>
+    <document>
+      <title>HYVVE Product Requirements</title>
+      <path>docs/prd.md</path>
+      <relevance>BYOAI configuration, agent customization requirements</relevance>
+    </document>
+
+    <document>
+      <title>Technical Architecture</title>
+      <path>docs/architecture.md</path>
+      <relevance>Agent system architecture, API design patterns</relevance>
+    </document>
+
+    <document>
+      <title>UX Design Document</title>
+      <path>docs/ux-design.md</path>
+      <relevance>Agent management user flows, configuration patterns</relevance>
+    </document>
+
+    <document>
+      <title>Agent Types</title>
+      <path>packages/shared/src/types/agent.ts</path>
+      <relevance>Agent configuration interface and types</relevance>
+    </document>
+
+    <document>
+      <title>Layout Constants</title>
+      <path>apps/web/src/lib/layout-constants.ts</path>
+      <relevance>Consistent spacing and dimensions</relevance>
+    </document>
+
+    <document>
+      <title>CLAUDE.md - Project Instructions</title>
+      <path>CLAUDE.md</path>
+      <relevance>
+        Key sections:
+        - Tailwind CSS Guidelines (dynamic classes limitation)
+        - Component Structure patterns
+        - File Naming conventions
+        - Import order standards
+        - BYOAI provider configuration
+      </relevance>
+    </document>
+  </related-documentation>
+
+  <definition-of-done>
+    <checklist>
+      <item>All 9 acceptance criteria met and verified</item>
+      <item>Page renders correctly on desktop (1920x1080, 1440x900)</item>
+      <item>Page renders correctly on tablet (768x1024)</item>
+      <item>Page renders correctly on mobile (375x667, 414x896)</item>
+      <item>All form fields validate properly with inline errors</item>
+      <item>Unsaved changes detection works (browser warning)</item>
+      <item>Save/Cancel actions work correctly</item>
+      <item>All danger zone actions have proper confirmations</item>
+      <item>Unit tests pass with >80% coverage</item>
+      <item>Integration tests pass for all API endpoints</item>
+      <item>E2E tests pass for user workflows</item>
+      <item>TypeScript compiles with no errors or warnings</item>
+      <item>ESLint passes with no warnings</item>
+      <item>Accessibility audit passes (WCAG AA level)</item>
+      <item>Dark mode support verified and working</item>
+      <item>Code reviewed and approved by senior developer</item>
+      <item>Story context documentation complete</item>
+      <item>Manual testing completed on Chrome, Firefox, Safari</item>
+      <item>Mobile testing completed on iOS and Android devices</item>
+      <item>Performance metrics verified (Lighthouse score >90)</item>
+      <item>Security review passed (no XSS, CSRF vulnerabilities)</item>
+    </checklist>
+  </definition-of-done>
+</story-context>
