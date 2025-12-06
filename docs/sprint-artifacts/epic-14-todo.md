@@ -10,7 +10,7 @@
 - [x] Story 14-8: Business ID Ownership Validation
 - [x] Story 14-9: Agent Client Unit Tests
 - [x] Story 14-10: Agent Response Runtime Validation
-- [ ] Story 14-11: API URL Centralization
+- [x] Story 14-11: API URL Centralization
 - [ ] Story 14-12: Optimistic Update Type Safety
 - [ ] Story 14-13: Approval Quick Actions Tests
 - [ ] Story 14-14: Countdown Timer Optimization

@@ -10,6 +10,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/lib/auth-client';
+import { NESTJS_API_URL } from '@/lib/api-config';
 
 /**
  * Agent definition
@@ -43,8 +44,6 @@ export interface AvailableModel {
   costPer1MTokens: number;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
 /**
  * Get workspace ID from session
  */
@@ -67,7 +66,7 @@ export function useAgentPreferences() {
       if (!workspaceId) return [];
 
       const response = await fetch(
-        `${API_BASE}/workspaces/${workspaceId}/ai-providers/agents/preferences`,
+        `${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/agents/preferences`,
         {
           headers: {
             Authorization: `Bearer ${(session as { accessToken?: string })?.accessToken}`,
@@ -99,7 +98,7 @@ export function useAvailableModels() {
       if (!workspaceId) return [];
 
       const response = await fetch(
-        `${API_BASE}/workspaces/${workspaceId}/ai-providers/agents/models`,
+        `${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/agents/models`,
         {
           headers: {
             Authorization: `Bearer ${(session as { accessToken?: string })?.accessToken}`,
@@ -139,7 +138,7 @@ export function useUpdateAgentPreference() {
       if (!workspaceId) throw new Error('No workspace');
 
       const response = await fetch(
-        `${API_BASE}/workspaces/${workspaceId}/ai-providers/agents/${agentId}/preference`,
+        `${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/agents/${agentId}/preference`,
         {
           method: 'PATCH',
           headers: {
@@ -177,7 +176,7 @@ export function useResetAgentPreference() {
       if (!workspaceId) throw new Error('No workspace');
 
       const response = await fetch(
-        `${API_BASE}/workspaces/${workspaceId}/ai-providers/agents/${agentId}/preference`,
+        `${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/agents/${agentId}/preference`,
         {
           method: 'DELETE',
           headers: {

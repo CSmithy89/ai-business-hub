@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { ApprovalItem } from '@hyvve/shared'
 import { apiPost } from '@/lib/api-client'
-import { NESTJS_API_URL } from '@/lib/api-config'
+import { API_ENDPOINTS } from '@/lib/api-config'
 
 /**
  * Request body for approve/reject actions
@@ -36,7 +36,7 @@ type ApprovalActionType = 'approve' | 'reject'
  * @param data - Optional request body with notes
  * @returns Promise with the updated approval item
  */
-async function performApprovalAction(
+export async function performApprovalAction(
   id: string,
   action: ApprovalActionType,
   data: ApprovalActionRequest = {}
@@ -44,8 +44,13 @@ async function performApprovalAction(
   let response: Response
 
   try {
-    response = await apiPost(`/api/approvals/${id}/${action}`, data, {
-      baseURL: NESTJS_API_URL,
+    const endpoint =
+      action === 'approve'
+        ? API_ENDPOINTS.approvals.approve(id)
+        : API_ENDPOINTS.approvals.reject(id)
+
+    response = await apiPost(endpoint, data, {
+      baseURL: '',
     })
   } catch (err) {
     // Network error - API server may not be running

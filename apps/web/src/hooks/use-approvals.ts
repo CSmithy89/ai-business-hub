@@ -2,11 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ApprovalItem, ApprovalStatus } from '@hyvve/shared'
-
-/**
- * API base URL for the NestJS backend
- */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+import { NESTJS_API_URL } from '@/lib/api-config'
 
 /**
  * Query parameters for fetching approvals list
@@ -65,7 +61,7 @@ async function fetchApprovals(filters: ApprovalFilters = {}): Promise<ApprovalsL
   if (filters.page) params.append('page', filters.page.toString())
   if (filters.limit) params.append('limit', filters.limit.toString())
 
-  const url = `${API_BASE_URL}/api/approvals${params.toString() ? `?${params.toString()}` : ''}`
+  const url = `${NESTJS_API_URL}/api/approvals${params.toString() ? `?${params.toString()}` : ''}`
 
   const response = await fetch(url, {
     credentials: 'include', // Include cookies for session
@@ -83,7 +79,7 @@ async function fetchApprovals(filters: ApprovalFilters = {}): Promise<ApprovalsL
  * Fetch a single approval by ID
  */
 async function fetchApproval(id: string): Promise<ApprovalResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/approvals/${id}`, {
+  const response = await fetch(`${NESTJS_API_URL}/api/approvals/${id}`, {
     credentials: 'include',
   })
 
@@ -99,7 +95,7 @@ async function fetchApproval(id: string): Promise<ApprovalResponse> {
  * Approve an approval item
  */
 async function approveApproval(id: string, data: ApprovalActionRequest = {}): Promise<ApprovalResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/approvals/${id}/approve`, {
+  const response = await fetch(`${NESTJS_API_URL}/api/approvals/${id}/approve`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -120,7 +116,7 @@ async function approveApproval(id: string, data: ApprovalActionRequest = {}): Pr
  * Reject an approval item
  */
 async function rejectApproval(id: string, data: ApprovalActionRequest = {}): Promise<ApprovalResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/approvals/${id}/reject`, {
+  const response = await fetch(`${NESTJS_API_URL}/api/approvals/${id}/reject`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -182,7 +178,7 @@ export interface BulkApprovalResponse {
  * Bulk approve or reject multiple approval items
  */
 async function bulkApproval(data: BulkApprovalRequest): Promise<BulkApprovalResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/approvals/bulk`, {
+  const response = await fetch(`${NESTJS_API_URL}/api/approvals/bulk`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
