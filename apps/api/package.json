@@ -78,7 +78,12 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.(t|j)s$": [
+        "ts-jest",
+        {
+          "tsconfig": "<rootDir>/../tsconfig.spec.json"
+        }
+      ]
     },
     "moduleNameMapper": {
       "^@paralleldrive/cuid2$": "<rootDir>/__mocks__/@paralleldrive/cuid2.ts"

@@ -153,15 +153,8 @@ export class MetricsService implements OnModuleDestroy {
 
     if (mainExists) {
       const streamInfo = await redis.xinfo('STREAM', STREAMS.MAIN);
-      const info: Record<string, any> = {};
-      for (let i = 0; i < streamInfo.length; i += 2) {
-        const key = String(streamInfo[i]);
-        info[key] = streamInfo[i + 1];
-      }
-      const streamLength =
-        typeof info.length === 'number'
-          ? info.length
-          : Number(info.length ?? 0);
+      const info = this.parseXinfoReply(streamInfo as unknown[]);
+      const streamLength = Number(info.length ?? 0);
       if (!Number.isNaN(streamLength) && streamLength > this.lastEventCount) {
         const diff = streamLength - this.lastEventCount;
         this.eventBusThroughput.inc({ stream: 'main' }, diff);
@@ -171,15 +164,11 @@ export class MetricsService implements OnModuleDestroy {
       try {
         const groups = await redis.xinfo('GROUPS', STREAMS.MAIN);
         for (const group of groups) {
-          const groupInfo: Record<string, any> = {};
-          for (let i = 0; i < group.length; i += 2) {
-            const key = String(group[i]);
-            groupInfo[key] = group[i + 1];
-          }
-          if (groupInfo.name === CONSUMER_GROUP) {
+          const groupInfo = this.parseXinfoReply(group as unknown[]);
+          if (String(groupInfo.name) === CONSUMER_GROUP) {
             this.eventBusLag.set(
               { consumer_group: CONSUMER_GROUP },
-              Number(groupInfo.lag) || 0,
+              Number(String(groupInfo.lag ?? 0)) || 0,
             );
             break;
           }
@@ -210,6 +199,7 @@ export class MetricsService implements OnModuleDestroy {
 
     const counts = new Map<string, number>();
     for (const row of grouped) {
+      if (!row.status) continue;
       counts.set(row.status, row._count.status);
     }
 
@@ -232,9 +222,9 @@ export class MetricsService implements OnModuleDestroy {
     for (const provider of providers) {
       this.aiProviderHealth.set(
         {
-          provider: provider.provider,
-          workspace: provider.workspaceId,
-          provider_id: provider.id,
+          provider: String(provider.provider),
+          workspace: String(provider.workspaceId),
+          provider_id: String(provider.id),
         },
         provider.isValid ? 1 : 0,
       );
@@ -245,5 +235,14 @@ export class MetricsService implements OnModuleDestroy {
     if (this.httpServer && this.connectionListener) {
       this.httpServer.off('connection', this.connectionListener);
     }
+  }
+
+  private parseXinfoReply(reply: unknown[]): Record<string, unknown> {
+    const info: Record<string, unknown> = {};
+    for (let i = 0; i < reply.length; i += 2) {
+      const key = String(reply[i]);
+      info[key] = reply[i + 1];
+    }
+    return info;
   }
 }
