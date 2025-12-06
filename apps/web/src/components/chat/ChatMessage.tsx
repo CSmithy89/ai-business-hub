@@ -128,7 +128,7 @@ export const ChatMessage = memo(function ChatMessage({
               onClick={onStopStreaming}
               className="mt-2 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
             >
-              <Square className="h-3 w-3 fill-current" />
+              <Square className="h-3 w-3" />
               Stop generating
             </Button>
           )}

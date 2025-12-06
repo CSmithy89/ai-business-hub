@@ -32,7 +32,7 @@ export function SecurityNoticeBanner({
         'flex items-start gap-3',
         className
       )}
-      role="note"
+      role="status"
       aria-label="Security notice"
     >
       <Icon

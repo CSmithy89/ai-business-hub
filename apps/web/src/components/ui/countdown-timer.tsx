@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, type ReactNode } from 'react'
+import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
 
 interface CountdownTimerProps {
   /** Initial countdown time in seconds */
@@ -54,6 +54,12 @@ export function CountdownTimer({
 }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState(seconds)
   const [isRunning, setIsRunning] = useState(autoStart)
+  const onCompleteRef = useRef(onComplete)
+
+  // Keep the ref updated
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
 
   // Reset timer when resetKey changes
   useEffect(() => {
@@ -63,26 +69,22 @@ export function CountdownTimer({
 
   // Handle the countdown
   useEffect(() => {
-    if (!isRunning || timeLeft <= 0) {
-      if (timeLeft <= 0 && isRunning) {
-        onComplete?.()
-        setIsRunning(false)
-      }
-      return
-    }
+    if (!isRunning) return
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
-        const newValue = prev - 1
-        if (newValue <= 0) {
+        const newValue = Math.max(0, prev - 1)
+        if (newValue === 0) {
           clearInterval(timer)
+          onCompleteRef.current?.()
+          setIsRunning(false)
         }
         return newValue
       })
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [isRunning, timeLeft, onComplete])
+  }, [isRunning])
 
   // Render custom content or default
   if (render) {
@@ -117,6 +119,12 @@ export function useCountdown(
   const [timeLeft, setTimeLeft] = useState(initialSeconds)
   const [isRunning, setIsRunning] = useState(autoStart)
   const [isComplete, setIsComplete] = useState(false)
+  const onCompleteRef = useRef(onComplete)
+
+  // Keep the ref updated
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
 
   const reset = useCallback(() => {
     setTimeLeft(initialSeconds)
@@ -129,27 +137,32 @@ export function useCountdown(
   }, [])
 
   const start = useCallback(() => {
-    if (timeLeft > 0) {
-      setIsRunning(true)
-    }
-  }, [timeLeft])
+    setTimeLeft((current) => {
+      if (current > 0) {
+        setIsRunning(true)
+      }
+      return current
+    })
+  }, [])
 
   useEffect(() => {
-    if (!isRunning || timeLeft <= 0) {
-      if (timeLeft <= 0 && !isComplete) {
-        setIsComplete(true)
-        setIsRunning(false)
-        onComplete?.()
-      }
-      return
-    }
+    if (!isRunning || isComplete) return
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1)
+      setTimeLeft((prev) => {
+        const newValue = Math.max(0, prev - 1)
+        if (newValue === 0) {
+          clearInterval(timer)
+          setIsComplete(true)
+          setIsRunning(false)
+          onCompleteRef.current?.()
+        }
+        return newValue
+      })
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [isRunning, timeLeft, onComplete, isComplete])
+  }, [isRunning, isComplete])
 
   return {
     /** Current time remaining in seconds */

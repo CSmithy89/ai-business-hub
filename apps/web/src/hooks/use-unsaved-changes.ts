@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useMemo } from 'react'
 
 /**
  * Hook for tracking unsaved changes and preventing accidental navigation
@@ -50,10 +50,13 @@ export function useUnsavedChanges(isDirty: boolean) {
     [isDirty]
   )
 
-  return {
-    /** Whether there are unsaved changes */
-    isDirty,
-    /** Confirm navigation when dirty, showing browser dialog */
-    confirmNavigation,
-  }
+  return useMemo(
+    () => ({
+      /** Whether there are unsaved changes */
+      isDirty,
+      /** Confirm navigation when dirty, showing browser dialog */
+      confirmNavigation,
+    }),
+    [isDirty, confirmNavigation]
+  )
 }

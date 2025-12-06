@@ -37,53 +37,31 @@ export function SignUpForm() {
   const passwordsMatch = password && confirmPassword && password === confirmPassword
   const showMatchIndicator = confirmPassword.length > 0
 
-  const handleGoogleSignUp = async () => {
-    setIsGoogleLoading(true)
+  // Generalized social sign-up handler to reduce code duplication
+  const handleSocialSignUp = async (
+    provider: 'google' | 'microsoft' | 'github',
+    setLoading: (loading: boolean) => void
+  ) => {
+    setLoading(true)
     setError(null)
     try {
       await authClient.signIn.social({
-        provider: 'google',
+        provider,
         callbackURL: '/dashboard',
       })
       // Redirect happens automatically
-    } catch (error) {
-      console.error('Google sign-up error:', error)
-      setError('Unable to sign up with Google. Please try again or use email registration.')
-      setIsGoogleLoading(false)
+    } catch (err) {
+      console.error(`${provider} sign-up error:`, err)
+      const providerName = provider.charAt(0).toUpperCase() + provider.slice(1)
+      setError(`Unable to sign up with ${providerName}. Please try again or use email registration.`)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleMicrosoftSignUp = async () => {
-    setIsMicrosoftLoading(true)
-    setError(null)
-    try {
-      await authClient.signIn.social({
-        provider: 'microsoft',
-        callbackURL: '/dashboard',
-      })
-      // Redirect happens automatically
-    } catch (error) {
-      console.error('Microsoft sign-up error:', error)
-      setError('Unable to sign up with Microsoft. Please try again or use email registration.')
-      setIsMicrosoftLoading(false)
-    }
-  }
-
-  const handleGitHubSignUp = async () => {
-    setIsGitHubLoading(true)
-    setError(null)
-    try {
-      await authClient.signIn.social({
-        provider: 'github',
-        callbackURL: '/dashboard',
-      })
-      // Redirect happens automatically
-    } catch (error) {
-      console.error('GitHub sign-up error:', error)
-      setError('Unable to sign up with GitHub. Please try again or use email registration.')
-      setIsGitHubLoading(false)
-    }
-  }
+  const handleGoogleSignUp = () => handleSocialSignUp('google', setIsGoogleLoading)
+  const handleMicrosoftSignUp = () => handleSocialSignUp('microsoft', setIsMicrosoftLoading)
+  const handleGitHubSignUp = () => handleSocialSignUp('github', setIsGitHubLoading)
 
   const onSubmit = async (data: SignUpFormData) => {
     setIsSubmitting(true)

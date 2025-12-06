@@ -60,15 +60,15 @@ export function ChatPreviewCard({
   )
 
   const typeLabel = type === 'email' ? 'Email Draft' : 'Document Preview'
-  const hasExpandableContent = fullContent && fullContent !== snippet
+  const hasExpandableContent = Boolean(fullContent && fullContent !== snippet)
 
   return (
     <Card className={cn('max-w-[85%] self-start overflow-hidden', className)}>
       <div className="p-4 bg-gray-50 border-l-4 border-blue-500">
         {/* Header */}
         <div className="flex items-start gap-3 mb-2">
-          <div className="text-blue-600 shrink-0" aria-hidden="true">
-            {icon || defaultIcon}
+          <div className="text-blue-600 shrink-0">
+            {icon || <span aria-hidden="true">{defaultIcon}</span>}
           </div>
           <div className="flex-1">
             <h4 className="font-semibold text-gray-900">{title}</h4>
@@ -85,7 +85,7 @@ export function ChatPreviewCard({
         {hasExpandableContent && (
           <button
             type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={() => setIsExpanded(prev => !prev)}
             className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mt-3 focus:outline-none focus:underline"
             aria-expanded={isExpanded}
           >

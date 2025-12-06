@@ -18,7 +18,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // TODO: When Prisma is connected, replace with real database query
+    // TODO(EPIC-14): When Prisma is connected, replace with real database query
     // For now, return mock data to demonstrate the API structure
 
     // Mock data for development
@@ -82,9 +82,13 @@ export async function GET() {
     }
     */
 
-    return NextResponse.json({
-      data: mockMetrics,
-    })
+    return NextResponse.json(
+      { data: mockMetrics },
+      {
+        // Prevent caching of per-user metrics by browsers / CDNs
+        headers: { 'Cache-Control': 'no-store, max-age=0' },
+      }
+    )
   } catch (error) {
     console.error('Error fetching approval metrics:', error)
     return NextResponse.json(

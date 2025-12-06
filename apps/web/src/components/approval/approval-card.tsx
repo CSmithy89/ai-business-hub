@@ -252,21 +252,26 @@ export function ApprovalCard({
         <div className="space-y-3">
           <button
             type="button"
-            onClick={() => setShowPreviewData(!showPreviewData)}
+            onClick={() => setShowPreviewData(prev => !prev)}
             className="flex items-center justify-between w-full text-left"
+            aria-expanded={showPreviewData}
+            aria-controls={`preview-data-${approval.id}`}
           >
             <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
               Preview Data
             </h3>
             {showPreviewData ? (
-              <ChevronUp className="h-5 w-5 text-gray-400" />
+              <ChevronUp className="h-5 w-5 text-gray-400" aria-hidden="true" />
             ) : (
-              <ChevronDown className="h-5 w-5 text-gray-400" />
+              <ChevronDown className="h-5 w-5 text-gray-400" aria-hidden="true" />
             )}
           </button>
 
           {showPreviewData && (
-            <div className="rounded-lg bg-gray-50 p-4 overflow-x-auto">
+            <div
+              id={`preview-data-${approval.id}`}
+              className="rounded-lg bg-gray-50 p-4 overflow-x-auto"
+            >
               <pre className="text-xs text-gray-700 whitespace-pre-wrap">
                 {JSON.stringify(approval.data, null, 2)}
               </pre>

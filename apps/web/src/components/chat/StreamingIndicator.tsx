@@ -31,6 +31,7 @@ export function StreamingIndicator({
       <div
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-base text-white"
         style={{ backgroundColor: agentColor }}
+        aria-hidden="true"
       >
         {agentIcon}
       </div>

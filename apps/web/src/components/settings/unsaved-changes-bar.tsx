@@ -6,9 +6,9 @@ import { cn } from '@/lib/utils'
 
 interface UnsavedChangesBarProps {
   /** Callback when save button is clicked */
-  onSave: () => void
+  onSave: () => void | Promise<void>
   /** Callback when discard button is clicked */
-  onDiscard: () => void
+  onDiscard: () => void | Promise<void>
   /** Whether a save operation is in progress */
   isLoading?: boolean
   /** Custom className for the bar */
@@ -35,7 +35,7 @@ export function UnsavedChangesBar({
         'px-6 py-4 shadow-lg',
         className
       )}
-      role="alert"
+      role="status"
       aria-live="polite"
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">

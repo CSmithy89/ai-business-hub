@@ -107,12 +107,12 @@ export function ApprovalStats({ initialData, className }: ApprovalStatsProps) {
       />
       <StatCard
         label="Avg Response Time"
-        value={displayMetrics?.avgResponseTime ? `${displayMetrics.avgResponseTime}h` : '--'}
+        value={displayMetrics?.avgResponseTime != null ? `${displayMetrics.avgResponseTime}h` : '--'}
         icon={<Timer className="h-5 w-5" />}
       />
       <StatCard
         label="Approval Rate"
-        value={displayMetrics?.approvalRate ? `${displayMetrics.approvalRate}%` : '--'}
+        value={displayMetrics?.approvalRate != null ? `${displayMetrics.approvalRate}%` : '--'}
         icon={<TrendingUp className="h-5 w-5" />}
       />
     </div>
