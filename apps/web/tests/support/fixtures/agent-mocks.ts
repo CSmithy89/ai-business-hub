@@ -297,7 +297,11 @@ export const mockErrorResponses = {
     success: false,
     error: 'Validation team execution failed: Model error',
     session_id: 'error_session_123',
-    metadata: {},
+    metadata: {
+      business_id: 'error-business-id',
+      team: 'validation',
+      workspace_id: 'error-workspace-id',
+    },
   },
 };
 

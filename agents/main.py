@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from middleware.tenant import TenantMiddleware
 from config import settings
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 import logging
 
@@ -84,7 +84,7 @@ class AgentRunResponse(BaseModel):
     session_id: Optional[str] = None
     error: Optional[str] = None
     message: Optional[str] = None
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
 
 
 class TeamRunRequest(BaseModel):
@@ -103,7 +103,7 @@ class TeamRunResponse(BaseModel):
     session_id: str
     agent_name: Optional[str] = None  # Which agent responded
     error: Optional[str] = None
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
 
 
 # ============================================================================
@@ -652,7 +652,7 @@ async def planning_team_health():
             "status": "ok",
             "team": "planning",
             "leader": "Blake",
-            "members": ["Model", "Finance", "Revenue", "Forecast"],
+            "members": ["Model", "Finn", "Revenue", "Forecast"],
             "version": "0.1.0",
             "storage": "bmp_planning_sessions",
         }

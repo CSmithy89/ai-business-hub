@@ -86,7 +86,6 @@ test.describe('Agent Integration', () => {
       const response = await page.request.post(`${AGENT_BASE_URL}/agents/validation/runs`, {
         headers: {
           Authorization: `Bearer ${authCookie!.value}`,
-          'Content-Type': 'application/json',
         },
         data: {
           message: 'Please validate my business idea',
@@ -118,7 +117,6 @@ test.describe('Agent Integration', () => {
       const response = await page.request.post(`${AGENT_BASE_URL}/agents/planning/runs`, {
         headers: {
           Authorization: `Bearer ${authCookie!.value}`,
-          'Content-Type': 'application/json',
         },
         data: {
           message: 'Create a business plan for my idea',
@@ -149,7 +147,6 @@ test.describe('Agent Integration', () => {
       const response = await page.request.post(`${AGENT_BASE_URL}/agents/branding/runs`, {
         headers: {
           Authorization: `Bearer ${authCookie!.value}`,
-          'Content-Type': 'application/json',
         },
         data: {
           message: 'Create brand identity for my business',
@@ -194,7 +191,6 @@ test.describe('Agent Integration', () => {
         {
           headers: {
             Authorization: `Bearer ${authCookie!.value}`,
-            'Content-Type': 'application/json',
           },
           data: {
             message: 'Validate my SaaS business idea',
@@ -214,7 +210,6 @@ test.describe('Agent Integration', () => {
         {
           headers: {
             Authorization: `Bearer ${authCookie!.value}`,
-            'Content-Type': 'application/json',
           },
           data: {
             message: 'Create business plan based on validation',
@@ -238,7 +233,6 @@ test.describe('Agent Integration', () => {
         {
           headers: {
             Authorization: `Bearer ${authCookie!.value}`,
-            'Content-Type': 'application/json',
           },
           data: {
             message: 'Create brand identity based on business plan',
@@ -275,9 +269,6 @@ test.describe('Agent Integration', () => {
 
     test('should return 401 when missing authentication (AC6)', async ({ page }) => {
       const response = await page.request.post(`${AGENT_BASE_URL}/agents/validation/runs`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
         data: {
           message: 'Test message',
           business_id: 'test-123',
@@ -298,7 +289,6 @@ test.describe('Agent Integration', () => {
       const response = await page.request.post(`${AGENT_BASE_URL}/agents/validation/runs`, {
         headers: {
           Authorization: `Bearer ${authCookie!.value}`,
-          'Content-Type': 'application/json',
         },
         data: {
           message: 'Test message',
@@ -323,7 +313,6 @@ test.describe('Agent Integration', () => {
       const response = await page.request.post(`${AGENT_BASE_URL}/agents/validation/runs`, {
         headers: {
           Authorization: `Bearer ${authCookie!.value}`,
-          'Content-Type': 'application/json',
         },
         data: {
           message: '', // Empty message
@@ -387,7 +376,6 @@ test.describe('Agent Integration', () => {
       const response = await page.request.post(`${AGENT_BASE_URL}/agents/validation/runs`, {
         headers: {
           Authorization: `Bearer ${authCookie2!.value}`,
-          'Content-Type': 'application/json',
         },
         data: {
           message: 'Attempt cross-tenant access',
@@ -395,9 +383,8 @@ test.describe('Agent Integration', () => {
         },
       });
 
-      // Should either get 403 Forbidden or 500 due to business not found in User 2's workspace
-      // Depending on implementation, might be 403 (tenant check) or 500 (business not found)
-      expect([403, 500]).toContain(response.status());
+      // Should get 403 Forbidden for cross-tenant access attempt
+      expect(response.status()).toBe(403);
     });
   });
 });
