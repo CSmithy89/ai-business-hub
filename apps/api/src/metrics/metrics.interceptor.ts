@@ -4,29 +4,30 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { Observable, catchError, tap } from 'rxjs';
-import type { Request, Response } from 'express';
 import { MetricsService } from './metrics.service';
-
-type RouteAwareRequest = Request & { route?: { path?: string } };
 
 @Injectable()
 export class MetricsInterceptor implements NestInterceptor {
   constructor(private readonly metrics: MetricsService) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     if (context.getType() !== 'http') {
       return next.handle();
     }
 
-    const start = process.hrtime.bigint();
-    const httpContext = context.switchToHttp();
-    const request = httpContext.getRequest<RouteAwareRequest>();
-    const response = httpContext.getResponse<Response>();
+    const now = process.hrtime.bigint();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { route?: { path?: string } }>();
+    const response = context
+      .switchToHttp()
+      .getResponse<Response & { statusCode: number }>();
 
     const record = (statusCode: number) => {
-      const diffNs = Number(process.hrtime.bigint() - start);
-      const durationSeconds = diffNs / 1_000_000_000;
+      const durationNs = Number(process.hrtime.bigint() - now);
+      const durationSeconds = durationNs / 1_000_000_000;
       const route =
         request.route?.path ||
         request.baseUrl ||
@@ -43,7 +44,7 @@ export class MetricsInterceptor implements NestInterceptor {
     };
 
     return next.handle().pipe(
-      tap(() => record(response.statusCode ?? 200)),
+      tap(() => record(response.statusCode)),
       catchError((error) => {
         const status =
           typeof error?.getStatus === 'function'

@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { Server } from 'node:http';
-import { Socket } from 'node:net';
+import type { Server } from 'node:http';
+import type { Socket } from 'node:net';
 import {
   Counter,
   Gauge,
@@ -10,7 +10,7 @@ import {
 } from 'prom-client';
 import { RedisProvider, STREAMS, CONSUMER_GROUP } from '../events';
 import { PrismaService } from '../common/services/prisma.service';
-import type { HttpMetricLabelValues } from './metrics.types';
+import type { HttpMetricLabels } from './metrics.types';
 
 const HTTP_BUCKETS = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10];
 const APPROVAL_STATUSES = ['pending', 'approved', 'rejected', 'auto_approved'];
@@ -20,13 +20,13 @@ export class MetricsService implements OnModuleDestroy {
   private readonly logger = new Logger(MetricsService.name);
   private readonly register = new Registry();
 
-  private readonly httpRequestsTotal: Counter;
-  private readonly httpRequestDuration: Histogram;
-  private readonly eventBusThroughput: Counter;
-  private readonly eventBusLag: Gauge;
+  private readonly httpRequestsTotal: Counter<'method' | 'route' | 'status'>;
+  private readonly httpRequestDuration: Histogram<'method' | 'route' | 'status'>;
+  private readonly eventBusThroughput: Counter<'stream'>;
+  private readonly eventBusLag: Gauge<'consumer_group'>;
   private readonly eventBusDlqSize: Gauge;
-  private readonly approvalQueueDepth: Gauge;
-  private readonly aiProviderHealth: Gauge;
+  private readonly approvalQueueDepth: Gauge<'status'>;
+  private readonly aiProviderHealth: Gauge<'provider' | 'workspace' | 'provider_id'>;
   private readonly activeConnections: Gauge;
 
   private httpServer?: Server;
@@ -44,7 +44,7 @@ export class MetricsService implements OnModuleDestroy {
 
     this.httpRequestsTotal = new Counter({
       name: 'http_requests_total',
-      help: 'Total HTTP requests processed',
+      help: 'Total number of HTTP requests processed',
       labelNames: ['method', 'route', 'status'],
       registers: [this.register],
     });
@@ -59,41 +59,41 @@ export class MetricsService implements OnModuleDestroy {
 
     this.eventBusThroughput = new Counter({
       name: 'event_bus_throughput_total',
-      help: 'Total events published to the main stream',
+      help: 'Total number of events published to the main stream',
       labelNames: ['stream'],
       registers: [this.register],
     });
 
     this.eventBusLag = new Gauge({
       name: 'event_bus_consumer_lag',
-      help: 'Consumer lag for the main stream',
+      help: 'Consumer lag for the main event bus stream',
       labelNames: ['consumer_group'],
       registers: [this.register],
     });
 
     this.eventBusDlqSize = new Gauge({
       name: 'event_bus_dlq_size',
-      help: 'Messages currently in the DLQ stream',
+      help: 'Number of messages currently stored in the DLQ stream',
       registers: [this.register],
     });
 
     this.approvalQueueDepth = new Gauge({
       name: 'approval_queue_depth',
-      help: 'Approval queue depth grouped by status',
+      help: 'Number of approval items grouped by status',
       labelNames: ['status'],
       registers: [this.register],
     });
 
     this.aiProviderHealth = new Gauge({
       name: 'ai_provider_health',
-      help: 'AI provider health status (1 healthy, 0 unhealthy)',
+      help: 'Health status of AI providers (1 = healthy, 0 = unhealthy)',
       labelNames: ['provider', 'workspace', 'provider_id'],
       registers: [this.register],
     });
 
     this.activeConnections = new Gauge({
       name: 'active_http_connections',
-      help: 'Active HTTP keep-alive connections',
+      help: 'Active HTTP keep-alive connections to the NestJS server',
       registers: [this.register],
     });
   }
@@ -120,7 +120,7 @@ export class MetricsService implements OnModuleDestroy {
     statusCode: number,
     durationSeconds: number,
   ): void {
-    const labels: HttpMetricLabelValues = {
+    const labels: HttpMetricLabels = {
       method: method.toUpperCase(),
       route: route || 'unknown',
       status: String(statusCode),
@@ -134,8 +134,8 @@ export class MetricsService implements OnModuleDestroy {
     if (this.httpServer) {
       return;
     }
-
     this.httpServer = server;
+
     this.connectionListener = (socket: Socket) => {
       this.activeConnections.inc();
       const decrement = () => this.activeConnections.dec();
@@ -153,25 +153,25 @@ export class MetricsService implements OnModuleDestroy {
 
     if (mainExists) {
       const streamInfo = await redis.xinfo('STREAM', STREAMS.MAIN);
-      const info: Record<string, unknown> = {};
+      const info: Record<string, any> = {};
       for (let i = 0; i < streamInfo.length; i += 2) {
         const key = String(streamInfo[i]);
         info[key] = streamInfo[i + 1];
       }
-
-      const lengthValue = info.length;
-      const streamLength = (
-        typeof lengthValue === 'number' ? lengthValue : Number(lengthValue ?? 0)
-      );
+      const streamLength =
+        typeof info.length === 'number'
+          ? info.length
+          : Number(info.length ?? 0);
       if (!Number.isNaN(streamLength) && streamLength > this.lastEventCount) {
-        this.eventBusThroughput.inc({ stream: 'main' }, streamLength - this.lastEventCount);
+        const diff = streamLength - this.lastEventCount;
+        this.eventBusThroughput.inc({ stream: 'main' }, diff);
         this.lastEventCount = streamLength;
       }
 
       try {
         const groups = await redis.xinfo('GROUPS', STREAMS.MAIN);
         for (const group of groups) {
-          const groupInfo: Record<string, unknown> = {};
+          const groupInfo: Record<string, any> = {};
           for (let i = 0; i < group.length; i += 2) {
             const key = String(group[i]);
             groupInfo[key] = group[i + 1];
@@ -185,7 +185,9 @@ export class MetricsService implements OnModuleDestroy {
           }
         }
       } catch (error) {
-        this.logger.verbose(`Unable to read consumer lag: ${String(error)}`);
+        this.logger.verbose?.(
+          `Unable to load consumer group lag: ${String(error)}`,
+        );
       }
     } else {
       this.eventBusLag.set({ consumer_group: CONSUMER_GROUP }, 0);
@@ -208,7 +210,7 @@ export class MetricsService implements OnModuleDestroy {
 
     const counts = new Map<string, number>();
     for (const row of grouped) {
-      counts.set(row.status as string, row._count.status);
+      counts.set(row.status, row._count.status);
     }
 
     for (const status of APPROVAL_STATUSES) {

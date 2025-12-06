@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -235,10 +236,13 @@ IMPORTANT:
             <div className="space-y-4 py-4">
               {qrCode && (
                 <div className="flex flex-col items-center gap-4">
-                  <img
+                  <Image
                     src={qrCode}
                     alt="QR Code for 2FA Setup"
+                    width={256}
+                    height={256}
                     className="w-64 h-64 border rounded-lg"
+                    unoptimized
                   />
                   <p className="text-sm text-gray-600 text-center">
                     Scan this QR code with your authenticator app

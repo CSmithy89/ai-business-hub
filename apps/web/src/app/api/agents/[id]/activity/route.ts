@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getSession } from '@/lib/auth-server'
+import { MOCK_AGENTS } from '../../mock-data'
 
 interface AgentActivity {
   id: string
@@ -15,6 +17,16 @@ interface AgentActivity {
   duration?: number
 }
 
+const ActivityQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    type: z
+      .enum(['task_started', 'task_completed', 'approval_requested', 'error'])
+      .optional(),
+  })
+  .strict()
+
 export async function GET(
   request: Request,
   props: { params: Promise<{ id: string }> }
@@ -27,20 +39,30 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const workspaceId = session.session?.activeWorkspaceId ?? 'default'
+    const agent = MOCK_AGENTS.find(
+      mockAgent => mockAgent.id === id && mockAgent.workspaceId === workspaceId
+    )
+
+    if (!agent) {
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 })
+    }
+
     const { searchParams } = new URL(request.url)
+    const parsedQuery = ActivityQuerySchema.safeParse({
+      page: searchParams.get('page') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
+      type: searchParams.get('type') ?? undefined,
+    })
 
-    // Validate and normalize pagination parameters
-    let page = parseInt(searchParams.get('page') || '1', 10)
-    if (Number.isNaN(page) || page < 1) page = 1
+    if (!parsedQuery.success) {
+      return NextResponse.json(
+        { error: 'Invalid query parameters', details: parsedQuery.error.flatten() },
+        { status: 400 }
+      )
+    }
 
-    let limit = parseInt(searchParams.get('limit') || '50', 10)
-    if (Number.isNaN(limit) || limit < 1) limit = 50
-    limit = Math.min(limit, 200) // Cap limit to prevent abuse
-
-    // Validate type parameter
-    const typeParam = searchParams.get('type')
-    const validTypes = ['task_started', 'task_completed', 'approval_requested', 'error']
-    const type = typeParam && validTypes.includes(typeParam) ? typeParam : null
+    const { page, limit, type } = parsedQuery.data
 
     // TODO: Replace with real database query when Prisma is connected
     // This should fetch from the database with pagination and filtering

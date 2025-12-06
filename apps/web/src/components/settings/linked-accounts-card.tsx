@@ -5,7 +5,7 @@
  * Story 09-7: Card component for managing linked OAuth accounts
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -86,7 +86,7 @@ export function LinkedAccountsCard() {
   const { data: session } = useSession()
 
   // Fetch linked accounts from API
-  const fetchLinkedAccounts = async () => {
+  const fetchLinkedAccounts = useCallback(async () => {
     if (!session?.user?.id) {
       setLoading(false)
       return
@@ -106,11 +106,11 @@ export function LinkedAccountsCard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.user?.id])
 
   useEffect(() => {
     fetchLinkedAccounts()
-  }, [session?.user?.id]) // Only re-fetch when user changes
+  }, [fetchLinkedAccounts]) // Only re-fetch when user changes
 
   const handleLinkProvider = (provider: string) => {
     // Redirect to OAuth provider

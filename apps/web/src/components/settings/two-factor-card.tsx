@@ -5,7 +5,7 @@
  * Story 09-3: Card component for security settings page
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ShieldCheck, ShieldOff } from 'lucide-react'
@@ -32,7 +32,7 @@ export function TwoFactorCard() {
   const { data: session } = useSession()
 
   // Fetch 2FA status from API
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     if (!session?.user?.id) {
       return
     }
@@ -46,11 +46,11 @@ export function TwoFactorCard() {
     } catch (error) {
       console.error('Failed to fetch 2FA status:', error)
     }
-  }
+  }, [session?.user?.id])
 
   useEffect(() => {
     fetchStatus()
-  }, [session?.user?.id])
+  }, [fetchStatus])
 
   const handleSetupComplete = () => {
     fetchStatus()
