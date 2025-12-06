@@ -252,13 +252,13 @@ development_status:
   # Wire Existing Agno Agents to API | 5 stories | 13 points
   # Parallel with: EPIC-10, EPIC-12 | Enables: EPIC-13, EPIC-14
   # ===========================================
-  epic-11: backlog
-  11-1-wire-validation-team-api-endpoint: backlog
-  11-2-wire-planning-team-api-endpoint: backlog
-  11-3-wire-branding-team-api-endpoint: backlog
-  11-4-connect-frontend-workflow-pages: backlog
-  11-5-agent-integration-e2e-tests: backlog
-  epic-11-retrospective: optional
+  epic-11: contexted
+  11-1-wire-validation-team-api-endpoint: done
+  11-2-wire-planning-team-api-endpoint: done
+  11-3-wire-branding-team-api-endpoint: done
+  11-4-connect-frontend-workflow-pages: done
+  11-5-agent-integration-e2e-tests: done
+  epic-11-retrospective: done
 
   # ===========================================
   # EPIC-12: UX Polish
