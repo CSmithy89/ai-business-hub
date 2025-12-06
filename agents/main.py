@@ -46,10 +46,10 @@ app = FastAPI(
 )
 
 # CORS middleware
-allowed_origins = list(settings.cors_origins)
+allowed_origins = list(settings.cors_origins or [])
 
-# Add Control Plane origin if enabled
-if settings.control_plane_enabled:
+# Add Control Plane origin if enabled and configured
+if settings.control_plane_enabled and settings.control_plane_origin:
     allowed_origins.append(settings.control_plane_origin)
 
 app.add_middleware(
@@ -72,6 +72,7 @@ try:
 except Exception as exc:  # noqa: BLE001
     logger.error("Rate limiting initialization failed, continuing without limits: %s", exc, exc_info=True)
     limiter = NoopLimiter()
+    app.state.limiter = limiter
 
 
 # ============================================================================

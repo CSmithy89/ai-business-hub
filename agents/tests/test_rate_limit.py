@@ -22,7 +22,10 @@ def create_app(limit: str = "2/minute") -> TestClient:
 
     app.add_middleware(_TestTenant, secret_key="dummy")
     limiter = init_rate_limiting(app, redis_url=None, default_rate=limit)
+    from middleware.rate_limit import NoopLimiter
 
+    if isinstance(limiter, NoopLimiter):
+        raise RuntimeError("Rate limiter failed to initialize in tests: NoopLimiter returned")
     @app.post("/agents/test")
     @limiter.limit(limit)
     async def test_endpoint():

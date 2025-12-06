@@ -44,7 +44,7 @@ export default [
           caughtErrorsIgnorePattern: '^_',
         },
       ],
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
       // React rules
       // Require explicit type attribute on buttons to prevent unintended form submissions
       'react/button-has-type': 'error',

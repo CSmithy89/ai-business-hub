@@ -28,7 +28,7 @@ describe('useOptimizedCountdown', () => {
     expect(setIntervalSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('reset restarts timer and clears interval', () => {
+  it('reset respects initial autoStart setting', () => {
     const { result } = renderHook(() => useOptimizedCountdown(2, { autoStart: false }))
 
     act(() => {
@@ -46,7 +46,7 @@ describe('useOptimizedCountdown', () => {
     })
 
     expect(result.current.timeLeft).toBe(2)
-    expect(result.current.isRunning).toBe(true)
+    expect(result.current.isRunning).toBe(false)
   })
 })
 
@@ -54,5 +54,30 @@ describe('CountdownTimer component snapshot', () => {
   it('renders the time left text when no custom render provided', () => {
     const { getByRole } = render(<CountdownTimer seconds={5} autoStart={false} />)
     expect(getByRole('timer')).toBeTruthy()
+  })
+})
+
+describe('CountdownTimer reset behavior', () => {
+  it('reset restarts timer and clears interval', () => {
+    const clearSpy = vi.spyOn(window, 'clearInterval')
+    const { result } = renderHook(() => useOptimizedCountdown(2, { autoStart: true }))
+
+    act(() => {
+      result.current.start()
+    })
+
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+
+    expect(result.current.timeLeft).toBe(1)
+
+    act(() => {
+      result.current.reset()
+    })
+
+    expect(result.current.timeLeft).toBe(2)
+    expect(result.current.isRunning).toBe(true)
+    expect(clearSpy).toHaveBeenCalled()
   })
 })

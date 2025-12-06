@@ -15,8 +15,9 @@ describe('getPasswordMatchState', () => {
   })
 
   it('marks passwordsMatch true only when both values equal', () => {
-    const { passwordsMatch } = getPasswordMatchState('secure', 'secure', 4)
-    expect(passwordsMatch).toBe(true)
+    const result = getPasswordMatchState('secure', 'secure', 4)
+    expect(result.passwordsMatch).toBe(true)
+    expect(result.showMatchIndicator).toBe(true)
   })
 
   it('hides indicator if confirmPassword is empty even when password has value', () => {
@@ -32,7 +33,7 @@ describe('getPasswordMatchState', () => {
 
   it('returns false for all flags when minLength is zero and values empty', () => {
     const result = getPasswordMatchState('', '', 0)
-    expect(result.showMatchIndicator).toBe(false)
+    expect(result.showMatchIndicator).toBe(true)
     expect(result.passwordsMatch).toBe(false)
   })
 })

@@ -32,7 +32,7 @@ export function buildOptimisticReviewedItem(
   return {
     ...item,
     status,
-    reviewedAt: new Date(),
+    reviewedAt: new Date().toISOString(),
   }
 }
 

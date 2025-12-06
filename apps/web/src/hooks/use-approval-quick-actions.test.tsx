@@ -12,10 +12,6 @@ import { API_ENDPOINTS } from '@/lib/api-config'
 
 import { toast } from 'sonner'
 
-vi.mock('@/lib/api-client', () => ({
-  apiPost: vi.fn(),
-}))
-
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
@@ -65,7 +61,7 @@ describe('use-approval-quick-actions URL centralization (Story 14-11)', () => {
 })
 
 describe('Optimistic update type safety (Story 14-12)', () => {
-  it('marks reviewedAt as Date instance', () => {
+  it('marks reviewedAt as ISO string', () => {
     const baseItem = {
       id: 'a1',
       workspaceId: 'ws',
@@ -81,12 +77,8 @@ describe('Optimistic update type safety (Story 14-12)', () => {
     }
 
     const updated = buildOptimisticReviewedItem(baseItem as any, 'approved')
-    expect(updated.reviewedAt instanceof Date).toBe(true)
-    if (updated.reviewedAt instanceof Date) {
-      expect(updated.reviewedAt.getTime()).toBeGreaterThan(0)
-    } else {
-      throw new Error('reviewedAt should be a Date')
-    }
+    expect(typeof updated.reviewedAt).toBe('string')
+    expect(Date.parse(updated.reviewedAt as string)).not.toBeNaN()
   })
 })
 
@@ -119,7 +111,7 @@ describe('Approval quick actions regressions (Story 14-13)', () => {
     const failingResponse = {
       ok: false,
       status: 500,
-      json: async () => ({ message: 'boom' }),
+      json: async () => ({}),
     } as Response
     vi.mocked(apiClient.apiPost).mockResolvedValueOnce(failingResponse)
 

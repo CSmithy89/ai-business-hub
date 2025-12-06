@@ -53,6 +53,13 @@ function useWorkspaceId(): string | undefined {
     ?.activeWorkspaceId;
 }
 
+function getApiBase(): string {
+  if (!NESTJS_API_URL) {
+    throw new Error('NESTJS_API_URL is not configured');
+  }
+  return NESTJS_API_URL.replace(/\/$/, '');
+}
+
 /**
  * Hook for fetching agent preferences
  */
@@ -64,9 +71,12 @@ export function useAgentPreferences() {
     queryKey: ['agent-preferences', workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
+      const base = getApiBase();
 
       const response = await fetch(
-        `${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/agents/preferences`,
+        `${base}/workspaces/${encodeURIComponent(
+          workspaceId
+        )}/ai-providers/agents/preferences`,
         {
           headers: {
             Authorization: `Bearer ${(session as { accessToken?: string })?.accessToken}`,
@@ -96,9 +106,12 @@ export function useAvailableModels() {
     queryKey: ['available-models', workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
+      const base = getApiBase();
 
       const response = await fetch(
-        `${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/agents/models`,
+        `${base}/workspaces/${encodeURIComponent(
+          workspaceId
+        )}/ai-providers/agents/models`,
         {
           headers: {
             Authorization: `Bearer ${(session as { accessToken?: string })?.accessToken}`,
@@ -136,9 +149,12 @@ export function useUpdateAgentPreference() {
       model: string;
     }) => {
       if (!workspaceId) throw new Error('No workspace');
+      const base = getApiBase();
 
       const response = await fetch(
-        `${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/agents/${agentId}/preference`,
+        `${base}/workspaces/${encodeURIComponent(
+          workspaceId
+        )}/ai-providers/agents/${encodeURIComponent(agentId)}/preference`,
         {
           method: 'PATCH',
           headers: {
@@ -174,9 +190,12 @@ export function useResetAgentPreference() {
   return useMutation({
     mutationFn: async (agentId: string) => {
       if (!workspaceId) throw new Error('No workspace');
+      const base = getApiBase();
 
       const response = await fetch(
-        `${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/agents/${agentId}/preference`,
+        `${base}/workspaces/${encodeURIComponent(
+          workspaceId
+        )}/ai-providers/agents/${encodeURIComponent(agentId)}/preference`,
         {
           method: 'DELETE',
           headers: {

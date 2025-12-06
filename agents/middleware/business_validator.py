@@ -52,6 +52,11 @@ async def _fetch_business(
 
     if resp.status_code == 404:
         return None
+    if resp.status_code in (401, 403):
+        raise HTTPException(
+            status_code=resp.status_code,
+            detail="Business ownership verification failed: unauthorized",
+        )
     if resp.status_code >= 500:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -132,22 +137,7 @@ async def validate_business_ownership(request: Request, business_id: str) -> Non
             detail="Authentication required for business validation",
         )
 
-    try:
-        business = await _fetch_business(workspace_id, business_id, auth_header)
-    except HTTPException:
-        raise
-    except httpx.RequestError as exc:
-        logger.error("Business ownership check failed due to request error: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Business ownership verification failed",
-        )
-    except Exception as exc:  # noqa: BLE001
-        logger.error("Business ownership check failed unexpectedly: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Business ownership verification failed",
-        )
+    business = await _fetch_business(workspace_id, business_id, auth_header)
 
     if not business or str(business.get("workspaceId") or business.get("workspace_id")) != str(
         workspace_id

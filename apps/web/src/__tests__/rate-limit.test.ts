@@ -1,4 +1,3 @@
-/* eslint-disable */
 /**
  * Rate Limit Concurrency Integration Tests
  * Story 14-1: Tests for rate limiting with real Redis using Testcontainers
@@ -14,9 +13,9 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
-import { RedisContainer } from '@testcontainers/redis'
+import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis'
 import { Ratelimit } from '@upstash/ratelimit'
-import { Redis as IORedis } from 'ioredis'
+import IORedis from 'ioredis'
 import { execSync } from 'child_process'
 
 /**
@@ -25,9 +24,9 @@ import { execSync } from 'child_process'
  * so this adapter translates the methods ratelimit expects into standard Redis calls.
  */
 class IORedisAdapter {
-  private client: any
+  private client: IORedis
 
-  constructor(client: any) {
+  constructor(client: IORedis) {
     this.client = client
   }
 
@@ -83,8 +82,8 @@ function isDockerAvailable(): boolean {
 const describeWithDocker = isDockerAvailable() ? describe : describe.skip
 
 describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis', () => {
-  let redisContainer: any
-  let redisClient: any
+  let redisContainer: StartedRedisContainer
+  let redisClient: IORedis
   let redisAdapter: IORedisAdapter
 
   // Setup: Start Redis container before all tests

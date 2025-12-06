@@ -2,9 +2,8 @@
 Business ownership validation tests (Story 14-8).
 """
 
-import pytest
 import respx
-from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, Request
 from fastapi.testclient import TestClient
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -66,7 +65,7 @@ def test_rejects_not_owned_business():
         json={"businessId": business_id},
     )
     assert res.status_code == 403
-    assert "access denied" in res.json().get("detail", "").lower()
+    assert "business not found or access denied" in res.json().get("detail", "").lower()
 
 
 @respx.mock

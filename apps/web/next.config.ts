@@ -6,7 +6,9 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, '..', '..'),
 
   // Enable type-safe routing
-  typedRoutes: true,
+  experimental: {
+    typedRoutes: true,
+  },
 
   // Image optimization domains
   images: {

@@ -104,7 +104,7 @@ export function useOptimizedCountdown(
   }, [onComplete])
 
   const clearTimer = useCallback(() => {
-    if (timerRef.current) {
+    if (timerRef.current !== null) {
       clearInterval(timerRef.current)
       timerRef.current = null
     }

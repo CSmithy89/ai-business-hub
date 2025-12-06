@@ -9,7 +9,6 @@ remote address fallback.
 from typing import Callable
 import hashlib
 import logging
-import os
 
 from fastapi import Request
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -36,11 +35,12 @@ def _rate_limit_key(req: Request) -> str:
     user_id = getattr(req.state, "user_id", None)
 
     if workspace_id and user_id:
-        return f"id:{_hash_key(f'{workspace_id}:{user_id}')}"
+        return f"id:{_hash_key(f'{str(workspace_id)}:{str(user_id)}')}"
     if user_id:
-        return f"user:{_hash_key(user_id)}"
+        return f"user:{_hash_key(str(user_id))}"
 
-    return f"ip:{get_remote_address(req)}"
+    remote = get_remote_address(req)
+    return f"ip:{_hash_key(str(remote))}"
 
 
 class NoopLimiter:

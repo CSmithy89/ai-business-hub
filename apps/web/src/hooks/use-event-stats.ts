@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
  */
 import { NESTJS_API_URL } from '@/lib/api-config';
 
-const API_BASE_URL = NESTJS_API_URL;
+const API_BASE_URL = String(NESTJS_API_URL ?? '').replace(/\/+$/, '');
 
 /**
  * Event stats response from API

@@ -19,8 +19,24 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if ((window as any).__errorTrackingInitialized) return;
-    initializeErrorTracking();
-    (window as any).__errorTrackingInitialized = true;
+
+    let mounted = true;
+
+    (async () => {
+      try {
+        await initializeErrorTracking();
+        if (mounted) {
+          (window as any).__errorTrackingInitialized = true;
+        }
+      } catch (err) {
+         
+        console.error('Error initializing error tracking:', err);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (

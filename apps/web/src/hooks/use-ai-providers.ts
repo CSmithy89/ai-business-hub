@@ -106,9 +106,15 @@ export const PROVIDER_INFO: Record<AIProviderType, {
 /**
  * Fetch all providers for the current workspace
  */
+function getBaseUrl(): string {
+  if (!NESTJS_API_URL) throw new Error('NESTJS_API_URL is not configured');
+  return NESTJS_API_URL.replace(/\/$/, '');
+}
+
 async function fetchProviders(workspaceId: string): Promise<ProvidersListResponse> {
+  const base = getBaseUrl();
   const response = await fetch(
-    `${NESTJS_API_URL}/api/workspaces/${workspaceId}/ai-providers`,
+    `${base}/api/workspaces/${encodeURIComponent(workspaceId)}/ai-providers`,
     {
       credentials: 'include',
     }
@@ -129,8 +135,9 @@ async function createProvider(
   workspaceId: string,
   data: CreateProviderRequest
 ): Promise<ProviderResponse> {
+  const base = getBaseUrl();
   const response = await fetch(
-    `${NESTJS_API_URL}/api/workspaces/${workspaceId}/ai-providers`,
+    `${base}/api/workspaces/${encodeURIComponent(workspaceId)}/ai-providers`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -155,8 +162,11 @@ async function updateProvider(
   providerId: string,
   data: UpdateProviderRequest
 ): Promise<ProviderResponse> {
+  const base = getBaseUrl();
   const response = await fetch(
-    `${NESTJS_API_URL}/api/workspaces/${workspaceId}/ai-providers/${providerId}`,
+    `${base}/api/workspaces/${encodeURIComponent(
+      workspaceId
+    )}/ai-providers/${encodeURIComponent(providerId)}`,
     {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -177,8 +187,11 @@ async function updateProvider(
  * Delete a provider
  */
 async function deleteProvider(workspaceId: string, providerId: string): Promise<void> {
+  const base = getBaseUrl();
   const response = await fetch(
-    `${NESTJS_API_URL}/api/workspaces/${workspaceId}/ai-providers/${providerId}`,
+    `${base}/api/workspaces/${encodeURIComponent(
+      workspaceId
+    )}/ai-providers/${encodeURIComponent(providerId)}`,
     {
       method: 'DELETE',
       credentials: 'include',
@@ -198,8 +211,11 @@ async function testProvider(
   workspaceId: string,
   providerId: string
 ): Promise<TestProviderResponse> {
+  const base = getBaseUrl();
   const response = await fetch(
-    `${NESTJS_API_URL}/api/workspaces/${workspaceId}/ai-providers/${providerId}/test`,
+    `${base}/api/workspaces/${encodeURIComponent(
+      workspaceId
+    )}/ai-providers/${encodeURIComponent(providerId)}/test`,
     {
       method: 'POST',
       credentials: 'include',

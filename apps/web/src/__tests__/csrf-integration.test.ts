@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withCSRF } from '@/lib/middleware/with-csrf'
 import { CSRF_HEADER_NAME, generateCSRFToken } from '@/lib/csrf'
 
+process.env.CSRF_SECRET = 'a-secure-csrf-secret-value-that-is-long-enough'
+
 const sessionToken = 'session-token-123'
 const otherSessionToken = 'session-token-456'
 
@@ -24,7 +26,10 @@ function mockContext() {
   return { user: { id: 'user-1' } as any }
 }
 
-const handler = withCSRF(async () => NextResponse.json({ ok: true }))
+const handler = (req: NextRequest, ctx?: any) => {
+  const wrapped = withCSRF(async () => NextResponse.json({ ok: true }))
+  return wrapped(req, ctx)
+}
 
 describe('CSRF integration', () => {
   beforeEach(() => {

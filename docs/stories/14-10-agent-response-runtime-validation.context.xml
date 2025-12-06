@@ -12,7 +12,7 @@
 
   <section name="key-files">
     <file path="apps/web/src/lib/agent-client.ts" description="Client consuming agent responses" />
-    <file path="apps/web/src/lib/agent-schemas.ts" description="(to add) Zod schemas for responses" />
+    <file path="apps/web/src/lib/agent-schemas.ts" description="Zod schemas for responses (planned)" status="planned" />
   </section>
 
   <section name="requirements">

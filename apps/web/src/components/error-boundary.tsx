@@ -58,7 +58,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         level: 'error',
         data: { componentStack: stack.slice(0, 500) },
       })
-      captureException(error, {
+      const errForCapture = error instanceof Error ? error : new Error(String(error))
+
+      captureException(errForCapture, {
         tags: { feature: 'error-boundary' },
         extra: {
           componentStack: stack.slice(0, 500),
@@ -66,7 +68,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       })
     } catch (telemetryError) {
       // Avoid throwing from the error handler itself
-      // eslint-disable-next-line no-console
+       
       console.error('[ErrorBoundary] failed to report error', telemetryError)
     }
   }

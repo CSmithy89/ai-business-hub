@@ -1,11 +1,19 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 import { ErrorBoundary } from '../error-boundary'
 import * as telemetry from '@/lib/telemetry/error-tracking'
 
 describe('ErrorBoundary telemetry integration', () => {
-  it('reports errors via captureException and breadcrumb', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('reports errors via captureException and breadcrumb', async () => {
     const captureSpy = vi.spyOn(telemetry, 'captureException').mockImplementation(() => undefined)
     const breadcrumbSpy = vi.spyOn(telemetry, 'addBreadcrumb').mockImplementation(() => undefined)
 
@@ -20,7 +28,9 @@ describe('ErrorBoundary telemetry integration', () => {
     )
 
     expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument()
-    expect(captureSpy).toHaveBeenCalled()
-    expect(breadcrumbSpy).toHaveBeenCalled()
+    await waitFor(() => {
+      expect(captureSpy).toHaveBeenCalled()
+      expect(breadcrumbSpy).toHaveBeenCalled()
+    })
   })
 })

@@ -9,7 +9,6 @@ from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime, timedelta
 import respx
 import httpx
-import pytest
 
 from providers.byoai_client import BYOAIClient, ProviderConfig, CachedConfig
 
