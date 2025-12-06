@@ -245,7 +245,7 @@ development_status:
   10-6-csrf-protection: done
   10-7-xss-sanitization-hardening: done
   10-8-backup-code-race-condition-fix: done
-  epic-10-retrospective: optional
+  epic-10-retrospective: completed
 
   # ===========================================
   # EPIC-11: Agent Integration
