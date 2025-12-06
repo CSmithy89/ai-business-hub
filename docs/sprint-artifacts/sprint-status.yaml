@@ -295,7 +295,7 @@ development_status:
   # Testing Gaps & Monitoring | 18 stories | 38 points
   # Partial dependencies on: EPIC-10, EPIC-11, EPIC-12
   # ===========================================
-  epic-14: backlog
+  epic-14: contexted
   14-1-rate-limit-concurrency-tests: backlog
   14-2-zustand-store-unit-tests: backlog
   14-3-file-upload-pipeline-tests: backlog
