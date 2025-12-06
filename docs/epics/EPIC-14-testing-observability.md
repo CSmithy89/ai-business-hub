@@ -169,18 +169,44 @@ Confidence in production deployments through comprehensive testing. Real-time vi
 
 **Documentation Gap Addressed:** "Operational Runbook" from tech debt tracker
 
+### Story 14.6: CSRF Integration Tests (NEW - Epic 10 Tech Debt)
+
+**Points:** 3
+**Priority:** P2 Medium
+**Depends on:** EPIC-10 Story 10.6 (CSRF Protection)
+
+**As a** developer
+**I want** integration tests for the CSRF protection flow
+**So that** I can verify CSRF works correctly end-to-end
+
+**Acceptance Criteria:**
+- [ ] AC1: Create test file `apps/web/src/__tests__/csrf-integration.test.ts`
+- [ ] AC2: Test full CSRF flow from token fetch to protected endpoint
+- [ ] AC3: Test quick actions (approve/reject) with CSRF validation
+- [ ] AC4: Test expired token handling and automatic refresh
+- [ ] AC5: Test session change invalidates token
+- [ ] AC6: Test missing token returns 403
+- [ ] AC7: Test invalid token returns 403
+- [ ] AC8: Test concurrent requests with same token
+
+**Files:**
+- `apps/web/src/__tests__/csrf-integration.test.ts` (create)
+- `apps/web/src/__tests__/quick-actions-csrf.test.ts` (create)
+
+**Testing Gap Addressed:** "CSRF integration tests" from Epic 10 retrospective
+
 ---
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Total Stories | 5 |
-| Total Points | 15 |
-| P2 Medium | 4 stories (11 points) |
+| Total Stories | 6 |
+| Total Points | 18 |
+| P2 Medium | 5 stories (14 points) |
 | P3 Low | 1 story (4 points) |
 | Dependencies | Partial (EPIC-10, EPIC-11) |
-| Can Start Immediately | Stories 14.2, 14.3, 14.4, 14.5 |
+| Can Start Immediately | Stories 14.2, 14.3, 14.4, 14.5, 14.6 |
 
 ---
 
@@ -193,6 +219,7 @@ From `docs/sprint-artifacts/CONSOLIDATED-TECH-DEBT-AND-IMPROVEMENTS.md`:
 | Rate limiting concurrency behavior | 14.1 | Resolved |
 | Unit tests for Zustand store transitions | 14.2 | Resolved |
 | File upload/extraction pipeline | 14.3 | Resolved |
+| CSRF integration tests (Epic 10 tech debt) | 14.6 | Resolved |
 
 **Note:** Agent-related testing gaps are covered in EPIC-11 Story 11.5.
 

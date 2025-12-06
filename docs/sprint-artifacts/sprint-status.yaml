@@ -236,16 +236,16 @@ development_status:
   # P0/P1 Critical Security & Infrastructure | 8 stories | 21 points
   # Parallel with: EPIC-11, EPIC-12
   # ===========================================
-  epic-10: backlog
-  10-1-redis-rate-limiting-migration: backlog
-  10-2-encryption-key-validation: backlog
-  10-3-fix-trusted-device-feature: backlog
-  10-4-enable-global-validation-pipe: backlog
-  10-5-database-migration-verification: backlog
-  10-6-csrf-protection: backlog
-  10-7-xss-sanitization-hardening: backlog
-  10-8-backup-code-race-condition-fix: backlog
-  epic-10-retrospective: optional
+  epic-10: contexted
+  10-1-redis-rate-limiting-migration: done
+  10-2-encryption-key-validation: done
+  10-3-fix-trusted-device-feature: done
+  10-4-enable-global-validation-pipe: done
+  10-5-database-migration-verification: done
+  10-6-csrf-protection: done
+  10-7-xss-sanitization-hardening: done
+  10-8-backup-code-race-condition-fix: done
+  epic-10-retrospective: completed
 
   # ===========================================
   # EPIC-11: Agent Integration
@@ -258,7 +258,7 @@ development_status:
   11-3-wire-branding-team-api-endpoint: done
   11-4-connect-frontend-workflow-pages: done
   11-5-agent-integration-e2e-tests: done
-  epic-11-retrospective: optional
+  epic-11-retrospective: done
 
   # ===========================================
   # EPIC-12: UX Polish
@@ -266,9 +266,9 @@ development_status:
   # Parallel with: EPIC-10, EPIC-11
   # ===========================================
   epic-12: backlog
-  12-1-oauth-provider-buttons: backlog
+  12-1-oauth-provider-buttons: review
   12-2-confirm-password-field: backlog
-  12-3-approval-queue-quick-actions: backlog
+  12-3-approval-queue-quick-actions: done
   12-4-chat-streaming-ui: backlog
   12-5-settings-ux-enhancements: backlog
   12-6-countdown-timers: backlog
@@ -292,7 +292,7 @@ development_status:
 
   # ===========================================
   # EPIC-14: Testing & Observability
-  # Testing Gaps & Monitoring | 5 stories | 15 points
+  # Testing Gaps & Monitoring | 6 stories | 18 points
   # Partial dependencies on: EPIC-10, EPIC-11
   # ===========================================
   epic-14: backlog
@@ -301,4 +301,5 @@ development_status:
   14-3-file-upload-pipeline-tests: backlog
   14-4-prometheus-metrics-export: backlog
   14-5-operational-runbooks: backlog
+  14-6-csrf-integration-tests: backlog  # NEW - Added from Epic 10 tech debt
   epic-14-retrospective: optional
