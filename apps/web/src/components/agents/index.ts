@@ -46,3 +46,8 @@ export { IntegrationsSettings } from './config/IntegrationsSettings'
 export { NotificationsSettings } from './config/NotificationsSettings'
 export { AdvancedSettings } from './config/AdvancedSettings'
 export { DangerZone } from './config/DangerZone'
+
+// Dashboard components (Story 13.5)
+export { AgentGrid } from './AgentGrid'
+export { AgentFilters } from './AgentFilters'
+export { AgentStatusSummary } from './AgentStatusSummary'
