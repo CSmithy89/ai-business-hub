@@ -228,33 +228,273 @@ if (!process.env.ENCRYPTION_MASTER_KEY ||
 
 ## Redis Configuration
 
+HYVVE uses two Redis instances for different purposes:
+1. **Standard Redis** (via `REDIS_URL`) - Event bus, queues, caching
+2. **Upstash Redis REST API** (via `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`) - Distributed rate limiting
+
 ### Production Redis Requirements
 
 - **TLS:** Always use `rediss://` protocol in production
 - **Authentication:** Require password
 - **Persistence:** Enable AOF or RDB for queue durability
 
-### Upstash Configuration (Recommended)
-
-```bash
-REDIS_URL="rediss://default:password@your-endpoint.upstash.io:6379"
-```
-
-### Rate Limiting Migration
-
-**Important:** The default in-memory rate limiter is NOT production-ready. Migrate to Redis:
-
-```typescript
-// Use Redis-based rate limiting in production
-// See: apps/web/src/lib/utils/rate-limit.ts
-```
-
-### Redis Streams for Event Bus
+### Standard Redis for Event Bus
 
 The event bus uses Redis Streams. Ensure your Redis instance:
 - Has sufficient memory for stream data
 - Has persistence enabled (data survives restarts)
 - Is in the same region as your application
+
+```bash
+# Production configuration
+REDIS_URL="rediss://default:password@your-endpoint.upstash.io:6379"
+```
+
+---
+
+### Upstash Redis for Rate Limiting (Required for Production)
+
+**Why Upstash?**
+- Serverless-first with REST API (perfect for Next.js Edge/Serverless)
+- Global replication available
+- ~1ms latency
+- Generous free tier
+- Automatic scaling
+
+**Important:** The in-memory rate limiter fallback is NOT production-ready:
+- Rate limits reset on every server restart
+- Does not work across multiple instances/regions
+- No persistence or durability guarantees
+
+#### Step 1: Create Upstash Account
+
+1. Visit https://console.upstash.com
+2. Sign up with GitHub or email
+3. Verify your email address
+
+#### Step 2: Create Redis Database
+
+1. Click "Create Database" in the Upstash Console
+2. Configure your database:
+   - **Name:** `hyvve-rate-limiting` (or your preferred name)
+   - **Type:** Choose "Regional" for single-region or "Global" for multi-region
+   - **Region:** Select the region closest to your application
+     - For Vercel: Choose the same region as your deployment
+     - For AWS: Match your ECS/Lambda region
+   - **Eviction:** Select "No Eviction" (rate limiting data should not be evicted)
+3. Click "Create"
+
+#### Step 3: Get Connection Credentials
+
+After creating the database:
+1. Navigate to your database in the Upstash Console
+2. Go to the "Details" tab
+3. Find the "REST API" section
+4. Copy the following values:
+   - **UPSTASH_REDIS_REST_URL** - The REST API endpoint URL
+   - **UPSTASH_REDIS_REST_TOKEN** - The REST API authentication token
+
+Example values:
+```bash
+UPSTASH_REDIS_REST_URL="https://us1-supreme-butterfly-12345.upstash.io"
+UPSTASH_REDIS_REST_TOKEN="AYNxASQgMTk5ZjE4YmEtZjk2Ny00..."
+```
+
+#### Step 4: Configure Environment Variables
+
+Add the credentials to your environment:
+
+**Local Development (.env.local):**
+```bash
+UPSTASH_REDIS_REST_URL="https://your-database.upstash.io"
+UPSTASH_REDIS_REST_TOKEN="your-rest-token-here"
+```
+
+**Production (Vercel/Railway/etc.):**
+1. Add environment variables via your hosting platform's dashboard
+2. Set the same variables for all environments (preview, production)
+3. Redeploy to apply changes
+
+**Environment Variable Validation:**
+```bash
+# Verify variables are set
+echo $UPSTASH_REDIS_REST_URL
+echo $UPSTASH_REDIS_REST_TOKEN
+```
+
+#### Step 5: Test Connection
+
+After configuring environment variables, test the connection:
+
+**Method 1: Check Application Logs**
+```bash
+# Start your application
+pnpm dev
+
+# Look for this log message:
+# [rate-limit] Redis configured - using distributed rate limiting
+```
+
+**Method 2: Test with curl**
+```bash
+# Test REST API connection
+curl https://your-database.upstash.io/get/test \
+  -H "Authorization: Bearer your-rest-token"
+
+# Expected: {"result":null}  (key doesn't exist)
+```
+
+**Method 3: Trigger Rate Limit**
+```bash
+# Make 6 consecutive 2FA attempts to trigger rate limit
+# The 6th attempt should return 429 Too Many Attempts
+
+# Restart the server
+pnpm dev
+
+# Try again - should still be rate limited (proves persistence)
+```
+
+#### Step 6: Verify Rate Limiting Works
+
+**Test Scenarios:**
+
+1. **Persistence Test:**
+   - Make 5 2FA verification attempts (use invalid code)
+   - Restart the application server
+   - Make a 6th attempt - should be rate limited
+
+2. **Multi-Instance Test:**
+   - Deploy to two separate instances/regions
+   - Make 3 attempts on instance A
+   - Make 3 attempts on instance B
+   - Total count should be 6 (distributed tracking works)
+
+3. **Fallback Test:**
+   - Remove `UPSTASH_REDIS_REST_URL` from environment
+   - Restart application
+   - Check logs for: `[rate-limit] Redis not configured - using in-memory`
+   - Verify rate limiting still works (but won't persist)
+
+#### Fallback Behavior
+
+The rate limiter automatically falls back to in-memory storage when Redis is unavailable:
+
+**Fallback Triggers:**
+- Environment variables not set
+- Network connection failure to Upstash
+- Invalid credentials
+- Upstash service outage
+
+**Fallback Characteristics:**
+- ✅ Rate limiting still works
+- ❌ Limits reset on server restart
+- ❌ No distributed tracking across instances
+- ⚠️ Not suitable for production
+
+**Application Logs:**
+```bash
+# Redis configured successfully:
+[rate-limit] Redis configured - using distributed rate limiting
+
+# Fallback active:
+[rate-limit] Redis not configured - using in-memory rate limiting (NOT production-ready)
+
+# Fallback after error:
+[rate-limit] Redis error, falling back to in-memory: <error message>
+```
+
+#### Rate Limiting Configuration
+
+Current rate limits configured in the application:
+
+| Endpoint | Limit | Window | Key Format |
+|----------|-------|--------|-----------|
+| 2FA Verification | 5 attempts | 15 minutes | `2fa:{userId}` |
+| Login | 10 attempts | 15 minutes | `login:{identifier}` |
+| Password Reset | 3 attempts | 1 hour | `password-reset:{identifier}` |
+| Email Resend | 3 attempts | 5 minutes | `email-resend:{identifier}` |
+| API General | 100 requests | 1 minute | `api:{identifier}` |
+
+**Rate Limit Storage:**
+- Redis keys are prefixed with `hyvve:ratelimit:` for namespace isolation
+- Keys automatically expire after their window duration
+- Uses Upstash sliding window algorithm for accurate tracking
+
+#### Monitoring
+
+**Upstash Console:**
+1. Go to your database in Upstash Console
+2. Click "Data Browser" to see rate limit keys
+3. Monitor metrics: Commands/sec, Memory usage, Hit rate
+
+**Expected Key Patterns:**
+```
+hyvve:ratelimit:2fa:user-id-123
+hyvve:ratelimit:login:user@example.com
+hyvve:ratelimit:api:client-ip-address
+```
+
+**Memory Usage:**
+- Typical rate limit entry: ~100 bytes
+- 1000 concurrent users: ~100 KB
+- 10,000 concurrent users: ~1 MB
+
+#### Troubleshooting
+
+**Issue: Rate limiting not persisting**
+- Verify `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set
+- Check application logs for Redis configuration message
+- Test curl command to verify credentials work
+
+**Issue: "Redis error" in logs**
+- Check Upstash database status in console
+- Verify network connectivity to Upstash
+- Check region - ensure low latency (<50ms)
+
+**Issue: 429 errors not appearing**
+- Verify rate limiter is being called (check code)
+- Check if fallback to in-memory is active
+- Verify identifier is consistent across requests
+
+**Issue: Keys not expiring**
+- Check Upstash database eviction policy (should be "No Eviction")
+- Verify keys have TTL set: `TTL hyvve:ratelimit:2fa:user-123`
+- Sliding window algorithm handles expiration automatically
+
+#### Security Considerations
+
+**Token Security:**
+- Never commit `UPSTASH_REDIS_REST_TOKEN` to version control
+- Store in secure secrets manager (Vercel env vars, AWS Secrets Manager, etc.)
+- Rotate tokens periodically (every 90 days recommended)
+
+**Network Security:**
+- Upstash uses HTTPS for REST API (TLS 1.3)
+- No need for additional encryption layer
+- Consider IP allowlisting in Upstash for extra security
+
+**Rate Limit Bypass Prevention:**
+- Use consistent identifiers (userId, email, IP)
+- Don't rely solely on client-provided identifiers
+- Monitor for unusual patterns in Upstash console
+
+#### Cost Management
+
+**Upstash Free Tier:**
+- 10,000 commands/day
+- 256 MB storage
+- Sufficient for small-medium applications
+
+**Typical Usage:**
+- 1 rate limit check = 1 command
+- 1000 daily active users = ~5,000 commands/day
+- Well within free tier for most use cases
+
+**Upgrade Triggers:**
+- Exceeding 10,000 commands/day consistently
+- Need for global replication
+- Need for >256 MB storage
 
 ---
 

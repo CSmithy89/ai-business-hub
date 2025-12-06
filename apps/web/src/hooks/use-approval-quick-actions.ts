@@ -3,7 +3,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { ApprovalItem } from '@hyvve/shared'
-import { API_ENDPOINTS } from '@/lib/api-config'
+import { apiPost } from '@/lib/api-client'
+
+/**
+ * API base URL for the NestJS backend
+ */
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 /**
  * Request body for approve/reject actions
@@ -20,69 +25,62 @@ export interface ApprovalResponse {
 }
 
 /**
- * Approve an approval item
+ * Action type for approval operations
  */
-async function approveApproval(id: string, data: ApprovalActionRequest = {}): Promise<ApprovalResponse> {
+type ApprovalActionType = 'approve' | 'reject'
+
+/**
+ * Perform an approval action (approve or reject)
+ *
+ * Uses apiPost to automatically include CSRF token for protection
+ * against cross-site request forgery attacks.
+ *
+ * @param id - Approval item ID
+ * @param action - Action type ('approve' or 'reject')
+ * @param data - Optional request body with notes
+ * @returns Promise with the updated approval item
+ */
+async function performApprovalAction(
+  id: string,
+  action: ApprovalActionType,
+  data: ApprovalActionRequest = {}
+): Promise<ApprovalResponse> {
   let response: Response
 
   try {
-    response = await fetch(API_ENDPOINTS.approvals.approve(id), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(data),
+    response = await apiPost(`/api/approvals/${id}/${action}`, data, {
+      baseURL: API_BASE_URL,
     })
   } catch (err) {
     // Network error - API server may not be running
-    console.error('[ApprovalService] Network error during approve:', err)
+    console.error(`[ApprovalService] Network error during ${action}:`, err)
     throw new Error('Unable to connect to approval service. Please try again later.')
   }
 
   if (!response.ok) {
     if (response.status === 404) {
-      console.warn('[ApprovalService] Approve endpoint not found (404) - backend may not be configured')
+      console.warn(`[ApprovalService] ${action} endpoint not found (404) - backend may not be configured`)
       throw new Error('Approval endpoint not found. Backend may not be configured.')
     }
-    const error = await response.json().catch(() => ({ message: 'Failed to approve' }))
-    throw new Error(error.message || 'Failed to approve')
+    const error = await response.json().catch(() => ({ message: `Failed to ${action}` }))
+    throw new Error(error.message || `Failed to ${action}`)
   }
 
   return response.json()
 }
 
 /**
+ * Approve an approval item
+ */
+async function approveApproval(id: string, data: ApprovalActionRequest = {}): Promise<ApprovalResponse> {
+  return performApprovalAction(id, 'approve', data)
+}
+
+/**
  * Reject an approval item
  */
 async function rejectApproval(id: string, data: ApprovalActionRequest = {}): Promise<ApprovalResponse> {
-  let response: Response
-
-  try {
-    response = await fetch(API_ENDPOINTS.approvals.reject(id), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(data),
-    })
-  } catch (err) {
-    // Network error - API server may not be running
-    console.error('[ApprovalService] Network error during reject:', err)
-    throw new Error('Unable to connect to approval service. Please try again later.')
-  }
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      console.warn('[ApprovalService] Reject endpoint not found (404) - backend may not be configured')
-      throw new Error('Approval endpoint not found. Backend may not be configured.')
-    }
-    const error = await response.json().catch(() => ({ message: 'Failed to reject' }))
-    throw new Error(error.message || 'Failed to reject')
-  }
-
-  return response.json()
+  return performApprovalAction(id, 'reject', data)
 }
 
 /**

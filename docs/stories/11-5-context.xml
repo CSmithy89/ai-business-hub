@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-id>11.5</story-id>
+  <title>Agent Integration E2E Tests</title>
+  <epic>EPIC-11</epic>
+
+  <existing-code-patterns>
+    <test-infrastructure>
+      <location>/home/chris/projects/work/Ai-Business-Hub-EPIC-11/apps/web/tests</location>
+      <framework>Playwright</framework>
+      <config>/home/chris/projects/work/Ai-Business-Hub-EPIC-11/apps/web/playwright.config.ts</config>
+
+      <test-structure>
+        <test-directory>apps/web/tests/e2e/</test-directory>
+        <support-directory>apps/web/tests/support/</support-directory>
+        <fixture-directory>apps/web/tests/support/fixtures/</fixture-directory>
+        <factory-directory>apps/web/tests/support/fixtures/factories/</factory-directory>
+      </test-structure>
+
+      <existing-tests>
+        <test file="auth.spec.ts" epic="01" description="Authentication flows"/>
+        <test file="workspace.spec.ts" epic="02" description="Workspace management"/>
+        <test file="approvals.spec.ts" epic="04" description="Approval system"/>
+        <test file="events.spec.ts" epic="05" description="Event bus"/>
+        <test file="ai-providers.spec.ts" epic="06" description="BYOAI configuration"/>
+        <test file="ui-shell.spec.ts" epic="07" description="UI shell components"/>
+        <test file="onboarding.spec.ts" epic="08" description="Business onboarding"/>
+        <test file="team-members.spec.ts" epic="09" description="Team management"/>
+        <test file="two-factor-auth.spec.ts" epic="09" description="2FA"/>
+        <test file="oauth-providers.spec.ts" epic="09" description="OAuth"/>
+        <test file="smoke.spec.ts" description="Basic smoke tests"/>
+      </existing-tests>
+
+      <fixtures>
+        <fixture name="auth" type="authentication">
+          <methods>
+            <method>loginAs(email, password)</method>
+            <method>loginAsTestUser()</method>
+            <method>logout()</method>
+          </methods>
+        </fixture>
+
+        <fixture name="userFactory" type="data-factory">
+          <methods>
+            <method>createUser(overrides)</method>
+            <method>createVerifiedUser()</method>
+            <method>cleanup()</method>
+          </methods>
+        </fixture>
+
+        <fixture name="workspaceFactory" type="data-factory">
+          <methods>
+            <method>createWorkspace(authCookie, overrides)</method>
+            <method>cleanup()</method>
+          </methods>
+        </fixture>
+
+        <fixture name="businessFactory" type="data-factory">
+          <methods>
+            <method>createBusiness(authCookie, overrides)</method>
+            <method>cleanup()</method>
+          </methods>
+        </fixture>
+      </fixtures>
+
+      <test-patterns>
+        <pattern name="fixture-composition">
+          <description>Compose fixtures using mergeTests from @playwright/test</description>
+          <example>import { test, expect } from '../support/fixtures';</example>
+        </pattern>
+
+        <pattern name="beforeEach-auth">
+          <description>Use beforeEach to login before authenticated tests</description>
+          <example>test.beforeEach(async ({ auth }) => { await auth.loginAsTestUser(); });</example>
+        </pattern>
+
+        <pattern name="data-cleanup">
+          <description>Factories auto-cleanup created test data</description>
+        </pattern>
+
+        <pattern name="data-testid">
+          <description>Use data-testid attributes for element selection</description>
+          <example>await page.click('[data-testid="sign-in-button"]');</example>
+        </pattern>
+      </test-patterns>
+    </test-infrastructure>
+
+    <agent-endpoints>
+      <base-url>http://localhost:8001</base-url>
+      <location>/home/chris/projects/work/Ai-Business-Hub-EPIC-11/agents/main.py</location>
+
+      <validation-team>
+        <health-endpoint>
+          <method>GET</method>
+          <path>/agents/validation/health</path>
+          <auth-required>false</auth-required>
+          <response>
+            {
+              "status": "ok",
+              "team": "validation",
+              "leader": "Vera",
+              "members": ["Marco", "Cipher", "Persona", "Risk"],
+              "version": "0.1.0",
+              "storage": "bmv_validation_sessions"
+            }
+          </response>
+        </health-endpoint>
+
+        <run-endpoint>
+          <method>POST</method>
+          <path>/agents/validation/runs</path>
+          <auth-required>true</auth-required>
+          <auth-type>JWT Bearer Token</auth-type>
+          <auth-header>Authorization: Bearer &lt;token&gt;</auth-header>
+          <request-body>
+            {
+              "message": "string",
+              "business_id": "string",
+              "session_id": "string (optional)",
+              "model_override": "string (optional)",
+              "context": "dict (optional)"
+            }
+          </request-body>
+          <response>
+            {
+              "success": true,
+              "content": "string",
+              "session_id": "string",
+              "agent_name": "Vera",
+              "metadata": {
+                "business_id": "string",
+                "team": "validation",
+                "workspace_id": "string"
+              }
+            }
+          </response>
+        </run-endpoint>
+      </validation-team>
+
+      <planning-team>
+        <health-endpoint>
+          <method>GET</method>
+          <path>/agents/planning/health</path>
+          <auth-required>false</auth-required>
+          <response>
+            {
+              "status": "ok",
+              "team": "planning",
+              "leader": "Blake",
+              "members": ["Model", "Finn", "Revenue", "Forecast"],
+              "version": "0.1.0",
+              "storage": "bmp_planning_sessions"
+            }
+          </response>
+        </health-endpoint>
+
+        <run-endpoint>
+          <method>POST</method>
+          <path>/agents/planning/runs</path>
+          <auth-required>true</auth-required>
+          <auth-type>JWT Bearer Token</auth-type>
+          <request-body>
+            {
+              "message": "string",
+              "business_id": "string",
+              "session_id": "string (optional)",
+              "model_override": "string (optional)",
+              "context": "dict (optional - validation output)"
+            }
+          </request-body>
+        </run-endpoint>
+      </planning-team>
+
+      <branding-team>
+        <health-endpoint>
+          <method>GET</method>
+          <path>/agents/branding/health</path>
+          <auth-required>false</auth-required>
+          <response>
+            {
+              "status": "ok",
+              "team": "branding",
+              "leader": "Bella",
+              "members": ["Sage", "Vox", "Iris", "Artisan", "Audit"],
+              "version": "0.1.0",
+              "storage": "bm_brand_sessions"
+            }
+          </response>
+        </health-endpoint>
+
+        <run-endpoint>
+          <method>POST</method>
+          <path>/agents/branding/runs</path>
+          <auth-required>true</auth-required>
+          <auth-type>JWT Bearer Token</auth-type>
+          <request-body>
+            {
+              "message": "string",
+              "business_id": "string",
+              "session_id": "string (optional)",
+              "model_override": "string (optional)",
+              "context": "dict (optional - planning output)"
+            }
+          </request-body>
+        </run-endpoint>
+      </branding-team>
+
+      <tenant-isolation>
+        <middleware>TenantMiddleware</middleware>
+        <description>
+          JWT token required for /runs endpoints. Middleware extracts:
+          - user_id from JWT
+          - workspace_id from JWT
+
+          Returns 401 if no token or invalid token.
+          Returns 403 if cross-tenant access attempted.
+        </description>
+      </tenant-isolation>
+
+      <error-responses>
+        <error code="400" description="Invalid request body or missing required fields"/>
+        <error code="401" description="Missing or invalid authentication token"/>
+        <error code="403" description="Cross-tenant access denied"/>
+        <error code="500" description="Internal agent execution error"/>
+      </error-responses>
+    </agent-endpoints>
+
+    <workflow-handoff-pattern>
+      <description>
+        Each team's output can be passed as context to the next team:
+        Validation → Planning → Branding
+
+        Context field in request body enables workflow continuity.
+      </description>
+
+      <example>
+        // Step 1: Validation team
+        const validationResponse = await fetch('/agents/validation/runs', {
+          body: { message: "Validate my idea", business_id: "123" }
+        });
+
+        // Step 2: Planning team receives validation output
+        const planningResponse = await fetch('/agents/planning/runs', {
+          body: {
+            message: "Create business plan",
+            business_id: "123",
+            context: { validation_output: validationResponse.content }
+          }
+        });
+
+        // Step 3: Branding team receives planning output
+        const brandingResponse = await fetch('/agents/branding/runs', {
+          body: {
+            message: "Create brand identity",
+            business_id: "123",
+            context: { business_plan: planningResponse.content }
+          }
+        });
+      </example>
+    </workflow-handoff-pattern>
+  </existing-code-patterns>
+
+  <implementation-guidance>
+    <test-file-structure>
+      <file>apps/web/tests/e2e/agents.spec.ts</file>
+      <sections>
+        <section name="Health Checks">
+          <tests>
+            <test>Validation team health endpoint returns 200</test>
+            <test>Planning team health endpoint returns 200</test>
+            <test>Branding team health endpoint returns 200</test>
+          </tests>
+          <notes>Health endpoints don't require auth, can use page.request.get()</notes>
+        </section>
+
+        <section name="Run Endpoints (Authenticated)">
+          <tests>
+            <test>Validation team run with valid auth</test>
+            <test>Planning team run with valid auth</test>
+            <test>Branding team run with valid auth</test>
+          </tests>
+          <notes>Requires JWT token from authenticated session</notes>
+        </section>
+
+        <section name="Workflow Handoff">
+          <tests>
+            <test>Full workflow: validation → planning → branding with context passing</test>
+          </tests>
+          <notes>Test that context field properly passes between teams</notes>
+        </section>
+
+        <section name="Error Handling">
+          <tests>
+            <test>400 error on missing required fields</test>
+            <test>401 error on missing authentication</test>
+            <test>400 error on invalid business_id</test>
+          </tests>
+        </section>
+
+        <section name="Tenant Isolation">
+          <tests>
+            <test>Cross-tenant access denied with 403</test>
+          </tests>
+          <notes>Create two users in different workspaces, attempt cross-access</notes>
+        </section>
+      </sections>
+    </test-file-structure>
+
+    <mock-fixture-structure>
+      <file>apps/web/tests/support/fixtures/agent-mocks.ts</file>
+      <purpose>
+        Provide deterministic mock responses for agent tests.
+        Allows predictable testing without actual AI calls.
+      </purpose>
+
+      <exports>
+        <export name="mockValidationResponse">
+          Sample TeamRunResponse for validation team
+        </export>
+        <export name="mockPlanningResponse">
+          Sample TeamRunResponse for planning team
+        </export>
+        <export name="mockBrandingResponse">
+          Sample TeamRunResponse for branding team
+        </export>
+        <export name="mockValidationContext">
+          Sample context object for planning handoff
+        </export>
+        <export name="mockPlanningContext">
+          Sample context object for branding handoff
+        </export>
+      </exports>
+
+      <note>
+        These mocks may not be needed if testing against real FastAPI endpoints.
+        Include for future use or if we want to test without running agents.
+      </note>
+    </mock-fixture-structure>
+
+    <api-testing-approach>
+      <playwright-request-api>
+        <description>Use Playwright's request context for API testing</description>
+        <methods>
+          <method>page.request.get(url, options)</method>
+          <method>page.request.post(url, options)</method>
+        </methods>
+        <auth-handling>
+          Extract auth cookie after login, pass in request headers
+        </auth-handling>
+      </playwright-request-api>
+    </api-testing-approach>
+  </implementation-guidance>
+
+  <related-stories>
+    <story id="11.1" status="done">Wire Validation Team API Endpoint</story>
+    <story id="11.2" status="done">Wire Planning Team API Endpoint</story>
+    <story id="11.3" status="done">Wire Branding Team API Endpoint</story>
+    <story id="11.4" status="done">Connect Frontend Workflow Pages</story>
+  </related-stories>
+
+  <testing-strategy>
+    <approach>API-level testing using Playwright's request context</approach>
+    <auth-strategy>Login via fixture, extract JWT, use in API requests</auth-strategy>
+    <data-setup>Use businessFactory to create test business</data-setup>
+    <cleanup>Auto-cleanup via factory pattern</cleanup>
+    <assertions>Verify status codes, response structure, data consistency</assertions>
+  </testing-strategy>
+</story-context>

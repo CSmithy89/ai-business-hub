@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-id>11.2</story-id>
+  <title>Wire Planning Team API Endpoint</title>
+  <epic>EPIC-11 - Agent Integration</epic>
+
+  <objective>
+    Add FastAPI endpoint for Blake's planning team, following the exact pattern established by the validation team endpoint in Story 11.1.
+  </objective>
+
+  <existing-pattern>
+    <validation-team-endpoint>
+      <!-- Location: agents/main.py lines 448-518 -->
+      <endpoint>POST /agents/validation/runs</endpoint>
+      <request-model>TeamRunRequest</request-model>
+      <response-model>TeamRunResponse</response-model>
+      <session-prefix>val_</session-prefix>
+      <team-factory>create_validation_team</team-factory>
+      <storage-table>bmv_validation_sessions</storage-table>
+
+      <key-patterns>
+        - Extract workspace_id and user_id from middleware (req.state)
+        - Validate authentication before proceeding
+        - Generate session_id if not provided (using prefix + user_id + timestamp)
+        - Create team instance with session_id, user_id, business_id, model_override
+        - Call team.arun(message) asynchronously
+        - Return TeamRunResponse with success, content, session_id, agent_name, metadata
+        - Handle exceptions with proper logging and HTTPException
+      </key-patterns>
+
+      <health-check>
+        <!-- Location: agents/main.py lines 521-550 -->
+        <endpoint>GET /agents/validation/health</endpoint>
+        <returns>status, team, leader, members, version, storage</returns>
+        <validates>team can be created with minimal config</validates>
+      </health-check>
+    </validation-team-endpoint>
+  </existing-pattern>
+
+  <planning-team-specifics>
+    <team-factory>create_planning_team</team-factory>
+    <location>agents/planning/team.py</location>
+    <leader>Blake</leader>
+    <members>["Model", "Finance", "Revenue", "Forecast"]</members>
+    <storage-table>bmp_planning_sessions</storage-table>
+    <session-prefix>plan_</session-prefix>
+
+    <function-signature>
+      create_planning_team(
+          session_id: str,
+          user_id: str,
+          business_id: Optional[str] = None,
+          model: Optional[str] = None,
+          debug_mode: bool = False,
+      ) -> Team
+    </function-signature>
+
+    <context-field>
+      The TeamRunRequest.context field accepts validationData from previous workflow.
+      This enables workflow continuity from validation -> planning.
+    </context-field>
+  </planning-team-specifics>
+
+  <request-response-models>
+    <already-defined>
+      TeamRunRequest (lines 84-90):
+        - message: str
+        - business_id: str (required)
+        - session_id: Optional[str]
+        - model_override: Optional[str]
+        - context: Optional[dict]  # For validationData
+
+      TeamRunResponse (lines 93-100):
+        - success: bool
+        - content: Optional[str]
+        - session_id: str
+        - agent_name: Optional[str]
+        - error: Optional[str]
+        - metadata: dict
+    </already-defined>
+  </request-response-models>
+
+  <tenant-isolation>
+    - TenantMiddleware extracts workspace_id and user_id from JWT
+    - Both fields required for authentication
+    - Planning team receives user_id for session isolation
+    - Metadata includes workspace_id for audit trail
+  </tenant-isolation>
+
+  <acceptance-criteria-mapping>
+    AC1: Add POST /agents/planning/runs endpoint
+    AC2: Import create_planning_team from agents.planning.team
+    AC3: TeamRunRequest already supports all required fields
+    AC4: Return TeamRunResponse (SSE handled by Agno internally)
+    AC5: context field in TeamRunRequest accepts validationData
+    AC6: Tenant isolation via middleware (workspace_id, user_id)
+    AC7: Add GET /agents/planning/health endpoint
+  </acceptance-criteria-mapping>
+
+  <implementation-steps>
+    1. Add import: from planning.team import create_planning_team
+    2. Add POST endpoint /agents/planning/runs following validation pattern
+       - Extract workspace_id, user_id from req.state
+       - Validate authentication
+       - Generate session_id with plan_ prefix if not provided
+       - Create team with create_planning_team()
+       - Call team.arun(message)
+       - Return TeamRunResponse
+    3. Add GET endpoint /agents/planning/health following validation pattern
+       - Create test team instance
+       - Return status, team info, members, storage
+  </implementation-steps>
+
+  <error-handling>
+    - 401 if workspace_id or user_id missing (authentication required)
+    - 500 if team execution fails (log full traceback)
+    - Health check returns error status if team creation fails
+  </error-handling>
+
+  <testing-considerations>
+    - Health check should succeed without authentication
+    - Runs endpoint requires valid JWT with workspace context
+    - Session persistence via PostgresStorage
+    - Error cases handled gracefully
+  </testing-considerations>
+</story-context>

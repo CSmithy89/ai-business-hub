@@ -9,12 +9,23 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from middleware.tenant import TenantMiddleware
 from config import settings
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field
+from typing import Optional, Callable, Any, Dict
 import logging
+import time
+import asyncio
 
 # Import platform agents
 from platform.approval_agent import ApprovalAgent
+
+# Import validation team
+from validation.team import create_validation_team
+
+# Import planning team
+from planning.team import create_planning_team
+
+# Import branding team
+from branding.team import create_branding_team
 
 # Configure logging
 logging.basicConfig(
@@ -75,7 +86,178 @@ class AgentRunResponse(BaseModel):
     session_id: Optional[str] = None
     error: Optional[str] = None
     message: Optional[str] = None
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
+
+
+class TeamRunRequest(BaseModel):
+    """Request model for team run endpoint."""
+    message: str
+    business_id: str  # Required for team context
+    session_id: Optional[str] = None
+    model_override: Optional[str] = None
+    context: Optional[dict] = None  # For workflow handoff data
+
+
+class TeamRunResponse(BaseModel):
+    """Response model for team run endpoint."""
+    success: bool
+    content: Optional[str] = None
+    session_id: str
+    agent_name: Optional[str] = None  # Which agent responded
+    error: Optional[str] = None
+    metadata: dict = Field(default_factory=dict)
+
+
+# ============================================================================
+# Team Configuration
+# ============================================================================
+
+# Team metadata for health checks and configuration
+TEAM_CONFIG: Dict[str, Dict[str, Any]] = {
+    "validation": {
+        "factory": create_validation_team,
+        "leader": "Vera",
+        "members": ["Marco", "Cipher", "Persona", "Risk"],
+        "storage": "bmv_validation_sessions",
+        "session_prefix": "val",
+    },
+    "planning": {
+        "factory": create_planning_team,
+        "leader": "Blake",
+        "members": ["Model", "Finn", "Revenue", "Forecast"],
+        "storage": "bmp_planning_sessions",
+        "session_prefix": "plan",
+    },
+    "branding": {
+        "factory": create_branding_team,
+        "leader": "Bella",
+        "members": ["Sage", "Vox", "Iris", "Artisan", "Audit"],
+        "storage": "bm_brand_sessions",
+        "session_prefix": "brand",
+    },
+}
+
+# Execution timeout for team runs (seconds)
+TEAM_EXECUTION_TIMEOUT = 120
+
+
+async def _run_team(
+    team_name: str,
+    request_data: TeamRunRequest,
+    req: Request,
+) -> TeamRunResponse:
+    """
+    Common helper for running agent teams.
+
+    Args:
+        team_name: Team identifier (validation, planning, branding)
+        request_data: Request body with message and business context
+        req: FastAPI request with workspace context from middleware
+
+    Returns:
+        TeamRunResponse with agent's response and metadata
+
+    Raises:
+        HTTPException: 401 if not authenticated, 500 on execution error
+    """
+    config = TEAM_CONFIG.get(team_name)
+    if not config:
+        raise HTTPException(status_code=400, detail=f"Unknown team: {team_name}")
+
+    # Extract workspace context from middleware
+    workspace_id = getattr(req.state, "workspace_id", None)
+    user_id = getattr(req.state, "user_id", None)
+
+    if not workspace_id or not user_id:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Valid JWT token with workspace context needed."
+        )
+
+    logger.info(
+        f"{team_name.capitalize()}Team run: workspace={workspace_id}, "
+        f"user={user_id}, business={request_data.business_id}"
+    )
+
+    try:
+        # Generate session ID if not provided
+        session_id = request_data.session_id or f"{config['session_prefix']}_{user_id}_{int(time.time())}"
+
+        # Create team instance (stateless - per request)
+        team = config["factory"](
+            session_id=session_id,
+            user_id=user_id,
+            business_id=request_data.business_id,
+            model=request_data.model_override,
+        )
+
+        # Run team with timeout
+        try:
+            response = await asyncio.wait_for(
+                team.arun(message=request_data.message),
+                timeout=TEAM_EXECUTION_TIMEOUT
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"{team_name.capitalize()}Team timed out after {TEAM_EXECUTION_TIMEOUT}s")
+            raise HTTPException(
+                status_code=504,
+                detail=f"{team_name.capitalize()} team execution timed out"
+            )
+
+        return TeamRunResponse(
+            success=True,
+            content=response.content,
+            session_id=session_id,
+            agent_name=getattr(response, 'agent_name', config['leader']),
+            metadata={
+                "business_id": request_data.business_id,
+                "team": team_name,
+                "workspace_id": workspace_id,
+            }
+        )
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
+    except Exception as e:
+        logger.error(f"{team_name.capitalize()}Team run failed: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"{team_name.capitalize()} team execution failed: {str(e)}"
+        )
+
+
+def _get_team_health(team_name: str) -> dict:
+    """
+    Common helper for team health checks.
+
+    Args:
+        team_name: Team identifier (validation, planning, branding)
+
+    Returns:
+        Health check response dict
+    """
+    config = TEAM_CONFIG.get(team_name)
+    if not config:
+        return {"status": "error", "team": team_name, "error": f"Unknown team: {team_name}"}
+
+    try:
+        # Quick validation that team can be created
+        config["factory"](session_id="health_check", user_id="system")
+
+        return {
+            "status": "ok",
+            "team": team_name,
+            "leader": config["leader"],
+            "members": config["members"],
+            "version": "0.1.0",
+            "storage": config["storage"],
+        }
+    except Exception as e:
+        logger.error(f"{team_name.capitalize()} health check failed: {str(e)}")
+        return {
+            "status": "error",
+            "team": team_name,
+            "error": str(e)
+        }
 
 
 # ============================================================================
@@ -417,6 +599,54 @@ async def approval_agent_info():
         "endpoint": "/agents/approval/runs",
         "version": "0.1.0",
     }
+
+
+# ============================================================================
+# Validation Team Endpoints
+# ============================================================================
+
+@app.post("/agents/validation/runs", response_model=TeamRunResponse)
+async def run_validation_team(request_data: TeamRunRequest, req: Request):
+    """Run Vera's Validation Team. See _run_team for details."""
+    return await _run_team("validation", request_data, req)
+
+
+@app.get("/agents/validation/health")
+async def validation_team_health():
+    """Health check for validation team. No authentication required."""
+    return _get_team_health("validation")
+
+
+# ============================================================================
+# Planning Team Endpoints
+# ============================================================================
+
+@app.post("/agents/planning/runs", response_model=TeamRunResponse)
+async def run_planning_team(request_data: TeamRunRequest, req: Request):
+    """Run Blake's Planning Team. See _run_team for details."""
+    return await _run_team("planning", request_data, req)
+
+
+@app.get("/agents/planning/health")
+async def planning_team_health():
+    """Health check for planning team. No authentication required."""
+    return _get_team_health("planning")
+
+
+# ============================================================================
+# Branding Team Endpoints
+# ============================================================================
+
+@app.post("/agents/branding/runs", response_model=TeamRunResponse)
+async def run_branding_team(request_data: TeamRunRequest, req: Request):
+    """Run Bella's Branding Team. See _run_team for details."""
+    return await _run_team("branding", request_data, req)
+
+
+@app.get("/agents/branding/health")
+async def branding_team_health():
+    """Health check for branding team. No authentication required."""
+    return _get_team_health("branding")
 
 
 if __name__ == "__main__":

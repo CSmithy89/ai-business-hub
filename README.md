@@ -276,8 +276,22 @@ For ongoing operations:
 | EPIC-07 | UI Shell & Navigation | 10/10 | ✅ Complete |
 | EPIC-08 | Business Onboarding & Foundation Modules | 23/23 | ✅ Complete |
 | EPIC-09 | UI & Authentication Enhancements | 15/15 | ✅ Complete |
+| EPIC-10 | Platform Hardening | 8/8 | ✅ Complete |
+| EPIC-11 | Agent Integration | 5/5 | ✅ Complete |
 
-**Progress: 106/107 stories completed (99%)**
+**Progress: 119/120 stories completed (99%)**
+
+### EPIC-11 Highlights: Agent Integration
+
+**Full-Stack AI Agent Connection** - The platform now has **three complete AI agent teams** integrated end-to-end:
+
+- **Validation Team (Vera)** - 5-agent validation workflow with POST `/agents/validation/runs` and health check endpoints
+- **Planning Team (Blake)** - 5-agent planning workflow with POST `/agents/planning/runs` and health check endpoints
+- **Branding Team (Bella)** - 6-agent branding workflow with POST `/agents/branding/runs` and health check endpoints
+
+**Frontend Integration** - New `agent-client.ts` API client connects workflow pages to real agents, displaying actual agent names and team compositions instead of mock data.
+
+**E2E Testing Suite** - 11 comprehensive end-to-end tests covering health checks, workflow execution, error handling, and tenant isolation.
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 

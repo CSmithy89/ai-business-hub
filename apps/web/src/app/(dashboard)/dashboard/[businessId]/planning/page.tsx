@@ -36,6 +36,7 @@ import {
   Download,
 } from 'lucide-react'
 import { BusinessModelCanvasPreview } from '@/components/planning/business-model-canvas-preview'
+import { agentClient } from '@/lib/agent-client'
 
 // ============================================================================
 // Types
@@ -327,6 +328,7 @@ export default function PlanningPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [canvas, setCanvas] = useState<BusinessModelCanvas | null>(null)
   const [currentWorkflow, setCurrentWorkflow] = useState<string>('canvas')
+  const [sessionId, setSessionId] = useState<string | undefined>()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   // Workflow steps - dynamic based on completed workflows
@@ -420,7 +422,7 @@ Your business has been validated - now let's turn that validated idea into an in
   const handleSendMessage = async (content: string) => {
     // Add user message
     const userMessage: ChatMessageData = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID?.() ?? Date.now().toString(),
       role: 'user',
       content,
       timestamp: new Date(),
@@ -586,18 +588,50 @@ Your business has been validated - now let's turn that validated idea into an in
           throw new Error('API request failed')
         }
       } else {
-        // Fallback to mock response for other workflows
-        const agentMessage: ChatMessageData = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          agent: getResponsibleAgent(content),
-          content: getMockResponse(content),
-          timestamp: new Date(),
-          suggestedActions: getSuggestedActions(content),
-        }
-        setTimeout(() => {
+        // Use agent client for general planning messages
+        try {
+          const response = await agentClient.runPlanning({
+            message: content,
+            business_id: businessId,
+            session_id: sessionId,
+            context: {
+              current_workflow: currentWorkflow,
+              canvas: canvas || undefined,
+              completed_workflows: workflowSteps
+                .filter((s) => s.status === 'completed')
+                .map((s) => s.id),
+            },
+          })
+
+          // Store session ID for continuity
+          if (response.session_id) {
+            setSessionId(response.session_id)
+          }
+
+          // Create agent message from response
+          const agentMessage: ChatMessageData = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            agent: response.agent_name?.toLowerCase() || getResponsibleAgent(content),
+            content: response.content || getMockResponse(content),
+            timestamp: new Date(),
+            suggestedActions: getSuggestedActions(content),
+          }
           setMessages((prev) => [...prev, agentMessage])
-        }, 1000)
+        } catch (agentError) {
+          console.error('Error calling planning agent:', agentError)
+
+          // Fallback to mock response on agent error
+          const agentMessage: ChatMessageData = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            agent: getResponsibleAgent(content),
+            content: getMockResponse(content),
+            timestamp: new Date(),
+            suggestedActions: getSuggestedActions(content),
+          }
+          setMessages((prev) => [...prev, agentMessage])
+        }
       }
     } catch (error) {
       console.error('Error sending message:', error)

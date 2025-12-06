@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story>
+    <id>11-1-wire-validation-team-api-endpoint</id>
+    <title>Wire Validation Team API Endpoint</title>
+    <epic>Epic 11 - Agent Integration</epic>
+    <priority>P0 Critical</priority>
+    <points>2</points>
+  </story>
+
+  <implementation-guide>
+    <overview>
+      Wire the existing Validation Team (Vera + specialists) to FastAPI endpoints
+      in agents/main.py. The validation team is already implemented in
+      agents/validation/team.py with the factory function create_validation_team().
+
+      This story follows the exact pattern established by the ApprovalAgent endpoint
+      which is already working in main.py. The key additions are:
+
+      1. Import create_validation_team from validation.team
+      2. Add POST /agents/validation/runs endpoint
+      3. Add GET /agents/validation/health endpoint
+      4. Use TeamRunRequest/TeamRunResponse models (to be added)
+      5. Extract workspace_id and user_id from TenantMiddleware
+      6. Create team instance per request (stateless)
+      7. Run team.arun() and return response
+    </overview>
+
+    <existing-pattern>
+      <description>ApprovalAgent Endpoint Pattern (Reference)</description>
+      <code>
+# From agents/main.py lines 64-78 (Request/Response Models)
+class AgentRunRequest(BaseModel):
+    """Request model for agent run endpoint."""
+    message: str
+    session_id: Optional[str] = None
+    model_override: Optional[str] = None
+
+class AgentRunResponse(BaseModel):
+    """Response model for agent run endpoint."""
+    success: bool
+    content: Optional[str] = None
+    session_id: Optional[str] = None
+    error: Optional[str] = None
+    message: Optional[str] = None
+    metadata: dict = {}
+
+# From agents/main.py lines 304-363 (Endpoint Implementation)
+@app.post("/agents/approval/runs", response_model=AgentRunResponse)
+async def run_approval_agent(request_data: AgentRunRequest, req: Request):
+    """
+    Run the ApprovalAgent with a user message.
+
+    Security:
+    - Requires valid JWT token (validated by TenantMiddleware)
+    - Workspace context extracted from JWT
+    - All tool calls use workspace-scoped permissions
+    """
+    # Extract workspace context from middleware
+    workspace_id = getattr(req.state, "workspace_id", None)
+    user_id = getattr(req.state, "user_id", None)
+    jwt_token = getattr(req.state, "jwt_token", None)
+
+    if not workspace_id or not user_id:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Valid JWT token needed."
+        )
+
+    logger.info(
+        f"ApprovalAgent run request: workspace={workspace_id}, "
+        f"user={user_id}, session={request_data.session_id}"
+    )
+
+    try:
+        # Run agent
+        response = await approval_agent.run(
+            message=request_data.message,
+            workspace_id=workspace_id,
+            user_id=user_id,
+            jwt_token=jwt_token,
+            model_override=request_data.model_override,
+            session_id=request_data.session_id,
+        )
+
+        return AgentRunResponse(**response)
+
+    except Exception as e:
+        logger.error(f"ApprovalAgent run failed: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Agent execution failed: {str(e)}"
+        )
+      </code>
+    </existing-pattern>
+
+    <validation-team-factory>
+      <description>Validation Team Factory from agents/validation/team.py</description>
+      <code>
+# From agents/validation/team.py lines 227-316
+def create_validation_team(
+    session_id: str,
+    user_id: str,
+    business_id: Optional[str] = None,
+    model: Optional[str] = None,
+    debug_mode: bool = False,
+) -> Team:
+    """
+    Create the BMV Validation Team.
+
+    Args:
+        session_id: Unique session identifier for persistence
+        user_id: User ID for multi-tenant isolation
+        business_id: Optional business context ID
+        model: Override model for all agents (default: claude-sonnet-4-20250514)
+        debug_mode: Enable debug logging
+
+    Returns:
+        Configured Agno Team ready for validation tasks
+    """
+    # Creates team with Vera as leader
+    # Members: Marco, Cipher, Persona, Risk
+    # Storage: bmv_validation_sessions table
+    # Mode: coordinate (leader delegates tasks)
+      </code>
+
+      <key-parameters>
+        - session_id: Required - used for conversation persistence
+        - user_id: Required - for multi-tenant isolation
+        - business_id: Optional - business context for validation
+        - model: Optional - override default Claude model
+        - debug_mode: Optional - enable verbose logging
+      </key-parameters>
+
+      <team-members>
+        - Leader: Vera (Validation Orchestrator)
+        - Marco (Market Research Specialist)
+        - Cipher (Competitive Intelligence)
+        - Persona (Customer Profiler)
+        - Risk (Feasibility Assessor)
+      </team-members>
+    </validation-team-factory>
+
+    <required-changes>
+      <file path="agents/main.py">
+        <change>
+          <location>Top of file, after existing imports (after line 17)</location>
+          <action>Add import for validation team factory</action>
+          <code>
+# Import validation team
+from validation.team import create_validation_team
+          </code>
+        </change>
+
+        <change>
+          <location>After AgentRunResponse class (after line 78)</location>
+          <action>Add TeamRunRequest and TeamRunResponse models</action>
+          <code>
+class TeamRunRequest(BaseModel):
+    """Request model for team run endpoint."""
+    message: str
+    session_id: Optional[str] = None
+    business_id: str  # Required for team context
+    model_override: Optional[str] = None
+    context: Optional[dict] = None  # For workflow handoff data
+
+class TeamRunResponse(BaseModel):
+    """Response model for team run endpoint."""
+    success: bool
+    content: Optional[str] = None
+    session_id: str
+    agent_name: Optional[str] = None  # Which agent responded
+    error: Optional[str] = None
+    metadata: dict = {}
+          </code>
+        </change>
+
+        <change>
+          <location>After approval agent endpoints (after line 420)</location>
+          <action>Add validation team run endpoint</action>
+          <code>
+# ============================================================================
+# Validation Team Endpoints
+# ============================================================================
+
+@app.post("/agents/validation/runs", response_model=TeamRunResponse)
+async def run_validation_team(request_data: TeamRunRequest, req: Request):
+    """
+    Run the Validation Team (Vera + specialists).
+
+    Validates business ideas through market sizing, competitor analysis,
+    customer discovery, and feasibility assessment.
+
+    Security:
+    - Requires valid JWT token (validated by TenantMiddleware)
+    - Workspace context extracted from JWT
+    - All tool calls use workspace-scoped permissions
+
+    Request Body:
+    - message: User's message/query for the validation team
+    - business_id: Business context identifier (required)
+    - session_id: Optional session ID for conversation continuity
+    - model_override: Optional model override
+    - context: Optional context data for workflow handoff
+
+    Returns:
+    - TeamRunResponse with agent's response and metadata
+    """
+    # Extract workspace context from middleware
+    workspace_id = getattr(req.state, "workspace_id", None)
+    user_id = getattr(req.state, "user_id", None)
+
+    if not workspace_id or not user_id:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Valid JWT token with workspace context needed."
+        )
+
+    logger.info(
+        f"ValidationTeam run: workspace={workspace_id}, "
+        f"user={user_id}, business={request_data.business_id}"
+    )
+
+    try:
+        # Generate session ID if not provided
+        import time
+        session_id = request_data.session_id or f"val_{user_id}_{int(time.time())}"
+
+        # Create team instance (stateless - per request)
+        team = create_validation_team(
+            session_id=session_id,
+            user_id=user_id,
+            business_id=request_data.business_id,
+            model=request_data.model_override,
+        )
+
+        # Run team
+        response = await team.arun(message=request_data.message)
+
+        return TeamRunResponse(
+            success=True,
+            content=response.content,
+            session_id=session_id,
+            agent_name=getattr(response, 'agent_name', 'Vera'),
+            metadata={
+                "business_id": request_data.business_id,
+                "team": "validation",
+                "workspace_id": workspace_id,
+            }
+        )
+    except Exception as e:
+        logger.error(f"ValidationTeam run failed: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Validation team execution failed: {str(e)}"
+        )
+
+
+@app.get("/agents/validation/health")
+async def validation_team_health():
+    """
+    Health check for validation team.
+
+    Returns team status, leader, and member information.
+    Does not require authentication.
+    """
+    try:
+        # Quick validation that team can be created
+        team = create_validation_team(
+            session_id="health_check",
+            user_id="system",
+        )
+
+        return {
+            "status": "ok",
+            "team": "validation",
+            "leader": "Vera",
+            "members": ["Marco", "Cipher", "Persona", "Risk"],
+            "version": "0.1.0",
+            "storage": "bmv_validation_sessions",
+        }
+    except Exception as e:
+        logger.error(f"Validation health check failed: {str(e)}")
+        return {
+            "status": "error",
+            "team": "validation",
+            "error": str(e)
+        }
+          </code>
+        </change>
+      </file>
+    </required-changes>
+
+    <code-examples>
+      <example name="Request Example">
+POST /agents/validation/runs
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "message": "Validate this business idea: An AI-powered platform for urban vertical gardening",
+  "business_id": "biz_abc123",
+  "session_id": "val_user456_1701234567",
+  "model_override": null,
+  "context": {}
+}
+      </example>
+
+      <example name="Response Example">
+{
+  "success": true,
+  "content": "# Validation Summary\n\n## Market Analysis (Marco)\n- TAM: $15B...",
+  "session_id": "val_user456_1701234567",
+  "agent_name": "Vera",
+  "metadata": {
+    "business_id": "biz_abc123",
+    "team": "validation",
+    "workspace_id": "ws_xyz789"
+  }
+}
+      </example>
+
+      <example name="Health Check Example">
+GET /agents/validation/health
+
+Response:
+{
+  "status": "ok",
+  "team": "validation",
+  "leader": "Vera",
+  "members": ["Marco", "Cipher", "Persona", "Risk"],
+  "version": "0.1.0",
+  "storage": "bmv_validation_sessions"
+}
+      </example>
+    </code-examples>
+
+    <technical-notes>
+      <note>Team Instantiation: Create team instance per request (stateless pattern)</note>
+      <note>Session Management: PostgresStorage handles persistence in bmv_validation_sessions table</note>
+      <note>Tenant Isolation: workspace_id from TenantMiddleware ensures multi-tenancy</note>
+      <note>Error Handling: 401 for auth failures, 500 for execution errors</note>
+      <note>Logging: Use logger.info for requests, logger.error for failures</note>
+      <note>SSE Streaming: NOT implemented in this story (Story 11.4)</note>
+      <note>Business Context: business_id is required for validation team context</note>
+    </technical-notes>
+
+    <testing-checklist>
+      <test>POST /agents/validation/runs returns 401 without JWT token</test>
+      <test>POST /agents/validation/runs returns 200 with valid request</test>
+      <test>POST /agents/validation/runs includes business_id in metadata</test>
+      <test>POST /agents/validation/runs generates session_id if not provided</test>
+      <test>GET /agents/validation/health returns 200 without auth</test>
+      <test>Health check returns correct team structure</test>
+      <test>Error responses include proper status codes and messages</test>
+    </testing-checklist>
+  </implementation-guide>
+
+  <acceptance-criteria>
+    <criterion id="AC1" status="pending">
+      Add /agents/validation/runs POST endpoint to agents/main.py
+    </criterion>
+    <criterion id="AC2" status="pending">
+      Import create_validation_team from agents/validation/team.py
+    </criterion>
+    <criterion id="AC3" status="pending">
+      Accept request body: { message, businessId, sessionId, modelOverride, context }
+    </criterion>
+    <criterion id="AC4" status="pending">
+      Return streaming response (SSE) for real-time updates
+      NOTE: Story 11.4 implements SSE streaming - this story uses sync response
+    </criterion>
+    <criterion id="AC5" status="pending">
+      Include tenant isolation via tenantId header (workspace_id from TenantMiddleware)
+    </criterion>
+    <criterion id="AC6" status="pending">
+      Handle errors gracefully with proper status codes (401, 500)
+    </criterion>
+    <criterion id="AC7" status="pending">
+      Add health check for validation team at /agents/validation/health
+    </criterion>
+  </acceptance-criteria>
+
+  <dependencies>
+    <dependency type="file" status="exists">
+      agents/validation/team.py - Validation team implementation
+    </dependency>
+    <dependency type="file" status="exists">
+      agents/main.py - FastAPI application to modify
+    </dependency>
+    <dependency type="file" status="exists">
+      agents/middleware/tenant.py - TenantMiddleware for JWT validation
+    </dependency>
+    <dependency type="pattern" status="established">
+      ApprovalAgent endpoint pattern in main.py
+    </dependency>
+    <dependency type="database" status="exists">
+      bmv_validation_sessions table - Created in EPIC-08
+    </dependency>
+  </dependencies>
+
+  <definition-of-done>
+    <item>All 7 acceptance criteria met</item>
+    <item>Code follows existing ApprovalAgent pattern</item>
+    <item>No Python syntax errors or import errors</item>
+    <item>Health check endpoint returns 200</item>
+    <item>Run endpoint requires authentication (401 without token)</item>
+    <item>Run endpoint returns TeamRunResponse on success</item>
+    <item>Error handling includes proper logging and status codes</item>
+    <item>business_id is required and included in metadata</item>
+    <item>Session ID generated if not provided</item>
+  </definition-of-done>
+
+  <reference-files>
+    <file path="docs/sprint-artifacts/tech-spec-epic-11.md">
+      Technical specification for Epic 11 - API design, SSE patterns, team initialization
+    </file>
+    <file path="agents/main.py">
+      FastAPI application with ApprovalAgent reference implementation
+    </file>
+    <file path="agents/validation/team.py">
+      Validation team factory and agent definitions
+    </file>
+    <file path="docs/stories/11-1-wire-validation-team-api-endpoint.md">
+      Original story definition
+    </file>
+  </reference-files>
+</story-context>
