@@ -96,3 +96,24 @@
   font-size: 14px;
   color: rgb(var(--color-text-secondary));
 }
+
+/* Agent Status Indicator Animations */
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.status-dot-online {
+  animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .status-dot-online {
+    animation: none;
+  }
+}

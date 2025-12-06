@@ -283,12 +283,12 @@ development_status:
   # ===========================================
   epic-13: contexted
   13-1-agent-card-components: done
-  13-2-agent-detail-modal: review
-  13-3-agent-activity-feed: backlog
-  13-4-agent-configuration-page: backlog
-  13-5-agent-dashboard-page: backlog
-  13-6-confidence-breakdown-system: backlog
-  epic-13-retrospective: optional
+  13-2-agent-detail-modal: done
+  13-3-agent-activity-feed: done
+  13-4-agent-configuration-page: done
+  13-5-agent-dashboard-page: done
+  13-6-confidence-breakdown-system: done
+  epic-13-retrospective: completed
 
   # ===========================================
   # EPIC-14: Testing & Observability
@@ -298,7 +298,7 @@ development_status:
   epic-14: contexted
   14-1-rate-limit-concurrency-tests: review
   14-2-zustand-store-unit-tests: review
-  14-3-file-upload-pipeline-tests: review
+  14-3-file-upload-pipeline-tests: backlog
   14-4-prometheus-metrics-export: done
   14-5-operational-runbooks: backlog
   14-6-csrf-integration-tests: backlog  # Added from Epic 10 tech debt
