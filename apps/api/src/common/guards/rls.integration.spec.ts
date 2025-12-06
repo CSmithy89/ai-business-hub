@@ -4,21 +4,21 @@
  * Tests for cross-tenant data isolation and automatic tenant scoping.
  * @see docs/epics/EPIC-03-rbac-multitenancy.md
  */
-/* eslint-disable no-undef */
+ 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import * as _request from 'supertest';
 import { PrismaService } from '../services/prisma.service';
 
 describe('RLS Integration Tests (Story 03.6)', () => {
-  let app: INestApplication;
+  let _app: INestApplication;
   let prisma: PrismaService;
 
   // Test data IDs
   const tenantA = 'tenant-a-id';
   const tenantB = 'tenant-b-id';
   const userA = 'user-a-id';
-  const userB = 'user-b-id';
+  const _userB = 'user-b-id';
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({

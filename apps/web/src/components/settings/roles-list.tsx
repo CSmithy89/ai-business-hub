@@ -229,7 +229,7 @@ export function RolesList() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Custom Role</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the role "{roleToDelete?.name}"? This action
+              Are you sure you want to delete the role &ldquo;{roleToDelete?.name}&rdquo;? This action
               cannot be undone. Make sure no members are assigned to this role.
             </AlertDialogDescription>
           </AlertDialogHeader>

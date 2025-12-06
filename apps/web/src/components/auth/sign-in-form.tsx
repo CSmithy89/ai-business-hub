@@ -434,8 +434,7 @@ export function SignInForm() {
       {/* Magic Link Option */}
       <p className="text-center text-sm text-gray-600">
         Prefer passwordless sign-in?{' '}
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        <Link href={"/magic-link" as any} prefetch={false} className="text-[#FF6B6B] hover:underline font-medium">
+        <Link href="/magic-link" prefetch={false} className="text-[#FF6B6B] hover:underline font-medium">
           Email me a login link
         </Link>
       </p>
