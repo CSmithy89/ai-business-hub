@@ -52,54 +52,117 @@ export function CountdownTimer({
   autoStart = true,
   resetKey,
 }: CountdownTimerProps) {
-  const [timeLeft, setTimeLeft] = useState(seconds)
-  const [isRunning, setIsRunning] = useState(autoStart)
-  const onCompleteRef = useRef(onComplete)
+  const {
+    timeLeft,
+    isRunning,
+    reset,
+    stop,
+    start,
+  } = useOptimizedCountdown(seconds, {
+    onComplete,
+    autoStart,
+  })
 
-  // Keep the ref updated
   useEffect(() => {
-    onCompleteRef.current = onComplete
-  }, [onComplete])
-
-  // Reset timer when resetKey changes
-  useEffect(() => {
-    setTimeLeft(seconds)
-    setIsRunning(autoStart)
-  }, [resetKey, seconds, autoStart])
-
-  // Handle the countdown
-  useEffect(() => {
-    if (!isRunning) return
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        const newValue = Math.max(0, prev - 1)
-        if (newValue === 0) {
-          clearInterval(timer)
-          onCompleteRef.current?.()
-          setIsRunning(false)
-        }
-        return newValue
-      })
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [isRunning])
-
-  // Render custom content or default
-  if (render) {
-    return <>{render(timeLeft)}</>
-  }
+    reset()
+  }, [resetKey, seconds, reset])
 
   return (
     <span
       role="timer"
       aria-live="polite"
       aria-atomic="true"
+      data-state={isRunning ? 'running' : 'paused'}
     >
-      {timeLeft}s
+      {render ? render(timeLeft) : `${timeLeft}s`}
     </span>
   )
+}
+
+type OptimizedCountdownOptions = {
+  onComplete?: () => void
+  autoStart?: boolean
+}
+
+function useOptimizedCountdown(
+  initialSeconds: number,
+  options?: OptimizedCountdownOptions
+) {
+  const { onComplete, autoStart = true } = options ?? {}
+  const [timeLeft, setTimeLeft] = useState(initialSeconds)
+  const [isRunning, setIsRunning] = useState(autoStart)
+  const [isComplete, setIsComplete] = useState(false)
+  const timerRef = useRef<number | null>(null)
+  const currentSecondsRef = useRef(initialSeconds)
+  const onCompleteRef = useRef(onComplete)
+
+  useEffect(() => {
+    currentSecondsRef.current = initialSeconds
+    setTimeLeft(initialSeconds)
+  }, [initialSeconds])
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+  }, [])
+
+  const tick = useCallback(() => {
+    setTimeLeft((prev) => {
+      const next = Math.max(0, prev - 1)
+      if (next === 0) {
+        setIsComplete(true)
+        setIsRunning(false)
+        onCompleteRef.current?.()
+        clearTimer()
+      }
+      return next
+    })
+  }, [clearTimer])
+
+  useEffect(() => {
+    if (!isRunning || isComplete) return
+
+    if (!timerRef.current) {
+      timerRef.current = window.setInterval(tick, 1000)
+    }
+
+    return () => clearTimer()
+  }, [isRunning, isComplete, tick, clearTimer])
+
+  const reset = useCallback(() => {
+    clearTimer()
+    setTimeLeft(currentSecondsRef.current)
+    setIsComplete(false)
+    setIsRunning(autoStart)
+  }, [autoStart, clearTimer])
+
+  const start = useCallback(() => {
+    if (isComplete) {
+      setTimeLeft(currentSecondsRef.current)
+      setIsComplete(false)
+    }
+    setIsRunning(true)
+  }, [isComplete])
+
+  const stop = useCallback(() => {
+    setIsRunning(false)
+    clearTimer()
+  }, [clearTimer])
+
+  return {
+    timeLeft,
+    isRunning,
+    isComplete,
+    reset,
+    start,
+    stop,
+  }
 }
 
 /**

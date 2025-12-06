@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>14-14</story-id>
+    <story-title>Countdown Timer Optimization</story-title>
+    <epic>EPIC-14</epic>
+    <generated-date>2025-12-07</generated-date>
+    <dependencies>
+      <dependency epic="12" story="retro" status="complete">Epic-12 retrospective flagged interval recreation for countdown timers</dependency>
+    </dependencies>
+  </metadata>
+
+  <section name="key-files">
+    <file path="apps/web/src/components/ui/countdown-timer.tsx" description="Countdown component + hook" />
+    <file path="apps/web/src/components/ui/countdown-timer.test.tsx" description="Regression guard" />
+  </section>
+
+  <section name="optimization-focus">
+    <item>Use a single `setInterval` per countdown to avoid re-creation each render.</item>
+    <item>Ensure reset/start/stop flow still works and completion callback fires once.</item>
+    <item>Test interval creation counts via timers/mock.</item>
+  </section>
+</story-context>
