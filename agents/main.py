@@ -8,6 +8,7 @@ JWT authentication, and Control Plane monitoring support.
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from middleware.tenant import TenantMiddleware
+from middleware.rate_limit import init_rate_limiting
 from config import settings
 from pydantic import BaseModel, Field
 from typing import Optional, Callable, Any, Dict
@@ -66,6 +67,9 @@ app.add_middleware(
     TenantMiddleware,
     secret_key=settings.better_auth_secret
 )
+
+# Rate limiting (default 10/min per identity; Redis if configured)
+limiter = init_rate_limiting(app, settings.redis_url, default_rate="10/minute")
 
 
 # ============================================================================
@@ -484,6 +488,7 @@ async def control_plane_session_details(session_id: str, request: Request):
 # ============================================================================
 
 @app.post("/agents/approval/runs", response_model=AgentRunResponse)
+@limiter.limit("10/minute")
 async def run_approval_agent(request_data: AgentRunRequest, req: Request):
     """
     Run the ApprovalAgent with a user message.
@@ -606,6 +611,7 @@ async def approval_agent_info():
 # ============================================================================
 
 @app.post("/agents/validation/runs", response_model=TeamRunResponse)
+@limiter.limit("10/minute")
 async def run_validation_team(request_data: TeamRunRequest, req: Request):
     """Run Vera's Validation Team. See _run_team for details."""
     return await _run_team("validation", request_data, req)
@@ -622,6 +628,7 @@ async def validation_team_health():
 # ============================================================================
 
 @app.post("/agents/planning/runs", response_model=TeamRunResponse)
+@limiter.limit("10/minute")
 async def run_planning_team(request_data: TeamRunRequest, req: Request):
     """Run Blake's Planning Team. See _run_team for details."""
     return await _run_team("planning", request_data, req)
@@ -638,6 +645,7 @@ async def planning_team_health():
 # ============================================================================
 
 @app.post("/agents/branding/runs", response_model=TeamRunResponse)
+@limiter.limit("10/minute")
 async def run_branding_team(request_data: TeamRunRequest, req: Request):
     """Run Bella's Branding Team. See _run_team for details."""
     return await _run_team("branding", request_data, req)

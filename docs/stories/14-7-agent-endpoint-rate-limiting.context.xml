@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>14-7</story-id>
+    <story-title>Agent Endpoint Rate Limiting</story-title>
+    <epic>EPIC-14</epic>
+    <generated-date>2025-12-07</generated-date>
+    <dependencies>
+      <dependency epic="10" story="10-1" status="complete">Redis rate limiting foundations</dependency>
+      <dependency epic="11" story="11-1" status="complete">Agent endpoints live for validation/planning/branding</dependency>
+    </dependencies>
+  </metadata>
+
+  <section name="key-files">
+    <file path="agents/main.py" description="FastAPI app with agent endpoints" />
+    <file path="agents/config.py" description="Settings including redis_url and better_auth_secret" />
+    <file path="agents/middleware/tenant.py" description="JWT extraction to request.state (user_id, workspace_id)" />
+    <file path="agents/requirements.txt" description="Python dependencies" />
+  </section>
+
+  <section name="requirements">
+    <item>Rate limit agent run endpoints (/agents/*/runs) per workspace/user identity.</item>
+    <item>Use Redis backend when redis_url present; in-memory fallback otherwise.</item>
+    <item>Return 429 with structured error payload on limit exceeded.</item>
+    <item>Tests to cover allowed vs limited and identity scoping.</item>
+  </section>
+</story-context>
