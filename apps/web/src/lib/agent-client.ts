@@ -156,16 +156,28 @@ export class AgentClient {
         )
       }
 
-      // Handle unsuccessful agent responses
-      if (!data.success) {
+      // Runtime validation of response shape
+      const parsed = AgentResponseSchema.safeParse(data)
+      if (!parsed.success) {
         throw new AgentAPIError(
-          data.error || 'Agent execution failed',
+          `Invalid agent response: ${parsed.error.message}`,
           response.status,
           data
         )
       }
 
-      return data
+      const validated: AgentResponseValidated = parsed.data
+
+      // Handle unsuccessful agent responses
+      if (!validated.success) {
+        throw new AgentAPIError(
+          validated.error || 'Agent execution failed',
+          response.status,
+          validated
+        )
+      }
+
+      return validated
     } catch (error) {
       clearTimeout(timeoutId)
 
@@ -293,3 +305,4 @@ export const agentClient = new AgentClient()
  *   return { messages, isStreaming, error, stream }
  * }
  */
+import { AgentResponseSchema, AgentResponseValidated } from './agent-schemas'
