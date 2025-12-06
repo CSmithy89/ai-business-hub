@@ -8,7 +8,7 @@
 - [x] Story 14-6: CSRF Integration Tests
 - [x] Story 14-7: Agent Endpoint Rate Limiting
 - [x] Story 14-8: Business ID Ownership Validation
-- [ ] Story 14-9: Agent Client Unit Tests
+- [x] Story 14-9: Agent Client Unit Tests
 - [ ] Story 14-10: Agent Response Runtime Validation
 - [ ] Story 14-11: API URL Centralization
 - [ ] Story 14-12: Optimistic Update Type Safety
