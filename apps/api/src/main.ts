@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { MetricsService } from './metrics/metrics.service';
+import { MetricsService } from './metrics/metrics-service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -54,15 +54,25 @@ async function bootstrap() {
   await app.listen(port);
 
   const metricsService = app.get(MetricsService);
-  metricsService.trackHttpServer(app.getHttpServer());
+  const server =
+    typeof app.getHttpServer === 'function' ? app.getHttpServer() : undefined;
+  if (server && typeof server.on === 'function') {
+    metricsService.trackHttpServer(server);
+  } else {
+    console.warn(
+      'Metrics: HTTP server does not expose Node connection events; active connection tracking disabled.',
+    );
+  }
+
+  const appUrl = await app.getUrl();
 
   console.log('');
   console.log('🚀 HYVVE NestJS Backend Started Successfully');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`📍 Application running on: http://localhost:${port}`);
-  console.log(`📚 Swagger documentation: http://localhost:${port}/api/docs`);
-  console.log(`💚 Health check endpoint: http://localhost:${port}/health`);
-  console.log(`📈 Metrics endpoint: http://localhost:${port}/metrics`);
+  console.log(`📍 Application running on: ${appUrl}`);
+  console.log(`📚 Swagger documentation: ${appUrl}/api/docs`);
+  console.log(`💚 Health check endpoint: ${appUrl}/health`);
+  console.log(`📈 Metrics endpoint: ${appUrl}/metrics`);
   console.log(`🌐 CORS enabled for: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
   console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

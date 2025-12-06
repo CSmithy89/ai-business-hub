@@ -132,8 +132,8 @@ Confidence in production deployments through comprehensive testing. Real-time vi
 
 **Files:**
 - `apps/api/src/metrics/metrics.module.ts` (create)
-- `apps/api/src/metrics/metrics.controller.ts` (create)
-- `apps/api/src/metrics/metrics.service.ts` (create)
+- `apps/api/src/metrics/metrics-controller.ts` (create)
+- `apps/api/src/metrics/metrics-service.ts` (create)
 - `docs/observability.md` (create)
 
 **Tech Debt Addressed:** "No Prometheus Metrics Export" from tech debt tracker
@@ -340,6 +340,37 @@ From Epic 11 Retrospective (`docs/sprint-artifacts/epic-11-retro-2025-12-06.md`)
 | Implement session persistence | 14.10 | Resolved |
 
 **Note:** Agent-related E2E tests were completed in EPIC-11 Story 11.5.
+
+---
+
+### Story 14.19: Rate Limit Header Implementation
+
+**Points:** 2  
+**Priority:** P2 Medium  
+**Depends on:** Story 14.1 (Rate Limit Concurrency Tests)
+
+**As an** API consumer  
+**I want** every rate-limited HTTP route to emit standard `X-RateLimit-*` headers  
+**So that** clients can adjust request volume before hitting hard limits
+
+**Acceptance Criteria:**
+- [ ] AC1: Export the shared `generateRateLimitHeaders()` helper from `lib/utils/rate-limit.ts`
+- [ ] AC2: Attach headers for all auth-related routes that call `checkRateLimit`
+- [ ] AC3: Attach headers for workspace/API routes using rate limiting
+- [ ] AC4: Add tests verifying headers for representative endpoints
+- [ ] AC5: Update documentation/story files to describe header behavior
+
+**Files:**
+- `apps/web/src/lib/utils/rate-limit.ts` (export helper + doc)
+- `apps/web/src/app/api/**/route.ts` (forward helper output to responses)
+- `apps/web/src/__tests__/rate-limit.test.ts` (header assertions)
+- `docs/stories/14-19-rate-limit-headers.md` (story doc)
+
+**Definition of Done:**
+- [ ] All rate-limited endpoints emit `X-RateLimit-Limit`, `-Remaining`, and `-Reset`
+- [ ] Automated tests cover header emission for representative routes
+- [ ] Story file captures implementation/testing details
+
 
 ---
 

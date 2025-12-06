@@ -25,9 +25,19 @@ import { validate } from './config/env.validation';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         connection: {
-          host: configService.get('REDIS_HOST', 'localhost'),
-          port: configService.get('REDIS_PORT', 6379),
-          password: configService.get('REDIS_PASSWORD'),
+          host: configService.get<string>('REDIS_HOST', 'localhost'),
+          port: (() => {
+            const rawPort = configService.get<string | number | undefined>(
+              'REDIS_PORT',
+              6379,
+            );
+            const parsed =
+              typeof rawPort === 'number'
+                ? rawPort
+                : parseInt(String(rawPort ?? ''), 10);
+            return Number.isFinite(parsed) ? parsed : 6379;
+          })(),
+          password: configService.get<string | undefined>('REDIS_PASSWORD'),
         },
       }),
     }),

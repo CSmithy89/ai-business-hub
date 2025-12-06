@@ -5,8 +5,8 @@ export type HttpMetricLabels = {
 };
 
 export type ApprovalStatusCount = {
-  status: string;
-  count: number;
+  status: string | null;
+  _count: { status: number };
 };
 
 export type ProviderHealthSnapshot = {

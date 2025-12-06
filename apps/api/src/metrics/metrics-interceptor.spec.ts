@@ -1,7 +1,7 @@
 import { of, throwError } from 'rxjs';
 import { HttpException, HttpStatus, type ExecutionContext } from '@nestjs/common';
-import { MetricsInterceptor } from './metrics.interceptor';
-import type { MetricsService } from './metrics.service';
+import { MetricsInterceptor } from './metrics-interceptor';
+import type { MetricsService } from './metrics-service';
 
 type MockRequest = {
   method?: string;

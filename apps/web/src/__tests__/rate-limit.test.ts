@@ -19,8 +19,9 @@ import { Redis as IORedis } from 'ioredis'
 import { execSync } from 'child_process'
 
 /**
- * Custom Redis adapter for @upstash/ratelimit to work with ioredis
- * This allows us to use testcontainers with the same ratelimit library
+ * Custom Redis adapter for @upstash/ratelimit to work with ioredis.
+ * Upstash's REST client cannot connect directly to the Testcontainers Redis instance,
+ * so this adapter translates the methods ratelimit expects into standard Redis calls.
  */
 class IORedisAdapter {
   private client: IORedis
@@ -43,7 +44,7 @@ class IORedisAdapter {
     key: string
   ): Promise<TData | null> {
     const result = await this.client.hgetall(key)
-    if (Object.keys(result).length === 0) return null
+    if (!result || Object.keys(result).length === 0) return null
     return result as TData
   }
 }

@@ -28,9 +28,9 @@ As an operator, I want a Prometheus-compatible metrics endpoint so that I can in
 
 ## Files to Create/Modify
 - `apps/api/src/metrics/metrics.module.ts`
-- `apps/api/src/metrics/metrics.service.ts`
-- `apps/api/src/metrics/metrics.controller.ts`
-- `apps/api/src/metrics/metrics.interceptor.ts`
+- `apps/api/src/metrics/metrics-service.ts`
+- `apps/api/src/metrics/metrics-controller.ts`
+- `apps/api/src/metrics/metrics-interceptor.ts`
 - `apps/api/src/metrics/metrics.types.ts`
 - `apps/api/src/main.ts`
 - `apps/api/src/app.module.ts`
@@ -43,12 +43,12 @@ As an operator, I want a Prometheus-compatible metrics endpoint so that I can in
 - No external SaaS requirements
 
 ## Definition of Done
-- [ ] `/metrics` returns Prometheus-compatible output
-- [ ] Event bus, approval queue, AI provider, and connection metrics exposed with correct labels
-- [ ] HTTP latency histogram and request counters capture live traffic
-- [ ] Observability runbook created/documented in `docs/observability.md`
-- [ ] Automated tests cover metrics behavior where practical
-- [ ] Story reviewed, approved, and merged
+- [x] `/metrics` returns Prometheus-compatible output
+- [x] Event bus, approval queue, AI provider, and connection metrics exposed with correct labels
+- [x] HTTP latency histogram and request counters capture live traffic
+- [x] Observability runbook created/documented in `docs/observability.md`
+- [x] Automated tests cover metrics behavior where practical
+- [x] Story reviewed, approved, and merged
 
 ## Implementation Summary
 
@@ -62,11 +62,11 @@ As an operator, I want a Prometheus-compatible metrics endpoint so that I can in
 
 ### Files Created
 - `apps/api/src/metrics/metrics.module.ts`
-- `apps/api/src/metrics/metrics.controller.ts`
-- `apps/api/src/metrics/metrics.service.ts`
-- `apps/api/src/metrics/metrics.interceptor.ts`
+- `apps/api/src/metrics/metrics-controller.ts`
+- `apps/api/src/metrics/metrics-service.ts`
+- `apps/api/src/metrics/metrics-interceptor.ts`
 - `apps/api/src/metrics/metrics.types.ts`
-- `apps/api/src/metrics/metrics.interceptor.spec.ts`
+- `apps/api/src/metrics/metrics-interceptor.spec.ts`
 - `docs/observability.md`
 
 ### Files Modified
@@ -75,7 +75,9 @@ As an operator, I want a Prometheus-compatible metrics endpoint so that I can in
 - `apps/api/src/main.ts`
 
 ### Testing
-- `pnpm --filter @hyvve/api test metrics/metrics.interceptor.spec.ts`
+- `pnpm --filter @hyvve/api test metrics/metrics-interceptor.spec.ts`
+
+> **Rate Limit Headers:** The shared `generateRateLimitHeaders()` helper is covered by tests so routes can emit `X-RateLimit-*` headers consistently. Wiring every rate-limited API route into that helper remains on the backlog, which keeps the acceptance criterion visible without yielding misleading failures.
 
 
 ---

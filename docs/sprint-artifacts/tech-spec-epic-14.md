@@ -471,8 +471,8 @@ NestJS App
 ```typescript
 // apps/api/src/metrics/metrics.module.ts
 import { Module } from '@nestjs/common'
-import { MetricsController } from './metrics.controller'
-import { MetricsService } from './metrics.service'
+import { MetricsController } from './metrics-controller'
+import { MetricsService } from './metrics-service'
 import { EventsModule } from '../events'
 import { ApprovalsModule } from '../approvals'
 import { AIProvidersModule } from '../ai-providers'
@@ -487,7 +487,7 @@ export class MetricsModule {}
 ```
 
 ```typescript
-// apps/api/src/metrics/metrics.service.ts
+// apps/api/src/metrics/metrics-service.ts
 import { Injectable } from '@nestjs/common'
 import * as promClient from 'prom-client'
 
@@ -969,8 +969,8 @@ apps/api/
 └── src/
     └── metrics/
         ├── metrics.module.ts                     (Story 14.4)
-        ├── metrics.controller.ts                 (Story 14.4)
-        └── metrics.service.ts                    (Story 14.4)
+        ├── metrics-controller.ts                 (Story 14.4)
+        └── metrics-service.ts                    (Story 14.4)
 
 agents/
 └── middleware/
@@ -1004,7 +1004,7 @@ docs/
 ```json
 {
   "devDependencies": {
-    "@testcontainers/redis": "^10.0.0",
+    "@testcontainers/redis": "^11.9.0",
     "msw": "^2.0.0"
   },
   "dependencies": {

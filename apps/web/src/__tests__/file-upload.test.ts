@@ -115,7 +115,8 @@ export class MockFile {
   }
 
   async arrayBuffer(): Promise<ArrayBuffer> {
-    return this.buffer.buffer as ArrayBuffer
+    const { buffer, byteOffset, length } = this.buffer
+    return buffer.slice(byteOffset, byteOffset + length) as ArrayBuffer
   }
 }
 
