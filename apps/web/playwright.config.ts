@@ -37,7 +37,7 @@ export default defineConfig({
 
   // Reporters - HTML for local debugging, JUnit for CI
   reporter: [
-    ['html', { outputFolder: 'test-results/html' }],
+    ['html', { outputFolder: 'playwright-report' }],
     ['junit', { outputFile: 'test-results/junit.xml' }],
     ['list'],
   ],

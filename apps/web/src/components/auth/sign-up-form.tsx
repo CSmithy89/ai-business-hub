@@ -151,6 +151,7 @@ export function SignUpForm() {
           className="w-full"
           onClick={handleGoogleSignUp}
           disabled={isAnyOAuthLoading || isSubmitting}
+          data-testid="google-sign-up-button"
         >
           {isGoogleLoading ? (
             <>
@@ -188,6 +189,7 @@ export function SignUpForm() {
           className="w-full"
           onClick={handleMicrosoftSignUp}
           disabled={isAnyOAuthLoading || isSubmitting}
+          data-testid="microsoft-sign-up-button"
         >
           {isMicrosoftLoading ? (
             <>
@@ -210,6 +212,7 @@ export function SignUpForm() {
           className="w-full"
           onClick={handleGitHubSignUp}
           disabled={isAnyOAuthLoading || isSubmitting}
+          data-testid="github-sign-up-button"
         >
           {isGitHubLoading ? (
             <>

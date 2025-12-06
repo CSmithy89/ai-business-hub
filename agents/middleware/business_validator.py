@@ -32,7 +32,7 @@ async def _fetch_business(
     if auth_header:
         headers["Authorization"] = auth_header
     elif settings.agno_api_key:
-        headers["Authorization"] = f"Bearer {settings.agno_api_key}"
+        headers["Authorization"] = f"Bearer {settings.agno_api_key.get_secret_value()}"
     else:
         logger.error("No authorization configured for business lookup; cannot validate ownership")
         raise HTTPException(
@@ -88,7 +88,8 @@ def _derive_identity(request: Request) -> tuple[Optional[str], Optional[str], Op
 
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header[7:]
-        if not settings.better_auth_secret:
+        secret = settings.better_auth_secret.get_secret_value()
+        if not secret:
             logger.error("BETTER_AUTH_SECRET is not configured; refusing to decode JWT")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -98,7 +99,7 @@ def _derive_identity(request: Request) -> tuple[Optional[str], Optional[str], Op
         try:
             claims = jwt.decode(
                 token,
-                settings.better_auth_secret,
+                secret,
                 algorithms=["HS256"],
             )
             return (

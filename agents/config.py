@@ -6,7 +6,7 @@ Manages environment variables for the AgentOS runtime using Pydantic Settings.
 
 from typing import Optional
 
-from pydantic import Field
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     redis_url: Optional[str] = None
 
     # Authentication
-    better_auth_secret: str
+    better_auth_secret: SecretStr
 
     # Server
     agentos_host: str = "0.0.0.0"
@@ -31,10 +31,10 @@ class Settings(BaseSettings):
 
     # Control Plane (optional)
     control_plane_enabled: bool = True
-    agno_api_key: Optional[str] = None
+    agno_api_key: Optional[SecretStr] = None
 
     # CORS
-    cors_origins: list[str] = Field(
+    cors_origins: list[str] | str = Field(
         default_factory=lambda: [
             "http://localhost:3000",
             "http://localhost:3001",
@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     )
     cors_allow_headers: list[str] = Field(default_factory=lambda: ["Authorization", "Content-Type"])
     control_plane_origin: str = "https://os.agno.com"
+
+    @field_validator("better_auth_secret")
+    @classmethod
+    def _ensure_auth_secret(cls, v: SecretStr) -> SecretStr:
+        if not v.get_secret_value():
+            raise ValueError("BETTER_AUTH_SECRET must be set")
+        return v
 
     class Config:
         env_file = ".env"

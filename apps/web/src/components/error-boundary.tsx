@@ -4,7 +4,6 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { captureException, addBreadcrumb } from '@/lib/telemetry/error-tracking'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -48,29 +47,34 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    try {
-      const message = error instanceof Error ? error.message : String(error)
-      const stack = errorInfo?.componentStack ?? ''
+    void (async () => {
+      try {
+        const { captureException, addBreadcrumb } = await import('@/lib/telemetry/error-tracking')
 
-      addBreadcrumb({
-        category: 'error-boundary',
-        message,
-        level: 'error',
-        data: { componentStack: stack.slice(0, 500) },
-      })
-      const errForCapture = error instanceof Error ? error : new Error(String(error))
+        const message = error instanceof Error ? error.message : String(error)
+        const stackRaw = errorInfo?.componentStack ?? ''
+        const sanitizedStack = stackRaw.replace(/\/[^\s)]+/g, '[path]').slice(0, 500)
 
-      captureException(errForCapture, {
-        tags: { feature: 'error-boundary' },
-        extra: {
-          componentStack: stack.slice(0, 500),
-        },
-      })
-    } catch (telemetryError) {
-      // Avoid throwing from the error handler itself
-       
-      console.error('[ErrorBoundary] failed to report error', telemetryError)
-    }
+        addBreadcrumb({
+          category: 'error-boundary',
+          message,
+          level: 'error',
+          data: { componentStack: sanitizedStack },
+        })
+        const errForCapture = error instanceof Error ? error : new Error(String(error))
+
+        captureException(errForCapture, {
+          tags: { feature: 'error-boundary' },
+          extra: {
+            componentStack: sanitizedStack,
+          },
+        })
+      } catch (telemetryError) {
+        // Avoid throwing from the error handler itself
+         
+        console.error('[ErrorBoundary] failed to report error', telemetryError)
+      }
+    })()
   }
 
   handleRetry = () => {

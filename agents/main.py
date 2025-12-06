@@ -46,11 +46,16 @@ app = FastAPI(
 )
 
 # CORS middleware
-allowed_origins = list(settings.cors_origins or [])
+origins_setting = settings.cors_origins
+if isinstance(origins_setting, str):
+    allowed_origins = [origins_setting]
+else:
+    allowed_origins = list(origins_setting or [])
 
 # Add Control Plane origin if enabled and configured
 if settings.control_plane_enabled and settings.control_plane_origin:
-    allowed_origins.append(settings.control_plane_origin)
+    if settings.control_plane_origin not in allowed_origins:
+        allowed_origins.append(settings.control_plane_origin)
 
 app.add_middleware(
     CORSMiddleware,
@@ -63,7 +68,7 @@ app.add_middleware(
 # Tenant middleware (JWT validation and workspace_id injection)
 app.add_middleware(
     TenantMiddleware,
-    secret_key=settings.better_auth_secret
+    secret_key=settings.better_auth_secret.get_secret_value()
 )
 
 # Rate limiting (default 10/min per identity; Redis if configured)

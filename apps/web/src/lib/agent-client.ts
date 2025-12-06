@@ -136,14 +136,13 @@ export class AgentClient {
       clearTimeout(timeoutId)
 
       // Parse response body with error handling
+      const rawText = await response.text()
       let data: AgentResponse
       try {
-        data = (await response.json()) as AgentResponse
+        data = rawText ? (JSON.parse(rawText) as AgentResponse) : ({} as AgentResponse)
       } catch {
-        // Handle non-JSON responses (HTML error pages, empty body, etc.)
-        const text = await response.text().catch(() => '')
         throw new AgentAPIError(
-          text || `Invalid JSON response from agent API (status ${response.status})`,
+          rawText || `Invalid JSON response from agent API (status ${response.status})`,
           response.status
         )
       }

@@ -60,13 +60,19 @@ export async function performApprovalAction(
         ? API_ENDPOINTS.approvals.approve(id)
         : API_ENDPOINTS.approvals.reject(id)
 
-    response = await apiPost(endpoint, data, {
-      baseURL: '',
-    })
+    response = await apiPost(endpoint, data)
   } catch (err) {
     // Network error - API server may not be running
     console.error(`[ApprovalService] Network error during ${action}:`, err)
     throw new Error('Unable to connect to approval service. Please try again later.')
+  }
+
+  const raw = await response.text()
+  let parsed: any = {}
+  try {
+    parsed = raw ? JSON.parse(raw) : {}
+  } catch {
+    // fall through with empty parsed
   }
 
   if (!response.ok) {
@@ -74,11 +80,14 @@ export async function performApprovalAction(
       console.warn(`[ApprovalService] ${action} endpoint not found (404) - backend may not be configured`)
       throw new Error('Approval endpoint not found. Backend may not be configured.')
     }
-    const error = await response.json().catch(() => ({ message: `Failed to ${action}` }))
-    throw new Error(error.message || `Failed to ${action}`)
+    throw new Error(parsed?.message || `Failed to ${action}`)
   }
 
-  return response.json()
+  if (!parsed?.data) {
+    throw new Error(`Malformed approval response for ${action}`)
+  }
+
+  return parsed as ApprovalResponse
 }
 
 /**
