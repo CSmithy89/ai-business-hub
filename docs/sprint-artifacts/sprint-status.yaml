@@ -303,7 +303,7 @@ development_status:
   14-5-operational-runbooks: done
   14-6-csrf-integration-tests: done  # Added from Epic 10 tech debt
   14-7-agent-endpoint-rate-limiting: done  # Added from Epic 11 tech debt (HIGH)
-  14-8-business-id-ownership-validation: backlog  # Added from Epic 11 tech debt (HIGH)
+  14-8-business-id-ownership-validation: done  # Added from Epic 11 tech debt (HIGH)
   14-9-agent-client-unit-tests: backlog  # Added from Epic 11 tech debt
   14-10-agent-response-runtime-validation: backlog  # Added from Epic 11 tech debt (Zod + session)
   14-11-api-url-centralization: backlog  # Added from Epic 12 tech debt (HIGH)

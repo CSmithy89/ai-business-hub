@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>14-8</story-id>
+    <story-title>Business ID Ownership Validation</story-title>
+    <epic>EPIC-14</epic>
+    <generated-date>2025-12-07</generated-date>
+    <dependencies>
+      <dependency epic="11" story="11-4" status="complete">Agent integration endpoints live</dependency>
+    </dependencies>
+  </metadata>
+
+  <section name="key-files">
+    <file path="agents/main.py" description="FastAPI app; agent run endpoints" />
+    <file path="agents/middleware/business_validator.py" description="Ownership guard" />
+    <file path="agents/middleware/tenant.py" description="Injects workspace/user from JWT" />
+    <file path="agents/config.py" description="Provides api_base_url and secrets" />
+  </section>
+
+  <section name="requirements">
+    <item>Validate business ownership for team run endpoints using workspace/user identity.</item>
+    <item>Call NestJS API `GET /api/workspaces/{workspaceId}/businesses/{businessId}`; deny on 404 or mismatch.</item>
+    <item>Fail closed on upstream errors (503) and missing identity (401).</item>
+    <item>Tests cover allow/deny, missing identity, and upstream failure.</item>
+  </section>
+</story-context>

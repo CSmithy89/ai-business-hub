@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from middleware.tenant import TenantMiddleware
 from middleware.rate_limit import init_rate_limiting
+from middleware.business_validator import validate_business_ownership
 from config import settings
 from pydantic import BaseModel, Field
 from typing import Optional, Callable, Any, Dict
@@ -614,6 +615,7 @@ async def approval_agent_info():
 @limiter.limit("10/minute")
 async def run_validation_team(request_data: TeamRunRequest, req: Request):
     """Run Vera's Validation Team. See _run_team for details."""
+    await validate_business_ownership(req, request_data.business_id)
     return await _run_team("validation", request_data, req)
 
 
@@ -631,6 +633,7 @@ async def validation_team_health():
 @limiter.limit("10/minute")
 async def run_planning_team(request_data: TeamRunRequest, req: Request):
     """Run Blake's Planning Team. See _run_team for details."""
+    await validate_business_ownership(req, request_data.business_id)
     return await _run_team("planning", request_data, req)
 
 
@@ -648,6 +651,7 @@ async def planning_team_health():
 @limiter.limit("10/minute")
 async def run_branding_team(request_data: TeamRunRequest, req: Request):
     """Run Bella's Branding Team. See _run_team for details."""
+    await validate_business_ownership(req, request_data.business_id)
     return await _run_team("branding", request_data, req)
 
 
