@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-id>10.7</story-id>
+  <title>XSS Sanitization Hardening</title>
+  <epic>EPIC-10 Platform Hardening</epic>
+  <priority>P1 High</priority>
+  <points>2</points>
+  <status>Done</status>
+
+  <objective>
+    Verify robust XSS sanitization using DOMPurify is in place across all user-generated
+    content inputs to prevent regex-bypass attacks.
+  </objective>
+
+  <implementation-approach>
+    <evaluation>
+      - Audited existing implementation from Story 09-14
+      - Found comprehensive DOMPurify-based sanitization already in place
+      - Verified all acceptance criteria met by existing code
+      - This is a verification story, not new implementation
+    </evaluation>
+    <sanitization-strategy>
+      - isomorphic-dompurify for SSR/client compatibility
+      - Multiple sanitization levels (text, basic HTML, URLs)
+      - Control character removal
+      - Protocol validation for URLs
+    </sanitization-strategy>
+  </implementation-approach>
+
+  <key-files>
+    <file path="apps/web/src/lib/utils/sanitize.ts" role="core-utility">
+      DOMPurify-based sanitization utility.
+      - sanitizeText(input): Strip ALL HTML, plain text only
+      - sanitizeBasicHTML(input): Allow p, br, b, i, strong, em
+      - sanitizeInput(input): Legacy wrapper for sanitizeText
+      - sanitizeObject(obj, keys): Sanitize object properties
+      - sanitizeForAttribute(input): Encode for attribute context
+      - sanitizeUrl(url): Validate URL protocols
+      - isValidUrl(url): Check http/https validity
+    </file>
+    <file path="apps/web/src/lib/utils/sanitize.test.ts" role="tests">
+      Comprehensive XSS attack vector tests.
+      - 12 sanitizeText tests
+      - 10 sanitizeHtml tests
+      - 4 sanitizeForAttribute tests
+      - 12 sanitizeUrl tests
+      - 9 isValidUrl tests
+      - 15+ XSS payload tests
+    </file>
+    <file path="apps/web/src/components/chat/ChatMessage.tsx" role="rendering">
+      Secure chat message rendering.
+      - Uses client-side DOMPurify
+      - ALLOWED_TAGS: [] strips all HTML
+      - No dangerouslySetInnerHTML
+    </file>
+    <file path="apps/web/src/app/api/workspaces/[id]/roles/route.ts" role="api-route">
+      Workspace roles endpoint.
+      - Uses sanitizeInput for role names
+      - DOMPurify-based, not regex
+    </file>
+  </key-files>
+
+  <sanitization-functions>
+    <function name="sanitizeText">
+      <description>Strip ALL HTML, return plain text only</description>
+      <config>ALLOWED_TAGS: [], ALLOWED_ATTR: [], KEEP_CONTENT: true</config>
+      <use-case>Role names, workspace names, user input requiring plain text</use-case>
+    </function>
+    <function name="sanitizeBasicHTML">
+      <description>Allow basic formatting tags</description>
+      <config>ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'strong', 'em']</config>
+      <use-case>Descriptions that may have simple formatting</use-case>
+    </function>
+    <function name="sanitizeUrl">
+      <description>Validate URL protocols, block dangerous ones</description>
+      <allowed>http:, https:, mailto:, tel:, relative URLs</allowed>
+      <blocked>javascript:, data:, vbscript:</blocked>
+    </function>
+  </sanitization-functions>
+
+  <xss-vectors-neutralized>
+    <vector name="script-injection">&lt;script&gt;alert(1)&lt;/script&gt;</vector>
+    <vector name="event-handlers">onerror, onclick, onload attributes</vector>
+    <vector name="svg-xss">&lt;svg onload=...&gt;</vector>
+    <vector name="img-onerror">&lt;img src=x onerror=...&gt;</vector>
+    <vector name="javascript-urls">javascript:alert(1)</vector>
+    <vector name="data-uris">data:text/html,...</vector>
+    <vector name="vbscript">vbscript:msgbox(1)</vector>
+    <vector name="nested-tags">&lt;scr&lt;script&gt;ipt&gt;</vector>
+    <vector name="mutation-xss">DOM mutation attacks</vector>
+    <vector name="encoding-bypasses">Unicode and HTML entity tricks</vector>
+  </xss-vectors-neutralized>
+
+  <verification-results>
+    <check name="dangerouslySetInnerHTML">
+      <status>passed</status>
+      <result>Zero instances found in codebase</result>
+    </check>
+    <check name="user-input-sanitization">
+      <status>passed</status>
+      <result>All user input flows through sanitization</result>
+    </check>
+    <check name="chat-rendering">
+      <status>passed</status>
+      <result>ChatMessage.tsx uses DOMPurify with ALLOWED_TAGS: []</result>
+    </check>
+    <check name="api-routes">
+      <status>passed</status>
+      <result>Roles routes use sanitizeInput from DOMPurify utility</result>
+    </check>
+  </verification-results>
+
+  <acceptance-criteria-status>
+    <ac number="1" status="completed">
+      isomorphic-dompurify package already installed in package.json
+    </ac>
+    <ac number="2" status="completed">
+      Comprehensive sanitization utility exists at apps/web/src/lib/utils/sanitize.ts
+    </ac>
+    <ac number="3" status="completed">
+      Roles route uses sanitizeInput from DOMPurify-based utility
+    </ac>
+    <ac number="4" status="completed">
+      Multiple files apply sanitization to user-generated content
+    </ac>
+    <ac number="5" status="completed">
+      Unit tests cover 15+ XSS attack vectors including edge cases
+    </ac>
+    <ac number="6" status="completed">
+      Chat message rendering audited - uses DOMPurify, no dangerouslySetInnerHTML
+    </ac>
+  </acceptance-criteria-status>
+
+  <testing>
+    <unit-tests file="sanitize.test.ts">
+      - Text sanitization (HTML stripping, control chars)
+      - HTML sanitization (allowed tags, event handler removal)
+      - Attribute encoding (entity encoding, attribute breakout)
+      - URL sanitization (protocol validation, encoding bypasses)
+      - XSS attack vector suite (15+ payloads)
+    </unit-tests>
+    <command>pnpm turbo test --filter=web -- sanitize</command>
+  </testing>
+
+  <related-stories>
+    <story id="09.14" title="Custom Role Creation">
+      Original implementation of DOMPurify sanitization
+    </story>
+    <story id="10.6" title="CSRF Protection">
+      Complementary security hardening
+    </story>
+  </related-stories>
+
+  <conclusion>
+    XSS sanitization hardening verified complete:
+    - isomorphic-dompurify in place for SSR compatibility
+    - Multiple sanitization functions for different contexts
+    - Comprehensive unit tests covering XSS attack vectors
+    - Chat messages sanitized at render time
+    - No dangerous patterns (dangerouslySetInnerHTML) found
+    - All user input flows through sanitization
+
+    Implementation was done in Story 09-14; this story confirmed all AC met.
+  </conclusion>
+</story-context>

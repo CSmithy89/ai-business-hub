@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfidenceIndicator, ConfidenceBadge } from './confidence-indicator'
 import { ApprovalActions } from './approval-actions'
+import { ApprovalQuickActions } from './approval-quick-actions'
 import { AIReasoningSection } from './ai-reasoning-section'
 import { formatDistanceToNow } from 'date-fns'
 import type { ApprovalItem } from '@hyvve/shared'
@@ -161,11 +162,8 @@ export function ApprovalCard({
 
             <div className="flex gap-2">
               {canShowActions && (
-                <ApprovalActions
+                <ApprovalQuickActions
                   approvalId={approval.id}
-                  variant="compact"
-                  onApprove={onActionComplete}
-                  onReject={onActionComplete}
                 />
               )}
 
@@ -253,8 +251,10 @@ export function ApprovalCard({
         {/* Preview Data Section */}
         <div className="space-y-3">
           <button
+            type="button"
             onClick={() => setShowPreviewData(!showPreviewData)}
             className="flex items-center justify-between w-full text-left"
+            aria-expanded={showPreviewData}
           >
             <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
               Preview Data
