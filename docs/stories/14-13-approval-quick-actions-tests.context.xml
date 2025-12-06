@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>14-13</story-id>
+    <story-title>Approval Quick Actions Tests</story-title>
+    <epic>EPIC-14</epic>
+    <generated-date>2025-12-07</generated-date>
+    <dependencies>
+      <dependency epic="12" story="retro" status="complete">Epic-12 retrospective highlighted missing tests</dependency>
+    </dependencies>
+  </metadata>
+
+  <section name="hook-under-test">
+    <file path="apps/web/src/hooks/use-approval-quick-actions.ts" />
+  </section>
+
+  <section name="testing-focus">
+    <item>Approve/reject success flows emit toasts + endpoint calls.</item>
+    <item>Optimistic updates snapshot previous context and rollback on failure.</item>
+    <item>Guard hooks against toast regressions by mocking `sonner`.</item>
+  </section>
+</story-context>

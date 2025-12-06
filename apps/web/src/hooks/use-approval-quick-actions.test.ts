@@ -1,7 +1,52 @@
+import React from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { renderHook } from '@testing-library/react'
 import * as apiClient from '@/lib/api-client'
-import { buildOptimisticReviewedItem, performApprovalAction } from './use-approval-quick-actions'
+import {
+  buildOptimisticReviewedItem,
+  performApprovalAction,
+  useApprovalQuickActions,
+} from './use-approval-quick-actions'
 import { API_ENDPOINTS } from '@/lib/api-config'
+
+import { toast } from 'sonner'
+
+vi.mock('@/lib/api-client', () => ({
+  apiPost: vi.fn(),
+}))
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}))
+
+const createApprovalItem = () => ({
+  id: 'a1',
+  workspaceId: 'ws1',
+  type: 'email',
+  title: 'Test',
+  description: 'Desc',
+  confidenceScore: 80,
+  confidenceLevel: 'medium',
+  status: 'pending' as const,
+  data: {},
+  createdBy: 'agent',
+  priority: 1,
+  createdAt: new Date(),
+})
+
+const renderHookWithClient = () => {
+  const ct = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={ct}>{children}</QueryClientProvider>
+  )
+
+  const hook = renderHook(() => useApprovalQuickActions(), { wrapper })
+  return { client: ct, hook }
+}
 
 vi.mock('@/lib/api-client', () => ({
   apiPost: vi.fn(),
@@ -37,5 +82,56 @@ describe('Optimistic update type safety (Story 14-12)', () => {
     const updated = buildOptimisticReviewedItem(baseItem as any, 'approved')
     expect(typeof updated.reviewedAt).toBe('string')
     expect(Date.parse(updated.reviewedAt as string)).not.toBeNaN()
+  })
+})
+
+describe('Approval quick actions regressions (Story 14-13)', () => {
+  beforeEach(() => {
+    vi.mocked(toast.success).mockReset()
+    vi.mocked(toast.error).mockReset()
+    vi.mocked(apiClient.apiPost).mockReset()
+  })
+
+  it('calls API and toast on successful approval', async () => {
+    const mockResponse = {
+      ok: true,
+      json: async () => ({ data: { id: 'a1', title: 'Test' } }),
+    } as Response
+    vi.mocked(apiClient.apiPost).mockResolvedValueOnce(mockResponse)
+
+    const { hook } = renderHookWithClient()
+    await hook.result.current.approveMutation.mutateAsync({ id: 'a1' })
+
+    expect(apiClient.apiPost).toHaveBeenCalledWith(
+      API_ENDPOINTS.approvals.approve('a1'),
+      {},
+      { baseURL: '' }
+    )
+    expect(toast.success).toHaveBeenCalled()
+  })
+
+  it('rolls back optimistic update when approval fails', async () => {
+    const failingResponse = {
+      ok: false,
+      status: 500,
+      json: async () => ({ message: 'boom' }),
+    } as Response
+    vi.mocked(apiClient.apiPost).mockResolvedValueOnce(failingResponse)
+
+    const { client, hook } = renderHookWithClient()
+    const baseline = {
+      data: [createApprovalItem()],
+      meta: {},
+    }
+    client.setQueryData(['approvals'], baseline)
+
+    await expect(
+      hook.result.current.approveMutation.mutateAsync({ id: 'a1' })
+    ).rejects.toThrow('Failed to approve')
+
+    const after = client.getQueryData<{ data: ReturnType<typeof createApprovalItem>[] }>(['approvals'])
+    expect(after?.data[0].status).toBe('pending')
+    expect(after?.data[0].reviewedAt).toBeUndefined()
+    expect(toast.error).toHaveBeenCalled()
   })
 })
