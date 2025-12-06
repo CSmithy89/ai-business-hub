@@ -281,7 +281,7 @@ development_status:
   # Agent Dashboard & Configuration | 6 stories | 25 points
   # Depends on: EPIC-11
   # ===========================================
-  epic-13: backlog
+  epic-13: contexted
   13-1-agent-card-components: backlog
   13-2-agent-detail-modal: backlog
   13-3-agent-activity-feed: backlog
