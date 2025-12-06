@@ -276,8 +276,9 @@ For ongoing operations:
 | EPIC-07 | UI Shell & Navigation | 10/10 | ✅ Complete |
 | EPIC-08 | Business Onboarding & Foundation Modules | 23/23 | ✅ Complete |
 | EPIC-09 | UI & Authentication Enhancements | 15/15 | ✅ Complete |
+| EPIC-10 | Platform Hardening | 8/8 | ✅ Complete |
 
-**Progress: 106/107 stories completed (99%)**
+**Progress: 114/115 stories completed (99%)**
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 
