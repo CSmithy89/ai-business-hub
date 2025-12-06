@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth-server'
+import { IS_MOCK_DATA_ENABLED } from '@/lib/api-config'
+import { ensureMockDataEnabled, MOCK_APPROVAL_METRICS } from '@/lib/mock-data'
 
 /**
  * Approval Metrics API Endpoint
@@ -18,16 +20,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // TODO(EPIC-14): When Prisma is connected, replace with real database query
-    // For now, return mock data to demonstrate the API structure
-
-    // Mock data for development
-    const mockMetrics = {
-      pendingCount: 12,
-      autoApprovedToday: 8,
-      avgResponseTime: 2.4, // hours
-      approvalRate: 87, // percentage
+    if (!IS_MOCK_DATA_ENABLED) {
+      return NextResponse.json(
+        { error: 'Mock data is disabled' },
+        { status: 503, headers: { 'Cache-Control': 'no-store, max-age=0' } }
+      )
     }
+
+    ensureMockDataEnabled('approval metrics')
 
     // In production, this would query the database:
     /*
@@ -83,7 +83,7 @@ export async function GET() {
     */
 
     return NextResponse.json(
-      { data: mockMetrics },
+      { data: MOCK_APPROVAL_METRICS },
       {
         // Prevent caching of per-user metrics by browsers / CDNs
         headers: { 'Cache-Control': 'no-store, max-age=0' },

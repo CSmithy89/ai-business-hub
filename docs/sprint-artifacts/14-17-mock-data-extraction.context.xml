@@ -1,0 +1,123 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>14</epicId>
+    <storyId>17</storyId>
+    <title>Mock Data Extraction</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/14-17-mock-data-extraction.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>As a frontend engineer</asA>
+    <iWant>I want all mock payloads centralized behind a single, flagged module</iWant>
+    <soThat>so that demo data is reusable for tests without leaking into production</soThat>
+    <tasks>
+- Extract existing inline mock payloads into apps/web/src/lib/mock-data.ts with typed exports (notifications, approval metrics/confidence). (AC1)
+- Refactor use-notifications hook to import shared mock payloads; ensure behavior parity. (AC2)
+- Refactor approval metrics/confidence API routes to consume shared mocks; keep workspace filters placeholder-safe. (AC2)
+- Enforce mock gating via IS_MOCK_DATA_ENABLED checks; add warnings for production if enabled. (AC3)
+- Add unit tests covering shared mock module imports/gating; update this story file with module usage notes. (AC4)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Mock data is centralized in a shared module (e.g., apps/web/src/lib/mock-data.ts) exporting typed payloads for notifications and approval metrics/confidence; no inline mock payloads remain in hooks/API handlers. [Source: apps/web/src/hooks/use-notifications.ts; apps/web/src/app/api/approvals/metrics/route.ts]
+2. Hooks/API routes that previously used inline mock data now import from the shared module with consistent typing; runtime behavior is unchanged in dev. [Source: apps/web/src/hooks/use-notifications.ts; apps/web/src/app/api/approvals/[id]/confidence/route.ts]
+3. Production safety is preserved: mock data is only served when IS_MOCK_DATA_ENABLED is true; production builds log/warn if mocks are enabled and avoid serving demo payloads. [Source: apps/web/src/lib/api-config.ts]
+4. Add regression tests to ensure imports use the shared module and that mock mode is gated; document the module usage in this story file.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <item>
+        <path>docs/sprint-artifacts/epic-12-retrospective.md</path>
+        <title>Epic 12 Retrospective</title>
+        <section>Tech Debt Items Added to EPIC-14</section>
+        <snippet>Added 14-17: Mock Data Extraction - move mock data to a separate file for easier testing and maintenance.</snippet>
+      </item>
+      <item>
+        <path>docs/sprint-artifacts/tech-spec-epic-14.md</path>
+        <title>Epic 14 Technical Specification</title>
+        <section>Testing Track & Tech Debt</section>
+        <snippet>Epic 14 covers testing/observability gaps; mock data cleanup is part of tech debt carried forward from prior epics.</snippet>
+      </item>
+    </docs>
+    <code>
+      <item>
+        <path>apps/web/src/hooks/use-notifications.ts</path>
+        <kind>hook</kind>
+        <symbol>useNotifications</symbol>
+        <lines>1-86</lines>
+        <reason>Contains inline mock notification payloads; should import shared mock data module.</reason>
+      </item>
+      <item>
+        <path>apps/web/src/app/api/approvals/metrics/route.ts</path>
+        <kind>api route</kind>
+        <symbol>GET /api/approvals/metrics</symbol>
+        <lines>1-68</lines>
+        <reason>Returns mock metrics payload; must source from shared mock module and respect mock gating.</reason>
+      </item>
+      <item>
+        <path>apps/web/src/app/api/approvals/[id]/confidence/route.ts</path>
+        <kind>api route</kind>
+        <symbol>GET /api/approvals/[id]/confidence</symbol>
+        <lines>1-80</lines>
+        <reason>Generates mock confidence response; should consume shared mock data and enforce mock flag.</reason>
+      </item>
+      <item>
+        <path>apps/web/src/lib/api-config.ts</path>
+        <kind>config</kind>
+        <symbol>IS_MOCK_DATA_ENABLED</symbol>
+        <lines>1-120</lines>
+        <reason>Defines mock gating flags; ensure production safety when serving mock responses.</reason>
+      </item>
+      <item>
+        <path>apps/web/src/app/api/agents/mock-data.ts</path>
+        <kind>utility</kind>
+        <symbol>MOCK_AGENTS</symbol>
+        <lines>1-120</lines>
+        <reason>Example of centralized mock data structure; use as a pattern for other mock payloads.</reason>
+      </item>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="15.x" />
+        <package name="react" version="19.x" />
+        <package name="@tanstack/react-query" version="5.x" />
+        <package name="typescript" version="5.x" />
+        <package name="vitest" version="4.x" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Mock responses must only be served when IS_MOCK_DATA_ENABLED is true; in production, mock mode should warn and avoid serving demo data.
+- Keep telemetry wiring from prior stories intact (providers/error-boundary) and avoid altering unrelated shared libs.
+- Preserve multi-tenant readiness: future real data should filter by workspaceId; mock data should not bypass isolation assumptions.
+  </constraints>
+  <interfaces>
+    <item>
+      <name>GET /api/approvals/metrics</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/approvals/metrics -> { data: { pendingCount, autoApprovedToday, avgResponseTime, approvalRate } }</signature>
+      <path>apps/web/src/app/api/approvals/metrics/route.ts</path>
+    </item>
+    <item>
+      <name>GET /api/approvals/[id]/confidence</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/approvals/[id]/confidence -> { data: { confidenceScore, reasoning } }</signature>
+      <path>apps/web/src/app/api/approvals/[id]/confidence/route.ts</path>
+    </item>
+  </interfaces>
+  <tests>
+    <standards>Frontend uses Vitest for unit/integration and Playwright for e2e; follow existing patterns under apps/web/src/__tests__ and apps/web/tests/e2e with React Testing Library where applicable.</standards>
+    <locations>apps/web/src/__tests__; apps/web/tests/e2e</locations>
+    <ideas>
+- Verify hooks/API routes import mock data from the shared module (no inline payloads).
+- Ensure mock gating: when IS_MOCK_DATA_ENABLED=false, responses are blocked or warn; when true, mocks return as before.
+- Add deterministic timestamps in mock data and assert conversions to Date occur at call sites.
+    </ideas>
+  </tests>
+</story-context>
