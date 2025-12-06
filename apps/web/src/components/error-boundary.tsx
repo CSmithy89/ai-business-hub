@@ -4,7 +4,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { captureException, addBreadcrumb, withErrorTracking } from '@/lib/telemetry/error-tracking'
+import { captureException, addBreadcrumb } from '@/lib/telemetry/error-tracking'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -48,18 +48,27 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    addBreadcrumb({
-      category: 'error-boundary',
-      message: error.message,
-      level: 'error',
-      data: { componentStack: errorInfo.componentStack },
-    })
-    captureException(error, {
-      tags: { feature: 'error-boundary' },
-      extra: {
-        componentStack: errorInfo.componentStack.slice(0, 500),
-      },
-    })
+    try {
+      const message = error instanceof Error ? error.message : String(error)
+      const stack = errorInfo?.componentStack ?? ''
+
+      addBreadcrumb({
+        category: 'error-boundary',
+        message,
+        level: 'error',
+        data: { componentStack: stack.slice(0, 500) },
+      })
+      captureException(error, {
+        tags: { feature: 'error-boundary' },
+        extra: {
+          componentStack: stack.slice(0, 500),
+        },
+      })
+    } catch (telemetryError) {
+      // Avoid throwing from the error handler itself
+      // eslint-disable-next-line no-console
+      console.error('[ErrorBoundary] failed to report error', telemetryError)
+    }
   }
 
   handleRetry = () => {

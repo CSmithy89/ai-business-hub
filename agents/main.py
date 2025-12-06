@@ -8,7 +8,7 @@ JWT authentication, and Control Plane monitoring support.
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from middleware.tenant import TenantMiddleware
-from middleware.rate_limit import init_rate_limiting
+from middleware.rate_limit import init_rate_limiting, NoopLimiter
 from middleware.business_validator import validate_business_ownership
 from config import settings
 from pydantic import BaseModel, Field
@@ -46,21 +46,18 @@ app = FastAPI(
 )
 
 # CORS middleware
-allowed_origins = [
-    "http://localhost:3000",  # Next.js frontend
-    "http://localhost:3001",  # NestJS API
-]
+allowed_origins = list(settings.cors_origins)
 
 # Add Control Plane origin if enabled
 if settings.control_plane_enabled:
-    allowed_origins.append("https://os.agno.com")  # Agno Control Plane
+    allowed_origins.append(settings.control_plane_origin)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=settings.cors_allow_methods,
+    allow_headers=settings.cors_allow_headers,
 )
 
 # Tenant middleware (JWT validation and workspace_id injection)
@@ -70,7 +67,11 @@ app.add_middleware(
 )
 
 # Rate limiting (default 10/min per identity; Redis if configured)
-limiter = init_rate_limiting(app, settings.redis_url, default_rate="10/minute")
+try:
+    limiter = init_rate_limiting(app, settings.redis_url, default_rate="10/minute")
+except Exception as exc:  # noqa: BLE001
+    logger.error("Rate limiting initialization failed, continuing without limits: %s", exc, exc_info=True)
+    limiter = NoopLimiter()
 
 
 # ============================================================================

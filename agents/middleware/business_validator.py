@@ -18,15 +18,38 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 
-async def _fetch_business(workspace_id: str, business_id: str) -> Optional[dict]:
+async def _fetch_business(
+    workspace_id: str, business_id: str, auth_header: Optional[str]
+) -> Optional[dict]:
     """
     Fetch business from NestJS API to verify workspace ownership.
     Returns business data on 200, None on 404. Raises for other errors.
     """
     url = f"{settings.api_base_url}/api/workspaces/{workspace_id}/businesses/{business_id}"
     timeout = httpx.Timeout(5.0, connect=2.0)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        resp = await client.get(url)
+    headers = {}
+
+    if auth_header:
+        headers["Authorization"] = auth_header
+    elif settings.agno_api_key:
+        headers["Authorization"] = f"Bearer {settings.agno_api_key}"
+    else:
+        logger.error("No authorization configured for business lookup; cannot validate ownership")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Business ownership verification unavailable",
+        )
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.get(url, headers=headers)
+    except httpx.RequestError as exc:
+        logger.error("Business ownership request failed: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Business ownership verification failed",
+        ) from exc
+
     if resp.status_code == 404:
         return None
     if resp.status_code >= 500:
@@ -34,34 +57,56 @@ async def _fetch_business(workspace_id: str, business_id: str) -> Optional[dict]
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Business ownership check unavailable",
         )
-    resp.raise_for_status()
+
+    try:
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.error("Unexpected response during business lookup: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Business ownership verification failed",
+        ) from exc
+
     return resp.json()
 
 
-def _derive_identity(request: Request) -> tuple[Optional[str], Optional[str]]:
+def _derive_identity(request: Request) -> tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Derive workspace_id and user_id from request state or Authorization header.
     """
     workspace_id = getattr(request.state, "workspace_id", None)
     user_id = getattr(request.state, "user_id", None)
+    auth_header = request.headers.get("Authorization")
 
     if workspace_id and user_id:
-        return workspace_id, user_id
+        return workspace_id, user_id, auth_header
 
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
+    if auth_header and auth_header.startswith("Bearer "):
         token = auth_header[7:]
+        if not settings.better_auth_secret:
+            logger.error("BETTER_AUTH_SECRET is not configured; refusing to decode JWT")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Authentication misconfigured",
+            )
+
         try:
             claims = jwt.decode(
                 token,
                 settings.better_auth_secret,
                 algorithms=["HS256"],
-                options={"verify_signature": bool(settings.better_auth_secret)},
             )
-            return claims.get("workspaceId") or claims.get("workspace_id"), claims.get("sub")
-        except Exception as exc:  # noqa: BLE001 - treat as unauthenticated
-            logger.warning("Failed to decode JWT for ownership check: %s", exc)
-    return workspace_id, user_id
+            return (
+                claims.get("workspaceId") or claims.get("workspace_id"),
+                claims.get("sub"),
+                auth_header,
+            )
+        except jwt.ExpiredSignatureError as exc:
+            logger.warning("JWT expired for ownership check: %s", exc)
+        except jwt.InvalidTokenError as exc:
+            logger.warning("Invalid JWT for ownership check: %s", exc)
+
+    return workspace_id, user_id, auth_header
 
 
 async def validate_business_ownership(request: Request, business_id: str) -> None:
@@ -80,7 +125,7 @@ async def validate_business_ownership(request: Request, business_id: str) -> Non
             detail="business_id is required",
         )
 
-    workspace_id, user_id = _derive_identity(request)
+    workspace_id, user_id, auth_header = _derive_identity(request)
     if not workspace_id or not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -88,11 +133,17 @@ async def validate_business_ownership(request: Request, business_id: str) -> Non
         )
 
     try:
-        business = await _fetch_business(workspace_id, business_id)
+        business = await _fetch_business(workspace_id, business_id, auth_header)
     except HTTPException:
         raise
+    except httpx.RequestError as exc:
+        logger.error("Business ownership check failed due to request error: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Business ownership verification failed",
+        )
     except Exception as exc:  # noqa: BLE001
-        logger.error("Business ownership check failed: %s", exc, exc_info=True)
+        logger.error("Business ownership check failed unexpectedly: %s", exc, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Business ownership verification failed",
@@ -111,4 +162,3 @@ async def validate_business_ownership(request: Request, business_id: str) -> Non
         )
 
     # Success: no return needed
-

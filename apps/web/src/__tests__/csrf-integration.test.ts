@@ -6,8 +6,8 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
-import { withCSRF, CSRF_HEADER_NAME } from '@/lib/middleware/with-csrf'
-import { generateCSRFToken } from '@/lib/csrf'
+import { withCSRF } from '@/lib/middleware/with-csrf'
+import { CSRF_HEADER_NAME, generateCSRFToken } from '@/lib/csrf'
 
 const sessionToken = 'session-token-123'
 const otherSessionToken = 'session-token-456'

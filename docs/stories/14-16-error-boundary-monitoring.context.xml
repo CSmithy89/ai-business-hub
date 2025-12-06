@@ -4,9 +4,9 @@
     <story-id>14-16</story-id>
     <story-title>Error Boundary Monitoring Integration</story-title>
     <epic>EPIC-14</epic>
-    <generated-date>2025-12-07</generated-date>
+    <generated-date>2025-12-06</generated-date>
     <dependencies>
-      <dependency epic="12" story="retro" status="complete">Epic‑12 retrospective entry on error boundary monitoring</dependency>
+      <dependency epic="12" story="retro" status="complete">Epic-12 retrospective entry on error boundary monitoring</dependency>
     </dependencies>
   </metadata>
 

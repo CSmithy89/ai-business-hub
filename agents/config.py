@@ -4,8 +4,10 @@ AgentOS Configuration Management
 Manages environment variables for the AgentOS runtime using Pydantic Settings.
 """
 
-from pydantic_settings import BaseSettings
 from typing import Optional
+
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -30,6 +32,19 @@ class Settings(BaseSettings):
     # Control Plane (optional)
     control_plane_enabled: bool = True
     agno_api_key: Optional[str] = None
+
+    # CORS
+    cors_origins: list[str] = Field(
+        default_factory=lambda: [
+            "http://localhost:3000",
+            "http://localhost:3001",
+        ]
+    )
+    cors_allow_methods: list[str] = Field(
+        default_factory=lambda: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    )
+    cors_allow_headers: list[str] = Field(default_factory=lambda: ["Authorization", "Content-Type"])
+    control_plane_origin: str = "https://os.agno.com"
 
     class Config:
         env_file = ".env"

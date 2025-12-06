@@ -10,6 +10,7 @@
 'use client'
 
 import { getCurrentSessionToken } from '@/lib/auth-client'
+import { AgentResponseSchema, AgentResponseValidated } from './agent-schemas'
 
 // ============================================================================
 // Types
@@ -305,4 +306,3 @@ export const agentClient = new AgentClient()
  *   return { messages, isStreaming, error, stream }
  * }
  */
-import { AgentResponseSchema, AgentResponseValidated } from './agent-schemas'

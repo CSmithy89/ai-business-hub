@@ -56,8 +56,6 @@ export function CountdownTimer({
     timeLeft,
     isRunning,
     reset,
-    stop,
-    start,
   } = useOptimizedCountdown(seconds, {
     onComplete,
     autoStart,

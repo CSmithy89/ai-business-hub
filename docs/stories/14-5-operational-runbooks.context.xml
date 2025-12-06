@@ -4,7 +4,7 @@
     <story-id>14-5</story-id>
     <story-title>Operational Runbooks</story-title>
     <epic>EPIC-14</epic>
-    <generated-date>2025-12-07</generated-date>
+    <generated-date>2025-12-06</generated-date>
     <dependencies/>
   </metadata>
 
@@ -12,7 +12,10 @@
     <description>Key telemetry and health sources referenced by runbooks.</description>
     <item>/api/metrics (Prometheus format) - Story 14-4</item>
     <item>Grafana dashboards (API latency, event bus health, AI provider status)</item>
-    <item>Event bus health endpoints: /api/events/health, /api/events/dlq, /api/events/dlq/retry, /api/events/dlq/purge</item>
+    <item>/api/events/health</item>
+    <item>/api/events/dlq</item>
+    <item>/api/events/dlq/retry</item>
+    <item>/api/events/dlq/purge</item>
     <item>Application logs (NestJS, FastAPI agents) streamed to centralized logging</item>
   </section>
 

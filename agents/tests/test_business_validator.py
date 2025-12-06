@@ -44,7 +44,7 @@ def test_allows_owned_business():
 
     res = client.post(
         "/guard",
-        headers={"x-workspace-id": workspace_id, "x-user-id": "user1"},
+        headers={"x-workspace-id": workspace_id, "x-user-id": "user1", "Authorization": "Bearer test"},
         json={"businessId": business_id},
     )
     assert res.status_code == 200
@@ -62,7 +62,7 @@ def test_rejects_not_owned_business():
 
     res = client.post(
         "/guard",
-        headers={"x-workspace-id": workspace_id, "x-user-id": "user1"},
+        headers={"x-workspace-id": workspace_id, "x-user-id": "user1", "Authorization": "Bearer test"},
         json={"businessId": business_id},
     )
     assert res.status_code == 403
@@ -87,7 +87,7 @@ def test_upstream_failure_returns_503():
 
     res = client.post(
         "/guard",
-        headers={"x-workspace-id": workspace_id, "x-user-id": "user1"},
+        headers={"x-workspace-id": workspace_id, "x-user-id": "user1", "Authorization": "Bearer test"},
         json={"businessId": business_id},
     )
     assert res.status_code == 503

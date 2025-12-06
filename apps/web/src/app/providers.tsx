@@ -17,7 +17,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }));
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if ((window as any).__errorTrackingInitialized) return;
     initializeErrorTracking();
+    (window as any).__errorTrackingInitialized = true;
   }, []);
 
   return (
