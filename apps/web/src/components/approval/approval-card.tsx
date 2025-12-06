@@ -254,6 +254,7 @@ export function ApprovalCard({
             type="button"
             onClick={() => setShowPreviewData(!showPreviewData)}
             className="flex items-center justify-between w-full text-left"
+            aria-expanded={showPreviewData}
           >
             <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
               Preview Data

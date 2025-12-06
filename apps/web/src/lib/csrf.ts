@@ -115,15 +115,17 @@ export function verifyCSRFToken(token: string, sessionId: string): boolean {
   try {
     const expected = generateCSRFToken(sessionId)
 
-    // Use constant-time comparison to prevent timing attacks
-    if (token.length !== expected.length) {
+    // Decode hex strings into buffers first; this ensures we compare
+    // byte lengths and avoid timingSafeEqual throwing for differing sizes.
+    const tokenBuf = Buffer.from(token, 'hex')
+    const expectedBuf = Buffer.from(expected, 'hex')
+
+    if (tokenBuf.length !== expectedBuf.length) {
       return false
     }
 
-    return crypto.timingSafeEqual(
-      Buffer.from(token, 'hex'),
-      Buffer.from(expected, 'hex')
-    )
+    // Use constant-time comparison to prevent timing attacks
+    return crypto.timingSafeEqual(tokenBuf, expectedBuf)
   } catch {
     // Handle invalid hex strings or other errors
     return false
@@ -188,5 +190,8 @@ export const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'] as const
  * @returns True if method is safe
  */
 export function isSafeMethod(method: string): boolean {
-  return SAFE_METHODS.includes(method.toUpperCase() as any)
+  if (!method || typeof method !== 'string') {
+    return false
+  }
+  return (SAFE_METHODS as readonly string[]).includes(method.toUpperCase())
 }

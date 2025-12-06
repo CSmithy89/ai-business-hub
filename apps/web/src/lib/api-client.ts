@@ -33,7 +33,11 @@ export function getCSRFToken(): string | null {
 
   if (!csrfCookie) return null
 
-  const value = csrfCookie.split('=')[1]
+  // Use indexOf/slice to correctly handle values containing '='
+  const trimmed = csrfCookie.trim()
+  const idx = trimmed.indexOf('=')
+  if (idx === -1) return null
+  const value = trimmed.slice(idx + 1)
   return value ? decodeURIComponent(value) : null
 }
 
@@ -158,12 +162,17 @@ export async function apiClient(
     }
   }
 
-  // Handle JSON body
+  // Handle JSON body (only attach for non-safe methods)
   let body = fetchOptions.body
   if (json !== undefined) {
-    body = JSON.stringify(json)
-    if (!headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json')
+    if (SAFE_METHODS.includes(method)) {
+      // Do not attach a body for safe methods; warn and ignore the json payload
+      console.warn('Ignoring request body for safe HTTP method:', method)
+    } else {
+      body = JSON.stringify(json)
+      if (!headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json')
+      }
     }
   }
 

@@ -67,13 +67,17 @@ export async function GET(req: NextRequest) {
 
     // Also set as a cookie for convenience (can be read by JS)
     // This is a non-httpOnly cookie so JavaScript can read it
+    // Calculate maxAge dynamically from session expiry
+    const sessionExpiresAt = new Date(session.session.expiresAt).getTime()
+    const maxAgeSeconds = Math.max(0, Math.floor((sessionExpiresAt - Date.now()) / 1000))
+
     response.cookies.set(CSRF_COOKIE_NAME, csrfToken, {
       httpOnly: false, // Must be readable by JavaScript
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       path: '/',
-      // Token expires when session expires
-      maxAge: 60 * 60 * 24 * 7, // 7 days (matches session)
+      // Token expires when session expires (calculated dynamically)
+      maxAge: maxAgeSeconds,
     })
 
     return response

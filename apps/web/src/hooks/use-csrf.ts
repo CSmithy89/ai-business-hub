@@ -67,7 +67,7 @@ export function useCSRF(): CSRFState {
   const [token, setToken] = useState<string | null>(() => {
     // Try to get token from cookie on initial render (client-only)
     if (typeof window !== 'undefined') {
-      return getCSRFToken()
+      return getCSRFToken() ?? null
     }
     return null
   })
