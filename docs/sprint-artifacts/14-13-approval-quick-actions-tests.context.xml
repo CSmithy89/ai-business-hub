@@ -1,0 +1,101 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>14</epicId>
+    <storyId>13</storyId>
+    <title>Approval Quick Actions Tests</title>
+    <status>drafted</status>
+    <generatedAt>2026-01-09</generatedAt>
+    <generator>AI agent (manual story-context creation)</generator>
+    <sourceStoryPath>docs/sprint-artifacts/14-13-approval-quick-actions-tests.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>QA engineer</asA>
+    <iWant>automated tests for approval quick actions</iWant>
+    <soThat>optimistic updates and error handling remain reliable without regressions</soThat>
+    <tasks>- Add tests covering approve/reject quick actions, ensuring optimistic UI updates reflect final server state (AC1).
+- Validate error handling and rollback on server failures with visible error messaging (AC2).
+- Cover CSRF/token requirements for quick actions if applicable (AC3).
+- Ensure tests are deterministic/headless in CI, no real network dependencies (AC4).
+- Document how to run the tests and required fixtures/env (AC5).</tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Add tests covering approve/reject quick actions with optimistic UI updates reflecting final server state.
+2. Validate error handling: optimistic state rolls back and displays an error when the server rejects the action.
+3. Cover CSRF/token requirements for quick actions if applicable, including retry or re-auth flows.
+4. Tests run headless and deterministically in CI (no real network dependencies).
+5. Document how to run these tests and required fixtures/env.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <item>
+        <path>docs/sprint-artifacts/epic-12-retrospective.md</path>
+        <title>Epic 12 Retrospective</title>
+        <section>Tech Debt</section>
+        <snippet>14-13: Approval Quick Actions Tests - add coverage for optimistic updates.</snippet>
+      </item>
+      <item>
+        <path>docs/sprint-artifacts/epic-14-todo.md</path>
+        <title>Epic 14 TODO</title>
+        <section>Testing backlog</section>
+        <snippet>Story 14-13: Approval Quick Actions Tests listed as pending.</snippet>
+      </item>
+      <item>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Frontend stack</section>
+        <snippet>Next.js 15 + React Query/Zustand patterns; align tests with existing data flow.</snippet>
+      </item>
+      <item>
+        <path>docs/testing/TESTING-GUIDE.md</path>
+        <title>Testing Guide</title>
+        <section>Frontend testing standards</section>
+        <snippet>Use Vitest/Testing Library; deterministic, no network; prefer fixtures/mocks.</snippet>
+      </item>
+    </docs>
+    <code>
+      <item>
+        <path>apps/web/src/components/approval</path>
+        <kind>ui</kind>
+        <symbol>Quick action components</symbol>
+        <reason>Likely location of quick action buttons and optimistic state handlers.</reason>
+      </item>
+      <item>
+        <path>apps/web/src/__tests__</path>
+        <kind>tests</kind>
+        <symbol>Existing frontend tests</symbol>
+        <reason>Patterns for Vitest/RTL coverage.</reason>
+      </item>
+      <item>
+        <path>apps/web/tests/e2e/approvals.spec.ts</path>
+        <kind>e2e</kind>
+        <symbol>Approvals flows</symbol>
+        <reason>Reference for approvals behavior; decide unit/integration vs E2E.</reason>
+      </item>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="react-query" version="^5.90.11" />
+        <package name="zustand" version="^5.0.9" />
+        <package name="vitest" version="^4.0.14" />
+        <package name="@testing-library/react" version="^16.3.0" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Prefer unit/integration with mocks; avoid real network.
+- Keep tests deterministic and CI-safe; no reliance on backend availability.
+- Use existing data-fetch/mutation patterns (React Query/Zustand) and ensure optimistic rollback is asserted.
+  </constraints>
+  <interfaces></interfaces>
+  <tests>
+    <standards>Use Vitest + Testing Library; deterministic; mock network; assert optimistic update + rollback + error display.</standards>
+    <locations>apps/web/src/__tests__/**/*; apps/web/tests/e2e/approvals.spec.ts (reference)</locations>
+    <ideas>- Mock approve/reject mutation to resolve/reject and assert optimistic state before/after.
+- Assert error toast/message on failure and state rollback.
+- If CSRF/token involved, mock fetch with required headers and assert they’re present.</ideas>
+  </tests>
+</story-context>
