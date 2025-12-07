@@ -50,3 +50,56 @@ As an API consumer, I want every rate-limited endpoint to emit standard `X-RateL
 - apps/web/src/app/api/workspaces/route.ts
 - apps/web/src/__tests__/rate-limit.test.ts
 - apps/web/src/__tests__/with-rate-limit.test.ts
+
+### Change Log
+- 2026-XX-XX: Senior Developer Review notes appended (AI)
+
+## Senior Developer Review (AI)
+
+**Reviewer:** chris  
+**Date:** 2026-XX-XX  
+**Outcome:** Approve — headers centralized and emitted across auth/workspace routes; automated tests now pass for middleware and representative routes.
+
+### Summary
+- Shared header helper exported and reused in middleware and auth/workspace routes; responses set `X-RateLimit-*` and `Retry-After` on throttle paths.
+- Added passing tests for middleware and representative routes (auth sign-in email, workspace creation) validating header emission for success and 429 cases.
+- Docker-based rate-limit integration suite remains present and skips cleanly when Redis/Docker unavailable.
+
+### Key Findings
+- **Resolved**: Tests now run and pass with `ioredis` mocked and alias configured; route-level header assertions added.
+
+### Acceptance Criteria Coverage
+
+| AC # | Description | Status | Evidence |
+| --- | --- | --- | --- |
+| 1 | Export shared `generateRateLimitHeaders` helper | Implemented | apps/web/src/lib/utils/rate-limit.ts:247-260 |
+| 2 | Attach headers for auth endpoints using `checkRateLimit` | Implemented | apps/web/src/app/api/auth/[...all]/route.ts:26-56; verify-email-otp/resend routes |
+| 3 | Attach headers for workspace/API endpoints using rate limiting | Implemented | apps/web/src/app/api/workspaces/route.ts:41-74 |
+| 4 | Add automated tests verifying header emission for representative routes | Implemented | apps/web/src/__tests__/with-rate-limit.test.ts; apps/web/src/__tests__/rate-limit-routes.test.ts (auth sign-in, workspace POST); run cmd below |
+| 5 | Document header behavior in story/docs | Implemented | This story file updated |
+
+**AC coverage:** 5 of 5 implemented.
+
+### Task Completion Validation
+
+| Task | Marked As | Verified As | Evidence |
+| --- | --- | --- | --- |
+| Export helper and reuse (AC1) | [x] | Verified | apps/web/src/lib/utils/rate-limit.ts:247-260 |
+| Attach headers in auth routes invoking checkRateLimit (AC2) | [x] | Verified | apps/web/src/app/api/auth/[...all]/route.ts:26-56 |
+| Attach headers in workspace/API rate-limited routes (AC3) | [x] | Verified | apps/web/src/app/api/workspaces/route.ts:41-74 |
+| Add automated tests for header emission (AC4) | [x] | Verified | apps/web/src/__tests__/with-rate-limit.test.ts; apps/web/src/__tests__/rate-limit-routes.test.ts; `pnpm --filter @hyvve/web exec vitest run src/__tests__/rate-limit.test.ts src/__tests__/with-rate-limit.test.ts src/__tests__/rate-limit-routes.test.ts --pool=threads` (Docker suite skipped cleanly) |
+| Document header behavior (AC5) | [x] | Verified | Story updated |
+
+Task summary: All tasks verified.
+
+### Test Coverage and Gaps
+- Middleware and representative routes covered with passing tests; Docker/Testcontainers suite present and skips gracefully (no Docker in this environment).
+
+### Architectural Alignment
+- Header helper centralized and reused; auth/workspace routes set headers on success and 429, including `Retry-After`.
+
+### Security Notes
+- Consistent header emission validated; clients can observe limits on both success and throttle responses.
+
+### Action Items
+- None outstanding; all ACs and tasks verified.

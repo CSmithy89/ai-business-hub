@@ -1,6 +1,6 @@
 # Story 14.18: OAuth Flow E2E Tests
 
-Status: review
+Status: in-progress
 
 ## Requirements Context Summary
 
@@ -79,3 +79,71 @@ so that third-party login regressions are caught before they reach users.
 - apps/web/src/components/auth/sign-in-form.tsx (modified)
 - apps/web/src/components/auth/sign-up-form.tsx (modified)
 - apps/web/playwright.config.ts (modified)
+
+### Change Log
+- 2026-XX-XX: Senior Developer Review notes appended (AI)
+
+## Senior Developer Review (AI)
+
+**Reviewer:** chris  
+**Date:** 2026-XX-XX  
+**Outcome:** Changes Requested — tests bypass the actual OAuth callback logic and AC5 documentation is missing; AC1–AC4 not validated against the app.
+
+### Summary
+- Playwright spec intercepts both the provider redirect and the app callback, fulfilling responses without exercising the Next.js callback handler, so state/nonce validation and session issuance are not verified in the application (AC1–AC4).
+- Error-path test likewise returns a mocked 400 without hitting the app; session cookie absence is not tied to real logic.
+- No documented env/fixture setup for OAuth E2E (AC5). Dev notes already note tests have not run successfully due to env gaps.
+
+### Key Findings
+- **High**: OAuth E2E tests short-circuit the app callback; state/nonce and session handling are never validated in the application. (apps/web/tests/e2e/oauth-flow.spec.ts:5-62, 64-112)
+- **Medium**: Negative path relies on mocked callback response; does not verify user-visible error page or app rejection behavior. (apps/web/tests/e2e/oauth-flow.spec.ts:64-112)
+- **Medium**: Missing documented test env/fixtures for OAuth E2E (client IDs, BASE_URL, callback expectations); tests currently un-runnable per completion notes.
+
+### Acceptance Criteria Coverage
+
+| AC # | Description | Status | Evidence |
+| --- | --- | --- | --- |
+| 1 | Happy-path Playwright E2E through OAuth button/callback | **Partial** | Spec exists but intercepts callback and injects redirect/cookie without hitting app logic. apps/web/tests/e2e/oauth-flow.spec.ts:5-62 |
+| 2 | State/nonce present and validated; mismatch fails | **Partial** | State checked inside mocked handler, not by app; app validation untested. apps/web/tests/e2e/oauth-flow.spec.ts:30-47, 83-96 |
+| 3 | Session cookie set, dashboard accessible post-callback | **Partial** | Cookie is manually set in mocked response; no proof app issues session or protects dashboard. apps/web/tests/e2e/oauth-flow.spec.ts:40-60 |
+| 4 | Error path shows user-visible error, no session | **Partial** | Mock returns 400; no UI/assertion on error page, app not exercised. apps/web/tests/e2e/oauth-flow.spec.ts:64-112 |
+| 5 | Hermetic stubs with documented env/config | **Missing** | No env/fixture docs added; completion notes indicate runs failing for env. apps/web/tests/README.md (no OAuth additions); story notes on failed runs. |
+
+**AC coverage:** 0 of 5 fully implemented.
+
+### Task Completion Validation
+
+| Task | Marked As | Verified As | Evidence |
+| --- | --- | --- | --- |
+| Add Playwright test covering happy path via OAuth button/callback (AC1) | [x] | Questionable | Spec exists but bypasses app callback; does not validate real flow. apps/web/tests/e2e/oauth-flow.spec.ts:5-62 |
+| Stub provider endpoints/token exchange in test server/fixtures (AC5) | [x] | Partial | Routes stubbed inline; token exchange and app callback skipped. apps/web/tests/e2e/oauth-flow.spec.ts:10-47 |
+| Assert state/nonce propagation and validation (AC2) | [x] | Partial | State check inside stub; app validation unverified. apps/web/tests/e2e/oauth-flow.spec.ts:30-47 |
+| Failure-path test for invalid code/state (AC4) | [x] | Partial | Mocked 400 without app involvement; no UI assertion. apps/web/tests/e2e/oauth-flow.spec.ts:64-112 |
+| Validate post-login session by loading protected dashboard (AC3) | [x] | Partial | Dashboard redirect/cookie set by mock; app session handling untested. apps/web/tests/e2e/oauth-flow.spec.ts:40-60 |
+| Document required env/test config near apps/web/tests/e2e (AC5) | [x] | **Not Done** | No OAuth env documentation added; README unchanged. apps/web/tests/README.md |
+
+Task summary: 0 verified, 5 partial/questionable, 1 not done (marked complete).
+
+### Test Coverage and Gaps
+- Tests present but do not exercise app OAuth callback; no UI assertions for error path; no real session issuance verified.
+- Runs not demonstrated; completion notes cite failing attempts due to env/fixtures.
+
+### Architectural Alignment
+- Fails to validate required security controls (state/nonce) in the application as per PRD/tech spec; mocks bypass callback handler entirely.
+
+### Security Notes
+- State/nonce validation unverified in app; session cookie issuance unverified. Current tests could pass while app is vulnerable to state replay/invalid callback handling.
+
+### Best-Practices and References
+- Follow network-first pattern but allow the app callback to execute; stub provider/token endpoints only.
+- Document required env/fixtures in `apps/web/tests/README.md` and/or `.env.example`.
+
+### Action Items
+
+**Code Changes Required:**
+- [ ] **High**: Update OAuth E2E to hit the real `/api/auth/callback/google` handler; stub provider/token endpoints only, assert state/nonce handled by app and session cookie set by app. (AC1-AC3) [apps/web/tests/e2e/oauth-flow.spec.ts]
+- [ ] **Medium**: Add negative-path coverage that reaches the app, asserting user-visible error page and absence of session cookie. (AC2, AC4) [apps/web/tests/e2e/oauth-flow.spec.ts]
+- [ ] **Medium**: Document OAuth E2E env/fixture requirements (client ID/secret placeholders, BASE_URL, callback expectations) in `apps/web/tests/README.md` and ensure test dev server starts with these values. (AC5) [apps/web/tests/README.md]
+
+**Advisory Notes:**
+- Note: Re-run Playwright E2E once env/fixtures are in place; consider adding a protected page assertion beyond `/dashboard` to confirm session reuse.

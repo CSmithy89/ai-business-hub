@@ -42,6 +42,9 @@ export async function POST(request: Request) {
         resetAt: rateLimitResult.resetAt,
       })
       Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      if (rateLimitResult.retryAfter !== undefined) {
+        response.headers.set('Retry-After', String(rateLimitResult.retryAfter))
+      }
       return response
     }
 
