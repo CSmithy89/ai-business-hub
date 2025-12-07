@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@hyvve/db'
 import { getSession, updateSessionWorkspace } from '@/lib/auth-server'
 import { generateUniqueSlug } from '@/lib/workspace'
-import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { checkRateLimit, generateRateLimitHeaders } from '@/lib/utils/rate-limit'
 import { CreateWorkspaceSchema } from '@hyvve/shared'
 import type { WorkspaceRole, WorkspaceWithRole } from '@hyvve/shared'
 
@@ -40,10 +40,22 @@ export async function POST(request: NextRequest) {
 
     // Check rate limit (5 workspaces per hour) using unified rate limiter
     const rateLimitKey = `create-workspace:${userId}`
-    const rateLimit = await checkRateLimit(rateLimitKey, 5, 60 * 60) // 5 attempts, 1 hour
+    const rateLimitLimit = 5
+    const rateLimitWindowSeconds = 60 * 60
+    const rateLimit = await checkRateLimit(rateLimitKey, rateLimitLimit, rateLimitWindowSeconds) // 5 attempts, 1 hour
+
+    const withRateLimitHeaders = (response: NextResponse) => {
+      const headers = generateRateLimitHeaders({
+        limit: rateLimitLimit,
+        remaining: rateLimit.remaining,
+        resetAt: rateLimit.resetAt,
+      })
+      Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      return response
+    }
 
     if (rateLimit.isRateLimited) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         {
           success: false,
           error: 'RATE_LIMITED',
@@ -52,6 +64,13 @@ export async function POST(request: NextRequest) {
         },
         { status: 429 }
       )
+      const headers = generateRateLimitHeaders({
+        limit: rateLimitLimit,
+        remaining: 0,
+        resetAt: rateLimit.resetAt,
+      })
+      Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      return response
     }
 
     // Parse and validate request body
@@ -59,13 +78,15 @@ export async function POST(request: NextRequest) {
     const result = CreateWorkspaceSchema.safeParse(body)
 
     if (!result.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'INVALID_INPUT',
-          message: result.error.issues[0].message,
-        },
-        { status: 400 }
+      return withRateLimitHeaders(
+        NextResponse.json(
+          {
+            success: false,
+            error: 'INVALID_INPUT',
+            message: result.error.issues[0].message,
+          },
+          { status: 400 }
+        )
       )
     }
 
@@ -116,21 +137,23 @@ export async function POST(request: NextRequest) {
       createdAt: workspace.createdAt.toISOString(),
     })
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          id: workspace.id,
-          name: workspace.name,
-          slug: workspace.slug,
-          image: workspace.image,
-          timezone: workspace.timezone,
-          createdAt: workspace.createdAt,
-          updatedAt: workspace.updatedAt,
-          deletedAt: workspace.deletedAt,
+    return withRateLimitHeaders(
+      NextResponse.json(
+        {
+          success: true,
+          data: {
+            id: workspace.id,
+            name: workspace.name,
+            slug: workspace.slug,
+            image: workspace.image,
+            timezone: workspace.timezone,
+            createdAt: workspace.createdAt,
+            updatedAt: workspace.updatedAt,
+            deletedAt: workspace.deletedAt,
+          },
         },
-      },
-      { status: 201 }
+        { status: 201 }
+      )
     )
   } catch (error) {
     console.error('Error creating workspace:', error)

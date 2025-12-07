@@ -1,8 +1,8 @@
 # HYVVE Platform Testing Guide
 
 **Created:** 2025-12-05
-**Version:** 1.0
-**Covers:** Epics 00-09
+**Version:** 1.1
+**Covers:** Epics 00-14
 
 ---
 
@@ -100,6 +100,11 @@ cd apps/web && pnpm test:e2e:ui
 | 07 | UI Shell | ui-shell.spec.ts | ui.test.ts, onboarding-wizard-store.test.ts | ✅ Good |
 | 08 | Business Onboarding | onboarding.spec.ts | workflow-*.test.ts, documents-upload.test.ts | ✅ Good |
 | 09 | UI & Auth Enhancements | two-factor-auth.spec.ts, oauth-providers.spec.ts, team-members.spec.ts | - | ✅ Good |
+| 10 | Platform Hardening | - | - | 🔲 Not started |
+| 11 | Agent Integration | agents.spec.ts (planned) | agents/tests/* (planned) | 🔲 Not started |
+| 12 | UX Polish | - | - | 🔲 Not started |
+| 13 | AI Agent Management | - | - | 🔲 Not started |
+| 14 | Testing & Observability | - | - | 🔲 Planned |
 
 ---
 
@@ -568,6 +573,112 @@ cd apps/web && pnpm test:e2e:ui
 
 ---
 
+#### EPIC-10: Platform Hardening
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 10.1 | Redis rate limiting migration | - | 🔲 TODO (needs redis-backed tests) |
+| 10.2 | Encryption key validation | - | 🔲 TODO |
+| 10.3 | Trusted device fix/remove | - | 🔲 TODO |
+| 10.4 | Global ValidationPipe | - | 🔲 TODO |
+| 10.5 | Database migration verification | - | 🔲 TODO |
+| 10.6 | CSRF protection | - | 🔲 TODO |
+| 10.7 | XSS sanitization | - | 🔲 TODO |
+| 10.8 | Backup code race condition | - | 🔲 TODO |
+
+**Test coverage to add (P0/P1 security-first):**
+- Playwright API/Next.js API tests for Redis rate limiting headers and concurrency (per Playwright official `request` API guidance). Include `Retry-After` assertions and sliding-window behavior.
+- Jest integration for ValidationPipe (whitelist/forbidNonWhitelisted) and Prisma migration smoke on clean DB.
+- CSRF end-to-end flow (token issuance, reuse, expiry) using Playwright form submits and fetch with correct headers.
+- DOMPurify sanitization unit tests for chat/workspace inputs; XSS payload matrix.
+- Concurrent 2FA backup code consumption tests (transactional locking).
+
+---
+
+#### EPIC-11: Agent Integration
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 11.1 | Validation team endpoint | - | 🔲 TODO |
+| 11.2 | Planning team endpoint | - | 🔲 TODO |
+| 11.3 | Branding team endpoint | - | 🔲 TODO |
+| 11.4 | Frontend wiring to agents | - | 🔲 TODO |
+| 11.5 | Agent integration E2E | agents.spec.ts | 🔲 TODO |
+
+**Test coverage to add (P0):**
+- Playwright E2E `agents.spec.ts`: health checks for all `/agents/*/health`, happy-path streaming flows, tenant isolation (403 on cross-tenant).
+- FastAPI pytest for business ownership middleware and rate limiting (reuse EPIC-10 Redis limiter).
+- Frontend agent-client unit tests with fetch mocks (timeout, network error, JSON parse failure).
+- SSE streaming resilience (abort, reconnect) using Playwright’ `page.waitForEvent('response')` patterns aligned with official docs.
+
+---
+
+#### EPIC-12: UX Polish
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 12.1 | OAuth provider buttons | - | 🔲 TODO |
+| 12.2 | Confirm password field | - | 🔲 TODO |
+| 12.3 | Approval quick actions | - | 🔲 TODO |
+| 12.4 | Chat streaming UI | - | 🔲 TODO |
+| 12.5 | Settings UX (unsaved changes) | - | 🔲 TODO |
+| 12.6 | Countdown timers | - | 🔲 TODO |
+| 12.7 | Approval metrics | - | 🔲 TODO |
+| 12.8 | Chat error/preview cards | - | 🔲 TODO |
+
+**Test coverage to add (P1/P2):**
+- Playwright UI flows for OAuth buttons (Microsoft/GitHub) alongside existing Google, ensuring parity per provider docs.
+- Vitest component tests for confirm-password validation, countdown timers, and unsaved-change guard navigation.
+- Approval quick-action E2E (optimistic update, rollback on failure) and metrics API contract tests.
+- Chat streaming visuals: cursor indicator present during streaming, “Stop generating” behavior, error/preview card rendering.
+
+---
+
+#### EPIC-13: AI Agent Management
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 13.1 | Agent card components | - | 🔲 TODO |
+| 13.2 | Agent detail modal | - | 🔲 TODO |
+| 13.3 | Agent activity feed | - | 🔲 TODO |
+| 13.4 | Agent configuration page | - | 🔲 TODO |
+| 13.5 | Agent dashboard page | - | 🔲 TODO |
+| 13.6 | Confidence breakdown | - | 🔲 TODO |
+
+**Test coverage to add (P1/P2):**
+- Playwright dashboard coverage: status badges, filters, modal tabs, responsive grids; real-time activity feed with mocked WebSocket/SSE using official Playwright route mocking.
+- Vitest component tests for configuration form validation (sliders, toggles), unsaved-change prompts, and danger-zone destructive actions.
+- Approval detail confidence breakdown: factor bars, reasoning text, suggested actions rendering.
+
+---
+
+#### EPIC-14: Testing & Observability
+
+| Story | Description | Test File | Status |
+|-------|-------------|-----------|--------|
+| 14.1 | Rate limit concurrency tests | apps/web/src/__tests__/rate-limit.test.ts | 🔲 TODO |
+| 14.2 | Zustand store unit tests | apps/web/src/store/__tests__/ui-store.test.ts | 🔲 TODO |
+| 14.3 | File upload pipeline tests | apps/web/src/__tests__/file-upload.test.ts | 🔲 TODO |
+| 14.4 | Prometheus metrics export | apps/api/src/metrics/*.spec.ts (planned) | 🔲 TODO |
+| 14.5 | Operational runbooks | docs/runbooks/* | 🔲 TODO |
+| 14.6 | CSRF integration tests | apps/web/src/__tests__/csrf-integration.test.ts | 🔲 TODO |
+| 14.7 | Agent endpoint rate limiting | agents/tests/test_rate_limit.py | 🔲 TODO |
+| 14.8 | Business ID ownership validation | agents/tests/test_business_ownership.py | 🔲 TODO |
+| 14.9 | Agent client unit tests | apps/web/src/lib/__tests__/agent-client.test.ts | 🔲 TODO |
+| 14.10 | Agent response validation | apps/web/src/lib/__tests__/agent-client.test.ts | 🔲 TODO |
+| 14.19 | Rate limit headers | apps/web/src/__tests__/rate-limit.test.ts | 🔲 TODO |
+
+**Test coverage to add (P0-P2 mix):**
+- Redis-backed concurrency tests and rate-limit headers (align with EPIC-10 limiter implementation; assert `Retry-After` per RFC).
+- Zustand store hydration/persistence tests (Vitest + JSDOM) for all UI slices.
+- File upload pipeline with PDF/DOCX fixtures; progress events and size/type limits.
+- NestJS Prometheus `/metrics` contract tests and scrape formatting (official prom-client histogram/summary assertions).
+- Playwright CSRF end-to-end coverage for quick actions and expired token refresh.
+- Agent ownership/rate-limit FastAPI pytest suites, plus frontend agent-client Zod validation.
+- Runbook presence/links validation (docs lint) to keep observability docs shippable.
+
+---
+
 ## Test Infrastructure
 
 ### Fixtures Available
@@ -744,6 +855,12 @@ All high-priority gaps have been filled:
 
 9. **Rate Limiting Tests** - ✅ Already covered
    - rate-limit.test.ts includes concurrency tests
+
+10. **New Epics (10-14) – P0/P1 gaps** - 🔲 Outstanding
+    - Security hardening: Redis rate limiting, CSRF, XSS, backup codes (EPIC-10)
+    - Agent wiring and streaming flows (EPIC-11), UX polish components (EPIC-12)
+    - Agent management UI (EPIC-13), observability stack and runbooks (EPIC-14)
+    - Apply risk governance: P0/P1 stories must ship with automated coverage and waivers for any gaps
 
 ### Remaining Lower Priority (P2)
 

@@ -14,7 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { checkRateLimitSync } from '@/lib/utils/rate-limit'
+import { checkRateLimitSync, generateRateLimitHeaders } from '@/lib/utils/rate-limit'
 import type { AuthContext } from './with-auth'
 
 /**
@@ -109,9 +109,8 @@ function addRateLimitHeaders(
   remaining: number,
   resetAt: Date
 ): NextResponse {
-  response.headers.set('X-RateLimit-Limit', String(limit))
-  response.headers.set('X-RateLimit-Remaining', String(remaining))
-  response.headers.set('X-RateLimit-Reset', String(Math.floor(resetAt.getTime() / 1000)))
+  const headers = generateRateLimitHeaders({ limit, remaining, resetAt })
+  Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
   return response
 }
 

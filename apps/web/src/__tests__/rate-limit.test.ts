@@ -17,6 +17,7 @@ import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redi
 import { Ratelimit } from '@upstash/ratelimit'
 import IORedis from 'ioredis'
 import { execSync } from 'child_process'
+import { generateRateLimitHeaders } from '../lib/utils/rate-limit'
 
 /**
  * Custom Redis adapter for @upstash/ratelimit to work with ioredis.
@@ -46,23 +47,6 @@ class IORedisAdapter {
     const result = await this.client.hgetall(key)
     if (!result || Object.keys(result).length === 0) return null
     return result as TData
-  }
-}
-
-/**
- * Helper function to generate rate limit headers
- * This demonstrates how headers SHOULD be implemented in routes (AC5)
- */
-export function generateRateLimitHeaders(result: {
-  success: boolean
-  limit: number
-  remaining: number
-  reset: number
-}): Record<string, string> {
-  return {
-    'X-RateLimit-Limit': result.limit.toString(),
-    'X-RateLimit-Remaining': result.remaining.toString(),
-    'X-RateLimit-Reset': Math.floor(result.reset / 1000).toString(), // Unix timestamp in seconds
   }
 }
 
@@ -314,7 +298,11 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
       const result = await limiter.limit(userId)
 
       // Generate headers from result
-      const headers = generateRateLimitHeaders(result)
+      const headers = generateRateLimitHeaders({
+        limit: 10,
+        remaining: result.remaining,
+        resetAt: new Date(result.reset),
+      })
 
       expect(headers['X-RateLimit-Limit']).toBe('10')
       expect(headers['X-RateLimit-Remaining']).toBe('9')
@@ -343,7 +331,11 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
 
       // Next request should show 0 remaining
       const result = await limiter.limit(userId)
-      const headers = generateRateLimitHeaders(result)
+      const headers = generateRateLimitHeaders({
+        limit: 3,
+        remaining: result.remaining,
+        resetAt: new Date(result.reset),
+      })
 
       expect(headers['X-RateLimit-Limit']).toBe('3')
       expect(headers['X-RateLimit-Remaining']).toBe('0')
@@ -371,7 +363,13 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
       expect(results.every((r) => r.success)).toBe(true)
 
       // Generate headers for each result
-      const allHeaders = results.map((r) => generateRateLimitHeaders(r))
+      const allHeaders = results.map((r) =>
+        generateRateLimitHeaders({
+          limit: 10,
+          remaining: r.remaining,
+          resetAt: new Date(r.reset),
+        })
+      )
 
       // All should have same limit
       expect(allHeaders.every((h) => h['X-RateLimit-Limit'] === '10')).toBe(true)

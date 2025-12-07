@@ -1,47 +1,36 @@
 # Repository Guidelines
 
-## Mission
-- HYVVE targets 90% automation with ~5 hrs/week human involvement; contributors should preserve human-in-the-loop approvals and confidence-based routing.
+## Project Structure & Modules
+- Monorepo (Turborepo, pnpm). Core apps: `apps/web` (Next.js 15 platform + API routes), `apps/api` (NestJS), `apps/agents` (Python/Agno). Shared packages under `packages/` (`db`, `ui`, `shared`, `config`).
+- Key docs: `docs/architecture.md`, `docs/ux-design.md`, `docs/epics/EPIC-INDEX.md`, sprint status in `docs/sprint-artifacts/sprint-status.yaml`, story files in `docs/sprint-artifacts/`.
+- Agent guidelines: see `.cursorrules` (Agno patterns) and `.gemini/styleguide.md` (TypeScript/Nest standards). MCP/AI tooling summarized below.
 
-## Project Structure
-- `apps/api`: NestJS backend; tests `src/**/*.spec.ts`.
-- `apps/web`: Next.js 15 frontend; Vitest/Playwright in `tests/`.
-- `packages/db`: Prisma schema + migrations; run DB scripts here.
-- `packages/shared`, `packages/ui`: Shared types/utilities/components.
-- `agents/`: Python Agno agents; `docker/`: Compose stack; `docs/`: specs/epics.
+## Build, Test, and Development Commands
+- Install: `pnpm install` (root). Use Node 20 (`nvm use`).
+- Build all: `pnpm build`
+- Dev servers: `pnpm dev`
+- Lint: `pnpm lint`
+- Type check: `pnpm type-check`
+- Targeted tests: `pnpm vitest run apps/web/src/__tests__/rate-limit.test.ts --pool=threads` (example). Use `pnpm test` if configured in package scripts.
 
-## Build, Test, and Development
-- Install: `pnpm install` (Node >=20, pnpm >=9).
-- Monorepo: `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm type-check`, `pnpm test`.
-- Package targets: `pnpm --filter @hyvve/api dev|test:cov`, `pnpm --filter @hyvve/web dev|test:e2e`, `pnpm --filter @hyvve/db db:migrate`.
-- Stack helpers: `pnpm docker:up|down|logs`. BMAD helpers (if enabled): `/bmad:bmm:workflows:story-context`, `/bmad:bmm:workflows:dev-story`, `/bmad:bmm:workflows:code-review`.
+## Coding Style & Naming
+- TypeScript strict; no `any`. Prefer `unknown` when needed.
+- File naming: components `PascalCase.tsx`; utilities `kebab-case.ts`; types in `*.types.ts`; tests `*.test.ts`.
+- Imports: external → internal (`@/…`, `@hyvve/...`) → relative.
+- React: functional components, named exports, hooks prefixed with `use`. Tailwind: avoid dynamic class fragments; use explicit class strings or inline styles.
+- Python/Agno: reuse agents (don’t create in loops); prefer `output_schema`; Postgres in prod, SQLite only for dev.
 
-## Coding Style & Conventions
-- TypeScript strict; avoid `any` (prefer `unknown`); 2-space Prettier formatting via `pnpm format`; ESLint config enforces unused-var rules and button types.
-- File/Component naming: `kebab-case.ts` for services/utils, `PascalCase.tsx` for React, hooks `use*.ts`, types in `*.types.ts`.
-- Import order: external → internal (`@hyvve/*`, `@/*`) → relative. Prefer named exports for components.
-- Multi-tenant: every model/query must include `tenantId` + index; filter by tenant in services.
+## Testing Guidelines
+- Minimum 80% coverage on new code. Add unit tests for logic and integration tests for API routes (Vitest/Testcontainers). E2E uses Playwright when needed.
+- Rate-limit and CSRF tests live in `apps/web/src/__tests__/`; follow existing patterns. Mock fetch responsibly; prefer real Redis containers for rate-limit cases.
 
-## Testing
-- API: Jest specs `*.spec.ts`, coverage via `test:cov`.
-- Web: Vitest unit/UI `*.test.{ts,tsx}`; Playwright e2e (`test:e2e`, `test:e2e:headed` for debugging).
-- Quick pre-PR sweep: `pnpm type-check && pnpm lint && pnpm test:unit`.
+## Commit & Pull Request Guidelines
+- Conventional commits (e.g., `feat:`, `fix:`, `docs:`); imperative first line ≤72 chars. Keep PRs small (<400 LOC) and single-purpose.
+- Before PR: run `pnpm type-check`, `pnpm lint`, and relevant tests. Include rationale and linked story/issue. Add screenshots or logs when UI/API behavior changes.
 
-## Commit & PR Expectations
-- Commits: short imperative; include story/issue when relevant (e.g., “Fix password match indicator for Story 14-15”).
-- PRs: one feature/fix, <~400 LOC; describe scope/risks, link issues, add UI screenshots, note migrations/config changes; list commands run (lint/type-check/tests/e2e).
-- Before picking work, check current epic/story in `docs/sprint-artifacts/sprint-status.yaml` and use BMAD commands for context.
+## MCP & Agent-Specific Notes
+- Available MCP servers: Playwright (browser automation), Serena (semantic code edits/refactors), Context7 (library docs lookup), 21st Magic (UI components), DeepWiki (repo docs), shadcn registry, Sequential Thinking (step planning). Prefer these over manual browsing when applicable.
+- Follow BMAD workflows in `.bmad/` for story execution; update `sprint-status.yaml` when changing story states.
 
-## Security & Architecture Notes
-- Secrets live in `.env*`; never commit them. Keep JWT/auth hardened (short expirations, bcrypt >=12). Validate input with Zod/class-validator; sanitize HTML output.
-- Prisma: after schema changes run `pnpm --filter @hyvve/db db:migrate` then rebuild dependents.
-- AgentOS/Agno: reuse agents (never create in loops), set `output_schema` for structured responses, use Postgres in prod (SQLite dev only), prefer single-agent workflows before teams; add chat history when context matters; set `search_knowledge=true` when using knowledge bases.
-- Python agents: install deps via `pip install -r agents/requirements.txt` in a venv; keep agent configs and keys out of VCS.
-
-## AI Tooling (MCP Servers)
-- Playwright: browser automation/testing (`browser_navigate`, `browser_snapshot`) for UI checks.
-- Context7: live library docs lookup (`resolve-library-id`, `get-library-docs`) for Next.js/NestJS/Prisma/Tailwind.
-- Serena: semantic code refactors (`find_symbol`, `replace_symbol_body`, `rename_symbol`)—prefer over broad file edits.
-- shadcn registry: search/add UI components.
-- 21st Magic: generate/refine React components or logos.
-- DeepWiki: ask questions about external repos for patterns/reference.
+## Security & Configuration
+- Multi-tenant data: always filter by `tenantId` and enforce RLS (see `packages/db`). Validate input with Zod or class-validator; never expose internal errors. BYOAI keys must be encrypted at rest; avoid committing secrets.

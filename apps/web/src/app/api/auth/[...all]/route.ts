@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth'
-import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { checkRateLimit, generateRateLimitHeaders } from '@/lib/utils/rate-limit'
 import { NextResponse } from 'next/server'
 
 // Export GET and POST handlers for Next.js App Router
@@ -19,24 +19,41 @@ export async function POST(request: Request) {
     const realIp = request.headers.get('x-real-ip')
     const ip = forwarded?.split(',')[0].trim() || realIp || 'unknown'
 
+    const rateLimitKey = `signin:${ip}`
+    const limit = 5
+    const windowSeconds = 15 * 60
+
     // Check rate limit for this IP using unified rate limiter (Redis in production)
-    const { isRateLimited, retryAfter } = await checkRateLimit(
-      `signin:${ip}`,
-      5,        // 5 attempts
-      15 * 60   // 15 minutes in seconds
-    )
+    const rateLimitResult = await checkRateLimit(rateLimitKey, limit, windowSeconds)
 
     // If rate limited, return 429 error
-    if (isRateLimited) {
-      return NextResponse.json(
+    if (rateLimitResult.isRateLimited) {
+      const response = NextResponse.json(
         {
           error: 'RATE_LIMITED',
-          message: `Too many sign-in attempts. Please try again in ${Math.ceil(retryAfter! / 60)} minutes.`,
-          retryAfter
+          message: `Too many sign-in attempts. Please try again in ${Math.ceil((rateLimitResult.retryAfter || 0) / 60)} minutes.`,
+          retryAfter: rateLimitResult.retryAfter,
         },
         { status: 429 }
       )
+      const headers = generateRateLimitHeaders({
+        limit,
+        remaining: 0,
+        resetAt: rateLimitResult.resetAt,
+      })
+      Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      return response
     }
+
+    // Pass request to better-auth handler and attach rate limit headers for visibility
+    const response = await auth.handler(request)
+    const headers = generateRateLimitHeaders({
+      limit,
+      remaining: rateLimitResult.remaining,
+      resetAt: rateLimitResult.resetAt,
+    })
+    Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+    return response
   }
 
   // Pass request to better-auth handler
