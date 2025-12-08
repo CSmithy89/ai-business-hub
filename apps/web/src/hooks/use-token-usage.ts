@@ -2,11 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
-
-/**
- * API base URL for the NestJS backend
- */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+import { NESTJS_API_URL } from '@/lib/api-config'
 
 /**
  * Usage statistics
@@ -52,7 +48,9 @@ async function fetchUsageStats(
   if (endDate) params.set('endDate', endDate)
 
   const queryString = params.toString()
-  const url = `${API_BASE_URL}/api/workspaces/${workspaceId}/ai-providers/usage${queryString ? `?${queryString}` : ''}`
+  const url = `${NESTJS_API_URL}/api/workspaces/${workspaceId}/ai-providers/usage${
+    queryString ? `?${queryString}` : ''
+  }`
 
   const response = await fetch(url, {
     credentials: 'include',
@@ -74,7 +72,7 @@ async function fetchDailyUsage(
   days: number = 30
 ): Promise<{ data: DailyUsage[] }> {
   const response = await fetch(
-    `${API_BASE_URL}/api/workspaces/${workspaceId}/ai-providers/usage/daily?days=${days}`,
+    `${NESTJS_API_URL}/api/workspaces/${workspaceId}/ai-providers/usage/daily?days=${days}`,
     {
       credentials: 'include',
     }
@@ -93,7 +91,7 @@ async function fetchDailyUsage(
  */
 async function fetchUsageByAgent(workspaceId: string): Promise<{ data: AgentUsage[] }> {
   const response = await fetch(
-    `${API_BASE_URL}/api/workspaces/${workspaceId}/ai-providers/usage/by-agent`,
+    `${NESTJS_API_URL}/api/workspaces/${workspaceId}/ai-providers/usage/by-agent`,
     {
       credentials: 'include',
     }

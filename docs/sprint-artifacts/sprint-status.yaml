@@ -296,23 +296,23 @@ development_status:
   # Partial dependencies on: EPIC-10, EPIC-11, EPIC-12
   # ===========================================
   epic-14: contexted
-  14-1-rate-limit-concurrency-tests: review
-  14-2-zustand-store-unit-tests: review
-  14-3-file-upload-pipeline-tests: backlog
+  14-1-rate-limit-concurrency-tests: done
+  14-2-zustand-store-unit-tests: done
+  14-3-file-upload-pipeline-tests: done
   14-4-prometheus-metrics-export: done
-  14-5-operational-runbooks: backlog
-  14-6-csrf-integration-tests: backlog  # Added from Epic 10 tech debt
-  14-7-agent-endpoint-rate-limiting: backlog  # Added from Epic 11 tech debt (HIGH)
-  14-8-business-id-ownership-validation: backlog  # Added from Epic 11 tech debt (HIGH)
-  14-9-agent-client-unit-tests: backlog  # Added from Epic 11 tech debt
-  14-10-agent-response-runtime-validation: backlog  # Added from Epic 11 tech debt (Zod + session)
-  14-11-api-url-centralization: backlog  # Added from Epic 12 tech debt (HIGH)
-  14-12-optimistic-update-type-safety: backlog  # Added from Epic 12 tech debt (HIGH)
-  14-13-approval-quick-actions-tests: backlog  # Added from Epic 12 tech debt
-  14-14-countdown-timer-optimization: backlog  # Added from Epic 12 tech debt
-  14-15-password-match-validation-fix: backlog  # Added from Epic 12 tech debt
-  14-16-error-boundary-monitoring: backlog  # Added from Epic 12 tech debt
-  14-17-mock-data-extraction: backlog  # Added from Epic 12 tech debt
-  14-18-oauth-flow-e2e-tests: backlog  # Added from Epic 12 tech debt
-  14-19-rate-limit-headers: backlog  # Emit X-RateLimit-* headers across API routes
+  14-5-operational-runbooks: done
+  14-6-csrf-integration-tests: done  # Added from Epic 10 tech debt
+  14-7-agent-endpoint-rate-limiting: done  # Added from Epic 11 tech debt (HIGH)
+  14-8-business-id-ownership-validation: done  # Added from Epic 11 tech debt (HIGH)
+  14-9-agent-client-unit-tests: done  # Added from Epic 11 tech debt
+  14-10-agent-response-runtime-validation: done  # Added from Epic 11 tech debt (Zod + session)
+  14-11-api-url-centralization: done  # Added from Epic 12 tech debt (HIGH)
+  14-12-optimistic-update-type-safety: done  # Added from Epic 12 tech debt (HIGH)
+  14-13-approval-quick-actions-tests: done  # Added from Epic 12 tech debt
+  14-14-countdown-timer-optimization: done  # Added from Epic 12 tech debt
+  14-15-password-match-validation-fix: done  # Added from Epic 12 tech debt
+  14-16-error-boundary-monitoring: done  # Added from Epic 12 tech debt
+  14-17-mock-data-extraction: done  # Added from Epic 12 tech debt
+  14-18-oauth-flow-e2e-tests: review  # Added from Epic 12 tech debt
+  14-19-rate-limit-headers: done  # Emit X-RateLimit-* headers across API routes
   epic-14-retrospective: optional

@@ -5,7 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 /**
  * API base URL for the NestJS backend
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { NESTJS_API_URL } from '@/lib/api-config';
+
+const API_BASE_URL = String(NESTJS_API_URL ?? '').replace(/\/+$/, '');
 
 /**
  * Event stats response from API

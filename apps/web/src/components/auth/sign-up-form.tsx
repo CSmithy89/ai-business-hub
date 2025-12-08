@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { signUp, authClient } from '@/lib/auth-client'
 import { signUpSchema, type SignUpFormData } from '@/lib/validations/auth'
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { PasswordStrengthIndicator } from './password-strength-indicator'
 import { Eye, EyeOff, Loader2, Check, X } from 'lucide-react'
+import { getPasswordMatchState, DEFAULT_PASSWORD_MIN_LENGTH_FOR_MATCH } from '@/hooks/use-password-match'
 
 export function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false)
@@ -26,21 +27,25 @@ export function SignUpForm() {
     register,
     handleSubmit,
     watch,
+    control,
     formState: { errors },
   } = useForm<SignUpFormData>({
     resolver: standardSchemaResolver(signUpSchema),
     mode: 'onBlur',
+    defaultValues: {
+      termsAccepted: false,
+    },
   })
 
   const password = watch('password', '')
   const confirmPassword = watch('confirmPassword', '')
 
-  // Only show match indicator after user has typed enough for meaningful comparison
-  const MIN_PASSWORD_LENGTH_FOR_MATCH = 4
-  const passwordsMatch = password && confirmPassword && password === confirmPassword
-  const showMatchIndicator =
-    password.length >= MIN_PASSWORD_LENGTH_FOR_MATCH &&
-    confirmPassword.length >= MIN_PASSWORD_LENGTH_FOR_MATCH
+  const passwordMatchState = getPasswordMatchState(
+    password,
+    confirmPassword,
+    DEFAULT_PASSWORD_MIN_LENGTH_FOR_MATCH
+  )
+  const { passwordsMatch, showMatchIndicator } = passwordMatchState
 
   // Generalized social sign-up handler to reduce code duplication
   const handleSocialSignUp = async (
@@ -150,6 +155,7 @@ export function SignUpForm() {
           className="w-full"
           onClick={handleGoogleSignUp}
           disabled={isAnyOAuthLoading || isSubmitting}
+          data-testid="google-sign-up-button"
         >
           {isGoogleLoading ? (
             <>
@@ -187,6 +193,7 @@ export function SignUpForm() {
           className="w-full"
           onClick={handleMicrosoftSignUp}
           disabled={isAnyOAuthLoading || isSubmitting}
+          data-testid="microsoft-sign-up-button"
         >
           {isMicrosoftLoading ? (
             <>
@@ -209,6 +216,7 @@ export function SignUpForm() {
           className="w-full"
           onClick={handleGitHubSignUp}
           disabled={isAnyOAuthLoading || isSubmitting}
+          data-testid="github-sign-up-button"
         >
           {isGitHubLoading ? (
             <>
@@ -340,11 +348,18 @@ export function SignUpForm() {
 
       {/* Terms Checkbox */}
       <div className="flex items-start space-x-2">
-        <Checkbox
-          id="terms"
-          {...register('termsAccepted')}
-          disabled={isSubmitting}
-          aria-invalid={errors.termsAccepted ? 'true' : 'false'}
+        <Controller
+          name="termsAccepted"
+          control={control}
+          render={({ field: { value, onChange } }) => (
+            <Checkbox
+              id="terms"
+              checked={value}
+              onCheckedChange={(checked) => onChange(!!checked)}
+              disabled={isSubmitting}
+              aria-invalid={errors.termsAccepted ? 'true' : 'false'}
+            />
+          )}
         />
         <div className="space-y-1">
           <Label

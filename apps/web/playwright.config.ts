@@ -24,6 +24,11 @@ export default defineConfig({
 
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    launchOptions: {
+      // Sandbox is restricted in our environment; disable for local runs
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      chromiumSandbox: false,
+    },
 
     // Failure artifact capture (retain-on-failure pattern)
     trace: 'retain-on-failure',
@@ -36,11 +41,14 @@ export default defineConfig({
   },
 
   // Reporters - HTML for local debugging, JUnit for CI
-  reporter: [
-    ['html', { outputFolder: 'test-results/html' }],
-    ['junit', { outputFile: 'test-results/junit.xml' }],
-    ['list'],
-  ],
+  reporter: (() => {
+    const reportDir = process.env.PLAYWRIGHT_REPORT_DIR || 'playwright-report'
+    return [
+      ['html', { outputFolder: reportDir }],
+      ['junit', { outputFile: `${reportDir}/junit-${process.pid}.xml` }],
+      ['list'],
+    ]
+  })(),
 
   // Browser matrix - start with Chromium, expand as needed
   projects: [
@@ -52,12 +60,4 @@ export default defineConfig({
     // { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     // { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
-
-  // Web server - auto-start Next.js dev server for local testing
-  webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
 });

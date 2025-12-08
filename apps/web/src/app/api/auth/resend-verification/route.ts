@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@hyvve/db'
-import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { checkRateLimit, generateRateLimitHeaders } from '@/lib/utils/rate-limit'
 import { sendVerificationEmail } from '@/lib/email'
 import { randomBytes } from 'crypto'
 
@@ -40,10 +40,12 @@ export async function POST(request: NextRequest) {
 
     // Check rate limit (3 attempts per hour) using unified rate limiter
     const rateLimitKey = `resend-verification:${email.toLowerCase()}`
-    const rateLimit = await checkRateLimit(rateLimitKey, 3, 60 * 60) // 3 attempts, 1 hour window
+    const rateLimitLimit = 3
+    const rateLimitWindowSeconds = 60 * 60
+    const rateLimit = await checkRateLimit(rateLimitKey, rateLimitLimit, rateLimitWindowSeconds) // 3 attempts, 1 hour window
 
     if (rateLimit.isRateLimited) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         {
           success: false,
           error: 'RATE_LIMITED',
@@ -52,6 +54,13 @@ export async function POST(request: NextRequest) {
         },
         { status: 429 }
       )
+      const headers = generateRateLimitHeaders({
+        limit: rateLimitLimit,
+        remaining: 0,
+        resetAt: rateLimit.resetAt,
+      })
+      Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      return response
     }
 
     // Find user by email
@@ -68,11 +77,18 @@ export async function POST(request: NextRequest) {
     // Don't reveal if user exists or is already verified (security best practice)
     // Always return success to prevent user enumeration
     if (!user || user.emailVerified) {
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         message: 'If an unverified account exists, a verification email has been sent.',
         expiresIn: 24 * 60 * 60, // 24 hours in seconds
       })
+      const headers = generateRateLimitHeaders({
+        limit: rateLimitLimit,
+        remaining: rateLimit.remaining,
+        resetAt: rateLimit.resetAt,
+      })
+      Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      return response
     }
 
     // Generate new verification token
@@ -97,11 +113,18 @@ export async function POST(request: NextRequest) {
     // Send verification email
     await sendVerificationEmail(user.email, token, user.name || undefined)
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: 'Verification email sent successfully.',
       expiresIn: 24 * 60 * 60, // 24 hours in seconds
     })
+    const headers = generateRateLimitHeaders({
+      limit: rateLimitLimit,
+      remaining: rateLimit.remaining,
+      resetAt: rateLimit.resetAt,
+    })
+    Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+    return response
   } catch (error) {
     console.error('Error resending verification email:', error)
 

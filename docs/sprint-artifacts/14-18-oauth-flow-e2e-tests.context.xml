@@ -1,0 +1,117 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>14</epicId>
+    <storyId>18</storyId>
+    <title>OAuth Flow E2E Tests</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-07T08:31:11+10:00</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/14-18-oauth-flow-e2e-tests.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>QA engineer</asA>
+    <iWant>an automated end-to-end OAuth sign-in test</iWant>
+    <soThat>third-party login regressions are caught before they reach users</soThat>
+    <tasks>- Add Playwright test `apps/web/tests/e2e/oauth-flow.spec.ts` covering happy path login via OAuth button through redirect/callback and asserting state/nonce propagation. (AC1, AC2, AC5)
+- Add failure-path test for invalid code/state ensuring no session cookie and a user-visible error. (AC4)
+- Validate post-login session by loading a protected dashboard page without re-auth prompt. (AC3)
+- Document required env/test config (stub client ID/secret, redirect URL) in tests or a local README near `apps/web/tests/e2e`. (AC5)</tasks>
+  </story>
+
+  <acceptanceCriteria>1. Add Playwright E2E coverage in `apps/web/tests/e2e/oauth-flow.spec.ts` that exercises the OAuth login button through redirect and callback into the app (happy path). [Source: docs/sprint-artifacts/tech-spec-epic-14.md]
+2. Test asserts state/nonce (or equivalent) is present on outbound request and that callback only succeeds when state matches; mismatched state fails with an auth error page or safe redirect. [Source: docs/prd.md]
+3. After successful callback, test verifies a session cookie is set, user lands on the authenticated dashboard, and protected page loads without re-auth prompt. [Source: docs/architecture.md]
+4. Add an error-path case (invalid code/token exchange failure) that surfaces a user-visible error and does not create a session cookie. [Source: docs/prd.md]
+5. Tests run with hermetic auth provider stubs/mocks (no real network); documented env flags/fixtures are checked into the repo alongside the spec. [Source: docs/sprint-artifacts/tech-spec-epic-14.md]</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>HYVVE Platform Foundation - Product Requirements Document</title>
+        <section>Authentication & OAuth requirement</section>
+        <snippet>PRD mandates OAuth (Google) alongside email/password; reliability and security of redirect/state flow are required for platform hardening.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>HYVVE Platform Foundation - Architecture</title>
+        <section>Frontend stack and auth flow</section>
+        <snippet>Next.js 15 App Router with better-auth handles authentication; tests should exercise real routing/session path including session cookie set and dashboard access.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-14.md</path>
+        <title>Epic 14: Testing & Observability - Technical Specification</title>
+        <section>Story 14.18 E2E scope</section>
+        <snippet>Tech spec lists Story 14.18 as OAuth Flow E2E tests and places the test file at apps/web/tests/e2e/oauth-flow.spec.ts with Playwright.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/14-17-mock-data-extraction.md</path>
+        <title>Story 14.17: Mock Data Extraction</title>
+        <section>Deterministic mock guidance</section>
+        <snippet>Previous story emphasizes deterministic mocks and fixed timestamps for stable tests; reuse this approach to avoid flakes in OAuth e2e stubbing.</snippet>
+      </doc>
+      <doc>
+        <path>apps/web/tests/README.md</path>
+        <title>HYVVE E2E Test Suite README</title>
+        <section>Playwright setup and conventions</section>
+        <snippet>Documents Playwright test structure under apps/web/tests/e2e, fixture patterns, and env setup; OAuth test should align with this layout.</snippet>
+      </doc>
+      <doc>
+        <path>.bmad/bmm/testarch/knowledge/network-first.md</path>
+        <title>Network-First Safeguards</title>
+        <section>Deterministic interception</section>
+        <snippet>Guides registering network interception before navigation, awaiting responses explicitly, and avoiding hard waits—critical for reliable OAuth redirect/callback tests.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>apps/web/tests/support/fixtures/index.ts</path>
+        <kind>fixtures</kind>
+        <symbol>auth fixture (login/logout helpers)</symbol>
+        <lines></lines>
+        <reason>Shows composable Playwright fixtures used across e2e; OAuth test can add stubbed auth helpers or reuse fixture patterns.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/web/playwright.config.ts</path>
+        <kind>config</kind>
+        <symbol>Playwright configuration</symbol>
+        <lines></lines>
+        <reason>Base Playwright settings and devices; OAuth test should adhere to existing timeouts and tracing/reporting.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/web/tests/e2e/ui-shell.spec.ts</path>
+        <kind>test</kind>
+        <symbol>UI shell e2e pattern</symbol>
+        <lines></lines>
+        <reason>Example of Playwright test structure and assertions; follow similar style for OAuth flow.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/web/tests/e2e/smoke.spec.ts</path>
+        <kind>test</kind>
+        <symbol>Smoke test pattern</symbol>
+        <lines></lines>
+        <reason>Baseline e2e test demonstrating navigation and assertions; useful reference for layout of new OAuth spec.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <dependency>
+        <ecosystem>node</ecosystem>
+        <packages>@playwright/test (apps/web), better-auth (apps/web), next, react</packages>
+      </dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>Use Playwright with network-first interception (mock before navigate, await responses) per .bmad/bmm/testarch/knowledge/network-first.md. Keep OAuth tests hermetic: stub provider endpoints/token exchange; no real network. Preserve existing Playwright config (timeouts, tracing) in apps/web/playwright.config.ts. Follow PRD security expectations: state/nonce must be validated; session cookie only after successful callback.</constraints>
+  <interfaces></interfaces>
+  <tests>
+    <standards>Playwright e2e in apps/web with composable fixtures; network-first interception; deterministic waits; hermetic stubs for external providers; align with TEA knowledge base.</standards>
+    <locations>apps/web/tests/e2e/**/*.spec.ts; apps/web/tests/support/fixtures; apps/web/playwright.config.ts</locations>
+    <ideas>
+      <idea>AC1: Happy path OAuth — route stub for provider auth/token, assert state/nonce presence, complete callback, expect dashboard load and session cookie set.</idea>
+      <idea>AC2/AC4: Negative path — mismatched state or invalid code returns auth error page and no session cookie.</idea>
+      <idea>AC3: Post-login protection — after callback, navigate to protected route and verify no re-auth prompt.</idea>
+      <idea>AC5: Env/config — test fails fast when stub client ID/secret missing; document fixtures in tests/README or inline comments.</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,7 +1,7 @@
 # Story 14-19: Rate Limit Header Implementation
 
 **Epic:** EPIC-14 - Testing & Observability  
-**Status:** backlog  
+**Status:** drafted  
 **Points:** 2  
 **Priority:** P2 Medium
 

@@ -5,7 +5,7 @@ import { BaseEvent, EventType } from '@hyvve/shared';
 import { EventPublisherService } from '../event-publisher.service';
 import { EventReplayService } from '../event-replay.service';
 import { STREAMS, QUEUE_EVENT_REPLAY } from '../constants/streams.constants';
-import { RedisProvider } from '../redis.provider';
+import { RedisProvider, RedisClient } from '../redis.provider';
 
 /**
  * Replay job data from queue
@@ -30,7 +30,9 @@ interface ReplayJobData {
 @Processor(QUEUE_EVENT_REPLAY)
 export class EventReplayProcessor extends WorkerHost {
   private readonly logger = new Logger(EventReplayProcessor.name);
-  private readonly redis: any;
+  private get redis(): RedisClient {
+    return this.redisProvider.getClient();
+  }
 
   constructor(
     private readonly redisProvider: RedisProvider,
@@ -40,7 +42,6 @@ export class EventReplayProcessor extends WorkerHost {
     private readonly replayService: EventReplayService,
   ) {
     super();
-    this.redis = this.redisProvider.getClient();
   }
 
   /**

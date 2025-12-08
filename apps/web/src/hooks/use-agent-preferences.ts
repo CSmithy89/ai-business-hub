@@ -10,6 +10,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/lib/auth-client';
+import { NESTJS_API_URL } from '@/lib/api-config';
 
 /**
  * Agent definition
@@ -43,8 +44,6 @@ export interface AvailableModel {
   costPer1MTokens: number;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
 /**
  * Get workspace ID from session
  */
@@ -52,6 +51,22 @@ function useWorkspaceId(): string | undefined {
   const { data: session } = useSession();
   return (session?.session as { activeWorkspaceId?: string } | undefined)
     ?.activeWorkspaceId;
+}
+
+function getAccessToken(session: unknown): string | undefined {
+  const direct = (session as { accessToken?: string })?.accessToken;
+  const nested = (session as { session?: { accessToken?: string } })?.session?.accessToken;
+  return direct || nested || undefined;
+}
+
+function getApiBase(): string {
+  if (NESTJS_API_URL) {
+    return NESTJS_API_URL.replace(/\/$/, '');
+  }
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin.replace(/\/$/, '');
+  }
+  throw new Error('NESTJS_API_URL is not configured');
 }
 
 /**
@@ -65,13 +80,16 @@ export function useAgentPreferences() {
     queryKey: ['agent-preferences', workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
+      const base = getApiBase();
 
+      const token = getAccessToken(session);
       const response = await fetch(
-        `${API_BASE}/workspaces/${workspaceId}/ai-providers/agents/preferences`,
+        new URL(
+          `/workspaces/${encodeURIComponent(workspaceId)}/ai-providers/agents/preferences`,
+          base
+        ).toString(),
         {
-          headers: {
-            Authorization: `Bearer ${(session as { accessToken?: string })?.accessToken}`,
-          },
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
 
@@ -97,13 +115,16 @@ export function useAvailableModels() {
     queryKey: ['available-models', workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
+      const base = getApiBase();
 
+      const token = getAccessToken(session);
       const response = await fetch(
-        `${API_BASE}/workspaces/${workspaceId}/ai-providers/agents/models`,
+        new URL(
+          `/workspaces/${encodeURIComponent(workspaceId)}/ai-providers/agents/models`,
+          base
+        ).toString(),
         {
-          headers: {
-            Authorization: `Bearer ${(session as { accessToken?: string })?.accessToken}`,
-          },
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
 
@@ -137,15 +158,26 @@ export function useUpdateAgentPreference() {
       model: string;
     }) => {
       if (!workspaceId) throw new Error('No workspace');
+      const base = getApiBase();
+
+      const token = getAccessToken(session);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
 
       const response = await fetch(
-        `${API_BASE}/workspaces/${workspaceId}/ai-providers/agents/${agentId}/preference`,
+        new URL(
+          `/workspaces/${encodeURIComponent(
+            workspaceId
+          )}/ai-providers/agents/${encodeURIComponent(agentId)}/preference`,
+          base
+        ).toString(),
         {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${(session as { accessToken?: string })?.accessToken}`,
-          },
+          headers,
           body: JSON.stringify({ providerId, model }),
         }
       );
@@ -175,14 +207,24 @@ export function useResetAgentPreference() {
   return useMutation({
     mutationFn: async (agentId: string) => {
       if (!workspaceId) throw new Error('No workspace');
+      const base = getApiBase();
+
+      const token = getAccessToken(session);
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
 
       const response = await fetch(
-        `${API_BASE}/workspaces/${workspaceId}/ai-providers/agents/${agentId}/preference`,
+        new URL(
+          `/workspaces/${encodeURIComponent(
+            workspaceId
+          )}/ai-providers/agents/${encodeURIComponent(agentId)}/preference`,
+          base
+        ).toString(),
         {
           method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${(session as { accessToken?: string })?.accessToken}`,
-          },
+          headers,
         }
       );
 

@@ -56,8 +56,8 @@ export interface ApprovalItem {
   reviewedBy?: string;
   /** Created timestamp */
   createdAt: Date;
-  /** Reviewed timestamp */
-  reviewedAt?: Date;
+  /** Reviewed timestamp (string to match backend payloads, Date allowed for runtime) */
+  reviewedAt?: string | Date;
   /** Due date for review */
   dueAt?: Date;
   /** Priority level */

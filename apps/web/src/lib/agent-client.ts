@@ -10,6 +10,7 @@
 'use client'
 
 import { getCurrentSessionToken } from '@/lib/auth-client'
+import { AgentResponseSchema, AgentResponseValidated } from './agent-schemas'
 
 // ============================================================================
 // Types
@@ -135,14 +136,13 @@ export class AgentClient {
       clearTimeout(timeoutId)
 
       // Parse response body with error handling
+      const rawText = await response.text()
       let data: AgentResponse
       try {
-        data = (await response.json()) as AgentResponse
+        data = rawText ? (JSON.parse(rawText) as AgentResponse) : ({} as AgentResponse)
       } catch {
-        // Handle non-JSON responses (HTML error pages, empty body, etc.)
-        const text = await response.text().catch(() => '')
         throw new AgentAPIError(
-          text || `Invalid JSON response from agent API (status ${response.status})`,
+          rawText || `Invalid JSON response from agent API (status ${response.status})`,
           response.status
         )
       }
@@ -156,16 +156,28 @@ export class AgentClient {
         )
       }
 
-      // Handle unsuccessful agent responses
-      if (!data.success) {
+      // Runtime validation of response shape
+      const parsed = AgentResponseSchema.safeParse(data)
+      if (!parsed.success) {
         throw new AgentAPIError(
-          data.error || 'Agent execution failed',
+          `Invalid agent response: ${parsed.error.message}`,
           response.status,
           data
         )
       }
 
-      return data
+      const validated: AgentResponseValidated = parsed.data
+
+      // Handle unsuccessful agent responses
+      if (!validated.success) {
+        throw new AgentAPIError(
+          validated.error || 'Agent execution failed',
+          response.status,
+          validated
+        )
+      }
+
+      return validated
     } catch (error) {
       clearTimeout(timeoutId)
 

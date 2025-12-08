@@ -5,12 +5,35 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@hyvve/db'
+import { Prisma, prisma } from '@hyvve/db'
 import { getSession, updateSessionWorkspace } from '@/lib/auth-server'
 import { generateUniqueSlug } from '@/lib/workspace'
-import { checkRateLimit } from '@/lib/utils/rate-limit'
+import { checkRateLimit, generateRateLimitHeaders } from '@/lib/utils/rate-limit'
 import { CreateWorkspaceSchema } from '@hyvve/shared'
 import type { WorkspaceRole, WorkspaceWithRole } from '@hyvve/shared'
+
+type RateLimitResult = Awaited<ReturnType<typeof checkRateLimit>>
+
+const withRateLimitHeaders = (
+  response: NextResponse,
+  limit: number,
+  remaining: number,
+  resetAt: Date | null,
+  retryAfter?: number
+) => {
+  if (resetAt) {
+    const headers = generateRateLimitHeaders({
+      limit,
+      remaining,
+      resetAt,
+    })
+    Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+  }
+  if (retryAfter !== undefined) {
+    response.headers.set('Retry-After', String(retryAfter))
+  }
+  return response
+}
 
 /**
  * POST /api/workspaces
@@ -21,6 +44,8 @@ import type { WorkspaceRole, WorkspaceWithRole } from '@hyvve/shared'
  * Rate limit: 5 workspaces per hour per user
  */
 export async function POST(request: NextRequest) {
+  let rateLimit: RateLimitResult | null = null
+
   try {
     // Get authenticated session
     const session = await getSession()
@@ -40,17 +65,25 @@ export async function POST(request: NextRequest) {
 
     // Check rate limit (5 workspaces per hour) using unified rate limiter
     const rateLimitKey = `create-workspace:${userId}`
-    const rateLimit = await checkRateLimit(rateLimitKey, 5, 60 * 60) // 5 attempts, 1 hour
+    const rateLimitLimit = 5
+    const rateLimitWindowSeconds = 60 * 60
+    rateLimit = await checkRateLimit(rateLimitKey, rateLimitLimit, rateLimitWindowSeconds) // 5 attempts, 1 hour
 
     if (rateLimit.isRateLimited) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'RATE_LIMITED',
-          message: 'Too many workspace creation attempts. Please try again later.',
-          retryAfter: rateLimit.retryAfter,
-        },
-        { status: 429 }
+      return withRateLimitHeaders(
+        NextResponse.json(
+          {
+            success: false,
+            error: 'RATE_LIMITED',
+            message: 'Too many workspace creation attempts. Please try again later.',
+            retryAfter: rateLimit.retryAfter,
+          },
+          { status: 429 }
+        ),
+        rateLimitLimit,
+        0,
+        rateLimit?.resetAt ?? null,
+        rateLimit?.retryAfter
       )
     }
 
@@ -59,13 +92,19 @@ export async function POST(request: NextRequest) {
     const result = CreateWorkspaceSchema.safeParse(body)
 
     if (!result.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'INVALID_INPUT',
-          message: result.error.issues[0].message,
-        },
-        { status: 400 }
+      return withRateLimitHeaders(
+        NextResponse.json(
+          {
+            success: false,
+            error: 'INVALID_INPUT',
+            message: result.error.issues[0].message,
+          },
+          { status: 400 }
+        ),
+        rateLimitLimit,
+        rateLimit?.remaining ?? rateLimitLimit,
+        rateLimit?.resetAt ?? null,
+        rateLimit?.retryAfter
       )
     }
 
@@ -81,28 +120,35 @@ export async function POST(request: NextRequest) {
     })
 
     // Create workspace and owner membership in a transaction
-    const workspace = await prisma.$transaction(async (tx) => {
-      // Create workspace
-      const newWorkspace = await tx.workspace.create({
-        data: {
-          name,
-          slug,
-          timezone: 'UTC',
-        },
-      })
+    const workspace = await prisma
+      .$transaction(async (tx) => {
+        // Create workspace
+        const newWorkspace = await tx.workspace.create({
+          data: {
+            name,
+            slug,
+            timezone: 'UTC',
+          },
+        })
 
-      // Create owner membership
-      await tx.workspaceMember.create({
-        data: {
-          userId,
-          workspaceId: newWorkspace.id,
-          role: 'owner',
-          acceptedAt: new Date(), // Owner is automatically accepted
-        },
-      })
+        // Create owner membership
+        await tx.workspaceMember.create({
+          data: {
+            userId,
+            workspaceId: newWorkspace.id,
+            role: 'owner',
+            acceptedAt: new Date(), // Owner is automatically accepted
+          },
+        })
 
-      return newWorkspace
-    })
+        return newWorkspace
+      })
+      .catch((err) => {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          throw new Error('SLUG_CONFLICT')
+        }
+        throw err
+      })
 
     // Update session with new workspace as active context
     await updateSessionWorkspace(session.session.id, workspace.id)
@@ -116,24 +162,47 @@ export async function POST(request: NextRequest) {
       createdAt: workspace.createdAt.toISOString(),
     })
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          id: workspace.id,
-          name: workspace.name,
-          slug: workspace.slug,
-          image: workspace.image,
-          timezone: workspace.timezone,
-          createdAt: workspace.createdAt,
-          updatedAt: workspace.updatedAt,
-          deletedAt: workspace.deletedAt,
+    return withRateLimitHeaders(
+      NextResponse.json(
+        {
+          success: true,
+          data: {
+            id: workspace.id,
+            name: workspace.name,
+            slug: workspace.slug,
+            image: workspace.image,
+            timezone: workspace.timezone,
+            createdAt: workspace.createdAt,
+            updatedAt: workspace.updatedAt,
+            deletedAt: workspace.deletedAt,
+          },
         },
-      },
-      { status: 201 }
+        { status: 201 }
+      ),
+      rateLimitLimit,
+      rateLimit?.remaining ?? rateLimitLimit,
+      rateLimit?.resetAt ?? null,
+      rateLimit?.retryAfter
     )
   } catch (error) {
     console.error('Error creating workspace:', error)
+    if (error instanceof Error && error.message === 'SLUG_CONFLICT') {
+      const response = NextResponse.json(
+        {
+          success: false,
+          error: 'SLUG_CONFLICT',
+          message: 'Workspace slug already exists. Please retry.',
+        },
+        { status: 409 }
+      )
+      return withRateLimitHeaders(
+        response,
+        5,
+        0,
+        rateLimit?.resetAt ?? null,
+        rateLimit?.retryAfter
+      )
+    }
 
     // Handle slug generation failure
     if (error instanceof Error && error.message.includes('unique slug')) {
@@ -147,7 +216,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: false,
         error: 'INTERNAL_ERROR',
@@ -155,6 +224,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     )
+    return withRateLimitHeaders(response, 5, 0, rateLimit?.resetAt ?? null, rateLimit?.retryAfter)
   }
 }
 

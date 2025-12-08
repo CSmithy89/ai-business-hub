@@ -1,6 +1,10 @@
+import path from 'path';
 import type { NextConfig } from 'next';
 
-const nextConfig: NextConfig = {
+const nextConfig: NextConfig & { typedRoutes?: boolean } = {
+  // Ensure Next.js resolves workspace roots correctly in monorepo/lockfile setups
+  outputFileTracingRoot: path.join(__dirname, '..', '..'),
+
   // Enable type-safe routing
   typedRoutes: true,
 
@@ -9,7 +13,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**.supabase.co',
+        hostname: '*.supabase.co',
       },
     ],
   },

@@ -567,11 +567,14 @@ export class EventsController {
 
       const mainExists = await redis.exists(STREAMS.MAIN);
       if (mainExists) {
-        const streamInfo = await redis.xinfo('STREAM', STREAMS.MAIN);
+        const streamInfo = (await redis.xinfo(
+          'STREAM',
+          STREAMS.MAIN,
+        )) as Array<string | number | unknown>;
         // Parse stream info (flat array format)
         const infoObj: Record<string, unknown> = {};
         for (let i = 0; i < streamInfo.length; i += 2) {
-          infoObj[streamInfo[i]] = streamInfo[i + 1];
+          infoObj[String(streamInfo[i])] = streamInfo[i + 1];
         }
         mainStreamInfo = {
           length: infoObj.length as number,
@@ -601,11 +604,14 @@ export class EventsController {
 
       if (mainExists) {
         try {
-          const groupsInfo = await redis.xinfo('GROUPS', STREAMS.MAIN);
-          for (const group of groupsInfo) {
+          const groupsInfo = (await redis.xinfo(
+            'GROUPS',
+            STREAMS.MAIN,
+          )) as unknown[][];
+          for (const group of groupsInfo ?? []) {
             const groupData: Record<string, unknown> = {};
             for (let j = 0; j < group.length; j += 2) {
-              groupData[group[j] as string] = group[j + 1];
+                groupData[String(group[j])] = group[j + 1];
             }
             if (groupData.name === CONSUMER_GROUP) {
               consumerGroupInfo = {

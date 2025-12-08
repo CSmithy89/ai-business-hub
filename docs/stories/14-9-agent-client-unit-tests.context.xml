@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>14-9</story-id>
+    <story-title>Agent Client Unit Tests</story-title>
+    <epic>EPIC-14</epic>
+    <generated-date>2025-12-07</generated-date>
+    <dependencies>
+      <dependency epic="11" story="11-1" status="complete">Agent endpoints available via NestJS API</dependency>
+    </dependencies>
+  </metadata>
+
+  <section name="key-files">
+    <file path="agents/providers/byoai_client.py" description="Agent client implementation" />
+    <file path="agents/providers/tests/test_byoai_client.py" description="Existing tests" />
+  </section>
+
+  <section name="requirements">
+    <item>Unit tests for agent client covering success, network error/timeout, JSON parse error, and HTTP error statuses.</item>
+    <item>Cover team variants (validation, planning, branding) via client API.</item>
+    <item>Mock HTTP calls (no real network).</item>
+  </section>
+</story-context>

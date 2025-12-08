@@ -7,6 +7,8 @@ Unit tests for the BYOAIClient HTTP client.
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime, timedelta
+import respx
+import httpx
 
 from providers.byoai_client import BYOAIClient, ProviderConfig, CachedConfig
 
@@ -104,6 +106,90 @@ class TestBYOAIClient:
         assert "ws_1:all" not in client._cache
         assert "ws_1:prov_1" not in client._cache
         assert "ws_2:all" in client._cache
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_workspace_providers_success(self):
+        """Should return providers and cache them."""
+        client = BYOAIClient(api_base_url="http://localhost:3001")
+        ws_id = "ws_123"
+        respx.get(f"http://localhost:3001/api/workspaces/{ws_id}/ai-providers").mock(
+            return_value=respx.Response(
+                200,
+                json={
+                    "data": [
+                        {
+                            "id": "prov_1",
+                            "provider": "openai",
+                            "defaultModel": "gpt-4o",
+                            "isValid": True,
+                            "isDefault": True,
+                            "maxTokensPerDay": 100000,
+                            "tokensUsedToday": 500,
+                            "lastValidatedAt": "2024-01-15T10:30:00Z",
+                        }
+                    ]
+                },
+            )
+        )
+
+        providers = await client.get_workspace_providers(ws_id, jwt_token="token")
+        assert len(providers) == 1
+        assert isinstance(providers[0], ProviderConfig)
+        # Second call hits cache, no new HTTP requests
+        providers_cached = await client.get_workspace_providers(ws_id, jwt_token="token")
+        assert len(providers_cached) == 1
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_workspace_providers_http_error(self):
+        client = BYOAIClient(api_base_url="http://localhost:3001")
+        ws_id = "ws_err"
+        respx.get(f"http://localhost:3001/api/workspaces/{ws_id}/ai-providers").mock(
+            return_value=respx.Response(401)
+        )
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.get_workspace_providers(ws_id, jwt_token="token")
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_provider_not_found(self):
+        client = BYOAIClient(api_base_url="http://localhost:3001")
+        ws_id = "ws_123"
+        provider_id = "missing"
+        respx.get(
+            f"http://localhost:3001/api/workspaces/{ws_id}/ai-providers/{provider_id}"
+        ).mock(return_value=respx.Response(404))
+
+        provider = await client.get_provider(ws_id, provider_id, jwt_token="token")
+        assert provider is None
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_get_provider_json_error(self):
+        """Invalid JSON should propagate as exception."""
+        client = BYOAIClient(api_base_url="http://localhost:3001")
+        ws_id = "ws_123"
+        provider_id = "prov_bad"
+        respx.get(
+            f"http://localhost:3001/api/workspaces/{ws_id}/ai-providers/{provider_id}"
+        ).mock(return_value=respx.Response(200, content=b"{ invalid json"))
+
+        with pytest.raises(Exception):
+            await client.get_provider(ws_id, provider_id, jwt_token="token")
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_check_token_limit_timeout(self):
+        client = BYOAIClient(api_base_url="http://localhost:3001", timeout=0.1)
+        ws_id = "ws_123"
+        provider_id = "prov_1"
+        respx.get(
+            f"http://localhost:3001/api/workspaces/{ws_id}/ai-providers/{provider_id}/limit"
+        ).mock(side_effect=httpx.ReadTimeout("timeout"))
+
+        with pytest.raises(httpx.ReadTimeout):
+            await client.check_token_limit(ws_id, provider_id, jwt_token="token")
 
     def test_parse_provider(self):
         """Test provider data parsing."""

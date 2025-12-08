@@ -2,6 +2,11 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
+export type RedisStreamEntry = [string, string[]];
+export type RedisXReadGroupResult = Array<[string, RedisStreamEntry[]]>;
+export type RedisXRangeResult = RedisStreamEntry[];
+export type RedisClient = Awaited<Queue['client']>;
+
 /**
  * RedisProvider - Provides direct access to Redis client for stream operations
  *
@@ -22,16 +27,15 @@ import { Queue } from 'bullmq';
 @Injectable()
 export class RedisProvider implements OnModuleInit {
   private readonly logger = new Logger(RedisProvider.name);
-  private redis: any;
+  private redis: RedisClient | null = null;
 
-  constructor(@InjectQueue('event-retry') private eventRetryQueue: Queue) {
-    // Access the underlying Redis client from BullMQ
-    this.redis = this.eventRetryQueue.client;
-  }
+  constructor(@InjectQueue('event-retry') private eventRetryQueue: Queue) {}
 
   async onModuleInit() {
     // Verify Redis connection on startup
     try {
+      // BullMQ exposes a lazily created ioredis client as a Promise
+      this.redis = await this.eventRetryQueue.client;
       await this.redis.ping();
       this.logger.log('Redis connection verified for event streams');
     } catch (error) {
@@ -45,8 +49,8 @@ export class RedisProvider implements OnModuleInit {
    * @returns Redis client instance (ioredis)
    * @throws Error if client is not initialized
    */
-  getClient(): any {
-    if (!this.redis) {
+  getClient(): RedisClient {
+    if (this.redis === null) {
       throw new Error(
         'Redis client is not initialized. Ensure RedisProvider.onModuleInit() has completed before calling getClient().',
       );

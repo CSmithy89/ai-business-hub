@@ -238,6 +238,29 @@ export async function checkRateLimit(
 }
 
 /**
+ * Generate standard X-RateLimit-* headers for a given rate limit state.
+ *
+ * @param limit - Maximum attempts allowed in the window
+ * @param remaining - Remaining attempts in the current window
+ * @param resetAt - When the window resets
+ */
+export function generateRateLimitHeaders({
+  limit,
+  remaining,
+  resetAt,
+}: {
+  limit: number
+  remaining: number
+  resetAt: Date
+}): Record<string, string> {
+  return {
+    'X-RateLimit-Limit': String(limit),
+    'X-RateLimit-Remaining': String(remaining),
+    'X-RateLimit-Reset': String(Math.floor(resetAt.getTime() / 1000)),
+  }
+}
+
+/**
  * Synchronous rate limit check (in-memory only)
  *
  * Use this when you cannot use async/await (e.g., in some middleware).

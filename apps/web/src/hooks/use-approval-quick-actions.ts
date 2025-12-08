@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { ApprovalItem } from '@hyvve/shared'
 import { apiPost } from '@/lib/api-client'
-import { NESTJS_API_URL } from '@/lib/api-config'
+import { API_ENDPOINTS } from '@/lib/api-config'
 
 /**
  * Request body for approve/reject actions
@@ -25,6 +25,17 @@ export interface ApprovalResponse {
  */
 type ApprovalActionType = 'approve' | 'reject'
 
+export function buildOptimisticReviewedItem(
+  item: ApprovalItem,
+  status: 'approved' | 'rejected'
+): ApprovalItem {
+  return {
+    ...item,
+    status,
+    reviewedAt: new Date(),
+  }
+}
+
 /**
  * Perform an approval action (approve or reject)
  *
@@ -36,7 +47,7 @@ type ApprovalActionType = 'approve' | 'reject'
  * @param data - Optional request body with notes
  * @returns Promise with the updated approval item
  */
-async function performApprovalAction(
+export async function performApprovalAction(
   id: string,
   action: ApprovalActionType,
   data: ApprovalActionRequest = {}
@@ -44,13 +55,24 @@ async function performApprovalAction(
   let response: Response
 
   try {
-    response = await apiPost(`/api/approvals/${id}/${action}`, data, {
-      baseURL: NESTJS_API_URL,
-    })
+    const endpoint =
+      action === 'approve'
+        ? API_ENDPOINTS.approvals.approve(id)
+        : API_ENDPOINTS.approvals.reject(id)
+
+    response = await apiPost(endpoint, data)
   } catch (err) {
     // Network error - API server may not be running
     console.error(`[ApprovalService] Network error during ${action}:`, err)
     throw new Error('Unable to connect to approval service. Please try again later.')
+  }
+
+  const raw = await response.text()
+  let parsed: any = {}
+  try {
+    parsed = raw ? JSON.parse(raw) : {}
+  } catch {
+    // fall through with empty parsed
   }
 
   if (!response.ok) {
@@ -58,11 +80,14 @@ async function performApprovalAction(
       console.warn(`[ApprovalService] ${action} endpoint not found (404) - backend may not be configured`)
       throw new Error('Approval endpoint not found. Backend may not be configured.')
     }
-    const error = await response.json().catch(() => ({ message: `Failed to ${action}` }))
-    throw new Error(error.message || `Failed to ${action}`)
+    throw new Error(parsed?.message || `Failed to ${action}`)
   }
 
-  return response.json()
+  if (!parsed?.data) {
+    throw new Error(`Malformed approval response for ${action}`)
+  }
+
+  return parsed as ApprovalResponse
 }
 
 /**
@@ -112,7 +137,7 @@ export function useApprovalQuickActions() {
             ...old,
             data: old.data.map((item) =>
               item.id === id
-                ? { ...item, status: 'approved' as const, reviewedAt: new Date() }
+                ? buildOptimisticReviewedItem(item, 'approved')
                 : item
             ),
           }
@@ -167,7 +192,7 @@ export function useApprovalQuickActions() {
             ...old,
             data: old.data.map((item) =>
               item.id === id
-                ? { ...item, status: 'rejected' as const, reviewedAt: new Date() }
+                ? buildOptimisticReviewedItem(item, 'rejected')
                 : item
             ),
           }
@@ -203,7 +228,9 @@ export function useApprovalQuickActions() {
 
   return {
     approve: approveMutation.mutate,
+    approveAsync: approveMutation.mutateAsync,
     reject: rejectMutation.mutate,
+    rejectAsync: rejectMutation.mutateAsync,
     isApproving: approveMutation.isPending,
     isRejecting: rejectMutation.isPending,
     approveError: approveMutation.error,

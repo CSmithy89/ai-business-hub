@@ -26,6 +26,11 @@ pnpm exec playwright install
 cp tests/.env.example tests/.env.local
 
 # Fill in test credentials
+# For OAuth E2E (Story 14.18), set:
+# E2E_OAUTH_TEST=true
+# BASE_URL=http://localhost:3000
+# TEST_USER_EMAIL/TEST_USER_PASSWORD (used for seeded login helpers)
+# OAuth client IDs/secrets can remain dummy when E2E_OAUTH_TEST is true
 ```
 
 ## Running Tests

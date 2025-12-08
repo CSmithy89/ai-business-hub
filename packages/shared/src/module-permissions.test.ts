@@ -353,7 +353,7 @@ describe('Module Permission Validation', () => {
     })
 
     it('should handle large number of overrides', () => {
-      const manyOverrides: any = {}
+      const manyOverrides: Record<string, { role: 'admin' }> = {}
       for (let i = 0; i < 100; i++) {
         manyOverrides[`module-${i}`] = { role: 'admin' }
       }
@@ -402,8 +402,8 @@ describe('Module Permission Validation', () => {
     })
 
     it('should reject invalid real-world scenario', () => {
-      const overrides = {
-        'bm-crm': { role: 'owner' as any }, // Invalid: owner not allowed
+      const overrides: Record<string, { role: string }> = {
+        'bm-crm': { role: 'owner' }, // Invalid: owner not allowed
       }
       const result = validateCompleteOverrides(overrides)
       expect(result.valid).toBe(false)

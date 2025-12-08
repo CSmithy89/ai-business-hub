@@ -17,6 +17,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      ioredis: path.resolve(__dirname, './src/__tests__/__mocks__/ioredis.ts'),
     },
   },
 });

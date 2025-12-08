@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>14-16</story-id>
+    <story-title>Error Boundary Monitoring Integration</story-title>
+    <epic>EPIC-14</epic>
+    <generated-date>2025-12-06</generated-date>
+    <dependencies>
+      <dependency epic="12" story="retro" status="complete">Epic-12 retrospective entry on error boundary monitoring</dependency>
+    </dependencies>
+  </metadata>
+
+  <section name="key-files">
+    <file path="apps/web/src/components/error-boundary.tsx" />
+    <file path="apps/web/src/app/providers.tsx" />
+    <file path="apps/web/src/lib/telemetry/error-tracking.ts" />
+  </section>
+
+  <section name="monitoring-focus">
+    <item>Initialize telemetry via `initializeErrorTracking` at app startup.</item>
+    <item>Error boundary `componentDidCatch` should call `captureException`/`addBreadcrumb` with metadata.</item>
+    <item>Tests should ensure telemetry hooks fire when fallback UI is rendered.</item>
+  </section>
+</story-context>

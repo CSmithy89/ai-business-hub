@@ -13,10 +13,11 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
-import { RedisContainer, StartedRedisContainer } from '@testcontainers/redis'
+import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis'
 import { Ratelimit } from '@upstash/ratelimit'
-import { Redis as IORedis } from 'ioredis'
 import { execSync } from 'child_process'
+import { generateRateLimitHeaders } from '../lib/utils/rate-limit'
+import IORedis from 'ioredis'
 
 /**
  * Custom Redis adapter for @upstash/ratelimit to work with ioredis.
@@ -46,23 +47,6 @@ class IORedisAdapter {
     const result = await this.client.hgetall(key)
     if (!result || Object.keys(result).length === 0) return null
     return result as TData
-  }
-}
-
-/**
- * Helper function to generate rate limit headers
- * This demonstrates how headers SHOULD be implemented in routes (AC5)
- */
-export function generateRateLimitHeaders(result: {
-  success: boolean
-  limit: number
-  remaining: number
-  reset: number
-}): Record<string, string> {
-  return {
-    'X-RateLimit-Limit': result.limit.toString(),
-    'X-RateLimit-Remaining': result.remaining.toString(),
-    'X-RateLimit-Reset': Math.floor(result.reset / 1000).toString(), // Unix timestamp in seconds
   }
 }
 
@@ -122,7 +106,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
   describe('AC2 & AC3: Concurrent Request Handling', () => {
     it('should enforce rate limit under concurrent load (100 requests)', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(10, '1 m'),
         prefix: 'test:concurrent',
@@ -150,7 +134,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
 
     it('should handle burst of concurrent requests with different limits', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(25, '1 m'),
         prefix: 'test:burst',
@@ -174,7 +158,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
 
     it('should correctly track remaining count during concurrent load', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(10, '1 m'),
         prefix: 'test:remaining',
@@ -207,7 +191,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
     it('should reset rate limit after window expires', async () => {
       // Use 2 second window for faster test
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(5, '2 s'),
         prefix: 'test:window',
@@ -236,7 +220,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
 
     it('should enforce sliding window accurately (not fixed window)', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(3, '3 s'),
         prefix: 'test:sliding',
@@ -268,7 +252,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
 
     it('should handle partial window expiration correctly', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(5, '2 s'),
         prefix: 'test:partial',
@@ -302,7 +286,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
   describe('AC5: Rate Limit Headers', () => {
     it('should generate correct rate limit headers', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(10, '1 m'),
         prefix: 'test:headers',
@@ -314,7 +298,11 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
       const result = await limiter.limit(userId)
 
       // Generate headers from result
-      const headers = generateRateLimitHeaders(result)
+      const headers = generateRateLimitHeaders({
+        limit: 10,
+        remaining: result.remaining,
+        resetAt: new Date(result.reset),
+      })
 
       expect(headers['X-RateLimit-Limit']).toBe('10')
       expect(headers['X-RateLimit-Remaining']).toBe('9')
@@ -330,7 +318,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
 
     it('should show zero remaining when limit exhausted', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(3, '1 m'),
         prefix: 'test:headers-zero',
@@ -343,7 +331,11 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
 
       // Next request should show 0 remaining
       const result = await limiter.limit(userId)
-      const headers = generateRateLimitHeaders(result)
+      const headers = generateRateLimitHeaders({
+        limit: 3,
+        remaining: result.remaining,
+        resetAt: new Date(result.reset),
+      })
 
       expect(headers['X-RateLimit-Limit']).toBe('3')
       expect(headers['X-RateLimit-Remaining']).toBe('0')
@@ -352,7 +344,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
 
     it('should maintain consistent headers across concurrent requests', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(10, '1 m'),
         prefix: 'test:headers-concurrent',
@@ -371,7 +363,13 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
       expect(results.every((r) => r.success)).toBe(true)
 
       // Generate headers for each result
-      const allHeaders = results.map((r) => generateRateLimitHeaders(r))
+      const allHeaders = results.map((r) =>
+        generateRateLimitHeaders({
+          limit: 10,
+          remaining: r.remaining,
+          resetAt: new Date(r.reset),
+        })
+      )
 
       // All should have same limit
       expect(allHeaders.every((h) => h['X-RateLimit-Limit'] === '10')).toBe(true)
@@ -392,7 +390,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
   describe('Multi-User Isolation', () => {
     it('should isolate rate limits between different users', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(5, '1 m'),
         prefix: 'test:isolation',
@@ -421,7 +419,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
 
     it('should handle concurrent requests from multiple users', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(10, '1 m'),
         prefix: 'test:multi-user',
@@ -456,7 +454,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
   describe('DDoS Simulation', () => {
     it('should handle 1000+ concurrent requests without crashing', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(50, '1 m'),
         prefix: 'test:ddos',
@@ -493,7 +491,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
 
     it('should handle DDoS from multiple IPs/users simultaneously', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(20, '1 m'),
         prefix: 'test:ddos-multi',
@@ -541,7 +539,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
   describe('Edge Cases & Reliability', () => {
     it('should handle rapid sequential requests correctly', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(10, '1 m'),
         prefix: 'test:sequential',
@@ -564,7 +562,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
 
     it('should maintain accuracy under mixed concurrent and sequential load', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(20, '1 m'),
         prefix: 'test:mixed',
@@ -592,7 +590,7 @@ describeWithDocker('Rate Limit Concurrency - Integration Tests with Real Redis',
 
     it('should handle very high limits correctly', async () => {
       const limiter = new Ratelimit({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         redis: redisAdapter as any,
         limiter: Ratelimit.slidingWindow(1000, '1 m'),
         prefix: 'test:high-limit',

@@ -8,7 +8,11 @@ import {
 } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import { BaseEvent, safeValidateEventPayload } from '@hyvve/shared';
-import { RedisProvider } from './redis.provider';
+import {
+  RedisProvider,
+  RedisXReadGroupResult,
+  RedisStreamEntry,
+} from './redis.provider';
 import { PrismaService } from '../common/services/prisma.service';
 import {
   STREAMS,
@@ -106,8 +110,11 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
 
       const prototype = Object.getPrototypeOf(instance);
       const methodNames = Object.getOwnPropertyNames(prototype).filter(
-        (name) =>
-          name !== 'constructor' && typeof prototype[name] === 'function',
+        (name) => {
+          if (name === 'constructor') return false;
+          const descriptor = Object.getOwnPropertyDescriptor(prototype, name);
+          return typeof descriptor?.value === 'function';
+        },
       );
 
       for (const methodName of methodNames) {
@@ -144,7 +151,7 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
    * @param metadata - The subscriber metadata
    */
   private registerHandler(
-    instance: any,
+    instance: Record<string, unknown>,
     methodName: string,
     metadata: EventSubscriberOptions,
   ): void {
@@ -158,7 +165,13 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
       methodName,
       execute: async (event: BaseEvent) => {
         // Bind the method to the instance and call it
-        return await instance[methodName](event);
+        const handler = instance[methodName];
+        if (typeof handler !== 'function') {
+          throw new Error(
+            `Handler ${methodName} on ${instance.constructor.name} is not a function`,
+          );
+        }
+        return await handler.call(instance, event);
       },
     };
 
@@ -189,7 +202,7 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
     while (this.running) {
       try {
         // XREADGROUP: Block for new events (5s timeout), read up to 10 events
-        const messages = await redis.xreadgroup(
+        const messages = (await redis.xreadgroup(
           'GROUP',
           CONSUMER_GROUP,
           this.consumerName,
@@ -200,7 +213,7 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
           'STREAMS',
           STREAMS.MAIN,
           '>',
-        );
+        )) as RedisXReadGroupResult | null;
 
         // Reset consecutive error count on successful Redis read
         consecutiveErrors = 0;
@@ -212,7 +225,7 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
               `Received ${entries.length} event(s) from stream ${stream}`,
             );
 
-            for (const [streamId, fields] of entries) {
+            for (const [streamId, fields] of entries as RedisStreamEntry[]) {
               // Process each event in its own try-catch to isolate failures
               try {
                 // Parse event from Redis stream fields

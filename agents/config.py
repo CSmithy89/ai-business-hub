@@ -4,8 +4,11 @@ AgentOS Configuration Management
 Manages environment variables for the AgentOS runtime using Pydantic Settings.
 """
 
-from pydantic_settings import BaseSettings
+from functools import lru_cache
 from typing import Optional
+
+from pydantic import Field, SecretStr, field_validator
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -18,7 +21,7 @@ class Settings(BaseSettings):
     redis_url: Optional[str] = None
 
     # Authentication
-    better_auth_secret: str
+    better_auth_secret: SecretStr
 
     # Server
     agentos_host: str = "0.0.0.0"
@@ -29,12 +32,37 @@ class Settings(BaseSettings):
 
     # Control Plane (optional)
     control_plane_enabled: bool = True
-    agno_api_key: Optional[str] = None
+    agno_api_key: Optional[SecretStr] = None
+
+    # CORS
+    cors_origins: list[str] | str = Field(
+        default_factory=lambda: [
+            "http://localhost:3000",
+            "http://localhost:3001",
+        ]
+    )
+    cors_allow_methods: list[str] = Field(
+        default_factory=lambda: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    )
+    cors_allow_headers: list[str] = Field(default_factory=lambda: ["Authorization", "Content-Type"])
+    control_plane_origin: str = "https://os.agno.com"
+
+    @field_validator("better_auth_secret")
+    @classmethod
+    def _ensure_auth_secret(cls, v: SecretStr) -> SecretStr:
+        value = v.get_secret_value()
+        if not value or not value.strip():
+            raise ValueError("BETTER_AUTH_SECRET must be set")
+        return v
 
     class Config:
         env_file = ".env"
         case_sensitive = False
 
 
-# Global settings instance
-settings = Settings()
+@lru_cache
+def get_settings() -> "Settings":
+    """
+    Lazy settings factory to avoid eager validation at import time.
+    """
+    return Settings()

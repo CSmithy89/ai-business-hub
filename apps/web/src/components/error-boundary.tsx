@@ -47,13 +47,40 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error to monitoring service in production
-    console.error('ErrorBoundary caught error:', error, errorInfo)
+    void (async () => {
+      try {
+        const { captureException, addBreadcrumb } = await import('@/lib/telemetry/error-tracking')
+
+        const message = error instanceof Error ? error.message : String(error)
+        const stackRaw = errorInfo?.componentStack ?? ''
+        const sanitizedStack = stackRaw.replace(/\/[^\s)]+/g, '[path]').slice(0, 500)
+
+        addBreadcrumb({
+          category: 'error-boundary',
+          message,
+          level: 'error',
+          data: { componentStack: sanitizedStack },
+        })
+        const errForCapture = error instanceof Error ? error : new Error(String(error))
+
+        captureException(errForCapture, {
+          tags: { feature: 'error-boundary' },
+          extra: {
+            componentStack: sanitizedStack,
+          },
+        })
+      } catch (telemetryError) {
+        // Avoid throwing from the error handler itself
+         
+        console.error('[ErrorBoundary] failed to report error', telemetryError)
+      }
+    })()
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null })
-    this.props.onRetry?.()
+    this.setState({ hasError: false, error: null }, () => {
+      this.props.onRetry?.()
+    })
   }
 
   render() {

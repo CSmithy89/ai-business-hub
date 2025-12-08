@@ -3,7 +3,7 @@
 **Epic:** EPIC-14 - Testing & Observability
 **Points:** 2
 **Priority:** P2 Medium
-**Status:** In Progress
+**Status:** done
 
 ## User Story
 As a developer, I want unit tests for Zustand stores so that state transitions are verified.
@@ -131,6 +131,11 @@ pnpm turbo type-check --filter @hyvve/web
 - localStorage is fully mocked with spy functions
 - Module reset between tests ensures isolation
 - React Testing Library used for hook testing (if added)
+
+## Senior Developer Review
+
+**Status:** APPROVED  
+**Reviewer Notes:** Hydration and persistence cases fully exercised; mocks are isolated with module resets. No blocking issues—acceptable to mark done.
 
 ## Related Files
 - `apps/web/src/stores/ui.ts` - Store implementation

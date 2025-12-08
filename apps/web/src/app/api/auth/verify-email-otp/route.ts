@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@hyvve/db'
 import { verifyOTP } from '@/lib/otp'
-import { checkRateLimit, resetRateLimit, DEFAULT_RATE_LIMIT_MAX_ATTEMPTS } from '@/lib/utils/rate-limit'
+import {
+  checkRateLimit,
+  resetRateLimit,
+  DEFAULT_RATE_LIMIT_MAX_ATTEMPTS,
+  generateRateLimitHeaders,
+} from '@/lib/utils/rate-limit'
 
 interface VerifyEmailOtpRequest {
   email: string
@@ -44,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     if (rateLimitResult.isRateLimited) {
       const remainingTime = Math.ceil((rateLimitResult.retryAfter || 0) / 60)
-      return NextResponse.json(
+      const response = NextResponse.json(
         {
           error: {
             code: 'RATE_LIMITED',
@@ -54,6 +59,13 @@ export async function POST(request: NextRequest) {
         },
         { status: 429 }
       )
+      const headers = generateRateLimitHeaders({
+        limit: DEFAULT_RATE_LIMIT_MAX_ATTEMPTS,
+        remaining: 0,
+        resetAt: rateLimitResult.resetAt,
+      })
+      Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      return response
     }
 
     // Find user by email
@@ -68,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       // Rate limit already incremented by checkRateLimit above
-      return NextResponse.json(
+      const response = NextResponse.json(
         {
           error: {
             code: 'NOT_FOUND',
@@ -77,11 +89,18 @@ export async function POST(request: NextRequest) {
         },
         { status: 404 }
       )
+      const headers = generateRateLimitHeaders({
+        limit: DEFAULT_RATE_LIMIT_MAX_ATTEMPTS,
+        remaining: rateLimitResult.remaining,
+        resetAt: rateLimitResult.resetAt,
+      })
+      Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      return response
     }
 
     // Check if email is already verified
     if (user.emailVerified) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         {
           error: {
             code: 'ALREADY_VERIFIED',
@@ -90,6 +109,13 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       )
+      const headers = generateRateLimitHeaders({
+        limit: DEFAULT_RATE_LIMIT_MAX_ATTEMPTS,
+        remaining: rateLimitResult.remaining,
+        resetAt: rateLimitResult.resetAt,
+      })
+      Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      return response
     }
 
     // Find active verification token for this user
@@ -108,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     if (!verificationRecord) {
       // Rate limit already incremented by checkRateLimit above
-      return NextResponse.json(
+      const response = NextResponse.json(
         {
           error: {
             code: 'EXPIRED_TOKEN',
@@ -117,6 +143,13 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       )
+      const headers = generateRateLimitHeaders({
+        limit: DEFAULT_RATE_LIMIT_MAX_ATTEMPTS,
+        remaining: rateLimitResult.remaining,
+        resetAt: rateLimitResult.resetAt,
+      })
+      Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      return response
     }
 
     // Verify OTP against the token
@@ -124,7 +157,7 @@ export async function POST(request: NextRequest) {
 
     if (!isValidOtp) {
       // Rate limit already incremented by checkRateLimit above
-      return NextResponse.json(
+      const response = NextResponse.json(
         {
           error: {
             code: 'INVALID_CODE',
@@ -134,20 +167,27 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       )
+      const headers = generateRateLimitHeaders({
+        limit: DEFAULT_RATE_LIMIT_MAX_ATTEMPTS,
+        remaining: rateLimitResult.remaining,
+        resetAt: rateLimitResult.resetAt,
+      })
+      Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      return response
     }
 
-    // Valid OTP - mark email as verified
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerified: true,
-      },
-    })
-
-    // Delete the verification record (one-time use)
-    await prisma.verificationToken.delete({
-      where: { id: verificationRecord.id },
-    })
+    // Valid OTP - mark email as verified and delete token atomically
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerified: true,
+        },
+      }),
+      prisma.verificationToken.delete({
+        where: { id: verificationRecord.id },
+      }),
+    ])
 
     // Clear rate limit on success
     await resetRateLimit(rateLimitKey)
@@ -155,10 +195,17 @@ export async function POST(request: NextRequest) {
     // Log success (audit trail)
     console.log(`Email verified via OTP for user: ${user.id} (${user.email})`)
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: 'Email verified successfully',
     })
+    const headers = generateRateLimitHeaders({
+      limit: DEFAULT_RATE_LIMIT_MAX_ATTEMPTS,
+      remaining: rateLimitResult.remaining,
+      resetAt: rateLimitResult.resetAt,
+    })
+    Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+    return response
   } catch (error) {
     console.error('OTP verification error:', error)
     return NextResponse.json(

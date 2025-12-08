@@ -2,11 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
-
-/**
- * API base URL for the NestJS backend
- */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+import { NESTJS_API_URL } from '@/lib/api-config'
 
 /**
  * Token limit status
@@ -26,12 +22,9 @@ export interface TokenLimitStatus {
  * Fetch token limit status for all providers in workspace
  */
 async function fetchLimitStatus(workspaceId: string): Promise<{ data: TokenLimitStatus[] }> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/workspaces/${workspaceId}/ai-providers/limits`,
-    {
-      credentials: 'include',
-    }
-  )
+  const response = await fetch(`${NESTJS_API_URL}/api/workspaces/${workspaceId}/ai-providers/limits`, {
+    credentials: 'include',
+  })
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Failed to fetch limits' }))
@@ -50,7 +43,7 @@ async function updateLimit(
   maxTokensPerDay: number
 ): Promise<{ message: string; data: TokenLimitStatus }> {
   const response = await fetch(
-    `${API_BASE_URL}/api/workspaces/${workspaceId}/ai-providers/${providerId}/limit`,
+    `${NESTJS_API_URL}/api/workspaces/${workspaceId}/ai-providers/${providerId}/limit`,
     {
       method: 'PATCH',
       credentials: 'include',

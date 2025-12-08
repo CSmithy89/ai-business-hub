@@ -197,6 +197,7 @@ export function SignInForm() {
           className="w-full"
           onClick={handleGoogleSignIn}
           disabled={isGoogleLoading || isSubmitting || isMicrosoftLoading || isGitHubLoading}
+          data-testid="google-sign-in-button"
         >
           {isGoogleLoading ? (
             <>
@@ -234,6 +235,7 @@ export function SignInForm() {
           className="w-full"
           onClick={handleMicrosoftSignIn}
           disabled={isMicrosoftLoading || isSubmitting || isGoogleLoading || isGitHubLoading}
+          data-testid="microsoft-sign-in-button"
         >
           {isMicrosoftLoading ? (
             <>
@@ -256,6 +258,7 @@ export function SignInForm() {
           className="w-full"
           onClick={handleGitHubSignIn}
           disabled={isGitHubLoading || isSubmitting || isGoogleLoading || isMicrosoftLoading}
+          data-testid="github-sign-in-button"
         >
           {isGitHubLoading ? (
             <>
