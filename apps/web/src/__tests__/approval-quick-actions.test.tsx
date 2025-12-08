@@ -1,11 +1,4 @@
-import { renderHook, act, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { ApprovalItem } from '@hyvve/shared'
-import { useApprovalQuickActions, buildOptimisticReviewedItem } from '@/hooks/use-approval-quick-actions'
-import * as apiClient from '@/lib/api-client'
-import { API_ENDPOINTS } from '@/lib/api-config'
-import { toast } from 'sonner'
 
 vi.mock('sonner', () => ({
   toast: {
@@ -13,6 +6,13 @@ vi.mock('sonner', () => ({
     error: vi.fn(),
   },
 }))
+import { renderHook, act, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { ApprovalItem } from '@hyvve/shared'
+import { useApprovalQuickActions, buildOptimisticReviewedItem } from '@/hooks/use-approval-quick-actions'
+import * as apiClient from '@/lib/api-client'
+import { API_ENDPOINTS } from '@/lib/api-config'
+import { toast } from 'sonner'
 
 const createWrapper = () => {
   const queryClient = new QueryClient()

@@ -1,3 +1,4 @@
+import { createHash, randomUUID } from 'crypto'
 import { auth } from '@/lib/auth'
 import { checkRateLimit, generateRateLimitHeaders } from '@/lib/utils/rate-limit'
 import { NextResponse } from 'next/server'
@@ -27,7 +28,12 @@ export async function POST(request: Request) {
     // Get IP address from headers (supports proxies and load balancers)
     const forwarded = request.headers.get('x-forwarded-for')
     const realIp = request.headers.get('x-real-ip')
-    const ip = forwarded?.split(',')[0].trim() || realIp || 'unknown'
+    const userAgent = request.headers.get('user-agent') || ''
+    const uaFingerprint = userAgent
+      ? `ua:${createHash('sha256').update(userAgent).digest('hex').slice(0, 12)}`
+      : `anon:${randomUUID()}`
+    // Prefer proxy-provided IPs; fall back to a fingerprint to avoid collapsing requests into a single bucket.
+    const ip = forwarded?.split(',')[0].trim() || realIp || uaFingerprint
 
     const rateLimitKey = `signin:${ip}`
     const limit = 5

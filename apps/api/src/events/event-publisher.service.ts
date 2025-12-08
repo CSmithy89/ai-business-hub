@@ -94,7 +94,7 @@ export class EventPublisherService {
 
       // Step 6: XADD to Redis stream with MAXLEN for retention
       const maxLen = this.calculateRetentionLimit();
-      const streamId = await redis.xadd(
+      const streamId = (await redis.xadd(
         STREAMS.MAIN,
         'MAXLEN',
         '~', // Approximate trimming for performance
@@ -102,7 +102,7 @@ export class EventPublisherService {
         '*', // Auto-generate stream ID
         'event',
         eventJson,
-      );
+      )) as string;
 
       // Step 7: Create EventMetadata record
       await this.prisma.eventMetadata.create({
@@ -165,7 +165,12 @@ export class EventPublisherService {
 
     // Use Redis pipeline for atomic operations
     const redis = this.redisProvider.getClient();
-    const pipeline = redis.pipeline();
+    const pipeline = (redis as {
+      pipeline: () => {
+        xadd: (...args: (string | number)[]) => void;
+        exec: () => Promise<unknown>;
+      };
+    }).pipeline();
 
     const eventMetadataRecords: any[] = [];
     const eventsData: BaseEvent[] = [];
@@ -217,7 +222,7 @@ export class EventPublisherService {
 
     try {
       // Execute pipeline atomically
-      const results = await pipeline.exec();
+      const results = (await pipeline.exec()) as Array<[unknown, unknown]> | null;
 
       if (!results) {
         throw new Error('Pipeline execution failed');

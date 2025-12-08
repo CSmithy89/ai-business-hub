@@ -12,21 +12,11 @@
  * @module rate-limit.integration.test
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis'
 import { Ratelimit } from '@upstash/ratelimit'
 import { execSync } from 'child_process'
 import { generateRateLimitHeaders } from '../lib/utils/rate-limit'
-
-vi.mock('ioredis', () => {
-  class MockRedis {
-    eval = vi.fn().mockResolvedValue({})
-    hgetall = vi.fn().mockResolvedValue({})
-    quit = vi.fn().mockResolvedValue(undefined)
-    flushdb = vi.fn().mockResolvedValue('OK')
-  }
-  return { default: MockRedis }
-})
 import IORedis from 'ioredis'
 
 /**

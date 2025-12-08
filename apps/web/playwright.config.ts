@@ -45,7 +45,7 @@ export default defineConfig({
     const reportDir = process.env.PLAYWRIGHT_REPORT_DIR || 'playwright-report'
     return [
       ['html', { outputFolder: reportDir }],
-      ['junit', { outputFile: `${reportDir}/junit.xml` }],
+      ['junit', { outputFile: `${reportDir}/junit-${process.pid}.xml` }],
       ['list'],
     ]
   })(),

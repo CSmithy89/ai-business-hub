@@ -60,10 +60,13 @@ function getAccessToken(session: unknown): string | undefined {
 }
 
 function getApiBase(): string {
-  if (!NESTJS_API_URL) {
-    throw new Error('NESTJS_API_URL is not configured');
+  if (NESTJS_API_URL) {
+    return NESTJS_API_URL.replace(/\/$/, '');
   }
-  return NESTJS_API_URL.replace(/\/$/, '');
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin.replace(/\/$/, '');
+  }
+  throw new Error('NESTJS_API_URL is not configured');
 }
 
 /**
@@ -81,9 +84,10 @@ export function useAgentPreferences() {
 
       const token = getAccessToken(session);
       const response = await fetch(
-        `${base}/workspaces/${encodeURIComponent(
-          workspaceId
-        )}/ai-providers/agents/preferences`,
+        new URL(
+          `/workspaces/${encodeURIComponent(workspaceId)}/ai-providers/agents/preferences`,
+          base
+        ).toString(),
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
@@ -115,9 +119,10 @@ export function useAvailableModels() {
 
       const token = getAccessToken(session);
       const response = await fetch(
-        `${base}/workspaces/${encodeURIComponent(
-          workspaceId
-        )}/ai-providers/agents/models`,
+        new URL(
+          `/workspaces/${encodeURIComponent(workspaceId)}/ai-providers/agents/models`,
+          base
+        ).toString(),
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
@@ -164,9 +169,12 @@ export function useUpdateAgentPreference() {
       }
 
       const response = await fetch(
-        `${base}/workspaces/${encodeURIComponent(
-          workspaceId
-        )}/ai-providers/agents/${encodeURIComponent(agentId)}/preference`,
+        new URL(
+          `/workspaces/${encodeURIComponent(
+            workspaceId
+          )}/ai-providers/agents/${encodeURIComponent(agentId)}/preference`,
+          base
+        ).toString(),
         {
           method: 'PATCH',
           headers,
@@ -208,9 +216,12 @@ export function useResetAgentPreference() {
       }
 
       const response = await fetch(
-        `${base}/workspaces/${encodeURIComponent(
-          workspaceId
-        )}/ai-providers/agents/${encodeURIComponent(agentId)}/preference`,
+        new URL(
+          `/workspaces/${encodeURIComponent(
+            workspaceId
+          )}/ai-providers/agents/${encodeURIComponent(agentId)}/preference`,
+          base
+        ).toString(),
         {
           method: 'DELETE',
           headers,

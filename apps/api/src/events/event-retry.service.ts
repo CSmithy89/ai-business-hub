@@ -305,12 +305,12 @@ export class EventRetryService {
       });
 
       // Re-publish to main stream
-      const newStreamId = await redis.xadd(
+      const newStreamId = (await redis.xadd(
         STREAMS.MAIN,
         '*',
         'event',
         JSON.stringify(newEvent),
-      );
+      )) as string;
 
       // Update streamId in metadata
       await this.prisma.eventMetadata.update({

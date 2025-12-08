@@ -4,12 +4,12 @@
  * Validates CSRF token issuance and enforcement using Next.js request objects.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterAll } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
 import { withCSRF } from '@/lib/middleware/with-csrf'
 import { CSRF_HEADER_NAME, generateCSRFToken } from '@/lib/csrf'
 
-process.env.CSRF_SECRET = 'a-secure-csrf-secret-value-that-is-long-enough'
+const originalCsrfSecret = process.env.CSRF_SECRET
 
 const sessionToken = 'session-token-123'
 const otherSessionToken = 'session-token-456'
@@ -26,14 +26,16 @@ function mockContext() {
   return { user: { id: 'user-1' } as any }
 }
 
-const handler = (req: NextRequest, ctx?: any) => {
-  const wrapped = withCSRF(async () => NextResponse.json({ ok: true }))
-  return wrapped(req, ctx)
-}
+const wrappedHandler = withCSRF(async () => NextResponse.json({ ok: true }))
+const handler = (req: NextRequest, ctx?: any) => wrappedHandler(req, ctx)
 
 describe('CSRF integration', () => {
   beforeEach(() => {
     process.env.CSRF_SECRET = 'a-secure-csrf-secret-value-that-is-long-enough'
+  })
+
+  afterAll(() => {
+    process.env.CSRF_SECRET = originalCsrfSecret
   })
 
   it('allows safe method without CSRF header', async () => {

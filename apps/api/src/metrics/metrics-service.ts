@@ -162,9 +162,12 @@ export class MetricsService implements OnModuleDestroy {
       }
 
       try {
-        const groups = await redis.xinfo('GROUPS', STREAMS.MAIN);
-        for (const group of groups) {
-          const groupInfo = this.parseXinfoReply(group as unknown[]);
+        const groups = (await redis.xinfo(
+          'GROUPS',
+          STREAMS.MAIN,
+        )) as unknown[][];
+        for (const group of groups ?? []) {
+          const groupInfo = this.parseXinfoReply(group);
           if (String(groupInfo.name) === CONSUMER_GROUP) {
             this.eventBusLag.set(
               { consumer_group: CONSUMER_GROUP },

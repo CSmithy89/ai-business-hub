@@ -79,7 +79,7 @@ async function fetchApprovals(filters: ApprovalFilters = {}): Promise<ApprovalsL
  * Fetch a single approval by ID
  */
 async function fetchApproval(id: string): Promise<ApprovalResponse> {
-  const response = await fetch(`${NESTJS_API_URL}/api/approvals/${id}`, {
+  const response = await fetch(`${NESTJS_API_URL}/api/approvals/${encodeURIComponent(id)}`, {
     credentials: 'include',
   })
 
@@ -95,7 +95,7 @@ async function fetchApproval(id: string): Promise<ApprovalResponse> {
  * Approve an approval item
  */
 async function approveApproval(id: string, data: ApprovalActionRequest = {}): Promise<ApprovalResponse> {
-  const response = await fetch(`${NESTJS_API_URL}/api/approvals/${id}/approve`, {
+  const response = await fetch(`${NESTJS_API_URL}/api/approvals/${encodeURIComponent(id)}/approve`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ async function approveApproval(id: string, data: ApprovalActionRequest = {}): Pr
  * Reject an approval item
  */
 async function rejectApproval(id: string, data: ApprovalActionRequest = {}): Promise<ApprovalResponse> {
-  const response = await fetch(`${NESTJS_API_URL}/api/approvals/${id}/reject`, {
+  const response = await fetch(`${NESTJS_API_URL}/api/approvals/${encodeURIComponent(id)}/reject`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
