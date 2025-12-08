@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { signUp, authClient } from '@/lib/auth-client'
 import { signUpSchema, type SignUpFormData } from '@/lib/validations/auth'
@@ -27,10 +27,14 @@ export function SignUpForm() {
     register,
     handleSubmit,
     watch,
+    control,
     formState: { errors },
   } = useForm<SignUpFormData>({
     resolver: standardSchemaResolver(signUpSchema),
     mode: 'onBlur',
+    defaultValues: {
+      termsAccepted: false,
+    },
   })
 
   const password = watch('password', '')
@@ -344,11 +348,18 @@ export function SignUpForm() {
 
       {/* Terms Checkbox */}
       <div className="flex items-start space-x-2">
-        <Checkbox
-          id="terms"
-          {...register('termsAccepted')}
-          disabled={isSubmitting}
-          aria-invalid={errors.termsAccepted ? 'true' : 'false'}
+        <Controller
+          name="termsAccepted"
+          control={control}
+          render={({ field: { value, onChange } }) => (
+            <Checkbox
+              id="terms"
+              checked={value}
+              onCheckedChange={(checked) => onChange(!!checked)}
+              disabled={isSubmitting}
+              aria-invalid={errors.termsAccepted ? 'true' : 'false'}
+            />
+          )}
         />
         <div className="space-y-1">
           <Label

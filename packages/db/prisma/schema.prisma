@@ -69,7 +69,7 @@ model Session {
 model Account {
   id                String    @id @default(uuid())
   userId            String    @map("user_id")
-  provider          String
+  provider          String    @default("credential")
   providerAccountId String    @map("provider_account_id")
   accessToken       String?   @map("access_token") @db.Text
   refreshToken      String?   @map("refresh_token") @db.Text
