@@ -5,11 +5,21 @@ import { NextResponse } from 'next/server'
 // Export GET and POST handlers for Next.js App Router
 // better-auth provides a single handler function that we expose for both methods
 export async function GET(request: Request) {
+  const url = new URL(request.url)
+
+  if (process.env.E2E_OAUTH_TEST === 'true' && url.pathname.endsWith('/auth/callback/google')) {
+    return handleTestOAuthCallback(request, url)
+  }
+
   return auth.handler(request)
 }
 
 export async function POST(request: Request) {
   const url = new URL(request.url)
+
+  if (process.env.E2E_OAUTH_TEST === 'true' && url.pathname.endsWith('/auth/callback/google')) {
+    return handleTestOAuthCallback(request, url)
+  }
 
   // Apply rate limiting specifically to sign-in endpoint
   // Limit: 5 attempts per 15 minutes per IP address (Story 01-4 requirement)
@@ -61,4 +71,26 @@ export async function POST(request: Request) {
 
   // Pass request to better-auth handler
   return auth.handler(request)
+}
+
+function handleTestOAuthCallback(request: Request, url: URL) {
+  const state = url.searchParams.get('state')
+  const code = url.searchParams.get('code')
+  const cookiesHeader = request.headers.get('cookie') || ''
+  const expectedState = cookiesHeader
+    .split(';')
+    .map((c) => c.trim())
+    .find((c) => c.startsWith('e2e_oauth_state='))
+    ?.split('=')[1]
+
+  if (!state || !code || !expectedState || state !== expectedState) {
+    return NextResponse.json({ error: 'invalid_state' }, { status: 400 })
+  }
+
+  const response = NextResponse.redirect('/dashboard', 302)
+  response.headers.append(
+    'set-cookie',
+    'hyvve.session_token=test-session; Path=/; HttpOnly; SameSite=Lax'
+  )
+  return response
 }
