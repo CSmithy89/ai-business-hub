@@ -20,9 +20,10 @@ import { generateRateLimitHeaders } from '../lib/utils/rate-limit'
 
 vi.mock('ioredis', () => {
   class MockRedis {
-    eval = vi.fn()
+    eval = vi.fn().mockResolvedValue({})
     hgetall = vi.fn().mockResolvedValue({})
-    quit = vi.fn()
+    quit = vi.fn().mockResolvedValue(undefined)
+    flushdb = vi.fn().mockResolvedValue('OK')
   }
   return { default: MockRedis }
 })

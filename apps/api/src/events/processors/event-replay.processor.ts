@@ -30,7 +30,9 @@ interface ReplayJobData {
 @Processor(QUEUE_EVENT_REPLAY)
 export class EventReplayProcessor extends WorkerHost {
   private readonly logger = new Logger(EventReplayProcessor.name);
-  private readonly redis: any;
+  private get redis(): any {
+    return this.redisProvider.getClient();
+  }
 
   constructor(
     private readonly redisProvider: RedisProvider,
@@ -40,7 +42,6 @@ export class EventReplayProcessor extends WorkerHost {
     private readonly replayService: EventReplayService,
   ) {
     super();
-    this.redis = this.redisProvider.getClient();
   }
 
   /**

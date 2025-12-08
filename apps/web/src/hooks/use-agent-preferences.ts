@@ -53,6 +53,12 @@ function useWorkspaceId(): string | undefined {
     ?.activeWorkspaceId;
 }
 
+function getAccessToken(session: unknown): string | undefined {
+  const direct = (session as { accessToken?: string })?.accessToken;
+  const nested = (session as { session?: { accessToken?: string } })?.session?.accessToken;
+  return direct || nested || undefined;
+}
+
 function getApiBase(): string {
   if (!NESTJS_API_URL) {
     throw new Error('NESTJS_API_URL is not configured');
@@ -73,14 +79,13 @@ export function useAgentPreferences() {
       if (!workspaceId) return [];
       const base = getApiBase();
 
+      const token = getAccessToken(session);
       const response = await fetch(
         `${base}/workspaces/${encodeURIComponent(
           workspaceId
         )}/ai-providers/agents/preferences`,
         {
-          headers: {
-            Authorization: `Bearer ${(session as { accessToken?: string })?.accessToken}`,
-          },
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
 
@@ -108,14 +113,13 @@ export function useAvailableModels() {
       if (!workspaceId) return [];
       const base = getApiBase();
 
+      const token = getAccessToken(session);
       const response = await fetch(
         `${base}/workspaces/${encodeURIComponent(
           workspaceId
         )}/ai-providers/agents/models`,
         {
-          headers: {
-            Authorization: `Bearer ${(session as { accessToken?: string })?.accessToken}`,
-          },
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
 
@@ -151,16 +155,21 @@ export function useUpdateAgentPreference() {
       if (!workspaceId) throw new Error('No workspace');
       const base = getApiBase();
 
+      const token = getAccessToken(session);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const response = await fetch(
         `${base}/workspaces/${encodeURIComponent(
           workspaceId
         )}/ai-providers/agents/${encodeURIComponent(agentId)}/preference`,
         {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${(session as { accessToken?: string })?.accessToken}`,
-          },
+          headers,
           body: JSON.stringify({ providerId, model }),
         }
       );
@@ -192,15 +201,19 @@ export function useResetAgentPreference() {
       if (!workspaceId) throw new Error('No workspace');
       const base = getApiBase();
 
+      const token = getAccessToken(session);
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const response = await fetch(
         `${base}/workspaces/${encodeURIComponent(
           workspaceId
         )}/ai-providers/agents/${encodeURIComponent(agentId)}/preference`,
         {
           method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${(session as { accessToken?: string })?.accessToken}`,
-          },
+          headers,
         }
       );
 

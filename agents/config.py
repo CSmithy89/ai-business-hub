@@ -4,6 +4,7 @@ AgentOS Configuration Management
 Manages environment variables for the AgentOS runtime using Pydantic Settings.
 """
 
+from functools import lru_cache
 from typing import Optional
 
 from pydantic import Field, SecretStr, field_validator
@@ -49,7 +50,8 @@ class Settings(BaseSettings):
     @field_validator("better_auth_secret")
     @classmethod
     def _ensure_auth_secret(cls, v: SecretStr) -> SecretStr:
-        if not v.get_secret_value():
+        value = v.get_secret_value()
+        if not value or not value.strip():
             raise ValueError("BETTER_AUTH_SECRET must be set")
         return v
 
@@ -58,5 +60,9 @@ class Settings(BaseSettings):
         case_sensitive = False
 
 
-# Global settings instance
-settings = Settings()
+@lru_cache
+def get_settings() -> "Settings":
+    """
+    Lazy settings factory to avoid eager validation at import time.
+    """
+    return Settings()

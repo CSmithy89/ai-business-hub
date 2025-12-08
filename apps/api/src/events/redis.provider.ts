@@ -24,14 +24,13 @@ export class RedisProvider implements OnModuleInit {
   private readonly logger = new Logger(RedisProvider.name);
   private redis: any;
 
-  constructor(@InjectQueue('event-retry') private eventRetryQueue: Queue) {
-    // Access the underlying Redis client from BullMQ
-    this.redis = this.eventRetryQueue.client;
-  }
+  constructor(@InjectQueue('event-retry') private eventRetryQueue: Queue) {}
 
   async onModuleInit() {
     // Verify Redis connection on startup
     try {
+      // BullMQ exposes a lazily created ioredis client as a Promise
+      this.redis = await this.eventRetryQueue.client;
       await this.redis.ping();
       this.logger.log('Redis connection verified for event streams');
     } catch (error) {

@@ -13,7 +13,7 @@ import { IS_MOCK_DATA_ENABLED } from '@/lib/api-config'
  */
 export async function GET(
   _request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } | Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession()
@@ -31,7 +31,7 @@ export async function GET(
 
     ensureMockDataEnabled('approval confidence breakdown')
 
-    const { id: approvalId } = await context.params
+    const { id: approvalId } = await Promise.resolve(context.params)
 
     // Generate mock confidence data
     const breakdown = getMockConfidenceBreakdown(approvalId)

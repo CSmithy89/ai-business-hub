@@ -13,10 +13,18 @@ import httpx
 import jwt
 from fastapi import HTTPException, Request, status
 
-from config import settings
+from config import get_settings
 
 logger = logging.getLogger(__name__)
 
+settings = get_settings()
+
+
+def _unwrap_secret(secret) -> Optional[str]:
+    try:
+        return secret.get_secret_value()  # type: ignore[attr-defined]
+    except AttributeError:
+        return secret
 
 async def _fetch_business(
     workspace_id: str, business_id: str, auth_header: Optional[str]
@@ -32,7 +40,14 @@ async def _fetch_business(
     if auth_header:
         headers["Authorization"] = auth_header
     elif settings.agno_api_key:
-        headers["Authorization"] = f"Bearer {settings.agno_api_key.get_secret_value()}"
+        api_key = _unwrap_secret(settings.agno_api_key)
+        if not api_key:
+            logger.error("AGNO_API_KEY configured but empty; refusing to call upstream")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Business ownership verification unavailable",
+            )
+        headers["Authorization"] = f"Bearer {api_key}"
     else:
         logger.error("No authorization configured for business lookup; cannot validate ownership")
         raise HTTPException(
@@ -40,9 +55,14 @@ async def _fetch_business(
             detail="Business ownership verification unavailable",
         )
 
+    timeout = httpx.Timeout(5.0, connect=2.0)
+    # Reuse a shared client to avoid connection churn
+    if not hasattr(_fetch_business, "_client"):
+        setattr(_fetch_business, "_client", httpx.AsyncClient(timeout=timeout))
+    client: httpx.AsyncClient = getattr(_fetch_business, "_client")
+
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            resp = await client.get(url, headers=headers)
+        resp = await client.get(url, headers=headers)
     except httpx.RequestError as exc:
         logger.error("Business ownership request failed: %s", exc, exc_info=True)
         raise HTTPException(
@@ -72,7 +92,14 @@ async def _fetch_business(
             detail="Business ownership verification failed",
         ) from exc
 
-    return resp.json()
+    try:
+        return resp.json()
+    except ValueError as exc:
+        logger.error("Failed to decode business lookup response: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Business ownership verification failed",
+        ) from exc
 
 
 def _derive_identity(request: Request) -> tuple[Optional[str], Optional[str], Optional[str]]:
@@ -88,7 +115,7 @@ def _derive_identity(request: Request) -> tuple[Optional[str], Optional[str], Op
 
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header[7:]
-        secret = settings.better_auth_secret.get_secret_value()
+        secret = _unwrap_secret(settings.better_auth_secret)
         if not secret:
             logger.error("BETTER_AUTH_SECRET is not configured; refusing to decode JWT")
             raise HTTPException(

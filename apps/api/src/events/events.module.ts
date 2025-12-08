@@ -9,13 +9,13 @@ import { EventRetryService } from './event-retry.service';
 import { EventReplayService } from './event-replay.service';
 import { EventRetryProcessor } from './processors/event-retry.processor';
 import { EventReplayProcessor } from './processors/event-replay.processor';
-import { PrismaService } from '../common/services/prisma.service';
 import {
   STREAMS,
   CONSUMER_GROUP,
   QUEUE_EVENT_RETRY,
   QUEUE_EVENT_REPLAY,
 } from './constants/streams.constants';
+import { CommonModule } from '../common/common.module';
 
 /**
  * EventsModule - Event Bus Infrastructure
@@ -48,6 +48,7 @@ import {
     }),
     // DiscoveryModule provides DiscoveryService for handler discovery
     DiscoveryModule,
+    CommonModule,
   ],
   controllers: [EventsController],
   providers: [
@@ -58,7 +59,6 @@ import {
     EventReplayService,
     EventRetryProcessor,
     EventReplayProcessor,
-    PrismaService,
   ],
   exports: [
     RedisProvider,

@@ -9,6 +9,7 @@ import { ApprovalAuditService } from './services/approval-audit.service';
 import { EscalationSchedulerService } from './services/escalation-scheduler.service';
 import { EscalationProcessor } from './processors/escalation.processor';
 import { ApprovalEventHandler } from './handlers/approval-event.handler';
+import { CommonModule } from '../common/common.module';
 import { EventsModule } from '../events';
 
 /**
@@ -28,6 +29,7 @@ import { EventsModule } from '../events';
  */
 @Module({
   imports: [
+    CommonModule,
     // Import EventsModule for EventPublisherService (Story 05-2)
     EventsModule,
     // Register BullMQ queue for approval escalation (Story 04-8)

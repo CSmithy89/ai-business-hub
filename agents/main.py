@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from middleware.tenant import TenantMiddleware
 from middleware.rate_limit import init_rate_limiting, NoopLimiter
 from middleware.business_validator import validate_business_ownership
-from config import settings
+from config import get_settings
 from pydantic import BaseModel, Field
 from typing import Optional, Callable, Any, Dict
 import logging
@@ -68,7 +68,7 @@ app.add_middleware(
 # Tenant middleware (JWT validation and workspace_id injection)
 app.add_middleware(
     TenantMiddleware,
-    secret_key=settings.better_auth_secret.get_secret_value()
+    secret_key=_unwrap_secret(settings.better_auth_secret) or ""
 )
 
 # Rate limiting (default 10/min per identity; Redis if configured)
@@ -403,7 +403,8 @@ async def control_plane_sessions(request: Request):
         )
 
     # Optional API key authentication
-    if settings.agno_api_key:
+    api_key = _unwrap_secret(settings.agno_api_key)
+    if api_key:
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
             raise HTTPException(
@@ -412,7 +413,7 @@ async def control_plane_sessions(request: Request):
             )
 
         token = auth_header.replace("Bearer ", "")
-        if token != settings.agno_api_key:
+        if token != api_key:
             raise HTTPException(
                 status_code=403,
                 detail="Invalid API key"
@@ -452,7 +453,8 @@ async def control_plane_session_details(session_id: str, request: Request):
         )
 
     # Optional API key authentication
-    if settings.agno_api_key:
+    api_key = _unwrap_secret(settings.agno_api_key)
+    if api_key:
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
             raise HTTPException(
@@ -461,7 +463,7 @@ async def control_plane_session_details(session_id: str, request: Request):
             )
 
         token = auth_header.replace("Bearer ", "")
-        if token != settings.agno_api_key:
+        if token != api_key:
             raise HTTPException(
                 status_code=403,
                 detail="Invalid API key"
@@ -676,3 +678,10 @@ if __name__ == "__main__":
         port=settings.agentos_port,
         log_level="info"
     )
+settings = get_settings()
+
+def _unwrap_secret(secret) -> str | None:
+    try:
+        return secret.get_secret_value()  # type: ignore[attr-defined]
+    except AttributeError:
+        return secret

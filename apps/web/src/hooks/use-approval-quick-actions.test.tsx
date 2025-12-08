@@ -51,12 +51,16 @@ vi.mock('@/lib/api-client', () => ({
 
 describe('use-approval-quick-actions URL centralization (Story 14-11)', () => {
   it('uses centralized approval endpoints', async () => {
-    const mockResponse = { ok: true, json: async () => ({ data: { id: 'a1' } }) } as Response
+    const mockResponse = {
+      ok: true,
+      text: async () => JSON.stringify({ data: { id: 'a1' } }),
+      json: async () => ({ data: { id: 'a1' } }),
+    } as Response
     vi.mocked(apiClient.apiPost).mockResolvedValueOnce(mockResponse)
 
     await performApprovalAction('a1', 'approve')
 
-    expect(apiClient.apiPost).toHaveBeenCalledWith(API_ENDPOINTS.approvals.approve('a1'), {}, { baseURL: '' })
+    expect(apiClient.apiPost).toHaveBeenCalledWith(API_ENDPOINTS.approvals.approve('a1'), {})
   })
 })
 
@@ -92,6 +96,7 @@ describe('Approval quick actions regressions (Story 14-13)', () => {
   it('calls API and toast on successful approval', async () => {
     const mockResponse = {
       ok: true,
+      text: async () => JSON.stringify({ data: { id: 'a1', title: 'Test' } }),
       json: async () => ({ data: { id: 'a1', title: 'Test' } }),
     } as Response
     vi.mocked(apiClient.apiPost).mockResolvedValueOnce(mockResponse)
@@ -99,11 +104,7 @@ describe('Approval quick actions regressions (Story 14-13)', () => {
     const { hook } = renderHookWithClient()
     await hook.result.current.approveAsync({ id: 'a1' })
 
-    expect(apiClient.apiPost).toHaveBeenCalledWith(
-      API_ENDPOINTS.approvals.approve('a1'),
-      {},
-      { baseURL: '' }
-    )
+    expect(apiClient.apiPost).toHaveBeenCalledWith(API_ENDPOINTS.approvals.approve('a1'), {})
     expect(toast.success).toHaveBeenCalled()
   })
 
@@ -112,6 +113,7 @@ describe('Approval quick actions regressions (Story 14-13)', () => {
       ok: false,
       status: 500,
       json: async () => ({}),
+      text: async () => JSON.stringify({}),
     } as Response
     vi.mocked(apiClient.apiPost).mockResolvedValueOnce(failingResponse)
 

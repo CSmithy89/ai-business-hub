@@ -78,8 +78,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null })
-    this.props.onRetry?.()
+    this.setState({ hasError: false, error: null }, () => {
+      this.props.onRetry?.()
+    })
   }
 
   render() {

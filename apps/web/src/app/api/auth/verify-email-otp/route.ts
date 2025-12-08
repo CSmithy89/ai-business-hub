@@ -176,18 +176,18 @@ export async function POST(request: NextRequest) {
       return response
     }
 
-    // Valid OTP - mark email as verified
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerified: true,
-      },
-    })
-
-    // Delete the verification record (one-time use)
-    await prisma.verificationToken.delete({
-      where: { id: verificationRecord.id },
-    })
+    // Valid OTP - mark email as verified and delete token atomically
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerified: true,
+        },
+      }),
+      prisma.verificationToken.delete({
+        where: { id: verificationRecord.id },
+      }),
+    ])
 
     // Clear rate limit on success
     await resetRateLimit(rateLimitKey)

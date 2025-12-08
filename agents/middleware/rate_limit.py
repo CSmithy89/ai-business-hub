@@ -49,6 +49,10 @@ class NoopLimiter:
     default_limits = []
 
     def limit(self, *args, **kwargs):  # noqa: D401
+        # Support both @limiter.limit and @limiter.limit("x/minute") usage
+        if args and callable(args[0]) and len(args) == 1 and not kwargs:
+            return args[0]
+
         def decorator(fn: Callable):
             return fn
 

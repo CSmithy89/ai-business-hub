@@ -8,7 +8,8 @@ from fastapi.testclient import TestClient
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from middleware.business_validator import validate_business_ownership
-from config import settings
+from config import get_settings
+settings = get_settings()
 
 
 class IdentityMiddleware(BaseHTTPMiddleware):

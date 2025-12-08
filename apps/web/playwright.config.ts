@@ -36,11 +36,14 @@ export default defineConfig({
   },
 
   // Reporters - HTML for local debugging, JUnit for CI
-  reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['junit', { outputFile: 'test-results/junit.xml' }],
-    ['list'],
-  ],
+  reporter: (() => {
+    const reportDir = process.env.PLAYWRIGHT_REPORT_DIR || 'playwright-report'
+    return [
+      ['html', { outputFolder: reportDir }],
+      ['junit', { outputFile: `${reportDir}/junit.xml` }],
+      ['list'],
+    ]
+  })(),
 
   // Browser matrix - start with Chromium, expand as needed
   projects: [
