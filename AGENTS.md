@@ -1,36 +1,31 @@
 # Repository Guidelines
 
 ## Project Structure & Modules
-- Monorepo (Turborepo, pnpm). Core apps: `apps/web` (Next.js 15 platform + API routes), `apps/api` (NestJS), `apps/agents` (Python/Agno). Shared packages under `packages/` (`db`, `ui`, `shared`, `config`).
-- Key docs: `docs/architecture.md`, `docs/ux-design.md`, `docs/epics/EPIC-INDEX.md`, sprint status in `docs/sprint-artifacts/sprint-status.yaml`, story files in `docs/sprint-artifacts/`.
-- Agent guidelines: see `.cursorrules` (Agno patterns) and `.gemini/styleguide.md` (TypeScript/Nest standards). MCP/AI tooling summarized below.
+- Monorepo (Turborepo + pnpm). Apps: `apps/web` (Next.js 15), `apps/api` (NestJS), `apps/agents` (Agno/FastAPI). Shared packages in `packages/{db,ui,shared,config}`; reusable agent code under `agents/`.
+- Docs: `README.md`, `docs/architecture.md`, `docs/epics/EPIC-INDEX.md`; sprint artifacts in `docs/sprint-artifacts/` (status in `sprint-status.yaml`). Style refs: `.cursorrules` (Agno rules), `.gemini/styleguide.md` (TypeScript/Nest standards), `CLAUDE.md` (MCP + workflow notes).
+- BMAD workflows live in `.bmad/`; story states flow backlog → drafted → ready-for-dev → in-progress → review → done.
 
 ## Build, Test, and Development Commands
-- Install: `pnpm install` (root). Use Node 20 (`nvm use`).
-- Build all: `pnpm build`
-- Dev servers: `pnpm dev`
-- Lint: `pnpm lint`
-- Type check: `pnpm type-check`
-- Targeted tests: `pnpm vitest run apps/web/src/__tests__/rate-limit.test.ts --pool=threads` (example). Use `pnpm test` if configured in package scripts.
+- Setup: Node 20 (`nvm use`), `pnpm install`.
+- Type check: `pnpm type-check` or `pnpm --filter @hyvve/web run type-check`.
+- Lint: `pnpm lint`; build: `pnpm build`; dev servers: `pnpm dev`.
+- Targeted tests: `pnpm --filter @hyvve/web exec vitest run src/__tests__/approval-quick-actions.test.tsx --pool=threads` (headless CI-friendly). Use Playwright scripts where defined for E2E.
+- Pre-commit hooks run type-check, lint-staged, and optional Semgrep; fix failures before committing.
 
 ## Coding Style & Naming
-- TypeScript strict; no `any`. Prefer `unknown` when needed.
-- File naming: components `PascalCase.tsx`; utilities `kebab-case.ts`; types in `*.types.ts`; tests `*.test.ts`.
-- Imports: external → internal (`@/…`, `@hyvve/...`) → relative.
-- React: functional components, named exports, hooks prefixed with `use`. Tailwind: avoid dynamic class fragments; use explicit class strings or inline styles.
-- Python/Agno: reuse agents (don’t create in loops); prefer `output_schema`; Postgres in prod, SQLite only for dev.
+- TypeScript strict; avoid `any` (prefer `unknown`). Components PascalCase, utilities kebab-case, types `*.types.ts`, tests `*.test.ts`. Import order: external → internal (`@hyvve/...`, `@/...`) → relative.
+- React/Next: functional components, named exports, hooks prefixed with `use`. Tailwind: keep full class strings visible (no dynamic fragments); use inline styles for truly dynamic values.
+- Backend: Nest modules per feature; DTOs with class-validator; constructor injection; throw specific HTTP exceptions. Multi-tenant queries must filter by `tenantId` and follow RLS.
+- Agents: create once and reuse (never in loops); prefer `output_schema`; Postgres in production, SQLite only for dev.
 
 ## Testing Guidelines
-- Minimum 80% coverage on new code. Add unit tests for logic and integration tests for API routes (Vitest/Testcontainers). E2E uses Playwright when needed.
-- Rate-limit and CSRF tests live in `apps/web/src/__tests__/`; follow existing patterns. Mock fetch responsibly; prefer real Redis containers for rate-limit cases.
+- Aim for ~80%+ coverage on new code. Favor unit/integration tests (Vitest) with deterministic data; seed React Query caches over live network calls. Keep tests headless for CI.
+- Document commands/env needed; run type-check and relevant tests before raising PRs.
 
 ## Commit & Pull Request Guidelines
-- Conventional commits (e.g., `feat:`, `fix:`, `docs:`); imperative first line ≤72 chars. Keep PRs small (<400 LOC) and single-purpose.
-- Before PR: run `pnpm type-check`, `pnpm lint`, and relevant tests. Include rationale and linked story/issue. Add screenshots or logs when UI/API behavior changes.
+- Conventional commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`), subject ≤72 chars. Keep PRs small (<400 LOC) and single-purpose.
+- Before PR: `pnpm type-check`, `pnpm lint`, targeted tests. Provide story/issue links, rationale, and screenshots/logs for UI/API changes.
 
 ## MCP & Agent-Specific Notes
-- Available MCP servers: Playwright (browser automation), Serena (semantic code edits/refactors), Context7 (library docs lookup), 21st Magic (UI components), DeepWiki (repo docs), shadcn registry, Sequential Thinking (step planning). Prefer these over manual browsing when applicable.
-- Follow BMAD workflows in `.bmad/` for story execution; update `sprint-status.yaml` when changing story states.
-
-## Security & Configuration
-- Multi-tenant data: always filter by `tenantId` and enforce RLS (see `packages/db`). Validate input with Zod or class-validator; never expose internal errors. BYOAI keys must be encrypted at rest; avoid committing secrets.
+- MCP servers: Playwright (browser automation), Serena (semantic edits), Context7 (library docs), 21st Magic (UI components), DeepWiki (repo docs), shadcn registry, Sequential Thinking (planning). Prefer these before manual browsing.
+- BMAD reminders: fetch context with `/bmad:bmm:workflows:story-context`, implement via `/bmad:bmm:workflows:dev-story`, move to review with `/bmad:bmm:workflows:code-review`, and update `docs/sprint-artifacts/sprint-status.yaml` accordingly.
