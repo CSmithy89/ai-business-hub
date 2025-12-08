@@ -106,8 +106,11 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
 
       const prototype = Object.getPrototypeOf(instance);
       const methodNames = Object.getOwnPropertyNames(prototype).filter(
-        (name) =>
-          name !== 'constructor' && typeof prototype[name] === 'function',
+        (name) => {
+          if (name === 'constructor') return false;
+          const descriptor = Object.getOwnPropertyDescriptor(prototype, name);
+          return typeof descriptor?.value === 'function';
+        },
       );
 
       for (const methodName of methodNames) {

@@ -24,6 +24,11 @@ export default defineConfig({
 
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    launchOptions: {
+      // Sandbox is restricted in our environment; disable for local runs
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      chromiumSandbox: false,
+    },
 
     // Failure artifact capture (retain-on-failure pattern)
     trace: 'retain-on-failure',
@@ -55,12 +60,4 @@ export default defineConfig({
     // { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     // { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
-
-  // Web server - auto-start Next.js dev server for local testing
-  webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
 });
