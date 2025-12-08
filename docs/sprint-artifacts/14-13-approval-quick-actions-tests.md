@@ -1,7 +1,7 @@
 # Story 14-13: Approval Quick Actions Tests
 
 **Epic:** EPIC-14 - Testing & Observability  
-**Status:** review  
+**Status:** done  
 **Points:** 2  
 **Priority:** P2 Medium
 
@@ -53,23 +53,23 @@ GPT-4.x (Codex CLI)
 ## Change Log
 - 2025-12-08: Added Senior Developer Review (AI) notes.
 - 2025-12-08: Addressed review action items (error feedback + CSRF/apiPost verification) and re-ran tests/type-check.
+- 2025-12-08: Senior Developer Review (AI) approved; AC2/AC3 verified.
 
 ## Senior Developer Review (AI)
 - Reviewer: chris  
 - Date: 2025-12-08  
-- Outcome: Changes Requested — AC2/AC3 lack complete coverage (error surface + CSRF/token validation not asserted).
-- Summary: Tests cover optimistic approve → reject rollback but skip verifying error messaging and CSRF/rehydration requirements. Add targeted assertions to satisfy AC2/AC3.
+- Outcome: Approve — All ACs verified with evidence; no outstanding action items.
+- Summary: Quick-actions tests now cover optimistic approve/reject, rollback on both failure paths, error feedback, and CSRF/apiPost usage. Deterministic headless run documented.
 
 ### Key Findings
-- **Resolved in follow-up**: Added approve-failure rollback + toast error assertion. (apps/web/src/__tests__/approval-quick-actions.test.tsx#L90-L110)
-- **Resolved in follow-up**: Added CSRF/apiPost endpoint verification for approve/reject. (apps/web/src/__tests__/approval-quick-actions.test.tsx#L112-L137)
+- None. No blocking or advisory issues identified for this scope.
 
 ### Acceptance Criteria Coverage
 | AC | Description | Status | Evidence |
 | --- | --- | --- | --- |
-| AC1 | Tests cover approve/reject quick actions with optimistic UI updates reflecting final state. | Implemented | apps/web/src/__tests__/approval-quick-actions.test.tsx#L38-L78 validates optimistic approve and rollback behavior using React Query cache. |
-| AC2 | Error handling rolls back optimistic state and displays an error on server rejection. | Implemented | apps/web/src/__tests__/approval-quick-actions.test.tsx#L90-L110 asserts rollback + toast error on approve failure; reject failure already covered at #L70-L88. |
-| AC3 | CSRF/token requirements covered (retry/re-auth if applicable). | Implemented | apps/web/src/__tests__/approval-quick-actions.test.tsx#L112-L137 spies on `apiPost` (CSRF-aware) for approve/reject endpoints. |
+| AC1 | Tests cover approve/reject quick actions with optimistic UI updates reflecting final state. | Implemented | apps/web/src/__tests__/approval-quick-actions.test.tsx:47-88 (optimistic approve, reject failure rollback). |
+| AC2 | Error handling rolls back optimistic state and displays an error on server rejection. | Implemented | apps/web/src/__tests__/approval-quick-actions.test.tsx:90-110 (approve failure rollback + toast error) and :70-88 (reject failure rollback). |
+| AC3 | CSRF/token requirements covered (retry/re-auth if applicable). | Implemented | apps/web/src/__tests__/approval-quick-actions.test.tsx:112-137 (apiPost CSRF-aware endpoint verification); hook uses apiPost in apps/web/src/hooks/use-approval-quick-actions.ts:50-90. |
 | AC4 | Tests run headless/deterministically in CI. | Implemented | `pnpm --filter @hyvve/web exec vitest run src/__tests__/approval-quick-actions.test.tsx --pool=threads` (Debug Log) passes headless. |
 | AC5 | How to run tests documented. | Implemented | Debug Log lists the exact vitest command and type-check. |
 
@@ -77,7 +77,7 @@ GPT-4.x (Codex CLI)
 - No explicit tasks/subtasks listed in story; nothing to validate.
 
 ### Test Coverage and Gaps
-- Current tests: apps/web/src/__tests__/approval-quick-actions.test.tsx#L38-L137 cover optimistic approve/reject, reject failure rollback, approve failure rollback with toast, CSRF/apiPost endpoint verification, and helper.
+- Current tests: apps/web/src/__tests__/approval-quick-actions.test.tsx:47-137 cover optimistic approve/reject, reject failure rollback, approve failure rollback with toast, CSRF/apiPost endpoint verification, and helper.
 - Gaps: None noted for AC scope.
 
 ### Architectural Alignment
@@ -88,13 +88,12 @@ GPT-4.x (Codex CLI)
 
 ### Action Items
 **Code Changes Required**
-- [x] [Medium] Extend quick-actions test to assert error feedback and rollback on approve failure (toast/error text, cache restoration). (apps/web/src/__tests__/approval-quick-actions.test.tsx)
-- [x] [Medium] Add CSRF/token coverage: spy on `apiPost` arguments or headers to confirm tokenized calls for approve/reject paths. (apps/web/src/__tests__/approval-quick-actions.test.tsx; apps/web/src/hooks/use-approval-quick-actions.ts)
+- None.
 
 **Advisory Notes**
-- Note: Consider adding a small helper to surface error messages from `apiPost` mocks to keep assertions stable across mutation paths.
+- Note: None.
 
 ### Developer Follow-up (2025-12-08)
 - Addressed both action items: added approve-failure rollback + toast error assertion and CSRF/apiPost endpoint verification tests.
 - Re-ran `pnpm --filter @hyvve/web exec vitest run src/__tests__/approval-quick-actions.test.tsx --pool=threads` and `pnpm --filter @hyvve/web run type-check` (both pass).
-- Awaiting re-review confirmation.
+- Re-review complete; story approved.
