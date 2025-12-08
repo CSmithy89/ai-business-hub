@@ -4,6 +4,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ApprovalItem } from '@hyvve/shared'
 import { useApprovalQuickActions, buildOptimisticReviewedItem } from '@/hooks/use-approval-quick-actions'
 import * as apiClient from '@/lib/api-client'
+import { API_ENDPOINTS } from '@/lib/api-config'
+import { toast } from 'sonner'
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}))
 
 const createWrapper = () => {
   const queryClient = new QueryClient()
@@ -32,7 +41,7 @@ const sampleItem: ApprovalItem = {
 
 describe('useApprovalQuickActions', () => {
   beforeEach(() => {
-    vi.restoreAllMocks()
+    vi.clearAllMocks()
   })
 
   it('performs optimistic approve and rolls back on error', async () => {
@@ -76,6 +85,56 @@ describe('useApprovalQuickActions', () => {
       const afterRollback = queryClient.getQueryData<{ data: ApprovalItem[] }>(['approvals'])
       expect(afterRollback?.data[0].status).toBe('approved') // stays approved because reject failed and rollback restored last snapshot
     })
+  })
+
+  it('rolls back on approve failure and surfaces error feedback', async () => {
+    const { wrapper, queryClient } = createWrapper()
+
+    queryClient.setQueryData(['approvals'], { data: [sampleItem], meta: {} })
+
+    vi.spyOn(apiClient, 'apiPost').mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve(JSON.stringify({ message: 'approve failed' })),
+    } as any)
+
+    const { result } = renderHook(() => useApprovalQuickActions(), { wrapper })
+
+    await act(async () => {
+      await expect(result.current.approveAsync({ id: sampleItem.id })).rejects.toThrow('approve failed')
+    })
+
+    const afterError = queryClient.getQueryData<{ data: ApprovalItem[] }>(['approvals'])
+    expect(afterError?.data[0].status).toBe('pending')
+    expect(toast.error).toHaveBeenCalled()
+  })
+
+  it('uses CSRF-enabled apiPost for approve and reject endpoints', async () => {
+    const { wrapper } = createWrapper()
+
+    const approveResponse = {
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(JSON.stringify({ data: { ...sampleItem, status: 'approved' } })),
+    } as any
+    const rejectResponse = {
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(JSON.stringify({ data: { ...sampleItem, status: 'rejected' } })),
+    } as any
+
+    const spy = vi.spyOn(apiClient, 'apiPost')
+    spy.mockResolvedValueOnce(approveResponse).mockResolvedValueOnce(rejectResponse)
+
+    const { result } = renderHook(() => useApprovalQuickActions(), { wrapper })
+
+    await act(async () => {
+      await result.current.approveAsync({ id: sampleItem.id })
+      await result.current.rejectAsync({ id: sampleItem.id })
+    })
+
+    expect(spy).toHaveBeenNthCalledWith(1, API_ENDPOINTS.approvals.approve(sampleItem.id), {})
+    expect(spy).toHaveBeenNthCalledWith(2, API_ENDPOINTS.approvals.reject(sampleItem.id), {})
   })
 
   it('buildOptimisticReviewedItem sets status and reviewedAt', () => {

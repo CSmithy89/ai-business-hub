@@ -308,7 +308,7 @@ development_status:
   14-10-agent-response-runtime-validation: done  # Added from Epic 11 tech debt (Zod + session)
   14-11-api-url-centralization: done  # Added from Epic 12 tech debt (HIGH)
   14-12-optimistic-update-type-safety: done  # Added from Epic 12 tech debt (HIGH)
-  14-13-approval-quick-actions-tests: in-progress  # Added from Epic 12 tech debt
+  14-13-approval-quick-actions-tests: review  # Added from Epic 12 tech debt
   14-14-countdown-timer-optimization: done  # Added from Epic 12 tech debt
   14-15-password-match-validation-fix: done  # Added from Epic 12 tech debt
   14-16-error-boundary-monitoring: done  # Added from Epic 12 tech debt
