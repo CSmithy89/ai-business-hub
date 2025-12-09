@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         twoFactorEnabled: true,
         updatedAt: true,
         accounts: {
-          where: { provider: 'credential' },
+          where: { providerId: 'credential' },
           select: { id: true },
         },
         backupCodes: {

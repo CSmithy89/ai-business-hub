@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         accounts: {
           select: {
             id: true,
-            provider: true,
+            providerId: true,
             accessToken: true, // Contains password hash for credential accounts
           },
         },
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the account to unlink
-    const accountToUnlink = user.accounts.find(acc => acc.provider === provider)
+    const accountToUnlink = user.accounts.find(acc => acc.providerId === provider)
     if (!accountToUnlink) {
       return NextResponse.json(
         { error: { code: 'ACCOUNT_NOT_LINKED', message: 'This provider is not linked to your account' } },
@@ -75,11 +75,11 @@ export async function POST(request: NextRequest) {
 
     // Check if user has at least one other valid auth method
     // A credential account is valid only if it has an accessToken (password hash)
-    const credentialAccount = user.accounts.find(acc => acc.provider === 'credential')
+    const credentialAccount = user.accounts.find(acc => acc.providerId === 'credential')
     const hasValidPassword = !!(credentialAccount?.accessToken)
 
     const otherOAuthAccounts = user.accounts.filter(
-      acc => acc.provider !== provider && acc.provider !== 'credential'
+      acc => acc.providerId !== provider && acc.providerId !== 'credential'
     )
 
     // User must have either a valid password or at least one other OAuth provider
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         provider,
         remainingAuthMethods: {
           hasPassword: hasValidPassword,
-          linkedProviders: otherOAuthAccounts.map(acc => acc.provider),
+          linkedProviders: otherOAuthAccounts.map(acc => acc.providerId),
         },
       },
     })

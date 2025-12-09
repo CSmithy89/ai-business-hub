@@ -1,6 +1,6 @@
 # Story 14.18: OAuth Flow E2E Tests
 
-Status: review
+Status: done
 
 ## Requirements Context Summary
 
@@ -81,6 +81,7 @@ so that third-party login regressions are caught before they reach users.
 - apps/web/playwright.config.ts (modified)
 
 ### Change Log
+- 2025-12-08: Fixed Prisma schema mismatch (`Verification` vs `VerificationToken`) and client-side imports (`DOMPurify`) to allow tests to pass. Confirmed manual account creation works. (AI)
 - 2026-XX-XX: Senior Developer Review notes appended (AI)
 
 ## Senior Developer Review (AI)
@@ -139,3 +140,4 @@ so that third-party login regressions are caught before they reach users.
 - Added E2E test mode in `apps/web/src/app/api/auth/[...all]/route.ts` gated by `E2E_OAUTH_TEST`; callback now validates state against `e2e_oauth_state` cookie and issues a session cookie only on match.
 - Updated Playwright spec to let the app handle the callback (no route fulfillment), added state mismatch negative path, and documented OAuth E2E env setup in `apps/web/tests/README.md` and `.env.example`.
 - To rerun: `E2E_OAUTH_TEST=true BASE_URL=http://localhost:3000 pnpm --filter @hyvve/web test:e2e -- tests/e2e/oauth-flow.spec.ts --reporter=list`.
+- **CRITICAL**: Fixed DB schema mismatch (`VerificationToken` renamed to `Verification`, `token` to `value`) and `Account` model to support `better-auth`.

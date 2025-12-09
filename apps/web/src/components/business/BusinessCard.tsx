@@ -17,34 +17,39 @@ import { formatDistanceToNow } from 'date-fns'
 import type { Business } from '@hyvve/db'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import { getStatusVariant, getStatusLabel, getBusinessDefaultRoute } from '@/lib/business-status'
-import { CheckCircle2, Circle, Clock } from 'lucide-react'
 
 interface BusinessCardProps {
   business: Business
 }
 
 /**
- * Module status row showing completion indicator
+ * Module status row showing progress bar
  */
 function ModuleStatusRow({ label, status }: { label: string; status: string }) {
-  const getIcon = () => {
+  const getPercentage = (status: string) => {
     switch (status) {
       case 'COMPLETE':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />
+        return 100
       case 'IN_PROGRESS':
-        return <Clock className="h-4 w-4 text-yellow-500" />
+        return 50
       case 'NOT_STARTED':
-        return <Circle className="h-4 w-4 text-gray-300" />
+        return 0
       default:
-        return <Circle className="h-4 w-4 text-gray-300" />
+        return 0
     }
   }
 
+  const percentage = getPercentage(status)
+
   return (
-    <div className="flex items-center gap-2 text-sm">
-      {getIcon()}
-      <span className="text-muted-foreground">{label}</span>
+    <div className="space-y-1.5">
+      <div className="flex justify-between text-xs">
+        <span className="font-medium text-muted-foreground">{label}</span>
+        <span className="text-muted-foreground">{percentage}%</span>
+      </div>
+      <Progress value={percentage} className="h-2" />
     </div>
   )
 }
@@ -59,7 +64,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
   return (
     <Card
-      className="cursor-pointer transition-shadow hover:shadow-lg"
+      className="cursor-pointer transition-all hover:shadow-md"
       onClick={handleClick}
       role="button"
       tabIndex={0}
@@ -70,39 +75,41 @@ export function BusinessCard({ business }: BusinessCardProps) {
         }
       }}
     >
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-xl">{business.name}</CardTitle>
-          <Badge variant={getStatusVariant(business.onboardingStatus)}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-4">
+          <CardTitle className="text-lg leading-tight truncate" title={business.name}>{business.name}</CardTitle>
+          <Badge variant={getStatusVariant(business.onboardingStatus)} className="shrink-0">
             {getStatusLabel(business.onboardingStatus)}
           </Badge>
         </div>
         {business.description && (
-          <CardDescription className="line-clamp-2">
+          <CardDescription className="line-clamp-2 text-xs">
             {business.description}
           </CardDescription>
         )}
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="space-y-4 pb-3">
         {/* Validation Score (if available) */}
         {business.validationScore !== null && (
-          <div className="mb-4">
-            <div className="text-sm text-muted-foreground">Validation Score</div>
-            <div className="text-2xl font-bold">{business.validationScore}/100</div>
+          <div className="flex items-baseline justify-between border-b pb-3">
+            <div className="text-xs font-medium text-muted-foreground">Validation Score</div>
+            <div className="text-2xl font-bold tracking-tight text-primary">
+              {business.validationScore}<span className="text-xs font-normal text-muted-foreground">/100</span>
+            </div>
           </div>
         )}
 
         {/* Module Status */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <ModuleStatusRow label="Validation" status={business.validationStatus} />
           <ModuleStatusRow label="Planning" status={business.planningStatus} />
           <ModuleStatusRow label="Branding" status={business.brandingStatus} />
         </div>
       </CardContent>
 
-      <CardFooter>
-        <div className="text-xs text-muted-foreground">
+      <CardFooter className="pt-0">
+        <div className="text-[10px] text-muted-foreground w-full text-right">
           Updated {formatDistanceToNow(new Date(business.updatedAt))} ago
         </div>
       </CardFooter>

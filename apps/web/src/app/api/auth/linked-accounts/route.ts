@@ -37,11 +37,11 @@ export async function GET(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
-        passwordHash: true,
+        password: true,
         accounts: {
           select: {
-            provider: true,
-            providerAccountId: true,
+            providerId: true,
+            accountId: true,
             createdAt: true,
           },
         },
@@ -57,10 +57,10 @@ export async function GET(request: NextRequest) {
 
     // Map accounts to response format
     const linkedAccounts: LinkedAccount[] = user.accounts
-      .filter(account => account.provider !== 'credential' && account.provider !== 'credentials') // Exclude password accounts
+      .filter(account => account.providerId !== 'credential' && account.providerId !== 'credentials') // Exclude password accounts
       .map(account => ({
-        provider: account.provider,
-        providerId: account.providerAccountId,
+        provider: account.providerId,
+        providerId: account.accountId,
         linkedAt: account.createdAt.toISOString(),
       }))
 
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       accounts: linkedAccounts,
-      hasPassword: !!user.passwordHash,
+      hasPassword: !!user.password,
       supportedProviders,
     })
   } catch (error) {

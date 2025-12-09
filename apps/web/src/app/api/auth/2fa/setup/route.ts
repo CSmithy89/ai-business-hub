@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if user has a password (not OAuth-only)
-      const passwordAccount = user.accounts.find(acc => acc.provider === 'credential')
+      const passwordAccount = user.accounts.find(acc => acc.providerId === 'credential')
       if (!passwordAccount || !passwordAccount.accessToken) {
         return NextResponse.json(
           { error: { code: 'NO_PASSWORD', message: 'Password verification not available for OAuth-only accounts' } },

@@ -23,7 +23,7 @@ model User {
   emailVerified Boolean @default(false) @map("email_verified")
   name          String?
   image         String?
-  passwordHash  String? @map("password_hash")
+  password      String?
 
   // Two-Factor Authentication (Story 09-3)
   twoFactorEnabled  Boolean @default(false) @map("two_factor_enabled")
@@ -67,20 +67,21 @@ model Session {
 }
 
 model Account {
-  id                String    @id @default(uuid())
-  userId            String    @map("user_id")
-  provider          String    @default("credential")
-  providerAccountId String    @map("provider_account_id")
-  accessToken       String?   @map("access_token") @db.Text
-  refreshToken      String?   @map("refresh_token") @db.Text
-  expiresAt         DateTime? @map("expires_at")
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  providerId   String    @default("credential") @map("provider_id") // Renamed from provider
+  accountId    String    @map("account_id") // Renamed from providerAccountId
+  password     String?   @map("password") // Added password field
+  accessToken  String?   @map("access_token") @db.Text
+  refreshToken String?   @map("refresh_token") @db.Text
+  expiresAt    DateTime? @map("expires_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  @@unique([providerId, accountId])
   @@index([userId])
   @@map("accounts")
 }

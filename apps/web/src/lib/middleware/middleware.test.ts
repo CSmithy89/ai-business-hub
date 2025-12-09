@@ -39,7 +39,7 @@ const mockUser: User = {
   name: 'Test User',
   emailVerified: false,
   image: null,
-  passwordHash: null,
+  password: null,
   twoFactorEnabled: false,
   twoFactorSecret: null,
   createdAt: new Date(),

@@ -12,7 +12,7 @@
 'use client';
 
 import { memo } from 'react';
-import DOMPurify from 'dompurify';
+import DOMPurify from 'isomorphic-dompurify';
 import { cn } from '@/lib/utils';
 import { formatChatTime } from '@/lib/date-utils';
 import { StreamingCursor } from './StreamingCursor';
