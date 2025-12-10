@@ -99,6 +99,7 @@ model Verification {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([identifier])
+  @@index([identifier, expiresAt]) // Optimize queries filtering by identifier and expiry
   @@map("verification")
 }
 
