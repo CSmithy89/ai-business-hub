@@ -78,33 +78,14 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    if (!user) {
-      // Rate limit already incremented by checkRateLimit above
+    // Security: Return generic response to prevent user enumeration
+    // Don't reveal whether account exists or is already verified
+    if (!user || user.emailVerified) {
       const response = NextResponse.json(
         {
           error: {
-            code: 'NOT_FOUND',
-            message: 'No account found with this email address',
-          },
-        },
-        { status: 404 }
-      )
-      const headers = generateRateLimitHeaders({
-        limit: DEFAULT_RATE_LIMIT_MAX_ATTEMPTS,
-        remaining: rateLimitResult.remaining,
-        resetAt: rateLimitResult.resetAt,
-      })
-      Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
-      return response
-    }
-
-    // Check if email is already verified
-    if (user.emailVerified) {
-      const response = NextResponse.json(
-        {
-          error: {
-            code: 'ALREADY_VERIFIED',
-            message: 'Email is already verified',
+            code: 'INVALID_CODE',
+            message: 'Invalid or expired verification code',
           },
         },
         { status: 400 }
@@ -177,6 +158,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Valid OTP - mark email as verified and delete token atomically
+    // Use deleteMany for idempotency (handles race condition if concurrent request already deleted)
     await prisma.$transaction([
       prisma.user.update({
         where: { id: user.id },
@@ -184,7 +166,7 @@ export async function POST(request: NextRequest) {
           emailVerified: true,
         },
       }),
-      prisma.verification.delete({
+      prisma.verification.deleteMany({
         where: { id: verificationRecord.id },
       }),
     ])
@@ -199,10 +181,11 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Email verified successfully',
     })
+    // Use reset values since rate limit was cleared on success
     const headers = generateRateLimitHeaders({
       limit: DEFAULT_RATE_LIMIT_MAX_ATTEMPTS,
-      remaining: rateLimitResult.remaining,
-      resetAt: rateLimitResult.resetAt,
+      remaining: DEFAULT_RATE_LIMIT_MAX_ATTEMPTS,
+      resetAt: new Date(Date.now() + 900 * 1000), // 15 minutes from now
     })
     Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
     return response

@@ -60,6 +60,10 @@ export async function POST(request: NextRequest) {
         resetAt: rateLimit.resetAt,
       })
       Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      // Add standard Retry-After header for client compatibility
+      if (rateLimit.retryAfter !== undefined) {
+        response.headers.set('Retry-After', String(rateLimit.retryAfter))
+      }
       return response
     }
 

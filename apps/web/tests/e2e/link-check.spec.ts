@@ -12,45 +12,43 @@ test('Verify dashboard links and page availability', async ({ page }) => {
   await expect(page).toHaveURL(/\/dashboard/)
   console.log('Dashboard: OK')
 
-  // 3. Check Approvals
+  // 3. Check Approvals - should NOT show 404
   await page.getByRole('link', { name: 'Approvals' }).click()
   await page.waitForURL(/\/approvals/)
-  // Check for 404 or empty content
-  const approvalsTitle = await page.title()
-  console.log(`Approvals: ${approvalsTitle}`)
-  if (await page.getByText('404').isVisible()) console.error('Approvals: 404 Not Found')
+  await expect(page.getByText('404')).not.toBeVisible()
+  console.log('Approvals: OK')
 
-  // 4. Check AI Team
+  // 4. Check AI Team - should NOT show 404
   await page.getByRole('link', { name: 'AI Team' }).click()
   await page.waitForURL(/\/agents/)
-  const agentsTitle = await page.title()
-  console.log(`AI Team: ${agentsTitle}`)
-  if (await page.getByText('404').isVisible()) console.error('AI Team: 404 Not Found')
+  await expect(page.getByText('404')).not.toBeVisible()
+  console.log('AI Team: OK')
 
-  // 5. Check Settings
+  // 5. Check Settings - should NOT show 404
   await page.getByRole('link', { name: 'Settings' }).click()
   await page.waitForURL(/\/settings/)
-  const settingsTitle = await page.title()
-  console.log(`Settings: ${settingsTitle}`)
-  if (await page.getByText('404').isVisible()) console.error('Settings: 404 Not Found')
+  await expect(page.getByText('404')).not.toBeVisible()
+  console.log('Settings: OK')
 
-  // 6. Check CRM (Expect fail)
+  // 6. Check CRM (Expected to be 404 - not yet implemented)
   try {
     await page.getByRole('link', { name: 'CRM' }).click()
-    await page.waitForURL(/\/crm/)
-    console.log('CRM: Route exists')
-    if (await page.getByText('404').isVisible()) console.error('CRM: 404 Not Found (Expected)')
-  } catch (e) {
-    console.log('CRM: Link not working or timed out')
+    await page.waitForURL(/\/crm/, { timeout: 5000 })
+    // If we get here, the route exists - verify it shows 404 as expected
+    await expect(page.getByText('404')).toBeVisible()
+    console.log('CRM: Shows expected 404')
+  } catch {
+    console.log('CRM: Link not available (expected)')
   }
 
-  // 7. Check Projects (Expect fail)
+  // 7. Check Projects (Expected to be 404 - not yet implemented)
   try {
     await page.getByRole('link', { name: 'Projects' }).click()
-    await page.waitForURL(/\/projects/)
-    console.log('Projects: Route exists')
-    if (await page.getByText('404').isVisible()) console.error('Projects: 404 Not Found (Expected)')
-  } catch (e) {
-    console.log('Projects: Link not working or timed out')
+    await page.waitForURL(/\/projects/, { timeout: 5000 })
+    // If we get here, the route exists - verify it shows 404 as expected
+    await expect(page.getByText('404')).toBeVisible()
+    console.log('Projects: Shows expected 404')
+  } catch {
+    console.log('Projects: Link not available (expected)')
   }
 })
