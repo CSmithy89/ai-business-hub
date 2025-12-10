@@ -102,7 +102,7 @@ SMTP_USER="your-smtp-user"
 SMTP_PASS="your-smtp-password"
 EMAIL_FROM="noreply@yourdomain.com"
 
-# OAuth (optional)
+# OAuth (optional - see OAuth Provider Setup below)
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
 GITHUB_CLIENT_ID="your-github-client-id"
@@ -357,6 +357,77 @@ pip install -r requirements.txt
 
 ---
 
+## OAuth Provider Setup (Optional)
+
+To enable social login (Google, GitHub, Microsoft), you need to create OAuth applications with each provider.
+
+### Google OAuth
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create a new project or select existing
+3. Navigate to **APIs & Services** > **Credentials**
+4. Click **Create Credentials** > **OAuth client ID**
+5. Choose **Web application**
+6. Add authorized redirect URI: `http://localhost:3000/api/auth/callback/google`
+7. Copy Client ID and Client Secret to `.env.local`
+
+### GitHub OAuth
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click **New OAuth App**
+3. Set Homepage URL: `http://localhost:3000`
+4. Set Authorization callback URL: `http://localhost:3000/api/auth/callback/github`
+5. Copy Client ID and Client Secret to `.env.local`
+
+### Microsoft OAuth
+
+1. Go to [Azure Portal](https://portal.azure.com)
+2. Navigate to **App registrations** > **New registration**
+3. Set Redirect URI: `http://localhost:3000/api/auth/callback/microsoft`
+4. Under **Certificates & secrets**, create a new client secret
+5. Copy Application (client) ID and Client Secret to `.env.local`
+
+---
+
+## Running Tests
+
+### Unit Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Run tests with coverage
+pnpm test:coverage
+```
+
+### E2E Tests (Playwright)
+
+```bash
+# Install Playwright browsers (first time)
+pnpm --filter @hyvve/web exec playwright install
+
+# Run E2E tests
+pnpm --filter @hyvve/web test:e2e
+
+# Run E2E tests with UI
+pnpm --filter @hyvve/web test:e2e:ui
+```
+
+### Test Files
+
+| Location | Type | Description |
+|----------|------|-------------|
+| `apps/web/src/__tests__/` | Unit/Integration | API and utility tests |
+| `apps/web/src/store/__tests__/` | Unit | Zustand store tests |
+| `apps/web/src/lib/__tests__/` | Unit | Library function tests |
+| `apps/web/tests/e2e/` | E2E | Playwright browser tests |
+
+---
+
 ## Next Steps
 
 Once your development environment is set up:
@@ -364,7 +435,8 @@ Once your development environment is set up:
 1. **Explore the codebase** - Start with `apps/web/src/app/page.tsx`
 2. **Read the architecture** - See [architecture.md](architecture.md)
 3. **Check current sprint** - See `docs/sprint-artifacts/sprint-status.yaml`
-4. **Contribute** - Follow [CONTRIBUTING.md](../CONTRIBUTING.md)
+4. **Review runbooks** - See `docs/runbooks/` for operational procedures
+5. **Contribute** - Follow [CONTRIBUTING.md](../CONTRIBUTING.md)
 
 ---
 
@@ -376,4 +448,4 @@ Once your development environment is set up:
 
 ---
 
-*Last updated: 2025-12-05*
+*Last updated: 2025-12-10*

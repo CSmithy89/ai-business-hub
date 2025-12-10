@@ -60,6 +60,10 @@ export async function POST(request: NextRequest) {
         resetAt: rateLimit.resetAt,
       })
       Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
+      // Add standard Retry-After header for client compatibility
+      if (rateLimit.retryAfter !== undefined) {
+        response.headers.set('Retry-After', String(rateLimit.retryAfter))
+      }
       return response
     }
 
@@ -96,16 +100,15 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
     // Delete existing verification tokens for this user
-    await prisma.verificationToken.deleteMany({
+    await prisma.verification.deleteMany({
       where: { identifier: user.email },
     })
 
     // Create new verification token
-    await prisma.verificationToken.create({
+    await prisma.verification.create({
       data: {
         identifier: user.email,
-        token,
-        type: 'email_verification',
+        value: token,
         expiresAt,
       },
     })

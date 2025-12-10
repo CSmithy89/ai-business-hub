@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { AIProviderFactory } from './ai-provider-factory.service';
-import { CredentialEncryptionService } from '@hyvve/shared';
+import { CredentialEncryptionService } from '@hyvve/shared/server';
 import {
   CreateProviderDto,
   UpdateProviderDto,

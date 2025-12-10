@@ -37,20 +37,20 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
         <SidebarNavItem
           icon="check_circle"
           label="Approvals"
-          href="/dashboard/approvals"
+          href="/approvals"
           badge={approvalCount}
           collapsed={collapsed}
         />
         <SidebarNavItem
           icon="smart_toy"
           label="AI Team"
-          href="/dashboard/agents"
+          href="/agents"
           collapsed={collapsed}
         />
         <SidebarNavItem
           icon="settings"
           label="Settings"
-          href="/dashboard/settings"
+          href="/settings"
           collapsed={collapsed}
         />
       </SidebarSection>
@@ -60,14 +60,14 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
         <SidebarNavItem
           icon="group"
           label="CRM"
-          href="/dashboard/crm"
+          href="/crm"
           statusDot="secondary"
           collapsed={collapsed}
         />
         <SidebarNavItem
           icon="folder_open"
           label="Projects"
-          href="/dashboard/projects"
+          href="/projects"
           statusDot="atlas"
           collapsed={collapsed}
         />
