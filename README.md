@@ -278,20 +278,31 @@ For ongoing operations:
 | EPIC-09 | UI & Authentication Enhancements | 15/15 | ✅ Complete |
 | EPIC-10 | Platform Hardening | 8/8 | ✅ Complete |
 | EPIC-11 | Agent Integration | 5/5 | ✅ Complete |
+| EPIC-12 | UX Polish | 8/8 | ✅ Complete |
+| EPIC-13 | AI Agent Management | 6/6 | ✅ Complete |
+| EPIC-14 | Testing & Observability | 19/19 | ✅ Complete |
 
-**Progress: 119/120 stories completed (99%)**
+**Progress: 143/144 stories completed (99%)**
 
-### EPIC-11 Highlights: Agent Integration
+### EPIC-14 Highlights: Testing & Observability
 
-**Full-Stack AI Agent Connection** - The platform now has **three complete AI agent teams** integrated end-to-end:
+**Comprehensive Testing Infrastructure** - Closed testing gaps from previous epics:
+- Rate limit concurrency tests with Redis testcontainers
+- Zustand store unit tests for UI state management
+- File upload pipeline tests with PDF/DOCX extraction
+- CSRF integration tests for security validation
+- Agent client unit tests with Zod runtime validation
 
-- **Validation Team (Vera)** - 5-agent validation workflow with POST `/agents/validation/runs` and health check endpoints
-- **Planning Team (Blake)** - 5-agent planning workflow with POST `/agents/planning/runs` and health check endpoints
-- **Branding Team (Bella)** - 6-agent branding workflow with POST `/agents/branding/runs` and health check endpoints
+**Production Observability** - Added monitoring capabilities:
+- **Prometheus Metrics Endpoint** (`/api/metrics`) - Event bus throughput, API latency histograms, approval queue depth, AI provider health
+- **Operational Runbooks** - DLQ management, database recovery, incident response, key rotation procedures
 
-**Frontend Integration** - New `agent-client.ts` API client connects workflow pages to real agents, displaying actual agent names and team compositions instead of mock data.
+**Agent Security Hardening**:
+- Rate limiting on agent API endpoints (10 requests/minute per user)
+- Business ID ownership validation for tenant isolation
+- Rate limit headers (`X-RateLimit-*`) for client self-regulation
 
-**E2E Testing Suite** - 11 comprehensive end-to-end tests covering health checks, workflow execution, error handling, and tenant isolation.
+**Known Issue (In Progress)**: OAuth authentication (Google, GitHub, Microsoft) requires Account schema update. See [Epic 14 Retrospective](docs/sprint-artifacts/epic-14-retrospective.md) for details.
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 
@@ -299,7 +310,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 
 ## Getting Started
 
-> **Note:** The platform is in active development. EPIC-07 (UI Shell & Navigation) is the next milestone. Foundation epics (00-06) are complete with 59 stories implemented.
+> **Note:** All foundation epics are complete with 143 stories implemented. The platform is preparing for production deployment.
 
 ### Prerequisites
 - Node.js 20+

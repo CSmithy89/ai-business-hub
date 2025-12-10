@@ -6,23 +6,128 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
-## EPIC-11: Agent Integration (4 stories)
+## EPIC-14: Testing & Observability (19 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-10
+**PRs:** [#13](https://github.com/CSmithy89/ai-business-hub/pull/13), [#14](https://github.com/CSmithy89/ai-business-hub/pull/14)
+
+### Testing Infrastructure
+
+- Rate limit concurrency tests with Redis testcontainers
+- Zustand store unit tests for UI state management
+- File upload pipeline tests with PDF/DOCX extraction
+- CSRF integration tests for security validation
+- Agent client unit tests with mocked fetch
+- OAuth flow E2E tests with Playwright
+- Approval quick actions tests
+
+### Production Observability
+
+- Prometheus metrics endpoint (`/api/metrics`)
+  - Event bus throughput, consumer lag, DLQ size
+  - HTTP request duration histograms
+  - Approval queue depth by status
+  - AI provider health status
+  - Active WebSocket connections
+- Operational runbooks in `docs/runbooks/`
+  - DLQ management procedures
+  - Database recovery procedures
+  - Incident response guidelines
+  - Key rotation procedures
+
+### Agent Security Hardening
+
+- Rate limiting on agent API endpoints (10/minute per user)
+- Business ID ownership validation for tenant isolation
+- Zod runtime validation for agent responses
+- Session persistence with localStorage
+
+### Code Quality Improvements
+
+- API URL centralization in `agent-client.ts`
+- Type-safe optimistic updates for approvals
+- Countdown timer performance optimization
+- Password match indicator fix
+- ErrorBoundary telemetry integration
+- Mock data centralization for tests
+- Rate limit headers (`X-RateLimit-*`) on all rate-limited routes
+
+### Known Issues
+
+- OAuth authentication (Google, GitHub, Microsoft) requires Account schema fix
+- See [Epic 14 Retrospective](docs/sprint-artifacts/epic-14-retrospective.md)
+
+---
+
+## EPIC-13: AI Agent Management (6 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-08
+
+### Agent Dashboard
+
+- Agent card components with status indicators
+- Agent detail modal with configuration view
+- Agent activity feed with real-time updates
+- Agent configuration page for team settings
+- Agent dashboard page at `/dashboard/agents`
+
+### Confidence System
+
+- Confidence breakdown visualization
+- Score component breakdowns by factor
+- Historical confidence trends
+
+---
+
+## EPIC-12: UX Polish (8 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-07
+
+### Authentication UX
+
+- OAuth provider buttons with loading states
+- Confirm password field with validation
+- Password strength indicator
+
+### Approval Queue UX
+
+- Quick actions (approve/reject) with CSRF protection
+- Countdown timers for SLA deadlines
+- Approval metrics calculation and display
+
+### Chat Interface
+
+- Streaming UI for real-time responses
+- Error display cards with retry
+- Preview cards for rich content
+
+### Settings UX
+
+- Enhanced settings navigation
+- Improved form layouts and validation
+
+---
+
+## EPIC-11: Agent Integration (5 stories)
 
 **Status:** Complete
 **Completed:** 2025-12-06
 
 ### Agent API Endpoints
 
-- POST /agents/validation/runs - Execute Vera's validation team workflow
-- GET /agents/validation/health - Health check for validation team
-- POST /agents/planning/runs - Execute Blake's planning team workflow
-- GET /agents/planning/health - Health check for planning team
-- POST /agents/branding/runs - Execute Bella's branding team workflow
-- GET /agents/branding/health - Health check for branding team
+- `POST /agents/validation/runs` - Execute Vera's validation team workflow
+- `GET /agents/validation/health` - Health check for validation team
+- `POST /agents/planning/runs` - Execute Blake's planning team workflow
+- `GET /agents/planning/health` - Health check for planning team
+- `POST /agents/branding/runs` - Execute Bella's branding team workflow
+- `GET /agents/branding/health` - Health check for branding team
 
 ### Frontend Integration
 
-- agent-client.ts - Frontend API client with Server-Sent Events (SSE) support
+- `agent-client.ts` - Frontend API client with Server-Sent Events (SSE) support
 - Real-time agent execution with streaming updates
 - Validation page connected to Vera's validation team
 - Planning page connected to Blake's planning team

@@ -634,9 +634,49 @@ curl https://api.your-domain.com/health
 
 # AgentOS health
 curl https://agents.your-domain.com/health
+
+# Agent team health checks
+curl https://agents.your-domain.com/agents/validation/health
+curl https://agents.your-domain.com/agents/planning/health
+curl https://agents.your-domain.com/agents/branding/health
 ```
 
-### Recommended Monitoring
+### Prometheus Metrics Endpoint
+
+HYVVE exposes Prometheus-compatible metrics at `/api/metrics`:
+
+```bash
+curl https://api.your-domain.com/api/metrics
+```
+
+**Available Metrics:**
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `event_bus_throughput_total` | Counter | Total events published to event bus |
+| `event_bus_consumer_lag` | Gauge | Consumer lag in events |
+| `event_bus_dlq_size` | Gauge | Dead letter queue size |
+| `http_request_duration_seconds` | Histogram | HTTP request latency |
+| `http_requests_total` | Counter | Total HTTP requests |
+| `approval_queue_depth` | Gauge | Approval items by status |
+| `ai_provider_health` | Gauge | AI provider health (1=healthy, 0=unhealthy) |
+| `active_websocket_connections` | Gauge | Active WebSocket connections |
+| `agent_api_requests_total` | Counter | Agent API calls by team |
+| `agent_api_rate_limit_hits` | Counter | Rate limit blocks on agent APIs |
+
+### Grafana Dashboard Setup
+
+Import the Prometheus metrics into Grafana:
+
+1. Add Prometheus data source pointing to your metrics endpoint
+2. Create dashboards for:
+   - Event Bus Health (throughput, lag, DLQ)
+   - API Performance (latency percentiles, error rates)
+   - Approval Queue Status (depth by status)
+   - AI Provider Status (health by provider)
+   - Agent API Metrics (requests, rate limits)
+
+### Recommended Monitoring Stack
 
 | Aspect | Tool Options |
 |--------|--------------|
@@ -653,6 +693,8 @@ curl https://agents.your-domain.com/health
 - Redis memory and connection count
 - Event bus queue depth
 - DLQ (Dead Letter Queue) size
+- Agent API rate limit hits
+- AI provider health status
 
 ### Alerting Thresholds
 
@@ -663,6 +705,19 @@ curl https://agents.your-domain.com/health
 | DB connections | > 80% | > 95% |
 | DLQ size | > 100 | > 500 |
 | Memory usage | > 80% | > 95% |
+| Agent rate limit hits | > 50/hr | > 200/hr |
+| AI provider health | Any unhealthy | All unhealthy |
+
+### Operational Runbooks
+
+Runbooks are available in `docs/runbooks/`:
+
+| Runbook | Purpose |
+|---------|---------|
+| `dlq-management.md` | View, retry, and purge failed events |
+| `database-recovery.md` | Backup and restore procedures |
+| `incident-response.md` | General incident handling |
+| `key-rotation.md` | Encryption key rotation |
 
 ---
 
@@ -691,4 +746,4 @@ See [Event Bus Runbook](runbooks/event-bus.md) for DLQ management and recovery p
 
 ---
 
-*Last updated: 2025-12-05*
+*Last updated: 2025-12-10*

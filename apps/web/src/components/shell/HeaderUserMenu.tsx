@@ -34,7 +34,7 @@ export function HeaderUserMenu() {
 
   const handleSignOut = () => {
     // TODO: Implement actual sign out logic from Epic 01
-    router.push('/auth/signin' as never);
+    router.push('/sign-in' as never);
   };
 
   return (
@@ -63,13 +63,13 @@ export function HeaderUserMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href={'/dashboard/profile' as never}>
+          <Link href={'/settings' as never}>
             <span className="material-symbols-rounded mr-2 text-base">person</span>
             Profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href={'/dashboard/settings' as never}>
+          <Link href={'/settings' as never}>
             <span className="material-symbols-rounded mr-2 text-base">settings</span>
             Settings
           </Link>
