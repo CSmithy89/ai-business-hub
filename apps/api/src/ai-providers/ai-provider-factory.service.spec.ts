@@ -13,7 +13,7 @@ import { OpenAIProvider } from './providers/openai.provider';
 import { GeminiProvider } from './providers/gemini.provider';
 import { DeepSeekProvider } from './providers/deepseek.provider';
 import { OpenRouterProvider } from './providers/openrouter.provider';
-import { CredentialEncryptionService } from '@hyvve/shared';
+import { CredentialEncryptionService } from '@hyvve/shared/server';
 import * as crypto from 'crypto';
 
 describe('AIProviderFactory', () => {

@@ -9,14 +9,19 @@
 
 'use client'
 
-import { useBusinesses } from '@/hooks/use-businesses'
+import { useBusinesses, type BusinessError } from '@/hooks/use-businesses'
 import { BusinessCard } from '@/components/business/BusinessCard'
 import { StartBusinessCard } from '@/components/business/StartBusinessCard'
 import { EmptyBusinessState } from '@/components/business/EmptyBusinessState'
 import { BusinessCardSkeleton } from '@/components/business/BusinessCardSkeleton'
+import { NoWorkspaceState } from '@/components/business/NoWorkspaceState'
 
 export default function PortfolioDashboardPage() {
   const { data: businesses, isLoading, error } = useBusinesses()
+
+  // Check if error is due to no workspace being selected
+  const businessError = error as BusinessError | null
+  const isNoWorkspace = businessError?.code === 'NO_WORKSPACE'
 
   return (
     <div className="space-y-8">
@@ -37,8 +42,11 @@ export default function PortfolioDashboardPage() {
         </div>
       )}
 
-      {/* Error State */}
-      {error && (
+      {/* No Workspace State */}
+      {isNoWorkspace && <NoWorkspaceState />}
+
+      {/* Error State (other errors) */}
+      {error && !isNoWorkspace && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
           <p className="text-sm text-destructive">
             Failed to load businesses. Please try again later.

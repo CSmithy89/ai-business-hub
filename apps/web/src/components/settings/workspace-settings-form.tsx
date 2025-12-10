@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, Save, Trash2, AlertTriangle } from 'lucide-react'
+import { Loader2, Save, Trash2, AlertTriangle, Building, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -259,13 +259,7 @@ export function WorkspaceSettingsForm() {
 
   // Loading state
   if (!workspaceId) {
-    return (
-      <Card>
-        <CardContent className="py-10">
-          <p className="text-center text-gray-500">No workspace selected</p>
-        </CardContent>
-      </Card>
-    )
+    return <CreateWorkspacePrompt />
   }
 
   if (isLoading) {
@@ -329,7 +323,6 @@ export function WorkspaceSettingsForm() {
               {/* Image Preview */}
               <div className="h-16 w-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                 {formData.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={formData.image}
                     alt="Workspace"
@@ -491,5 +484,98 @@ export function WorkspaceSettingsForm() {
         </AlertDialogContent>
       </AlertDialog>
     </form>
+  )
+}
+
+/**
+ * CreateWorkspacePrompt Component
+ *
+ * Displayed when user has no workspace selected.
+ * Allows creating a new workspace.
+ */
+function CreateWorkspacePrompt() {
+  const [workspaceName, setWorkspaceName] = useState('')
+  const [isCreating, setIsCreating] = useState(false)
+  const queryClient = useQueryClient()
+  const router = useRouter()
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!workspaceName.trim() || workspaceName.length < 3) {
+      toast.error('Workspace name must be at least 3 characters')
+      return
+    }
+
+    setIsCreating(true)
+
+    try {
+      const response = await fetch('/api/workspaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: workspaceName.trim() }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create workspace')
+      }
+
+      toast.success('Workspace created successfully!')
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+      // Refresh the page to load the new workspace
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create workspace')
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="py-10">
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-6 rounded-full bg-amber-100 p-4">
+            <Building className="h-10 w-10 text-amber-600" />
+          </div>
+
+          <h2 className="mb-2 text-xl font-semibold">No Workspace Selected</h2>
+          <p className="mb-6 max-w-md text-gray-500">
+            Create a workspace to organize your businesses, invite team members,
+            and configure AI providers.
+          </p>
+
+          <form onSubmit={handleCreate} className="w-full max-w-sm space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-workspace-name">Workspace Name</Label>
+              <Input
+                id="new-workspace-name"
+                value={workspaceName}
+                onChange={(e) => setWorkspaceName(e.target.value)}
+                placeholder="My Workspace"
+                minLength={3}
+                maxLength={50}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isCreating}>
+              {isCreating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Workspace
+                </>
+              )}
+            </Button>
+          </form>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

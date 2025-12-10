@@ -33,5 +33,7 @@ export * from './permissions';
 // Module permission overrides
 export * from './module-permissions';
 
-// Encryption utilities
-export * from './utils/credential-encryption';
+// NOTE: Encryption utilities are NOT exported from the main entry point
+// because they use node:crypto which breaks client-side bundling.
+// Import from '@hyvve/shared/server' for server-side utilities.
+// See: packages/shared/src/server.ts

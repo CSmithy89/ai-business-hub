@@ -8,6 +8,13 @@ import { useQuery } from '@tanstack/react-query'
 import type { Business } from '@hyvve/db'
 
 /**
+ * Business API error with typed error code
+ */
+export interface BusinessError extends Error {
+  code?: 'UNAUTHORIZED' | 'NO_WORKSPACE' | 'INTERNAL_ERROR'
+}
+
+/**
  * Fetch all businesses for the current workspace
  */
 export function useBusinesses() {
@@ -19,8 +26,10 @@ export function useBusinesses() {
       })
 
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ message: 'Failed to fetch businesses' }))
-        throw new Error(error.message || 'Failed to fetch businesses')
+        const errorData = await res.json().catch(() => ({ message: 'Failed to fetch businesses' }))
+        const error: BusinessError = new Error(errorData.message || 'Failed to fetch businesses')
+        error.code = errorData.error
+        throw error
       }
 
       const json = await res.json()
