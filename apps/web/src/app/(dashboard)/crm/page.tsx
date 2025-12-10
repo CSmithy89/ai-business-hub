@@ -20,6 +20,7 @@ export default function CRMPage() {
           stroke="currentColor"
           aria-hidden="true"
           focusable="false"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
