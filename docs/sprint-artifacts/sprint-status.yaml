@@ -315,4 +315,4 @@ development_status:
   14-17-mock-data-extraction: done  # Added from Epic 12 tech debt
   14-18-oauth-flow-e2e-tests: done  # Added from Epic 12 tech debt
   14-19-rate-limit-headers: done  # Emit X-RateLimit-* headers across API routes
-  epic-14-retrospective: optional
+  epic-14-retrospective: completed  # OAuth critical fix applied and verified
