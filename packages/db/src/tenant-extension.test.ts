@@ -468,9 +468,9 @@ describe('Tenant Extension', () => {
       })
     })
 
-    it('should not filter VerificationToken queries', async () => {
+    it('should not filter Verification queries', async () => {
       await withTenantContext(WORKSPACE_A, async () => {
-        const tokens = await tenantDb.verificationToken.findMany()
+        const tokens = await tenantDb.verification.findMany()
         expect(Array.isArray(tokens)).toBe(true)
       })
     })

@@ -119,8 +119,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Find active verification token for this user
-    // better-auth stores verification tokens in the 'verificationToken' table
-    const verificationRecord = await prisma.verificationToken.findFirst({
+    // better-auth stores verification tokens in the 'verification' table
+    const verificationRecord = await prisma.verification.findFirst({
       where: {
         identifier: normalizedEmail,
         expiresAt: {
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify OTP against the token
-    const isValidOtp = verifyOTP(code, verificationRecord.token)
+    const isValidOtp = verifyOTP(code, verificationRecord.value)
 
     if (!isValidOtp) {
       // Rate limit already incremented by checkRateLimit above
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
           emailVerified: true,
         },
       }),
-      prisma.verificationToken.delete({
+      prisma.verification.delete({
         where: { id: verificationRecord.id },
       }),
     ])
