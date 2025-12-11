@@ -3,16 +3,22 @@
  *
  * Displays individual chat messages with three variants:
  * - User messages: Right-aligned with primary color background
- * - Agent messages: Left-aligned with avatar and agent color
+ * - Agent messages: Left-aligned with avatar and agent color (supports markdown)
  * - System messages: Centered with muted style (for dividers)
  *
  * Security: All content is sanitized with DOMPurify to prevent XSS attacks.
+ * Markdown rendering: Agent messages support GFM (GitHub Flavored Markdown).
+ *
+ * Story: 15.4 - Connect Chat Panel to Agno Backend
+ * Updated: Added markdown rendering support for agent messages
  */
 
 'use client';
 
 import { memo } from 'react';
 import DOMPurify from 'isomorphic-dompurify';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 import { formatChatTime } from '@/lib/date-utils';
 import { StreamingCursor } from './StreamingCursor';
@@ -106,7 +112,7 @@ export const ChatMessage = memo(function ChatMessage({
           {agentName || 'Agent'}
         </p>
 
-        {/* Message Bubble */}
+        {/* Message Bubble with Markdown Support */}
         <div
           className={cn(
             'rounded-t-xl rounded-br-xl rounded-bl-sm',
@@ -114,10 +120,73 @@ export const ChatMessage = memo(function ChatMessage({
             'text-[rgb(var(--color-text-primary))]'
           )}
         >
-          <p className="text-sm font-normal leading-relaxed">
-            {safeContent}
+          <div className="prose prose-sm dark:prose-invert max-w-none text-sm font-normal leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                // Render inline code with styling
+                code: ({ children, className }) => {
+                  const isInline = !className;
+                  if (isInline) {
+                    return (
+                      <code className="rounded bg-[rgb(var(--color-bg-secondary))] px-1.5 py-0.5 text-xs font-mono">
+                        {children}
+                      </code>
+                    );
+                  }
+                  return (
+                    <code className={cn('block overflow-x-auto rounded-md bg-[rgb(var(--color-bg-secondary))] p-3 text-xs font-mono', className)}>
+                      {children}
+                    </code>
+                  );
+                },
+                // Style links
+                a: ({ children, href }) => (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[rgb(var(--color-primary-500))] hover:underline"
+                  >
+                    {children}
+                  </a>
+                ),
+                // Style paragraphs
+                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                // Style lists
+                ul: ({ children }) => <ul className="mb-2 ml-4 list-disc last:mb-0">{children}</ul>,
+                ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal last:mb-0">{children}</ol>,
+                li: ({ children }) => <li className="mb-1">{children}</li>,
+                // Style headings
+                h1: ({ children }) => <h1 className="mb-2 text-lg font-bold">{children}</h1>,
+                h2: ({ children }) => <h2 className="mb-2 text-base font-bold">{children}</h2>,
+                h3: ({ children }) => <h3 className="mb-1 text-sm font-bold">{children}</h3>,
+                // Style blockquotes
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-2 border-[rgb(var(--color-border-default))] pl-3 italic opacity-80">
+                    {children}
+                  </blockquote>
+                ),
+                // Style tables
+                table: ({ children }) => (
+                  <table className="my-2 w-full border-collapse text-xs">{children}</table>
+                ),
+                th: ({ children }) => (
+                  <th className="border border-[rgb(var(--color-border-default))] bg-[rgb(var(--color-bg-secondary))] px-2 py-1 text-left font-semibold">
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td className="border border-[rgb(var(--color-border-default))] px-2 py-1">
+                    {children}
+                  </td>
+                ),
+              }}
+            >
+              {safeContent}
+            </ReactMarkdown>
             {isStreaming && <StreamingCursor />}
-          </p>
+          </div>
 
           {/* Stop Generating Button */}
           {isStreaming && onStopStreaming && (
