@@ -33,7 +33,8 @@ import { cn } from '@/lib/utils';
 export function ChatPanel() {
   const { chatPanelOpen, chatPanelWidth, toggleChatPanel } = useUIStore();
   const [selectedAgent, setSelectedAgent] = useState<ChatAgent>(CHAT_AGENTS[0]);
-  const { messages, isTyping, isStreaming, sendMessage, stopStreaming } = useChatMessages(selectedAgent);
+  const { messages, isTyping, isStreaming, sendMessage, stopStreaming, addAgentGreeting } =
+    useChatMessages(selectedAgent);
 
   // Current agent info (from selected agent)
   const currentAgent = {
@@ -44,8 +45,11 @@ export function ChatPanel() {
 
   // Handle agent change with greeting
   const handleAgentChange = (agent: ChatAgent) => {
-    setSelectedAgent(agent);
-    // TODO: Send agent greeting message when agent changes
+    if (agent.id !== selectedAgent.id) {
+      setSelectedAgent(agent);
+      // Add greeting message from the new agent
+      addAgentGreeting(agent);
+    }
   };
 
   // Collapsed state - show icon button

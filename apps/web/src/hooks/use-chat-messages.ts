@@ -30,6 +30,7 @@ interface ChatAgent {
   name: string;
   icon: string;
   color: string;
+  greeting?: string;
 }
 
 const STORAGE_KEY = 'hyvve-chat-history';
@@ -362,6 +363,29 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
     }
   }, [messages, sendMessage]);
 
+  /**
+   * Add a greeting message when switching to a new agent
+   */
+  const addAgentGreeting = useCallback(
+    (agent: ChatAgent) => {
+      if (!agent.greeting) return;
+
+      const greetingMessage: Message = {
+        id: `greeting-${agent.id}-${Date.now()}`,
+        type: 'agent',
+        content: agent.greeting,
+        timestamp: new Date(),
+        agentId: agent.id,
+        agentName: agent.name,
+        agentIcon: agent.icon,
+        agentColor: agent.color,
+      };
+
+      setMessages((prev) => [...prev, greetingMessage]);
+    },
+    []
+  );
+
   return {
     messages,
     isTyping,
@@ -371,5 +395,6 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
     stopStreaming,
     clearHistory,
     retryLastMessage,
+    addAgentGreeting,
   };
 }

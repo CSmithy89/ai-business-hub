@@ -20,6 +20,8 @@ export interface ChatAgent {
   color: string;
   role: string;
   status?: 'online' | 'busy' | 'offline';
+  /** Greeting message shown when switching to this agent */
+  greeting: string;
 }
 
 /**
@@ -33,6 +35,8 @@ export const CHAT_AGENTS: ChatAgent[] = [
     color: '#FF6B6B',
     role: 'Orchestrator',
     status: 'online',
+    greeting:
+      "Hello! I'm Hub, your AI orchestrator. I can help coordinate tasks, answer questions, and connect you with specialized agents. How can I assist you today?",
   },
   {
     id: 'maya',
@@ -41,6 +45,8 @@ export const CHAT_AGENTS: ChatAgent[] = [
     color: '#2DD4BF',
     role: 'CRM & Relationships',
     status: 'online',
+    greeting:
+      "Hi there! I'm Maya, your CRM specialist. I can help you manage customer relationships, track interactions, and nurture leads. What would you like to work on?",
   },
   {
     id: 'atlas',
@@ -49,6 +55,8 @@ export const CHAT_AGENTS: ChatAgent[] = [
     color: '#3B82F6',
     role: 'Projects & Tasks',
     status: 'online',
+    greeting:
+      "Hey! I'm Atlas, your project management expert. I can help you organize tasks, track deadlines, and keep your projects on track. What can I help you plan?",
   },
   {
     id: 'nova',
@@ -57,6 +65,8 @@ export const CHAT_AGENTS: ChatAgent[] = [
     color: '#A855F7',
     role: 'Marketing & Content',
     status: 'online',
+    greeting:
+      "Hello! I'm Nova, your marketing and content specialist. I can help with content creation, campaign planning, and brand messaging. What shall we create together?",
   },
   {
     id: 'echo',
@@ -65,6 +75,8 @@ export const CHAT_AGENTS: ChatAgent[] = [
     color: '#22C55E',
     role: 'Analytics & Insights',
     status: 'online',
+    greeting:
+      "Hi! I'm Echo, focused on analytics and insights. I can help you understand data, generate reports, and surface actionable insights. What metrics would you like to explore?",
   },
 ];
 
