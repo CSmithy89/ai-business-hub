@@ -77,15 +77,23 @@ export const ChatMessage = memo(function ChatMessage({
   if (type === 'user') {
     return (
       <div className="flex max-w-[85%] flex-col items-end gap-1 self-end">
+        {/* User Message Bubble - Style Guide: 16px radius, top-right 4px, coral bg */}
         <div
           className={cn(
-            'rounded-t-xl rounded-bl-xl rounded-br-sm',
-            'bg-[rgb(var(--color-primary-500))] px-4 py-3 text-white'
+            // Border radius: 16px with 4px top-right for user
+            'rounded-[16px] rounded-tr-[4px]',
+            // Coral gradient background for premium feel
+            'bg-gradient-to-br from-[rgb(var(--color-primary-500))] to-[rgb(var(--color-primary-600))]',
+            // Padding: 16px (--space-4)
+            'px-4 py-4 text-white',
+            // Subtle shadow for depth
+            'shadow-[0_2px_8px_rgba(255,107,107,0.2)]'
           )}
         >
           <p className="text-sm font-normal leading-relaxed">{safeContent}</p>
         </div>
-        <p className="text-[11px] text-[rgb(var(--color-text-muted))]">
+        {/* Timestamp right-aligned for user messages */}
+        <p className="text-[11px] text-[rgb(var(--color-text-muted))] text-right">
           {formattedTime}
         </p>
       </div>
@@ -95,13 +103,16 @@ export const ChatMessage = memo(function ChatMessage({
   // Agent message
   return (
     <div className="flex max-w-[85%] items-start gap-2.5 self-start">
-      {/* Agent Avatar */}
+      {/* Agent Avatar - left aligned per style guide */}
       <div
         className={cn(
-          'flex h-7 w-7 shrink-0 items-center justify-center',
-          'rounded-full text-base text-white'
+          'flex h-8 w-8 shrink-0 items-center justify-center',
+          'rounded-full text-base'
         )}
-        style={{ backgroundColor: agentColor || '#20B2AA' }}
+        style={{
+          backgroundColor: `${agentColor || '#20B2AA'}20`,
+          color: agentColor || '#20B2AA',
+        }}
       >
         {agentIcon || '🤖'}
       </div>
@@ -112,12 +123,19 @@ export const ChatMessage = memo(function ChatMessage({
           {agentName || 'Agent'}
         </p>
 
-        {/* Message Bubble with Markdown Support */}
+        {/* Agent Message Bubble - Style Guide: white bg, border, 16px radius, top-left 4px */}
         <div
           className={cn(
-            'rounded-t-xl rounded-br-xl rounded-bl-sm',
-            'bg-[rgb(var(--color-bg-tertiary))] px-4 py-3',
-            'text-[rgb(var(--color-text-primary))]'
+            // Border radius: 16px with 4px top-left for agent
+            'rounded-[16px] rounded-tl-[4px]',
+            // Background: white with subtle border
+            'bg-[rgb(var(--color-bg-white))]',
+            'border border-[rgb(var(--color-border-subtle))]',
+            // Padding: 16px (--space-4)
+            'px-4 py-4',
+            'text-[rgb(var(--color-text-primary))]',
+            // Subtle shadow for depth
+            'shadow-[0_1px_3px_rgba(0,0,0,0.04)]'
           )}
         >
           <div className="prose prose-sm dark:prose-invert max-w-none text-sm font-normal leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">

@@ -226,3 +226,30 @@
 .skip-link:focus {
   top: var(--space-4);
 }
+
+/**
+ * Chat Message Styling - Story 15-22
+ *
+ * Typing indicator pulse animation for chat bubbles.
+ * Smooth fade in/out for natural typing feel.
+ */
+@keyframes typing-pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .animate-\\[typing-pulse_1\\.4s_infinite_ease-in-out\\],
+  .animate-\\[typing-pulse_1\\.4s_infinite_ease-in-out_0\\.2s\\],
+  .animate-\\[typing-pulse_1\\.4s_infinite_ease-in-out_0\\.4s\\] {
+    animation: none;
+    opacity: 0.7;
+  }
+}
