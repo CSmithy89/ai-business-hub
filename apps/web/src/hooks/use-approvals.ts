@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ApprovalItem, ApprovalStatus } from '@hyvve/shared'
-import { NESTJS_API_URL } from '@/lib/api-config'
+import { NESTJS_API_URL, NEXTJS_API_URL } from '@/lib/api-config'
 
 /**
  * Query parameters for fetching approvals list
@@ -47,6 +47,12 @@ export interface ApprovalActionRequest {
 
 /**
  * Fetch approvals list with filtering and pagination
+ *
+ * Uses the Next.js API route which handles:
+ * - Proxying to NestJS backend when available
+ * - Falling back to demo data when backend is unavailable
+ *
+ * Updated: Story 15.5 - Added demo data fallback support
  */
 async function fetchApprovals(filters: ApprovalFilters = {}): Promise<ApprovalsListResponse> {
   const params = new URLSearchParams()
@@ -61,7 +67,8 @@ async function fetchApprovals(filters: ApprovalFilters = {}): Promise<ApprovalsL
   if (filters.page) params.append('page', filters.page.toString())
   if (filters.limit) params.append('limit', filters.limit.toString())
 
-  const url = `${NESTJS_API_URL}/api/approvals${params.toString() ? `?${params.toString()}` : ''}`
+  // Use Next.js API route (provides demo fallback)
+  const url = `${NEXTJS_API_URL}/api/approvals${params.toString() ? `?${params.toString()}` : ''}`
 
   const response = await fetch(url, {
     credentials: 'include', // Include cookies for session

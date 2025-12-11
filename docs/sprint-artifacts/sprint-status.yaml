@@ -349,7 +349,7 @@ development_status:
   15-26-implement-appearance-settings-page: backlog  # P1 - Added from audit
 
   # Section 5: Approvals & Agents (3 stories, 11 points)
-  15-5-fix-approvals-page-data-loading: backlog
+  15-5-fix-approvals-page-data-loading: done
   15-17-implement-approval-cards-with-confidence-visualization: backlog
   15-18-implement-agent-cards-enhancement: backlog
 
