@@ -8,15 +8,16 @@
  * - Auto-scroll message list
  * - Input area with @mention support
  * - Collapse/expand functionality
+ * - Agent selector dropdown
  *
- * Updated: Story 15.1 - Replace Material Icons with Lucide
+ * Updated: Story 15.4 - Connect Chat Panel to Agno Backend
  */
 
 'use client';
 
+import { useState } from 'react';
 import {
   MessageCircle,
-  ChevronDown,
   History,
   Minus,
   Maximize2,
@@ -26,17 +27,25 @@ import { useUIStore } from '@/stores/ui';
 import { useChatMessages } from '@/hooks/use-chat-messages';
 import { ChatMessageList } from '@/components/chat/ChatMessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
+import { AgentSelector, CHAT_AGENTS, type ChatAgent } from '@/components/chat/AgentSelector';
 import { cn } from '@/lib/utils';
 
 export function ChatPanel() {
   const { chatPanelOpen, chatPanelWidth, toggleChatPanel } = useUIStore();
-  const { messages, isTyping, sendMessage } = useChatMessages();
+  const [selectedAgent, setSelectedAgent] = useState<ChatAgent>(CHAT_AGENTS[0]);
+  const { messages, isTyping, sendMessage } = useChatMessages(selectedAgent);
 
-  // Current agent info
+  // Current agent info (from selected agent)
   const currentAgent = {
-    name: 'Hub',
-    icon: '🎯',
-    color: '#FF6B6B',
+    name: selectedAgent.name,
+    icon: selectedAgent.icon,
+    color: selectedAgent.color,
+  };
+
+  // Handle agent change with greeting
+  const handleAgentChange = (agent: ChatAgent) => {
+    setSelectedAgent(agent);
+    // TODO: Send agent greeting message when agent changes
   };
 
   // Collapsed state - show icon button
@@ -81,40 +90,10 @@ export function ChatPanel() {
         )}
       >
         {/* Left Section: Agent Selector */}
-        <div
-          className={cn(
-            'flex cursor-pointer items-center gap-2.5 rounded-md p-1.5 pr-2.5',
-            'transition-colors duration-150',
-            'hover:bg-[rgb(var(--color-bg-tertiary))]'
-          )}
-        >
-          {/* Agent Avatar with Status Indicator */}
-          <div className="relative h-9 w-9 shrink-0">
-            <div
-              className="flex h-full w-full items-center justify-center rounded-full text-white"
-              style={{ backgroundColor: currentAgent.color }}
-            >
-              <span style={{ fontSize: '20px' }}>{currentAgent.icon}</span>
-            </div>
-            {/* Online status dot */}
-            <div
-              className={cn(
-                'absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full',
-                'border-2 border-[rgb(var(--color-bg-secondary))]',
-                'bg-[#2ECC71]'
-              )}
-            />
-          </div>
-
-          <div>
-            <p className="text-[15px] font-semibold leading-none text-[rgb(var(--color-text-primary))]">
-              {currentAgent.name}
-            </p>
-            <p className="text-xs text-[#2ECC71]">Online</p>
-          </div>
-
-          <ChevronDown className="h-4 w-4 text-[rgb(var(--color-text-secondary))]" />
-        </div>
+        <AgentSelector
+          selectedAgent={selectedAgent}
+          onAgentChange={handleAgentChange}
+        />
 
         {/* Right Section: Action Buttons */}
         <div className="flex items-center gap-1">

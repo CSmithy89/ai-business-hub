@@ -335,7 +335,7 @@ development_status:
   15-16-enhance-business-onboarding-wizard: backlog
 
   # Section 3: Chat Integration (2 stories, 8 points)
-  15-4-connect-chat-panel-to-agno-backend: backlog  # Includes Chat Agent Selection
+  15-4-connect-chat-panel-to-agno-backend: done  # Includes Chat Agent Selection
   15-12-implement-chat-panel-position-options: backlog
 
   # Section 4: Settings Pages (8 stories, 26 points)
