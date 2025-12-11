@@ -329,7 +329,7 @@ development_status:
   15-11-implement-main-menu-restructuring-with-businesses-tab: done
 
   # Section 2: Landing Page & User Flow (4 stories, 14 points)
-  15-2-create-businesses-portfolio-landing-page: backlog
+  15-2-create-businesses-portfolio-landing-page: done
   15-3-implement-4-step-user-onboarding-wizard: backlog
   15-15-update-sign-in-flow-redirect-logic: backlog
   15-16-enhance-business-onboarding-wizard: backlog
