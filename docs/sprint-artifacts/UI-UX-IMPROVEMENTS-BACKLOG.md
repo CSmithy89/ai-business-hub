@@ -843,14 +843,87 @@ Logo │ Project Selector │ Breadcrumbs │ Search │ Notifications │ User
 
 ---
 
+## 17. Real-Time & Advanced Interactions (From User Testing)
+
+> **Source:** USER-TEST-REPORT.md recommendations not already covered
+
+### 17.1 Approval Queue Drag-and-Drop (P2)
+**Current State:** List-based approval queue with filter/sort controls
+
+**Enhancement:**
+- [ ] Add drag-and-drop reordering for approval items
+- [ ] Drag to prioritize (move to top of queue)
+- [ ] Drag to category (group by type)
+- [ ] Visual feedback during drag (ghost element, drop zones)
+- [ ] Persist order preference per user
+
+**Implementation Notes:**
+- Use `@dnd-kit/core` or `react-beautiful-dnd`
+- Consider accessibility (keyboard reordering alternative)
+
+### 17.2 Real-Time Updates via WebSocket (P2)
+**Current State:** Manual refresh required for new approvals/updates
+
+**Enhancement:**
+- [ ] WebSocket connection for live updates
+- [ ] Real-time approval queue updates (new items appear instantly)
+- [ ] Live agent status changes (Online → Busy → Offline)
+- [ ] Notification badges update in real-time
+- [ ] Chat message delivery without polling
+- [ ] Optimistic UI with server reconciliation
+
+**Implementation Notes:**
+- Socket.io already in tech stack (per architecture docs)
+- Event types: `approval.created`, `approval.updated`, `agent.status.changed`
+- Reconnection handling with exponential backoff
+
+### 17.3 Comprehensive Keyboard Shortcuts (P2)
+**Current State:** Command palette (⌘K) with basic navigation
+
+**Enhancement - Global Shortcuts:**
+- [ ] `⌘+Shift+A` - Go to Approvals
+- [ ] `⌘+Shift+B` - Go to Businesses
+- [ ] `⌘+Shift+T` - Go to AI Team
+- [ ] `⌘+Shift+S` - Go to Settings
+- [ ] `⌘+/` - Focus chat input
+- [ ] `Escape` - Close modal/panel/palette
+- [ ] `⌘+Enter` - Submit current form
+
+**Enhancement - Context-Specific Shortcuts:**
+- [ ] Approval Queue:
+  - `j/k` - Navigate up/down in list
+  - `a` - Approve selected
+  - `r` - Reject selected
+  - `v` - View details
+- [ ] Chat Panel:
+  - `⌘+Shift+C` - Toggle chat panel (already in backlog)
+  - `⌘+Up` - Edit last message
+  - `@` - Trigger mention autocomplete
+- [ ] Onboarding Wizard:
+  - `Enter` - Continue to next step
+  - `Backspace` - Go to previous step
+
+**Implementation Notes:**
+- Use `react-hotkeys-hook` or built-in keyboard event handling
+- Show shortcuts in command palette and tooltips
+- Make shortcuts discoverable (help modal with `?`)
+
+### 17.4 Keyboard Shortcuts Help Modal (P3)
+- [ ] Create `/shortcuts` or modal showing all keyboard shortcuts
+- [ ] Trigger with `?` key
+- [ ] Categorize by context (Global, Approvals, Chat, etc.)
+- [ ] Allow customization of shortcuts (future)
+
+---
+
 ## Summary by Priority
 
 | Priority | Count | Description |
 |----------|-------|-------------|
 | P0 | 10 | Critical blockers - must fix |
 | P1 | 24 | High priority - next sprint |
-| P2 | 18 | Medium priority - future sprints |
-| P3 | 6 | Low priority - nice to have |
+| P2 | 21 | Medium priority - future sprints (+3 from user testing) |
+| P3 | 7 | Low priority - nice to have (+1 from user testing) |
 
 ### P0 Items (Critical)
 1. Post-sign-in landing page → Businesses portfolio
