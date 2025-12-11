@@ -137,3 +137,92 @@
               0 4px 16px rgba(0, 0, 0, 0.5),
               0 0 20px rgba(255, 107, 107, 0.05);
 }
+
+/**
+ * Global Focus States - Story 15-21
+ *
+ * Consistent coral focus ring for all interactive elements.
+ * Uses :focus-visible for keyboard-only focus indication.
+ * Meets WCAG 2.1 focus visibility requirements.
+ */
+
+/* Base focus ring for all interactive elements */
+@layer base {
+  /* Apply to all focusable elements */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible:not([tabindex="-1"]),
+  [role="button"]:focus-visible,
+  [role="link"]:focus-visible,
+  [role="checkbox"]:focus-visible,
+  [role="radio"]:focus-visible,
+  [role="switch"]:focus-visible,
+  [role="menuitem"]:focus-visible,
+  [role="option"]:focus-visible,
+  [role="tab"]:focus-visible {
+    outline: 2px solid rgb(var(--color-primary-500));
+    outline-offset: 2px;
+  }
+
+  /* Remove default outline - we're using custom focus ring */
+  :focus {
+    outline: none;
+  }
+
+  /* Ensure focus ring is visible on dark backgrounds */
+  .dark a:focus-visible,
+  .dark button:focus-visible,
+  .dark input:focus-visible,
+  .dark textarea:focus-visible,
+  .dark select:focus-visible,
+  .dark [tabindex]:focus-visible:not([tabindex="-1"]),
+  .dark [role="button"]:focus-visible {
+    outline: 2px solid rgb(var(--color-primary-400));
+    outline-offset: 2px;
+    /* Add subtle glow for dark mode */
+    box-shadow: 0 0 8px rgba(255, 107, 107, 0.3);
+  }
+
+  /* High contrast focus for inputs on hover */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    border-color: rgb(var(--color-primary-500));
+  }
+}
+
+/* Navigation link focus states */
+.nav-link:focus-visible,
+.sidebar-item:focus-visible {
+  outline: 2px solid rgb(var(--color-primary-500));
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+/* Focus ring utility class */
+.focus-ring-primary:focus-visible {
+  outline: 2px solid rgb(var(--color-primary-500));
+  outline-offset: 2px;
+}
+
+/* Skip to content link for accessibility */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  padding: var(--space-3) var(--space-6);
+  background: rgb(var(--color-bg-secondary));
+  border: 2px solid rgb(var(--color-primary-500));
+  border-radius: var(--radius-md);
+  font-weight: var(--font-semibold);
+  transition: top var(--duration-fast) var(--ease-out);
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+}
