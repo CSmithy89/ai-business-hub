@@ -3,6 +3,8 @@
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { AgentBadge } from '@/components/agents/agent-avatar'
+import { Clock } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { ApprovalItem } from '@hyvve/shared'
 import Link from 'next/link'
@@ -13,7 +15,10 @@ interface ApprovalListItemProps {
 
 /**
  * Simple approval list item card
- * Detailed ApprovalCard will be implemented in Story 04-5
+ *
+ * Story 15-25: Apply Agent Character Colors Throughout
+ * - Uses AgentBadge component for displaying agent name with character color
+ * - Uses design tokens for text colors
  */
 export function ApprovalListItem({ approval }: ApprovalListItemProps) {
   // Determine border color based on confidence level
@@ -71,12 +76,18 @@ export function ApprovalListItem({ approval }: ApprovalListItemProps) {
 
         {/* Metadata and actions */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-            <span>Created {createdAgo}</span>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-[rgb(var(--color-text-secondary))]">
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              {createdAgo}
+            </span>
             {dueDate && (
-              <span className="text-red-600 font-medium">Due {dueDate}</span>
+              <span className="text-[rgb(var(--color-error-500))] font-medium flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                Due {dueDate}
+              </span>
             )}
-            <span>by {approval.createdBy}</span>
+            <AgentBadge agentName={approval.createdBy} size="xs" />
           </div>
 
           <div className="flex gap-2">

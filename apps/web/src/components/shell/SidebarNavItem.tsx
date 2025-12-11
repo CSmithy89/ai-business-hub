@@ -4,12 +4,13 @@
  * Individual navigation item with:
  * - Active state detection based on current route
  * - Badge support (inline in expanded, overlay in collapsed)
- * - Status dot for module items
+ * - Status dot for module items (agent-colored)
  * - Tooltip in collapsed state
  *
  * Epic: 07 - UI Shell
  * Story: 07-2 - Create Sidebar Navigation
  * Updated: Story 15.1 - Replace Material Icons with Lucide
+ * Updated: Story 15-25 - Apply Agent Character Colors Throughout
  */
 
 'use client';
@@ -26,6 +27,11 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
+/**
+ * Agent status dot colors (using CSS custom properties from tokens.css)
+ */
+type AgentStatusDot = 'hub' | 'maya' | 'atlas' | 'sage' | 'nova' | 'echo' | 'secondary';
+
 interface SidebarNavItemProps {
   /** Lucide icon component */
   icon: LucideIcon;
@@ -35,8 +41,8 @@ interface SidebarNavItemProps {
   href: string;
   /** Optional badge count (e.g., 5 for approvals) */
   badge?: number;
-  /** Optional status dot color for module items */
-  statusDot?: 'secondary' | 'atlas';
+  /** Optional status dot color for module items (agent name or secondary) */
+  statusDot?: AgentStatusDot;
   /** Whether sidebar is in collapsed state */
   collapsed: boolean;
 }
@@ -54,10 +60,15 @@ export function SidebarNavItem({
   // Active state: exact match or starts with href + '/'
   const isActive = pathname === href || pathname.startsWith(href + '/');
 
-  // Status dot color mapping
-  const statusDotColors = {
-    secondary: 'bg-[rgb(var(--color-accent-500))]', // Teal
-    atlas: 'bg-[rgb(var(--color-agent-atlas))]', // Orange
+  // Status dot color mapping (using agent CSS custom properties)
+  const statusDotColors: Record<AgentStatusDot, string> = {
+    hub: 'bg-[rgb(var(--color-agent-hub))]',       // Coral
+    maya: 'bg-[rgb(var(--color-agent-maya))]',     // Teal
+    atlas: 'bg-[rgb(var(--color-agent-atlas))]',   // Orange
+    sage: 'bg-[rgb(var(--color-agent-sage))]',     // Green
+    nova: 'bg-[rgb(var(--color-agent-nova))]',     // Pink
+    echo: 'bg-[rgb(var(--color-agent-echo))]',     // Blue
+    secondary: 'bg-[rgb(var(--color-accent-500))]', // Teal (alias for maya)
   };
 
   const linkContent = (

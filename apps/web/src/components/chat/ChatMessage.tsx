@@ -11,6 +11,7 @@
  *
  * Story: 15.4 - Connect Chat Panel to Agno Backend
  * Updated: Added markdown rendering support for agent messages
+ * Updated: Story 15-25 - Apply Agent Character Colors Throughout
  */
 
 'use client';
@@ -21,6 +22,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 import { formatChatTime } from '@/lib/date-utils';
+import { getAgentColor, getAgentIcon } from '@/config/agent-colors';
 import { StreamingCursor } from './StreamingCursor';
 import { Button } from '@/components/ui/button';
 import { Square } from 'lucide-react';
@@ -100,7 +102,10 @@ export const ChatMessage = memo(function ChatMessage({
     );
   }
 
-  // Agent message
+  // Agent message - use config helpers for fallback colors
+  const resolvedColor = agentColor || getAgentColor(agentName || 'maya');
+  const resolvedIcon = agentIcon || getAgentIcon(agentName || 'maya');
+
   return (
     <div className="flex max-w-[85%] items-start gap-2.5 self-start">
       {/* Agent Avatar - left aligned per style guide */}
@@ -110,16 +115,16 @@ export const ChatMessage = memo(function ChatMessage({
           'rounded-full text-base'
         )}
         style={{
-          backgroundColor: `${agentColor || '#20B2AA'}20`,
-          color: agentColor || '#20B2AA',
+          backgroundColor: `${resolvedColor}20`,
+          color: resolvedColor,
         }}
       >
-        {agentIcon || '🤖'}
+        {resolvedIcon}
       </div>
 
       <div className="flex flex-col gap-1">
         {/* Agent Name */}
-        <p className="text-xs font-semibold" style={{ color: agentColor || '#20B2AA' }}>
+        <p className="text-xs font-semibold" style={{ color: resolvedColor }}>
           {agentName || 'Agent'}
         </p>
 

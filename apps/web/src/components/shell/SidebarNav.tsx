@@ -10,6 +10,7 @@
  * Story: 07-2 - Create Sidebar Navigation
  * Updated: Story 15.1 - Replace Material Icons with Lucide
  * Updated: Story 15.11 - Add Businesses collapsible navigation
+ * Updated: Story 15-25 - Apply Agent Character Colors Throughout
  */
 
 'use client';
@@ -107,13 +108,13 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
         </SidebarNavGroup>
       </SidebarSection>
 
-      {/* Modules Section */}
+      {/* Modules Section - Agent colors for status dots */}
       <SidebarSection title="Modules" collapsed={collapsed}>
         <SidebarNavItem
           icon={Users}
           label="CRM"
           href="/crm"
-          statusDot="secondary"
+          statusDot="maya"
           collapsed={collapsed}
         />
         <SidebarNavItem

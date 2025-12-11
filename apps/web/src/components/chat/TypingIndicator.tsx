@@ -2,14 +2,16 @@
  * Typing Indicator Component
  *
  * Story 15-22: Chat Panel Styling Per Style Guide
+ * Updated: Story 15-25 - Apply Agent Character Colors Throughout
  *
  * Displays animated typing indicator in agent message bubble style.
- * Three dots with smooth pulse animation.
+ * Three dots with smooth pulse animation using agent character colors.
  */
 
 'use client';
 
 import { cn } from '@/lib/utils';
+import { getAgentColor, getAgentIcon } from '@/config/agent-colors';
 
 interface TypingIndicatorProps {
   agentName: string;
@@ -22,6 +24,10 @@ export function TypingIndicator({
   agentIcon,
   agentColor,
 }: TypingIndicatorProps) {
+  // Use config helpers for fallback colors
+  const resolvedColor = agentColor || getAgentColor(agentName);
+  const resolvedIcon = agentIcon || getAgentIcon(agentName);
+
   return (
     <div
       className="flex max-w-[85%] items-start gap-2.5 self-start"
@@ -36,16 +42,16 @@ export function TypingIndicator({
           'rounded-full text-base'
         )}
         style={{
-          backgroundColor: `${agentColor || '#20B2AA'}20`,
-          color: agentColor || '#20B2AA',
+          backgroundColor: `${resolvedColor}20`,
+          color: resolvedColor,
         }}
       >
-        {agentIcon || '🤖'}
+        {resolvedIcon}
       </div>
 
       <div className="flex flex-col gap-1">
         {/* Agent Name */}
-        <p className="text-xs font-semibold" style={{ color: agentColor || '#20B2AA' }}>
+        <p className="text-xs font-semibold" style={{ color: resolvedColor }}>
           {agentName}
         </p>
 
@@ -65,15 +71,15 @@ export function TypingIndicator({
           {/* Three-dot pulse animation */}
           <div
             className="h-2 w-2 rounded-full animate-[typing-pulse_1.4s_infinite_ease-in-out]"
-            style={{ backgroundColor: agentColor || '#20B2AA', opacity: 0.7 }}
+            style={{ backgroundColor: resolvedColor, opacity: 0.7 }}
           />
           <div
             className="h-2 w-2 rounded-full animate-[typing-pulse_1.4s_infinite_ease-in-out_0.2s]"
-            style={{ backgroundColor: agentColor || '#20B2AA', opacity: 0.7 }}
+            style={{ backgroundColor: resolvedColor, opacity: 0.7 }}
           />
           <div
             className="h-2 w-2 rounded-full animate-[typing-pulse_1.4s_infinite_ease-in-out_0.4s]"
-            style={{ backgroundColor: agentColor || '#20B2AA', opacity: 0.7 }}
+            style={{ backgroundColor: resolvedColor, opacity: 0.7 }}
           />
         </div>
       </div>
