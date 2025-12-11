@@ -117,3 +117,23 @@
     animation: none;
   }
 }
+
+/**
+ * Premium Card Styling - Story 15-19
+ *
+ * Dark mode card adjustments for proper shadow/glow effects.
+ * Applied via Tailwind's dark: variant in Card component.
+ */
+.dark [data-card="true"],
+.dark .card-premium {
+  /* Dark mode uses subtle glow instead of shadow */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05),
+              0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.dark [data-card="true"]:hover,
+.dark .card-premium:hover {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1),
+              0 4px 16px rgba(0, 0, 0, 0.5),
+              0 0 20px rgba(255, 107, 107, 0.05);
+}
