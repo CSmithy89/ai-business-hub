@@ -7,21 +7,33 @@
  * - Search and sort functionality
  * - Empty state for new users
  * - Add new business CTA
+ * - Redirect to onboarding if no workspace exists
  *
  * Epic: 15 - UI/UX Platform Foundation
  * Story: 15.2 - Create Businesses Portfolio Landing Page
+ * Story: 15.15 - Update Sign-In Flow Redirect Logic
  */
 
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BusinessGrid } from '@/components/business/BusinessGrid';
-import { useBusinesses } from '@/hooks/use-businesses';
+import { useBusinesses, type BusinessError } from '@/hooks/use-businesses';
 
 export default function BusinessesPage() {
+  const router = useRouter();
   const { data: businesses, isLoading, error, refetch } = useBusinesses();
+
+  // Redirect to onboarding if user has no workspace
+  useEffect(() => {
+    if (error && (error as BusinessError).code === 'NO_WORKSPACE') {
+      router.push('/onboarding/account-setup');
+    }
+  }, [error, router]);
 
   return (
     <div className="container mx-auto space-y-8 p-6">

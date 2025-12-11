@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, authClient } from '@/lib/auth-client'
 import { signInSchema, type SignInFormData } from '@/lib/validations/auth'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ type ErrorType = 'INVALID_CREDENTIALS' | 'EMAIL_NOT_VERIFIED' | 'RATE_LIMITED' |
 
 export function SignInForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false)
@@ -43,6 +44,43 @@ export function SignInForm() {
   })
 
   const rememberMe = watch('rememberMe')
+
+  /**
+   * Handles successful sign-in by determining the appropriate redirect destination
+   * Based on user state:
+   * - If deep link provided in URL → redirect to deep link
+   * - If no workspaces → /onboarding/account-setup
+   * - If workspaces exist → /businesses
+   *
+   * Story: 15.15 - Update Sign-In Flow Redirect Logic
+   */
+  const handleSuccessfulSignIn = async () => {
+    try {
+      // Check for intended destination from URL params (deep link support)
+      const redirectParam = searchParams.get('redirect')
+      if (redirectParam && redirectParam.startsWith('/')) {
+        // Use window.location for dynamic redirects to avoid strict route typing
+        window.location.href = redirectParam
+        return
+      }
+
+      // Fetch the appropriate redirect destination from the API
+      const response = await fetch('/api/auth/redirect-destination')
+      const result = await response.json()
+
+      if (result.success && result.data?.destination) {
+        // Use window.location for API-determined redirects
+        window.location.href = result.data.destination
+      } else {
+        // Default fallback to businesses page
+        router.push('/businesses')
+      }
+    } catch (error) {
+      console.error('Failed to determine redirect destination:', error)
+      // Default fallback to businesses page
+      router.push('/businesses')
+    }
+  }
 
   const onSubmit = async (data: SignInFormData) => {
     setIsSubmitting(true)
@@ -89,8 +127,8 @@ export function SignInForm() {
               setShow2FA(true)
               setVerifyingUserId(userId)
             } else {
-              // Success - redirect to dashboard
-              router.push('/dashboard')
+              // Success - determine redirect destination based on user state
+              await handleSuccessfulSignIn()
             }
           } catch (error) {
             console.error('Failed to check 2FA status:', error)
@@ -98,8 +136,8 @@ export function SignInForm() {
             setError('NETWORK_ERROR')
           }
         } else {
-          // Success - redirect to dashboard
-          router.push('/dashboard')
+          // Success - determine redirect destination based on user state
+          await handleSuccessfulSignIn()
         }
       }
     } catch (err) {
@@ -116,13 +154,27 @@ export function SignInForm() {
     console.log('Resend verification email')
   }
 
+  /**
+   * Get the callback URL for OAuth sign-in
+   * Uses the redirect param if available, otherwise defaults to /businesses
+   * Story: 15.15 - Update Sign-In Flow Redirect Logic
+   */
+  const getOAuthCallbackURL = () => {
+    const redirectParam = searchParams.get('redirect')
+    if (redirectParam && redirectParam.startsWith('/')) {
+      return redirectParam
+    }
+    // Default to businesses - the post-auth page will handle intelligent routing
+    return '/businesses'
+  }
+
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true)
     setError(null)
     try {
       await authClient.signIn.social({
         provider: 'google',
-        callbackURL: '/dashboard',
+        callbackURL: getOAuthCallbackURL(),
       })
       // Redirect happens automatically
     } catch (error) {
@@ -138,7 +190,7 @@ export function SignInForm() {
     try {
       await authClient.signIn.social({
         provider: 'microsoft',
-        callbackURL: '/dashboard',
+        callbackURL: getOAuthCallbackURL(),
       })
       // Redirect happens automatically
     } catch (error) {
@@ -154,7 +206,7 @@ export function SignInForm() {
     try {
       await authClient.signIn.social({
         provider: 'github',
-        callbackURL: '/dashboard',
+        callbackURL: getOAuthCallbackURL(),
       })
       // Redirect happens automatically
     } catch (error) {
@@ -165,7 +217,8 @@ export function SignInForm() {
   }
 
   const handle2FASuccess = () => {
-    router.push('/dashboard')
+    // Use the same intelligent redirect logic after 2FA success
+    handleSuccessfulSignIn()
   }
 
   const handle2FACancel = () => {

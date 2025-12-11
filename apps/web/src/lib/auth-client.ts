@@ -152,8 +152,10 @@ export function getCurrentSessionToken(): string | undefined {
  * Request magic link to be sent to email
  *
  * @param email - Email address to send magic link
- * @param callbackURL - URL to redirect after successful sign-in (default: /dashboard)
+ * @param callbackURL - URL to redirect after successful sign-in (default: /businesses)
  * @returns Promise with success/error status
+ *
+ * Story: 15.15 - Update Sign-In Flow Redirect Logic
  */
 export async function sendMagicLink(data: {
   email: string
@@ -161,6 +163,6 @@ export async function sendMagicLink(data: {
 }) {
   return authClient.signIn.magicLink({
     email: data.email,
-    callbackURL: data.callbackURL || '/dashboard',
+    callbackURL: data.callbackURL || '/businesses',
   })
 }

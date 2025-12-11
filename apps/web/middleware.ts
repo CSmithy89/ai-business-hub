@@ -6,7 +6,10 @@ import type { NextRequest } from 'next/server'
  *
  * Features:
  * - Redirects authenticated users away from auth pages (/sign-in, /sign-up)
- * - Can be extended for protected routes in future stories
+ * - Intelligent post-auth redirect based on onboarding state
+ * - Protected route enforcement
+ *
+ * Story: 15.15 - Update Sign-In Flow Redirect Logic
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -15,17 +18,49 @@ export async function middleware(request: NextRequest) {
   // Note: auth.ts configures cookiePrefix: 'hyvve', so cookie name is 'hyvve.session_token'
   const sessionToken = request.cookies.get('hyvve.session_token')
 
-  // If authenticated and trying to access auth pages, redirect to dashboard
+  // Auth pages - redirect authenticated users to appropriate destination
   if (sessionToken && (pathname === '/sign-in' || pathname === '/sign-up')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    // Check for intended destination from query params (deep link support)
+    const intendedDestination = request.nextUrl.searchParams.get('redirect')
+    if (intendedDestination && isAllowedRedirect(intendedDestination)) {
+      return NextResponse.redirect(new URL(intendedDestination, request.url))
+    }
+
+    // Default: redirect to businesses page (the redirect-destination API will be called client-side)
+    return NextResponse.redirect(new URL('/businesses', request.url))
   }
 
   // Protected routes: require authentication
-  if (!sessionToken && (pathname.startsWith('/settings') || pathname.startsWith('/dashboard'))) {
-    return NextResponse.redirect(new URL('/sign-in', request.url))
+  const protectedPaths = ['/settings', '/dashboard', '/businesses', '/approvals', '/ai-team', '/onboarding']
+  const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path))
+
+  if (!sessionToken && isProtectedPath) {
+    // Store intended destination for post-auth redirect
+    const signInUrl = new URL('/sign-in', request.url)
+    if (pathname !== '/sign-in') {
+      signInUrl.searchParams.set('redirect', pathname)
+    }
+    return NextResponse.redirect(signInUrl)
   }
 
   return NextResponse.next()
+}
+
+/**
+ * Validate redirect URL to prevent open redirect vulnerabilities
+ */
+function isAllowedRedirect(url: string): boolean {
+  // Only allow relative paths starting with /
+  if (!url.startsWith('/')) return false
+
+  // Block protocol-relative URLs
+  if (url.startsWith('//')) return false
+
+  // Block javascript: and data: URLs
+  if (url.toLowerCase().includes('javascript:')) return false
+  if (url.toLowerCase().includes('data:')) return false
+
+  return true
 }
 
 export const config = {
