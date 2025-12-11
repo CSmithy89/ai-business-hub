@@ -1,4 +1,5 @@
 import { SettingsLayout } from '@/components/layouts/settings-layout'
+import { AppearanceSettings } from '@/components/settings/appearance-settings'
 
 export const metadata = {
   title: 'Appearance | HYVVE',
@@ -11,9 +12,7 @@ export default function SettingsAppearancePage() {
       title="Appearance"
       description="Customize the look and feel of your dashboard"
     >
-      <div className="rounded-lg border bg-white p-6">
-        <p className="text-gray-500">Appearance settings coming soon.</p>
-      </div>
+      <AppearanceSettings />
     </SettingsLayout>
   )
 }
