@@ -18,7 +18,7 @@
 
 'use client'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   useOnboardingWizardStore,
@@ -32,7 +32,7 @@ import { WizardStepConfirm } from '@/components/onboarding/WizardStepConfirm'
 import type { BusinessDetailsFormData, BusinessIdeaFormData } from '@/lib/validations/onboarding'
 import { Loader2 } from 'lucide-react'
 
-export default function WizardPage() {
+function WizardPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isHydrated = useOnboardingWizardStoreHydrated()
@@ -271,5 +271,21 @@ export default function WizardPage() {
         </button>
       </div>
     </div>
+  )
+}
+
+function WizardLoadingFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  )
+}
+
+export default function WizardPage() {
+  return (
+    <Suspense fallback={<WizardLoadingFallback />}>
+      <WizardPageContent />
+    </Suspense>
   )
 }

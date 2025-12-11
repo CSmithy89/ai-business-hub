@@ -1,10 +1,20 @@
+import { Suspense } from 'react'
 import { Metadata } from 'next'
+import { Loader2 } from 'lucide-react'
 import { AuthLayout } from '@/components/auth/auth-layout'
 import { SignInForm } from '@/components/auth/sign-in-form'
 
 export const metadata: Metadata = {
   title: 'Sign In | HYVVE',
   description: 'Sign in to your HYVVE account',
+}
+
+function SignInFormFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  )
 }
 
 /**
@@ -30,7 +40,9 @@ export const metadata: Metadata = {
 export default function SignInPage() {
   return (
     <AuthLayout>
-      <SignInForm />
+      <Suspense fallback={<SignInFormFallback />}>
+        <SignInForm />
+      </Suspense>
     </AuthLayout>
   )
 }

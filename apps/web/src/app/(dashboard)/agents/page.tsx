@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { Suspense, useState, useMemo, useEffect } from 'react'
 import { useAgents } from '@/hooks/use-agents'
 import { AgentGrid } from '@/components/agents/AgentGrid'
 import { AgentFilters } from '@/components/agents/AgentFilters'
 import { AgentStatusSummary } from '@/components/agents/AgentStatusSummary'
 import { AgentDetailModal } from '@/components/agents/AgentDetailModal'
 import { Button } from '@/components/ui/button'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import type { AgentTeam, AgentStatus } from '@hyvve/shared'
@@ -24,7 +24,7 @@ interface Filters {
  * Displays all AI agents in a filterable, searchable grid.
  * Grouped by team with status summary and detail modal.
  */
-export default function AgentsPage() {
+function AgentsPageContent() {
   const searchParams = useSearchParams()
 
   // Filter state
@@ -169,5 +169,23 @@ export default function AgentsPage() {
         onOpenChange={handleModalClose}
       />
     </div>
+  )
+}
+
+function AgentsLoadingFallback() {
+  return (
+    <div className="container mx-auto p-6">
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    </div>
+  )
+}
+
+export default function AgentsPage() {
+  return (
+    <Suspense fallback={<AgentsLoadingFallback />}>
+      <AgentsPageContent />
+    </Suspense>
   )
 }

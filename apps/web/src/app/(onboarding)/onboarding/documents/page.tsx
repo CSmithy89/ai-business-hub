@@ -10,9 +10,10 @@
 
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DocumentUpload } from '@/components/business/DocumentUpload'
@@ -37,7 +38,7 @@ interface UploadData {
   }
 }
 
-export default function OnboardingDocumentsPage() {
+function OnboardingDocumentsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const businessId = searchParams.get('businessId')
@@ -193,5 +194,23 @@ export default function OnboardingDocumentsPage() {
         )}
       </div>
     </div>
+  )
+}
+
+function DocumentsLoadingFallback() {
+  return (
+    <div className="container max-w-4xl py-8">
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    </div>
+  )
+}
+
+export default function OnboardingDocumentsPage() {
+  return (
+    <Suspense fallback={<DocumentsLoadingFallback />}>
+      <OnboardingDocumentsContent />
+    </Suspense>
   )
 }
