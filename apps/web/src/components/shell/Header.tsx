@@ -2,23 +2,25 @@
  * Header Component
  *
  * Main header bar with:
- * - Logo and workspace selector (left)
+ * - Logo and business switcher (left)
  * - Breadcrumb navigation (center)
  * - Search trigger, notifications, help, user menu (right)
  *
  * Story 07.3: Create Header Bar
  * Updated: Story 15.1 - Replace Material Icons with Lucide
+ * Updated: Story 15.14 - Add Business Switcher Dropdown
  */
 
 'use client';
 
 import Link from 'next/link';
-import { ChevronDown, HelpCircle } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 import { HeaderBreadcrumbs } from './HeaderBreadcrumbs';
 import { HeaderSearchTrigger } from './HeaderSearchTrigger';
 import { HeaderNotificationBell } from './HeaderNotificationBell';
 import { HeaderUserMenu } from './HeaderUserMenu';
 import { MobileHamburger } from '@/components/mobile';
+import { BusinessSwitcher } from '@/components/business/business-switcher';
 
 export function Header() {
   return (
@@ -50,19 +52,9 @@ export function Header() {
           </span>
         </Link>
 
-        {/* Workspace selector placeholder */}
-        <div className="hidden md:flex items-center gap-2 pl-4 border-l border-[rgb(var(--color-border-default))]">
-          <div
-            className="flex h-7 w-7 items-center justify-center rounded-md
-                       bg-gradient-to-br from-[rgb(var(--color-primary))] to-[rgb(var(--color-warning))]
-                       text-xs font-bold text-white"
-          >
-            AC
-          </div>
-          <span className="text-sm font-medium text-[rgb(var(--color-text-primary))]">
-            Acme Corp
-          </span>
-          <ChevronDown className="h-4 w-4 text-[rgb(var(--color-text-tertiary))]" />
+        {/* Business Switcher (Story 15.14) */}
+        <div className="hidden md:flex items-center pl-4 border-l border-[rgb(var(--color-border-default))]">
+          <BusinessSwitcher />
         </div>
       </div>
 

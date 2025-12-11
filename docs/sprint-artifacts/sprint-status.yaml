@@ -354,7 +354,7 @@ development_status:
   15-18-implement-agent-cards-enhancement: backlog
 
   # Section 6: Business Module (2 stories, 7 points)
-  15-14-implement-business-switcher-dropdown: backlog
+  15-14-implement-business-switcher-dropdown: done
 
   # Section 7: Style Guide Compliance (7 stories, 24 points)
   15-19-apply-style-guide-card-styling: backlog
