@@ -24,12 +24,15 @@
 | EPIC-12 | UX Polish | 8 | 18 | P1/P2 | Post-Foundation | ✅ Multiple wireframe gaps |
 | EPIC-13 | AI Agent Management | 6 | 25 | P1/P2 | Post-Foundation | ✅ AI-02 to AI-05 |
 | EPIC-14 | Testing & Observability | 5 | 15 | P2/P3 | Post-Foundation | - (testing/monitoring) |
-| **Total** | | **139** | **381** | | | **79 linked** + AI-02 to AI-05 |
+| EPIC-15 | UI/UX Platform Foundation | 25 | 91 | P0/P1 | Phase 7 | BO-01, BO-09, AU-05, ST-02 + style guide |
+| EPIC-16 | Premium Polish & Advanced Features | 26 | 69 | P2/P3 | Phase 8 | SH-06, AI-03 + animations |
+| **Total** | | **190** | **541** | | | **79 linked** + AI-02 to AI-05 + UI/UX wireframes |
 
 > **Note:** Story counts updated 2025-12-01 to include AgentOS integration (ADR-007), IAssistantClient (06.10), Agent Model Preferences (06.11)
 > **Note:** EPIC-08 added 2025-12-01 - Business Onboarding with BMV, BMP, BM-Brand modules (23 stories, 82 points)
 > **Note:** EPIC-09 added 2025-12-02 - UI & Auth Enhancements from wireframe gap analysis (15 stories, 42 points)
 > **Note:** EPIC-10 to EPIC-14 added 2025-12-05 - Tech debt, agent wiring, UX polish, and observability (32 stories, 92 points)
+> **Note:** EPIC-15 & EPIC-16 added 2025-12-11 - UI/UX improvements from user testing and style guide audit (51 stories, 160 points)
 
 ---
 
@@ -254,6 +257,8 @@ EPIC-00 (Scaffolding + AgentOS)
 | EPIC-12 | `docs/epics/EPIC-12-ux-polish.md` |
 | EPIC-13 | `docs/epics/EPIC-13-ai-agent-management.md` |
 | EPIC-14 | `docs/epics/EPIC-14-testing-observability.md` |
+| EPIC-15 | `docs/epics/EPIC-15-ui-ux-platform-foundation.md` |
+| EPIC-16 | `docs/epics/EPIC-16-premium-polish-advanced-features.md` |
 
 ---
 
