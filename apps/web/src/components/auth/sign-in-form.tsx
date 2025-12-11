@@ -407,23 +407,28 @@ export function SignInForm() {
           </div>
         )}
 
-        {/* Email Field */}
+        {/* Email Field - Story 15-24: Form Accessibility */}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             type="email"
             placeholder="you@company.com"
+            autoComplete="email"
             {...register('email')}
             disabled={isSubmitting}
             aria-invalid={errors.email ? 'true' : 'false'}
+            aria-describedby={errors.email ? 'email-error' : undefined}
+            aria-required="true"
           />
           {errors.email && (
-            <p className="text-sm text-red-600">{errors.email.message}</p>
+            <p id="email-error" className="text-sm text-red-600" role="alert">
+              {errors.email.message}
+            </p>
           )}
         </div>
 
-        {/* Password Field */}
+        {/* Password Field - Story 15-24: Form Accessibility */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
@@ -437,12 +442,17 @@ export function SignInForm() {
           <PasswordInput
             id="password"
             placeholder="Enter your password"
+            autoComplete="current-password"
+            aria-describedby={errors.password ? 'password-error' : undefined}
+            aria-required="true"
             {...register('password')}
             disabled={isSubmitting}
             error={!!errors.password}
           />
           {errors.password && (
-            <p className="text-sm text-red-600">{errors.password.message}</p>
+            <p id="password-error" className="text-sm text-red-600" role="alert">
+              {errors.password.message}
+            </p>
           )}
         </div>
 
