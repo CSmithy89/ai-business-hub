@@ -29,39 +29,39 @@ This story connects the existing chat panel UI to the Agno/FastAPI agent backend
 
 ### Core Chat Integration
 
-- [ ] Connect chat to Agno/FastAPI agent backend
-- [ ] Implement message sending functionality
-- [ ] POST to `/api/agents/[agentId]/messages` with user message
-- [ ] Typing indicator appears when agent is processing
-- [ ] Support streaming responses (SSE)
-- [ ] Display agent response with proper formatting (markdown support)
+- [x] Connect chat to Agno/FastAPI agent backend
+- [x] Implement message sending functionality
+- [x] POST to `/api/agents/[agentId]/messages` with user message
+- [x] Typing indicator appears when agent is processing
+- [x] Support streaming responses (SSE)
+- [x] Display agent response with proper formatting (markdown support)
 
 ### Error Handling
 
-- [ ] Network failure → "Unable to reach agent. Retry?"
-- [ ] Rate limit → "Please wait a moment..."
-- [ ] API key invalid → "Check your AI provider settings"
+- [x] Network failure → "Unable to reach agent. Retry?"
+- [x] Rate limit → "Please wait a moment..."
+- [x] API key invalid → "Check your AI provider settings"
 
 ### Chat Agent Selection (Section 3.4)
 
-- [ ] Agent selector dropdown in chat header
-- [ ] Display current agent avatar and name
-- [ ] Dropdown shows available agents:
+- [x] Agent selector dropdown in chat header
+- [x] Display current agent avatar and name
+- [x] Dropdown shows available agents:
   - Hub (default orchestrator)
   - Maya (CRM & relationships)
   - Atlas (Projects & tasks)
   - Nova (Marketing & content)
   - Echo (Analytics & insights)
-- [ ] Agent switch maintains conversation context
-- [ ] Visual indicator of which agent is responding
-- [ ] Agent-specific greeting on switch
+- [x] Agent switch maintains conversation context
+- [x] Visual indicator of which agent is responding
+- [x] Agent-specific greeting on switch
 
 ### Advanced Features
 
-- [ ] Persist chat history per session/business context
-- [ ] Support @mentions for specific agents (@hub, @maya, etc.)
-- [ ] File attachment upload with drag-drop (deferred)
-- [ ] Attachment processing feedback (deferred)
+- [x] Persist chat history per session/business context
+- [x] Support @mentions for specific agents (@hub, @maya, etc.)
+- [ ] File attachment upload with drag-drop (deferred to separate story)
+- [ ] Attachment processing feedback (deferred to separate story)
 
 ---
 
@@ -126,15 +126,18 @@ See **tech-spec-epic-15.md** Section: "Story 15.4: Connect Chat Panel to Agno Ba
 
 ## Definition of Done
 
-- [ ] Agent selector dropdown works in chat header
-- [ ] Messages send to backend and receive responses
-- [ ] Typing indicator shows during agent processing
-- [ ] Streaming responses display progressively
-- [ ] Error states handle gracefully
-- [ ] Chat history persists across page loads
-- [ ] TypeScript type check passes
-- [ ] ESLint passes
-- [ ] Code review completed
+- [x] Agent selector dropdown works in chat header
+- [x] Messages send to backend and receive responses
+- [x] Typing indicator shows during agent processing
+- [x] Streaming responses display progressively
+- [x] Error states handle gracefully
+- [x] Chat history persists across page loads
+- [x] Agent greeting on switch works
+- [x] @mentions popup works with keyboard navigation
+- [x] Markdown rendering works for agent responses
+- [x] TypeScript type check passes
+- [x] ESLint passes
+- [x] Code review completed
 
 ---
 
@@ -177,28 +180,32 @@ _Tech Spec: tech-spec-epic-15.md_
 - [x] **Task 5:** Add error handling and retry logic
 - [x] **Task 6:** Implement chat history persistence (localStorage)
 - [x] **Task 7:** Add streaming SSE response handling
-- [ ] **Task 8:** Add agent greeting on switch (deferred - future enhancement)
-- [x] **Task 9:** Verify TypeScript type check passes
-- [x] **Task 10:** Verify ESLint passes
+- [x] **Task 8:** Add agent greeting on switch
+- [x] **Task 9:** Support @mentions for specific agents
+- [x] **Task 10:** Add markdown rendering for agent responses
+- [x] **Task 11:** Verify TypeScript type check passes
+- [x] **Task 12:** Verify ESLint passes
 
 ---
 
 ## File List
 
-### Files to Create
+### Files Created
 
 | File | Description |
 |------|-------------|
-| `apps/web/src/components/chat/AgentSelector.tsx` | Agent dropdown component |
-| `apps/web/src/app/api/agents/[agentId]/messages/route.ts` | Message API route |
-| `apps/web/src/hooks/use-chat.ts` | Enhanced chat hook |
+| `apps/web/src/components/chat/AgentSelector.tsx` | Agent dropdown component with 5 agents |
+| `apps/web/src/app/api/agents/[id]/messages/route.ts` | Message API route with SSE streaming |
+| `apps/web/src/components/chat/MentionPopup.tsx` | @mention autocomplete popup |
 
-### Files to Modify
+### Files Modified
 
 | File | Description |
 |------|-------------|
-| `apps/web/src/components/shell/ChatPanel.tsx` | Add agent selector |
-| `apps/web/src/hooks/use-chat-messages.ts` | Replace with real API |
+| `apps/web/src/components/shell/ChatPanel.tsx` | Agent selector + greeting on switch |
+| `apps/web/src/components/chat/ChatInput.tsx` | @mentions detection + popup integration |
+| `apps/web/src/components/chat/ChatMessage.tsx` | Markdown rendering with react-markdown |
+| `apps/web/src/hooks/use-chat-messages.ts` | SSE streaming + addAgentGreeting |
 
 ---
 
@@ -233,8 +240,6 @@ _Tech Spec: tech-spec-epic-15.md_
 - TypeScript and ESLint checks pass
 
 **Deferred Items:**
-- Agent greeting on switch (future enhancement)
-- @mentions for specific agents (future enhancement)
 - File attachments (separate story)
 
 **Enhanced Implementation (2025-12-11):**
@@ -245,13 +250,22 @@ _Tech Spec: tech-spec-epic-15.md_
 - ChatInput disabled during streaming
 - Auto-scroll during streaming responses
 
+**Final Implementation (2025-12-11):**
+- Added markdown rendering using react-markdown with remark-gfm
+- Implemented agent-specific greetings that display on agent switch
+- Created MentionPopup.tsx component for @mentions autocomplete
+- Added @mention detection in ChatInput with keyboard navigation (arrows, Enter/Tab, Escape)
+- Added handleAtButtonClick for @ button to trigger mentions
+- All 5 agents now have unique greeting messages
+- TypeScript and ESLint all passing
+
 ---
 
 ## Senior Developer Review (AI)
 
 **Reviewer:** Claude Code (Code Review Workflow)
 **Date:** 2025-12-11
-**Review Status:** APPROVED
+**Review Status:** APPROVED ✅
 
 ---
 
@@ -259,21 +273,47 @@ _Tech Spec: tech-spec-epic-15.md_
 
 | AC | Description | Status | Evidence |
 |----|-------------|--------|----------|
-| AC1 | Connect chat to backend | PASS | API route at /api/agents/[agentId]/messages |
-| AC2 | Message sending | PASS | POST handler in route.ts |
+| AC1 | Connect chat to backend | PASS | API route at /api/agents/[id]/messages |
+| AC2 | Message sending | PASS | POST handler with SSE streaming |
 | AC3 | Typing indicator | PASS | isTyping state in hook |
 | AC4 | Agent selector dropdown | PASS | AgentSelector.tsx with 5 agents |
 | AC5 | Error handling | PASS | 401, 429, 500 error cases |
 | AC6 | Chat history persistence | PASS | localStorage with 100 msg limit |
+| AC7 | Streaming SSE | PASS | Full SSE implementation with AbortController |
+| AC8 | Agent greeting on switch | PASS | addAgentGreeting in use-chat-messages.ts |
+| AC9 | @mentions support | PASS | MentionPopup.tsx with keyboard nav |
+| AC10 | Markdown rendering | PASS | react-markdown + remark-gfm |
+
+### Code Quality Observations
+
+**Strengths:**
+- Clean component separation (AgentSelector, MentionPopup, ChatInput)
+- Proper TypeScript types throughout
+- Good keyboard navigation support
+- Comprehensive error handling
+- AbortController for stream cancellation
+
+**Areas for Future Improvement:**
+- Consider extracting agent config to shared location
+- Add unit tests for mention detection logic
+- Consider debouncing mention filter for performance
 
 ### Deferred Items (Acceptable)
-- Streaming SSE: Requires AgentOS infrastructure
-- @mentions: Stretch goal, lower priority
+- File attachments: Separate story appropriate
 
 ---
 
 ### Final Verdict
 
-**Status:** APPROVED FOR MERGE
+**Status:** APPROVED FOR MERGE ✅
 
-Core functionality complete. Agent selector, API integration, and persistence working. Streaming deferred appropriately pending AgentOS integration.
+All acceptance criteria met. Core chat functionality complete with:
+- SSE streaming responses
+- Agent selector with 5 agents
+- @mentions with autocomplete popup
+- Agent greetings on switch
+- Markdown rendering
+- localStorage persistence
+- Comprehensive error handling
+
+TypeScript and ESLint passing. Code quality is production-ready.
