@@ -316,3 +316,106 @@ development_status:
   14-18-oauth-flow-e2e-tests: done  # Added from Epic 12 tech debt
   14-19-rate-limit-headers: done  # Emit X-RateLimit-* headers across API routes
   epic-14-retrospective: completed  # OAuth critical fix applied and verified
+
+  # ===========================================
+  # EPIC-15: UI/UX Platform Foundation
+  # UI/UX Improvements Phase 1 | 27 stories | 97 points
+  # Source: UI-UX-IMPROVEMENTS-BACKLOG.md
+  # ===========================================
+  epic-15: contexted
+
+  # Section 1: Icon System & Navigation (2 stories, 7 points)
+  15-1-replace-material-icon-text-strings-with-lucide-components: backlog
+  15-11-implement-main-menu-restructuring-with-businesses-tab: backlog
+
+  # Section 2: Landing Page & User Flow (4 stories, 14 points)
+  15-2-create-businesses-portfolio-landing-page: backlog
+  15-3-implement-4-step-user-onboarding-wizard: backlog
+  15-15-update-sign-in-flow-redirect-logic: backlog
+  15-16-enhance-business-onboarding-wizard: backlog
+
+  # Section 3: Chat Integration (2 stories, 8 points)
+  15-4-connect-chat-panel-to-agno-backend: backlog  # Includes Chat Agent Selection
+  15-12-implement-chat-panel-position-options: backlog
+
+  # Section 4: Settings Pages (8 stories, 26 points)
+  15-6-implement-settings-profile-page: backlog
+  15-7-implement-settings-security-page: backlog
+  15-8-implement-settings-sessions-page: backlog
+  15-9-implement-workspace-general-settings: backlog
+  15-10-fix-and-implement-workspace-members-page: backlog
+  15-10a-implement-workspace-roles-page: backlog  # P0 - Added from audit
+  15-13-implement-ai-configuration-page: backlog
+  15-26-implement-appearance-settings-page: backlog  # P1 - Added from audit
+
+  # Section 5: Approvals & Agents (3 stories, 11 points)
+  15-5-fix-approvals-page-data-loading: backlog
+  15-17-implement-approval-cards-with-confidence-visualization: backlog
+  15-18-implement-agent-cards-enhancement: backlog
+
+  # Section 6: Business Module (2 stories, 7 points)
+  15-14-implement-business-switcher-dropdown: backlog
+
+  # Section 7: Style Guide Compliance (7 stories, 24 points)
+  15-19-apply-style-guide-card-styling: backlog
+  15-20-apply-style-guide-button-styling: backlog
+  15-21-apply-style-guide-focus-states: backlog
+  15-22-implement-chat-panel-styling-per-style-guide: backlog
+  15-23-implement-header-bar-style-fixes: backlog
+  15-24-implement-form-accessibility-improvements: backlog
+  15-25-apply-agent-character-colors-throughout: backlog
+
+  epic-15-retrospective: optional
+
+  # ===========================================
+  # EPIC-16: Premium Polish & Advanced Features
+  # UI/UX Improvements Phase 2 | 28 stories | 87 points
+  # Source: UI-UX-IMPROVEMENTS-BACKLOG.md
+  # ===========================================
+  epic-16: contexted
+
+  # Section 1: Responsive Design (3 stories, 15 points)
+  16-1-implement-medium-screen-layout: backlog  # 1024-1280px
+  16-2-implement-tablet-layout: backlog  # 768-1024px
+  16-3-implement-mobile-layout: backlog  # <768px
+
+  # Section 2: UX Enhancements (5 stories, 16 points)
+  16-4-clarify-workspace-vs-business-relationship: backlog
+  16-5-implement-skeleton-loading-screens: backlog
+  16-6-implement-optimistic-ui-updates: backlog
+  16-7-implement-form-validation-and-feedback: backlog
+  16-8-implement-demo-mode-consistency: backlog
+
+  # Section 3: Micro-Animations (4 stories, 12 points)
+  16-9-implement-hover-and-press-animations: backlog
+  16-10-implement-page-transition-animations: backlog
+  16-11-implement-modal-and-dropdown-animations: backlog
+  16-25-implement-celebration-moments: backlog
+
+  # Section 4: Visual Polish (3 stories, 9 points)
+  16-12-implement-premium-shadow-system: backlog
+  16-13-implement-typography-refinements: backlog
+  16-14-audit-background-color-usage: backlog
+
+  # Section 5: Real-time & Interaction (3 stories, 11 points)
+  16-15-implement-websocket-real-time-updates: backlog
+  16-16-implement-comprehensive-keyboard-shortcuts: backlog
+  16-17-implement-approval-queue-drag-and-drop: backlog
+
+  # Section 6: Empty States & Polish (5 stories, 12 points)
+  16-18-implement-character-driven-empty-states: backlog
+  16-19-implement-input-styling-refinements: backlog
+  16-20-implement-onboarding-step-indicator-polish: backlog
+  16-21-implement-option-card-selection-polish: backlog
+  16-22-add-coming-soon-module-tooltips: backlog
+
+  # Section 7: Navigation & Help (4 stories, 9 points)
+  16-23-implement-breadcrumb-polish: backlog
+  16-24-implement-page-title-tags: backlog
+  16-26-implement-keyboard-shortcuts-help-modal: backlog
+  16-27-implement-agent-detail-modal: backlog
+
+  # Section 8: Technical Debt (1 story, 3 points)
+  16-28-fix-console-errors-and-technical-debt: backlog
+
+  epic-16-retrospective: optional
