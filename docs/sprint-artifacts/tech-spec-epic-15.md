@@ -685,6 +685,227 @@ async *streamChat(params: StreamChatParams): AsyncGenerator<string> {
 }
 ```
 
+**Chat Agent Selection Component:**
+```typescript
+// apps/web/src/components/chat/agent-selector.tsx
+'use client';
+
+import { useState } from 'react';
+import { ChevronDown, Bot } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+
+interface Agent {
+  id: string;
+  name: string;
+  description: string;
+  avatar?: string;
+  color: string;
+}
+
+const AVAILABLE_AGENTS: Agent[] = [
+  {
+    id: 'hub',
+    name: 'Hub',
+    description: 'Default orchestrator - routes to specialists',
+    color: 'var(--agent-hub)',
+  },
+  {
+    id: 'maya',
+    name: 'Maya',
+    description: 'CRM & customer relationships',
+    color: 'var(--agent-maya)',
+  },
+  {
+    id: 'atlas',
+    name: 'Atlas',
+    description: 'Projects & task management',
+    color: 'var(--agent-atlas)',
+  },
+  {
+    id: 'nova',
+    name: 'Nova',
+    description: 'Marketing & content creation',
+    color: 'var(--agent-nova)',
+  },
+  {
+    id: 'echo',
+    name: 'Echo',
+    description: 'Analytics & business insights',
+    color: 'var(--agent-echo)',
+  },
+];
+
+interface AgentSelectorProps {
+  selectedAgentId: string;
+  onAgentChange: (agentId: string) => void;
+  disabled?: boolean;
+}
+
+export function AgentSelector({
+  selectedAgentId,
+  onAgentChange,
+  disabled,
+}: AgentSelectorProps) {
+  const selectedAgent = AVAILABLE_AGENTS.find((a) => a.id === selectedAgentId) || AVAILABLE_AGENTS[0];
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        disabled={disabled}
+        className={cn(
+          'flex items-center gap-2 px-3 py-1.5 rounded-full border bg-white/50',
+          'hover:bg-white/80 transition-colors',
+          'disabled:opacity-50 disabled:cursor-not-allowed'
+        )}
+      >
+        <div
+          className="w-6 h-6 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: selectedAgent.color }}
+        >
+          <Bot className="w-3.5 h-3.5 text-white" />
+        </div>
+        <span className="text-sm font-medium">{selectedAgent.name}</span>
+        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64">
+        {AVAILABLE_AGENTS.map((agent) => (
+          <DropdownMenuItem
+            key={agent.id}
+            onClick={() => onAgentChange(agent.id)}
+            className={cn(
+              'flex items-start gap-3 p-3 cursor-pointer',
+              agent.id === selectedAgentId && 'bg-muted'
+            )}
+          >
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+              style={{ backgroundColor: agent.color }}
+            >
+              <Bot className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="font-medium">{agent.name}</span>
+              <span className="text-xs text-muted-foreground">
+                {agent.description}
+              </span>
+            </div>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+```
+
+**Chat Panel Header with Agent Selector:**
+```typescript
+// apps/web/src/components/chat/chat-panel.tsx (updated header section)
+import { AgentSelector } from './agent-selector';
+import { useChatStore } from '@/stores/chat-store';
+
+export function ChatPanel() {
+  const { currentAgentId, setCurrentAgent } = useChatStore();
+  const [isStreaming, setIsStreaming] = useState(false);
+
+  const handleAgentChange = (agentId: string) => {
+    setCurrentAgent(agentId);
+    // Optionally show agent greeting
+    toast.info(`Switched to ${AVAILABLE_AGENTS.find(a => a.id === agentId)?.name}`);
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header with Agent Selector */}
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-white/50">
+        <AgentSelector
+          selectedAgentId={currentAgentId}
+          onAgentChange={handleAgentChange}
+          disabled={isStreaming}
+        />
+        <div className="flex items-center gap-2">
+          {/* Minimize/maximize buttons */}
+        </div>
+      </div>
+
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Chat messages */}
+      </div>
+
+      {/* Input area */}
+      <ChatInput onSend={sendMessage} disabled={isStreaming} />
+    </div>
+  );
+}
+```
+
+**Chat Store for Agent State:**
+```typescript
+// apps/web/src/stores/chat-store.ts
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+interface ChatState {
+  currentAgentId: string;
+  setCurrentAgent: (agentId: string) => void;
+}
+
+export const useChatStore = create<ChatState>()(
+  persist(
+    (set) => ({
+      currentAgentId: 'hub',
+      setCurrentAgent: (agentId) => set({ currentAgentId: agentId }),
+    }),
+    {
+      name: 'chat-storage',
+    }
+  )
+);
+```
+
+**Agent Response Indicator:**
+```typescript
+// apps/web/src/components/chat/chat-message.tsx
+interface ChatMessageProps {
+  message: Message;
+  agentId?: string;
+}
+
+export function ChatMessage({ message, agentId }: ChatMessageProps) {
+  const agent = agentId ? AVAILABLE_AGENTS.find((a) => a.id === agentId) : null;
+
+  if (message.role === 'assistant' && agent) {
+    return (
+      <div className="flex gap-3 items-start">
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+          style={{ backgroundColor: agent.color }}
+        >
+          <Bot className="w-4 h-4 text-white" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium" style={{ color: agent.color }}>
+            {agent.name}
+          </span>
+          <div className="message-agent-bubble">
+            {message.content}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // User message rendering...
+}
+```
+
 ---
 
 ### Story 15.5: Fix Approvals Page Data Loading
@@ -992,6 +1213,228 @@ export default function SessionsPage() {
 
 ---
 
+### Story 15.10a: Implement Workspace Roles Page
+
+#### Technical Requirements
+
+**New Files:**
+```
+apps/web/src/app/(app)/settings/workspace/roles/page.tsx
+apps/web/src/components/settings/roles-table.tsx
+apps/web/src/components/settings/permission-matrix.tsx
+apps/web/src/config/roles-permissions.ts
+```
+
+**Roles Configuration:**
+```typescript
+// apps/web/src/config/roles-permissions.ts
+export const WORKSPACE_ROLES = {
+  owner: {
+    name: 'Owner',
+    description: 'Full access, can delete workspace, transfer ownership',
+    color: 'bg-coral/10 text-coral',
+  },
+  admin: {
+    name: 'Admin',
+    description: 'Manage members, settings, billing; cannot delete workspace',
+    color: 'bg-blue-100 text-blue-700',
+  },
+  member: {
+    name: 'Member',
+    description: 'Standard access to all features, cannot manage members',
+    color: 'bg-green-100 text-green-700',
+  },
+  viewer: {
+    name: 'Viewer',
+    description: 'Read-only access to all data',
+    color: 'bg-gray-100 text-gray-700',
+  },
+  billing: {
+    name: 'Billing',
+    description: 'Access to billing and subscription settings only',
+    color: 'bg-purple-100 text-purple-700',
+  },
+} as const;
+
+export type WorkspaceRole = keyof typeof WORKSPACE_ROLES;
+
+export const PERMISSION_MATRIX: Record<string, Record<WorkspaceRole, 'full' | 'limited' | 'none'>> = {
+  'Workspace Settings': {
+    owner: 'full',
+    admin: 'full',
+    member: 'limited',
+    viewer: 'none',
+    billing: 'none',
+  },
+  'Member Management': {
+    owner: 'full',
+    admin: 'full',
+    member: 'none',
+    viewer: 'none',
+    billing: 'none',
+  },
+  'Billing & Subscription': {
+    owner: 'full',
+    admin: 'full',
+    member: 'none',
+    viewer: 'none',
+    billing: 'full',
+  },
+  'Business Management': {
+    owner: 'full',
+    admin: 'full',
+    member: 'full',
+    viewer: 'limited',
+    billing: 'none',
+  },
+  'AI Agent Configuration': {
+    owner: 'full',
+    admin: 'full',
+    member: 'limited',
+    viewer: 'none',
+    billing: 'none',
+  },
+  'Approval Actions': {
+    owner: 'full',
+    admin: 'full',
+    member: 'full',
+    viewer: 'none',
+    billing: 'none',
+  },
+  'Data Export': {
+    owner: 'full',
+    admin: 'full',
+    member: 'limited',
+    viewer: 'none',
+    billing: 'none',
+  },
+};
+```
+
+**Permission Matrix Component:**
+```typescript
+// apps/web/src/components/settings/permission-matrix.tsx
+import { WORKSPACE_ROLES, PERMISSION_MATRIX, WorkspaceRole } from '@/config/roles-permissions';
+import { Check, X, Minus } from 'lucide-react';
+
+const PermissionIcon = ({ level }: { level: 'full' | 'limited' | 'none' }) => {
+  switch (level) {
+    case 'full':
+      return <Check className="h-4 w-4 text-green-600" />;
+    case 'limited':
+      return <Minus className="h-4 w-4 text-yellow-600" />;
+    case 'none':
+      return <X className="h-4 w-4 text-red-400" />;
+  }
+};
+
+export function PermissionMatrix() {
+  const roles = Object.keys(WORKSPACE_ROLES) as WorkspaceRole[];
+  const permissions = Object.keys(PERMISSION_MATRIX);
+
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-48">Permission</TableHead>
+            {roles.map((role) => (
+              <TableHead key={role} className="text-center">
+                {WORKSPACE_ROLES[role].name}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {permissions.map((permission) => (
+            <TableRow key={permission}>
+              <TableCell className="font-medium">{permission}</TableCell>
+              {roles.map((role) => (
+                <TableCell key={role} className="text-center">
+                  <div className="flex justify-center">
+                    <PermissionIcon level={PERMISSION_MATRIX[permission][role]} />
+                  </div>
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <div className="flex gap-6 mt-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <Check className="h-4 w-4 text-green-600" />
+          <span>Full access</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Minus className="h-4 w-4 text-yellow-600" />
+          <span>Limited access</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <X className="h-4 w-4 text-red-400" />
+          <span>No access</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+**Roles Page:**
+```typescript
+// apps/web/src/app/(app)/settings/workspace/roles/page.tsx
+import { WORKSPACE_ROLES, WorkspaceRole } from '@/config/roles-permissions';
+import { PermissionMatrix } from '@/components/settings/permission-matrix';
+
+export default function RolesPage() {
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-lg font-semibold">Workspace Roles</h2>
+        <p className="text-sm text-muted-foreground">
+          View the default roles and their permissions in your workspace.
+        </p>
+      </div>
+
+      {/* Role Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {(Object.entries(WORKSPACE_ROLES) as [WorkspaceRole, typeof WORKSPACE_ROLES[WorkspaceRole]][]).map(
+          ([key, role]) => (
+            <Card key={key}>
+              <CardHeader className="pb-2">
+                <Badge className={role.color}>{role.name}</Badge>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">{role.description}</p>
+              </CardContent>
+            </Card>
+          )
+        )}
+      </div>
+
+      {/* Permission Matrix */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Permission Matrix</CardTitle>
+          <CardDescription>
+            Detailed breakdown of what each role can access
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PermissionMatrix />
+        </CardContent>
+      </Card>
+
+      <p className="text-sm text-muted-foreground">
+        Custom roles are coming soon. Contact support if you need specific permission configurations.
+      </p>
+    </div>
+  );
+}
+```
+
+---
+
 ### Stories 15.19-15.25: Style Guide Implementation
 
 #### CSS Custom Properties
@@ -1135,6 +1578,455 @@ textarea:focus,
 select:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.15);
+}
+```
+
+---
+
+### Story 15.26: Implement Appearance Settings Page
+
+#### Technical Requirements
+
+**Files to Create:**
+```
+apps/web/src/app/(app)/settings/appearance/page.tsx
+apps/web/src/components/settings/theme-selector.tsx
+apps/web/src/components/settings/appearance-preview.tsx
+apps/web/src/stores/appearance-store.ts
+apps/web/src/lib/themes.ts
+```
+
+**Theme Configuration:**
+```typescript
+// apps/web/src/lib/themes.ts
+export const THEMES = {
+  light: {
+    name: 'Light',
+    description: 'Default light theme',
+    icon: 'Sun',
+  },
+  dark: {
+    name: 'Dark',
+    description: 'Easy on the eyes',
+    icon: 'Moon',
+  },
+  system: {
+    name: 'System',
+    description: 'Follows device settings',
+    icon: 'Monitor',
+  },
+} as const;
+
+export type Theme = keyof typeof THEMES;
+
+export const SIDEBAR_DENSITIES = {
+  comfortable: {
+    name: 'Comfortable',
+    description: 'More spacing for easier reading',
+    iconSize: 20,
+    padding: 12,
+  },
+  compact: {
+    name: 'Compact',
+    description: 'More content in less space',
+    iconSize: 18,
+    padding: 8,
+  },
+} as const;
+
+export type SidebarDensity = keyof typeof SIDEBAR_DENSITIES;
+
+export const FONT_SIZES = {
+  small: {
+    name: 'Small',
+    base: 14,
+    scale: 0.875,
+  },
+  medium: {
+    name: 'Medium',
+    base: 16,
+    scale: 1,
+  },
+  large: {
+    name: 'Large',
+    base: 18,
+    scale: 1.125,
+  },
+} as const;
+
+export type FontSize = keyof typeof FONT_SIZES;
+```
+
+**Appearance Store (Zustand with Persist):**
+```typescript
+// apps/web/src/stores/appearance-store.ts
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { Theme, SidebarDensity, FontSize } from '@/lib/themes';
+
+interface AppearanceState {
+  theme: Theme;
+  sidebarDensity: SidebarDensity;
+  fontSize: FontSize;
+  setTheme: (theme: Theme) => void;
+  setSidebarDensity: (density: SidebarDensity) => void;
+  setFontSize: (size: FontSize) => void;
+  reset: () => void;
+}
+
+const defaultState = {
+  theme: 'system' as Theme,
+  sidebarDensity: 'comfortable' as SidebarDensity,
+  fontSize: 'medium' as FontSize,
+};
+
+export const useAppearanceStore = create<AppearanceState>()(
+  persist(
+    (set) => ({
+      ...defaultState,
+      setTheme: (theme) => set({ theme }),
+      setSidebarDensity: (sidebarDensity) => set({ sidebarDensity }),
+      setFontSize: (fontSize) => set({ fontSize }),
+      reset: () => set(defaultState),
+    }),
+    {
+      name: 'appearance-storage',
+    }
+  )
+);
+```
+
+**Theme Selector Component:**
+```typescript
+// apps/web/src/components/settings/theme-selector.tsx
+'use client';
+
+import { Sun, Moon, Monitor, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { THEMES, type Theme } from '@/lib/themes';
+import { useAppearanceStore } from '@/stores/appearance-store';
+
+const iconMap = {
+  Sun,
+  Moon,
+  Monitor,
+};
+
+export function ThemeSelector() {
+  const { theme, setTheme } = useAppearanceStore();
+
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      {(Object.entries(THEMES) as [Theme, typeof THEMES[Theme]][]).map(
+        ([key, config]) => {
+          const Icon = iconMap[config.icon as keyof typeof iconMap];
+          const isSelected = theme === key;
+
+          return (
+            <button
+              key={key}
+              onClick={() => setTheme(key)}
+              className={cn(
+                'relative flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
+                isSelected
+                  ? 'border-coral bg-coral/5'
+                  : 'border-border hover:border-muted-foreground'
+              )}
+            >
+              {isSelected && (
+                <div className="absolute top-2 right-2">
+                  <Check className="h-4 w-4 text-coral" />
+                </div>
+              )}
+              <Icon className={cn('h-6 w-6', isSelected && 'text-coral')} />
+              <span className="text-sm font-medium">{config.name}</span>
+              <span className="text-xs text-muted-foreground text-center">
+                {config.description}
+              </span>
+            </button>
+          );
+        }
+      )}
+    </div>
+  );
+}
+```
+
+**Appearance Preview Component:**
+```typescript
+// apps/web/src/components/settings/appearance-preview.tsx
+'use client';
+
+import { useAppearanceStore } from '@/stores/appearance-store';
+import { FONT_SIZES, SIDEBAR_DENSITIES } from '@/lib/themes';
+import { cn } from '@/lib/utils';
+
+export function AppearancePreview() {
+  const { theme, sidebarDensity, fontSize } = useAppearanceStore();
+  const fontConfig = FONT_SIZES[fontSize];
+  const densityConfig = SIDEBAR_DENSITIES[sidebarDensity];
+
+  return (
+    <div
+      className={cn(
+        'relative border rounded-lg overflow-hidden h-48',
+        theme === 'dark' ? 'bg-gray-900' : 'bg-cream'
+      )}
+      style={{ fontSize: `${fontConfig.base}px` }}
+    >
+      {/* Mini Sidebar Preview */}
+      <div
+        className={cn(
+          'absolute left-0 top-0 h-full w-16 border-r',
+          theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-border'
+        )}
+        style={{ padding: densityConfig.padding }}
+      >
+        <div className="space-y-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className={cn(
+                'rounded',
+                theme === 'dark' ? 'bg-gray-700' : 'bg-muted'
+              )}
+              style={{
+                width: densityConfig.iconSize,
+                height: densityConfig.iconSize,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Mini Content Preview */}
+      <div className="ml-16 p-4 space-y-3">
+        <div
+          className={cn(
+            'h-4 w-32 rounded',
+            theme === 'dark' ? 'bg-gray-700' : 'bg-muted'
+          )}
+        />
+        <div
+          className={cn(
+            'h-3 w-48 rounded',
+            theme === 'dark' ? 'bg-gray-800' : 'bg-muted/50'
+          )}
+        />
+        <div
+          className={cn(
+            'h-20 rounded border',
+            theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-border'
+          )}
+        />
+      </div>
+
+      {/* Label */}
+      <div className="absolute bottom-2 right-2">
+        <span className={cn(
+          'text-xs px-2 py-1 rounded',
+          theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-muted text-muted-foreground'
+        )}>
+          Preview
+        </span>
+      </div>
+    </div>
+  );
+}
+```
+
+**Appearance Settings Page:**
+```typescript
+// apps/web/src/app/(app)/settings/appearance/page.tsx
+'use client';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Button } from '@/components/ui/button';
+import { RotateCcw } from 'lucide-react';
+import { ThemeSelector } from '@/components/settings/theme-selector';
+import { AppearancePreview } from '@/components/settings/appearance-preview';
+import { useAppearanceStore } from '@/stores/appearance-store';
+import { SIDEBAR_DENSITIES, FONT_SIZES, type SidebarDensity, type FontSize } from '@/lib/themes';
+
+export default function AppearancePage() {
+  const { sidebarDensity, fontSize, setSidebarDensity, setFontSize, reset } = useAppearanceStore();
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Appearance</h2>
+          <p className="text-sm text-muted-foreground">
+            Customize how HYVVE looks and feels
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={reset}>
+          <RotateCcw className="h-4 w-4 mr-2" />
+          Reset to defaults
+        </Button>
+      </div>
+
+      {/* Preview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Preview</CardTitle>
+          <CardDescription>
+            See how your changes will look
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AppearancePreview />
+        </CardContent>
+      </Card>
+
+      {/* Theme Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Theme</CardTitle>
+          <CardDescription>
+            Select your preferred color scheme
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ThemeSelector />
+        </CardContent>
+      </Card>
+
+      {/* Sidebar Density */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Sidebar Density</CardTitle>
+          <CardDescription>
+            Control the spacing in the navigation sidebar
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={sidebarDensity}
+            onValueChange={(value) => setSidebarDensity(value as SidebarDensity)}
+            className="space-y-3"
+          >
+            {(Object.entries(SIDEBAR_DENSITIES) as [SidebarDensity, typeof SIDEBAR_DENSITIES[SidebarDensity]][]).map(
+              ([key, config]) => (
+                <div key={key} className="flex items-center space-x-3">
+                  <RadioGroupItem value={key} id={`density-${key}`} />
+                  <Label htmlFor={`density-${key}`} className="flex flex-col cursor-pointer">
+                    <span className="font-medium">{config.name}</span>
+                    <span className="text-sm text-muted-foreground">{config.description}</span>
+                  </Label>
+                </div>
+              )
+            )}
+          </RadioGroup>
+        </CardContent>
+      </Card>
+
+      {/* Font Size */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Font Size</CardTitle>
+          <CardDescription>
+            Adjust the text size across the interface
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={fontSize}
+            onValueChange={(value) => setFontSize(value as FontSize)}
+            className="space-y-3"
+          >
+            {(Object.entries(FONT_SIZES) as [FontSize, typeof FONT_SIZES[FontSize]][]).map(
+              ([key, config]) => (
+                <div key={key} className="flex items-center space-x-3">
+                  <RadioGroupItem value={key} id={`font-${key}`} />
+                  <Label htmlFor={`font-${key}`} className="cursor-pointer">
+                    <span className="font-medium">{config.name}</span>
+                    <span className="text-sm text-muted-foreground ml-2">
+                      ({config.base}px base)
+                    </span>
+                  </Label>
+                </div>
+              )
+            )}
+          </RadioGroup>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+```
+
+**Dark Mode CSS Variables:**
+```css
+/* apps/web/src/app/globals.css - add dark mode support */
+.dark {
+  --color-primary: #FF7B7B;
+  --color-primary-hover: #FF8A8A;
+  --color-primary-light: rgba(255, 123, 123, 0.15);
+
+  --bg-cream: #1a1a1a;
+  --bg-white: #242424;
+  --bg-soft: #1f1f1f;
+
+  --border-subtle: #333333;
+  --border-default: #404040;
+  --border-strong: #4d4d4d;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+
+  color-scheme: dark;
+}
+
+/* System preference detection */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    /* Apply dark mode variables */
+  }
+}
+```
+
+**Theme Provider Integration:**
+```typescript
+// apps/web/src/providers/theme-provider.tsx
+'use client';
+
+import { useEffect } from 'react';
+import { useAppearanceStore } from '@/stores/appearance-store';
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const { theme, fontSize } = useAppearanceStore();
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    // Handle theme
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      root.classList.toggle('dark', mediaQuery.matches);
+
+      const handler = (e: MediaQueryListEvent) => {
+        root.classList.toggle('dark', e.matches);
+      };
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
+    } else {
+      root.classList.toggle('dark', theme === 'dark');
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    // Handle font size
+    const root = document.documentElement;
+    const sizes = { small: '14px', medium: '16px', large: '18px' };
+    root.style.fontSize = sizes[fontSize];
+  }, [fontSize]);
+
+  return <>{children}</>;
 }
 ```
 
@@ -1385,13 +2277,15 @@ test('card styling matches style guide', async ({ page }) => {
 - Streaming responses
 - Error handling
 
-### Phase 4: Settings (Stories 15.6-15.10, 15.13)
+### Phase 4: Settings (Stories 15.6-15.10a, 15.13, 15.26)
 - Profile page
 - Security page
 - Sessions page
 - Workspace settings
 - Members page
+- Roles page (15.10a)
 - AI configuration
+- Appearance settings (15.26)
 
 ### Phase 5: Business Module (Stories 15.11, 15.14, 15.16)
 - Menu restructuring
@@ -1426,4 +2320,4 @@ test('card styling matches style guide', async ({ page }) => {
 
 _Tech Spec created: 2025-12-11_
 _Epic: EPIC-15 UI/UX Platform Foundation_
-_Stories: 15.1-15.25_
+_Stories: 15.1-15.26 (including 15.10a)_

@@ -215,7 +215,7 @@ Your Businesses                                    [+ Add Business]
 
 **Points:** 8
 **Priority:** P0
-**Backlog Reference:** Section 3.3
+**Backlog Reference:** Section 3.3, 3.4
 
 **As a** user interacting with the chat panel
 **I want** real responses from AI agents
@@ -236,6 +236,19 @@ Your Businesses                                    [+ Add Business]
 - [ ] Support @mentions for specific agents (@hub, @maya, etc.)
 - [ ] File attachment upload with drag-drop
 - [ ] Attachment processing feedback (uploading, processing, complete)
+
+**Chat Agent Selection (Section 3.4):**
+- [ ] Agent selector dropdown in chat header
+- [ ] Display current agent avatar and name
+- [ ] Dropdown shows available agents:
+  - Hub (default orchestrator)
+  - Maya (CRM & relationships)
+  - Atlas (Projects & tasks)
+  - Nova (Marketing & content)
+  - Echo (Analytics & insights)
+- [ ] Agent switch maintains conversation context (optional clear)
+- [ ] Visual indicator of which agent is responding
+- [ ] Agent-specific greeting on switch
 
 **Message Flow:**
 ```
@@ -522,6 +535,70 @@ const demoApprovals = [
 - `apps/web/src/components/settings/members-table.tsx`
 - `apps/web/src/components/settings/invite-member-modal.tsx`
 - `apps/web/src/components/settings/member-actions.tsx`
+
+---
+
+### Story 15.10a: Implement Workspace Roles Page
+
+**Points:** 3
+**Priority:** P0
+**Backlog Reference:** Section 4.2 - Roles
+
+**As a** workspace admin
+**I want** to view role definitions and permissions
+**So that** I understand what each role can do and assign appropriate roles to members
+
+**Acceptance Criteria:**
+- [ ] Create page at `/settings/workspace/roles`
+- [ ] Display 5 default roles in a table/cards:
+  - **Owner** - Full access, can delete workspace, transfer ownership
+  - **Admin** - Manage members, settings, billing; cannot delete workspace
+  - **Member** - Standard access to all features, cannot manage members
+  - **Viewer** - Read-only access to all data
+  - **Billing** - Access to billing and subscription settings only
+- [ ] Permission matrix table showing capabilities per role:
+  - Columns: Permission categories
+  - Rows: Roles
+  - Cells: ✓ / ✗ indicators
+- [ ] Permission categories to display:
+  - Workspace Settings
+  - Member Management
+  - Billing & Subscription
+  - Business Management
+  - AI Agent Configuration
+  - Approval Actions
+  - Data Export
+- [ ] Visual hierarchy: Owner at top, descending permissions
+- [ ] Read-only for non-owner users (no editing roles)
+- [ ] Link to this page from Members page ("View Role Permissions")
+- [ ] Responsive layout for table (horizontal scroll on mobile)
+
+**Permission Matrix Layout:**
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Role Permissions                                                     │
+├──────────┬──────────┬─────────┬─────────┬─────────┬─────────────────┤
+│ Role     │ Settings │ Members │ Billing │ Business│ Agent Config    │
+├──────────┼──────────┼─────────┼─────────┼─────────┼─────────────────┤
+│ Owner    │    ✓     │    ✓    │    ✓    │    ✓    │       ✓         │
+│ Admin    │    ✓     │    ✓    │    ✓    │    ✓    │       ✓         │
+│ Member   │    ○     │    ✗    │    ✗    │    ✓    │       ○         │
+│ Viewer   │    ✗     │    ✗    │    ✗    │    ○    │       ✗         │
+│ Billing  │    ✗     │    ✗    │    ✓    │    ✗    │       ✗         │
+└──────────┴──────────┴─────────┴─────────┴─────────┴─────────────────┘
+Legend: ✓ Full access  ○ Limited access  ✗ No access
+```
+
+**Technical Notes:**
+- Roles are system-defined, not user-editable in MVP
+- Permission matrix can be static data (no API needed)
+- Future: Custom roles feature (separate epic)
+
+**Files to Create:**
+- `apps/web/src/app/(app)/settings/workspace/roles/page.tsx`
+- `apps/web/src/components/settings/roles-table.tsx`
+- `apps/web/src/components/settings/permission-matrix.tsx`
+- `apps/web/src/config/roles-permissions.ts`
 
 ---
 
@@ -1185,6 +1262,62 @@ const demoApprovals = [
 
 ---
 
+### Story 15.26: Implement Appearance Settings Page
+
+**Points:** 3
+**Priority:** P1
+**Backlog Reference:** Section 4.3 - Appearance
+
+**As a** user who prefers different visual settings
+**I want** to customize the platform appearance
+**So that** I can personalize my experience
+
+**Acceptance Criteria:**
+- [ ] Create page at `/settings/appearance`
+- [ ] Theme selection:
+  - Light (default) - warm coral theme
+  - Dark - dark mode variant
+  - System - follows OS preference
+- [ ] Accent color selection (future consideration):
+  - Coral (default, brand color)
+  - Note: "More colors coming soon" message
+- [ ] Sidebar density options:
+  - Comfortable (default) - more spacing
+  - Compact - reduced spacing for power users
+- [ ] Font size adjustment:
+  - Small (14px base)
+  - Medium (16px base, default)
+  - Large (18px base)
+- [ ] Preview panel showing changes in real-time
+- [ ] Save preference to user settings
+- [ ] Persist preference in localStorage for instant load
+- [ ] Reset to defaults button
+
+**Dark Mode Considerations:**
+- [ ] CSS custom properties support dark mode values
+- [ ] Cream backgrounds become dark gray (#1a1a1a)
+- [ ] Coral accent remains vibrant in dark mode
+- [ ] Proper contrast ratios maintained (WCAG AA)
+- [ ] Agent colors adjusted for dark backgrounds
+
+**Technical Notes:**
+- Use CSS custom properties with `data-theme` attribute
+- Store preference in both localStorage and user API
+- Respect `prefers-color-scheme` media query for system mode
+- Dark mode implementation can be phased (start with toggle, full support later)
+
+**Files to Create:**
+- `apps/web/src/app/(app)/settings/appearance/page.tsx`
+- `apps/web/src/components/settings/theme-selector.tsx`
+- `apps/web/src/components/settings/appearance-preview.tsx`
+- `apps/web/src/hooks/use-theme.ts`
+
+**Files to Modify:**
+- `apps/web/src/app/globals.css` (dark mode variables)
+- `apps/web/src/providers/theme-provider.tsx`
+
+---
+
 ## Wireframe References
 
 | Story | Wireframe | HTML Path |
@@ -1233,11 +1366,16 @@ Use shadcn/ui components as base, extending with style guide customizations.
 
 | Category | Stories | Points |
 |----------|---------|--------|
-| P0 Critical | 10 | 46 |
-| P1 High | 15 | 45 |
-| **Total** | **25** | **91** |
+| P0 Critical | 11 | 49 |
+| P1 High | 16 | 48 |
+| **Total** | **27** | **97** |
 
-**Estimated Sprints:** 4-5 (at ~20 points/sprint)
+**Estimated Sprints:** 5 (at ~20 points/sprint)
+
+**New Stories Added (2025-12-11):**
+- Story 15.10a: Workspace Roles Page (+3 points, P0)
+- Story 15.26: Appearance Settings Page (+3 points, P1)
+- Story 15.4: Updated to include Chat Agent Selection (no point change)
 
 ---
 
