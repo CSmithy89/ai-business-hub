@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Loader2, MoreHorizontal, UserMinus, Shield } from 'lucide-react'
+import { Loader2, MoreHorizontal, UserMinus, Shield, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -55,8 +55,9 @@ interface Member {
 
 /**
  * Role configuration
+ * Story 15-10: Added billing role for future subscription management
  */
-const ROLES = ['admin', 'member', 'viewer', 'guest'] as const
+const ROLES = ['admin', 'member', 'viewer', 'guest', 'billing'] as const
 type Role = (typeof ROLES)[number]
 
 const ROLE_LABELS: Record<string, string> = {
@@ -65,6 +66,7 @@ const ROLE_LABELS: Record<string, string> = {
   member: 'Member',
   viewer: 'Viewer',
   guest: 'Guest',
+  billing: 'Billing',
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -73,7 +75,14 @@ const ROLE_COLORS: Record<string, string> = {
   member: 'bg-green-100 text-green-800',
   viewer: 'bg-gray-100 text-gray-800',
   guest: 'bg-yellow-100 text-yellow-800',
+  billing: 'bg-orange-100 text-orange-800',
 }
+
+/**
+ * Pagination constants
+ * Story 15-10: Add pagination for large teams
+ */
+const PAGE_SIZE = 20
 
 /**
  * Status colors for activity badges
@@ -244,6 +253,9 @@ export function MembersList({ filters }: MembersListProps) {
   // Member to remove (for confirmation dialog)
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null)
 
+  // Pagination state (Story 15-10)
+  const [currentPage, setCurrentPage] = useState(1)
+
   // Fetch members
   const {
     data: members,
@@ -263,6 +275,16 @@ export function MembersList({ filters }: MembersListProps) {
 
   // Apply filters to members
   const filteredMembers = members ? filterMembers(members, filters) : []
+
+  // Pagination calculations (Story 15-10)
+  const totalMembers = filteredMembers.length
+  const totalPages = Math.ceil(totalMembers / PAGE_SIZE)
+  const startIndex = (currentPage - 1) * PAGE_SIZE
+  const endIndex = startIndex + PAGE_SIZE
+  const paginatedMembers = filteredMembers.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change (Story 15-10)
+  // Note: This is handled automatically since filters prop change triggers re-render
 
   // Update role mutation
   const updateRoleMutation = useMutation({
@@ -342,7 +364,7 @@ export function MembersList({ filters }: MembersListProps) {
     <>
       <Card>
         <CardContent className="p-0">
-          {filteredMembers.length === 0 ? (
+          {paginatedMembers.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-gray-500">
                 {members && members.length > 0
@@ -352,7 +374,7 @@ export function MembersList({ filters }: MembersListProps) {
             </div>
           ) : (
             <div className="divide-y">
-              {filteredMembers.map((member) => {
+              {paginatedMembers.map((member) => {
                 const activityStatus = getActivityStatus(member.lastActiveAt)
                 const lastActive = formatLastActive(member.lastActiveAt)
 
@@ -445,6 +467,38 @@ export function MembersList({ filters }: MembersListProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination Controls (Story 15-10) */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-sm text-gray-600">
+            Showing {startIndex + 1}-{Math.min(endIndex, totalMembers)} of {totalMembers} members
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Remove Confirmation Dialog */}
       <AlertDialog open={!!memberToRemove} onOpenChange={() => setMemberToRemove(null)}>

@@ -343,7 +343,7 @@ development_status:
   15-7-implement-settings-security-page: done
   15-8-implement-settings-sessions-page: done
   15-9-implement-workspace-general-settings: done
-  15-10-fix-and-implement-workspace-members-page: backlog
+  15-10-fix-and-implement-workspace-members-page: done
   15-10a-implement-workspace-roles-page: backlog  # P0 - Added from audit
   15-13-implement-ai-configuration-page: backlog
   15-26-implement-appearance-settings-page: backlog  # P1 - Added from audit
