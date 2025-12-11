@@ -37,6 +37,11 @@ yarn-error.log*
 # Test coverage
 coverage/
 
+# Playwright test artifacts
+.playwright-mcp/
+**/playwright-report/
+**/test-results/
+
 # Temporary files
 tmp/
 temp/
