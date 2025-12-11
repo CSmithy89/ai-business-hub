@@ -2,14 +2,15 @@
  * Chat Messages Hook
  *
  * Hook for chat functionality with API integration.
- * Handles message sending, receiving, and state management.
+ * Handles message sending, receiving, streaming, and state management.
  *
  * Story: 15.4 - Connect Chat Panel to Agno Backend
+ * Updated: Added streaming SSE support
  */
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 export interface Message {
   id: string;
@@ -21,6 +22,7 @@ export interface Message {
   agentIcon?: string;
   agentColor?: string;
   error?: boolean;
+  isStreaming?: boolean;
 }
 
 interface ChatAgent {
@@ -53,6 +55,7 @@ function loadMessages(): Message[] {
       return parsed.map((msg: Message) => ({
         ...msg,
         timestamp: new Date(msg.timestamp),
+        isStreaming: false, // Never load as streaming
       }));
     }
   } catch {
@@ -88,8 +91,10 @@ function saveMessages(messages: Message[]): void {
   if (typeof window === 'undefined') return;
 
   try {
-    // Keep only last 100 messages
-    const toSave = messages.slice(-100);
+    // Keep only last 100 messages, exclude streaming messages from save
+    const toSave = messages
+      .filter((m) => !m.isStreaming)
+      .slice(-100);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch {
     console.warn('Failed to save chat history');
@@ -99,19 +104,43 @@ function saveMessages(messages: Message[]): void {
 export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Load messages on mount
   useEffect(() => {
     setMessages(loadMessages());
   }, []);
 
-  // Save messages when they change
+  // Save messages when they change (but not while streaming)
   useEffect(() => {
-    if (messages.length > 0) {
+    if (messages.length > 0 && !isStreaming) {
       saveMessages(messages);
     }
-  }, [messages]);
+  }, [messages, isStreaming]);
+
+  /**
+   * Stop the current streaming response
+   */
+  const stopStreaming = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsStreaming(false);
+    setIsTyping(false);
+
+    // Mark the last message as no longer streaming
+    setMessages((prev) => {
+      const updated = [...prev];
+      const lastIdx = updated.length - 1;
+      if (lastIdx >= 0 && updated[lastIdx].isStreaming) {
+        updated[lastIdx] = { ...updated[lastIdx], isStreaming: false };
+      }
+      return updated;
+    });
+  }, []);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -132,12 +161,19 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
       // Show typing indicator
       setIsTyping(true);
 
+      // Create abort controller for this request
+      abortControllerRef.current = new AbortController();
+
       try {
-        // Send to API
+        // Send to API with streaming
         const response = await fetch(`/api/agents/${currentAgent.id}/messages`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream',
+          },
+          body: JSON.stringify({ content, stream: true }),
+          signal: abortControllerRef.current.signal,
         });
 
         if (!response.ok) {
@@ -155,22 +191,135 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
           }
         }
 
-        const data = await response.json();
+        // Check if response is streaming (SSE)
+        const contentType = response.headers.get('content-type') || '';
 
-        // Add agent response
-        const agentMessage: Message = {
-          id: data.id || `agent-${Date.now()}`,
-          type: 'agent',
-          content: data.content,
-          timestamp: new Date(data.timestamp || Date.now()),
-          agentId: currentAgent.id,
-          agentName: currentAgent.name,
-          agentIcon: currentAgent.icon,
-          agentColor: currentAgent.color,
-        };
+        if (contentType.includes('text/event-stream') && response.body) {
+          // Handle streaming response
+          setIsTyping(false);
+          setIsStreaming(true);
 
-        setMessages((prev) => [...prev, agentMessage]);
+          // Create placeholder message for streaming
+          const streamingMessage: Message = {
+            id: `agent-${Date.now()}`,
+            type: 'agent',
+            content: '',
+            timestamp: new Date(),
+            agentId: currentAgent.id,
+            agentName: currentAgent.name,
+            agentIcon: currentAgent.icon,
+            agentColor: currentAgent.color,
+            isStreaming: true,
+          };
+
+          setMessages((prev) => [...prev, streamingMessage]);
+
+          // Stream the response
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+
+              // Process SSE events
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6);
+
+                  if (data === '[DONE]') {
+                    // Stream complete
+                    setMessages((prev) => {
+                      const updated = [...prev];
+                      const lastIdx = updated.length - 1;
+                      if (lastIdx >= 0) {
+                        updated[lastIdx] = { ...updated[lastIdx], isStreaming: false };
+                      }
+                      return updated;
+                    });
+                    continue;
+                  }
+
+                  try {
+                    const parsed = JSON.parse(data);
+                    const chunk = parsed.content || parsed.text || parsed.delta || '';
+
+                    if (chunk) {
+                      setMessages((prev) => {
+                        const updated = [...prev];
+                        const lastIdx = updated.length - 1;
+                        if (lastIdx >= 0 && updated[lastIdx].isStreaming) {
+                          updated[lastIdx] = {
+                            ...updated[lastIdx],
+                            content: updated[lastIdx].content + chunk,
+                          };
+                        }
+                        return updated;
+                      });
+                    }
+                  } catch {
+                    // If not JSON, treat as plain text chunk
+                    if (data.trim()) {
+                      setMessages((prev) => {
+                        const updated = [...prev];
+                        const lastIdx = updated.length - 1;
+                        if (lastIdx >= 0 && updated[lastIdx].isStreaming) {
+                          updated[lastIdx] = {
+                            ...updated[lastIdx],
+                            content: updated[lastIdx].content + data,
+                          };
+                        }
+                        return updated;
+                      });
+                    }
+                  }
+                }
+              }
+            }
+          } finally {
+            // Ensure streaming state is cleared
+            setIsStreaming(false);
+            setMessages((prev) => {
+              const updated = [...prev];
+              const lastIdx = updated.length - 1;
+              if (lastIdx >= 0 && updated[lastIdx].isStreaming) {
+                updated[lastIdx] = { ...updated[lastIdx], isStreaming: false };
+              }
+              return updated;
+            });
+          }
+        } else {
+          // Handle non-streaming response (fallback)
+          const data = await response.json();
+
+          // Add agent response
+          const agentMessage: Message = {
+            id: data.id || `agent-${Date.now()}`,
+            type: 'agent',
+            content: data.content,
+            timestamp: new Date(data.timestamp || Date.now()),
+            agentId: currentAgent.id,
+            agentName: currentAgent.name,
+            agentIcon: currentAgent.icon,
+            agentColor: currentAgent.color,
+          };
+
+          setMessages((prev) => [...prev, agentMessage]);
+          setIsTyping(false);
+        }
       } catch (err) {
+        // Handle abort
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
+
         const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
         setError(errorMessage);
 
@@ -190,6 +339,8 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
         setMessages((prev) => [...prev, errorMsg]);
       } finally {
         setIsTyping(false);
+        setIsStreaming(false);
+        abortControllerRef.current = null;
       }
     },
     [currentAgent]
@@ -214,8 +365,10 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
   return {
     messages,
     isTyping,
+    isStreaming,
     error,
     sendMessage,
+    stopStreaming,
     clearHistory,
     retryLastMessage,
   };

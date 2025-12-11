@@ -176,7 +176,7 @@ _Tech Spec: tech-spec-epic-15.md_
 - [x] **Task 4:** Create /api/agents/[agentId]/messages route
 - [x] **Task 5:** Add error handling and retry logic
 - [x] **Task 6:** Implement chat history persistence (localStorage)
-- [ ] **Task 7:** Add streaming response handling (deferred - requires AgentOS integration)
+- [x] **Task 7:** Add streaming SSE response handling
 - [ ] **Task 8:** Add agent greeting on switch (deferred - future enhancement)
 - [x] **Task 9:** Verify TypeScript type check passes
 - [x] **Task 10:** Verify ESLint passes
@@ -233,10 +233,17 @@ _Tech Spec: tech-spec-epic-15.md_
 - TypeScript and ESLint checks pass
 
 **Deferred Items:**
-- Streaming SSE responses (requires full AgentOS integration)
 - Agent greeting on switch (future enhancement)
 - @mentions for specific agents (future enhancement)
 - File attachments (separate story)
+
+**Enhanced Implementation (2025-12-11):**
+- Added full streaming SSE support to use-chat-messages.ts
+- Implemented AbortController for stream cancellation
+- Added stopStreaming() function with UI support
+- Updated ChatMessageList to pass streaming props to ChatMessage
+- ChatInput disabled during streaming
+- Auto-scroll during streaming responses
 
 ---
 

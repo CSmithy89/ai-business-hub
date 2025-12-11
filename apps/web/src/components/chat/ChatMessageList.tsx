@@ -2,7 +2,10 @@
  * Chat Message List Component
  *
  * Scrollable container for chat messages with auto-scroll behavior.
- * Displays user messages, agent messages, and typing indicator.
+ * Displays user messages, agent messages, typing indicator, and streaming.
+ *
+ * Story: 15.4 - Connect Chat Panel to Agno Backend
+ * Updated: Added streaming props support
  */
 
 'use client';
@@ -20,46 +23,65 @@ interface Message {
   agentName?: string;
   agentIcon?: string;
   agentColor?: string;
+  isStreaming?: boolean;
 }
 
 interface ChatMessageListProps {
   messages: Message[];
   isTyping?: boolean;
+  isStreaming?: boolean;
   currentAgent?: {
     name: string;
     icon?: string;
     color?: string;
   };
+  onStopStreaming?: () => void;
 }
 
 export function ChatMessageList({
   messages,
   isTyping,
+  isStreaming,
   currentAgent,
+  onStopStreaming,
 }: ChatMessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(messages.length);
   const prevIsTypingRef = useRef(isTyping);
+  const prevIsStreamingRef = useRef(isStreaming);
 
   // Memoized scroll function
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  // Optimized auto-scroll: only scroll when messages are added or typing starts
+  // Optimized auto-scroll: scroll when messages are added, typing starts, or streaming starts
   useEffect(() => {
     const messageCountChanged = messages.length !== prevMessageCountRef.current;
     const typingStarted = isTyping && !prevIsTypingRef.current;
+    const streamingStarted = isStreaming && !prevIsStreamingRef.current;
 
-    // Only scroll if new messages or typing just started
-    if (messageCountChanged || typingStarted) {
+    // Only scroll if new messages, typing started, or streaming started
+    if (messageCountChanged || typingStarted || streamingStarted) {
       scrollToBottom();
     }
 
     // Update refs for next comparison
     prevMessageCountRef.current = messages.length;
     prevIsTypingRef.current = isTyping;
-  }, [messages.length, isTyping, scrollToBottom]);
+    prevIsStreamingRef.current = isStreaming;
+  }, [messages.length, isTyping, isStreaming, scrollToBottom]);
+
+  // Also scroll when streaming content updates (for long responses)
+  useEffect(() => {
+    if (isStreaming) {
+      // Scroll on each content update during streaming
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage?.isStreaming) {
+        scrollToBottom();
+      }
+    }
+  }, [messages, isStreaming, scrollToBottom]);
 
   return (
     <div
@@ -74,7 +96,12 @@ export function ChatMessageList({
       )}
     >
       {messages.map((message) => (
-        <ChatMessage key={message.id} {...message} />
+        <ChatMessage
+          key={message.id}
+          {...message}
+          isStreaming={message.isStreaming}
+          onStopStreaming={message.isStreaming ? onStopStreaming : undefined}
+        />
       ))}
 
       {isTyping && currentAgent && (

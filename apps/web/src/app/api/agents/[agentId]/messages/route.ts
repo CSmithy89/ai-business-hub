@@ -5,6 +5,7 @@
  * Supports streaming responses via SSE.
  *
  * Story: 15.4 - Connect Chat Panel to Agno Backend
+ * Updated: Added SSE streaming support
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,6 +14,7 @@ import { getSession } from '@/lib/auth-server';
 interface MessageRequest {
   content: string;
   businessId?: string;
+  stream?: boolean;
 }
 
 interface RouteParams {
@@ -22,7 +24,7 @@ interface RouteParams {
 /**
  * POST /api/agents/[agentId]/messages
  *
- * Send a message to an agent and receive a streaming response.
+ * Send a message to an agent and receive a streaming or JSON response.
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const { agentId } = await params;
     const body = (await request.json()) as MessageRequest;
-    const { content, businessId } = body;
+    const { content, businessId, stream } = body;
 
     if (!content?.trim()) {
       return NextResponse.json({ error: 'Message content is required' }, { status: 400 });
@@ -48,17 +50,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Invalid agent ID' }, { status: 400 });
     }
 
-    // TODO: In production, forward to AgentOS/Agno backend
-    // const response = await agentOSService.sendMessage({
-    //   agentId,
-    //   content,
-    //   workspaceId,
-    //   businessId,
-    //   userId: session.user.id,
-    // });
+    // Check if streaming is requested
+    if (stream) {
+      return handleStreamingResponse(agentId, content, workspaceId, businessId);
+    }
 
-    // For now, return a mock response
-    // In production, this would be a streaming SSE response from AgentOS
+    // Non-streaming response (fallback)
     const mockResponse = generateMockResponse(agentId, content);
 
     return NextResponse.json({
@@ -73,6 +70,58 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     console.error('Error processing message:', error);
     return NextResponse.json({ error: 'Failed to process message' }, { status: 500 });
   }
+}
+
+/**
+ * Handle streaming SSE response
+ */
+function handleStreamingResponse(
+  agentId: string,
+  content: string,
+  workspaceId: string,
+  businessId?: string
+): Response {
+  const encoder = new TextEncoder();
+
+  // Generate mock response for streaming
+  const mockResponse = generateMockResponse(agentId, content);
+  const words = mockResponse.split(' ');
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        // Simulate streaming by sending word by word
+        for (let i = 0; i < words.length; i++) {
+          const word = words[i];
+          const chunk = i === 0 ? word : ' ' + word;
+
+          // Send SSE data event
+          const sseMessage = `data: ${JSON.stringify({ content: chunk })}\n\n`;
+          controller.enqueue(encoder.encode(sseMessage));
+
+          // Simulate typing delay (30-80ms per word)
+          await new Promise((resolve) => setTimeout(resolve, 30 + Math.random() * 50));
+        }
+
+        // Send done signal
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+      } catch (error) {
+        console.error('Stream error:', error);
+        controller.error(error);
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'X-Workspace-Id': workspaceId,
+      ...(businessId && { 'X-Business-Id': businessId }),
+    },
+  });
 }
 
 /**

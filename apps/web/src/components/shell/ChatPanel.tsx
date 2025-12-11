@@ -33,7 +33,7 @@ import { cn } from '@/lib/utils';
 export function ChatPanel() {
   const { chatPanelOpen, chatPanelWidth, toggleChatPanel } = useUIStore();
   const [selectedAgent, setSelectedAgent] = useState<ChatAgent>(CHAT_AGENTS[0]);
-  const { messages, isTyping, sendMessage } = useChatMessages(selectedAgent);
+  const { messages, isTyping, isStreaming, sendMessage, stopStreaming } = useChatMessages(selectedAgent);
 
   // Current agent info (from selected agent)
   const currentAgent = {
@@ -165,11 +165,17 @@ export function ChatPanel() {
       <ChatMessageList
         messages={messages}
         isTyping={isTyping}
+        isStreaming={isStreaming}
         currentAgent={currentAgent}
+        onStopStreaming={stopStreaming}
       />
 
-      {/* Chat Input */}
-      <ChatInput onSend={sendMessage} agentName={currentAgent.name} />
+      {/* Chat Input - disabled while typing or streaming */}
+      <ChatInput
+        onSend={sendMessage}
+        agentName={currentAgent.name}
+        disabled={isTyping || isStreaming}
+      />
     </aside>
   );
 }
