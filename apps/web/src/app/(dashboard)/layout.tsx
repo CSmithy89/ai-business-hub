@@ -5,7 +5,7 @@
  * - Header (fixed, 60px height)
  * - Sidebar (left, 64px collapsed / 256px expanded)
  * - Main content (center, flexible)
- * - Chat panel (right, 320-480px adjustable)
+ * - Chat panel (right/bottom/floating/collapsed)
  *
  * Responsive breakpoints:
  * - Mobile (<640px): Single panel with overlays
@@ -16,6 +16,7 @@
  *
  * Epic: 07 - UI Shell
  * Story: 07-1 - Create Dashboard Layout Component
+ * Story: 15-12 - Implement Chat Panel Position Options
  */
 
 'use client';
@@ -43,7 +44,20 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { sidebarCollapsed, chatPanelOpen, chatPanelWidth } = useUIStore();
+  const { sidebarCollapsed, chatPanelOpen, chatPanelWidth, chatPanelHeight, chatPanelPosition } = useUIStore();
+
+  // Calculate main content margin based on chat panel position
+  const getMainContentMarginRight = () => {
+    if (!chatPanelOpen || chatPanelPosition === 'collapsed') return 0;
+    if (chatPanelPosition === 'right') return chatPanelWidth ?? LAYOUT.CHAT_DEFAULT_WIDTH;
+    return 0; // No margin for bottom, floating, or collapsed
+  };
+
+  // Calculate main content margin bottom for bottom panel
+  const getMainContentMarginBottom = () => {
+    if (!chatPanelOpen || chatPanelPosition !== 'bottom') return 0;
+    return chatPanelHeight ?? 250;
+  };
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden">
@@ -89,9 +103,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             max-sm:ml-0 max-sm:mr-0
           `}
           style={{
-            marginRight: chatPanelOpen
-              ? (chatPanelWidth ?? LAYOUT.CHAT_DEFAULT_WIDTH)
-              : 0,
+            marginRight: getMainContentMarginRight(),
+            marginBottom: getMainContentMarginBottom(),
           }}
         >
           <ErrorBoundary fallback={<MainContentErrorFallback />}>

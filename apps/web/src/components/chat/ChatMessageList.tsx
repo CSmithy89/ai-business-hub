@@ -36,6 +36,8 @@ interface ChatMessageListProps {
     color?: string;
   };
   onStopStreaming?: () => void;
+  /** Horizontal layout for bottom panel position */
+  horizontal?: boolean;
 }
 
 export function ChatMessageList({
@@ -44,6 +46,7 @@ export function ChatMessageList({
   isStreaming,
   currentAgent,
   onStopStreaming,
+  horizontal = false,
 }: ChatMessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(messages.length);
@@ -86,13 +89,15 @@ export function ChatMessageList({
   return (
     <div
       className={cn(
-        'flex flex-1 flex-col gap-4 overflow-y-auto p-4',
+        'flex flex-1 gap-4 p-4',
+        horizontal ? 'flex-row overflow-x-auto' : 'flex-col overflow-y-auto',
         // Custom scrollbar styles
         '[&::-webkit-scrollbar]:w-[6px]',
         '[&::-webkit-scrollbar-track]:bg-transparent',
         '[&::-webkit-scrollbar-thumb]:bg-gray-300',
         '[&::-webkit-scrollbar-thumb]:rounded-[3px]',
-        'dark:[&::-webkit-scrollbar-thumb]:bg-gray-600'
+        'dark:[&::-webkit-scrollbar-thumb]:bg-gray-600',
+        horizontal && '[&::-webkit-scrollbar]:h-[6px]'
       )}
     >
       {messages.map((message) => (
