@@ -7,11 +7,14 @@
  * - Attachment button (placeholder)
  * - Send button
  * - Enter to send, Shift+Enter for newline
+ *
+ * Updated: Story 15.1 - Replace Material Icons with Lucide
  */
 
 'use client';
 
 import { useState, useRef, KeyboardEvent } from 'react';
+import { AtSign, Paperclip, ArrowUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
@@ -80,12 +83,7 @@ export function ChatInput({ onSend, agentName, disabled }: ChatInputProps) {
               textareaRef.current?.focus();
             }}
           >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: '20px' }}
-            >
-              alternate_email
-            </span>
+            <AtSign className="h-5 w-5" />
           </button>
 
           {/* Attachment button (placeholder) */}
@@ -103,12 +101,7 @@ export function ChatInput({ onSend, agentName, disabled }: ChatInputProps) {
               // Placeholder - will trigger file picker when implemented
             }}
           >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: '20px' }}
-            >
-              attachment
-            </span>
+            <Paperclip className="h-5 w-5" />
           </button>
         </div>
 
@@ -143,9 +136,7 @@ export function ChatInput({ onSend, agentName, disabled }: ChatInputProps) {
           )}
           aria-label="Send message"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-            arrow_upward
-          </span>
+          <ArrowUp className="h-5 w-5" />
         </button>
       </div>
     </footer>

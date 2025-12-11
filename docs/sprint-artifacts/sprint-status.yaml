@@ -325,8 +325,8 @@ development_status:
   epic-15: contexted
 
   # Section 1: Icon System & Navigation (2 stories, 7 points)
-  15-1-replace-material-icon-text-strings-with-lucide-components: backlog
-  15-11-implement-main-menu-restructuring-with-businesses-tab: backlog
+  15-1-replace-material-icon-text-strings-with-lucide-components: done
+  15-11-implement-main-menu-restructuring-with-businesses-tab: done
 
   # Section 2: Landing Page & User Flow (4 stories, 14 points)
   15-2-create-businesses-portfolio-landing-page: backlog

@@ -7,11 +7,13 @@
  * - Search trigger, notifications, help, user menu (right)
  *
  * Story 07.3: Create Header Bar
+ * Updated: Story 15.1 - Replace Material Icons with Lucide
  */
 
 'use client';
 
 import Link from 'next/link';
+import { ChevronDown, HelpCircle } from 'lucide-react';
 import { HeaderBreadcrumbs } from './HeaderBreadcrumbs';
 import { HeaderSearchTrigger } from './HeaderSearchTrigger';
 import { HeaderNotificationBell } from './HeaderNotificationBell';
@@ -60,9 +62,7 @@ export function Header() {
           <span className="text-sm font-medium text-[rgb(var(--color-text-primary))]">
             Acme Corp
           </span>
-          <span className="material-symbols-rounded text-base text-[rgb(var(--color-text-tertiary))]">
-            expand_more
-          </span>
+          <ChevronDown className="h-4 w-4 text-[rgb(var(--color-text-tertiary))]" />
         </div>
       </div>
 
@@ -87,7 +87,7 @@ export function Header() {
                      hover:bg-[rgb(var(--color-bg-hover))] hover:text-[rgb(var(--color-text-primary))]"
           href={'/help' as never}
         >
-          <span className="material-symbols-rounded text-xl">help</span>
+          <HelpCircle className="h-5 w-5" />
         </Link>
 
         {/* User menu */}

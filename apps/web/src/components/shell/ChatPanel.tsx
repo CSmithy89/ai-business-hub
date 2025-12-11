@@ -8,10 +8,20 @@
  * - Auto-scroll message list
  * - Input area with @mention support
  * - Collapse/expand functionality
+ *
+ * Updated: Story 15.1 - Replace Material Icons with Lucide
  */
 
 'use client';
 
+import {
+  MessageCircle,
+  ChevronDown,
+  History,
+  Minus,
+  Maximize2,
+  ExternalLink,
+} from 'lucide-react';
 import { useUIStore } from '@/stores/ui';
 import { useChatMessages } from '@/hooks/use-chat-messages';
 import { ChatMessageList } from '@/components/chat/ChatMessageList';
@@ -45,12 +55,7 @@ export function ChatPanel() {
         )}
         aria-label="Open chat panel"
       >
-        <span
-          className="material-symbols-outlined text-[rgb(var(--color-text-secondary))]"
-          style={{ fontSize: '22px' }}
-        >
-          chat_bubble
-        </span>
+        <MessageCircle className="h-5 w-5 text-[rgb(var(--color-text-secondary))]" />
         {/* Unread indicator dot */}
         <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[rgb(var(--color-primary-500))]" />
       </button>
@@ -108,12 +113,7 @@ export function ChatPanel() {
             <p className="text-xs text-[#2ECC71]">Online</p>
           </div>
 
-          <span
-            className="material-symbols-outlined !text-lg !font-light text-[rgb(var(--color-text-secondary))]"
-            style={{ fontSize: '18px' }}
-          >
-            expand_more
-          </span>
+          <ChevronDown className="h-4 w-4 text-[rgb(var(--color-text-secondary))]" />
         </div>
 
         {/* Right Section: Action Buttons */}
@@ -131,9 +131,7 @@ export function ChatPanel() {
               // TODO: Implement chat history panel
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-              history
-            </span>
+            <History className="h-5 w-5" />
           </button>
 
           {/* Minimize Button */}
@@ -147,9 +145,7 @@ export function ChatPanel() {
             aria-label="Minimize chat panel"
             onClick={toggleChatPanel}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-              remove
-            </span>
+            <Minus className="h-5 w-5" />
           </button>
 
           {/* Expand Button (Placeholder) */}
@@ -165,9 +161,7 @@ export function ChatPanel() {
               // TODO: Implement full screen mode
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-              open_in_full
-            </span>
+            <Maximize2 className="h-5 w-5" />
           </button>
 
           {/* Pop-out Button (Placeholder) */}
@@ -183,9 +177,7 @@ export function ChatPanel() {
               // TODO: Implement pop-out window
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-              open_in_new
-            </span>
+            <ExternalLink className="h-5 w-5" />
           </button>
         </div>
       </header>

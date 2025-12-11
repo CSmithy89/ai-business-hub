@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: 15.11 - Implement Main Menu Restructuring with Businesses Tab
+  Generated: 2025-12-11
+  Epic: EPIC-15 - UI/UX Platform Foundation
+-->
+<story-context>
+  <metadata>
+    <story-id>15.11</story-id>
+    <epic>EPIC-15</epic>
+    <priority>P1</priority>
+    <points>3</points>
+    <status>ready-for-dev</status>
+  </metadata>
+
+  <user-story>
+    <as-a>user navigating the platform</as-a>
+    <i-want>Businesses as a main menu item with sub-navigation</i-want>
+    <so-that>I can easily access all business-related features</so-that>
+  </user-story>
+
+  <acceptance-criteria>
+    <criterion id="AC1">Add "Businesses" tab to main sidebar menu with Building2 icon</criterion>
+    <criterion id="AC2">Implement collapsible sub-navigation with 4 items: Portfolio, Planning, Branding, Validation</criterion>
+    <criterion id="AC3">Sub-items route to /businesses, /businesses/planning, /businesses/branding, /businesses/validation</criterion>
+    <criterion id="AC4">Chevron rotates on expand/collapse with smooth transition</criterion>
+    <criterion id="AC5">Active state highlighting for current section and parent</criterion>
+    <criterion id="AC6">Works in both expanded and collapsed sidebar states</criterion>
+  </acceptance-criteria>
+
+  <code-artifacts>
+    <artifact type="component" path="apps/web/src/components/shell/SidebarNav.tsx">
+      <description>Main sidebar navigation - needs Businesses section added</description>
+      <current-structure>
+        - Main section: Dashboard, Approvals, AI Team, Settings
+        - Modules section: CRM, Projects
+        - Uses SidebarSection for grouping
+        - Uses SidebarNavItem for individual items
+        - Accepts collapsed prop for sidebar state
+      </current-structure>
+    </artifact>
+
+    <artifact type="component" path="apps/web/src/components/shell/SidebarNavItem.tsx">
+      <description>Individual nav item component</description>
+      <interface>
+        - icon: LucideIcon (from lucide-react)
+        - label: string
+        - href: string
+        - badge?: number
+        - statusDot?: 'secondary' | 'atlas'
+        - collapsed: boolean
+      </interface>
+      <features>
+        - Active state detection via usePathname()
+        - Tooltip in collapsed state
+        - Badge support (overlay in collapsed, inline in expanded)
+        - Status dot for module items
+      </features>
+    </artifact>
+
+    <artifact type="component" path="apps/web/src/components/shell/SidebarSection.tsx">
+      <description>Section wrapper with title and divider</description>
+      <interface>
+        - title: string
+        - collapsed: boolean
+        - children: ReactNode
+      </interface>
+    </artifact>
+
+    <artifact type="new-component" path="apps/web/src/components/shell/SidebarNavGroup.tsx">
+      <description>NEW: Collapsible nav group for Businesses</description>
+      <proposed-interface>
+        - icon: LucideIcon
+        - label: string
+        - collapsed: boolean (sidebar state)
+        - defaultExpanded?: boolean
+        - children: ReactNode (sub-items)
+      </proposed-interface>
+      <features>
+        - Expand/collapse toggle with ChevronDown/ChevronRight
+        - Animated height transition for sub-menu
+        - Parent active state when any child route matches
+        - localStorage persistence for expanded state
+        - Tooltip with sub-menu in collapsed sidebar mode
+      </features>
+    </artifact>
+  </code-artifacts>
+
+  <icon-mapping>
+    <icon name="Businesses (parent)" lucide="Building2" />
+    <icon name="Portfolio" lucide="LayoutGrid" />
+    <icon name="Planning" lucide="ClipboardList" />
+    <icon name="Branding" lucide="Palette" />
+    <icon name="Validation" lucide="CheckSquare" />
+    <icon name="Expand" lucide="ChevronDown" />
+    <icon name="Collapse" lucide="ChevronRight" />
+  </icon-mapping>
+
+  <routes>
+    <route path="/businesses" label="Portfolio" />
+    <route path="/businesses/planning" label="Planning" />
+    <route path="/businesses/branding" label="Branding" />
+    <route path="/businesses/validation" label="Validation" />
+  </routes>
+
+  <constraints>
+    <constraint type="pattern">Follow existing SidebarNavItem pattern for consistency</constraint>
+    <constraint type="pattern">Use Lucide icons only (per Story 15.1)</constraint>
+    <constraint type="pattern">Use Tailwind classes for sizing (h-5 w-5 for nav icons, h-4 w-4 for chevron)</constraint>
+    <constraint type="pattern">Use CSS custom properties for colors (rgb(var(--color-*)))</constraint>
+    <constraint type="ux">Smooth 150ms transitions for expand/collapse</constraint>
+    <constraint type="ux">Sub-items indented or visually nested</constraint>
+    <constraint type="a11y">Proper aria-expanded attribute on toggle</constraint>
+  </constraints>
+
+  <dependencies>
+    <dependency story="15.1" status="done">Icon system uses Lucide components</dependency>
+    <dependency note="Routes may not exist">Sub-pages may be created in later stories - nav should still work</dependency>
+  </dependencies>
+
+  <implementation-hints>
+    <hint>Use useState for expanded state, initialize from localStorage or route detection</hint>
+    <hint>Use usePathname() to detect if any child route is active for parent highlighting</hint>
+    <hint>In collapsed sidebar, consider showing sub-items in tooltip popover on hover</hint>
+    <hint>Animation: Use Tailwind's transition-all and overflow-hidden with dynamic max-height</hint>
+  </implementation-hints>
+
+  <test-scenarios>
+    <scenario>Click Businesses - sub-menu expands with animation</scenario>
+    <scenario>Click expanded Businesses - sub-menu collapses</scenario>
+    <scenario>Navigate to /businesses/planning - Planning highlighted, Businesses parent highlighted</scenario>
+    <scenario>Collapse sidebar - Businesses shows as icon only with tooltip showing sub-items</scenario>
+    <scenario>Refresh page on /businesses/validation - Businesses auto-expanded, Validation highlighted</scenario>
+  </test-scenarios>
+</story-context>

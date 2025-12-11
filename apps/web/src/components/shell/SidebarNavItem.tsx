@@ -9,6 +9,7 @@
  *
  * Epic: 07 - UI Shell
  * Story: 07-2 - Create Sidebar Navigation
+ * Updated: Story 15.1 - Replace Material Icons with Lucide
  */
 
 'use client';
@@ -16,6 +17,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import type { Route } from 'next';
+import type { LucideIcon } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -25,8 +27,8 @@ import {
 import { cn } from '@/lib/utils';
 
 interface SidebarNavItemProps {
-  /** Material Symbols icon name (e.g., "grid_view") */
-  icon: string;
+  /** Lucide icon component */
+  icon: LucideIcon;
   /** Display label (e.g., "Dashboard") */
   label: string;
   /** Navigation route (e.g., "/dashboard") */
@@ -72,16 +74,19 @@ export function SidebarNavItem({
         )}
       >
       {/* Icon */}
-      <span
-        className={cn(
-          'material-symbols-outlined text-xl',
-          isActive
-            ? 'text-[rgb(var(--color-primary-500))]'
-            : 'text-[rgb(var(--color-text-secondary))] group-hover:text-[rgb(var(--color-text-primary))]'
-        )}
-      >
-        {icon}
-      </span>
+      {(() => {
+        const Icon = icon;
+        return (
+          <Icon
+            className={cn(
+              'h-5 w-5 shrink-0',
+              isActive
+                ? 'text-[rgb(var(--color-primary-500))]'
+                : 'text-[rgb(var(--color-text-secondary))] group-hover:text-[rgb(var(--color-text-primary))]'
+            )}
+          />
+        );
+      })()}
 
       {/* Label + Status Dot + Badge (expanded state) */}
       {!collapsed && (
