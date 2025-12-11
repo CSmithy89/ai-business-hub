@@ -1,14 +1,17 @@
 /**
  * Header Component
  *
+ * Story 15-23: Header Bar Style Fixes
+ *
  * Main header bar with:
  * - Logo and business switcher (left)
  * - Breadcrumb navigation (center)
  * - Search trigger, notifications, help, user menu (right)
  *
- * Story 07.3: Create Header Bar
- * Updated: Story 15.1 - Replace Material Icons with Lucide
- * Updated: Story 15.14 - Add Business Switcher Dropdown
+ * All icon buttons use premium hover effects:
+ * - Subtle background on hover
+ * - 1px lift effect
+ * - 150ms transitions
  */
 
 'use client';
@@ -21,6 +24,7 @@ import { HeaderNotificationBell } from './HeaderNotificationBell';
 import { HeaderUserMenu } from './HeaderUserMenu';
 import { MobileHamburger } from '@/components/mobile';
 import { BusinessSwitcher } from '@/components/business/business-switcher';
+import { cn } from '@/lib/utils';
 
 export function Header() {
   return (
@@ -71,14 +75,25 @@ export function Header() {
         {/* Notification bell */}
         <HeaderNotificationBell />
 
-        {/* Help link */}
+        {/* Help link - premium hover with lift effect */}
         <Link
           aria-label="Help"
-          className="flex h-9 w-9 items-center justify-center rounded-lg
-                     text-[rgb(var(--color-text-secondary))] transition-colors
-                     hover:bg-[rgb(var(--color-bg-hover))] hover:text-[rgb(var(--color-text-primary))]"
+          className={cn(
+            'flex h-9 w-9 items-center justify-center rounded-lg',
+            'text-[rgb(var(--color-text-secondary))]',
+            // 150ms transitions per style guide
+            'transition-all duration-150 ease-out',
+            // Hover: background + lift + color
+            'hover:bg-[rgb(var(--color-bg-hover))]',
+            'hover:text-[rgb(var(--color-text-primary))]',
+            'hover:-translate-y-px',
+            // Focus-visible
+            'focus-visible:outline-none',
+            'focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-primary-500))] focus-visible:ring-offset-2'
+          )}
           href={'/help' as never}
         >
+          {/* Lucide icon - 20px size */}
           <HelpCircle className="h-5 w-5" />
         </Link>
 
