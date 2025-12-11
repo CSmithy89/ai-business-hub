@@ -18,11 +18,11 @@ interface MessageRequest {
 }
 
 interface RouteParams {
-  params: Promise<{ agentId: string }>;
+  params: Promise<{ id: string }>;
 }
 
 /**
- * POST /api/agents/[agentId]/messages
+ * POST /api/agents/[id]/messages
  *
  * Send a message to an agent and receive a streaming or JSON response.
  */
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { agentId } = await params;
+    const { id: agentId } = await params;
     const body = (await request.json()) as MessageRequest;
     const { content, businessId, stream } = body;
 
@@ -125,7 +125,7 @@ function handleStreamingResponse(
 }
 
 /**
- * GET /api/agents/[agentId]/messages
+ * GET /api/agents/[id]/messages
  *
  * Fetch message history for an agent conversation.
  */
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { agentId } = await params;
+    const { id: agentId } = await params;
     const searchParams = request.nextUrl.searchParams;
     const businessId = searchParams.get('businessId');
     const limit = parseInt(searchParams.get('limit') || '50', 10);
