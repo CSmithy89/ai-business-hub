@@ -13,13 +13,14 @@ import {
 } from '@/lib/auth-client'
 import { AlertCircle, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 
 export function SessionList() {
   const queryClient = useQueryClient()
   const [error, setError] = useState<string | null>(null)
   const currentSessionToken = getCurrentSessionToken()
 
-  // Fetch sessions
+  // Fetch sessions with auto-refresh every 30 seconds (Story 15-8)
   const {
     data: sessions,
     isLoading,
@@ -29,6 +30,7 @@ export function SessionList() {
     queryKey: ['sessions'],
     queryFn: listSessions,
     refetchOnWindowFocus: true,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   })
 
   // Revoke individual session mutation
@@ -37,12 +39,12 @@ export function SessionList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] })
       setError(null)
-      // Show success toast (you can add a toast library later)
-      console.log('Session revoked successfully')
+      toast.success('Session revoked successfully')
     },
     onError: (error: unknown) => {
       console.error('Error revoking session:', error)
       setError('Failed to revoke session. Please try again.')
+      toast.error('Failed to revoke session')
     },
   })
 
@@ -52,11 +54,12 @@ export function SessionList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] })
       setError(null)
-      console.log('All other sessions revoked successfully')
+      toast.success('All other sessions revoked successfully')
     },
     onError: (error: unknown) => {
       console.error('Error revoking other sessions:', error)
       setError('Failed to revoke other sessions. Please try again.')
+      toast.error('Failed to revoke other sessions')
     },
   })
 
@@ -160,6 +163,7 @@ export function SessionList() {
               <p className="text-sm text-red-600">{error}</p>
             </div>
             <button
+              type="button"
               onClick={() => setError(null)}
               className="text-red-600 hover:text-red-800"
             >

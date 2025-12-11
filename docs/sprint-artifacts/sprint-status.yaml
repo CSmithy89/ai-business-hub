@@ -341,7 +341,7 @@ development_status:
   # Section 4: Settings Pages (8 stories, 26 points)
   15-6-implement-settings-profile-page: done
   15-7-implement-settings-security-page: done
-  15-8-implement-settings-sessions-page: backlog
+  15-8-implement-settings-sessions-page: done
   15-9-implement-workspace-general-settings: backlog
   15-10-fix-and-implement-workspace-members-page: backlog
   15-10a-implement-workspace-roles-page: backlog  # P0 - Added from audit

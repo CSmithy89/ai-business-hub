@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Loader2 } from 'lucide-react'
-import { parseUserAgent } from '@/lib/utils/user-agent'
+import { parseUserAgent, maskIpAddress } from '@/lib/utils/user-agent'
 import type { Session } from '@/lib/auth-client'
 
 interface SessionCardProps {
@@ -103,10 +103,10 @@ export function SessionCard({
                   Created {format(new Date(session.createdAt), 'PPP')}
                 </p>
 
-                {/* IP Address (optional) */}
+                {/* IP Address (masked for privacy) */}
                 {session.ipAddress && (
                   <p className="text-xs text-gray-400">
-                    IP: {session.ipAddress}
+                    IP: {maskIpAddress(session.ipAddress)}
                   </p>
                 )}
               </div>
