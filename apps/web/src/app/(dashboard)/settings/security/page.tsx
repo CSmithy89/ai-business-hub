@@ -1,6 +1,9 @@
 import { SettingsLayout } from '@/components/layouts/settings-layout'
 import { TwoFactorCard } from '@/components/settings/two-factor-card'
+import { PasswordChangeForm } from '@/components/settings/password-change-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Link2, Monitor } from 'lucide-react'
+import Link from 'next/link'
 
 export const metadata = {
   title: 'Security Settings | HYVVE',
@@ -14,16 +17,8 @@ export default function SettingsSecurityPage() {
       description="Manage your password and security preferences"
     >
       <div className="space-y-6">
-        {/* Password Change Section - Future Story */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Password</CardTitle>
-            <CardDescription>Change your password to keep your account secure</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500">Password change functionality coming soon.</p>
-          </CardContent>
-        </Card>
+        {/* Password Change Section - Story 15.7 */}
+        <PasswordChangeForm />
 
         {/* Two-Factor Authentication Section - Story 09-3 */}
         <TwoFactorCard />
@@ -31,35 +26,54 @@ export default function SettingsSecurityPage() {
         {/* Linked Accounts Section - Story 09-7 */}
         <Card>
           <CardHeader>
-            <CardTitle>Linked Accounts</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-blue-600" />
+              Linked Accounts
+            </CardTitle>
             <CardDescription>Manage your connected OAuth providers</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-500">
-              Connect your account with OAuth providers like Google, Microsoft, and GitHub for
-              easier sign-in.{' '}
-              <a href="/settings/linked-accounts" className="text-blue-600 hover:underline">
-                Manage linked accounts
-              </a>
-              .
-            </p>
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+              <div>
+                <p className="font-medium">OAuth Providers</p>
+                <p className="text-sm text-muted-foreground">
+                  Connect Google, Microsoft, or GitHub for easier sign-in
+                </p>
+              </div>
+              <Link
+                href="/settings/linked-accounts"
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Manage
+              </Link>
+            </div>
           </CardContent>
         </Card>
 
         {/* Session Management - Story 01-7 (already implemented) */}
         <Card>
           <CardHeader>
-            <CardTitle>Active Sessions</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Monitor className="h-5 w-5 text-purple-600" />
+              Active Sessions
+            </CardTitle>
             <CardDescription>Manage your active sessions across devices</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-500">
-              View and manage your active sessions in the{' '}
-              <a href="/settings/sessions" className="text-blue-600 hover:underline">
-                Sessions page
-              </a>
-              .
-            </p>
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+              <div>
+                <p className="font-medium">Device Sessions</p>
+                <p className="text-sm text-muted-foreground">
+                  View and revoke access from other devices
+                </p>
+              </div>
+              <Link
+                href="/settings/sessions"
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                View Sessions
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>
