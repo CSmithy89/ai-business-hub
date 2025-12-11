@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, Save, Trash2, AlertTriangle, Building, Plus } from 'lucide-react'
+import { Loader2, Save, Trash2, AlertTriangle, Building, Plus, Globe, Link2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,12 +44,30 @@ const COMMON_TIMEZONES = [
 ]
 
 /**
+ * Supported languages for workspace
+ * Story 15-9: Default language selection
+ */
+const SUPPORTED_LANGUAGES = [
+  { code: 'en', name: 'English' },
+  { code: 'es', name: 'Spanish' },
+  { code: 'fr', name: 'French' },
+  { code: 'de', name: 'German' },
+  { code: 'it', name: 'Italian' },
+  { code: 'pt', name: 'Portuguese' },
+  { code: 'zh', name: 'Chinese (Simplified)' },
+  { code: 'ja', name: 'Japanese' },
+  { code: 'ko', name: 'Korean' },
+  { code: 'ar', name: 'Arabic' },
+]
+
+/**
  * Form data for workspace settings
  */
 interface WorkspaceFormData {
   name: string
   image: string
   timezone: string
+  language: string
 }
 
 /**
@@ -121,6 +139,7 @@ export function WorkspaceSettingsForm() {
     name: '',
     image: '',
     timezone: 'UTC',
+    language: 'en',
   })
   const [hasChanges, setHasChanges] = useState(false)
 
@@ -146,6 +165,7 @@ export function WorkspaceSettingsForm() {
         name: workspace.name,
         image: workspace.image || '',
         timezone: workspace.timezone || 'UTC',
+        language: (workspace as { language?: string }).language || 'en',
       })
     }
   }, [workspace])
@@ -156,7 +176,8 @@ export function WorkspaceSettingsForm() {
     return (
       formData.name !== workspace.name ||
       formData.image !== (workspace.image || '') ||
-      formData.timezone !== (workspace.timezone || 'UTC')
+      formData.timezone !== (workspace.timezone || 'UTC') ||
+      formData.language !== ((workspace as { language?: string }).language || 'en')
     )
   }, [formData, workspace])
 
@@ -247,6 +268,10 @@ export function WorkspaceSettingsForm() {
       changes.timezone = formData.timezone
     }
 
+    if (formData.language !== ((workspace as { language?: string }).language || 'en')) {
+      changes.language = formData.language
+    }
+
     if (Object.keys(changes).length > 0) {
       mutation.mutate(changes)
     }
@@ -311,10 +336,29 @@ export function WorkspaceSettingsForm() {
               required
             />
             <p className="text-xs text-gray-500">
-              This is the display name for your workspace. The URL slug will be
-              automatically updated.
+              This is the display name for your workspace.
             </p>
           </div>
+
+          {/* Workspace Slug/URL (Story 15-9: Read-only display) */}
+          {workspace?.slug && (
+            <div className="space-y-2">
+              <Label htmlFor="slug">Workspace URL</Label>
+              <div className="flex items-center gap-2">
+                <Link2 className="h-4 w-4 text-gray-400" />
+                <Input
+                  id="slug"
+                  value={`${typeof window !== 'undefined' ? window.location.origin : ''}/workspace/${workspace.slug}`}
+                  readOnly
+                  disabled
+                  className="bg-gray-50 text-gray-600"
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                The workspace URL cannot be changed after creation to prevent broken links.
+              </p>
+            </div>
+          )}
 
           {/* Workspace Image URL */}
           <div className="space-y-2">
@@ -354,15 +398,19 @@ export function WorkspaceSettingsForm() {
         </CardContent>
       </Card>
 
-      {/* Timezone Card */}
+      {/* Regional Settings Card (Story 15-9: Timezone + Language) */}
       <Card>
         <CardHeader>
-          <CardTitle>Timezone</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            Regional Settings
+          </CardTitle>
           <CardDescription>
-            Set the default timezone for workspace events and timestamps
+            Set the default timezone and language for your workspace
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          {/* Timezone */}
           <div className="space-y-2">
             <Label htmlFor="timezone">Workspace Timezone</Label>
             <select
@@ -379,6 +427,26 @@ export function WorkspaceSettingsForm() {
             </select>
             <p className="text-xs text-gray-500">
               This timezone will be used for scheduling and displaying timestamps
+            </p>
+          </div>
+
+          {/* Language (Story 15-9) */}
+          <div className="space-y-2">
+            <Label htmlFor="language">Default Language</Label>
+            <select
+              id="language"
+              value={formData.language}
+              onChange={(e) => handleChange('language', e.target.value)}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#FF6B6B] focus:outline-none focus:ring-1 focus:ring-[#FF6B6B]"
+            >
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500">
+              The default language for workspace content and communications
             </p>
           </div>
         </CardContent>
