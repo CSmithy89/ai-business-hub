@@ -563,6 +563,55 @@
   }
 }
 
+/**
+ * Page Transition Animations - Story 16-10
+ *
+ * Smooth enter animations for page content on route changes.
+ * Uses CSS keyframes for GPU-accelerated performance.
+ */
+
+/* Page enter animation - fade in + slide up */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Page enter fade only (no slide) */
+@keyframes page-enter-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Apply page enter animation */
+.page-enter {
+  animation: page-enter 200ms ease-out forwards;
+}
+
+/* Fade-only variant */
+.page-enter-fade {
+  animation: page-enter-fade 200ms ease-out forwards;
+}
+
+/* Respect reduced motion - skip animations */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .page-enter-fade {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* Mobile-specific utilities */
 /* Story: 16-3 - Implement Mobile Layout */
 @media (max-width: 767px) {
