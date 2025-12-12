@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useApprovals, useBulkApprovalMutation } from '@/hooks/use-approvals'
+import { useApprovalOrder } from '@/hooks/use-approval-order'
 import { ApprovalStats } from '@/components/approval/approval-stats'
 import { ApprovalFilters } from '@/components/approval/approval-filters'
 import { ApprovalList } from '@/components/approval/approval-list'
@@ -152,10 +153,17 @@ export default function ApprovalsPage() {
   }
 
   // Filter approvals by confidence level on client side (API doesn't support this filter yet)
-  const filteredApprovals =
+  const confidenceFiltered =
     confidenceFilter === 'all'
       ? data?.data || []
       : (data?.data || []).filter((approval) => approval.confidenceLevel === confidenceFilter)
+
+  // Apply custom ordering via drag-and-drop
+  const {
+    orderedApprovals: filteredApprovals,
+    updateOrder,
+    undoReorder,
+  } = useApprovalOrder(confidenceFiltered)
 
   // Selection handlers
   const handleSelectionChange = (id: string, selected: boolean) => {
@@ -312,6 +320,9 @@ export default function ApprovalsPage() {
               onSelectionChange={handleSelectionChange}
               onSelectAll={handleSelectAll}
               onDeselectAll={handleDeselectAll}
+              draggable={statusFilter === 'pending' || statusFilter === 'all'}
+              onOrderChange={updateOrder}
+              onUndoReorder={undoReorder}
             />
           </div>
         )}
