@@ -24,6 +24,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { toast } from 'sonner'
 import { Undo2 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 
 interface ApprovalListProps {
   approvals: ApprovalItem[]
@@ -72,36 +73,20 @@ function SkeletonCard() {
 }
 
 /**
- * Empty state message
+ * Empty state message with character illustration
  */
-function EmptyState({ hasFilters }: { hasFilters?: boolean }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="rounded-full bg-gray-100 p-6 mb-4">
-        <svg
-          className="h-12 w-12 text-gray-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-      </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        {hasFilters ? 'No approvals found' : 'No pending approvals'}
-      </h3>
-      <p className="text-gray-600 max-w-md">
-        {hasFilters
-          ? 'Try adjusting your filters to see more results.'
-          : 'All caught up! There are no approvals waiting for your review.'}
-      </p>
-    </div>
-  )
+function ApprovalEmptyState({ hasFilters }: { hasFilters?: boolean }) {
+  if (hasFilters) {
+    return (
+      <EmptyState
+        variant="default"
+        headline="No approvals found"
+        description="Try adjusting your filters to see more results."
+      />
+    )
+  }
+
+  return <EmptyState variant="approvals" />
 }
 
 /**
@@ -262,7 +247,7 @@ export function ApprovalList({
 
   // Empty state
   if (isEmpty || approvals.length === 0) {
-    return <EmptyState hasFilters={isEmpty} />
+    return <ApprovalEmptyState hasFilters={isEmpty} />
   }
 
   // Render with or without drag-and-drop
