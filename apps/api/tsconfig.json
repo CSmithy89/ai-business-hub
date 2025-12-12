@@ -25,9 +25,9 @@
     "noImplicitThis": true,
     "alwaysStrict": true,
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
+      "@/*": ["src/*"],
+      "@hyvve/shared": ["../../packages/shared/src"],
+      "@hyvve/shared/*": ["../../packages/shared/src/*"]
     },
     "useDefineForClassFields": false
   },
