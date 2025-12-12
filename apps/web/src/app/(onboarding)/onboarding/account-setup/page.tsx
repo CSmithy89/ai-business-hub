@@ -20,8 +20,10 @@ export default async function AccountSetupPage() {
       headers: await headers(),
     });
     userName = session?.user?.name || undefined;
-  } catch {
+  } catch (err) {
     // User might not be signed in - wizard will handle redirect
+    // Log unexpected errors to aid debugging while keeping the same fallback behavior
+    console.error('Failed to retrieve session in AccountSetupPage:', err);
   }
 
   return (

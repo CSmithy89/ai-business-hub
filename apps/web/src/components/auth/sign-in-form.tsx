@@ -251,10 +251,10 @@ export function SignInForm() {
   )
   const handleGitHubSignIn = useCallback(() => handleOAuthSignIn('github'), [handleOAuthSignIn])
 
-  const handle2FASuccess = () => {
+  const handle2FASuccess = useCallback(async () => {
     // Use the same intelligent redirect logic after 2FA success
-    handleSuccessfulSignIn()
-  }
+    await handleSuccessfulSignIn()
+  }, [handleSuccessfulSignIn])
 
   const handle2FACancel = () => {
     setShow2FA(false)

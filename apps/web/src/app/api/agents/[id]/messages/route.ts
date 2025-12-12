@@ -172,7 +172,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id: agentId } = await params;
     const searchParams = request.nextUrl.searchParams;
     const businessId = searchParams.get('businessId');
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    // Parse limit with fallback if invalid (NaN)
+    const rawLimit = searchParams.get('limit');
+    const parsedLimit = rawLimit ? parseInt(rawLimit, 10) : 50;
+    const limit = Number.isNaN(parsedLimit) ? 50 : parsedLimit;
 
     // TODO: Fetch from database
     // const messages = await prisma.chatMessage.findMany({

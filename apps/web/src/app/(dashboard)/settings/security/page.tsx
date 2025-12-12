@@ -27,7 +27,7 @@ export default function SettingsSecurityPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Link2 className="h-5 w-5 text-blue-600" />
+              <Link2 aria-hidden="true" className="h-5 w-5 text-blue-600" />
               Linked Accounts
             </CardTitle>
             <CardDescription>Manage your connected OAuth providers</CardDescription>
@@ -54,7 +54,7 @@ export default function SettingsSecurityPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Monitor className="h-5 w-5 text-purple-600" />
+              <Monitor aria-hidden="true" className="h-5 w-5 text-purple-600" />
               Active Sessions
             </CardTitle>
             <CardDescription>Manage your active sessions across devices</CardDescription>

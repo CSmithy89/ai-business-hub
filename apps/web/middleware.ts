@@ -16,7 +16,8 @@ export async function middleware(request: NextRequest) {
 
   // Check if user has a session cookie
   // Note: auth.ts configures cookiePrefix: 'hyvve', so cookie name is 'hyvve.session_token'
-  const sessionToken = request.cookies.get('hyvve.session_token')
+  // Use .value to get the actual token string, not the cookie object
+  const sessionToken = request.cookies.get('hyvve.session_token')?.value
 
   // Auth pages - redirect authenticated users to appropriate destination
   if (sessionToken && (pathname === '/sign-in' || pathname === '/sign-up')) {
@@ -31,8 +32,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected routes: require authentication
+  // Use exact match or path boundary to avoid matching unintended routes like /settings-legacy
   const protectedPaths = ['/settings', '/dashboard', '/businesses', '/approvals', '/ai-team', '/onboarding']
-  const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path))
+  const isProtectedPath = protectedPaths.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
+  )
 
   if (!sessionToken && isProtectedPath) {
     // Store intended destination for post-auth redirect

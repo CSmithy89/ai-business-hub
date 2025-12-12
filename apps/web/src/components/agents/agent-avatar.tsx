@@ -63,7 +63,8 @@ export function AgentAvatar({
   const config = getAgentConfig(agentName);
   const color = config?.color || getAgentColor(agentName);
   const icon = config?.icon || getAgentIcon(agentName);
-  const sizes = sizeConfig[size];
+  // Provide fallback to 'sm' size if an invalid size is passed
+  const sizes = sizeConfig[size] ?? sizeConfig.sm;
 
   return (
     <div

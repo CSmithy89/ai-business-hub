@@ -130,9 +130,9 @@ export function AgentSelector({
       case 'busy':
         return 'bg-yellow-500';
       case 'offline':
-        return 'bg-gray-400';
       default:
-        return 'bg-green-500';
+        // Default to gray/offline for unknown or undefined statuses
+        return 'bg-gray-400';
     }
   };
 
@@ -143,9 +143,9 @@ export function AgentSelector({
       case 'busy':
         return 'Busy';
       case 'offline':
-        return 'Offline';
       default:
-        return 'Online';
+        // Default to offline for unknown or undefined statuses
+        return 'Offline';
     }
   };
 

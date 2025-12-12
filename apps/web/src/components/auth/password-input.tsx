@@ -34,7 +34,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           type={showPassword ? 'text' : 'password'}
           className={cn('pr-10', className)}
           ref={ref}
-          aria-invalid={error ? 'true' : 'false'}
+          aria-invalid={!!error}
           autoComplete={autoComplete}
           {...props}
         />
@@ -51,6 +51,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             'rounded'
           )}
           aria-label={showPassword ? 'Hide password' : 'Show password'}
+          aria-pressed={showPassword}
         >
           {showPassword ? (
             <EyeOff className="w-4 h-4" />

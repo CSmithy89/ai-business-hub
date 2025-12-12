@@ -70,6 +70,7 @@ export function BusinessSwitcher() {
   // Handle business selection
   const handleSelect = (business: Business) => {
     const route = getBusinessDefaultRoute(business)
+    if (!route) return
     router.push(route as Parameters<typeof router.push>[0])
   }
 
@@ -80,7 +81,7 @@ export function BusinessSwitcher() {
 
   // Display name for current business or placeholder
   const displayName = currentBusiness?.name ?? 'Select Business'
-  const displayInitials = currentBusiness ? getInitials(currentBusiness.name) : null
+  const displayInitials = currentBusiness?.name ? getInitials(currentBusiness.name) : null
 
   return (
     <DropdownMenu>

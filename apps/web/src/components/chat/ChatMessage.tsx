@@ -163,17 +163,26 @@ export const ChatMessage = memo(function ChatMessage({
                     </code>
                   );
                 },
-                // Style links
-                a: ({ children, href }) => (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[rgb(var(--color-primary-500))] hover:underline"
-                  >
-                    {children}
-                  </a>
-                ),
+                // Style links - validate href to prevent XSS via javascript: or data: URLs
+                a: ({ children, href }) => {
+                  // Only allow safe URL protocols
+                  const isSafeUrl =
+                    typeof href === 'string' &&
+                    /^(https?:|mailto:|tel:|\/|#)/i.test(href);
+                  return (
+                    <a
+                      href={isSafeUrl ? href : undefined}
+                      target={isSafeUrl ? '_blank' : undefined}
+                      rel={isSafeUrl ? 'noopener noreferrer' : undefined}
+                      onClick={(e) => {
+                        if (!isSafeUrl) e.preventDefault();
+                      }}
+                      className="text-[rgb(var(--color-primary-500))] hover:underline"
+                    >
+                      {children}
+                    </a>
+                  );
+                },
                 // Style paragraphs
                 p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                 // Style lists

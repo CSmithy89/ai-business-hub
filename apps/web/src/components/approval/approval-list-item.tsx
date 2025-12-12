@@ -87,7 +87,7 @@ export function ApprovalListItem({ approval }: ApprovalListItemProps) {
                 Due {dueDate}
               </span>
             )}
-            <AgentBadge agentName={approval.createdBy} size="xs" />
+            {approval.createdBy && <AgentBadge agentName={approval.createdBy} size="xs" />}
           </div>
 
           <div className="flex gap-2">

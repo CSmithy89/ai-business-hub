@@ -155,10 +155,21 @@ export function ApprovalDetailModal({
             {showPreviewData && (
               <div
                 id={`preview-data-modal-${approval.id}`}
-                className="rounded-lg bg-gray-50 p-4 overflow-x-auto"
+                className="rounded-lg bg-gray-50 p-4 overflow-x-auto max-h-96"
               >
                 <pre className="text-xs text-gray-700 whitespace-pre-wrap">
-                  {JSON.stringify(approval.data, null, 2)}
+                  {(() => {
+                    try {
+                      const json = JSON.stringify(approval.data, null, 2);
+                      // Truncate very large preview data for performance
+                      if (json.length > 10000) {
+                        return `${json.slice(0, 10000)}\n\n... [truncated - ${json.length} total characters]`;
+                      }
+                      return json;
+                    } catch {
+                      return '[Unable to display preview data: circular reference or non-serializable data]';
+                    }
+                  })()}
                 </pre>
               </div>
             )}

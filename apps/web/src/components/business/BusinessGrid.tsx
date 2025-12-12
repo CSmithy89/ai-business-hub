@@ -58,10 +58,14 @@ function sortBusinesses(businesses: Business[], sortBy: SortOption): Business[] 
       );
     case 'status': {
       const statusOrder = ['WIZARD', 'VALIDATION', 'PLANNING', 'BRANDING', 'COMPLETE'];
-      return sorted.sort(
-        (a, b) =>
-          statusOrder.indexOf(a.onboardingStatus) - statusOrder.indexOf(b.onboardingStatus)
-      );
+      return sorted.sort((a, b) => {
+        const idxA = statusOrder.indexOf(a.onboardingStatus as string);
+        const idxB = statusOrder.indexOf(b.onboardingStatus as string);
+        // Default unknown statuses to end of list
+        const posA = idxA === -1 ? statusOrder.length : idxA;
+        const posB = idxB === -1 ? statusOrder.length : idxB;
+        return posA - posB;
+      });
     }
     default:
       return sorted;
@@ -89,7 +93,7 @@ export function BusinessGrid({
       filtered = filtered.filter(
         (b) =>
           b.name.toLowerCase().includes(query) ||
-          b.description?.toLowerCase().includes(query)
+          (b.description || '').toLowerCase().includes(query)
       );
     }
 
