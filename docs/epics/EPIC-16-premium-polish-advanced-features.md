@@ -1119,6 +1119,270 @@ Step 1   Step 2   Step 3   Step 4
 
 ---
 
+## Tech Debt from Epic 15 Retrospective
+
+_Added: 2025-12-12 from Epic 15 code review and retrospective_
+
+### Critical Issues (Must Fix)
+
+#### Story 16.29: Fix Hydration Mismatch in Dashboard Layout
+
+**Points:** 2
+**Priority:** P0
+**Source:** Epic 15 Code Review
+
+**Issue:** Checking `window.innerWidth` during render causes SSR/client mismatch.
+
+**Location:** `apps/web/src/app/(dashboard)/layout.tsx:60-65`
+
+```typescript
+const getMainContentMarginRight = () => {
+  // Server always returns else branch, client may return different
+  if (typeof window !== 'undefined' && window.innerWidth < 640) return undefined;
+  // ...
+}
+```
+
+**Acceptance Criteria:**
+- [ ] Add `isMounted` state to prevent SSR mismatch
+- [ ] Or refactor to use CSS media queries entirely
+- [ ] No hydration warnings in console
+
+**Recommended Fix:**
+```typescript
+const [isMounted, setIsMounted] = useState(false);
+
+useEffect(() => {
+  setIsMounted(true);
+}, []);
+
+const getMainContentMarginRight = () => {
+  if (!isMounted) return 0; // SSR/initial render fallback
+  if (window.innerWidth < 640) return undefined;
+  // ... rest of logic
+}
+```
+
+---
+
+#### Story 16.30: Fix 2FA Error Handling State Inconsistency
+
+**Points:** 2
+**Priority:** P0
+**Source:** Epic 15 Code Review
+
+**Issue:** When 2FA status check fails, user sees "NETWORK_ERROR" but their session is already authenticated. The backend has created a session, but the frontend blocks the user - creating a limbo state.
+
+**Location:** `apps/web/src/components/auth/sign-in-form.tsx:152-156`
+
+**Acceptance Criteria:**
+- [ ] Choose one approach:
+  - Option A: Fail open with warning - proceed with access
+  - Option B: Sign out the user and show clear error
+  - Option C: Retry with exponential backoff
+- [ ] User should never be in authenticated-but-blocked state
+
+---
+
+### High Priority (Should Fix Soon)
+
+#### Story 16.31: Add Rate Limiting to Streaming Endpoint
+
+**Points:** 2
+**Priority:** P1
+**Source:** Epic 15 Code Review
+
+**Issue:** The streaming message endpoint has no rate limiting. Could exhaust server resources.
+
+**Location:** `apps/web/src/app/api/agents/[id]/messages/route.ts`
+
+**Acceptance Criteria:**
+- [ ] Add rate limiting using `@/lib/utils/rate-limit`
+- [ ] Limit: 20 messages per minute per user
+- [ ] Return 429 with Retry-After header when exceeded
+
+---
+
+#### Story 16.32: Add localStorage Size Limits
+
+**Points:** 1
+**Priority:** P1
+**Source:** Epic 15 Code Review
+
+**Issue:** While limited to 100 messages, there's no size limit. Large content could fill localStorage (5-10MB limit).
+
+**Location:** `apps/web/src/hooks/use-chat-messages.ts`
+
+**Acceptance Criteria:**
+- [ ] Add size checking before localStorage save
+- [ ] Truncate to last 50 messages if serialized JSON exceeds 4MB
+- [ ] Log warning when truncation occurs
+
+---
+
+#### Story 16.33: Verify Markdown XSS Protection
+
+**Points:** 1
+**Priority:** P1
+**Source:** Epic 15 Code Review
+
+**Issue:** `react-markdown` and `remark-gfm` were added. If not properly configured, could allow XSS through user-generated content.
+
+**Location:** `apps/web/src/components/chat/ChatMessage.tsx`
+
+**Acceptance Criteria:**
+- [ ] Verify dangerous elements (script, iframe) are disabled
+- [ ] Verify links are sanitized
+- [ ] Confirm dompurify is being used
+- [ ] Add test cases for XSS attack vectors
+
+---
+
+### Medium Priority
+
+#### Story 16.34: Fix AbortError Type Checking
+
+**Points:** 1
+**Priority:** P2
+**Source:** Epic 15 Code Review
+
+**Issue:** AbortError is a DOMException, not an Error subclass. Current check may fail silently.
+
+**Location:** `apps/web/src/hooks/use-chat-messages.ts:343`
+
+**Acceptance Criteria:**
+- [ ] Use `err instanceof DOMException && err.name === 'AbortError'` for accuracy
+- [ ] Add tests for abort scenarios
+
+---
+
+#### Story 16.35: Optimize Window Resize Calculations
+
+**Points:** 2
+**Priority:** P2
+**Source:** Epic 15 Code Review
+
+**Issue:** `getMainContentMarginRight()` called on every render. Should use resize event listener.
+
+**Location:** `apps/web/src/app/(dashboard)/layout.tsx`
+
+**Acceptance Criteria:**
+- [ ] Add resize event listener with state
+- [ ] Debounce resize handler (100ms)
+- [ ] Clean up listener on unmount
+
+---
+
+#### Story 16.36: Debounce localStorage Saves
+
+**Points:** 1
+**Priority:** P2
+**Source:** Epic 15 Code Review
+
+**Issue:** localStorage operations happen on every message. Could batch with debouncing.
+
+**Location:** `apps/web/src/hooks/use-chat-messages.ts`
+
+**Acceptance Criteria:**
+- [ ] Add 500ms debounce to localStorage save
+- [ ] Ensure save completes before page unload
+
+---
+
+### Missing Test Coverage
+
+#### Story 16.37: Add Tests for New Hooks and API Routes
+
+**Points:** 5
+**Priority:** P2
+**Source:** Epic 15 Code Review
+
+**Missing Tests:**
+- [ ] `apps/web/src/app/api/auth/redirect-destination/route.ts` - workspace logic tests
+- [ ] `apps/web/src/hooks/use-chat-messages.ts` - streaming/abort scenarios
+- [ ] `apps/web/src/hooks/use-chat-position.ts` - position state tests
+- [ ] `apps/web/src/hooks/use-appearance.ts` - theme/font state tests
+- [ ] OAuth deduplication logic in sign-in form
+
+**Acceptance Criteria:**
+- [ ] redirect-destination API: 10+ tests covering workspace states
+- [ ] use-chat-messages: abort handling, error recovery tests
+- [ ] use-chat-position: all position states, keyboard shortcuts
+- [ ] use-appearance: theme switching, persistence
+
+---
+
+### Future Improvements (Suggestions)
+
+#### Story 16.38: E2E Tests for Critical Flows
+
+**Points:** 8
+**Priority:** P3
+**Source:** Epic 15 Retrospective
+
+**Acceptance Criteria:**
+- [ ] Playwright tests for sign-in flow
+- [ ] Playwright tests for onboarding wizard
+- [ ] Playwright tests for chat streaming
+- [ ] Run in CI pipeline
+
+---
+
+#### Story 16.39: Storybook for Visual Components
+
+**Points:** 5
+**Priority:** P3
+**Source:** Epic 15 Retrospective
+
+**Acceptance Criteria:**
+- [ ] Storybook setup for packages/ui
+- [ ] Stories for appearance settings
+- [ ] Stories for agent cards
+- [ ] Visual regression testing integration
+
+---
+
+#### Story 16.40: Web Vitals Performance Monitoring
+
+**Points:** 3
+**Priority:** P3
+**Source:** Epic 15 Retrospective
+
+**Acceptance Criteria:**
+- [ ] Add Web Vitals tracking
+- [ ] Monitor chat streaming performance
+- [ ] Dashboard for performance metrics
+
+---
+
+#### Story 16.41: Feature Flags for Gradual Rollout
+
+**Points:** 3
+**Priority:** P3
+**Source:** Epic 15 Retrospective
+
+**Acceptance Criteria:**
+- [ ] Feature flag infrastructure (LaunchDarkly or similar)
+- [ ] Flag for chat streaming (fallback to JSON)
+- [ ] Flag for new features
+
+---
+
+## Updated Estimated Effort
+
+| Category | Stories | Points |
+|----------|---------|--------|
+| P0 Critical (Tech Debt) | 2 | 4 |
+| P1 High (Tech Debt) | 3 | 4 |
+| P2 Medium | 19 + 4 | 54 + 9 |
+| P3 Low | 7 + 4 | 15 + 19 |
+| **Total** | **39** | **105** |
+
+**Estimated Sprints:** 5-6 (at ~20 points/sprint)
+
+---
+
 _Epic created: 2025-12-11_
 _Source: UI-UX-IMPROVEMENTS-BACKLOG.md_
 _Prerequisite: EPIC-15 must be complete_
+_Tech debt added: 2025-12-12 from Epic 15 retrospective_

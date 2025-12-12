@@ -365,7 +365,7 @@ development_status:
   15-24-implement-form-accessibility-improvements: done
   15-25-apply-agent-character-colors-throughout: done
 
-  epic-15-retrospective: optional
+  epic-15-retrospective: completed  # 2025-12-12 - Tech debt items added to Epic 16
 
   # ===========================================
   # EPIC-16: Premium Polish & Advanced Features
