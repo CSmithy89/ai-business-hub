@@ -116,12 +116,12 @@ export function useAppearance() {
   }, [resetToDefaults, setTheme]);
 
   return {
-    // Theme
+    // Theme - guard all theme-derived values with mounted check to prevent hydration mismatch
     theme: mounted ? theme : 'light',
     setTheme,
     resolvedTheme: mounted ? resolvedTheme : 'light',
-    systemTheme,
-    isSystemTheme: theme === 'system',
+    systemTheme: mounted ? systemTheme : undefined,
+    isSystemTheme: mounted ? theme === 'system' : false,
 
     // Density
     sidebarDensity,

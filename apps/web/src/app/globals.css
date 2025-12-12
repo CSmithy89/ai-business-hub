@@ -296,8 +296,10 @@
     outline-offset: 2px;
   }
 
-  /* Remove default outline - we're using custom focus ring */
-  :focus {
+  /* Remove default outline for mouse/touch users only - keyboard users keep focus ring
+   * :focus-visible targets keyboard navigation, :focus targets all focus
+   * This ensures accessibility for keyboard and assistive tech users */
+  :focus:not(:focus-visible) {
     outline: none;
   }
 
@@ -503,16 +505,17 @@
 }
 
 /* Respect reduced motion preference */
-@media (prefers-reduced-motion: reduce) {
-  @media (pointer: coarse) {
-    button:active,
-    [role="button"]:active,
-    a[role="button"]:active {
-      transform: none;
-      transition: none;
-    }
+/* Combined media queries - nested @media is invalid CSS */
+@media (prefers-reduced-motion: reduce) and (pointer: coarse) {
+  button:active,
+  [role="button"]:active,
+  a[role="button"]:active {
+    transform: none;
+    transition: none;
   }
+}
 
+@media (prefers-reduced-motion: reduce) {
   .swipe-hint {
     animation: none;
   }

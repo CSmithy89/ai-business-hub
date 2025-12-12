@@ -210,38 +210,84 @@ async function bulkApproval(data: BulkApprovalRequest): Promise<BulkApprovalResp
  * - Approvals update immediately in the UI
  * - Rollback on error with toast notification
  * - Subtle loading indicator via isPending states
+ *
+ * FIX: Query key includes filters, so we use fuzzy matching to update all
+ * cached queries that start with ['approvals'] regardless of filter params.
  */
 export function useApprovalMutations() {
   const queryClient = useQueryClient()
+
+  // Helper to get all approval list caches for rollback
+  const getAllApprovalCaches = () => {
+    const cache = queryClient.getQueryCache()
+    const queries = cache.findAll({ queryKey: ['approvals'] })
+    return queries.map((query) => ({
+      queryKey: query.queryKey,
+      data: query.state.data as ApprovalsListResponse | undefined,
+    }))
+  }
+
+  // Helper to update approval status in all cached queries
+  const updateApprovalInAllCaches = (id: string, newStatus: ApprovalStatus) => {
+    const cache = queryClient.getQueryCache()
+    const queries = cache.findAll({ queryKey: ['approvals'] })
+
+    queries.forEach((query) => {
+      const data = query.state.data as ApprovalsListResponse | undefined
+      if (data?.data) {
+        queryClient.setQueryData<ApprovalsListResponse>(query.queryKey, {
+          ...data,
+          data: data.data.map((item) =>
+            item.id === id
+              ? { ...item, status: newStatus, reviewedAt: new Date().toISOString() }
+              : item
+          ),
+        })
+      }
+    })
+  }
 
   // Optimistic approve mutation
   const approveMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data?: ApprovalActionRequest }) =>
       approveApproval(id, data),
 
-    // OPTIMISTIC UPDATE: Update cache before server responds
+    // OPTIMISTIC UPDATE: Update all cached queries before server responds
     onMutate: async ({ id }) => {
+      // Cancel all in-flight approval queries
       await queryClient.cancelQueries({ queryKey: ['approvals'] })
-      const previousData = queryClient.getQueryData<ApprovalsListResponse>(['approvals'])
 
-      if (previousData?.data) {
-        queryClient.setQueryData<ApprovalsListResponse>(['approvals'], {
-          ...previousData,
-          data: previousData.data.map((item) =>
-            item.id === id
-              ? { ...item, status: 'approved' as ApprovalStatus, updatedAt: new Date().toISOString() }
-              : item
-          ),
+      // Store previous state of all cached queries for rollback
+      const previousCaches = getAllApprovalCaches()
+
+      // Also store individual approval cache
+      const previousApproval = queryClient.getQueryData<ApprovalResponse>(['approval', id])
+
+      // Optimistically update all cached queries
+      updateApprovalInAllCaches(id, 'approved' as ApprovalStatus)
+
+      // Optimistically update individual approval cache
+      if (previousApproval) {
+        queryClient.setQueryData<ApprovalResponse>(['approval', id], {
+          ...previousApproval,
+          data: { ...previousApproval.data, status: 'approved' as ApprovalStatus, reviewedAt: new Date().toISOString() },
         })
       }
 
-      return { previousData }
+      return { previousCaches, previousApproval }
     },
 
-    // ROLLBACK: Restore previous state on error
-    onError: (_error, _variables, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['approvals'], context.previousData)
+    // ROLLBACK: Restore all previous states on error
+    onError: (_error, { id }, context) => {
+      if (context?.previousCaches) {
+        context.previousCaches.forEach(({ queryKey, data }) => {
+          if (data) {
+            queryClient.setQueryData(queryKey, data)
+          }
+        })
+      }
+      if (context?.previousApproval) {
+        queryClient.setQueryData(['approval', id], context.previousApproval)
       }
       toast.error('Failed to approve. Please try again.')
     },
@@ -258,29 +304,42 @@ export function useApprovalMutations() {
     mutationFn: ({ id, data }: { id: string; data?: ApprovalActionRequest }) =>
       rejectApproval(id, data),
 
-    // OPTIMISTIC UPDATE: Update cache before server responds
+    // OPTIMISTIC UPDATE: Update all cached queries before server responds
     onMutate: async ({ id }) => {
+      // Cancel all in-flight approval queries
       await queryClient.cancelQueries({ queryKey: ['approvals'] })
-      const previousData = queryClient.getQueryData<ApprovalsListResponse>(['approvals'])
 
-      if (previousData?.data) {
-        queryClient.setQueryData<ApprovalsListResponse>(['approvals'], {
-          ...previousData,
-          data: previousData.data.map((item) =>
-            item.id === id
-              ? { ...item, status: 'rejected' as ApprovalStatus, updatedAt: new Date().toISOString() }
-              : item
-          ),
+      // Store previous state of all cached queries for rollback
+      const previousCaches = getAllApprovalCaches()
+
+      // Also store individual approval cache
+      const previousApproval = queryClient.getQueryData<ApprovalResponse>(['approval', id])
+
+      // Optimistically update all cached queries
+      updateApprovalInAllCaches(id, 'rejected' as ApprovalStatus)
+
+      // Optimistically update individual approval cache
+      if (previousApproval) {
+        queryClient.setQueryData<ApprovalResponse>(['approval', id], {
+          ...previousApproval,
+          data: { ...previousApproval.data, status: 'rejected' as ApprovalStatus, reviewedAt: new Date().toISOString() },
         })
       }
 
-      return { previousData }
+      return { previousCaches, previousApproval }
     },
 
-    // ROLLBACK: Restore previous state on error
-    onError: (_error, _variables, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['approvals'], context.previousData)
+    // ROLLBACK: Restore all previous states on error
+    onError: (_error, { id }, context) => {
+      if (context?.previousCaches) {
+        context.previousCaches.forEach(({ queryKey, data }) => {
+          if (data) {
+            queryClient.setQueryData(queryKey, data)
+          }
+        })
+      }
+      if (context?.previousApproval) {
+        queryClient.setQueryData(['approval', id], context.previousApproval)
       }
       toast.error('Failed to reject. Please try again.')
     },

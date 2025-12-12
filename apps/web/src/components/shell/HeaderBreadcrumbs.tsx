@@ -72,7 +72,8 @@ export function HeaderBreadcrumbs() {
   const pathname = usePathname();
 
   // Generate breadcrumbs from pathname
-  const segments = pathname.split('/').filter(Boolean);
+  // Guard against null/undefined pathname during certain lifecycle moments
+  const segments = (pathname ?? '').split('/').filter(Boolean);
 
   // Build breadcrumbs array with Dashboard as first item
   const breadcrumbs = [

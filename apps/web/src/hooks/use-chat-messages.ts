@@ -190,6 +190,12 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
       // Show typing indicator
       setIsTyping(true);
 
+      // Abort any existing request before starting a new one
+      // This prevents concurrent request leaks and race conditions
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
       // Create abort controller for this request
       abortControllerRef.current = new AbortController();
 
@@ -385,14 +391,26 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
 
   /**
    * RETRY MECHANISM: Retry the last failed message
-   * Removes error messages and resends the last user message
+   * Aborts any in-flight request, removes error messages, and resends the last user message
    */
   const retryLastMessage = useCallback(() => {
+    // Abort any existing request to prevent race conditions
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
     // Find the last user message
     const lastUserMessage = [...messages].reverse().find((m) => m.type === 'user');
     if (lastUserMessage) {
-      // Remove error message if present
-      setMessages((prev) => prev.filter((m) => !m.error));
+      // Remove only the last error message (not all errors) to preserve history
+      setMessages((prev) => {
+        const lastErrorIndex = prev.findLastIndex((m) => m.error);
+        if (lastErrorIndex !== -1) {
+          return [...prev.slice(0, lastErrorIndex), ...prev.slice(lastErrorIndex + 1)];
+        }
+        return prev;
+      });
       sendMessage(lastUserMessage.content);
     }
   }, [messages, sendMessage]);
