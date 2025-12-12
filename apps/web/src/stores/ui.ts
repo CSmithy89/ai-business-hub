@@ -31,6 +31,12 @@ export const UI_STORE_KEY = 'hyvve-ui-state' as const;
 export type ChatPanelPosition = 'right' | 'bottom' | 'floating' | 'collapsed';
 
 /**
+ * Layout priority for medium screen breakpoint
+ * Story 16.1: Implement Medium Screen Layout (1024-1280px)
+ */
+export type LayoutPriority = 'sidebar' | 'chat';
+
+/**
  * Floating panel coordinates for drag positioning
  */
 export interface FloatingPosition {
@@ -61,6 +67,10 @@ interface UIState {
   setFloatingPosition: (position: Partial<FloatingPosition>) => void;
   collapseChatPanel: () => void;
   expandChatPanel: () => void;
+
+  // Responsive layout state (Story 16.1)
+  layoutPriority: LayoutPriority;
+  setLayoutPriority: (priority: LayoutPriority) => void;
 
   // Mobile state
   mobileMenuOpen: boolean;
@@ -97,6 +107,7 @@ export const useUIStore = create<UIState>()(
       chatPanelPosition: 'right' as ChatPanelPosition,
       chatPanelPreviousPosition: 'right' as ChatPanelPosition,
       floatingPosition: DEFAULT_FLOATING_POSITION,
+      layoutPriority: 'sidebar' as LayoutPriority,
       mobileMenuOpen: false,
 
       // Sidebar actions
@@ -179,6 +190,9 @@ export const useUIStore = create<UIState>()(
         });
       },
 
+      // Responsive layout actions (Story 16.1)
+      setLayoutPriority: (priority) => set({ layoutPriority: priority }),
+
       // Mobile actions
       toggleMobileMenu: () =>
         set((state) => ({
@@ -206,6 +220,7 @@ export const useUIStore = create<UIState>()(
         chatPanelPosition: state.chatPanelPosition,
         chatPanelPreviousPosition: state.chatPanelPreviousPosition,
         floatingPosition: state.floatingPosition,
+        layoutPriority: state.layoutPriority,
       }),
       // Skip automatic hydration to prevent SSR mismatches
       // Call useUIStore.persist.rehydrate() manually after mount

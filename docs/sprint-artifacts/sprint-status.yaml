@@ -375,7 +375,7 @@ development_status:
   epic-16: contexted
 
   # Section 1: Responsive Design (3 stories, 15 points)
-  16-1-implement-medium-screen-layout: backlog  # 1024-1280px
+  16-1-implement-medium-screen-layout: done  # 1024-1280px
   16-2-implement-tablet-layout: backlog  # 768-1024px
   16-3-implement-mobile-layout: backlog  # <768px
 

@@ -38,6 +38,7 @@ import {
 import { useUIStore } from '@/stores/ui';
 import { LAYOUT } from '@/lib/layout-constants';
 import { SkipLink } from '@/components/ui/skip-link';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
 // Lazy load ChatPanel to reduce initial bundle size (~75KB gzipped: react-markdown, remark-gfm, dompurify)
 const ChatPanel = dynamic(
@@ -55,12 +56,30 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { sidebarCollapsed, chatPanelOpen, chatPanelWidth, chatPanelHeight, chatPanelPosition } = useUIStore();
 
+  // Responsive layout hook for medium screen behavior (Story 16.1)
+  const {
+    shouldAutoCollapseSidebar,
+    shouldAutoCollapseChat,
+  } = useResponsiveLayout();
+
+  // Determine if sidebar should be collapsed based on responsive rules
+  // Priority: user manual collapse > auto-collapse for medium screen
+  const effectiveSidebarCollapsed = sidebarCollapsed || shouldAutoCollapseSidebar;
+
+  // Determine if chat should be hidden based on responsive rules
+  // At medium screen with sidebar priority, auto-collapse chat
+  const effectiveChatHidden = shouldAutoCollapseChat || chatPanelPosition === 'collapsed';
+
   // Calculate main content margin based on chat panel position
   // Returns undefined for small screens to allow Tailwind responsive classes to take effect
   const getMainContentMarginRight = () => {
     // On small screens, return undefined so max-sm:mr-0 can take effect
     if (typeof window !== 'undefined' && window.innerWidth < 640) return undefined;
-    if (!chatPanelOpen || chatPanelPosition === 'collapsed') return 0;
+
+    // If chat is hidden by responsive rules or collapsed, no margin
+    if (effectiveChatHidden) return 0;
+
+    if (!chatPanelOpen) return 0;
     if (chatPanelPosition === 'right') return chatPanelWidth ?? LAYOUT.CHAT_DEFAULT_WIDTH;
     return 0; // No margin for bottom, floating, or collapsed
   };
@@ -70,6 +89,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const getMainContentMarginBottom = () => {
     // On small screens, return undefined so responsive classes can take effect
     if (typeof window !== 'undefined' && window.innerWidth < 640) return undefined;
+
+    // If chat is hidden by responsive rules, no margin
+    if (effectiveChatHidden) return 0;
+
     if (!chatPanelOpen || chatPanelPosition !== 'bottom') return 0;
     return chatPanelHeight ?? 250;
   };
@@ -91,7 +114,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         {/* Left Sidebar - collapsible */}
         <ErrorBoundary fallback={<SidebarErrorFallback />}>
-          <Sidebar />
+          <Sidebar isAutoCollapsed={shouldAutoCollapseSidebar} />
         </ErrorBoundary>
 
         {/*
@@ -111,7 +134,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             flex-1 overflow-y-auto
             bg-[rgb(var(--color-bg-primary))]
             transition-all duration-300 ease-in-out
-            ${sidebarCollapsed ? 'ml-16' : 'ml-64'}
+            ${effectiveSidebarCollapsed ? 'ml-16' : 'ml-64'}
             min-w-0
             md:min-w-[400px]
             xl:min-w-[600px]

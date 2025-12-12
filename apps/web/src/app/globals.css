@@ -253,3 +253,55 @@
     opacity: 0.7;
   }
 }
+
+/**
+ * Medium Screen Responsive Layout - Story 16.1
+ *
+ * Adaptive layout behavior for laptops and small monitors (1024-1280px).
+ * Ensures smooth transitions and hover expansion for auto-collapsed sidebar.
+ */
+
+/* Medium Screen Layout (1024-1280px) */
+@media (min-width: 1024px) and (max-width: 1280px) {
+  /* Ensure smooth transitions for sidebar and chat panel */
+  .sidebar-transition {
+    transition: width 300ms ease-in-out, transform 300ms ease-in-out, box-shadow 300ms ease-in-out;
+  }
+
+  .chat-panel-transition {
+    transition: width 300ms ease-in-out, right 300ms ease-in-out, opacity 300ms ease-in-out;
+  }
+
+  /* Auto-collapsed sidebar hover expansion */
+  .sidebar-auto-collapsed {
+    transition: width 300ms ease-in-out, box-shadow 300ms ease-in-out;
+  }
+
+  .sidebar-auto-collapsed:hover {
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Dark mode shadow for hover expansion */
+  .dark .sidebar-auto-collapsed:hover {
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 107, 107, 0.08);
+  }
+
+  /* Prevent layout shift during hover expansion */
+  .sidebar-auto-collapsed:hover ~ main {
+    transition: margin-left 300ms ease-in-out;
+  }
+}
+
+/* Respect reduced motion preference - disable all transitions */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-transition,
+  .chat-panel-transition,
+  .sidebar-auto-collapsed,
+  .sidebar-auto-collapsed:hover {
+    transition: none !important;
+  }
+
+  .sidebar-auto-collapsed:hover {
+    box-shadow: none;
+  }
+}
