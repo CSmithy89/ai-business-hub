@@ -23,7 +23,7 @@ export function StartBusinessCard() {
   }
 
   return (
-    <Card className="cursor-pointer border-2 border-dashed transition-colors hover:border-primary">
+    <Card className="cursor-pointer border-2 border-dashed card-hover-lift hover:border-primary">
       <CardContent className="flex flex-col items-center justify-center py-12">
         <div className="mb-4 rounded-full bg-primary/10 p-4">
           <PlusCircle className="h-8 w-8 text-primary" />

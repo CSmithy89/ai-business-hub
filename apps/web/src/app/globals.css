@@ -449,6 +449,120 @@
   }
 }
 
+/**
+ * Hover & Press Animation Utilities - Story 16-9
+ *
+ * Premium micro-animations for interactive elements:
+ * - hover-lift: Cards lift on hover with shadow increase
+ * - press-feedback: Buttons scale down on press
+ * - icon-hover: Icons scale up on hover
+ * - link-hover: Links animate underline on hover
+ */
+
+/* Hover lift effect for cards */
+.hover-lift {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* Button press feedback */
+.press-feedback {
+  transition: transform 100ms ease-out;
+}
+
+.press-feedback:active {
+  transform: scale(0.98);
+}
+
+/* Icon button hover scale */
+.icon-hover {
+  transition: transform 150ms ease-out;
+}
+
+.icon-hover:hover {
+  transform: scale(1.05);
+}
+
+/* Link hover underline animation */
+.link-hover {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-hover::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 1px;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 200ms ease-out;
+}
+
+.link-hover:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* List item hover background */
+.list-item-hover {
+  transition: background-color 150ms ease-out;
+}
+
+.list-item-hover:hover {
+  background-color: rgb(var(--color-bg-tertiary));
+}
+
+/* Card hover with shadow and lift combined */
+.card-hover-lift {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out;
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode card hover - use glow instead of shadow */
+.dark .card-hover-lift:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 107, 107, 0.05);
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .hover-lift,
+  .press-feedback,
+  .icon-hover,
+  .link-hover::after,
+  .list-item-hover,
+  .card-hover-lift {
+    transition: none !important;
+  }
+
+  .hover-lift:hover,
+  .card-hover-lift:hover {
+    transform: none;
+  }
+
+  .press-feedback:active {
+    transform: none;
+  }
+
+  .icon-hover:hover {
+    transform: none;
+  }
+
+  .link-hover::after {
+    transform: scaleX(1);
+  }
+}
+
 /* Mobile-specific utilities */
 /* Story: 16-3 - Implement Mobile Layout */
 @media (max-width: 767px) {

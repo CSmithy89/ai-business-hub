@@ -90,7 +90,7 @@ export function ApprovalCard({
     return (
       <Card
         className={cn(
-          'border-l-4 transition-shadow hover:shadow-md',
+          'border-l-4 card-hover-lift',
           borderColor,
           selected && 'ring-2 ring-blue-500 ring-offset-2',
           className

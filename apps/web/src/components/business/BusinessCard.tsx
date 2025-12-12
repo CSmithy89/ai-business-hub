@@ -64,7 +64,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
   return (
     <Card
-      className="cursor-pointer transition-all hover:shadow-md"
+      className="cursor-pointer card-hover-lift"
       onClick={handleClick}
       role="button"
       tabIndex={0}
