@@ -1,11 +1,11 @@
 'use client'
 
 import { Card } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { useApprovalMetrics, type ApprovalMetrics } from '@/hooks/use-approval-metrics'
 import { Clock, CheckCircle, Timer, TrendingUp, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { SkeletonStatCard } from '@/components/ui/skeleton-card'
 import type { ReactNode } from 'react'
 
 interface StatCardProps {
@@ -36,19 +36,6 @@ function StatCard({ label, value, icon, valueColor, subtitle }: StatCardProps) {
   )
 }
 
-/**
- * Loading skeleton for stat cards
- */
-function StatCardSkeleton() {
-  return (
-    <Card className="p-6">
-      <div className="flex flex-col">
-        <Skeleton className="h-4 w-24 mb-2" />
-        <Skeleton className="h-9 w-16" />
-      </div>
-    </Card>
-  )
-}
 
 interface ApprovalStatsProps {
   /** Override metrics data (for testing or server-side rendering) */
@@ -75,10 +62,10 @@ export function ApprovalStats({ initialData, className }: ApprovalStatsProps) {
   if (isLoading && !displayMetrics) {
     return (
       <div className={cn('grid gap-4 md:grid-cols-2 lg:grid-cols-4', className)}>
-        <StatCardSkeleton />
-        <StatCardSkeleton />
-        <StatCardSkeleton />
-        <StatCardSkeleton />
+        <SkeletonStatCard />
+        <SkeletonStatCard />
+        <SkeletonStatCard />
+        <SkeletonStatCard />
       </div>
     )
   }

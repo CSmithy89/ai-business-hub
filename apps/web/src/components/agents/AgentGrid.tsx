@@ -2,8 +2,9 @@
 
 import { AgentCardStandard } from './AgentCardStandard'
 import type { Agent, AgentTeam } from '@hyvve/shared'
-import { Loader2, SearchX } from 'lucide-react'
+import { SearchX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SkeletonAgentCard } from '@/components/ui/skeleton-card'
 
 interface AgentGridProps {
   groupedAgents: Record<string, Agent[]>
@@ -35,8 +36,17 @@ export function AgentGrid({
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="space-y-8">
+        <section>
+          <div className="mb-4">
+            <div className="h-7 w-48 animate-pulse rounded bg-muted" />
+          </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonAgentCard key={i} />
+            ))}
+          </div>
+        </section>
       </div>
     )
   }
