@@ -52,12 +52,11 @@ describe('isAllowedRedirect', () => {
     })
 
     it('should handle paths with query strings', () => {
-      // Query strings are allowed when they follow a valid path with subpath
-      // /businesses?tab passes because it matches "/businesses" exactly or "/businesses/" prefix
-      // Since "?tab=active" doesn't start with "/", it's not a subpath match
-      expect(isAllowedRedirect('/businesses?tab=active')).toBe(false)
-      // But /dashboard/123?view works because it matches "/dashboard/" prefix
+      // Query strings are allowed when they follow a valid path
+      expect(isAllowedRedirect('/businesses?tab=active')).toBe(true)
+      expect(isAllowedRedirect('/dashboard?view=overview')).toBe(true)
       expect(isAllowedRedirect('/dashboard/123?view=overview')).toBe(true)
+      expect(isAllowedRedirect('/settings?section=appearance')).toBe(true)
     })
   })
 

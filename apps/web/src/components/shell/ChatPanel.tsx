@@ -44,6 +44,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { LAYOUT } from '@/lib/layout-constants';
 
 /**
  * Position button component with tooltip
@@ -402,7 +403,9 @@ export function ChatPanel() {
   // Bottom horizontal position
   if (isBottom) {
     // Calculate sidebar width based on collapsed state
-    const sidebarWidth = sidebarCollapsed ? 64 : 256; // LAYOUT.SIDEBAR_COLLAPSED_WIDTH : LAYOUT.SIDEBAR_EXPANDED_WIDTH
+    const sidebarWidth = sidebarCollapsed
+      ? LAYOUT.SIDEBAR_COLLAPSED_WIDTH
+      : LAYOUT.SIDEBAR_EXPANDED_WIDTH;
 
     return (
       <aside

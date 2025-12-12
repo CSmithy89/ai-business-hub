@@ -218,7 +218,9 @@ describe('Agent Messages API', () => {
         expect(response.headers.get('x-business-id')).toBe('biz-123')
       })
 
-      it('should stream content in SSE format', async () => {
+      it(
+        'should stream content in SSE format',
+        async () => {
         const request = new NextRequest('http://localhost/api/agents/hub/messages', {
           method: 'POST',
           body: JSON.stringify({ content: 'Hello', stream: true }),
@@ -254,7 +256,9 @@ describe('Agent Messages API', () => {
 
         expect(hasDataEvents).toBe(true)
         expect(hasDoneEvent).toBe(true)
-      })
+        },
+        10000
+      ) // 10 second timeout for streaming
 
       it('should handle abort signal', async () => {
         const abortController = new AbortController()

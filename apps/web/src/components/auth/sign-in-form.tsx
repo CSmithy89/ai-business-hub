@@ -227,6 +227,7 @@ export function SignInForm() {
           setLoading(false)
           pendingOAuthRef.current = null
           setError('OAUTH_ERROR')
+          oauthTimeoutRef.current = null // Clear ref after timeout fires
         }
       }, 60000) // 60 second timeout
 

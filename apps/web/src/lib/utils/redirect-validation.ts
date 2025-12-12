@@ -78,9 +78,13 @@ export function isAllowedRedirect(url: string | null | undefined): boolean {
     return false
   }
 
-  // Check if path starts with an allowed prefix
+  // Extract pathname before query string for validation
+  // This allows URLs like /businesses?tab=active to work
+  const [pathname] = trimmedUrl.split('?')
+
+  // Check if pathname starts with an allowed prefix
   const isAllowedPath = ALLOWED_PATH_PREFIXES.some(
-    (prefix) => trimmedUrl === prefix || trimmedUrl.startsWith(`${prefix}/`)
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   )
 
   return isAllowedPath

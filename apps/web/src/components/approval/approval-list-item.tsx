@@ -8,6 +8,7 @@ import { Clock } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { ApprovalItem } from '@hyvve/shared'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
 interface ApprovalListItemProps {
   approval: ApprovalItem
@@ -21,13 +22,6 @@ interface ApprovalListItemProps {
  * - Uses design tokens for text colors
  */
 export function ApprovalListItem({ approval }: ApprovalListItemProps) {
-  // Determine border color based on confidence level
-  const borderColor = {
-    high: 'border-l-green-500',
-    medium: 'border-l-yellow-500',
-    low: 'border-l-red-500',
-  }[approval.confidenceLevel]
-
   // Determine badge variant based on confidence level
   const badgeVariant = {
     high: 'default' as const,
@@ -49,7 +43,14 @@ export function ApprovalListItem({ approval }: ApprovalListItemProps) {
     : null
 
   return (
-    <Card className={`border-l-4 ${borderColor} p-6 transition-shadow hover:shadow-md`}>
+    <Card
+      className={cn(
+        'border-l-4 p-6 transition-shadow hover:shadow-md',
+        approval.confidenceLevel === 'high' && 'border-l-green-500',
+        approval.confidenceLevel === 'medium' && 'border-l-yellow-500',
+        approval.confidenceLevel === 'low' && 'border-l-red-500'
+      )}
+    >
       <div className="flex flex-col gap-4">
         {/* Header with title and badges */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

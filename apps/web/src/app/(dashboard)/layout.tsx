@@ -22,9 +22,9 @@
 'use client';
 
 import { ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import { Header } from '@/components/shell/Header';
 import { Sidebar } from '@/components/shell/Sidebar';
-import { ChatPanel } from '@/components/shell/ChatPanel';
 import { CommandPalette } from '@/components/command';
 import { KeyboardShortcuts } from '@/components/keyboard';
 import { MobileDrawer, MobileBottomNav } from '@/components/mobile';
@@ -38,6 +38,15 @@ import {
 import { useUIStore } from '@/stores/ui';
 import { LAYOUT } from '@/lib/layout-constants';
 import { SkipLink } from '@/components/ui/skip-link';
+
+// Lazy load ChatPanel to reduce initial bundle size (~75KB gzipped: react-markdown, remark-gfm, dompurify)
+const ChatPanel = dynamic(
+  () => import('@/components/shell/ChatPanel').then((mod) => mod.ChatPanel),
+  {
+    ssr: false,
+    loading: () => null, // No loading indicator - panel appears when ready
+  }
+);
 
 interface DashboardLayoutProps {
   children: ReactNode;
