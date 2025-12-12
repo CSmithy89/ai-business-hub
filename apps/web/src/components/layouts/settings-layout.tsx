@@ -179,7 +179,7 @@ export function SettingsLayout({
                         className={cn(
                           'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
                           isActive
-                            ? 'bg-[#FF6B6B]/10 text-[#FF6B6B] border-l-4 border-[#FF6B6B]'
+                            ? 'bg-primary/10 text-primary border-l-4 border-primary'
                             : 'text-gray-700 hover:bg-gray-100'
                         )}
                       >

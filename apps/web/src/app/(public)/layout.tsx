@@ -20,7 +20,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
       <header className="border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#FF6B6B] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <svg
                 className="w-5 h-5 text-white"
                 viewBox="0 0 24 24"
@@ -45,7 +45,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             </Link>
             <Link
               href="/sign-up"
-              className="text-sm px-4 py-2 bg-[#FF6B6B] text-white rounded-lg hover:bg-[#FF6B6B]/90"
+              className="text-sm px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
             >
               Get Started
             </Link>

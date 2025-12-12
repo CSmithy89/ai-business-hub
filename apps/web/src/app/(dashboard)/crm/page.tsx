@@ -12,9 +12,9 @@ export default function CRMPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
       {/* Icon */}
-      <div className="w-20 h-20 bg-[#FF6B6B]/10 rounded-full flex items-center justify-center mb-6">
+      <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
         <svg
-          className="w-10 h-10 text-[#FF6B6B]"
+          className="w-10 h-10 text-primary"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -61,7 +61,7 @@ export default function CRMPage() {
       {/* CTA */}
       <Link
         href="/dashboard"
-        className="px-6 py-3 bg-[#FF6B6B] text-white rounded-lg hover:bg-[#FF6B6B]/90 transition-colors"
+        className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
       >
         Return to Dashboard
       </Link>

@@ -38,8 +38,8 @@ export function VerificationPending({
 
       {/* Mail Icon Badge */}
       <div className="flex justify-center">
-        <div className="flex items-center justify-center w-16 h-16 rounded-full bg-[#FF6B6B]/10">
-          <Mail className="w-8 h-8 text-[#FF6B6B]" />
+        <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10">
+          <Mail className="w-8 h-8 text-primary" />
         </div>
       </div>
 

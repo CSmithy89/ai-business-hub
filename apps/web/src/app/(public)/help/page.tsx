@@ -234,7 +234,7 @@ export default function HelpPage() {
         </p>
         <a
           href="mailto:support@hyvve.io"
-          className="inline-flex items-center px-6 py-3 bg-[#FF6B6B] text-white rounded-lg hover:bg-[#FF6B6B]/90"
+          className="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90"
         >
           <svg
             className="w-5 h-5 mr-2"
@@ -270,9 +270,9 @@ function HelpCard({
   return (
     <a
       href={href}
-      className="block p-6 bg-white border border-gray-200 rounded-lg hover:border-[#FF6B6B] hover:shadow-md transition-all"
+      className="block p-6 bg-white border border-gray-200 rounded-lg hover:border-primary hover:shadow-md transition-all"
     >
-      <div className="w-12 h-12 bg-[#FF6B6B]/10 text-[#FF6B6B] rounded-lg flex items-center justify-center mb-4">
+      <div className="w-12 h-12 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-4">
         {icon}
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
