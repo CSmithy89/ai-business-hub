@@ -51,9 +51,9 @@ export function MobileDrawer() {
 
   const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid, href: '/dashboard' },
-    { id: 'approvals', label: 'Approvals', icon: CheckCircle, href: '/dashboard/approvals', badge: approvalCount },
-    { id: 'agents', label: 'AI Team', icon: Bot, href: '/dashboard/agents' },
-    { id: 'settings', label: 'Settings', icon: Settings, href: '/dashboard/settings' },
+    { id: 'approvals', label: 'Approvals', icon: CheckCircle, href: '/approvals', badge: approvalCount },
+    { id: 'agents', label: 'AI Team', icon: Bot, href: '/agents' },
+    { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
   ];
 
   const handleNavClick = (href: string) => {
