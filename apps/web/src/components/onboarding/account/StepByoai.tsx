@@ -5,6 +5,7 @@
  * Allows user to configure their AI provider with API key validation.
  *
  * Story: 15.3 - Implement 4-Step User Onboarding Wizard
+ * Story: 16-21 - Option Card Selection Polish
  */
 
 'use client';
@@ -176,16 +177,27 @@ export function StepByoai({
             <Card
               key={provider.id}
               className={cn(
-                'cursor-pointer transition-all hover:border-primary/50',
-                isSelected && 'border-primary ring-2 ring-primary/20'
+                'relative cursor-pointer transition-all duration-200',
+                // Hover state: lift effect and border highlight
+                'hover:-translate-y-0.5 hover:shadow-md hover:border-[rgb(var(--color-primary-500))]',
+                // Selected state: coral border, shadow
+                isSelected
+                  ? 'border-[rgb(var(--color-primary-500))] shadow-[0_0_0_3px_rgba(255,107,107,0.15)]'
+                  : 'border-[rgb(var(--color-border-default))]'
               )}
               onClick={() => handleProviderSelect(provider.id)}
             >
+              {/* Checkmark badge in corner */}
+              {isSelected && (
+                <div className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[rgb(var(--color-primary-500))] text-white shadow-md">
+                  <Check className="h-3 w-3" />
+                </div>
+              )}
               <CardContent className="flex items-center gap-4 p-4">
                 <div
                   className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-lg',
-                    isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
+                    isSelected ? 'bg-[rgb(var(--color-primary-500))] text-white' : 'bg-muted'
                   )}
                 >
                   <Icon className="h-5 w-5" />
@@ -201,7 +213,6 @@ export function StepByoai({
                   </div>
                   <p className="text-sm text-muted-foreground">{provider.description}</p>
                 </div>
-                {isSelected && <Check className="h-5 w-5 text-primary" />}
               </CardContent>
             </Card>
           );
