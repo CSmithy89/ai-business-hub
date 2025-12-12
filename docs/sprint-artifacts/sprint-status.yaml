@@ -380,7 +380,7 @@ development_status:
   16-3-implement-mobile-layout: done  # <768px
 
   # Section 2: UX Enhancements (5 stories, 16 points)
-  16-4-clarify-workspace-vs-business-relationship: backlog
+  16-4-clarify-workspace-vs-business-relationship: done
   16-5-implement-skeleton-loading-screens: backlog
   16-6-implement-optimistic-ui-updates: backlog
   16-7-implement-form-validation-and-feedback: backlog
