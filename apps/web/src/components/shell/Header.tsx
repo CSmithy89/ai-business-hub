@@ -26,6 +26,7 @@ import { HeaderNotificationBell } from './HeaderNotificationBell';
 import { HeaderUserMenu } from './HeaderUserMenu';
 import { MobileHamburger } from '@/components/mobile';
 import { BusinessSwitcher } from '@/components/business/business-switcher';
+import { ConnectionStatus } from '@/components/ui/connection-status';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
@@ -80,6 +81,9 @@ export function Header({ children }: HeaderProps = {}) {
 
       {/* Right section: Actions */}
       <div className="flex items-center gap-2">
+        {/* Real-time connection status (Story 16-15) */}
+        <ConnectionStatus className="hidden sm:flex" />
+
         {/* Search trigger */}
         <HeaderSearchTrigger />
 

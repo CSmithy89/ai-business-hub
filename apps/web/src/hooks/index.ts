@@ -7,3 +7,9 @@
 export { useKeyboardShortcut } from './use-keyboard-shortcut';
 export { useNullSafePathname } from './use-null-safe-pathname';
 export { usePlatform, getPlatform, getModifierKey, type Platform } from './use-platform';
+
+// Real-time hooks (Story 16-15)
+export { useRealtimeApprovals } from './use-realtime-approvals';
+export { useRealtimeAgents } from './use-realtime-agents';
+export { useRealtimeNotifications, useNotificationBadge } from './use-realtime-notifications';
+export { useRealtimeChat } from './use-realtime-chat';

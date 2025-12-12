@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ApprovalItem, ApprovalStatus } from '@hyvve/shared'
 import { NESTJS_API_URL, NEXTJS_API_URL } from '@/lib/api-config'
 import { toast } from 'sonner'
+import { useRealtimeApprovals } from './use-realtime-approvals'
 
 /**
  * Query parameters for fetching approvals list
@@ -143,13 +144,23 @@ async function rejectApproval(id: string, data: ApprovalActionRequest = {}): Pro
 
 /**
  * Hook to fetch approvals list with filters
+ *
+ * Story 16-15: Now includes real-time updates via WebSocket.
+ * When connected, approvals are updated in real-time without polling.
  */
 export function useApprovals(filters: ApprovalFilters = {}) {
+  // Enable real-time updates for approvals
+  const { isConnected: isRealtimeConnected } = useRealtimeApprovals()
+
   return useQuery({
     queryKey: ['approvals', filters],
     queryFn: () => fetchApprovals(filters),
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    // When real-time is connected, we rely on WebSocket updates
+    // so we can use a longer stale time to reduce polling
+    staleTime: isRealtimeConnected ? 60000 : 30000,
     refetchOnWindowFocus: true,
+    // Disable refetch interval when real-time is connected
+    refetchInterval: isRealtimeConnected ? false : undefined,
   })
 }
 

@@ -398,7 +398,7 @@ development_status:
   16-14-audit-background-color-usage: done
 
   # Section 5: Real-time & Interaction (3 stories, 11 points)
-  16-15-implement-websocket-real-time-updates: backlog  # Deferred - infrastructure story
+  16-15-implement-websocket-real-time-updates: review  # Implementation complete, ready for code review
   16-16-implement-comprehensive-keyboard-shortcuts: done
   16-17-implement-approval-queue-drag-and-drop: done
 
