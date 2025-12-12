@@ -121,6 +121,16 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
     }
   }, [messages, isStreaming]);
 
+  // Cleanup abort controller on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
+
   /**
    * Stop the current streaming response
    */

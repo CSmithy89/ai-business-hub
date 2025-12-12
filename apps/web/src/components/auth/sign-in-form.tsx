@@ -178,11 +178,17 @@ export function SignInForm() {
    * Uses the redirect param if available (with validation), otherwise defaults to /businesses
    * Story: 15.15 - Update Sign-In Flow Redirect Logic
    * Security: Validates redirect URLs to prevent open redirect attacks
+   * Note: Returns absolute URL as required by OAuth providers
    */
   const getOAuthCallbackURL = useCallback(() => {
     const redirectParam = searchParams.get('redirect')
     // Use validated redirect URL or fall back to businesses
-    return getSafeRedirectUrl(redirectParam, '/businesses')
+    const relativePath = getSafeRedirectUrl(redirectParam, '/businesses')
+    // Return absolute URL for OAuth callback - required by OAuth providers
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}${relativePath}`
+    }
+    return relativePath
   }, [searchParams])
 
   /**
