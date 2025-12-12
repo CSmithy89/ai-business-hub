@@ -83,10 +83,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const effectiveChatHidden = shouldAutoCollapseChat || chatPanelPosition === 'collapsed';
 
   // Calculate main content margin based on chat panel position
-  // Returns undefined for small screens to allow Tailwind responsive classes to take effect
+  // Uses isMobile from responsive hook (hydration-safe) instead of direct window check
   const getMainContentMarginRight = () => {
-    // On small screens, return undefined so max-sm:mr-0 can take effect
-    if (typeof window !== 'undefined' && window.innerWidth < 640) return undefined;
+    // On mobile screens, return 0 to let CSS handle responsive margins
+    if (isMobile) return 0;
 
     // If chat is hidden by responsive rules or collapsed, no margin
     if (effectiveChatHidden) return 0;
@@ -97,10 +97,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   // Calculate main content margin bottom for bottom panel
-  // Returns undefined for small screens to allow Tailwind responsive classes to take effect
+  // Uses isMobile from responsive hook (hydration-safe) instead of direct window check
   const getMainContentMarginBottom = () => {
-    // On small screens, return undefined so responsive classes can take effect
-    if (typeof window !== 'undefined' && window.innerWidth < 640) return undefined;
+    // On mobile screens, return 0 to let CSS handle responsive margins
+    if (isMobile) return 0;
 
     // If chat is hidden by responsive rules, no margin
     if (effectiveChatHidden) return 0;

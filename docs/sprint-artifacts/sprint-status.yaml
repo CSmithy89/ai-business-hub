@@ -416,6 +416,6 @@ development_status:
   16-27-implement-agent-detail-modal: done
 
   # Section 8: Technical Debt (1 story, 3 points)
-  16-28-fix-console-errors-and-technical-debt: backlog
+  16-28-fix-console-errors-and-technical-debt: done
 
   epic-16-retrospective: optional
