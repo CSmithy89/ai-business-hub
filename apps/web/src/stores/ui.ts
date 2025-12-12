@@ -3,13 +3,15 @@
  *
  * Manages global UI state for the dashboard layout including:
  * - Sidebar collapse/expand state
- * - Chat panel open/close and width state
+ * - Chat panel open/close, width, and position state
  * - Mobile menu state
  *
  * State persists in localStorage via Zustand persist middleware.
  *
  * SSR/Hydration: Uses skipHydration to prevent hydration mismatches.
  * Components should use useUIStoreHydrated() to check if store is ready.
+ *
+ * Story 15.12: Added chat panel position options
  */
 
 import { useEffect, useState } from 'react';
@@ -22,6 +24,23 @@ import { persist } from 'zustand/middleware';
  */
 export const UI_STORE_KEY = 'hyvve-ui-state' as const;
 
+/**
+ * Chat panel position options
+ * Story 15.12: Implement Chat Panel Position Options
+ */
+export type ChatPanelPosition = 'right' | 'bottom' | 'floating' | 'collapsed';
+
+/**
+ * Floating panel coordinates for drag positioning
+ */
+export interface FloatingPosition {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isPinned: boolean;
+}
+
 interface UIState {
   // Sidebar state
   sidebarCollapsed: boolean;
@@ -30,9 +49,18 @@ interface UIState {
 
   // Chat panel state
   chatPanelOpen: boolean;
-  chatPanelWidth: number; // 320-480px
+  chatPanelWidth: number; // 300-600px for right panel
+  chatPanelHeight: number; // 150-400px for bottom panel
+  chatPanelPosition: ChatPanelPosition;
+  chatPanelPreviousPosition: ChatPanelPosition; // For restoring from collapsed
+  floatingPosition: FloatingPosition;
   toggleChatPanel: () => void;
   setChatPanelWidth: (width: number) => void;
+  setChatPanelHeight: (height: number) => void;
+  setChatPanelPosition: (position: ChatPanelPosition) => void;
+  setFloatingPosition: (position: Partial<FloatingPosition>) => void;
+  collapseChatPanel: () => void;
+  expandChatPanel: () => void;
 
   // Mobile state
   mobileMenuOpen: boolean;
@@ -47,13 +75,28 @@ interface UIState {
   toggleCommandPalette: () => void;
 }
 
+/**
+ * Default floating position for the chat panel
+ */
+const DEFAULT_FLOATING_POSITION: FloatingPosition = {
+  x: 100,
+  y: 100,
+  width: 400,
+  height: 500,
+  isPinned: false,
+};
+
 export const useUIStore = create<UIState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Default state
       sidebarCollapsed: false,
       chatPanelOpen: true,
       chatPanelWidth: 380,
+      chatPanelHeight: 250,
+      chatPanelPosition: 'right' as ChatPanelPosition,
+      chatPanelPreviousPosition: 'right' as ChatPanelPosition,
+      floatingPosition: DEFAULT_FLOATING_POSITION,
       mobileMenuOpen: false,
 
       // Sidebar actions
@@ -64,15 +107,77 @@ export const useUIStore = create<UIState>()(
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
 
       // Chat panel actions
-      toggleChatPanel: () =>
-        set((state) => ({
-          chatPanelOpen: !state.chatPanelOpen,
-        })),
+      toggleChatPanel: () => {
+        const state = get();
+        if (state.chatPanelPosition === 'collapsed') {
+          // Restore to previous position
+          set({
+            chatPanelPosition: state.chatPanelPreviousPosition,
+            chatPanelOpen: true,
+          });
+        } else {
+          // Collapse
+          set({
+            chatPanelPreviousPosition: state.chatPanelPosition,
+            chatPanelPosition: 'collapsed',
+            chatPanelOpen: false,
+          });
+        }
+      },
       setChatPanelWidth: (width) =>
         set({
-          // Clamp between 320px and 480px
-          chatPanelWidth: Math.max(320, Math.min(480, width)),
+          // Clamp between 300px and 600px
+          chatPanelWidth: Math.max(300, Math.min(600, width)),
         }),
+      setChatPanelHeight: (height) =>
+        set({
+          // Clamp between 150px and 400px
+          chatPanelHeight: Math.max(150, Math.min(400, height)),
+        }),
+      setChatPanelPosition: (position) => {
+        const state = get();
+        if (position === 'collapsed') {
+          set({
+            chatPanelPreviousPosition: state.chatPanelPosition !== 'collapsed'
+              ? state.chatPanelPosition
+              : state.chatPanelPreviousPosition,
+            chatPanelPosition: 'collapsed',
+            chatPanelOpen: false,
+          });
+        } else {
+          set({
+            chatPanelPosition: position,
+            chatPanelOpen: true,
+          });
+        }
+      },
+      setFloatingPosition: (position) =>
+        set((state) => ({
+          floatingPosition: {
+            ...state.floatingPosition,
+            ...position,
+            // Clamp minimum sizes
+            width: Math.max(300, position.width ?? state.floatingPosition.width),
+            height: Math.max(400, position.height ?? state.floatingPosition.height),
+          },
+        })),
+      collapseChatPanel: () => {
+        const state = get();
+        if (state.chatPanelPosition !== 'collapsed') {
+          set({
+            chatPanelPreviousPosition: state.chatPanelPosition,
+            chatPanelPosition: 'collapsed',
+            chatPanelOpen: false,
+          });
+        }
+      },
+      expandChatPanel: () => {
+        const state = get();
+        set({
+          chatPanelPosition: state.chatPanelPreviousPosition || 'right',
+          chatPanelOpen: true,
+        });
+      },
 
       // Mobile actions
       toggleMobileMenu: () =>
@@ -96,7 +201,11 @@ export const useUIStore = create<UIState>()(
       partialize: (state) => ({
         sidebarCollapsed: state.sidebarCollapsed,
         chatPanelWidth: state.chatPanelWidth,
+        chatPanelHeight: state.chatPanelHeight,
         chatPanelOpen: state.chatPanelOpen,
+        chatPanelPosition: state.chatPanelPosition,
+        chatPanelPreviousPosition: state.chatPanelPreviousPosition,
+        floatingPosition: state.floatingPosition,
       }),
       // Skip automatic hydration to prevent SSR mismatches
       // Call useUIStore.persist.rehydrate() manually after mount

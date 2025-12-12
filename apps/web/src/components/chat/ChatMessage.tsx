@@ -3,18 +3,26 @@
  *
  * Displays individual chat messages with three variants:
  * - User messages: Right-aligned with primary color background
- * - Agent messages: Left-aligned with avatar and agent color
+ * - Agent messages: Left-aligned with avatar and agent color (supports markdown)
  * - System messages: Centered with muted style (for dividers)
  *
  * Security: All content is sanitized with DOMPurify to prevent XSS attacks.
+ * Markdown rendering: Agent messages support GFM (GitHub Flavored Markdown).
+ *
+ * Story: 15.4 - Connect Chat Panel to Agno Backend
+ * Updated: Added markdown rendering support for agent messages
+ * Updated: Story 15-25 - Apply Agent Character Colors Throughout
  */
 
 'use client';
 
 import { memo } from 'react';
 import DOMPurify from 'isomorphic-dompurify';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 import { formatChatTime } from '@/lib/date-utils';
+import { getAgentColor, getAgentIcon } from '@/config/agent-colors';
 import { StreamingCursor } from './StreamingCursor';
 import { Button } from '@/components/ui/button';
 import { Square } from 'lucide-react';
@@ -71,53 +79,146 @@ export const ChatMessage = memo(function ChatMessage({
   if (type === 'user') {
     return (
       <div className="flex max-w-[85%] flex-col items-end gap-1 self-end">
+        {/* User Message Bubble - Style Guide: 16px radius, top-right 4px, coral bg */}
         <div
           className={cn(
-            'rounded-t-xl rounded-bl-xl rounded-br-sm',
-            'bg-[rgb(var(--color-primary-500))] px-4 py-3 text-white'
+            // Border radius: 16px with 4px top-right for user
+            'rounded-[16px] rounded-tr-[4px]',
+            // Coral gradient background for premium feel
+            'bg-gradient-to-br from-[rgb(var(--color-primary-500))] to-[rgb(var(--color-primary-600))]',
+            // Padding: 16px (--space-4)
+            'px-4 py-4 text-white',
+            // Subtle shadow for depth
+            'shadow-[0_2px_8px_rgba(255,107,107,0.2)]'
           )}
         >
           <p className="text-sm font-normal leading-relaxed">{safeContent}</p>
         </div>
-        <p className="text-[11px] text-[rgb(var(--color-text-muted))]">
+        {/* Timestamp right-aligned for user messages */}
+        <p className="text-[11px] text-[rgb(var(--color-text-muted))] text-right">
           {formattedTime}
         </p>
       </div>
     );
   }
 
-  // Agent message
+  // Agent message - use config helpers for fallback colors
+  const resolvedColor = agentColor || getAgentColor(agentName || 'maya');
+  const resolvedIcon = agentIcon || getAgentIcon(agentName || 'maya');
+
   return (
     <div className="flex max-w-[85%] items-start gap-2.5 self-start">
-      {/* Agent Avatar */}
+      {/* Agent Avatar - left aligned per style guide */}
       <div
         className={cn(
-          'flex h-7 w-7 shrink-0 items-center justify-center',
-          'rounded-full text-base text-white'
+          'flex h-8 w-8 shrink-0 items-center justify-center',
+          'rounded-full text-base'
         )}
-        style={{ backgroundColor: agentColor || '#20B2AA' }}
+        style={{
+          backgroundColor: `${resolvedColor}20`,
+          color: resolvedColor,
+        }}
       >
-        {agentIcon || '🤖'}
+        {resolvedIcon}
       </div>
 
       <div className="flex flex-col gap-1">
         {/* Agent Name */}
-        <p className="text-xs font-semibold" style={{ color: agentColor || '#20B2AA' }}>
+        <p className="text-xs font-semibold" style={{ color: resolvedColor }}>
           {agentName || 'Agent'}
         </p>
 
-        {/* Message Bubble */}
+        {/* Agent Message Bubble - Style Guide: white bg, border, 16px radius, top-left 4px */}
         <div
           className={cn(
-            'rounded-t-xl rounded-br-xl rounded-bl-sm',
-            'bg-[rgb(var(--color-bg-tertiary))] px-4 py-3',
-            'text-[rgb(var(--color-text-primary))]'
+            // Border radius: 16px with 4px top-left for agent
+            'rounded-[16px] rounded-tl-[4px]',
+            // Background: white with subtle border
+            'bg-[rgb(var(--color-bg-white))]',
+            'border border-[rgb(var(--color-border-subtle))]',
+            // Padding: 16px (--space-4)
+            'px-4 py-4',
+            'text-[rgb(var(--color-text-primary))]',
+            // Subtle shadow for depth
+            'shadow-[0_1px_3px_rgba(0,0,0,0.04)]'
           )}
         >
-          <p className="text-sm font-normal leading-relaxed">
-            {safeContent}
+          <div className="prose prose-sm dark:prose-invert max-w-none text-sm font-normal leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                // Render inline code with styling
+                code: ({ children, className }) => {
+                  const isInline = !className;
+                  if (isInline) {
+                    return (
+                      <code className="rounded bg-[rgb(var(--color-bg-secondary))] px-1.5 py-0.5 text-xs font-mono">
+                        {children}
+                      </code>
+                    );
+                  }
+                  return (
+                    <code className={cn('block overflow-x-auto rounded-md bg-[rgb(var(--color-bg-secondary))] p-3 text-xs font-mono', className)}>
+                      {children}
+                    </code>
+                  );
+                },
+                // Style links - validate href to prevent XSS via javascript: or data: URLs
+                a: ({ children, href }) => {
+                  // Only allow safe URL protocols
+                  const isSafeUrl =
+                    typeof href === 'string' &&
+                    /^(https?:|mailto:|tel:|\/|#)/i.test(href);
+                  return (
+                    <a
+                      href={isSafeUrl ? href : undefined}
+                      target={isSafeUrl ? '_blank' : undefined}
+                      rel={isSafeUrl ? 'noopener noreferrer' : undefined}
+                      onClick={(e) => {
+                        if (!isSafeUrl) e.preventDefault();
+                      }}
+                      className="text-[rgb(var(--color-primary-500))] hover:underline"
+                    >
+                      {children}
+                    </a>
+                  );
+                },
+                // Style paragraphs
+                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                // Style lists
+                ul: ({ children }) => <ul className="mb-2 ml-4 list-disc last:mb-0">{children}</ul>,
+                ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal last:mb-0">{children}</ol>,
+                li: ({ children }) => <li className="mb-1">{children}</li>,
+                // Style headings
+                h1: ({ children }) => <h1 className="mb-2 text-lg font-bold">{children}</h1>,
+                h2: ({ children }) => <h2 className="mb-2 text-base font-bold">{children}</h2>,
+                h3: ({ children }) => <h3 className="mb-1 text-sm font-bold">{children}</h3>,
+                // Style blockquotes
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-2 border-[rgb(var(--color-border-default))] pl-3 italic opacity-80">
+                    {children}
+                  </blockquote>
+                ),
+                // Style tables
+                table: ({ children }) => (
+                  <table className="my-2 w-full border-collapse text-xs">{children}</table>
+                ),
+                th: ({ children }) => (
+                  <th className="border border-[rgb(var(--color-border-default))] bg-[rgb(var(--color-bg-secondary))] px-2 py-1 text-left font-semibold">
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td className="border border-[rgb(var(--color-border-default))] px-2 py-1">
+                    {children}
+                  </td>
+                ),
+              }}
+            >
+              {safeContent}
+            </ReactMarkdown>
             {isStreaming && <StreamingCursor />}
-          </p>
+          </div>
 
           {/* Stop Generating Button */}
           {isStreaming && onStopStreaming && (

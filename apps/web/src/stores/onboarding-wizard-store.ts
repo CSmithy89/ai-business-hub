@@ -28,10 +28,15 @@ interface OnboardingWizardStore {
 
   // Step 1: Choice
   hasDocuments: boolean | null
+  uploadedFiles: string[] // File names for display
 
-  // Step 2: Business Details
+  // Step 2: Business Details (enhanced for Story 15.16)
   businessName: string
   businessDescription: string
+  industry: string
+  stage: 'idea' | 'startup' | 'existing' | 'side-project' | ''
+  teamSize: 'solo' | '2-5' | '6-10' | '11-50' | '50+' | ''
+  fundingStatus: 'bootstrapped' | 'pre-seed' | 'seed' | 'series-a' | 'not-applicable' | ''
 
   // Step 3: Initial Idea
   problemStatement: string
@@ -41,8 +46,13 @@ interface OnboardingWizardStore {
   // Actions
   setCurrentStep: (step: number) => void
   setHasDocuments: (hasDocuments: boolean) => void
+  setUploadedFiles: (files: string[]) => void
   setBusinessName: (name: string) => void
   setBusinessDescription: (description: string) => void
+  setIndustry: (industry: string) => void
+  setStage: (stage: 'idea' | 'startup' | 'existing' | 'side-project' | '') => void
+  setTeamSize: (size: 'solo' | '2-5' | '6-10' | '11-50' | '50+' | '') => void
+  setFundingStatus: (status: 'bootstrapped' | 'pre-seed' | 'seed' | 'series-a' | 'not-applicable' | '') => void
   setProblemStatement: (problem: string) => void
   setTargetCustomer: (customer: string) => void
   setProposedSolution: (solution: string) => void
@@ -56,8 +66,13 @@ const initialState = {
   currentStep: 1,
   timestamp: Date.now(),
   hasDocuments: null,
+  uploadedFiles: [] as string[],
   businessName: '',
   businessDescription: '',
+  industry: '',
+  stage: '' as const,
+  teamSize: '' as const,
+  fundingStatus: '' as const,
   problemStatement: '',
   targetCustomer: '',
   proposedSolution: '',
@@ -77,11 +92,26 @@ export const useOnboardingWizardStore = create<OnboardingWizardStore>()(
       setHasDocuments: (hasDocuments) =>
         set(() => ({ hasDocuments, timestamp: Date.now() })),
 
+      setUploadedFiles: (uploadedFiles) =>
+        set(() => ({ uploadedFiles, timestamp: Date.now() })),
+
       setBusinessName: (businessName) =>
         set(() => ({ businessName, timestamp: Date.now() })),
 
       setBusinessDescription: (businessDescription) =>
         set(() => ({ businessDescription, timestamp: Date.now() })),
+
+      setIndustry: (industry) =>
+        set(() => ({ industry, timestamp: Date.now() })),
+
+      setStage: (stage) =>
+        set(() => ({ stage, timestamp: Date.now() })),
+
+      setTeamSize: (teamSize) =>
+        set(() => ({ teamSize, timestamp: Date.now() })),
+
+      setFundingStatus: (fundingStatus) =>
+        set(() => ({ fundingStatus, timestamp: Date.now() })),
 
       setProblemStatement: (problemStatement) =>
         set(() => ({ problemStatement, timestamp: Date.now() })),
@@ -102,8 +132,13 @@ export const useOnboardingWizardStore = create<OnboardingWizardStore>()(
         currentStep: state.currentStep,
         timestamp: state.timestamp,
         hasDocuments: state.hasDocuments,
+        uploadedFiles: state.uploadedFiles,
         businessName: state.businessName,
         businessDescription: state.businessDescription,
+        industry: state.industry,
+        stage: state.stage,
+        teamSize: state.teamSize,
+        fundingStatus: state.fundingStatus,
         problemStatement: state.problemStatement,
         targetCustomer: state.targetCustomer,
         proposedSolution: state.proposedSolution,

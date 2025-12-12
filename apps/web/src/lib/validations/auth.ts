@@ -52,7 +52,25 @@ export const signInSchema = z.object({
 })
 
 /**
+ * Change password form validation schema
+ * Story 15.7: Password change on security settings page
+ */
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: passwordSchema,
+  confirmNewPassword: z.string().min(1, 'Please confirm your new password'),
+  revokeOtherSessions: z.boolean(),
+}).refine((data) => data.newPassword === data.confirmNewPassword, {
+  message: "New passwords don't match",
+  path: ['confirmNewPassword'],
+}).refine((data) => data.currentPassword !== data.newPassword, {
+  message: "New password must be different from current password",
+  path: ['newPassword'],
+})
+
+/**
  * Type exports for form data
  */
 export type SignUpFormData = z.infer<typeof signUpSchema>
 export type SignInFormData = z.infer<typeof signInSchema>
+export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>

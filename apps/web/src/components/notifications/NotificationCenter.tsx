@@ -7,6 +7,7 @@
 
 'use client';
 
+import { Bell } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useNotifications } from '@/hooks/use-notifications';
 import { NotificationList } from './NotificationList';
@@ -22,7 +23,7 @@ export function NotificationCenter() {
           aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
           className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[rgb(var(--color-text-secondary))] transition-colors hover:bg-[rgb(var(--color-bg-hover))] hover:text-[rgb(var(--color-text-primary))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-primary-500))] focus:ring-offset-2"
         >
-          <span className="material-symbols-rounded text-xl">notifications</span>
+          <Bell className="h-5 w-5" />
 
           {/* Badge count */}
           {unreadCount > 0 && (

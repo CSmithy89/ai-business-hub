@@ -98,12 +98,22 @@ export function AddProviderDialog({
               <Label htmlFor="provider">Provider</Label>
               <Select value={provider} onValueChange={handleProviderChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a provider" />
+                  <SelectValue placeholder="Select a provider">
+                    {provider && (
+                      <span className="flex items-center gap-2">
+                        <span>{PROVIDER_INFO[provider].icon}</span>
+                        <span>{PROVIDER_INFO[provider].name}</span>
+                      </span>
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {availableProviders.map((p) => (
                     <SelectItem key={p} value={p}>
-                      {PROVIDER_INFO[p].name}
+                      <span className="flex items-center gap-2">
+                        <span>{PROVIDER_INFO[p].icon}</span>
+                        <span>{PROVIDER_INFO[p].name}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

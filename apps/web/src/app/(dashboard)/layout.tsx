@@ -5,7 +5,7 @@
  * - Header (fixed, 60px height)
  * - Sidebar (left, 64px collapsed / 256px expanded)
  * - Main content (center, flexible)
- * - Chat panel (right, 320-480px adjustable)
+ * - Chat panel (right/bottom/floating/collapsed)
  *
  * Responsive breakpoints:
  * - Mobile (<640px): Single panel with overlays
@@ -16,14 +16,15 @@
  *
  * Epic: 07 - UI Shell
  * Story: 07-1 - Create Dashboard Layout Component
+ * Story: 15-12 - Implement Chat Panel Position Options
  */
 
 'use client';
 
 import { ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import { Header } from '@/components/shell/Header';
 import { Sidebar } from '@/components/shell/Sidebar';
-import { ChatPanel } from '@/components/shell/ChatPanel';
 import { CommandPalette } from '@/components/command';
 import { KeyboardShortcuts } from '@/components/keyboard';
 import { MobileDrawer, MobileBottomNav } from '@/components/mobile';
@@ -38,12 +39,40 @@ import { useUIStore } from '@/stores/ui';
 import { LAYOUT } from '@/lib/layout-constants';
 import { SkipLink } from '@/components/ui/skip-link';
 
+// Lazy load ChatPanel to reduce initial bundle size (~75KB gzipped: react-markdown, remark-gfm, dompurify)
+const ChatPanel = dynamic(
+  () => import('@/components/shell/ChatPanel').then((mod) => mod.ChatPanel),
+  {
+    ssr: false,
+    loading: () => null, // No loading indicator - panel appears when ready
+  }
+);
+
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { sidebarCollapsed, chatPanelOpen, chatPanelWidth } = useUIStore();
+  const { sidebarCollapsed, chatPanelOpen, chatPanelWidth, chatPanelHeight, chatPanelPosition } = useUIStore();
+
+  // Calculate main content margin based on chat panel position
+  // Returns undefined for small screens to allow Tailwind responsive classes to take effect
+  const getMainContentMarginRight = () => {
+    // On small screens, return undefined so max-sm:mr-0 can take effect
+    if (typeof window !== 'undefined' && window.innerWidth < 640) return undefined;
+    if (!chatPanelOpen || chatPanelPosition === 'collapsed') return 0;
+    if (chatPanelPosition === 'right') return chatPanelWidth ?? LAYOUT.CHAT_DEFAULT_WIDTH;
+    return 0; // No margin for bottom, floating, or collapsed
+  };
+
+  // Calculate main content margin bottom for bottom panel
+  // Returns undefined for small screens to allow Tailwind responsive classes to take effect
+  const getMainContentMarginBottom = () => {
+    // On small screens, return undefined so responsive classes can take effect
+    if (typeof window !== 'undefined' && window.innerWidth < 640) return undefined;
+    if (!chatPanelOpen || chatPanelPosition !== 'bottom') return 0;
+    return chatPanelHeight ?? 250;
+  };
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden">
@@ -89,9 +118,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             max-sm:ml-0 max-sm:mr-0
           `}
           style={{
-            marginRight: chatPanelOpen
-              ? (chatPanelWidth ?? LAYOUT.CHAT_DEFAULT_WIDTH)
-              : 0,
+            marginRight: getMainContentMarginRight(),
+            marginBottom: getMainContentMarginBottom(),
           }}
         >
           <ErrorBoundary fallback={<MainContentErrorFallback />}>

@@ -13,7 +13,8 @@ import { ConfidenceBreakdown } from './ConfidenceBreakdown'
 import { formatDistanceToNow } from 'date-fns'
 import type { ApprovalItem } from '@hyvve/shared'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, Clock, User, Tag } from 'lucide-react'
+import { ChevronDown, ChevronUp, Clock, Tag } from 'lucide-react'
+import { AgentBadge } from '@/components/agents/agent-avatar'
 import { cn } from '@/lib/utils'
 
 interface ApprovalCardProps {
@@ -155,10 +156,7 @@ export function ApprovalCard({
                   Due {dueDate}
                 </span>
               )}
-              <span className="flex items-center gap-1">
-                <User className="h-3.5 w-3.5" />
-                {approval.createdBy}
-              </span>
+              <AgentBadge agentName={approval.createdBy} size="xs" />
             </div>
 
             <div className="flex gap-2">
@@ -298,8 +296,8 @@ export function ApprovalCard({
         {/* Metadata */}
         <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
           <div className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            <span>Created by <span className="font-medium">{approval.createdBy}</span></span>
+            <span>Created by</span>
+            <AgentBadge agentName={approval.createdBy} size="sm" />
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
@@ -313,13 +311,10 @@ export function ApprovalCard({
           )}
           {approval.reviewedBy && (
             <div className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              <span>
-                Reviewed by <span className="font-medium">{approval.reviewedBy}</span>
-                {approval.reviewedAt && (
-                  <> {formatDistanceToNow(new Date(approval.reviewedAt), { addSuffix: true })}</>
-                )}
-              </span>
+              <span>Reviewed by <span className="font-medium">{approval.reviewedBy}</span></span>
+              {approval.reviewedAt && (
+                <span> {formatDistanceToNow(new Date(approval.reviewedAt), { addSuffix: true })}</span>
+              )}
             </div>
           )}
         </div>

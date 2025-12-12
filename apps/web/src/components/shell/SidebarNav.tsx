@@ -3,16 +3,34 @@
  *
  * Contains all navigation items organized in sections:
  * - Main section: Dashboard, Approvals, AI Team, Settings
+ * - Businesses section: Portfolio, Planning, Branding, Validation (collapsible)
  * - Modules section: CRM, Projects
  *
  * Epic: 07 - UI Shell
  * Story: 07-2 - Create Sidebar Navigation
+ * Updated: Story 15.1 - Replace Material Icons with Lucide
+ * Updated: Story 15.11 - Add Businesses collapsible navigation
+ * Updated: Story 15-25 - Apply Agent Character Colors Throughout
  */
 
 'use client';
 
+import {
+  LayoutGrid,
+  CheckCircle,
+  Bot,
+  Settings,
+  Users,
+  FolderOpen,
+  Building2,
+  ClipboardList,
+  Palette,
+  CheckSquare,
+} from 'lucide-react';
 import { SidebarSection } from './SidebarSection';
 import { SidebarNavItem } from './SidebarNavItem';
+import { SidebarNavGroup } from './SidebarNavGroup';
+import { SidebarNavSubItem } from './SidebarNavSubItem';
 import { useApprovalCount } from '@/hooks/use-approval-count';
 
 interface SidebarNavProps {
@@ -29,43 +47,78 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
       {/* Main Section */}
       <SidebarSection title="Main" collapsed={collapsed}>
         <SidebarNavItem
-          icon="grid_view"
+          icon={LayoutGrid}
           label="Dashboard"
           href="/dashboard"
           collapsed={collapsed}
         />
         <SidebarNavItem
-          icon="check_circle"
+          icon={CheckCircle}
           label="Approvals"
           href="/approvals"
           badge={approvalCount}
           collapsed={collapsed}
         />
         <SidebarNavItem
-          icon="smart_toy"
+          icon={Bot}
           label="AI Team"
           href="/agents"
           collapsed={collapsed}
         />
         <SidebarNavItem
-          icon="settings"
+          icon={Settings}
           label="Settings"
           href="/settings"
           collapsed={collapsed}
         />
       </SidebarSection>
 
-      {/* Modules Section */}
+      {/* Businesses Section */}
+      <SidebarSection title="Businesses" collapsed={collapsed}>
+        <SidebarNavGroup
+          icon={Building2}
+          label="Businesses"
+          baseHref="/businesses"
+          collapsed={collapsed}
+        >
+          <SidebarNavSubItem
+            icon={LayoutGrid}
+            label="Portfolio"
+            href="/businesses"
+            inTooltip={collapsed}
+          />
+          <SidebarNavSubItem
+            icon={ClipboardList}
+            label="Planning"
+            href="/businesses/planning"
+            inTooltip={collapsed}
+          />
+          <SidebarNavSubItem
+            icon={Palette}
+            label="Branding"
+            href="/businesses/branding"
+            inTooltip={collapsed}
+          />
+          <SidebarNavSubItem
+            icon={CheckSquare}
+            label="Validation"
+            href="/businesses/validation"
+            inTooltip={collapsed}
+          />
+        </SidebarNavGroup>
+      </SidebarSection>
+
+      {/* Modules Section - Agent colors for status dots */}
       <SidebarSection title="Modules" collapsed={collapsed}>
         <SidebarNavItem
-          icon="group"
+          icon={Users}
           label="CRM"
           href="/crm"
-          statusDot="secondary"
+          statusDot="maya"
           collapsed={collapsed}
         />
         <SidebarNavItem
-          icon="folder_open"
+          icon={FolderOpen}
           label="Projects"
           href="/projects"
           statusDot="atlas"

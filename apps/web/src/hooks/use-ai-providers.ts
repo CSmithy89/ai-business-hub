@@ -69,37 +69,49 @@ export interface UpdateProviderRequest {
 }
 
 /**
- * Provider display info
+ * Provider display info with emoji icons
  */
 export const PROVIDER_INFO: Record<AIProviderType, {
   name: string
   description: string
   models: string[]
+  icon: string
+  color: string
 }> = {
   claude: {
     name: 'Claude (Anthropic)',
-    description: 'Advanced AI from Anthropic',
+    description: 'Advanced AI from Anthropic - Recommended for strategy and content',
     models: ['claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
+    icon: '🧠',
+    color: '#D97706', // Amber for Claude/Anthropic
   },
   openai: {
     name: 'OpenAI',
-    description: 'GPT models from OpenAI',
+    description: 'GPT models from OpenAI - General-purpose AI',
     models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini'],
+    icon: '🤖',
+    color: '#10A37F', // OpenAI green
   },
   gemini: {
     name: 'Google Gemini',
-    description: 'AI from Google DeepMind',
+    description: 'AI from Google DeepMind - Great for research',
     models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'],
+    icon: '💎',
+    color: '#4285F4', // Google blue
   },
   deepseek: {
     name: 'DeepSeek',
-    description: 'Cost-effective AI models',
+    description: 'Cost-effective AI models - Budget-friendly option',
     models: ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner'],
+    icon: '🔮',
+    color: '#7C3AED', // Purple
   },
   openrouter: {
     name: 'OpenRouter',
-    description: 'Access 100+ models with one API key',
+    description: 'Access 100+ models with one API key - Maximum flexibility',
     models: ['anthropic/claude-3-5-sonnet', 'openai/gpt-4o', 'google/gemini-pro', 'meta-llama/llama-3-70b'],
+    icon: '🌐',
+    color: '#06B6D4', // Cyan
   },
 }
 

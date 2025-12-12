@@ -105,24 +105,68 @@ describe('UI Store State Transitions', () => {
       expect(useUIStore.getState().chatPanelOpen).toBe(true);
     });
 
-    it('should clamp chat panel width to minimum 320px', async () => {
+    it('should clamp chat panel width to minimum 300px', async () => {
       const { useUIStore } = await import('./ui');
 
       act(() => {
         useUIStore.getState().setChatPanelWidth(200);
       });
 
-      expect(useUIStore.getState().chatPanelWidth).toBe(320);
+      expect(useUIStore.getState().chatPanelWidth).toBe(300);
     });
 
-    it('should clamp chat panel width to maximum 480px', async () => {
+    it('should clamp chat panel width to maximum 600px', async () => {
       const { useUIStore } = await import('./ui');
 
       act(() => {
-        useUIStore.getState().setChatPanelWidth(600);
+        useUIStore.getState().setChatPanelWidth(700);
       });
 
-      expect(useUIStore.getState().chatPanelWidth).toBe(480);
+      expect(useUIStore.getState().chatPanelWidth).toBe(600);
+    });
+
+    it('should initialize with right panel position', async () => {
+      const { useUIStore } = await import('./ui');
+      const state = useUIStore.getState();
+
+      expect(state.chatPanelPosition).toBe('right');
+    });
+
+    it('should change chat panel position', async () => {
+      const { useUIStore } = await import('./ui');
+
+      act(() => {
+        useUIStore.getState().setChatPanelPosition('bottom');
+      });
+
+      expect(useUIStore.getState().chatPanelPosition).toBe('bottom');
+      expect(useUIStore.getState().chatPanelOpen).toBe(true);
+    });
+
+    it('should collapse and restore panel position', async () => {
+      const { useUIStore } = await import('./ui');
+
+      // Set to bottom first
+      act(() => {
+        useUIStore.getState().setChatPanelPosition('bottom');
+      });
+
+      // Collapse
+      act(() => {
+        useUIStore.getState().collapseChatPanel();
+      });
+
+      expect(useUIStore.getState().chatPanelPosition).toBe('collapsed');
+      expect(useUIStore.getState().chatPanelPreviousPosition).toBe('bottom');
+      expect(useUIStore.getState().chatPanelOpen).toBe(false);
+
+      // Expand - should restore previous position
+      act(() => {
+        useUIStore.getState().expandChatPanel();
+      });
+
+      expect(useUIStore.getState().chatPanelPosition).toBe('bottom');
+      expect(useUIStore.getState().chatPanelOpen).toBe(true);
     });
 
     it('should accept valid chat panel width', async () => {

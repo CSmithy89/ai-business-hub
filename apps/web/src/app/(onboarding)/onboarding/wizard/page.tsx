@@ -18,7 +18,7 @@
 
 'use client'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   useOnboardingWizardStore,
@@ -32,7 +32,7 @@ import { WizardStepConfirm } from '@/components/onboarding/WizardStepConfirm'
 import type { BusinessDetailsFormData, BusinessIdeaFormData } from '@/lib/validations/onboarding'
 import { Loader2 } from 'lucide-react'
 
-export default function WizardPage() {
+function WizardPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isHydrated = useOnboardingWizardStoreHydrated()
@@ -40,15 +40,25 @@ export default function WizardPage() {
   const {
     currentStep,
     hasDocuments,
+    uploadedFiles,
     businessName,
     businessDescription,
+    industry,
+    stage,
+    teamSize,
+    fundingStatus,
     problemStatement,
     targetCustomer,
     proposedSolution,
     setCurrentStep,
     setHasDocuments,
+    setUploadedFiles,
     setBusinessName,
     setBusinessDescription,
+    setIndustry,
+    setStage,
+    setTeamSize,
+    setFundingStatus,
     setProblemStatement,
     setTargetCustomer,
     setProposedSolution,
@@ -70,6 +80,14 @@ export default function WizardPage() {
       return
     }
 
+    // Guard: If trying to access step 2+ but step 1 not completed (hasDocuments is null),
+    // redirect back to step 1 to ensure proper flow
+    if (urlStep > 1 && hasDocuments === null) {
+      router.replace('/onboarding/wizard?step=1' as Parameters<typeof router.replace>[0])
+      setCurrentStep(1)
+      return
+    }
+
     if (urlStep !== currentStep) {
       if (urlStep >= 1 && urlStep <= 4) {
         setCurrentStep(urlStep)
@@ -77,7 +95,7 @@ export default function WizardPage() {
         router.replace(`/onboarding/wizard?step=${currentStep}` as Parameters<typeof router.replace>[0])
       }
     }
-  }, [stepParam, currentStep, setCurrentStep, router, isHydrated])
+  }, [stepParam, currentStep, setCurrentStep, router, isHydrated, hasDocuments])
 
   // Navigation handlers
   const goToStep = (step: number) => {
@@ -96,15 +114,24 @@ export default function WizardPage() {
   }
 
   // Step 1: Choice handler
-  const handleChoiceContinue = (hasDocsChoice: boolean) => {
+  const handleChoiceContinue = (hasDocsChoice: boolean, fileNames?: string[]) => {
     setHasDocuments(hasDocsChoice)
+    if (fileNames) {
+      setUploadedFiles(fileNames)
+    }
     goToStep(2)
   }
 
   // Step 2: Details handler
   const handleDetailsContinue = (data: BusinessDetailsFormData) => {
     setBusinessName(data.name)
-    setBusinessDescription(data.description)
+    setBusinessDescription(data.description ?? '')
+    // Always update optional fields to support clearing previously set values
+    // Use || '' to convert undefined to empty string for the store
+    setIndustry(data.industry || '')
+    setStage(data.stage || '')
+    setTeamSize(data.teamSize || '')
+    setFundingStatus(data.fundingStatus || '')
     goToStep(3)
   }
 
@@ -128,7 +155,12 @@ export default function WizardPage() {
         body: JSON.stringify({
           name: businessName,
           description: businessDescription,
-          hasDocuments: hasDocuments || false,
+          hasDocuments: hasDocuments ?? false,
+          // Convert empty strings to undefined for API payload
+          industry: industry || undefined,
+          stage: stage || undefined,
+          teamSize: teamSize || undefined,
+          fundingStatus: fundingStatus || undefined,
           ideaDescription: {
             problemStatement,
             targetCustomer,
@@ -179,7 +211,11 @@ export default function WizardPage() {
       {/* Step Content */}
       <div className="bg-card border rounded-lg p-8">
         {currentStep === 1 && (
-          <WizardStepChoice initialValue={hasDocuments} onContinue={handleChoiceContinue} />
+          <WizardStepChoice
+            initialValue={hasDocuments}
+            initialFiles={uploadedFiles}
+            onContinue={handleChoiceContinue}
+          />
         )}
 
         {currentStep === 2 && (
@@ -187,6 +223,11 @@ export default function WizardPage() {
             initialData={{
               name: businessName,
               description: businessDescription,
+              industry: industry,
+              // Convert empty strings to undefined for the form component's typed props
+              stage: stage || undefined,
+              teamSize: teamSize || undefined,
+              fundingStatus: fundingStatus || undefined,
             }}
             onContinue={handleDetailsContinue}
             onBack={handleBack}
@@ -211,6 +252,11 @@ export default function WizardPage() {
               hasDocuments,
               businessName,
               businessDescription,
+              // Convert empty strings to undefined for the confirm component's typed props
+              industry: industry || undefined,
+              stage: stage || undefined,
+              teamSize: teamSize || undefined,
+              fundingStatus: fundingStatus || undefined,
               problemStatement,
               targetCustomer,
               proposedSolution,
@@ -238,5 +284,21 @@ export default function WizardPage() {
         </button>
       </div>
     </div>
+  )
+}
+
+function WizardLoadingFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  )
+}
+
+export default function WizardPage() {
+  return (
+    <Suspense fallback={<WizardLoadingFallback />}>
+      <WizardPageContent />
+    </Suspense>
   )
 }

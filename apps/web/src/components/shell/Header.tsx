@@ -1,22 +1,30 @@
 /**
  * Header Component
  *
+ * Story 15-23: Header Bar Style Fixes
+ *
  * Main header bar with:
- * - Logo and workspace selector (left)
+ * - Logo and business switcher (left)
  * - Breadcrumb navigation (center)
  * - Search trigger, notifications, help, user menu (right)
  *
- * Story 07.3: Create Header Bar
+ * All icon buttons use premium hover effects:
+ * - Subtle background on hover
+ * - 1px lift effect
+ * - 150ms transitions
  */
 
 'use client';
 
 import Link from 'next/link';
+import { HelpCircle } from 'lucide-react';
 import { HeaderBreadcrumbs } from './HeaderBreadcrumbs';
 import { HeaderSearchTrigger } from './HeaderSearchTrigger';
 import { HeaderNotificationBell } from './HeaderNotificationBell';
 import { HeaderUserMenu } from './HeaderUserMenu';
 import { MobileHamburger } from '@/components/mobile';
+import { BusinessSwitcher } from '@/components/business/business-switcher';
+import { cn } from '@/lib/utils';
 
 export function Header() {
   return (
@@ -48,21 +56,9 @@ export function Header() {
           </span>
         </Link>
 
-        {/* Workspace selector placeholder */}
-        <div className="hidden md:flex items-center gap-2 pl-4 border-l border-[rgb(var(--color-border-default))]">
-          <div
-            className="flex h-7 w-7 items-center justify-center rounded-md
-                       bg-gradient-to-br from-[rgb(var(--color-primary))] to-[rgb(var(--color-warning))]
-                       text-xs font-bold text-white"
-          >
-            AC
-          </div>
-          <span className="text-sm font-medium text-[rgb(var(--color-text-primary))]">
-            Acme Corp
-          </span>
-          <span className="material-symbols-rounded text-base text-[rgb(var(--color-text-tertiary))]">
-            expand_more
-          </span>
+        {/* Business Switcher (Story 15.14) */}
+        <div className="hidden md:flex items-center pl-4 border-l border-[rgb(var(--color-border-default))]">
+          <BusinessSwitcher />
         </div>
       </div>
 
@@ -79,15 +75,26 @@ export function Header() {
         {/* Notification bell */}
         <HeaderNotificationBell />
 
-        {/* Help link */}
+        {/* Help link - premium hover with lift effect */}
         <Link
           aria-label="Help"
-          className="flex h-9 w-9 items-center justify-center rounded-lg
-                     text-[rgb(var(--color-text-secondary))] transition-colors
-                     hover:bg-[rgb(var(--color-bg-hover))] hover:text-[rgb(var(--color-text-primary))]"
+          className={cn(
+            'flex h-9 w-9 items-center justify-center rounded-lg',
+            'text-[rgb(var(--color-text-secondary))]',
+            // 150ms transitions per style guide
+            'transition-all duration-150 ease-out',
+            // Hover: background + lift + color
+            'hover:bg-[rgb(var(--color-bg-hover))]',
+            'hover:text-[rgb(var(--color-text-primary))]',
+            'hover:-translate-y-px',
+            // Focus-visible
+            'focus-visible:outline-none',
+            'focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-primary-500))] focus-visible:ring-offset-2'
+          )}
           href={'/help' as never}
         >
-          <span className="material-symbols-rounded text-xl">help</span>
+          {/* Lucide icon - 20px size */}
+          <HelpCircle className="h-5 w-5" />
         </Link>
 
         {/* User menu */}

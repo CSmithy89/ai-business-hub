@@ -15,6 +15,7 @@
 
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
+import { Sun, Moon, Monitor } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +40,7 @@ export function ThemeToggle() {
                    transition-colors hover:bg-[rgb(var(--color-bg-hover))]"
         type="button"
       >
-        <span className="material-symbols-rounded text-xl">light_mode</span>
+        <Sun className="h-5 w-5" />
       </button>
     );
   }
@@ -57,29 +58,29 @@ export function ThemeToggle() {
           type="button"
         >
           {currentTheme === 'dark' ? (
-            <span className="material-symbols-rounded text-xl">dark_mode</span>
+            <Moon className="h-5 w-5" />
           ) : (
-            <span className="material-symbols-rounded text-xl">light_mode</span>
+            <Sun className="h-5 w-5" />
           )}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-32">
         <DropdownMenuItem onClick={() => setTheme('light')}>
-          <span className="material-symbols-rounded mr-2 text-base">light_mode</span>
+          <Sun className="mr-2 h-4 w-4" />
           Light
           {theme === 'light' && (
             <span className="ml-auto text-[rgb(var(--color-primary))]">✓</span>
           )}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('dark')}>
-          <span className="material-symbols-rounded mr-2 text-base">dark_mode</span>
+          <Moon className="mr-2 h-4 w-4" />
           Dark
           {theme === 'dark' && (
             <span className="ml-auto text-[rgb(var(--color-primary))]">✓</span>
           )}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('system')}>
-          <span className="material-symbols-rounded mr-2 text-base">computer</span>
+          <Monitor className="mr-2 h-4 w-4" />
           System
           {theme === 'system' && (
             <span className="ml-auto text-[rgb(var(--color-primary))]">✓</span>
@@ -111,21 +112,21 @@ export function ThemeToggleItems() {
   return (
     <>
       <DropdownMenuItem onClick={() => setTheme('light')}>
-        <span className="material-symbols-rounded mr-2 text-base">light_mode</span>
+        <Sun className="mr-2 h-4 w-4" />
         Light theme
         {theme === 'light' && (
           <span className="ml-auto text-[rgb(var(--color-primary))]">✓</span>
         )}
       </DropdownMenuItem>
       <DropdownMenuItem onClick={() => setTheme('dark')}>
-        <span className="material-symbols-rounded mr-2 text-base">dark_mode</span>
+        <Moon className="mr-2 h-4 w-4" />
         Dark theme
         {theme === 'dark' && (
           <span className="ml-auto text-[rgb(var(--color-primary))]">✓</span>
         )}
       </DropdownMenuItem>
       <DropdownMenuItem onClick={() => setTheme('system')}>
-        <span className="material-symbols-rounded mr-2 text-base">computer</span>
+        <Monitor className="mr-2 h-4 w-4" />
         System theme
         {theme === 'system' && (
           <span className="ml-auto text-[rgb(var(--color-primary))]">✓</span>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ThemeProvider } from 'next-themes';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeErrorTracking } from '@/lib/telemetry/error-tracking';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -29,7 +30,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           (window as any).__errorTrackingInitialized = true;
         }
       } catch (err) {
-         
+
         console.error('Error initializing error tracking:', err);
       }
     })();
@@ -47,7 +48,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         enableSystem
         disableTransitionOnChange
       >
-        {children}
+        <TooltipProvider delayDuration={300}>
+          {children}
+        </TooltipProvider>
         <Toaster richColors position="top-right" />
       </ThemeProvider>
     </QueryClientProvider>

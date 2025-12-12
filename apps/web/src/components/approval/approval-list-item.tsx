@@ -3,9 +3,12 @@
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { AgentBadge } from '@/components/agents/agent-avatar'
+import { Clock } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { ApprovalItem } from '@hyvve/shared'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
 interface ApprovalListItemProps {
   approval: ApprovalItem
@@ -13,16 +16,12 @@ interface ApprovalListItemProps {
 
 /**
  * Simple approval list item card
- * Detailed ApprovalCard will be implemented in Story 04-5
+ *
+ * Story 15-25: Apply Agent Character Colors Throughout
+ * - Uses AgentBadge component for displaying agent name with character color
+ * - Uses design tokens for text colors
  */
 export function ApprovalListItem({ approval }: ApprovalListItemProps) {
-  // Determine border color based on confidence level
-  const borderColor = {
-    high: 'border-l-green-500',
-    medium: 'border-l-yellow-500',
-    low: 'border-l-red-500',
-  }[approval.confidenceLevel]
-
   // Determine badge variant based on confidence level
   const badgeVariant = {
     high: 'default' as const,
@@ -44,7 +43,14 @@ export function ApprovalListItem({ approval }: ApprovalListItemProps) {
     : null
 
   return (
-    <Card className={`border-l-4 ${borderColor} p-6 transition-shadow hover:shadow-md`}>
+    <Card
+      className={cn(
+        'border-l-4 p-6 transition-shadow hover:shadow-md',
+        approval.confidenceLevel === 'high' && 'border-l-green-500',
+        approval.confidenceLevel === 'medium' && 'border-l-yellow-500',
+        approval.confidenceLevel === 'low' && 'border-l-red-500'
+      )}
+    >
       <div className="flex flex-col gap-4">
         {/* Header with title and badges */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -71,12 +77,18 @@ export function ApprovalListItem({ approval }: ApprovalListItemProps) {
 
         {/* Metadata and actions */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-            <span>Created {createdAgo}</span>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-[rgb(var(--color-text-secondary))]">
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              {createdAgo}
+            </span>
             {dueDate && (
-              <span className="text-red-600 font-medium">Due {dueDate}</span>
+              <span className="text-[rgb(var(--color-error-500))] font-medium flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                Due {dueDate}
+              </span>
             )}
-            <span>by {approval.createdBy}</span>
+            {approval.createdBy && <AgentBadge agentName={approval.createdBy} size="xs" />}
           </div>
 
           <div className="flex gap-2">

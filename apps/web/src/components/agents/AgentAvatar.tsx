@@ -3,11 +3,14 @@
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import type { Agent, AgentStatus } from '@hyvve/shared'
 import { cn } from '@/lib/utils'
+import { getAgentColor } from '@/config/agent-colors'
 
 interface AgentAvatarProps {
   agent: Agent
   size?: 'sm' | 'md' | 'lg'
   showStatus?: boolean
+  /** Show colored ring around avatar based on agent character color */
+  showColorRing?: boolean
   className?: string
 }
 
@@ -25,13 +28,24 @@ export function AgentAvatar({
   agent,
   size = 'md',
   showStatus = false,
+  showColorRing = false,
   className,
 }: AgentAvatarProps) {
+  // Get agent character color
+  const agentColor = getAgentColor(agent.name)
+
   // Size classes
   const sizeClasses = {
     sm: 'h-8 w-8',
     md: 'h-12 w-12',
     lg: 'h-16 w-16',
+  }
+
+  // Ring size classes
+  const ringClasses = {
+    sm: 'ring-2 ring-offset-1',
+    md: 'ring-2 ring-offset-2',
+    lg: 'ring-[3px] ring-offset-2',
   }
 
   // Status dot size classes
@@ -66,7 +80,13 @@ export function AgentAvatar({
 
   return (
     <div className={cn('relative inline-block', className)}>
-      <Avatar className={cn(sizeClasses[size])}>
+      <Avatar
+        className={cn(
+          sizeClasses[size],
+          showColorRing && ringClasses[size]
+        )}
+        style={showColorRing ? { '--tw-ring-color': agentColor } as React.CSSProperties : undefined}
+      >
         {isEmoji(agent.avatar) ? (
           <div className="flex h-full w-full items-center justify-center text-2xl">
             {agent.avatar}

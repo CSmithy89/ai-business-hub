@@ -325,47 +325,47 @@ development_status:
   epic-15: contexted
 
   # Section 1: Icon System & Navigation (2 stories, 7 points)
-  15-1-replace-material-icon-text-strings-with-lucide-components: backlog
-  15-11-implement-main-menu-restructuring-with-businesses-tab: backlog
+  15-1-replace-material-icon-text-strings-with-lucide-components: done
+  15-11-implement-main-menu-restructuring-with-businesses-tab: done
 
   # Section 2: Landing Page & User Flow (4 stories, 14 points)
-  15-2-create-businesses-portfolio-landing-page: backlog
-  15-3-implement-4-step-user-onboarding-wizard: backlog
-  15-15-update-sign-in-flow-redirect-logic: backlog
-  15-16-enhance-business-onboarding-wizard: backlog
+  15-2-create-businesses-portfolio-landing-page: done
+  15-3-implement-4-step-user-onboarding-wizard: done
+  15-15-update-sign-in-flow-redirect-logic: done
+  15-16-enhance-business-onboarding-wizard: done
 
   # Section 3: Chat Integration (2 stories, 8 points)
-  15-4-connect-chat-panel-to-agno-backend: backlog  # Includes Chat Agent Selection
-  15-12-implement-chat-panel-position-options: backlog
+  15-4-connect-chat-panel-to-agno-backend: done  # Includes Chat Agent Selection
+  15-12-implement-chat-panel-position-options: done
 
   # Section 4: Settings Pages (8 stories, 26 points)
-  15-6-implement-settings-profile-page: backlog
-  15-7-implement-settings-security-page: backlog
-  15-8-implement-settings-sessions-page: backlog
-  15-9-implement-workspace-general-settings: backlog
-  15-10-fix-and-implement-workspace-members-page: backlog
-  15-10a-implement-workspace-roles-page: backlog  # P0 - Added from audit
-  15-13-implement-ai-configuration-page: backlog
-  15-26-implement-appearance-settings-page: backlog  # P1 - Added from audit
+  15-6-implement-settings-profile-page: done
+  15-7-implement-settings-security-page: done
+  15-8-implement-settings-sessions-page: done
+  15-9-implement-workspace-general-settings: done
+  15-10-fix-and-implement-workspace-members-page: done
+  15-10a-implement-workspace-roles-page: done  # P0 - Added from audit
+  15-13-implement-ai-configuration-page: done
+  15-26-implement-appearance-settings-page: done
 
   # Section 5: Approvals & Agents (3 stories, 11 points)
-  15-5-fix-approvals-page-data-loading: backlog
-  15-17-implement-approval-cards-with-confidence-visualization: backlog
-  15-18-implement-agent-cards-enhancement: backlog
+  15-5-fix-approvals-page-data-loading: done
+  15-17-implement-approval-cards-with-confidence-visualization: done
+  15-18-implement-agent-cards-enhancement: done
 
   # Section 6: Business Module (2 stories, 7 points)
-  15-14-implement-business-switcher-dropdown: backlog
+  15-14-implement-business-switcher-dropdown: done
 
   # Section 7: Style Guide Compliance (7 stories, 24 points)
-  15-19-apply-style-guide-card-styling: backlog
-  15-20-apply-style-guide-button-styling: backlog
-  15-21-apply-style-guide-focus-states: backlog
-  15-22-implement-chat-panel-styling-per-style-guide: backlog
-  15-23-implement-header-bar-style-fixes: backlog
-  15-24-implement-form-accessibility-improvements: backlog
-  15-25-apply-agent-character-colors-throughout: backlog
+  15-19-apply-style-guide-card-styling: done
+  15-20-apply-style-guide-button-styling: done
+  15-21-apply-style-guide-focus-states: done
+  15-22-implement-chat-panel-styling-per-style-guide: done
+  15-23-implement-header-bar-style-fixes: done
+  15-24-implement-form-accessibility-improvements: done
+  15-25-apply-agent-character-colors-throughout: done
 
-  epic-15-retrospective: optional
+  epic-15-retrospective: completed  # 2025-12-12 - Tech debt items added to Epic 16
 
   # ===========================================
   # EPIC-16: Premium Polish & Advanced Features

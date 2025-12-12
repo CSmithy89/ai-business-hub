@@ -1,4 +1,5 @@
 import { SettingsLayout } from '@/components/layouts/settings-layout'
+import { ProfileForm } from '@/components/settings/profile-form'
 
 export const metadata = {
   title: 'Profile Settings | HYVVE',
@@ -11,9 +12,7 @@ export default function SettingsProfilePage() {
       title="Profile"
       description="Manage your personal information and preferences"
     >
-      <div className="rounded-lg border bg-white p-6">
-        <p className="text-gray-500">Profile settings coming soon.</p>
-      </div>
+      <ProfileForm />
     </SettingsLayout>
   )
 }

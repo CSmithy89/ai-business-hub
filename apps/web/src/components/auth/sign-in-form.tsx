@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, authClient } from '@/lib/auth-client'
 import { signInSchema, type SignInFormData } from '@/lib/validations/auth'
+import { isAllowedRedirect, getSafeRedirectUrl } from '@/lib/utils/redirect-validation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,6 +20,7 @@ type ErrorType = 'INVALID_CREDENTIALS' | 'EMAIL_NOT_VERIFIED' | 'RATE_LIMITED' |
 
 export function SignInForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false)
@@ -27,6 +29,21 @@ export function SignInForm() {
   const [retryAfter, setRetryAfter] = useState<number | null>(null)
   const [show2FA, setShow2FA] = useState(false)
   const [verifyingUserId, setVerifyingUserId] = useState<string | null>(null)
+
+  // Track pending OAuth operations to prevent duplicate submissions
+  const pendingOAuthRef = useRef<'google' | 'microsoft' | 'github' | null>(null)
+
+  // OAuth timeout cleanup
+  const oauthTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Cleanup OAuth timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (oauthTimeoutRef.current) {
+        clearTimeout(oauthTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const {
     register,
@@ -43,6 +60,46 @@ export function SignInForm() {
   })
 
   const rememberMe = watch('rememberMe')
+
+  /**
+   * Handles successful sign-in by determining the appropriate redirect destination
+   * Based on user state:
+   * - If deep link provided in URL → redirect to deep link (with validation)
+   * - If no workspaces → /onboarding/account-setup
+   * - If workspaces exist → /businesses
+   *
+   * Story: 15.15 - Update Sign-In Flow Redirect Logic
+   * Security: Validates redirect URLs to prevent open redirect attacks
+   */
+  const handleSuccessfulSignIn = useCallback(async () => {
+    try {
+      // Check for intended destination from URL params (deep link support)
+      const redirectParam = searchParams.get('redirect')
+
+      // Validate redirect URL to prevent open redirect attacks
+      if (isAllowedRedirect(redirectParam)) {
+        router.push(getSafeRedirectUrl(redirectParam) as Parameters<typeof router.push>[0])
+        return
+      }
+
+      // Fetch the appropriate redirect destination from the API
+      const response = await fetch('/api/auth/redirect-destination')
+      const result = await response.json()
+
+      if (result.success && result.data?.destination) {
+        // API responses are trusted but still validate for defense in depth
+        const destination = getSafeRedirectUrl(result.data.destination)
+        router.push(destination as Parameters<typeof router.push>[0])
+      } else {
+        // Default fallback to businesses page
+        router.push('/businesses')
+      }
+    } catch (error) {
+      console.error('Failed to determine redirect destination:', error)
+      // Default fallback to businesses page
+      router.push('/businesses')
+    }
+  }, [searchParams, router])
 
   const onSubmit = async (data: SignInFormData) => {
     setIsSubmitting(true)
@@ -89,8 +146,8 @@ export function SignInForm() {
               setShow2FA(true)
               setVerifyingUserId(userId)
             } else {
-              // Success - redirect to dashboard
-              router.push('/dashboard')
+              // Success - determine redirect destination based on user state
+              await handleSuccessfulSignIn()
             }
           } catch (error) {
             console.error('Failed to check 2FA status:', error)
@@ -98,8 +155,8 @@ export function SignInForm() {
             setError('NETWORK_ERROR')
           }
         } else {
-          // Success - redirect to dashboard
-          router.push('/dashboard')
+          // Success - determine redirect destination based on user state
+          await handleSuccessfulSignIn()
         }
       }
     } catch (err) {
@@ -116,57 +173,95 @@ export function SignInForm() {
     console.log('Resend verification email')
   }
 
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true)
-    setError(null)
-    try {
-      await authClient.signIn.social({
-        provider: 'google',
-        callbackURL: '/dashboard',
-      })
-      // Redirect happens automatically
-    } catch (error) {
-      console.error('Google sign-in error:', error)
-      setError('OAUTH_ERROR')
-      setIsGoogleLoading(false)
+  /**
+   * Get the callback URL for OAuth sign-in
+   * Uses the redirect param if available (with validation), otherwise defaults to /businesses
+   * Story: 15.15 - Update Sign-In Flow Redirect Logic
+   * Security: Validates redirect URLs to prevent open redirect attacks
+   * Note: Returns absolute URL as required by OAuth providers
+   */
+  const getOAuthCallbackURL = useCallback(() => {
+    const redirectParam = searchParams.get('redirect')
+    // Use validated redirect URL or fall back to businesses
+    const relativePath = getSafeRedirectUrl(redirectParam, '/businesses')
+    // Return absolute URL for OAuth callback - required by OAuth providers
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}${relativePath}`
     }
-  }
+    return relativePath
+  }, [searchParams])
 
-  const handleMicrosoftSignIn = async () => {
-    setIsMicrosoftLoading(true)
-    setError(null)
-    try {
-      await authClient.signIn.social({
-        provider: 'microsoft',
-        callbackURL: '/dashboard',
-      })
-      // Redirect happens automatically
-    } catch (error) {
-      console.error('Microsoft sign-in error:', error)
-      setError('OAUTH_ERROR')
-      setIsMicrosoftLoading(false)
-    }
-  }
+  /**
+   * Generic OAuth sign-in handler with deduplication and timeout handling
+   * Prevents duplicate OAuth requests and handles stuck loading states
+   */
+  const handleOAuthSignIn = useCallback(
+    async (provider: 'google' | 'microsoft' | 'github') => {
+      // Prevent duplicate OAuth operations
+      if (pendingOAuthRef.current) {
+        console.warn(`OAuth operation already pending for ${pendingOAuthRef.current}`)
+        return
+      }
 
-  const handleGitHubSignIn = async () => {
-    setIsGitHubLoading(true)
-    setError(null)
-    try {
-      await authClient.signIn.social({
-        provider: 'github',
-        callbackURL: '/dashboard',
-      })
-      // Redirect happens automatically
-    } catch (error) {
-      console.error('GitHub sign-in error:', error)
-      setError('OAUTH_ERROR')
-      setIsGitHubLoading(false)
-    }
-  }
+      // Set loading state based on provider
+      const setLoading = {
+        google: setIsGoogleLoading,
+        microsoft: setIsMicrosoftLoading,
+        github: setIsGitHubLoading,
+      }[provider]
 
-  const handle2FASuccess = () => {
-    router.push('/dashboard')
-  }
+      pendingOAuthRef.current = provider
+      setLoading(true)
+      setError(null)
+
+      // Clear any existing timeout
+      if (oauthTimeoutRef.current) {
+        clearTimeout(oauthTimeoutRef.current)
+      }
+
+      // Set timeout to reset loading state if OAuth doesn't complete
+      // This handles cases where the OAuth popup is closed without completing
+      oauthTimeoutRef.current = setTimeout(() => {
+        if (pendingOAuthRef.current === provider) {
+          console.warn(`OAuth timeout for ${provider}`)
+          setLoading(false)
+          pendingOAuthRef.current = null
+          setError('OAUTH_ERROR')
+          oauthTimeoutRef.current = null // Clear ref after timeout fires
+        }
+      }, 60000) // 60 second timeout
+
+      try {
+        await authClient.signIn.social({
+          provider,
+          callbackURL: getOAuthCallbackURL(),
+        })
+        // Redirect happens automatically - timeout will be cleared on unmount
+      } catch (error) {
+        console.error(`${provider} sign-in error:`, error)
+        setError('OAUTH_ERROR')
+        setLoading(false)
+        pendingOAuthRef.current = null
+        if (oauthTimeoutRef.current) {
+          clearTimeout(oauthTimeoutRef.current)
+          oauthTimeoutRef.current = null
+        }
+      }
+    },
+    [getOAuthCallbackURL]
+  )
+
+  const handleGoogleSignIn = useCallback(() => handleOAuthSignIn('google'), [handleOAuthSignIn])
+  const handleMicrosoftSignIn = useCallback(
+    () => handleOAuthSignIn('microsoft'),
+    [handleOAuthSignIn]
+  )
+  const handleGitHubSignIn = useCallback(() => handleOAuthSignIn('github'), [handleOAuthSignIn])
+
+  const handle2FASuccess = useCallback(async () => {
+    // Use the same intelligent redirect logic after 2FA success
+    await handleSuccessfulSignIn()
+  }, [handleSuccessfulSignIn])
 
   const handle2FACancel = () => {
     setShow2FA(false)
@@ -354,23 +449,28 @@ export function SignInForm() {
           </div>
         )}
 
-        {/* Email Field */}
+        {/* Email Field - Story 15-24: Form Accessibility */}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             type="email"
             placeholder="you@company.com"
+            autoComplete="email"
             {...register('email')}
             disabled={isSubmitting}
             aria-invalid={errors.email ? 'true' : 'false'}
+            aria-describedby={errors.email ? 'email-error' : undefined}
+            aria-required="true"
           />
           {errors.email && (
-            <p className="text-sm text-red-600">{errors.email.message}</p>
+            <p id="email-error" className="text-sm text-red-600" role="alert">
+              {errors.email.message}
+            </p>
           )}
         </div>
 
-        {/* Password Field */}
+        {/* Password Field - Story 15-24: Form Accessibility */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
@@ -384,12 +484,17 @@ export function SignInForm() {
           <PasswordInput
             id="password"
             placeholder="Enter your password"
+            autoComplete="current-password"
+            aria-describedby={errors.password ? 'password-error' : undefined}
+            aria-required="true"
             {...register('password')}
             disabled={isSubmitting}
             error={!!errors.password}
           />
           {errors.password && (
-            <p className="text-sm text-red-600">{errors.password.message}</p>
+            <p id="password-error" className="text-sm text-red-600" role="alert">
+              {errors.password.message}
+            </p>
           )}
         </div>
 

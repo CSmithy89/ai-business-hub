@@ -14,20 +14,33 @@ import {
 } from './onboarding'
 
 describe('businessDetailsSchema', () => {
+  const validBaseData: BusinessDetailsFormData = {
+    name: 'My Test Business',
+    description: 'A business that does amazing things for customers worldwide.',
+    industry: 'Technology',
+    stage: 'startup',
+  }
+
   it('should validate valid business details', () => {
-    const validData: BusinessDetailsFormData = {
-      name: 'My Test Business',
-      description: 'A business that does amazing things for customers worldwide.',
+    const result = businessDetailsSchema.safeParse(validBaseData)
+    expect(result.success).toBe(true)
+  })
+
+  it('should validate with optional fields', () => {
+    const data: BusinessDetailsFormData = {
+      ...validBaseData,
+      teamSize: '2-5',
+      fundingStatus: 'bootstrapped',
     }
 
-    const result = businessDetailsSchema.safeParse(validData)
+    const result = businessDetailsSchema.safeParse(data)
     expect(result.success).toBe(true)
   })
 
   it('should reject name shorter than 3 characters', () => {
     const invalidData = {
+      ...validBaseData,
       name: 'AB',
-      description: 'Valid description here that is long enough.',
     }
 
     const result = businessDetailsSchema.safeParse(invalidData)
@@ -39,30 +52,27 @@ describe('businessDetailsSchema', () => {
 
   it('should reject name longer than 100 characters', () => {
     const invalidData = {
+      ...validBaseData,
       name: 'A'.repeat(101),
-      description: 'Valid description here.',
     }
 
     const result = businessDetailsSchema.safeParse(invalidData)
     expect(result.success).toBe(false)
   })
 
-  it('should reject description shorter than 10 characters', () => {
-    const invalidData = {
-      name: 'Valid Name',
-      description: 'Short',
+  it('should allow empty description (optional field)', () => {
+    const data = {
+      ...validBaseData,
+      description: '',
     }
 
-    const result = businessDetailsSchema.safeParse(invalidData)
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      expect(result.error.issues[0].path).toContain('description')
-    }
+    const result = businessDetailsSchema.safeParse(data)
+    expect(result.success).toBe(true)
   })
 
   it('should reject description longer than 500 characters', () => {
     const invalidData = {
-      name: 'Valid Name',
+      ...validBaseData,
       description: 'A'.repeat(501),
     }
 
@@ -72,19 +82,48 @@ describe('businessDetailsSchema', () => {
 
   it('should reject empty name', () => {
     const invalidData = {
+      ...validBaseData,
       name: '',
-      description: 'Valid description here.',
     }
 
     const result = businessDetailsSchema.safeParse(invalidData)
     expect(result.success).toBe(false)
   })
 
+  it('should reject missing industry', () => {
+    const invalidData = {
+      name: 'My Business',
+      stage: 'startup' as const,
+    }
+
+    const result = businessDetailsSchema.safeParse(invalidData)
+    expect(result.success).toBe(false)
+  })
+
+  it('should reject missing stage', () => {
+    const invalidData = {
+      name: 'My Business',
+      industry: 'Technology',
+    }
+
+    const result = businessDetailsSchema.safeParse(invalidData)
+    expect(result.success).toBe(false)
+  })
+
+  it('should accept all valid stage values', () => {
+    const stages = ['idea', 'startup', 'existing', 'side-project'] as const
+    for (const stage of stages) {
+      const data = { ...validBaseData, stage }
+      const result = businessDetailsSchema.safeParse(data)
+      expect(result.success).toBe(true)
+    }
+  })
+
   it('should accept names with leading/trailing spaces', () => {
     // Note: Schema does not trim whitespace - that should be done at form submission
     const data = {
+      ...validBaseData,
       name: '  My Business  ',
-      description: 'Valid description here.',
     }
 
     const result = businessDetailsSchema.safeParse(data)

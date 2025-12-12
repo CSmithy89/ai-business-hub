@@ -13,7 +13,7 @@ import { IS_MOCK_DATA_ENABLED } from '@/lib/api-config'
  */
 export async function GET(
   _request: NextRequest,
-  context: { params: { id: string } | Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession()

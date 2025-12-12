@@ -4,11 +4,13 @@
  * Individual navigation item with:
  * - Active state detection based on current route
  * - Badge support (inline in expanded, overlay in collapsed)
- * - Status dot for module items
+ * - Status dot for module items (agent-colored)
  * - Tooltip in collapsed state
  *
  * Epic: 07 - UI Shell
  * Story: 07-2 - Create Sidebar Navigation
+ * Updated: Story 15.1 - Replace Material Icons with Lucide
+ * Updated: Story 15-25 - Apply Agent Character Colors Throughout
  */
 
 'use client';
@@ -16,6 +18,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import type { Route } from 'next';
+import type { LucideIcon } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -24,17 +27,22 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
+/**
+ * Agent status dot colors (using CSS custom properties from tokens.css)
+ */
+type AgentStatusDot = 'hub' | 'maya' | 'atlas' | 'sage' | 'nova' | 'echo' | 'secondary';
+
 interface SidebarNavItemProps {
-  /** Material Symbols icon name (e.g., "grid_view") */
-  icon: string;
+  /** Lucide icon component */
+  icon: LucideIcon;
   /** Display label (e.g., "Dashboard") */
   label: string;
   /** Navigation route (e.g., "/dashboard") */
   href: string;
   /** Optional badge count (e.g., 5 for approvals) */
   badge?: number;
-  /** Optional status dot color for module items */
-  statusDot?: 'secondary' | 'atlas';
+  /** Optional status dot color for module items (agent name or secondary) */
+  statusDot?: AgentStatusDot;
   /** Whether sidebar is in collapsed state */
   collapsed: boolean;
 }
@@ -52,10 +60,15 @@ export function SidebarNavItem({
   // Active state: exact match or starts with href + '/'
   const isActive = pathname === href || pathname.startsWith(href + '/');
 
-  // Status dot color mapping
-  const statusDotColors = {
-    secondary: 'bg-[rgb(var(--color-accent-500))]', // Teal
-    atlas: 'bg-[rgb(var(--color-agent-atlas))]', // Orange
+  // Status dot color mapping (using agent CSS custom properties)
+  const statusDotColors: Record<AgentStatusDot, string> = {
+    hub: 'bg-[rgb(var(--color-agent-hub))]',       // Coral
+    maya: 'bg-[rgb(var(--color-agent-maya))]',     // Teal
+    atlas: 'bg-[rgb(var(--color-agent-atlas))]',   // Orange
+    sage: 'bg-[rgb(var(--color-agent-sage))]',     // Green
+    nova: 'bg-[rgb(var(--color-agent-nova))]',     // Pink
+    echo: 'bg-[rgb(var(--color-agent-echo))]',     // Blue
+    secondary: 'bg-[rgb(var(--color-accent-500))]', // Teal (alias for maya)
   };
 
   const linkContent = (
@@ -72,16 +85,19 @@ export function SidebarNavItem({
         )}
       >
       {/* Icon */}
-      <span
-        className={cn(
-          'material-symbols-outlined text-xl',
-          isActive
-            ? 'text-[rgb(var(--color-primary-500))]'
-            : 'text-[rgb(var(--color-text-secondary))] group-hover:text-[rgb(var(--color-text-primary))]'
-        )}
-      >
-        {icon}
-      </span>
+      {(() => {
+        const Icon = icon;
+        return (
+          <Icon
+            className={cn(
+              'h-5 w-5 shrink-0',
+              isActive
+                ? 'text-[rgb(var(--color-primary-500))]'
+                : 'text-[rgb(var(--color-text-secondary))] group-hover:text-[rgb(var(--color-text-primary))]'
+            )}
+          />
+        );
+      })()}
 
       {/* Label + Status Dot + Badge (expanded state) */}
       {!collapsed && (

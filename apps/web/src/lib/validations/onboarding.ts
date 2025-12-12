@@ -10,11 +10,72 @@
 import { z } from 'zod'
 
 /**
+ * Industry options for business onboarding
+ * Story: 15.16 - Enhance Business Onboarding Wizard
+ */
+export const INDUSTRY_OPTIONS = [
+  'Technology',
+  'E-commerce',
+  'Professional Services',
+  'Healthcare',
+  'Education',
+  'Food & Beverage',
+  'Retail',
+  'Manufacturing',
+  'Finance',
+  'Real Estate',
+  'Media & Entertainment',
+  'Other',
+] as const
+
+/**
+ * Business stage options
+ * Story: 15.16 - Enhance Business Onboarding Wizard
+ */
+export const BUSINESS_STAGE_OPTIONS = [
+  { value: 'idea', label: 'Just an idea', description: 'Exploring the concept' },
+  { value: 'startup', label: 'New startup', description: 'Just getting started' },
+  { value: 'existing', label: 'Existing business', description: 'Already operating' },
+  { value: 'side-project', label: 'Side project', description: 'Testing an idea' },
+] as const
+
+/**
+ * Team size options
+ * Story: 15.16 - Enhance Business Onboarding Wizard
+ */
+export const TEAM_SIZE_OPTIONS = [
+  { value: 'solo', label: 'Just me' },
+  { value: '2-5', label: '2-5 people' },
+  { value: '6-10', label: '6-10 people' },
+  { value: '11-50', label: '11-50 people' },
+  { value: '50+', label: '50+ people' },
+] as const
+
+/**
+ * Funding status options
+ * Story: 15.16 - Enhance Business Onboarding Wizard
+ */
+export const FUNDING_STATUS_OPTIONS = [
+  { value: 'bootstrapped', label: 'Bootstrapped', description: 'Self-funded' },
+  { value: 'pre-seed', label: 'Pre-seed', description: 'Friends & family' },
+  { value: 'seed', label: 'Seed', description: 'Angel or early VC' },
+  { value: 'series-a', label: 'Series A+', description: 'Institutional funding' },
+  { value: 'not-applicable', label: 'Not applicable', description: 'Not seeking funding' },
+] as const
+
+/**
  * Business Details Schema (Step 2)
  *
  * Validates:
  * - Business name: 3-100 chars, letters/numbers/spaces/hyphens only
- * - Description: 10-500 chars
+ * - Description: 10-500 chars (optional now)
+ * - Industry: Required selection
+ * - Stage: Required selection
+ * - Team size: Optional
+ * - Funding status: Optional
+ *
+ * Story: 08.3 - Implement Onboarding Wizard UI
+ * Story: 15.16 - Enhance Business Onboarding Wizard
  */
 export const businessDetailsSchema = z.object({
   name: z
@@ -27,8 +88,20 @@ export const businessDetailsSchema = z.object({
     ),
   description: z
     .string()
-    .min(10, 'Description must be at least 10 characters')
     .max(500, 'Description must not exceed 500 characters'),
+  industry: z
+    .string()
+    .min(1, 'Please select an industry'),
+  stage: z
+    .enum(['idea', 'startup', 'existing', 'side-project'], {
+      message: 'Please select a business stage',
+    }),
+  teamSize: z
+    .enum(['solo', '2-5', '6-10', '11-50', '50+'])
+    .optional(),
+  fundingStatus: z
+    .enum(['bootstrapped', 'pre-seed', 'seed', 'series-a', 'not-applicable'])
+    .optional(),
 })
 
 /**
@@ -58,11 +131,16 @@ export const businessIdeaSchema = z.object({
  * Business Creation Schema (API validation)
  *
  * Used to validate the complete payload sent to POST /api/businesses
+ * Note: description is optional to match the Step 2 form schema
  */
 export const businessCreateSchema = z.object({
   name: z.string().min(3).max(100),
-  description: z.string().min(10).max(500),
+  description: z.string().max(500).optional().default(''),
   hasDocuments: z.boolean(),
+  industry: z.string().optional(),
+  stage: z.enum(['idea', 'startup', 'existing', 'side-project']).optional(),
+  teamSize: z.enum(['solo', '2-5', '6-10', '11-50', '50+']).optional(),
+  fundingStatus: z.enum(['bootstrapped', 'pre-seed', 'seed', 'series-a', 'not-applicable']).optional(),
   ideaDescription: z.object({
     problemStatement: z.string().min(10).max(300),
     targetCustomer: z.string().min(5).max(200),
