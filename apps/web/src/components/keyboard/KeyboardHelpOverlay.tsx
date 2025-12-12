@@ -46,7 +46,7 @@ export function KeyboardHelpOverlay({
 
   // All keyboard shortcuts
   const shortcuts: KeyboardShortcut[] = [
-    // Navigation
+    // Navigation - Modifier shortcuts
     {
       keys: [modKey, 'D'],
       description: 'Go to Dashboard',
@@ -55,6 +55,32 @@ export function KeyboardHelpOverlay({
     {
       keys: [modKey, ','],
       description: 'Go to Settings',
+      category: 'navigation',
+    },
+    // Navigation - Vim-style sequences (Story 16-16)
+    {
+      keys: ['G', 'then', 'D'],
+      description: 'Go to Dashboard',
+      category: 'navigation',
+    },
+    {
+      keys: ['G', 'then', 'A'],
+      description: 'Go to Approvals',
+      category: 'navigation',
+    },
+    {
+      keys: ['G', 'then', 'B'],
+      description: 'Go to Businesses',
+      category: 'navigation',
+    },
+    {
+      keys: ['G', 'then', 'S'],
+      description: 'Go to Settings',
+      category: 'navigation',
+    },
+    {
+      keys: ['G', 'then', 'N'],
+      description: 'Go to Agents',
       category: 'navigation',
     },
 
@@ -72,6 +98,11 @@ export function KeyboardHelpOverlay({
     {
       keys: [modKey, '/'],
       description: 'Toggle chat panel',
+      category: 'ui',
+    },
+    {
+      keys: ['/'],
+      description: 'Focus chat input',
       category: 'ui',
     },
 

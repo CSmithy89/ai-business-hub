@@ -10,9 +10,11 @@
  * - Help overlay (? key)
  * - Navigation shortcuts (Cmd+D, Cmd+,)
  * - UI control shortcuts (Cmd+K, Cmd+B, Cmd+/)
+ * - Vim-style sequences (g then d, g then a, etc.)
  *
  * Epic: 07 - UI Shell
  * Story: 07-8 - Implement Keyboard Shortcuts
+ * Story: 16-16 - Comprehensive Keyboard Shortcuts
  */
 
 'use client';
@@ -21,6 +23,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { KeyboardHelpOverlay } from './KeyboardHelpOverlay';
 import { useUIStore } from '@/stores/ui';
+
+// Sequence timeout in ms (how long to wait for next key in sequence)
+const SEQUENCE_TIMEOUT = 500;
 
 /**
  * Check if the current focus is in an input-like element
@@ -59,13 +64,35 @@ export function KeyboardShortcuts() {
   const [showHelp, setShowHelp] = useState(false);
   const [isMac, setIsMac] = useState(false);
 
+  // Track pending key sequence (for vim-style g then x shortcuts)
+  const pendingKeyRef = useRef<string | null>(null);
+  const sequenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Use ref to access showHelp in event handler without re-registering listener
   const showHelpRef = useRef(showHelp);
   showHelpRef.current = showHelp;
 
+  // Clear pending sequence
+  const clearPendingSequence = useCallback(() => {
+    pendingKeyRef.current = null;
+    if (sequenceTimeoutRef.current) {
+      clearTimeout(sequenceTimeoutRef.current);
+      sequenceTimeoutRef.current = null;
+    }
+  }, []);
+
   // Detect platform on mount
   useEffect(() => {
     setIsMac(isMacPlatform());
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (sequenceTimeoutRef.current) {
+        clearTimeout(sequenceTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Memoized handler to avoid recreating on every render
@@ -73,16 +100,64 @@ export function KeyboardShortcuts() {
     (event: KeyboardEvent) => {
       // Skip if focus is in an input field
       if (isInputFocused()) {
+        clearPendingSequence();
         return;
       }
 
       const isModifier = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
 
+      // Handle sequence shortcuts (g then x)
+      if (pendingKeyRef.current === 'g' && !isModifier) {
+        event.preventDefault();
+        clearPendingSequence();
+
+        switch (key) {
+          case 'd': // g then d: Dashboard
+            router.push('/dashboard');
+            return;
+          case 'a': // g then a: Approvals
+            router.push('/approvals');
+            return;
+          case 'b': // g then b: Businesses
+            router.push('/businesses');
+            return;
+          case 's': // g then s: Settings
+            router.push('/settings');
+            return;
+          case 'n': // g then n: Agents
+            router.push('/agents');
+            return;
+        }
+        return;
+      }
+
+      // Start 'g' sequence (for vim-style navigation)
+      if (key === 'g' && !isModifier) {
+        event.preventDefault();
+        pendingKeyRef.current = 'g';
+        sequenceTimeoutRef.current = setTimeout(() => {
+          pendingKeyRef.current = null;
+        }, SEQUENCE_TIMEOUT);
+        return;
+      }
+
       // Help overlay (? - Shift+/ on most keyboards)
       if ((key === '?' || (key === '/' && event.shiftKey)) && !isModifier) {
         event.preventDefault();
         setShowHelp(true);
+        return;
+      }
+
+      // Focus chat with / (without modifier)
+      if (key === '/' && !isModifier && !event.shiftKey) {
+        event.preventDefault();
+        useUIStore.getState().expandChatPanel();
+        // Focus the chat input after a short delay to allow panel to open
+        setTimeout(() => {
+          const chatInput = document.querySelector('[data-chat-input]') as HTMLElement;
+          chatInput?.focus();
+        }, 100);
         return;
       }
 
@@ -93,7 +168,7 @@ export function KeyboardShortcuts() {
         return;
       }
 
-      // Only handle shortcuts with modifier key
+      // Only handle shortcuts with modifier key from here
       if (!isModifier) return;
 
       // Cmd/Ctrl + K: Command Palette
@@ -131,7 +206,7 @@ export function KeyboardShortcuts() {
         return;
       }
     },
-    [router]
+    [router, clearPendingSequence]
   );
 
   // Register event listener once (router is stable)
