@@ -394,7 +394,7 @@ development_status:
 
   # Section 4: Visual Polish (3 stories, 9 points)
   16-12-implement-premium-shadow-system: done
-  16-13-implement-typography-refinements: backlog
+  16-13-implement-typography-refinements: done
   16-14-audit-background-color-usage: backlog
 
   # Section 5: Real-time & Interaction (3 stories, 11 points)
