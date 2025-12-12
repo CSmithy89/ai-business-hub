@@ -2,7 +2,7 @@ import { SettingsLayout } from '@/components/layouts/settings-layout'
 import { ProfileForm } from '@/components/settings/profile-form'
 
 export const metadata = {
-  title: 'Profile Settings | HYVVE',
+  title: 'Profile',
   description: 'Manage your profile settings',
 }
 

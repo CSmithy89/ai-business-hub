@@ -3,7 +3,7 @@ import { AuthLayout } from '@/components/auth/auth-layout'
 import { SignUpForm } from '@/components/auth/sign-up-form'
 
 export const metadata: Metadata = {
-  title: 'Sign Up - HYVVE',
+  title: 'Sign Up',
   description: 'Create your HYVVE account to get started with AI-powered business automation.',
 }
 

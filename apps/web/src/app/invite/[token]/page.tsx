@@ -8,7 +8,7 @@ import { InviteError } from '@/components/invite/invite-error'
 import { AuthLayout } from '@/components/auth/auth-layout'
 
 export const metadata: Metadata = {
-  title: 'Accept Invitation | HYVVE',
+  title: 'Accept Invitation',
   description: 'Accept your workspace invitation',
 }
 

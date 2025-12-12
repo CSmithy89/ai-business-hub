@@ -1,15 +1,17 @@
-'use client'
+/**
+ * Workspace Settings Page
+ *
+ * Server component wrapper for metadata.
+ * Updated: Story 16-24 - Page Title Tags
+ */
 
-import { SettingsLayout } from '@/components/layouts/settings-layout'
-import { WorkspaceSettingsForm } from '@/components/settings/workspace-settings-form'
+import { WorkspaceContent } from './WorkspaceContent'
+
+export const metadata = {
+  title: 'Workspace Settings',
+  description: 'Manage your workspace name, image, and timezone',
+}
 
 export default function WorkspaceSettingsPage() {
-  return (
-    <SettingsLayout
-      title="Workspace Settings"
-      description="Manage your workspace name, image, and timezone"
-    >
-      <WorkspaceSettingsForm />
-    </SettingsLayout>
-  )
+  return <WorkspaceContent />
 }

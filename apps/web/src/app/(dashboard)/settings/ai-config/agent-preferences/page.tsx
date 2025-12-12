@@ -2,7 +2,7 @@ import { SettingsLayout } from '@/components/layouts/settings-layout'
 import { AgentModelPreferences } from '@/components/settings/agent-model-preferences'
 
 export const metadata = {
-  title: 'Agent Preferences | HYVVE',
+  title: 'Agent Preferences',
   description: 'Configure AI model preferences for each agent team',
 }
 

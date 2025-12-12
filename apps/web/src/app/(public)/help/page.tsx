@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Help Center | HYVVE',
+  title: 'Help Center',
   description: 'Get help with using the HYVVE platform',
 };
 

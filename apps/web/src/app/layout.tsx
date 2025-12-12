@@ -6,7 +6,10 @@ import { Providers } from './providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Hyvve - Your AI Team',
+  title: {
+    template: '%s | HYVVE',
+    default: 'HYVVE - Your AI Team',
+  },
   description: 'AI-powered business orchestration platform',
 };
 
