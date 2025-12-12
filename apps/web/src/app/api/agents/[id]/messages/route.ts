@@ -170,6 +170,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id: agentId } = await params;
+
+    // Validate agent ID for consistency with POST handler
+    const validAgents = ['hub', 'maya', 'atlas', 'nova', 'echo'];
+    if (!validAgents.includes(agentId)) {
+      return NextResponse.json({ error: 'Invalid agent ID' }, { status: 400 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const businessId = searchParams.get('businessId');
     // Parse limit with fallback if invalid (NaN)

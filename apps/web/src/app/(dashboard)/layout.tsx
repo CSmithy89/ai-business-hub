@@ -47,14 +47,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { sidebarCollapsed, chatPanelOpen, chatPanelWidth, chatPanelHeight, chatPanelPosition } = useUIStore();
 
   // Calculate main content margin based on chat panel position
+  // Returns undefined for small screens to allow Tailwind responsive classes to take effect
   const getMainContentMarginRight = () => {
+    // On small screens, return undefined so max-sm:mr-0 can take effect
+    if (typeof window !== 'undefined' && window.innerWidth < 640) return undefined;
     if (!chatPanelOpen || chatPanelPosition === 'collapsed') return 0;
     if (chatPanelPosition === 'right') return chatPanelWidth ?? LAYOUT.CHAT_DEFAULT_WIDTH;
     return 0; // No margin for bottom, floating, or collapsed
   };
 
   // Calculate main content margin bottom for bottom panel
+  // Returns undefined for small screens to allow Tailwind responsive classes to take effect
   const getMainContentMarginBottom = () => {
+    // On small screens, return undefined so responsive classes can take effect
+    if (typeof window !== 'undefined' && window.innerWidth < 640) return undefined;
     if (!chatPanelOpen || chatPanelPosition !== 'bottom') return 0;
     return chatPanelHeight ?? 250;
   };

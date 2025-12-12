@@ -117,11 +117,13 @@ function WizardPageContent() {
   // Step 2: Details handler
   const handleDetailsContinue = (data: BusinessDetailsFormData) => {
     setBusinessName(data.name)
-    setBusinessDescription(data.description || '')
-    if (data.industry) setIndustry(data.industry)
-    if (data.stage) setStage(data.stage)
-    if (data.teamSize) setTeamSize(data.teamSize)
-    if (data.fundingStatus) setFundingStatus(data.fundingStatus)
+    setBusinessDescription(data.description ?? '')
+    // Always update optional fields to support clearing previously set values
+    // Use || '' to convert undefined to empty string for the store
+    setIndustry(data.industry || '')
+    setStage(data.stage || '')
+    setTeamSize(data.teamSize || '')
+    setFundingStatus(data.fundingStatus || '')
     goToStep(3)
   }
 
@@ -145,7 +147,8 @@ function WizardPageContent() {
         body: JSON.stringify({
           name: businessName,
           description: businessDescription,
-          hasDocuments: hasDocuments || false,
+          hasDocuments: hasDocuments ?? false,
+          // Convert empty strings to undefined for API payload
           industry: industry || undefined,
           stage: stage || undefined,
           teamSize: teamSize || undefined,
@@ -213,6 +216,7 @@ function WizardPageContent() {
               name: businessName,
               description: businessDescription,
               industry: industry,
+              // Convert empty strings to undefined for the form component's typed props
               stage: stage || undefined,
               teamSize: teamSize || undefined,
               fundingStatus: fundingStatus || undefined,
@@ -240,6 +244,7 @@ function WizardPageContent() {
               hasDocuments,
               businessName,
               businessDescription,
+              // Convert empty strings to undefined for the confirm component's typed props
               industry: industry || undefined,
               stage: stage || undefined,
               teamSize: teamSize || undefined,

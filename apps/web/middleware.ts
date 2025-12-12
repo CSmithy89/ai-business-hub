@@ -39,10 +39,14 @@ export async function middleware(request: NextRequest) {
   )
 
   if (!sessionToken && isProtectedPath) {
-    // Store intended destination for post-auth redirect
+    // Store intended destination for post-auth redirect (preserve query string)
     const signInUrl = new URL('/sign-in', request.url)
     if (pathname !== '/sign-in') {
-      signInUrl.searchParams.set('redirect', pathname)
+      // Preserve both pathname and query string for complete deep-link support
+      const fullPath = request.nextUrl.search
+        ? `${pathname}${request.nextUrl.search}`
+        : pathname
+      signInUrl.searchParams.set('redirect', fullPath)
     }
     return NextResponse.redirect(signInUrl)
   }
@@ -52,17 +56,25 @@ export async function middleware(request: NextRequest) {
 
 /**
  * Validate redirect URL to prevent open redirect vulnerabilities
+ * Only checks the URL scheme/protocol, not content within query params
  */
 function isAllowedRedirect(url: string): boolean {
   // Only allow relative paths starting with /
   if (!url.startsWith('/')) return false
 
-  // Block protocol-relative URLs
+  // Block protocol-relative URLs (//evil.com)
   if (url.startsWith('//')) return false
 
-  // Block javascript: and data: URLs
-  if (url.toLowerCase().includes('javascript:')) return false
-  if (url.toLowerCase().includes('data:')) return false
+  // Extract pathname (before query string) to check for dangerous schemes
+  const questionIndex = url.indexOf('?')
+  const pathname = questionIndex > -1 ? url.slice(0, questionIndex) : url
+
+  // Only block javascript:/data: if they appear as the URL scheme (at start of path)
+  // This allows safe URLs like /search?q=javascript:alert(1) to pass through
+  const lowerPath = pathname.toLowerCase()
+  if (lowerPath.startsWith('/javascript:') || lowerPath.startsWith('/data:')) {
+    return false
+  }
 
   return true
 }

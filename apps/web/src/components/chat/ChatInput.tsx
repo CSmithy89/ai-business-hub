@@ -53,23 +53,29 @@ export function ChatInput({ onSend, agentName, disabled, onMention }: ChatInputP
     if (showMentionPopup) {
       const filteredAgents = getFilteredAgents(mentionFilter);
 
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setHighlightedIndex((prev) => (prev + 1) % filteredAgents.length);
-        return;
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setHighlightedIndex((prev) => (prev - 1 + filteredAgents.length) % filteredAgents.length);
-        return;
-      }
-      if (e.key === 'Enter' || e.key === 'Tab') {
-        e.preventDefault();
-        if (filteredAgents[highlightedIndex]) {
-          handleMentionSelect(filteredAgents[highlightedIndex]);
+      // Guard against empty agent list to prevent NaN from modulo with 0
+      if (filteredAgents.length > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setHighlightedIndex((prev) => (prev + 1) % filteredAgents.length);
+          return;
         }
-        return;
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setHighlightedIndex((prev) => (prev - 1 + filteredAgents.length) % filteredAgents.length);
+          return;
+        }
+        if (e.key === 'Enter' || e.key === 'Tab') {
+          // Only intercept when there's a valid selection
+          if (filteredAgents[highlightedIndex]) {
+            e.preventDefault();
+            handleMentionSelect(filteredAgents[highlightedIndex]);
+            return;
+          }
+          // Otherwise, let Enter fall through to send message
+        }
       }
+
       if (e.key === 'Escape') {
         e.preventDefault();
         setShowMentionPopup(false);
@@ -193,11 +199,13 @@ export function ChatInput({ onSend, agentName, disabled, onMention }: ChatInputP
           {/* @mention button */}
           <button
             type="button"
+            disabled={disabled}
             className={cn(
               'flex h-7 w-7 items-center justify-center rounded-md',
               'text-[rgb(var(--color-text-muted))] transition-colors duration-150',
               'hover:bg-[rgb(var(--color-border-default))]',
               'hover:text-[rgb(var(--color-text-secondary))]',
+              'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent',
               showMentionPopup && 'bg-[rgb(var(--color-border-default))] text-[rgb(var(--color-text-secondary))]'
             )}
             aria-label="Mention agent"
@@ -209,11 +217,13 @@ export function ChatInput({ onSend, agentName, disabled, onMention }: ChatInputP
           {/* Attachment button (placeholder) */}
           <button
             type="button"
+            disabled={disabled}
             className={cn(
               'flex h-7 w-7 items-center justify-center rounded-md',
               'text-[rgb(var(--color-text-muted))] transition-colors duration-150',
               'hover:bg-[rgb(var(--color-border-default))]',
-              'hover:text-[rgb(var(--color-text-secondary))]'
+              'hover:text-[rgb(var(--color-text-secondary))]',
+              'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent'
             )}
             aria-label="Attach file"
             onClick={() => {

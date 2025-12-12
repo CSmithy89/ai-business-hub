@@ -154,9 +154,10 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * GET /api/approvals/stats
+ * POST /api/approvals
  *
  * Returns approval statistics summary.
+ * Note: Uses POST to allow future expansion with request body filters.
  */
 export async function POST() {
   try {
