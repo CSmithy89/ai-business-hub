@@ -17,6 +17,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ChevronsUpDown } from 'lucide-react';
 import { WorkspaceSelector } from '@/components/workspace/workspace-selector';
 
 interface SidebarWorkspaceSwitcherProps {
@@ -87,9 +88,7 @@ export function SidebarWorkspaceSwitcher({ collapsed }: SidebarWorkspaceSwitcher
         <span className="flex-1 text-sm font-medium text-[rgb(var(--color-text-primary))]">
           {currentWorkspace.name}
         </span>
-        <span className="material-symbols-outlined text-base text-[rgb(var(--color-text-secondary))]">
-          unfold_more
-        </span>
+        <ChevronsUpDown className="h-4 w-4 text-[rgb(var(--color-text-secondary))]" />
       </button>
 
       {/* Workspace selector dialog - shown when clicked */}

@@ -154,6 +154,7 @@
   --color-bg-primary: var(--color-bg-cream);
   --color-bg-secondary: var(--color-bg-white);
   --color-bg-tertiary: var(--color-bg-soft);
+  --color-bg-surface: var(--color-bg-white);  /* For elevated surfaces like dropdowns */
 
   /* Text */
   --color-text-primary: var(--color-slate-800);
@@ -364,6 +365,7 @@
   --color-bg-secondary: 17, 17, 19;      /* #111113 */
   --color-bg-tertiary: 26, 26, 29;       /* #1a1a1d */
   --color-bg-muted: 35, 35, 38;          /* #232326 */
+  --color-bg-surface: 17, 17, 19;        /* #111113 - Same as secondary for elevated surfaces */
 
   /* Dark mode text */
   --color-text-primary: var(--color-slate-50);

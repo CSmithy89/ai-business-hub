@@ -12,6 +12,7 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
+import { LayoutGrid, CheckCircle, Bot, Settings, Sun, Moon, LogOut, type LucideIcon } from 'lucide-react';
 import { useUIStore } from '@/stores/ui';
 import { useApprovalCount } from '@/hooks/use-approval-count';
 import {
@@ -35,7 +36,7 @@ function useCurrentUser() {
 interface NavItem {
   id: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   href: string;
   badge?: number;
 }
@@ -49,10 +50,10 @@ export function MobileDrawer() {
   const approvalCount = useApprovalCount();
 
   const navItems: NavItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'grid_view', href: '/dashboard' },
-    { id: 'approvals', label: 'Approvals', icon: 'check_circle', href: '/dashboard/approvals', badge: approvalCount },
-    { id: 'agents', label: 'AI Team', icon: 'smart_toy', href: '/dashboard/agents' },
-    { id: 'settings', label: 'Settings', icon: 'settings', href: '/dashboard/settings' },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid, href: '/dashboard' },
+    { id: 'approvals', label: 'Approvals', icon: CheckCircle, href: '/dashboard/approvals', badge: approvalCount },
+    { id: 'agents', label: 'AI Team', icon: Bot, href: '/dashboard/agents' },
+    { id: 'settings', label: 'Settings', icon: Settings, href: '/dashboard/settings' },
   ];
 
   const handleNavClick = (href: string) => {
@@ -98,39 +99,42 @@ export function MobileDrawer() {
 
         {/* Navigation Items */}
         <nav className="flex flex-col gap-1 p-4">
-          {navItems.map((item) => (
-            <button
-              type="button"
-              key={item.id}
-              onClick={() => handleNavClick(item.href)}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors',
-                'min-h-[44px]', // Touch-friendly height
-                isActive(item.href)
-                  ? 'bg-[rgb(var(--color-primary)/0.1)] text-[rgb(var(--color-primary))] font-medium'
-                  : 'text-[rgb(var(--color-text-primary))] hover:bg-[rgb(var(--color-bg-hover))]'
-              )}
-            >
-              <span className="material-symbols-rounded text-2xl">
-                {item.icon}
-              </span>
-              <span className="flex-1">{item.label}</span>
-              {item.badge !== undefined && item.badge > 0 && (
-                <Badge variant="default" className="ml-auto">
-                  {item.badge}
-                </Badge>
-              )}
-            </button>
-          ))}
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                type="button"
+                key={item.id}
+                onClick={() => handleNavClick(item.href)}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors',
+                  'min-h-[44px]', // Touch-friendly height
+                  isActive(item.href)
+                    ? 'bg-[rgb(var(--color-primary)/0.1)] text-[rgb(var(--color-primary))] font-medium'
+                    : 'text-[rgb(var(--color-text-primary))] hover:bg-[rgb(var(--color-bg-hover))]'
+                )}
+              >
+                <Icon className="h-6 w-6" />
+                <span className="flex-1">{item.label}</span>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <Badge variant="default" className="ml-auto">
+                    {item.badge}
+                  </Badge>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Theme Toggle */}
         <div className="border-t border-[rgb(var(--color-border-default))] p-4">
           <div className="flex items-center justify-between rounded-lg bg-[rgb(var(--color-bg-tertiary))] px-4 py-3">
             <div className="flex items-center gap-3">
-              <span className="material-symbols-rounded text-2xl text-[rgb(var(--color-text-primary))]">
-                {theme === 'dark' ? 'dark_mode' : 'light_mode'}
-              </span>
+              {theme === 'dark' ? (
+                <Moon className="h-6 w-6 text-[rgb(var(--color-text-primary))]" />
+              ) : (
+                <Sun className="h-6 w-6 text-[rgb(var(--color-text-primary))]" />
+              )}
               <span className="text-sm font-medium text-[rgb(var(--color-text-primary))]">
                 Dark Mode
               </span>
@@ -163,7 +167,7 @@ export function MobileDrawer() {
                        hover:bg-[rgb(var(--color-error)/0.1)]
                        min-h-[44px]" // Touch-friendly height
           >
-            <span className="material-symbols-rounded text-2xl">logout</span>
+            <LogOut className="h-6 w-6" />
             <span className="font-medium">Sign Out</span>
           </button>
         </div>
