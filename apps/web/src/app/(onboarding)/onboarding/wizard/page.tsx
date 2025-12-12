@@ -80,6 +80,14 @@ function WizardPageContent() {
       return
     }
 
+    // Guard: If trying to access step 2+ but step 1 not completed (hasDocuments is null),
+    // redirect back to step 1 to ensure proper flow
+    if (urlStep > 1 && hasDocuments === null) {
+      router.replace('/onboarding/wizard?step=1' as Parameters<typeof router.replace>[0])
+      setCurrentStep(1)
+      return
+    }
+
     if (urlStep !== currentStep) {
       if (urlStep >= 1 && urlStep <= 4) {
         setCurrentStep(urlStep)
@@ -87,7 +95,7 @@ function WizardPageContent() {
         router.replace(`/onboarding/wizard?step=${currentStep}` as Parameters<typeof router.replace>[0])
       }
     }
-  }, [stepParam, currentStep, setCurrentStep, router, isHydrated])
+  }, [stepParam, currentStep, setCurrentStep, router, isHydrated, hasDocuments])
 
   // Navigation handlers
   const goToStep = (step: number) => {

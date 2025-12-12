@@ -131,11 +131,16 @@ export const businessIdeaSchema = z.object({
  * Business Creation Schema (API validation)
  *
  * Used to validate the complete payload sent to POST /api/businesses
+ * Note: description is optional to match the Step 2 form schema
  */
 export const businessCreateSchema = z.object({
   name: z.string().min(3).max(100),
-  description: z.string().min(10).max(500),
+  description: z.string().max(500).optional().default(''),
   hasDocuments: z.boolean(),
+  industry: z.string().optional(),
+  stage: z.enum(['idea', 'startup', 'existing', 'side-project']).optional(),
+  teamSize: z.enum(['solo', '2-5', '6-10', '11-50', '50+']).optional(),
+  fundingStatus: z.enum(['bootstrapped', 'pre-seed', 'seed', 'series-a', 'not-applicable']).optional(),
   ideaDescription: z.object({
     problemStatement: z.string().min(10).max(300),
     targetCustomer: z.string().min(5).max(200),

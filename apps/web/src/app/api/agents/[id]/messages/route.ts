@@ -17,6 +17,11 @@ interface MessageRequest {
   stream?: boolean;
 }
 
+/**
+ * Valid agent IDs for the chat system
+ */
+const VALID_AGENT_IDS = ['hub', 'maya', 'atlas', 'nova', 'echo'] as const;
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
@@ -45,8 +50,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const workspaceId = session.session?.activeWorkspaceId ?? 'default';
 
     // Validate agent ID
-    const validAgents = ['hub', 'maya', 'atlas', 'nova', 'echo'];
-    if (!validAgents.includes(agentId)) {
+    if (!VALID_AGENT_IDS.includes(agentId as typeof VALID_AGENT_IDS[number])) {
       return NextResponse.json({ error: 'Invalid agent ID' }, { status: 400 });
     }
 
@@ -100,7 +104,12 @@ function handleStreamingResponse(
 
   // Listen for abort signal if provided
   if (abortSignal) {
-    abortSignal.addEventListener('abort', abortHandler);
+    // Check if already aborted before adding listener
+    if (abortSignal.aborted) {
+      cancelled = true;
+    } else {
+      abortSignal.addEventListener('abort', abortHandler);
+    }
   }
 
   const stream = new ReadableStream({
@@ -191,9 +200,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const { id: agentId } = await params;
 
-    // Validate agent ID for consistency with POST handler
-    const validAgents = ['hub', 'maya', 'atlas', 'nova', 'echo'];
-    if (!validAgents.includes(agentId)) {
+    // Validate agent ID
+    if (!VALID_AGENT_IDS.includes(agentId as typeof VALID_AGENT_IDS[number])) {
       return NextResponse.json({ error: 'Invalid agent ID' }, { status: 400 });
     }
 

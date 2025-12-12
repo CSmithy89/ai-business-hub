@@ -36,6 +36,9 @@ interface ChatAgent {
 
 const STORAGE_KEY = 'hyvve-chat-history';
 
+/** Maximum number of messages to store in localStorage */
+const MAX_STORED_MESSAGES = 100;
+
 // Default agent for responses
 const DEFAULT_AGENT: ChatAgent = {
   id: 'hub',
@@ -96,10 +99,10 @@ function saveMessages(messages: Message[]): void {
   if (typeof window === 'undefined') return;
 
   try {
-    // Keep only last 100 messages, exclude streaming messages from save
+    // Keep only last N messages, exclude streaming messages from save
     const toSave = messages
       .filter((m) => !m.isStreaming)
-      .slice(-100);
+      .slice(-MAX_STORED_MESSAGES);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch (error) {
     console.error('Failed to save chat history:', error);
