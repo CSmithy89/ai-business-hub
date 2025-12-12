@@ -235,6 +235,8 @@ const config: Config = {
         full: "var(--radius-full)",
       },
       boxShadow: {
+        // Premium shadow scale - soft, subtle, never harsh
+        // Story 16-12: Premium Shadow System
         xs: "var(--shadow-xs)",
         sm: "var(--shadow-sm)",
         DEFAULT: "var(--shadow-md)",
@@ -244,8 +246,12 @@ const config: Config = {
         "2xl": "var(--shadow-2xl)",
         inner: "var(--shadow-inner)",
         focus: "var(--shadow-focus)",
+        // Brand-colored shadows
         primary: "var(--shadow-primary)",
         accent: "var(--shadow-accent)",
+        // Dark mode glows (use via dark: variant)
+        "glow-sm": "var(--glow-sm)",
+        "glow-md": "var(--glow-md)",
       },
       zIndex: {
         dropdown: "var(--z-dropdown)",
