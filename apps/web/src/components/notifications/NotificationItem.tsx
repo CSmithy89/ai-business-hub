@@ -9,6 +9,7 @@
 
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import { CheckCircle, Info, AtSign, RefreshCw, ArrowRight, type LucideIcon } from 'lucide-react';
 import type { Notification, NotificationType } from '@/hooks/use-notifications';
 
 interface NotificationItemProps {
@@ -17,11 +18,11 @@ interface NotificationItemProps {
 }
 
 // Icon mapping for notification types
-const NOTIFICATION_ICONS: Record<NotificationType, string> = {
-  approval: 'task_alt',
-  system: 'info',
-  mention: 'alternate_email',
-  update: 'refresh',
+const NOTIFICATION_ICONS: Record<NotificationType, LucideIcon> = {
+  approval: CheckCircle,
+  system: Info,
+  mention: AtSign,
+  update: RefreshCw,
 };
 
 export function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
@@ -38,7 +39,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
     }
   };
 
-  const icon = NOTIFICATION_ICONS[notification.type];
+  const Icon = NOTIFICATION_ICONS[notification.type];
   const relativeTime = formatDistanceToNow(notification.timestamp, { addSuffix: true });
 
   return (
@@ -63,7 +64,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
             : 'bg-[rgb(var(--color-bg-secondary))] text-[rgb(var(--color-primary-500))]'
         }`}
       >
-        <span className="material-symbols-rounded text-xl">{icon}</span>
+        <Icon className="h-5 w-5" />
       </div>
 
       {/* Content */}
@@ -88,9 +89,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
       {/* Action indicator */}
       {notification.actionUrl && (
         <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
-          <span className="material-symbols-rounded text-base text-[rgb(var(--color-text-muted))]">
-            arrow_forward
-          </span>
+          <ArrowRight className="h-4 w-4 text-[rgb(var(--color-text-muted))]" />
         </div>
       )}
     </button>

@@ -9,6 +9,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { User, Settings, LogOut } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,13 +65,13 @@ export function HeaderUserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/settings">
-            <span className="material-symbols-rounded mr-2 text-base">person</span>
+            <User className="mr-2 h-4 w-4" />
             Profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/settings">
-            <span className="material-symbols-rounded mr-2 text-base">settings</span>
+            <Settings className="mr-2 h-4 w-4" />
             Settings
           </Link>
         </DropdownMenuItem>
@@ -81,7 +82,7 @@ export function HeaderUserMenu() {
           className="text-destructive focus:text-destructive"
           onClick={handleSignOut}
         >
-          <span className="material-symbols-rounded mr-2 text-base">logout</span>
+          <LogOut className="mr-2 h-4 w-4" />
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -12,6 +12,7 @@ import {
   isThisWeek,
   differenceInMinutes,
 } from 'date-fns';
+import { BellOff } from 'lucide-react';
 import type { Notification } from '@/hooks/use-notifications';
 import { NotificationItem } from './NotificationItem';
 
@@ -75,9 +76,7 @@ export function NotificationList({ notifications, onMarkAsRead }: NotificationLi
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[rgb(var(--color-bg-tertiary))]">
-          <span className="material-symbols-rounded text-4xl text-[rgb(var(--color-text-muted))]">
-            notifications_none
-          </span>
+          <BellOff className="h-8 w-8 text-[rgb(var(--color-text-muted))]" />
         </div>
         <p className="mb-1 text-sm font-medium text-[rgb(var(--color-text-primary))]">
           No notifications

@@ -86,7 +86,7 @@ function PositionButton({
 }
 
 export function ChatPanel() {
-  const { chatPanelWidth, chatPanelHeight, floatingPosition, setFloatingPosition } = useUIStore();
+  const { chatPanelWidth, chatPanelHeight, floatingPosition, setFloatingPosition, sidebarCollapsed } = useUIStore();
   const {
     isCollapsed,
     isFloating,
@@ -401,17 +401,20 @@ export function ChatPanel() {
 
   // Bottom horizontal position
   if (isBottom) {
+    // Calculate sidebar width based on collapsed state
+    const sidebarWidth = sidebarCollapsed ? 64 : 256; // LAYOUT.SIDEBAR_COLLAPSED_WIDTH : LAYOUT.SIDEBAR_EXPANDED_WIDTH
+
     return (
       <aside
         className={cn(
-          'fixed left-0 right-0 bottom-0 z-40 flex flex-col',
-          'border-t border-[rgb(var(--color-border-default))]',
+          'fixed right-0 bottom-0 z-40 flex flex-col',
+          'border-t border-l border-[rgb(var(--color-border-default))]',
           'bg-[rgb(var(--color-bg-surface))]',
           'shadow-xl transition-all duration-300 ease-in-out'
         )}
         style={{
           height: `${chatPanelHeight}px`,
-          marginLeft: '64px', // Account for collapsed sidebar minimum
+          left: `${sidebarWidth}px`, // Dynamic sidebar width to not cover sidebar
         }}
       >
         {/* Header */}
