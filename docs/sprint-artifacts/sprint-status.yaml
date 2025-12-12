@@ -383,8 +383,8 @@ development_status:
   16-4-clarify-workspace-vs-business-relationship: done
   16-5-implement-skeleton-loading-screens: done
   16-6-implement-optimistic-ui-updates: done
-  16-7-implement-form-validation-and-feedback: backlog
-  16-8-implement-demo-mode-consistency: backlog
+  16-7-implement-form-validation-and-feedback: done
+  16-8-implement-demo-mode-consistency: done
 
   # Section 3: Micro-Animations (4 stories, 12 points)
   16-9-implement-hover-and-press-animations: backlog

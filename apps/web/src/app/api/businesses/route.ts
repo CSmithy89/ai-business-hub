@@ -3,13 +3,14 @@
  * GET /api/businesses - List all businesses for current workspace
  * POST /api/businesses - Create a new business
  *
- * Stories: 08.2, 08.3
+ * Stories: 08.2, 08.3, 16.8
  */
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@hyvve/db'
 import { getSession } from '@/lib/auth-server'
 import { businessCreateSchema } from '@/lib/validations/onboarding'
+import { DEMO_BUSINESSES, isDemoMode } from '@/lib/demo-data'
 
 // Default pagination limits
 const DEFAULT_PAGE_SIZE = 20
@@ -39,6 +40,21 @@ const MAX_PAGE_SIZE = 100
  */
 export async function GET(req: Request) {
   try {
+    // Story 16.8: Demo mode support
+    if (isDemoMode()) {
+      return NextResponse.json({
+        success: true,
+        data: DEMO_BUSINESSES,
+        pagination: {
+          total: DEMO_BUSINESSES.length,
+          take: 20,
+          skip: 0,
+          hasMore: false,
+          paginationType: 'offset',
+        },
+      })
+    }
+
     // Get authenticated session
     const session = await getSession()
 

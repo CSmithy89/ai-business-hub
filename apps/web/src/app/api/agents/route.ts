@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth-server'
 import type { AgentTeam, AgentStatus } from '@hyvve/shared'
 import { MOCK_AGENTS } from './mock-data'
+import { DEMO_AGENTS, isDemoMode } from '@/lib/demo-data'
 
 
 /**
  * GET /api/agents
  *
  * Fetch all agents for the workspace with optional filtering
+ * Story 16.8: Added demo mode support
  */
 export async function GET(request: NextRequest) {
   try {
@@ -32,8 +34,11 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') as AgentStatus | null
     const search = searchParams.get('search')
 
+    // Story 16.8: Use demo data if demo mode is enabled
+    const sourceAgents = isDemoMode() ? DEMO_AGENTS : MOCK_AGENTS
+
     // Filter agents based on query params and workspace
-    let filteredAgents = MOCK_AGENTS.filter(
+    let filteredAgents = sourceAgents.filter(
       agent => agent.workspaceId === workspaceId
     )
 

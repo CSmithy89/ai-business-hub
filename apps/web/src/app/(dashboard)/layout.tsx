@@ -41,6 +41,7 @@ import { useUIStore } from '@/stores/ui';
 import { LAYOUT } from '@/lib/layout-constants';
 import { SkipLink } from '@/components/ui/skip-link';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { DemoModeBanner } from '@/components/demo-mode-banner';
 
 // Lazy load ChatPanel to reduce initial bundle size (~75KB gzipped: react-markdown, remark-gfm, dompurify)
 const ChatPanel = dynamic(
@@ -112,6 +113,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="flex h-screen w-full flex-col overflow-hidden">
       {/* Skip link for keyboard accessibility - Tab to reveal */}
       <SkipLink targetId="main-content" />
+
+      {/* Demo Mode Banner - Story 16.8 */}
+      <DemoModeBanner />
 
       {/* Fixed Header - 60px height */}
       <ErrorBoundary fallback={<HeaderErrorFallback />}>
