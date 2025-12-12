@@ -69,10 +69,13 @@ export async function GET() {
     if (!activeWorkspaceId) {
       const firstWorkspace = workspaces[0].workspace
 
-      // Update session with active workspace
-      await prisma.session.update({
+      // Update session with active workspace and return the updated workspace ID
+      // Note: The session object is cached at request time, so we return the
+      // newly set workspace ID directly rather than relying on the stale session
+      const updatedSession = await prisma.session.update({
         where: { id: session.session.id },
         data: { activeWorkspaceId: firstWorkspace.id },
+        select: { activeWorkspaceId: true },
       })
 
       return NextResponse.json({
@@ -80,7 +83,8 @@ export async function GET() {
         data: {
           destination: '/businesses',
           reason: 'workspace_set',
-          workspaceId: firstWorkspace.id,
+          // Use the updated value from the database write, not the stale session
+          workspaceId: updatedSession.activeWorkspaceId ?? firstWorkspace.id,
           workspaceName: firstWorkspace.name,
           message: 'Active workspace set',
         },

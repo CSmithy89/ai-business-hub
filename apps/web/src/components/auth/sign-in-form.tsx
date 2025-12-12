@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, authClient } from '@/lib/auth-client'
 import { signInSchema, type SignInFormData } from '@/lib/validations/auth'
+import { isAllowedRedirect, getSafeRedirectUrl } from '@/lib/utils/redirect-validation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -29,6 +30,21 @@ export function SignInForm() {
   const [show2FA, setShow2FA] = useState(false)
   const [verifyingUserId, setVerifyingUserId] = useState<string | null>(null)
 
+  // Track pending OAuth operations to prevent duplicate submissions
+  const pendingOAuthRef = useRef<'google' | 'microsoft' | 'github' | null>(null)
+
+  // OAuth timeout cleanup
+  const oauthTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Cleanup OAuth timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (oauthTimeoutRef.current) {
+        clearTimeout(oauthTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const {
     register,
     handleSubmit,
@@ -48,19 +64,21 @@ export function SignInForm() {
   /**
    * Handles successful sign-in by determining the appropriate redirect destination
    * Based on user state:
-   * - If deep link provided in URL → redirect to deep link
+   * - If deep link provided in URL → redirect to deep link (with validation)
    * - If no workspaces → /onboarding/account-setup
    * - If workspaces exist → /businesses
    *
    * Story: 15.15 - Update Sign-In Flow Redirect Logic
+   * Security: Validates redirect URLs to prevent open redirect attacks
    */
-  const handleSuccessfulSignIn = async () => {
+  const handleSuccessfulSignIn = useCallback(async () => {
     try {
       // Check for intended destination from URL params (deep link support)
       const redirectParam = searchParams.get('redirect')
-      if (redirectParam && redirectParam.startsWith('/')) {
-        // Use window.location for dynamic redirects to avoid strict route typing
-        window.location.href = redirectParam
+
+      // Validate redirect URL to prevent open redirect attacks
+      if (isAllowedRedirect(redirectParam)) {
+        router.push(getSafeRedirectUrl(redirectParam) as Parameters<typeof router.push>[0])
         return
       }
 
@@ -69,8 +87,9 @@ export function SignInForm() {
       const result = await response.json()
 
       if (result.success && result.data?.destination) {
-        // Use window.location for API-determined redirects
-        window.location.href = result.data.destination
+        // API responses are trusted but still validate for defense in depth
+        const destination = getSafeRedirectUrl(result.data.destination)
+        router.push(destination as Parameters<typeof router.push>[0])
       } else {
         // Default fallback to businesses page
         router.push('/businesses')
@@ -80,7 +99,7 @@ export function SignInForm() {
       // Default fallback to businesses page
       router.push('/businesses')
     }
-  }
+  }, [searchParams, router])
 
   const onSubmit = async (data: SignInFormData) => {
     setIsSubmitting(true)
@@ -156,65 +175,81 @@ export function SignInForm() {
 
   /**
    * Get the callback URL for OAuth sign-in
-   * Uses the redirect param if available, otherwise defaults to /businesses
+   * Uses the redirect param if available (with validation), otherwise defaults to /businesses
    * Story: 15.15 - Update Sign-In Flow Redirect Logic
+   * Security: Validates redirect URLs to prevent open redirect attacks
    */
-  const getOAuthCallbackURL = () => {
+  const getOAuthCallbackURL = useCallback(() => {
     const redirectParam = searchParams.get('redirect')
-    if (redirectParam && redirectParam.startsWith('/')) {
-      return redirectParam
-    }
-    // Default to businesses - the post-auth page will handle intelligent routing
-    return '/businesses'
-  }
+    // Use validated redirect URL or fall back to businesses
+    return getSafeRedirectUrl(redirectParam, '/businesses')
+  }, [searchParams])
 
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true)
-    setError(null)
-    try {
-      await authClient.signIn.social({
-        provider: 'google',
-        callbackURL: getOAuthCallbackURL(),
-      })
-      // Redirect happens automatically
-    } catch (error) {
-      console.error('Google sign-in error:', error)
-      setError('OAUTH_ERROR')
-      setIsGoogleLoading(false)
-    }
-  }
+  /**
+   * Generic OAuth sign-in handler with deduplication and timeout handling
+   * Prevents duplicate OAuth requests and handles stuck loading states
+   */
+  const handleOAuthSignIn = useCallback(
+    async (provider: 'google' | 'microsoft' | 'github') => {
+      // Prevent duplicate OAuth operations
+      if (pendingOAuthRef.current) {
+        console.warn(`OAuth operation already pending for ${pendingOAuthRef.current}`)
+        return
+      }
 
-  const handleMicrosoftSignIn = async () => {
-    setIsMicrosoftLoading(true)
-    setError(null)
-    try {
-      await authClient.signIn.social({
-        provider: 'microsoft',
-        callbackURL: getOAuthCallbackURL(),
-      })
-      // Redirect happens automatically
-    } catch (error) {
-      console.error('Microsoft sign-in error:', error)
-      setError('OAUTH_ERROR')
-      setIsMicrosoftLoading(false)
-    }
-  }
+      // Set loading state based on provider
+      const setLoading = {
+        google: setIsGoogleLoading,
+        microsoft: setIsMicrosoftLoading,
+        github: setIsGitHubLoading,
+      }[provider]
 
-  const handleGitHubSignIn = async () => {
-    setIsGitHubLoading(true)
-    setError(null)
-    try {
-      await authClient.signIn.social({
-        provider: 'github',
-        callbackURL: getOAuthCallbackURL(),
-      })
-      // Redirect happens automatically
-    } catch (error) {
-      console.error('GitHub sign-in error:', error)
-      setError('OAUTH_ERROR')
-      setIsGitHubLoading(false)
-    }
-  }
+      pendingOAuthRef.current = provider
+      setLoading(true)
+      setError(null)
+
+      // Clear any existing timeout
+      if (oauthTimeoutRef.current) {
+        clearTimeout(oauthTimeoutRef.current)
+      }
+
+      // Set timeout to reset loading state if OAuth doesn't complete
+      // This handles cases where the OAuth popup is closed without completing
+      oauthTimeoutRef.current = setTimeout(() => {
+        if (pendingOAuthRef.current === provider) {
+          console.warn(`OAuth timeout for ${provider}`)
+          setLoading(false)
+          pendingOAuthRef.current = null
+          setError('OAUTH_ERROR')
+        }
+      }, 60000) // 60 second timeout
+
+      try {
+        await authClient.signIn.social({
+          provider,
+          callbackURL: getOAuthCallbackURL(),
+        })
+        // Redirect happens automatically - timeout will be cleared on unmount
+      } catch (error) {
+        console.error(`${provider} sign-in error:`, error)
+        setError('OAUTH_ERROR')
+        setLoading(false)
+        pendingOAuthRef.current = null
+        if (oauthTimeoutRef.current) {
+          clearTimeout(oauthTimeoutRef.current)
+          oauthTimeoutRef.current = null
+        }
+      }
+    },
+    [getOAuthCallbackURL]
+  )
+
+  const handleGoogleSignIn = useCallback(() => handleOAuthSignIn('google'), [handleOAuthSignIn])
+  const handleMicrosoftSignIn = useCallback(
+    () => handleOAuthSignIn('microsoft'),
+    [handleOAuthSignIn]
+  )
+  const handleGitHubSignIn = useCallback(() => handleOAuthSignIn('github'), [handleOAuthSignIn])
 
   const handle2FASuccess = () => {
     // Use the same intelligent redirect logic after 2FA success

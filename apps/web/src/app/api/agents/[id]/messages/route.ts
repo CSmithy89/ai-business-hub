@@ -52,7 +52,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Check if streaming is requested
     if (stream) {
-      return handleStreamingResponse(agentId, content, workspaceId, businessId);
+      // Pass abort signal to allow cleanup when client disconnects
+      return handleStreamingResponse(agentId, content, workspaceId, businessId, request.signal);
     }
 
     // Non-streaming response (fallback)
@@ -73,13 +74,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 }
 
 /**
- * Handle streaming SSE response
+ * Handle streaming SSE response with abort signal support
+ * Prevents memory leaks by checking for client disconnection
  */
 function handleStreamingResponse(
   agentId: string,
   content: string,
   workspaceId: string,
-  businessId?: string
+  businessId?: string,
+  abortSignal?: AbortSignal
 ): Response {
   const encoder = new TextEncoder();
 
@@ -87,11 +90,27 @@ function handleStreamingResponse(
   const mockResponse = generateMockResponse(agentId, content);
   const words = mockResponse.split(' ');
 
+  // Track if stream has been cancelled
+  let cancelled = false;
+
+  // Listen for abort signal if provided
+  if (abortSignal) {
+    abortSignal.addEventListener('abort', () => {
+      cancelled = true;
+    });
+  }
+
   const stream = new ReadableStream({
     async start(controller) {
       try {
         // Simulate streaming by sending word by word
         for (let i = 0; i < words.length; i++) {
+          // Check if client disconnected before sending each chunk
+          if (cancelled) {
+            controller.close();
+            return;
+          }
+
           const word = words[i];
           const chunk = i === 0 ? word : ' ' + word;
 
@@ -103,13 +122,26 @@ function handleStreamingResponse(
           await new Promise((resolve) => setTimeout(resolve, 30 + Math.random() * 50));
         }
 
+        // Check one more time before sending done signal
+        if (cancelled) {
+          controller.close();
+          return;
+        }
+
         // Send done signal
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       } catch (error) {
-        console.error('Stream error:', error);
+        // Only log error if not cancelled - cancelled streams are expected
+        if (!cancelled) {
+          console.error('Stream error:', error);
+        }
         controller.error(error);
       }
+    },
+    cancel() {
+      // Called when the stream is cancelled by the client
+      cancelled = true;
     },
   });
 
