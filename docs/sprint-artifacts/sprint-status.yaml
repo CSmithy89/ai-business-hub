@@ -410,7 +410,7 @@ development_status:
   16-22-add-coming-soon-module-tooltips: done
 
   # Section 7: Navigation & Help (4 stories, 9 points)
-  16-23-implement-breadcrumb-polish: backlog
+  16-23-implement-breadcrumb-polish: done
   16-24-implement-page-title-tags: backlog
   16-26-implement-keyboard-shortcuts-help-modal: backlog
   16-27-implement-agent-detail-modal: backlog
