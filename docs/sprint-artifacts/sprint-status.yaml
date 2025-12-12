@@ -413,7 +413,7 @@ development_status:
   16-23-implement-breadcrumb-polish: done
   16-24-implement-page-title-tags: done
   16-26-implement-keyboard-shortcuts-help-modal: done
-  16-27-implement-agent-detail-modal: backlog
+  16-27-implement-agent-detail-modal: done
 
   # Section 8: Technical Debt (1 story, 3 points)
   16-28-fix-console-errors-and-technical-debt: backlog

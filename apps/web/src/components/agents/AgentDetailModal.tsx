@@ -17,7 +17,7 @@ import { ActivityTab } from './tabs/ActivityTab'
 import { ConfigurationTab } from './tabs/ConfigurationTab'
 import { PermissionsTab } from './tabs/PermissionsTab'
 import { AnalyticsTab } from './tabs/AnalyticsTab'
-import { Pencil, Loader2 } from 'lucide-react'
+import { Pencil, Loader2, MessageSquare, Pause, Play, History } from 'lucide-react'
 
 interface AgentDetailModalProps {
   agentId: string | null
@@ -77,7 +77,7 @@ export function AgentDetailModal({
             <DialogHeader>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <AgentAvatar agent={agent} size="lg" showStatus />
+                  <AgentAvatar agent={agent} size="lg" showStatus showColorRing />
                   <div>
                     <DialogTitle className="text-2xl">{agent.name}</DialogTitle>
                     <p className="text-sm text-muted-foreground">{agent.role}</p>
@@ -146,6 +146,51 @@ export function AgentDetailModal({
                 </TabsContent>
               </div>
             </Tabs>
+
+            {/* Quick Actions Footer */}
+            <div className="mt-6 flex items-center justify-between border-t pt-4">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveTab('activity')}
+                >
+                  <History className="mr-2 h-4 w-4" />
+                  View History
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Toggle agent status (placeholder - would integrate with API)
+                    console.log('Toggle agent status:', agent.status === 'online' ? 'pause' : 'resume')
+                  }}
+                >
+                  {agent.status === 'online' ? (
+                    <>
+                      <Pause className="mr-2 h-4 w-4" />
+                      Pause Agent
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Resume Agent
+                    </>
+                  )}
+                </Button>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => {
+                  // Open chat with this agent (placeholder - would integrate with chat panel)
+                  console.log('Start chat with agent:', agent.name)
+                  handleOpenChange(false)
+                }}
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Chat with Agent
+              </Button>
+            </div>
           </>
         ) : null}
       </DialogContent>
