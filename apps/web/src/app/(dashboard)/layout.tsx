@@ -29,7 +29,7 @@ import { MobileSidebar, MobileSidebarTrigger } from '@/components/layout/MobileS
 import { ChatBottomSheet, ChatBottomSheetTrigger } from '@/components/layout/ChatBottomSheet';
 import { CommandPalette } from '@/components/command';
 import { KeyboardShortcuts } from '@/components/keyboard';
-import { MobileDrawer, MobileBottomNav } from '@/components/mobile';
+import { MobileDrawer, MobileBottomNav, ChatFullScreen, ChatFullScreenFAB } from '@/components/mobile';
 import {
   ErrorBoundary,
   HeaderErrorFallback,
@@ -69,6 +69,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   // Tablet-specific drawer states
   const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false);
   const [tabletChatOpen, setTabletChatOpen] = useState(false);
+
+  // Mobile-specific states
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
 
   // Determine if sidebar should be collapsed based on responsive rules
   // Priority: user manual collapse > auto-collapse for medium screen
@@ -193,6 +196,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             />
           </>
         )}
+
+        {/* Mobile: Chat Full Screen */}
+        {isMobile && (
+          <>
+            <ChatFullScreen
+              open={mobileChatOpen}
+              onOpenChange={setMobileChatOpen}
+            />
+            <ChatFullScreenFAB
+              onClick={() => setMobileChatOpen(true)}
+              unreadCount={0}
+            />
+          </>
+        )}
       </div>
 
       {/* Command Palette - Global keyboard shortcut (Cmd/Ctrl+K) */}
@@ -201,9 +218,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Global Keyboard Shortcuts - Handles Cmd+K, Cmd+B, Cmd+/, etc. */}
       <KeyboardShortcuts />
 
-      {/* Mobile Navigation Components */}
-      <MobileDrawer />
-      <MobileBottomNav />
+      {/* Mobile Navigation Components - Only on mobile (<768px) */}
+      {isMobile && (
+        <>
+          <MobileDrawer />
+          <MobileBottomNav />
+        </>
+      )}
     </div>
   );
 }

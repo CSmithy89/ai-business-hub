@@ -377,7 +377,7 @@ development_status:
   # Section 1: Responsive Design (3 stories, 15 points)
   16-1-implement-medium-screen-layout: done  # 1024-1280px
   16-2-implement-tablet-layout: done  # 768-1024px
-  16-3-implement-mobile-layout: backlog  # <768px
+  16-3-implement-mobile-layout: done  # <768px
 
   # Section 2: UX Enhancements (5 stories, 16 points)
   16-4-clarify-workspace-vs-business-relationship: backlog
