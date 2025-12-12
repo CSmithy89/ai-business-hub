@@ -11,6 +11,7 @@
  * Updated: Story 15.1 - Replace Material Icons with Lucide
  * Updated: Story 15.11 - Add Businesses collapsible navigation
  * Updated: Story 15-25 - Apply Agent Character Colors Throughout
+ * Updated: Story 16-22 - Add Coming Soon Module Tooltips
  */
 
 'use client';
@@ -115,6 +116,7 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
           label="CRM"
           href="/crm"
           statusDot="maya"
+          comingSoon="Coming Soon · Expected Q1 2026"
           collapsed={collapsed}
         />
         <SidebarNavItem
@@ -122,6 +124,7 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
           label="Projects"
           href="/projects"
           statusDot="atlas"
+          comingSoon="Coming Soon · Expected Q1 2026"
           collapsed={collapsed}
         />
       </SidebarSection>
