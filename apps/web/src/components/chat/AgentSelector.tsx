@@ -160,6 +160,7 @@ export function AgentSelector({
           'transition-colors duration-150',
           'hover:bg-[rgb(var(--color-bg-tertiary))]'
         )}
+        aria-label={`Select AI agent. Current: ${selectedAgent.name}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
       >

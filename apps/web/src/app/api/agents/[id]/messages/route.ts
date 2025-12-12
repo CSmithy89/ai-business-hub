@@ -93,11 +93,14 @@ function handleStreamingResponse(
   // Track if stream has been cancelled
   let cancelled = false;
 
+  // Store abort handler reference for cleanup
+  const abortHandler = () => {
+    cancelled = true;
+  };
+
   // Listen for abort signal if provided
   if (abortSignal) {
-    abortSignal.addEventListener('abort', () => {
-      cancelled = true;
-    });
+    abortSignal.addEventListener('abort', abortHandler);
   }
 
   const stream = new ReadableStream({
@@ -124,14 +127,27 @@ function handleStreamingResponse(
 
         // Check one more time before sending done signal
         if (cancelled) {
+          // Cleanup abort listener before closing
+          if (abortSignal) {
+            abortSignal.removeEventListener('abort', abortHandler);
+          }
           controller.close();
           return;
         }
 
         // Send done signal
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+
+        // Cleanup abort listener on successful completion
+        if (abortSignal) {
+          abortSignal.removeEventListener('abort', abortHandler);
+        }
         controller.close();
       } catch (error) {
+        // Cleanup abort listener on error
+        if (abortSignal) {
+          abortSignal.removeEventListener('abort', abortHandler);
+        }
         // Only log error if not cancelled - cancelled streams are expected
         if (!cancelled) {
           console.error('Stream error:', error);
@@ -142,6 +158,10 @@ function handleStreamingResponse(
     cancel() {
       // Called when the stream is cancelled by the client
       cancelled = true;
+      // Cleanup abort listener on cancel
+      if (abortSignal) {
+        abortSignal.removeEventListener('abort', abortHandler);
+      }
     },
   });
 

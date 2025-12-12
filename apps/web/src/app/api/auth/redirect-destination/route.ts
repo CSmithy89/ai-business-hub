@@ -69,22 +69,42 @@ export async function GET() {
     if (!activeWorkspaceId) {
       const firstWorkspace = workspaces[0].workspace
 
-      // Update session with active workspace and return the updated workspace ID
-      // Note: The session object is cached at request time, so we return the
-      // newly set workspace ID directly rather than relying on the stale session
-      const updatedSession = await prisma.session.update({
-        where: { id: session.session.id },
+      // Update session with active workspace using optimistic locking
+      // The WHERE clause ensures we only update if activeWorkspaceId is still null,
+      // preventing race conditions where concurrent requests both try to set it
+      const updatedSession = await prisma.session.updateMany({
+        where: {
+          id: session.session.id,
+          activeWorkspaceId: null, // Optimistic lock - only update if still null
+        },
         data: { activeWorkspaceId: firstWorkspace.id },
-        select: { activeWorkspaceId: true },
       })
+
+      // If no rows updated, another request already set the workspace
+      // Fetch the current state to return the correct workspace
+      if (updatedSession.count === 0) {
+        const currentSession = await prisma.session.findUnique({
+          where: { id: session.session.id },
+          select: { activeWorkspaceId: true },
+        })
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            destination: '/businesses',
+            reason: 'workspace_already_set',
+            workspaceId: currentSession?.activeWorkspaceId ?? firstWorkspace.id,
+            message: 'Active workspace already set by concurrent request',
+          },
+        })
+      }
 
       return NextResponse.json({
         success: true,
         data: {
           destination: '/businesses',
           reason: 'workspace_set',
-          // Use the updated value from the database write, not the stale session
-          workspaceId: updatedSession.activeWorkspaceId ?? firstWorkspace.id,
+          workspaceId: firstWorkspace.id,
           workspaceName: firstWorkspace.name,
           message: 'Active workspace set',
         },

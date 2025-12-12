@@ -11,6 +11,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 
 export interface Message {
   id: string;
@@ -59,8 +60,11 @@ function loadMessages(): Message[] {
         isStreaming: false, // Never load as streaming
       }));
     }
-  } catch {
-    console.warn('Failed to load chat history');
+  } catch (error) {
+    console.error('Failed to load chat history:', error);
+    toast.error('Failed to load chat history', {
+      description: 'Your previous messages could not be loaded.',
+    });
   }
 
   // Return welcome message if no history
@@ -97,8 +101,11 @@ function saveMessages(messages: Message[]): void {
       .filter((m) => !m.isStreaming)
       .slice(-100);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-  } catch {
-    console.warn('Failed to save chat history');
+  } catch (error) {
+    console.error('Failed to save chat history:', error);
+    toast.error('Failed to save chat history', {
+      description: 'Your messages may not be saved.',
+    });
   }
 }
 

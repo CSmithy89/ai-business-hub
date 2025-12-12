@@ -40,6 +40,8 @@ function ThemeOption({
     <button
       type="button"
       onClick={onClick}
+      aria-label={`${label} theme: ${description}${isSelected ? ' (selected)' : ''}`}
+      aria-pressed={isSelected}
       className={cn(
         'relative flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all',
         'hover:border-[rgb(var(--color-primary-400))] hover:bg-[rgb(var(--color-bg-secondary))]',
@@ -89,6 +91,8 @@ function DensityOption({
     <button
       type="button"
       onClick={onClick}
+      aria-label={`${label} sidebar density${isSelected ? ' (selected)' : ''}`}
+      aria-pressed={isSelected}
       className={cn(
         'flex items-center gap-3 rounded-lg border px-4 py-3 transition-all',
         'hover:border-[rgb(var(--color-primary-400))]',
@@ -140,6 +144,8 @@ function FontSizeOption({
     <button
       type="button"
       onClick={onClick}
+      aria-label={`${label} font size (${pixels}px)${isSelected ? ' (selected)' : ''}`}
+      aria-pressed={isSelected}
       className={cn(
         'flex flex-col items-center gap-2 rounded-lg border px-6 py-4 transition-all',
         'hover:border-[rgb(var(--color-primary-400))]',

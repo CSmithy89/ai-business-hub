@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { isAllowedRedirect } from './src/lib/utils/redirect-validation'
 
 /**
  * Middleware for authentication and authorization
@@ -52,31 +53,6 @@ export async function middleware(request: NextRequest) {
   }
 
   return NextResponse.next()
-}
-
-/**
- * Validate redirect URL to prevent open redirect vulnerabilities
- * Only checks the URL scheme/protocol, not content within query params
- */
-function isAllowedRedirect(url: string): boolean {
-  // Only allow relative paths starting with /
-  if (!url.startsWith('/')) return false
-
-  // Block protocol-relative URLs (//evil.com)
-  if (url.startsWith('//')) return false
-
-  // Extract pathname (before query string) to check for dangerous schemes
-  const questionIndex = url.indexOf('?')
-  const pathname = questionIndex > -1 ? url.slice(0, questionIndex) : url
-
-  // Only block javascript:/data: if they appear as the URL scheme (at start of path)
-  // This allows safe URLs like /search?q=javascript:alert(1) to pass through
-  const lowerPath = pathname.toLowerCase()
-  if (lowerPath.startsWith('/javascript:') || lowerPath.startsWith('/data:')) {
-    return false
-  }
-
-  return true
 }
 
 export const config = {
