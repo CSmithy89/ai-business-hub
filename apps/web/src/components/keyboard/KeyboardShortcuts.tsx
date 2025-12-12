@@ -135,6 +135,10 @@ export function KeyboardShortcuts() {
       // Start 'g' sequence (for vim-style navigation)
       if (key === 'g' && !isModifier) {
         event.preventDefault();
+        // Clear any existing timeout before starting new sequence
+        if (sequenceTimeoutRef.current) {
+          clearTimeout(sequenceTimeoutRef.current);
+        }
         pendingKeyRef.current = 'g';
         sequenceTimeoutRef.current = setTimeout(() => {
           pendingKeyRef.current = null;

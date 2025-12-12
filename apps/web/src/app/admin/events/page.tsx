@@ -12,6 +12,7 @@ import { DLQEventTable } from '@/components/events/dlq-event-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Pagination } from '@/components/ui/pagination';
 import { toast } from 'sonner';
 
 /**
@@ -231,31 +232,15 @@ export default function EventMonitoringPage() {
 
             {/* Pagination */}
             {dlqData && dlqData.total > itemsPerPage && (
-              <div className="flex items-center justify-between border-t pt-4 mt-4">
-                <p className="text-sm text-muted-foreground">
-                  Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
-                  {Math.min(currentPage * itemsPerPage, dlqData.total)} of{' '}
-                  {dlqData.total} events
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => p + 1)}
-                    disabled={currentPage * itemsPerPage >= dlqData.total}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(dlqData.total / itemsPerPage)}
+                totalItems={dlqData.total}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                className="border-t pt-4 mt-4"
+                ariaLabel="Dead letter queue pagination"
+              />
             )}
           </CardContent>
         </Card>

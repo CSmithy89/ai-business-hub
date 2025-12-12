@@ -9,100 +9,10 @@ import { ApprovalList } from '@/components/approval/approval-list'
 import { BulkActionBar } from '@/components/approval/bulk-action-bar'
 import { BulkConfirmDialog } from '@/components/approval/bulk-confirm-dialog'
 import { Button } from '@/components/ui/button'
+import { Pagination } from '@/components/ui/pagination'
 import type { ApprovalStatus, ConfidenceLevel } from '@hyvve/shared'
 import type { BulkApprovalResponse } from '@/hooks/use-approvals'
 import { toast } from 'sonner'
-
-/**
- * Pagination component
- */
-function Pagination({
-  currentPage,
-  totalPages,
-  onPageChange,
-}: {
-  currentPage: number
-  totalPages: number
-  onPageChange: (page: number) => void
-}) {
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
-  const showPages = pages.filter(
-    (page) =>
-      page === 1 ||
-      page === totalPages ||
-      (page >= currentPage - 1 && page <= currentPage + 1)
-  )
-
-  return (
-    <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-      <div className="flex flex-1 justify-between sm:hidden">
-        <Button
-          variant="outline"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </Button>
-      </div>
-      <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm text-gray-700">
-            Page <span className="font-medium">{currentPage}</span> of{' '}
-            <span className="font-medium">{totalPages}</span>
-          </p>
-        </div>
-        <div>
-          <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-            <Button
-              variant="outline"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="rounded-r-none"
-            >
-              Previous
-            </Button>
-            {showPages.map((page, index) => {
-              const prevPage = showPages[index - 1]
-              const showEllipsis = prevPage && page - prevPage > 1
-
-              return (
-                <div key={page} className="inline-flex">
-                  {showEllipsis && (
-                    <span className="relative inline-flex items-center border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700">
-                      ...
-                    </span>
-                  )}
-                  <Button
-                    variant={page === currentPage ? 'default' : 'outline'}
-                    onClick={() => onPageChange(page)}
-                    className="rounded-none"
-                  >
-                    {page}
-                  </Button>
-                </div>
-              )
-            })}
-            <Button
-              variant="outline"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="rounded-l-none"
-            >
-              Next
-            </Button>
-          </nav>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 /**
  * Approval Queue Dashboard Content (Client Component)
@@ -332,7 +242,11 @@ export function ApprovalsContent() {
           <Pagination
             currentPage={currentPage}
             totalPages={data.meta.totalPages}
+            totalItems={data.meta.total}
+            itemsPerPage={itemsPerPage}
             onPageChange={handlePageChange}
+            showPageNumbers
+            className="border-t border-gray-200 bg-white px-4 py-3 sm:px-6"
           />
         )}
       </div>
