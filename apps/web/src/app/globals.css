@@ -612,6 +612,64 @@
   }
 }
 
+/**
+ * Modal & Dropdown Animation Enhancements - Story 16-11
+ *
+ * shadcn Dialog and DropdownMenu already use Radix + Tailwind animate-in/animate-out.
+ * This section adds:
+ * - CSS custom properties for animation duration
+ * - Explicit reduced-motion support
+ * - Consistent animation timing
+ */
+
+/* Animation duration custom properties */
+:root {
+  --modal-animation-duration: 150ms;
+  --dropdown-animation-duration: 100ms;
+  --backdrop-animation-duration: 200ms;
+}
+
+/* Modal/Dialog animations - 150ms as per spec */
+[data-radix-dialog-overlay],
+[data-radix-alert-dialog-overlay] {
+  animation-duration: var(--backdrop-animation-duration);
+}
+
+[data-radix-dialog-content],
+[data-radix-alert-dialog-content] {
+  animation-duration: var(--modal-animation-duration);
+}
+
+/* Dropdown animations - 100ms as per spec */
+[data-radix-dropdown-menu-content],
+[data-radix-context-menu-content],
+[data-radix-menubar-content],
+[data-radix-select-content],
+[data-radix-popover-content] {
+  animation-duration: var(--dropdown-animation-duration);
+}
+
+/* Sheet animations - same as modal */
+[data-radix-dialog-content][data-side] {
+  animation-duration: var(--modal-animation-duration);
+}
+
+/* Reduced motion - disable all Radix animations */
+@media (prefers-reduced-motion: reduce) {
+  [data-radix-dialog-overlay],
+  [data-radix-alert-dialog-overlay],
+  [data-radix-dialog-content],
+  [data-radix-alert-dialog-content],
+  [data-radix-dropdown-menu-content],
+  [data-radix-context-menu-content],
+  [data-radix-menubar-content],
+  [data-radix-select-content],
+  [data-radix-popover-content] {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* Mobile-specific utilities */
 /* Story: 16-3 - Implement Mobile Layout */
 @media (max-width: 767px) {
