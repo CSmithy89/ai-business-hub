@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ApprovalItem, ApprovalStatus } from '@hyvve/shared'
 import { NESTJS_API_URL, NEXTJS_API_URL } from '@/lib/api-config'
+import { toast } from 'sonner'
 
 /**
  * Query parameters for fetching approvals list
@@ -203,30 +204,91 @@ async function bulkApproval(data: BulkApprovalRequest): Promise<BulkApprovalResp
 }
 
 /**
- * Hook to get mutation functions for approval actions
+ * Hook to get mutation functions for approval actions with optimistic updates
+ *
+ * Story 16-6: Implement Optimistic UI Updates
+ * - Approvals update immediately in the UI
+ * - Rollback on error with toast notification
+ * - Subtle loading indicator via isPending states
  */
 export function useApprovalMutations() {
   const queryClient = useQueryClient()
 
+  // Optimistic approve mutation
   const approveMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data?: ApprovalActionRequest }) =>
       approveApproval(id, data),
+
+    // OPTIMISTIC UPDATE: Update cache before server responds
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: ['approvals'] })
+      const previousData = queryClient.getQueryData<ApprovalsListResponse>(['approvals'])
+
+      if (previousData?.data) {
+        queryClient.setQueryData<ApprovalsListResponse>(['approvals'], {
+          ...previousData,
+          data: previousData.data.map((item) =>
+            item.id === id
+              ? { ...item, status: 'approved' as ApprovalStatus, updatedAt: new Date().toISOString() }
+              : item
+          ),
+        })
+      }
+
+      return { previousData }
+    },
+
+    // ROLLBACK: Restore previous state on error
+    onError: (_error, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['approvals'], context.previousData)
+      }
+      toast.error('Failed to approve. Please try again.')
+    },
+
     onSuccess: (response) => {
-      // Invalidate and refetch approvals list
-      queryClient.invalidateQueries({ queryKey: ['approvals'] })
-      // Update single approval cache
+      toast.success('Approval granted')
       queryClient.setQueryData(['approval', response.data.id], response)
+      queryClient.invalidateQueries({ queryKey: ['approvals'] })
     },
   })
 
+  // Optimistic reject mutation
   const rejectMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data?: ApprovalActionRequest }) =>
       rejectApproval(id, data),
+
+    // OPTIMISTIC UPDATE: Update cache before server responds
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: ['approvals'] })
+      const previousData = queryClient.getQueryData<ApprovalsListResponse>(['approvals'])
+
+      if (previousData?.data) {
+        queryClient.setQueryData<ApprovalsListResponse>(['approvals'], {
+          ...previousData,
+          data: previousData.data.map((item) =>
+            item.id === id
+              ? { ...item, status: 'rejected' as ApprovalStatus, updatedAt: new Date().toISOString() }
+              : item
+          ),
+        })
+      }
+
+      return { previousData }
+    },
+
+    // ROLLBACK: Restore previous state on error
+    onError: (_error, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['approvals'], context.previousData)
+      }
+      toast.error('Failed to reject. Please try again.')
+    },
+
     onSuccess: (response) => {
-      // Invalidate and refetch approvals list
-      queryClient.invalidateQueries({ queryKey: ['approvals'] })
-      // Update single approval cache
+      toast.success('Approval rejected')
       queryClient.setQueryData(['approval', response.data.id], response)
+      queryClient.invalidateQueries({ queryKey: ['approvals'] })
     },
   })
 

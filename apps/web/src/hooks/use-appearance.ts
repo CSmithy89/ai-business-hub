@@ -6,6 +6,16 @@
  * Integrates with next-themes and persists preferences.
  *
  * Story 15.26: Implement Appearance Settings Page
+ * Story 16.6: Implement Optimistic UI Updates
+ *
+ * OPTIMISTIC BY DESIGN:
+ * All appearance settings are client-side only and apply instantly:
+ * - Theme changes: Immediate via next-themes + CSS variables
+ * - Sidebar density: Immediate via Zustand + CSS classes
+ * - Font size: Immediate via Zustand + document.documentElement.style
+ *
+ * No server sync required, so updates are always instant.
+ * Settings persist to localStorage automatically via Zustand middleware.
  */
 
 'use client';

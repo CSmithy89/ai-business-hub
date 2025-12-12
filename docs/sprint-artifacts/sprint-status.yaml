@@ -382,7 +382,7 @@ development_status:
   # Section 2: UX Enhancements (5 stories, 16 points)
   16-4-clarify-workspace-vs-business-relationship: done
   16-5-implement-skeleton-loading-screens: done
-  16-6-implement-optimistic-ui-updates: backlog
+  16-6-implement-optimistic-ui-updates: done
   16-7-implement-form-validation-and-feedback: backlog
   16-8-implement-demo-mode-consistency: backlog
 

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
+import { toast } from 'sonner'
 
 /**
  * AI Provider types
@@ -259,43 +260,138 @@ export function useAIProviders() {
 }
 
 /**
- * Hook to get mutation functions for AI provider operations
+ * Hook to get mutation functions for AI provider operations with optimistic updates
+ *
+ * Story 16.6: Implement Optimistic UI Updates
+ * - Provider updates show immediately in UI
+ * - Rollback on error with toast notification
+ * - Create/Delete operations show instant feedback
  */
 export function useAIProviderMutations() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
 
+  // Optimistic create mutation
   const createMutation = useMutation({
     mutationFn: (data: CreateProviderRequest) => {
       if (!workspaceId) throw new Error('No workspace selected')
       return createProvider(workspaceId, data)
     },
+
+    onMutate: async (newProvider) => {
+      await queryClient.cancelQueries({ queryKey: ['ai-providers', workspaceId] })
+      const previousData = queryClient.getQueryData<ProvidersListResponse>(['ai-providers', workspaceId])
+
+      if (previousData?.data) {
+        const optimisticProvider: AIProvider = {
+          id: `temp-${Date.now()}`,
+          provider: newProvider.provider,
+          defaultModel: newProvider.defaultModel,
+          isValid: false,
+          lastValidatedAt: null,
+          validationError: null,
+          maxTokensPerDay: newProvider.maxTokensPerDay || 100000,
+          tokensUsedToday: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+
+        queryClient.setQueryData<ProvidersListResponse>(['ai-providers', workspaceId], {
+          ...previousData,
+          data: [...previousData.data, optimisticProvider],
+        })
+      }
+
+      return { previousData }
+    },
+
+    onError: (_error, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['ai-providers', workspaceId], context.previousData)
+      }
+      toast.error('Failed to add provider')
+    },
+
     onSuccess: () => {
+      toast.success('Provider added successfully')
       queryClient.invalidateQueries({ queryKey: ['ai-providers', workspaceId] })
     },
   })
 
+  // Optimistic update mutation
   const updateMutation = useMutation({
     mutationFn: ({ providerId, data }: { providerId: string; data: UpdateProviderRequest }) => {
       if (!workspaceId) throw new Error('No workspace selected')
       return updateProvider(workspaceId, providerId, data)
     },
+
+    onMutate: async ({ providerId, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['ai-providers', workspaceId] })
+      const previousData = queryClient.getQueryData<ProvidersListResponse>(['ai-providers', workspaceId])
+
+      if (previousData?.data) {
+        queryClient.setQueryData<ProvidersListResponse>(['ai-providers', workspaceId], {
+          ...previousData,
+          data: previousData.data.map((provider) =>
+            provider.id === providerId
+              ? { ...provider, ...data, updatedAt: new Date().toISOString() }
+              : provider
+          ),
+        })
+      }
+
+      return { previousData }
+    },
+
+    onError: (_error, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['ai-providers', workspaceId], context.previousData)
+      }
+      toast.error('Failed to update provider')
+    },
+
     onSuccess: () => {
+      toast.success('Provider updated')
       queryClient.invalidateQueries({ queryKey: ['ai-providers', workspaceId] })
     },
   })
 
+  // Optimistic delete mutation
   const deleteMutation = useMutation({
     mutationFn: (providerId: string) => {
       if (!workspaceId) throw new Error('No workspace selected')
       return deleteProvider(workspaceId, providerId)
     },
+
+    onMutate: async (providerId) => {
+      await queryClient.cancelQueries({ queryKey: ['ai-providers', workspaceId] })
+      const previousData = queryClient.getQueryData<ProvidersListResponse>(['ai-providers', workspaceId])
+
+      if (previousData?.data) {
+        queryClient.setQueryData<ProvidersListResponse>(['ai-providers', workspaceId], {
+          ...previousData,
+          data: previousData.data.filter((provider) => provider.id !== providerId),
+        })
+      }
+
+      return { previousData }
+    },
+
+    onError: (_error, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['ai-providers', workspaceId], context.previousData)
+      }
+      toast.error('Failed to remove provider')
+    },
+
     onSuccess: () => {
+      toast.success('Provider removed')
       queryClient.invalidateQueries({ queryKey: ['ai-providers', workspaceId] })
     },
   })
 
+  // Test mutation (no optimistic update needed - shows loading state)
   const testMutation = useMutation({
     mutationFn: (providerId: string) => {
       if (!workspaceId) throw new Error('No workspace selected')
