@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { ApprovalCard } from './approval-card'
 import { Button } from '@/components/ui/button'
 import type { ApprovalItem } from '@hyvve/shared'
@@ -25,6 +25,9 @@ import { CSS } from '@dnd-kit/utilities'
 import { toast } from 'sonner'
 import { Undo2 } from 'lucide-react'
 import { EmptyState } from '@/components/ui/empty-state'
+
+// Constants for drag-and-drop configuration
+const DRAG_ACTIVATION_DISTANCE_PX = 8
 
 interface ApprovalListProps {
   approvals: ApprovalItem[]
@@ -120,7 +123,7 @@ function SortableApprovalCard({
   }
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} data-approval-id={approval.id}>
       <ApprovalCard
         approval={approval}
         variant="compact"
@@ -155,6 +158,9 @@ export function ApprovalList({
   // Track active drag item for overlay
   const [activeId, setActiveId] = useState<string | null>(null)
 
+  // Track item to focus after drag completes (accessibility)
+  const focusAfterDragRef = useRef<string | null>(null)
+
   // Calculate selectable items (only pending items can be selected)
   const selectableItems = approvals.filter(a => a.status === 'pending')
   const allSelected = selectable && selectableItems.length > 0 &&
@@ -185,7 +191,7 @@ export function ApprovalList({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Require 8px movement before starting drag
+        distance: DRAG_ACTIVATION_DISTANCE_PX,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -202,18 +208,24 @@ export function ApprovalList({
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event
+      const draggedId = String(active.id)
       setActiveId(null)
 
       if (!over || active.id === over.id) {
+        // Focus the dragged item even if position didn't change (accessibility)
+        focusAfterDragRef.current = draggedId
         return
       }
 
-      const oldIndex = pendingIds.indexOf(String(active.id))
+      const oldIndex = pendingIds.indexOf(draggedId)
       const newIndex = pendingIds.indexOf(String(over.id))
 
       if (oldIndex !== -1 && newIndex !== -1) {
         const newOrder = arrayMove(pendingIds, oldIndex, newIndex)
         onOrderChange?.(newOrder)
+
+        // Track item for focus restoration after reorder (accessibility)
+        focusAfterDragRef.current = draggedId
 
         // Show toast with undo option
         toast.success('Approval order updated', {
@@ -233,6 +245,25 @@ export function ApprovalList({
     },
     [pendingIds, onOrderChange, onUndoReorder]
   )
+
+  // Restore focus after drag completes (accessibility)
+  useEffect(() => {
+    if (focusAfterDragRef.current && !activeId) {
+      // Find the drag handle button for the moved item
+      const itemId = focusAfterDragRef.current
+      const dragHandle = document.querySelector(
+        `[data-approval-id="${itemId}"] [data-drag-handle="true"]`
+      ) as HTMLElement
+
+      if (dragHandle) {
+        // Use requestAnimationFrame to ensure DOM has updated
+        requestAnimationFrame(() => {
+          dragHandle.focus()
+        })
+      }
+      focusAfterDragRef.current = null
+    }
+  }, [activeId, pendingIds])
 
   // Loading state
   if (isLoading) {

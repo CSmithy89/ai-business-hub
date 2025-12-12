@@ -121,6 +121,7 @@ export const ApprovalCard = forwardRef<HTMLDivElement, ApprovalCardProps>(functi
               {draggable && approval.status === 'pending' && (
                 <button
                   type="button"
+                  data-drag-handle="true"
                   className={cn(
                     'flex items-center justify-center p-1 -ml-2 rounded cursor-grab',
                     'text-gray-400 hover:text-gray-600 hover:bg-gray-100',

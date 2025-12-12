@@ -59,8 +59,11 @@ export function useApprovalOrder(
         const parsed: ApprovalOrderState = JSON.parse(stored);
         setCustomOrder(parsed.order);
       }
-    } catch {
+    } catch (error) {
       // Invalid stored data, start fresh
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[useApprovalOrder] Failed to parse localStorage data:', error);
+      }
       setCustomOrder([]);
     }
     setIsInitialized(true);
