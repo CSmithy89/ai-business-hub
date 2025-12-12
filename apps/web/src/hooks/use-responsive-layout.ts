@@ -19,7 +19,8 @@ import { useState, useEffect, useCallback } from 'react';
  */
 const BREAKPOINTS = {
   mobile: 640,      // sm: 640px
-  tablet: 768,      // md: 768px
+  tablet: 768,      // md: 768px - Tablet range starts here
+  tabletMax: 1024,  // lg: 1024px - Tablet range ends here
   medium: 1024,     // lg: 1024px
   mediumMax: 1280,  // xl: 1280px
   wide: 1536,       // 2xl: 1536px
@@ -45,11 +46,11 @@ const LAYOUT_PRIORITY_KEY = 'hyvve-layout-priority';
  */
 function getBreakpoint(width: number): Breakpoint {
   if (width < BREAKPOINTS.mobile) return 'mobile';
-  if (width < BREAKPOINTS.tablet) return 'tablet';
-  if (width < BREAKPOINTS.medium) return 'tablet';
-  if (width < BREAKPOINTS.mediumMax) return 'medium';
-  if (width < BREAKPOINTS.wide) return 'desktop';
-  return 'wide';
+  if (width < BREAKPOINTS.tablet) return 'mobile'; // Below 768px is mobile
+  if (width < BREAKPOINTS.tabletMax) return 'tablet'; // 768-1024px is tablet
+  if (width < BREAKPOINTS.mediumMax) return 'medium'; // 1024-1280px is medium
+  if (width < BREAKPOINTS.wide) return 'desktop'; // 1280-1536px is desktop
+  return 'wide'; // 1536px+ is wide
 }
 
 /**
@@ -108,6 +109,15 @@ export interface UseResponsiveLayout {
   /** Is current screen in medium range (1024-1280px) */
   isMediumScreen: boolean;
 
+  /** Is current screen in tablet range (768-1024px) */
+  isTablet: boolean;
+
+  /** Is current screen mobile (<768px) */
+  isMobile: boolean;
+
+  /** Is device using touch input (pointer: coarse) */
+  isTouchDevice: boolean;
+
   /** Current layout priority (sidebar or chat) */
   layoutPriority: LayoutPriority;
 
@@ -140,9 +150,17 @@ export function useResponsiveLayout(): UseResponsiveLayout {
     return loadLayoutPriority();
   });
 
-  // Calculate breakpoint
+  // Detect touch device using pointer: coarse media query
+  const [isTouchDevice, setIsTouchDevice] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(pointer: coarse)').matches;
+  });
+
+  // Calculate breakpoint flags
   const breakpoint = getBreakpoint(windowWidth);
   const isMediumScreen = breakpoint === 'medium';
+  const isTablet = breakpoint === 'tablet';
+  const isMobile = breakpoint === 'mobile';
 
   // Calculate auto-collapse flags
   const shouldAutoCollapseSidebar = isMediumScreen && layoutPriority === 'chat';
@@ -157,27 +175,41 @@ export function useResponsiveLayout(): UseResponsiveLayout {
   }, []);
 
   /**
-   * Handle window resize with debouncing
+   * Handle window resize with debouncing and touch detection
    */
   useEffect(() => {
     // Update width on mount
     setWindowWidth(window.innerWidth);
+
+    // Update touch device detection on mount
+    const touchMediaQuery = window.matchMedia('(pointer: coarse)');
+    setIsTouchDevice(touchMediaQuery.matches);
 
     // Debounced resize handler
     const handleResize = debounce(() => {
       setWindowWidth(window.innerWidth);
     }, 150);
 
+    // Touch device change handler
+    const handleTouchChange = (e: MediaQueryListEvent) => {
+      setIsTouchDevice(e.matches);
+    };
+
     window.addEventListener('resize', handleResize);
+    touchMediaQuery.addEventListener('change', handleTouchChange);
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      touchMediaQuery.removeEventListener('change', handleTouchChange);
     };
   }, []);
 
   return {
     breakpoint,
     isMediumScreen,
+    isTablet,
+    isMobile,
+    isTouchDevice,
     layoutPriority,
     setLayoutPriority,
     shouldAutoCollapseSidebar,

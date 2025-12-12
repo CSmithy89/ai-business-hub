@@ -21,10 +21,12 @@
 
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Header } from '@/components/shell/Header';
 import { Sidebar } from '@/components/shell/Sidebar';
+import { MobileSidebar, MobileSidebarTrigger } from '@/components/layout/MobileSidebar';
+import { ChatBottomSheet, ChatBottomSheetTrigger } from '@/components/layout/ChatBottomSheet';
 import { CommandPalette } from '@/components/command';
 import { KeyboardShortcuts } from '@/components/keyboard';
 import { MobileDrawer, MobileBottomNav } from '@/components/mobile';
@@ -56,11 +58,17 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { sidebarCollapsed, chatPanelOpen, chatPanelWidth, chatPanelHeight, chatPanelPosition } = useUIStore();
 
-  // Responsive layout hook for medium screen behavior (Story 16.1)
+  // Responsive layout hook for medium screen and tablet behavior (Story 16.1, 16.2)
   const {
     shouldAutoCollapseSidebar,
     shouldAutoCollapseChat,
+    isTablet,
+    isMobile,
   } = useResponsiveLayout();
+
+  // Tablet-specific drawer states
+  const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false);
+  const [tabletChatOpen, setTabletChatOpen] = useState(false);
 
   // Determine if sidebar should be collapsed based on responsive rules
   // Priority: user manual collapse > auto-collapse for medium screen
@@ -104,7 +112,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Fixed Header - 60px height */}
       <ErrorBoundary fallback={<HeaderErrorFallback />}>
-        <Header />
+        <Header>
+          {/* Tablet: Hamburger menu trigger in header */}
+          {isTablet && (
+            <MobileSidebarTrigger onClick={() => setTabletSidebarOpen(true)} />
+          )}
+        </Header>
       </ErrorBoundary>
 
       {/* Main content area - below header */}
@@ -112,10 +125,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         className="flex h-full w-full"
         style={{ paddingTop: LAYOUT.HEADER_HEIGHT }}
       >
-        {/* Left Sidebar - collapsible */}
-        <ErrorBoundary fallback={<SidebarErrorFallback />}>
-          <Sidebar isAutoCollapsed={shouldAutoCollapseSidebar} />
-        </ErrorBoundary>
+        {/* Desktop/Medium: Left Sidebar - collapsible */}
+        {!isTablet && !isMobile && (
+          <ErrorBoundary fallback={<SidebarErrorFallback />}>
+            <Sidebar isAutoCollapsed={shouldAutoCollapseSidebar} />
+          </ErrorBoundary>
+        )}
+
+        {/* Tablet: Mobile Sidebar Drawer */}
+        {isTablet && (
+          <MobileSidebar
+            open={tabletSidebarOpen}
+            onOpenChange={setTabletSidebarOpen}
+          />
+        )}
 
         {/*
           Main Content Area - flexible width
@@ -134,15 +157,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             flex-1 overflow-y-auto
             bg-[rgb(var(--color-bg-primary))]
             transition-all duration-300 ease-in-out
-            ${effectiveSidebarCollapsed ? 'ml-16' : 'ml-64'}
+            ${!isTablet && !isMobile ? (effectiveSidebarCollapsed ? 'ml-16' : 'ml-64') : 'ml-0'}
             min-w-0
             md:min-w-[400px]
             xl:min-w-[600px]
             max-sm:ml-0 max-sm:mr-0
           `}
           style={{
-            marginRight: getMainContentMarginRight(),
-            marginBottom: getMainContentMarginBottom(),
+            marginRight: isTablet ? 0 : getMainContentMarginRight(),
+            marginBottom: isTablet ? 0 : getMainContentMarginBottom(),
           }}
         >
           <ErrorBoundary fallback={<MainContentErrorFallback />}>
@@ -150,10 +173,26 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </ErrorBoundary>
         </main>
 
-        {/* Right Chat Panel - collapsible and resizable */}
-        <ErrorBoundary fallback={<ChatPanelErrorFallback />}>
-          <ChatPanel />
-        </ErrorBoundary>
+        {/* Desktop/Medium: Right Chat Panel - collapsible and resizable */}
+        {!isTablet && !isMobile && (
+          <ErrorBoundary fallback={<ChatPanelErrorFallback />}>
+            <ChatPanel />
+          </ErrorBoundary>
+        )}
+
+        {/* Tablet: Chat Bottom Sheet */}
+        {isTablet && (
+          <>
+            <ChatBottomSheet
+              open={tabletChatOpen}
+              onOpenChange={setTabletChatOpen}
+            />
+            <ChatBottomSheetTrigger
+              onClick={() => setTabletChatOpen(true)}
+              unreadCount={2}
+            />
+          </>
+        )}
       </div>
 
       {/* Command Palette - Global keyboard shortcut (Cmd/Ctrl+K) */}

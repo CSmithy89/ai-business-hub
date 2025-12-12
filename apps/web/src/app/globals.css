@@ -305,3 +305,111 @@
     box-shadow: none;
   }
 }
+
+/**
+ * Touch-Friendly Utilities - Story 16-2
+ *
+ * Styles for tablet and touch devices with:
+ * - Minimum 44x44px tap targets (WCAG 2.1 Level AAA)
+ * - Adequate spacing between touch targets
+ * - Touch interaction feedback
+ * - Swipe gesture indicators
+ */
+
+/* Minimum touch target size (44x44px) */
+.touch-target-min {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Adequate spacing between touch targets */
+.touch-spacing > * + * {
+  margin-top: 12px;
+}
+
+/* Touch-friendly button sizes on touch devices */
+@media (pointer: coarse) {
+  button:not(.touch-target-min),
+  [role="button"]:not(.touch-target-min),
+  a[role="button"]:not(.touch-target-min) {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+  }
+
+  /* Larger tap targets for navigation items */
+  nav a,
+  nav button,
+  .sidebar-item,
+  .nav-item {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+}
+
+/* Touch feedback - subtle scale on active */
+@media (pointer: coarse) {
+  button:active,
+  [role="button"]:active,
+  a[role="button"]:active {
+    transform: scale(0.98);
+    transition: transform 50ms ease-out;
+  }
+}
+
+/* Swipe gesture indicator animations */
+@keyframes swipe-hint {
+  0%, 100% {
+    opacity: 0.5;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.swipe-hint {
+  animation: swipe-hint 2s ease-in-out infinite;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  @media (pointer: coarse) {
+    button:active,
+    [role="button"]:active,
+    a[role="button"]:active {
+      transform: none;
+      transition: none;
+    }
+  }
+
+  .swipe-hint {
+    animation: none;
+  }
+}
+
+/* Touch device optimizations */
+@media (pointer: coarse) {
+  /* Prevent text selection on double-tap */
+  button,
+  [role="button"],
+  .no-select-touch {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Smooth scrolling for touch devices */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Remove hover effects on touch devices to prevent sticky states */
+  button:hover,
+  [role="button"]:hover,
+  a:hover {
+    /* Touch devices don't have true hover, so we disable hover-specific effects */
+    /* Active state (via :active) provides touch feedback instead */
+  }
+}
