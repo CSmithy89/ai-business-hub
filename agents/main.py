@@ -934,6 +934,177 @@ async def branding_team_health():
 
 
 # ============================================================================
+# Knowledge Base Endpoints (RAG)
+# ============================================================================
+
+# Import knowledge module
+from knowledge import (
+    ingest_document,
+    ingest_url,
+    ingest_text,
+    search_knowledge,
+    DocumentMetadata,
+    get_workspace_knowledge,
+)
+
+
+class IngestDocumentRequest(BaseModel):
+    """Request for document ingestion."""
+    source: str = Field(..., description="URL or file path to ingest")
+    title: Optional[str] = None
+    category: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class IngestTextRequest(BaseModel):
+    """Request for text ingestion."""
+    text: str = Field(..., description="Text content to ingest")
+    title: Optional[str] = None
+    category: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+
+
+class SearchKnowledgeRequest(BaseModel):
+    """Request for knowledge search."""
+    query: str = Field(..., description="Search query")
+    limit: int = Field(default=5, ge=1, le=20)
+    filters: Dict[str, Any] = Field(default_factory=dict)
+
+
+@app.post("/knowledge/ingest")
+@limiter.limit("20/minute")
+async def ingest_knowledge_document(
+    request_data: IngestDocumentRequest,
+    req: Request,
+):
+    """
+    Ingest a document into the workspace knowledge base.
+
+    Supports: PDF, CSV, Markdown, DOCX, PPTX, JSON, URLs, YouTube, ArXiv
+    """
+    workspace_id = getattr(req.state, "workspace_id", None)
+    jwt_token = getattr(req.state, "jwt_token", None)
+
+    if not workspace_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    # Build metadata
+    metadata = DocumentMetadata(
+        title=request_data.title,
+        category=request_data.category,
+        tags=request_data.tags,
+        custom=request_data.metadata,
+    )
+
+    result = await ingest_document(
+        workspace_id=workspace_id,
+        jwt_token=jwt_token,
+        source=request_data.source,
+        metadata=metadata,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=400, detail=result.error)
+
+    return result.to_dict()
+
+
+@app.post("/knowledge/ingest/text")
+@limiter.limit("30/minute")
+async def ingest_knowledge_text(
+    request_data: IngestTextRequest,
+    req: Request,
+):
+    """Ingest raw text into the workspace knowledge base."""
+    workspace_id = getattr(req.state, "workspace_id", None)
+    jwt_token = getattr(req.state, "jwt_token", None)
+
+    if not workspace_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    metadata = DocumentMetadata(
+        title=request_data.title,
+        category=request_data.category,
+        tags=request_data.tags,
+    )
+
+    result = await ingest_text(
+        workspace_id=workspace_id,
+        jwt_token=jwt_token,
+        text=request_data.text,
+        title=request_data.title,
+        metadata=metadata,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=400, detail=result.error)
+
+    return result.to_dict()
+
+
+@app.post("/knowledge/search")
+@limiter.limit("60/minute")
+async def search_workspace_knowledge(
+    request_data: SearchKnowledgeRequest,
+    req: Request,
+):
+    """
+    Search the workspace knowledge base.
+
+    Returns relevant documents based on semantic similarity.
+    """
+    workspace_id = getattr(req.state, "workspace_id", None)
+    jwt_token = getattr(req.state, "jwt_token", None)
+
+    if not workspace_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    results = await search_knowledge(
+        workspace_id=workspace_id,
+        jwt_token=jwt_token,
+        query=request_data.query,
+        limit=request_data.limit,
+        filters=request_data.filters,
+    )
+
+    return {
+        "query": request_data.query,
+        "results": results,
+        "count": len(results),
+    }
+
+
+@app.get("/knowledge/status")
+async def knowledge_status(req: Request):
+    """Get knowledge base status for the workspace."""
+    workspace_id = getattr(req.state, "workspace_id", None)
+    jwt_token = getattr(req.state, "jwt_token", None)
+
+    if not workspace_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    try:
+        knowledge = await get_workspace_knowledge(
+            workspace_id=workspace_id,
+            jwt_token=jwt_token,
+        )
+
+        return {
+            "status": "active",
+            "workspace_id": workspace_id,
+            "vector_db": "pgvector",
+            "search_type": "hybrid",
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "workspace_id": workspace_id,
+            "error": str(e),
+        }
+
+
+# ============================================================================
 # Main Entry Point
 # ============================================================================
 

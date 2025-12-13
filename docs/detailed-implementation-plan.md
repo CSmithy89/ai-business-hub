@@ -299,11 +299,11 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 
 ### 5.3. Medium-Term (New Features)
 
-| Task | Description | Effort |
-|------|-------------|--------|
-| PgVector setup | RAG knowledge base | 1 day |
-| MCP provider integration | Dynamic tool loading | 2 days |
-| Module config API | Enable/disable modules | 1 day |
+| Task | Description | Effort | Status |
+|------|-------------|--------|--------|
+| PgVector setup | RAG knowledge base | 1 day | ✅ Done |
+| MCP provider integration | Dynamic tool loading | 2 days | Pending |
+| Module config API | Enable/disable modules | 1 day | Pending |
 
 ---
 
@@ -404,7 +404,18 @@ Use this checklist to verify implementation completeness:
 - [x] `orjson` in requirements.txt
 - [x] `pgvector` in requirements.txt
 - [x] `cryptography` in requirements.txt
+- [x] `tiktoken` in requirements.txt (token counting)
+- [x] Document processing libs (pypdf, python-docx, beautifulsoup4)
 - [ ] `mcp` in requirements.txt (commented, enable when needed)
+
+### 7.7. RAG Knowledge Base
+- [x] `KnowledgeFactory` with tenant isolation (`agents/knowledge/factory.py`)
+- [x] BYOAI integration for embeddings
+- [x] Document ingestion module (`agents/knowledge/ingestion.py`)
+- [x] Content type detection (PDF, CSV, URL, etc.)
+- [x] API endpoints (`/knowledge/ingest`, `/knowledge/search`)
+- [x] Team integration helpers (`agents/knowledge/team_integration.py`)
+- [x] `KnowledgeAwareTeamFactory` for enhanced teams
 
 ---
 
@@ -420,4 +431,4 @@ Use this checklist to verify implementation completeness:
 ---
 
 *Last Updated: 2025-12-14*
-*Version: 2.3 - Token limit enforcement and usage recording complete*
+*Version: 2.4 - RAG Knowledge Base with PgVector complete*
