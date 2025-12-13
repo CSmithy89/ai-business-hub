@@ -286,13 +286,16 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 | Convert team endpoints to SSE | `agents/main.py` | ✅ Done |
 | Update requirements.txt | `agents/requirements.txt` | ✅ Done |
 
-### 5.2. Short-Term (New Implementation)
+### 5.2. Short-Term (New Implementation) ✅ COMPLETE
 
 | Task | Description | Effort | Status |
 |------|-------------|--------|--------|
-| Integrate BYOAI into team factories | Use ProviderConfig for model selection | 4 hours | ⏳ Pending |
-| Create `useAgentStream` hook | Frontend SSE consumer | 4 hours | ⏳ Pending |
+| Integrate BYOAI into team factories | Use ProviderConfig for model selection | 4 hours | ✅ Done |
+| Create `useAgentStream` hook | Frontend SSE consumer with Zod validation | 4 hours | ✅ Done |
 | Add JSON-RPC request/response models | Pydantic models for A2A | 2 hours | ✅ Done |
+| Enable JWT signature verification | Security fix in tenant.py | 1 hour | ✅ Done |
+| Fix HTTP client lifecycle | Resource leak prevention in byoai_client.py | 1 hour | ✅ Done |
+| Add race condition prevention | Stream ID tracking in useAgentStream | 1 hour | ✅ Done |
 
 ### 5.3. Medium-Term (New Features)
 
@@ -351,9 +354,16 @@ Use this checklist to verify implementation completeness:
 
 ### 7.1. Infrastructure
 - [x] FastAPI server running (`agents/main.py`)
-- [x] TenantMiddleware active on routes
+- [x] TenantMiddleware active on routes (with JWT signature verification)
 - [x] Rate limiting configured
 - [ ] Redis connection for distributed registry (optional)
+
+### 7.1b. Security
+- [x] JWT signature verification enabled (tenant.py)
+- [x] HTTP client resource management (byoai_client.py)
+- [x] Input validation with Zod schemas (useAgentStream)
+- [x] Race condition prevention (stream ID tracking)
+- [ ] API key encryption at rest (pending)
 
 ### 7.2. AG-UI Protocol
 - [x] `EventEncoder` class exists
@@ -374,10 +384,22 @@ Use this checklist to verify implementation completeness:
 ### 7.4. BYOAI Integration
 - [x] `BYOAIClient` implemented
 - [x] Provider config caching
-- [ ] Token limit enforcement in agent runs
-- [ ] Usage recording after completions
+- [x] HTTP client lifecycle management (reusable client)
+- [x] `create_agno_model()` factory function
+- [x] `resolve_and_create_model()` convenience function
+- [x] Integration in team execution (`_resolve_model_for_team`)
+- [ ] Token limit enforcement in agent runs (pending)
+- [ ] Usage recording after completions (pending)
 
-### 7.5. Dependencies
+### 7.5. Frontend SSE Integration
+- [x] `useAgentStream` React hook
+- [x] Zod validation for all AG-UI events
+- [x] Race condition prevention (stream ID tracking)
+- [x] Stale closure fixes (callback refs)
+- [x] Proper abort/cleanup handling
+- [x] Support for all AG-UI event types
+
+### 7.6. Dependencies
 - [x] `sse-starlette` in requirements.txt
 - [x] `orjson` in requirements.txt
 - [x] `pgvector` in requirements.txt
@@ -397,5 +419,5 @@ Use this checklist to verify implementation completeness:
 
 ---
 
-*Last Updated: 2025-12-13 by Claude Code Review*
-*Version: 2.1*
+*Last Updated: 2025-12-13*
+*Version: 2.2 - BYOAI integration complete, security fixes applied*
