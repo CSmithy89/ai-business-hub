@@ -10,7 +10,7 @@ import React, {
   useMemo,
 } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { useSession } from '@/lib/auth-client';
+import { useSession, getCurrentSessionToken } from '@/lib/auth-client';
 import {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -169,13 +169,28 @@ export function RealtimeProvider({
 
     // Get workspace ID from session or local storage
     const workspaceId =
-      (currentSession as { activeOrganizationId?: string })?.activeOrganizationId ||
+      (currentSession as { activeWorkspaceId?: string })?.activeWorkspaceId ||
+      (currentSession.session as { activeWorkspaceId?: string })?.activeWorkspaceId ||
       localStorage.getItem('activeWorkspaceId') ||
       '';
+
+    // Get session token for authentication
+    // SECURITY: Token is validated server-side against session database
+    const token = getCurrentSessionToken();
+    if (!token) {
+      console.warn('[Realtime] No session token available for WebSocket auth');
+      setConnectionState((prev) => ({
+        ...prev,
+        status: 'disconnected',
+        error: 'No session token',
+      }));
+      return;
+    }
 
     // Create socket connection
     const socket = io(`${mergedConfig.url}/realtime`, {
       auth: {
+        token, // Send token for server-side validation
         userId: currentSession.user.id,
         workspaceId,
         email: currentSession.user.email,
