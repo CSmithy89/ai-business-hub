@@ -288,11 +288,11 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 
 ### 5.2. Short-Term (New Implementation)
 
-| Task | Description | Effort |
-|------|-------------|--------|
-| Integrate BYOAI into team factories | Use ProviderConfig for model selection | 4 hours |
-| Create `useAgentStream` hook | Frontend SSE consumer | 4 hours |
-| Add JSON-RPC request/response models | Pydantic models for A2A | 2 hours |
+| Task | Description | Effort | Status |
+|------|-------------|--------|--------|
+| Integrate BYOAI into team factories | Use ProviderConfig for model selection | 4 hours | ⏳ Pending |
+| Create `useAgentStream` hook | Frontend SSE consumer | 4 hours | ⏳ Pending |
+| Add JSON-RPC request/response models | Pydantic models for A2A | 2 hours | ✅ Done |
 
 ### 5.3. Medium-Term (New Features)
 
@@ -397,5 +397,5 @@ Use this checklist to verify implementation completeness:
 
 ---
 
-*Last Updated: 2025-12-13 by Claude Code Audit*
-*Version: 2.0*
+*Last Updated: 2025-12-13 by Claude Code Review*
+*Version: 2.1*
