@@ -48,9 +48,29 @@ const SyncRequestSchema = z.object({
   since: z.string().optional(),
 });
 
-// Rate limiting constants
-const MAX_CONNECTIONS_PER_WORKSPACE = 100;
-const MAX_CONNECTIONS_PER_USER = 5;
+/**
+ * Connection Limits Configuration
+ *
+ * These limits prevent resource exhaustion and abuse:
+ *
+ * MAX_CONNECTIONS_PER_WORKSPACE (default: 100)
+ *   - Prevents a single workspace from consuming all server resources
+ *   - 100 allows ~20-50 concurrent users with multiple browser tabs
+ *   - Configurable via WS_MAX_CONNECTIONS_PER_WORKSPACE env var
+ *
+ * MAX_CONNECTIONS_PER_USER (default: 5)
+ *   - Allows user to have multiple tabs/devices
+ *   - 5 covers: desktop, mobile, tablet + 2 extra browser tabs
+ *   - Configurable via WS_MAX_CONNECTIONS_PER_USER env var
+ */
+const MAX_CONNECTIONS_PER_WORKSPACE = parseInt(
+  process.env.WS_MAX_CONNECTIONS_PER_WORKSPACE || '100',
+  10
+);
+const MAX_CONNECTIONS_PER_USER = parseInt(
+  process.env.WS_MAX_CONNECTIONS_PER_USER || '5',
+  10
+);
 
 /**
  * RealtimeGateway - WebSocket Gateway for Real-Time Updates
@@ -80,12 +100,27 @@ const MAX_CONNECTIONS_PER_USER = 5;
   cors: {
     // SECURITY: Only allow configured origins, not all
     origin: (origin, callback) => {
-      const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS?.split(',') || [
+      const isProduction = process.env.NODE_ENV === 'production';
+      const configuredOrigins = process.env.CORS_ALLOWED_ORIGINS;
+
+      // SECURITY: In production, CORS_ALLOWED_ORIGINS must be explicitly configured
+      if (isProduction && !configuredOrigins) {
+        console.error(
+          '[SECURITY] CORS_ALLOWED_ORIGINS must be configured in production. ' +
+            'WebSocket connections will be rejected until this is fixed.'
+        );
+        callback(new Error('CORS not configured'), false);
+        return;
+      }
+
+      // Parse allowed origins - only use localhost fallback in development
+      const allowedOrigins = configuredOrigins?.split(',') || [
         'http://localhost:3000',
         'http://localhost:3001',
       ];
-      // Allow requests with no origin (mobile apps, curl, etc) in development
-      if (!origin && process.env.NODE_ENV !== 'production') {
+
+      // Allow requests with no origin (mobile apps, curl, etc) in development only
+      if (!origin && !isProduction) {
         callback(null, true);
         return;
       }
@@ -385,12 +420,17 @@ export class RealtimeGateway
 
     try {
       // Query actual counts from database for sync verification
+      const userId = client.data?.userId;
       const [pendingApprovals, unreadNotifications] = await Promise.all([
         this.prisma.approvalItem.count({
           where: { workspaceId, status: 'pending' },
         }),
-        // Notification table might not exist yet, so we catch errors
-        Promise.resolve(0), // TODO: Add notification count when Notification model exists
+        // Count unread notifications for this user in this workspace
+        userId
+          ? this.prisma.notification.count({
+              where: { workspaceId, userId, readAt: null },
+            })
+          : Promise.resolve(0),
       ]);
 
       const syncState: SyncStatePayload = {
@@ -549,31 +589,37 @@ export class RealtimeGateway
 
   /**
    * Extract JWT token from socket handshake
-   * SECURITY: Token should be in handshake.auth.token or Authorization header
+   * SECURITY: Token must be in handshake.auth.token
+   * Authorization header fallback is disabled by default (opt-in via WS_ALLOW_AUTH_HEADER_FALLBACK)
    */
   private extractToken(client: Socket): string | null {
     const auth = client.handshake.auth || {};
-    const headers = client.handshake.headers || {};
 
-    // Try handshake.auth.token first (preferred for WebSocket)
+    // Try handshake.auth.token (the only supported method)
     if (auth.token && typeof auth.token === 'string') {
       return auth.token;
     }
 
-    // Try Authorization header (Bearer token) - DEPRECATED fallback
-    const authHeader = headers.authorization;
-    if (authHeader && typeof authHeader === 'string') {
-      const parts = authHeader.trim().split(/\s+/);
-      if (parts.length === 2) {
-        const [type, token] = parts;
-        // Accept case-insensitive 'Bearer'
-        if (type.toLowerCase() === 'bearer' && token) {
-          this.logger.warn({
-            event: 'deprecated_auth_header',
-            message: 'Client using deprecated Authorization header for WebSocket auth. Update to use handshake.auth.token',
-            socketId: client.id,
-          });
-          return token;
+    // DEPRECATED: Authorization header fallback - disabled by default
+    // Enable with WS_ALLOW_AUTH_HEADER_FALLBACK=true during migration only
+    const allowHeaderFallback = process.env.WS_ALLOW_AUTH_HEADER_FALLBACK === 'true';
+    if (allowHeaderFallback) {
+      const headers = client.handshake.headers || {};
+      const authHeader = headers.authorization;
+      if (authHeader && typeof authHeader === 'string') {
+        const parts = authHeader.trim().split(/\s+/);
+        if (parts.length === 2) {
+          const [type, token] = parts;
+          if (type.toLowerCase() === 'bearer' && token) {
+            this.logger.warn({
+              event: 'deprecated_auth_header',
+              message:
+                'Client using deprecated Authorization header. ' +
+                'Update to handshake.auth.token. This fallback will be removed.',
+              socketId: client.id,
+            });
+            return token;
+          }
         }
       }
     }
