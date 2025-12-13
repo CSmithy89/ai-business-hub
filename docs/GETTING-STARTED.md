@@ -187,7 +187,7 @@ pnpm build
 ### Option A: Start All Services
 
 ```bash
-pnpm dev
+pnpm run dev
 ```
 
 This starts:
