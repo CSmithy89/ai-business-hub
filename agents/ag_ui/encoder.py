@@ -2,7 +2,6 @@ from typing import Any, Dict, AsyncGenerator
 import json
 import logging
 from enum import Enum
-from agno.agent import AgentRunResponse
 
 logger = logging.getLogger(__name__)
 
@@ -119,15 +118,20 @@ class EventEncoder:
                         "messageId": f"msg_{session_id}"
                     })
 
+            # 2. Send Run Finished (success)
+            yield cls.encode(AGUIEventType.RUN_FINISHED, {
+                "runId": session_id,
+                "status": "success"
+            })
+
         except Exception as e:
             logger.error(f"Streaming error: {e}", exc_info=True)
             yield cls.encode(AGUIEventType.ERROR, {
                 "code": "STREAM_ERROR",
                 "message": str(e)
             })
-
-        # 2. Send Run Finished
-        yield cls.encode(AGUIEventType.RUN_FINISHED, {
-            "runId": session_id,
-            "status": "success"
-        })
+            # Send Run Finished with error status
+            yield cls.encode(AGUIEventType.RUN_FINISHED, {
+                "runId": session_id,
+                "status": "error"
+            })

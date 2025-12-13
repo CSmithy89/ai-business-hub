@@ -48,6 +48,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 request.state.workspace_id = claims.get("workspaceId")  # Optional
                 request.state.email = claims.get("email")
                 request.state.name = claims.get("name")
+                request.state.jwt_token = token  # Store for downstream services
 
                 logger.debug(
                     f"Tenant context: user={request.state.user_id}, "
@@ -93,6 +94,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
             request.state.session_id = None
             request.state.email = None
             request.state.name = None
+            request.state.jwt_token = None
 
         # Continue processing request
         response = await call_next(request)

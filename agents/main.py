@@ -20,6 +20,7 @@ from typing import Optional, Any, Dict, List, Union
 import logging
 import time
 import asyncio
+import json
 import uuid
 
 # Import registry and A2A models
@@ -240,7 +241,7 @@ async def _run_team(
     logger.info(f"{team_name}Team run: ws={workspace_id}, user={user_id}")
 
     try:
-        session_id = request_data.session_id or f"{config['session_prefix']}_{user_id}_{int(time.time())}"
+        session_id = request_data.session_id or f"{config['session_prefix']}_{uuid.uuid4().hex[:12]}"
         team = config["factory"](
             session_id=session_id,
             user_id=user_id,
@@ -289,7 +290,7 @@ async def _run_team_stream(
     if not workspace_id or not user_id:
         raise HTTPException(status_code=401, detail="Authentication required.")
 
-    session_id = request_data.session_id or f"{config['session_prefix']}_{user_id}_{int(time.time())}"
+    session_id = request_data.session_id or f"{config['session_prefix']}_{uuid.uuid4().hex[:12]}"
 
     async def generate():
         encoder = EventEncoder()
@@ -481,6 +482,7 @@ async def a2a_agent_card(agent_id: str):
 
 
 @app.post("/a2a/{agent_id}/rpc")
+@limiter.limit("20/minute")
 async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
     """
     A2A JSON-RPC 2.0 Endpoint.
@@ -573,7 +575,7 @@ async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
         health = _get_team_health(agent_id)
         return JSONRPCResponse(
             id=request.id,
-            result=JSONRPCResult(content=str(health))
+            result=JSONRPCResult(content=json.dumps(health))
         )
 
     elif request.method == "capabilities":
