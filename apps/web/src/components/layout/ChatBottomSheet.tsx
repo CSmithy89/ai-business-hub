@@ -14,7 +14,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, GripHorizontal } from 'lucide-react';
 import { ChatMessageList } from '@/components/chat/ChatMessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
@@ -109,31 +109,65 @@ export function ChatBottomSheet({ open, onOpenChange }: ChatBottomSheetProps) {
     };
   }, [isDragging, startY, startHeight]);
 
-  // Swipe down to close gesture
-  const handleSwipeDown = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    const startSwipeY = touch.clientY;
+  // Track swipe handlers for cleanup (prevents memory leak)
+  const swipeHandlersRef = useRef<{
+    move: ((e: TouchEvent) => void) | null;
+    end: (() => void) | null;
+  }>({ move: null, end: null });
 
-    const handleSwipeMove = (moveEvent: TouchEvent) => {
-      const currentY = moveEvent.touches[0].clientY;
-      const deltaY = currentY - startSwipeY;
-
-      // If swiped down more than 100px, close
-      if (deltaY > 100) {
-        onOpenChange(false);
-        document.removeEventListener('touchmove', handleSwipeMove);
-        document.removeEventListener('touchend', handleSwipeEnd);
+  // Clean up swipe handlers on unmount or close
+  useEffect(() => {
+    return () => {
+      // Clean up any lingering swipe handlers on unmount
+      if (swipeHandlersRef.current.move) {
+        document.removeEventListener('touchmove', swipeHandlersRef.current.move);
       }
+      if (swipeHandlersRef.current.end) {
+        document.removeEventListener('touchend', swipeHandlersRef.current.end);
+      }
+      swipeHandlersRef.current = { move: null, end: null };
     };
+  }, []);
 
-    const handleSwipeEnd = () => {
-      document.removeEventListener('touchmove', handleSwipeMove);
-      document.removeEventListener('touchend', handleSwipeEnd);
-    };
+  // Swipe down to close gesture
+  const handleSwipeDown = useCallback(
+    (e: React.TouchEvent) => {
+      const touch = e.touches[0];
+      const startSwipeY = touch.clientY;
 
-    document.addEventListener('touchmove', handleSwipeMove);
-    document.addEventListener('touchend', handleSwipeEnd);
-  };
+      const handleSwipeMove = (moveEvent: TouchEvent) => {
+        const currentY = moveEvent.touches[0].clientY;
+        const deltaY = currentY - startSwipeY;
+
+        // If swiped down more than 100px, close
+        if (deltaY > 100) {
+          onOpenChange(false);
+          cleanup();
+        }
+      };
+
+      const cleanup = () => {
+        if (swipeHandlersRef.current.move) {
+          document.removeEventListener('touchmove', swipeHandlersRef.current.move);
+        }
+        if (swipeHandlersRef.current.end) {
+          document.removeEventListener('touchend', swipeHandlersRef.current.end);
+        }
+        swipeHandlersRef.current = { move: null, end: null };
+      };
+
+      const handleSwipeEnd = () => {
+        cleanup();
+      };
+
+      // Store handlers for cleanup
+      swipeHandlersRef.current = { move: handleSwipeMove, end: handleSwipeEnd };
+
+      document.addEventListener('touchmove', handleSwipeMove);
+      document.addEventListener('touchend', handleSwipeEnd);
+    },
+    [onOpenChange]
+  );
 
   if (!open) {
     return null;

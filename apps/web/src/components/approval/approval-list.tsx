@@ -12,7 +12,10 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
+  type DragCancelEvent,
   DragOverlay,
+  type Announcements,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -28,6 +31,15 @@ import { EmptyState } from '@/components/ui/empty-state'
 
 // Constants for drag-and-drop configuration
 const DRAG_ACTIVATION_DISTANCE_PX = 8
+
+// Screen reader instructions for drag-and-drop (accessibility)
+const SCREEN_READER_INSTRUCTIONS = {
+  draggable: `
+    To pick up a sortable approval item, press space or enter.
+    While dragging, use the arrow keys to move the item.
+    Press space or enter again to drop the item in its new position, or press escape to cancel.
+  `,
+}
 
 interface ApprovalListProps {
   approvals: ApprovalItem[]
@@ -162,29 +174,81 @@ export function ApprovalList({
   const focusAfterDragRef = useRef<string | null>(null)
 
   // Calculate selectable items (only pending items can be selected)
-  const selectableItems = approvals.filter(a => a.status === 'pending')
-  const allSelected = selectable && selectableItems.length > 0 &&
-    selectableItems.every(a => selectedIds.has(a.id))
+  const selectableItems = approvals.filter((a) => a.status === 'pending')
+  const allSelected =
+    selectable &&
+    selectableItems.length > 0 &&
+    selectableItems.every((a) => selectedIds.has(a.id))
   const someSelected = selectable && selectedIds.size > 0 && !allSelected
 
   // Separate pending and non-pending items for drag context
   const pendingApprovals = useMemo(
-    () => approvals.filter(a => a.status === 'pending'),
+    () => approvals.filter((a) => a.status === 'pending'),
     [approvals]
   )
   const nonPendingApprovals = useMemo(
-    () => approvals.filter(a => a.status !== 'pending'),
+    () => approvals.filter((a) => a.status !== 'pending'),
     [approvals]
   )
   const pendingIds = useMemo(
-    () => pendingApprovals.map(a => a.id),
+    () => pendingApprovals.map((a) => a.id),
     [pendingApprovals]
   )
 
   // Active item for drag overlay
   const activeApproval = useMemo(
-    () => (activeId ? approvals.find(a => a.id === activeId) : null),
+    () => (activeId ? approvals.find((a) => a.id === activeId) : null),
     [activeId, approvals]
+  )
+
+  // Helper to get a readable title for an approval item (accessibility)
+  const getApprovalTitle = useCallback(
+    (id: string | number): string => {
+      const approval = approvals.find((a) => a.id === String(id))
+      if (!approval) return `item ${id}`
+      return (
+        approval.title || approval.description?.slice(0, 30) || `approval ${id}`
+      )
+    },
+    [approvals]
+  )
+
+  // Get position of an item in the pending list (1-indexed for user-friendly announcements)
+  const getPosition = useCallback(
+    (id: string | number): number => pendingIds.indexOf(String(id)) + 1,
+    [pendingIds]
+  )
+
+  // Screen reader announcements for drag-and-drop operations (accessibility)
+  const announcements: Announcements = useMemo(
+    () => ({
+      onDragStart({ active }: DragStartEvent) {
+        const title = getApprovalTitle(active.id)
+        const position = getPosition(active.id)
+        return `Picked up approval "${title}". It is in position ${position} of ${pendingApprovals.length}.`
+      },
+      onDragOver({ active, over }) {
+        const title = getApprovalTitle(active.id)
+        if (over) {
+          const overPosition = getPosition(over.id)
+          return `Approval "${title}" is now over position ${overPosition} of ${pendingApprovals.length}.`
+        }
+        return `Approval "${title}" is no longer over a drop target.`
+      },
+      onDragEnd({ active, over }) {
+        const title = getApprovalTitle(active.id)
+        if (over && active.id !== over.id) {
+          const newPosition = getPosition(over.id)
+          return `Approval "${title}" was dropped at position ${newPosition} of ${pendingApprovals.length}.`
+        }
+        return `Approval "${title}" was dropped in its original position.`
+      },
+      onDragCancel({ active }: DragCancelEvent) {
+        const title = getApprovalTitle(active.id)
+        return `Dragging cancelled. Approval "${title}" returned to its original position.`
+      },
+    }),
+    [getApprovalTitle, getPosition, pendingApprovals.length]
   )
 
   // Configure sensors for drag
@@ -200,9 +264,12 @@ export function ApprovalList({
   )
 
   // Handle drag start
-  const handleDragStart = useCallback((event: { active: { id: string | number } }) => {
-    setActiveId(String(event.active.id))
-  }, [])
+  const handleDragStart = useCallback(
+    (event: { active: { id: string | number } }) => {
+      setActiveId(String(event.active.id))
+    },
+    []
+  )
 
   // Handle drag end
   const handleDragEnd = useCallback(
@@ -290,6 +357,10 @@ export function ApprovalList({
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          accessibility={{
+            announcements,
+            screenReaderInstructions: SCREEN_READER_INSTRUCTIONS,
+          }}
         >
           <SortableContext
             items={pendingIds}
@@ -346,7 +417,8 @@ export function ApprovalList({
           <p className="text-sm text-gray-600">
             {selectedIds.size > 0 ? (
               <span>
-                <strong>{selectedIds.size}</strong> of <strong>{selectableItems.length}</strong> items selected
+                <strong>{selectedIds.size}</strong> of{' '}
+                <strong>{selectableItems.length}</strong> items selected
               </span>
             ) : (
               <span>
@@ -356,19 +428,11 @@ export function ApprovalList({
           </p>
           <div className="flex gap-2">
             {someSelected || allSelected ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onDeselectAll}
-              >
+              <Button variant="outline" size="sm" onClick={onDeselectAll}>
                 Deselect All
               </Button>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onSelectAll}
-              >
+              <Button variant="outline" size="sm" onClick={onSelectAll}>
                 Select All
               </Button>
             )}

@@ -16,21 +16,26 @@ import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { isDemoMode } from '@/lib/demo-data';
-
-const DEMO_BANNER_DISMISSED_KEY = 'hyvve-demo-banner-dismissed';
+import { STORAGE_DEMO_BANNER_DISMISSED } from '@/lib/storage-keys';
 
 export function DemoModeBanner() {
+  // Start with mounted=false to prevent hydration mismatch
+  // Server and client will both render null initially
+  const [mounted, setMounted] = useState(false);
   const [isDismissed, setIsDismissed] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    // Mark as mounted to enable client-side rendering
+    setMounted(true);
+
     // Check if demo mode is enabled
     if (!isDemoMode()) {
       return;
     }
 
     // Check if banner was previously dismissed
-    const dismissed = localStorage.getItem(DEMO_BANNER_DISMISSED_KEY);
+    const dismissed = localStorage.getItem(STORAGE_DEMO_BANNER_DISMISSED);
     if (dismissed === 'true') {
       setIsDismissed(true);
       setIsVisible(false);
@@ -41,7 +46,7 @@ export function DemoModeBanner() {
   }, []);
 
   const handleDismiss = () => {
-    localStorage.setItem(DEMO_BANNER_DISMISSED_KEY, 'true');
+    localStorage.setItem(STORAGE_DEMO_BANNER_DISMISSED, 'true');
     setIsVisible(false);
     setTimeout(() => setIsDismissed(true), 300); // Wait for animation
   };
@@ -57,8 +62,9 @@ export function DemoModeBanner() {
     );
   };
 
-  // Don't render if not in demo mode or if dismissed
-  if (!isDemoMode() || isDismissed) {
+  // Don't render until mounted (prevents hydration mismatch)
+  // Also don't render if not in demo mode or if dismissed
+  if (!mounted || !isDemoMode() || isDismissed) {
     return null;
   }
 
@@ -120,7 +126,7 @@ export function useDemoModeBannerVisible(): boolean {
       return;
     }
 
-    const dismissed = localStorage.getItem(DEMO_BANNER_DISMISSED_KEY);
+    const dismissed = localStorage.getItem(STORAGE_DEMO_BANNER_DISMISSED);
     setIsVisible(dismissed !== 'true');
   }, []);
 
@@ -131,7 +137,7 @@ export function useDemoModeBannerVisible(): boolean {
  * Reset demo banner dismissal (for testing/development)
  */
 export function resetDemoBannerDismissal() {
-  localStorage.removeItem(DEMO_BANNER_DISMISSED_KEY);
+  localStorage.removeItem(STORAGE_DEMO_BANNER_DISMISSED);
   if (typeof window !== 'undefined') {
     window.location.reload();
   }
