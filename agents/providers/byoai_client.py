@@ -50,6 +50,9 @@ class BYOAIClient:
             workspace_id="ws_123",
             jwt_token="eyJ..."
         )
+
+        # Clean up when done
+        await client.close()
     """
 
     # Cache TTL in seconds
@@ -73,8 +76,29 @@ class BYOAIClient:
         self.timeout = timeout
         self.cache_enabled = cache_enabled
         self._cache: Dict[str, CachedConfig] = {}
+        self._client: Optional[httpx.AsyncClient] = None
 
         logger.info(f"BYOAIClient initialized with API: {self.api_base_url}")
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        """Get or create the HTTP client (lazy initialization)."""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(timeout=self.timeout)
+        return self._client
+
+    async def close(self) -> None:
+        """Close the HTTP client and release resources."""
+        if self._client is not None and not self._client.is_closed:
+            await self._client.aclose()
+            self._client = None
+
+    async def __aenter__(self) -> "BYOAIClient":
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Async context manager exit."""
+        await self.close()
 
     def _get_cache_key(self, workspace_id: str, provider_id: Optional[str] = None) -> str:
         """Generate cache key for provider config."""
@@ -135,30 +159,30 @@ class BYOAIClient:
         url = f"{self.api_base_url}/api/workspaces/{workspace_id}/ai-providers"
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    url,
-                    headers={
-                        "Authorization": f"Bearer {jwt_token}",
-                        "Content-Type": "application/json",
-                    },
-                )
-                response.raise_for_status()
+            client = await self._get_client()
+            response = await client.get(
+                url,
+                headers={
+                    "Authorization": f"Bearer {jwt_token}",
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
 
-                data = response.json()
-                providers = data.get("data", [])
+            data = response.json()
+            providers = data.get("data", [])
 
-                configs = [self._parse_provider(p) for p in providers]
-                self._set_cached(cache_key, configs)
+            configs = [self._parse_provider(p) for p in providers]
+            self._set_cached(cache_key, configs)
 
-                logger.info(f"Fetched {len(configs)} providers for workspace {workspace_id}")
-                return configs
+            logger.info(f"Fetched {len(configs)} providers for workspace {workspace_id}")
+            return configs
 
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP error fetching providers: {e.response.status_code}")
             raise
         except Exception as e:
-            logger.error(f"Error fetching providers: {str(e)}")
+            logger.error(f"Error fetching providers: {e}")
             raise
 
     async def get_provider(
@@ -187,25 +211,25 @@ class BYOAIClient:
         url = f"{self.api_base_url}/api/workspaces/{workspace_id}/ai-providers/{provider_id}"
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    url,
-                    headers={
-                        "Authorization": f"Bearer {jwt_token}",
-                        "Content-Type": "application/json",
-                    },
-                )
-                response.raise_for_status()
+            client = await self._get_client()
+            response = await client.get(
+                url,
+                headers={
+                    "Authorization": f"Bearer {jwt_token}",
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
 
-                data = response.json()
-                provider = data.get("data")
+            data = response.json()
+            provider = data.get("data")
 
-                if provider:
-                    config = self._parse_provider(provider)
-                    self._set_cached(cache_key, config)
-                    return config
+            if provider:
+                config = self._parse_provider(provider)
+                self._set_cached(cache_key, config)
+                return config
 
-                return None
+            return None
 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
@@ -213,7 +237,7 @@ class BYOAIClient:
             logger.error(f"HTTP error fetching provider: {e.response.status_code}")
             raise
         except Exception as e:
-            logger.error(f"Error fetching provider: {str(e)}")
+            logger.error(f"Error fetching provider: {e}")
             raise
 
     async def get_default_provider(
@@ -290,21 +314,21 @@ class BYOAIClient:
         url = f"{self.api_base_url}/api/workspaces/{workspace_id}/ai-providers/{provider_id}/limit"
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    url,
-                    headers={
-                        "Authorization": f"Bearer {jwt_token}",
-                        "Content-Type": "application/json",
-                    },
-                )
-                response.raise_for_status()
+            client = await self._get_client()
+            response = await client.get(
+                url,
+                headers={
+                    "Authorization": f"Bearer {jwt_token}",
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
 
-                data = response.json()
-                return data.get("data", {})
+            data = response.json()
+            return data.get("data", {})
 
         except Exception as e:
-            logger.error(f"Error checking token limit: {str(e)}")
+            logger.error(f"Error checking token limit: {e}")
             raise
 
     async def record_token_usage(
@@ -346,22 +370,22 @@ class BYOAIClient:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    url,
-                    headers={
-                        "Authorization": f"Bearer {jwt_token}",
-                        "Content-Type": "application/json",
-                    },
-                    json=payload,
-                )
-                response.raise_for_status()
+            client = await self._get_client()
+            response = await client.post(
+                url,
+                headers={
+                    "Authorization": f"Bearer {jwt_token}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            response.raise_for_status()
 
-                logger.debug(f"Recorded token usage: {input_tokens + output_tokens} tokens")
-                return True
+            logger.debug(f"Recorded token usage: {input_tokens + output_tokens} tokens")
+            return True
 
         except Exception as e:
-            logger.error(f"Error recording token usage: {str(e)}")
+            logger.error(f"Error recording token usage: {e}")
             return False
 
     def _parse_provider(self, data: Dict[str, Any]) -> ProviderConfig:

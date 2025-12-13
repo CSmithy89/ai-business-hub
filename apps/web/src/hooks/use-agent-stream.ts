@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { z } from 'zod'
 import { getCurrentSessionToken } from '@/lib/auth-client'
 import type { AgentTeam } from '@/lib/agent-client'
 
@@ -36,76 +37,92 @@ export enum AGUIEventType {
 }
 
 // ============================================================================
-// Event Payload Types
+// Zod Schemas for Runtime Validation
 // ============================================================================
 
-export interface RunStartedEvent {
-  type: AGUIEventType.RUN_STARTED
-  runId: string
-  agentId?: string
-  timestamp?: number
-}
+const RunStartedEventSchema = z.object({
+  type: z.literal(AGUIEventType.RUN_STARTED),
+  runId: z.string(),
+  agentId: z.string().optional(),
+  timestamp: z.number().optional(),
+})
 
-export interface RunFinishedEvent {
-  type: AGUIEventType.RUN_FINISHED
-  runId: string
-  status: 'success' | 'error'
-}
+const RunFinishedEventSchema = z.object({
+  type: z.literal(AGUIEventType.RUN_FINISHED),
+  runId: z.string(),
+  status: z.enum(['success', 'error']),
+})
 
-export interface TextMessageChunkEvent {
-  type: AGUIEventType.TEXT_MESSAGE_CHUNK
-  delta: string
-  messageId: string
-}
+const TextMessageChunkEventSchema = z.object({
+  type: z.literal(AGUIEventType.TEXT_MESSAGE_CHUNK),
+  delta: z.string(),
+  messageId: z.string(),
+})
 
-export interface ThoughtChunkEvent {
-  type: AGUIEventType.THOUGHT_CHUNK
-  delta: string
-  messageId: string
-}
+const ThoughtChunkEventSchema = z.object({
+  type: z.literal(AGUIEventType.THOUGHT_CHUNK),
+  delta: z.string(),
+  messageId: z.string(),
+})
 
-export interface ToolCallStartEvent {
-  type: AGUIEventType.TOOL_CALL_START
-  toolCallId: string
-  toolName: string
-  args?: Record<string, unknown>
-}
+const ToolCallStartEventSchema = z.object({
+  type: z.literal(AGUIEventType.TOOL_CALL_START),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  args: z.record(z.string(), z.unknown()).optional(),
+})
 
-export interface ToolCallArgsEvent {
-  type: AGUIEventType.TOOL_CALL_ARGS
-  toolCallId: string
-  argsDelta: string
-}
+const ToolCallArgsEventSchema = z.object({
+  type: z.literal(AGUIEventType.TOOL_CALL_ARGS),
+  toolCallId: z.string(),
+  argsDelta: z.string(),
+})
 
-export interface ToolCallResultEvent {
-  type: AGUIEventType.TOOL_CALL_RESULT
-  toolCallId: string
-  result: string
-  isError?: boolean
-}
+const ToolCallResultEventSchema = z.object({
+  type: z.literal(AGUIEventType.TOOL_CALL_RESULT),
+  toolCallId: z.string(),
+  result: z.string(),
+  isError: z.boolean().optional(),
+})
 
-export interface UIRenderHintEvent {
-  type: AGUIEventType.UI_RENDER_HINT
-  component: string
-  props: Record<string, unknown>
-}
+const UIRenderHintEventSchema = z.object({
+  type: z.literal(AGUIEventType.UI_RENDER_HINT),
+  component: z.string(),
+  props: z.record(z.string(), z.unknown()),
+})
 
-export interface ErrorEvent {
-  type: AGUIEventType.ERROR
-  code: string
-  message: string
-}
+const ErrorEventSchema = z.object({
+  type: z.literal(AGUIEventType.ERROR),
+  code: z.string(),
+  message: z.string(),
+})
 
-export type AGUIEvent =
-  | RunStartedEvent
-  | RunFinishedEvent
-  | TextMessageChunkEvent
-  | ThoughtChunkEvent
-  | ToolCallStartEvent
-  | ToolCallArgsEvent
-  | ToolCallResultEvent
-  | UIRenderHintEvent
-  | ErrorEvent
+const AGUIEventSchema = z.discriminatedUnion('type', [
+  RunStartedEventSchema,
+  RunFinishedEventSchema,
+  TextMessageChunkEventSchema,
+  ThoughtChunkEventSchema,
+  ToolCallStartEventSchema,
+  ToolCallArgsEventSchema,
+  ToolCallResultEventSchema,
+  UIRenderHintEventSchema,
+  ErrorEventSchema,
+])
+
+// ============================================================================
+// Event Payload Types (inferred from Zod schemas)
+// ============================================================================
+
+export type RunStartedEvent = z.infer<typeof RunStartedEventSchema>
+export type RunFinishedEvent = z.infer<typeof RunFinishedEventSchema>
+export type TextMessageChunkEvent = z.infer<typeof TextMessageChunkEventSchema>
+export type ThoughtChunkEvent = z.infer<typeof ThoughtChunkEventSchema>
+export type ToolCallStartEvent = z.infer<typeof ToolCallStartEventSchema>
+export type ToolCallArgsEvent = z.infer<typeof ToolCallArgsEventSchema>
+export type ToolCallResultEvent = z.infer<typeof ToolCallResultEventSchema>
+export type UIRenderHintEvent = z.infer<typeof UIRenderHintEventSchema>
+export type ErrorEvent = z.infer<typeof ErrorEventSchema>
+export type AGUIEvent = z.infer<typeof AGUIEventSchema>
 
 // ============================================================================
 // Tool Call State
@@ -137,8 +154,8 @@ export interface AgentStreamState {
   // Accumulated thinking/reasoning
   thinking: string
 
-  // Tool calls in progress
-  toolCalls: Map<string, ToolCallState>
+  // Tool calls in progress (using Record for serializability)
+  toolCalls: Record<string, ToolCallState>
 
   // UI render hints received
   renderHints: UIRenderHintEvent[]
@@ -237,16 +254,16 @@ export interface UseAgentStreamReturn {
 // Initial State
 // ============================================================================
 
-const initialState: AgentStreamState = {
+const createInitialState = (): AgentStreamState => ({
   status: 'idle',
   runId: null,
   content: '',
   thinking: '',
-  toolCalls: new Map(),
+  toolCalls: {},
   renderHints: [],
   error: null,
   events: [],
-}
+})
 
 // ============================================================================
 // useAgentStream Hook
@@ -288,27 +305,49 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
     baseURL = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:8001',
   } = options
 
-  const [state, setState] = useState<AgentStreamState>(initialState)
+  const [state, setState] = useState<AgentStreamState>(createInitialState)
+
+  // Refs for cleanup and race condition prevention
   const abortControllerRef = useRef<AbortController | null>(null)
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null)
+  const streamIdRef = useRef<number>(0) // Unique ID for each stream to prevent race conditions
+  const contentRef = useRef<string>('') // Track content for onComplete callback
+
+  // Store callbacks in refs to avoid stale closures
+  const onEventRef = useRef(onEvent)
+  const onCompleteRef = useRef(onComplete)
+  const onErrorRef = useRef(onError)
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onEventRef.current = onEvent
+    onCompleteRef.current = onComplete
+    onErrorRef.current = onError
+  }, [onEvent, onComplete, onError])
 
   /**
    * Reset state to initial values
    */
   const reset = useCallback(() => {
-    setState(initialState)
+    contentRef.current = ''
+    setState(createInitialState())
   }, [])
 
   /**
    * Abort current stream
    */
   const abort = useCallback(() => {
+    // Invalidate current stream ID to prevent race conditions
+    streamIdRef.current += 1
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
     if (readerRef.current) {
-      readerRef.current.cancel()
+      readerRef.current.cancel().catch(() => {
+        // Ignore cancel errors
+      })
       readerRef.current = null
     }
     setState(prev => ({
@@ -318,14 +357,52 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
   }, [])
 
   /**
+   * Parse and validate SSE data line into event
+   */
+  const parseSSELine = useCallback((line: string): AGUIEvent | null => {
+    // SSE format: "data: {...}\n\n"
+    if (!line.startsWith('data: ')) {
+      return null
+    }
+
+    try {
+      const jsonStr = line.slice(6) // Remove "data: " prefix
+      const parsed = JSON.parse(jsonStr)
+
+      // Validate with Zod schema
+      const result = AGUIEventSchema.safeParse(parsed)
+      if (!result.success) {
+        console.warn('[useAgentStream] Invalid event structure:', result.error.issues)
+        return null
+      }
+
+      return result.data
+    } catch (err) {
+      console.error('[useAgentStream] Failed to parse SSE event:', err, line)
+      return null
+    }
+  }, [])
+
+  /**
    * Process a single AG-UI event
+   * Returns the new content value for tracking
    */
   const processEvent = useCallback(
-    (event: AGUIEvent) => {
-      // Call onEvent callback if provided
-      onEvent?.(event)
+    (event: AGUIEvent, currentStreamId: number): void => {
+      // Prevent processing events from stale streams
+      if (currentStreamId !== streamIdRef.current) {
+        return
+      }
+
+      // Call onEvent callback if provided (use ref to avoid stale closure)
+      onEventRef.current?.(event)
 
       setState(prev => {
+        // Double-check stream ID hasn't changed during setState
+        if (currentStreamId !== streamIdRef.current) {
+          return prev
+        }
+
         const newState = { ...prev }
 
         // Collect raw events if enabled
@@ -342,12 +419,15 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
           case AGUIEventType.RUN_FINISHED:
             newState.status = event.status === 'success' ? 'completed' : 'error'
             if (event.status === 'success') {
-              onComplete?.(prev.content)
+              // Use ref for current content to avoid stale closure
+              onCompleteRef.current?.(contentRef.current)
             }
             break
 
           case AGUIEventType.TEXT_MESSAGE_CHUNK:
             newState.content = prev.content + event.delta
+            // Update ref for onComplete callback
+            contentRef.current = newState.content
             break
 
           case AGUIEventType.THOUGHT_CHUNK:
@@ -355,42 +435,45 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
             break
 
           case AGUIEventType.TOOL_CALL_START: {
-            const newToolCalls = new Map(prev.toolCalls)
-            newToolCalls.set(event.toolCallId, {
-              id: event.toolCallId,
-              name: event.toolName,
-              args: event.args ? JSON.stringify(event.args) : '',
-              status: 'running',
-            })
-            newState.toolCalls = newToolCalls
+            newState.toolCalls = {
+              ...prev.toolCalls,
+              [event.toolCallId]: {
+                id: event.toolCallId,
+                name: event.toolName,
+                args: event.args ? JSON.stringify(event.args) : '',
+                status: 'running',
+              },
+            }
             break
           }
 
           case AGUIEventType.TOOL_CALL_ARGS: {
-            const newToolCalls = new Map(prev.toolCalls)
-            const existing = newToolCalls.get(event.toolCallId)
+            const existing = prev.toolCalls[event.toolCallId]
             if (existing) {
-              newToolCalls.set(event.toolCallId, {
-                ...existing,
-                args: existing.args + event.argsDelta,
-              })
+              newState.toolCalls = {
+                ...prev.toolCalls,
+                [event.toolCallId]: {
+                  ...existing,
+                  args: existing.args + event.argsDelta,
+                },
+              }
             }
-            newState.toolCalls = newToolCalls
             break
           }
 
           case AGUIEventType.TOOL_CALL_RESULT: {
-            const newToolCalls = new Map(prev.toolCalls)
-            const existing = newToolCalls.get(event.toolCallId)
+            const existing = prev.toolCalls[event.toolCallId]
             if (existing) {
-              newToolCalls.set(event.toolCallId, {
-                ...existing,
-                result: event.result,
-                isError: event.isError,
-                status: event.isError ? 'error' : 'completed',
-              })
+              newState.toolCalls = {
+                ...prev.toolCalls,
+                [event.toolCallId]: {
+                  ...existing,
+                  result: event.result,
+                  isError: event.isError,
+                  status: event.isError ? 'error' : 'completed',
+                },
+              }
             }
-            newState.toolCalls = newToolCalls
             break
           }
 
@@ -403,7 +486,7 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
             error.name = event.code
             newState.error = error
             newState.status = 'error'
-            onError?.(error)
+            onErrorRef.current?.(error)
             break
           }
         }
@@ -411,26 +494,8 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
         return newState
       })
     },
-    [onEvent, onComplete, onError, collectEvents]
+    [collectEvents]
   )
-
-  /**
-   * Parse SSE data line into event
-   */
-  const parseSSELine = useCallback((line: string): AGUIEvent | null => {
-    // SSE format: "data: {...}\n\n"
-    if (!line.startsWith('data: ')) {
-      return null
-    }
-
-    try {
-      const jsonStr = line.slice(6) // Remove "data: " prefix
-      return JSON.parse(jsonStr) as AGUIEvent
-    } catch (err) {
-      console.error('[useAgentStream] Failed to parse SSE event:', err, line)
-      return null
-    }
-  }, [])
 
   /**
    * Start streaming from an agent team
@@ -449,9 +514,16 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
       // Abort any existing stream
       abort()
 
+      // Generate new stream ID for race condition prevention
+      streamIdRef.current += 1
+      const currentStreamId = streamIdRef.current
+
+      // Reset content ref
+      contentRef.current = ''
+
       // Reset state
       setState({
-        ...initialState,
+        ...createInitialState(),
         status: 'connecting',
       })
 
@@ -459,12 +531,14 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
       const token = getCurrentSessionToken()
       if (!token) {
         const error = new Error('No authentication token found. Please sign in.')
-        setState(prev => ({
-          ...prev,
-          status: 'error',
-          error,
-        }))
-        onError?.(error)
+        if (currentStreamId === streamIdRef.current) {
+          setState(prev => ({
+            ...prev,
+            status: 'error',
+            error,
+          }))
+          onErrorRef.current?.(error)
+        }
         return
       }
 
@@ -489,6 +563,11 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
           signal: abortController.signal,
         })
 
+        // Check if stream was aborted while waiting for response
+        if (currentStreamId !== streamIdRef.current) {
+          return
+        }
+
         if (!response.ok) {
           const errorText = await response.text()
           throw new Error(`Agent API error (${response.status}): ${errorText}`)
@@ -499,21 +578,33 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
         if (!contentType?.includes('text/event-stream')) {
           // Non-streaming response - parse as JSON
           const data = await response.json()
+          if (currentStreamId !== streamIdRef.current) {
+            return
+          }
           if (data.content) {
-            processEvent({
-              type: AGUIEventType.RUN_STARTED,
-              runId: data.session_id || 'unknown',
-            })
-            processEvent({
-              type: AGUIEventType.TEXT_MESSAGE_CHUNK,
-              delta: data.content,
-              messageId: 'msg_1',
-            })
-            processEvent({
-              type: AGUIEventType.RUN_FINISHED,
-              runId: data.session_id || 'unknown',
-              status: 'success',
-            })
+            processEvent(
+              {
+                type: AGUIEventType.RUN_STARTED,
+                runId: data.session_id || 'unknown',
+              },
+              currentStreamId
+            )
+            processEvent(
+              {
+                type: AGUIEventType.TEXT_MESSAGE_CHUNK,
+                delta: data.content,
+                messageId: 'msg_1',
+              },
+              currentStreamId
+            )
+            processEvent(
+              {
+                type: AGUIEventType.RUN_FINISHED,
+                runId: data.session_id || 'unknown',
+                status: 'success',
+              },
+              currentStreamId
+            )
           }
           return
         }
@@ -529,6 +620,12 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
         let buffer = ''
 
         while (true) {
+          // Check for abort before each read
+          if (currentStreamId !== streamIdRef.current) {
+            reader.cancel().catch(() => {})
+            break
+          }
+
           const { done, value } = await reader.read()
 
           if (done) {
@@ -547,22 +644,27 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
             for (const line of lines) {
               const event = parseSSELine(line)
               if (event) {
-                processEvent(event)
+                processEvent(event, currentStreamId)
               }
             }
           }
         }
 
         // Process any remaining buffer
-        if (buffer.trim()) {
+        if (buffer.trim() && currentStreamId === streamIdRef.current) {
           const event = parseSSELine(buffer)
           if (event) {
-            processEvent(event)
+            processEvent(event, currentStreamId)
           }
         }
       } catch (err) {
         // Ignore abort errors
         if (err instanceof Error && err.name === 'AbortError') {
+          return
+        }
+
+        // Ignore errors from stale streams
+        if (currentStreamId !== streamIdRef.current) {
           return
         }
 
@@ -572,13 +674,16 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
           status: 'error',
           error,
         }))
-        onError?.(error)
+        onErrorRef.current?.(error)
       } finally {
-        abortControllerRef.current = null
-        readerRef.current = null
+        // Only clean up if this is still the current stream
+        if (currentStreamId === streamIdRef.current) {
+          abortControllerRef.current = null
+          readerRef.current = null
+        }
       }
     },
-    [abort, baseURL, processEvent, parseSSELine, onError]
+    [abort, baseURL, processEvent, parseSSELine]
   )
 
   // Cleanup on unmount

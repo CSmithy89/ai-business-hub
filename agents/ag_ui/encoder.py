@@ -85,6 +85,14 @@ class EventEncoder:
                     })
                     continue
 
+                # Handle Tool Call Arguments streaming (progressive args display)
+                if hasattr(chunk, "tool_call_args") and chunk.tool_call_args:
+                    yield cls.encode(AGUIEventType.TOOL_CALL_ARGS, {
+                        "toolCallId": getattr(chunk, "tool_call_id", f"call_{session_id}"),
+                        "argsDelta": chunk.tool_call_args
+                    })
+                    continue
+
                 # Handle Tool Call Result
                 if hasattr(chunk, "tool_result") and chunk.tool_result:
                     tool_result = chunk.tool_result

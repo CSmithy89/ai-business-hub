@@ -38,9 +38,13 @@ class TenantMiddleware(BaseHTTPMiddleware):
             token = auth_header[7:]  # Remove "Bearer " prefix
 
             try:
-                # Decode JWT (for MVP, skip signature verification)
-                # In production, use: jwt.decode(token, self.secret_key, algorithms=["HS256"])
-                claims = jwt.decode(token, options={"verify_signature": False})
+                # Decode and verify JWT signature
+                claims = jwt.decode(
+                    token,
+                    self.secret_key,
+                    algorithms=["HS256"],
+                    options={"verify_exp": True}
+                )
 
                 # Extract claims and inject into request state
                 request.state.user_id = claims.get("sub")
