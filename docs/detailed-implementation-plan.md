@@ -2,7 +2,8 @@
 
 **Status:** Living Document
 **Date:** 2025-12-13
-**Version:** 1.5
+**Version:** 2.0
+**Last Audit:** 2025-12-13
 
 ---
 
@@ -22,27 +23,36 @@ This document outlines the strategic roadmap for evolving the HYVVE platform int
 
 ## 2. Audit & Gap Analysis
 
-**Current State (Based on `agents/` analysis):**
-*   **Runtime:** FastAPI server (`AgentOS`) hosting specific agent teams (Validation, Planning, Branding).
-*   **Data Access:** Agents use `PostgresStorage` for *session history* but lack integration for *business state*. Tools often return dummy data or lack DB persistence logic.
-*   **Knowledge:** No RAG implementation (PgVector) found in code, despite being in docs.
-*   **Configuration:** API keys and models are hardcoded. No dynamic injection mechanism (`get_user_api_key` missing).
-*   **Protocols:**
-    *   **A2A:** Missing implementation. No discovery (`/.well-known/agent-card.json`).
-    *   **AG-UI:** Missing implementation. Endpoints return standard JSON, not SSE streams.
+### 2.1. Current State (Based on `agents/` analysis - Dec 2025)
 
-**Gaps Identified:**
+**What's Built:**
+*   **Runtime:** FastAPI server (`AgentOS`) hosting agent teams (Validation, Planning, Branding, Platform/Approval).
+*   **Registry:** `AgentRegistry` class with A2A card generation (`agents/registry.py`) - **EXISTS BUT NOT WIRED**.
+*   **Streaming:** `EventEncoder` class for AG-UI SSE format (`agents/ag_ui/encoder.py`) - **EXISTS BUT NOT USED**.
+*   **BYOAI:** `BYOAIClient` for fetching provider configs (`agents/providers/byoai_client.py`) - **IMPLEMENTED**.
+*   **Middleware:** TenantMiddleware (JWT/workspace), Rate Limiting, Business Validator - **IMPLEMENTED**.
+*   **Teams:** Validation, Planning, Branding teams with factory pattern - **IMPLEMENTED**.
 
-| Component | Current Implementation | Target Requirement | Gap Severity |
-|-----------|------------------------|--------------------|--------------|
-| **Protocol** | Custom REST API | **A2A Protocol** (JSON-RPC 2.0 over HTTP) | 🔴 High |
-| **Discovery** | None | `/.well-known/agent-card.json` | 🔴 High |
-| **Streaming** | None (Blocking/Async wait) | **AG-UI** (SSE `text/event-stream`) | 🔴 High |
-| **Events** | Custom JSON Schema | Standard AG-UI Events (`RUN_STARTED`, `TEXT_MESSAGE_CHUNK`, `THOUGHT_CHUNK`, `UI_RENDER_HINT`) | 🔴 High |
-| **Persistence** | Placeholder/Logging only | **Shared Schema** (Prisma/SQLAlchemy) | 🔴 High |
-| **RAG** | None | **PgVector** Knowledge Base with Ingestion Pipeline | 🟠 Medium |
-| **Config** | Hardcoded | **Module Config API** & **User Secrets Manager** | 🟠 Medium |
-| **Tooling** | Hardcoded Python functions | **MCP** (Model Context Protocol) with Permissions | 🟠 Medium |
+**What's Missing:**
+*   **Endpoints return JSON, not SSE** - StreamingResponse not used in `main.py`.
+*   **A2A discovery endpoint** - `/.well-known/agent-card.json` not exposed.
+*   **A2A RPC endpoint** - `/a2a/{agent_id}/rpc` JSON-RPC not implemented.
+*   **Registry integration** - Registry exists but teams not registered.
+*   **RAG/Knowledge** - No PgVector implementation.
+*   **MCP Integration** - No MCP SDK in requirements.
+
+### 2.2. Gap Analysis Matrix
+
+| Component | Current State | Target Requirement | Gap Severity |
+|-----------|---------------|-------------------|--------------|
+| **Protocol** | Custom REST API | **A2A Protocol** (JSON-RPC 2.0) | 🔴 High |
+| **Discovery** | Registry exists, endpoint missing | `/.well-known/agent-card.json` | 🟡 Medium (code exists) |
+| **Streaming** | EventEncoder exists, not wired | **AG-UI** (SSE `text/event-stream`) | 🟡 Medium (code exists) |
+| **Events** | Basic events in encoder | Full AG-UI Event Set (see 4.2.1) | 🟠 Medium |
+| **BYOAI** | BYOAIClient implemented | Dynamic provider injection | 🟢 Low (mostly done) |
+| **Persistence** | PostgresStorage for sessions | **Shared Schema** (business data) | 🟠 Medium |
+| **RAG** | None | **PgVector** Knowledge Base | 🟠 Medium |
+| **MCP** | None | **MCP** with Permissions | 🟠 Medium |
 
 ---
 
@@ -70,7 +80,7 @@ Modules depend *only* on the Foundation, not each other directly.
 
 ### Phase 1: Agent Foundation Upgrade (The "AgentOS 2.0")
 
-**Status:** 🏗️ In Progress
+**Status:** 🟡 Partially Complete - Core components built, wiring needed
 
 #### 4.1. Protocols & Standards
 *   **✅ Spec Completed:** `docs/architecture/a2a-protocol.md` (JSON-RPC, Agent Card).
@@ -79,105 +89,313 @@ Modules depend *only* on the Foundation, not each other directly.
 *   **✅ Spec Completed:** `docs/architecture/agno-implementation-guide.md` (Deep Dive into Agno components).
 
 #### 4.2. AG-UI Integration (Streaming)
+
 **Objective:** Replace standard JSON responses with SSE streams.
-*   **Action:** Implement `EventEncoder` and `StreamingResponse` in FastAPI.
-*   **Events:** Map Agno internal events to AG-UI types:
-    *   `TEXT_MESSAGE_CHUNK` (Token streaming)
-    *   `TOOL_CALL_START` / `TOOL_CALL_RESULT` (Action visibility)
-    *   `UI_RENDER_HINT` (For rich client-side components like charts)
-    *   `THOUGHT_CHUNK` (For reasoning models like o1/Claude-3.5 - **Critical for "Thinking" UI**)
-*   **Frontend:** The frontend will consume these streams using a custom hook (e.g., `useAgentStream`) that handles the `text/event-stream` response, parsing SSE data packets and updating the UI state in real-time.
+
+**Current Status:**
+*   ✅ `EventEncoder` class exists at `agents/ag_ui/encoder.py`
+*   ✅ Basic event types defined (`RUN_STARTED`, `TEXT_MESSAGE_CHUNK`, `RUN_FINISHED`, `ERROR`)
+*   ❌ `StreamingResponse` not used in `main.py` endpoints
+*   ❌ Tool call events have TODO comment
+*   ❌ Missing `THOUGHT_CHUNK` and `UI_RENDER_HINT` events
+
+##### 4.2.1. Complete AG-UI Event Types
+
+The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implementation-guide.md`):
+
+| Event Type | Purpose | Status |
+|------------|---------|--------|
+| `RUN_STARTED` | Agent begins processing | ✅ Implemented |
+| `RUN_FINISHED` | Agent completes execution | ✅ Implemented |
+| `TEXT_MESSAGE_CHUNK` | Token-by-token text streaming | ✅ Implemented |
+| `TOOL_CALL_START` | Tool invocation begins | ⚠️ Enum only |
+| `TOOL_CALL_ARGS` | Progressive tool arguments display | ❌ Missing |
+| `TOOL_CALL_RESULT` | Tool returns result | ⚠️ Enum only |
+| `THOUGHT_CHUNK` | Reasoning model thinking (o1/Claude) | ❌ Missing |
+| `UI_RENDER_HINT` | Rich component rendering instruction | ❌ Missing |
+| `ERROR` | Fatal error occurred | ✅ Implemented |
+
+##### 4.2.2. Event Mapping (Agno to AG-UI)
+
+```
+| Agno Event     | AG-UI Event Type      |
+|----------------|----------------------|
+| RunStart       | RUN_STARTED          |
+| Stream (Text)  | TEXT_MESSAGE_CHUNK   |
+| Stream (Think) | THOUGHT_CHUNK        |
+| ToolCall       | TOOL_CALL_START      |
+| ToolCallArgs   | TOOL_CALL_ARGS       |
+| ToolOutput     | TOOL_CALL_RESULT     |
+| RenderHint     | UI_RENDER_HINT       |
+| RunFinish      | RUN_FINISHED         |
+| Error          | ERROR                |
+```
+
+##### 4.2.3. Implementation Tasks
+
+1.  **Update `ag_ui/encoder.py`:**
+    *   Add `THOUGHT_CHUNK` to `AGUIEventType` enum
+    *   Add `TOOL_CALL_ARGS` to `AGUIEventType` enum
+    *   Add `UI_RENDER_HINT` to `AGUIEventType` enum
+    *   Implement tool call detection in `stream_response()`
+
+2.  **Update `main.py` endpoints:**
+    *   Convert `/agents/*/runs` endpoints to use `StreamingResponse`
+    *   Import and use `EventEncoder.stream_response()`
+    *   Add `media_type="text/event-stream"` to responses
+
+3.  **Frontend Hook:**
+    *   Create `useAgentStream` hook for SSE consumption
+    *   Handle all event types with appropriate UI updates
 
 #### 4.3. A2A Protocol Implementation (Interoperability)
+
 **Objective:** Make agents discoverable and callable.
-*   **Registry:** Create `AgentRegistry` class (in-memory for now, Redis later). This registry will hold `AgentCard` objects.
-*   **Discovery Endpoint:** Implement `GET /.well-known/agent-card.json` which returns the agent's capabilities, description, and available tools/skills.
-*   **RPC Endpoint:** Implement `POST /agent/rpc` for JSON-RPC 2.0 calls. This allows other agents to invoke tasks synchronously.
-*   **Internal Routing:** The registry will allow `AgentOS` to route an internal request like `registry.get_agent("crm_agent").run("...")` without a network hop if possible, or via HTTP if distributed.
+
+**Current Status:**
+*   ✅ `AgentRegistry` class exists at `agents/registry.py`
+*   ✅ `AgentCard`, `AgentSkill`, `AgentCapabilities` Pydantic models defined
+*   ✅ Card generation from agent tools implemented
+*   ❌ Registry not instantiated/used in `main.py`
+*   ❌ Discovery endpoint not exposed
+*   ❌ RPC endpoint not implemented
+
+##### 4.3.1. Implementation Tasks
+
+1.  **Wire Registry in `main.py`:**
+    ```python
+    from registry import registry
+
+    @app.on_event("startup")
+    async def startup_event():
+        # Register all teams
+        registry.register_team(create_validation_team(...), "validation")
+        registry.register_team(create_planning_team(...), "planning")
+        registry.register_team(create_branding_team(...), "branding")
+    ```
+
+2.  **Add Discovery Endpoint:**
+    ```python
+    @app.get("/.well-known/agent-card.json")
+    async def get_agent_cards():
+        """List all registered agent cards (A2A Discovery)"""
+        return {"agents": [card.model_dump() for card in registry.list_cards()]}
+
+    @app.get("/a2a/{agent_id}/.well-known/agent-card.json")
+    async def get_agent_card(agent_id: str):
+        """Get specific agent card"""
+        card = registry.get_card(agent_id)
+        if not card:
+            raise HTTPException(404, "Agent not found")
+        return card.model_dump()
+    ```
+
+3.  **Add JSON-RPC Endpoint:**
+    ```python
+    @app.post("/a2a/{agent_id}/rpc")
+    async def a2a_rpc(agent_id: str, request: JSONRPCRequest):
+        """A2A JSON-RPC 2.0 endpoint"""
+        team = registry.get_team(agent_id)
+        if not team:
+            return JSONRPCError(code=-32601, message="Agent not found")
+
+        if request.method == "run":
+            response = await team.arun(request.params["task"])
+            return JSONRPCResponse(id=request.id, result={"content": response.content})
+    ```
 
 #### 4.4. Configuration & Secrets Management
+
 **Objective:** Enable "Bring Your Own AI" and Module Config.
-*   **Secrets Manager:** Create a service to fetch encrypted API keys (OpenAI, Anthropic) from the DB/Vault based on `user_id` or `workspace_id`.
-    *   *Implementation:* Use `cryptography` library to encrypt keys at rest in the Postgres `user_secrets` table.
-*   **Module Config API:** Endpoint to list/enable/disable modules.
-    *   *Implementation:* A meta-table `module_config` storing the enabled state and version of each module per workspace.
-*   **MCP Integration:** Support dynamic MCP server connections.
-    *   *Permission Flags:* Implement Read/Write/Execute flags for tools (inspired by Claude Code SDK).
-    *   *Dynamic Loading:* Middleware in `AgentOS` fetches user's MCP config, spawns/connects to MCP servers (or uses SSE-based MCP), and injects tools into the `Agent` context at runtime.
+
+**Current Status:**
+*   ✅ `BYOAIClient` implemented at `agents/providers/byoai_client.py`
+*   ✅ Provider config fetching with caching
+*   ✅ Token limit checking and usage recording
+*   ❌ Not integrated into agent creation flow
+*   ❌ MCP integration not started
+
+##### 4.4.1. Implementation Tasks
+
+1.  **Integrate BYOAI into Teams:**
+    *   Modify team factories to accept `ProviderConfig`
+    *   Inject API keys from BYOAI into Agno agent `model` parameter
+
+2.  **MCP Integration:**
+    *   Add `mcp` package to requirements
+    *   Create `agents/providers/mcp.py` for user-scoped MCP tools
+    *   Implement permission flags (Read/Write/Execute)
 
 ### Phase 2: Data & State Strategy
 
 #### 4.5. Shared Schema Persistence
 **Objective:** Agents must read/write actual business data.
-*   **Action:** Define Pydantic models that mirror the Prisma schema. This ensures type safety between the Python agents and the Postgres database managed by NestJS/Prisma.
-*   **Resumable Sessions:** Store `AgentSession` in Postgres to survive restarts (from `remote-coding-agent-patterns.md`).
-    *   *Mechanism:* Use Agno's `PostgresStorage` but map it to our shared schema to allow the NestJS backend to also query conversation history if needed.
+*   **Action:** Define Pydantic models that mirror the Prisma schema.
+*   **Resumable Sessions:** Store `AgentSession` in Postgres to survive restarts.
 
 #### 4.6. Knowledge Base (RAG)
 **Objective:** Long-term memory for business context.
 *   **Action:** Initialize `PgVector` knowledge base.
-*   **Ingestion Pipeline:** Implement `ReaderFactory` and `AgenticChunking` for robust document processing (from `agno-implementation-guide.md`).
+*   **Ingestion Pipeline:** Implement `ReaderFactory` and `AgenticChunking`.
     *   *Files:* PDF, CSV, Markdown processing.
     *   *Web:* Scrape and index relevant business URLs.
-    *   *Integration:* The `Agent` will have a `knowledge` parameter initialized with this vector store, allowing `agent.print_response("...", search_knowledge=True)`.
+    *   *Integration:* `agent.knowledge.search(query, filter={"workspace_id": ...})`
 
 ### Phase 3: Module Implementation (Iterative)
 
 #### 4.7. First Module: BM-CRM
 *   **Data:** Contacts, Companies, Interactions.
 *   **Agents:**
-    *   `LeadScorer`: Background agent listening to Redis events (e.g., `new_contact`).
-    *   `CRMAssistant`: A2A/AG-UI agent for user interaction ("Find me high value leads").
+    *   `LeadScorer`: Background agent listening to Redis events.
+    *   `CRMAssistant`: A2A/AG-UI agent for user interaction.
 *   **Integration:** Exposes `crm.search` tool via MCP/A2A.
 
 ### Phase 4: Frontend Implementation (Management UI)
 
-We will adapt existing `apps/web/src/app/(dashboard)/settings` structure and create new pages where missing.
-
 #### 4.8. Module Management UI
 **Location:** `apps/web/src/app/(dashboard)/settings/modules/page.tsx` (New)
-*   **Features:**
-    *   Grid view of available modules (CRM, Branding, Planning, etc.).
-    *   Toggle switches to Enable/Disable modules per workspace.
-    *   Status indicators (Active, Inactive, Error).
-    *   "Configure" button for module-specific settings.
+*   Grid view of available modules
+*   Toggle switches to Enable/Disable modules per workspace
+*   Status indicators (Active, Inactive, Error)
+*   "Configure" button for module-specific settings
 
 #### 4.9. AI & Keys Configuration
 **Location:** `apps/web/src/app/(dashboard)/settings/ai-config` (Existing - Adapt)
-*   **Adaptation:**
-    *   Rename/Refine `agent-preferences` to `model-settings`.
-    *   Add **"API Keys"** tab/section for securely adding OpenAI/Anthropic keys (BYOAI).
-    *   Add **"MCP Integrations"** tab/section.
-    *   **MCP UI:** List of connected MCP servers, "Add Connection" modal (URL + Auth Token), and connection status health check.
+*   Add **"API Keys"** tab for BYOAI configuration
+*   Add **"MCP Integrations"** tab
+*   MCP UI: List of servers, "Add Connection" modal, health status
 
 #### 4.10. Agent Team Configuration
 **Location:** `apps/web/src/app/(dashboard)/agents/[id]/configure` (Existing - Refine)
-*   **Features:**
-    *   Dropdown to select Model (GPT-4, Claude 3.5) for *this specific agent*.
-    *   Toggle for "Enable Tools" (e.g., Web Search, Calculator).
-    *   Prompt/Persona editor (Admin only).
+*   Model selection dropdown (GPT-4, Claude 3.5)
+*   Tool toggle controls
+*   Prompt/Persona editor (Admin only)
 
 ---
 
-## 5. Next Steps (Immediate)
+## 5. Next Steps (Prioritized)
 
-1.  **Refactor `agents/main.py`**:
-    *   Remove hardcoded team endpoints.
-    *   Implement generic `A2ARouter` and `AGUIStreamer`.
-    *   Create `AgentRegistry`.
-2.  **Implement `EventEncoder`**: Port the logic from `ag-ui-protocol.md`.
-3.  **Implement `AgentRegistry`**: Create the discovery mechanism defined in `a2a-protocol.md`.
+### 5.1. Immediate (Wire Existing Code)
+
+| Task | File(s) | Effort |
+|------|---------|--------|
+| Add missing AG-UI events to encoder | `agents/ag_ui/encoder.py` | 1 hour |
+| Wire registry in main.py startup | `agents/main.py` | 2 hours |
+| Add A2A discovery endpoint | `agents/main.py` | 1 hour |
+| Add A2A RPC endpoint | `agents/main.py` | 2 hours |
+| Convert team endpoints to SSE | `agents/main.py` | 3 hours |
+| Update requirements.txt | `agents/requirements.txt` | 30 min |
+
+### 5.2. Short-Term (New Implementation)
+
+| Task | Description | Effort |
+|------|-------------|--------|
+| Integrate BYOAI into team factories | Use ProviderConfig for model selection | 4 hours |
+| Create `useAgentStream` hook | Frontend SSE consumer | 4 hours |
+| Add JSON-RPC request/response models | Pydantic models for A2A | 2 hours |
+
+### 5.3. Medium-Term (New Features)
+
+| Task | Description | Effort |
+|------|-------------|--------|
+| PgVector setup | RAG knowledge base | 1 day |
+| MCP provider integration | Dynamic tool loading | 2 days |
+| Module config API | Enable/disable modules | 1 day |
+
+---
 
 ## 6. Dependency Requirements
 
-To support the new protocols and architecture, we need to update `agents/requirements.txt`.
+### 6.1. Current Dependencies (`agents/requirements.txt`)
+```
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+agno
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+asyncpg>=0.29.0
+pyjwt==2.8.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+requests>=2.31.0
+httpx>=0.27.0
+respx>=0.20.2
+slowapi>=0.1.9
+limits>=3.7.0
+```
 
-**New Packages Required:**
-*   `sse-starlette`: For FastAPI Server-Sent Events (SSE) support (AG-UI).
-*   `orjson`: High-performance JSON parsing for A2A messages.
-*   `pgvector`: For RAG knowledge base integration.
-*   `cryptography`: For encrypting/decrypting BYOAI API keys in the database.
-*   `mcp`: The official Python SDK for Model Context Protocol.
+### 6.2. Required Additions
+```
+# AG-UI Streaming
+sse-starlette>=1.8.0
+
+# A2A Performance
+orjson>=3.9.0
+
+# RAG Knowledge Base
+pgvector>=0.2.5
+
+# BYOAI Key Encryption
+cryptography>=41.0.0
+
+# Model Context Protocol
+mcp>=0.1.0
+```
 
 ---
-*Created by BMad Master - 2025-12-13*
+
+## 7. Audit Checklist
+
+Use this checklist to verify implementation completeness:
+
+### 7.1. Infrastructure
+- [x] FastAPI server running (`agents/main.py`)
+- [x] TenantMiddleware active on routes
+- [x] Rate limiting configured
+- [ ] Redis connection for distributed registry (optional)
+
+### 7.2. AG-UI Protocol
+- [x] `EventEncoder` class exists
+- [ ] `THOUGHT_CHUNK` event type added
+- [ ] `UI_RENDER_HINT` event type added
+- [ ] `TOOL_CALL_ARGS` event type added
+- [ ] `StreamingResponse` used in endpoints
+- [ ] Tool call detection implemented
+
+### 7.3. A2A Protocol
+- [x] `AgentRegistry` class exists
+- [x] `AgentCard` Pydantic model defined
+- [ ] Registry instantiated at startup
+- [ ] Teams registered in registry
+- [ ] `/.well-known/agent-card.json` endpoint exposed
+- [ ] `/a2a/{agent_id}/rpc` endpoint implemented
+
+### 7.4. BYOAI Integration
+- [x] `BYOAIClient` implemented
+- [x] Provider config caching
+- [ ] Token limit enforcement in agent runs
+- [ ] Usage recording after completions
+
+### 7.5. Dependencies
+- [ ] `sse-starlette` in requirements.txt
+- [ ] `orjson` in requirements.txt
+- [ ] `pgvector` in requirements.txt
+- [ ] `cryptography` in requirements.txt
+- [ ] `mcp` in requirements.txt
+
+---
+
+## 8. Reference Documentation
+
+| Document | Purpose |
+|----------|---------|
+| `docs/architecture/a2a-protocol.md` | A2A JSON-RPC specification |
+| `docs/architecture/ag-ui-protocol.md` | AG-UI SSE event specification |
+| `docs/architecture/agno-implementation-guide.md` | Agno framework deep dive |
+| `docs/architecture/remote-coding-agent-patterns.md` | Session management patterns |
+
+---
+
+*Last Updated: 2025-12-13 by Claude Code Audit*
+*Version: 2.0*
