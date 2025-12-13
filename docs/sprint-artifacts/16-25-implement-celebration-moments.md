@@ -1,6 +1,6 @@
 # Story 16.25: Implement Celebration Moments
 
-Status: drafted
+Status: ready-for-dev
 
 ## Story
 
@@ -193,7 +193,7 @@ confetti({
 
 ### Context Reference
 
-<!-- Path(s) to story context XML will be added here by context workflow -->
+- `docs/sprint-artifacts/16-25-implement-celebration-moments.context.xml`
 
 ### Agent Model Used
 
