@@ -6,6 +6,25 @@ import { toast } from 'sonner';
 import { useRealtime, WS_EVENTS, NotificationPayload } from '@/lib/realtime';
 
 /**
+ * Validate that a URL is safe for navigation (prevents open redirects)
+ * Only allows relative paths or same-origin URLs
+ */
+function isValidActionUrl(url: string): boolean {
+  // Allow relative paths that start with /
+  if (url.startsWith('/') && !url.startsWith('//')) {
+    return true;
+  }
+
+  // Validate absolute URLs are same-origin
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return parsed.origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * useRealtimeNotifications - Real-time notification updates hook
  *
  * Subscribes to WebSocket notification events and:
@@ -54,9 +73,12 @@ export function useRealtimeNotifications() {
       );
 
       // Show toast notification based on severity
+      // Only show action button if URL is valid (prevents open redirect attacks)
+      const hasValidAction = notification.actionUrl && isValidActionUrl(notification.actionUrl);
+
       const toastConfig = {
         description: notification.message,
-        action: notification.actionUrl
+        action: hasValidAction
           ? {
               label: notification.actionLabel || 'View',
               onClick: () => {

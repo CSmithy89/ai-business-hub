@@ -41,6 +41,62 @@ const DEFAULT_CONFIG: RealtimeConfig = {
 };
 
 /**
+ * Client-side rate limiting configuration per event type
+ * Limits: max emissions per window (in ms)
+ */
+const RATE_LIMITS: Record<string, { maxEmits: number; windowMs: number }> = {
+  'typing.start': { maxEmits: 5, windowMs: 5000 },    // 5 per 5s
+  'typing.stop': { maxEmits: 5, windowMs: 5000 },     // 5 per 5s
+  'presence.update': { maxEmits: 3, windowMs: 10000 }, // 3 per 10s
+  'room.join': { maxEmits: 5, windowMs: 60000 },       // 5 per minute
+  'room.leave': { maxEmits: 5, windowMs: 60000 },      // 5 per minute
+  'sync.request': { maxEmits: 3, windowMs: 30000 },    // 3 per 30s
+};
+
+/**
+ * Simple sliding window rate limiter
+ */
+class RateLimiter {
+  private windows: Map<string, number[]> = new Map();
+
+  /**
+   * Check if an event can be emitted
+   * @returns true if allowed, false if rate limited
+   */
+  canEmit(event: string): boolean {
+    const config = RATE_LIMITS[event];
+    if (!config) return true; // No limit configured
+
+    const now = Date.now();
+    const windowStart = now - config.windowMs;
+
+    // Get existing timestamps for this event
+    const timestamps = this.windows.get(event) || [];
+
+    // Filter out old timestamps
+    const recentTimestamps = timestamps.filter((t) => t > windowStart);
+
+    // Check if we're at the limit
+    if (recentTimestamps.length >= config.maxEmits) {
+      return false;
+    }
+
+    // Record this emission
+    recentTimestamps.push(now);
+    this.windows.set(event, recentTimestamps);
+
+    return true;
+  }
+
+  /**
+   * Clear all rate limit windows
+   */
+  clear(): void {
+    this.windows.clear();
+  }
+}
+
+/**
  * Realtime context value
  */
 interface RealtimeContextValue {
@@ -98,6 +154,7 @@ export function RealtimeProvider({
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptRef = useRef(0);
+  const rateLimiterRef = useRef<RateLimiter>(new RateLimiter());
   // Store session in ref to avoid circular dependency in callbacks
   const sessionRef = useRef(session);
   sessionRef.current = session;
@@ -152,6 +209,7 @@ export function RealtimeProvider({
 
     // Clean up existing socket
     if (socketRef.current) {
+      socketRef.current.removeAllListeners();
       socketRef.current.disconnect();
       socketRef.current = null;
     }
@@ -323,7 +381,7 @@ export function RealtimeProvider({
   );
 
   /**
-   * Emit an event to server
+   * Emit an event to server with client-side rate limiting
    */
   const emit = useCallback(
     <K extends keyof ClientToServerEvents>(
@@ -333,6 +391,12 @@ export function RealtimeProvider({
       const socket = socketRef.current;
       if (!socket?.connected) {
         console.warn('[Realtime] Cannot emit - socket not connected');
+        return;
+      }
+
+      // Check rate limit before emitting
+      if (!rateLimiterRef.current.canEmit(event as string)) {
+        console.warn(`[Realtime] Rate limited: ${event as string}`);
         return;
       }
 
@@ -349,14 +413,21 @@ export function RealtimeProvider({
   useEffect(() => {
     initializeSocketRef.current();
 
+    // Capture ref values for cleanup
+    const rateLimiter = rateLimiterRef.current;
+
     return () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
       if (socketRef.current) {
+        // Remove all listeners before disconnect to prevent memory leaks
+        socketRef.current.removeAllListeners();
         socketRef.current.disconnect();
         socketRef.current = null;
       }
+      // Clear rate limiter on cleanup
+      rateLimiter.clear();
     };
   }, [session?.user?.id]); // Only reinitialize when user ID changes
 

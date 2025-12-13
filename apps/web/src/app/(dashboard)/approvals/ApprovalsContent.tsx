@@ -120,6 +120,13 @@ export function ApprovalsContent() {
   const handleBulkConfirm = () => {
     if (!bulkAction) return
 
+    // Guard against empty selection
+    if (selectedIds.size === 0) {
+      toast.warning('No items selected')
+      setShowBulkDialog(false)
+      return
+    }
+
     bulkMutation.mutate(
       {
         ids: Array.from(selectedIds),

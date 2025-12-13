@@ -383,22 +383,37 @@ export class RealtimeGateway
     const { workspaceId } = client.data || {};
     if (!workspaceId) return;
 
-    // Query actual counts from database for sync verification
-    const [pendingApprovals, unreadNotifications] = await Promise.all([
-      this.prisma.approvalItem.count({
-        where: { workspaceId, status: 'pending' },
-      }),
-      // Notification table might not exist yet, so we catch errors
-      Promise.resolve(0), // TODO: Add notification count when Notification model exists
-    ]);
+    try {
+      // Query actual counts from database for sync verification
+      const [pendingApprovals, unreadNotifications] = await Promise.all([
+        this.prisma.approvalItem.count({
+          where: { workspaceId, status: 'pending' },
+        }),
+        // Notification table might not exist yet, so we catch errors
+        Promise.resolve(0), // TODO: Add notification count when Notification model exists
+      ]);
 
-    const syncState: SyncStatePayload = {
-      pendingApprovals,
-      unreadNotifications,
-      lastEventTimestamp: new Date().toISOString(),
-    };
+      const syncState: SyncStatePayload = {
+        pendingApprovals,
+        unreadNotifications,
+        lastEventTimestamp: new Date().toISOString(),
+      };
 
-    client.emit('sync.state', syncState);
+      client.emit('sync.state', syncState);
+    } catch (error) {
+      this.logger.error({
+        message: 'Failed to fetch sync state from database',
+        socketId: client.id,
+        workspaceId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      // Emit a fallback sync state with zeros to avoid leaving client hanging
+      client.emit('sync.state', {
+        pendingApprovals: 0,
+        unreadNotifications: 0,
+        lastEventTimestamp: new Date().toISOString(),
+      });
+    }
   }
 
   // ============================================
@@ -545,12 +560,21 @@ export class RealtimeGateway
       return auth.token;
     }
 
-    // Try Authorization header (Bearer token)
+    // Try Authorization header (Bearer token) - DEPRECATED fallback
     const authHeader = headers.authorization;
     if (authHeader && typeof authHeader === 'string') {
-      const [type, token] = authHeader.split(' ');
-      if (type === 'Bearer' && token) {
-        return token;
+      const parts = authHeader.trim().split(/\s+/);
+      if (parts.length === 2) {
+        const [type, token] = parts;
+        // Accept case-insensitive 'Bearer'
+        if (type.toLowerCase() === 'bearer' && token) {
+          this.logger.warn({
+            event: 'deprecated_auth_header',
+            message: 'Client using deprecated Authorization header for WebSocket auth. Update to use handshake.auth.token',
+            socketId: client.id,
+          });
+          return token;
+        }
       }
     }
 

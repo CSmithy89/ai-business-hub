@@ -32,8 +32,13 @@ export function WizardProgress({
   stepLabels = DEFAULT_STEP_LABELS,
   onStepClick,
 }: WizardProgressProps) {
-  const progressPercentage = (currentStep / totalSteps) * 100
-  const lineProgressPercentage = ((currentStep - 1) / (totalSteps - 1)) * 100
+  // Guard against division by zero
+  const safeTotal = Math.max(1, totalSteps)
+  const progressPercentage = (currentStep / safeTotal) * 100
+  // For line progress, we need at least 2 steps; otherwise show 0% or 100%
+  const lineProgressPercentage = safeTotal <= 1
+    ? (currentStep >= 1 ? 100 : 0)
+    : ((currentStep - 1) / (safeTotal - 1)) * 100
 
   return (
     <div className="mb-8">

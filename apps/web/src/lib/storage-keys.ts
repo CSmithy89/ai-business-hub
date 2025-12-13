@@ -59,6 +59,13 @@ export const STORAGE_SHOW_TOUR = 'hyvve-show-tour' as const;
 export const STORAGE_DEMO_BANNER_DISMISSED = 'hyvve-demo-banner-dismissed' as const;
 
 // ============================================================================
+// Approval Queue Keys
+// ============================================================================
+
+/** Approval queue custom order prefix (append workspace ID) */
+export const STORAGE_APPROVAL_ORDER_PREFIX = 'hyvve-approval-order-' as const;
+
+// ============================================================================
 // Auth & Verification Keys
 // ============================================================================
 

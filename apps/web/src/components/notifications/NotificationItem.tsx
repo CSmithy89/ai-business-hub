@@ -12,6 +12,25 @@ import { formatDistanceToNow } from 'date-fns';
 import { CheckCircle, Info, AtSign, RefreshCw, ArrowRight, type LucideIcon } from 'lucide-react';
 import type { Notification, NotificationType } from '@/hooks/use-notifications';
 
+/**
+ * Validate that a URL is safe for navigation (prevents open redirects)
+ * Only allows relative paths or same-origin URLs
+ */
+function isValidActionUrl(url: string): boolean {
+  // Allow relative paths that start with /
+  if (url.startsWith('/') && !url.startsWith('//')) {
+    return true;
+  }
+
+  // Validate absolute URLs are same-origin
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return parsed.origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 interface NotificationItemProps {
   notification: Notification;
   onMarkAsRead: (id: string) => void;
@@ -28,13 +47,16 @@ const NOTIFICATION_ICONS: Record<NotificationType, LucideIcon> = {
 export function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
   const router = useRouter();
 
+  // Check if action URL is valid (prevents open redirect attacks)
+  const hasValidAction = notification.actionUrl && isValidActionUrl(notification.actionUrl);
+
   const handleClick = () => {
     if (!notification.read) {
       onMarkAsRead(notification.id);
     }
 
-    // Navigate to action URL if provided
-    if (notification.actionUrl) {
+    // Navigate to action URL if provided and valid
+    if (hasValidAction) {
       router.push(notification.actionUrl as never);
     }
   };
@@ -86,8 +108,8 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
         </p>
       </div>
 
-      {/* Action indicator */}
-      {notification.actionUrl && (
+      {/* Action indicator - only show if URL is valid */}
+      {hasValidAction && (
         <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
           <ArrowRight className="h-4 w-4 text-[rgb(var(--color-text-muted))]" />
         </div>

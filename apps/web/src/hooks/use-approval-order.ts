@@ -12,8 +12,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ApprovalItem } from '@hyvve/shared';
-
-const STORAGE_KEY_PREFIX = 'hyvve_approval_order_';
+import { STORAGE_APPROVAL_ORDER_PREFIX } from '@/lib/storage-keys';
 
 interface ApprovalOrderState {
   order: string[]; // Array of approval IDs in custom order
@@ -42,7 +41,7 @@ export function useApprovalOrder(
   approvals: ApprovalItem[],
   workspaceId?: string
 ): UseApprovalOrderReturn {
-  const storageKey = `${STORAGE_KEY_PREFIX}${workspaceId || 'default'}`;
+  const storageKey = `${STORAGE_APPROVAL_ORDER_PREFIX}${workspaceId || 'default'}`;
 
   // Load initial state from localStorage
   const [customOrder, setCustomOrder] = useState<string[]>([]);
@@ -59,10 +58,10 @@ export function useApprovalOrder(
         const parsed: ApprovalOrderState = JSON.parse(stored);
         setCustomOrder(parsed.order);
       }
-    } catch (error) {
+    } catch {
       // Invalid stored data, start fresh
       if (process.env.NODE_ENV === 'development') {
-        console.error('[useApprovalOrder] Failed to parse localStorage data:', error);
+        console.warn('[useApprovalOrder] Failed to parse localStorage data, starting fresh');
       }
       setCustomOrder([]);
     }
