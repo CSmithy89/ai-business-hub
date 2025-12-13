@@ -130,6 +130,7 @@ model Workspace {
   customRoles CustomRole[]
   businesses  Business[]
   modules     WorkspaceModule[]
+  mcpServers  MCPServerConfig[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -488,6 +489,62 @@ model WorkspaceModule {
   @@index([workspaceId])
   @@index([moduleId])
   @@map("workspace_modules")
+}
+
+// ============================================
+// MCP SERVER CONFIGURATION
+// ============================================
+
+/// MCP (Model Context Protocol) server configurations per workspace
+model MCPServerConfig {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+
+  /// Unique server identifier within workspace
+  serverId String @map("server_id")
+
+  /// Display name for the server
+  name String
+
+  /// Transport type: 'stdio', 'sse', 'streamable-http'
+  transport String
+
+  /// Connection details (command for stdio, URL for SSE/HTTP)
+  command String? @db.Text
+  url     String? @db.Text
+
+  /// Encrypted API key for authenticated servers
+  apiKeyEncrypted String? @map("api_key_encrypted") @db.Text
+
+  /// Additional headers as JSON
+  headers Json @default("{}")
+
+  /// Environment variables for the server (encrypted sensitive values)
+  envVars Json @default("{}") @map("env_vars")
+
+  /// Tool filtering
+  includeTools String[] @map("include_tools")
+  excludeTools String[] @map("exclude_tools")
+
+  /// Permission level: READ, WRITE, EXECUTE (bit flags stored as int)
+  permissions Int @default(1) // 1 = READ
+
+  /// Connection settings
+  timeoutSeconds Int @default(30) @map("timeout_seconds")
+  enabled        Boolean @default(true)
+
+  /// Health status
+  lastHealthCheck DateTime? @map("last_health_check")
+  healthStatus    String?   @map("health_status") // 'healthy', 'unhealthy', 'unknown'
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, serverId])
+  @@index([workspaceId])
+  @@map("mcp_server_configs")
 }
 
 // ============================================

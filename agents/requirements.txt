@@ -50,4 +50,4 @@ lxml>=5.0.0  # HTML/XML parsing
 cryptography>=41.0.0
 
 # Model Context Protocol (MCP)
-# mcp>=0.1.0  # Uncomment when MCP integration begins
+mcp>=0.1.0

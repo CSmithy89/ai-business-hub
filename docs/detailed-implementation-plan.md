@@ -302,8 +302,8 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 | Task | Description | Effort | Status |
 |------|-------------|--------|--------|
 | PgVector setup | RAG knowledge base | 1 day | ✅ Done |
-| MCP provider integration | Dynamic tool loading | 2 days | Pending |
-| Module config API | Enable/disable modules | 1 day | Pending |
+| MCP provider integration | Dynamic tool loading | 2 days | ✅ Done |
+| Module config API | Enable/disable modules | 1 day | ✅ Done |
 
 ---
 
@@ -406,7 +406,7 @@ Use this checklist to verify implementation completeness:
 - [x] `cryptography` in requirements.txt
 - [x] `tiktoken` in requirements.txt (token counting)
 - [x] Document processing libs (pypdf, python-docx, beautifulsoup4)
-- [ ] `mcp` in requirements.txt (commented, enable when needed)
+- [x] `mcp` in requirements.txt
 
 ### 7.7. RAG Knowledge Base
 - [x] `KnowledgeFactory` with tenant isolation (`agents/knowledge/factory.py`)
@@ -416,6 +416,24 @@ Use this checklist to verify implementation completeness:
 - [x] API endpoints (`/knowledge/ingest`, `/knowledge/search`)
 - [x] Team integration helpers (`agents/knowledge/team_integration.py`)
 - [x] `KnowledgeAwareTeamFactory` for enhanced teams
+
+### 7.8. MCP Integration
+- [x] `MCPProvider` class with permission-based filtering (`agents/providers/mcp.py`)
+- [x] Permission flags (READ/WRITE/EXECUTE)
+- [x] Prisma model for `MCPServerConfig`
+- [x] API endpoints for MCP server management:
+  - [x] GET/POST `/api/workspaces/:id/mcp-servers`
+  - [x] GET/PATCH/DELETE `/api/workspaces/:id/mcp-servers/:serverId`
+- [x] Integration with Agno's `MCPTools` and `MultiMCPTools`
+- [x] Common MCP server presets (filesystem, github, brave-search, memory)
+
+### 7.9. Module Configuration
+- [x] Prisma model for `WorkspaceModule`
+- [x] API endpoints for module management:
+  - [x] GET/POST `/api/workspaces/:id/modules`
+  - [x] GET/PATCH/DELETE `/api/workspaces/:id/modules/:moduleId`
+- [x] Core vs optional module distinction
+- [x] Module-specific configuration storage
 
 ---
 
@@ -431,4 +449,4 @@ Use this checklist to verify implementation completeness:
 ---
 
 *Last Updated: 2025-12-14*
-*Version: 2.4 - RAG Knowledge Base with PgVector complete*
+*Version: 2.5 - MCP Integration and Module Config complete*
