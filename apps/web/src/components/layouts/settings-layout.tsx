@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { User, Lock, Shield, Key, Bot, Palette, Settings, Users, ShieldCheck } from 'lucide-react'
+import { User, Lock, Shield, Key, Bot, Palette, Settings, Users, ShieldCheck, Boxes, Plug } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Route } from 'next'
 
@@ -74,6 +74,11 @@ const settingsNavGroups: NavGroup[] = [
         href: '/settings/workspace/roles' as Route,
         icon: ShieldCheck,
       },
+      {
+        title: 'Modules',
+        href: '/settings/modules' as Route,
+        icon: Boxes,
+      },
     ],
   },
   {
@@ -88,6 +93,11 @@ const settingsNavGroups: NavGroup[] = [
         title: 'API Keys',
         href: '/settings/api-keys' as Route,
         icon: Key,
+      },
+      {
+        title: 'MCP Integrations',
+        href: '/settings/mcp' as Route,
+        icon: Plug,
       },
       {
         title: 'Appearance',

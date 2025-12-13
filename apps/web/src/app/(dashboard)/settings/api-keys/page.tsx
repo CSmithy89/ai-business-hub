@@ -1,19 +1,18 @@
 import { SettingsLayout } from '@/components/layouts/settings-layout'
+import { AIProviderList } from '@/components/settings/ai-provider-list'
 
 export const metadata = {
   title: 'API Keys',
-  description: 'Manage your API keys',
+  description: 'Manage AI provider API keys for your workspace',
 }
 
 export default function SettingsApiKeysPage() {
   return (
     <SettingsLayout
       title="API Keys"
-      description="Manage API keys for integrations"
+      description="Add and manage AI provider API keys (BYOAI)"
     >
-      <div className="rounded-lg border bg-white p-6">
-        <p className="text-gray-500">API key management coming soon.</p>
-      </div>
+      <AIProviderList />
     </SettingsLayout>
   )
 }

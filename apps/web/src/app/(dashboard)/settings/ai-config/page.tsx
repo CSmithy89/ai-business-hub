@@ -1,5 +1,4 @@
-import { SettingsLayout } from '@/components/layouts/settings-layout'
-import { AIProviderList } from '@/components/settings/ai-provider-list'
+import { redirect } from 'next/navigation'
 
 export const metadata = {
   title: 'AI Configuration',
@@ -7,12 +6,5 @@ export const metadata = {
 }
 
 export default function SettingsAiConfigPage() {
-  return (
-    <SettingsLayout
-      title="AI Configuration"
-      description="Configure AI providers and preferences"
-    >
-      <AIProviderList />
-    </SettingsLayout>
-  )
+  redirect('/settings/ai-config/agent-preferences')
 }
