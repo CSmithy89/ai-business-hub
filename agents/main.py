@@ -30,7 +30,8 @@ from registry import registry, AgentCard
 from ag_ui.encoder import EventEncoder, AGUIEventType
 
 # Import BYOAI provider integration
-from providers import resolve_and_create_model, get_provider_resolver
+from providers import resolve_and_create_model, get_provider_resolver, ResolvedProvider
+from providers.byoai_client import BYOAIClient
 
 # Import platform agents
 from platform.approval_agent import ApprovalAgent
@@ -222,16 +223,16 @@ TEAM_EXECUTION_TIMEOUT = 120
 # Team Execution Helpers
 # ============================================================================
 
-async def _resolve_model_for_team(
+async def _resolve_provider_for_team(
     workspace_id: str,
     jwt_token: Optional[str],
     model_override: Optional[str],
-) -> Optional[str]:
+) -> Optional[ResolvedProvider]:
     """
-    Resolve the model to use for a team execution.
+    Resolve the provider configuration for a team execution.
 
     Resolution order:
-    1. If model_override is specified, use it directly
+    1. If model_override is specified, still resolve full provider for limits
     2. If workspace has BYOAI configured, resolve via provider
     3. Fall back to None (team will use default)
 
@@ -241,13 +242,8 @@ async def _resolve_model_for_team(
         model_override: Explicit model override from request
 
     Returns:
-        Model ID string or None to use default
+        ResolvedProvider with full configuration including token limits
     """
-    # If explicit override, use it
-    if model_override:
-        logger.info(f"Using model override: {model_override}")
-        return model_override
-
     # Try BYOAI resolution if we have auth context
     if jwt_token and workspace_id:
         try:
@@ -255,17 +251,101 @@ async def _resolve_model_for_team(
             resolved = await resolver.resolve_provider(
                 workspace_id=workspace_id,
                 jwt_token=jwt_token,
+                preferred_model=model_override,
+                check_limits=True,
             )
             if resolved:
                 logger.info(
-                    f"BYOAI resolved: {resolved.provider_type}/{resolved.model_id}"
+                    f"BYOAI resolved: {resolved.provider_type}/{resolved.model_id} "
+                    f"(remaining: {resolved.remaining_tokens} tokens)"
                 )
-                return resolved.model_id
+                return resolved
         except Exception as e:
             logger.warning(f"BYOAI resolution failed, using default: {e}")
 
-    # Fall back to default
+    # Fall back to None
     return None
+
+
+# Minimum tokens required to start an agent run
+MIN_TOKENS_REQUIRED = 1000
+
+
+class TokenLimitExceededError(Exception):
+    """Raised when token limit is exceeded."""
+    def __init__(self, remaining: int, required: int):
+        self.remaining = remaining
+        self.required = required
+        super().__init__(
+            f"Token limit exceeded. Remaining: {remaining}, Required: {required}"
+        )
+
+
+def _check_token_limit(resolved: Optional[ResolvedProvider]) -> None:
+    """
+    Check if token limit allows the request.
+
+    Args:
+        resolved: Resolved provider with token limit info
+
+    Raises:
+        TokenLimitExceededError: If remaining tokens below minimum
+    """
+    if resolved is None:
+        return  # No limit enforcement for default provider
+
+    if resolved.max_tokens_per_day == 0:
+        return  # Unlimited
+
+    if resolved.remaining_tokens < MIN_TOKENS_REQUIRED:
+        raise TokenLimitExceededError(
+            remaining=resolved.remaining_tokens,
+            required=MIN_TOKENS_REQUIRED
+        )
+
+
+async def _record_usage(
+    resolved: Optional[ResolvedProvider],
+    workspace_id: str,
+    jwt_token: str,
+    input_tokens: int,
+    output_tokens: int,
+    agent_name: Optional[str] = None,
+    request_id: Optional[str] = None,
+) -> None:
+    """
+    Record token usage after a completion.
+
+    Args:
+        resolved: Resolved provider
+        workspace_id: Workspace ID
+        jwt_token: JWT token
+        input_tokens: Input tokens used
+        output_tokens: Output tokens used
+        agent_name: Optional agent name
+        request_id: Optional request ID
+    """
+    if resolved is None:
+        return  # No recording for default provider
+
+    try:
+        client = BYOAIClient(api_base_url=settings.api_base_url)
+        await client.record_token_usage(
+            workspace_id=workspace_id,
+            provider_id=resolved.provider_id,
+            jwt_token=jwt_token,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            model=resolved.model_id,
+            agent_name=agent_name,
+            request_id=request_id,
+        )
+        await client.close()
+        logger.debug(
+            f"Recorded usage: {input_tokens + output_tokens} tokens for {agent_name}"
+        )
+    except Exception as e:
+        logger.warning(f"Failed to record token usage: {e}")
 
 
 async def _run_team(
@@ -291,25 +371,44 @@ async def _run_team(
     logger.info(f"{team_name}Team run: ws={workspace_id}, user={user_id}")
 
     try:
-        # Resolve model via BYOAI or use override
-        resolved_model = await _resolve_model_for_team(
+        # Resolve provider with full configuration
+        resolved = await _resolve_provider_for_team(
             workspace_id=workspace_id,
             jwt_token=jwt_token,
             model_override=request_data.model_override,
         )
+
+        # Check token limits before execution
+        _check_token_limit(resolved)
 
         session_id = request_data.session_id or f"{config['session_prefix']}_{uuid.uuid4().hex[:12]}"
         team = config["factory"](
             session_id=session_id,
             user_id=user_id,
             business_id=request_data.business_id,
-            model=resolved_model,
+            model=resolved.model_id if resolved else None,
         )
 
         response = await asyncio.wait_for(
             team.arun(message=request_data.message),
             timeout=TEAM_EXECUTION_TIMEOUT
         )
+
+        # Record token usage (estimate if not available from response)
+        # Most LLM responses have usage info in the response object
+        input_tokens = getattr(response, 'input_tokens', 0) or len(request_data.message) // 4
+        output_tokens = getattr(response, 'output_tokens', 0) or len(response.content or "") // 4
+
+        if jwt_token:
+            await _record_usage(
+                resolved=resolved,
+                workspace_id=workspace_id,
+                jwt_token=jwt_token,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                agent_name=config['leader'],
+                request_id=session_id,
+            )
 
         return TeamRunResponse(
             success=True,
@@ -320,7 +419,13 @@ async def _run_team(
                 "business_id": request_data.business_id,
                 "team": team_name,
                 "workspace_id": workspace_id,
+                "tokens_used": input_tokens + output_tokens,
             }
+        )
+    except TokenLimitExceededError as e:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Token limit exceeded. Remaining: {e.remaining} tokens"
         )
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail=f"{team_name} team timed out")
@@ -348,17 +453,27 @@ async def _run_team_stream(
     if not workspace_id or not user_id:
         raise HTTPException(status_code=401, detail="Authentication required.")
 
-    # Resolve model via BYOAI before starting stream
-    resolved_model = await _resolve_model_for_team(
+    # Resolve provider with full configuration before starting stream
+    resolved = await _resolve_provider_for_team(
         workspace_id=workspace_id,
         jwt_token=jwt_token,
         model_override=request_data.model_override,
     )
 
+    # Check token limits before execution
+    try:
+        _check_token_limit(resolved)
+    except TokenLimitExceededError as e:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Token limit exceeded. Remaining: {e.remaining} tokens"
+        )
+
     session_id = request_data.session_id or f"{config['session_prefix']}_{uuid.uuid4().hex[:12]}"
 
     async def generate():
         encoder = EventEncoder()
+        total_tokens = 0  # Track tokens for usage recording
 
         # Send RUN_STARTED
         yield encoder.encode(AGUIEventType.RUN_STARTED, {
@@ -372,13 +487,16 @@ async def _run_team_stream(
                 session_id=session_id,
                 user_id=user_id,
                 business_id=request_data.business_id,
-                model=resolved_model,
+                model=resolved.model_id if resolved else None,
             )
+
+            accumulated_content = ""
 
             # Use streaming if available
             if hasattr(team, 'arun_stream'):
                 async for chunk in team.arun_stream(message=request_data.message):
                     if hasattr(chunk, "content") and chunk.content:
+                        accumulated_content += chunk.content
                         yield encoder.encode(AGUIEventType.TEXT_MESSAGE_CHUNK, {
                             "delta": chunk.content,
                             "messageId": f"msg_{session_id}"
@@ -389,16 +507,35 @@ async def _run_team_stream(
                     team.arun(message=request_data.message),
                     timeout=TEAM_EXECUTION_TIMEOUT
                 )
+                accumulated_content = response.content or ""
                 yield encoder.encode(AGUIEventType.TEXT_MESSAGE_CHUNK, {
-                    "delta": response.content,
+                    "delta": accumulated_content,
                     "messageId": f"msg_{session_id}"
                 })
 
-            # Send RUN_FINISHED
+            # Estimate token usage
+            input_tokens = len(request_data.message) // 4
+            output_tokens = len(accumulated_content) // 4
+            total_tokens = input_tokens + output_tokens
+
+            # Send RUN_FINISHED with token info
             yield encoder.encode(AGUIEventType.RUN_FINISHED, {
                 "runId": session_id,
-                "status": "success"
+                "status": "success",
+                "tokensUsed": total_tokens
             })
+
+            # Record usage after successful completion
+            if jwt_token and resolved:
+                await _record_usage(
+                    resolved=resolved,
+                    workspace_id=workspace_id,
+                    jwt_token=jwt_token,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    agent_name=config['leader'],
+                    request_id=session_id,
+                )
 
         except Exception as e:
             logger.error(f"Stream error: {e}", exc_info=True)

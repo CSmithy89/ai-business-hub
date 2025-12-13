@@ -387,9 +387,9 @@ Use this checklist to verify implementation completeness:
 - [x] HTTP client lifecycle management (reusable client)
 - [x] `create_agno_model()` factory function
 - [x] `resolve_and_create_model()` convenience function
-- [x] Integration in team execution (`_resolve_model_for_team`)
-- [ ] Token limit enforcement in agent runs (pending)
-- [ ] Usage recording after completions (pending)
+- [x] Integration in team execution (`_resolve_provider_for_team`)
+- [x] Token limit enforcement in agent runs (`_check_token_limit`)
+- [x] Usage recording after completions (`_record_usage`)
 
 ### 7.5. Frontend SSE Integration
 - [x] `useAgentStream` React hook
@@ -419,5 +419,5 @@ Use this checklist to verify implementation completeness:
 
 ---
 
-*Last Updated: 2025-12-13*
-*Version: 2.2 - BYOAI integration complete, security fixes applied*
+*Last Updated: 2025-12-14*
+*Version: 2.3 - Token limit enforcement and usage recording complete*
