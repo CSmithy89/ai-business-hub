@@ -1,6 +1,6 @@
 # Story 16.25: Implement Celebration Moments
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -197,10 +197,48 @@ confetti({
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5
 
 ### Debug Log References
 
+None
+
 ### Completion Notes List
 
+- All acceptance criteria met:
+  - AC1: Confetti component created with canvas-confetti, dual-origin burst, brand colors
+  - AC2: BadgeCelebration modal with Radix Dialog, scale-in animation, dismiss button
+  - AC3: CelebrationMessage component with character icons (Hub, Maya, Atlas, Nova, Echo)
+  - AC4: AnimatedCheckmark with SVG animation, circle progress + checkmark draw
+  - AC5: All animations respect prefers-reduced-motion media query
+  - AC6: useCelebration hook with celebrate(), celebrating state, multiple types
+
+- Integration completed:
+  - StepComplete.tsx now triggers confetti on onboarding completion
+  - CSS animations added to globals.css (badge-glow, celebration-bounce, checkmark-draw, circle-progress)
+  - Hook exported from apps/web/src/hooks/index.ts
+
+- Testing:
+  - 15 unit tests for useCelebration hook (all passing)
+  - Tests cover state transitions, callbacks, badge/checkmark/character states
+
 ### File List
+
+**New Components (apps/web/src/components/ui/)**
+- confetti.tsx - Confetti animation component with canvas-confetti
+- badge-celebration.tsx - Badge/achievement modal with Radix Dialog
+- celebration-message.tsx - Character celebration inline component
+- animated-checkmark.tsx - Animated checkmark SVG component
+
+**New Hooks (apps/web/src/hooks/)**
+- use-celebration.ts - Celebration state management hook
+
+**New Tests (apps/web/src/hooks/__tests__/)**
+- use-celebration.test.ts - Unit tests for celebration hook
+
+**Modified Files**
+- apps/web/src/app/globals.css - Added celebration animation keyframes
+- apps/web/src/hooks/index.ts - Exported useCelebration hook
+- apps/web/src/components/onboarding/account/StepComplete.tsx - Added confetti integration
+- apps/web/package.json - Added canvas-confetti dependency
+- pnpm-lock.yaml - Updated dependencies

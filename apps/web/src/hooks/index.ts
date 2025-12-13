@@ -13,3 +13,11 @@ export { useRealtimeApprovals } from './use-realtime-approvals';
 export { useRealtimeAgents } from './use-realtime-agents';
 export { useRealtimeNotifications, useNotificationBadge } from './use-realtime-notifications';
 export { useRealtimeChat } from './use-realtime-chat';
+
+// Celebration hooks (Story 16-25)
+export {
+  useCelebration,
+  triggerConfetti,
+  type CelebrationType,
+  type UseCelebrationReturn,
+} from './use-celebration';

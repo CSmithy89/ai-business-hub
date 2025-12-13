@@ -5,15 +5,17 @@
  * Shows completion message and CTA to dashboard.
  *
  * Story: 15.3 - Implement 4-Step User Onboarding Wizard
+ * Story: 16-25 - Implement Celebration Moments (confetti)
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Confetti } from '@/components/ui/confetti';
 import { PartyPopper, ArrowRight, Rocket, Loader2 } from 'lucide-react';
 
 interface StepCompleteProps {
@@ -26,6 +28,12 @@ export function StepComplete({ userName, workspaceName, onComplete }: StepComple
   const router = useRouter();
   const [showTour, setShowTour] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  // Trigger confetti celebration on mount
+  useEffect(() => {
+    setShowConfetti(true);
+  }, []);
 
   const handleGoDashboard = () => {
     setIsNavigating(true);
@@ -44,6 +52,9 @@ export function StepComplete({ userName, workspaceName, onComplete }: StepComple
 
   return (
     <div className="space-y-8 text-center">
+      {/* Confetti celebration */}
+      <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
+
       {/* Success Icon */}
       <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary to-coral">
         <PartyPopper className="h-10 w-10 text-white" />
