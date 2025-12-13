@@ -661,12 +661,12 @@ All MVP agents created with dual structure (BMAD specs + Agno scaffolds):
 > **Reference:** `docs/detailed-implementation-plan.md`
 
 **Current State Audit (Dec 2025):**
-- ✅ `AgentRegistry` exists at `agents/registry.py` - **NOT WIRED**
-- ✅ `EventEncoder` exists at `agents/ag_ui/encoder.py` - **NOT USED**
+- ✅ `AgentRegistry` exists at `agents/registry.py` - **WIRED**
+- ✅ `EventEncoder` exists at `agents/ag_ui/encoder.py` - **IN USE**
 - ✅ `BYOAIClient` exists at `agents/providers/byoai_client.py` - **IMPLEMENTED**
-- ❌ Endpoints return JSON, not SSE streams
-- ❌ A2A discovery endpoint not exposed
-- ❌ A2A RPC endpoint not implemented
+- ✅ Endpoints support SSE streams via `stream=true` parameter
+- ✅ A2A discovery endpoint at `/.well-known/agent-card.json`
+- ✅ A2A RPC endpoint at `/a2a/{agent_id}/rpc`
 
 **Immediate Tasks:**
 
@@ -674,10 +674,10 @@ All MVP agents created with dual structure (BMAD specs + Agno scaffolds):
 |------|------|--------|--------|
 | Add missing AG-UI events to encoder | `agents/ag_ui/encoder.py` | 1 hour | ✅ Done |
 | Update requirements.txt with new deps | `agents/requirements.txt` | 30 min | ✅ Done |
-| Wire registry in main.py startup | `agents/main.py` | 2 hours | Pending |
-| Add A2A discovery endpoint | `agents/main.py` | 1 hour | Pending |
-| Add A2A RPC endpoint | `agents/main.py` | 2 hours | Pending |
-| Convert team endpoints to SSE | `agents/main.py` | 3 hours | Pending |
+| Wire registry in main.py startup | `agents/main.py` | 2 hours | ✅ Done |
+| Add A2A discovery endpoint | `agents/main.py` | 1 hour | ✅ Done |
+| Add A2A RPC endpoint | `agents/main.py` | 2 hours | ✅ Done |
+| Convert team endpoints to SSE | `agents/main.py` | 3 hours | ✅ Done |
 
 **New Dependencies Added:**
 ```

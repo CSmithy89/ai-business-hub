@@ -80,7 +80,7 @@ Modules depend *only* on the Foundation, not each other directly.
 
 ### Phase 1: Agent Foundation Upgrade (The "AgentOS 2.0")
 
-**Status:** 🟡 Partially Complete - Core components built, wiring needed
+**Status:** ✅ Complete - A2A and AG-UI protocols implemented
 
 #### 4.1. Protocols & Standards
 *   **✅ Spec Completed:** `docs/architecture/a2a-protocol.md` (JSON-RPC, Agent Card).
@@ -275,16 +275,16 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 
 ## 5. Next Steps (Prioritized)
 
-### 5.1. Immediate (Wire Existing Code)
+### 5.1. Immediate (Wire Existing Code) ✅ COMPLETE
 
-| Task | File(s) | Effort |
+| Task | File(s) | Status |
 |------|---------|--------|
-| Add missing AG-UI events to encoder | `agents/ag_ui/encoder.py` | 1 hour |
-| Wire registry in main.py startup | `agents/main.py` | 2 hours |
-| Add A2A discovery endpoint | `agents/main.py` | 1 hour |
-| Add A2A RPC endpoint | `agents/main.py` | 2 hours |
-| Convert team endpoints to SSE | `agents/main.py` | 3 hours |
-| Update requirements.txt | `agents/requirements.txt` | 30 min |
+| Add missing AG-UI events to encoder | `agents/ag_ui/encoder.py` | ✅ Done |
+| Wire registry in main.py startup | `agents/main.py` | ✅ Done |
+| Add A2A discovery endpoint | `agents/main.py` | ✅ Done |
+| Add A2A RPC endpoint | `agents/main.py` | ✅ Done |
+| Convert team endpoints to SSE | `agents/main.py` | ✅ Done |
+| Update requirements.txt | `agents/requirements.txt` | ✅ Done |
 
 ### 5.2. Short-Term (New Implementation)
 
@@ -357,19 +357,19 @@ Use this checklist to verify implementation completeness:
 
 ### 7.2. AG-UI Protocol
 - [x] `EventEncoder` class exists
-- [ ] `THOUGHT_CHUNK` event type added
-- [ ] `UI_RENDER_HINT` event type added
-- [ ] `TOOL_CALL_ARGS` event type added
-- [ ] `StreamingResponse` used in endpoints
-- [ ] Tool call detection implemented
+- [x] `THOUGHT_CHUNK` event type added
+- [x] `UI_RENDER_HINT` event type added
+- [x] `TOOL_CALL_ARGS` event type added
+- [x] `StreamingResponse` used in endpoints
+- [x] Tool call detection implemented
 
 ### 7.3. A2A Protocol
 - [x] `AgentRegistry` class exists
 - [x] `AgentCard` Pydantic model defined
-- [ ] Registry instantiated at startup
-- [ ] Teams registered in registry
-- [ ] `/.well-known/agent-card.json` endpoint exposed
-- [ ] `/a2a/{agent_id}/rpc` endpoint implemented
+- [x] Registry instantiated at startup
+- [x] Teams registered in registry
+- [x] `/.well-known/agent-card.json` endpoint exposed
+- [x] `/a2a/{agent_id}/rpc` endpoint implemented
 
 ### 7.4. BYOAI Integration
 - [x] `BYOAIClient` implemented
@@ -378,11 +378,11 @@ Use this checklist to verify implementation completeness:
 - [ ] Usage recording after completions
 
 ### 7.5. Dependencies
-- [ ] `sse-starlette` in requirements.txt
-- [ ] `orjson` in requirements.txt
-- [ ] `pgvector` in requirements.txt
-- [ ] `cryptography` in requirements.txt
-- [ ] `mcp` in requirements.txt
+- [x] `sse-starlette` in requirements.txt
+- [x] `orjson` in requirements.txt
+- [x] `pgvector` in requirements.txt
+- [x] `cryptography` in requirements.txt
+- [ ] `mcp` in requirements.txt (commented, enable when needed)
 
 ---
 
