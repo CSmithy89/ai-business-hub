@@ -16,65 +16,11 @@ import {
   handleWorkspaceAuthError,
   WorkspaceAuthError,
 } from '@/middleware/workspace-auth'
+import { getModuleById } from '@/lib/constants/modules'
 
 interface RouteParams {
   params: Promise<{ id: string; moduleId: string }>
 }
-
-/**
- * Available modules (same as parent route)
- */
-const AVAILABLE_MODULES = [
-  {
-    id: 'bm-validation',
-    name: 'Business Validation',
-    description: 'Validate business ideas with market research and competitor analysis',
-    category: 'onboarding',
-    isCore: true,
-  },
-  {
-    id: 'bm-planning',
-    name: 'Business Planning',
-    description: 'Create business plans, financial projections, and pitch decks',
-    category: 'onboarding',
-    isCore: true,
-  },
-  {
-    id: 'bm-branding',
-    name: 'Brand Development',
-    description: 'Develop brand strategy, visual identity, and marketing assets',
-    category: 'onboarding',
-    isCore: true,
-  },
-  {
-    id: 'bm-crm',
-    name: 'CRM',
-    description: 'Customer relationship management with AI-powered lead scoring',
-    category: 'operations',
-    isCore: false,
-  },
-  {
-    id: 'bm-inventory',
-    name: 'Inventory Management',
-    description: 'Track inventory, manage stock levels, and automate reordering',
-    category: 'operations',
-    isCore: false,
-  },
-  {
-    id: 'bm-marketing',
-    name: 'Marketing Automation',
-    description: 'Automated content creation, scheduling, and campaign management',
-    category: 'growth',
-    isCore: false,
-  },
-  {
-    id: 'bm-analytics',
-    name: 'Business Analytics',
-    description: 'AI-powered insights and reporting across all business data',
-    category: 'intelligence',
-    isCore: false,
-  },
-] as const
 
 /**
  * Schema for updating module configuration
@@ -97,7 +43,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     await requireWorkspaceMembership(workspaceId)
 
     // Validate module ID
-    const moduleInfo = AVAILABLE_MODULES.find((m) => m.id === moduleId)
+    const moduleInfo = getModuleById(moduleId)
     if (!moduleInfo) {
       return NextResponse.json(
         { success: false, error: 'Module not found' },
@@ -127,7 +73,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     })
   } catch (error) {
     if (error instanceof WorkspaceAuthError) {
-      return handleWorkspaceAuthError(error)
+      const { body, status } = handleWorkspaceAuthError(error)
+      return NextResponse.json(body, { status })
     }
     console.error('Error fetching module:', error)
     return NextResponse.json(
@@ -152,7 +99,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     requireRole(membership.role, ['owner', 'admin'])
 
     // Validate module ID
-    const moduleInfo = AVAILABLE_MODULES.find((m) => m.id === moduleId)
+    const moduleInfo = getModuleById(moduleId)
     if (!moduleInfo) {
       return NextResponse.json(
         { success: false, error: 'Module not found' },
@@ -231,7 +178,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     })
   } catch (error) {
     if (error instanceof WorkspaceAuthError) {
-      return handleWorkspaceAuthError(error)
+      const { body, status } = handleWorkspaceAuthError(error)
+      return NextResponse.json(body, { status })
     }
     console.error('Error updating module:', error)
     return NextResponse.json(
@@ -256,7 +204,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     requireRole(membership.role, ['owner', 'admin'])
 
     // Validate module ID
-    const moduleInfo = AVAILABLE_MODULES.find((m) => m.id === moduleId)
+    const moduleInfo = getModuleById(moduleId)
     if (!moduleInfo) {
       return NextResponse.json(
         { success: false, error: 'Module not found' },
@@ -315,7 +263,8 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     })
   } catch (error) {
     if (error instanceof WorkspaceAuthError) {
-      return handleWorkspaceAuthError(error)
+      const { body, status } = handleWorkspaceAuthError(error)
+      return NextResponse.json(body, { status })
     }
     console.error('Error disabling module:', error)
     return NextResponse.json(

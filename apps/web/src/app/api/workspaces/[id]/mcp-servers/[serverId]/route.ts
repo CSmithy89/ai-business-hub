@@ -16,15 +16,12 @@ import {
   handleWorkspaceAuthError,
   WorkspaceAuthError,
 } from '@/middleware/workspace-auth'
+import { encryptApiKey } from '@/lib/utils/encryption'
+import { VALID_TRANSPORTS, getPermissionName } from '@/lib/constants/mcp'
 
 interface RouteParams {
   params: Promise<{ id: string; serverId: string }>
 }
-
-/**
- * Transport types
- */
-const VALID_TRANSPORTS = ['stdio', 'sse', 'streamable-http'] as const
 
 /**
  * Schema for updating an MCP server
@@ -56,7 +53,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     // Verify membership
     await requireWorkspaceMembership(workspaceId)
 
-    // Get the server
+    // Get the server (include apiKeyEncrypted to check if configured)
     const server = await prisma.mCPServerConfig.findUnique({
       where: {
         workspaceId_serverId: {
@@ -81,6 +78,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
         healthStatus: true,
         createdAt: true,
         updatedAt: true,
+        apiKeyEncrypted: true, // Include to check hasApiKey without extra query
       },
     })
 
@@ -91,17 +89,21 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       )
     }
 
+    // Extract hasApiKey and remove apiKeyEncrypted from response
+    const { apiKeyEncrypted, ...serverData } = server
+
     return NextResponse.json({
       success: true,
       data: {
-        ...server,
+        ...serverData,
         permissionLevel: getPermissionName(server.permissions),
-        hasApiKey: await hasApiKey(workspaceId, serverId),
+        hasApiKey: !!apiKeyEncrypted,
       },
     })
   } catch (error) {
     if (error instanceof WorkspaceAuthError) {
-      return handleWorkspaceAuthError(error)
+      const { body, status } = handleWorkspaceAuthError(error)
+      return NextResponse.json(body, { status })
     }
     console.error('Error fetching MCP server:', error)
     return NextResponse.json(
@@ -173,13 +175,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (updates.timeoutSeconds !== undefined) updateData.timeoutSeconds = updates.timeoutSeconds
     if (updates.enabled !== undefined) updateData.enabled = updates.enabled
 
-    // Handle API key update
+    // Handle API key update with AES-256-GCM encryption
     if (updates.apiKey !== undefined) {
       if (updates.apiKey === null) {
         updateData.apiKeyEncrypted = null
       } else {
-        // TODO: Implement proper encryption
-        updateData.apiKeyEncrypted = `encrypted:${updates.apiKey}`
+        updateData.apiKeyEncrypted = await encryptApiKey(updates.apiKey)
       }
     }
 
@@ -224,7 +225,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     })
   } catch (error) {
     if (error instanceof WorkspaceAuthError) {
-      return handleWorkspaceAuthError(error)
+      const { body, status } = handleWorkspaceAuthError(error)
+      return NextResponse.json(body, { status })
     }
     console.error('Error updating MCP server:', error)
     return NextResponse.json(
@@ -284,7 +286,8 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     })
   } catch (error) {
     if (error instanceof WorkspaceAuthError) {
-      return handleWorkspaceAuthError(error)
+      const { body, status } = handleWorkspaceAuthError(error)
+      return NextResponse.json(body, { status })
     }
     console.error('Error deleting MCP server:', error)
     return NextResponse.json(
@@ -292,33 +295,4 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       { status: 500 }
     )
   }
-}
-
-/**
- * Helper to get permission name from bit flags
- */
-function getPermissionName(permissions: number): string {
-  if (permissions === 7) return 'Full Access'
-  if (permissions === 3) return 'Read/Write'
-  if (permissions === 1) return 'Read Only'
-  return 'Custom'
-}
-
-/**
- * Helper to check if server has an API key configured
- */
-async function hasApiKey(workspaceId: string, serverId: string): Promise<boolean> {
-  const server = await prisma.mCPServerConfig.findUnique({
-    where: {
-      workspaceId_serverId: {
-        workspaceId,
-        serverId,
-      },
-    },
-    select: {
-      apiKeyEncrypted: true,
-    },
-  })
-
-  return !!server?.apiKeyEncrypted
 }

@@ -15,28 +15,18 @@ import {
   handleWorkspaceAuthError,
   WorkspaceAuthError,
 } from '@/middleware/workspace-auth'
+import { encryptApiKey } from '@/lib/utils/encryption'
+import {
+  VALID_TRANSPORTS,
+  PERMISSION_LEVELS,
+  TRANSPORT_TYPES,
+  getPermissionName,
+  MAX_MCP_SERVERS_PER_WORKSPACE,
+} from '@/lib/constants/mcp'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
-
-/**
- * MCP Permission bit flags (must match agents/providers/mcp.py)
- */
-const MCPPermissions = {
-  NONE: 0,
-  READ: 1,
-  WRITE: 2,
-  EXECUTE: 4,
-  READ_ONLY: 1,
-  READ_WRITE: 3,
-  FULL: 7,
-} as const
-
-/**
- * Transport types
- */
-const VALID_TRANSPORTS = ['stdio', 'sse', 'streamable-http'] as const
 
 /**
  * Schema for creating an MCP server
@@ -120,21 +110,14 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       success: true,
       data: {
         servers: serversWithPermissionNames,
-        permissionLevels: [
-          { value: MCPPermissions.READ_ONLY, name: 'Read Only', description: 'Can only read data' },
-          { value: MCPPermissions.READ_WRITE, name: 'Read/Write', description: 'Can read and write data' },
-          { value: MCPPermissions.FULL, name: 'Full Access', description: 'Can read, write, and execute' },
-        ],
-        transports: [
-          { value: 'stdio', name: 'Standard I/O', description: 'Local process via stdin/stdout' },
-          { value: 'sse', name: 'Server-Sent Events', description: 'HTTP streaming endpoint' },
-          { value: 'streamable-http', name: 'Streamable HTTP', description: 'HTTP streaming endpoint' },
-        ],
+        permissionLevels: PERMISSION_LEVELS,
+        transports: TRANSPORT_TYPES,
       },
     })
   } catch (error) {
     if (error instanceof WorkspaceAuthError) {
-      return handleWorkspaceAuthError(error)
+      const { body, status } = handleWorkspaceAuthError(error)
+      return NextResponse.json(body, { status })
     }
     console.error('Error fetching MCP servers:', error)
     return NextResponse.json(
@@ -205,21 +188,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Check server limit (max 10 per workspace)
+    // Check server limit
     const serverCount = await prisma.mCPServerConfig.count({
       where: { workspaceId },
     })
 
-    if (serverCount >= 10) {
+    if (serverCount >= MAX_MCP_SERVERS_PER_WORKSPACE) {
       return NextResponse.json(
-        { success: false, error: 'Maximum of 10 MCP servers per workspace' },
+        { success: false, error: `Maximum of ${MAX_MCP_SERVERS_PER_WORKSPACE} MCP servers per workspace` },
         { status: 400 }
       )
     }
 
-    // Encrypt API key if provided
-    // TODO: Implement proper encryption using workspace encryption key
-    const apiKeyEncrypted = apiKey ? `encrypted:${apiKey}` : null
+    // Encrypt API key if provided using AES-256-GCM
+    const apiKeyEncrypted = apiKey ? await encryptApiKey(apiKey) : null
 
     // Create the server
     const server = await prisma.mCPServerConfig.create({
@@ -266,7 +248,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
   } catch (error) {
     if (error instanceof WorkspaceAuthError) {
-      return handleWorkspaceAuthError(error)
+      const { body, status } = handleWorkspaceAuthError(error)
+      return NextResponse.json(body, { status })
     }
     console.error('Error creating MCP server:', error)
     return NextResponse.json(
@@ -274,14 +257,4 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       { status: 500 }
     )
   }
-}
-
-/**
- * Helper to get permission name from bit flags
- */
-function getPermissionName(permissions: number): string {
-  if (permissions === MCPPermissions.FULL) return 'Full Access'
-  if (permissions === MCPPermissions.READ_WRITE) return 'Read/Write'
-  if (permissions === MCPPermissions.READ) return 'Read Only'
-  return 'Custom'
 }

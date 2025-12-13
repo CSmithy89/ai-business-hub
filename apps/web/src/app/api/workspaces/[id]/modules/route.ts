@@ -15,72 +15,23 @@ import {
   handleWorkspaceAuthError,
   WorkspaceAuthError,
 } from '@/middleware/workspace-auth'
+import {
+  AVAILABLE_MODULES,
+  MODULE_CATEGORIES,
+  isValidModuleId,
+  getModuleById,
+} from '@/lib/constants/modules'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
 /**
- * Available modules in the HYVVE platform
- */
-const AVAILABLE_MODULES = [
-  {
-    id: 'bm-validation',
-    name: 'Business Validation',
-    description: 'Validate business ideas with market research and competitor analysis',
-    category: 'onboarding',
-    isCore: true, // Core modules are always available
-  },
-  {
-    id: 'bm-planning',
-    name: 'Business Planning',
-    description: 'Create business plans, financial projections, and pitch decks',
-    category: 'onboarding',
-    isCore: true,
-  },
-  {
-    id: 'bm-branding',
-    name: 'Brand Development',
-    description: 'Develop brand strategy, visual identity, and marketing assets',
-    category: 'onboarding',
-    isCore: true,
-  },
-  {
-    id: 'bm-crm',
-    name: 'CRM',
-    description: 'Customer relationship management with AI-powered lead scoring',
-    category: 'operations',
-    isCore: false,
-  },
-  {
-    id: 'bm-inventory',
-    name: 'Inventory Management',
-    description: 'Track inventory, manage stock levels, and automate reordering',
-    category: 'operations',
-    isCore: false,
-  },
-  {
-    id: 'bm-marketing',
-    name: 'Marketing Automation',
-    description: 'Automated content creation, scheduling, and campaign management',
-    category: 'growth',
-    isCore: false,
-  },
-  {
-    id: 'bm-analytics',
-    name: 'Business Analytics',
-    description: 'AI-powered insights and reporting across all business data',
-    category: 'intelligence',
-    isCore: false,
-  },
-] as const
-
-/**
  * Schema for enabling a module
  */
 const EnableModuleSchema = z.object({
   moduleId: z.string().refine(
-    (id) => AVAILABLE_MODULES.some((m) => m.id === id),
+    (id) => isValidModuleId(id),
     { message: 'Invalid module ID' }
   ),
   config: z.record(z.string(), z.unknown()).optional().default({}),
@@ -123,17 +74,13 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       success: true,
       data: {
         modules,
-        categories: [
-          { id: 'onboarding', name: 'Business Onboarding' },
-          { id: 'operations', name: 'Operations' },
-          { id: 'growth', name: 'Growth' },
-          { id: 'intelligence', name: 'Business Intelligence' },
-        ],
+        categories: MODULE_CATEGORIES,
       },
     })
   } catch (error) {
     if (error instanceof WorkspaceAuthError) {
-      return handleWorkspaceAuthError(error)
+      const { body, status } = handleWorkspaceAuthError(error)
+      return NextResponse.json(body, { status })
     }
     console.error('Error fetching modules:', error)
     return NextResponse.json(
@@ -174,7 +121,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { moduleId, config } = validation.data
 
     // Check if module is a core module (cannot be disabled)
-    const moduleInfo = AVAILABLE_MODULES.find((m) => m.id === moduleId)
+    const moduleInfo = getModuleById(moduleId)
     if (moduleInfo?.isCore) {
       return NextResponse.json(
         { success: false, error: 'Core modules are always enabled' },
@@ -216,7 +163,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
   } catch (error) {
     if (error instanceof WorkspaceAuthError) {
-      return handleWorkspaceAuthError(error)
+      const { body, status } = handleWorkspaceAuthError(error)
+      return NextResponse.json(body, { status })
     }
     console.error('Error enabling module:', error)
     return NextResponse.json(
