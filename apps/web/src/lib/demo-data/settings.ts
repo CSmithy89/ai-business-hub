@@ -36,12 +36,19 @@ export const DEMO_WORKSPACE = {
 /**
  * Demo AI provider configurations
  */
+/**
+ * Masked API key display format
+ * SECURITY: These are purely cosmetic display values, not actual keys.
+ * Real API keys are never exposed to the frontend.
+ */
+const MASKED_API_KEY = '••••••••••••••••••••••••••••••••••••' as const;
+
 export const DEMO_AI_PROVIDERS = [
   {
     id: 'demo-provider-claude',
     workspaceId: 'demo-workspace',
     provider: 'anthropic',
-    apiKey: '••••••••••••••••••••••••••••••••sk-ant-demo',
+    apiKey: MASKED_API_KEY,
     isDefault: true,
     enabled: true,
     config: {
@@ -56,7 +63,7 @@ export const DEMO_AI_PROVIDERS = [
     id: 'demo-provider-openai',
     workspaceId: 'demo-workspace',
     provider: 'openai',
-    apiKey: '••••••••••••••••••••••••••••••••sk-demo',
+    apiKey: MASKED_API_KEY,
     isDefault: false,
     enabled: true,
     config: {
