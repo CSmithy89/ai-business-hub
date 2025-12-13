@@ -2,7 +2,7 @@ import { SessionList } from '@/components/session/session-list'
 import { SettingsLayout } from '@/components/layouts/settings-layout'
 
 export const metadata = {
-  title: 'Active Sessions | HYVVE',
+  title: 'Active Sessions',
   description: 'Manage your active sessions across devices',
 }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, ChevronsUpDown, Plus, Loader2, Building2 } from 'lucide-react'
+import { Check, ChevronsUpDown, Plus, Loader2, Building2, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -11,6 +11,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useWorkspace } from '@/hooks/use-workspace'
 import type { WorkspaceWithRole } from '@hyvve/shared'
 
@@ -89,28 +94,58 @@ export function WorkspaceSelector({
   }
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={isOpen}
-          className="w-full justify-between"
-          disabled={isSwitching}
-        >
-          <div className="flex items-center gap-2 truncate">
-            {isSwitching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center text-xs font-medium">
-                {currentWorkspaceName ? getInitials(currentWorkspaceName) : <Building2 className="h-3 w-3" />}
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium">Workspace</label>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Workspace help"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="max-w-xs">
+            <div className="space-y-2">
+              <p className="font-semibold">What&apos;s a Workspace?</p>
+              <p className="text-xs">
+                Your workspace is your team&apos;s container. It holds your businesses, team members, and AI configuration.
+              </p>
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs font-medium mb-1">Structure:</p>
+                <p className="text-xs text-muted-foreground">
+                  Workspace → Businesses → Workflows
+                </p>
               </div>
-            )}
-            <span className="truncate">{isSwitching ? 'Switching...' : displayName}</span>
-          </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={isOpen}
+            className="w-full justify-between"
+            disabled={isSwitching}
+          >
+            <div className="flex items-center gap-2 truncate">
+              {isSwitching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center text-xs font-medium">
+                  {currentWorkspaceName ? getInitials(currentWorkspaceName) : <Building2 className="h-3 w-3" />}
+                </div>
+              )}
+              <span className="truncate">{isSwitching ? 'Switching...' : displayName}</span>
+            </div>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
 
       <DropdownMenuContent className="w-64" align="start">
         {isLoading ? (
@@ -166,5 +201,6 @@ export function WorkspaceSelector({
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+    </div>
   )
 }

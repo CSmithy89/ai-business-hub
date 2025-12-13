@@ -8,11 +8,11 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Branding Section - Left Panel */}
-      <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-[#FF6B6B]/10 to-transparent p-12">
+      <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-primary/10 to-transparent p-12">
         <div className="space-y-6">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-[#FF6B6B] rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <svg
                 className="w-6 h-6 text-white"
                 viewBox="0 0 24 24"
@@ -52,7 +52,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           {/* Mobile Logo */}
           <div className="lg:hidden mb-8">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#FF6B6B] rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <svg
                   className="w-5 h-5 text-white"
                   viewBox="0 0 24 24"

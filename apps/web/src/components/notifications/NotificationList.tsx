@@ -12,7 +12,7 @@ import {
   isThisWeek,
   differenceInMinutes,
 } from 'date-fns';
-import { BellOff } from 'lucide-react';
+import { Bell, Sparkles } from 'lucide-react';
 import type { Notification } from '@/hooks/use-notifications';
 import { NotificationItem } from './NotificationItem';
 
@@ -74,15 +74,19 @@ export function NotificationList({ notifications, onMarkAsRead }: NotificationLi
 
   if (notifications.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[rgb(var(--color-bg-tertiary))]">
-          <BellOff className="h-8 w-8 text-[rgb(var(--color-text-muted))]" />
+      <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+        <div className="relative mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100">
+          <Bell className="h-7 w-7 text-amber-600" />
+          <Sparkles
+            className="absolute -right-1 -top-1 h-5 w-5 text-amber-400 animate-pulse"
+            aria-hidden="true"
+          />
         </div>
-        <p className="mb-1 text-sm font-medium text-[rgb(var(--color-text-primary))]">
-          No notifications
+        <p className="mb-1 text-sm font-semibold text-[rgb(var(--color-text-primary))]">
+          You&apos;re all caught up!
         </p>
         <p className="text-xs text-[rgb(var(--color-text-secondary))]">
-          You&apos;re all caught up!
+          No new notifications right now.
         </p>
       </div>
     );

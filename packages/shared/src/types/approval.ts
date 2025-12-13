@@ -176,3 +176,49 @@ export interface ConfidenceBreakdown {
  * Priority level for suggested actions
  */
 export type ActionPriority = 'high' | 'medium' | 'low';
+
+// ============================================================================
+// Approval Status Helper Functions
+// ============================================================================
+
+/**
+ * Check if an approval item is pending
+ * @param item - Approval item or status to check
+ * @returns True if the item is pending review
+ */
+export function isPendingApproval(item: ApprovalItem | ApprovalStatus): boolean {
+  const status = typeof item === 'string' ? item : item.status;
+  return status === 'pending';
+}
+
+/**
+ * Check if an approval item has been reviewed (approved or rejected)
+ * @param item - Approval item or status to check
+ * @returns True if the item has been reviewed
+ */
+export function isReviewedApproval(item: ApprovalItem | ApprovalStatus): boolean {
+  const status = typeof item === 'string' ? item : item.status;
+  return status === 'approved' || status === 'rejected' || status === 'auto_approved';
+}
+
+/**
+ * Filter pending approvals from a list
+ * @param approvals - Array of approval items
+ * @returns Array of pending approval items
+ */
+export function filterPendingApprovals<T extends { status: ApprovalStatus }>(
+  approvals: T[]
+): T[] {
+  return approvals.filter((a) => a.status === 'pending');
+}
+
+/**
+ * Filter reviewed approvals from a list
+ * @param approvals - Array of approval items
+ * @returns Array of reviewed approval items
+ */
+export function filterReviewedApprovals<T extends { status: ApprovalStatus }>(
+  approvals: T[]
+): T[] {
+  return approvals.filter((a) => a.status !== 'pending');
+}

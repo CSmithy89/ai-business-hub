@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | HYVVE',
+  title: 'Terms of Service',
   description: 'Terms of Service for the HYVVE platform',
 };
 

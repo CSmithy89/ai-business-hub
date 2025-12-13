@@ -1,0 +1,588 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>16-1</story-id>
+    <story-name>Implement Medium Screen Layout (1024-1280px)</story-name>
+    <epic>EPIC-16 - Premium Polish &amp; Advanced Features</epic>
+    <points>3</points>
+    <priority>P2 - Medium</priority>
+    <status>ready-for-dev</status>
+    <created>2025-12-12</created>
+  </metadata>
+
+  <summary>
+    <description>
+      Implement intelligent responsive layout behavior for medium-sized screens (laptops/small monitors)
+      at the 1024-1280px breakpoint. The layout must auto-collapse sidebar or chat panel to maintain
+      a minimum 600px main content area width while providing users with priority toggle controls.
+    </description>
+
+    <acceptance-criteria>
+      - Auto-collapse sidebar to icon-only mode OR auto-collapse chat panel (not both visible at full width)
+      - Provide toggle to switch between sidebar and chat priority modes
+      - Maintain minimum 600px usable width for main content area at all times
+      - Persist sidebar collapse state and layout priority in localStorage
+      - Implement smooth 300ms transition animations on collapse/expand
+      - Support hover-to-temporarily-expand for collapsed sidebar
+    </acceptance-criteria>
+
+    <key-constraints>
+      - At 1024px with both sidebar (256px) and chat (320px) visible, only 448px remains (insufficient)
+      - Tailwind JIT compiler requires complete class strings (no dynamic string concatenation)
+      - Use inline styles for truly dynamic values that can't be expressed as complete Tailwind classes
+    </key-constraints>
+  </summary>
+
+  <existing-code>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/app/(dashboard)/layout.tsx">
+      <description>Current dashboard layout with three-panel structure</description>
+      <snippet language="typescript">
+<![CDATA[
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { sidebarCollapsed, chatPanelOpen, chatPanelWidth, chatPanelHeight, chatPanelPosition } = useUIStore();
+
+  // Main content area with responsive breakpoints
+  <main
+    id="main-content"
+    className={`
+      flex-1 overflow-y-auto
+      bg-[rgb(var(--color-bg-primary))]
+      transition-all duration-300 ease-in-out
+      ${sidebarCollapsed ? 'ml-16' : 'ml-64'}
+      min-w-0
+      md:min-w-[400px]
+      xl:min-w-[600px]
+      max-sm:ml-0 max-sm:mr-0
+    `}
+    style={{
+      marginRight: getMainContentMarginRight(),
+      marginBottom: getMainContentMarginBottom(),
+    }}
+  >
+    {/* Content */}
+  </main>
+]]>
+      </snippet>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/shell/Sidebar.tsx">
+      <description>Sidebar component with collapse/expand functionality</description>
+      <snippet language="typescript">
+<![CDATA[
+export function Sidebar() {
+  const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const params = useParams();
+  const isBusinessContext = !!params.businessId;
+
+  return (
+    <aside
+      className={cn(
+        'fixed top-[60px] left-0 bottom-0 z-20 flex flex-col',
+        'border-r border-[rgb(var(--color-border-default))]',
+        'bg-[rgb(var(--color-bg-secondary))]',
+        'transition-all duration-200 ease-out',
+        sidebarCollapsed ? 'w-16' : 'w-64'
+      )}
+    >
+      <SidebarNav collapsed={sidebarCollapsed} />
+      {/* Workspace/Business Switchers */}
+    </aside>
+  );
+}
+]]>
+      </snippet>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/shell/ChatPanel.tsx">
+      <description>Chat panel with multiple position options</description>
+      <snippet language="typescript">
+<![CDATA[
+export function ChatPanel() {
+  const { chatPanelWidth, chatPanelHeight, floatingPosition, setFloatingPosition, sidebarCollapsed } = useUIStore();
+  const {
+    isCollapsed,
+    isFloating,
+    isBottom,
+    isRight,
+    setPosition,
+    toggle,
+    isMobile,
+  } = useChatPosition();
+
+  // Position options: 'right' | 'bottom' | 'floating' | 'collapsed'
+  // Already supports dynamic positioning
+}
+]]>
+      </snippet>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/stores/ui.ts">
+      <description>UI state management with Zustand</description>
+      <snippet language="typescript">
+<![CDATA[
+export type ChatPanelPosition = 'right' | 'bottom' | 'floating' | 'collapsed';
+
+interface UIState {
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+
+  chatPanelOpen: boolean;
+  chatPanelWidth: number;
+  chatPanelHeight: number;
+  chatPanelPosition: ChatPanelPosition;
+  chatPanelPreviousPosition: ChatPanelPosition;
+  setChatPanelPosition: (position: ChatPanelPosition) => void;
+  // ...other methods
+}
+
+// Persisted in localStorage with key 'hyvve-ui-state'
+]]>
+      </snippet>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/lib/layout-constants.ts">
+      <description>Layout dimension constants</description>
+      <snippet language="typescript">
+<![CDATA[
+export const LAYOUT = {
+  HEADER_HEIGHT: 60,
+  SIDEBAR_COLLAPSED_WIDTH: 64,
+  SIDEBAR_EXPANDED_WIDTH: 256,
+  CHAT_MIN_WIDTH: 320,
+  CHAT_MAX_WIDTH: 480,
+  CHAT_DEFAULT_WIDTH: 320,
+  CONTENT_MIN_WIDTH_DESKTOP: 600,
+  CONTENT_MIN_WIDTH_TABLET: 400,
+} as const;
+
+export const LAYOUT_CLASSES = {
+  HEADER_HEIGHT_PT: 'pt-[60px]',
+  SIDEBAR_COLLAPSED_ML: 'ml-16', // 64px
+  SIDEBAR_EXPANDED_ML: 'ml-64', // 256px
+  CONTENT_MIN_WIDTH_DESKTOP: 'min-w-[600px]',
+  CONTENT_MIN_WIDTH_TABLET: 'lg:min-w-[400px]',
+} as const;
+]]>
+      </snippet>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/hooks/use-chat-position.ts">
+      <description>Existing hook for managing chat panel position (likely)</description>
+      <note>This hook is imported in ChatPanel.tsx and manages position state</note>
+    </file>
+  </existing-code>
+
+  <architecture-notes>
+    <decision ref="ADR-002">
+      <title>Hybrid API Architecture</title>
+      <relevance>
+        Frontend uses Next.js 15 with App Router. This layout is server-side rendered
+        with client components for interactivity.
+      </relevance>
+    </decision>
+
+    <decision ref="Tailwind CSS Guidelines">
+      <title>Dynamic Class Limitation</title>
+      <importance>CRITICAL</importance>
+      <content>
+        Tailwind's JIT compiler needs to see complete class strings in source code.
+        Dynamic string construction may fail to generate CSS.
+
+        WRONG:
+        ```typescript
+        className={`ml-${collapsed ? '16' : '64'}`}
+        ```
+
+        CORRECT:
+        ```typescript
+        className={collapsed ? 'ml-16' : 'ml-64'}
+        ```
+
+        For truly dynamic values, use inline styles:
+        ```typescript
+        style={{ marginLeft: collapsed ? 64 : 256 }}
+        ```
+      </content>
+    </decision>
+
+    <decision ref="Responsive Design">
+      <title>Mobile-First Breakpoints</title>
+      <content>
+        Tailwind uses mobile-first breakpoints:
+        - Base: &lt;640px (mobile)
+        - sm: 640px
+        - md: 768px
+        - lg: 1024px (medium screen lower bound)
+        - xl: 1280px (medium screen upper bound)
+        - 2xl: 1536px
+
+        Use `lg:` prefix for 1024px+ and `xl:` for 1280px+
+        Use `max-lg:` for styles that only apply below 1024px
+      </content>
+    </decision>
+
+    <decision ref="Layout Constants">
+      <title>Centralized Layout Dimensions</title>
+      <content>
+        All layout dimensions are defined in /apps/web/src/lib/layout-constants.ts
+        Import LAYOUT and LAYOUT_CLASSES constants for consistency.
+
+        Key calculations:
+        - 1024px viewport - 256px sidebar - 320px chat = 448px content (INSUFFICIENT)
+        - 1024px viewport - 64px sidebar - 320px chat = 640px content (SUFFICIENT)
+        - 1024px viewport - 256px sidebar - 0px chat = 768px content (SUFFICIENT)
+
+        Therefore: At medium screen, auto-collapse one panel to maintain 600px+ content area.
+      </content>
+    </decision>
+  </architecture-notes>
+
+  <dependencies>
+    <npm-packages>
+      <package name="zustand" version="5.x">Global state management with persist middleware</package>
+      <package name="next" version="15.x">React framework with App Router</package>
+      <package name="tailwindcss" version="4.x">Utility-first CSS framework</package>
+    </npm-packages>
+
+    <internal-dependencies>
+      <dependency path="@/stores/ui">UI state store with localStorage persistence</dependency>
+      <dependency path="@/lib/layout-constants">Layout dimension constants</dependency>
+      <dependency path="@/lib/utils">cn() utility for className merging</dependency>
+      <dependency path="@/hooks/use-chat-position">Chat panel position management</dependency>
+      <dependency path="@/components/shell/Sidebar">Sidebar navigation component</dependency>
+      <dependency path="@/components/shell/ChatPanel">Chat panel component</dependency>
+    </internal-dependencies>
+
+    <completed-stories>
+      <story id="15-2">Create Businesses Portfolio Landing Page</story>
+      <story id="15-11">Implement Main Menu Restructuring</story>
+      <story id="15-12">Implement Chat Panel Position Options</story>
+      <story id="07-2">Create Sidebar Navigation</story>
+      <story id="07-4">Implement Chat Panel</story>
+    </completed-stories>
+  </dependencies>
+
+  <implementation-tasks>
+    <task id="1" priority="high">
+      <title>Create use-responsive-layout.ts hook</title>
+      <file>apps/web/src/hooks/use-responsive-layout.ts</file>
+      <description>
+        Implement breakpoint detection and layout priority state management.
+
+        Hook interface:
+        - breakpoint: 'mobile' | 'tablet' | 'medium' | 'desktop' | 'wide'
+        - isMediumScreen: boolean (1024-1280px)
+        - layoutPriority: 'sidebar' | 'chat'
+        - setLayoutPriority: (priority) => void
+        - shouldAutoCollapseSidebar: boolean
+        - shouldAutoCollapseChat: boolean
+
+        Use window.innerWidth and resize event listener.
+        Persist layoutPriority in localStorage with key 'layout-priority'.
+        Debounce resize events (150ms) for performance.
+      </description>
+    </task>
+
+    <task id="2" priority="high">
+      <title>Update UIStore for layout priority</title>
+      <file>apps/web/src/stores/ui.ts</file>
+      <description>
+        Add layout priority state to Zustand store:
+        - layoutPriority: 'sidebar' | 'chat' (default: 'sidebar')
+        - setLayoutPriority: (priority: 'sidebar' | 'chat') => void
+
+        This will be persisted automatically via existing persist middleware.
+        Include in UI_STORE_KEY persistence.
+      </description>
+    </task>
+
+    <task id="3" priority="high">
+      <title>Update DashboardLayout with responsive logic</title>
+      <file>apps/web/src/app/(dashboard)/layout.tsx</file>
+      <description>
+        Integrate use-responsive-layout hook into DashboardLayout.
+        Apply auto-collapse logic based on breakpoint and priority.
+
+        Logic:
+        - If isMediumScreen and layoutPriority === 'sidebar':
+          - Keep sidebar expanded
+          - Auto-collapse chat panel
+        - If isMediumScreen and layoutPriority === 'chat':
+          - Auto-collapse sidebar to icon-only
+          - Keep chat panel visible
+
+        Add layout priority toggle button (icon button in header or floating).
+        Show current priority mode with visual indicator.
+      </description>
+    </task>
+
+    <task id="4" priority="medium">
+      <title>Enhance Sidebar with hover expansion</title>
+      <file>apps/web/src/components/shell/Sidebar.tsx</file>
+      <description>
+        Add hover-to-expand behavior when sidebar is auto-collapsed (not user-collapsed).
+
+        Distinguish between:
+        - User-collapsed: User clicked collapse button (no hover expand)
+        - Auto-collapsed: Layout forced collapse at medium screen (hover expand enabled)
+
+        Add state: isAutoCollapsed: boolean
+        On hover (when auto-collapsed): Temporarily expand to 256px
+        On mouse leave: Collapse back to 64px
+        Use CSS transition for smooth animation (300ms ease-in-out)
+
+        Show tooltips on nav items when collapsed.
+      </description>
+    </task>
+
+    <task id="5" priority="medium">
+      <title>Add medium screen media queries to globals.css</title>
+      <file>apps/web/src/app/globals.css</file>
+      <description>
+        Add @media queries for medium screen layout adjustments:
+
+        ```css
+        /* Medium Screen Layout (1024-1280px) */
+        @media (min-width: 1024px) and (max-width: 1280px) {
+          /* Ensure transitions are smooth */
+          .sidebar-transition {
+            transition: width 300ms ease-in-out, transform 300ms ease-in-out;
+          }
+
+          .chat-panel-transition {
+            transition: width 300ms ease-in-out, right 300ms ease-in-out;
+          }
+
+          /* Hover expansion for auto-collapsed sidebar */
+          .sidebar-auto-collapsed:hover {
+            width: 256px;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+          }
+        }
+
+        /* Reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+          .sidebar-transition,
+          .chat-panel-transition {
+            transition: none;
+          }
+        }
+        ```
+      </description>
+    </task>
+
+    <task id="6" priority="low">
+      <title>Add layout priority toggle UI component</title>
+      <file>apps/web/src/components/layout/LayoutPriorityToggle.tsx (new)</file>
+      <description>
+        Create a toggle button component for switching layout priority.
+
+        Position options:
+        1. In Header (next to other controls)
+        2. Floating button (bottom-right, only visible at medium screen)
+
+        Show icons:
+        - Sidebar priority: Sidebar icon with checkmark
+        - Chat priority: Chat icon with checkmark
+
+        Include tooltip explaining current mode.
+        Only render when isMediumScreen is true.
+      </description>
+    </task>
+
+    <task id="7" priority="medium">
+      <title>Update ChatPanel for priority awareness</title>
+      <file>apps/web/src/components/shell/ChatPanel.tsx</file>
+      <description>
+        Make ChatPanel aware of layout priority at medium screen.
+
+        When isMediumScreen and layoutPriority === 'sidebar':
+        - Auto-set position to 'collapsed'
+        - Show subtle indicator that chat is hidden due to screen size
+
+        When isMediumScreen and layoutPriority === 'chat':
+        - Keep current position (right/bottom/floating)
+        - Normal behavior
+
+        Respect user's manual collapse/expand actions.
+      </description>
+    </task>
+  </implementation-tasks>
+
+  <testing-notes>
+    <scenario id="1">
+      <title>First Load at Medium Screen</title>
+      <steps>
+        1. Open app at 1024px width (use browser dev tools)
+        2. Verify sidebar is visible (default priority)
+        3. Verify chat panel is collapsed
+        4. Measure main content area width (should be 600px+)
+      </steps>
+      <expected>
+        - Sidebar: Expanded (256px)
+        - Chat: Collapsed/hidden
+        - Main content: 704px (1024 - 256 - 64)
+      </expected>
+    </scenario>
+
+    <scenario id="2">
+      <title>Toggle Layout Priority</title>
+      <steps>
+        1. At 1024px width with sidebar priority
+        2. Click layout priority toggle button
+        3. Verify sidebar collapses to icon-only (64px)
+        4. Verify chat panel expands
+        5. Verify localStorage persists priority='chat'
+        6. Refresh page
+        7. Verify priority is maintained
+      </steps>
+      <expected>
+        - Sidebar: Collapsed (64px)
+        - Chat: Visible (320px)
+        - Main content: 640px (1024 - 64 - 320)
+        - Priority persisted in localStorage
+      </expected>
+    </scenario>
+
+    <scenario id="3">
+      <title>Hover Expansion on Auto-Collapsed Sidebar</title>
+      <steps>
+        1. Set layout priority to 'chat' (sidebar auto-collapsed)
+        2. Hover mouse over collapsed sidebar
+        3. Verify sidebar expands to show full text (256px)
+        4. Move mouse away from sidebar
+        5. Verify sidebar collapses back to icons (64px)
+        6. Verify transition is smooth (300ms)
+      </steps>
+      <expected>
+        - Hover triggers temporary expansion
+        - Mouse leave triggers collapse
+        - Smooth animation (no jank)
+        - Main content doesn't shift during hover
+      </expected>
+    </scenario>
+
+    <scenario id="4">
+      <title>Window Resize Behavior</title>
+      <steps>
+        1. Start at 1400px width (desktop - no auto-collapse)
+        2. Verify both sidebar and chat are visible
+        3. Resize to 1200px (medium screen)
+        4. Verify auto-collapse triggers based on priority
+        5. Resize to 1024px (lower bound)
+        6. Verify layout remains stable
+        7. Resize back to 1400px
+        8. Verify panels restore to previous state
+      </steps>
+      <expected>
+        - Smooth transitions during resize
+        - Auto-collapse/expand at breakpoints
+        - State restoration when returning to desktop
+      </expected>
+    </scenario>
+
+    <scenario id="5">
+      <title>Minimum Width Constraint</title>
+      <steps>
+        1. At any width in 1024-1280px range
+        2. Try both layout priorities
+        3. Measure main content area width in each mode
+        4. Verify it never falls below 600px
+      </steps>
+      <expected>
+        - Sidebar priority: 704px+ content area
+        - Chat priority: 640px+ content area
+        - Both modes respect 600px minimum
+      </expected>
+    </scenario>
+
+    <manual-testing>
+      <device>13" MacBook Air (1280px native)</device>
+      <device>14" Laptop (1366px)</device>
+      <device>Small external monitor (1024px)</device>
+      <browsers>Chrome, Firefox, Safari, Edge</browsers>
+    </manual-testing>
+
+    <unit-tests>
+      <test>use-responsive-layout hook returns correct breakpoint at 1024px</test>
+      <test>use-responsive-layout hook returns correct breakpoint at 1280px</test>
+      <test>layoutPriority persists to localStorage</test>
+      <test>layoutPriority reads from localStorage on mount</test>
+      <test>shouldAutoCollapseSidebar returns true when priority='chat' and isMediumScreen</test>
+      <test>shouldAutoCollapseChat returns true when priority='sidebar' and isMediumScreen</test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>Layout auto-collapses sidebar when entering medium breakpoint with chat priority</test>
+      <test>Layout auto-collapses chat when entering medium breakpoint with sidebar priority</test>
+      <test>Hover expansion works on auto-collapsed sidebar</test>
+      <test>Priority toggle switches between modes correctly</test>
+      <test>Main content area maintains minimum 600px width at all times</test>
+    </integration-tests>
+  </testing-notes>
+
+  <technical-considerations>
+    <performance>
+      <consideration>
+        Debounce resize event listeners (150ms) to prevent excessive re-renders during window resize.
+        Use requestAnimationFrame for smooth animation performance.
+      </consideration>
+      <consideration>
+        Cache breakpoint calculations to avoid repeated innerWidth checks.
+        Only recalculate on resize events.
+      </consideration>
+    </performance>
+
+    <accessibility>
+      <consideration>
+        Ensure layout priority toggle has proper ARIA labels and keyboard support.
+        Use aria-pressed to indicate current state.
+      </consideration>
+      <consideration>
+        Respect prefers-reduced-motion media query - disable transitions if user prefers.
+      </consideration>
+      <consideration>
+        Maintain focus management when panels auto-collapse/expand.
+        Don't trap focus in collapsed panels.
+      </consideration>
+    </accessibility>
+
+    <browser-compatibility>
+      <consideration>
+        window.innerWidth is widely supported (all modern browsers).
+        Use ResizeObserver as alternative if needed for future enhancements.
+      </consideration>
+      <consideration>
+        CSS transitions are widely supported. No fallback needed.
+      </consideration>
+    </browser-compatibility>
+
+    <edge-cases>
+      <case>User manually collapses sidebar, then enters medium screen mode</case>
+      <resolution>Respect user's manual action - don't auto-expand unless they toggle priority</resolution>
+
+      <case>User resizes window rapidly between breakpoints</case>
+      <resolution>Debounce resize events to prevent layout thrashing</resolution>
+
+      <case>User has chat in 'floating' or 'bottom' position at medium screen</case>
+      <resolution>
+        - 'floating': No auto-collapse needed (doesn't affect layout width)
+        - 'bottom': No auto-collapse needed (doesn't affect horizontal space)
+        - Only 'right' position triggers auto-collapse logic
+      </resolution>
+
+      <case>User toggles priority while manually collapsed</case>
+      <resolution>Priority only applies to auto-collapse state, not user actions</resolution>
+    </edge-cases>
+  </technical-considerations>
+
+  <reference-materials>
+    <story-file>docs/stories/16-1-implement-medium-screen-layout.md</story-file>
+    <epic-file>docs/epics/EPIC-16-premium-polish-advanced-features.md</epic-file>
+    <architecture-doc>docs/architecture.md (Tailwind Guidelines, Layout Constants)</architecture-doc>
+    <layout-constants>apps/web/src/lib/layout-constants.ts</layout-constants>
+    <style-guide>docs/design/STYLE-GUIDE.md (Responsive breakpoints)</style-guide>
+    <claude-md>CLAUDE.md (Tailwind CSS Guidelines section)</claude-md>
+  </reference-materials>
+</story-context>

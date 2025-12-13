@@ -6,11 +6,13 @@
  * - Badge support (inline in expanded, overlay in collapsed)
  * - Status dot for module items (agent-colored)
  * - Tooltip in collapsed state
+ * - Coming Soon tooltip for unreleased modules
  *
  * Epic: 07 - UI Shell
  * Story: 07-2 - Create Sidebar Navigation
  * Updated: Story 15.1 - Replace Material Icons with Lucide
  * Updated: Story 15-25 - Apply Agent Character Colors Throughout
+ * Updated: Story 16-22 - Add Coming Soon Module Tooltips
  */
 
 'use client';
@@ -43,6 +45,8 @@ interface SidebarNavItemProps {
   badge?: number;
   /** Optional status dot color for module items (agent name or secondary) */
   statusDot?: AgentStatusDot;
+  /** Whether this module is coming soon (adds tooltip to status dot) */
+  comingSoon?: string;
   /** Whether sidebar is in collapsed state */
   collapsed: boolean;
 }
@@ -53,6 +57,7 @@ export function SidebarNavItem({
   href,
   badge,
   statusDot,
+  comingSoon,
   collapsed,
 }: SidebarNavItemProps) {
   const pathname = usePathname();
@@ -105,12 +110,30 @@ export function SidebarNavItem({
           <div className="flex flex-1 items-center gap-2">
             <span className="text-sm font-medium">{label}</span>
             {statusDot && (
-              <div
-                className={cn(
-                  'h-1.5 w-1.5 rounded-full',
-                  statusDotColors[statusDot]
-                )}
-              />
+              comingSoon ? (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={cn(
+                          'h-1.5 w-1.5 rounded-full cursor-help',
+                          statusDotColors[statusDot]
+                        )}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={8}>
+                      <span className="text-xs">{comingSoon}</span>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <div
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full',
+                    statusDotColors[statusDot]
+                  )}
+                />
+              )
             )}
           </div>
           {badge !== undefined && badge > 0 && (
@@ -138,7 +161,12 @@ export function SidebarNavItem({
         <Tooltip>
           <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
           <TooltipContent side="right" sideOffset={16}>
-            {label}
+            <div className="flex flex-col gap-0.5">
+              <span>{label}</span>
+              {comingSoon && (
+                <span className="text-xs text-muted-foreground">{comingSoon}</span>
+              )}
+            </div>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

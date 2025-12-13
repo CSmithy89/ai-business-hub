@@ -1,0 +1,351 @@
+<story-context id="16-15-implement-websocket-real-time-updates" v="1.0">
+  <metadata>
+    <epicId>16</epicId>
+    <storyId>15</storyId>
+    <title>Implement WebSocket Real-Time Updates</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-13</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/16-15-implement-websocket-real-time-updates.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user monitoring approvals and agents</asA>
+    <iWant>real-time updates without manual refresh</iWant>
+    <soThat>I always see the latest information instantly</soThat>
+    <tasks>
+      <task id="1" title="Create NestJS WebSocket Gateway" ac="1">
+        <subtask>Create apps/api/src/realtime/realtime.module.ts</subtask>
+        <subtask>Create apps/api/src/realtime/realtime.gateway.ts with Socket.io</subtask>
+        <subtask>Implement JWT validation in handleConnection</subtask>
+        <subtask>Create workspace room joining logic (workspace:${workspaceId})</subtask>
+        <subtask>Add connection/disconnection logging</subtask>
+      </task>
+      <task id="2" title="Implement Server-to-Client Events" ac="2">
+        <subtask>Define TypeScript interfaces for all event types</subtask>
+        <subtask>Create emitToWorkspace(workspaceId, event, data) method</subtask>
+        <subtask>Create emitToUser(userId, event, data) method</subtask>
+        <subtask>Add event payload validation</subtask>
+      </task>
+      <task id="3" title="Wire Event Bus to WebSocket" ac="5">
+        <subtask>Subscribe to Event Bus streams in RealtimeGateway</subtask>
+        <subtask>Map approval.* events to WebSocket broadcasts</subtask>
+        <subtask>Map agent.* events to WebSocket broadcasts</subtask>
+        <subtask>Map notification.* events to WebSocket broadcasts</subtask>
+        <subtask>Add correlation ID tracking</subtask>
+      </task>
+      <task id="4" title="Create RealtimeProvider Context" ac="1,3">
+        <subtask>Create apps/web/src/providers/realtime-provider.tsx</subtask>
+        <subtask>Initialize Socket.io client with JWT auth</subtask>
+        <subtask>Implement connection state management</subtask>
+        <subtask>Add exponential backoff reconnection logic</subtask>
+        <subtask>Create useRealtime() hook</subtask>
+      </task>
+      <task id="5" title="Implement Connection Status UI" ac="3,4">
+        <subtask>Create connection status indicator component</subtask>
+        <subtask>Show Reconnecting toast during disconnection</subtask>
+        <subtask>Show Connection lost error after max retries</subtask>
+        <subtask>Add Retry button for manual reconnection</subtask>
+      </task>
+      <task id="6" title="Create Real-Time Hooks" ac="2,5">
+        <subtask>Create use-realtime-approvals.ts</subtask>
+        <subtask>Create use-realtime-agents.ts</subtask>
+        <subtask>Create use-realtime-notifications.ts</subtask>
+        <subtask>Integrate with React Query cache invalidation</subtask>
+      </task>
+      <task id="7" title="Update UI Components for Real-Time" ac="2">
+        <subtask>Add entry animation to approval cards on new approval</subtask>
+        <subtask>Update notification badge count on new notification</subtask>
+        <subtask>Update agent status indicators on status change</subtask>
+        <subtask>Ensure optimistic UI reconciles with server events</subtask>
+      </task>
+      <task id="8" title="Unit Tests" ac="all">
+        <subtask>Test RealtimeGateway connection handling</subtask>
+        <subtask>Test JWT validation in WebSocket handshake</subtask>
+        <subtask>Test workspace room isolation</subtask>
+        <subtask>Test reconnection logic</subtask>
+      </task>
+      <task id="9" title="Integration Tests" ac="2,5">
+        <subtask>Test Event Bus to WebSocket flow</subtask>
+        <subtask>Test client receiving events</subtask>
+        <subtask>Test multi-client scenarios</subtask>
+        <subtask>Test workspace isolation</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1" title="WebSocket Connection Establishment">
+      <item>WebSocket connection established on app load via Socket.io</item>
+      <item>JWT authentication passed in handshake auth</item>
+      <item>Workspace-scoped rooms for tenant isolation</item>
+      <item>Connection status indicator in UI</item>
+    </criterion>
+    <criterion id="2" title="Real-Time Event Handling">
+      <item>approval.created event - New item appears in queue with animation</item>
+      <item>approval.updated event - Status changes reflected immediately</item>
+      <item>approval.deleted event - Item removed from queue</item>
+      <item>agent.status.changed event - Agent status updates live</item>
+      <item>notification.new event - Badge count updates</item>
+      <item>chat.message event - New messages appear in chat panel</item>
+    </criterion>
+    <criterion id="3" title="Reconnection and Resilience">
+      <item>Exponential backoff on disconnect (1s, 2s, 4s... up to 30s)</item>
+      <item>Reconnecting indicator visible during disconnection</item>
+      <item>Maximum 10 reconnection attempts before showing error</item>
+      <item>Sync missed events on successful reconnect</item>
+    </criterion>
+    <criterion id="4" title="Graceful Degradation">
+      <item>Platform remains functional without WebSocket (polling fallback)</item>
+      <item>Clear indication when real-time is unavailable</item>
+      <item>No errors thrown if WebSocket connection fails</item>
+    </criterion>
+    <criterion id="5" title="Integration with Existing Systems">
+      <item>Event Bus events (EPIC-05) trigger WebSocket broadcasts</item>
+      <item>Optimistic UI updates reconcile with server state</item>
+      <item>React Query cache updated on real-time events</item>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture.md" title="Architecture Document" section="Integration Points">
+        <snippet>Real-time capabilities via Socket.io. WebSocket gateway pattern defined with frontend-backend integration and JWT passthrough.</snippet>
+      </doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-05.md" title="Event Bus Tech Spec" section="System Architecture">
+        <snippet>Redis Streams-based event bus with consumer groups. EventPublisherService and EventConsumerService patterns. Correlation ID tracing for distributed request tracking.</snippet>
+      </doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-16.md" title="Epic 16 Tech Spec" section="Story 16.15">
+        <snippet>WebSocket real-time updates specification with Socket.io event types and reconnection handling requirements.</snippet>
+      </doc>
+      <doc path="docs/epics/EPIC-16-premium-polish-advanced-features.md" title="Epic 16" section="Story 16.15">
+        <snippet>Acceptance criteria and technical notes for WebSocket implementation including event types and file structure.</snippet>
+      </doc>
+      <doc path="docs/sprint-artifacts/epic-16-retrospective.md" title="Epic 16 Retro" section="Deferred Stories">
+        <snippet>Story 16-15 deferred because it requires backend infrastructure from EPIC-05 Event Bus (now complete).</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <!-- Event Bus Infrastructure (EPIC-05) - Backend Foundation -->
+      <file path="apps/api/src/events/events.module.ts" kind="module" symbol="EventsModule" reason="Core event bus module to import and extend. WebSocket gateway will integrate with this.">
+        <notes>Provides RedisProvider, EventPublisherService, EventConsumerService exports needed for WebSocket integration.</notes>
+      </file>
+      <file path="apps/api/src/events/event-publisher.service.ts" kind="service" symbol="EventPublisherService" reason="Service used to publish events. WebSocket will subscribe to Event Bus to broadcast events.">
+        <interface>publish&lt;T&gt;(type: EventType, data: T, context: { tenantId, userId, correlationId? }): Promise&lt;string&gt;</interface>
+      </file>
+      <file path="apps/api/src/events/event-consumer.service.ts" kind="service" symbol="EventConsumerService" reason="Existing pattern for consuming events. WebSocket gateway will use similar subscription pattern.">
+        <notes>Uses @EventSubscriber decorator pattern for handler registration.</notes>
+      </file>
+      <file path="apps/api/src/events/decorators/event-subscriber.decorator.ts" kind="decorator" symbol="EventSubscriber" reason="Decorator pattern for event handlers. WebSocket broadcast handlers may use similar pattern."/>
+      <file path="apps/api/src/events/constants/streams.constants.ts" kind="constants" symbol="STREAMS, CONSUMER_GROUP" reason="Stream names and consumer config. WebSocket will subscribe to STREAMS.MAIN."/>
+      <file path="apps/api/src/events/redis.provider.ts" kind="provider" symbol="RedisProvider" reason="Redis client provider. WebSocket may need direct Redis access for pub/sub."/>
+
+      <!-- Shared Types -->
+      <file path="packages/shared/src/types/events.ts" kind="types" symbol="BaseEvent, EventTypes, EventPayloadMap" reason="Event type definitions and payload interfaces. WebSocket events must use these types.">
+        <interface>BaseEvent: { id, type, source, timestamp, correlationId?, tenantId, userId, version, data }</interface>
+        <interface>EventTypes: APPROVAL_CREATED, APPROVAL_APPROVED, AGENT_RUN_STARTED, etc.</interface>
+      </file>
+
+      <!-- Frontend Hooks (Patterns to Follow) -->
+      <file path="apps/web/src/hooks/use-approvals.ts" kind="hook" symbol="useApprovals, useApprovalMutations" reason="Existing approval hooks with optimistic updates. Real-time hooks will integrate with these via queryClient.invalidateQueries.">
+        <interface>queryKey: ['approvals', filters] - Invalidate on real-time events</interface>
+        <notes>Uses @tanstack/react-query. Real-time hook should call queryClient.setQueryData or invalidateQueries on events.</notes>
+      </file>
+      <file path="apps/web/src/hooks/use-notifications.ts" kind="hook" symbol="useNotifications" reason="Current notification hook using mock data. Real-time will replace/augment this with live updates.">
+        <notes>Currently uses mock data. Real-time should add events to the notification list when notification.new arrives.</notes>
+      </file>
+      <file path="apps/web/src/hooks/use-chat-messages.ts" kind="hook" symbol="useChatMessages" reason="Chat hook with streaming support. Real-time chat.message events will integrate here.">
+        <notes>Has optimistic update pattern and streaming support. WebSocket can deliver server-push messages.</notes>
+      </file>
+      <file path="apps/web/src/hooks/use-agents.ts" kind="hook" symbol="useAgents" reason="Agent list hook. Real-time agent.status.changed events will update agent status in UI."/>
+
+      <!-- NestJS Module Structure (Pattern to Follow) -->
+      <file path="apps/api/src/app.module.ts" kind="module" symbol="AppModule" reason="Root module. RealtimeModule needs to be imported here.">
+        <notes>Imports EventsModule. RealtimeModule should also be added.</notes>
+      </file>
+      <file path="apps/api/src/common/guards/auth.guard.ts" kind="guard" symbol="AuthGuard" reason="REST auth guard. WebSocket auth will use similar JWT validation pattern."/>
+      <file path="apps/api/src/common/guards/tenant.guard.ts" kind="guard" symbol="TenantGuard" reason="Multi-tenant guard. WebSocket must enforce workspace isolation."/>
+
+      <!-- UI Components (To Update) -->
+      <file path="apps/web/src/components/notifications/NotificationCenter.tsx" kind="component" symbol="NotificationCenter" reason="Notification UI. Badge count updates on notification.new event."/>
+      <file path="apps/web/src/components/shell/Header.tsx" kind="component" symbol="Header" reason="Contains notification bell. May need connection status indicator."/>
+      <file path="apps/web/src/components/approval/approval-quick-actions.tsx" kind="component" symbol="ApprovalQuickActions" reason="Approval UI. Real-time updates affect this."/>
+    </code>
+
+    <dependencies>
+      <node ecosystem="api (apps/api)">
+        <package name="@nestjs/platform-socket.io" version="TO_ADD" required="true">NestJS Socket.io adapter</package>
+        <package name="socket.io" version="^4.7.0" required="true">WebSocket server library</package>
+        <package name="@socket.io/redis-adapter" version="^8.3.0" optional="true">For multi-server support</package>
+        <!-- Existing -->
+        <package name="@nestjs/common" version="^10.4.15">NestJS core</package>
+        <package name="bullmq" version="^5.65.1">Queue (Event Bus uses)</package>
+        <package name="@hyvve/shared" version="workspace:*">Shared types including EventTypes</package>
+      </node>
+      <node ecosystem="web (apps/web)">
+        <package name="socket.io-client" version="^4.7.0" required="true">WebSocket client library</package>
+        <!-- Existing -->
+        <package name="@tanstack/react-query" version="^5.90.11">React Query for cache invalidation</package>
+        <package name="sonner" version="^2.0.7">Toast notifications for connection status</package>
+        <package name="zustand" version="^5.0.9">Could be used for connection state</package>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="architecture" type="pattern">
+      Multi-tenant isolation: WebSocket connections must be scoped to workspace rooms. No cross-tenant event leakage.
+    </constraint>
+    <constraint source="architecture" type="security">
+      JWT Authentication: WebSocket handshake must validate JWT token. Extract userId and workspaceId from claims.
+    </constraint>
+    <constraint source="tech-spec-epic-05" type="integration">
+      Event Bus Integration: WebSocket broadcasts MUST be triggered by Event Bus events, not direct service calls. This ensures audit trail and consistency.
+    </constraint>
+    <constraint source="architecture" type="pattern">
+      Socket.io rooms: Use workspace:${workspaceId} room naming for tenant isolation. Optional user:${userId} for user-specific events.
+    </constraint>
+    <constraint source="epic-16-retrospective" type="lesson">
+      SSR Awareness: Be mindful of window/document access during render. Socket.io client must only initialize after mount.
+    </constraint>
+    <constraint source="epic-16-retrospective" type="lesson">
+      Progressive Enhancement: Core functionality (approvals, chat) MUST work without WebSocket. Real-time is enhancement, not requirement.
+    </constraint>
+    <constraint source="story-dev-notes" type="technical">
+      Socket.io Version: Use Socket.io 4.x for both server and client compatibility.
+    </constraint>
+    <constraint source="story-dev-notes" type="technical">
+      Reconnection: Implement exponential backoff (1s, 2s, 4s... up to 30s max). Max 10 attempts before giving up.
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ServerToClientEvents" kind="typescript-interface" path="apps/api/src/realtime/realtime.types.ts (TO CREATE)">
+      <signature><![CDATA[
+interface ServerToClientEvents {
+  'approval.created': (approval: ApprovalItem) => void;
+  'approval.updated': (update: Partial<ApprovalItem> & { id: string }) => void;
+  'approval.deleted': (data: { id: string }) => void;
+  'agent.status.changed': (data: { agentId: string; status: AgentStatus }) => void;
+  'notification.new': (notification: Notification) => void;
+  'chat.message': (message: ChatMessage) => void;
+  'connection.status': (data: { status: 'connected' | 'reconnecting' | 'disconnected' }) => void;
+}
+      ]]></signature>
+    </interface>
+    <interface name="ClientToServerEvents" kind="typescript-interface" path="apps/api/src/realtime/realtime.types.ts (TO CREATE)">
+      <signature><![CDATA[
+interface ClientToServerEvents {
+  'presence.update': (status: 'online' | 'away' | 'busy') => void;
+  'typing.start': (data: { chatId: string }) => void;
+  'typing.stop': (data: { chatId: string }) => void;
+  'room.join': (data: { workspaceId: string }) => void;
+  'room.leave': (data: { workspaceId: string }) => void;
+}
+      ]]></signature>
+    </interface>
+    <interface name="RealtimeGateway" kind="nestjs-gateway" path="apps/api/src/realtime/realtime.gateway.ts (TO CREATE)">
+      <signature><![CDATA[
+@WebSocketGateway({ namespace: '/realtime', cors: { origin: '*', credentials: true } })
+class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer() server: Server<ClientToServerEvents, ServerToClientEvents>;
+
+  handleConnection(client: Socket): Promise<void>;
+  handleDisconnect(client: Socket): void;
+
+  emitToWorkspace(workspaceId: string, event: keyof ServerToClientEvents, data: any): void;
+  emitToUser(userId: string, event: keyof ServerToClientEvents, data: any): void;
+
+  @EventSubscriber('approval.*')
+  handleApprovalEvents(event: BaseEvent): void;
+
+  @EventSubscriber('agent.*')
+  handleAgentEvents(event: BaseEvent): void;
+}
+      ]]></signature>
+    </interface>
+    <interface name="useRealtime" kind="react-hook" path="apps/web/src/hooks/use-realtime.ts (TO CREATE)">
+      <signature><![CDATA[
+interface RealtimeContextValue {
+  isConnected: boolean;
+  isReconnecting: boolean;
+  connectionError: string | null;
+  reconnect: () => void;
+  subscribe: <T>(event: string, handler: (data: T) => void) => () => void;
+}
+
+export function useRealtime(): RealtimeContextValue;
+      ]]></signature>
+    </interface>
+    <interface name="EventPublisherService.publish" kind="service-method" path="apps/api/src/events/event-publisher.service.ts">
+      <signature><![CDATA[
+publish<T extends object>(
+  type: EventType,
+  data: T,
+  context: {
+    tenantId: string;
+    userId: string;
+    correlationId?: string;
+    source?: string;
+  }
+): Promise<string>
+      ]]></signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Backend tests use Jest with @nestjs/testing. API tests in apps/api/src/**/*.spec.ts pattern.
+      Frontend tests use Vitest for unit tests (apps/web/src/**/*.test.ts) and Playwright for E2E (apps/web/tests/e2e/).
+      Test files co-located with source files. Mock external dependencies (Redis, WebSocket clients).
+      Use test containers (@testcontainers/redis) for integration tests requiring real Redis.
+    </standards>
+    <locations>
+      <location>apps/api/src/realtime/*.spec.ts (TO CREATE)</location>
+      <location>apps/web/src/hooks/use-realtime*.test.ts (TO CREATE)</location>
+      <location>apps/web/tests/e2e/realtime.spec.ts (TO CREATE for E2E)</location>
+    </locations>
+    <ideas>
+      <idea ac="1" description="Test WebSocket connection with valid JWT establishes connection and joins workspace room"/>
+      <idea ac="1" description="Test WebSocket connection with invalid/expired JWT is rejected"/>
+      <idea ac="1" description="Test workspace room isolation - events sent to workspace A not received by workspace B clients"/>
+      <idea ac="2" description="Test approval.created event triggers UI update in connected client"/>
+      <idea ac="2" description="Test agent.status.changed event updates agent card status"/>
+      <idea ac="2" description="Test notification.new event increments notification badge"/>
+      <idea ac="3" description="Test reconnection with exponential backoff timing"/>
+      <idea ac="3" description="Test reconnection indicator shows during disconnection"/>
+      <idea ac="3" description="Test max retry limit shows error after 10 attempts"/>
+      <idea ac="4" description="Test app functions without WebSocket connection (graceful degradation)"/>
+      <idea ac="5" description="Test Event Bus event triggers WebSocket broadcast to correct workspace"/>
+      <idea ac="5" description="Test React Query cache invalidated on real-time event"/>
+      <idea ac="5" description="Test optimistic update reconciliation when server event differs"/>
+    </ideas>
+  </tests>
+
+  <implementationNotes>
+    <note priority="critical" title="Install Socket.io Dependencies">
+      Socket.io is NOT currently in package.json! First task must add dependencies:
+      - apps/api: pnpm add @nestjs/platform-socket.io socket.io
+      - apps/web: pnpm add socket.io-client
+      - Optional: pnpm add @socket.io/redis-adapter (for multi-server)
+    </note>
+    <note priority="high" title="NestJS WebSocket Adapter Setup">
+      In apps/api/src/main.ts, need to configure Socket.io adapter:
+      app.useWebSocketAdapter(new IoAdapter(app));
+    </note>
+    <note priority="high" title="Event Bus Subscription Pattern">
+      Gateway should subscribe to Event Bus using @EventSubscriber decorator.
+      On each event, extract tenantId and broadcast to workspace:${tenantId} room.
+    </note>
+    <note priority="medium" title="Client-Side Mount Safety">
+      Socket.io client must only initialize in useEffect (after mount).
+      Use isMounted pattern or conditional socket creation.
+    </note>
+    <note priority="medium" title="React Query Integration">
+      On receiving events, use queryClient.setQueryData for immediate updates
+      OR queryClient.invalidateQueries for refetch.
+      Prefer setQueryData for better UX, fall back to invalidate for complex cases.
+    </note>
+  </implementationNotes>
+</story-context>

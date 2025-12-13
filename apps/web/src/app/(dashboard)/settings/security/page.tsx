@@ -6,7 +6,7 @@ import { Link2, Monitor } from 'lucide-react'
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Security Settings | HYVVE',
+  title: 'Security',
   description: 'Manage your security settings',
 }
 

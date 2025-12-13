@@ -20,6 +20,135 @@
     background-color: rgb(var(--color-bg-primary));
     color: rgb(var(--color-text-primary));
   }
+
+  /* ============================================
+   * TYPOGRAPHY REFINEMENTS - Story 16-13
+   * Premium typography with proper hierarchy
+   * ============================================ */
+
+  /* Headings - Tighter letter-spacing for premium feel */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: var(--font-semibold);
+    letter-spacing: var(--tracking-tight);
+    color: rgb(var(--color-text-primary));
+  }
+
+  h1 {
+    font-size: var(--text-3xl);
+    line-height: 1.2;
+    letter-spacing: var(--tracking-tighter);
+  }
+
+  h2 {
+    font-size: var(--text-2xl);
+    line-height: 1.25;
+  }
+
+  h3 {
+    font-size: var(--text-xl);
+    line-height: 1.3;
+  }
+
+  h4 {
+    font-size: var(--text-lg);
+    line-height: 1.4;
+  }
+
+  h5, h6 {
+    font-size: var(--text-base);
+    line-height: 1.5;
+  }
+
+  /* Paragraphs - Comfortable reading */
+  p {
+    line-height: var(--leading-relaxed);
+    color: rgb(var(--color-text-secondary));
+  }
+
+  /* Links - Consistent styling */
+  a:not([class]) {
+    color: rgb(var(--color-primary-600));
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  a:not([class]):hover {
+    color: rgb(var(--color-primary-700));
+    text-decoration: underline;
+  }
+
+  .dark a:not([class]) {
+    color: rgb(var(--color-primary-400));
+  }
+
+  .dark a:not([class]):hover {
+    color: rgb(var(--color-primary-300));
+  }
+
+  /* Code - Monospace styling */
+  code:not([class]) {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    padding: 0.125em 0.375em;
+    background-color: rgb(var(--color-bg-muted));
+    border-radius: var(--radius-sm);
+    color: rgb(var(--color-primary-600));
+  }
+
+  .dark code:not([class]) {
+    background-color: rgb(var(--color-slate-800));
+    color: rgb(var(--color-primary-400));
+  }
+
+  /* Pre/Code blocks */
+  pre {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    padding: var(--space-4);
+    background-color: rgb(var(--color-slate-900));
+    border-radius: var(--radius-lg);
+    overflow-x: auto;
+    color: rgb(var(--color-slate-100));
+  }
+
+  pre code {
+    padding: 0;
+    background: none;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  /* Small text */
+  small {
+    font-size: var(--text-sm);
+    color: rgb(var(--color-text-muted));
+  }
+
+  /* Strong emphasis */
+  strong, b {
+    font-weight: var(--font-semibold);
+    color: rgb(var(--color-text-primary));
+  }
+
+  /* Lists - Consistent spacing */
+  ul:not([class]), ol:not([class]) {
+    padding-left: var(--space-6);
+    line-height: var(--leading-relaxed);
+  }
+
+  li:not([class]) {
+    margin-bottom: var(--space-1);
+  }
+
+  /* Blockquotes */
+  blockquote {
+    border-left: 3px solid rgb(var(--color-primary-500));
+    padding-left: var(--space-4);
+    margin-left: 0;
+    color: rgb(var(--color-text-secondary));
+    font-style: italic;
+  }
 }
 
 /* Command palette (cmdk) styles */
@@ -167,8 +296,10 @@
     outline-offset: 2px;
   }
 
-  /* Remove default outline - we're using custom focus ring */
-  :focus {
+  /* Remove default outline for mouse/touch users only - keyboard users keep focus ring
+   * :focus-visible targets keyboard navigation, :focus targets all focus
+   * This ensures accessibility for keyboard and assistive tech users */
+  :focus:not(:focus-visible) {
     outline: none;
   }
 
@@ -251,5 +382,557 @@
   .animate-\\[typing-pulse_1\\.4s_infinite_ease-in-out_0\\.4s\\] {
     animation: none;
     opacity: 0.7;
+  }
+}
+
+/**
+ * Medium Screen Responsive Layout - Story 16.1
+ *
+ * Adaptive layout behavior for laptops and small monitors (1024-1280px).
+ * Ensures smooth transitions and hover expansion for auto-collapsed sidebar.
+ */
+
+/* Medium Screen Layout (1024-1280px) */
+@media (min-width: 1024px) and (max-width: 1280px) {
+  /* Ensure smooth transitions for sidebar and chat panel */
+  .sidebar-transition {
+    transition: width 300ms ease-in-out, transform 300ms ease-in-out, box-shadow 300ms ease-in-out;
+  }
+
+  .chat-panel-transition {
+    transition: width 300ms ease-in-out, right 300ms ease-in-out, opacity 300ms ease-in-out;
+  }
+
+  /* Auto-collapsed sidebar hover expansion */
+  .sidebar-auto-collapsed {
+    transition: width 300ms ease-in-out, box-shadow 300ms ease-in-out;
+  }
+
+  .sidebar-auto-collapsed:hover {
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Dark mode shadow for hover expansion */
+  .dark .sidebar-auto-collapsed:hover {
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 107, 107, 0.08);
+  }
+
+  /* Prevent layout shift during hover expansion */
+  .sidebar-auto-collapsed:hover ~ main {
+    transition: margin-left 300ms ease-in-out;
+  }
+}
+
+/* Respect reduced motion preference - disable all transitions */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-transition,
+  .chat-panel-transition,
+  .sidebar-auto-collapsed,
+  .sidebar-auto-collapsed:hover {
+    transition: none !important;
+  }
+
+  .sidebar-auto-collapsed:hover {
+    box-shadow: none;
+  }
+}
+
+/**
+ * Touch-Friendly Utilities - Story 16-2
+ *
+ * Styles for tablet and touch devices with:
+ * - Minimum 44x44px tap targets (WCAG 2.1 Level AAA)
+ * - Adequate spacing between touch targets
+ * - Touch interaction feedback
+ * - Swipe gesture indicators
+ */
+
+/* Minimum touch target size (44x44px) */
+.touch-target-min {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Adequate spacing between touch targets */
+.touch-spacing > * + * {
+  margin-top: 12px;
+}
+
+/* Touch-friendly button sizes on touch devices */
+@media (pointer: coarse) {
+  button:not(.touch-target-min),
+  [role="button"]:not(.touch-target-min),
+  a[role="button"]:not(.touch-target-min) {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+  }
+
+  /* Larger tap targets for navigation items */
+  nav a,
+  nav button,
+  .sidebar-item,
+  .nav-item {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+}
+
+/* Touch feedback - subtle scale on active */
+@media (pointer: coarse) {
+  button:active,
+  [role="button"]:active,
+  a[role="button"]:active {
+    transform: scale(0.98);
+    transition: transform 50ms ease-out;
+  }
+}
+
+/* Swipe gesture indicator animations */
+@keyframes swipe-hint {
+  0%, 100% {
+    opacity: 0.5;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.swipe-hint {
+  animation: swipe-hint 2s ease-in-out infinite;
+}
+
+/* Respect reduced motion preference */
+/* Combined media queries - nested @media is invalid CSS */
+@media (prefers-reduced-motion: reduce) and (pointer: coarse) {
+  button:active,
+  [role="button"]:active,
+  a[role="button"]:active {
+    transform: none;
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe-hint {
+    animation: none;
+  }
+}
+
+/* Touch device optimizations */
+@media (pointer: coarse) {
+  /* Prevent text selection on double-tap */
+  button,
+  [role="button"],
+  .no-select-touch {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Smooth scrolling for touch devices */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Remove hover effects on touch devices to prevent sticky states */
+  button:hover,
+  [role="button"]:hover,
+  a:hover {
+    /* Touch devices don't have true hover, so we disable hover-specific effects */
+    /* Active state (via :active) provides touch feedback instead */
+  }
+}
+
+/* Safe Area Insets - iOS/Android notches and home indicators */
+/* Story: 16-3 - Implement Mobile Layout */
+@supports (padding-top: env(safe-area-inset-top)) {
+  :root {
+    --safe-area-inset-top: env(safe-area-inset-top);
+    --safe-area-inset-right: env(safe-area-inset-right);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom);
+    --safe-area-inset-left: env(safe-area-inset-left);
+  }
+
+  /* Apply safe area to main viewport elements */
+  .safe-area-top {
+    padding-top: var(--safe-area-inset-top);
+  }
+
+  .safe-area-right {
+    padding-right: var(--safe-area-inset-right);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: var(--safe-area-inset-bottom);
+  }
+
+  .safe-area-left {
+    padding-left: var(--safe-area-inset-left);
+  }
+
+  .safe-area-inset {
+    padding-top: var(--safe-area-inset-top);
+    padding-right: var(--safe-area-inset-right);
+    padding-bottom: var(--safe-area-inset-bottom);
+    padding-left: var(--safe-area-inset-left);
+  }
+}
+
+/**
+ * Hover & Press Animation Utilities - Story 16-9
+ *
+ * Premium micro-animations for interactive elements:
+ * - hover-lift: Cards lift on hover with shadow increase
+ * - press-feedback: Buttons scale down on press
+ * - icon-hover: Icons scale up on hover
+ * - link-hover: Links animate underline on hover
+ */
+
+/* Hover lift effect for cards */
+.hover-lift {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* Button press feedback */
+.press-feedback {
+  transition: transform 100ms ease-out;
+}
+
+.press-feedback:active {
+  transform: scale(0.98);
+}
+
+/* Icon button hover scale */
+.icon-hover {
+  transition: transform 150ms ease-out;
+}
+
+.icon-hover:hover {
+  transform: scale(1.05);
+}
+
+/* Link hover underline animation */
+.link-hover {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-hover::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 1px;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 200ms ease-out;
+}
+
+.link-hover:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* List item hover background */
+.list-item-hover {
+  transition: background-color 150ms ease-out;
+}
+
+.list-item-hover:hover {
+  background-color: rgb(var(--color-bg-tertiary));
+}
+
+/* Card hover with shadow and lift combined */
+.card-hover-lift {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out;
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode card hover - use glow instead of shadow */
+.dark .card-hover-lift:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 107, 107, 0.05);
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .hover-lift,
+  .press-feedback,
+  .icon-hover,
+  .link-hover::after,
+  .list-item-hover,
+  .card-hover-lift {
+    transition: none !important;
+  }
+
+  .hover-lift:hover,
+  .card-hover-lift:hover {
+    transform: none;
+  }
+
+  .press-feedback:active {
+    transform: none;
+  }
+
+  .icon-hover:hover {
+    transform: none;
+  }
+
+  .link-hover::after {
+    transform: scaleX(1);
+  }
+}
+
+/**
+ * Page Transition Animations - Story 16-10
+ *
+ * Smooth enter animations for page content on route changes.
+ * Uses CSS keyframes for GPU-accelerated performance.
+ */
+
+/* Page enter animation - fade in + slide up */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Page enter fade only (no slide) */
+@keyframes page-enter-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Apply page enter animation */
+.page-enter {
+  animation: page-enter 200ms ease-out forwards;
+}
+
+/* Fade-only variant */
+.page-enter-fade {
+  animation: page-enter-fade 200ms ease-out forwards;
+}
+
+/* Respect reduced motion - skip animations */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .page-enter-fade {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/**
+ * Modal & Dropdown Animation Enhancements - Story 16-11
+ *
+ * shadcn Dialog and DropdownMenu already use Radix + Tailwind animate-in/animate-out.
+ * This section adds:
+ * - CSS custom properties for animation duration
+ * - Explicit reduced-motion support
+ * - Consistent animation timing
+ */
+
+/* Animation duration custom properties */
+:root {
+  --modal-animation-duration: 150ms;
+  --dropdown-animation-duration: 100ms;
+  --backdrop-animation-duration: 200ms;
+}
+
+/* Modal/Dialog animations - 150ms as per spec */
+[data-radix-dialog-overlay],
+[data-radix-alert-dialog-overlay] {
+  animation-duration: var(--backdrop-animation-duration);
+}
+
+[data-radix-dialog-content],
+[data-radix-alert-dialog-content] {
+  animation-duration: var(--modal-animation-duration);
+}
+
+/* Dropdown animations - 100ms as per spec */
+[data-radix-dropdown-menu-content],
+[data-radix-context-menu-content],
+[data-radix-menubar-content],
+[data-radix-select-content],
+[data-radix-popover-content] {
+  animation-duration: var(--dropdown-animation-duration);
+}
+
+/* Sheet animations - same as modal */
+[data-radix-dialog-content][data-side] {
+  animation-duration: var(--modal-animation-duration);
+}
+
+/* Reduced motion - disable all Radix animations */
+@media (prefers-reduced-motion: reduce) {
+  [data-radix-dialog-overlay],
+  [data-radix-alert-dialog-overlay],
+  [data-radix-dialog-content],
+  [data-radix-alert-dialog-content],
+  [data-radix-dropdown-menu-content],
+  [data-radix-context-menu-content],
+  [data-radix-menubar-content],
+  [data-radix-select-content],
+  [data-radix-popover-content] {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Mobile-specific utilities */
+/* Story: 16-3 - Implement Mobile Layout */
+@media (max-width: 767px) {
+  /* Single-column card stacking */
+  .mobile-single-column {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Full-width on mobile */
+  .mobile-full-width {
+    width: 100% !important;
+  }
+
+  /* Reduce padding on mobile */
+  .mobile-compact-padding {
+    padding: 1rem !important;
+  }
+
+  /* Hide on mobile */
+  .mobile-hidden {
+    display: none !important;
+  }
+
+  /* Stack vertically on mobile */
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+
+  /* Touch-friendly minimum tap targets (44x44px) */
+  .touch-target-min {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Forms optimized for mobile keyboards */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  textarea {
+    font-size: 16px; /* Prevents zoom on iOS when input is focused */
+  }
+
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/**
+ * Celebration Animations - Story 16-25
+ *
+ * Celebration moment animations for achievements and milestones.
+ * All animations respect prefers-reduced-motion.
+ */
+
+/* Badge glow animation for celebration modal */
+@keyframes badge-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 107, 107, 0.5);
+  }
+}
+
+.animate-badge-glow {
+  animation: badge-glow 2s ease-in-out infinite;
+}
+
+/* Character celebration bounce animation */
+@keyframes celebration-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-celebration-bounce {
+  animation: celebration-bounce 0.6s ease-in-out;
+}
+
+/* Checkmark draw animation */
+@keyframes checkmark-draw {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-checkmark-draw {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: checkmark-draw 0.5s ease-out forwards;
+}
+
+/* Circle progress animation */
+@keyframes circle-progress {
+  0% {
+    stroke-dashoffset: 283; /* 2 * PI * 45 (radius) */
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-circle-progress {
+  stroke-dasharray: 283;
+  stroke-dashoffset: 283;
+  animation: circle-progress 0.8s ease-out forwards;
+}
+
+/* Reduced motion - disable celebration animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-badge-glow,
+  .animate-celebration-bounce,
+  .animate-checkmark-draw,
+  .animate-circle-progress {
+    animation: none !important;
+  }
+
+  .animate-checkmark-draw,
+  .animate-circle-progress {
+    stroke-dashoffset: 0;
   }
 }

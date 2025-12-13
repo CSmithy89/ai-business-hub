@@ -384,7 +384,7 @@ export function SignUpForm() {
       {/* Submit Button */}
       <Button
         type="submit"
-        className="w-full bg-[#FF6B6B] hover:bg-[#FF6B6B]/90"
+        className="w-full bg-primary hover:bg-primary/90"
         disabled={isSubmitting}
       >
         {isSubmitting ? (

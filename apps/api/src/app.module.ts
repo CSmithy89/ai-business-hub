@@ -11,6 +11,7 @@ import { ApprovalsModule } from './approvals/approvals.module';
 import { AgentOSModule } from './agentos/agentos.module';
 import { AIProvidersModule } from './ai-providers/ai-providers.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { RealtimeModule } from './realtime/realtime.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -49,6 +50,7 @@ import { validate } from './config/env.validation';
     AgentOSModule,
     AIProvidersModule,
     MetricsModule,
+    RealtimeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -2,7 +2,7 @@ import { SettingsLayout } from '@/components/layouts/settings-layout'
 import { TokenUsageDashboard } from '@/components/settings/token-usage-dashboard'
 
 export const metadata = {
-  title: 'Token Usage | HYVVE',
+  title: 'Token Usage',
   description: 'View AI token usage statistics',
 }
 

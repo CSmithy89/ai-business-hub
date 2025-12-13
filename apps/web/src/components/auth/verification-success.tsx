@@ -78,7 +78,7 @@ export function VerificationSuccess({
       {/* Get Started Button */}
       <Button
         onClick={handleGetStarted}
-        className="w-full bg-[#FF6B6B] hover:bg-[#FF6B6B]/90"
+        className="w-full bg-primary hover:bg-primary/90"
       >
         Get Started
       </Button>

@@ -31,10 +31,9 @@ export function AgentCardCompact({
   return (
     <Card
       className={cn(
-        'transition-all duration-200',
         isClickable && [
-          'cursor-pointer',
-          'hover:border-gray-400 hover:shadow-md',
+          'cursor-pointer card-hover-lift',
+          'hover:border-gray-400',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
           'dark:hover:border-gray-600',
         ],

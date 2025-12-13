@@ -7,12 +7,13 @@
  *
  * Story: 08.3 - Implement Onboarding Wizard UI
  * Story: 15.16 - Enhance Business Onboarding Wizard
+ * Story: 16-21 - Option Card Selection Polish
  */
 
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { FileText, Sparkles, ArrowRight, Upload, X, CheckCircle2, File } from 'lucide-react'
+import { FileText, Sparkles, ArrowRight, Upload, X, CheckCircle2, File, Check } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -157,8 +158,13 @@ export function WizardStepChoice({ initialValue, initialFiles: _initialFiles = [
         {/* Documents Option */}
         <Card
           className={cn(
-            'cursor-pointer border-2 transition-all hover:border-primary',
-            selectedOption === 'documents' && 'border-primary bg-primary/5'
+            'relative cursor-pointer border-2 transition-all duration-200',
+            // Hover state: lift effect and border highlight
+            'hover:-translate-y-1 hover:shadow-lg hover:border-[rgb(var(--color-primary-500))]',
+            // Selected state: coral border, shadow, background
+            selectedOption === 'documents'
+              ? 'border-[rgb(var(--color-primary-500))] bg-[rgb(var(--color-primary-50))]/50 shadow-[0_0_0_3px_rgba(255,107,107,0.15)]'
+              : 'border-[rgb(var(--color-border-default))]'
           )}
           onClick={() => setSelectedOption('documents')}
           onKeyDown={(e) => handleKeyDown('documents', e)}
@@ -166,8 +172,17 @@ export function WizardStepChoice({ initialValue, initialFiles: _initialFiles = [
           tabIndex={0}
           aria-pressed={selectedOption === 'documents'}
         >
+          {/* Checkmark badge in corner */}
+          {selectedOption === 'documents' && (
+            <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[rgb(var(--color-primary-500))] text-white shadow-md">
+              <Check className="h-4 w-4" />
+            </div>
+          )}
           <CardContent className="flex flex-col items-center p-8 text-center">
-            <FileText className="mb-4 h-12 w-12 text-primary" />
+            <FileText className={cn(
+              'mb-4 h-12 w-12 transition-colors',
+              selectedOption === 'documents' ? 'text-[rgb(var(--color-primary-500))]' : 'text-muted-foreground'
+            )} />
             <h3 className="mb-2 text-xl font-semibold">I have documents</h3>
             <p className="text-sm text-muted-foreground">
               Upload existing business plans, market research, or brand guidelines. AI will extract
@@ -180,8 +195,13 @@ export function WizardStepChoice({ initialValue, initialFiles: _initialFiles = [
         {/* Fresh Start Option */}
         <Card
           className={cn(
-            'cursor-pointer border-2 transition-all hover:border-secondary',
-            selectedOption === 'fresh' && 'border-secondary bg-secondary/5'
+            'relative cursor-pointer border-2 transition-all duration-200',
+            // Hover state: lift effect and border highlight
+            'hover:-translate-y-1 hover:shadow-lg hover:border-[rgb(var(--color-primary-500))]',
+            // Selected state: coral border, shadow, background
+            selectedOption === 'fresh'
+              ? 'border-[rgb(var(--color-primary-500))] bg-[rgb(var(--color-primary-50))]/50 shadow-[0_0_0_3px_rgba(255,107,107,0.15)]'
+              : 'border-[rgb(var(--color-border-default))]'
           )}
           onClick={() => setSelectedOption('fresh')}
           onKeyDown={(e) => handleKeyDown('fresh', e)}
@@ -189,8 +209,17 @@ export function WizardStepChoice({ initialValue, initialFiles: _initialFiles = [
           tabIndex={0}
           aria-pressed={selectedOption === 'fresh'}
         >
+          {/* Checkmark badge in corner */}
+          {selectedOption === 'fresh' && (
+            <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[rgb(var(--color-primary-500))] text-white shadow-md">
+              <Check className="h-4 w-4" />
+            </div>
+          )}
           <CardContent className="flex flex-col items-center p-8 text-center">
-            <Sparkles className="mb-4 h-12 w-12 text-secondary" />
+            <Sparkles className={cn(
+              'mb-4 h-12 w-12 transition-colors',
+              selectedOption === 'fresh' ? 'text-[rgb(var(--color-primary-500))]' : 'text-muted-foreground'
+            )} />
             <h3 className="mb-2 text-xl font-semibold">Start from scratch</h3>
             <p className="text-sm text-muted-foreground">
               AI will guide you through the complete process: validation, planning, and branding.

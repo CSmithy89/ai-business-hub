@@ -1,7 +1,7 @@
 import { SettingsLayout } from '@/components/layouts/settings-layout'
 
 export const metadata = {
-  title: 'API Keys | HYVVE',
+  title: 'API Keys',
   description: 'Manage your API keys',
 }
 

@@ -200,7 +200,7 @@ function AppearancePreview({
         <div
           className={cn(
             'rounded-lg border overflow-hidden',
-            isDark ? 'bg-gray-900 border-gray-700' : 'bg-[#FAF9F7] border-gray-200'
+            isDark ? 'bg-gray-900 border-gray-700' : 'bg-background-cream border-gray-200'
           )}
         >
           {/* Mini header */}
@@ -256,7 +256,7 @@ function AppearancePreview({
                     'rounded',
                     isCompact ? 'h-6 w-full' : 'h-8 w-full',
                     i === 1
-                      ? 'bg-[#FF6B6B]'
+                      ? 'bg-primary'
                       : isDark
                       ? 'bg-gray-700'
                       : 'bg-gray-200'

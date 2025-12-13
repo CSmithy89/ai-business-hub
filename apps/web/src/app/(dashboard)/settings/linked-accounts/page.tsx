@@ -2,7 +2,7 @@ import { SettingsLayout } from '@/components/layouts/settings-layout'
 import { LinkedAccountsCard } from '@/components/settings/linked-accounts-card'
 
 export const metadata = {
-  title: 'Linked Accounts | HYVVE',
+  title: 'Linked Accounts',
   description: 'Manage your linked OAuth accounts',
 }
 

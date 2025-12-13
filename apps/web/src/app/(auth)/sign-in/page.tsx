@@ -5,7 +5,7 @@ import { AuthLayout } from '@/components/auth/auth-layout'
 import { SignInForm } from '@/components/auth/sign-in-form'
 
 export const metadata: Metadata = {
-  title: 'Sign In | HYVVE',
+  title: 'Sign In',
   description: 'Sign in to your HYVVE account',
 }
 

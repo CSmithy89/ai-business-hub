@@ -2,7 +2,7 @@ import { SettingsLayout } from '@/components/layouts/settings-layout'
 import { AppearanceSettings } from '@/components/settings/appearance-settings'
 
 export const metadata = {
-  title: 'Appearance | HYVVE',
+  title: 'Appearance',
   description: 'Customize the appearance of your dashboard',
 }
 

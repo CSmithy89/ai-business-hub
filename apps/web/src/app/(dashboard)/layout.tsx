@@ -21,13 +21,15 @@
 
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Header } from '@/components/shell/Header';
 import { Sidebar } from '@/components/shell/Sidebar';
+import { MobileSidebar, MobileSidebarTrigger } from '@/components/layout/MobileSidebar';
+import { ChatBottomSheet, ChatBottomSheetTrigger } from '@/components/layout/ChatBottomSheet';
 import { CommandPalette } from '@/components/command';
 import { KeyboardShortcuts } from '@/components/keyboard';
-import { MobileDrawer, MobileBottomNav } from '@/components/mobile';
+import { MobileDrawer, MobileBottomNav, ChatFullScreen, ChatFullScreenFAB } from '@/components/mobile';
 import {
   ErrorBoundary,
   HeaderErrorFallback,
@@ -38,6 +40,8 @@ import {
 import { useUIStore } from '@/stores/ui';
 import { LAYOUT } from '@/lib/layout-constants';
 import { SkipLink } from '@/components/ui/skip-link';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { DemoModeBanner } from '@/components/demo-mode-banner';
 
 // Lazy load ChatPanel to reduce initial bundle size (~75KB gzipped: react-markdown, remark-gfm, dompurify)
 const ChatPanel = dynamic(
@@ -55,21 +59,52 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { sidebarCollapsed, chatPanelOpen, chatPanelWidth, chatPanelHeight, chatPanelPosition } = useUIStore();
 
+  // Responsive layout hook for medium screen and tablet behavior (Story 16.1, 16.2)
+  const {
+    shouldAutoCollapseSidebar,
+    shouldAutoCollapseChat,
+    isTablet,
+    isMobile,
+  } = useResponsiveLayout();
+
+  // Tablet-specific drawer states
+  const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false);
+  const [tabletChatOpen, setTabletChatOpen] = useState(false);
+
+  // Mobile-specific states
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
+
+  // Determine if sidebar should be collapsed based on responsive rules
+  // Priority: user manual collapse > auto-collapse for medium screen
+  const effectiveSidebarCollapsed = sidebarCollapsed || shouldAutoCollapseSidebar;
+
+  // Determine if chat should be hidden based on responsive rules
+  // At medium screen with sidebar priority, auto-collapse chat
+  const effectiveChatHidden = shouldAutoCollapseChat || chatPanelPosition === 'collapsed';
+
   // Calculate main content margin based on chat panel position
-  // Returns undefined for small screens to allow Tailwind responsive classes to take effect
+  // Uses isMobile from responsive hook (hydration-safe) instead of direct window check
   const getMainContentMarginRight = () => {
-    // On small screens, return undefined so max-sm:mr-0 can take effect
-    if (typeof window !== 'undefined' && window.innerWidth < 640) return undefined;
-    if (!chatPanelOpen || chatPanelPosition === 'collapsed') return 0;
+    // On mobile screens, return 0 to let CSS handle responsive margins
+    if (isMobile) return 0;
+
+    // If chat is hidden by responsive rules or collapsed, no margin
+    if (effectiveChatHidden) return 0;
+
+    if (!chatPanelOpen) return 0;
     if (chatPanelPosition === 'right') return chatPanelWidth ?? LAYOUT.CHAT_DEFAULT_WIDTH;
     return 0; // No margin for bottom, floating, or collapsed
   };
 
   // Calculate main content margin bottom for bottom panel
-  // Returns undefined for small screens to allow Tailwind responsive classes to take effect
+  // Uses isMobile from responsive hook (hydration-safe) instead of direct window check
   const getMainContentMarginBottom = () => {
-    // On small screens, return undefined so responsive classes can take effect
-    if (typeof window !== 'undefined' && window.innerWidth < 640) return undefined;
+    // On mobile screens, return 0 to let CSS handle responsive margins
+    if (isMobile) return 0;
+
+    // If chat is hidden by responsive rules, no margin
+    if (effectiveChatHidden) return 0;
+
     if (!chatPanelOpen || chatPanelPosition !== 'bottom') return 0;
     return chatPanelHeight ?? 250;
   };
@@ -79,9 +114,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Skip link for keyboard accessibility - Tab to reveal */}
       <SkipLink targetId="main-content" />
 
+      {/* Demo Mode Banner - Story 16.8 */}
+      <DemoModeBanner />
+
       {/* Fixed Header - 60px height */}
       <ErrorBoundary fallback={<HeaderErrorFallback />}>
-        <Header />
+        <Header>
+          {/* Tablet: Hamburger menu trigger in header */}
+          {isTablet && (
+            <MobileSidebarTrigger onClick={() => setTabletSidebarOpen(true)} />
+          )}
+        </Header>
       </ErrorBoundary>
 
       {/* Main content area - below header */}
@@ -89,10 +132,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         className="flex h-full w-full"
         style={{ paddingTop: LAYOUT.HEADER_HEIGHT }}
       >
-        {/* Left Sidebar - collapsible */}
-        <ErrorBoundary fallback={<SidebarErrorFallback />}>
-          <Sidebar />
-        </ErrorBoundary>
+        {/* Desktop/Medium: Left Sidebar - collapsible */}
+        {!isTablet && !isMobile && (
+          <ErrorBoundary fallback={<SidebarErrorFallback />}>
+            <Sidebar isAutoCollapsed={shouldAutoCollapseSidebar} />
+          </ErrorBoundary>
+        )}
+
+        {/* Tablet: Mobile Sidebar Drawer */}
+        {isTablet && (
+          <MobileSidebar
+            open={tabletSidebarOpen}
+            onOpenChange={setTabletSidebarOpen}
+          />
+        )}
 
         {/*
           Main Content Area - flexible width
@@ -111,15 +164,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             flex-1 overflow-y-auto
             bg-[rgb(var(--color-bg-primary))]
             transition-all duration-300 ease-in-out
-            ${sidebarCollapsed ? 'ml-16' : 'ml-64'}
+            ${!isTablet && !isMobile ? (effectiveSidebarCollapsed ? 'ml-16' : 'ml-64') : 'ml-0'}
             min-w-0
             md:min-w-[400px]
             xl:min-w-[600px]
             max-sm:ml-0 max-sm:mr-0
           `}
           style={{
-            marginRight: getMainContentMarginRight(),
-            marginBottom: getMainContentMarginBottom(),
+            marginRight: isTablet ? 0 : getMainContentMarginRight(),
+            marginBottom: isTablet ? 0 : getMainContentMarginBottom(),
           }}
         >
           <ErrorBoundary fallback={<MainContentErrorFallback />}>
@@ -127,10 +180,40 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </ErrorBoundary>
         </main>
 
-        {/* Right Chat Panel - collapsible and resizable */}
-        <ErrorBoundary fallback={<ChatPanelErrorFallback />}>
-          <ChatPanel />
-        </ErrorBoundary>
+        {/* Desktop/Medium: Right Chat Panel - collapsible and resizable */}
+        {!isTablet && !isMobile && (
+          <ErrorBoundary fallback={<ChatPanelErrorFallback />}>
+            <ChatPanel />
+          </ErrorBoundary>
+        )}
+
+        {/* Tablet: Chat Bottom Sheet */}
+        {isTablet && (
+          <>
+            <ChatBottomSheet
+              open={tabletChatOpen}
+              onOpenChange={setTabletChatOpen}
+            />
+            <ChatBottomSheetTrigger
+              onClick={() => setTabletChatOpen(true)}
+              unreadCount={2}
+            />
+          </>
+        )}
+
+        {/* Mobile: Chat Full Screen */}
+        {isMobile && (
+          <>
+            <ChatFullScreen
+              open={mobileChatOpen}
+              onOpenChange={setMobileChatOpen}
+            />
+            <ChatFullScreenFAB
+              onClick={() => setMobileChatOpen(true)}
+              unreadCount={0}
+            />
+          </>
+        )}
       </div>
 
       {/* Command Palette - Global keyboard shortcut (Cmd/Ctrl+K) */}
@@ -139,9 +222,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Global Keyboard Shortcuts - Handles Cmd+K, Cmd+B, Cmd+/, etc. */}
       <KeyboardShortcuts />
 
-      {/* Mobile Navigation Components */}
-      <MobileDrawer />
-      <MobileBottomNav />
+      {/* Mobile Navigation Components - Only on mobile (<768px) */}
+      {isMobile && (
+        <>
+          <MobileDrawer />
+          <MobileBottomNav />
+        </>
+      )}
     </div>
   );
 }

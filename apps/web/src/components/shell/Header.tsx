@@ -2,6 +2,7 @@
  * Header Component
  *
  * Story 15-23: Header Bar Style Fixes
+ * Story 16-2: Tablet Layout - Added children support for hamburger trigger
  *
  * Main header bar with:
  * - Logo and business switcher (left)
@@ -16,6 +17,7 @@
 
 'use client';
 
+import { ReactNode } from 'react';
 import Link from 'next/link';
 import { HelpCircle } from 'lucide-react';
 import { HeaderBreadcrumbs } from './HeaderBreadcrumbs';
@@ -24,9 +26,15 @@ import { HeaderNotificationBell } from './HeaderNotificationBell';
 import { HeaderUserMenu } from './HeaderUserMenu';
 import { MobileHamburger } from '@/components/mobile';
 import { BusinessSwitcher } from '@/components/business/business-switcher';
+import { ConnectionStatus } from '@/components/ui/connection-status';
 import { cn } from '@/lib/utils';
 
-export function Header() {
+interface HeaderProps {
+  /** Optional children (e.g., tablet hamburger menu trigger) */
+  children?: ReactNode;
+}
+
+export function Header({ children }: HeaderProps = {}) {
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50 flex h-[60px] items-center
@@ -35,8 +43,12 @@ export function Header() {
     >
       {/* Left section: Logo and workspace */}
       <div className="flex items-center gap-4">
-        {/* Mobile hamburger menu */}
+        {/* Mobile hamburger menu (for mobile <768px) */}
         <MobileHamburger />
+
+        {/* Tablet-specific triggers (768-1024px) - passed as children */}
+        {children}
+
         {/* Logo */}
         <Link
           className="flex items-center gap-2 transition-opacity hover:opacity-80"
@@ -69,6 +81,9 @@ export function Header() {
 
       {/* Right section: Actions */}
       <div className="flex items-center gap-2">
+        {/* Real-time connection status (Story 16-15) */}
+        <ConnectionStatus className="hidden sm:flex" />
+
         {/* Search trigger */}
         <HeaderSearchTrigger />
 

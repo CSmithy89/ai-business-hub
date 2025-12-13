@@ -1,15 +1,17 @@
 # HYVVE Platform Foundation - Architecture Document
 
 **Author:** chris
-**Date:** 2025-11-30
-**Version:** 1.0
-**Status:** Draft
+**Date:** 2025-12-13
+**Version:** 2.0
+**Status:** Approved (Foundation Complete)
 
 ---
 
 ## Executive Summary
 
-HYVVE Platform Foundation uses a **hybrid monorepo architecture** combining Next.js 15 (App Router) for the frontend and platform API routes with NestJS for modular business logic. The architecture employs **defense-in-depth multi-tenancy** through Row-Level Security (RLS) combined with Prisma Client Extensions. Real-time capabilities are provided via Socket.io, with Redis Streams powering the event bus for cross-module communication. The BYOAI (Bring Your Own AI) pattern enables users to connect their preferred AI providers (Claude, OpenAI, Gemini, DeepSeek) with encrypted credential storage.
+HYVVE Platform Foundation uses a **hybrid monorepo architecture** combining Next.js 15 (App Router) for the frontend and platform API routes with NestJS for modular business logic. The architecture employs **defense-in-depth multi-tenancy** through Row-Level Security (RLS) combined with Prisma Client Extensions. Real-time capabilities are provided via Socket.io with WebSocket gateway, with Redis Streams powering the event bus for cross-module communication. The BYOAI (Bring Your Own AI) pattern enables users to connect their preferred AI providers (Claude, OpenAI, Gemini, DeepSeek, OpenRouter) with encrypted credential storage.
+
+**Foundation Phase Complete:** All 17 epics (190 stories, 541 points) have been delivered, establishing the complete platform foundation including multi-provider authentication (email, Google, Microsoft, GitHub, Magic Link), two-factor authentication, comprehensive RBAC, approval queue system, event bus infrastructure, BYOAI configuration, business portfolio management, onboarding wizard, real-time WebSocket updates, and premium UI polish with responsive design.
 
 ---
 
@@ -45,7 +47,7 @@ This establishes the base architecture with:
 | **State Management** | Zustand + React Query | 5.x / 5.x | FR-6 | Simple global + server state |
 | **Framework (Backend)** | NestJS | 10.x | FR-1-5 | Modular architecture, TypeScript |
 | **API (Platform)** | Next.js API Routes | 15.x | FR-1-2 | Co-located with frontend |
-| **Authentication** | better-auth | 1.x | FR-1 | Organization plugin, self-hosted |
+| **Authentication** | better-auth | 1.x | FR-1 | Organization plugin, 2FA, Magic Link, multi-provider OAuth |
 | **Database** | PostgreSQL (Supabase) | 16.x | All | RLS, JSON, proven reliability |
 | **ORM** | Prisma | 6.x | All | Type-safe, migrations |
 | **Cache/Queue** | Redis + BullMQ | 7.x / 5.x | FR-5 | Pub/sub, reliable queues |
@@ -276,12 +278,12 @@ hyvve/
 
 #### better-auth
 - **Purpose**: Authentication with organization support
-- **Plugins**: Organization, Two-Factor (future), Magic Link (future)
+- **Plugins**: Organization, Two-Factor (TOTP), Magic Link
 - **Configuration**:
   ```typescript
   // lib/auth.ts
   import { betterAuth } from 'better-auth'
-  import { organization } from 'better-auth/plugins'
+  import { organization, twoFactor, magicLink } from 'better-auth/plugins'
   import { prismaAdapter } from 'better-auth/adapters/prisma'
 
   export const auth = betterAuth({
@@ -298,16 +300,44 @@ hyvve/
           guest: ['read:limited'],
         },
       }),
+      twoFactor({
+        issuer: 'HYVVE',
+        totpOptions: { digits: 6, period: 30 },
+      }),
+      magicLink({
+        sendMagicLink: async ({ email, url }) => {
+          await resend.emails.send({
+            to: email,
+            subject: 'Sign in to HYVVE',
+            html: `<a href="${url}">Click to sign in</a>`,
+          });
+        },
+      }),
     ],
     socialProviders: {
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       },
+      microsoft: {
+        clientId: process.env.MICROSOFT_CLIENT_ID!,
+        clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
+        tenantId: 'common',
+      },
+      github: {
+        clientId: process.env.GITHUB_CLIENT_ID!,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      },
     },
     session: {
       expiresIn: 60 * 60 * 24 * 7, // 7 days
       updateAge: 60 * 60 * 24,     // Refresh daily
+    },
+    account: {
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ['google', 'microsoft', 'github'],
+      },
     },
   })
   ```
@@ -1322,6 +1352,178 @@ services:
     restart: unless-stopped
 ```
 
+### ADR-008: Multi-Provider OAuth Authentication
+
+**Status**: Accepted (EPIC-09)
+
+**Context**: Users require flexibility in authentication methods. Single OAuth provider limits adoption.
+
+**Decision**: Implement multiple OAuth providers alongside email authentication.
+
+**Providers Implemented**:
+| Provider | Scopes | Use Case |
+|----------|--------|----------|
+| Google | email, profile | Primary social login |
+| Microsoft | User.Read | Enterprise users |
+| GitHub | read:user, user:email | Developer users |
+| Magic Link | N/A | Passwordless option |
+
+**Consequences**:
+- Broader user adoption across enterprise and consumer segments
+- Account linking prevents duplicate accounts
+- OAuth deduplication logic handles existing accounts
+
+### ADR-009: Two-Factor Authentication (TOTP)
+
+**Status**: Accepted (EPIC-09)
+
+**Context**: Security-conscious users require additional authentication factors.
+
+**Decision**: Implement TOTP-based 2FA using better-auth's twoFactor plugin.
+
+**Implementation**:
+```typescript
+// 2FA flow
+1. User enables 2FA in settings
+2. System generates TOTP secret + QR code
+3. User scans with authenticator app
+4. User verifies with 6-digit code
+5. Backup codes generated and shown once
+6. Future logins require password + TOTP code
+```
+
+**Consequences**:
+- Enhanced security for user accounts
+- Standard TOTP compatible with Google Authenticator, Authy, etc.
+- Backup codes for account recovery
+
+### ADR-010: WebSocket Real-Time Architecture
+
+**Status**: Accepted (EPIC-16)
+
+**Context**: Users need real-time updates for approvals, agent status, and notifications without polling.
+
+**Decision**: Implement Socket.io WebSocket gateway in NestJS with JWT authentication.
+
+**Architecture**:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    WebSocket Architecture                        │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────┐     ┌─────────────────────┐     ┌───────────────┐
+│   Client    │────>│  WebSocket Gateway  │────>│ Event Handler │
+│  (Browser)  │<────│   (NestJS/Socket.io)│<────│               │
+└─────────────┘     └─────────────────────┘     └───────────────┘
+                              │
+                              ▼
+                    ┌─────────────────────┐
+                    │   Redis Pub/Sub     │
+                    │  (Multi-instance)   │
+                    └─────────────────────┘
+
+Event Types:
+- approval.created    → New approval appears in queue
+- approval.updated    → Approval status changes
+- agent.status.changed → Agent becomes online/offline
+- notification.new     → Badge count updates
+- chat.message        → New chat messages appear
+```
+
+**Implementation**:
+```typescript
+// apps/api/src/realtime/realtime.gateway.ts
+@WebSocketGateway({
+  cors: { origin: process.env.FRONTEND_URL, credentials: true },
+  namespace: '/realtime',
+})
+export class RealtimeGateway implements OnGatewayConnection {
+  async handleConnection(client: Socket) {
+    const token = client.handshake.auth.token;
+    const session = await this.authService.validateToken(token);
+    if (!session) {
+      client.disconnect();
+      return;
+    }
+    client.join(`workspace:${session.workspaceId}`);
+    client.join(`user:${session.userId}`);
+  }
+
+  @SubscribeMessage('subscribe')
+  handleSubscribe(client: Socket, channel: string) {
+    client.join(channel);
+  }
+}
+```
+
+**Consequences**:
+- Real-time UI updates without polling
+- Reduced server load vs. polling
+- Reconnection handling with exponential backoff
+- Graceful degradation if WebSocket unavailable
+
+### ADR-011: Responsive Design Architecture
+
+**Status**: Accepted (EPIC-16)
+
+**Context**: Users access platform from desktop, tablet, and mobile devices.
+
+**Decision**: Implement mobile-first responsive design with breakpoint-specific layouts.
+
+**Breakpoints**:
+| Breakpoint | Width | Layout |
+|------------|-------|--------|
+| Mobile | < 768px | Bottom nav, full-screen pages |
+| Tablet | 768-1024px | Drawer sidebar, bottom sheet chat |
+| Medium | 1024-1280px | Collapsible sidebar, prioritized panels |
+| Desktop | > 1280px | Full three-panel layout |
+
+**Layout Components**:
+```
+Mobile (<768px):
+┌─────────────────────────────┐
+│        Full Screen          │
+│         Content             │
+├─────────────────────────────┤
+│ 🏠  🏢  ✓  🤖  ⋯          │
+└─────────────────────────────┘
+
+Desktop (>1280px):
+┌────┬────────────────────┬────┐
+│    │                    │    │
+│ S  │      Content       │ C  │
+│ i  │                    │ h  │
+│ d  │                    │ a  │
+│ e  │                    │ t  │
+│ b  │                    │    │
+│ a  │                    │    │
+│ r  │                    │    │
+└────┴────────────────────┴────┘
+```
+
+**Consequences**:
+- Full mobile support for on-the-go access
+- Touch-friendly interactions (44x44px tap targets)
+- Layout preferences persisted per user
+
+### ADR-012: Skeleton Loading & Optimistic Updates
+
+**Status**: Accepted (EPIC-16)
+
+**Context**: Users perceive loading spinners as slower than skeleton placeholders.
+
+**Decision**: Replace full-page spinners with skeleton screens and implement optimistic UI updates.
+
+**Implementation**:
+- Skeleton variants for cards, tables, lists, forms
+- Optimistic updates for approvals, chat, settings
+- Rollback on error with toast notification
+
+**Consequences**:
+- Perceived performance improvement
+- Immediate feedback on user actions
+- Graceful error handling with retry
+
 ---
 
 ## Foundation Modules Architecture (Agno Teams)
@@ -1651,5 +1853,6 @@ The foundation modules implement strict data quality controls:
 
 _Generated by BMAD Decision Architecture Workflow v1.0_
 _Date: 2025-11-30_
-_Updated: 2025-12-02_
+_Updated: 2025-12-13_
+_Version: 2.0 - Foundation Complete (17 Epics, 190 Stories, 541 Points)_
 _For: chris_

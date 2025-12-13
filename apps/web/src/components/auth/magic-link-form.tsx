@@ -67,8 +67,8 @@ export function MagicLinkForm() {
     <div className="space-y-6">
       {/* Page Header */}
       <div className="space-y-2 text-center">
-        <div className="mx-auto w-12 h-12 bg-[#FF6B6B]/10 rounded-full flex items-center justify-center mb-4">
-          <Mail className="w-6 h-6 text-[#FF6B6B]" />
+        <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+          <Mail className="w-6 h-6 text-primary" />
         </div>
         <h1 className="text-3xl font-bold text-gray-900">Sign in with Magic Link</h1>
         <p className="text-gray-600">
@@ -103,7 +103,7 @@ export function MagicLinkForm() {
                 setSuccess(false)
                 setEmailSent('')
               }}
-              className="text-[#FF6B6B] hover:underline font-medium"
+              className="text-primary hover:underline font-medium"
             >
               Send to a different email
             </button>
@@ -139,7 +139,7 @@ export function MagicLinkForm() {
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-full bg-[#FF6B6B] hover:bg-[#FF6B6B]/90"
+            className="w-full bg-primary hover:bg-primary/90"
             disabled={isSubmitting}
           >
             {isSubmitting ? (
@@ -167,13 +167,13 @@ export function MagicLinkForm() {
       {/* Navigation Links */}
       <div className="space-y-3 text-center text-sm">
         <p className="text-gray-600">
-          <Link href="/sign-in" className="text-[#FF6B6B] hover:underline font-medium">
+          <Link href="/sign-in" className="text-primary hover:underline font-medium">
             Sign in with password
           </Link>
         </p>
         <p className="text-gray-600">
           Don&apos;t have an account?{' '}
-          <Link href="/sign-up" className="text-[#FF6B6B] hover:underline font-medium">
+          <Link href="/sign-up" className="text-primary hover:underline font-medium">
             Sign up
           </Link>
         </p>

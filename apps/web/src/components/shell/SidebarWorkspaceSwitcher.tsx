@@ -9,16 +9,19 @@
  * - Workspace name display (expanded state)
  * - Dropdown indicator (expanded state)
  * - Click opens workspace switcher dropdown
+ * - Fetches current workspace from session
  *
  * Epic: 07 - UI Shell
  * Story: 07-2 - Create Sidebar Navigation
+ * Updated: Story 16-4 - Clarify Workspace vs Business Relationship
  */
 
 'use client';
 
-import { useState } from 'react';
-import { ChevronsUpDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChevronsUpDown, Building2 } from 'lucide-react';
 import { WorkspaceSelector } from '@/components/workspace/workspace-selector';
+import type { WorkspaceWithRole } from '@hyvve/shared';
 
 interface SidebarWorkspaceSwitcherProps {
   /** Whether sidebar is in collapsed state */
@@ -26,28 +29,93 @@ interface SidebarWorkspaceSwitcherProps {
 }
 
 /**
- * For this implementation, we'll use a simplified approach:
- * - Display a mock workspace (in production, this would come from session/context)
- * - Use WorkspaceSelector component in a modal/dialog pattern
- *
- * TODO: Integrate with actual session workspace data when Epic 02 context is available
+ * Fetches the current workspace from the session
  */
 export function SidebarWorkspaceSwitcher({ collapsed }: SidebarWorkspaceSwitcherProps) {
   const [showSelector, setShowSelector] = useState(false);
+  const [currentWorkspace, setCurrentWorkspace] = useState<WorkspaceWithRole | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock workspace data - in production, this would come from session or context
-  const currentWorkspace = {
-    id: 'mock-workspace-id',
-    name: 'Acme Corp',
-  };
+  // Fetch current workspace on mount
+  useEffect(() => {
+    async function fetchCurrentWorkspace() {
+      try {
+        const response = await fetch('/api/workspaces');
+        const result = await response.json();
+
+        if (result.success && result.data?.length > 0) {
+          // For now, use the first workspace as current
+          // In the future, we could fetch the activeWorkspaceId from session
+          setCurrentWorkspace(result.data[0]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch workspace:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchCurrentWorkspace();
+  }, []);
 
   // Generate initials from workspace name
-  const initials = currentWorkspace.name
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((word) => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const initials = currentWorkspace?.name ? getInitials(currentWorkspace.name) : null;
+
+  // Show loading state
+  if (isLoading) {
+    if (collapsed) {
+      return (
+        <div className="h-10 w-10 rounded-md bg-muted animate-pulse" />
+      );
+    }
+    return (
+      <div className="flex w-full items-center gap-3 rounded-md p-2">
+        <div className="h-9 w-9 rounded-md bg-muted animate-pulse" />
+        <div className="flex-1 h-4 bg-muted animate-pulse rounded" />
+      </div>
+    );
+  }
+
+  // Show placeholder if no workspace
+  if (!currentWorkspace) {
+    if (collapsed) {
+      return (
+        <button
+          type="button"
+          onClick={() => setShowSelector((prev) => !prev)}
+          className="h-10 w-10 rounded-md bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground"
+          aria-label="Select workspace"
+        >
+          <Building2 className="h-4 w-4" />
+        </button>
+      );
+    }
+    return (
+      <button
+        type="button"
+        onClick={() => setShowSelector((prev) => !prev)}
+        className="flex w-full items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-[rgb(var(--color-bg-tertiary))]"
+        aria-label="Select workspace"
+      >
+        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <span className="flex-1 text-sm font-medium text-muted-foreground">
+          Select workspace
+        </span>
+        <ChevronsUpDown className="h-4 w-4 text-[rgb(var(--color-text-secondary))]" />
+      </button>
+    );
+  }
 
   if (collapsed) {
     return (
@@ -62,7 +130,7 @@ export function SidebarWorkspaceSwitcher({ collapsed }: SidebarWorkspaceSwitcher
         </button>
 
         {/* Workspace selector dialog - shown when clicked */}
-        {showSelector && (
+        {showSelector && currentWorkspace && (
           <div className="absolute bottom-16 left-2 z-50">
             <WorkspaceSelector
               currentWorkspaceId={currentWorkspace.id}
@@ -92,7 +160,7 @@ export function SidebarWorkspaceSwitcher({ collapsed }: SidebarWorkspaceSwitcher
       </button>
 
       {/* Workspace selector dialog - shown when clicked */}
-      {showSelector && (
+      {showSelector && currentWorkspace && (
         <div className="absolute bottom-16 left-4 z-50">
           <WorkspaceSelector
             currentWorkspaceId={currentWorkspace.id}

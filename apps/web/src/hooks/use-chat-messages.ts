@@ -5,7 +5,14 @@
  * Handles message sending, receiving, streaming, and state management.
  *
  * Story: 15.4 - Connect Chat Panel to Agno Backend
- * Updated: Added streaming SSE support
+ * Story: 16.6 - Implement Optimistic UI Updates
+ *
+ * Features:
+ * - Optimistic message sending (shows message immediately)
+ * - Streaming responses with live updates
+ * - Automatic retry on error
+ * - Rollback with error indication
+ * - Persistent chat history in localStorage
  */
 
 'use client';
@@ -169,7 +176,8 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
 
       setError(null);
 
-      // Add user message
+      // OPTIMISTIC UPDATE: Add user message immediately
+      // This provides instant feedback to the user
       const userMessage: Message = {
         id: `user-${Date.now()}`,
         type: 'user',
@@ -181,6 +189,12 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
 
       // Show typing indicator
       setIsTyping(true);
+
+      // Abort any existing request before starting a new one
+      // This prevents concurrent request leaks and race conditions
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
 
       // Create abort controller for this request
       abortControllerRef.current = new AbortController();
@@ -220,7 +234,8 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
           setIsTyping(false);
           setIsStreaming(true);
 
-          // Create placeholder message for streaming
+          // OPTIMISTIC UPDATE: Create placeholder message for streaming
+          // Shows loading indicator until first chunk arrives
           const streamingMessage: Message = {
             id: `agent-${Date.now()}`,
             type: 'agent',
@@ -344,7 +359,8 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
         setError(errorMessage);
 
-        // Add error message to chat
+        // ROLLBACK: Add error message to chat
+        // User can retry using retryLastMessage function
         const errorMsg: Message = {
           id: `error-${Date.now()}`,
           type: 'agent',
@@ -373,12 +389,28 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
+  /**
+   * RETRY MECHANISM: Retry the last failed message
+   * Aborts any in-flight request, removes error messages, and resends the last user message
+   */
   const retryLastMessage = useCallback(() => {
+    // Abort any existing request to prevent race conditions
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
     // Find the last user message
     const lastUserMessage = [...messages].reverse().find((m) => m.type === 'user');
     if (lastUserMessage) {
-      // Remove error message if present
-      setMessages((prev) => prev.filter((m) => !m.error));
+      // Remove only the last error message (not all errors) to preserve history
+      setMessages((prev) => {
+        const lastErrorIndex = prev.findLastIndex((m) => m.error);
+        if (lastErrorIndex !== -1) {
+          return [...prev.slice(0, lastErrorIndex), ...prev.slice(lastErrorIndex + 1)];
+        }
+        return prev;
+      });
       sendMessage(lastUserMessage.content);
     }
   }, [messages, sendMessage]);

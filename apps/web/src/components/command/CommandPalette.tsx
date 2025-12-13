@@ -222,6 +222,10 @@ export function CommandPalette() {
       open={isCommandPaletteOpen}
       onOpenChange={closeCommandPalette}
     >
+      {/* Accessible title for screen readers - DialogTitle equivalent */}
+      <h2 id="command-palette-title" className="sr-only">
+        Command Palette - Search and navigate
+      </h2>
       <div className="flex items-center border-b border-[rgb(var(--color-border))] px-3">
         <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
         <CommandInput

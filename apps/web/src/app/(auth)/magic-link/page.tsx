@@ -1,7 +1,7 @@
 import { MagicLinkForm } from '@/components/auth/magic-link-form'
 
 export const metadata = {
-  title: 'Sign in with Magic Link | HYVVE',
+  title: 'Magic Link Sign In',
   description: 'Sign in to your HYVVE account with a magic link',
 }
 

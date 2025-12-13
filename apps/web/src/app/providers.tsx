@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeErrorTracking } from '@/lib/telemetry/error-tracking';
+import { RealtimeProvider } from '@/lib/realtime';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -19,7 +20,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if ((window as any).__errorTrackingInitialized) return;
+    if (
+      (window as unknown as { __errorTrackingInitialized?: boolean })
+        .__errorTrackingInitialized
+    )
+      return;
 
     let mounted = true;
 
@@ -27,7 +32,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       try {
         await initializeErrorTracking();
         if (mounted) {
-          (window as any).__errorTrackingInitialized = true;
+          (
+            window as unknown as { __errorTrackingInitialized?: boolean }
+          ).__errorTrackingInitialized = true;
         }
       } catch (err) {
 
@@ -48,9 +55,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         enableSystem
         disableTransitionOnChange
       >
-        <TooltipProvider delayDuration={300}>
-          {children}
-        </TooltipProvider>
+        <RealtimeProvider>
+          <TooltipProvider delayDuration={300}>
+            {children}
+          </TooltipProvider>
+        </RealtimeProvider>
         <Toaster richColors position="top-right" />
       </ThemeProvider>
     </QueryClientProvider>

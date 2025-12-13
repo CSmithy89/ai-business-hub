@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, forwardRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,9 +13,11 @@ import { ConfidenceBreakdown } from './ConfidenceBreakdown'
 import { formatDistanceToNow } from 'date-fns'
 import type { ApprovalItem } from '@hyvve/shared'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, Clock, Tag } from 'lucide-react'
+import { ChevronDown, ChevronUp, Clock, Tag, GripVertical } from 'lucide-react'
 import { AgentBadge } from '@/components/agents/agent-avatar'
 import { cn } from '@/lib/utils'
+import type { DraggableAttributes } from '@dnd-kit/core'
+import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities'
 
 interface ApprovalCardProps {
   /** Approval item data */
@@ -34,6 +36,14 @@ interface ApprovalCardProps {
   onSelect?: (id: string, selected: boolean) => void
   /** Custom className */
   className?: string
+  /** Enable drag-and-drop reordering */
+  draggable?: boolean
+  /** Is this item currently being dragged */
+  isDragging?: boolean
+  /** Drag handle attributes from @dnd-kit */
+  dragAttributes?: DraggableAttributes
+  /** Drag handle listeners from @dnd-kit */
+  dragListeners?: SyntheticListenerMap
 }
 
 /**
@@ -43,7 +53,7 @@ interface ApprovalCardProps {
  * - Compact: For list views, shows summary with link to details
  * - Expanded: For detail views, shows full context with actions
  */
-export function ApprovalCard({
+export const ApprovalCard = forwardRef<HTMLDivElement, ApprovalCardProps>(function ApprovalCard({
   approval,
   variant = 'compact',
   showActions = true,
@@ -52,7 +62,11 @@ export function ApprovalCard({
   selected = false,
   onSelect,
   className,
-}: ApprovalCardProps) {
+  draggable = false,
+  isDragging = false,
+  dragAttributes,
+  dragListeners,
+}, ref) {
   const [showPreviewData, setShowPreviewData] = useState(false)
 
   // Handle checkbox change
@@ -89,17 +103,40 @@ export function ApprovalCard({
   if (variant === 'compact') {
     return (
       <Card
+        ref={ref}
         className={cn(
-          'border-l-4 transition-shadow hover:shadow-md',
+          'border-l-4 card-hover-lift transition-all duration-200',
           borderColor,
           selected && 'ring-2 ring-blue-500 ring-offset-2',
+          isDragging && 'opacity-50 shadow-lg ring-2 ring-primary ring-offset-2',
           className
         )}
+        {...dragAttributes}
       >
         <div className="p-6 space-y-4">
           {/* Header */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-3 flex-1">
+              {/* Drag handle */}
+              {draggable && approval.status === 'pending' && (
+                <button
+                  type="button"
+                  data-drag-handle="true"
+                  className={cn(
+                    'flex items-center justify-center p-1 -ml-2 rounded cursor-grab',
+                    'text-gray-400 hover:text-gray-600 hover:bg-gray-100',
+                    'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+                    'touch-none select-none',
+                    isDragging && 'cursor-grabbing'
+                  )}
+                  aria-label={`Drag to reorder ${approval.title}`}
+                  aria-roledescription="sortable"
+                  {...dragListeners}
+                >
+                  <GripVertical className="h-5 w-5" />
+                </button>
+              )}
+
               {/* Selection checkbox */}
               {selectable && approval.status === 'pending' && (
                 <div className="pt-1">
@@ -333,4 +370,4 @@ export function ApprovalCard({
       </div>
     </Card>
   )
-}
+})

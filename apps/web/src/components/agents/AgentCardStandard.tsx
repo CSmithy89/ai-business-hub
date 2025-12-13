@@ -56,10 +56,10 @@ export function AgentCardStandard({
   return (
     <Card
       className={cn(
-        'transition-all duration-200 overflow-hidden',
+        'overflow-hidden',
         isClickable && [
-          'cursor-pointer',
-          'hover:border-[rgb(var(--color-border-strong))] hover:shadow-md',
+          'cursor-pointer card-hover-lift',
+          'hover:border-[rgb(var(--color-border-strong))]',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-primary-500))] focus-visible:ring-offset-2',
           'dark:hover:border-gray-600',
         ],
