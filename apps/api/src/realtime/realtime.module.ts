@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { RealtimeGateway } from './realtime.gateway';
 import { RealtimeEventHandler } from './realtime-event.handler';
 import { EventsModule } from '../events/events.module';
+import { CommonModule } from '../common/common.module';
 
 /**
  * RealtimeModule - WebSocket Real-Time Updates
@@ -31,6 +32,7 @@ import { EventsModule } from '../events/events.module';
   imports: [
     ConfigModule,
     EventsModule, // Required for Event Bus integration
+    CommonModule, // Required for PrismaService (JWT validation)
   ],
   providers: [RealtimeGateway, RealtimeEventHandler],
   exports: [RealtimeGateway],

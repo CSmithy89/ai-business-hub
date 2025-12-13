@@ -11,6 +11,8 @@ import {
 import { Logger, Injectable } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
+import { z } from 'zod';
+import { PrismaService } from '../common/services/prisma.service';
 import {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -29,6 +31,27 @@ import {
   getUserRoom,
 } from './realtime.types';
 
+// ============================================
+// Input Validation Schemas (Zod)
+// ============================================
+
+const PresenceUpdateSchema = z.object({
+  status: z.enum(['online', 'away', 'busy']),
+});
+
+const TypingSchema = z.object({
+  chatId: z.string().min(1).max(100),
+});
+
+const SyncRequestSchema = z.object({
+  lastEventId: z.string().optional(),
+  since: z.string().optional(),
+});
+
+// Rate limiting constants
+const MAX_CONNECTIONS_PER_WORKSPACE = 100;
+const MAX_CONNECTIONS_PER_USER = 5;
+
 /**
  * RealtimeGateway - WebSocket Gateway for Real-Time Updates
  *
@@ -36,21 +59,48 @@ import {
  * Uses Socket.io with workspace-scoped rooms for multi-tenant isolation.
  *
  * Key Features:
- * - JWT authentication in handshake
+ * - JWT authentication in handshake (validates against sessions table)
  * - Workspace room isolation
  * - Event broadcasting to workspace and user rooms
  * - Connection/disconnection tracking
+ * - Rate limiting per workspace/user
+ * - Heartbeat for zombie connection detection
  * - Graceful degradation
+ *
+ * Security:
+ * - Validates JWT token from handshake.auth.token
+ * - Verifies session exists and is not expired
+ * - Extracts userId/workspaceId from verified session (NOT from client)
+ * - Enforces connection limits per workspace and user
  *
  * @see Story 16-15: Implement WebSocket Real-Time Updates
  */
 @WebSocketGateway({
   namespace: '/realtime',
   cors: {
-    origin: true, // Will be configured from ConfigService
+    // SECURITY: Only allow configured origins, not all
+    origin: (origin, callback) => {
+      const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS?.split(',') || [
+        'http://localhost:3000',
+        'http://localhost:3001',
+      ];
+      // Allow requests with no origin (mobile apps, curl, etc) in development
+      if (!origin && process.env.NODE_ENV !== 'production') {
+        callback(null, true);
+        return;
+      }
+      if (allowedOrigins.includes(origin || '')) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS not allowed'), false);
+      }
+    },
     credentials: true,
   },
   transports: ['websocket', 'polling'],
+  // Heartbeat configuration for zombie connection detection
+  pingInterval: 25000, // Send ping every 25 seconds
+  pingTimeout: 10000, // Disconnect if no pong within 10 seconds
 })
 @Injectable()
 export class RealtimeGateway
@@ -61,10 +111,14 @@ export class RealtimeGateway
   @WebSocketServer()
   server!: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 
-  // Track connected clients by workspace for metrics/debugging
+  // Track connected clients by workspace for metrics/debugging and rate limiting
   private readonly connectedClients = new Map<string, Set<string>>(); // workspaceId -> Set<socketId>
+  private readonly userConnections = new Map<string, Set<string>>(); // userId -> Set<socketId>
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   /**
    * Called after the gateway is initialized
@@ -82,26 +136,61 @@ export class RealtimeGateway
 
   /**
    * Handle new WebSocket connections
-   * Validates JWT and joins workspace room
+   * SECURITY: Validates JWT token against sessions table before allowing connection
    */
   async handleConnection(client: Socket) {
     try {
-      // Extract auth data from handshake
-      const { userId, workspaceId, email, sessionId } = this.extractAuthData(client);
+      // SECURITY: Extract and validate JWT token (NOT user-provided data!)
+      const token = this.extractToken(client);
 
-      if (!userId || !workspaceId) {
-        this.logger.warn(
-          `Connection rejected - missing auth data (socketId: ${client.id})`,
-        );
+      if (!token) {
+        this.logger.warn({
+          message: 'Connection rejected - no token provided',
+          socketId: client.id,
+        });
         client.emit('connection.status', {
           status: 'disconnected',
-          message: 'Authentication required',
+          message: 'Authentication token required',
         });
         client.disconnect(true);
         return;
       }
 
-      // Store user data on socket
+      // SECURITY: Validate token against database sessions table
+      const validatedUser = await this.validateToken(token);
+
+      if (!validatedUser) {
+        this.logger.warn({
+          message: 'Connection rejected - invalid or expired token',
+          socketId: client.id,
+        });
+        client.emit('connection.status', {
+          status: 'disconnected',
+          message: 'Invalid or expired authentication token',
+        });
+        client.disconnect(true);
+        return;
+      }
+
+      const { userId, workspaceId, email, sessionId } = validatedUser;
+
+      // SECURITY: Check rate limits
+      if (!this.checkRateLimits(userId, workspaceId)) {
+        this.logger.warn({
+          message: 'Connection rejected - rate limit exceeded',
+          socketId: client.id,
+          userId,
+          workspaceId,
+        });
+        client.emit('connection.status', {
+          status: 'disconnected',
+          message: 'Too many connections. Please close some tabs and try again.',
+        });
+        client.disconnect(true);
+        return;
+      }
+
+      // Store validated user data on socket (from DB, not from client!)
       client.data = {
         userId,
         workspaceId,
@@ -118,11 +207,11 @@ export class RealtimeGateway
       const userRoom = getUserRoom(userId);
       await client.join(userRoom);
 
-      // Track connection
-      this.trackConnection(workspaceId, client.id);
+      // Track connection for rate limiting
+      this.trackConnection(workspaceId, client.id, userId);
 
       this.logger.log({
-        message: 'Client connected',
+        message: 'Client connected (authenticated)',
         socketId: client.id,
         userId,
         workspaceId,
@@ -140,6 +229,10 @@ export class RealtimeGateway
         socketId: client.id,
         error: error instanceof Error ? error.message : String(error),
       });
+      client.emit('connection.status', {
+        status: 'disconnected',
+        message: 'Connection failed',
+      });
       client.disconnect(true);
     }
   }
@@ -150,9 +243,9 @@ export class RealtimeGateway
   handleDisconnect(client: Socket) {
     const { userId, workspaceId } = client.data || {};
 
-    // Untrack connection
+    // Untrack connection from both workspace and user tracking
     if (workspaceId) {
-      this.untrackConnection(workspaceId, client.id);
+      this.untrackConnection(workspaceId, client.id, userId);
     }
 
     this.logger.log({
@@ -169,12 +262,25 @@ export class RealtimeGateway
 
   /**
    * Handle presence updates
+   * SECURITY: Validates input with Zod schema
    */
   @SubscribeMessage('presence.update')
   handlePresenceUpdate(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { status: 'online' | 'away' | 'busy' },
+    @MessageBody() rawData: unknown,
   ) {
+    // SECURITY: Validate input
+    const parseResult = PresenceUpdateSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid presence.update payload',
+        socketId: client.id,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const data = parseResult.data;
     const { userId, workspaceId } = client.data || {};
     this.logger.debug({
       message: 'Presence update',
@@ -187,14 +293,27 @@ export class RealtimeGateway
 
   /**
    * Handle typing start indicator
+   * SECURITY: Validates input with Zod schema
    */
   @SubscribeMessage('typing.start')
   handleTypingStart(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { chatId: string },
+    @MessageBody() rawData: unknown,
   ) {
+    // SECURITY: Validate input
+    const parseResult = TypingSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid typing.start payload',
+        socketId: client.id,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const data = parseResult.data;
     const { userId, workspaceId } = client.data || {};
-    if (workspaceId) {
+    if (workspaceId && userId) {
       // Broadcast to workspace that user is typing
       client.to(getWorkspaceRoom(workspaceId)).emit('chat.message', {
         id: `typing-${userId}`,
@@ -208,29 +327,74 @@ export class RealtimeGateway
 
   /**
    * Handle typing stop indicator
+   * SECURITY: Validates input with Zod schema
    */
   @SubscribeMessage('typing.stop')
   handleTypingStop(
-    @ConnectedSocket() _client: Socket,
-    @MessageBody() _data: { chatId: string },
+    @ConnectedSocket() client: Socket,
+    @MessageBody() rawData: unknown,
   ) {
-    // Typing stop could be handled similarly
+    // SECURITY: Validate input
+    const parseResult = TypingSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid typing.stop payload',
+        socketId: client.id,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const data = parseResult.data;
+    const { userId, workspaceId } = client.data || {};
+    if (workspaceId && userId) {
+      // Broadcast typing stop indicator to workspace
+      client.to(getWorkspaceRoom(workspaceId)).emit('chat.message', {
+        id: `typing-stop-${userId}`,
+        chatId: data.chatId,
+        role: 'system',
+        content: '[typing_stopped]',
+        createdAt: new Date().toISOString(),
+      } as ChatMessagePayload);
+    }
   }
 
   /**
    * Handle sync request after reconnection
+   * Returns current state counts so client can detect if they missed events
+   * SECURITY: Validates input with Zod schema
    */
   @SubscribeMessage('sync.request')
   async handleSyncRequest(
     @ConnectedSocket() client: Socket,
-    @MessageBody() _data: { lastEventId?: string; since?: string },
+    @MessageBody() rawData: unknown,
   ) {
+    // SECURITY: Validate input
+    const parseResult = SyncRequestSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid sync.request payload',
+        socketId: client.id,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
     const { workspaceId } = client.data || {};
     if (!workspaceId) return;
 
-    // Send current state summary
-    // In production, this would query actual counts from database
+    // Query actual counts from database for sync verification
+    const [pendingApprovals, unreadNotifications] = await Promise.all([
+      this.prisma.approvalItem.count({
+        where: { workspaceId, status: 'pending' },
+      }),
+      // Notification table might not exist yet, so we catch errors
+      Promise.resolve(0), // TODO: Add notification count when Notification model exists
+    ]);
+
     const syncState: SyncStatePayload = {
+      pendingApprovals,
+      unreadNotifications,
       lastEventTimestamp: new Date().toISOString(),
     };
 
@@ -369,45 +533,170 @@ export class RealtimeGateway
   // ============================================
 
   /**
-   * Extract authentication data from socket handshake
+   * Extract JWT token from socket handshake
+   * SECURITY: Token should be in handshake.auth.token or Authorization header
    */
-  private extractAuthData(client: Socket): {
-    userId?: string;
-    workspaceId?: string;
-    email?: string;
-    sessionId?: string;
-  } {
+  private extractToken(client: Socket): string | null {
     const auth = client.handshake.auth || {};
-    const query = client.handshake.query || {};
+    const headers = client.handshake.headers || {};
 
-    // Auth data can come from handshake.auth or query params
-    return {
-      userId: auth.userId || (query.userId as string),
-      workspaceId: auth.workspaceId || (query.workspaceId as string),
-      email: auth.email || (query.email as string),
-      sessionId: auth.sessionId || (query.sessionId as string),
-    };
+    // Try handshake.auth.token first (preferred for WebSocket)
+    if (auth.token && typeof auth.token === 'string') {
+      return auth.token;
+    }
+
+    // Try Authorization header (Bearer token)
+    const authHeader = headers.authorization;
+    if (authHeader && typeof authHeader === 'string') {
+      const [type, token] = authHeader.split(' ');
+      if (type === 'Bearer' && token) {
+        return token;
+      }
+    }
+
+    return null;
   }
 
   /**
-   * Track a new connection
+   * Validate JWT token against database sessions table
+   * SECURITY: This is the same validation as AuthGuard uses for REST endpoints
+   *
+   * @param token - JWT token string
+   * @returns Validated user data or null if invalid
    */
-  private trackConnection(workspaceId: string, socketId: string): void {
+  private async validateToken(token: string): Promise<{
+    userId: string;
+    workspaceId: string;
+    email: string;
+    sessionId: string;
+  } | null> {
+    try {
+      // Query sessions table to verify token (same as AuthGuard)
+      const session = await this.prisma.session.findUnique({
+        where: { token },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      // Check if session exists
+      if (!session) {
+        return null;
+      }
+
+      // Check if session is expired
+      if (session.expiresAt < new Date()) {
+        return null;
+      }
+
+      // Check if user exists
+      if (!session.user) {
+        return null;
+      }
+
+      // Get workspace ID from session (activeWorkspaceId is the current workspace)
+      const workspaceId = session.activeWorkspaceId;
+      if (!workspaceId) {
+        this.logger.warn({
+          message: 'Session has no active workspace',
+          sessionId: session.id,
+          userId: session.user.id,
+        });
+        return null;
+      }
+
+      return {
+        userId: session.user.id,
+        workspaceId,
+        email: session.user.email,
+        sessionId: session.id,
+      };
+    } catch (error) {
+      this.logger.error({
+        message: 'Token validation error',
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Check rate limits for new connections
+   * SECURITY: Prevents DoS by limiting connections per user/workspace
+   */
+  private checkRateLimits(userId: string, workspaceId: string): boolean {
+    const workspaceConnections = this.connectedClients.get(workspaceId)?.size || 0;
+    const userConnections = this.userConnections.get(userId)?.size || 0;
+
+    if (workspaceConnections >= MAX_CONNECTIONS_PER_WORKSPACE) {
+      this.logger.warn({
+        message: 'Workspace connection limit reached',
+        workspaceId,
+        currentConnections: workspaceConnections,
+        limit: MAX_CONNECTIONS_PER_WORKSPACE,
+      });
+      return false;
+    }
+
+    if (userConnections >= MAX_CONNECTIONS_PER_USER) {
+      this.logger.warn({
+        message: 'User connection limit reached',
+        userId,
+        currentConnections: userConnections,
+        limit: MAX_CONNECTIONS_PER_USER,
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Track a new connection for both workspace and user
+   */
+  private trackConnection(workspaceId: string, socketId: string, userId?: string): void {
+    // Track by workspace
     if (!this.connectedClients.has(workspaceId)) {
       this.connectedClients.set(workspaceId, new Set());
     }
     this.connectedClients.get(workspaceId)!.add(socketId);
+
+    // Track by user for rate limiting
+    if (userId) {
+      if (!this.userConnections.has(userId)) {
+        this.userConnections.set(userId, new Set());
+      }
+      this.userConnections.get(userId)!.add(socketId);
+    }
   }
 
   /**
    * Untrack a disconnected connection
    */
-  private untrackConnection(workspaceId: string, socketId: string): void {
-    const clients = this.connectedClients.get(workspaceId);
-    if (clients) {
-      clients.delete(socketId);
-      if (clients.size === 0) {
+  private untrackConnection(workspaceId: string, socketId: string, userId?: string): void {
+    // Untrack from workspace
+    const workspaceClients = this.connectedClients.get(workspaceId);
+    if (workspaceClients) {
+      workspaceClients.delete(socketId);
+      if (workspaceClients.size === 0) {
         this.connectedClients.delete(workspaceId);
+      }
+    }
+
+    // Untrack from user
+    if (userId) {
+      const userClients = this.userConnections.get(userId);
+      if (userClients) {
+        userClients.delete(socketId);
+        if (userClients.size === 0) {
+          this.userConnections.delete(userId);
+        }
       }
     }
   }
