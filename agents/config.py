@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # Authentication
     better_auth_secret: SecretStr
 
+    # AI provider key encryption (shared with Nest/Next)
+    encryption_master_key: Optional[SecretStr] = None
+
     # Server
     agentos_host: str = "0.0.0.0"
     agentos_port: int = 7777

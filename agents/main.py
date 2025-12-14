@@ -247,7 +247,15 @@ async def _resolve_provider_for_team(
     # Try BYOAI resolution if we have auth context
     if jwt_token and workspace_id:
         try:
-            resolver = get_provider_resolver(settings.api_base_url)
+            resolver = get_provider_resolver(
+                settings.api_base_url,
+                database_url=settings.database_url,
+                encryption_master_key_base64=(
+                    settings.encryption_master_key.get_secret_value()
+                    if settings.encryption_master_key
+                    else None
+                ),
+            )
             resolved = await resolver.resolve_provider(
                 workspace_id=workspace_id,
                 jwt_token=jwt_token,

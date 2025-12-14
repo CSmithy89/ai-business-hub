@@ -358,12 +358,18 @@ class ProviderResolver:
 _resolver: Optional[ProviderResolver] = None
 
 
-def get_provider_resolver(api_base_url: str = "http://localhost:3001") -> ProviderResolver:
+def get_provider_resolver(
+    api_base_url: str = "http://localhost:3001",
+    database_url: Optional[str] = None,
+    encryption_master_key_base64: Optional[str] = None,
+) -> ProviderResolver:
     """
     Get or create the global provider resolver instance.
 
     Args:
         api_base_url: NestJS API base URL
+        database_url: Optional Postgres URL for reading encrypted provider keys
+        encryption_master_key_base64: Base64 master key for decrypting provider keys
 
     Returns:
         ProviderResolver instance
@@ -371,7 +377,11 @@ def get_provider_resolver(api_base_url: str = "http://localhost:3001") -> Provid
     global _resolver
 
     if _resolver is None:
-        client = BYOAIClient(api_base_url=api_base_url)
+        client = BYOAIClient(
+            api_base_url=api_base_url,
+            database_url=database_url,
+            encryption_master_key_base64=encryption_master_key_base64,
+        )
         _resolver = ProviderResolver(byoai_client=client)
 
     return _resolver
@@ -455,6 +465,8 @@ async def resolve_and_create_model(
     workspace_id: str,
     jwt_token: str,
     api_base_url: str = "http://localhost:3001",
+    database_url: Optional[str] = None,
+    encryption_master_key_base64: Optional[str] = None,
     preferred_provider: Optional[str] = None,
     preferred_model: Optional[str] = None,
     fallback_model: str = "claude-sonnet-4-20250514",
@@ -468,6 +480,8 @@ async def resolve_and_create_model(
         workspace_id: Workspace ID for tenant isolation
         jwt_token: JWT authentication token
         api_base_url: NestJS API base URL
+        database_url: Optional Postgres URL for reading encrypted provider keys
+        encryption_master_key_base64: Base64 master key for decrypting provider keys
         preferred_provider: Optional preferred provider type
         preferred_model: Optional preferred model ID
         fallback_model: Fallback model if resolution fails
@@ -484,7 +498,11 @@ async def resolve_and_create_model(
         )
         team = create_validation_team(model=model, ...)
     """
-    resolver = get_provider_resolver(api_base_url)
+    resolver = get_provider_resolver(
+        api_base_url,
+        database_url=database_url,
+        encryption_master_key_base64=encryption_master_key_base64,
+    )
 
     try:
         resolved = await resolver.resolve_provider(

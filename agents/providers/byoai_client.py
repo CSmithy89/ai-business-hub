@@ -5,11 +5,14 @@ HTTP client for fetching AI provider configurations from the NestJS API.
 Handles authentication via JWT tokens and caches configurations.
 """
 
+import asyncpg
 import httpx
 import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+
+from utils.encryption import CredentialEncryptionService, CredentialDecryptionError
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +64,8 @@ class BYOAIClient:
     def __init__(
         self,
         api_base_url: str,
+        database_url: Optional[str] = None,
+        encryption_master_key_base64: Optional[str] = None,
         timeout: float = 10.0,
         cache_enabled: bool = True,
     ):
@@ -69,14 +74,25 @@ class BYOAIClient:
 
         Args:
             api_base_url: Base URL of the NestJS API (e.g., http://localhost:3001)
+            database_url: Optional Postgres URL for reading encrypted provider keys
+            encryption_master_key_base64: Base64 master key for decrypting provider keys
             timeout: HTTP request timeout in seconds
             cache_enabled: Whether to cache provider configurations
         """
         self.api_base_url = api_base_url.rstrip('/')
+        self.database_url = database_url
         self.timeout = timeout
         self.cache_enabled = cache_enabled
         self._cache: Dict[str, CachedConfig] = {}
         self._client: Optional[httpx.AsyncClient] = None
+        self._db_pool: Optional[asyncpg.Pool] = None
+
+        self._encryption: Optional[CredentialEncryptionService] = None
+        if encryption_master_key_base64:
+            try:
+                self._encryption = CredentialEncryptionService(encryption_master_key_base64)
+            except Exception as e:
+                logger.warning(f"Failed to initialize encryption service: {e}")
 
         logger.info(f"BYOAIClient initialized with API: {self.api_base_url}")
 
@@ -86,11 +102,28 @@ class BYOAIClient:
             self._client = httpx.AsyncClient(timeout=self.timeout)
         return self._client
 
+    async def _get_db_pool(self) -> Optional[asyncpg.Pool]:
+        """Get or create the DB pool (lazy initialization)."""
+        if not self.database_url:
+            return None
+
+        if self._db_pool is None:
+            self._db_pool = await asyncpg.create_pool(
+                dsn=self.database_url,
+                min_size=1,
+                max_size=5,
+                command_timeout=self.timeout,
+            )
+        return self._db_pool
+
     async def close(self) -> None:
         """Close the HTTP client and release resources."""
         if self._client is not None and not self._client.is_closed:
             await self._client.aclose()
             self._client = None
+        if self._db_pool is not None:
+            await self._db_pool.close()
+            self._db_pool = None
 
     async def __aenter__(self) -> "BYOAIClient":
         """Async context manager entry."""
@@ -156,6 +189,17 @@ class BYOAIClient:
             logger.debug(f"Cache hit for workspace providers: {workspace_id}")
             return cached
 
+        # Prefer DB access when available so agents can decrypt keys without exposing them via HTTP.
+        # If DB access fails, fall back to HTTP for non-secret provider metadata.
+        try:
+            db_pool = await self._get_db_pool()
+            if db_pool:
+                configs = await self._get_workspace_providers_from_db(workspace_id)
+                self._set_cached(cache_key, configs)
+                return configs
+        except Exception as e:
+            logger.warning(f"DB provider lookup failed, falling back to HTTP: {e}")
+
         url = f"{self.api_base_url}/api/workspaces/{workspace_id}/ai-providers"
 
         try:
@@ -184,6 +228,71 @@ class BYOAIClient:
         except Exception as e:
             logger.error(f"Error fetching providers: {e}")
             raise
+
+    async def _get_workspace_providers_from_db(self, workspace_id: str) -> List[ProviderConfig]:
+        pool = await self._get_db_pool()
+        if not pool:
+            return []
+
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT
+                  id,
+                  provider,
+                  default_model,
+                  api_key_encrypted,
+                  is_valid,
+                  last_validated_at,
+                  validation_error,
+                  max_tokens_per_day,
+                  tokens_used_today,
+                  created_at
+                FROM ai_provider_configs
+                WHERE workspace_id = $1
+                ORDER BY created_at ASC
+                """,
+                workspace_id,
+            )
+
+        if not rows:
+            return []
+
+        # Match Nest's behavior: default is first valid provider, else the first provider.
+        default_id: Optional[str] = None
+        for row in rows:
+            if row.get("is_valid"):
+                default_id = row["id"]
+                break
+        if default_id is None:
+            default_id = rows[0]["id"]
+
+        configs: List[ProviderConfig] = []
+        for row in rows:
+            api_key = None
+            if self._encryption and row.get("api_key_encrypted"):
+                try:
+                    api_key = self._encryption.decrypt(row["api_key_encrypted"])
+                except CredentialDecryptionError as e:
+                    logger.warning(f"Failed to decrypt provider key (providerId={row['id']}): {e}")
+
+            configs.append(
+                ProviderConfig(
+                    id=row["id"],
+                    provider=row["provider"],
+                    default_model=row.get("default_model") or "",
+                    is_valid=bool(row.get("is_valid")),
+                    is_default=row["id"] == default_id,
+                    api_key=api_key,
+                    max_tokens_per_day=int(row.get("max_tokens_per_day") or 0),
+                    tokens_used_today=int(row.get("tokens_used_today") or 0),
+                    last_validated_at=row.get("last_validated_at"),
+                    validation_error=row.get("validation_error"),
+                )
+            )
+
+        logger.info(f"Fetched {len(configs)} providers for workspace {workspace_id} via DB")
+        return configs
 
     async def get_provider(
         self,
