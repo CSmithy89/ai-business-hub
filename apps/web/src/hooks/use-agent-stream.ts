@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { z } from 'zod'
 import { getCurrentSessionToken } from '@/lib/auth-client'
 import type { AgentTeam } from '@/lib/agent-client'
+import { safeJson } from '@/lib/utils/safe-json'
 
 // ============================================================================
 // AG-UI Event Types (matches backend ag_ui/encoder.py)
@@ -577,22 +578,27 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
         const contentType = response.headers.get('content-type')
         if (!contentType?.includes('text/event-stream')) {
           // Non-streaming response - parse as JSON
-          const data = await response.json()
+          const data = await safeJson<Record<string, unknown>>(response)
+          if (!data) {
+            throw new Error('Agent API returned a non-streaming response without a JSON body')
+          }
           if (currentStreamId !== streamIdRef.current) {
             return
           }
-          if (data.content) {
+          const content = typeof data.content === 'string' ? data.content : null
+          if (content) {
+            const sessionId = typeof data.session_id === 'string' ? data.session_id : 'unknown'
             processEvent(
               {
                 type: AGUIEventType.RUN_STARTED,
-                runId: data.session_id || 'unknown',
+                runId: sessionId,
               },
               currentStreamId
             )
             processEvent(
               {
                 type: AGUIEventType.TEXT_MESSAGE_CHUNK,
-                delta: data.content,
+                delta: content,
                 messageId: 'msg_1',
               },
               currentStreamId
@@ -600,7 +606,7 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
             processEvent(
               {
                 type: AGUIEventType.RUN_FINISHED,
-                runId: data.session_id || 'unknown',
+                runId: sessionId,
                 status: 'success',
               },
               currentStreamId

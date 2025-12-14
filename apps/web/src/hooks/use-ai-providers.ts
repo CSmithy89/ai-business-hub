@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
 import { toast } from 'sonner'
+import { safeJson } from '@/lib/utils/safe-json'
 
 /**
  * AI Provider types
@@ -143,12 +144,17 @@ async function fetchProviders(
     }
   )
 
+  const body = await safeJson<unknown>(response)
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to fetch providers' }))
-    throw new Error(error.message || 'Failed to fetch providers')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to fetch providers')
   }
 
-  return response.json()
+  if (!body || typeof body !== 'object' || !('data' in body)) throw new Error('Failed to fetch providers')
+  return body as ProvidersListResponse
 }
 
 /**
@@ -173,12 +179,17 @@ async function createProvider(
     }
   )
 
+  const body = await safeJson<unknown>(response)
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to create provider' }))
-    throw new Error(error.message || 'Failed to create provider')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to create provider')
   }
 
-  return response.json()
+  if (!body || typeof body !== 'object' || !('data' in body)) throw new Error('Failed to create provider')
+  return body as ProviderResponse
 }
 
 /**
@@ -206,12 +217,17 @@ async function updateProvider(
     }
   )
 
+  const body = await safeJson<unknown>(response)
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to update provider' }))
-    throw new Error(error.message || 'Failed to update provider')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to update provider')
   }
 
-  return response.json()
+  if (!body || typeof body !== 'object' || !('data' in body)) throw new Error('Failed to update provider')
+  return body as ProviderResponse
 }
 
 /**
@@ -234,9 +250,13 @@ async function deleteProvider(
     }
   )
 
+  const body = await safeJson<unknown>(response)
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to delete provider' }))
-    throw new Error(error.message || 'Failed to delete provider')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to delete provider')
   }
 }
 
@@ -260,12 +280,17 @@ async function testProvider(
     }
   )
 
+  const body = await safeJson<unknown>(response)
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to test provider' }))
-    throw new Error(error.message || 'Failed to test provider')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to test provider')
   }
 
-  return response.json()
+  if (!body || typeof body !== 'object') throw new Error('Failed to test provider')
+  return body as TestProviderResponse
 }
 
 /**

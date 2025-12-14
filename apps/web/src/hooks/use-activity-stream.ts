@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { safeJson } from '@/lib/utils/safe-json'
 
 interface AgentActivity {
   id: string
@@ -83,7 +84,11 @@ export function useActivityStream(filters?: ActivityFilters): UseActivityStreamR
           throw new Error('Failed to fetch activities')
         }
 
-        const data = await response.json()
+        const data = await safeJson<{
+          data: AgentActivity[]
+          meta: { page: number; totalPages: number }
+        }>(response)
+        if (!data) throw new Error('Failed to fetch activities')
 
         if (pageNum === 1) {
           setActivities(data.data)

@@ -10,6 +10,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { safeJson } from '@/lib/utils/safe-json'
 
 interface Document {
   id: string
@@ -56,13 +57,13 @@ export function useDocuments(businessId: string | undefined) {
       if (!businessId) throw new Error('Business ID is required')
 
       const response = await fetch(`/api/businesses/${businessId}/documents`)
-      const data = await response.json()
+      const data = await safeJson<UploadResponse>(response)
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to fetch documents')
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.message || 'Failed to fetch documents')
       }
 
-      return data.data as Document[]
+      return data.data.documents as Document[]
     },
     enabled: !!businessId,
   })
@@ -86,10 +87,10 @@ export function useUploadDocuments(businessId: string) {
         body: formData,
       })
 
-      const data: UploadResponse = await response.json()
+      const data = await safeJson<UploadResponse>(response)
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to upload documents')
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.message || 'Failed to upload documents')
       }
 
       return data.data

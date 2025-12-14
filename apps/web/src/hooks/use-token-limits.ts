@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
+import { safeJson } from '@/lib/utils/safe-json'
 
 function getSessionToken(session: unknown): string | undefined {
   const direct = (session as { token?: string } | null)?.token
@@ -46,11 +47,12 @@ async function fetchLimitStatus(
   })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to fetch limits' }))
+    const error = (await safeJson<{ message?: string }>(response)) || { message: 'Failed to fetch limits' }
     throw new Error(error.message || 'Failed to fetch limits')
   }
 
-  return response.json()
+  const data = await safeJson<{ data?: TokenLimitStatus[] }>(response)
+  return { data: data?.data || [] }
 }
 
 /**
@@ -77,11 +79,13 @@ async function updateLimit(
   )
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to update limit' }))
+    const error = (await safeJson<{ message?: string }>(response)) || { message: 'Failed to update limit' }
     throw new Error(error.message || 'Failed to update limit')
   }
 
-  return response.json()
+  const data = await safeJson<{ message?: string; data?: TokenLimitStatus }>(response)
+  if (!data?.data) throw new Error(data?.message || 'Failed to update limit')
+  return { message: data.message || 'Updated', data: data.data }
 }
 
 /**

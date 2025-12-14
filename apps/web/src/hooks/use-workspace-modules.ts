@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
 import { apiGet, apiPatch } from '@/lib/api-client'
+import { safeJson } from '@/lib/utils/safe-json'
 
 export type WorkspaceModuleCategoryId = 'onboarding' | 'operations' | 'growth' | 'intelligence'
 
@@ -44,13 +45,25 @@ function getActiveWorkspaceId(session: unknown): string | null {
 
 async function fetchWorkspaceModules(workspaceId: string): Promise<ModulesListResponse['data']> {
   const response = await apiGet(`/api/workspaces/${encodeURIComponent(workspaceId)}/modules`)
-  const body = await response.json()
+  const body = await safeJson<Record<string, unknown>>(response)
 
   if (!response.ok) {
-    throw new Error(body.message || body.error || 'Failed to fetch modules')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    const error =
+      body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+        ? body.error
+        : undefined
+    throw new Error(message || error || 'Failed to fetch modules')
   }
 
-  return (body as ModulesListResponse).data
+  const data = (body as ModulesListResponse | null)?.data
+  if (!data || !Array.isArray(data.modules) || !Array.isArray(data.categories)) {
+    throw new Error('Invalid modules response')
+  }
+  return data
 }
 
 async function updateWorkspaceModule(
@@ -63,12 +76,24 @@ async function updateWorkspaceModule(
     payload
   )
 
-  const body = await response.json()
+  const body = await safeJson<Record<string, unknown>>(response)
   if (!response.ok) {
-    throw new Error(body.message || body.error || 'Failed to update module')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    const error =
+      body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+        ? body.error
+        : undefined
+    throw new Error(message || error || 'Failed to update module')
   }
 
-  return (body as ModuleResponse).data
+  const data = (body as ModuleResponse | null)?.data
+  if (!data || typeof data !== 'object' || typeof data.id !== 'string') {
+    throw new Error('Invalid module response')
+  }
+  return data
 }
 
 export function useWorkspaceModules() {
@@ -104,4 +129,3 @@ export function useWorkspaceModuleMutations() {
     updateModule,
   }
 }
-

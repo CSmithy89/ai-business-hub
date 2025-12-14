@@ -73,7 +73,10 @@ function getBackend(): BackendKind {
     } else if (backend.kind === 'upstash') {
       console.log('[rate-limit] Using Upstash Redis for rate limiting')
     } else {
-      console.log('[rate-limit] Redis not configured - using in-memory rate limiting (NOT production-ready)')
+      console.log(
+        '[rate-limit] Redis not configured or unavailable - using in-memory rate limiting (NOT production-ready). ' +
+          'Set REDIS_URL (dev) or UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN (prod) to enable distributed rate limiting.'
+      )
     }
   }
 

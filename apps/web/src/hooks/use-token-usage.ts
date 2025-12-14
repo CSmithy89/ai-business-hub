@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
+import { safeJson } from '@/lib/utils/safe-json'
 
 function getSessionToken(session: unknown): string | undefined {
   const direct = (session as { token?: string } | null)?.token
@@ -50,12 +51,17 @@ async function fetchUsageStats(
   startDate?: string,
   endDate?: string
 ): Promise<{ data: UsageStats }> {
+  const base = NESTJS_API_URL?.replace(/\/$/, '')
+  if (!base) {
+    throw new Error('NEXT_PUBLIC_API_URL is not configured')
+  }
+
   const params = new URLSearchParams()
   if (startDate) params.set('startDate', startDate)
   if (endDate) params.set('endDate', endDate)
 
   const queryString = params.toString()
-  const url = `${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/usage${
+  const url = `${base}/workspaces/${encodeURIComponent(workspaceId)}/ai-providers/usage${
     queryString ? `?${queryString}` : ''
   }`
 
@@ -65,11 +71,15 @@ async function fetchUsageStats(
   })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to fetch usage' }))
+    const error = (await safeJson<{ message?: string }>(response)) || {
+      message: 'Failed to fetch usage',
+    }
     throw new Error(error.message || 'Failed to fetch usage')
   }
 
-  return response.json()
+  const data = await safeJson<{ data?: UsageStats }>(response)
+  if (!data?.data) throw new Error('Failed to fetch usage')
+  return { data: data.data }
 }
 
 /**
@@ -80,8 +90,13 @@ async function fetchDailyUsage(
   token: string | undefined,
   days: number = 30
 ): Promise<{ data: DailyUsage[] }> {
+  const base = NESTJS_API_URL?.replace(/\/$/, '')
+  if (!base) {
+    throw new Error('NEXT_PUBLIC_API_URL is not configured')
+  }
+
   const response = await fetch(
-    `${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/usage/daily?days=${days}`,
+    `${base}/workspaces/${encodeURIComponent(workspaceId)}/ai-providers/usage/daily?days=${days}`,
     {
       credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -89,11 +104,14 @@ async function fetchDailyUsage(
   )
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to fetch daily usage' }))
+    const error = (await safeJson<{ message?: string }>(response)) || {
+      message: 'Failed to fetch daily usage',
+    }
     throw new Error(error.message || 'Failed to fetch daily usage')
   }
 
-  return response.json()
+  const data = await safeJson<{ data?: DailyUsage[] }>(response)
+  return { data: data?.data || [] }
 }
 
 /**
@@ -103,8 +121,13 @@ async function fetchUsageByAgent(
   workspaceId: string,
   token: string | undefined
 ): Promise<{ data: AgentUsage[] }> {
+  const base = NESTJS_API_URL?.replace(/\/$/, '')
+  if (!base) {
+    throw new Error('NEXT_PUBLIC_API_URL is not configured')
+  }
+
   const response = await fetch(
-    `${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/usage/by-agent`,
+    `${base}/workspaces/${encodeURIComponent(workspaceId)}/ai-providers/usage/by-agent`,
     {
       credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -112,11 +135,14 @@ async function fetchUsageByAgent(
   )
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to fetch agent usage' }))
+    const error = (await safeJson<{ message?: string }>(response)) || {
+      message: 'Failed to fetch agent usage',
+    }
     throw new Error(error.message || 'Failed to fetch agent usage')
   }
 
-  return response.json()
+  const data = await safeJson<{ data?: AgentUsage[] }>(response)
+  return { data: data?.data || [] }
 }
 
 /**

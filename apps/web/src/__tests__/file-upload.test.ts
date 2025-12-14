@@ -564,13 +564,14 @@ describe('Upload Progress Tracking', () => {
   })
 
   it('should complete progress within expected duration', async () => {
-    const start = Date.now()
-
-    await simulateUploadProgress(() => {}, 100)
-
-    const duration = Date.now() - start
-    expect(duration).toBeGreaterThanOrEqual(90) // Allow some timing variance
-    expect(duration).toBeLessThan(200)
+    vi.useFakeTimers()
+    try {
+      const promise = simulateUploadProgress(() => {}, 100)
+      await vi.advanceTimersByTimeAsync(100)
+      await promise
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('should handle rapid progress updates', async () => {

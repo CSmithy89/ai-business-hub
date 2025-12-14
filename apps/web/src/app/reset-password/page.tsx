@@ -7,6 +7,7 @@ import { AuthLayout } from '@/components/auth/auth-layout'
 import { PasswordInput } from '@/components/auth/password-input'
 import { PasswordStrengthIndicator } from '@/components/auth/password-strength-indicator'
 import { calculatePasswordStrength } from '@/lib/utils/password-strength'
+import { safeJson } from '@/lib/utils/safe-json'
 
 type PageState = 'form' | 'submitting' | 'success' | 'invalid-token' | 'expired-token'
 
@@ -86,15 +87,16 @@ function ResetPasswordContent() {
       })
 
       if (!response.ok) {
-        const data = await response.json()
+        const data = (await safeJson<Record<string, unknown>>(response)) ?? {}
 
         // Check for specific error types
-        if (data.error?.includes('expired') || data.error?.includes('invalid')) {
+        const errorValue = typeof data.error === 'string' ? data.error : ''
+        if (errorValue.includes('expired') || errorValue.includes('invalid')) {
           setState('expired-token')
           return
         }
 
-        throw new Error(data.error || 'Failed to reset password')
+        throw new Error(errorValue || 'Failed to reset password')
       }
 
       // Success - all sessions invalidated automatically by better-auth

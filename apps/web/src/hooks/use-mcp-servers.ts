@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
 import { apiDelete, apiGet, apiPatch, apiPost } from '@/lib/api-client'
+import { safeJson } from '@/lib/utils/safe-json'
 
 export type MCPTransport = 'stdio' | 'sse' | 'streamable-http'
 
@@ -84,22 +85,42 @@ function getActiveWorkspaceId(session: unknown): string | null {
 
 async function fetchMCPServers(workspaceId: string): Promise<MCPServersListResponse['data']> {
   const response = await apiGet(`/api/workspaces/${encodeURIComponent(workspaceId)}/mcp-servers`)
-  const body = await response.json()
+  const body = await safeJson<Record<string, unknown>>(response)
   if (!response.ok) {
-    throw new Error(body.message || body.error || 'Failed to fetch MCP servers')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    const error =
+      body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+        ? body.error
+        : undefined
+    throw new Error(message || error || 'Failed to fetch MCP servers')
   }
-  return (body as MCPServersListResponse).data
+  const data = (body as MCPServersListResponse | null)?.data
+  if (!data) throw new Error('Failed to fetch MCP servers')
+  return data
 }
 
 async function fetchMCPServer(workspaceId: string, serverId: string): Promise<MCPServerDetail> {
   const response = await apiGet(
     `/api/workspaces/${encodeURIComponent(workspaceId)}/mcp-servers/${encodeURIComponent(serverId)}`
   )
-  const body = await response.json()
+  const body = await safeJson<Record<string, unknown>>(response)
   if (!response.ok) {
-    throw new Error(body.message || body.error || 'Failed to fetch MCP server')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    const error =
+      body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+        ? body.error
+        : undefined
+    throw new Error(message || error || 'Failed to fetch MCP server')
   }
-  return (body as MCPServerResponse).data
+  const data = (body as MCPServerResponse | null)?.data
+  if (!data) throw new Error('Failed to fetch MCP server')
+  return data
 }
 
 async function createMCPServer(workspaceId: string, data: MCPServerCreateRequest): Promise<void> {
@@ -107,9 +128,17 @@ async function createMCPServer(workspaceId: string, data: MCPServerCreateRequest
     `/api/workspaces/${encodeURIComponent(workspaceId)}/mcp-servers`,
     data
   )
-  const body = await response.json()
+  const body = await safeJson<Record<string, unknown>>(response)
   if (!response.ok) {
-    throw new Error(body.message || body.error || 'Failed to create MCP server')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    const error =
+      body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+        ? body.error
+        : undefined
+    throw new Error(message || error || 'Failed to create MCP server')
   }
 }
 
@@ -122,9 +151,17 @@ async function updateMCPServer(
     `/api/workspaces/${encodeURIComponent(workspaceId)}/mcp-servers/${encodeURIComponent(serverId)}`,
     data
   )
-  const body = await response.json()
+  const body = await safeJson<Record<string, unknown>>(response)
   if (!response.ok) {
-    throw new Error(body.message || body.error || 'Failed to update MCP server')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    const error =
+      body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+        ? body.error
+        : undefined
+    throw new Error(message || error || 'Failed to update MCP server')
   }
 }
 
@@ -132,9 +169,17 @@ async function deleteMCPServer(workspaceId: string, serverId: string): Promise<v
   const response = await apiDelete(
     `/api/workspaces/${encodeURIComponent(workspaceId)}/mcp-servers/${encodeURIComponent(serverId)}`
   )
-  const body = await response.json().catch(() => null)
+  const body = await safeJson<Record<string, unknown>>(response)
   if (!response.ok) {
-    throw new Error(body?.message || body?.error || 'Failed to delete MCP server')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    const error =
+      body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+        ? body.error
+        : undefined
+    throw new Error(message || error || 'Failed to delete MCP server')
   }
 }
 

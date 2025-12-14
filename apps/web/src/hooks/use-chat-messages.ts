@@ -19,6 +19,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { safeJson } from '@/lib/utils/safe-json';
 
 export interface Message {
   id: string;
@@ -212,7 +213,7 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+          const errorData = (await safeJson<Record<string, unknown>>(response)) ?? {};
 
           // Handle specific error types
           if (response.status === 401) {
@@ -222,7 +223,8 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
           } else if (response.status >= 500) {
             throw new Error('Unable to reach agent. Please try again.');
           } else {
-            throw new Error(errorData.error || 'Failed to send message');
+            const errorMessage = typeof errorData.error === 'string' ? errorData.error : undefined;
+            throw new Error(errorMessage || 'Failed to send message');
           }
         }
 
@@ -333,14 +335,21 @@ export function useChatMessages(currentAgent: ChatAgent = DEFAULT_AGENT) {
           }
         } else {
           // Handle non-streaming response (fallback)
-          const data = await response.json();
+          const data = await safeJson<Record<string, unknown>>(response);
+          if (!data) {
+            throw new Error('Failed to send message');
+          }
 
           // Add agent response
           const agentMessage: Message = {
-            id: data.id || `agent-${Date.now()}`,
+            id: typeof data.id === 'string' ? data.id : `agent-${Date.now()}`,
             type: 'agent',
-            content: data.content,
-            timestamp: new Date(data.timestamp || Date.now()),
+            content: typeof data.content === 'string' ? data.content : '',
+            timestamp: new Date(
+              typeof data.timestamp === 'string' || typeof data.timestamp === 'number'
+                ? (data.timestamp as string | number)
+                : Date.now()
+            ),
             agentId: currentAgent.id,
             agentName: currentAgent.name,
             agentIcon: currentAgent.icon,

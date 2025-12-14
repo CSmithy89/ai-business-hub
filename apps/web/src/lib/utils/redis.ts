@@ -22,6 +22,12 @@ export type RedisBackend =
   | { kind: 'upstash'; client: UpstashRedis }
   | { kind: 'none'; client: null }
 
+function isDevelopmentLike(): boolean {
+  // Some Next dev/bundler contexts may not set NODE_ENV the way plain Node does.
+  // Defaulting to dev behavior is safe because this only affects the server runtime.
+  return process.env.NODE_ENV === 'development' || !process.env.NODE_ENV
+}
+
 function resolveRedisUrl(): string | null {
   if (Object.prototype.hasOwnProperty.call(process.env, 'REDIS_URL')) {
     const explicit = process.env.REDIS_URL?.trim()
@@ -29,8 +35,8 @@ function resolveRedisUrl(): string | null {
 
     // If REDIS_URL is present but blank, treat it as "unset" in development so
     // local Docker Redis works out of the box.
-    if (process.env.NODE_ENV === 'development') {
-      return 'redis://localhost:6379'
+    if (isDevelopmentLike()) {
+      return 'redis://127.0.0.1:6379'
     }
 
     return null
@@ -38,8 +44,8 @@ function resolveRedisUrl(): string | null {
 
   // Dev-quality of life: if Docker Redis is running locally and the env var isn't set,
   // default to localhost. Never do this in production/test.
-  if (process.env.NODE_ENV === 'development') {
-    return 'redis://localhost:6379'
+  if (isDevelopmentLike()) {
+    return 'redis://127.0.0.1:6379'
   }
 
   return null
