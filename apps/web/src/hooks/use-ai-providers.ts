@@ -124,12 +124,22 @@ function getBaseUrl(): string {
   return NESTJS_API_URL.replace(/\/$/, '');
 }
 
-async function fetchProviders(workspaceId: string): Promise<ProvidersListResponse> {
-  const base = getBaseUrl();
+function getSessionToken(session: unknown): string | undefined {
+  const direct = (session as { token?: string } | null)?.token
+  const nested = (session as { session?: { token?: string } } | null)?.session?.token
+  return direct || nested || undefined
+}
+
+async function fetchProviders(
+  base: string,
+  workspaceId: string,
+  token?: string
+): Promise<ProvidersListResponse> {
   const response = await fetch(
-    `${base}/api/workspaces/${encodeURIComponent(workspaceId)}/ai-providers`,
+    `${base}/workspaces/${encodeURIComponent(workspaceId)}/ai-providers`,
     {
       credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }
   )
 
@@ -145,15 +155,19 @@ async function fetchProviders(workspaceId: string): Promise<ProvidersListRespons
  * Create a new provider
  */
 async function createProvider(
+  base: string,
   workspaceId: string,
-  data: CreateProviderRequest
+  data: CreateProviderRequest,
+  token?: string
 ): Promise<ProviderResponse> {
-  const base = getBaseUrl();
   const response = await fetch(
-    `${base}/api/workspaces/${encodeURIComponent(workspaceId)}/ai-providers`,
+    `${base}/workspaces/${encodeURIComponent(workspaceId)}/ai-providers`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       credentials: 'include',
       body: JSON.stringify(data),
     }
@@ -171,18 +185,22 @@ async function createProvider(
  * Update a provider
  */
 async function updateProvider(
+  base: string,
   workspaceId: string,
   providerId: string,
-  data: UpdateProviderRequest
+  data: UpdateProviderRequest,
+  token?: string
 ): Promise<ProviderResponse> {
-  const base = getBaseUrl();
   const response = await fetch(
-    `${base}/api/workspaces/${encodeURIComponent(
+    `${base}/workspaces/${encodeURIComponent(
       workspaceId
     )}/ai-providers/${encodeURIComponent(providerId)}`,
     {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       credentials: 'include',
       body: JSON.stringify(data),
     }
@@ -199,15 +217,20 @@ async function updateProvider(
 /**
  * Delete a provider
  */
-async function deleteProvider(workspaceId: string, providerId: string): Promise<void> {
-  const base = getBaseUrl();
+async function deleteProvider(
+  base: string,
+  workspaceId: string,
+  providerId: string,
+  token?: string
+): Promise<void> {
   const response = await fetch(
-    `${base}/api/workspaces/${encodeURIComponent(
+    `${base}/workspaces/${encodeURIComponent(
       workspaceId
     )}/ai-providers/${encodeURIComponent(providerId)}`,
     {
       method: 'DELETE',
       credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }
   )
 
@@ -221,17 +244,19 @@ async function deleteProvider(workspaceId: string, providerId: string): Promise<
  * Test a provider's API key
  */
 async function testProvider(
+  base: string,
   workspaceId: string,
-  providerId: string
+  providerId: string,
+  token?: string
 ): Promise<TestProviderResponse> {
-  const base = getBaseUrl();
   const response = await fetch(
-    `${base}/api/workspaces/${encodeURIComponent(
+    `${base}/workspaces/${encodeURIComponent(
       workspaceId
     )}/ai-providers/${encodeURIComponent(providerId)}/test`,
     {
       method: 'POST',
       credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }
   )
 
@@ -249,10 +274,12 @@ async function testProvider(
 export function useAIProviders() {
   const { data: session } = useSession()
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+  const base = getBaseUrl()
 
   return useQuery({
     queryKey: ['ai-providers', workspaceId],
-    queryFn: () => fetchProviders(workspaceId!),
+    queryFn: () => fetchProviders(base, workspaceId!, token),
     enabled: !!workspaceId,
     staleTime: 30000, // Consider data fresh for 30 seconds
     refetchOnWindowFocus: true,
@@ -271,12 +298,14 @@ export function useAIProviderMutations() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+  const base = getBaseUrl()
 
   // Optimistic create mutation
   const createMutation = useMutation({
     mutationFn: (data: CreateProviderRequest) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      return createProvider(workspaceId, data)
+      return createProvider(base, workspaceId, data, token)
     },
 
     onMutate: async (newProvider) => {
@@ -323,7 +352,7 @@ export function useAIProviderMutations() {
   const updateMutation = useMutation({
     mutationFn: ({ providerId, data }: { providerId: string; data: UpdateProviderRequest }) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      return updateProvider(workspaceId, providerId, data)
+      return updateProvider(base, workspaceId, providerId, data, token)
     },
 
     onMutate: async ({ providerId, data }) => {
@@ -361,7 +390,7 @@ export function useAIProviderMutations() {
   const deleteMutation = useMutation({
     mutationFn: (providerId: string) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      return deleteProvider(workspaceId, providerId)
+      return deleteProvider(base, workspaceId, providerId, token)
     },
 
     onMutate: async (providerId) => {
@@ -395,7 +424,7 @@ export function useAIProviderMutations() {
   const testMutation = useMutation({
     mutationFn: (providerId: string) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      return testProvider(workspaceId, providerId)
+      return testProvider(base, workspaceId, providerId, token)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-providers', workspaceId] })

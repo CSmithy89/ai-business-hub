@@ -54,9 +54,11 @@ function useWorkspaceId(): string | undefined {
 }
 
 function getAccessToken(session: unknown): string | undefined {
+  const sessionTokenDirect = (session as { token?: string })?.token;
+  const sessionTokenNested = (session as { session?: { token?: string } })?.session?.token;
   const direct = (session as { accessToken?: string })?.accessToken;
   const nested = (session as { session?: { accessToken?: string } })?.session?.accessToken;
-  return direct || nested || undefined;
+  return direct || nested || sessionTokenDirect || sessionTokenNested || undefined;
 }
 
 function getApiBase(): string {

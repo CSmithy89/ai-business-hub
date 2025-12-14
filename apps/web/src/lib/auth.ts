@@ -22,6 +22,13 @@ export const auth = betterAuth({
       enabled: true,
       maxAge: 60 * 15,                // 15 minutes (access token lifetime)
     },
+    additionalFields: {
+      activeWorkspaceId: {
+        type: 'string',
+        required: false,
+        input: false,
+      },
+    },
   },
 
   // Security settings
