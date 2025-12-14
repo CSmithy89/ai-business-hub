@@ -2,7 +2,7 @@
 
 **Status:** Living Document
 **Date:** 2025-12-14
-**Version:** 2.7
+**Version:** 2.8
 **Last Audit:** 2025-12-14
 
 ---
@@ -475,6 +475,8 @@ Use this checklist to verify implementation completeness:
 - [x] `/settings/modules` module grid + enable/disable + config dialog
 - [x] `/settings/mcp` MCP server list + add/edit/delete dialogs
 - [x] AI config preferences + usage pages accessible via in-page subnav
+- [x] Agent preferences endpoint returns defaults (no 500 on empty settings)
+- [x] No hydration mismatch from responsive layout conditions
 - [x] Session includes `activeWorkspaceId` so workspace-scoped pages work
 - [x] Workspace-scoped pages show a friendly prompt when no workspace is selected
 
@@ -492,4 +494,4 @@ Use this checklist to verify implementation completeness:
 ---
 
 *Last Updated: 2025-12-14*
-*Version: 2.7 - Frontend Management UI verified + workspace scoping fixes*
+*Version: 2.8 - Frontend Management UI verified + hydration-safe layout + agent preferences fix*
