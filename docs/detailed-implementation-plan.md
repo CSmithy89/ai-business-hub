@@ -253,17 +253,39 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 ### Phase 4: Frontend Implementation (Management UI)
 
 #### 4.8. Module Management UI
-**Location:** `apps/web/src/app/(dashboard)/settings/modules/page.tsx` (New)
-*   Grid view of available modules
-*   Toggle switches to Enable/Disable modules per workspace
-*   Status indicators (Active, Inactive, Error)
-*   "Configure" button for module-specific settings
+**Status:** ✅ Complete
+
+**Primary Location:** `apps/web/src/app/(dashboard)/settings/modules/page.tsx`
+
+**Implemented:**
+*   ✅ Grid view of available modules (grouped by category)
+    *   UI: `apps/web/src/components/settings/module-management.tsx`
+    *   Hook: `apps/web/src/hooks/use-workspace-modules.ts`
+*   ✅ Toggle switches to Enable/Disable optional modules per workspace
+    *   Core modules are forced enabled (toggle disabled)
+    *   Permission enforcement occurs in API routes (owner/admin required for mutations)
+*   ✅ Status indicators (Active/Inactive)
+    *   Note: explicit "Error" status is not currently emitted by the module API
+*   ✅ "Configure" button per module
+    *   Implemented as a JSON-backed config editor (workspace-scoped): `apps/web/src/components/settings/module-config-dialog.tsx`
 
 #### 4.9. AI & Keys Configuration
-**Location:** `apps/web/src/app/(dashboard)/settings/ai-config` (Existing - Adapt)
-*   Add **"API Keys"** tab for BYOAI configuration
-*   Add **"MCP Integrations"** tab
-*   MCP UI: List of servers, "Add Connection" modal, health status
+**Status:** ✅ Complete (with final routing decisions)
+
+**Final UX Structure:**
+*   ✅ **API Keys (BYOAI / LLM connections)** is the canonical home for all workspace AI provider keys
+    *   Page: `apps/web/src/app/(dashboard)/settings/api-keys/page.tsx`
+    *   UI: `apps/web/src/components/settings/ai-provider-list.tsx`
+*   ✅ **AI Configuration** is focused on preferences + usage (not keys)
+    *   Redirect: `apps/web/src/app/(dashboard)/settings/ai-config/page.tsx` → `/settings/ai-config/agent-preferences`
+    *   Sub-navigation: `apps/web/src/components/settings/ai-config-subnav.tsx`
+    *   Preferences: `apps/web/src/app/(dashboard)/settings/ai-config/agent-preferences/page.tsx`
+    *   Usage: `apps/web/src/app/(dashboard)/settings/ai-config/usage/page.tsx`
+*   ✅ **MCP Integrations** is a dedicated page (not a tab inside AI config)
+    *   Page: `apps/web/src/app/(dashboard)/settings/mcp/page.tsx`
+    *   UI: `apps/web/src/components/settings/mcp-integrations.tsx`
+    *   Hooks: `apps/web/src/hooks/use-mcp-servers.ts`
+    *   Dialogs: `apps/web/src/components/settings/add-mcp-server-dialog.tsx`, `apps/web/src/components/settings/edit-mcp-server-dialog.tsx`
 
 #### 4.10. Agent Team Configuration
 **Location:** `apps/web/src/app/(dashboard)/agents/[id]/configure` (Existing - Refine)
@@ -304,6 +326,18 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 | PgVector setup | RAG knowledge base | 1 day | ✅ Done |
 | MCP provider integration | Dynamic tool loading | 2 days | ✅ Done |
 | Module config API | Enable/disable modules | 1 day | ✅ Done |
+
+### 5.4. Frontend Management UI ✅ COMPLETE
+
+| Task | Location(s) | Status |
+|------|-------------|--------|
+| Workspace module management page | `apps/web/src/app/(dashboard)/settings/modules/page.tsx` | ✅ Done |
+| Workspace module config editor (JSON) | `apps/web/src/components/settings/module-config-dialog.tsx` | ✅ Done |
+| MCP integrations management page | `apps/web/src/app/(dashboard)/settings/mcp/page.tsx` | ✅ Done |
+| MCP add/edit dialogs + hooks | `apps/web/src/components/settings/*mcp*`, `apps/web/src/hooks/use-mcp-servers.ts` | ✅ Done |
+| API Keys page for BYOAI providers | `apps/web/src/app/(dashboard)/settings/api-keys/page.tsx` | ✅ Done |
+| AI config sub-navigation (preferences/usage) | `apps/web/src/components/settings/ai-config-subnav.tsx` | ✅ Done |
+| Settings nav updated (Modules + MCP) | `apps/web/src/components/layouts/settings-layout.tsx` | ✅ Done |
 
 ---
 
@@ -435,6 +469,13 @@ Use this checklist to verify implementation completeness:
 - [x] Core vs optional module distinction
 - [x] Module-specific configuration storage
 
+### 7.10. Frontend Management UI
+- [x] Settings navigation includes Modules + MCP Integrations
+- [x] `/settings/api-keys` manages workspace AI providers (BYOAI)
+- [x] `/settings/modules` module grid + enable/disable + config dialog
+- [x] `/settings/mcp` MCP server list + add/edit/delete dialogs
+- [x] AI config preferences + usage pages accessible via in-page subnav
+
 ---
 
 ## 8. Reference Documentation
@@ -449,4 +490,4 @@ Use this checklist to verify implementation completeness:
 ---
 
 *Last Updated: 2025-12-14*
-*Version: 2.5 - MCP Integration and Module Config complete*
+*Version: 2.6 - Frontend Management UI complete (Modules, API Keys, MCP)*
