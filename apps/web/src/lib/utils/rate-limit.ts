@@ -1,18 +1,22 @@
 /**
- * Unified Rate Limiter with Redis (Upstash) and In-Memory Fallback
+ * Unified Rate Limiter with Redis and In-Memory Fallback
  *
- * Production: Uses Upstash Redis for distributed rate limiting across instances
- * Development: Falls back to in-memory Map when Redis is not configured
+ * Priority:
+ * - `REDIS_URL` (direct Redis via ioredis) — best for local development
+ * - Upstash Redis REST API — best for serverless/production
+ * - In-memory Map fallback — development-only (not durable)
  *
  * Environment Variables:
+ * - REDIS_URL: Standard Redis connection string
  * - UPSTASH_REDIS_REST_URL: Upstash Redis REST API URL
  * - UPSTASH_REDIS_REST_TOKEN: Upstash Redis REST API token
  *
  * @module rate-limit
  */
 
-import { Redis } from '@upstash/redis'
 import { Ratelimit } from '@upstash/ratelimit'
+import type Redis from 'ioredis'
+import { getRedisBackend } from './redis'
 
 // ============================================================================
 // Configuration Constants
@@ -50,29 +54,30 @@ interface RateLimitConfig {
   windowSeconds: number
 }
 
-// ============================================================================
-// Redis Client Initialization
-// ============================================================================
+const REDIS_KEY_PREFIX = 'hyvve:ratelimit'
 
-let redis: Redis | null = null
-let isRedisConfigured = false
+type BackendKind = 'redis-url' | 'upstash' | 'none'
 
-// Check if Redis is configured at module load
-if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-  try {
-    redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    })
-    isRedisConfigured = true
-    console.log('[rate-limit] Redis configured - using distributed rate limiting')
-  } catch (error) {
-    console.warn('[rate-limit] Failed to initialize Redis, falling back to in-memory:', error)
-    redis = null
-    isRedisConfigured = false
+let redisUrlClient: Redis | null = null
+let hasLoggedBackend = false
+
+function getBackend(): BackendKind {
+  const backend = getRedisBackend()
+
+  redisUrlClient = backend.kind === 'redis-url' ? backend.client : null
+
+  if (!hasLoggedBackend) {
+    hasLoggedBackend = true
+    if (backend.kind === 'redis-url') {
+      console.log('[rate-limit] Using Redis (REDIS_URL) for rate limiting')
+    } else if (backend.kind === 'upstash') {
+      console.log('[rate-limit] Using Upstash Redis for rate limiting')
+    } else {
+      console.log('[rate-limit] Redis not configured - using in-memory rate limiting (NOT production-ready)')
+    }
   }
-} else {
-  console.log('[rate-limit] Redis not configured - using in-memory rate limiting (NOT production-ready)')
+
+  return backend.kind
 }
 
 // ============================================================================
@@ -85,17 +90,18 @@ const ratelimitCache = new Map<string, Ratelimit>()
  * Get or create an Upstash Ratelimit instance for the given config
  */
 function getRatelimiter(config: RateLimitConfig): Ratelimit | null {
-  if (!redis) return null
+  const backend = getRedisBackend()
+  if (backend.kind !== 'upstash') return null
 
   const cacheKey = `${config.limit}:${config.windowSeconds}`
   let limiter = ratelimitCache.get(cacheKey)
 
   if (!limiter) {
     limiter = new Ratelimit({
-      redis,
+      redis: backend.client,
       limiter: Ratelimit.slidingWindow(config.limit, `${config.windowSeconds} s`),
       analytics: true,
-      prefix: 'hyvve:ratelimit',
+      prefix: REDIS_KEY_PREFIX,
     })
     ratelimitCache.set(cacheKey, limiter)
   }
@@ -136,7 +142,7 @@ function cleanupRateLimits(): void {
 
 // Clean up expired entries periodically (every 5 minutes)
 // Only start the interval if we're in a long-running process (not serverless)
-if (typeof setInterval !== 'undefined' && !isRedisConfigured) {
+if (typeof setInterval !== 'undefined' && getBackend() === 'none') {
   setInterval(cleanupRateLimits, 5 * 60 * 1000)
 }
 
@@ -214,9 +220,53 @@ export async function checkRateLimit(
   limit: number = DEFAULT_RATE_LIMIT_MAX_ATTEMPTS,
   windowSeconds: number = DEFAULT_RATE_LIMIT_WINDOW_SECONDS
 ): Promise<RateLimitResult> {
-  // Try Redis first if configured
-  const limiter = getRatelimiter({ limit, windowSeconds })
+  const backend = getBackend()
 
+  // 1) Direct Redis (REDIS_URL)
+  if (backend === 'redis-url' && redisUrlClient) {
+    const redisKey = `${REDIS_KEY_PREFIX}:${key}`
+    const windowMs = windowSeconds * 1000
+
+    // Lua script: increment + set expire once + return {count, pttlMs}
+    const script = `
+      local count = redis.call('INCR', KEYS[1])
+      local ttl = redis.call('PTTL', KEYS[1])
+      if ttl < 0 then
+        redis.call('PEXPIRE', KEYS[1], ARGV[1])
+        ttl = ARGV[1]
+      end
+      return {count, ttl}
+    `
+
+    try {
+      const result = (await redisUrlClient.eval(
+        script,
+        1,
+        redisKey,
+        String(windowMs)
+      )) as [number, number]
+
+      const count = Number(result[0])
+      const ttlMs = Math.max(0, Number(result[1]))
+      const remaining = Math.max(0, limit - count)
+      const isRateLimited = count > limit
+      const retryAfter = isRateLimited ? Math.ceil(ttlMs / 1000) : undefined
+
+      return {
+        isRateLimited,
+        remaining,
+        resetAt: new Date(Date.now() + ttlMs),
+        retryAfter,
+      }
+    } catch (error) {
+      console.warn('[rate-limit] REDIS_URL backend error, falling back:', error)
+      // Mark backend as unavailable for this process; callers fall through to Upstash/memory.
+      redisUrlClient = null
+    }
+  }
+
+  // 2) Upstash (serverless)
+  const limiter = getRatelimiter({ limit, windowSeconds })
   if (limiter) {
     try {
       const result = await limiter.limit(key)
@@ -225,11 +275,12 @@ export async function checkRateLimit(
         isRateLimited: !result.success,
         remaining: result.remaining,
         resetAt: new Date(result.reset),
-        retryAfter: result.success ? undefined : Math.ceil((result.reset - Date.now()) / 1000),
+        retryAfter: result.success
+          ? undefined
+          : Math.ceil((result.reset - Date.now()) / 1000),
       }
     } catch (error) {
-      console.warn('[rate-limit] Redis error, falling back to in-memory:', error)
-      // Fall through to in-memory
+      console.warn('[rate-limit] Upstash Redis error, falling back to in-memory:', error)
     }
   }
 
@@ -278,8 +329,10 @@ export function checkRateLimitSync(
   limit: number = DEFAULT_RATE_LIMIT_MAX_ATTEMPTS,
   windowSeconds: number = DEFAULT_RATE_LIMIT_WINDOW_SECONDS
 ): RateLimitResult {
-  if (isRedisConfigured) {
-    console.warn('[rate-limit] checkRateLimitSync called with Redis configured. Use async checkRateLimit instead.')
+  if (getBackend() !== 'none') {
+    console.warn(
+      '[rate-limit] checkRateLimitSync called with Redis configured. Use async checkRateLimit instead.'
+    )
   }
   return checkRateLimitInMemory(key, limit, windowSeconds)
 }
@@ -304,7 +357,7 @@ export function getRateLimitInfo(key: string): {
     return {
       count: 0,
       resetAt: null,
-      isRedisConfigured,
+      isRedisConfigured: getBackend() !== 'none',
     }
   }
 
@@ -314,14 +367,14 @@ export function getRateLimitInfo(key: string): {
     return {
       count: 0,
       resetAt: null,
-      isRedisConfigured,
+      isRedisConfigured: getBackend() !== 'none',
     }
   }
 
   return {
     count: entry.count,
     resetAt: new Date(entry.resetAt),
-    isRedisConfigured,
+    isRedisConfigured: getBackend() !== 'none',
   }
 }
 
@@ -336,12 +389,25 @@ export async function resetRateLimit(key: string): Promise<void> {
   // Clear in-memory
   rateLimitStore.delete(key)
 
-  // Clear Redis if configured
-  if (redis) {
+  const backend = getBackend()
+
+  // Clear direct Redis if available
+  if (backend === 'redis-url' && redisUrlClient) {
     try {
-      await redis.del(`hyvve:ratelimit:${key}`)
+      await redisUrlClient.del(`${REDIS_KEY_PREFIX}:${key}`)
+      return
     } catch (error) {
-      console.warn('[rate-limit] Failed to reset Redis rate limit:', error)
+      console.warn('[rate-limit] Failed to reset REDIS_URL rate limit:', error)
+    }
+  }
+
+  // Best-effort clear for Upstash (does not guarantee reset for sliding window keys)
+  const upstash = getRedisBackend()
+  if (upstash.kind === 'upstash') {
+    try {
+      await upstash.client.del(`${REDIS_KEY_PREFIX}:${key}`)
+    } catch (error) {
+      console.warn('[rate-limit] Failed to reset Upstash rate limit:', error)
     }
   }
 }
@@ -351,7 +417,7 @@ export async function resetRateLimit(key: string): Promise<void> {
  * @returns true if Redis/Upstash is configured and available
  */
 export function isDistributedRateLimitingEnabled(): boolean {
-  return isRedisConfigured
+  return getBackend() !== 'none'
 }
 
 // ============================================================================
