@@ -16,9 +16,24 @@ from dataclasses import dataclass, field
 from enum import Flag, auto
 from typing import Optional, Any
 
-from agno.tools.mcp import MCPTools, MultiMCPTools
+import asyncpg
+import base64
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+from agno.tools.mcp import MCPTools
+
+from config import get_settings
+from utils.encryption import CredentialEncryptionService, CredentialDecryptionError
 
 logger = logging.getLogger(__name__)
+
+PBKDF2_ITERATIONS = 100000
+KEY_LENGTH = 32
+SALT_LENGTH = 64
+IV_LENGTH = 16
+AUTH_TAG_LENGTH = 16
 
 
 class MCPPermission(Flag):
@@ -164,7 +179,7 @@ class MCPProvider:
     async def get_mcp_tools(
         self,
         server_ids: Optional[list[str]] = None,
-    ) -> Optional[MultiMCPTools]:
+    ) -> Optional[list[Any]]:
         """
         Get MCP tools for specified servers.
 
@@ -172,7 +187,7 @@ class MCPProvider:
             server_ids: List of server IDs to include. If None, includes all enabled.
 
         Returns:
-            MultiMCPTools instance or None if no servers configured.
+            List of MCP tools (one per server) or None if no servers configured.
         """
         enabled_servers = [
             s for s in self.config.servers
@@ -183,56 +198,21 @@ class MCPProvider:
             logger.info(f"No MCP servers configured for workspace {self.config.workspace_id}")
             return None
 
-        # Build configuration for MultiMCPTools
-        commands = []
-        urls = []
-        urls_transports = []
-        env_vars = {}
-        include_tools = []
-        exclude_tools = []
-
+        tools: list[Any] = []
         for server in enabled_servers:
-            if server.transport == "stdio" and server.command:
-                commands.append(server.command)
-                if server.env:
-                    env_vars.update(server.env)
-            elif server.transport in ("sse", "streamable-http") and server.url:
-                urls.append(server.url)
-                urls_transports.append(server.transport)
+            tool = await self.get_single_server_tools(server.id)
+            if tool:
+                tools.append(tool)
 
-            # Apply permission-based tool filtering
-            if server.include_tools:
-                filtered = MCPPermissionFilter.filter_tools(
-                    server.include_tools,
-                    server.permissions,
-                )
-                include_tools.extend(filtered)
-
-            if server.exclude_tools:
-                exclude_tools.extend(server.exclude_tools)
-
-        # Create MultiMCPTools
-        try:
-            mcp_tools = MultiMCPTools(
-                commands=commands if commands else None,
-                urls=urls if urls else None,
-                urls_transports=urls_transports if urls_transports else None,
-                env=env_vars if env_vars else None,
-                include_tools=include_tools if include_tools else None,
-                exclude_tools=exclude_tools if exclude_tools else None,
-                timeout_seconds=self.config.default_timeout,
-            )
-
-            logger.info(
-                f"Created MCP tools for workspace {self.config.workspace_id} "
-                f"with {len(enabled_servers)} servers"
-            )
-
-            return mcp_tools
-
-        except Exception as e:
-            logger.error(f"Failed to create MCP tools: {e}")
+        if not tools:
             return None
+
+        logger.info(
+            f"Created MCP tools for workspace {self.config.workspace_id} "
+            f"with {len(tools)} servers"
+        )
+
+        return tools
 
     async def get_single_server_tools(
         self,
@@ -256,6 +236,11 @@ class MCPProvider:
             logger.warning(f"MCP server '{server_id}' not found or disabled")
             return None
 
+        # Cache tools by server ID to avoid recreating connections repeatedly.
+        cached = self._connections.get(server_id)
+        if cached:
+            return cached
+
         # Build include_tools with permission filtering
         filtered_include = None
         if server.include_tools:
@@ -274,7 +259,22 @@ class MCPProvider:
                     timeout_seconds=server.timeout_seconds,
                 )
             elif server.transport in ("sse", "streamable-http") and server.url:
-                mcp_tools = MCPTools(
+                headers = dict(server.headers or {})
+                if server.api_key and not any(k.lower() in ("authorization", "x-api-key") for k in headers.keys()):
+                    headers["Authorization"] = f"Bearer {server.api_key}"
+
+                try:
+                    mcp_tools = MCPTools(
+                        url=server.url,
+                        transport=server.transport,
+                        headers=headers if headers else None,
+                        include_tools=filtered_include,
+                        exclude_tools=server.exclude_tools,
+                        timeout_seconds=server.timeout_seconds,
+                    )
+                except TypeError:
+                    # Backward-compatible: older Agno MCPTools versions may not support `headers=`.
+                    mcp_tools = MCPTools(
                     url=server.url,
                     transport=server.transport,
                     include_tools=filtered_include,
@@ -286,6 +286,7 @@ class MCPProvider:
                 return None
 
             logger.info(f"Created MCP tools for server '{server_id}'")
+            self._connections[server_id] = mcp_tools
             return mcp_tools
 
         except Exception as e:
@@ -404,18 +405,141 @@ async def get_workspace_mcp_provider(
     Returns:
         Configured MCPProvider instance
     """
-    import httpx
-
     config = WorkspaceMCPConfig(
         workspace_id=workspace_id,
         servers=[],
     )
 
-    if not jwt_token:
-        logger.warning("No JWT token provided, returning empty MCP config")
-        return MCPProvider(config)
+    settings = get_settings()
+    database_url = getattr(settings, "database_url", None)
+    encryption_key = (
+        settings.encryption_master_key.get_secret_value()
+        if getattr(settings, "encryption_master_key", None)
+        else None
+    )
+    better_auth_secret = (
+        settings.better_auth_secret.get_secret_value()
+        if getattr(settings, "better_auth_secret", None)
+        else None
+    )
+
+    encryption: Optional[CredentialEncryptionService] = None
+    if encryption_key and encryption_key.strip():
+        try:
+            encryption = CredentialEncryptionService(encryption_key)
+        except Exception as e:
+            logger.warning(f"Failed to initialize encryption service for MCP keys: {e}")
+
+    async def decrypt_api_key(api_key_encrypted: Optional[str]) -> Optional[str]:
+        if not api_key_encrypted:
+            return None
+
+        if encryption:
+            try:
+                return encryption.decrypt(api_key_encrypted)
+            except CredentialDecryptionError:
+                pass
+
+        # Backward-compatible fallback: older web implementation encrypted with BETTER_AUTH_SECRET
+        # and used the order salt|iv|ciphertext|authTag.
+        if better_auth_secret and better_auth_secret.strip():
+            try:
+                combined = base64.b64decode(api_key_encrypted)
+                min_length = SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH + 1
+                if len(combined) < min_length:
+                    return None
+
+                salt = combined[0:SALT_LENGTH]
+                iv = combined[SALT_LENGTH : SALT_LENGTH + IV_LENGTH]
+                ciphertext = combined[SALT_LENGTH + IV_LENGTH : -AUTH_TAG_LENGTH]
+                auth_tag = combined[-AUTH_TAG_LENGTH:]
+
+                kdf = PBKDF2HMAC(
+                    algorithm=hashes.SHA256(),
+                    length=KEY_LENGTH,
+                    salt=salt,
+                    iterations=PBKDF2_ITERATIONS,
+                )
+                key = kdf.derive(better_auth_secret.encode("utf-8"))
+                aesgcm = AESGCM(key)
+                decrypted = aesgcm.decrypt(iv, ciphertext + auth_tag, None)
+                return decrypted.decode("utf-8")
+            except Exception:
+                return None
+
+        return None
+
+    async def load_from_db() -> bool:
+        if not database_url:
+            return False
+
+        try:
+            conn = await asyncpg.connect(dsn=database_url)
+            try:
+                rows = await conn.fetch(
+                    """
+                    SELECT
+                      server_id,
+                      name,
+                      transport,
+                      command,
+                      url,
+                      api_key_encrypted,
+                      headers,
+                      env_vars,
+                      include_tools,
+                      exclude_tools,
+                      permissions,
+                      timeout_seconds,
+                      enabled
+                    FROM mcp_server_configs
+                    WHERE workspace_id = $1
+                    ORDER BY created_at DESC
+                    """,
+                    workspace_id,
+                )
+            finally:
+                await conn.close()
+
+            for row in rows:
+                api_key = await decrypt_api_key(row.get("api_key_encrypted"))
+                headers = dict(row.get("headers") or {})
+                env_vars = dict(row.get("env_vars") or {})
+
+                server = MCPServerConfig(
+                    id=row.get("server_id", ""),
+                    name=row.get("name", ""),
+                    transport=row.get("transport", "stdio"),
+                    command=row.get("command"),
+                    url=row.get("url"),
+                    api_key=api_key,
+                    headers=headers,
+                    env=env_vars,
+                    include_tools=list(row.get("include_tools") or []),
+                    exclude_tools=list(row.get("exclude_tools") or []),
+                    permissions=_int_to_permission(int(row.get("permissions") or 1)),
+                    timeout_seconds=int(row.get("timeout_seconds") or 30),
+                    enabled=bool(row.get("enabled")),
+                )
+                config.servers.append(server)
+
+            logger.info(
+                f"Loaded {len(config.servers)} MCP servers for workspace {workspace_id} (DB)"
+            )
+            return True
+        except Exception as e:
+            logger.warning(f"DB MCP config lookup failed, falling back to HTTP: {e}")
+            return False
 
     try:
+        if await load_from_db():
+            return MCPProvider(config)
+
+        if not jwt_token:
+            logger.warning("No JWT token provided, returning empty MCP config")
+            return MCPProvider(config)
+
+        import httpx
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{api_base_url}/api/workspaces/{workspace_id}/mcp-servers",
@@ -497,9 +621,9 @@ async def enhance_agent_with_mcp(
         if mcp_tools:
             # Add MCP tools to agent's tools list
             if hasattr(agent, 'tools') and agent.tools:
-                agent.tools.append(mcp_tools)
+                agent.tools.extend(mcp_tools)
             else:
-                agent.tools = [mcp_tools]
+                agent.tools = list(mcp_tools)
 
             logger.info(f"Enhanced agent '{agent.name}' with MCP tools")
 

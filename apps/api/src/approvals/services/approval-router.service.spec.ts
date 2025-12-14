@@ -2,16 +2,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ApprovalRouterService } from './approval-router.service';
 import { PrismaService } from '../../common/services/prisma.service';
 import { ConfidenceCalculatorService } from './confidence-calculator.service';
-import { EventBusService } from '../stubs/event-bus.stub';
-import { AuditLogService } from '../stubs/audit-logger.stub';
-import { ConfidenceFactor } from '@hyvve/shared';
+import { EventPublisherService } from '../../events';
+import { ApprovalAuditService } from './approval-audit.service';
+import { ConfidenceFactor, EventTypes } from '@hyvve/shared';
 
 describe('ApprovalRouterService', () => {
   let service: ApprovalRouterService;
   let prisma: PrismaService;
   let confidenceCalculator: ConfidenceCalculatorService;
-  let eventBus: EventBusService;
-  let auditLogger: AuditLogService;
+  let eventPublisher: EventPublisherService;
+  let auditLogger: ApprovalAuditService;
 
   const mockWorkspaceId = 'workspace-123';
   const mockRequestedBy = 'user-123';
@@ -39,15 +39,16 @@ describe('ApprovalRouterService', () => {
           },
         },
         {
-          provide: EventBusService,
+          provide: EventPublisherService,
           useValue: {
-            emit: jest.fn(),
+            publish: jest.fn(),
           },
         },
         {
-          provide: AuditLogService,
+          provide: ApprovalAuditService,
           useValue: {
-            logApprovalDecision: jest.fn(),
+            logApprovalCreated: jest.fn(),
+            logAutoApproval: jest.fn(),
           },
         },
       ],
@@ -58,8 +59,8 @@ describe('ApprovalRouterService', () => {
     confidenceCalculator = module.get<ConfidenceCalculatorService>(
       ConfidenceCalculatorService,
     );
-    eventBus = module.get<EventBusService>(EventBusService);
-    auditLogger = module.get<AuditLogService>(AuditLogService);
+    eventPublisher = module.get<EventPublisherService>(EventPublisherService);
+    auditLogger = module.get<ApprovalAuditService>(ApprovalAuditService);
   });
 
   afterEach(() => {
@@ -107,7 +108,7 @@ describe('ApprovalRouterService', () => {
         status: 'auto_approved',
         priority: 'medium',
         assignedToId: mockAssignedToId,
-        dueAt: expect.any(Date),
+        dueAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
         requestedBy: mockRequestedBy,
@@ -137,27 +138,33 @@ describe('ApprovalRouterService', () => {
       expect(result.status).toBe('auto_approved');
       expect(result.reviewType).toBe('auto');
 
-      // Verify approval.approved event was emitted
-      expect(eventBus.emit).toHaveBeenCalledWith('approval.approved', {
-        id: 'approval-123',
-        workspaceId: mockWorkspaceId,
-        type: 'content',
-        decidedById: 'system',
-        decidedAt: expect.any(Date),
-        confidenceScore: 90,
-      });
+      // Verify approval auto-approved event was emitted
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        EventTypes.APPROVAL_AUTO_APPROVED,
+        expect.objectContaining({
+          approvalId: 'approval-123',
+          type: 'content',
+          title: 'Test Approval',
+          decision: 'auto_approved',
+          decidedById: 'system',
+          confidenceScore: 90,
+        }),
+        expect.objectContaining({
+          tenantId: mockWorkspaceId,
+          userId: mockRequestedBy,
+          source: 'approval-router',
+        }),
+      );
 
       // Verify audit log
-      expect(auditLogger.logApprovalDecision).toHaveBeenCalledWith({
+      expect(auditLogger.logAutoApproval).toHaveBeenCalledWith({
         workspaceId: mockWorkspaceId,
-        userId: mockRequestedBy,
-        action: 'approval.auto_approved',
         approvalId: 'approval-123',
-        metadata: expect.objectContaining({
-          confidenceScore: 90,
-          status: 'auto_approved',
-          reviewType: 'auto',
-        }),
+        type: 'content',
+        confidenceScore: 90,
+        threshold: 85,
+        aiReasoning: undefined,
+        factors: mockFactors,
       });
     });
 
@@ -184,7 +191,7 @@ describe('ApprovalRouterService', () => {
         status: 'pending',
         priority: 'high',
         assignedToId: mockAssignedToId,
-        dueAt: expect.any(Date),
+        dueAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
         requestedBy: mockRequestedBy,
@@ -212,28 +219,36 @@ describe('ApprovalRouterService', () => {
       expect(result.reviewType).toBe('quick');
 
       // Verify approval.requested event was emitted
-      expect(eventBus.emit).toHaveBeenCalledWith('approval.requested', {
-        id: 'approval-123',
-        workspaceId: mockWorkspaceId,
-        type: 'email',
-        confidenceScore: 75,
-        reviewType: 'quick',
-        priority: 'high',
-        assignedToId: mockAssignedToId,
-        dueAt: expect.any(Date),
-      });
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        EventTypes.APPROVAL_REQUESTED,
+        expect.objectContaining({
+          approvalId: 'approval-123',
+          type: 'email',
+          title: 'Test Email',
+          confidenceScore: 75,
+          recommendation: 'review',
+          assignedToId: mockAssignedToId,
+          dueAt: expect.any(String),
+        }),
+        expect.objectContaining({
+          tenantId: mockWorkspaceId,
+          userId: mockRequestedBy,
+          source: 'approval-router',
+        }),
+      );
 
       // Verify audit log
-      expect(auditLogger.logApprovalDecision).toHaveBeenCalledWith({
+      expect(auditLogger.logApprovalCreated).toHaveBeenCalledWith({
         workspaceId: mockWorkspaceId,
         userId: mockRequestedBy,
-        action: 'approval.routed',
         approvalId: 'approval-123',
-        metadata: expect.objectContaining({
-          confidenceScore: 75,
-          status: 'pending',
-          reviewType: 'quick',
-        }),
+        type: 'email',
+        confidenceScore: 75,
+        status: 'pending',
+        priority: 'high',
+        reviewType: 'quick',
+        aiReasoning: undefined,
+        factors: mockFactors,
       });
     });
 
@@ -261,7 +276,7 @@ describe('ApprovalRouterService', () => {
         status: 'pending',
         priority: 'urgent',
         assignedToId: mockAssignedToId,
-        dueAt: expect.any(Date),
+        dueAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
         requestedBy: mockRequestedBy,
@@ -291,28 +306,36 @@ describe('ApprovalRouterService', () => {
       expect(result.aiReasoning).toBe('Low confidence due to concerning factors');
 
       // Verify approval.requested event was emitted
-      expect(eventBus.emit).toHaveBeenCalledWith('approval.requested', {
-        id: 'approval-123',
-        workspaceId: mockWorkspaceId,
-        type: 'campaign',
-        confidenceScore: 45,
-        reviewType: 'full',
-        priority: 'urgent',
-        assignedToId: mockAssignedToId,
-        dueAt: expect.any(Date),
-      });
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        EventTypes.APPROVAL_REQUESTED,
+        expect.objectContaining({
+          approvalId: 'approval-123',
+          type: 'campaign',
+          title: 'Test Campaign',
+          confidenceScore: 45,
+          recommendation: 'full_review',
+          assignedToId: mockAssignedToId,
+          dueAt: expect.any(String),
+        }),
+        expect.objectContaining({
+          tenantId: mockWorkspaceId,
+          userId: mockRequestedBy,
+          source: 'approval-router',
+        }),
+      );
 
       // Verify audit log
-      expect(auditLogger.logApprovalDecision).toHaveBeenCalledWith({
+      expect(auditLogger.logApprovalCreated).toHaveBeenCalledWith({
         workspaceId: mockWorkspaceId,
         userId: mockRequestedBy,
-        action: 'approval.routed',
         approvalId: 'approval-123',
-        metadata: expect.objectContaining({
-          confidenceScore: 45,
-          status: 'pending',
-          reviewType: 'full',
-        }),
+        type: 'campaign',
+        confidenceScore: 45,
+        status: 'pending',
+        priority: 'urgent',
+        reviewType: 'full',
+        aiReasoning: 'Low confidence due to concerning factors',
+        factors: mockFactors,
       });
     });
 

@@ -377,6 +377,7 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 *   ✅ `apps/web/src/lib/auth-client.ts`
 *   ✅ `apps/web/src/lib/realtime/realtime-provider.tsx`
 *   ✅ `apps/api/src/realtime/realtime.gateway.ts`
+*   ✅ Cookie parsing hardened (preserves `=` inside cookie values) in `apps/api/src/realtime/realtime.gateway.ts`
 
 ---
 
@@ -445,6 +446,7 @@ Use this checklist to verify implementation completeness:
 - [x] `TOOL_CALL_ARGS` event type added
 - [x] `StreamingResponse` used in endpoints
 - [x] Tool call detection implemented
+- [x] Client error events sanitized (no raw exception strings)
 
 ### 7.3. A2A Protocol
 - [x] `AgentRegistry` class exists
@@ -483,10 +485,12 @@ Use this checklist to verify implementation completeness:
 
 ### 7.7. RAG Knowledge Base
 - [x] `KnowledgeFactory` with tenant isolation (`agents/knowledge/factory.py`)
+- [x] Collision-safe table naming (hash suffix for long IDs)
 - [x] BYOAI integration for embeddings
 - [x] Document ingestion module (`agents/knowledge/ingestion.py`)
 - [x] Content type detection (PDF, CSV, URL, etc.)
 - [x] API endpoints (`/knowledge/ingest`, `/knowledge/search`)
+- [x] Metadata filters applied in search (`workspace_id` isolation + user filters)
 - [x] Team integration helpers (`agents/knowledge/team_integration.py`)
 - [x] `KnowledgeAwareTeamFactory` for enhanced teams
 
@@ -498,6 +502,7 @@ Use this checklist to verify implementation completeness:
   - [x] GET/POST `/api/workspaces/:id/mcp-servers`
   - [x] GET/PATCH/DELETE `/api/workspaces/:id/mcp-servers/:serverId`
 - [x] Integration with Agno's `MCPTools` and `MultiMCPTools`
+- [x] Agent-side config loading supports headers/env/api keys (DB-first; avoids exposing plaintext via HTTP)
 - [x] Common MCP server presets (filesystem, github, brave-search, memory)
 
 ### 7.9. Module Configuration

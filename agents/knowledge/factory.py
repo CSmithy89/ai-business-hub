@@ -6,6 +6,7 @@ Integrates with BYOAI for embeddings provider selection.
 """
 
 import logging
+import hashlib
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
@@ -73,8 +74,15 @@ class KnowledgeFactory:
     def _get_table_name(self, workspace_id: str) -> str:
         """Generate table name for workspace (tenant isolation)."""
         # Sanitize workspace_id for use in table name
-        safe_id = workspace_id.replace("-", "_").replace(" ", "_")[:32]
-        return f"knowledge_{safe_id}"
+        safe_id = workspace_id.replace("-", "_").replace(" ", "_")
+
+        # Keep the legacy prefix when IDs are short (common case: UUID/CUID).
+        # Add a stable hash suffix when truncation would be required, preventing collisions.
+        if len(safe_id) <= 32:
+            return f"knowledge_{safe_id}"
+
+        digest = hashlib.sha256(workspace_id.encode("utf-8")).hexdigest()[:16]
+        return f"knowledge_{safe_id[:32]}_{digest}"
 
     async def _resolve_embedder(
         self,

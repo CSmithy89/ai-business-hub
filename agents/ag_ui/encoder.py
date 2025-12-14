@@ -136,7 +136,8 @@ class EventEncoder:
             logger.error(f"Streaming error: {e}", exc_info=True)
             yield cls.encode(AGUIEventType.ERROR, {
                 "code": "STREAM_ERROR",
-                "message": str(e)
+                # Avoid leaking internal exception strings to clients (may contain sensitive info).
+                "message": "An internal streaming error occurred."
             })
             # Send Run Finished with error status
             yield cls.encode(AGUIEventType.RUN_FINISHED, {

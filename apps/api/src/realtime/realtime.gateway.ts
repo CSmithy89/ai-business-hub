@@ -596,6 +596,17 @@ export class RealtimeGateway
     const auth = client.handshake.auth || {};
     const headers = client.handshake.headers || {};
 
+    const getCookieValue = (cookieHeader: string, cookieName: string): string | null => {
+      // Split on ';' pairs, and only split on the first '=' so values containing '=' are preserved.
+      const prefix = `${cookieName}=`;
+      for (const part of cookieHeader.split(';')) {
+        const trimmed = part.trim();
+        if (!trimmed.startsWith(prefix)) continue;
+        return trimmed.slice(prefix.length);
+      }
+      return null;
+    };
+
     // Try handshake.auth.token (the only supported method)
     if (auth.token && typeof auth.token === 'string') {
       return auth.token;
@@ -609,11 +620,7 @@ export class RealtimeGateway
     if (allowCookieFallback) {
       const cookieHeader = headers.cookie;
       if (cookieHeader && typeof cookieHeader === 'string') {
-        const token = cookieHeader
-          .split(';')
-          .map((c) => c.trim())
-          .map((c) => c.split('='))
-          .find(([name]) => name === 'hyvve.session_token')?.[1];
+        const token = getCookieValue(cookieHeader, 'hyvve.session_token');
         if (token) {
           try {
             return decodeURIComponent(token);

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { RealtimeGateway } from './realtime.gateway';
 import { Socket, Server } from 'socket.io';
+import { PrismaService } from '../common/services/prisma.service';
 import {
   ApprovalEventPayload,
   AgentStatusPayload,
@@ -20,6 +21,12 @@ describe('RealtimeGateway', () => {
     }),
   };
 
+  const mockPrismaService = {
+    session: {
+      findUnique: jest.fn(),
+    },
+  };
+
   beforeEach(async () => {
     // Mock the Socket.io server
     mockServer = {
@@ -33,6 +40,10 @@ describe('RealtimeGateway', () => {
         {
           provide: ConfigService,
           useValue: mockConfigService,
+        },
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
         },
       ],
     }).compile();
@@ -72,21 +83,32 @@ describe('RealtimeGateway', () => {
 
       expect(mockClient.emit).toHaveBeenCalledWith('connection.status', {
         status: 'disconnected',
-        message: 'Authentication required',
+        message: 'Authentication token required',
       });
       expect(mockClient.disconnect).toHaveBeenCalledWith(true);
     });
 
     it('should accept connection with valid auth data', async () => {
+      mockPrismaService.session.findUnique.mockResolvedValue({
+        id: 'session-123',
+        token: 'token-abc',
+        activeWorkspaceId: 'workspace-456',
+        expiresAt: new Date(Date.now() + 60_000),
+        user: {
+          id: 'user-123',
+          email: 'test@example.com',
+          name: 'Test User',
+        },
+      });
+
       const mockClient = {
         id: 'test-socket-id',
         handshake: {
           auth: {
-            userId: 'user-123',
-            workspaceId: 'workspace-456',
-            email: 'test@example.com',
+            token: 'token-abc',
           },
           query: {},
+          headers: {},
         },
         data: {},
         emit: jest.fn(),
@@ -96,8 +118,8 @@ describe('RealtimeGateway', () => {
 
       await gateway.handleConnection(mockClient);
 
-      expect(mockClient.join).toHaveBeenCalledWith('workspace:workspace-456');
-      expect(mockClient.join).toHaveBeenCalledWith('user:user-123');
+      expect(mockClient.join).toHaveBeenCalledWith(getWorkspaceRoom('workspace-456'));
+      expect(mockClient.join).toHaveBeenCalledWith(getUserRoom('user-123'));
       expect(mockClient.emit).toHaveBeenCalledWith('connection.status', {
         status: 'connected',
         message: 'Connected to real-time updates',
@@ -106,14 +128,26 @@ describe('RealtimeGateway', () => {
       expect(mockClient.data.workspaceId).toBe('workspace-456');
     });
 
-    it('should extract auth from query params if not in auth object', async () => {
+    it('should accept connection with token from cookie fallback', async () => {
+      mockPrismaService.session.findUnique.mockResolvedValue({
+        id: 'session-cookie',
+        token: 'cookie-token',
+        activeWorkspaceId: 'workspace-from-cookie',
+        expiresAt: new Date(Date.now() + 60_000),
+        user: {
+          id: 'user-from-cookie',
+          email: 'cookie@example.com',
+          name: 'Cookie User',
+        },
+      });
+
       const mockClient = {
         id: 'test-socket-id',
         handshake: {
           auth: {},
-          query: {
-            userId: 'user-from-query',
-            workspaceId: 'workspace-from-query',
+          query: {},
+          headers: {
+            cookie: 'hyvve.session_token=cookie-token',
           },
         },
         data: {},
@@ -124,8 +158,8 @@ describe('RealtimeGateway', () => {
 
       await gateway.handleConnection(mockClient);
 
-      expect(mockClient.data.userId).toBe('user-from-query');
-      expect(mockClient.data.workspaceId).toBe('workspace-from-query');
+      expect(mockClient.data.userId).toBe('user-from-cookie');
+      expect(mockClient.data.workspaceId).toBe('workspace-from-cookie');
     });
   });
 

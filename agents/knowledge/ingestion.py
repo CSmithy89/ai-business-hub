@@ -320,10 +320,20 @@ async def search_knowledge(
             search_filters.update(filters)
 
         # Search using Agno's knowledge search
-        results = knowledge.search(
-            query=query,
-            num_documents=limit,
-        )
+        # Prefer passing metadata filters through to the vector store (tenant isolation + caller filters).
+        # Agno's API has used both `filter=` and `filters=` across versions, so try both for compatibility.
+        try:
+            results = knowledge.search(
+                query=query,
+                num_documents=limit,
+                filters=search_filters,
+            )
+        except TypeError:
+            results = knowledge.search(
+                query=query,
+                num_documents=limit,
+                filter=search_filters,
+            )
 
         # Format results
         formatted = []

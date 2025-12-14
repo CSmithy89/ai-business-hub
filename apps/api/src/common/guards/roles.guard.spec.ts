@@ -148,21 +148,23 @@ describe('RolesGuard', () => {
 
     it('should properly extract roles from both handler and class decorators', () => {
       const mockContext = createMockExecutionContext('admin', ['admin'])
-      const getHandlerSpy = jest.fn()
-      const getClassSpy = jest.fn()
+      const handlerFn = () => null
+      class TestController {}
+      const getHandlerSpy = jest.fn(() => handlerFn)
+      const getClassSpy = jest.fn(() => TestController)
 
       jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((_key, _targets) => {
         return ['admin']
       })
 
-      mockContext.getHandler = getHandlerSpy
-      mockContext.getClass = getClassSpy
+      mockContext.getHandler = getHandlerSpy as any
+      mockContext.getClass = getClassSpy as any
 
       guard.canActivate(mockContext)
 
       expect(reflector.getAllAndOverride).toHaveBeenCalledWith(
         'roles',
-        expect.arrayContaining([expect.any(Function), expect.any(Function)]),
+        [handlerFn, TestController],
       )
     })
   })
