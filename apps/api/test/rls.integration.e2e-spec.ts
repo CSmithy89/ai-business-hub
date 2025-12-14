@@ -11,7 +11,7 @@
 
 describe.skip('RLS Integration Tests (DB-backed)', () => {
   it('requires a configured Postgres database', () => {
-    expect(true).toBe(true)
+    // Fail fast when a DB isn't configured for manual runs.
+    expect(process.env.POSTGRES_URL).toBeDefined()
   })
 })
-

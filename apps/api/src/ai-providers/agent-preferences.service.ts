@@ -150,6 +150,7 @@ export class AgentPreferencesService {
       // Get workspace settings (may not exist yet on a new workspace)
       settings = await this.prisma.workspaceSettings.findUnique({
         where: { workspaceId },
+        select: { agentModelPreferences: true },
       });
     } catch (error) {
       const errorCode =
@@ -158,9 +159,12 @@ export class AgentPreferencesService {
           : undefined;
 
       // In dev environments with schema drift, workspace_settings may not exist yet.
-      // Prisma throws P2021 ("table does not exist"). For that specific case,
+      // Prisma throws:
+      // - P2021: table does not exist
+      // - P2022: column does not exist (schema drift)
+      // For those specific cases,
       // fall back to defaults; for anything else, rethrow so the UI sees a real failure.
-      if (errorCode === 'P2021') {
+      if (errorCode === 'P2021' || errorCode === 'P2022') {
         this.logger.warn(
           `Failed to load workspace settings for agent preferences (workspaceId=${workspaceId})`,
           error instanceof Error ? error.stack : undefined,

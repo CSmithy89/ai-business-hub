@@ -16,7 +16,11 @@ export function AIConfigSubnav() {
   return (
     <div className="flex flex-wrap gap-2 rounded-[16px] border border-[rgb(var(--color-border-subtle))] bg-card p-2">
       {ITEMS.map((item) => {
-        const isActive = pathname === item.href
+        const normalizedPath =
+          (pathname ?? '').split(/[?#]/)[0].replace(/\/+$/, '')
+        const normalizedHref =
+          String(item.href).split(/[?#]/)[0].replace(/\/+$/, '')
+        const isActive = normalizedPath === normalizedHref
         return (
           <Link
             key={item.href}
@@ -35,4 +39,3 @@ export function AIConfigSubnav() {
     </div>
   )
 }
-

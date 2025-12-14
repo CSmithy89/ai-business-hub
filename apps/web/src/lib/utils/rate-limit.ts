@@ -143,10 +143,28 @@ function cleanupRateLimits(): void {
   }
 }
 
-// Clean up expired entries periodically (every 5 minutes)
-// Only start the interval if we're in a long-running process (not serverless)
-if (typeof setInterval !== 'undefined' && getBackend() === 'none') {
-  setInterval(cleanupRateLimits, 5 * 60 * 1000)
+let cleanupIntervalStarted = false
+
+function isLikelyServerlessRuntime(): boolean {
+  return Boolean(
+    process.env.VERCEL ||
+      process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.FUNCTIONS_WORKER_RUNTIME ||
+      process.env.K_SERVICE ||
+      process.env.WEBSITE_INSTANCE_ID
+  )
+}
+
+function ensureCleanupIntervalStarted(): void {
+  if (cleanupIntervalStarted) return
+  if (typeof setInterval === 'undefined') return
+  // Avoid background intervals in serverless runtimes / edge.
+  if (process.env.NEXT_RUNTIME === 'edge' || isLikelyServerlessRuntime()) return
+
+  cleanupIntervalStarted = true
+  const handle = setInterval(cleanupRateLimits, 5 * 60 * 1000)
+  // Don't keep the Node process alive solely for cleanup.
+  ;(handle as unknown as { unref?: () => void }).unref?.()
 }
 
 /**
@@ -224,6 +242,9 @@ export async function checkRateLimit(
   windowSeconds: number = DEFAULT_RATE_LIMIT_WINDOW_SECONDS
 ): Promise<RateLimitResult> {
   const backend = getBackend()
+  if (backend === 'none') {
+    ensureCleanupIntervalStarted()
+  }
 
   // 1) Direct Redis (REDIS_URL)
   if (backend === 'redis-url' && redisUrlClient) {

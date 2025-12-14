@@ -10,10 +10,10 @@ describe('ApprovalsService', () => {
   let service: ApprovalsService;
   type PrismaMock = {
     approvalItem: {
-      findMany: jest.Mock;
-      findUnique: jest.Mock;
-      update: jest.Mock;
-      count: jest.Mock;
+      findMany: jest.Mock<Promise<any>, any[]>;
+      findUnique: jest.Mock<Promise<any | null>, any[]>;
+      update: jest.Mock<Promise<any>, any[]>;
+      count: jest.Mock<Promise<number>, any[]>;
     };
   };
   let prisma: PrismaMock;

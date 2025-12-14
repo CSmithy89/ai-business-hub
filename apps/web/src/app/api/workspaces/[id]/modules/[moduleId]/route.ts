@@ -145,6 +145,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         updateData.enabledAt = new Date()
         updateData.disabledAt = null
       } else {
+        updateData.enabledAt = null
         updateData.disabledAt = new Date()
       }
     }
@@ -238,6 +239,12 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
         { status: 400 }
       )
     }
+    if (existingModule.enabled === false) {
+      return NextResponse.json(
+        { success: false, error: 'Module is already disabled' },
+        { status: 400 }
+      )
+    }
 
     // Disable the module (keep config for potential re-enable)
     const workspaceModule = await prisma.workspaceModule.update({
@@ -250,6 +257,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       data: {
         enabled: false,
         disabledAt: new Date(),
+        enabledAt: null,
       },
     })
 

@@ -98,7 +98,11 @@ export function useTokenLimits() {
 
   return useQuery<{ data: TokenLimitStatus[] }>({
     queryKey: ['token-limits', workspaceId],
-    queryFn: () => fetchLimitStatus(workspaceId!, token),
+    queryFn: ({ queryKey }) => {
+      const [, wsId] = queryKey as ['token-limits', string | undefined]
+      if (!wsId) throw new Error('No workspace selected')
+      return fetchLimitStatus(wsId, token)
+    },
     enabled: !!workspaceId,
     staleTime: 30000, // 30 seconds - check limits more frequently
     refetchInterval: 60000, // Refetch every minute

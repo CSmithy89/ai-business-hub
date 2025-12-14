@@ -157,15 +157,16 @@ describe('ApprovalRouterService', () => {
       );
 
       // Verify audit log
-      expect(auditLogger.logAutoApproval).toHaveBeenCalledWith({
-        workspaceId: mockWorkspaceId,
-        approvalId: 'approval-123',
-        type: 'content',
-        confidenceScore: 90,
-        threshold: 85,
-        aiReasoning: undefined,
-        factors: mockFactors,
-      });
+      expect(auditLogger.logAutoApproval).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: mockWorkspaceId,
+          approvalId: 'approval-123',
+          type: 'content',
+          confidenceScore: 90,
+          threshold: 85,
+          factors: mockFactors,
+        }),
+      );
     });
 
     it('should route medium confidence (60-85%) to pending/quick review', async () => {

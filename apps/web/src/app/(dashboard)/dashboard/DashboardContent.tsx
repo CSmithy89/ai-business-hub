@@ -46,7 +46,7 @@ export function DashboardContent() {
       )}
 
       {/* No Workspace State */}
-      {isNoWorkspace && <NoWorkspaceState />}
+      {!isLoading && isNoWorkspace && <NoWorkspaceState />}
 
       {/* Signed out state */}
       {isUnauthorized && (

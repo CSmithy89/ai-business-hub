@@ -60,11 +60,11 @@ describe('ApprovalsController', () => {
       ],
     })
       .overrideGuard(AuthGuard)
-      .useValue({ canActivate: () => true })
+      .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
       .overrideGuard(TenantGuard)
-      .useValue({ canActivate: () => true })
+      .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
       .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
+      .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
       .compile();
 
     controller = module.get<ApprovalsController>(ApprovalsController);

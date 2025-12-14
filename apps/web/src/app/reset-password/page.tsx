@@ -96,7 +96,10 @@ function ResetPasswordContent() {
           return
         }
 
-        throw new Error(errorValue || 'Failed to reset password')
+        // Surface the server error to the user instead of throwing and losing it
+        setError(errorValue || 'Failed to reset password')
+        setState('form')
+        return
       }
 
       // Success - all sessions invalidated automatically by better-auth

@@ -293,6 +293,7 @@ async def search_knowledge(
     jwt_token: str,
     query: str,
     limit: int = 5,
+    offset: int = 0,
     filters: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """
@@ -303,6 +304,7 @@ async def search_knowledge(
         jwt_token: JWT token
         query: Search query
         limit: Maximum results to return
+        offset: Number of results to skip (best-effort; implemented client-side if backend lacks offset)
         filters: Optional metadata filters
 
     Returns:
@@ -322,22 +324,26 @@ async def search_knowledge(
         # Search using Agno's knowledge search
         # Prefer passing metadata filters through to the vector store (tenant isolation + caller filters).
         # Agno's API has used both `filter=` and `filters=` across versions, so try both for compatibility.
+        safe_offset = max(0, int(offset or 0))
+        safe_limit = max(1, int(limit or 1))
+        num_docs = safe_limit + safe_offset
         try:
             results = knowledge.search(
                 query=query,
-                num_documents=limit,
+                num_documents=num_docs,
                 filters=search_filters,
             )
         except TypeError:
             results = knowledge.search(
                 query=query,
-                num_documents=limit,
+                num_documents=num_docs,
                 filter=search_filters,
             )
 
         # Format results
         formatted = []
-        for doc in results:
+        sliced = list(results)[safe_offset : safe_offset + safe_limit]
+        for doc in sliced:
             formatted.append({
                 "content": doc.content if hasattr(doc, 'content') else str(doc),
                 "metadata": doc.metadata if hasattr(doc, 'metadata') else {},

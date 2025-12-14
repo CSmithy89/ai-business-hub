@@ -266,6 +266,9 @@ const createInitialState = (): AgentStreamState => ({
   events: [],
 })
 
+const MAX_SSE_BUFFER_CHARS = 1024 * 1024 // 1MB safety cap
+const MAX_MESSAGE_LENGTH = 10_000 // Prevent accidental huge requests
+
 // ============================================================================
 // useAgentStream Hook
 // ============================================================================
@@ -313,6 +316,7 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null)
   const streamIdRef = useRef<number>(0) // Unique ID for each stream to prevent race conditions
   const contentRef = useRef<string>('') // Track content for onComplete callback
+  const mountedRef = useRef<boolean>(true)
 
   // Store callbacks in refs to avoid stale closures
   const onEventRef = useRef(onEvent)
@@ -351,10 +355,12 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
       })
       readerRef.current = null
     }
-    setState(prev => ({
-      ...prev,
-      status: 'idle',
-    }))
+    if (mountedRef.current) {
+      setState(prev => ({
+        ...prev,
+        status: 'idle',
+      }))
+    }
   }, [])
 
   /**
@@ -523,23 +529,40 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
       contentRef.current = ''
 
       // Reset state
-      setState({
-        ...createInitialState(),
-        status: 'connecting',
-      })
+      if (mountedRef.current) {
+        setState({
+          ...createInitialState(),
+          status: 'connecting',
+        })
+      }
 
       // Get auth token
       const token = getCurrentSessionToken()
       if (!token) {
         const error = new Error('No authentication token found. Please sign in.')
         if (currentStreamId === streamIdRef.current) {
+          if (mountedRef.current) {
+            setState(prev => ({
+              ...prev,
+              status: 'error',
+              error,
+            }))
+          }
+          onErrorRef.current?.(error)
+        }
+        return
+      }
+
+      if (!request.message || request.message.length > MAX_MESSAGE_LENGTH) {
+        const error = new Error(`Message too long (max ${MAX_MESSAGE_LENGTH} characters)`)
+        if (currentStreamId === streamIdRef.current && mountedRef.current) {
           setState(prev => ({
             ...prev,
             status: 'error',
             error,
           }))
-          onErrorRef.current?.(error)
         }
+        onErrorRef.current?.(error)
         return
       }
 
@@ -640,6 +663,9 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
 
           // Decode chunk and add to buffer
           buffer += decoder.decode(value, { stream: true })
+          if (buffer.length > MAX_SSE_BUFFER_CHARS) {
+            throw new Error('Stream buffer exceeded 1MB; aborting to prevent memory bloat')
+          }
 
           // Process complete events (separated by double newline)
           const parts = buffer.split('\n\n')
@@ -675,11 +701,13 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
         }
 
         const error = err instanceof Error ? err : new Error('Unknown streaming error')
-        setState(prev => ({
-          ...prev,
-          status: 'error',
-          error,
-        }))
+        if (mountedRef.current) {
+          setState(prev => ({
+            ...prev,
+            status: 'error',
+            error,
+          }))
+        }
         onErrorRef.current?.(error)
       } finally {
         // Only clean up if this is still the current stream
@@ -695,6 +723,7 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      mountedRef.current = false
       abort()
     }
   }, [abort])

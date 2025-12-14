@@ -32,9 +32,7 @@ describe('RolesGuard', () => {
       memberRole,
     }
 
-    if (requiredRoles !== undefined) {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(requiredRoles)
-    }
+    ;(reflector.getAllAndOverride as jest.Mock).mockReturnValue(requiredRoles)
 
     return {
       switchToHttp: () => ({
@@ -147,7 +145,7 @@ describe('RolesGuard', () => {
     })
 
     it('should properly extract roles from both handler and class decorators', () => {
-      const mockContext = createMockExecutionContext('admin', ['admin'])
+      const mockContext = createMockExecutionContext('admin')
       const handlerFn = () => null
       class TestController {}
       const getHandlerSpy = jest.fn(() => handlerFn)

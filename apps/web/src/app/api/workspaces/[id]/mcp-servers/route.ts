@@ -26,7 +26,7 @@ import {
 } from '@/lib/constants/mcp'
 
 interface RouteParams {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 /**
@@ -81,7 +81,7 @@ const CreateMCPServerSchema = z.object({
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId } = params
+    const { id: workspaceId } = await params
 
     // Verify membership (any member can view servers)
     await requireWorkspaceMembership(workspaceId)
@@ -145,7 +145,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId } = params
+    const { id: workspaceId } = await params
 
     // Require admin role to add servers
     const membership = await requireWorkspaceMembership(workspaceId)

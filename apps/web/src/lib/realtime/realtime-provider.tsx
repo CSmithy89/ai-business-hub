@@ -11,7 +11,6 @@ import React, {
 } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useSession, getCurrentSessionToken } from '@/lib/auth-client';
-import { STORAGE_ACTIVE_WORKSPACE_ID } from '@/lib/storage-keys';
 import {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -265,13 +264,6 @@ export function RealtimeProvider({
       status: 'connecting',
       error: null,
     }));
-
-    // Get workspace ID from session or local storage
-    const workspaceId =
-      (currentSession as { activeWorkspaceId?: string })?.activeWorkspaceId ||
-      (currentSession.session as { activeWorkspaceId?: string })?.activeWorkspaceId ||
-      localStorage.getItem(STORAGE_ACTIVE_WORKSPACE_ID) ||
-      '';
 
     // Get session token for authentication
     // Prefer token from session hook (cookie may be HttpOnly and unreadable).

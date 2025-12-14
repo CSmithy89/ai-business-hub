@@ -21,7 +21,7 @@ import { safeStringMap } from '@/lib/validation/safe-string-map'
 import { VALID_TRANSPORTS, getPermissionName } from '@/lib/constants/mcp'
 
 interface RouteParams {
-  params: { id: string; serverId: string }
+  params: Promise<{ id: string; serverId: string }>
 }
 
 /**
@@ -59,7 +59,7 @@ const UpdateMCPServerSchema = z.object({
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId, serverId } = params
+    const { id: workspaceId, serverId } = await params
 
     // Verify membership
     const membership = await requireWorkspaceMembership(workspaceId)
@@ -143,7 +143,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId, serverId } = params
+    const { id: workspaceId, serverId } = await params
 
     // Require admin role
     const membership = await requireWorkspaceMembership(workspaceId)
@@ -266,7 +266,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId, serverId } = params
+    const { id: workspaceId, serverId } = await params
 
     // Require admin role
     const membership = await requireWorkspaceMembership(workspaceId)

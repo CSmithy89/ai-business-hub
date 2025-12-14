@@ -51,7 +51,12 @@ export function AIProviderList() {
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
-        <p className="text-destructive">Failed to load AI keys: {error.message}</p>
+        <p className="text-destructive">
+          Failed to load AI keys.
+          {process.env.NODE_ENV === 'development' &&
+            error &&
+            (error instanceof Error ? ` ${error.message}` : ` ${String(error)}`)}
+        </p>
         <Button variant="outline" size="sm" className="mt-2" onClick={() => refetch()}>
           <RefreshCw className="mr-2 h-4 w-4" />
           Retry
@@ -82,10 +87,17 @@ export function AIProviderList() {
       {providers.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
           <p className="text-muted-foreground">No AI keys added yet.</p>
-          <Button variant="outline" className="mt-4" onClick={() => setShowAddDialog(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add your first key
-          </Button>
+          {availableProviders.length > 0 ? (
+            <Button variant="outline" className="mt-4" onClick={() => setShowAddDialog(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add your first key
+            </Button>
+          ) : (
+            <Button variant="outline" className="mt-4" disabled>
+              <Plus className="mr-2 h-4 w-4" />
+              No providers available
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-4">

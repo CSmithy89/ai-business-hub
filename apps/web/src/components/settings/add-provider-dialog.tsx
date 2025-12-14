@@ -87,8 +87,8 @@ export function AddProviderDialog({
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add AI Key</DialogTitle>
-            <DialogDescription>
+            <DialogTitle id="add-provider-dialog-title">Add AI Key</DialogTitle>
+            <DialogDescription id="add-provider-dialog-description">
               Add an API key for an AI provider to enable AI features for your workspace.
             </DialogDescription>
           </DialogHeader>

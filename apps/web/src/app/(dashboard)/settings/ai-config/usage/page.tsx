@@ -11,7 +11,7 @@ export const metadata = {
 
 export default async function SettingsUsagePage() {
   const session = await getSession()
-  const workspaceId = session?.session.activeWorkspaceId
+  const workspaceId = session?.session?.activeWorkspaceId
 
   return (
     <SettingsLayout
@@ -19,7 +19,7 @@ export default async function SettingsUsagePage() {
       description="View and analyze your AI token consumption"
     >
       <AIConfigSubnav />
-      {workspaceId ? <TokenUsageDashboard /> : <WorkspaceRequired />}
+      {workspaceId != null ? <TokenUsageDashboard /> : <WorkspaceRequired />}
     </SettingsLayout>
   )
 }

@@ -292,7 +292,13 @@ export function AddMCPServerDialog({
                   max={300}
                   value={timeoutSeconds}
                   onChange={(e) => {
-                    const value = Number(e.target.value)
+                    const raw = e.target.value
+                    if (raw === '') {
+                      // Avoid treating empty string as 0 (Number('') === 0)
+                      setTimeoutSeconds(30)
+                      return
+                    }
+                    const value = Number(raw)
                     if (!Number.isFinite(value)) {
                       setTimeoutSeconds(30)
                       return

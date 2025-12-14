@@ -410,6 +410,25 @@ Additional dev hardening: default WebSocket hostname to the current `window.loca
 | DB migrations | Add DB-level default for `updated_at` on new module/MCP tables | `packages/db/prisma/migrations/20251214153000_add_updated_at_defaults/migration.sql` | ✅ Done |
 | Prisma schema | Align MCP tool filter arrays with DB defaults | `packages/db/prisma/schema.prisma` | ✅ Done |
 
+#### 5.5.5. Review Follow-ups (P1/P2) ✅ COMPLETE
+
+| Area | Improvement | Files | Status |
+|------|-------------|-------|--------|
+| Next.js route typing | Align route handler context typing with Next 15 generated types (`params: Promise<...>`) to restore `pnpm type-check` | `apps/web/src/app/api/workspaces/[id]/**/route.ts` | ✅ Done |
+| Streaming safety | Add SSE buffer cap (1MB), request message length guard, and unmount-safe state updates | `apps/web/src/hooks/use-agent-stream.ts` | ✅ Done |
+| Rate limiting | Avoid import-time side-effects/intervals; start in-memory cleanup lazily and skip serverless/edge runtimes | `apps/web/src/lib/utils/rate-limit.ts` | ✅ Done |
+| Token limits hook | Remove non-null assertion in queryFn by deriving workspaceId from queryKey; URL-encode IDs/base URL normalization | `apps/web/src/hooks/use-token-limits.ts` | ✅ Done |
+| Knowledge search | Add `offset` support (best-effort via limit+offset + slice) | `agents/knowledge/ingestion.py` | ✅ Done |
+| Agent preferences resiliency | Treat Prisma schema drift (`P2021`/`P2022`) as dev-only fallback to defaults | `apps/api/src/ai-providers/agent-preferences.service.ts` | ✅ Done |
+| Test stability | Fix brittle unit tests (guard mocks, optional fields, RLS env assertion, roles guard helper) | `apps/api/src/**/**/*.spec.ts`, `apps/api/test/rls.integration.e2e-spec.ts` | ✅ Done |
+
+**Verification:**
+* ✅ `pnpm type-check`
+* ✅ `pnpm --filter @hyvve/api test`
+* ✅ `pnpm --filter @hyvve/web test`
+* ✅ `pnpm --filter @hyvve/web lint` (warnings only)
+* ✅ Playwright smoke: settings pages render; realtime tooltip shows active when API reachable
+
 ---
 
 ## 6. Dependency Requirements

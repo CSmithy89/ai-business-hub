@@ -326,7 +326,12 @@ export function EditMCPServerDialog({
                   max={300}
                   value={timeoutSeconds}
                   onChange={(e) => {
-                    const value = Number(e.target.value)
+                    const raw = e.target.value
+                    if (raw === '') {
+                      setTimeoutSeconds(30)
+                      return
+                    }
+                    const value = Number(raw)
                     if (!Number.isFinite(value)) {
                       return
                     }

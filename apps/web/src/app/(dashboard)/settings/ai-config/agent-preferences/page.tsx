@@ -11,7 +11,7 @@ export const metadata = {
 
 export default async function AgentPreferencesPage() {
   const session = await getSession()
-  const workspaceId = session?.session.activeWorkspaceId
+  const workspaceId = session?.session?.activeWorkspaceId
 
   return (
     <SettingsLayout
@@ -19,7 +19,7 @@ export default async function AgentPreferencesPage() {
       description="Configure which AI model each agent team should use"
     >
       <AIConfigSubnav />
-      {workspaceId ? <AgentModelPreferences /> : <WorkspaceRequired />}
+      {workspaceId != null ? <AgentModelPreferences /> : <WorkspaceRequired />}
     </SettingsLayout>
   )
 }
