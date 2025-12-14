@@ -152,13 +152,23 @@ export class AgentPreferencesService {
         where: { workspaceId },
       });
     } catch (error) {
+      const errorCode =
+        error && typeof error === 'object' && 'code' in error
+          ? (error as { code?: unknown }).code
+          : undefined;
+
       // In dev environments with schema drift, workspace_settings may not exist yet.
-      // Avoid surfacing a hard 500 to the UI; fall back to defaults and log.
-      this.logger.warn(
-        `Failed to load workspace settings for agent preferences (workspaceId=${workspaceId})`,
-        error instanceof Error ? error.stack : undefined,
-      );
-      settings = null;
+      // Prisma throws P2021 ("table does not exist"). For that specific case,
+      // fall back to defaults; for anything else, rethrow so the UI sees a real failure.
+      if (errorCode === 'P2021') {
+        this.logger.warn(
+          `Failed to load workspace settings for agent preferences (workspaceId=${workspaceId})`,
+          error instanceof Error ? error.stack : undefined,
+        );
+        settings = null;
+      } else {
+        throw error;
+      }
     }
 
     const preferences = (settings?.agentModelPreferences as unknown as Record<

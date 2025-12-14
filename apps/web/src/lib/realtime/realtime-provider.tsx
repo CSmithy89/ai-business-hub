@@ -33,8 +33,48 @@ interface RealtimeConfig {
   reconnectMaxDelay: number;
 }
 
+function normalizeSocketBaseUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  if (value.startsWith('ws://')) return `http://${value.slice('ws://'.length)}`;
+  if (value.startsWith('wss://')) return `https://${value.slice('wss://'.length)}`;
+  return value;
+}
+
+function resolveDefaultRealtimeUrl(): string {
+  const fromEnv =
+    normalizeSocketBaseUrl(process.env.NEXT_PUBLIC_WS_URL) ||
+    process.env.NEXT_PUBLIC_API_URL;
+
+  // If we're in the browser and the env base points at localhost/127.0.0.1
+  // but the app is being accessed via a different hostname (Docker/VM/WSL),
+  // swap in the current hostname so Socket.io can connect.
+  if (typeof window !== 'undefined') {
+    const currentHostname = window.location.hostname;
+    if (fromEnv) {
+      try {
+        const parsed = new URL(fromEnv);
+        if (
+          (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') &&
+          currentHostname !== 'localhost' &&
+          currentHostname !== '127.0.0.1'
+        ) {
+          parsed.hostname = currentHostname;
+          return parsed.toString().replace(/\/$/, '');
+        }
+        return fromEnv;
+      } catch {
+        // ignore and fall through
+      }
+    }
+
+    return `${window.location.protocol}//${currentHostname}:3001`;
+  }
+
+  return fromEnv || 'http://localhost:3001';
+}
+
 const DEFAULT_CONFIG: RealtimeConfig = {
-  url: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  url: 'http://localhost:3001',
   maxReconnectAttempts: 10,
   reconnectBaseDelay: 1000,
   reconnectMaxDelay: 30000,
@@ -140,16 +180,16 @@ const RealtimeContext = createContext<RealtimeContextValue | null>(null);
  */
 export function RealtimeProvider({
   children,
-  config = DEFAULT_CONFIG,
+  config = {},
 }: {
   children: React.ReactNode;
   config?: Partial<RealtimeConfig>;
 }) {
   const { data: session } = useSession();
-  const mergedConfig = useMemo(
-    () => ({ ...DEFAULT_CONFIG, ...config }),
-    [config]
-  );
+  const mergedConfig = useMemo(() => {
+    const resolvedUrl = config.url || resolveDefaultRealtimeUrl();
+    return { ...DEFAULT_CONFIG, ...config, url: resolvedUrl };
+  }, [config]);
 
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);

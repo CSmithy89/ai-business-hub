@@ -17,6 +17,7 @@ import {
   WorkspaceAuthError,
 } from '@/middleware/workspace-auth'
 import { encryptApiKey } from '@/lib/utils/encryption'
+import { safeStringMap } from '@/lib/validation/safe-string-map'
 import { VALID_TRANSPORTS, getPermissionName } from '@/lib/constants/mcp'
 
 interface RouteParams {
@@ -32,8 +33,8 @@ const UpdateMCPServerSchema = z.object({
   command: z.string().optional().nullable(),
   url: z.string().url().optional().nullable(),
   apiKey: z.string().optional().nullable(),
-  headers: z.record(z.string(), z.string()).optional(),
-  envVars: z.record(z.string(), z.string()).optional(),
+  headers: safeStringMap('Headers').optional(),
+  envVars: safeStringMap('Environment variables').optional(),
   includeTools: z.array(z.string()).optional(),
   excludeTools: z.array(z.string()).optional(),
   permissions: z.number().int().min(0).max(7).optional(),
@@ -69,6 +70,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
         command: true,
         url: true,
         headers: true,
+        envVars: true,
         includeTools: true,
         excludeTools: true,
         permissions: true,
@@ -250,32 +252,28 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     const membership = await requireWorkspaceMembership(workspaceId)
     requireRole(membership.role, ['owner', 'admin'])
 
-    // Check if server exists
-    const existing = await prisma.mCPServerConfig.findUnique({
-      where: {
-        workspaceId_serverId: {
-          workspaceId,
-          serverId,
+    // Delete the server (handles race condition where it may already be deleted)
+    try {
+      await prisma.mCPServerConfig.delete({
+        where: {
+          workspaceId_serverId: {
+            workspaceId,
+            serverId,
+          },
         },
-      },
-    })
-
-    if (!existing) {
-      return NextResponse.json(
-        { success: false, error: 'MCP server not found' },
-        { status: 404 }
-      )
+      })
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        return NextResponse.json(
+          { success: false, error: 'MCP server not found' },
+          { status: 404 }
+        )
+      }
+      throw error
     }
-
-    // Delete the server
-    await prisma.mCPServerConfig.delete({
-      where: {
-        workspaceId_serverId: {
-          workspaceId,
-          serverId,
-        },
-      },
-    })
 
     return NextResponse.json({
       success: true,

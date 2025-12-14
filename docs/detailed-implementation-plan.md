@@ -339,6 +339,20 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 | AI config sub-navigation (preferences/usage) | `apps/web/src/components/settings/ai-config-subnav.tsx` | ✅ Done |
 | Settings nav updated (Modules + MCP) | `apps/web/src/components/layouts/settings-layout.tsx` | ✅ Done |
 
+#### 5.4.1. UI + API Hardening Pass ✅ COMPLETE
+
+| Area | Improvement | Files | Status |
+|------|-------------|-------|--------|
+| Modules | Prevent sensitive module config exposure (admins/owners only) | `apps/web/src/app/api/workspaces/[id]/modules/route.ts`, `apps/web/src/app/api/workspaces/[id]/modules/[moduleId]/route.ts` | ✅ Done |
+| Modules | Ensure `disabledAt` is set when creating disabled module records | `apps/web/src/app/api/workspaces/[id]/modules/[moduleId]/route.ts` | ✅ Done |
+| MCP | Fix DELETE race condition (return 404 on already-deleted) | `apps/web/src/app/api/workspaces/[id]/mcp-servers/[serverId]/route.ts` | ✅ Done |
+| MCP | Include `envVars` on detail GET + support editing in UI | `apps/web/src/app/api/workspaces/[id]/mcp-servers/[serverId]/route.ts`, `apps/web/src/hooks/use-mcp-servers.ts`, `apps/web/src/components/settings/edit-mcp-server-dialog.tsx` | ✅ Done |
+| MCP | Clamp timeout inputs to backend constraints + reset form on Cancel | `apps/web/src/components/settings/add-mcp-server-dialog.tsx`, `apps/web/src/components/settings/edit-mcp-server-dialog.tsx` | ✅ Done |
+| MCP | Validate `headers`/`envVars` payload size/shape to avoid abuse/prototype keys | `apps/web/src/lib/validation/safe-string-map.ts`, `apps/web/src/app/api/workspaces/[id]/mcp-servers/route.ts`, `apps/web/src/app/api/workspaces/[id]/mcp-servers/[serverId]/route.ts` | ✅ Done |
+| AI Providers | Don’t swallow non-schema-drift DB errors when loading agent preferences | `apps/api/src/ai-providers/agent-preferences.service.ts` | ✅ Done |
+| Usage | Normalize Nest base URL + URL-encode IDs for token limit routes | `apps/web/src/hooks/use-token-limits.ts` | ✅ Done |
+| Chat | Revoke preview object URLs on send to avoid memory leaks | `apps/web/src/components/chat/ChatInput.tsx` | ✅ Done |
+
 ---
 
 ### 5.5. Dev Runtime + Key Interop ✅ COMPLETE
@@ -370,9 +384,10 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 
 #### 5.5.3. Realtime UX Regression ✅ FIXED
 
-**Issue:** “Real-time updates unavailable” shown due to missing/incorrect session token retrieval for WebSocket auth.
+**Issue:** “Real-time updates unavailable” shown due to missing/incorrect session token retrieval for WebSocket auth and dev hostname/CORS mismatches (Docker/VM/WSL access via non-`localhost` hostnames).
 
 **Fix:** Prefer Better Auth session token from `useSession()`, and fall back to cookie-based auth (HttpOnly session cookie) in development.
+Additional dev hardening: default WebSocket hostname to the current `window.location.hostname` when env points at `localhost`, and allow private-network origins when `CORS_ALLOWED_ORIGINS` is not set (dev only).
 
 *   ✅ `apps/web/src/lib/auth-client.ts`
 *   ✅ `apps/web/src/lib/realtime/realtime-provider.tsx`

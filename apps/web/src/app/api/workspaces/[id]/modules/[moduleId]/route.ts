@@ -40,7 +40,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     const { id: workspaceId, moduleId } = await params
 
     // Verify membership
-    await requireWorkspaceMembership(workspaceId)
+    const membership = await requireWorkspaceMembership(workspaceId)
+    const canViewConfig = membership.role === 'owner' || membership.role === 'admin'
 
     // Validate module ID
     const moduleInfo = getModuleById(moduleId)
@@ -66,7 +67,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       data: {
         ...moduleInfo,
         enabled: moduleInfo.isCore || (workspaceModule?.enabled ?? false),
-        config: workspaceModule?.config ?? {},
+        config: canViewConfig ? (workspaceModule?.config ?? {}) : {},
         enabledAt: workspaceModule?.enabledAt ?? null,
         disabledAt: workspaceModule?.disabledAt ?? null,
       },
@@ -162,6 +163,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         enabled: enabled ?? false,
         config: (config ?? {}) as Prisma.InputJsonValue,
         enabledAt: enabled ? new Date() : null,
+        disabledAt: enabled === false ? new Date() : null,
       },
       update: updateData,
     })

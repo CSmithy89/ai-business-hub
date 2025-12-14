@@ -81,6 +81,7 @@ export function EditMCPServerDialog({
   const [includeTools, setIncludeTools] = useState(server.includeTools.join(', '))
   const [excludeTools, setExcludeTools] = useState(server.excludeTools.join(', '))
   const [headersJSON, setHeadersJSON] = useState(JSON.stringify(server.headers ?? {}, null, 2))
+  const [envVarsJSON, setEnvVarsJSON] = useState(JSON.stringify(server.envVars ?? {}, null, 2))
   const [apiKey, setApiKey] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -101,6 +102,7 @@ export function EditMCPServerDialog({
     setIncludeTools(server.includeTools.join(', '))
     setExcludeTools(server.excludeTools.join(', '))
     setHeadersJSON(JSON.stringify(server.headers ?? {}, null, 2))
+    setEnvVarsJSON(JSON.stringify(server.envVars ?? {}, null, 2))
     setApiKey('')
     setError(null)
   }, [open, server])
@@ -116,6 +118,7 @@ export function EditMCPServerDialog({
     setIncludeTools(server.includeTools.join(', '))
     setExcludeTools(server.excludeTools.join(', '))
     setHeadersJSON(JSON.stringify(server.headers ?? {}, null, 2))
+    setEnvVarsJSON(JSON.stringify(server.envVars ?? {}, null, 2))
     setApiKey('')
     setError(null)
   }
@@ -140,10 +143,12 @@ export function EditMCPServerDialog({
     }
 
     let headers: Record<string, string> = {}
+    let envVars: Record<string, string> = {}
     try {
       headers = parseStringMapJSON(headersJSON, 'Headers')
+      envVars = parseStringMapJSON(envVarsJSON, 'Environment variables')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid headers JSON')
+      setError(err instanceof Error ? err.message : 'Invalid JSON in advanced settings')
       return
     }
 
@@ -156,6 +161,7 @@ export function EditMCPServerDialog({
       includeTools: parseStringArray(includeTools),
       excludeTools: parseStringArray(excludeTools),
       headers,
+      envVars,
     }
 
     if (transport === 'stdio') {
@@ -319,7 +325,14 @@ export function EditMCPServerDialog({
                   min={5}
                   max={300}
                   value={timeoutSeconds}
-                  onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const value = Number(e.target.value)
+                    if (!Number.isFinite(value)) {
+                      return
+                    }
+                    const clamped = Math.min(300, Math.max(5, Math.round(value)))
+                    setTimeoutSeconds(clamped)
+                  }}
                   disabled={isSaving}
                 />
               </div>
@@ -365,6 +378,17 @@ export function EditMCPServerDialog({
                     disabled={isSaving}
                   />
                 </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="envVars">Environment variables (JSON object)</Label>
+                  <Textarea
+                    id="envVars"
+                    value={envVarsJSON}
+                    onChange={(e) => setEnvVarsJSON(e.target.value)}
+                    className="min-h-[120px] font-mono text-sm"
+                    spellCheck={false}
+                    disabled={isSaving}
+                  />
+                </div>
               </div>
             </details>
 
@@ -398,4 +422,3 @@ export function EditMCPServerDialog({
     </Dialog>
   )
 }
-

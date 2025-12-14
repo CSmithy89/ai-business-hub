@@ -27,6 +27,7 @@ export interface MCPServerSummary {
 
 export interface MCPServerDetail extends MCPServerSummary {
   headers: Record<string, string>
+  envVars: Record<string, string>
   hasApiKey: boolean
 }
 
@@ -203,4 +204,3 @@ export function useMCPServerMutations() {
     deleteServer,
   }
 }
-

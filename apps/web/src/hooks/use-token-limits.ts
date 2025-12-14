@@ -10,6 +10,14 @@ function getSessionToken(session: unknown): string | undefined {
   return direct || nested || undefined
 }
 
+function getNestBaseUrl(): string {
+  const base = NESTJS_API_URL?.replace(/\/$/, '')
+  if (!base) {
+    throw new Error('NEXT_PUBLIC_API_URL is not configured')
+  }
+  return base
+}
+
 /**
  * Token limit status
  */
@@ -31,7 +39,8 @@ async function fetchLimitStatus(
   workspaceId: string,
   token: string | undefined
 ): Promise<{ data: TokenLimitStatus[] }> {
-  const response = await fetch(`${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/limits`, {
+  const base = getNestBaseUrl()
+  const response = await fetch(`${base}/workspaces/${encodeURIComponent(workspaceId)}/ai-providers/limits`, {
     credentials: 'include',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
@@ -53,8 +62,9 @@ async function updateLimit(
   maxTokensPerDay: number,
   token: string | undefined
 ): Promise<{ message: string; data: TokenLimitStatus }> {
+  const base = getNestBaseUrl()
   const response = await fetch(
-    `${NESTJS_API_URL}/workspaces/${workspaceId}/ai-providers/${providerId}/limit`,
+    `${base}/workspaces/${encodeURIComponent(workspaceId)}/ai-providers/${encodeURIComponent(providerId)}/limit`,
     {
       method: 'PATCH',
       credentials: 'include',

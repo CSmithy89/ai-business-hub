@@ -47,7 +47,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     const { id: workspaceId } = await params
 
     // Verify membership (any member can view modules)
-    await requireWorkspaceMembership(workspaceId)
+    const membership = await requireWorkspaceMembership(workspaceId)
+    const canViewConfig = membership.role === 'owner' || membership.role === 'admin'
 
     // Get enabled modules for this workspace
     const enabledModules = await prisma.workspaceModule.findMany({
@@ -65,7 +66,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       return {
         ...module,
         enabled: module.isCore || (enabled?.enabled ?? false),
-        config: enabled?.config ?? {},
+        config: canViewConfig ? (enabled?.config ?? {}) : {},
         enabledAt: enabled?.enabledAt ?? null,
       }
     })

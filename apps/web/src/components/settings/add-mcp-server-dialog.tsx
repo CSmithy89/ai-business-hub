@@ -291,7 +291,15 @@ export function AddMCPServerDialog({
                   min={5}
                   max={300}
                   value={timeoutSeconds}
-                  onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const value = Number(e.target.value)
+                    if (!Number.isFinite(value)) {
+                      setTimeoutSeconds(30)
+                      return
+                    }
+                    const clamped = Math.min(300, Math.max(5, Math.round(value)))
+                    setTimeoutSeconds(clamped)
+                  }}
                   disabled={isCreating}
                 />
               </div>
@@ -360,7 +368,10 @@ export function AddMCPServerDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                reset()
+                onOpenChange(false)
+              }}
               disabled={isCreating}
             >
               Cancel
@@ -375,4 +386,3 @@ export function AddMCPServerDialog({
     </Dialog>
   )
 }
-

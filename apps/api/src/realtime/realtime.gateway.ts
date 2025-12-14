@@ -103,6 +103,23 @@ const MAX_CONNECTIONS_PER_USER = parseInt(
       const isProduction = process.env.NODE_ENV === 'production';
       const configuredOrigins = process.env.CORS_ALLOWED_ORIGINS;
 
+      const isAllowedDevOrigin = (value: string): boolean => {
+        // Allow common local dev origins across Docker/WSL/VM setups.
+        return (
+          value.startsWith('http://localhost:') ||
+          value.startsWith('http://127.0.0.1:') ||
+          value.startsWith('http://[::1]:') ||
+          value.startsWith('http://10.') ||
+          value.startsWith('http://192.168.') ||
+          value.startsWith('http://172.16.') ||
+          value.startsWith('http://172.17.') ||
+          value.startsWith('http://172.18.') ||
+          value.startsWith('http://172.19.') ||
+          value.startsWith('http://172.2') ||
+          value.startsWith('http://172.3')
+        );
+      };
+
       // SECURITY: In production, CORS_ALLOWED_ORIGINS must be explicitly configured
       if (isProduction && !configuredOrigins) {
         console.error(
@@ -121,6 +138,12 @@ const MAX_CONNECTIONS_PER_USER = parseInt(
 
       // Allow requests with no origin (mobile apps, curl, etc) in development only
       if (!origin && !isProduction) {
+        callback(null, true);
+        return;
+      }
+
+      // Dev fallback: if no explicit allowlist is configured, permit local/private network origins.
+      if (!isProduction && !configuredOrigins && origin && isAllowedDevOrigin(origin)) {
         callback(null, true);
         return;
       }

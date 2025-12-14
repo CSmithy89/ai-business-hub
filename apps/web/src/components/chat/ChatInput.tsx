@@ -62,6 +62,10 @@ export function ChatInput({
       const files = attachedFiles.map((af) => af.file);
       onSend(message.trim(), files.length > 0 ? files : undefined);
       setMessage('');
+      // Prevent memory leaks from image previews
+      attachedFiles.forEach((file) => {
+        if (file.preview) URL.revokeObjectURL(file.preview);
+      });
       setAttachedFiles([]);
       setShowMentionPopup(false);
       // Reset textarea height

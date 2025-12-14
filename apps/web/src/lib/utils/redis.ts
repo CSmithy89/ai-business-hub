@@ -22,31 +22,49 @@ export type RedisBackend =
   | { kind: 'upstash'; client: UpstashRedis }
   | { kind: 'none'; client: null }
 
+function resolveRedisUrl(): string | null {
+  if (Object.prototype.hasOwnProperty.call(process.env, 'REDIS_URL')) {
+    const explicit = process.env.REDIS_URL?.trim()
+    return explicit || null
+  }
+
+  // Dev-quality of life: if Docker Redis is running locally and the env var isn't set,
+  // default to localhost. Never do this in production/test.
+  if (process.env.NODE_ENV === 'development') {
+    return 'redis://localhost:6379'
+  }
+
+  return null
+}
+
 function createIoRedis(): Redis | null {
-  const redisUrl = process.env.REDIS_URL
+  const redisUrl = resolveRedisUrl()
   if (!redisUrl) return null
 
-  if (!globalThis.__hyvve_io_redis__) {
-    const url = new URL(redisUrl)
+  const existing = globalThis.__hyvve_io_redis__
+  if (existing && existing.status !== 'end') return existing
 
-    const dbFromPath = url.pathname?.replace('/', '')
-    const db = dbFromPath ? Number(dbFromPath) : undefined
-
-    globalThis.__hyvve_io_redis__ = new Redis({
-      host: url.hostname,
-      port: url.port ? Number(url.port) : 6379,
-      username: url.username || undefined,
-      password: url.password || undefined,
-      db: Number.isFinite(db) ? db : undefined,
-      tls: url.protocol === 'rediss:' ? {} : undefined,
+  try {
+    const client = new Redis(redisUrl, {
       // Safer defaults for dev/serverless-like environments:
       lazyConnect: true,
       enableOfflineQueue: false,
       maxRetriesPerRequest: 1,
+      // Avoid infinite reconnection loops in dev; in production prefer Upstash.
+      retryStrategy: () => null,
+      connectTimeout: 1000,
     })
-  }
 
-  return globalThis.__hyvve_io_redis__
+    client.on('error', (error) => {
+      console.warn('[redis] ioredis error:', error)
+    })
+
+    globalThis.__hyvve_io_redis__ = client
+    return client
+  } catch (error) {
+    console.warn('[redis] Invalid REDIS_URL; falling back:', error)
+    return null
+  }
 }
 
 function createUpstashRedis(): UpstashRedis | null {

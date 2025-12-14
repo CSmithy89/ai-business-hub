@@ -16,6 +16,7 @@ import {
   WorkspaceAuthError,
 } from '@/middleware/workspace-auth'
 import { encryptApiKey } from '@/lib/utils/encryption'
+import { safeStringMap } from '@/lib/validation/safe-string-map'
 import {
   VALID_TRANSPORTS,
   PERMISSION_LEVELS,
@@ -40,8 +41,8 @@ const CreateMCPServerSchema = z.object({
   command: z.string().optional(),
   url: z.string().url().optional(),
   apiKey: z.string().optional(),
-  headers: z.record(z.string(), z.string()).optional().default({}),
-  envVars: z.record(z.string(), z.string()).optional().default({}),
+  headers: safeStringMap('Headers').optional().default({}),
+  envVars: safeStringMap('Environment variables').optional().default({}),
   includeTools: z.array(z.string()).optional().default([]),
   excludeTools: z.array(z.string()).optional().default([]),
   permissions: z.number().int().min(0).max(7).optional().default(1),
