@@ -139,13 +139,38 @@ export function getCurrentSessionToken(): string | undefined {
   if (typeof window === 'undefined') return undefined
 
   const cookies = document.cookie.split(';')
-  const sessionCookie = cookies.find((c) =>
-    c.trim().startsWith('hyvve.session_token=')
-  )
 
-  if (!sessionCookie) return undefined
+  const getCookie = (name: string): string | undefined => {
+    const match = cookies.find((c) => c.trim().startsWith(`${name}=`))
+    if (!match) return undefined
+    const rawValue = match.trim().slice(name.length + 1)
+    try {
+      return decodeURIComponent(rawValue)
+    } catch {
+      return rawValue
+    }
+  }
 
-  return sessionCookie.split('=')[1]
+  // Prefer session data cookie (non-HttpOnly) when present.
+  // Better Auth commonly stores the HttpOnly token cookie, so reading
+  // `hyvve.session_token` via `document.cookie` may fail.
+  const sessionData = getCookie('hyvve.session_data')
+  if (sessionData) {
+    try {
+      const normalized = sessionData.replace(/-/g, '+').replace(/_/g, '/')
+      const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4)
+      const json = JSON.parse(atob(padded)) as {
+        session?: { session?: { token?: string }; token?: string }
+      }
+      const token = json.session?.session?.token ?? json.session?.token
+      if (token) return token
+    } catch {
+      // ignore and fall through
+    }
+  }
+
+  // Fallback: direct token cookie (may be HttpOnly and unavailable client-side)
+  return getCookie('hyvve.session_token')
 }
 
 /**

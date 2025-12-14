@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AgentClient, AgentAPIError } from './agent-client'
 
+vi.mock('@/lib/auth-client', () => ({
+  getCurrentSessionToken: () => 'test-token',
+}))
+
 describe('AgentClient runtime validation (Story 14-10)', () => {
   const baseURL = 'http://agent.test'
   let client: AgentClient
@@ -18,6 +22,7 @@ describe('AgentClient runtime validation (Story 14-10)', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok,
       status,
+      text: async () => JSON.stringify(body),
       json: async () => body,
     }) as any
   }

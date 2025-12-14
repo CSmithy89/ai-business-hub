@@ -234,8 +234,11 @@ export function RealtimeProvider({
       '';
 
     // Get session token for authentication
+    // Prefer token from session hook (cookie may be HttpOnly and unreadable).
     // SECURITY: Token is validated server-side against session database
-    const token = getCurrentSessionToken();
+    const token =
+      (currentSession.session as { token?: string } | undefined)?.token ||
+      getCurrentSessionToken();
     if (!token) {
       console.warn('[Realtime] No session token available for WebSocket auth');
       setConnectionState((prev) => ({

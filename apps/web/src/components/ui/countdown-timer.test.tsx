@@ -58,6 +58,15 @@ describe('CountdownTimer component snapshot', () => {
 })
 
 describe('CountdownTimer reset behavior', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
   it('reset restarts timer and clears interval', () => {
     const clearSpy = vi.spyOn(window, 'clearInterval')
     const { result } = renderHook(() => useOptimizedCountdown(2, { autoStart: true }))
