@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { NextConfig } from 'next';
+import dotenv from 'dotenv';
 
 const MONOREPO_ENV_ALLOWLIST = new Set([
   // Database (server-only)
@@ -56,26 +57,18 @@ function loadMonorepoEnvFallback(): void {
   for (const filePath of candidates) {
     if (!fs.existsSync(filePath)) continue;
 
-    const contents = fs.readFileSync(filePath, 'utf8');
-    for (const rawLine of contents.split(/\r?\n/)) {
-      const line = rawLine.trim();
-      if (!line || line.startsWith('#')) continue;
+    let contents: string;
+    try {
+      contents = fs.readFileSync(filePath, 'utf8');
+    } catch {
+      // File was removed or became unreadable between exists check and read.
+      continue;
+    }
 
-      const eq = line.indexOf('=');
-      if (eq <= 0) continue;
-
-      const key = line.slice(0, eq).trim();
+    const parsed = dotenv.parse(contents);
+    for (const [key, value] of Object.entries(parsed)) {
       if (!key || Object.prototype.hasOwnProperty.call(process.env, key)) continue;
       if (!isAllowedMonorepoEnvKey(key)) continue;
-
-      let value = line.slice(eq + 1).trim();
-      if (
-        (value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))
-      ) {
-        value = value.slice(1, -1);
-      }
-
       process.env[key] = value;
     }
   }

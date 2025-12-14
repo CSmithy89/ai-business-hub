@@ -356,6 +356,7 @@ class ProviderResolver:
 
 # Global resolver instance
 _resolver: Optional[ProviderResolver] = None
+_resolver_init: Optional[tuple[str, Optional[str], Optional[str]]] = None
 
 
 def get_provider_resolver(
@@ -375,14 +376,23 @@ def get_provider_resolver(
         ProviderResolver instance
     """
     global _resolver
+    global _resolver_init
 
-    if _resolver is None:
+    normalized = (api_base_url.rstrip("/"), database_url, encryption_master_key_base64)
+
+    if _resolver is None or _resolver_init != normalized:
+        if _resolver is not None:
+            logger.warning(
+                "ProviderResolver reinitialized due to configuration change. "
+                "Prefer using a single resolver per process or call with consistent parameters."
+            )
         client = BYOAIClient(
-            api_base_url=api_base_url,
+            api_base_url=normalized[0],
             database_url=database_url,
             encryption_master_key_base64=encryption_master_key_base64,
         )
         _resolver = ProviderResolver(byoai_client=client)
+        _resolver_init = normalized
 
     return _resolver
 

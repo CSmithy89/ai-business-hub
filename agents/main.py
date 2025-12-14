@@ -22,6 +22,8 @@ import time
 import asyncio
 import json
 import uuid
+import hmac
+import os
 
 # Import registry and A2A models
 from registry import registry, AgentCard
@@ -441,7 +443,7 @@ async def _run_team(
         raise
     except Exception as e:
         logger.error(f"{team_name}Team failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Team execution failed")
 
 
 async def _run_team_stream(
@@ -831,11 +833,14 @@ async def control_plane_sessions(request: Request):
         raise HTTPException(status_code=404, detail="Control Plane disabled")
 
     api_key = _unwrap_secret(settings.agno_api_key)
+    if not api_key and (os.getenv("NODE_ENV") == "production"):
+        raise HTTPException(status_code=401, detail="Auth required")
     if api_key:
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Auth required")
-        if auth_header.replace("Bearer ", "") != api_key:
+        provided = auth_header.replace("Bearer ", "")
+        if not hmac.compare_digest(provided, api_key):
             raise HTTPException(status_code=403, detail="Invalid API key")
 
     return {"sessions": [], "count": 0}
@@ -868,7 +873,7 @@ async def run_approval_agent(request_data: AgentRunRequest, req: Request):
         return AgentRunResponse(**response)
     except Exception as e:
         logger.error(f"ApprovalAgent failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Agent execution failed")
 
 
 @app.get("/agents/approval/info")

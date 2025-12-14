@@ -10,6 +10,7 @@ import httpx
 import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
+from dataclasses import replace
 from datetime import datetime, timedelta
 
 from utils.encryption import CredentialEncryptionService, CredentialDecryptionError
@@ -25,6 +26,8 @@ class ProviderConfig:
     default_model: str
     is_valid: bool
     is_default: bool
+    # Encrypted API key (from DB). We intentionally prefer this to caching plaintext.
+    api_key_encrypted: Optional[str] = None
     api_key: Optional[str] = None  # Decrypted API key (only available via secure endpoint)
 
     # Token limits
@@ -146,7 +149,7 @@ class BYOAIClient:
 
         cached = self._cache.get(cache_key)
         if cached and cached.expires_at > datetime.now():
-            return cached.config
+            return self._hydrate_cached(cached.config)
         return None
 
     def _set_cached(self, cache_key: str, config: Any) -> None:
@@ -154,10 +157,68 @@ class BYOAIClient:
         if not self.cache_enabled:
             return
 
+        # Never cache decrypted API keys in process memory.
+        if isinstance(config, ProviderConfig):
+            config = replace(config, api_key=None)
+        elif isinstance(config, list):
+            config = [
+                replace(c, api_key=None) if isinstance(c, ProviderConfig) else c
+                for c in config
+            ]
+
         self._cache[cache_key] = CachedConfig(
             config=config,
             expires_at=datetime.now() + timedelta(seconds=self.CACHE_TTL),
         )
+
+    def _hydrate_config(self, config: ProviderConfig) -> ProviderConfig:
+        """
+        Return a copy of ProviderConfig with api_key decrypted (if available).
+
+        Important: we never mutate or cache decrypted secrets; this only affects the returned object.
+        """
+        if config.api_key is not None:
+            return config
+        if not self._encryption or not config.api_key_encrypted:
+            return config
+
+        try:
+            api_key = self._encryption.decrypt(config.api_key_encrypted)
+            return replace(config, api_key=api_key)
+        except CredentialDecryptionError as e:
+            logger.warning(
+                f"Failed to decrypt provider key from cache (providerId={config.id}): {e}"
+            )
+            return config
+
+    def _hydrate_cached(self, cached_value: Any) -> Any:
+        if isinstance(cached_value, ProviderConfig):
+            return self._hydrate_config(cached_value)
+        if isinstance(cached_value, list):
+            hydrated: list[Any] = []
+            for item in cached_value:
+                hydrated.append(
+                    self._hydrate_config(item) if isinstance(item, ProviderConfig) else item
+                )
+            return hydrated
+        return cached_value
+
+    def __del__(self) -> None:  # noqa: D401
+        """
+        Best-effort warning if the client is not explicitly closed.
+
+        This avoids silent DB pool/socket leaks when BYOAIClient is instantiated
+        without an async context manager and the caller forgets to call `close()`.
+        """
+        try:
+            if self._client is not None or self._db_pool is not None:
+                logger.warning(
+                    "BYOAIClient was garbage-collected without being closed. "
+                    "Use `async with BYOAIClient(...)` or call `await close()`."
+                )
+        except Exception:
+            # Never raise from __del__
+            return
 
     def clear_cache(self, workspace_id: Optional[str] = None) -> None:
         """Clear cache for a workspace or all caches."""
@@ -270,9 +331,10 @@ class BYOAIClient:
         configs: List[ProviderConfig] = []
         for row in rows:
             api_key = None
-            if self._encryption and row.get("api_key_encrypted"):
+            api_key_encrypted = row.get("api_key_encrypted")
+            if self._encryption and api_key_encrypted:
                 try:
-                    api_key = self._encryption.decrypt(row["api_key_encrypted"])
+                    api_key = self._encryption.decrypt(api_key_encrypted)
                 except CredentialDecryptionError as e:
                     logger.warning(f"Failed to decrypt provider key (providerId={row['id']}): {e}")
 
@@ -283,6 +345,7 @@ class BYOAIClient:
                     default_model=row.get("default_model") or "",
                     is_valid=bool(row.get("is_valid")),
                     is_default=row["id"] == default_id,
+                    api_key_encrypted=api_key_encrypted,
                     api_key=api_key,
                     max_tokens_per_day=int(row.get("max_tokens_per_day") or 0),
                     tokens_used_today=int(row.get("tokens_used_today") or 0),
@@ -293,6 +356,59 @@ class BYOAIClient:
 
         logger.info(f"Fetched {len(configs)} providers for workspace {workspace_id} via DB")
         return configs
+
+    async def _get_provider_from_db(
+        self, workspace_id: str, provider_id: str
+    ) -> Optional[ProviderConfig]:
+        pool = await self._get_db_pool()
+        if not pool:
+            return None
+
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT
+                  id,
+                  provider,
+                  default_model,
+                  api_key_encrypted,
+                  is_valid,
+                  last_validated_at,
+                  validation_error,
+                  max_tokens_per_day,
+                  tokens_used_today,
+                  created_at
+                FROM ai_provider_configs
+                WHERE workspace_id = $1 AND id = $2
+                """,
+                workspace_id,
+                provider_id,
+            )
+
+        if not row:
+            return None
+
+        api_key = None
+        api_key_encrypted = row.get("api_key_encrypted")
+        if self._encryption and api_key_encrypted:
+            try:
+                api_key = self._encryption.decrypt(api_key_encrypted)
+            except CredentialDecryptionError as e:
+                logger.warning(f"Failed to decrypt provider key (providerId={row['id']}): {e}")
+
+        return ProviderConfig(
+            id=row["id"],
+            provider=row["provider"],
+            default_model=row.get("default_model") or "",
+            is_valid=bool(row.get("is_valid")),
+            is_default=False,  # Resolved by list call; single fetch doesn't infer default.
+            api_key_encrypted=api_key_encrypted,
+            api_key=api_key,
+            max_tokens_per_day=int(row.get("max_tokens_per_day") or 0),
+            tokens_used_today=int(row.get("tokens_used_today") or 0),
+            last_validated_at=row.get("last_validated_at"),
+            validation_error=row.get("validation_error"),
+        )
 
     async def get_provider(
         self,
@@ -316,6 +432,17 @@ class BYOAIClient:
         if cached:
             logger.debug(f"Cache hit for provider: {provider_id}")
             return cached
+
+        # Prefer DB access when available so we never require the HTTP API to return secrets.
+        try:
+            db_pool = await self._get_db_pool()
+            if db_pool:
+                config = await self._get_provider_from_db(workspace_id, provider_id)
+                if config:
+                    self._set_cached(cache_key, config)
+                    return config
+        except Exception as e:
+            logger.warning(f"DB provider lookup failed, falling back to HTTP: {e}")
 
         url = f"{self.api_base_url}/api/workspaces/{workspace_id}/ai-providers/{provider_id}"
 

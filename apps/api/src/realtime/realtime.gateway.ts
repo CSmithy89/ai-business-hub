@@ -104,20 +104,15 @@ const MAX_CONNECTIONS_PER_USER = parseInt(
       const configuredOrigins = process.env.CORS_ALLOWED_ORIGINS;
 
       const isAllowedDevOrigin = (value: string): boolean => {
-        // Allow common local dev origins across Docker/WSL/VM setups.
-        return (
-          value.startsWith('http://localhost:') ||
-          value.startsWith('http://127.0.0.1:') ||
-          value.startsWith('http://[::1]:') ||
-          value.startsWith('http://10.') ||
-          value.startsWith('http://192.168.') ||
-          value.startsWith('http://172.16.') ||
-          value.startsWith('http://172.17.') ||
-          value.startsWith('http://172.18.') ||
-          value.startsWith('http://172.19.') ||
-          value.startsWith('http://172.2') ||
-          value.startsWith('http://172.3')
-        );
+        // Accept both http and https; precisely match RFC1918/private ranges.
+        const v = (value || '').toLowerCase();
+        if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?/.test(v)) return true;
+        if (/^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?/.test(v)) return true;
+        if (/^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?/.test(v)) return true;
+        if (/^https?:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}(:\d+)?/.test(v)) {
+          return true;
+        }
+        return false;
       };
 
       // SECURITY: In production, CORS_ALLOWED_ORIGINS must be explicitly configured
@@ -131,7 +126,8 @@ const MAX_CONNECTIONS_PER_USER = parseInt(
       }
 
       // Parse allowed origins - only use localhost fallback in development
-      const allowedOrigins = configuredOrigins?.split(',') || [
+      const allowedOrigins =
+        configuredOrigins?.split(',').map((s) => s.trim()).filter(Boolean) || [
         'http://localhost:3000',
         'http://localhost:3001',
       ];
@@ -171,6 +167,7 @@ export class RealtimeGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   private readonly logger = new Logger(RealtimeGateway.name);
+  private hasWarnedCookieFallbackInProd = false;
 
   @WebSocketServer()
   server!: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
@@ -626,12 +623,19 @@ export class RealtimeGateway
     const headers = client.handshake.headers || {};
 
     const getCookieValue = (cookieHeader: string, cookieName: string): string | null => {
-      // Split on ';' pairs, and only split on the first '=' so values containing '=' are preserved.
-      const prefix = `${cookieName}=`;
+      // Split on ';' pairs and parse each key=value pair using the first '=' occurrence.
       for (const part of cookieHeader.split(';')) {
         const trimmed = part.trim();
-        if (!trimmed.startsWith(prefix)) continue;
-        return trimmed.slice(prefix.length);
+        const eq = trimmed.indexOf('=');
+        if (eq === -1) continue;
+        const key = trimmed.slice(0, eq);
+        if (key !== cookieName) continue;
+        let value = trimmed.slice(eq + 1);
+        // Strip optional surrounding quotes
+        if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+          value = value.slice(1, -1);
+        }
+        return value;
       }
       return null;
     };
@@ -646,6 +650,16 @@ export class RealtimeGateway
     const allowCookieFallback =
       process.env.NODE_ENV !== 'production' ||
       process.env.WS_ALLOW_COOKIE_FALLBACK === 'true';
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.WS_ALLOW_COOKIE_FALLBACK === 'true' &&
+      !this.hasWarnedCookieFallbackInProd
+    ) {
+      this.hasWarnedCookieFallbackInProd = true;
+      this.logger.warn(
+        '[SECURITY] WS_ALLOW_COOKIE_FALLBACK is enabled in production. Ensure origin validation, monitoring, and session controls are in place.',
+      );
+    }
     if (allowCookieFallback) {
       const cookieHeader = headers.cookie;
       if (cookieHeader && typeof cookieHeader === 'string') {

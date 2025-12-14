@@ -9,6 +9,7 @@ import logging
 import hashlib
 import inspect
 import re
+import asyncio
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
@@ -51,6 +52,8 @@ class KnowledgeFactory:
 
     # Cache of knowledge instances per workspace
     _instances: Dict[str, Knowledge] = {}
+    _locks: Dict[str, asyncio.Lock] = {}
+    _table_name_cache: Dict[str, str] = {}
 
     def __init__(
         self,
@@ -80,20 +83,71 @@ class KnowledgeFactory:
 
         Allows only alphanumeric and underscore characters. Everything else becomes '_'.
         """
-        return re.sub(r"[^a-zA-Z0-9_]+", "_", value).strip("_")
+        return re.sub(r"[^a-zA-Z0-9_]+", "_", value).strip("_").lower()
+
+    def _get_legacy_table_name(self, workspace_id: str) -> str:
+        safe_id = self._sanitize_identifier(workspace_id)
+        safe_id = safe_id[:32] if safe_id else "ws"
+        table = f"knowledge_{safe_id}"
+        if not re.match(r"^knowledge_[a-z0-9_]+$", table):
+            raise ValueError("Invalid legacy knowledge table name generated")
+        return table
 
     def _get_table_name(self, workspace_id: str) -> str:
-        """Generate table name for workspace (tenant isolation)."""
+        """
+        Generate a deterministic, collision-resistant table name for a workspace.
+
+        Always includes a hash suffix to prevent collisions from sanitization/truncation.
+        """
         safe_id = self._sanitize_identifier(workspace_id)
+        safe_id = safe_id[:32] if safe_id else "ws"
         digest = hashlib.sha256(workspace_id.encode("utf-8")).hexdigest()[:16]
+        table = f"knowledge_{safe_id}_{digest}"
 
-        # Keep the legacy prefix when IDs are short (common case: UUID/CUID).
-        if safe_id and len(safe_id) <= 32:
-            return f"knowledge_{safe_id}"
+        # Ensure the final table name is a safe SQL identifier.
+        if not re.match(r"^knowledge_[a-z0-9_]+$", table):
+            raise ValueError("Invalid knowledge table name generated")
 
-        # For long or heavily-sanitized IDs, always include a hash suffix to avoid collisions.
-        prefix = safe_id[:32] if safe_id else "ws"
-        return f"knowledge_{prefix}_{digest}"
+        # Keep within Postgres identifier limit (63 chars). This construction stays under the limit.
+        return table
+
+    async def _resolve_table_name(self, workspace_id: str) -> str:
+        """
+        Resolve the table name for a workspace, preserving legacy tables when present.
+
+        - If a legacy table exists (older naming), use it to avoid orphaning existing data.
+        - Otherwise, use the new hashed table name.
+        """
+        cached = self._table_name_cache.get(workspace_id)
+        if cached:
+            return cached
+
+        legacy = self._get_legacy_table_name(workspace_id)
+        current = self._get_table_name(workspace_id)
+
+        try:
+            conn = await asyncpg.connect(self.database_url)
+            try:
+                # information_schema stores unquoted identifiers in lowercase.
+                legacy_exists = await conn.fetchval(
+                    """
+                    SELECT EXISTS (
+                      SELECT 1
+                      FROM information_schema.tables
+                      WHERE table_schema = 'public' AND table_name = $1
+                    )
+                    """,
+                    legacy,
+                )
+            finally:
+                await conn.close()
+        except Exception:
+            # If we can't connect, fall back to deterministic naming; PgVector will handle creation.
+            legacy_exists = False
+
+        resolved = legacy if legacy_exists else current
+        self._table_name_cache[workspace_id] = resolved
+        return resolved
 
     async def _resolve_embedder(
         self,
@@ -149,45 +203,53 @@ class KnowledgeFactory:
         Returns:
             Knowledge instance ready for use
         """
-        # Check cache first
-        if not force_new and workspace_id in self._instances:
-            logger.debug(f"Returning cached knowledge for {workspace_id}")
-            return self._instances[workspace_id]
+        # Concurrency guard: prevent duplicate creation for the same workspace.
+        lock = self._locks.get(workspace_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._locks[workspace_id] = lock
 
-        # Build configuration
-        if config is None:
-            config = KnowledgeConfig(
-                workspace_id=workspace_id,
-                table_name=self._get_table_name(workspace_id),
+        async with lock:
+            # Check cache first (inside lock)
+            if not force_new and workspace_id in self._instances:
+                logger.debug(f"Returning cached knowledge for {workspace_id}")
+                return self._instances[workspace_id]
+
+            # Build configuration
+            if config is None:
+                table_name = await self._resolve_table_name(workspace_id)
+                config = KnowledgeConfig(
+                    workspace_id=workspace_id,
+                    table_name=table_name,
+                )
+
+            logger.info(f"Creating knowledge base for workspace {workspace_id}")
+
+            # Resolve embedder with BYOAI
+            embedder = await self._resolve_embedder(workspace_id, jwt_token)
+
+            # Create PgVector instance with tenant-specific table
+            vector_db = PgVector(
+                table_name=config.table_name,
+                db_url=self.database_url,
+                search_type=config.search_type,
+                embedder=embedder,
             )
 
-        logger.info(f"Creating knowledge base for workspace {workspace_id}")
+            # Create Knowledge instance
+            knowledge = Knowledge(
+                vector_db=vector_db,
+            )
 
-        # Resolve embedder with BYOAI
-        embedder = await self._resolve_embedder(workspace_id, jwt_token)
+            # Cache the instance
+            self._instances[workspace_id] = knowledge
 
-        # Create PgVector instance with tenant-specific table
-        vector_db = PgVector(
-            table_name=config.table_name,
-            db_url=self.database_url,
-            search_type=config.search_type,
-            embedder=embedder,
-        )
+            logger.info(
+                f"Knowledge base created: table={config.table_name}, "
+                f"search_type={config.search_type}"
+            )
 
-        # Create Knowledge instance
-        knowledge = Knowledge(
-            vector_db=vector_db,
-        )
-
-        # Cache the instance
-        self._instances[workspace_id] = knowledge
-
-        logger.info(
-            f"Knowledge base created: table={config.table_name}, "
-            f"search_type={config.search_type}"
-        )
-
-        return knowledge
+            return knowledge
 
     def clear_cache(self, workspace_id: Optional[str] = None) -> None:
         """Clear cached knowledge instances."""
@@ -211,7 +273,9 @@ class KnowledgeFactory:
         Returns:
             True if successful
         """
-        table_name = self._get_table_name(workspace_id)
+        # Attempt to delete both the current and legacy tables (best effort).
+        legacy_table_name = self._get_legacy_table_name(workspace_id)
+        table_name = self._table_name_cache.get(workspace_id) or self._get_table_name(workspace_id)
 
         try:
             # Best-effort: ask Agno to delete its resources if a cached instance exists.
@@ -227,7 +291,11 @@ class KnowledgeFactory:
             # Always drop the table directly to ensure cleanup even when no cached instance exists.
             conn = await asyncpg.connect(self.database_url)
             try:
-                await conn.execute(f'DROP TABLE IF EXISTS "{table_name}" CASCADE')
+                # Identifier safety: table_name is generated by _get_table_name and sanitized,
+                # but still quote it defensively.
+                for name in {table_name, legacy_table_name}:
+                    quoted = f'"{name.replace(chr(34), chr(34) + chr(34))}"'
+                    await conn.execute(f'DROP TABLE IF EXISTS {quoted} CASCADE')
             finally:
                 await conn.close()
 

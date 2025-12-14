@@ -10,6 +10,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 import jwt
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +39,17 @@ class TenantMiddleware(BaseHTTPMiddleware):
             token = auth_header[7:]  # Remove "Bearer " prefix
 
             try:
+                issuer = os.getenv("JWT_ISSUER") or None
+                audience = os.getenv("JWT_AUDIENCE") or None
+
                 # Decode and verify JWT signature
                 claims = jwt.decode(
                     token,
                     self.secret_key,
                     algorithms=["HS256"],
-                    options={"verify_exp": True}
+                    options={"verify_exp": True, "require": ["sub"]},
+                    issuer=issuer,
+                    audience=audience,
                 )
 
                 # Extract claims and inject into request state
@@ -53,6 +59,17 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 request.state.email = claims.get("email")
                 request.state.name = claims.get("name")
                 request.state.jwt_token = token  # Store for downstream services
+
+                if not request.state.user_id:
+                    return JSONResponse(
+                        status_code=403,
+                        content={
+                            "error": {
+                                "code": "INVALID_TOKEN",
+                                "message": "Invalid JWT token",
+                            }
+                        },
+                    )
 
                 logger.debug(
                     f"Tenant context: user={request.state.user_id}, "
@@ -69,7 +86,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
                         }
                     }
                 )
-            except jwt.DecodeError:
+            except jwt.InvalidTokenError:
                 return JSONResponse(
                     status_code=403,
                     content={
@@ -79,8 +96,9 @@ class TenantMiddleware(BaseHTTPMiddleware):
                         }
                     }
                 )
-            except Exception as e:
-                logger.error(f"JWT validation error: {e}")
+            except Exception as exc:  # noqa: BLE001
+                # Avoid logging raw error strings that may contain token details.
+                logger.warning("JWT validation error: %s", type(exc).__name__)
                 return JSONResponse(
                     status_code=403,
                     content={

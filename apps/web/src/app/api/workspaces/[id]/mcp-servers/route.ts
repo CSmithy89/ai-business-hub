@@ -26,7 +26,7 @@ import {
 } from '@/lib/constants/mcp'
 
 interface RouteParams {
-  params: Promise<{ id: string }>
+  params: { id: string }
 }
 
 /**
@@ -40,7 +40,7 @@ const CreateMCPServerSchema = z.object({
   transport: z.enum(VALID_TRANSPORTS),
   command: z.string().optional(),
   url: z.string().url().optional(),
-  apiKey: z.string().optional(),
+  apiKey: z.string().min(1).max(500).optional(),
   headers: safeStringMap('Headers').optional().default({}),
   envVars: safeStringMap('Environment variables').optional().default({}),
   includeTools: z.array(z.string()).optional().default([]),
@@ -63,6 +63,15 @@ const CreateMCPServerSchema = z.object({
   {
     message: 'Stdio transport requires command, SSE/HTTP transport requires URL',
   }
+).refine(
+  (data) => {
+    const include = data.includeTools || []
+    const exclude = data.excludeTools || []
+    return !include.some((t) => exclude.includes(t))
+  },
+  {
+    message: 'includeTools and excludeTools cannot contain the same tool',
+  }
 )
 
 /**
@@ -72,7 +81,7 @@ const CreateMCPServerSchema = z.object({
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId } = await params
+    const { id: workspaceId } = params
 
     // Verify membership (any member can view servers)
     await requireWorkspaceMembership(workspaceId)
@@ -136,7 +145,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId } = await params
+    const { id: workspaceId } = params
 
     // Require admin role to add servers
     const membership = await requireWorkspaceMembership(workspaceId)

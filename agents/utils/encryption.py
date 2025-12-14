@@ -127,8 +127,9 @@ class CredentialEncryptionService:
 
             combined = salt + iv + auth_tag + encrypted
             return base64.b64encode(combined).decode("utf-8")
-        except Exception as exc:  # noqa: BLE001
-            raise CredentialEncryptionError("Encryption failed") from exc
+        except Exception:  # noqa: BLE001
+            # Avoid chaining sensitive errors (may include plaintext in rare cases).
+            raise CredentialEncryptionError("Encryption failed") from None
 
     def decrypt(self, ciphertext_b64: str) -> str:
         parsed = _parse_ciphertext(ciphertext_b64)
@@ -140,10 +141,11 @@ class CredentialEncryptionService:
             encrypted_plus_tag = parsed.encrypted + parsed.auth_tag
             decrypted = aesgcm.decrypt(parsed.iv, encrypted_plus_tag, None)
             return decrypted.decode("utf-8")
-        except Exception as exc:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
+            # Avoid chaining sensitive errors (may include ciphertext/master key hints).
             raise CredentialDecryptionError(
                 "Decryption failed: Invalid authentication tag or wrong key"
-            ) from exc
+            ) from None
 
 
 def decrypt_credential(ciphertext_b64: str, master_key_base64: str) -> str:
@@ -152,4 +154,3 @@ def decrypt_credential(ciphertext_b64: str, master_key_base64: str) -> str:
 
 def encrypt_credential(plaintext: str, master_key_base64: str) -> str:
     return CredentialEncryptionService(master_key_base64).encrypt(plaintext)
-

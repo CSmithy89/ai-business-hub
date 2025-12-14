@@ -403,7 +403,10 @@ Additional dev hardening: default WebSocket hostname to the current `window.loca
 | Area | Improvement | Files | Status |
 |------|-------------|-------|--------|
 | AgentOS config | Treat empty/whitespace `ENCRYPTION_MASTER_KEY` as unset to avoid false “configured” state | `agents/config.py` | ✅ Done |
-| Knowledge | Ensure tenant KB deletion works even without cached instance; await async deletes; drop table directly | `agents/knowledge/factory.py` | ✅ Done |
+| Knowledge | Collision-resistant tenant table naming (hash suffix), legacy table preservation, concurrent creation lock, and safe deletion even without cached instance | `agents/knowledge/factory.py` | ✅ Done |
+| BYOAI | Do not cache decrypted provider keys in process memory; cache encrypted values and hydrate decrypted keys only for returned objects | `agents/providers/byoai_client.py` | ✅ Done |
+| Auth | TenantMiddleware requires `sub`, supports optional issuer/audience validation, and avoids logging raw token errors | `agents/middleware/tenant.py` | ✅ Done |
+| Error handling | Avoid returning raw exception strings to clients for team execution failures | `agents/main.py` | ✅ Done |
 | DB migrations | Add DB-level default for `updated_at` on new module/MCP tables | `packages/db/prisma/migrations/20251214153000_add_updated_at_defaults/migration.sql` | ✅ Done |
 | Prisma schema | Align MCP tool filter arrays with DB defaults | `packages/db/prisma/schema.prisma` | ✅ Done |
 

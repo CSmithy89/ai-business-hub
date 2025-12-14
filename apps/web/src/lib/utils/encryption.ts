@@ -43,6 +43,9 @@ export async function decrypt(encryptedData: string, _masterKey?: string): Promi
 export function isEncrypted(data: string): boolean {
   if (!data) return false
 
+  // Guard: this is a server-only module, but avoid crashing if imported client-side by mistake.
+  if (typeof Buffer === 'undefined') return false
+
   const base64Regex = /^[A-Za-z0-9+/]+=*$/
   if (!base64Regex.test(data)) return false
 
@@ -68,4 +71,3 @@ export async function encryptApiKey(apiKey: string): Promise<string> {
 export async function decryptApiKey(encryptedApiKey: string): Promise<string> {
   return decrypt(encryptedApiKey)
 }
-

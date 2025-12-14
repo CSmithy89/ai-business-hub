@@ -291,11 +291,8 @@ export function RealtimeProvider({
     const socket = io(`${mergedConfig.url}/realtime`, {
       withCredentials: true,
       auth: {
+        // SECURITY: only send the token; all other identity/workspace info is derived server-side.
         ...(token ? { token } : {}),
-        userId: currentSession.user.id,
-        workspaceId,
-        email: currentSession.user.email,
-        sessionId: currentSession.session?.id,
       },
       transports: ['websocket', 'polling'],
       reconnection: false, // We handle reconnection manually for custom backoff

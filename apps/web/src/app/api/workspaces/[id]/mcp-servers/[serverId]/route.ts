@@ -21,7 +21,7 @@ import { safeStringMap } from '@/lib/validation/safe-string-map'
 import { VALID_TRANSPORTS, getPermissionName } from '@/lib/constants/mcp'
 
 interface RouteParams {
-  params: Promise<{ id: string; serverId: string }>
+  params: { id: string; serverId: string }
 }
 
 /**
@@ -32,7 +32,7 @@ const UpdateMCPServerSchema = z.object({
   transport: z.enum(VALID_TRANSPORTS).optional(),
   command: z.string().optional().nullable(),
   url: z.string().url().optional().nullable(),
-  apiKey: z.string().optional().nullable(),
+  apiKey: z.string().min(1).max(500).optional().nullable(),
   headers: safeStringMap('Headers').optional(),
   envVars: safeStringMap('Environment variables').optional(),
   includeTools: z.array(z.string()).optional(),
@@ -41,6 +41,16 @@ const UpdateMCPServerSchema = z.object({
   timeoutSeconds: z.number().int().min(5).max(300).optional(),
   enabled: z.boolean().optional(),
 })
+.refine(
+  (data) => {
+    const include = data.includeTools || []
+    const exclude = data.excludeTools || []
+    return !include.some((t) => exclude.includes(t))
+  },
+  {
+    message: 'includeTools and excludeTools cannot contain the same tool',
+  }
+)
 
 /**
  * GET /api/workspaces/:id/mcp-servers/:serverId
@@ -49,10 +59,11 @@ const UpdateMCPServerSchema = z.object({
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId, serverId } = await params
+    const { id: workspaceId, serverId } = params
 
     // Verify membership
-    await requireWorkspaceMembership(workspaceId)
+    const membership = await requireWorkspaceMembership(workspaceId)
+    const canViewSecrets = membership.role === 'owner' || membership.role === 'admin'
 
     // Get the server (include apiKeyEncrypted to check if configured)
     const server = await prisma.mCPServerConfig.findUnique({
@@ -98,6 +109,15 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       success: true,
       data: {
         ...serverData,
+        // Non-admin members should not receive raw header/env values.
+        ...(canViewSecrets
+          ? {}
+          : {
+              headers: {},
+              envVars: {},
+              headerKeys: Object.keys((serverData.headers as Record<string, unknown>) || {}),
+              envVarKeys: Object.keys((serverData.envVars as Record<string, unknown>) || {}),
+            }),
         permissionLevel: getPermissionName(server.permissions),
         hasApiKey: !!apiKeyEncrypted,
       },
@@ -123,7 +143,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId, serverId } = await params
+    const { id: workspaceId, serverId } = params
 
     // Require admin role
     const membership = await requireWorkspaceMembership(workspaceId)
@@ -246,7 +266,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
-    const { id: workspaceId, serverId } = await params
+    const { id: workspaceId, serverId } = params
 
     // Require admin role
     const membership = await requireWorkspaceMembership(workspaceId)

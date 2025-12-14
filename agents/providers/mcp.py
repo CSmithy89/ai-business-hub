@@ -151,7 +151,8 @@ class MCPPermissionFilter:
 
         for tool_name in tool_names:
             required = cls.get_required_permission(tool_name)
-            if required in permissions:
+            # `Flag` membership checks must be bitwise; `required in permissions` is incorrect.
+            if (permissions & required) == required:
                 allowed.append(tool_name)
             else:
                 logger.debug(
