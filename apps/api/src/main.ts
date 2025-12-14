@@ -51,7 +51,8 @@ async function bootstrap() {
 
   // Start server on configured port
   const port = process.env.PORT || 3001;
-  await app.listen(port);
+  // Bind to 0.0.0.0 so the dev server is reachable from Docker/VM/WSL/private-network hosts.
+  await app.listen(port, '0.0.0.0');
 
   const metricsService = app.get(MetricsService);
   const server =

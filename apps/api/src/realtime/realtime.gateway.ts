@@ -142,8 +142,14 @@ const MAX_CONNECTIONS_PER_USER = parseInt(
         return;
       }
 
-      // Dev fallback: if no explicit allowlist is configured, permit local/private network origins.
-      if (!isProduction && !configuredOrigins && origin && isAllowedDevOrigin(origin)) {
+      // Dev fallback: permit local/private network origins even if the allowlist is missing or incomplete.
+      // This avoids confusing "Realtime unavailable" states during Docker/VM/WSL development.
+      if (!isProduction && origin && isAllowedDevOrigin(origin)) {
+        if (configuredOrigins && !allowedOrigins.includes(origin)) {
+          console.warn(
+            `[Realtime][CORS] Allowing dev origin not present in CORS_ALLOWED_ORIGINS: ${origin}`,
+          );
+        }
         callback(null, true);
         return;
       }
