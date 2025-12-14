@@ -352,6 +352,10 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 | AI Providers | Don’t swallow non-schema-drift DB errors when loading agent preferences | `apps/api/src/ai-providers/agent-preferences.service.ts` | ✅ Done |
 | Usage | Normalize Nest base URL + URL-encode IDs for token limit routes | `apps/web/src/hooks/use-token-limits.ts` | ✅ Done |
 | Chat | Revoke preview object URLs on send to avoid memory leaks | `apps/web/src/components/chat/ChatInput.tsx` | ✅ Done |
+| Web | Safe JSON parsing for fetch helpers to avoid unhandled `response.json()` exceptions | `apps/web/src/lib/utils/safe-json.ts`, `apps/web/src/hooks/*`, `apps/web/src/app/reset-password/page.tsx` | ✅ Done |
+| Dashboard | Signed-out UX: show Sign in CTA instead of alarming load error | `apps/web/src/app/(dashboard)/dashboard/DashboardContent.tsx` | ✅ Done |
+| Realtime | Fix hook-order crash in connection indicator (prevents “Header unavailable”) | `apps/web/src/components/ui/connection-status.tsx` | ✅ Done |
+| Tests | Stabilize upload progress duration test (remove real-time flake) | `apps/web/src/__tests__/file-upload.test.ts` | ✅ Done |
 
 ---
 
@@ -393,6 +397,15 @@ Additional dev hardening: default WebSocket hostname to the current `window.loca
 *   ✅ `apps/web/src/lib/realtime/realtime-provider.tsx`
 *   ✅ `apps/api/src/realtime/realtime.gateway.ts`
 *   ✅ Cookie parsing hardened (preserves `=` inside cookie values) in `apps/api/src/realtime/realtime.gateway.ts`
+
+#### 5.5.4. AgentOS + DB Hardening Follow-ups ✅ COMPLETE
+
+| Area | Improvement | Files | Status |
+|------|-------------|-------|--------|
+| AgentOS config | Treat empty/whitespace `ENCRYPTION_MASTER_KEY` as unset to avoid false “configured” state | `agents/config.py` | ✅ Done |
+| Knowledge | Ensure tenant KB deletion works even without cached instance; await async deletes; drop table directly | `agents/knowledge/factory.py` | ✅ Done |
+| DB migrations | Add DB-level default for `updated_at` on new module/MCP tables | `packages/db/prisma/migrations/20251214153000_add_updated_at_defaults/migration.sql` | ✅ Done |
+| Prisma schema | Align MCP tool filter arrays with DB defaults | `packages/db/prisma/schema.prisma` | ✅ Done |
 
 ---
 
