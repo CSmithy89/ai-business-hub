@@ -144,10 +144,22 @@ export class AgentPreferencesService {
    * Get agent preferences for a workspace
    */
   async getAgentPreferences(workspaceId: string): Promise<AgentPreference[]> {
-    // Get workspace settings
-    const settings = await this.prisma.workspaceSettings.findUnique({
-      where: { workspaceId },
-    });
+    let settings: { agentModelPreferences: unknown } | null = null;
+
+    try {
+      // Get workspace settings (may not exist yet on a new workspace)
+      settings = await this.prisma.workspaceSettings.findUnique({
+        where: { workspaceId },
+      });
+    } catch (error) {
+      // In dev environments with schema drift, workspace_settings may not exist yet.
+      // Avoid surfacing a hard 500 to the UI; fall back to defaults and log.
+      this.logger.warn(
+        `Failed to load workspace settings for agent preferences (workspaceId=${workspaceId})`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      settings = null;
+    }
 
     const preferences = (settings?.agentModelPreferences as unknown as Record<
       string,

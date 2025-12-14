@@ -140,21 +140,12 @@ export interface UseResponsiveLayout {
  * @returns Responsive layout state and actions
  */
 export function useResponsiveLayout(): UseResponsiveLayout {
-  // Initialize state
-  const [windowWidth, setWindowWidth] = useState(() => {
-    if (typeof window === 'undefined') return 1920;
-    return window.innerWidth;
-  });
-
-  const [layoutPriority, setLayoutPriorityState] = useState<LayoutPriority>(() => {
-    return loadLayoutPriority();
-  });
-
-  // Detect touch device using pointer: coarse media query
-  const [isTouchDevice, setIsTouchDevice] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia('(pointer: coarse)').matches;
-  });
+  // Hydration-safe defaults: keep initial render deterministic across SSR/CSR,
+  // then update from `window`/`localStorage` after mount.
+  const [windowWidth, setWindowWidth] = useState(1920);
+  const [layoutPriority, setLayoutPriorityState] =
+    useState<LayoutPriority>('sidebar');
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   // Calculate breakpoint flags
   const breakpoint = getBreakpoint(windowWidth);
@@ -178,8 +169,9 @@ export function useResponsiveLayout(): UseResponsiveLayout {
    * Handle window resize with debouncing and touch detection
    */
   useEffect(() => {
-    // Update width on mount
+    // Update width + persisted priority on mount
     setWindowWidth(window.innerWidth);
+    setLayoutPriorityState(loadLayoutPriority());
 
     // Update touch device detection on mount
     const touchMediaQuery = window.matchMedia('(pointer: coarse)');
