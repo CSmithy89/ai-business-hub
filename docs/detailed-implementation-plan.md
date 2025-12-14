@@ -2,7 +2,7 @@
 
 **Status:** Living Document
 **Date:** 2025-12-14
-**Version:** 2.9
+**Version:** 2.10
 **Last Audit:** 2025-12-14
 
 ---
@@ -354,6 +354,7 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 | 3 | Update .env.example - Document REDIS_URL for local dev | `.env.example` | ✅ Done |
 | 4 | Verify Docker Redis - Ensure docker-compose.yml Redis works | `docker/docker-compose.yml` | ✅ Done |
 | 5 | Test & verify - Confirm rate limiting supports Redis backend | `apps/web/src/lib/utils/rate-limit.test.ts` | ✅ Done |
+| 6 | Monorepo env alignment - Ensure web app can read repo-root REDIS_URL during dev | `apps/web/next.config.ts` | ✅ Done |
 
 #### 5.5.2. Python-Side API Key Decryption ✅ COMPLETE
 
@@ -371,10 +372,11 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 
 **Issue:** “Real-time updates unavailable” shown due to missing/incorrect session token retrieval for WebSocket auth.
 
-**Fix:** Prefer Better Auth session token from `useSession()` and improve cookie parsing fallback.
+**Fix:** Prefer Better Auth session token from `useSession()`, and fall back to cookie-based auth (HttpOnly session cookie) in development.
 
 *   ✅ `apps/web/src/lib/auth-client.ts`
 *   ✅ `apps/web/src/lib/realtime/realtime-provider.tsx`
+*   ✅ `apps/api/src/realtime/realtime.gateway.ts`
 
 ---
 
@@ -531,4 +533,4 @@ Use this checklist to verify implementation completeness:
 ---
 
 *Last Updated: 2025-12-14*
-*Version: 2.9 - Dev Redis rate limiting + Python key decryption + realtime auth fix*
+*Version: 2.10 - Dev Redis env alignment + realtime cookie auth fallback*
