@@ -523,8 +523,8 @@ model MCPServerConfig {
   envVars Json @default("{}") @map("env_vars")
 
   /// Tool filtering
-  includeTools String[] @map("include_tools")
-  excludeTools String[] @map("exclude_tools")
+  includeTools String[] @default([]) @map("include_tools")
+  excludeTools String[] @default([]) @map("exclude_tools")
 
   /// Permission level: READ, WRITE, EXECUTE (bit flags stored as int)
   permissions Int @default(1) // 1 = READ

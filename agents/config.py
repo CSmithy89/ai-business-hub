@@ -58,6 +58,21 @@ class Settings(BaseSettings):
             raise ValueError("BETTER_AUTH_SECRET must be set")
         return v
 
+    @field_validator("encryption_master_key", mode="before")
+    @classmethod
+    def _normalize_encryption_master_key(cls, v: object) -> object:
+        """
+        Treat empty/whitespace-only ENCRYPTION_MASTER_KEY as unset.
+
+        This avoids subtle runtime failures where crypto appears "configured" but
+        decryption fails due to an empty secret.
+        """
+        if v is None:
+            return None
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
     class Config:
         env_file = ".env"
         case_sensitive = False

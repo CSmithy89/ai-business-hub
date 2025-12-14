@@ -7,9 +7,12 @@ Integrates with BYOAI for embeddings provider selection.
 
 import logging
 import hashlib
+import inspect
+import re
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
+import asyncpg
 from agno.vectordb.pgvector import PgVector, SearchType
 from agno.knowledge.knowledge import Knowledge
 from agno.knowledge.embedder.openai import OpenAIEmbedder
@@ -18,8 +21,6 @@ from config import get_settings
 from providers import get_provider_resolver, ResolvedProvider
 
 logger = logging.getLogger(__name__)
-
-settings = get_settings()
 
 
 @dataclass
@@ -63,6 +64,7 @@ class KnowledgeFactory:
             database_url: PostgreSQL connection URL with pgvector extension
             api_base_url: NestJS API URL for BYOAI integration
         """
+        settings = get_settings()
         self.database_url = database_url or settings.database_url
         self.api_base_url = api_base_url or settings.api_base_url
 
@@ -71,18 +73,27 @@ class KnowledgeFactory:
 
         logger.info("KnowledgeFactory initialized")
 
+    @staticmethod
+    def _sanitize_identifier(value: str) -> str:
+        """
+        Sanitize arbitrary strings into a safe SQL identifier fragment.
+
+        Allows only alphanumeric and underscore characters. Everything else becomes '_'.
+        """
+        return re.sub(r"[^a-zA-Z0-9_]+", "_", value).strip("_")
+
     def _get_table_name(self, workspace_id: str) -> str:
         """Generate table name for workspace (tenant isolation)."""
-        # Sanitize workspace_id for use in table name
-        safe_id = workspace_id.replace("-", "_").replace(" ", "_")
+        safe_id = self._sanitize_identifier(workspace_id)
+        digest = hashlib.sha256(workspace_id.encode("utf-8")).hexdigest()[:16]
 
         # Keep the legacy prefix when IDs are short (common case: UUID/CUID).
-        # Add a stable hash suffix when truncation would be required, preventing collisions.
-        if len(safe_id) <= 32:
+        if safe_id and len(safe_id) <= 32:
             return f"knowledge_{safe_id}"
 
-        digest = hashlib.sha256(workspace_id.encode("utf-8")).hexdigest()[:16]
-        return f"knowledge_{safe_id[:32]}_{digest}"
+        # For long or heavily-sanitized IDs, always include a hash suffix to avoid collisions.
+        prefix = safe_id[:32] if safe_id else "ws"
+        return f"knowledge_{prefix}_{digest}"
 
     async def _resolve_embedder(
         self,
@@ -203,16 +214,24 @@ class KnowledgeFactory:
         table_name = self._get_table_name(workspace_id)
 
         try:
-            # Get knowledge instance
+            # Best-effort: ask Agno to delete its resources if a cached instance exists.
             knowledge = self._instances.get(workspace_id)
-            if knowledge and hasattr(knowledge.vector_db, 'delete'):
-                # Use Agno's delete if available
-                knowledge.vector_db.delete()
+            if knowledge and hasattr(knowledge, "vector_db") and hasattr(knowledge.vector_db, "delete"):
+                result = knowledge.vector_db.delete()
+                if inspect.isawaitable(result):
+                    await result
 
             # Remove from cache
             self._instances.pop(workspace_id, None)
 
-            logger.info(f"Deleted knowledge for workspace {workspace_id}")
+            # Always drop the table directly to ensure cleanup even when no cached instance exists.
+            conn = await asyncpg.connect(self.database_url)
+            try:
+                await conn.execute(f'DROP TABLE IF EXISTS "{table_name}" CASCADE')
+            finally:
+                await conn.close()
+
+            logger.info(f"Deleted knowledge for workspace {workspace_id} (table={table_name})")
             return True
         except Exception as e:
             logger.error(f"Failed to delete knowledge: {e}")
