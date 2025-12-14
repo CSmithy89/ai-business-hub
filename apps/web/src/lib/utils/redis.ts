@@ -25,7 +25,15 @@ export type RedisBackend =
 function resolveRedisUrl(): string | null {
   if (Object.prototype.hasOwnProperty.call(process.env, 'REDIS_URL')) {
     const explicit = process.env.REDIS_URL?.trim()
-    return explicit || null
+    if (explicit) return explicit
+
+    // If REDIS_URL is present but blank, treat it as "unset" in development so
+    // local Docker Redis works out of the box.
+    if (process.env.NODE_ENV === 'development') {
+      return 'redis://localhost:6379'
+    }
+
+    return null
   }
 
   // Dev-quality of life: if Docker Redis is running locally and the env var isn't set,
