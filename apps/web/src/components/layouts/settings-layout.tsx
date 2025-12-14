@@ -163,9 +163,9 @@ export function SettingsLayout({
   const pathname = usePathname()
 
   return (
-    <div className="container max-w-7xl mx-auto py-8 px-4">
+    <div className="container max-w-7xl mx-auto py-10 md:py-12 px-4">
       {/* Page Title */}
-      <h1 className="text-3xl font-bold mb-8 text-gray-900">Settings</h1>
+      <h1 className="text-3xl font-bold mb-8 text-foreground">Settings</h1>
 
       {/* Layout: Sidebar + Content */}
       <div className="flex flex-col md:flex-row gap-8">
@@ -174,13 +174,16 @@ export function SettingsLayout({
           <nav className="space-y-6">
             {settingsNavGroups.map((group) => (
               <div key={group.title}>
-                <h3 className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                <h3 className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {group.title}
                 </h3>
                 <div className="space-y-1">
                   {group.items.map((item) => {
                     const Icon = item.icon
-                    const isActive = pathname === item.href
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href === ('/settings/ai-config' as Route) &&
+                        pathname.startsWith('/settings/ai-config/'))
 
                     return (
                       <Link
@@ -190,7 +193,7 @@ export function SettingsLayout({
                           'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
                           isActive
                             ? 'bg-primary/10 text-primary border-l-4 border-primary'
-                            : 'text-gray-700 hover:bg-gray-100'
+                            : 'text-foreground/80 hover:bg-[rgb(var(--color-bg-soft))] hover:text-foreground'
                         )}
                       >
                         <Icon className="w-5 h-5" />
@@ -209,9 +212,9 @@ export function SettingsLayout({
           <div className="space-y-6">
             {/* Section Header */}
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+              <h2 className="text-2xl font-bold text-foreground">{title}</h2>
               {description && (
-                <p className="text-gray-600 mt-1">{description}</p>
+                <p className="text-muted-foreground mt-1">{description}</p>
               )}
             </div>
 

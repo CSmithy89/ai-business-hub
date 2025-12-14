@@ -5,6 +5,7 @@ import { Loader2, RefreshCw, Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { useWorkspaceModuleMutations, useWorkspaceModules, type WorkspaceModule, type WorkspaceModuleCategory } from '@/hooks/use-workspace-modules'
@@ -82,8 +83,8 @@ export function ModuleManagement() {
           <CardDescription>Enable and manage modules for your workspace</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <p className="text-red-800">
+          <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
+            <p className="text-destructive">
               Failed to load modules: {(error as Error).message}
             </p>
             <Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>
@@ -125,8 +126,11 @@ export function ModuleManagement() {
 
         {modules.length === 0 ? (
           <Card>
-            <CardContent className="py-10 text-center text-muted-foreground">
-              No modules available.
+            <CardContent className="p-0">
+              <EmptyState
+                headline="No modules yet"
+                description="Modules will appear here when they’re available for your workspace."
+              />
             </CardContent>
           </Card>
         ) : (
@@ -145,7 +149,10 @@ export function ModuleManagement() {
                     const canConfigure = !module.isCore
 
                     return (
-                      <Card key={module.id} className="border">
+                      <Card
+                        key={module.id}
+                        className="border hover:border-[rgb(var(--color-border-default))] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08),0_2px_4px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-200 ease-out"
+                      >
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
@@ -214,4 +221,3 @@ export function ModuleManagement() {
     </>
   )
 }
-

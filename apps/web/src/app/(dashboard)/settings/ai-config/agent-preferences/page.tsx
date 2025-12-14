@@ -1,5 +1,6 @@
 import { SettingsLayout } from '@/components/layouts/settings-layout'
 import { AgentModelPreferences } from '@/components/settings/agent-model-preferences'
+import { AIConfigSubnav } from '@/components/settings/ai-config-subnav'
 
 export const metadata = {
   title: 'Agent Preferences',
@@ -12,6 +13,7 @@ export default function AgentPreferencesPage() {
       title="Agent Preferences"
       description="Configure which AI model each agent team should use"
     >
+      <AIConfigSubnav />
       <AgentModelPreferences />
     </SettingsLayout>
   )

@@ -85,7 +85,7 @@ export function EditProviderDialog({
           <DialogHeader>
             <DialogTitle>Edit {providerInfo?.name ?? provider.provider}</DialogTitle>
             <DialogDescription>
-              Update your AI provider configuration.
+              Update your AI key and default model for this provider.
             </DialogDescription>
           </DialogHeader>
 
@@ -134,7 +134,7 @@ export function EditProviderDialog({
             </div>
 
             {error && (
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-destructive">{error}</p>
             )}
           </div>
 

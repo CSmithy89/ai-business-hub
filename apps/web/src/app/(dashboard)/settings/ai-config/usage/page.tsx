@@ -1,5 +1,6 @@
 import { SettingsLayout } from '@/components/layouts/settings-layout'
 import { TokenUsageDashboard } from '@/components/settings/token-usage-dashboard'
+import { AIConfigSubnav } from '@/components/settings/ai-config-subnav'
 
 export const metadata = {
   title: 'Token Usage',
@@ -12,6 +13,7 @@ export default function SettingsUsagePage() {
       title="Token Usage"
       description="View and analyze your AI token consumption"
     >
+      <AIConfigSubnav />
       <TokenUsageDashboard />
     </SettingsLayout>
   )

@@ -87,9 +87,9 @@ export function AddProviderDialog({
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add AI Provider</DialogTitle>
+            <DialogTitle>Add AI Key</DialogTitle>
             <DialogDescription>
-              Configure an AI provider to enable AI features for your workspace.
+              Add an API key for an AI provider to enable AI features for your workspace.
             </DialogDescription>
           </DialogHeader>
 
@@ -171,7 +171,7 @@ export function AddProviderDialog({
             </div>
 
             {error && (
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-destructive">{error}</p>
             )}
           </div>
 
@@ -186,7 +186,7 @@ export function AddProviderDialog({
             </Button>
             <Button type="submit" disabled={isCreating}>
               {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Add Provider
+              Add Key
             </Button>
           </DialogFooter>
         </form>

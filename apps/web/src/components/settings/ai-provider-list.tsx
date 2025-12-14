@@ -50,8 +50,8 @@ export function AIProviderList() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-        <p className="text-red-800">Failed to load AI providers: {error.message}</p>
+      <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
+        <p className="text-destructive">Failed to load AI keys: {error.message}</p>
         <Button variant="outline" size="sm" className="mt-2" onClick={() => refetch()}>
           <RefreshCw className="mr-2 h-4 w-4" />
           Retry
@@ -66,25 +66,25 @@ export function AIProviderList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">AI Providers</h2>
+          <h2 className="text-2xl font-semibold">AI API Keys</h2>
           <p className="text-sm text-muted-foreground">
-            Configure your AI provider API keys to enable AI features
+            Add and manage API keys for the AI providers you want to use (BYOAI).
           </p>
         </div>
         {availableProviders.length > 0 && (
           <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Provider
+            Add Key
           </Button>
         )}
       </div>
 
       {providers.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
-          <p className="text-muted-foreground">No AI providers configured yet.</p>
+          <p className="text-muted-foreground">No AI keys added yet.</p>
           <Button variant="outline" className="mt-4" onClick={() => setShowAddDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add your first provider
+            Add your first key
           </Button>
         </div>
       ) : (
