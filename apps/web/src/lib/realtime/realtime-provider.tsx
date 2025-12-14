@@ -240,19 +240,18 @@ export function RealtimeProvider({
       (currentSession.session as { token?: string } | undefined)?.token ||
       getCurrentSessionToken();
     if (!token) {
-      console.warn('[Realtime] No session token available for WebSocket auth');
-      setConnectionState((prev) => ({
-        ...prev,
-        status: 'disconnected',
-        error: 'No session token',
-      }));
-      return;
+      // For Better Auth, the session token cookie is typically HttpOnly and unreadable client-side.
+      // The API WebSocket gateway supports a cookie fallback in development, so we still connect.
+      console.warn(
+        '[Realtime] No readable session token found; falling back to cookie-based auth (dev)'
+      );
     }
 
     // Create socket connection
     const socket = io(`${mergedConfig.url}/realtime`, {
+      withCredentials: true,
       auth: {
-        token, // Send token for server-side validation
+        ...(token ? { token } : {}),
         userId: currentSession.user.id,
         workspaceId,
         email: currentSession.user.email,

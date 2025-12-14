@@ -594,17 +594,40 @@ export class RealtimeGateway
    */
   private extractToken(client: Socket): string | null {
     const auth = client.handshake.auth || {};
+    const headers = client.handshake.headers || {};
 
     // Try handshake.auth.token (the only supported method)
     if (auth.token && typeof auth.token === 'string') {
       return auth.token;
     }
 
+    // Development fallback: allow token via cookie when session token is HttpOnly (browser can't read it).
+    // Opt-in in prod via WS_ALLOW_COOKIE_FALLBACK=true.
+    const allowCookieFallback =
+      process.env.NODE_ENV !== 'production' ||
+      process.env.WS_ALLOW_COOKIE_FALLBACK === 'true';
+    if (allowCookieFallback) {
+      const cookieHeader = headers.cookie;
+      if (cookieHeader && typeof cookieHeader === 'string') {
+        const token = cookieHeader
+          .split(';')
+          .map((c) => c.trim())
+          .map((c) => c.split('='))
+          .find(([name]) => name === 'hyvve.session_token')?.[1];
+        if (token) {
+          try {
+            return decodeURIComponent(token);
+          } catch {
+            return token;
+          }
+        }
+      }
+    }
+
     // DEPRECATED: Authorization header fallback - disabled by default
     // Enable with WS_ALLOW_AUTH_HEADER_FALLBACK=true during migration only
     const allowHeaderFallback = process.env.WS_ALLOW_AUTH_HEADER_FALLBACK === 'true';
     if (allowHeaderFallback) {
-      const headers = client.handshake.headers || {};
       const authHeader = headers.authorization;
       if (authHeader && typeof authHeader === 'string') {
         const parts = authHeader.trim().split(/\s+/);
