@@ -2,7 +2,7 @@
 
 **Status:** Living Document
 **Date:** 2025-12-14
-**Version:** 2.8
+**Version:** 2.9
 **Last Audit:** 2025-12-14
 
 ---
@@ -341,6 +341,43 @@ The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implem
 
 ---
 
+### 5.5. Dev Runtime + Key Interop ✅ COMPLETE
+
+#### 5.5.1. Redis Implementation for Development ✅ COMPLETE
+
+**Goal:** Enable local Redis for dev rate limiting, while maintaining easy switch to cloud providers in production.
+
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 1 | Update rate-limit.ts - Add ioredis support alongside Upstash | `apps/web/src/lib/utils/rate-limit.ts` | ✅ Done |
+| 2 | Add Redis connection utility - Shared Redis client with priority: REDIS_URL → UPSTASH → in-memory | `apps/web/src/lib/utils/redis.ts` | ✅ Done |
+| 3 | Update .env.example - Document REDIS_URL for local dev | `.env.example` | ✅ Done |
+| 4 | Verify Docker Redis - Ensure docker-compose.yml Redis works | `docker/docker-compose.yml` | ✅ Done |
+| 5 | Test & verify - Confirm rate limiting supports Redis backend | `apps/web/src/lib/utils/rate-limit.test.ts` | ✅ Done |
+
+#### 5.5.2. Python-Side API Key Decryption ✅ COMPLETE
+
+**Goal:** Allow Python AgentOS to decrypt API keys that were encrypted by the Next.js app, enabling agents to use user-provided AI provider keys.
+
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 1 | Create encryption.py - Mirror the Node.js AES-256-GCM encryption/decryption | `agents/utils/encryption.py` | ✅ Done |
+| 2 | Verify cryptography dependency is installed | `agents/requirements.txt` | ✅ Done |
+| 3 | Update BYOAIClient - Decrypt API keys when fetching provider configs (via DB lookup) | `agents/providers/byoai_client.py` | ✅ Done |
+| 4 | Add unit tests - Round-trip + Node↔Python compatibility | `agents/tests/test_encryption.py` | ✅ Done |
+| 5 | Cross-language verification - Node encrypted → Python decrypted works | `agents/tests/test_encryption.py` | ✅ Done |
+
+#### 5.5.3. Realtime UX Regression ✅ FIXED
+
+**Issue:** “Real-time updates unavailable” shown due to missing/incorrect session token retrieval for WebSocket auth.
+
+**Fix:** Prefer Better Auth session token from `useSession()` and improve cookie parsing fallback.
+
+*   ✅ `apps/web/src/lib/auth-client.ts`
+*   ✅ `apps/web/src/lib/realtime/realtime-provider.tsx`
+
+---
+
 ## 6. Dependency Requirements
 
 ### 6.1. Current Dependencies (`agents/requirements.txt`)
@@ -397,7 +434,7 @@ Use this checklist to verify implementation completeness:
 - [x] HTTP client resource management (byoai_client.py)
 - [x] Input validation with Zod schemas (useAgentStream)
 - [x] Race condition prevention (stream ID tracking)
-- [ ] API key encryption at rest (pending)
+- [x] API key encryption at rest (Node encrypt + Python decrypt)
 
 ### 7.2. AG-UI Protocol
 - [x] `EventEncoder` class exists
@@ -494,4 +531,4 @@ Use this checklist to verify implementation completeness:
 ---
 
 *Last Updated: 2025-12-14*
-*Version: 2.8 - Frontend Management UI verified + hydration-safe layout + agent preferences fix*
+*Version: 2.9 - Dev Redis rate limiting + Python key decryption + realtime auth fix*
