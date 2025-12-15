@@ -290,8 +290,15 @@ export async function checkRateLimit(
       }
     } catch (error) {
       console.warn('[rate-limit] REDIS_URL backend error, falling back:', error)
-      // Mark backend as unavailable for this process; callers fall through to Upstash/memory.
-      redisUrlClient = null
+      // Avoid orphaned sockets: best-effort close the failed client before falling back.
+      try {
+        await redisUrlClient.quit()
+      } catch {
+        // Ignore quit errors
+      } finally {
+        // Mark backend as unavailable for this process; callers fall through to Upstash/memory.
+        redisUrlClient = null
+      }
     }
   }
 

@@ -211,6 +211,29 @@ export interface UseAgentStreamOptions {
    * @default 10000, overridable via NEXT_PUBLIC_AGENT_STREAM_MAX_MESSAGE_LENGTH
    */
   maxMessageLength?: number
+
+  /**
+   * Maximum time to allow a stream to run before aborting (ms).
+   * Useful to avoid hung connections that never emit RUN_FINISHED.
+   *
+   * @default 600000 (10 minutes), overridable via NEXT_PUBLIC_AGENT_STREAM_TIMEOUT_MS
+   */
+  streamTimeoutMs?: number
+
+  /**
+   * Max number of retry attempts for initial connection / transient failures.
+   * Retries are never attempted after an explicit user abort.
+   *
+   * @default 0 (no retries), overridable via NEXT_PUBLIC_AGENT_STREAM_MAX_RETRIES
+   */
+  maxRetries?: number
+
+  /**
+   * Base delay for retries (ms). Retry delay is exponential: base * 2^attempt.
+   *
+   * @default 1000, overridable via NEXT_PUBLIC_AGENT_STREAM_RETRY_BASE_DELAY_MS
+   */
+  retryBaseDelayMs?: number
 }
 
 // ============================================================================
@@ -280,6 +303,9 @@ const createInitialState = (): AgentStreamState => ({
 
 const DEFAULT_MAX_SSE_BUFFER_CHARS = 1024 * 1024 // 1MB safety cap
 const DEFAULT_MAX_MESSAGE_LENGTH = 10_000
+const DEFAULT_STREAM_TIMEOUT_MS = 10 * 60 * 1000
+const DEFAULT_MAX_RETRIES = 0
+const DEFAULT_RETRY_BASE_DELAY_MS = 1000
 
 function parseOptionalPositiveInt(value: string | undefined): number | undefined {
   if (!value) return undefined
@@ -330,6 +356,12 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
       DEFAULT_MAX_SSE_BUFFER_CHARS,
     maxMessageLength = parseOptionalPositiveInt(process.env.NEXT_PUBLIC_AGENT_STREAM_MAX_MESSAGE_LENGTH) ??
       DEFAULT_MAX_MESSAGE_LENGTH,
+    streamTimeoutMs = parseOptionalPositiveInt(process.env.NEXT_PUBLIC_AGENT_STREAM_TIMEOUT_MS) ??
+      DEFAULT_STREAM_TIMEOUT_MS,
+    maxRetries = parseOptionalPositiveInt(process.env.NEXT_PUBLIC_AGENT_STREAM_MAX_RETRIES) ??
+      DEFAULT_MAX_RETRIES,
+    retryBaseDelayMs = parseOptionalPositiveInt(process.env.NEXT_PUBLIC_AGENT_STREAM_RETRY_BASE_DELAY_MS) ??
+      DEFAULT_RETRY_BASE_DELAY_MS,
   } = options
 
   const [state, setState] = useState<AgentStreamState>(createInitialState)
@@ -595,124 +627,161 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
 
       const url = `${baseURL}/agents/${team}/runs`
 
+      let timeoutId: ReturnType<typeof setTimeout> | null = null
       try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            Accept: 'text/event-stream',
-          },
-          body: JSON.stringify({
-            ...request,
-            stream: true, // Enable SSE streaming
-          }),
-          signal: abortController.signal,
-        })
+        timeoutId =
+          streamTimeoutMs > 0
+            ? setTimeout(() => {
+                abortController.abort()
+              }, streamTimeoutMs)
+            : null
 
-        // Check if stream was aborted while waiting for response
-        if (currentStreamId !== streamIdRef.current) {
-          return
-        }
+        const runOnce = async (): Promise<void> => {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+              Accept: 'text/event-stream',
+            },
+            body: JSON.stringify({
+              ...request,
+              stream: true, // Enable SSE streaming
+            }),
+            signal: abortController.signal,
+          })
 
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`Agent API error (${response.status}): ${errorText}`)
-        }
-
-        // Check if we got a streaming response
-        const contentType = response.headers.get('content-type')
-        if (!contentType?.includes('text/event-stream')) {
-          // Non-streaming response - parse as JSON
-          const data = await safeJson<Record<string, unknown>>(response)
-          if (!data) {
-            throw new Error('Agent API returned a non-streaming response without a JSON body')
-          }
+          // Check if stream was aborted while waiting for response
           if (currentStreamId !== streamIdRef.current) {
             return
           }
-          const content = typeof data.content === 'string' ? data.content : null
-          if (content) {
-            const sessionId = typeof data.session_id === 'string' ? data.session_id : 'unknown'
-            processEvent(
-              {
-                type: AGUIEventType.RUN_STARTED,
-                runId: sessionId,
-              },
-              currentStreamId
-            )
-            processEvent(
-              {
-                type: AGUIEventType.TEXT_MESSAGE_CHUNK,
-                delta: content,
-                messageId: 'msg_1',
-              },
-              currentStreamId
-            )
-            processEvent(
-              {
-                type: AGUIEventType.RUN_FINISHED,
-                runId: sessionId,
-                status: 'success',
-              },
-              currentStreamId
-            )
-          }
-          return
-        }
 
-        // Process streaming response
-        const reader = response.body?.getReader()
-        if (!reader) {
-          throw new Error('Response body is not readable')
-        }
-        readerRef.current = reader
-
-        const decoder = new TextDecoder()
-        let buffer = ''
-
-        while (true) {
-          // Check for abort before each read
-          if (currentStreamId !== streamIdRef.current) {
-            reader.cancel().catch(() => {})
-            break
+          if (!response.ok) {
+            const errorText = await response.text()
+            throw new Error(`Agent API error (${response.status}): ${errorText}`)
           }
 
-          const { done, value } = await reader.read()
-
-          if (done) {
-            break
+          // Check if we got a streaming response
+          const contentType = response.headers.get('content-type')
+          if (!contentType?.includes('text/event-stream')) {
+            // Non-streaming response - parse as JSON
+            const data = await safeJson<Record<string, unknown>>(response)
+            if (!data) {
+              throw new Error('Agent API returned a non-streaming response without a JSON body')
+            }
+            if (currentStreamId !== streamIdRef.current) {
+              return
+            }
+            const content = typeof data.content === 'string' ? data.content : null
+            if (content) {
+              const sessionId = typeof data.session_id === 'string' ? data.session_id : 'unknown'
+              processEvent(
+                {
+                  type: AGUIEventType.RUN_STARTED,
+                  runId: sessionId,
+                },
+                currentStreamId
+              )
+              processEvent(
+                {
+                  type: AGUIEventType.TEXT_MESSAGE_CHUNK,
+                  delta: content,
+                  messageId: 'msg_1',
+                },
+                currentStreamId
+              )
+              processEvent(
+                {
+                  type: AGUIEventType.RUN_FINISHED,
+                  runId: sessionId,
+                  status: 'success',
+                },
+                currentStreamId
+              )
+            }
+            return
           }
 
-          // Decode chunk and add to buffer
-          const chunk = decoder.decode(value, { stream: true })
-          if (buffer.length + chunk.length > maxSseBufferChars) {
-            throw new Error('Stream buffer would exceed limit; aborting to prevent memory bloat')
+          // Process streaming response
+          const reader = response.body?.getReader()
+          if (!reader) {
+            throw new Error('Response body is not readable')
           }
-          buffer += chunk
+          readerRef.current = reader
 
-          // Process complete events (separated by double newline)
-          const parts = buffer.split('\n\n')
-          buffer = parts.pop() || '' // Keep incomplete part in buffer
+          const decoder = new TextDecoder()
+          let buffer = ''
 
-          for (const part of parts) {
-            const lines = part.split('\n')
-            for (const line of lines) {
-              const event = parseSSELine(line)
-              if (event) {
-                processEvent(event, currentStreamId)
+          while (true) {
+            // Check for abort before each read
+            if (currentStreamId !== streamIdRef.current) {
+              reader.cancel().catch(() => {})
+              break
+            }
+
+            const { done, value } = await reader.read()
+
+            if (done) {
+              break
+            }
+
+            // Decode chunk and add to buffer
+            const chunk = decoder.decode(value, { stream: true })
+            if (buffer.length + chunk.length > maxSseBufferChars) {
+              throw new Error('Stream buffer would exceed limit; aborting to prevent memory bloat')
+            }
+            buffer += chunk
+
+            // Process complete events (separated by double newline)
+            const parts = buffer.split('\n\n')
+            buffer = parts.pop() || '' // Keep incomplete part in buffer
+
+            for (const part of parts) {
+              const lines = part.split('\n')
+              for (const line of lines) {
+                const event = parseSSELine(line)
+                if (event) {
+                  processEvent(event, currentStreamId)
+                }
               }
+            }
+          }
+
+          // Process any remaining buffer
+          if (buffer.trim() && currentStreamId === streamIdRef.current) {
+            const event = parseSSELine(buffer)
+            if (event) {
+              processEvent(event, currentStreamId)
             }
           }
         }
 
-        // Process any remaining buffer
-        if (buffer.trim() && currentStreamId === streamIdRef.current) {
-          const event = parseSSELine(buffer)
-          if (event) {
-            processEvent(event, currentStreamId)
+        let attempt = 0
+        while (true) {
+          try {
+            await runOnce()
+            break
+          } catch (error) {
+            // Retry only if this is still the active stream and the user hasn't aborted.
+            if (currentStreamId !== streamIdRef.current) return
+            if (abortController.signal.aborted) throw error
+            if (attempt >= maxRetries) throw error
+
+            attempt += 1
+            const delay = retryBaseDelayMs * 2 ** (attempt - 1)
+
+            if (mountedRef.current) {
+              setState(prev => ({
+                ...prev,
+                status: 'connecting',
+              }))
+            }
+
+            await new Promise(resolve => setTimeout(resolve, delay))
+            continue
           }
         }
+
       } catch (err) {
         // Ignore abort errors
         if (err instanceof Error && err.name === 'AbortError') {
@@ -734,6 +803,7 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
         }
         onErrorRef.current?.(error)
       } finally {
+        if (timeoutId) clearTimeout(timeoutId)
         // Only clean up if this is still the current stream
         if (currentStreamId === streamIdRef.current) {
           abortControllerRef.current = null
@@ -741,7 +811,17 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
         }
       }
     },
-    [abort, baseURL, processEvent, parseSSELine, maxMessageLength, maxSseBufferChars]
+    [
+      abort,
+      baseURL,
+      processEvent,
+      parseSSELine,
+      maxMessageLength,
+      maxSseBufferChars,
+      streamTimeoutMs,
+      maxRetries,
+      retryBaseDelayMs,
+    ]
   )
 
   // Cleanup on unmount

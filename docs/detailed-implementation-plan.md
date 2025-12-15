@@ -456,11 +456,11 @@ This section captures remaining review recommendations and follow-ups that are *
 - [x] Add explicit runtime guardrails + loud warnings when insecure WS fallbacks are enabled (esp. in prod) (`apps/api/src/realtime/realtime.gateway.ts`)
 
 ##### P1 (Reliability + Performance)
-- [ ] Convert `KnowledgeFactory` caches from class-level globals to bounded instance caches (TTL/LRU) (`agents/knowledge/factory.py`)
-- [ ] Add asyncpg pooling for `_resolve_table_name` and deletion helpers (`agents/knowledge/factory.py`)
-- [ ] Close Redis client on REDIS_URL backend failure before falling back (`apps/web/src/lib/utils/rate-limit.ts`)
-- [ ] Add stream-level timeout + backoff policy (client-side) (`apps/web/src/hooks/use-agent-stream.ts`)
-- [ ] Add rapid mount/unmount safety tests for `useAgentStream` (`apps/web/src/hooks/__tests__/use-agent-stream.test.tsx`)
+- [x] Convert `KnowledgeFactory` caches from class-level globals to bounded instance caches (TTL/LRU) (`agents/knowledge/factory.py`)
+- [x] Add asyncpg pooling for `_resolve_table_name` and deletion helpers (`agents/knowledge/factory.py`)
+- [x] Close Redis client on REDIS_URL backend failure before falling back (`apps/web/src/lib/utils/rate-limit.ts`)
+- [x] Add stream-level timeout + backoff policy (client-side) (`apps/web/src/hooks/use-agent-stream.ts`)
+- [x] Add rapid mount/unmount safety tests for `useAgentStream` (`apps/web/src/hooks/__tests__/use-agent-stream.test.tsx`)
 
 ##### P2 (Testing Coverage)
 - [ ] MCP API route tests (validation, RBAC, masking, CRUD) (`apps/web/src/app/api/workspaces/[id]/mcp-servers/route.test.ts`, `apps/web/src/app/api/workspaces/[id]/mcp-servers/[serverId]/route.test.ts`)

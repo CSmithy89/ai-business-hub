@@ -10,6 +10,7 @@ import hashlib
 import inspect
 import re
 import asyncio
+import os
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
@@ -50,11 +51,6 @@ class KnowledgeFactory:
         )
     """
 
-    # Cache of knowledge instances per workspace
-    _instances: Dict[str, Knowledge] = {}
-    _locks: Dict[str, asyncio.Lock] = {}
-    _table_name_cache: Dict[str, str] = {}
-
     def __init__(
         self,
         database_url: Optional[str] = None,
@@ -74,7 +70,94 @@ class KnowledgeFactory:
         if not self.database_url:
             raise ValueError("Database URL is required for knowledge base")
 
+        # Instance-scoped caches (avoid unbounded class-level globals).
+        self._instances: Dict[str, Knowledge] = {}
+        self._instance_last_access: Dict[str, float] = {}
+        self._locks: Dict[str, asyncio.Lock] = {}
+        self._table_name_cache: Dict[str, str] = {}
+
+        # Best-effort pooling for Postgres metadata/DDL helpers.
+        self._db_pool: Optional[asyncpg.Pool] = None
+
+        # Cache limits (defense-in-depth; tune via env as needed).
+        self._max_cached_instances = int(os.getenv("KNOWLEDGE_CACHE_MAX_INSTANCES", "50"))
+        self._cache_ttl_seconds = int(os.getenv("KNOWLEDGE_CACHE_TTL_SECONDS", "3600"))
+        self._table_name_cache_max_entries = int(os.getenv("KNOWLEDGE_TABLE_NAME_CACHE_MAX", "500"))
+
         logger.info("KnowledgeFactory initialized")
+
+    def _now(self) -> float:
+        """Monotonic timestamp for cache TTL/LRU."""
+        try:
+            return asyncio.get_running_loop().time()
+        except RuntimeError:
+            # Fallback for contexts without a running loop (should be rare).
+            return asyncio.get_event_loop().time()
+
+    def _touch(self, workspace_id: str) -> None:
+        self._instance_last_access[workspace_id] = self._now()
+
+    async def _get_db_pool(self) -> asyncpg.Pool:
+        """Get or create a small asyncpg pool for metadata/DDL operations."""
+        if self._db_pool is None:
+            self._db_pool = await asyncpg.create_pool(
+                dsn=self.database_url,
+                min_size=1,
+                max_size=5,
+                command_timeout=10,
+            )
+        return self._db_pool
+
+    def _evict_if_needed(self, current_workspace_id: str) -> None:
+        """
+        Best-effort bounded cache eviction.
+
+        Avoid evicting the currently-creating workspace. Also avoid evicting entries
+        while their per-workspace lock is held (to reduce the chance of evicting
+        an instance actively in use).
+        """
+        now = self._now()
+
+        # TTL eviction
+        if self._cache_ttl_seconds > 0:
+            stale_ids = [
+                ws_id
+                for ws_id, last_access in list(self._instance_last_access.items())
+                if ws_id != current_workspace_id and (now - last_access) > self._cache_ttl_seconds
+            ]
+            for ws_id in stale_ids:
+                lock = self._locks.get(ws_id)
+                if lock and lock.locked():
+                    continue
+                self._instances.pop(ws_id, None)
+                self._instance_last_access.pop(ws_id, None)
+
+        # LRU eviction
+        if self._max_cached_instances > 0:
+            while len(self._instances) > self._max_cached_instances:
+                candidates = [
+                    (ws_id, self._instance_last_access.get(ws_id, 0.0))
+                    for ws_id in self._instances.keys()
+                    if ws_id != current_workspace_id
+                ]
+                if not candidates:
+                    break
+                candidates.sort(key=lambda t: t[1])  # oldest first
+                evicted = False
+                for ws_id, _ in candidates:
+                    lock = self._locks.get(ws_id)
+                    if lock and lock.locked():
+                        continue
+                    self._instances.pop(ws_id, None)
+                    self._instance_last_access.pop(ws_id, None)
+                    evicted = True
+                    break
+                if not evicted:
+                    break
+
+        # Table-name cache bounds (safe to clear; it will be re-resolved lazily).
+        if self._table_name_cache_max_entries > 0 and len(self._table_name_cache) > self._table_name_cache_max_entries:
+            self._table_name_cache.clear()
 
     @staticmethod
     def _sanitize_identifier(value: str) -> str:
@@ -129,8 +212,8 @@ class KnowledgeFactory:
         current = self._get_table_name(workspace_id)
 
         try:
-            conn = await asyncpg.connect(self.database_url)
-            try:
+            pool = await self._get_db_pool()
+            async with pool.acquire() as conn:
                 # information_schema stores unquoted identifiers in lowercase.
                 legacy_exists = await conn.fetchval(
                     """
@@ -142,8 +225,6 @@ class KnowledgeFactory:
                     """,
                     legacy,
                 )
-            finally:
-                await conn.close()
         except Exception:
             # If we can't connect, fall back to deterministic naming; PgVector will handle creation.
             legacy_exists = False
@@ -216,6 +297,7 @@ class KnowledgeFactory:
             # Check cache first (inside lock)
             if not force_new and workspace_id in self._instances:
                 logger.debug(f"Returning cached knowledge for {workspace_id}")
+                self._touch(workspace_id)
                 return self._instances[workspace_id]
 
             # Build configuration
@@ -246,6 +328,8 @@ class KnowledgeFactory:
 
             # Cache the instance
             self._instances[workspace_id] = knowledge
+            self._touch(workspace_id)
+            self._evict_if_needed(workspace_id)
 
             logger.info(
                 f"Knowledge base created: table={config.table_name}, "
@@ -258,8 +342,10 @@ class KnowledgeFactory:
         """Clear cached knowledge instances."""
         if workspace_id:
             self._instances.pop(workspace_id, None)
+            self._instance_last_access.pop(workspace_id, None)
         else:
             self._instances.clear()
+            self._instance_last_access.clear()
 
     async def delete_workspace_knowledge(
         self,
@@ -290,24 +376,29 @@ class KnowledgeFactory:
 
             # Remove from cache
             self._instances.pop(workspace_id, None)
+            self._instance_last_access.pop(workspace_id, None)
 
             # Always drop the table directly to ensure cleanup even when no cached instance exists.
-            conn = await asyncpg.connect(self.database_url)
-            try:
+            pool = await self._get_db_pool()
+            async with pool.acquire() as conn:
                 # Identifier safety: table_name is generated by _get_table_name and sanitized,
                 # but still quote it defensively.
                 for name in {table_name, legacy_table_name}:
                     if not re.match(r"^knowledge_[a-z0-9_]+$", name):
                         raise ValueError(f"Invalid table name: {name}")
                     await conn.execute(f'DROP TABLE IF EXISTS "{name}" CASCADE')
-            finally:
-                await conn.close()
 
             logger.info(f"Deleted knowledge for workspace {workspace_id} (table={table_name})")
             return True
         except Exception as e:
             logger.error(f"Failed to delete knowledge: {e}")
             return False
+
+    async def close(self) -> None:
+        """Close pooled resources (best-effort)."""
+        if self._db_pool is not None:
+            await self._db_pool.close()
+            self._db_pool = None
 
 
 # Global factory instance
