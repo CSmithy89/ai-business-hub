@@ -7,6 +7,7 @@ Use these runbooks to respond to incidents on the HYVVE platform. Keep a termina
 - [Database Recovery](./database-recovery.md)
 - [Incident Response](./incident-response.md)
 - [Key Rotation](./key-rotation.md)
+- [Knowledge Base Maintenance](./knowledge-base-maintenance.md)
 - [Troubleshooting: Auth Failures](./troubleshooting/auth-failures.md)
 - [Troubleshooting: Agent Errors](./troubleshooting/agent-errors.md)
 - [Troubleshooting: Performance Issues](./troubleshooting/performance-issues.md)

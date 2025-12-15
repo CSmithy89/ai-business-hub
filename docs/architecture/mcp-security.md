@@ -4,6 +4,8 @@ HYVVE integrates the Model Context Protocol (MCP) to extend agent capabilities w
 
 This document defines HYVVE’s MCP permission model and operational guidance.
 
+If you are setting up an MCP server in the product UI, see `docs/guides/mcp-integrations.md` for field definitions, validation limits, and examples.
+
 ---
 
 ## Permission Model
@@ -67,4 +69,3 @@ HYVVE’s UI/API guidance:
 If you allow EXECUTE:
 - ensure realtime and audit logs are enabled and monitored,
 - consider additional change-approval processes for MCP permission changes.
-
