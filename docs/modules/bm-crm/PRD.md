@@ -2,8 +2,8 @@
 
 **Author:** Chris
 **Date:** 2025-12-15
-**Version:** 1.2
-**Status:** Draft (Enhanced with 5 elicitation methods)
+**Version:** 1.3
+**Status:** Draft (Aligned with codebase implementation patterns)
 
 ---
 
@@ -987,6 +987,267 @@ Clara: "Scout analyzed the score. Here's why: [presents Scout's findings]"
 ```
 
 Advanced users can still address specialists directly via `@Scout`, `@Atlas`, etc.
+
+---
+
+## Technical Implementation Specification
+
+This section aligns the PRD with the existing codebase patterns in `agents/`.
+
+### File Structure (Following Validation/Branding Pattern)
+
+```
+agents/crm/
+├── __init__.py
+├── README.md
+├── team.py                      # CRM team factory (Clara as leader)
+├── crm_orchestrator_agent.py    # Clara - Team Lead
+├── lead_scorer_agent.py         # Scout - Lead Scoring ✅ EXISTS
+├── data_enricher_agent.py       # Atlas - Data Enrichment ✅ EXISTS
+├── pipeline_agent.py            # Flow - Pipeline Management ✅ EXISTS
+├── activity_tracker_agent.py    # Echo - Activity Tracking
+├── integration_agent.py         # Sync - External Integrations [Growth]
+├── compliance_agent.py          # Guardian - GDPR/Compliance [Growth]
+├── outreach_agent.py            # Cadence - Email Sequences [Growth]
+└── tools.py                     # CRM-specific tools
+```
+
+### main.py Integration
+
+Add to `TEAM_CONFIG` in `agents/main.py`:
+
+```python
+from crm.team import create_crm_team
+
+TEAM_CONFIG["crm"] = {
+    "factory": create_crm_team,
+    "leader": "Clara",
+    "members": ["Scout", "Atlas", "Flow", "Echo"],  # MVP
+    "storage": "bm_crm_sessions",
+    "session_prefix": "crm",
+    "description": "AI-powered CRM with lead scoring, enrichment, and pipeline management",
+}
+```
+
+### Team Factory Pattern (team.py)
+
+```python
+def create_crm_team(
+    session_id: str,
+    user_id: str,
+    business_id: Optional[str] = None,
+    model: Optional[str] = None,
+    debug_mode: bool = False,
+) -> Team:
+    """Create the BM-CRM Team."""
+    storage = PostgresStorage(
+        table_name="bm_crm_sessions",
+        db_url=get_postgres_url(),
+    )
+
+    # Create agents
+    clara = create_clara_agent(model=model, storage=storage)
+    scout = create_scout_agent(model=model, storage=storage)
+    atlas = create_atlas_agent(model=model, storage=storage)
+    flow = create_flow_agent(model=model, storage=storage)
+    echo = create_echo_agent(model=model, storage=storage)
+
+    return Team(
+        name="CRM Team",
+        mode="coordinate",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        leader=clara,
+        members=[scout, atlas, flow, echo],
+        delegate_task_to_all_members=False,
+        respond_directly=True,
+        share_member_interactions=True,
+        enable_agentic_context=True,
+        session_id=session_id,
+        user_id=user_id,
+        storage=storage,
+        debug_mode=debug_mode,
+        instructions=[
+            f"Business ID: {business_id}" if business_id else "",
+            "You are the CRM Team for HYVVE's CRM Module (BM-CRM).",
+            "Coordinate lead scoring, data enrichment, pipeline management, and activity tracking.",
+        ],
+        expected_output=(
+            "CRM operations including:\n"
+            "1. Lead scores with breakdown\n"
+            "2. Enriched contact/company data\n"
+            "3. Pipeline status and recommendations\n"
+            "4. Activity summaries and engagement insights"
+        ),
+        markdown=True,
+    )
+```
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/agents/crm/runs` | POST | Run CRM team (supports `stream=true`) |
+| `/agents/crm/health` | GET | Team health check |
+| `/a2a/crm/rpc` | POST | A2A JSON-RPC interface |
+| `/a2a/crm/.well-known/agent-card.json` | GET | A2A discovery |
+
+### Agent Card (A2A Protocol)
+
+```json
+{
+  "protocolVersion": "0.3.0",
+  "id": "crm",
+  "name": "CRM Team",
+  "description": "AI-powered CRM with lead scoring, enrichment, and pipeline management",
+  "version": "1.0.0",
+  "endpoints": {
+    "rpc": "/a2a/crm/rpc",
+    "ws": null
+  },
+  "capabilities": {
+    "streaming": true,
+    "events": true,
+    "files": false
+  },
+  "skills": [
+    {"name": "score_lead", "description": "Calculate lead score with breakdown"},
+    {"name": "enrich_contact", "description": "Enrich contact with external data"},
+    {"name": "get_pipeline_status", "description": "Get deal pipeline health"},
+    {"name": "log_activity", "description": "Log contact activity"},
+    {"name": "get_daily_summary", "description": "Clara's morning briefing"}
+  ]
+}
+```
+
+### CRM Tools (tools.py)
+
+```python
+# Tool functions for CRM agents
+def calculate_lead_score(contact_id: str, firmographic: dict, behavioral: dict, intent: dict) -> dict
+def enrich_contact(contact_id: str, sources: list[str] = None) -> dict
+def move_deal_stage(deal_id: str, new_stage: str, reason: str = None) -> dict
+def log_activity(contact_id: str, activity_type: str, details: dict) -> dict
+def get_engagement_score(contact_id: str) -> dict
+def request_crm_approval(action: str, entity_id: str, reason: str) -> dict
+```
+
+### Database Tables (Prisma)
+
+```prisma
+// Add to packages/db/prisma/schema.prisma
+
+model CrmContact {
+  id            String   @id @default(cuid())
+  workspaceId   String   @map("workspace_id")
+  firstName     String?  @map("first_name")
+  lastName      String?  @map("last_name")
+  email         String?
+  phone         String?
+  jobTitle      String?  @map("job_title")
+  leadScore     Int      @default(0) @map("lead_score")
+  scoreTier     String   @default("cold") @map("score_tier")
+  lifecycle     String   @default("lead")
+  accountId     String?  @map("account_id")
+  ownerId       String?  @map("owner_id")
+  customFields  Json?    @map("custom_fields")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  account       CrmAccount? @relation(fields: [accountId], references: [id])
+  activities    CrmActivity[]
+  deals         CrmDeal[]
+
+  @@index([workspaceId])
+  @@index([email])
+  @@index([scoreTier])
+  @@map("crm_contacts")
+}
+
+model CrmAccount {
+  id              String   @id @default(cuid())
+  workspaceId     String   @map("workspace_id")
+  name            String
+  domain          String?
+  industry        String?
+  employeeCount   Int?     @map("employee_count")
+  annualRevenue   Decimal? @map("annual_revenue")
+  segment         String?  // smb, mid-market, enterprise
+  healthScore     Int?     @map("health_score")
+  ownerId         String?  @map("owner_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  contacts        CrmContact[]
+  deals           CrmDeal[]
+
+  @@index([workspaceId])
+  @@index([domain])
+  @@map("crm_accounts")
+}
+
+model CrmDeal {
+  id                String    @id @default(cuid())
+  workspaceId       String    @map("workspace_id")
+  name              String
+  value             Decimal?
+  currency          String    @default("USD")
+  stage             String    @default("lead")
+  probability       Int       @default(10)
+  expectedCloseDate DateTime? @map("expected_close_date")
+  actualCloseDate   DateTime? @map("actual_close_date")
+  lostReason        String?   @map("lost_reason")
+  accountId         String?   @map("account_id")
+  primaryContactId  String?   @map("primary_contact_id")
+  ownerId           String?   @map("owner_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  account           CrmAccount?  @relation(fields: [accountId], references: [id])
+  primaryContact    CrmContact?  @relation(fields: [primaryContactId], references: [id])
+  activities        CrmActivity[]
+
+  @@index([workspaceId])
+  @@index([stage])
+  @@map("crm_deals")
+}
+
+model CrmActivity {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  type        String   // email, call, meeting, note, task
+  subject     String?
+  body        String?
+  happenedAt  DateTime @map("happened_at")
+  sentiment   String?  // positive, neutral, negative
+  contactId   String?  @map("contact_id")
+  dealId      String?  @map("deal_id")
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  contact     CrmContact? @relation(fields: [contactId], references: [id])
+  deal        CrmDeal?    @relation(fields: [dealId], references: [id])
+
+  @@index([workspaceId])
+  @@index([contactId])
+  @@index([dealId])
+  @@map("crm_activities")
+}
+```
+
+### Event Bus Events
+
+CRM module publishes these events to Redis Streams:
+
+| Event | Trigger | Payload |
+|-------|---------|---------|
+| `crm.contact.created` | New contact | `{contactId, workspaceId, email}` |
+| `crm.contact.scored` | Score calculated | `{contactId, score, tier, previousTier}` |
+| `crm.contact.enriched` | Data enriched | `{contactId, fields, source}` |
+| `crm.deal.stage_changed` | Deal moved | `{dealId, fromStage, toStage}` |
+| `crm.deal.won` | Deal closed won | `{dealId, value, contactId}` |
+| `crm.deal.lost` | Deal closed lost | `{dealId, reason, contactId}` |
+| `crm.activity.logged` | Activity recorded | `{activityId, type, contactId}` |
+| `crm.sequence.enrolled` | Contact in sequence | `{contactId, sequenceId}` |
 
 ---
 
