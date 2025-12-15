@@ -484,9 +484,15 @@ Commits:
 
 ---
 
-#### 5.5.8. CodeRabbit Review Follow-ups (P0–P3) 🔜 In Progress
+#### 5.5.8. CodeRabbit Review Follow-ups (P0–P3) ✅ COMPLETE
 
-This section tracks additional follow-ups from the CodeRabbit review pass. Items are grouped by priority and will be completed in sequential “P0 → P3” passes (commit + push after each group).
+This section tracks additional follow-ups from the CodeRabbit review pass. Items were completed in sequential “P0 → P3” passes (commit + push after each group).
+
+Commits:
+- P0: `e29a59a`
+- P1: `a4b66bf`
+- P2: `f60614c`
+- P3: `8bc64cc`
 
 ##### P0 (Security + Operational Correctness)
 - [x] Anchor dev-origin regex checks to prevent hostname suffix bypass (`apps/api/src/realtime/realtime.gateway.ts`)
