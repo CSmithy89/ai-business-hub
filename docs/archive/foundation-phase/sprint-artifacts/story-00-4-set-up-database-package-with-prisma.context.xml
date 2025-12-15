@@ -1,0 +1,703 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>00-4</story-id>
+    <story-title>Set up Database Package with Prisma</story-title>
+    <generated>2025-12-01</generated>
+    <epic>EPIC-00 - Project Scaffolding &amp; Core Setup</epic>
+    <story-points>3</story-points>
+    <priority>P0 - Critical</priority>
+  </metadata>
+
+  <story-summary>
+    Configure Prisma 6.x in the packages/db package with PostgreSQL connection,
+    generate type-safe Prisma Client, implement tenant extension pattern using
+    AsyncLocalStorage, and set up migration scripts for database schema management.
+    This story establishes the database access layer that all apps will use.
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      Prisma is initialized in packages/db with required dependencies
+      (@prisma/client ^6.x, prisma ^6.x)
+    </criterion>
+    <criterion id="AC2">
+      Schema file from /packages/db/prisma/schema.prisma is configured and compiles without errors
+    </criterion>
+    <criterion id="AC3">
+      PostgreSQL connection is configured with both DATABASE_URL and DIRECT_URL for Supabase pooler
+    </criterion>
+    <criterion id="AC4">
+      Prisma Client is generated and exported from the package
+    </criterion>
+    <criterion id="AC5">
+      Tenant extension file (tenant-extension.ts) is created with AsyncLocalStorage pattern
+    </criterion>
+    <criterion id="AC6">
+      Migration scripts are added to package.json (db:migrate, db:studio, db:generate)
+    </criterion>
+    <criterion id="AC7">
+      Initial migration runs successfully against the database
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-requirements>
+    <prisma-version>
+      - Prisma: ^6.x
+      - @prisma/client: ^6.x
+      - Preview features: fullTextSearch, multiSchema
+    </prisma-version>
+
+    <database-connection>
+      - Database: PostgreSQL 16
+      - Connection pooler: PgBouncer in session mode (for future RLS support)
+      - DATABASE_URL: Pooled connection via PgBouncer (port 6543)
+      - DIRECT_URL: Direct connection for migrations (port 5432)
+      - Both URLs required for Supabase compatibility
+    </database-connection>
+
+    <client-generation>
+      - Generator: prisma-client-js
+      - Output: node_modules/@prisma/client (default)
+      - Logging: ['query', 'error', 'warn'] for development
+      - Singleton pattern: Prevent multiple instances in development hot-reload
+    </client-generation>
+
+    <tenant-extension-pattern>
+      - Use AsyncLocalStorage for tenant context storage
+      - Export tenantContext and createTenantPrismaClient()
+      - Automatically inject tenantId/workspaceId into all queries
+      - Skip tenant filtering for User, Session, Account, Workspace models
+      - Add tenant filters to reads (findMany, findFirst, findUnique, count)
+      - Add tenantId to creates (create, createMany)
+      - Add tenant filters to updates/deletes (update, updateMany, delete, deleteMany)
+    </tenant-extension-pattern>
+
+    <package-structure>
+      packages/db/
+      ├── prisma/
+      │   ├── schema.prisma         # Existing schema (already created)
+      │   └── migrations/            # Created by migrations
+      ├── src/
+      │   ├── index.ts              # Prisma Client export
+      │   └── tenant-extension.ts   # Tenant context pattern
+      ├── package.json              # Update with Prisma deps and scripts
+      └── tsconfig.json             # TypeScript config for package
+    </package-structure>
+  </technical-requirements>
+
+  <architecture-context>
+    <adr-reference>
+      ADR-003: RLS + Prisma Extension for Multi-tenancy
+      - Defense-in-depth: Database-level RLS + Application-level filtering
+      - Prisma Client Extension for automatic tenant scoping
+      - PgBouncer session mode required for RLS (configured in future epic)
+    </adr-reference>
+
+    <multi-tenant-architecture>
+      All tenant-scoped models include:
+      - workspaceId: String field for Row-Level Security
+      - @@index([workspaceId]) for query optimization
+
+      Non-tenant models (global):
+      - User, Session, Account, Workspace
+      - VerificationToken, WorkspaceInvitation
+
+      Tenant-scoped models (require workspaceId):
+      - WorkspaceMember, AIProviderConfig, TokenUsage
+      - ApprovalItem, ApiKey, EventLog, AuditLog
+      - Notification, WorkspaceSettings
+    </multi-tenant-architecture>
+
+    <database-access-layer>
+      From architecture.md:
+      - Prisma Client is the single source of database access
+      - Both NestJS (apps/api) and Next.js (apps/web) import from @hyvve/db
+      - AgentOS (Python) uses SQLAlchemy separately for agno_* tables
+      - Connection pooling via PgBouncer ensures RLS compatibility
+    </database-access-layer>
+  </architecture-context>
+
+  <existing-code-context>
+    <current-package-state>
+      Location: /home/chris/projects/work/Ai Bussiness Hub/packages/db/
+
+      Existing files:
+      - package.json: Placeholder with echo scripts for Story 00.4
+      - prisma/schema.prisma: Complete schema already exists (455 lines)
+
+      Schema contains:
+      - Authentication models: User, Session, Account, VerificationToken
+      - Workspace models: Workspace, WorkspaceMember, WorkspaceInvitation
+      - BYOAI models: AIProviderConfig, TokenUsage
+      - Approval models: ApprovalItem
+      - API models: ApiKey
+      - Event models: EventLog, AuditLog
+      - Notification models: Notification, NotificationPreference
+      - Settings models: WorkspaceSettings
+      - 2FA models: TwoFactorBackupCode, TwoFactorSecret
+
+      Schema configuration (already present):
+      - generator client with preview features: fullTextSearch, multiSchema
+      - datasource db with DATABASE_URL and DIRECT_URL
+      - All models properly mapped to snake_case table names
+      - Comprehensive indexes on tenant, user, and date fields
+    </current-package-state>
+
+    <monorepo-package-patterns>
+      From pnpm-workspace.yaml:
+      - Workspaces: apps/*, packages/*
+
+      Package naming convention:
+      - Scoped packages: @hyvve/db, @hyvve/shared, @hyvve/ui, @hyvve/api
+      - All packages are private (private: true)
+
+      From turbo.json:
+      - Global dependencies: **/.env.*local
+      - Build task: dependsOn ^build, outputs to dist/**, .next/**, build/**
+      - Dev task: cache: false, persistent: true
+      - Lint task: dependsOn ^lint
+      - Type-check task: dependsOn ^type-check
+
+      Package.json patterns (from @hyvve/shared, @hyvve/ui):
+      - version: "0.1.0"
+      - private: true
+      - main: "./src/index.ts"
+      - types: "./src/index.ts"
+      - scripts: build, type-check, lint
+    </monorepo-package-patterns>
+
+    <apps-integration>
+      apps/api (NestJS) will import:
+      - import { PrismaClient } from '@hyvve/db'
+      - import { createTenantPrismaClient } from '@hyvve/db'
+
+      apps/web (Next.js) will import:
+      - Same imports as apps/api
+      - Used in API routes and Server Components
+
+      TypeScript configuration:
+      - All packages use TypeScript 5.x
+      - Strict mode enabled
+      - Path mapping via tsconfig.json
+    </apps-integration>
+
+    <environment-variables>
+      From .env.example:
+
+      # DATABASE (Story 00.4)
+      DATABASE_URL="postgresql://user:password@host:6543/database?pgbouncer=true"
+      DIRECT_URL="postgresql://user:password@host:5432/database"
+
+      Notes:
+      - DATABASE_URL uses port 6543 (pooler) with ?pgbouncer=true
+      - DIRECT_URL uses port 5432 (direct) for migrations
+      - Both required for Supabase connection pattern
+    </environment-variables>
+  </existing-code-context>
+
+  <dependencies>
+    <npm-packages>
+      Production dependencies (add to packages/db/package.json):
+      - @prisma/client: ^6.0.0
+
+      Development dependencies (add to packages/db/package.json):
+      - prisma: ^6.0.0
+      - typescript: ^5.0.0
+
+      Note: Root package.json already has typescript: ^5.0.0 as devDependency
+    </npm-packages>
+
+    <internal-dependencies>
+      No internal package dependencies.
+      This package is consumed by apps/api and apps/web.
+    </internal-dependencies>
+
+    <story-dependencies>
+      Completed:
+      - Story 00-1: Monorepo initialized (DONE)
+      - Story 00-2: Next.js frontend configured (DONE)
+      - Story 00-3: NestJS backend configured (DONE)
+
+      External:
+      - PostgreSQL database (Story 00-5 will provide Docker, but can use external DB)
+    </story-dependencies>
+  </dependencies>
+
+  <implementation-guide>
+    <step-1-update-package-json>
+      File: packages/db/package.json
+
+      Update dependencies:
+      {
+        "name": "@hyvve/db",
+        "version": "0.1.0",
+        "private": true,
+        "description": "Prisma database package with tenant extension",
+        "main": "./src/index.ts",
+        "types": "./src/index.ts",
+        "scripts": {
+          "db:generate": "prisma generate",
+          "db:migrate": "prisma migrate dev",
+          "db:studio": "prisma studio",
+          "db:push": "prisma db push",
+          "db:reset": "prisma migrate reset",
+          "build": "prisma generate",
+          "type-check": "tsc --noEmit"
+        },
+        "dependencies": {
+          "@prisma/client": "^6.0.0"
+        },
+        "devDependencies": {
+          "prisma": "^6.0.0",
+          "typescript": "^5.0.0"
+        }
+      }
+
+      Notes:
+      - build script runs prisma generate (needed for Turborepo pipeline)
+      - db:migrate uses "prisma migrate dev" for development migrations
+      - db:reset includes warning prompt from Prisma
+    </step-1-update-package-json>
+
+    <step-2-create-tsconfig>
+      File: packages/db/tsconfig.json
+
+      {
+        "extends": "../../tsconfig.json",
+        "compilerOptions": {
+          "outDir": "./dist",
+          "rootDir": "./src",
+          "declaration": true,
+          "declarationMap": true
+        },
+        "include": ["src/**/*"],
+        "exclude": ["node_modules", "dist"]
+      }
+
+      Notes:
+      - Extends root tsconfig.json for consistency
+      - Enables declaration files for TypeScript consumers
+    </step-2-create-tsconfig>
+
+    <step-3-verify-schema>
+      File: packages/db/prisma/schema.prisma (already exists)
+
+      Verify configuration:
+      - generator client has previewFeatures: ["fullTextSearch", "multiSchema"]
+      - datasource db has both url and directUrl
+      - All models have proper @@map() directives
+      - Tenant-scoped models have workspaceId field and @@index([workspaceId])
+
+      The schema is already complete and correct. No changes needed.
+    </step-3-verify-schema>
+
+    <step-4-create-client-export>
+      File: packages/db/src/index.ts
+
+      import { PrismaClient } from '@prisma/client'
+
+      // Prevent multiple Prisma Client instances in development
+      const globalForPrisma = globalThis as unknown as {
+        prisma: PrismaClient | undefined
+      }
+
+      export const prisma = globalForPrisma.prisma ?? new PrismaClient({
+        log: ['query', 'error', 'warn'],
+      })
+
+      if (process.env.NODE_ENV !== 'production') {
+        globalForPrisma.prisma = prisma
+      }
+
+      export * from '@prisma/client'
+      export * from './tenant-extension'
+
+      Notes:
+      - Singleton pattern prevents "too many clients" error in dev hot-reload
+      - Logging enabled for development debugging
+      - Re-exports all Prisma types for convenience
+      - Exports tenant extension utilities
+    </step-4-create-client-export>
+
+    <step-5-create-tenant-extension>
+      File: packages/db/src/tenant-extension.ts
+
+      import { PrismaClient } from '@prisma/client'
+      import { AsyncLocalStorage } from 'async_hooks'
+
+      /**
+       * Async local storage for tenant context
+       * Stores the current workspace ID for automatic query scoping
+       */
+      export const tenantContext = new AsyncLocalStorage&lt;{ tenantId: string }&gt;()
+
+      /**
+       * Models that are NOT tenant-scoped (global entities)
+       */
+      const NON_TENANT_MODELS = ['User', 'Session', 'Account', 'Workspace', 'VerificationToken', 'WorkspaceInvitation']
+
+      /**
+       * Creates a Prisma Client with automatic tenant scoping
+       *
+       * All queries will automatically filter by the current tenant ID from context.
+       * Throws error if tenant context is not set.
+       *
+       * @example
+       * ```ts
+       * const db = createTenantPrismaClient()
+       *
+       * tenantContext.run({ tenantId: 'workspace-123' }, async () => {
+       *   // All queries automatically scoped to workspace-123
+       *   const approvals = await db.approvalItem.findMany()
+       * })
+       * ```
+       */
+      export function createTenantPrismaClient() {
+        const prisma = new PrismaClient()
+
+        return prisma.$extends({
+          query: {
+            $allModels: {
+              async $allOperations({ model, operation, args, query }) {
+                // Get tenant context
+                const context = tenantContext.getStore()
+                if (!context?.tenantId) {
+                  throw new Error(
+                    `Tenant context required for database access. Model: ${model}, Operation: ${operation}`
+                  )
+                }
+
+                const tenantId = context.tenantId
+
+                // Skip tenant filtering for non-tenant tables
+                if (NON_TENANT_MODELS.includes(model)) {
+                  return query(args)
+                }
+
+                // Add tenant filter to read operations
+                if (['findMany', 'findFirst', 'findUnique', 'count', 'aggregate'].includes(operation)) {
+                  args.where = { ...args.where, workspaceId: tenantId }
+                }
+
+                // Add tenant to create operations
+                if (operation === 'create') {
+                  args.data = { ...args.data, workspaceId: tenantId }
+                }
+
+                if (operation === 'createMany') {
+                  if (Array.isArray(args.data)) {
+                    args.data = args.data.map((item) => ({ ...item, workspaceId: tenantId }))
+                  } else {
+                    args.data = { ...args.data, workspaceId: tenantId }
+                  }
+                }
+
+                // Add tenant filter to update/delete operations
+                if (['update', 'updateMany', 'delete', 'deleteMany'].includes(operation)) {
+                  args.where = { ...args.where, workspaceId: tenantId }
+                }
+
+                return query(args)
+              },
+            },
+          },
+        })
+      }
+
+      Notes:
+      - AsyncLocalStorage enables context propagation without explicit passing
+      - Extension automatically adds workspaceId to all tenant-scoped queries
+      - Throws descriptive error if tenant context missing (fail-fast)
+      - Non-tenant models bypass filtering (User, Session, etc.)
+      - Supports all CRUD operations with proper tenant scoping
+    </step-5-create-tenant-extension>
+
+    <step-6-install-dependencies>
+      Commands to run:
+
+      # Install dependencies
+      cd packages/db
+      pnpm install
+
+      # Or from workspace root
+      pnpm install
+
+      Notes:
+      - pnpm will install @prisma/client and prisma
+      - Prisma will auto-generate client after install (postinstall hook)
+    </step-6-install-dependencies>
+
+    <step-7-generate-prisma-client>
+      Commands to run:
+
+      # From packages/db directory
+      pnpm db:generate
+
+      # Or from workspace root
+      pnpm --filter @hyvve/db db:generate
+
+      Expected output:
+      - Prisma Client generated to node_modules/@prisma/client
+      - TypeScript types available for all models
+      - No errors or warnings
+
+      Verification:
+      - Check node_modules/@prisma/client exists
+      - Import should work: import { PrismaClient } from '@hyvve/db'
+    </step-7-generate-prisma-client>
+
+    <step-8-run-initial-migration>
+      Prerequisites:
+      - DATABASE_URL and DIRECT_URL set in .env.local
+      - PostgreSQL database running and accessible
+
+      Commands to run:
+
+      # From packages/db directory
+      pnpm db:migrate
+
+      # Prisma will prompt for migration name
+      # Enter: "initial_schema"
+
+      Expected outcome:
+      - Migration file created in prisma/migrations/
+      - All tables created in database
+      - Migration applied successfully
+
+      Common issues:
+      - Connection refused: Check database is running
+      - Authentication failed: Verify credentials in DATABASE_URL
+      - Permission denied: Check database user has CREATE TABLE privileges
+    </step-8-run-initial-migration>
+
+    <step-9-verify-prisma-studio>
+      Commands to run:
+
+      # From packages/db directory
+      pnpm db:studio
+
+      Expected outcome:
+      - Prisma Studio opens in browser at http://localhost:5555
+      - All tables visible in sidebar
+      - Can browse table structures
+      - No data yet (empty tables)
+
+      Verification steps:
+      - Check "users" table exists
+      - Check "workspaces" table exists
+      - Check "approval_items" table exists
+      - Verify columns match schema (snake_case naming)
+    </step-9-verify-prisma-studio>
+
+    <step-10-verify-package-integration>
+      Test in apps/api or apps/web:
+
+      // apps/api/src/test-db-import.ts (temporary test file)
+      import { prisma, createTenantPrismaClient, tenantContext } from '@hyvve/db'
+
+      async function testImport() {
+        // Test basic import
+        console.log('Prisma Client:', typeof prisma)
+
+        // Test tenant extension
+        const db = createTenantPrismaClient()
+        console.log('Tenant Prisma Client:', typeof db)
+
+        // Test tenant context
+        console.log('Tenant Context:', typeof tenantContext)
+
+        console.log('All imports successful!')
+      }
+
+      testImport()
+
+      Expected output:
+      - No TypeScript errors
+      - "All imports successful!" logged
+
+      Run from workspace root:
+      pnpm type-check
+
+      Expected: No TypeScript errors across workspace
+    </step-10-verify-package-integration>
+  </implementation-guide>
+
+  <file-changes-expected>
+    <new-files>
+      - packages/db/src/index.ts (Prisma Client export)
+      - packages/db/src/tenant-extension.ts (Tenant context pattern)
+      - packages/db/tsconfig.json (TypeScript configuration)
+      - packages/db/prisma/migrations/*/migration.sql (Generated by Prisma)
+    </new-files>
+
+    <modified-files>
+      - packages/db/package.json (Add dependencies and scripts)
+    </modified-files>
+
+    <generated-files>
+      - node_modules/@prisma/client/* (Generated by Prisma)
+      - packages/db/prisma/migrations/* (Created by db:migrate)
+    </generated-files>
+  </file-changes-expected>
+
+  <testing-requirements>
+    <manual-verification>
+      1. Smoke Test: pnpm db:generate completes without errors
+      2. Migration Test: pnpm db:migrate creates all tables successfully
+      3. Studio Test: pnpm db:studio opens and shows all tables
+      4. Import Test: Can import { prisma } from '@hyvve/db' in apps/api
+      5. Build Test: pnpm build from workspace root succeeds
+      6. Type Check: pnpm type-check passes across all packages
+    </manual-verification>
+
+    <verification-checklist>
+      Database connectivity:
+      - [ ] Can connect to PostgreSQL via DATABASE_URL
+      - [ ] Can connect to PostgreSQL via DIRECT_URL
+      - [ ] Migration creates all expected tables
+      - [ ] Tables use snake_case naming (users, workspaces, approval_items)
+      - [ ] All indexes created correctly
+
+      Package functionality:
+      - [ ] Prisma Client generates without errors
+      - [ ] TypeScript types available for all models
+      - [ ] Can import from @hyvve/db in apps/api
+      - [ ] Can import from @hyvve/db in apps/web
+      - [ ] Tenant extension exports correctly
+
+      Scripts:
+      - [ ] pnpm db:generate works
+      - [ ] pnpm db:migrate works
+      - [ ] pnpm db:studio works
+      - [ ] pnpm db:push works
+      - [ ] pnpm build works (runs generate)
+
+      Developer experience:
+      - [ ] TypeScript autocomplete works for models
+      - [ ] No console errors during build
+      - [ ] Clear error messages for missing env vars
+      - [ ] Prisma Studio UI accessible
+    </verification-checklist>
+
+    <edge-cases-to-test>
+      1. Cold start: Delete node_modules and reinstall
+         - Verify Prisma Client regenerates automatically
+
+      2. Missing environment variables:
+         - Run db:generate without DATABASE_URL
+         - Should get clear error message
+
+      3. Connection failure:
+         - Use invalid DATABASE_URL
+         - Should get connection error, not crash
+
+      4. Turbo cache:
+         - Run build twice
+         - Second build should be faster (cache hit)
+         - Schema change should invalidate cache
+
+      5. Concurrent migrations:
+         - (Not applicable in single-user dev)
+         - Document: Don't run migrations concurrently
+    </edge-cases-to-test>
+  </testing-requirements>
+
+  <success-criteria>
+    All acceptance criteria met:
+    - AC1: Prisma initialized with @prisma/client ^6.x and prisma ^6.x
+    - AC2: Schema compiles without errors
+    - AC3: DATABASE_URL and DIRECT_URL configured
+    - AC4: Prisma Client generated and exported
+    - AC5: Tenant extension created with AsyncLocalStorage
+    - AC6: Migration scripts added to package.json
+    - AC7: Initial migration runs successfully
+
+    Additional validation:
+    - Package can be imported in apps/api and apps/web
+    - TypeScript compilation passes workspace-wide
+    - Prisma Studio launches successfully
+    - No warnings or errors in build output
+    - Documentation comments added to tenant extension functions
+  </success-criteria>
+
+  <common-pitfalls>
+    <pitfall-1>
+      Issue: "Too many Prisma Client instances" in development
+      Solution: Use singleton pattern in src/index.ts (already implemented in guide)
+    </pitfall-1>
+
+    <pitfall-2>
+      Issue: Migration fails with "relation already exists"
+      Solution: Database has old tables. Use db:reset or drop schema manually
+    </pitfall-2>
+
+    <pitfall-3>
+      Issue: Prisma Client not found after generate
+      Solution: Run generate from packages/db directory, not workspace root
+    </pitfall-3>
+
+    <pitfall-4>
+      Issue: TypeScript can't find @hyvve/db module
+      Solution: Run pnpm install to create workspace symlinks
+    </pitfall-4>
+
+    <pitfall-5>
+      Issue: Tenant context error in development
+      Solution: Tenant extension meant for use in NestJS/API routes with middleware.
+               For direct Prisma usage, use regular prisma client from src/index.ts
+    </pitfall-5>
+
+    <pitfall-6>
+      Issue: DATABASE_URL vs DIRECT_URL confusion
+      Solution: DATABASE_URL (pooler) for app queries, DIRECT_URL (direct) for migrations
+    </pitfall-6>
+  </common-pitfalls>
+
+  <implementation-notes>
+    <note-1>
+      The existing schema.prisma is comprehensive and production-ready.
+      It includes all models for future epics (Epic 01-07).
+      This is intentional - the schema is defined upfront, implementation follows.
+    </note-1>
+
+    <note-2>
+      The tenant extension pattern will be used in Epic 03 (RBAC &amp; Multi-Tenancy).
+      For now, it's created but not actively used in apps/api or apps/web.
+      Regular prisma client can be used for Story 00-5 through Epic 02.
+    </note-2>
+
+    <note-3>
+      Migration strategy: "prisma migrate dev" for development, "prisma migrate deploy" for production.
+      Story 00-4 only sets up dev workflow. Production migrations handled in deployment epic.
+    </note-3>
+
+    <note-4>
+      The schema includes models for all core features to enable forward planning.
+      Empty tables are fine - they'll be populated by API endpoints in subsequent epics.
+    </note-4>
+
+    <note-5>
+      Prisma Studio (db:studio) is the primary database UI for development.
+      Story 00-5 will add pgAdmin as optional alternative for advanced queries.
+    </note-5>
+  </implementation-notes>
+
+  <related-documentation>
+    <reference path="docs/architecture.md" section="ADR-003">
+      RLS + Prisma Extension for Multi-tenancy
+    </reference>
+    <reference path="docs/architecture.md" section="Data Architecture">
+      Core entities, relationships, indexes
+    </reference>
+    <reference path="docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-00.md" section="AC-00.4">
+      Database Package acceptance criteria
+    </reference>
+    <reference path="docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-00.md" section="Data Models and Contracts">
+      Tenant Extension Pattern implementation
+    </reference>
+    <reference path="docs/prd.md" section="Multi-Tenant Architecture">
+      Workspace isolation requirements
+    </reference>
+  </related-documentation>
+</story-context>

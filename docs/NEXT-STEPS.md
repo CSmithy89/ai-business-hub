@@ -15,7 +15,7 @@
 > - **190 Stories Completed** (100%)
 > - **541 Story Points**
 >
-> See `docs/FOUNDATION-COMPLETE.md` for full summary.
+> See `docs/archive/foundation-phase/FOUNDATION-COMPLETE.md` for full summary.
 
 ---
 
@@ -105,7 +105,7 @@ cd plane
 
 | Step | Task | Output | Status |
 |------|------|--------|--------|
-| A.1 | Expand UI/UX Style Guide (MODULE-RESEARCH.md §11) | `/docs/design/style-guide.md` | ✅ Complete |
+| A.1 | Expand UI/UX Style Guide (docs/archive/foundation-phase/MODULE-RESEARCH.md §11) | `/docs/design/style-guide.md` | ✅ Complete |
 | A.2 | Create design tokens in Tailwind config | `tailwind.config.ts` + `src/styles/tokens.css` | ✅ Complete |
 | A.3 | **Wireframes** - See full index below | `/docs/design/wireframes/` | ⏳ Next |
 
@@ -251,7 +251,7 @@ cd plane
 
 1. **Data Foundation** - Other modules need CRM data (contacts, companies)
 2. **Well Researched** - Twenty CRM provides clear patterns
-3. **Shared Data Layer** - Tests the architecture from MODULE-RESEARCH.md §1.3
+3. **Shared Data Layer** - Tests the architecture from docs/archive/foundation-phase/MODULE-RESEARCH.md §1.3
 4. **Proves the Pattern** - Template for all other modules
 
 ### Module Creation Process (Repeat for Each Module)
@@ -327,7 +327,7 @@ cd plane
 ```
 
 **Inputs:**
-- MODULE-RESEARCH.md §6.11 (BM-CRM section)
+- docs/archive/foundation-phase/MODULE-RESEARCH.md §6.11 (BM-CRM section)
 - MASTER-PLAN.md vision
 - Twenty CRM research
 
@@ -581,7 +581,7 @@ NOW (Cross-Cutting)          LATER (Per-Module)
 2. **During Phase 2 (First Module: BM-CRM):**
    - Run `/bmad:bmm:workflows:prd` to fully specify BM-CRM
    - The PRD workflow will elicit ALL details needed
-   - Reference MODULE-RESEARCH.md §6.11 as input
+   - Reference docs/archive/foundation-phase/MODULE-RESEARCH.md §6.11 as input
    - Output goes to `/docs/modules/bm-crm/PRD.md`
 
 3. **For each subsequent module:**
@@ -658,7 +658,7 @@ All MVP agents created with dual structure (BMAD specs + Agno scaffolds):
 
 > **Duration:** 1-2 days
 > **Goal:** Wire existing protocol implementations into main.py
-> **Reference:** `docs/detailed-implementation-plan.md`
+> **Reference:** `docs/archive/foundation-phase/detailed-implementation-plan.md`
 
 **Current State Audit (Dec 2025):**
 - ✅ `AgentRegistry` exists at `agents/registry.py` - **WIRED**

@@ -1320,7 +1320,7 @@ Step 1: Documents → Step 2: Details → Step 3: Idea → Step 4: Launch
 
 ### Platform Documentation
 - `/docs/MASTER-PLAN.md` Section 8 - UI mockups
-- `/docs/MODULE-RESEARCH.md` Section 11 - UI/UX patterns
+- `/docs/archive/foundation-phase/MODULE-RESEARCH.md` Section 11 - UI/UX patterns
 - `/docs/research/taskosaur-analysis.md` - Chat UI, real-time, queue patterns
 
 ### CRM Research (Complete)

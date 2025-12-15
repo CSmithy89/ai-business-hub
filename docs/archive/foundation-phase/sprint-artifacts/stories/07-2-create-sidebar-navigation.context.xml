@@ -1,0 +1,976 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>07-2-create-sidebar-navigation</story-id>
+    <title>Create Sidebar Navigation</title>
+    <epic>EPIC-07 - UI Shell</epic>
+    <status>ready-for-dev</status>
+    <points>3</points>
+    <priority>P0 - Critical</priority>
+    <generated-date>2025-12-04</generated-date>
+  </metadata>
+
+  <story-summary>
+    <user-story>
+      As a user, I want clear sidebar navigation so that I can access all platform features
+    </user-story>
+    <description>
+      The sidebar is the primary navigation mechanism for the HYVVE platform. It provides quick access to core platform features (Dashboard, Approvals, AI Team, Settings) and module-specific areas (CRM, Projects, etc.). The sidebar supports both collapsed (64px) and expanded (256px) states, with tooltips in collapsed mode for space efficiency.
+    </description>
+    <dependencies>
+      <dependency status="complete">Story 07-1: Dashboard layout provides the sidebar container</dependency>
+      <dependency status="complete">Epic 02: Workspace management provides workspace context for workspace switcher</dependency>
+      <dependency status="complete">Epic 04: Approval queue provides badge count for Approvals menu item</dependency>
+    </dependencies>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-1" category="Navigation Structure">
+      <requirement>Sidebar component renders within dashboard layout</requirement>
+      <requirement>Navigation items displayed in correct sections:
+        - Main section: Dashboard (grid_view), Approvals (check_circle), AI Team (smart_toy), Settings (settings)
+        - Modules section: CRM (group) with green status dot, Projects (folder_open) with orange status dot
+      </requirement>
+      <requirement>Section headers ("Main", "Modules") styled as uppercase, muted, small text</requirement>
+      <requirement>Divider line between Main and Modules sections</requirement>
+    </criterion>
+
+    <criterion id="AC-2" category="Collapsed/Expanded States">
+      <requirement>Expanded state: 256px width, shows icon + label + badge</requirement>
+      <requirement>Collapsed state: 64px width, shows icon only</requirement>
+      <requirement>Smooth transition animation (200ms duration, ease-out timing)</requirement>
+      <requirement>State persists across page navigations and browser sessions</requirement>
+      <requirement>Toggle button visible in both states</requirement>
+    </criterion>
+
+    <criterion id="AC-3" category="Active State Indication">
+      <requirement>Active route highlighted with light surface/elevated background, 2px left border in primary color (#FF6B6B), icon and text in primary color, subtle shadow</requirement>
+      <requirement>Active state detected via Next.js usePathname() hook</requirement>
+      <requirement>Inactive items show secondary text color, hover to primary</requirement>
+    </criterion>
+
+    <criterion id="AC-4" category="Tooltips in Collapsed State">
+      <requirement>Tooltip appears on hover for all items when sidebar collapsed</requirement>
+      <requirement>Tooltip displays menu item label</requirement>
+      <requirement>Tooltip positioned to right of icon with 16px offset</requirement>
+      <requirement>Tooltip has dark background, white text, arrow pointer</requirement>
+      <requirement>300ms delay before showing tooltip</requirement>
+      <requirement>Smooth opacity transition (150ms)</requirement>
+    </criterion>
+
+    <criterion id="AC-5" category="Badge for Approvals">
+      <requirement>Badge shows pending approval count</requirement>
+      <requirement>Expanded state: Badge inline on right side of menu item</requirement>
+      <requirement>Collapsed state: Badge overlays top-right corner of icon</requirement>
+      <requirement>Badge styling: Primary red background (#FF6B6B), white text, rounded-full</requirement>
+      <requirement>Badge count fetched from approval queue API (mock data acceptable for this story)</requirement>
+      <requirement>Badge hidden when count is 0</requirement>
+    </criterion>
+
+    <criterion id="AC-6" category="Keyboard Navigation">
+      <requirement>Tab key navigates through menu items in order</requirement>
+      <requirement>Shift+Tab navigates backwards</requirement>
+      <requirement>Enter key activates focused menu item (navigates to route)</requirement>
+      <requirement>Space key activates focused menu item</requirement>
+      <requirement>Focus indicators visible (2px outline) on all interactive elements</requirement>
+      <requirement>Focus trap does not prevent navigating out of sidebar</requirement>
+    </criterion>
+
+    <criterion id="AC-7" category="Workspace Selector">
+      <requirement>Workspace selector displayed at bottom of sidebar</requirement>
+      <requirement>Expanded state shows: Workspace avatar (gradient background with initials), workspace name, dropdown indicator (unfold_more icon)</requirement>
+      <requirement>Collapsed state shows workspace avatar only (no dropdown indicator visible)</requirement>
+      <requirement>Click opens workspace switcher dropdown (Epic 02 component)</requirement>
+      <requirement>Current workspace name from workspace context</requirement>
+      <requirement>Hover state: Subtle background highlight</requirement>
+    </criterion>
+  </acceptance-criteria>
+
+  <wireframe-reference>
+    <wireframe-file>/home/chris/projects/work/Ai Bussiness Hub/docs/design/wireframes/Finished wireframes and html files/sh-02_navigation_sidebar_(states)/code.html</wireframe-file>
+    <key-design-elements>
+      <element>Expanded state: 256px width with icon + label</element>
+      <element>Collapsed state: 64px width with icon only + tooltip on hover</element>
+      <element>Active state: Light surface background, left border accent, primary color text</element>
+      <element>Badge display: Red badge for Approvals count (expanded: inline, collapsed: corner overlay)</element>
+      <element>Section headers: "Main" and "Modules" with uppercase muted text</element>
+      <element>Workspace selector: Bottom of sidebar with avatar, name, and dropdown indicator</element>
+    </key-design-elements>
+    <html-structure>
+      <![CDATA[
+<!-- Expanded Sidebar Structure (256px) -->
+<aside class="w-64 bg-light-bg-secondary border-r flex flex-col p-4">
+  <nav class="flex-grow">
+    <!-- Main Section -->
+    <h2 class="px-3 text-xs font-medium uppercase text-muted tracking-label mb-1">Main</h2>
+    <ul>
+      <li>
+        <a class="flex items-center gap-3 h-11 px-3 rounded-md bg-surface border-l-2 border-primary text-primary">
+          <span class="material-symbols-outlined text-xl">grid_view</span>
+          <span class="text-sm font-medium">Dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a class="flex items-center justify-between gap-3 h-11 px-3 rounded-md hover:bg-tertiary">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-xl text-secondary">check_circle</span>
+            <span class="text-sm font-medium">Approvals</span>
+          </div>
+          <span class="bg-primary text-white text-xs font-medium px-2 py-0.5 rounded-full">5</span>
+        </a>
+      </li>
+    </ul>
+    <div class="my-3 mx-3 h-px bg-border"></div>
+
+    <!-- Modules Section -->
+    <h2 class="px-3 text-xs font-medium uppercase text-muted tracking-label mb-1">Modules</h2>
+    <ul>
+      <li>
+        <a class="flex items-center gap-3 h-11 px-3 rounded-md hover:bg-tertiary">
+          <span class="material-symbols-outlined text-xl text-secondary">group</span>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium">CRM</span>
+            <div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+          </div>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Workspace Selector -->
+  <div class="mt-auto pt-4 border-t">
+    <button class="w-full flex items-center gap-3 p-2 rounded-md hover:bg-tertiary">
+      <div class="w-9 h-9 rounded-md bg-gradient-to-br from-primary to-atlas flex items-center justify-center font-bold text-white text-sm">AC</div>
+      <span class="flex-1 text-sm font-medium">Acme Corp</span>
+      <span class="material-symbols-outlined text-base text-secondary">unfold_more</span>
+    </button>
+  </div>
+</aside>
+
+<!-- Collapsed Sidebar Structure (64px) -->
+<aside class="w-16 bg-light-bg-secondary border-r flex flex-col items-center p-2">
+  <nav class="flex-grow">
+    <ul class="space-y-2">
+      <li>
+        <a class="group relative flex justify-center items-center h-11 w-11 rounded-md bg-surface border-l-2 border-primary">
+          <span class="material-symbols-outlined text-xl">grid_view</span>
+          <!-- Tooltip -->
+          <div class="absolute left-full ml-4 px-3 py-1.5 bg-dark text-white text-xs rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity delay-300">
+            Dashboard
+            <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-dark rotate-45"></div>
+          </div>
+        </a>
+      </li>
+      <li>
+        <a class="group relative flex justify-center items-center h-11 w-11 rounded-md hover:bg-tertiary">
+          <span class="material-symbols-outlined text-xl text-secondary">check_circle</span>
+          <!-- Badge overlay -->
+          <div class="absolute top-1 right-1 w-4 h-4 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center border-2">5</div>
+          <!-- Tooltip -->
+          <div class="absolute left-full ml-4 px-3 py-1.5 bg-dark text-white text-xs rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity delay-300">
+            Approvals
+            <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-dark rotate-45"></div>
+          </div>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Workspace Avatar -->
+  <div class="mt-auto pt-4 border-t">
+    <button class="w-10 h-10 rounded-md bg-gradient-to-br from-primary to-atlas flex items-center justify-center font-bold text-white text-sm">AC</button>
+  </div>
+</aside>
+      ]]>
+    </html-structure>
+  </wireframe-reference>
+
+  <existing-code>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/shell/Sidebar.tsx" status="placeholder">
+      <description>Current placeholder sidebar component with basic collapse/expand functionality. Needs to be refactored into full implementation with navigation items, sections, tooltips, and workspace switcher.</description>
+      <current-implementation>
+        <![CDATA[
+'use client';
+
+import { useUIStore } from '@/stores/ui';
+
+export function Sidebar() {
+  const { sidebarCollapsed, toggleSidebar } = useUIStore();
+
+  return (
+    <aside
+      className={`
+        fixed top-[60px] left-0 bottom-0 z-20 flex flex-col
+        border-r border-[rgb(var(--color-border-default))]
+        bg-[rgb(var(--color-bg-secondary))] p-3
+        transition-all duration-300 ease-in-out
+        ${sidebarCollapsed ? 'w-16' : 'w-64'}
+      `}
+    >
+      {/* Sidebar content placeholder */}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-sm text-[rgb(var(--color-text-secondary))] text-center">
+          {sidebarCollapsed ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-xl">☰</div>
+            </div>
+          ) : (
+            <>
+              Sidebar placeholder
+              <br />
+              Story 07.2
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Collapse/Expand toggle button */}
+      <button
+        onClick={toggleSidebar}
+        className="mt-auto flex h-9 w-full items-center justify-center rounded-md
+                   text-[rgb(var(--color-text-secondary))]
+                   transition-colors duration-150
+                   hover:bg-[rgb(var(--color-bg-hover))]"
+        aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        <span className="text-lg">
+          {sidebarCollapsed ? '→' : '←'}
+        </span>
+      </button>
+    </aside>
+  );
+}
+        ]]>
+      </current-implementation>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/stores/ui.ts" status="complete">
+      <description>Zustand store managing global UI state including sidebar collapse state with localStorage persistence</description>
+      <relevant-state>
+        <![CDATA[
+interface UIState {
+  // Sidebar state
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+
+  // ... other UI state
+}
+
+export const useUIStore = create<UIState>()(
+  persist(
+    (set) => ({
+      sidebarCollapsed: false,
+      toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+      // ... other actions
+    }),
+    {
+      name: 'hyvve-ui-state',
+      partialize: (state) => ({
+        sidebarCollapsed: state.sidebarCollapsed,
+        // ... other persisted state
+      }),
+    }
+  )
+);
+        ]]>
+      </relevant-state>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/app/(dashboard)/layout.tsx" status="complete">
+      <description>Dashboard layout component that provides the three-panel shell structure where sidebar is rendered</description>
+      <relevant-code>
+        <![CDATA[
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { sidebarCollapsed, chatPanelOpen, chatPanelWidth } = useUIStore();
+
+  return (
+    <div className="flex h-screen w-full flex-col overflow-hidden">
+      {/* Fixed Header - 60px height */}
+      <Header />
+
+      {/* Main content area - below header */}
+      <div className="flex h-full w-full pt-[60px]">
+        {/* Left Sidebar - collapsible */}
+        <Sidebar />
+
+        {/* Main Content Area - flexible width */}
+        <main className={`flex-1 overflow-y-auto ... ${sidebarCollapsed ? 'ml-16' : 'ml-64'} ...`}>
+          <div className="p-8 sm:p-4">{children}</div>
+        </main>
+
+        {/* Right Chat Panel - collapsible and resizable */}
+        <ChatPanel />
+      </div>
+    </div>
+  );
+}
+        ]]>
+      </relevant-code>
+    </file>
+  </existing-code>
+
+  <workspace-integration>
+    <description>Integration with Epic 02 workspace management for workspace switcher functionality</description>
+
+    <workspace-context>
+      <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/hooks/use-workspace.ts">
+        <description>Hook providing workspace switching functionality and loading state</description>
+        <usage>
+          <![CDATA[
+import { useWorkspace } from '@/hooks/use-workspace';
+
+const { fetchWorkspaces, switchWorkspace, isSwitching } = useWorkspace();
+
+// Fetch workspaces when needed
+const workspaces = await fetchWorkspaces(); // Returns WorkspaceWithRole[]
+
+// Switch workspace
+await switchWorkspace(workspaceId); // Triggers router.refresh()
+          ]]>
+        </usage>
+      </file>
+
+      <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/workspace/workspace-selector.tsx">
+        <description>Existing workspace selector dropdown component from Epic 02</description>
+        <component-signature>
+          <![CDATA[
+interface WorkspaceSelectorProps {
+  currentWorkspaceId: string | null;
+  currentWorkspaceName?: string;
+  onCreateWorkspace?: () => void;
+}
+
+export function WorkspaceSelector(props: WorkspaceSelectorProps)
+          ]]>
+        </component-signature>
+        <features>
+          <feature>Displays current workspace with avatar (initials)</feature>
+          <feature>Dropdown menu with all user workspaces</feature>
+          <feature>Role badges (owner/admin/member)</feature>
+          <feature>Create new workspace action</feature>
+          <feature>Handles workspace switching with loading state</feature>
+        </features>
+        <integration-note>
+          Wrap workspace selector button in this component to get dropdown functionality.
+          The sidebar implementation should use a simpler trigger button that wraps with WorkspaceSelector.
+        </integration-note>
+      </file>
+    </workspace-context>
+  </workspace-integration>
+
+  <approval-count-integration>
+    <description>Integration with Epic 04 approval queue for badge count (mock data for this story)</description>
+    <mock-implementation>
+      <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/hooks/use-approval-count.ts" status="to-create">
+        <description>Mock hook returning approval count. Will be replaced with real API integration in future story.</description>
+        <implementation>
+          <![CDATA[
+/**
+ * Mock hook for approval count
+ * TODO: Replace with real API call in future story
+ */
+export function useApprovalCount(): number {
+  // For now, return mock data
+  return 5;
+}
+          ]]>
+        </implementation>
+      </file>
+    </mock-implementation>
+    <future-integration>
+      Will integrate with GET /api/approvals/count endpoint from Epic 04 approval queue implementation.
+      The endpoint exists and returns pending approval counts for the current workspace.
+    </future-integration>
+  </approval-count-integration>
+
+  <design-tokens>
+    <description>Design tokens from /home/chris/projects/work/Ai Bussiness Hub/src/styles/tokens.css</description>
+
+    <colors>
+      <light-mode>
+        <background>
+          <token name="--color-bg-primary">255, 251, 245 (#FFFBF5 - Main cream background)</token>
+          <token name="--color-bg-secondary">255, 255, 255 (#FFFFFF - Sidebar background in light)</token>
+          <token name="--color-bg-tertiary">255, 248, 240 (#FFF8F0 - Hover states)</token>
+          <token name="--color-bg-muted">245, 240, 235 (#F5F0EB - Disabled states)</token>
+        </background>
+        <text>
+          <token name="--color-text-primary">30, 41, 59 (#1e293b - slate-800 for primary text)</token>
+          <token name="--color-text-secondary">100, 116, 139 (#64748b - slate-500 for secondary text)</token>
+          <token name="--color-text-muted">148, 163, 184 (#94a3b8 - slate-400 for muted text)</token>
+        </text>
+        <border>
+          <token name="--color-border-subtle">241, 235, 228 (#f1ebe4)</token>
+          <token name="--color-border-default">229, 221, 212 (#e5ddd4)</token>
+          <token name="--color-border-strong">212, 201, 190 (#d4c9be)</token>
+        </border>
+      </light-mode>
+
+      <dark-mode>
+        <background>
+          <token name="--color-bg-primary">10, 10, 11 (#0a0a0b - Main dark background)</token>
+          <token name="--color-bg-secondary">17, 17, 19 (#111113 - Sidebar background in dark)</token>
+          <token name="--color-bg-tertiary">26, 26, 29 (#1a1a1d - Hover states)</token>
+          <token name="--color-bg-muted">35, 35, 38 (#232326 - Surface/elevated)</token>
+        </background>
+        <text>
+          <token name="--color-text-primary">248, 250, 252 (#f8fafc - slate-50 for primary text)</token>
+          <token name="--color-text-secondary">203, 213, 225 (#cbd5e1 - slate-300 for secondary text)</token>
+          <token name="--color-text-muted">148, 163, 184 (#94a3b8 - slate-400 for muted text)</token>
+        </text>
+        <border>
+          <token name="--color-border-subtle">39, 39, 42 (#27272a)</token>
+          <token name="--color-border-default">63, 63, 70 (#3f3f46)</token>
+          <token name="--color-border-strong">82, 82, 91 (#52525b)</token>
+        </border>
+      </dark-mode>
+
+      <brand-colors>
+        <token name="--color-primary-500">255, 107, 107 (#FF6B6B - Coral primary)</token>
+        <token name="--color-accent-500">32, 178, 170 (#20B2AA - Teal accent/Maya/secondary)</token>
+        <token name="--color-agent-atlas">255, 159, 67 (#FF9F43 - Orange for Projects)</token>
+      </brand-colors>
+    </colors>
+
+    <spacing>
+      <token name="--space-1">0.25rem (4px)</token>
+      <token name="--space-2">0.5rem (8px)</token>
+      <token name="--space-3">0.75rem (12px)</token>
+      <token name="--space-4">1rem (16px)</token>
+      <token name="--space-6">1.5rem (24px)</token>
+    </spacing>
+
+    <transitions>
+      <token name="--duration-normal">150ms (for hover states)</token>
+      <token name="--duration-slow">200ms (for sidebar collapse/expand)</token>
+      <token name="--duration-slower">300ms (for tooltip delay)</token>
+      <token name="--ease-out">cubic-bezier(0, 0, 0.2, 1)</token>
+    </transitions>
+
+    <layout>
+      <token name="--width-nav-collapsed">56px (56px in tokens, but use 64px per wireframe)</token>
+      <token name="--width-nav-expanded">240px (240px in tokens, but use 256px per wireframe)</token>
+    </layout>
+
+    <usage-in-tailwind>
+      Use RGB color tokens with Tailwind: bg-[rgb(var(--color-bg-secondary))]
+      This allows alpha channel: bg-[rgb(var(--color-bg-secondary)_/_0.8)]
+    </usage-in-tailwind>
+  </design-tokens>
+
+  <navigation-structure>
+    <main-section>
+      <item>
+        <label>Dashboard</label>
+        <icon>grid_view</icon>
+        <href>/dashboard</href>
+        <description>Main dashboard overview</description>
+      </item>
+      <item>
+        <label>Approvals</label>
+        <icon>check_circle</icon>
+        <href>/dashboard/approvals</href>
+        <badge>approval-count</badge>
+        <description>Pending approval queue</description>
+      </item>
+      <item>
+        <label>AI Team</label>
+        <icon>smart_toy</icon>
+        <href>/dashboard/agents</href>
+        <description>AI agent management</description>
+      </item>
+      <item>
+        <label>Settings</label>
+        <icon>settings</icon>
+        <href>/dashboard/settings</href>
+        <description>User and workspace settings</description>
+      </item>
+    </main-section>
+
+    <modules-section>
+      <item>
+        <label>CRM</label>
+        <icon>group</icon>
+        <href>/dashboard/crm</href>
+        <status-dot>secondary</status-dot>
+        <status-color>#20B2AA (teal/secondary)</status-color>
+        <description>Customer relationship management module</description>
+      </item>
+      <item>
+        <label>Projects</label>
+        <icon>folder_open</icon>
+        <href>/dashboard/projects</href>
+        <status-dot>atlas</status-dot>
+        <status-color>#FF9F43 (orange/atlas)</status-color>
+        <description>Project management module</description>
+      </item>
+    </modules-section>
+
+    <material-symbols>
+      <description>Material Symbols icons are loaded via CDN in root layout (already implemented in Story 07-1)</description>
+      <cdn-url>https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined</cdn-url>
+      <usage>
+        <![CDATA[
+<span class="material-symbols-outlined text-xl">grid_view</span>
+        ]]>
+      </usage>
+    </material-symbols>
+  </navigation-structure>
+
+  <component-breakdown>
+    <component name="Sidebar.tsx" path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/shell/Sidebar.tsx">
+      <description>Main sidebar container component. Refactor from placeholder to full implementation.</description>
+      <responsibilities>
+        <item>Render sidebar container with fixed positioning (top-[60px] below header)</item>
+        <item>Apply collapsed/expanded width (64px / 256px)</item>
+        <item>Smooth transition animation (200ms ease-out)</item>
+        <item>Integrate SidebarNav for navigation items</item>
+        <item>Integrate SidebarWorkspaceSwitcher at bottom</item>
+        <item>Toggle button for collapse/expand</item>
+      </responsibilities>
+      <state-management>
+        Use useUIStore hook to access sidebarCollapsed state and toggleSidebar action
+      </state-management>
+    </component>
+
+    <component name="SidebarNav.tsx" path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/shell/SidebarNav.tsx" status="to-create">
+      <description>Navigation items list with sections (Main, Modules)</description>
+      <responsibilities>
+        <item>Render Main section with Dashboard, Approvals, AI Team, Settings items</item>
+        <item>Render Modules section with CRM, Projects items</item>
+        <item>Use SidebarSection component for section headers and dividers</item>
+        <item>Use SidebarNavItem component for each navigation item</item>
+        <item>Fetch approval count from useApprovalCount hook</item>
+      </responsibilities>
+      <props>
+        <prop name="collapsed" type="boolean">Whether sidebar is in collapsed state</prop>
+      </props>
+    </component>
+
+    <component name="SidebarNavItem.tsx" path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/shell/SidebarNavItem.tsx" status="to-create">
+      <description>Individual navigation item with active state, badge, and tooltip</description>
+      <responsibilities>
+        <item>Render Material Symbols icon</item>
+        <item>Render label (conditional on collapsed state)</item>
+        <item>Detect active route with usePathname() hook</item>
+        <item>Apply active styles (border-l-2, bg-surface, text-primary)</item>
+        <item>Render badge (inline in expanded, overlay in collapsed)</item>
+        <item>Render status dot for module items</item>
+        <item>Wrap with Tooltip component when collapsed</item>
+      </responsibilities>
+      <props>
+        <prop name="icon" type="string">Material Symbols icon name (e.g., "grid_view")</prop>
+        <prop name="label" type="string">Display label (e.g., "Dashboard")</prop>
+        <prop name="href" type="string">Navigation route (e.g., "/dashboard")</prop>
+        <prop name="badge" type="number" optional="true">Badge count (e.g., 5 for approvals)</prop>
+        <prop name="statusDot" type="'secondary' | 'atlas'" optional="true">Status dot color</prop>
+        <prop name="collapsed" type="boolean">Whether sidebar is collapsed</prop>
+      </props>
+      <active-state-logic>
+        <![CDATA[
+import { usePathname } from 'next/navigation';
+
+const pathname = usePathname();
+const isActive = pathname === href || pathname.startsWith(href + '/');
+        ]]>
+      </active-state-logic>
+    </component>
+
+    <component name="SidebarSection.tsx" path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/shell/SidebarSection.tsx" status="to-create">
+      <description>Section wrapper with header and divider</description>
+      <responsibilities>
+        <item>Render section header (conditionally hidden when collapsed)</item>
+        <item>Render children (navigation items)</item>
+        <item>Render divider line after section</item>
+      </responsibilities>
+      <props>
+        <prop name="title" type="string">Section title (e.g., "Main", "Modules")</prop>
+        <prop name="collapsed" type="boolean">Whether sidebar is collapsed</prop>
+        <prop name="children" type="React.ReactNode">Navigation items</prop>
+      </props>
+    </component>
+
+    <component name="SidebarWorkspaceSwitcher.tsx" path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/shell/SidebarWorkspaceSwitcher.tsx" status="to-create">
+      <description>Workspace selector at bottom of sidebar</description>
+      <responsibilities>
+        <item>Fetch current workspace from session/context</item>
+        <item>Generate workspace initials from name</item>
+        <item>Render gradient avatar with initials</item>
+        <item>Render workspace name (conditional on collapsed state)</item>
+        <item>Render dropdown indicator (conditional on collapsed state)</item>
+        <item>Wrap button with WorkspaceSwitcher component (Epic 02) for dropdown</item>
+      </responsibilities>
+      <props>
+        <prop name="collapsed" type="boolean">Whether sidebar is collapsed</prop>
+      </props>
+      <integration>
+        Uses WorkspaceSwitcher from Epic 02 as a wrapper around the trigger button.
+        WorkspaceSwitcher provides the dropdown menu with all workspaces.
+      </integration>
+    </component>
+  </component-breakdown>
+
+  <implementation-guidance>
+    <step number="1" title="Create Component Files">
+      <description>Create the component file structure in apps/web/src/components/shell/</description>
+      <files>
+        <file>SidebarNav.tsx</file>
+        <file>SidebarNavItem.tsx</file>
+        <file>SidebarSection.tsx</file>
+        <file>SidebarWorkspaceSwitcher.tsx</file>
+      </files>
+    </step>
+
+    <step number="2" title="Create Mock Hook">
+      <description>Create useApprovalCount hook for mock badge count</description>
+      <file>apps/web/src/hooks/use-approval-count.ts</file>
+      <code>
+        <![CDATA[
+export function useApprovalCount(): number {
+  // TODO: Replace with real API call in future story
+  return 5;
+}
+        ]]>
+      </code>
+    </step>
+
+    <step number="3" title="Implement SidebarNavItem">
+      <description>Core component with active state, badge, and tooltip</description>
+      <key-dependencies>
+        <dependency>Next.js usePathname() for active state detection</dependency>
+        <dependency>Next.js Link for navigation</dependency>
+        <dependency>shadcn/ui Tooltip components (Tooltip, TooltipContent, TooltipProvider, TooltipTrigger)</dependency>
+        <dependency>Material Symbols icons (already loaded in layout)</dependency>
+      </key-dependencies>
+      <styling-notes>
+        <note>Use rgb(var(--color-*)) pattern for all colors to support theme switching</note>
+        <note>Active state: border-l-2 border-primary, bg-[rgb(var(--color-bg-muted))], text-primary</note>
+        <note>Hover state: hover:bg-[rgb(var(--color-bg-tertiary))]</note>
+        <note>Badge inline (expanded): right side with ml-auto</note>
+        <note>Badge overlay (collapsed): absolute top-0 right-0 with border to separate from background</note>
+        <note>Tooltip: 300ms delay (delayDuration={300}), positioned right with 16px offset (sideOffset={16})</note>
+      </styling-notes>
+    </step>
+
+    <step number="4" title="Implement SidebarSection">
+      <description>Section wrapper with conditional header and divider</description>
+      <styling-notes>
+        <note>Header: text-xs font-medium uppercase tracking-wider (tracking-label from tokens)</note>
+        <note>Header color: text-[rgb(var(--color-text-muted))]</note>
+        <note>Divider: h-px bg-[rgb(var(--color-border-default))], adjust mx based on collapsed state</note>
+      </styling-notes>
+    </step>
+
+    <step number="5" title="Implement SidebarNav">
+      <description>Navigation items list with sections</description>
+      <structure>
+        <![CDATA[
+<nav className="flex-1 overflow-y-auto p-4 pt-8">
+  <SidebarSection title="Main" collapsed={collapsed}>
+    <SidebarNavItem icon="grid_view" label="Dashboard" href="/dashboard" collapsed={collapsed} />
+    <SidebarNavItem icon="check_circle" label="Approvals" href="/dashboard/approvals" badge={approvalCount} collapsed={collapsed} />
+    <SidebarNavItem icon="smart_toy" label="AI Team" href="/dashboard/agents" collapsed={collapsed} />
+    <SidebarNavItem icon="settings" label="Settings" href="/dashboard/settings" collapsed={collapsed} />
+  </SidebarSection>
+
+  <SidebarSection title="Modules" collapsed={collapsed}>
+    <SidebarNavItem icon="group" label="CRM" href="/dashboard/crm" statusDot="secondary" collapsed={collapsed} />
+    <SidebarNavItem icon="folder_open" label="Projects" href="/dashboard/projects" statusDot="atlas" collapsed={collapsed} />
+  </SidebarSection>
+</nav>
+        ]]>
+      </structure>
+    </step>
+
+    <step number="6" title="Implement SidebarWorkspaceSwitcher">
+      <description>Workspace selector with Epic 02 integration</description>
+      <integration-pattern>
+        <![CDATA[
+import { WorkspaceSelector } from '@/components/workspace/workspace-selector';
+
+// Get current workspace from session (you'll need to pass this as prop or use context)
+const currentWorkspace = { id: '...', name: 'Acme Corp' };
+
+// In collapsed state
+<WorkspaceSwitcher>
+  <button className="h-10 w-10 rounded-md bg-gradient-to-br from-primary to-atlas ...">
+    {initials}
+  </button>
+</WorkspaceSwitcher>
+
+// In expanded state
+<WorkspaceSwitcher>
+  <button className="flex w-full items-center gap-3 p-2 rounded-md ...">
+    <div className="h-9 w-9 rounded-md bg-gradient-to-br from-primary to-atlas ...">{initials}</div>
+    <span className="flex-1 text-sm font-medium">{currentWorkspace.name}</span>
+    <span className="material-symbols-outlined text-base">unfold_more</span>
+  </button>
+</WorkspaceSwitcher>
+        ]]>
+      </integration-pattern>
+      <note>
+        WorkspaceSwitcher component from Epic 02 handles the dropdown logic.
+        The sidebar only needs to provide the trigger button.
+        You may need to adapt WorkspaceSwitcher to accept children as trigger instead of its current API.
+        Alternatively, extract the workspace list logic and build a custom dropdown.
+      </note>
+    </step>
+
+    <step number="7" title="Refactor Sidebar.tsx">
+      <description>Replace placeholder with full implementation</description>
+      <structure>
+        <![CDATA[
+'use client';
+
+import { useUIStore } from '@/stores/ui';
+import { SidebarNav } from './SidebarNav';
+import { SidebarWorkspaceSwitcher } from './SidebarWorkspaceSwitcher';
+import { cn } from '@/lib/utils';
+
+export function Sidebar() {
+  const { sidebarCollapsed, toggleSidebar } = useUIStore();
+
+  return (
+    <aside
+      className={cn(
+        'fixed top-[60px] left-0 bottom-0 z-20 flex flex-col',
+        'border-r border-[rgb(var(--color-border-default))]',
+        'bg-[rgb(var(--color-bg-secondary))]',
+        'transition-all duration-200 ease-out',
+        sidebarCollapsed ? 'w-16' : 'w-64'
+      )}
+    >
+      {/* Navigation */}
+      <SidebarNav collapsed={sidebarCollapsed} />
+
+      {/* Workspace Switcher */}
+      <div className="mt-auto border-t border-[rgb(var(--color-border-default))] p-4">
+        <SidebarWorkspaceSwitcher collapsed={sidebarCollapsed} />
+      </div>
+
+      {/* Toggle Button */}
+      <button
+        onClick={toggleSidebar}
+        className={cn(
+          'absolute -right-3 top-4 z-30 flex h-6 w-6 items-center justify-center',
+          'rounded-full border border-[rgb(var(--color-border-default))]',
+          'bg-[rgb(var(--color-bg-primary))] text-[rgb(var(--color-text-secondary))]',
+          'shadow-sm transition-colors hover:bg-[rgb(var(--color-bg-hover))]'
+        )}
+        aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        {sidebarCollapsed ? '→' : '←'}
+      </button>
+    </aside>
+  );
+}
+        ]]>
+      </structure>
+      <notes>
+        <note>Toggle button positioned absolutely at -right-3 to overlay on main content area edge</note>
+        <note>Workspace switcher in mt-auto section to push to bottom</note>
+        <note>Navigation in flex-1 section to take available space</note>
+        <note>Use cn() utility from @/lib/utils for conditional classes (from shadcn/ui)</note>
+      </notes>
+    </step>
+
+    <step number="8" title="Test Implementation">
+      <description>Manual and automated testing</description>
+      <manual-tests>
+        <test>Toggle sidebar between collapsed and expanded states</test>
+        <test>Verify active state highlights correct route on all pages</test>
+        <test>Test keyboard navigation with Tab key through all items</test>
+        <test>Test Enter and Space keys to activate items</test>
+        <test>Verify tooltips appear in collapsed state with 300ms delay</test>
+        <test>Verify badge displays correctly in both states</test>
+        <test>Test workspace switcher opens dropdown</test>
+        <test>Verify state persists after page refresh</test>
+        <test>Test in light and dark modes</test>
+      </manual-tests>
+      <accessibility-tests>
+        <test>Run axe DevTools (no violations)</test>
+        <test>Test with screen reader (NVDA/VoiceOver)</test>
+        <test>Verify focus indicators visible on all elements</test>
+        <test>Verify color contrast ratios meet WCAG AA (4.5:1 for text)</test>
+      </accessibility-tests>
+    </step>
+  </implementation-guidance>
+
+  <technical-notes>
+    <note title="Tooltip Implementation">
+      Use shadcn/ui Tooltip components (Radix UI based).
+      Install if not present: `npx shadcn-ui@latest add tooltip`
+      Configure 300ms delay with delayDuration prop on TooltipProvider.
+      Position with side="right" and sideOffset={16}.
+    </note>
+
+    <note title="Active Route Detection">
+      Use Next.js usePathname() hook (client component).
+      Match both exact path and child paths: pathname === href || pathname.startsWith(href + '/')
+      Example: /dashboard/approvals/123 should highlight Approvals item.
+    </note>
+
+    <note title="Material Symbols Icons">
+      Icons already loaded via CDN in root layout (Story 07-1).
+      Use class "material-symbols-outlined" with icon name in text content.
+      Apply text-xl for 20px size (matches wireframe).
+    </note>
+
+    <note title="Badge Positioning">
+      Expanded: Use flexbox with ml-auto to push badge to right side.
+      Collapsed: Use absolute positioning (absolute top-0 right-0) with border to separate from background.
+      Hide badge when count is 0: {badge !== undefined && badge > 0 && ...}
+    </note>
+
+    <note title="Status Dots">
+      Small colored dots next to module labels (CRM, Projects).
+      Size: w-1.5 h-1.5 (6px)
+      Colors: bg-[rgb(var(--color-accent-500))] for CRM (teal), bg-[rgb(var(--color-agent-atlas))] for Projects (orange)
+      Only visible in expanded state.
+    </note>
+
+    <note title="Workspace Avatar">
+      Generate initials from workspace name: split by space, take first char of each word, uppercase, slice to 2 chars.
+      Gradient background: bg-gradient-to-br from-[rgb(var(--color-primary-500))] to-[rgb(var(--color-agent-atlas))]
+      Size: 36px (w-9 h-9) in expanded, 40px (w-10 h-10) in collapsed (per wireframe).
+    </note>
+
+    <note title="Transition Animation">
+      Sidebar width transition: transition-all duration-200 ease-out (200ms matches AC-2).
+      Tooltip opacity transition: transition-opacity duration-150 ease-out.
+      Use Tailwind transition utilities, timing from design tokens.
+    </note>
+
+    <note title="Z-Index Layering">
+      Sidebar: z-20 (above main content, below modals)
+      Toggle button: z-30 (above sidebar border to be clickable)
+      Tooltip: Default z-index from Radix (z-50+) is sufficient.
+    </note>
+
+    <note title="Keyboard Navigation">
+      Use semantic HTML (nav, ul, li, a) for proper keyboard navigation.
+      Next.js Link component handles keyboard events (Enter, Space) automatically.
+      Ensure visible focus indicators: focus-visible:outline-2 focus-visible:outline-[rgb(var(--color-primary-500))]
+      Do not trap focus in sidebar (allows Tab to escape to main content).
+    </note>
+
+    <note title="Workspace Context">
+      Current workspace may come from session context (Epic 01) or workspace context (Epic 02).
+      For this story, you can pass current workspace as prop to SidebarWorkspaceSwitcher.
+      Alternatively, create a useCurrentWorkspace hook that reads from session/context.
+      Coordinate with existing Epic 02 implementation to avoid duplication.
+    </note>
+  </technical-notes>
+
+  <tech-spec-reference>
+    <file>/home/chris/projects/work/Ai Bussiness Hub/docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-07.md</file>
+    <relevant-sections>
+      <section name="Component Structure" lines="415-458">
+        Component file structure and organization for UI Shell components.
+      </section>
+      <section name="Data Models and Contracts" lines="117-176">
+        UI state interface (Zustand store) with sidebar collapse state.
+      </section>
+      <section name="Design Tokens" lines="339-381">
+        CSS variables for colors, spacing, animation timing.
+      </section>
+      <section name="Accessibility" lines="302-322">
+        Keyboard navigation requirements, focus indicators, WCAG compliance.
+      </section>
+      <section name="Non-Functional Requirements" lines="289-337">
+        Performance targets, accessibility standards, responsiveness.
+      </section>
+    </relevant-sections>
+  </tech-spec-reference>
+
+  <dependencies>
+    <npm-packages>
+      <package name="next" version="15.x">For usePathname hook and Link component</package>
+      <package name="zustand" version="4.5.0">For UI state management (already installed)</package>
+      <package name="@radix-ui/react-tooltip" version="^1.0.0">For tooltips (install via shadcn/ui)</package>
+      <package name="lucide-react" version="^0.400.0">For arrow icons (if needed, already installed)</package>
+    </npm-packages>
+
+    <shadcn-components>
+      <component name="tooltip">Install: `npx shadcn-ui@latest add tooltip`</component>
+    </shadcn-components>
+
+    <utilities>
+      <utility name="cn" path="@/lib/utils">Tailwind class merging utility (from shadcn/ui)</utility>
+    </utilities>
+  </dependencies>
+
+  <testing-requirements>
+    <unit-tests>
+      <file>apps/web/src/components/shell/__tests__/SidebarNavItem.test.tsx</file>
+      <test>Renders icon and label in expanded state</test>
+      <test>Renders icon only in collapsed state</test>
+      <test>Highlights active route correctly</test>
+      <test>Shows badge when count > 0</test>
+      <test>Hides badge when count is 0</test>
+      <test>Renders badge inline in expanded state</test>
+      <test>Renders badge as overlay in collapsed state</test>
+      <test>Shows tooltip in collapsed state on hover</test>
+      <test>Navigates to correct route on click</test>
+    </unit-tests>
+
+    <interaction-tests>
+      <file>apps/web/e2e/sidebar-navigation.spec.ts</file>
+      <test>Toggles between collapsed and expanded states</test>
+      <test>Highlights active navigation item</test>
+      <test>Displays tooltip on hover in collapsed state</test>
+      <test>Shows approval badge with correct count</test>
+      <test>Navigates to correct route on click</test>
+      <test>Supports keyboard navigation with Tab</test>
+      <test>Activates item with Enter key</test>
+      <test>Opens workspace switcher on click</test>
+      <test>Persists collapsed state across page reload</test>
+    </interaction-tests>
+
+    <accessibility-tests>
+      <test>Run axe DevTools on sidebar (no violations)</test>
+      <test>Test keyboard navigation (Tab, Enter, Space)</test>
+      <test>Test with screen reader (NVDA/VoiceOver)</test>
+      <test>Verify focus indicators visible (2px outline)</test>
+      <test>Verify color contrast ratios (4.5:1 for text)</test>
+      <test>Test with reduced motion preference</test>
+    </accessibility-tests>
+  </testing-requirements>
+
+  <related-files>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-07.md">Epic 07 technical specification</file>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/docs/archive/foundation-phase/sprint-artifacts/stories/07-1-create-dashboard-layout.md">Story 07-1: Dashboard layout (dependency)</file>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/docs/design/wireframes/Finished wireframes and html files/sh-02_navigation_sidebar_(states)/code.html">SH-02 wireframe with HTML/CSS reference</file>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/src/styles/tokens.css">Design tokens (colors, spacing, transitions)</file>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/stores/ui.ts">UI state store (Zustand)</file>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/workspace/workspace-selector.tsx">Workspace selector from Epic 02</file>
+  </related-files>
+
+  <out-of-scope>
+    <item>Real-time approval count updates (future enhancement with WebSocket)</item>
+    <item>Customizable navigation items per user role (future enhancement)</item>
+    <item>Drag-and-drop to reorder navigation items (future enhancement)</item>
+    <item>Collapsible module sections (expand/collapse CRM submenu) (future enhancement)</item>
+    <item>Search/filter within navigation (future enhancement)</item>
+    <item>Mobile navigation (Story 07-10)</item>
+    <item>Command palette integration (Story 07-6)</item>
+  </out-of-scope>
+
+  <success-criteria>
+    <criterion>All acceptance criteria met and verified</criterion>
+    <criterion>Sidebar navigation renders with correct structure and styling</criterion>
+    <criterion>Collapsed/expanded states work smoothly with 200ms transition</criterion>
+    <criterion>Active route highlights correctly on all pages</criterion>
+    <criterion>Tooltips appear in collapsed state with correct positioning</criterion>
+    <criterion>Badge displays approval count in both states</criterion>
+    <criterion>Keyboard navigation works (Tab, Enter, Space)</criterion>
+    <criterion>Workspace switcher integrates with Epic 02 component</criterion>
+    <criterion>State persists across page navigations and browser sessions</criterion>
+    <criterion>Works in light and dark modes</criterion>
+    <criterion>Passes accessibility tests (axe, keyboard nav, screen reader)</criterion>
+    <criterion>No console errors or warnings</criterion>
+    <criterion>Matches wireframe pixel-perfect (within reasonable tolerance)</criterion>
+  </success-criteria>
+</story-context>

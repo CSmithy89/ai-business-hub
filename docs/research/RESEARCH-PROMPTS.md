@@ -2,7 +2,7 @@
 
 **Purpose:** Detailed prompts for extracting patterns from reference implementations
 **Created:** 2025-11-28
-**Related:** MASTER-PLAN.md, MODULE-RESEARCH.md, NEXT-STEPS.md
+**Related:** MASTER-PLAN.md, docs/archive/foundation-phase/MODULE-RESEARCH.md, NEXT-STEPS.md
 
 ---
 
@@ -50,7 +50,7 @@ This document provides structured research prompts for each reference repository
 
 ## 1. Taskosaur Research
 
-### 1.1 What to Extract (from MASTER-PLAN.md & MODULE-RESEARCH.md)
+### 1.1 What to Extract (from MASTER-PLAN.md & docs/archive/foundation-phase/MODULE-RESEARCH.md)
 
 | Requirement | Source Section | What to Find |
 |-------------|----------------|--------------|
@@ -76,7 +76,7 @@ This document provides structured research prompts for each reference repository
 # TASKOSAUR RESEARCH SESSION
 
 ## Context
-I'm building the AI Business Hub platform (see docs/MASTER-PLAN.md and docs/MODULE-RESEARCH.md).
+I'm building the AI Business Hub platform (see docs/MASTER-PLAN.md and docs/archive/foundation-phase/MODULE-RESEARCH.md).
 I need to extract specific patterns from @Taskosaur-main/ to inform our implementation.
 
 ## Your Mission
@@ -189,7 +189,7 @@ Create: `docs/research/taskosaur-analysis.md`
 
 ## 2. Twenty CRM Research
 
-### 2.1 What to Extract (from MASTER-PLAN.md & MODULE-RESEARCH.md)
+### 2.1 What to Extract (from MASTER-PLAN.md & docs/archive/foundation-phase/MODULE-RESEARCH.md)
 
 | Requirement | Source Section | What to Find |
 |-------------|----------------|--------------|
@@ -215,7 +215,7 @@ Create: `docs/research/taskosaur-analysis.md`
 ## Context
 I'm building the AI Business Hub platform with a CRM module (BM-CRM) and Sales module (BMS).
 These modules share a unified data layer inspired by Twenty CRM's flexible record architecture.
-See docs/MODULE-RESEARCH.md §1.3 for our shared data architecture requirements.
+See docs/archive/foundation-phase/MODULE-RESEARCH.md §1.3 for our shared data architecture requirements.
 
 ## Your Mission
 Analyze Twenty CRM's codebase to extract patterns for our unified record system.
@@ -258,7 +258,7 @@ For each section, provide:
 1. **File paths** where you found the relevant code
 2. **Schema definitions** (Prisma, TypeORM, or raw SQL)
 3. **Pattern summary** (architectural approach)
-4. **Mapping to our requirements** (how it applies to MODULE-RESEARCH.md §1.3)
+4. **Mapping to our requirements** (how it applies to docs/archive/foundation-phase/MODULE-RESEARCH.md §1.3)
 
 ## Priority Files to Examine
 - /packages/twenty-server/src/engine/core-modules/
@@ -349,7 +349,7 @@ model Contact {
 
 ## 3. Agno Framework Research
 
-### 3.1 What to Extract (from MASTER-PLAN.md & MODULE-RESEARCH.md)
+### 3.1 What to Extract (from MASTER-PLAN.md & docs/archive/foundation-phase/MODULE-RESEARCH.md)
 
 | Requirement | Source Section | What to Find |
 |-------------|----------------|--------------|
@@ -421,7 +421,7 @@ For each section, provide:
 1. **Documentation links** where you found the info
 2. **Code examples** (Python/YAML)
 3. **Pattern summary**
-4. **Mapping to our BMAD agents** (how we'd implement our agents from MODULE-RESEARCH.md)
+4. **Mapping to our BMAD agents** (how we'd implement our agents from docs/archive/foundation-phase/MODULE-RESEARCH.md)
 
 ## Priority Resources
 - https://docs.agno.com/
@@ -526,7 +526,7 @@ Create: `docs/research/agno-analysis.md`
 
 ### Before Starting
 - [ ] Cloned all three repositories locally
-- [ ] Read MASTER-PLAN.md and MODULE-RESEARCH.md
+- [ ] Read MASTER-PLAN.md and docs/archive/foundation-phase/MODULE-RESEARCH.md
 - [ ] Understand what patterns you're looking for
 
 ### Taskosaur Research
@@ -561,7 +561,7 @@ Create: `docs/research/agno-analysis.md`
 
 ## 6. Plane Research
 
-### 6.1 What to Extract (from MASTER-PLAN.md & MODULE-RESEARCH.md)
+### 6.1 What to Extract (from MASTER-PLAN.md & docs/archive/foundation-phase/MODULE-RESEARCH.md)
 
 | Requirement | Source Section | What to Find |
 |-------------|----------------|--------------|

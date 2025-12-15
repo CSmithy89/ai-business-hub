@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>03-5</story-id>
+    <title>Create PostgreSQL RLS Policies</title>
+    <epic>EPIC-03 - RBAC &amp; Multi-Tenancy</epic>
+    <generated-date>2025-12-02</generated-date>
+  </metadata>
+
+  <!-- ========================================== -->
+  <!-- STORY REQUIREMENTS -->
+  <!-- ========================================== -->
+  <requirements>
+    <acceptance-criteria>
+      <criterion id="AC-03.5.1">
+        <description>RLS enabled on all tenant tables</description>
+        <verification>Check pg_policies system catalog for enabled RLS</verification>
+      </criterion>
+      <criterion id="AC-03.5.2">
+        <description>Tenant isolation policies work correctly</description>
+        <verification>Query with app.tenant_id=A returns only workspace A data</verification>
+      </criterion>
+      <criterion id="AC-03.5.3">
+        <description>Platform admin role can bypass RLS</description>
+        <verification>Query as platform_admin sees all tenant data</verification>
+      </criterion>
+      <criterion id="AC-03.5.4">
+        <description>RLS blocks direct SQL access</description>
+        <verification>psql connection without tenant_id returns no rows</verification>
+      </criterion>
+    </acceptance-criteria>
+
+    <tenant-tables>
+      <table name="approval_items" column="workspace_id"/>
+      <table name="ai_provider_configs" column="workspace_id"/>
+      <table name="token_usage" column="workspace_id"/>
+      <table name="api_keys" column="workspace_id"/>
+      <table name="event_logs" column="workspace_id"/>
+      <table name="audit_logs" column="workspace_id"/>
+      <table name="notifications" column="workspace_id"/>
+    </tenant-tables>
+
+    <non-tenant-tables reason="Skip RLS">
+      <table name="users" reason="Global user pool"/>
+      <table name="sessions" reason="User-scoped, not workspace-scoped"/>
+      <table name="accounts" reason="OAuth accounts"/>
+      <table name="verification_tokens" reason="Pre-workspace verification"/>
+      <table name="workspaces" reason="Protected by ownership check"/>
+      <table name="workspace_members" reason="Junction table with FK protection"/>
+      <table name="workspace_invitations" reason="Protected by FK"/>
+      <table name="notification_preferences" reason="User-scoped preferences"/>
+      <table name="two_factor_backup_codes" reason="User-scoped 2FA"/>
+      <table name="two_factor_secrets" reason="User-scoped 2FA"/>
+      <table name="workspace_settings" reason="Protected by workspace FK"/>
+    </non-tenant-tables>
+  </requirements>
+
+  <!-- ========================================== -->
+  <!-- TECHNICAL ARCHITECTURE -->
+  <!-- ========================================== -->
+  <architecture>
+    <defense-in-depth>
+      <layer level="1" component="PostgreSQL RLS">
+        Database-level enforcement (this story)
+      </layer>
+      <layer level="2" component="Prisma Client Extension">
+        ORM-level enforcement (Story 03-4, complete)
+      </layer>
+      <layer level="3" component="Auth Guards">
+        Application-level enforcement (Stories 03-2, 03-3, complete)
+      </layer>
+    </defense-in-depth>
+
+    <rls-policy-pattern>
+      <![CDATA[
+-- Enable RLS on table
+ALTER TABLE "table_name" ENABLE ROW LEVEL SECURITY;
+
+-- Create tenant isolation policy
+CREATE POLICY tenant_isolation ON "table_name"
+  FOR ALL
+  USING (workspace_id::text = current_setting('app.tenant_id', true));
+      ]]>
+    </rls-policy-pattern>
+
+    <platform-admin-bypass>
+      <![CDATA[
+-- Create platform admin role with RLS bypass
+CREATE ROLE platform_admin;
+GRANT BYPASSRLS ON ALL TABLES IN SCHEMA public TO platform_admin;
+      ]]>
+    </platform-admin-bypass>
+
+    <connection-requirements>
+      <requirement>PgBouncer must use session mode (not transaction mode)</requirement>
+      <requirement>RLS relies on current_setting() session variables</requirement>
+      <requirement>Application must set app.tenant_id before queries</requirement>
+    </connection-requirements>
+  </architecture>
+
+  <!-- ========================================== -->
+  <!-- PRISMA SCHEMA REFERENCE -->
+  <!-- ========================================== -->
+  <schema-reference>
+    <file>packages/db/prisma/schema.prisma</file>
+    <tenant-column-pattern>workspaceId String @map("workspace_id")</tenant-column-pattern>
+    <indexes>
+      <note>All tenant tables have @@index([workspaceId]) for RLS performance</note>
+    </indexes>
+  </schema-reference>
+
+  <!-- ========================================== -->
+  <!-- IMPLEMENTATION FILES -->
+  <!-- ========================================== -->
+  <implementation>
+    <new-files>
+      <file>
+        <path>packages/db/prisma/migrations/[timestamp]_enable_rls_policies/migration.sql</path>
+        <purpose>PostgreSQL migration to enable RLS and create policies</purpose>
+        <content-sections>
+          <section>Enable RLS on all tenant tables</section>
+          <section>Create tenant isolation policies (one per table)</section>
+          <section>Create platform_admin role with bypass</section>
+          <section>Grant appropriate permissions</section>
+          <section>Add comments for documentation</section>
+        </content-sections>
+      </file>
+
+      <file>
+        <path>packages/db/src/rls-context.ts</path>
+        <purpose>Helper functions to set/clear tenant context for RLS</purpose>
+        <exports>
+          <function name="setTenantContext">
+            <signature>async setTenantContext(prisma: PrismaClient, tenantId: string): Promise&lt;void&gt;</signature>
+            <description>Set app.tenant_id session variable</description>
+          </function>
+          <function name="clearTenantContext">
+            <signature>async clearTenantContext(prisma: PrismaClient): Promise&lt;void&gt;</signature>
+            <description>Clear app.tenant_id session variable</description>
+          </function>
+          <function name="withRLSContext">
+            <signature>async withRLSContext&lt;T&gt;(tenantId: string, operation: (prisma: PrismaClient) =&gt; Promise&lt;T&gt;): Promise&lt;T&gt;</signature>
+            <description>Execute operation within tenant context</description>
+          </function>
+        </exports>
+      </file>
+
+      <file>
+        <path>packages/db/src/rls-policies.test.ts</path>
+        <purpose>Integration tests for RLS policies</purpose>
+        <test-cases>
+          <test>Verify RLS enabled on all tenant tables</test>
+          <test>Test tenant isolation (workspace A cannot see workspace B data)</test>
+          <test>Test same-tenant access allowed</test>
+          <test>Test missing tenant context returns no rows</test>
+          <test>Test platform_admin role bypasses RLS</test>
+          <test>Test each tenant table individually</test>
+          <test>Test RLS works with Prisma queries</test>
+        </test-cases>
+      </file>
+    </new-files>
+
+    <modified-files>
+      <note>No existing files need modification - pure additive implementation</note>
+    </modified-files>
+  </implementation>
+
+  <!-- ========================================== -->
+  <!-- TESTING STRATEGY -->
+  <!-- ========================================== -->
+  <testing>
+    <approach>Database-level integration testing</approach>
+    <test-database>Use test PostgreSQL instance with RLS enabled</test-database>
+
+    <test-data-setup>
+      <step>Create two test workspaces (A and B)</step>
+      <step>Insert test records for each workspace in all tenant tables</step>
+      <step>Create test users and workspace memberships</step>
+    </test-data-setup>
+
+    <test-scenarios>
+      <scenario name="Cross-tenant isolation">
+        <setup>Set app.tenant_id to workspace A</setup>
+        <action>Query approval_items for workspace B</action>
+        <expected>Empty result set (RLS blocks)</expected>
+      </scenario>
+
+      <scenario name="Same-tenant access">
+        <setup>Set app.tenant_id to workspace A</setup>
+        <action>Query approval_items for workspace A</action>
+        <expected>Returns workspace A records only</expected>
+      </scenario>
+
+      <scenario name="Missing context">
+        <setup>Do not set app.tenant_id</setup>
+        <action>Query any tenant table</action>
+        <expected>Empty result set (policy evaluates to false)</expected>
+      </scenario>
+
+      <scenario name="Platform admin bypass">
+        <setup>Connect as platform_admin role</setup>
+        <action>Query any tenant table</action>
+        <expected>Returns all records across all tenants</expected>
+      </scenario>
+
+      <scenario name="RLS policy presence">
+        <setup>Run migration</setup>
+        <action>Query pg_policies system catalog</action>
+        <expected>tenant_isolation policy exists for each tenant table</expected>
+      </scenario>
+    </test-scenarios>
+
+    <tools>
+      <tool>Vitest for test framework</tool>
+      <tool>Direct PostgreSQL client for RLS verification</tool>
+      <tool>Prisma Client for query testing</tool>
+      <tool>pg_policies system catalog for policy inspection</tool>
+    </tools>
+  </testing>
+
+  <!-- ========================================== -->
+  <!-- MIGRATION NAMING -->
+  <!-- ========================================== -->
+  <migration>
+    <naming-convention>
+      <format>[timestamp]_enable_rls_policies</format>
+      <example>20251202190000_enable_rls_policies</example>
+      <timestamp-format>YYYYMMDDHHmmss (UTC)</timestamp-format>
+    </naming-convention>
+
+    <migration-commands>
+      <create>Manual creation - Prisma doesn't auto-generate RLS migrations</create>
+      <apply>prisma migrate dev --name enable_rls_policies</apply>
+      <note>Migration will be applied to dev database first, then to production</note>
+    </migration-commands>
+
+    <rollback-strategy>
+      <rollback>Create down migration to disable RLS and drop policies</rollback>
+      <safe>RLS can be safely disabled without data loss</safe>
+      <warning>Disabling RLS removes security layer - only for emergencies</warning>
+    </rollback-strategy>
+  </migration>
+
+  <!-- ========================================== -->
+  <!-- DEPENDENCIES -->
+  <!-- ========================================== -->
+  <dependencies>
+    <depends-on>
+      <dependency story-id="00-4">
+        <title>Set up Database Package with Prisma</title>
+        <reason>Requires Prisma schema and database connection</reason>
+        <status>Complete</status>
+      </dependency>
+      <dependency story-id="02-1">
+        <title>Create Workspace CRUD Operations</title>
+        <reason>Workspace model must exist for tenant scoping</reason>
+        <status>Complete</status>
+      </dependency>
+    </depends-on>
+
+    <required-for>
+      <dependent story-id="03-6">
+        <title>Implement Module-Level Permission Overrides</title>
+        <reason>Uses audit_logs table which needs RLS</reason>
+      </dependent>
+      <dependent story-id="03-7">
+        <title>Create Audit Logging for Permission Changes</title>
+        <reason>Audit logs need RLS protection</reason>
+      </dependent>
+      <dependent epic-id="04">
+        <title>Approval Queue System</title>
+        <reason>approval_items table needs RLS</reason>
+      </dependent>
+    </required-for>
+  </dependencies>
+
+  <!-- ========================================== -->
+  <!-- REFERENCE DOCUMENTATION -->
+  <!-- ========================================== -->
+  <references>
+    <document>
+      <title>Epic 03: RBAC &amp; Multi-Tenancy</title>
+      <path>docs/epics/EPIC-03-rbac-multitenancy.md</path>
+      <section>Story 03.5</section>
+    </document>
+
+    <document>
+      <title>Tech Spec: Epic 03</title>
+      <path>docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-03.md</path>
+      <sections>
+        <section>Story 03.5: Create PostgreSQL RLS Policies</section>
+        <section>RLS Policy Activation</section>
+        <section>Connection Configuration for RLS</section>
+      </sections>
+    </document>
+
+    <document>
+      <title>Architecture Decision Records</title>
+      <path>docs/architecture.md</path>
+      <adr>ADR-003: Defense-in-depth multi-tenancy with RLS + Prisma Extension</adr>
+    </document>
+
+    <document>
+      <title>Prisma Schema</title>
+      <path>packages/db/prisma/schema.prisma</path>
+      <focus>All models with workspaceId field</focus>
+    </document>
+
+    <external-docs>
+      <doc>
+        <title>PostgreSQL Row Security Policies</title>
+        <url>https://www.postgresql.org/docs/current/ddl-rowsecurity.html</url>
+      </doc>
+      <doc>
+        <title>PostgreSQL current_setting Function</title>
+        <url>https://www.postgresql.org/docs/current/functions-admin.html#FUNCTIONS-ADMIN-SET</url>
+      </doc>
+    </external-docs>
+  </references>
+
+  <!-- ========================================== -->
+  <!-- SECURITY CONSIDERATIONS -->
+  <!-- ========================================== -->
+  <security>
+    <defense-in-depth>
+      <principle>RLS is the last line of defense</principle>
+      <rationale>Even if application code is compromised, database blocks cross-tenant access</rationale>
+    </defense-in-depth>
+
+    <platform-admin-security>
+      <warning>platform_admin role bypasses ALL security</warning>
+      <usage>Internal maintenance tooling ONLY</usage>
+      <never>Never use in application code or expose to users</never>
+    </platform-admin-security>
+
+    <connection-security>
+      <requirement>Always use connection pooling (PgBouncer session mode)</requirement>
+      <requirement>Set app.tenant_id immediately after connection</requirement>
+      <requirement>Clear app.tenant_id on connection release</requirement>
+    </connection-security>
+
+    <audit-trail>
+      <note>All RLS policy violations should be logged</note>
+      <note>Monitor for patterns of attempted cross-tenant access</note>
+    </audit-trail>
+  </security>
+
+  <!-- ========================================== -->
+  <!-- PERFORMANCE CONSIDERATIONS -->
+  <!-- ========================================== -->
+  <performance>
+    <indexing>
+      <status>All tenant tables already have workspace_id indexes</status>
+      <verification>Check Prisma schema for @@index([workspaceId])</verification>
+    </indexing>
+
+    <query-planner>
+      <note>RLS policies add WHERE clauses to queries</note>
+      <overhead>Typically 5-10ms per query</overhead>
+      <optimization>Ensure workspace_id columns are indexed</optimization>
+    </query-planner>
+
+    <monitoring>
+      <metric>Query execution time before/after RLS</metric>
+      <metric>Number of RLS policy evaluations per query</metric>
+      <tool>EXPLAIN ANALYZE to inspect query plans</tool>
+    </monitoring>
+  </performance>
+
+  <!-- ========================================== -->
+  <!-- DEPLOYMENT NOTES -->
+  <!-- ========================================== -->
+  <deployment>
+    <database-requirements>
+      <requirement>PostgreSQL 12+ (for RLS support)</requirement>
+      <requirement>PgBouncer in session mode (not transaction mode)</requirement>
+      <requirement>Sufficient connection pool size for session mode</requirement>
+    </database-requirements>
+
+    <migration-deployment>
+      <step order="1">Test migration in staging environment</step>
+      <step order="2">Verify RLS policies work correctly</step>
+      <step order="3">Monitor query performance</step>
+      <step order="4">Deploy to production during low-traffic window</step>
+      <step order="5">Monitor for RLS-related errors</step>
+    </migration-deployment>
+
+    <rollback-plan>
+      <step>Create down migration to disable RLS</step>
+      <step>Keep down migration ready in case of performance issues</step>
+      <step>Monitor application errors for 24 hours post-deployment</step>
+    </rollback-plan>
+  </deployment>
+
+  <!-- ========================================== -->
+  <!-- COMPLETION CHECKLIST -->
+  <!-- ========================================== -->
+  <completion-checklist>
+    <item>✓ Migration file created with all tenant tables</item>
+    <item>✓ RLS enabled on all 7 tenant tables</item>
+    <item>✓ Tenant isolation policies created</item>
+    <item>✓ platform_admin role created with bypass</item>
+    <item>✓ rls-context.ts helper functions implemented</item>
+    <item>✓ rls-policies.test.ts tests written and passing</item>
+    <item>✓ Cross-tenant access blocked in tests</item>
+    <item>✓ Same-tenant access allowed in tests</item>
+    <item>✓ Platform admin bypass verified in tests</item>
+    <item>✓ Documentation updated in story file</item>
+    <item>✓ Sprint status updated to 'review'</item>
+  </completion-checklist>
+</story-context>

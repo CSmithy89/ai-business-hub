@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>04-5</story-id>
+    <story-title>Create Approval Card Component</story-title>
+    <epic>EPIC-04 - Approval Queue System</epic>
+    <created>2025-12-03</created>
+    <status>in-progress</status>
+  </metadata>
+
+  <story-details>
+    <user-story>
+      As an approver
+      I want clear approval cards
+      So that I can make quick, informed decisions
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion>Create ApprovalCard component with compact and expanded variants</criterion>
+      <criterion>Show confidence score with color indicator (green >85%, yellow 60-85%, red &lt;60%)</criterion>
+      <criterion>Display AI recommendation</criterion>
+      <criterion>Show preview data (expandable)</criterion>
+      <criterion>Approve/Reject buttons with loading states</criterion>
+      <criterion>Add notes input for decision</criterion>
+      <criterion>Create approval detail page</criterion>
+    </acceptance-criteria>
+  </story-details>
+
+  <technical-context>
+    <tech-spec-reference>
+      <file>docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-04.md</file>
+      <sections>
+        <section>3.3 Frontend Components - ApprovalCard</section>
+        <section>3.3 Frontend Components - ConfidenceIndicator</section>
+        <section>3.3 Frontend Components - ApprovalActions</section>
+      </sections>
+    </tech-spec-reference>
+
+    <design-reference>
+      <wireframe id="AP-02">Approval Card (Confidence Routing)</wireframe>
+      <location>docs/design/wireframes/Finished wireframes and html files/ap-02_approval_card_(confidence_routing_)/</location>
+      <files>
+        <file>code.html</file>
+        <file>screen.png</file>
+      </files>
+    </design-reference>
+
+    <dependencies>
+      <existing-component>
+        <name>ApprovalListItem</name>
+        <path>apps/web/src/components/approval/approval-list-item.tsx</path>
+        <note>Simple list item - will be replaced with compact ApprovalCard</note>
+      </existing-component>
+
+      <existing-hook>
+        <name>useApprovalMutations</name>
+        <path>apps/web/src/hooks/use-approvals.ts</path>
+        <exports>
+          <export>approve(id, data)</export>
+          <export>reject(id, data)</export>
+          <export>isApproving</export>
+          <export>isRejecting</export>
+          <export>approveError</export>
+          <export>rejectError</export>
+        </exports>
+      </existing-hook>
+
+      <shared-types>
+        <file>packages/shared/src/types/approval.ts</file>
+        <types>
+          <type>ApprovalItem</type>
+          <type>ApprovalStatus</type>
+          <type>ConfidenceLevel</type>
+          <type>ConfidenceFactor</type>
+          <type>ConfidenceResult</type>
+        </types>
+      </shared-types>
+
+      <ui-components>
+        <component>Card</component>
+        <component>Button</component>
+        <component>Badge</component>
+        <component>Textarea</component>
+        <component>Dialog</component>
+        <component>AlertDialog</component>
+      </ui-components>
+    </dependencies>
+
+    <confidence-color-scheme>
+      <high threshold="85+" color="green-500" />
+      <medium threshold="60-85" color="yellow-500" />
+      <low threshold="&lt;60" color="red-500" />
+    </confidence-color-scheme>
+  </technical-context>
+
+  <implementation-artifacts>
+    <components>
+      <component>
+        <name>ConfidenceIndicator</name>
+        <path>apps/web/src/components/approval/confidence-indicator.tsx</path>
+        <description>Visual display of confidence score with progress bar and color coding</description>
+        <props>
+          <prop name="score" type="number" required="true">Confidence score 0-100</prop>
+          <prop name="level" type="ConfidenceLevel" required="true">Confidence level category</prop>
+          <prop name="showLabel" type="boolean" required="false">Show score label</prop>
+          <prop name="size" type="sm|md|lg" required="false">Indicator size</prop>
+        </props>
+      </component>
+
+      <component>
+        <name>ApprovalActions</name>
+        <path>apps/web/src/components/approval/approval-actions.tsx</path>
+        <description>Approve/Reject buttons with notes input and loading states</description>
+        <props>
+          <prop name="approvalId" type="string" required="true">Approval item ID</prop>
+          <prop name="onApprove" type="function" required="false">Callback after approve</prop>
+          <prop name="onReject" type="function" required="false">Callback after reject</prop>
+          <prop name="variant" type="default|compact" required="false">Display variant</prop>
+        </props>
+      </component>
+
+      <component>
+        <name>ApprovalCard</name>
+        <path>apps/web/src/components/approval/approval-card.tsx</path>
+        <description>Main approval card component with compact and expanded variants</description>
+        <props>
+          <prop name="approval" type="ApprovalItem" required="true">Approval data</prop>
+          <prop name="variant" type="compact|expanded" required="false">Card variant (default: compact)</prop>
+          <prop name="showActions" type="boolean" required="false">Show approve/reject actions</prop>
+          <prop name="onActionComplete" type="function" required="false">Callback after action</prop>
+        </props>
+      </component>
+    </components>
+
+    <pages>
+      <page>
+        <path>apps/web/src/app/approvals/[id]/page.tsx</path>
+        <description>Approval detail page showing expanded card with full context</description>
+        <features>
+          <feature>Uses ApprovalCard in expanded variant</feature>
+          <feature>Shows AI reasoning (placeholder for Story 04-6)</feature>
+          <feature>Back button to approval list</feature>
+          <feature>Loading and error states</feature>
+        </features>
+      </page>
+
+      <page>
+        <path>apps/web/src/app/approvals/page.tsx</path>
+        <description>Updated to use ApprovalCard instead of ApprovalListItem</description>
+        <changes>
+          <change>Replace ApprovalListItem import with ApprovalCard</change>
+          <change>Use compact variant in list view</change>
+        </changes>
+      </page>
+    </pages>
+  </implementation-artifacts>
+
+  <existing-code>
+    <file path="apps/web/src/components/approval/approval-list-item.tsx">
+      <purpose>Simple list item - reference for styling patterns and badge logic</purpose>
+      <reuse>
+        <item>Border color logic based on confidence level</item>
+        <item>Badge variants for confidence levels</item>
+        <item>Priority badge configuration</item>
+        <item>Date formatting with date-fns</item>
+      </reuse>
+    </file>
+
+    <file path="apps/web/src/hooks/use-approvals.ts">
+      <purpose>API hooks for approval operations</purpose>
+      <usage>
+        <item>useApproval(id) - Fetch single approval</item>
+        <item>useApprovalMutations() - Get approve/reject functions</item>
+      </usage>
+    </file>
+
+    <file path="apps/web/src/app/approvals/page.tsx">
+      <purpose>Main approval queue page</purpose>
+      <update>Replace ApprovalListItem with ApprovalCard in ApprovalList component</update>
+    </file>
+  </existing-code>
+
+  <development-notes>
+    <note priority="high">Follow existing patterns from ApprovalListItem for consistency</note>
+    <note priority="high">Use shadcn/ui components for consistency with design system</note>
+    <note priority="medium">AI reasoning is placeholder - will be fully implemented in Story 04-6</note>
+    <note priority="medium">Preview data should be formatted nicely (not raw JSON dump)</note>
+    <note priority="low">Consider adding expand/collapse animation for preview data</note>
+  </development-notes>
+
+  <testing-guidance>
+    <test-case>Compact card displays correctly in list view</test-case>
+    <test-case>Expanded card displays correctly in detail view</test-case>
+    <test-case>Confidence colors are correct for all levels</test-case>
+    <test-case>Approve/Reject actions call API correctly</test-case>
+    <test-case>Notes are included in API request</test-case>
+    <test-case>Loading states show during API calls</test-case>
+    <test-case>Error states display when API fails</test-case>
+    <test-case>Preview data expands/collapses correctly</test-case>
+    <test-case>Responsive on mobile devices</test-case>
+    <test-case>Keyboard navigation works</test-case>
+  </testing-guidance>
+</story-context>

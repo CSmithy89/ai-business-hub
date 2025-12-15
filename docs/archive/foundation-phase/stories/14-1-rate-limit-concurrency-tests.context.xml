@@ -1,0 +1,498 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>14-1</story-id>
+    <story-title>Rate Limit Concurrency Tests</story-title>
+    <epic>EPIC-14</epic>
+    <generated-date>2025-12-06</generated-date>
+    <dependencies>
+      <dependency epic="10" story="10.1" status="complete">Redis Rate Limiting Migration</dependency>
+    </dependencies>
+  </metadata>
+
+  <!-- ================================================================ -->
+  <!-- SECTION 1: EXISTING RATE LIMIT IMPLEMENTATION (EPIC-10) -->
+  <!-- ================================================================ -->
+
+  <section name="existing-rate-limit-implementation">
+    <description>
+      Core rate limiting implementation from Epic 10, Story 10.1.
+      Uses @upstash/ratelimit with sliding window algorithm.
+      Supports both Redis (production) and in-memory fallback (development).
+    </description>
+
+    <file path="apps/web/src/lib/utils/rate-limit.ts">
+      <description>Unified rate limiter with Redis (Upstash) and in-memory fallback</description>
+      <key-exports>
+        <!-- Main API -->
+        <export name="checkRateLimit" signature="async (key: string, limit?: number, windowSeconds?: number) => Promise&lt;RateLimitResult&gt;">
+          Primary rate limit check function. Uses Redis when configured, falls back to in-memory.
+        </export>
+        <export name="checkRateLimitSync" signature="(key: string, limit?: number, windowSeconds?: number) => RateLimitResult">
+          Synchronous version (in-memory only). Deprecated for production.
+        </export>
+        <export name="resetRateLimit" signature="async (key: string) => Promise&lt;void&gt;">
+          Reset rate limit for a specific key. Works for both in-memory and Redis.
+        </export>
+        <export name="getRateLimitInfo" signature="(key: string) => {count: number, resetAt: Date | null, isRedisConfigured: boolean}">
+          Get current rate limit info without incrementing counter. In-memory only.
+        </export>
+        <export name="isDistributedRateLimitingEnabled" signature="() => boolean">
+          Check if Redis is configured and available.
+        </export>
+
+        <!-- Pre-configured Rate Limiters -->
+        <export name="checkTwoFactorRateLimit" signature="async (identifier: string) => Promise&lt;RateLimitResult&gt;">
+          5 attempts per 15 minutes
+        </export>
+        <export name="checkPasswordResetRateLimit" signature="async (identifier: string) => Promise&lt;RateLimitResult&gt;">
+          3 attempts per hour
+        </export>
+        <export name="checkEmailResendRateLimit" signature="async (identifier: string) => Promise&lt;RateLimitResult&gt;">
+          3 attempts per 5 minutes
+        </export>
+        <export name="checkLoginRateLimit" signature="async (identifier: string) => Promise&lt;RateLimitResult&gt;">
+          10 attempts per 15 minutes
+        </export>
+        <export name="checkApiRateLimit" signature="async (identifier: string) => Promise&lt;RateLimitResult&gt;">
+          100 requests per minute
+        </export>
+
+        <!-- Constants -->
+        <export name="RATE_LIMIT_MAX_ENTRIES" type="constant" value="10000">
+          Maximum entries in in-memory fallback
+        </export>
+        <export name="DEFAULT_RATE_LIMIT_WINDOW_SECONDS" type="constant" value="900">
+          Default window (15 minutes)
+        </export>
+        <export name="DEFAULT_RATE_LIMIT_MAX_ATTEMPTS" type="constant" value="5">
+          Default max attempts
+        </export>
+      </key-exports>
+
+      <types>
+        <type name="RateLimitResult">
+          {
+            isRateLimited: boolean
+            remaining: number
+            resetAt: Date
+            retryAfter?: number // Seconds until reset
+          }
+        </type>
+        <type name="RateLimitConfig">
+          {
+            limit: number // Maximum attempts
+            windowSeconds: number // Time window
+          }
+        </type>
+      </types>
+
+      <implementation-details>
+        <detail>Redis client: Uses @upstash/redis REST API</detail>
+        <detail>Ratelimit algorithm: Sliding window via Ratelimit.slidingWindow()</detail>
+        <detail>Redis prefix: 'hyvve:ratelimit'</detail>
+        <detail>Environment variables: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN</detail>
+        <detail>In-memory cleanup: Every 5 minutes, removes expired entries</detail>
+        <detail>In-memory max entries: 10000 (prevents unbounded growth)</detail>
+      </implementation-details>
+    </file>
+  </section>
+
+  <!-- ================================================================ -->
+  <!-- SECTION 2: EXISTING RATE LIMIT TESTS (REFERENCE) -->
+  <!-- ================================================================ -->
+
+  <section name="existing-unit-tests">
+    <description>
+      Existing unit tests for rate limiter from Epic 10.
+      These test in-memory behavior only (mocked Redis).
+      Story 14-1 will add INTEGRATION tests with real Redis.
+    </description>
+
+    <file path="apps/web/src/lib/utils/rate-limit.test.ts">
+      <description>Unit tests for in-memory rate limiting behavior</description>
+      <test-patterns>
+        <pattern name="module-reset">
+          Uses vi.resetModules() to reset rate limiter state between tests
+        </pattern>
+        <pattern name="redis-mocking">
+          Mocks @upstash/redis and @upstash/ratelimit to force in-memory mode
+        </pattern>
+        <pattern name="unique-keys">
+          Uses Date.now() to generate unique test keys (prevents test pollution)
+        </pattern>
+        <pattern name="test-structure">
+          describe() blocks group related tests, beforeEach() for setup
+        </pattern>
+      </test-patterns>
+
+      <key-test-cases>
+        <test name="should allow requests under the limit">
+          First request passes, remaining count decreases
+        </test>
+        <test name="should block requests when limit is exceeded">
+          After N requests, next request blocked with retryAfter
+        </test>
+        <test name="should isolate rate limits by key">
+          Different keys have independent rate limit buckets
+        </test>
+        <test name="should handle concurrent requests correctly">
+          Promise.all() tests with 5 concurrent requests
+        </test>
+        <test name="pre-configured limiters">
+          Tests for 2FA, password reset, email resend, login, API rate limiters
+        </test>
+      </key-test-cases>
+    </file>
+  </section>
+
+  <!-- ================================================================ -->
+  <!-- SECTION 3: API ROUTES WITH RATE LIMITING -->
+  <!-- ================================================================ -->
+
+  <section name="api-routes-with-rate-limiting">
+    <description>
+      API routes currently using rate limiting.
+      These are endpoints that should be tested for concurrency behavior.
+    </description>
+
+    <file path="apps/web/src/app/api/auth/2fa/verify-login/route.ts">
+      <description>2FA verification endpoint with rate limiting</description>
+      <rate-limit>
+        <function>checkTwoFactorRateLimit(userId)</function>
+        <limit>5 attempts per 15 minutes</limit>
+        <key-pattern>2fa:{userId}</key-pattern>
+        <response-on-limit>HTTP 429 with retryAfter in minutes</response-on-limit>
+        <reset-on-success>Yes (await resetRateLimit(`2fa:${userId}`))</reset-on-success>
+      </rate-limit>
+      <headers>
+        None (Story 14-1 acceptance criteria requires adding rate limit headers)
+      </headers>
+    </file>
+
+    <file path="apps/web/src/app/api/auth/resend-verification/route.ts">
+      <description>Email verification resend endpoint with rate limiting</description>
+      <rate-limit>
+        <function>checkRateLimit(rateLimitKey, 3, 60 * 60)</function>
+        <limit>3 attempts per hour</limit>
+        <key-pattern>resend-verification:{email.toLowerCase()}</key-pattern>
+        <response-on-limit>HTTP 429 with retryAfter in response body</response-on-limit>
+      </rate-limit>
+      <headers>
+        None (Story 14-1 acceptance criteria requires adding rate limit headers)
+      </headers>
+    </file>
+
+    <file path="apps/web/src/app/api/auth/verify-email-otp/route.ts">
+      <description>Email OTP verification endpoint</description>
+      <rate-limit>
+        <function>checkRateLimit()</function>
+        <note>Usage pattern to be determined by developer</note>
+      </rate-limit>
+    </file>
+
+    <file path="apps/web/src/app/api/workspaces/route.ts">
+      <description>Workspace creation endpoint</description>
+      <rate-limit>
+        <function>checkRateLimit()</function>
+        <note>Usage pattern to be determined by developer</note>
+      </rate-limit>
+    </file>
+
+    <file path="apps/web/src/app/api/auth/[...all]/route.ts">
+      <description>Better-auth catch-all endpoint</description>
+      <rate-limit>
+        <function>checkRateLimit()</function>
+        <note>Usage pattern to be determined by developer</note>
+      </rate-limit>
+    </file>
+  </section>
+
+  <!-- ================================================================ -->
+  <!-- SECTION 4: TEST INFRASTRUCTURE -->
+  <!-- ================================================================ -->
+
+  <section name="test-infrastructure">
+    <description>
+      Vitest configuration and testing patterns used in the project.
+    </description>
+
+    <file path="apps/web/vitest.config.ts">
+      <content><![CDATA[
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./vitest.setup.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
+    coverage: {
+      reporter: ['text', 'json', 'html'],
+      exclude: ['node_modules/', 'vitest.config.ts', 'vitest.setup.ts'],
+    },
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+});
+      ]]></content>
+    </file>
+
+    <file path="apps/web/package.json">
+      <scripts>
+        <script name="test">vitest run</script>
+        <script name="test:watch">vitest</script>
+        <script name="test:coverage">vitest run --coverage</script>
+      </scripts>
+      <dev-dependencies>
+        <package name="vitest" version="^4.0.14"/>
+        <package name="@vitejs/plugin-react" version="^5.1.1"/>
+        <package name="@testing-library/react" version="^16.3.0"/>
+        <package name="@testing-library/jest-dom" version="^6.9.1"/>
+        <package name="jsdom" version="^27.2.0"/>
+      </dev-dependencies>
+      <dependencies>
+        <package name="@upstash/ratelimit" version="^2.0.7"/>
+        <package name="@upstash/redis" version="^1.35.7"/>
+      </dependencies>
+    </file>
+
+    <test-patterns>
+      <pattern name="vitest-imports">
+        import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest'
+      </pattern>
+      <pattern name="file-location">
+        Tests can be co-located (*.test.ts) or in __tests__ directories
+      </pattern>
+      <pattern name="environment">
+        jsdom for React components, node for pure logic/API tests
+      </pattern>
+      <pattern name="mocking">
+        vi.mock() for module mocking, vi.fn() for function mocking
+      </pattern>
+    </test-patterns>
+  </section>
+
+  <!-- ================================================================ -->
+  <!-- SECTION 5: STORY REQUIREMENTS & NEW DEPENDENCIES -->
+  <!-- ================================================================ -->
+
+  <section name="story-requirements">
+    <description>
+      Requirements from Story 14-1 for implementing concurrency tests.
+    </description>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        Create test file apps/web/src/__tests__/rate-limit.test.ts
+        Note: Different from existing apps/web/src/lib/utils/rate-limit.test.ts
+      </criterion>
+      <criterion id="AC2">
+        Test concurrent requests against same endpoint
+      </criterion>
+      <criterion id="AC3">
+        Verify rate limit is enforced correctly under concurrency
+      </criterion>
+      <criterion id="AC4">
+        Test sliding window behavior (limits reset after window expires)
+      </criterion>
+      <criterion id="AC5">
+        Test rate limit headers (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset)
+        Note: These headers are NOT currently implemented in API routes
+      </criterion>
+      <criterion id="AC6">
+        Use Redis test container for integration tests
+      </criterion>
+    </acceptance-criteria>
+
+    <new-dependencies>
+      <dependency name="@testcontainers/redis" version="latest" type="devDependency">
+        Install via: pnpm add -D @testcontainers/redis
+        Provides Redis container for integration tests
+        Requires Docker to be running
+      </dependency>
+    </new-dependencies>
+
+    <test-cases>
+      <test-case id="TC1" name="Concurrent Requests">
+        Send 100 requests in parallel, verify only N allowed (rest blocked)
+      </test-case>
+      <test-case id="TC2" name="Sliding Window">
+        Test that limits reset after window expires
+      </test-case>
+      <test-case id="TC3" name="Rate Limit Headers">
+        Verify X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset headers
+        NOTE: Headers need to be ADDED to API routes first
+      </test-case>
+      <test-case id="TC4" name="DDoS Simulation">
+        Test with 1000+ concurrent requests
+      </test-case>
+      <test-case id="TC5" name="Multi-User Isolation">
+        Verify per-user rate limiting (different users isolated)
+      </test-case>
+    </test-cases>
+
+    <example-test-structure>
+      <![CDATA[
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { RedisContainer } from '@testcontainers/redis'
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
+
+describe('Rate Limit Concurrency', () => {
+  let redisContainer: RedisContainer
+  let redis: Redis
+
+  beforeAll(async () => {
+    redisContainer = await new RedisContainer().start()
+    redis = new Redis({
+      url: redisContainer.getConnectionUrl(),
+    })
+  })
+
+  afterAll(async () => {
+    await redisContainer.stop()
+  })
+
+  it('should enforce rate limit under concurrent load', async () => {
+    const limiter = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, '1 m'),
+    })
+
+    // Send 100 concurrent requests
+    const results = await Promise.all(
+      Array(100).fill(null).map(() => limiter.limit('test-user'))
+    )
+
+    const allowed = results.filter(r => r.success).length
+    const blocked = results.filter(r => !r.success).length
+
+    expect(allowed).toBe(10) // Only 10 allowed
+    expect(blocked).toBe(90) // Rest blocked
+  })
+})
+      ]]>
+    </example-test-structure>
+  </section>
+
+  <!-- ================================================================ -->
+  <!-- SECTION 6: RELATED DOCUMENTATION -->
+  <!-- ================================================================ -->
+
+  <section name="related-documentation">
+    <description>
+      Related documentation for context and reference.
+    </description>
+
+    <document path="docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-14.md">
+      <section>Story 14.1: Rate Limit Concurrency Tests</section>
+      <adr>ADR-14.1: Vitest for Frontend Tests</adr>
+      <adr>ADR-14.2: Testcontainers for Redis Integration Tests</adr>
+    </document>
+
+    <document path="docs/archive/foundation-phase/sprint-artifacts/retrospective-epic-10.md">
+      <section>Story 10.1: Redis Rate Limiting Migration</section>
+      <note>Rate limiting implementation completed in Epic 10</note>
+      <note>Tests only covered in-memory fallback, not Redis concurrency</note>
+    </document>
+
+    <external-docs>
+      <doc name="@upstash/ratelimit" url="https://upstash.com/docs/redis/features/ratelimiting">
+        Upstash Rate Limiting documentation
+      </doc>
+      <doc name="@testcontainers/redis" url="https://node.testcontainers.org/modules/redis/">
+        Testcontainers Redis module documentation
+      </doc>
+      <doc name="Vitest" url="https://vitest.dev/">
+        Vitest testing framework documentation
+      </doc>
+    </external-docs>
+  </section>
+
+  <!-- ================================================================ -->
+  <!-- SECTION 7: IMPLEMENTATION NOTES -->
+  <!-- ================================================================ -->
+
+  <section name="implementation-notes">
+    <description>
+      Important notes for implementing the story.
+    </description>
+
+    <notes>
+      <note type="critical">
+        AC5 requires testing rate limit headers (X-RateLimit-*), but these headers
+        are NOT currently implemented in the API routes. Developer will need to:
+        1. First add header support to the rate limit utility or API routes
+        2. Then test the headers
+        Alternatively, defer AC5 to a separate story if headers are out of scope.
+      </note>
+
+      <note type="important">
+        Use @testcontainers/redis for real Redis integration tests.
+        This requires Docker to be running during tests.
+        Tests will be slower than mocks but more reliable.
+      </note>
+
+      <note type="important">
+        Test file location: apps/web/src/__tests__/rate-limit.test.ts
+        This is DIFFERENT from existing apps/web/src/lib/utils/rate-limit.test.ts
+        The new file is for INTEGRATION tests, existing is for UNIT tests.
+      </note>
+
+      <note type="info">
+        Existing test patterns use vi.resetModules() and unique keys with Date.now().
+        Follow similar patterns for consistency.
+      </note>
+
+      <note type="info">
+        Sliding window algorithm in Upstash uses Redis sorted sets.
+        Test should verify window expiration behavior accurately.
+      </note>
+
+      <note type="info">
+        DDoS simulation (1000+ requests) may need timeout configuration
+        in vitest to prevent test timeout failures.
+      </note>
+    </notes>
+
+    <testing-gaps-addressed>
+      <gap source="Epic 10 retrospective">
+        Rate limiting concurrency behavior (only in-memory tested, not Redis)
+      </gap>
+      <gap source="Epic 14 tech spec">
+        Integration testing with real Redis using Testcontainers
+      </gap>
+    </testing-gaps-addressed>
+  </section>
+
+  <!-- ================================================================ -->
+  <!-- SECTION 8: FILE MANIFEST -->
+  <!-- ================================================================ -->
+
+  <file-manifest>
+    <files-to-read>
+      <file>apps/web/src/lib/utils/rate-limit.ts</file>
+      <file>apps/web/src/lib/utils/rate-limit.test.ts</file>
+      <file>apps/web/src/app/api/auth/2fa/verify-login/route.ts</file>
+      <file>apps/web/src/app/api/auth/resend-verification/route.ts</file>
+      <file>apps/web/vitest.config.ts</file>
+      <file>apps/web/package.json</file>
+    </files-to-read>
+
+    <files-to-create>
+      <file>apps/web/src/__tests__/rate-limit.test.ts</file>
+    </files-to-create>
+
+    <files-to-modify>
+      <file>apps/web/package.json (add @testcontainers/redis to devDependencies)</file>
+      <file>Optional: API routes to add rate limit headers (if implementing AC5)</file>
+    </files-to-modify>
+  </file-manifest>
+</story-context>

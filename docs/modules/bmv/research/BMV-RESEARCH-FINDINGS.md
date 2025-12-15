@@ -1274,7 +1274,7 @@ All claims must be labeled:
 ### Internal Documentation
 
 - `/docs/MASTER-PLAN.md` - Platform vision and module overview
-- `/docs/MODULE-RESEARCH.md` - Module specifications
+- `/docs/archive/foundation-phase/MODULE-RESEARCH.md` - Module specifications
 - `/.bmad/bmm/workflows/1-analysis/research/` - Research workflow patterns
 - `/docs/modules/bm-pm/research/BM-PM-RESEARCH-FINDINGS.md` - Sister module research
 

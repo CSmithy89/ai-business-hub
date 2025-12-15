@@ -807,4 +807,4 @@ Based on this analysis, the following adoption path is recommended:
 - [Plane Analysis](./research/plane-analysis.md) - Deep-dive into Plane patterns
 - [Taskosaur Analysis](/docs/research/taskosaur-analysis.md) - Source pattern research
 - [MASTER-PLAN](/docs/MASTER-PLAN.md) - Overall architecture vision
-- [MODULE-RESEARCH](/docs/MODULE-RESEARCH.md) - Module discovery and planning
+- [MODULE-RESEARCH](/docs/archive/foundation-phase/MODULE-RESEARCH.md) - Module discovery and planning

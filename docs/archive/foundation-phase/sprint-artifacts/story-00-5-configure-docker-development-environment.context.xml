@@ -1,0 +1,849 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>00-5</story-id>
+    <story-title>Configure Docker Development Environment</story-title>
+    <epic>EPIC-00 - Project Scaffolding &amp; Core Setup</epic>
+    <generated>2025-12-01</generated>
+    <points>2</points>
+    <priority>P1</priority>
+  </metadata>
+
+  <story-summary>
+    This story creates a local Docker development environment with PostgreSQL 16, Redis 7,
+    AgentOS (Python/FastAPI), and pgAdmin to enable developers to work without external
+    dependencies. The Docker Compose configuration provides data persistence across restarts,
+    proper networking between services, and convenience scripts for managing the development
+    environment.
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      Create docker/docker-compose.yml with PostgreSQL 16, Redis 7, AgentOS (Python/FastAPI),
+      and pgAdmin (optional)
+    </criterion>
+    <criterion id="AC2">
+      Add volume mounts for data persistence across container restarts
+    </criterion>
+    <criterion id="AC3">
+      Configure environment variables for all services
+    </criterion>
+    <criterion id="AC4">
+      Add startup script in package.json for Docker commands
+    </criterion>
+    <criterion id="AC5">
+      Verify docker compose up -d starts all services successfully
+    </criterion>
+    <criterion id="AC6">
+      PostgreSQL is accessible on port 5432
+    </criterion>
+    <criterion id="AC7">
+      Redis is accessible on port 6379
+    </criterion>
+    <criterion id="AC8">
+      AgentOS is accessible on port 7777
+    </criterion>
+    <criterion id="AC9">
+      Data persists across container restarts (volumes working correctly)
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-requirements>
+    <requirement category="PostgreSQL Configuration">
+      <service>postgres</service>
+      <image>postgres:16-alpine</image>
+      <port>5432</port>
+      <environment-variables>
+        <var name="POSTGRES_DB">hyvve</var>
+        <var name="POSTGRES_USER">postgres</var>
+        <var name="POSTGRES_PASSWORD">postgres_dev_password</var>
+      </environment-variables>
+      <volumes>
+        <volume type="named">postgres_data:/var/lib/postgresql/data</volume>
+      </volumes>
+      <notes>
+        Database for Prisma ORM. Connects to packages/db Prisma schema.
+        Connection string: postgresql://postgres:postgres_dev_password@localhost:5432/hyvve
+      </notes>
+    </requirement>
+
+    <requirement category="Redis Configuration">
+      <service>redis</service>
+      <image>redis:7-alpine</image>
+      <port>6379</port>
+      <command>redis-server --appendonly yes</command>
+      <volumes>
+        <volume type="named">redis_data:/data</volume>
+      </volumes>
+      <notes>
+        Cache, queue, and event streaming. Used for BullMQ and Redis Streams.
+        Connection string: redis://localhost:6379
+      </notes>
+    </requirement>
+
+    <requirement category="AgentOS Configuration">
+      <service>agentos</service>
+      <build-context>../agents</build-context>
+      <dockerfile>Dockerfile</dockerfile>
+      <port>7777</port>
+      <environment-variables>
+        <var name="DATABASE_URL">postgresql://postgres:postgres_dev_password@postgres:5432/hyvve</var>
+        <var name="BETTER_AUTH_SECRET">${BETTER_AUTH_SECRET}</var>
+        <var name="REDIS_URL">redis://redis:6379</var>
+        <var name="AGENTOS_HOST">0.0.0.0</var>
+        <var name="AGENTOS_PORT">7777</var>
+      </environment-variables>
+      <depends-on>
+        <dependency>postgres</dependency>
+        <dependency>redis</dependency>
+      </depends-on>
+      <notes>
+        Python/FastAPI microservice for AI agent runtime. Will be implemented in Story 00-7.
+        For now, create placeholder Dockerfile and basic structure.
+      </notes>
+    </requirement>
+
+    <requirement category="pgAdmin Configuration (Optional)">
+      <service>pgadmin</service>
+      <image>dpage/pgadmin4:latest</image>
+      <port>5050</port>
+      <environment-variables>
+        <var name="PGADMIN_DEFAULT_EMAIL">dev@hyvve.local</var>
+        <var name="PGADMIN_DEFAULT_PASSWORD">pgadmin_dev_password</var>
+        <var name="PGADMIN_CONFIG_SERVER_MODE">False</var>
+      </environment-variables>
+      <volumes>
+        <volume type="named">pgadmin_data:/var/lib/pgadmin</volume>
+      </volumes>
+      <notes>
+        Optional database UI for convenience. Access at http://localhost:5050
+        Alternative: Use Prisma Studio (pnpm db:studio)
+      </notes>
+    </requirement>
+
+    <requirement category="Docker Networking">
+      <network-name>hyvve_network</network-name>
+      <network-driver>bridge</network-driver>
+      <notes>
+        Internal bridge network for service-to-service communication.
+        Services reference each other by service name (e.g., postgres, redis).
+      </notes>
+    </requirement>
+
+    <requirement category="Volume Management">
+      <named-volumes>
+        <volume>postgres_data</volume>
+        <volume>redis_data</volume>
+        <volume>pgadmin_data</volume>
+      </named-volumes>
+      <notes>
+        Named volumes for data persistence. Survives docker compose down.
+        Use docker compose down -v to remove volumes for fresh start.
+      </notes>
+    </requirement>
+  </technical-requirements>
+
+  <architecture-context>
+    <integration-point name="Prisma Database Connection">
+      <description>
+        PostgreSQL container connects to packages/db Prisma schema.
+        DATABASE_URL in .env.local should point to localhost:5432 for local development.
+      </description>
+      <connection-string>postgresql://postgres:postgres_dev_password@localhost:5432/hyvve</connection-string>
+      <direct-connection-string>postgresql://postgres:postgres_dev_password@localhost:5432/hyvve</direct-connection-string>
+    </integration-point>
+
+    <integration-point name="NestJS Redis Connection">
+      <description>
+        apps/api connects to Redis for caching, queues (BullMQ), and events (Redis Streams).
+      </description>
+      <connection-string>redis://localhost:6379</connection-string>
+    </integration-point>
+
+    <integration-point name="AgentOS Integration">
+      <description>
+        AgentOS microservice shares DATABASE_URL with NestJS.
+        Uses tenant middleware to inject workspace_id from JWT.
+        Connects to Control Plane at os.agno.com for monitoring (browser-based).
+      </description>
+      <internal-database-url>postgresql://postgres:postgres_dev_password@postgres:5432/hyvve</internal-database-url>
+      <external-access>http://localhost:7777</external-access>
+    </integration-point>
+
+    <service-communication>
+      <pattern>Internal bridge network (hyvve_network)</pattern>
+      <inter-service-urls>
+        <url service="NestJS to PostgreSQL">postgres:5432</url>
+        <url service="NestJS to Redis">redis:6379</url>
+        <url service="AgentOS to PostgreSQL">postgres:5432</url>
+        <url service="AgentOS to Redis">redis:6379</url>
+      </inter-service-urls>
+      <external-urls>
+        <url service="Developer to PostgreSQL">localhost:5432</url>
+        <url service="Developer to Redis">localhost:6379</url>
+        <url service="Developer to AgentOS">localhost:7777</url>
+        <url service="Developer to pgAdmin">localhost:5050</url>
+      </external-urls>
+    </service-communication>
+
+    <adr-reference>
+      <adr-id>ADR-007</adr-id>
+      <title>AgentOS for Agent Runtime</title>
+      <impact>
+        AgentOS runs as Python/FastAPI microservice alongside NestJS.
+        Shares PostgreSQL database but uses different tables (agno_* prefix).
+        Custom middleware extracts workspace_id from JWT for tenant isolation.
+      </impact>
+    </adr-reference>
+  </architecture-context>
+
+  <existing-code-context>
+    <project-structure>
+      <root>/home/chris/projects/work/Ai Bussiness Hub</root>
+      <directories>
+        <dir status="exists">apps/web - Next.js 15 frontend (port 3000)</dir>
+        <dir status="exists">apps/api - NestJS backend (port 3001)</dir>
+        <dir status="exists">packages/db - Prisma database package</dir>
+        <dir status="exists">packages/ui - Shared UI components</dir>
+        <dir status="exists">packages/shared - Shared types</dir>
+        <dir status="to-create">docker/ - Docker Compose configuration</dir>
+        <dir status="to-create">agents/ - AgentOS runtime (placeholder for Story 00-7)</dir>
+      </directories>
+    </project-structure>
+
+    <environment-variables>
+      <file>.env.example</file>
+      <current-database-vars>
+        <var name="DATABASE_URL">postgresql://user:password@host:6543/database?pgbouncer=true</var>
+        <var name="DIRECT_URL">postgresql://user:password@host:5432/database</var>
+      </current-database-vars>
+      <current-redis-vars>
+        <var name="REDIS_URL">redis://localhost:6379</var>
+      </current-redis-vars>
+      <current-agentos-vars>
+        <var name="AGENTOS_PORT">7777</var>
+        <var name="AGENTOS_HOST">0.0.0.0</var>
+        <var name="NEXT_PUBLIC_AGENTOS_URL">http://localhost:7777</var>
+      </current-agentos-vars>
+      <notes>
+        For local Docker development, update .env.local to point to localhost:5432 and localhost:6379.
+        Keep .env.example as template with production-like Supabase URLs.
+      </notes>
+    </environment-variables>
+
+    <prisma-schema>
+      <file>packages/db/prisma/schema.prisma</file>
+      <datasource>
+        <provider>postgresql</provider>
+        <url-env>DATABASE_URL</url-env>
+        <direct-url-env>DIRECT_URL</direct-url-env>
+      </datasource>
+      <models>
+        Core models: User, Session, Account, Workspace, WorkspaceMember, ApprovalItem,
+        AIProviderConfig, ApiKey
+      </models>
+      <notes>
+        Schema expects PostgreSQL 16 with preview features: fullTextSearch, multiSchema.
+        Migrations will run against local Docker PostgreSQL.
+      </notes>
+    </prisma-schema>
+
+    <root-package-json>
+      <file>package.json</file>
+      <current-scripts>
+        <script name="build">turbo build</script>
+        <script name="dev">turbo dev</script>
+        <script name="lint">turbo lint</script>
+        <script name="type-check">turbo type-check</script>
+        <script name="format">prettier --write "**/*.{ts,tsx,js,jsx,json,md}"</script>
+        <script name="clean">turbo clean &amp;&amp; rm -rf node_modules</script>
+      </current-scripts>
+      <scripts-to-add>
+        <script name="docker:up">docker compose -f docker/docker-compose.yml up -d</script>
+        <script name="docker:down">docker compose -f docker/docker-compose.yml down</script>
+        <script name="docker:logs">docker compose -f docker/docker-compose.yml logs -f</script>
+        <script name="docker:reset">docker compose -f docker/docker-compose.yml down -v &amp;&amp; docker compose -f docker/docker-compose.yml up -d</script>
+        <script name="docker:ps">docker compose -f docker/docker-compose.yml ps</script>
+      </scripts-to-add>
+    </root-package-json>
+
+    <dependencies-completed>
+      <dependency>Story 00-1: Monorepo structure exists with Turborepo</dependency>
+      <dependency>Story 00-2: Next.js 15 frontend configured on port 3000</dependency>
+      <dependency>Story 00-3: NestJS backend configured on port 3001</dependency>
+      <dependency>Story 00-4: Prisma database package ready to connect</dependency>
+    </dependencies-completed>
+
+    <dependencies-pending>
+      <dependency>Story 00-7: AgentOS runtime will be fully implemented</dependency>
+      <note>
+        For this story, create placeholder AgentOS structure with basic Dockerfile.
+        Full implementation (FastAPI, tenant middleware, Agno integration) in Story 00-7.
+      </note>
+    </dependencies-pending>
+  </existing-code-context>
+
+  <dependencies>
+    <external-dependencies>
+      <dependency>
+        <name>Docker</name>
+        <version>20.x or higher</version>
+        <purpose>Container runtime</purpose>
+        <installation>https://docs.docker.com/get-docker/</installation>
+      </dependency>
+      <dependency>
+        <name>Docker Compose</name>
+        <version>2.x or higher</version>
+        <purpose>Multi-container orchestration</purpose>
+        <installation>Included with Docker Desktop</installation>
+      </dependency>
+    </external-dependencies>
+
+    <docker-images>
+      <image>
+        <name>postgres</name>
+        <tag>16-alpine</tag>
+        <registry>Docker Hub</registry>
+        <size>~85 MB</size>
+      </image>
+      <image>
+        <name>redis</name>
+        <tag>7-alpine</tag>
+        <registry>Docker Hub</registry>
+        <size>~30 MB</size>
+      </image>
+      <image>
+        <name>dpage/pgadmin4</name>
+        <tag>latest</tag>
+        <registry>Docker Hub</registry>
+        <size>~450 MB</size>
+        <optional>true</optional>
+      </image>
+      <image>
+        <name>agentos</name>
+        <tag>local-build</tag>
+        <build>true</build>
+        <context>../agents</context>
+        <notes>Custom build. Placeholder Dockerfile for Story 00-5, full implementation in Story 00-7</notes>
+      </image>
+    </docker-images>
+
+    <story-dependencies>
+      <completed>
+        <story id="00-1">Monorepo structure</story>
+        <story id="00-2">Next.js frontend</story>
+        <story id="00-3">NestJS backend</story>
+        <story id="00-4">Prisma database package</story>
+      </completed>
+      <blocks>
+        <story id="00-7">AgentOS runtime (placeholder only, full impl in 00-7)</story>
+      </blocks>
+    </story-dependencies>
+  </dependencies>
+
+  <implementation-guide>
+    <step number="1" task="Create docker/ directory and docker-compose.yml">
+      <action>Create docker/ directory in project root</action>
+      <action>Create docker/docker-compose.yml with version, services, networks, volumes</action>
+      <implementation>
+        <file>docker/docker-compose.yml</file>
+        <content-structure>
+          version: '3.9'
+          services:
+            - postgres (PostgreSQL 16)
+            - redis (Redis 7)
+            - agentos (AgentOS - placeholder)
+            - pgadmin (Optional)
+          networks:
+            - hyvve_network (bridge)
+          volumes:
+            - postgres_data
+            - redis_data
+            - pgadmin_data
+        </content-structure>
+      </implementation>
+    </step>
+
+    <step number="2" task="Configure PostgreSQL service">
+      <details>
+        Image: postgres:16-alpine
+        Container name: hyvve_postgres
+        Port mapping: 5432:5432
+        Environment: POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
+        Volume: postgres_data:/var/lib/postgresql/data
+        Network: hyvve_network
+        Healthcheck: pg_isready -U postgres
+        Restart policy: unless-stopped
+      </details>
+      <notes>
+        Use consistent credentials in docker-compose.yml and .env.local.
+        Consider using .env.docker for environment variables.
+      </notes>
+    </step>
+
+    <step number="3" task="Configure Redis service">
+      <details>
+        Image: redis:7-alpine
+        Container name: hyvve_redis
+        Port mapping: 6379:6379
+        Command: redis-server --appendonly yes
+        Volume: redis_data:/data
+        Network: hyvve_network
+        Healthcheck: redis-cli ping
+        Restart policy: unless-stopped
+      </details>
+      <notes>
+        Enable AOF (append-only file) for data persistence.
+      </notes>
+    </step>
+
+    <step number="4" task="Create placeholder AgentOS structure">
+      <action>Create agents/ directory in project root</action>
+      <action>Create agents/Dockerfile (placeholder)</action>
+      <action>Create agents/main.py (placeholder)</action>
+      <action>Create agents/requirements.txt (basic dependencies)</action>
+      <implementation>
+        <dockerfile>
+          FROM python:3.12-slim
+          WORKDIR /app
+          COPY requirements.txt .
+          RUN pip install --no-cache-dir -r requirements.txt
+          COPY . .
+          EXPOSE 7777
+          CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7777"]
+        </dockerfile>
+        <requirements-txt>
+          fastapi==0.109.0
+          uvicorn==0.27.0
+          pyjwt==2.8.0
+        </requirements-txt>
+        <main-py>
+          from fastapi import FastAPI
+          app = FastAPI()
+
+          @app.get("/health")
+          async def health():
+              return {"status": "ok", "message": "AgentOS placeholder - will be implemented in Story 00-7"}
+        </main-py>
+      </implementation>
+      <notes>
+        This is a minimal placeholder. Full AgentOS implementation with Agno,
+        SQLAlchemy, tenant middleware in Story 00-7.
+      </notes>
+    </step>
+
+    <step number="5" task="Configure AgentOS service in docker-compose.yml">
+      <details>
+        Build context: ../agents
+        Dockerfile: Dockerfile
+        Container name: hyvve_agentos
+        Port mapping: 7777:7777
+        Environment: DATABASE_URL, BETTER_AUTH_SECRET, REDIS_URL, AGENTOS_HOST, AGENTOS_PORT
+        Depends on: postgres, redis
+        Network: hyvve_network
+        Restart policy: unless-stopped
+      </details>
+      <notes>
+        Use internal service names for DATABASE_URL and REDIS_URL (postgres:5432, redis:6379).
+      </notes>
+    </step>
+
+    <step number="6" task="Configure pgAdmin service (optional)">
+      <details>
+        Image: dpage/pgadmin4:latest
+        Container name: hyvve_pgadmin
+        Port mapping: 5050:5050
+        Environment: PGADMIN_DEFAULT_EMAIL, PGADMIN_DEFAULT_PASSWORD, PGADMIN_CONFIG_SERVER_MODE
+        Volume: pgadmin_data:/var/lib/pgadmin
+        Network: hyvve_network
+        Depends on: postgres
+        Restart policy: unless-stopped
+      </details>
+      <notes>
+        Optional but recommended for database inspection.
+        Alternative: Use Prisma Studio (pnpm db:studio).
+      </notes>
+    </step>
+
+    <step number="7" task="Configure networks and volumes">
+      <networks>
+        hyvve_network:
+          driver: bridge
+      </networks>
+      <volumes>
+        postgres_data: {}
+        redis_data: {}
+        pgadmin_data: {}
+      </volumes>
+    </step>
+
+    <step number="8" task="Create docker/README.md">
+      <sections>
+        <section>Overview of Docker services</section>
+        <section>Quick start commands</section>
+        <section>Service URLs and ports</section>
+        <section>Connecting from apps (DATABASE_URL, REDIS_URL)</section>
+        <section>Data persistence and volumes</section>
+        <section>Troubleshooting common issues</section>
+        <section>Platform-specific notes (Windows/Mac/Linux)</section>
+      </sections>
+    </step>
+
+    <step number="9" task="Add Docker scripts to root package.json">
+      <scripts>
+        "docker:up": "docker compose -f docker/docker-compose.yml up -d"
+        "docker:down": "docker compose -f docker/docker-compose.yml down"
+        "docker:logs": "docker compose -f docker/docker-compose.yml logs -f"
+        "docker:reset": "docker compose -f docker/docker-compose.yml down -v &amp;&amp; docker compose -f docker/docker-compose.yml up -d"
+        "docker:ps": "docker compose -f docker/docker-compose.yml ps"
+      </scripts>
+    </step>
+
+    <step number="10" task="Update .env.local for Docker development">
+      <environment-variables>
+        DATABASE_URL="postgresql://postgres:postgres_dev_password@localhost:5432/hyvve"
+        DIRECT_URL="postgresql://postgres:postgres_dev_password@localhost:5432/hyvve"
+        REDIS_URL="redis://localhost:6379"
+      </environment-variables>
+      <notes>
+        Keep .env.example with production-like URLs (Supabase, Upstash).
+        Developers copy .env.example to .env.local and modify for local Docker.
+      </notes>
+    </step>
+
+    <step number="11" task="Update main README.md">
+      <sections-to-add>
+        <section title="Local Development Setup">
+          Prerequisites (Docker Desktop)
+          Starting services (pnpm docker:up)
+          Verifying services (docker compose ps)
+          Stopping services (pnpm docker:down)
+          Fresh start (pnpm docker:reset)
+        </section>
+        <section title="Docker Services">
+          PostgreSQL: localhost:5432
+          Redis: localhost:6379
+          AgentOS: localhost:7777
+          pgAdmin: localhost:5050
+        </section>
+      </sections-to-add>
+    </step>
+  </implementation-guide>
+
+  <file-changes-expected>
+    <new-files>
+      <file>
+        <path>docker/docker-compose.yml</path>
+        <purpose>Multi-container orchestration for local development</purpose>
+        <services>postgres, redis, agentos, pgadmin</services>
+      </file>
+      <file>
+        <path>docker/README.md</path>
+        <purpose>Docker environment documentation and troubleshooting</purpose>
+      </file>
+      <file>
+        <path>agents/Dockerfile</path>
+        <purpose>AgentOS container build (placeholder for Story 00-7)</purpose>
+      </file>
+      <file>
+        <path>agents/main.py</path>
+        <purpose>FastAPI entry point (placeholder)</purpose>
+      </file>
+      <file>
+        <path>agents/requirements.txt</path>
+        <purpose>Python dependencies (minimal for placeholder)</purpose>
+      </file>
+    </new-files>
+
+    <modified-files>
+      <file>
+        <path>package.json</path>
+        <changes>Add docker:up, docker:down, docker:logs, docker:reset, docker:ps scripts</changes>
+      </file>
+      <file>
+        <path>README.md</path>
+        <changes>Add Docker development setup section</changes>
+      </file>
+      <file>
+        <path>.env.local</path>
+        <changes>Update DATABASE_URL and REDIS_URL to point to localhost</changes>
+        <note>Not tracked in git, developer creates from .env.example</note>
+      </file>
+    </modified-files>
+
+    <no-changes>
+      <file>.env.example</file>
+      <reason>Keep production-like URLs as template</reason>
+    </no-changes>
+  </file-changes-expected>
+
+  <testing-requirements>
+    <test category="Service Startup">
+      <command>pnpm docker:up</command>
+      <expected-result>All containers start without errors</expected-result>
+      <verification>docker compose ps shows all services as "running"</verification>
+    </test>
+
+    <test category="PostgreSQL Connectivity">
+      <command>psql -h localhost -p 5432 -U postgres -d hyvve</command>
+      <expected-result>Successfully connects to database</expected-result>
+      <verification>Prompt shows: hyvve=#</verification>
+      <alternative>docker compose exec postgres psql -U postgres -d hyvve</alternative>
+    </test>
+
+    <test category="Redis Connectivity">
+      <command>redis-cli -h localhost -p 6379 ping</command>
+      <expected-result>Returns PONG</expected-result>
+      <alternative>docker compose exec redis redis-cli ping</alternative>
+    </test>
+
+    <test category="AgentOS Health Check">
+      <command>curl http://localhost:7777/health</command>
+      <expected-result>{"status": "ok", "message": "AgentOS placeholder - will be implemented in Story 00-7"}</expected-result>
+      <http-status>200 OK</http-status>
+    </test>
+
+    <test category="pgAdmin Access">
+      <command>Open browser to http://localhost:5050</command>
+      <expected-result>pgAdmin login page loads</expected-result>
+      <credentials>dev@hyvve.local / pgadmin_dev_password</credentials>
+    </test>
+
+    <test category="Data Persistence">
+      <steps>
+        <step>1. Start containers: pnpm docker:up</step>
+        <step>2. Connect to PostgreSQL and create test table</step>
+        <step>3. Insert test data</step>
+        <step>4. Stop containers: pnpm docker:down</step>
+        <step>5. Start containers again: pnpm docker:up</step>
+        <step>6. Verify test data still exists</step>
+      </steps>
+      <expected-result>Data persists across container restarts</expected-result>
+    </test>
+
+    <test category="Internal Networking">
+      <command>docker compose exec agentos ping -c 1 postgres</command>
+      <expected-result>Successfully pings postgres service by name</expected-result>
+      <verification>Containers can communicate via service names</verification>
+    </test>
+
+    <test category="Volume Management">
+      <command>docker volume ls | grep hyvve</command>
+      <expected-result>Shows postgres_data, redis_data, pgadmin_data volumes</expected-result>
+    </test>
+
+    <test category="Fresh Start">
+      <command>pnpm docker:reset</command>
+      <expected-result>Removes all volumes and restarts with fresh data</expected-result>
+      <verification>Previous test data is gone</verification>
+    </test>
+
+    <test category="Container Logs">
+      <command>pnpm docker:logs</command>
+      <expected-result>Shows logs from all containers</expected-result>
+      <verification>No errors in startup logs</verification>
+    </test>
+
+    <test category="Prisma Migration">
+      <command>pnpm db:migrate</command>
+      <expected-result>Migrations run successfully against local PostgreSQL</expected-result>
+      <prerequisite>Docker containers running</prerequisite>
+    </test>
+
+    <test category="Performance">
+      <command>time docker compose up -d</command>
+      <expected-result>Startup completes in &lt; 60 seconds</expected-result>
+      <reference>Tech spec NFR: Docker compose startup &lt; 60 seconds</reference>
+    </test>
+  </testing-requirements>
+
+  <non-functional-requirements>
+    <performance>
+      <metric>Docker compose startup time</metric>
+      <target>&lt; 60 seconds</target>
+      <source>Tech Spec AC-00.5, NFR Performance</source>
+    </performance>
+
+    <reliability>
+      <requirement>Data must persist across container restarts</requirement>
+      <implementation>Named Docker volumes for postgres_data, redis_data</implementation>
+    </reliability>
+
+    <security>
+      <requirement>No secrets in docker-compose.yml</requirement>
+      <implementation>Use environment variables from .env.local or .env.docker</implementation>
+      <note>Development passwords are weak (postgres_dev_password) - acceptable for local only</note>
+    </security>
+
+    <observability>
+      <requirement>Container logs accessible for debugging</requirement>
+      <implementation>docker compose logs -f or pnpm docker:logs</implementation>
+    </observability>
+
+    <portability>
+      <requirement>Works on Windows, Mac, and Linux</requirement>
+      <implementation>Use platform-agnostic Docker Compose syntax</implementation>
+      <notes>Document platform-specific issues in docker/README.md</notes>
+    </portability>
+  </non-functional-requirements>
+
+  <reference-documentation>
+    <tech-spec>
+      <file>docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-00.md</file>
+      <sections>
+        <section>AC-00.5: Docker Environment</section>
+        <section>External Services (Development) - Service details table</section>
+        <section>Non-Functional Requirements - Performance targets</section>
+        <section>Dependencies and Integrations - Docker images and versions</section>
+      </sections>
+    </tech-spec>
+
+    <architecture>
+      <file>docs/architecture.md</file>
+      <sections>
+        <section>Project Structure - docker/ directory</section>
+        <section>ADR-007: AgentOS for Agent Runtime</section>
+        <section>Development Environment - Setup commands</section>
+        <section>Integration Points - NestJS ↔ AgentOS Integration</section>
+      </sections>
+    </architecture>
+
+    <environment-template>
+      <file>.env.example</file>
+      <sections>
+        <section>DATABASE (Story 00.4)</section>
+        <section>REDIS (Story 00.5)</section>
+        <section>AGENTOS (Story 00.7)</section>
+      </sections>
+    </environment-template>
+
+    <external-docs>
+      <doc>
+        <name>Docker Compose file reference</name>
+        <url>https://docs.docker.com/compose/compose-file/</url>
+      </doc>
+      <doc>
+        <name>PostgreSQL Docker image</name>
+        <url>https://hub.docker.com/_/postgres</url>
+      </doc>
+      <doc>
+        <name>Redis Docker image</name>
+        <url>https://hub.docker.com/_/redis</url>
+      </doc>
+      <doc>
+        <name>pgAdmin Docker image</name>
+        <url>https://hub.docker.com/r/dpage/pgadmin4</url>
+      </doc>
+    </external-docs>
+  </reference-documentation>
+
+  <edge-cases-and-gotchas>
+    <edge-case>
+      <scenario>Port conflicts</scenario>
+      <description>PostgreSQL port 5432 or Redis port 6379 already in use</description>
+      <solution>Change port mapping in docker-compose.yml to alternative ports (e.g., 5433:5432)</solution>
+      <solution>Update DATABASE_URL and REDIS_URL in .env.local to match new ports</solution>
+    </edge-case>
+
+    <edge-case>
+      <scenario>Volume permissions on Linux</scenario>
+      <description>Permission denied when PostgreSQL tries to write to volume</description>
+      <solution>Ensure Docker is running with correct permissions</solution>
+      <solution>Check volume ownership: docker compose exec postgres ls -la /var/lib/postgresql/data</solution>
+    </edge-case>
+
+    <edge-case>
+      <scenario>WSL2 on Windows</scenario>
+      <description>Performance issues or networking problems</description>
+      <solution>Ensure Docker Desktop is using WSL2 backend</solution>
+      <solution>Store project files in WSL2 filesystem, not Windows /mnt/c/</solution>
+      <documentation>Document in docker/README.md</documentation>
+    </edge-case>
+
+    <edge-case>
+      <scenario>M1/M2 Mac compatibility</scenario>
+      <description>Some images may not have ARM builds</description>
+      <solution>Use postgres:16-alpine (supports ARM)</solution>
+      <solution>Use redis:7-alpine (supports ARM)</solution>
+      <solution>pgAdmin may require platform: linux/amd64 with Rosetta</solution>
+    </edge-case>
+
+    <edge-case>
+      <scenario>AgentOS build fails</scenario>
+      <description>Placeholder Dockerfile fails to build</description>
+      <solution>Ensure minimal requirements.txt is valid</solution>
+      <solution>Ensure main.py has valid Python syntax</solution>
+      <workaround>Comment out agentos service in docker-compose.yml until Story 00-7</workaround>
+    </edge-case>
+
+    <edge-case>
+      <scenario>Docker Compose V1 vs V2</scenario>
+      <description>User has older docker-compose (V1) instead of docker compose (V2)</description>
+      <solution>Update to Docker Compose V2</solution>
+      <workaround>Change scripts to use docker-compose instead of docker compose</workaround>
+    </edge-case>
+
+    <edge-case>
+      <scenario>Data loss after docker compose down -v</scenario>
+      <description>Developer accidentally removes volumes</description>
+      <prevention>Document difference between docker:down and docker:reset clearly</prevention>
+      <solution>Re-run migrations: pnpm db:migrate</solution>
+    </edge-case>
+
+    <edge-case>
+      <scenario>Prisma can't connect during migrations</scenario>
+      <description>DATABASE_URL points to wrong host or port</description>
+      <solution>Verify .env.local has DATABASE_URL=postgresql://postgres:postgres_dev_password@localhost:5432/hyvve</solution>
+      <solution>Verify containers are running: pnpm docker:ps</solution>
+    </edge-case>
+  </edge-cases-and-gotchas>
+
+  <definition-of-done>
+    <criterion>All acceptance criteria (AC1-AC9) met</criterion>
+    <criterion>docker/docker-compose.yml created with all services</criterion>
+    <criterion>docker/README.md created with setup and troubleshooting</criterion>
+    <criterion>agents/ directory created with placeholder Dockerfile, main.py, requirements.txt</criterion>
+    <criterion>Root package.json updated with docker:* scripts</criterion>
+    <criterion>Main README.md updated with Docker setup instructions</criterion>
+    <criterion>pnpm docker:up successfully starts all services</criterion>
+    <criterion>PostgreSQL accessible on localhost:5432</criterion>
+    <criterion>Redis accessible on localhost:6379</criterion>
+    <criterion>AgentOS health check returns 200 OK on localhost:7777</criterion>
+    <criterion>pgAdmin accessible on localhost:5050 (if included)</criterion>
+    <criterion>Data persists across pnpm docker:down && pnpm docker:up</criterion>
+    <criterion>No errors in container logs (pnpm docker:logs)</criterion>
+    <criterion>Services can communicate via internal network (service names)</criterion>
+    <criterion>Prisma migrations work against local PostgreSQL</criterion>
+    <criterion>Code reviewed and approved</criterion>
+    <criterion>Documentation complete and accurate</criterion>
+  </definition-of-done>
+
+  <notes>
+    <note priority="high">
+      AgentOS is a placeholder in this story. Full implementation (Agno framework,
+      SQLAlchemy ORM, tenant middleware, Control Plane integration) will be completed
+      in Story 00-7. For now, just create minimal FastAPI health check endpoint.
+    </note>
+
+    <note priority="medium">
+      pgAdmin is optional. Developers can use Prisma Studio instead (pnpm db:studio).
+      Consider making pgAdmin service commented out in docker-compose.yml with instructions
+      to uncomment if needed.
+    </note>
+
+    <note priority="medium">
+      Development credentials (postgres_dev_password, pgadmin_dev_password) are intentionally
+      weak. These are for local development only. Production uses Supabase with strong credentials.
+    </note>
+
+    <note priority="low">
+      Consider adding healthcheck configurations to all services for better reliability.
+      Example: PostgreSQL healthcheck using pg_isready.
+    </note>
+
+    <note priority="low">
+      Consider creating separate docker-compose.dev.yml and docker-compose.prod.yml files.
+      For now, single docker-compose.yml is sufficient for local development.
+    </note>
+  </notes>
+</story-context>

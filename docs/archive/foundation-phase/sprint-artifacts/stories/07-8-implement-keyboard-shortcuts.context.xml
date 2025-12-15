@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-metadata>
+    <id>07-8-implement-keyboard-shortcuts</id>
+    <title>Implement Keyboard Shortcuts</title>
+    <epic>EPIC-07 - UI Shell</epic>
+    <points>2</points>
+    <status>done</status>
+  </story-metadata>
+
+  <requirements>
+    <requirement id="R1" priority="critical">
+      <description>Global keyboard shortcuts system that works across all dashboard pages</description>
+      <acceptance-criteria>
+        - All shortcuts functional on dashboard, approvals, settings, and event monitor pages
+        - Shortcuts do not trigger when focus is in input/textarea elements
+        - Platform detection for Mac (Cmd) vs Windows/Linux (Ctrl)
+      </acceptance-criteria>
+    </requirement>
+
+    <requirement id="R2" priority="critical">
+      <description>Implement required keyboard shortcuts</description>
+      <acceptance-criteria>
+        - Cmd/Ctrl + K: Open command palette
+        - Cmd/Ctrl + B: Toggle sidebar
+        - Cmd/Ctrl + /: Toggle chat panel
+        - Cmd/Ctrl + D: Navigate to Dashboard
+        - Cmd/Ctrl + ,: Navigate to Settings
+        - ?: Show keyboard shortcuts help overlay
+        - Esc: Close modals/panels
+      </acceptance-criteria>
+    </requirement>
+
+    <requirement id="R3" priority="critical">
+      <description>Keyboard help overlay displays all shortcuts grouped by category</description>
+      <acceptance-criteria>
+        - Dialog component with grouped shortcuts (Navigation, UI Controls, General)
+        - Platform-appropriate modifier keys (⌘ on Mac, Ctrl on others)
+        - Close via ESC key or close button
+        - Opens via "?" key press
+      </acceptance-criteria>
+    </requirement>
+
+    <requirement id="R4" priority="high">
+      <description>Remove duplicate Cmd+K handler from CommandPalette component</description>
+      <acceptance-criteria>
+        - Cmd+K handler consolidated into KeyboardShortcuts component
+        - No duplicate event listeners
+        - No conflicts between handlers
+      </acceptance-criteria>
+    </requirement>
+  </requirements>
+
+  <design-decisions>
+    <decision id="DD1">
+      <description>Use single global event listener for all shortcuts</description>
+      <rationale>Centralized management prevents conflicts and makes shortcuts easier to maintain</rationale>
+      <alternatives-considered>Individual listeners per component (rejected - harder to coordinate)</alternatives-considered>
+    </decision>
+
+    <decision id="DD2">
+      <description>Skip shortcuts when focus is in input/textarea/contenteditable</description>
+      <rationale>Users need to type freely in form fields without triggering shortcuts</rationale>
+      <implementation>Check e.target tagName and contentEditable attribute</implementation>
+    </decision>
+
+    <decision id="DD3">
+      <description>Use Dialog component from shadcn/ui for help overlay</description>
+      <rationale>Consistent with existing UI components, accessible, keyboard navigable</rationale>
+    </decision>
+
+    <decision id="DD4">
+      <description>Platform detection via navigator.platform</description>
+      <rationale>Display correct modifier key symbol (⌘ vs Ctrl) for better UX</rationale>
+      <implementation>isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform)</implementation>
+    </decision>
+
+    <decision id="DD5">
+      <description>Create reusable use-keyboard-shortcut hook</description>
+      <rationale>Allow other components to register custom shortcuts in future</rationale>
+      <status>Implemented but not yet used outside KeyboardShortcuts component</status>
+    </decision>
+  </design-decisions>
+
+  <architecture-alignment>
+    <component name="KeyboardShortcuts">
+      <location>apps/web/src/components/keyboard/KeyboardShortcuts.tsx</location>
+      <responsibility>Global keyboard event listener, shortcut handler dispatch, help overlay state</responsibility>
+      <dependencies>
+        - useUIStore (Zustand) for state mutations
+        - useRouter (Next.js) for navigation
+        - KeyboardHelpOverlay component
+      </dependencies>
+    </component>
+
+    <component name="KeyboardHelpOverlay">
+      <location>apps/web/src/components/keyboard/KeyboardHelpOverlay.tsx</location>
+      <responsibility>Display all keyboard shortcuts in organized dialog</responsibility>
+      <dependencies>
+        - Dialog component (shadcn/ui)
+        - Platform detection for modifier key display
+      </dependencies>
+    </component>
+
+    <component name="use-keyboard-shortcut">
+      <location>apps/web/src/hooks/use-keyboard-shortcut.ts</location>
+      <responsibility>Reusable hook for custom keyboard shortcuts</responsibility>
+      <usage>Future-proofing for component-specific shortcuts</usage>
+    </component>
+  </architecture-alignment>
+
+  <technical-context>
+    <existing-patterns>
+      <pattern name="UI State Management">
+        <description>Zustand store for global UI state (sidebar, chat panel, command palette)</description>
+        <file>apps/web/src/stores/ui.ts</file>
+        <usage>Call toggleSidebar(), toggleChatPanel(), toggleCommandPalette() from shortcuts</usage>
+      </pattern>
+
+      <pattern name="CommandPalette Cmd+K Handler">
+        <description>Existing Cmd+K handler in CommandPalette.tsx (lines 189-199)</description>
+        <action>REMOVE this handler to consolidate into KeyboardShortcuts component</action>
+      </pattern>
+
+      <pattern name="Design Tokens">
+        <description>CSS custom properties for theming</description>
+        <usage>Use rgb(var(--color-*)) pattern for all colors</usage>
+      </pattern>
+    </existing-patterns>
+
+    <integration-points>
+      <integration>
+        <component>Dashboard Layout</component>
+        <file>apps/web/src/app/(dashboard)/layout.tsx</file>
+        <change>Add &lt;KeyboardShortcuts /&gt; component after CommandPalette</change>
+      </integration>
+
+      <integration>
+        <component>Command Palette</component>
+        <file>apps/web/src/components/command/CommandPalette.tsx</file>
+        <change>Remove useEffect hook for Cmd+K (lines 189-199)</change>
+      </integration>
+    </integration-points>
+
+    <libraries>
+      <library name="React">
+        <usage>useState, useEffect, useCallback hooks</usage>
+      </library>
+      <library name="next/navigation">
+        <usage>useRouter for programmatic navigation (Cmd+D, Cmd+,)</usage>
+      </library>
+      <library name="lucide-react">
+        <usage>Icons for help overlay (Command, Keyboard, etc.)</usage>
+      </library>
+      <library name="@radix-ui/react-dialog">
+        <usage>Accessible dialog for keyboard help overlay (via shadcn/ui)</usage>
+      </library>
+    </libraries>
+  </technical-context>
+
+  <keyboard-shortcuts-registry>
+    <shortcut>
+      <key>Cmd/Ctrl + K</key>
+      <action>Open command palette</action>
+      <handler>useUIStore.getState().toggleCommandPalette()</handler>
+      <category>UI Controls</category>
+    </shortcut>
+    <shortcut>
+      <key>Cmd/Ctrl + B</key>
+      <action>Toggle sidebar</action>
+      <handler>useUIStore.getState().toggleSidebar()</handler>
+      <category>UI Controls</category>
+    </shortcut>
+    <shortcut>
+      <key>Cmd/Ctrl + /</key>
+      <action>Toggle chat panel</action>
+      <handler>useUIStore.getState().toggleChatPanel()</handler>
+      <category>UI Controls</category>
+    </shortcut>
+    <shortcut>
+      <key>Cmd/Ctrl + D</key>
+      <action>Go to Dashboard</action>
+      <handler>router.push('/dashboard')</handler>
+      <category>Navigation</category>
+    </shortcut>
+    <shortcut>
+      <key>Cmd/Ctrl + ,</key>
+      <action>Go to Settings</action>
+      <handler>router.push('/settings')</handler>
+      <category>Navigation</category>
+    </shortcut>
+    <shortcut>
+      <key>?</key>
+      <action>Show keyboard shortcuts help</action>
+      <handler>setShowHelp(true)</handler>
+      <category>General</category>
+    </shortcut>
+    <shortcut>
+      <key>Esc</key>
+      <action>Close modals/panels</action>
+      <handler>setShowHelp(false)</handler>
+      <category>General</category>
+    </shortcut>
+  </keyboard-shortcuts-registry>
+
+  <testing-strategy>
+    <test-case id="TC1">
+      <description>All shortcuts work on dashboard pages</description>
+      <steps>
+        1. Navigate to /dashboard
+        2. Press Cmd/Ctrl + K (command palette opens)
+        3. Press Esc (command palette closes)
+        4. Press Cmd/Ctrl + B (sidebar toggles)
+        5. Press Cmd/Ctrl + / (chat panel toggles)
+        6. Press ? (help overlay opens)
+        7. Press Esc (help overlay closes)
+      </steps>
+      <expected>All shortcuts work as described</expected>
+    </test-case>
+
+    <test-case id="TC2">
+      <description>Shortcuts respect input focus</description>
+      <steps>
+        1. Navigate to page with input field
+        2. Click into input field
+        3. Type "k" character
+        4. Verify command palette does NOT open
+      </steps>
+      <expected>Shortcuts do not trigger when typing in inputs</expected>
+    </test-case>
+
+    <test-case id="TC3">
+      <description>Platform-specific modifier keys display correctly</description>
+      <steps>
+        1. On Mac: Press ? key
+        2. Verify help overlay shows ⌘ symbol
+        3. On Windows: Press ? key
+        4. Verify help overlay shows "Ctrl" text
+      </steps>
+      <expected>Correct modifier key displayed per platform</expected>
+    </test-case>
+
+    <test-case id="TC4">
+      <description>Navigation shortcuts work</description>
+      <steps>
+        1. From /approvals page, press Cmd/Ctrl + D
+        2. Verify navigation to /dashboard
+        3. Press Cmd/Ctrl + ,
+        4. Verify navigation to /settings
+      </steps>
+      <expected>Navigation shortcuts work correctly</expected>
+    </test-case>
+  </testing-strategy>
+
+  <edge-cases>
+    <edge-case id="EC1">
+      <scenario>User presses ? key in search/input field</scenario>
+      <expected-behavior>? character typed, help overlay does NOT open</expected-behavior>
+      <handling>Check if focus is in input/textarea before showing help</handling>
+    </edge-case>
+
+    <edge-case id="EC2">
+      <scenario>Multiple modals open at same time</scenario>
+      <expected-behavior>Esc closes top-most modal only</expected-behavior>
+      <handling>Each modal manages its own Esc handler via Dialog component</handling>
+    </edge-case>
+
+    <edge-case id="EC3">
+      <scenario>Browser extension conflicts with shortcuts</scenario>
+      <expected-behavior>Browser extension takes precedence</expected-behavior>
+      <handling>User responsibility - document in help overlay</handling>
+    </edge-case>
+
+    <edge-case id="EC4">
+      <scenario>Rapid keyboard shortcut presses</scenario>
+      <expected-behavior>Only last action takes effect, no race conditions</expected-behavior>
+      <handling>React state updates are batched automatically</handling>
+    </edge-case>
+  </edge-cases>
+
+  <implementation-notes>
+    <note priority="critical">
+      Remove the duplicate Cmd+K handler from CommandPalette.tsx (useEffect at lines 189-199)
+      to prevent double-opening of command palette
+    </note>
+    <note priority="high">
+      Use e.preventDefault() for all shortcuts to prevent browser default behaviors
+      (e.g., Cmd+D bookmarks page in Chrome)
+    </note>
+    <note priority="medium">
+      Consider future enhancement: Settings page for customizable keyboard shortcuts
+    </note>
+    <note priority="low">
+      Mobile devices do not support keyboard shortcuts - desktop-only feature
+    </note>
+  </implementation-notes>
+
+  <related-files>
+    <file path="apps/web/src/stores/ui.ts" relevance="high">
+      UI state store with toggleSidebar, toggleChatPanel, toggleCommandPalette
+    </file>
+    <file path="apps/web/src/components/command/CommandPalette.tsx" relevance="high">
+      Command palette with existing Cmd+K handler to be removed
+    </file>
+    <file path="apps/web/src/app/(dashboard)/layout.tsx" relevance="high">
+      Dashboard layout where KeyboardShortcuts component will be added
+    </file>
+    <file path="apps/web/src/components/ui/dialog.tsx" relevance="medium">
+      Dialog component for keyboard help overlay
+    </file>
+    <file path="docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-07.md" relevance="high">
+      Epic technical specification with keyboard shortcuts requirements
+    </file>
+  </related-files>
+</story-context>

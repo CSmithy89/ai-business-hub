@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>04-7</story-id>
+    <story-title>Implement Bulk Approval</story-title>
+    <epic>EPIC-04 - Approval Queue System</epic>
+    <created>2025-12-03</created>
+    <status>in-progress</status>
+  </metadata>
+
+  <story-details>
+    <user-story>
+      As an approver with many similar items
+      I want to approve/reject in bulk
+      So that I can be efficient
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion>Add selection checkboxes to queue</criterion>
+      <criterion>Show selected count</criterion>
+      <criterion>Bulk action buttons (Approve All, Reject All)</criterion>
+      <criterion>Add bulk notes input</criterion>
+      <criterion>Confirm dialog before bulk action</criterion>
+      <criterion>Show progress during bulk operation</criterion>
+      <criterion>Handle partial failures gracefully</criterion>
+    </acceptance-criteria>
+  </story-details>
+
+  <technical-context>
+    <tech-spec-reference>
+      <file>docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-04.md</file>
+      <sections>
+        <section>3.2 API Endpoints - POST /api/approvals/bulk</section>
+        <section>3.3 Frontend Components - BulkActionBar</section>
+        <section>3.3 Frontend Components - BulkConfirmDialog</section>
+      </sections>
+    </tech-spec-reference>
+
+    <design-reference>
+      <wireframe id="AP-04">Batch Approval</wireframe>
+      <location>docs/design/wireframes/Finished wireframes and html files/ap-04_batch_approval/</location>
+      <files>
+        <file>code.html</file>
+        <file>screen.png</file>
+      </files>
+    </design-reference>
+
+    <dependencies>
+      <existing-component>
+        <name>ApprovalCard</name>
+        <location>apps/web/src/components/approval/approval-card.tsx</location>
+        <modification>Add selection checkbox and selected state</modification>
+      </existing-component>
+
+      <existing-component>
+        <name>ApprovalList</name>
+        <location>apps/web/src/components/approval/approval-list.tsx</location>
+        <modification>Add selection state management and select all/none</modification>
+      </existing-component>
+
+      <existing-component>
+        <name>ApprovalsPage</name>
+        <location>apps/web/src/app/approvals/page.tsx</location>
+        <modification>Integrate bulk actions and selection state</modification>
+      </existing-component>
+
+      <existing-hook>
+        <name>useApprovals</name>
+        <location>apps/web/src/hooks/use-approvals.ts</location>
+        <modification>Add useBulkApprovalMutation hook</modification>
+      </existing-hook>
+
+      <api-endpoint>
+        <method>POST</method>
+        <path>/api/approvals/bulk</path>
+        <status>Already implemented in Story 04-2</status>
+        <request>
+          {
+            ids: string[];
+            action: 'approve' | 'reject';
+            notes?: string;
+            reason?: string; // Required for reject
+          }
+        </request>
+        <response>
+          {
+            succeeded: string[];
+            failed: { id: string; error: string }[];
+          }
+        </response>
+      </api-endpoint>
+    </dependencies>
+
+    <technology-stack>
+      <frontend>
+        <framework>Next.js 15 (App Router)</framework>
+        <language>TypeScript</language>
+        <ui-library>shadcn/ui + Tailwind CSS</ui-library>
+        <state-management>React Query (@tanstack/react-query)</state-management>
+        <icons>lucide-react</icons>
+        <notifications>react-hot-toast</notifications>
+      </frontend>
+    </technology-stack>
+  </technical-context>
+
+  <implementation-notes>
+    <architecture>
+      <pattern>Container/Presentational</pattern>
+      <state-management>
+        - Selection state managed at page level using Set&lt;string&gt;
+        - Bulk mutation managed by React Query
+        - Progress state in BulkConfirmDialog
+      </state-management>
+      <component-hierarchy>
+        ApprovalsPage
+          ├── ApprovalList (manages selection)
+          │   └── ApprovalCard (selectable variant)
+          ├── BulkActionBar (sticky bottom bar)
+          └── BulkConfirmDialog (confirmation + progress)
+      </component-hierarchy>
+    </architecture>
+
+    <ui-ux-decisions>
+      <decision>
+        Use Set&lt;string&gt; for selection state to ensure uniqueness and O(1) lookups
+      </decision>
+      <decision>
+        Floating action bar uses position: sticky at bottom for persistent visibility
+      </decision>
+      <decision>
+        Animate bar sliding up/down for visual feedback
+      </decision>
+      <decision>
+        Show linear progress during API call for long operations
+      </decision>
+      <decision>
+        Display partial failures in dialog with retry option
+      </decision>
+      <decision>
+        Clear selection on full success, keep failed items selected on partial failure
+      </decision>
+    </ui-ux-decisions>
+
+    <error-handling>
+      <scenario>Network failure</scenario>
+      <handling>Show error toast, keep selection intact for retry</handling>
+
+      <scenario>Partial success (some items failed)</scenario>
+      <handling>Show success count + failure details, keep failed items selected</handling>
+
+      <scenario>Invalid selection (no items selected)</scenario>
+      <handling>Disable bulk action buttons</handling>
+
+      <scenario>Concurrent modifications</scenario>
+      <handling>API returns error for stale items, user can refresh and retry</handling>
+    </error-handling>
+
+    <performance-considerations>
+      <consideration>
+        Use Set for O(1) selection lookups instead of array.includes()
+      </consideration>
+      <consideration>
+        Debounce bulk operations to prevent double-clicks
+      </consideration>
+      <consideration>
+        Invalidate approval list cache after successful bulk action
+      </consideration>
+      <consideration>
+        Show progress indicator for operations &gt; 5 items
+      </consideration>
+    </performance-considerations>
+  </implementation-notes>
+
+  <code-references>
+    <component>
+      <name>BulkActionBar</name>
+      <file>apps/web/src/components/approval/bulk-action-bar.tsx</file>
+      <purpose>Floating action bar with bulk approve/reject buttons and notes input</purpose>
+      <props>
+        - selectedCount: number
+        - onClearSelection: () => void
+        - onBulkApprove: (notes?: string) => void
+        - onBulkReject: (notes: string) => void
+      </props>
+    </component>
+
+    <component>
+      <name>BulkConfirmDialog</name>
+      <file>apps/web/src/components/approval/bulk-confirm-dialog.tsx</file>
+      <purpose>Confirmation dialog with progress and results</purpose>
+      <props>
+        - open: boolean
+        - action: 'approve' | 'reject'
+        - count: number
+        - notes?: string
+        - isLoading: boolean
+        - result?: { succeeded: string[]; failed: Array&lt;{id: string; error: string}&gt; }
+        - onConfirm: () => void
+        - onCancel: () => void
+        - onClose: () => void
+      </props>
+    </component>
+
+    <hook>
+      <name>useBulkApprovalMutation</name>
+      <file>apps/web/src/hooks/use-approvals.ts</file>
+      <purpose>React Query mutation for bulk approve/reject</purpose>
+      <returns>
+        - mutate: (params: BulkActionParams) => void
+        - isLoading: boolean
+        - error: Error | null
+        - data: BulkActionResponse | undefined
+      </returns>
+    </hook>
+  </code-references>
+
+  <testing-strategy>
+    <test-case>
+      <scenario>Select single item</scenario>
+      <steps>Click checkbox on one approval card</steps>
+      <expected>Checkbox checked, action bar appears with count "1 selected"</expected>
+    </test-case>
+
+    <test-case>
+      <scenario>Select multiple items</scenario>
+      <steps>Click checkboxes on multiple cards</steps>
+      <expected>All selected checkboxes checked, count updates correctly</expected>
+    </test-case>
+
+    <test-case>
+      <scenario>Select all items</scenario>
+      <steps>Click "Select All" button</steps>
+      <expected>All checkboxes checked, count shows total</expected>
+    </test-case>
+
+    <test-case>
+      <scenario>Bulk approve with notes</scenario>
+      <steps>
+        1. Select multiple items
+        2. Enter notes in action bar
+        3. Click "Approve All"
+        4. Confirm in dialog
+      </steps>
+      <expected>
+        - Confirmation dialog appears
+        - Progress bar shows during API call
+        - Success message shows count
+        - Selection cleared
+        - Approval list refreshed
+      </expected>
+    </test-case>
+
+    <test-case>
+      <scenario>Bulk reject without notes</scenario>
+      <steps>
+        1. Select items
+        2. Click "Reject All" without entering notes
+      </steps>
+      <expected>Notes field shows validation error (required for reject)</expected>
+    </test-case>
+
+    <test-case>
+      <scenario>Partial failure</scenario>
+      <steps>
+        1. Select items including one that will fail (e.g., already processed)
+        2. Execute bulk action
+      </steps>
+      <expected>
+        - Success count shown
+        - Failed items listed with errors
+        - Failed items remain selected
+        - Succeeded items deselected
+      </expected>
+    </test-case>
+
+    <test-case>
+      <scenario>Clear selection</scenario>
+      <steps>
+        1. Select multiple items
+        2. Click "Clear Selection"
+      </steps>
+      <expected>All checkboxes unchecked, action bar disappears</expected>
+    </test-case>
+  </testing-strategy>
+
+  <shadcn-components>
+    <component name="Button" installed="true" />
+    <component name="Badge" installed="true" />
+    <component name="Card" installed="true" />
+    <component name="Checkbox" installed="true" />
+    <component name="Textarea" installed="true" />
+    <component name="AlertDialog" installed="true" />
+    <component name="Progress" installed="true" />
+  </shadcn-components>
+
+  <related-stories>
+    <story id="04-2" title="Create Approval Queue API Endpoints">
+      Implemented bulk approval API endpoint
+    </story>
+    <story id="04-4" title="Create Approval Queue Dashboard">
+      Created main approval queue page
+    </story>
+    <story id="04-5" title="Create Approval Card Component">
+      Created approval card component to be extended with selection
+    </story>
+  </related-stories>
+</story-context>

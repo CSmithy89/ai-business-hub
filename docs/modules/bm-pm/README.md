@@ -206,5 +206,5 @@ See [/docs/research/taskosaur-analysis.md](/docs/research/taskosaur-analysis.md)
 ## Quick Links
 
 - [MASTER-PLAN](/docs/MASTER-PLAN.md) - Overall architecture vision
-- [MODULE-RESEARCH](/docs/MODULE-RESEARCH.md) - Module discovery and planning
+- [MODULE-RESEARCH](/docs/archive/foundation-phase/MODULE-RESEARCH.md) - Module discovery and planning
 - [Taskosaur Analysis](/docs/research/taskosaur-analysis.md) - Pattern research

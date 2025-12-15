@@ -392,7 +392,7 @@ pnpm type-check
 | [UX Design](docs/ux-design.md) | User experience and flows |
 | [Epic Index](docs/epics/EPIC-INDEX.md) | Development roadmap |
 | [Master Plan](docs/MASTER-PLAN.md) | Vision and strategy |
-| [Module Research](docs/MODULE-RESEARCH.md) | Module specifications |
+| [Module Research](docs/archive/foundation-phase/MODULE-RESEARCH.md) | Module specifications |
 | [Next Steps](docs/NEXT-STEPS.md) | Implementation roadmap |
 
 ---
@@ -430,7 +430,7 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before
 
 ### Quick Start
 
-1. Check sprint status in `docs/sprint-artifacts/sprint-status.yaml`
+1. Check sprint status in `docs/archive/foundation-phase/sprint-artifacts/sprint-status.yaml`
 2. Pick a story from the current epic
 3. Run story context to gather requirements
 4. Implement following architecture patterns

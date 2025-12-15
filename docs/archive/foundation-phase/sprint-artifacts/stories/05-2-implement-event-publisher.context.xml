@@ -1,0 +1,778 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>05-2-implement-event-publisher</story-id>
+    <story-title>Implement Event Publisher</story-title>
+    <epic-id>EPIC-05</epic-id>
+    <points>2</points>
+    <priority>P0</priority>
+    <generated-date>2025-12-03</generated-date>
+  </metadata>
+
+  <!-- OBJECTIVES AND SCOPE -->
+  <objectives>
+    <objective>
+      Create EventPublisherService that publishes events to Redis Streams
+    </objective>
+    <objective>
+      Replace EventBusService stub with real event publishing functionality
+    </objective>
+    <objective>
+      Track event metadata in PostgreSQL for audit and retry purposes
+    </objective>
+    <objective>
+      Implement XTRIM for 30-day event retention
+    </objective>
+    <objective>
+      Enable type-safe event publishing with EventTypes constants
+    </objective>
+  </objectives>
+
+  <!-- DEPENDENCIES FROM STORY 05-1 -->
+  <dependencies>
+    <completed-story id="05-1">
+      <title>Set Up Redis Streams Infrastructure</title>
+      <provides>
+        <item>EventsModule with Redis connection configured</item>
+        <item>RedisProvider for accessing Redis client</item>
+        <item>STREAMS constants (MAIN, DLQ, REPLAY)</item>
+        <item>CONSUMER_GROUP constant ('hyvve-platform')</item>
+        <item>Consumer groups created for streams</item>
+        <item>BullMQ queue registered for event-retry</item>
+      </provides>
+      <location>apps/api/src/events/</location>
+    </completed-story>
+
+    <existing-types>
+      <source>packages/shared/src/types/events.ts</source>
+      <provides>
+        <item>BaseEvent interface</item>
+        <item>EventTypes constants (event type strings)</item>
+        <item>EventType union type</item>
+        <item>ApprovalRequestedPayload interface</item>
+        <item>ApprovalDecisionPayload interface</item>
+        <item>ApprovalEscalatedPayload interface</item>
+        <item>ApprovalExpiredPayload interface</item>
+        <item>AgentRunStartedPayload interface</item>
+        <item>AgentRunCompletedPayload interface</item>
+        <item>AgentRunFailedPayload interface</item>
+        <item>AgentConfirmationPayload interface</item>
+        <item>EventPayloadMap type mapping</item>
+        <item>createEvent() factory function (not needed for this story)</item>
+      </provides>
+    </existing-types>
+
+    <database-schema>
+      <source>packages/db/prisma/schema.prisma</source>
+      <note>EventMetadata model and EventStatus enum need to be added</note>
+      <required-model>
+        <name>EventMetadata</name>
+        <fields>
+          <field name="id" type="String" default="cuid()" primary-key="true"/>
+          <field name="eventId" type="String" unique="true"/>
+          <field name="streamId" type="String" description="Redis stream message ID"/>
+          <field name="type" type="String"/>
+          <field name="source" type="String"/>
+          <field name="tenantId" type="String"/>
+          <field name="correlationId" type="String" optional="true"/>
+          <field name="status" type="EventStatus" default="PENDING"/>
+          <field name="attempts" type="Int" default="0"/>
+          <field name="lastError" type="String" optional="true"/>
+          <field name="processedAt" type="DateTime" optional="true"/>
+          <field name="createdAt" type="DateTime" default="now()"/>
+        </fields>
+        <indexes>
+          <index fields="[tenantId, createdAt]"/>
+          <index fields="[type, status]"/>
+          <index fields="[correlationId]"/>
+        </indexes>
+      </required-model>
+      <required-enum>
+        <name>EventStatus</name>
+        <values>PENDING, PROCESSING, COMPLETED, FAILED, DLQ</values>
+      </required-enum>
+    </database-schema>
+  </dependencies>
+
+  <!-- STUB TO REPLACE -->
+  <stub-replacement>
+    <stub-file>apps/api/src/approvals/stubs/event-bus.stub.ts</stub-file>
+    <stub-class>EventBusService</stub-class>
+    <stub-method signature="async emit(event: string, payload: any): Promise&lt;void&gt;">
+      <current-behavior>Logs event to console with stub notice</current-behavior>
+      <replacement>Real EventPublisherService with publish() method</replacement>
+    </stub-method>
+    <used-by>
+      <service>apps/api/src/approvals/services/approval-router.service.ts</service>
+      <service>apps/api/src/approvals/services/approval-escalation.service.ts</service>
+      <service>apps/api/src/approvals/services/approval.service.ts</service>
+    </used-by>
+    <migration-note>
+      Services currently inject EventBusService and call emit().
+      These need to be updated to inject EventPublisherService and call publish()
+      with typed event payloads and tenant context.
+    </migration-note>
+  </stub-replacement>
+
+  <!-- REDIS STREAMS CONFIGURATION -->
+  <redis-configuration>
+    <stream-name>hyvve:events:main</stream-name>
+    <constant>STREAMS.MAIN from constants/streams.constants.ts</constant>
+    <command>XADD</command>
+    <retention>
+      <policy>XTRIM with approximate (~) trimming</policy>
+      <max-length>2600000</max-length>
+      <duration>~30 days at 1 event/second</duration>
+      <implementation>MAXLEN ~ 2600000 during XADD</implementation>
+    </retention>
+    <stream-id-generation>Auto-generated by Redis using '*'</stream-id-generation>
+    <field-structure>
+      <field name="event" type="JSON string">Serialized BaseEvent object</field>
+    </field-structure>
+  </redis-configuration>
+
+  <!-- IMPLEMENTATION PLAN -->
+  <implementation-plan>
+    <step order="1">
+      <title>Add EventMetadata model to Prisma schema</title>
+      <file>packages/db/prisma/schema.prisma</file>
+      <action>
+        Add EventMetadata model and EventStatus enum at the end of the schema file,
+        after the existing models (after TwoFactorSecret model).
+      </action>
+      <code-snippet><![CDATA[
+// ============================================
+// EVENT BUS METADATA (EPIC-05)
+// ============================================
+
+model EventMetadata {
+  id            String      @id @default(cuid())
+  eventId       String      @unique
+  streamId      String      // Redis stream message ID
+  type          String
+  source        String
+  tenantId      String
+  correlationId String?
+  status        EventStatus @default(PENDING)
+  attempts      Int         @default(0)
+  lastError     String?
+  processedAt   DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([type, status])
+  @@index([correlationId])
+  @@map("event_metadata")
+}
+
+enum EventStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DLQ
+}
+]]></code-snippet>
+      <next-step>Run: npx prisma migrate dev --name add_event_metadata</next-step>
+    </step>
+
+    <step order="2">
+      <title>Create EventPublisherService</title>
+      <file>apps/api/src/events/event-publisher.service.ts</file>
+      <action>Create new service file with publish() and publishBatch() methods</action>
+      <dependencies>
+        <import>@nestjs/common (Injectable, Logger)</import>
+        <import>RedisProvider from ./redis.provider</import>
+        <import>PrismaService from common/services/prisma.service</import>
+        <import>@paralleldrive/cuid2 (createId)</import>
+        <import>@hyvve/shared (BaseEvent, EventType)</import>
+        <import>./constants/streams.constants (STREAMS, RETENTION)</import>
+      </dependencies>
+      <key-methods>
+        <method name="publish">
+          <signature><![CDATA[
+async publish<T extends Record<string, unknown>>(
+  type: EventType,
+  data: T,
+  context: {
+    tenantId: string;
+    userId: string;
+    correlationId?: string;
+    source?: string;
+  }
+): Promise<string>
+          ]]></signature>
+          <steps>
+            <step>Generate event ID using createId()</step>
+            <step>Create correlationId if not provided</step>
+            <step>Add timestamp (ISO 8601)</step>
+            <step>Construct BaseEvent object</step>
+            <step>Serialize event to JSON</step>
+            <step>XADD to STREAMS.MAIN with MAXLEN for retention</step>
+            <step>Store streamId returned by Redis</step>
+            <step>Create EventMetadata record with status PENDING</step>
+            <step>Log publish operation with structured data</step>
+            <step>Return event ID</step>
+          </steps>
+        </method>
+        <method name="publishBatch">
+          <signature><![CDATA[
+async publishBatch(events: Array<{
+  type: EventType;
+  data: Record<string, unknown>;
+  context: { tenantId: string; userId: string; correlationId?: string };
+}>): Promise<string[]>
+          ]]></signature>
+          <steps>
+            <step>Use Redis pipeline for atomic batch operations</step>
+            <step>Call publish() for each event in the array</step>
+            <step>Return array of event IDs</step>
+          </steps>
+        </method>
+        <method name="calculateRetentionLimit" private="true">
+          <purpose>Calculate MAXLEN value for XTRIM</purpose>
+          <calculation>
+            RETENTION.MAIN_STREAM_DAYS * 24 * 60 * 60 (seconds per day) = ~2.6M events
+          </calculation>
+        </method>
+      </key-methods>
+      <error-handling>
+        <case scenario="Redis connection failure">
+          <action>Log error with full context</action>
+          <action>Throw exception to caller</action>
+          <note>Let caller decide retry logic</note>
+        </case>
+        <case scenario="Database write failure">
+          <action>Log error</action>
+          <action>Event still in Redis stream (recoverable)</action>
+          <action>Throw exception</action>
+        </case>
+        <case scenario="Invalid event type">
+          <action>Throw validation error before Redis write</action>
+        </case>
+      </error-handling>
+    </step>
+
+    <step order="3">
+      <title>Create unit tests for EventPublisherService</title>
+      <file>apps/api/src/events/event-publisher.service.spec.ts</file>
+      <test-cases>
+        <test>Should publish event to Redis stream with correct fields</test>
+        <test>Should auto-generate event ID if not provided</test>
+        <test>Should auto-generate timestamp in ISO 8601 format</test>
+        <test>Should auto-generate correlationId if not provided</test>
+        <test>Should create EventMetadata record with PENDING status</test>
+        <test>Should return event ID to caller</test>
+        <test>Should log publish operation with structured data (eventId, type, correlationId, tenantId)</test>
+        <test>Should include MAXLEN for retention during XADD</test>
+        <test>Should use source from context or default to 'platform'</test>
+        <test>Should publish batch of events atomically</test>
+        <test>Should handle Redis connection errors gracefully</test>
+        <test>Should handle database write errors gracefully</test>
+      </test-cases>
+      <mocking>
+        <mock>RedisProvider.getClient() - mock Redis client</mock>
+        <mock>PrismaService.eventMetadata.create() - mock database</mock>
+        <mock>Logger methods for testing log output</mock>
+      </mocking>
+    </step>
+
+    <step order="4">
+      <title>Update EventsModule to provide EventPublisherService</title>
+      <file>apps/api/src/events/events.module.ts</file>
+      <changes>
+        <change>Import EventPublisherService</change>
+        <change>Add EventPublisherService to providers array</change>
+        <change>Add EventPublisherService to exports array</change>
+        <change>Ensure PrismaService is imported (from common module)</change>
+      </changes>
+      <code-snippet><![CDATA[
+import { EventPublisherService } from './event-publisher.service';
+import { PrismaService } from '../common/services/prisma.service';
+
+@Module({
+  imports: [
+    BullModule.registerQueue({ name: 'event-retry' }),
+  ],
+  controllers: [EventsController],
+  providers: [
+    RedisProvider,
+    EventPublisherService,  // Add this
+    PrismaService,           // Add this if not already imported
+  ],
+  exports: [
+    RedisProvider,
+    EventPublisherService,   // Add this
+  ],
+})
+export class EventsModule implements OnModuleInit {
+  // ... existing code
+}
+]]></code-snippet>
+    </step>
+
+    <step order="5">
+      <title>Update events module exports</title>
+      <file>apps/api/src/events/index.ts</file>
+      <changes>
+        <change>Add export for EventPublisherService</change>
+      </changes>
+      <code-snippet><![CDATA[
+export { EventsModule } from './events.module';
+export { RedisProvider } from './redis.provider';
+export { EventsController } from './events.controller';
+export { EventPublisherService } from './event-publisher.service';
+export * from './constants/streams.constants';
+]]></code-snippet>
+    </step>
+
+    <step order="6">
+      <title>Update ApprovalsModule to import EventsModule</title>
+      <file>apps/api/src/approvals/approvals.module.ts</file>
+      <changes>
+        <change>Import EventsModule in imports array</change>
+        <change>Remove EventBusService from providers (it's a stub)</change>
+      </changes>
+      <code-snippet><![CDATA[
+import { EventsModule } from '../events';
+
+@Module({
+  imports: [
+    EventsModule,  // Add this
+    // ... other imports
+  ],
+  providers: [
+    // Remove EventBusService stub from here
+    ApprovalService,
+    ApprovalRouterService,
+    ApprovalEscalationService,
+    // ... other services
+  ],
+  // ... rest of module
+})
+export class ApprovalsModule {}
+]]></code-snippet>
+    </step>
+
+    <step order="7">
+      <title>Update ApprovalRouterService to use EventPublisherService</title>
+      <file>apps/api/src/approvals/services/approval-router.service.ts</file>
+      <changes>
+        <change>Replace EventBusService import with EventPublisherService</change>
+        <change>Update constructor to inject EventPublisherService</change>
+        <change>Replace eventBus.emit() calls with eventPublisher.publish()</change>
+        <change>Pass tenant context (workspaceId, requestedBy) to publish()</change>
+        <change>Use typed EventTypes and payload interfaces</change>
+      </changes>
+      <example-before><![CDATA[
+import { EventBusService } from '../stubs/event-bus.stub';
+
+constructor(
+  private readonly eventBus: EventBusService,
+) {}
+
+// Later in code:
+await this.eventBus.emit('approval.requested', { approvalId: approval.id });
+]]></example-before>
+      <example-after><![CDATA[
+import { EventPublisherService } from '../../events';
+import { EventTypes, ApprovalRequestedPayload } from '@hyvve/shared';
+
+constructor(
+  private readonly eventPublisher: EventPublisherService,
+) {}
+
+// Later in code:
+const payload: ApprovalRequestedPayload = {
+  approvalId: approval.id,
+  type: approval.type,
+  title: approval.title,
+  confidenceScore: approval.confidenceScore,
+  recommendation: approval.aiRecommendation as 'approve' | 'review' | 'full_review',
+  assignedToId: approval.assignedToId,
+  dueAt: approval.dueAt.toISOString(),
+  sourceModule: approval.sourceModule,
+  sourceId: approval.sourceId,
+};
+
+await this.eventPublisher.publish(
+  EventTypes.APPROVAL_REQUESTED,
+  payload,
+  {
+    tenantId: workspaceId,
+    userId: requestedBy,
+  }
+);
+]]></example-after>
+    </step>
+
+    <step order="8">
+      <title>Update ApprovalEscalationService to use EventPublisherService</title>
+      <file>apps/api/src/approvals/services/approval-escalation.service.ts</file>
+      <changes>
+        <change>Replace EventBusService with EventPublisherService</change>
+        <change>Update escalation event publishing to use typed events</change>
+        <change>Use EventTypes.APPROVAL_ESCALATED</change>
+        <change>Pass tenant context</change>
+      </changes>
+    </step>
+
+    <step order="9">
+      <title>Update ApprovalService to use EventPublisherService</title>
+      <file>apps/api/src/approvals/services/approval.service.ts</file>
+      <changes>
+        <change>Replace EventBusService with EventPublisherService</change>
+        <change>Update approval decision events (approved/rejected)</change>
+        <change>Use EventTypes.APPROVAL_APPROVED and EventTypes.APPROVAL_REJECTED</change>
+        <change>Pass tenant context from request</change>
+      </changes>
+    </step>
+
+    <step order="10">
+      <title>Create integration tests</title>
+      <file>apps/api/test/events/event-publisher.e2e-spec.ts</file>
+      <test-cases>
+        <test>Should publish event and verify it's in Redis stream</test>
+        <test>Should create EventMetadata record in database</test>
+        <test>Should enforce approximate retention with XTRIM</test>
+        <test>Should publish from approval service successfully</test>
+      </test-cases>
+      <setup>
+        <requirement>Real Redis connection (test container or local)</requirement>
+        <requirement>Test database with EventMetadata table</requirement>
+      </setup>
+    </step>
+
+    <step order="11">
+      <title>Delete EventBusService stub</title>
+      <file>apps/api/src/approvals/stubs/event-bus.stub.ts</file>
+      <action>Delete this file after confirming all services migrated</action>
+      <verification>
+        <check>Search codebase for "EventBusService" imports</check>
+        <check>Ensure no remaining references to stub</check>
+        <check>Run tests to verify nothing breaks</check>
+      </verification>
+    </step>
+  </implementation-plan>
+
+  <!-- CODE PATTERNS FROM CODEBASE -->
+  <codebase-patterns>
+    <pattern name="Service Structure">
+      <example><![CDATA[
+@Injectable()
+export class ServiceName {
+  private readonly logger = new Logger(ServiceName.name);
+
+  constructor(
+    private readonly dependency1: Dependency1,
+    private readonly dependency2: Dependency2,
+  ) {}
+
+  async methodName(): Promise<ReturnType> {
+    // Implementation
+  }
+}
+]]></example>
+    </pattern>
+
+    <pattern name="Structured Logging">
+      <example><![CDATA[
+this.logger.log({
+  message: 'Event published',
+  eventId: event.id,
+  type: event.type,
+  correlationId: event.correlationId,
+  tenantId: event.tenantId,
+});
+]]></example>
+    </pattern>
+
+    <pattern name="Error Handling">
+      <example><![CDATA[
+try {
+  await this.redis.xadd(...);
+} catch (error) {
+  this.logger.error({
+    message: 'Failed to publish event',
+    eventType: type,
+    error: error.message,
+    tenantId: context.tenantId,
+  });
+  throw error; // Let caller handle retry
+}
+]]></example>
+    </pattern>
+
+    <pattern name="Prisma Service Usage">
+      <example><![CDATA[
+await this.prisma.eventMetadata.create({
+  data: {
+    eventId: event.id,
+    streamId,
+    type: event.type,
+    source: event.source,
+    tenantId: event.tenantId,
+    correlationId: event.correlationId,
+    status: 'PENDING',
+  },
+});
+]]></example>
+    </pattern>
+  </codebase-patterns>
+
+  <!-- REDIS XADD EXAMPLE -->
+  <redis-commands>
+    <command name="XADD with retention">
+      <syntax><![CDATA[
+const streamId = await redis.xadd(
+  STREAMS.MAIN,              // Stream name: 'hyvve:events:main'
+  'MAXLEN', '~', '2600000',  // Approximate retention: ~30 days
+  '*',                        // Auto-generate stream ID (timestamp-sequence)
+  'event', JSON.stringify(event)  // Field: 'event' with serialized JSON
+);
+]]></syntax>
+      <returns>Redis stream ID in format: "1701619200000-0"</returns>
+      <notes>
+        <note>MAXLEN ~ (approximate) is more efficient than exact trimming</note>
+        <note>Stream ID '*' generates timestamp-based ID automatically</note>
+        <note>Field name 'event' contains the serialized BaseEvent object</note>
+      </notes>
+    </command>
+  </redis-commands>
+
+  <!-- ACCEPTANCE CRITERIA MAPPING -->
+  <acceptance-criteria>
+    <criterion id="AC1" status="must-have">
+      <description>EventPublisherService created with publish() method that adds events to Redis Stream</description>
+      <verification>Unit test: publish() calls redis.xadd() with correct parameters</verification>
+      <implementation>Step 2: Create EventPublisherService</implementation>
+    </criterion>
+
+    <criterion id="AC2" status="must-have">
+      <description>Auto-generates event ID (CUID) if not provided</description>
+      <verification>Unit test: event.id is generated using createId()</verification>
+      <implementation>Step 2: publish() method generates ID</implementation>
+    </criterion>
+
+    <criterion id="AC3" status="must-have">
+      <description>Auto-generates timestamp and correlationId if not provided</description>
+      <verification>Unit test: timestamp is ISO 8601, correlationId generated if missing</verification>
+      <implementation>Step 2: publish() method adds timestamp and correlationId</implementation>
+    </criterion>
+
+    <criterion id="AC4" status="must-have">
+      <description>Includes tenant context (tenantId, userId) in event</description>
+      <verification>Unit test: BaseEvent includes tenantId and userId from context</verification>
+      <implementation>Step 2: publish() method uses context parameter</implementation>
+    </criterion>
+
+    <criterion id="AC5" status="must-have">
+      <description>Creates EventMetadata record in database for tracking</description>
+      <verification>Integration test: EventMetadata record exists after publish()</verification>
+      <implementation>Step 1: Add schema, Step 2: Create record in publish()</implementation>
+    </criterion>
+
+    <criterion id="AC6" status="must-have">
+      <description>Returns event ID to caller</description>
+      <verification>Unit test: publish() returns string event ID</verification>
+      <implementation>Step 2: publish() returns event.id</implementation>
+    </criterion>
+
+    <criterion id="AC7" status="must-have">
+      <description>Logs publish operations with structured data (eventId, type, correlationId, tenantId)</description>
+      <verification>Unit test: Logger.log called with structured object</verification>
+      <implementation>Step 2: Add structured logging to publish()</implementation>
+    </criterion>
+
+    <criterion id="AC8" status="must-have">
+      <description>Implements XTRIM for 30-day retention during publish</description>
+      <verification>Integration test: XADD includes MAXLEN parameter</verification>
+      <implementation>Step 2: Use MAXLEN ~ 2600000 in redis.xadd()</implementation>
+    </criterion>
+
+    <criterion id="AC9" status="must-have">
+      <description>publishBatch() method for atomic batch publishing</description>
+      <verification>Unit test: publishBatch() publishes multiple events</verification>
+      <implementation>Step 2: Implement publishBatch() method</implementation>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- TESTING REQUIREMENTS -->
+  <testing-requirements>
+    <unit-tests>
+      <framework>Jest</framework>
+      <file>apps/api/src/events/event-publisher.service.spec.ts</file>
+      <coverage-target>90%</coverage-target>
+      <test-suite>
+        <test>publish() adds event to Redis stream with correct fields</test>
+        <test>Auto-generates event ID, timestamp, correlationId</test>
+        <test>Creates EventMetadata record with PENDING status</test>
+        <test>Returns event ID to caller</test>
+        <test>Logs publish operation with structured data</test>
+        <test>publishBatch() publishes multiple events atomically</test>
+        <test>Handles Redis connection failures</test>
+        <test>Handles database write failures</test>
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <framework>Jest E2E</framework>
+      <file>apps/api/test/events/event-publisher.e2e-spec.ts</file>
+      <test-suite>
+        <test>Published events readable from Redis stream</test>
+        <test>XTRIM enforces approximate retention</test>
+        <test>Approval services can publish events successfully</test>
+        <test>EventMetadata records created in database</test>
+      </test-suite>
+    </integration-tests>
+  </testing-requirements>
+
+  <!-- FILES TO CREATE -->
+  <files-to-create>
+    <file>
+      <path>apps/api/src/events/event-publisher.service.ts</path>
+      <type>service</type>
+      <description>Main publisher service implementation</description>
+    </file>
+    <file>
+      <path>apps/api/src/events/event-publisher.service.spec.ts</path>
+      <type>test</type>
+      <description>Unit tests for EventPublisherService</description>
+    </file>
+    <file>
+      <path>apps/api/test/events/event-publisher.e2e-spec.ts</path>
+      <type>test</type>
+      <description>Integration tests for event publishing</description>
+    </file>
+  </files-to-create>
+
+  <!-- FILES TO MODIFY -->
+  <files-to-modify>
+    <file>
+      <path>packages/db/prisma/schema.prisma</path>
+      <changes>Add EventMetadata model and EventStatus enum</changes>
+      <step-reference>1</step-reference>
+    </file>
+    <file>
+      <path>apps/api/src/events/events.module.ts</path>
+      <changes>Add EventPublisherService to providers and exports</changes>
+      <step-reference>4</step-reference>
+    </file>
+    <file>
+      <path>apps/api/src/events/index.ts</path>
+      <changes>Export EventPublisherService</changes>
+      <step-reference>5</step-reference>
+    </file>
+    <file>
+      <path>apps/api/src/approvals/approvals.module.ts</path>
+      <changes>Import EventsModule, remove EventBusService stub</changes>
+      <step-reference>6</step-reference>
+    </file>
+    <file>
+      <path>apps/api/src/approvals/services/approval-router.service.ts</path>
+      <changes>Replace EventBusService with EventPublisherService</changes>
+      <step-reference>7</step-reference>
+    </file>
+    <file>
+      <path>apps/api/src/approvals/services/approval-escalation.service.ts</path>
+      <changes>Replace EventBusService with EventPublisherService</changes>
+      <step-reference>8</step-reference>
+    </file>
+    <file>
+      <path>apps/api/src/approvals/services/approval.service.ts</path>
+      <changes>Replace EventBusService with EventPublisherService</changes>
+      <step-reference>9</step-reference>
+    </file>
+  </files-to-modify>
+
+  <!-- FILES TO DELETE -->
+  <files-to-delete>
+    <file>
+      <path>apps/api/src/approvals/stubs/event-bus.stub.ts</path>
+      <reason>Replaced by real EventPublisherService</reason>
+      <step-reference>11</step-reference>
+    </file>
+  </files-to-delete>
+
+  <!-- COMMON PITFALLS -->
+  <common-pitfalls>
+    <pitfall>
+      <issue>Forgetting to run Prisma migration after adding EventMetadata model</issue>
+      <solution>Always run: npx prisma migrate dev --name add_event_metadata</solution>
+    </pitfall>
+    <pitfall>
+      <issue>Not passing tenant context when publishing events</issue>
+      <solution>Always extract workspaceId and userId from request/context</solution>
+    </pitfall>
+    <pitfall>
+      <issue>Using exact MAXLEN instead of approximate (~)</issue>
+      <solution>Use MAXLEN ~ for better performance (approximate trimming)</solution>
+    </pitfall>
+    <pitfall>
+      <issue>Not handling correlationId generation when missing</issue>
+      <solution>Generate correlationId in publish() if not provided in context</solution>
+    </pitfall>
+    <pitfall>
+      <issue>Swallowing Redis errors instead of throwing</issue>
+      <solution>Log errors but re-throw to let caller handle retries</solution>
+    </pitfall>
+    <pitfall>
+      <issue>Not logging structured data for observability</issue>
+      <solution>Always log with object containing eventId, type, correlationId, tenantId</solution>
+    </pitfall>
+  </common-pitfalls>
+
+  <!-- REFERENCE DOCUMENTATION -->
+  <references>
+    <reference>
+      <title>Story Definition</title>
+      <path>docs/archive/foundation-phase/sprint-artifacts/stories/05-2-implement-event-publisher.md</path>
+    </reference>
+    <reference>
+      <title>Epic Technical Specification</title>
+      <path>docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-05.md</path>
+      <section>Story 05.2: Implement Event Publisher</section>
+    </reference>
+    <reference>
+      <title>Event Types Definition</title>
+      <path>packages/shared/src/types/events.ts</path>
+    </reference>
+    <reference>
+      <title>Story 05-1 Infrastructure</title>
+      <path>apps/api/src/events/</path>
+    </reference>
+    <reference>
+      <title>Stub to Replace</title>
+      <path>apps/api/src/approvals/stubs/event-bus.stub.ts</path>
+    </reference>
+    <reference>
+      <title>Architecture Document</title>
+      <path>docs/architecture.md</path>
+      <section>Cross-Module Communication</section>
+    </reference>
+    <reference>
+      <title>Redis Streams Documentation</title>
+      <url>https://redis.io/docs/data-types/streams/</url>
+    </reference>
+    <reference>
+      <title>CUID2 Library</title>
+      <url>https://github.com/paralleldrive/cuid2</url>
+      <note>Used for generating collision-resistant event IDs</note>
+    </reference>
+  </references>
+
+  <!-- NEXT STORY PREVIEW -->
+  <next-story>
+    <id>05-3-implement-event-subscriber</id>
+    <title>Implement Event Subscriber</title>
+    <dependency>This story (05-2) must be completed and tested first</dependency>
+    <preview>
+      Story 05-3 will implement the consumer side:
+      - EventConsumerService to read from Redis Streams
+      - @EventSubscriber decorator for registering handlers
+      - Pattern matching for wildcard event subscriptions
+      - XREADGROUP with consumer group for distributed processing
+      - XACK for acknowledging processed events
+    </preview>
+  </next-story>
+</story-context>

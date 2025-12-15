@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story id="07-6" title="Create Command Palette" epic="07-ui-shell">
+    <metadata>
+      <points>3</points>
+      <priority>P1</priority>
+      <status>in-progress</status>
+      <created>2025-12-04</created>
+    </metadata>
+
+    <user-story>
+      As a power user, I want a command palette (Cmd+K) so that I can navigate quickly
+    </user-story>
+
+    <technical-context>
+      <architecture>
+        <component name="CommandPalette">
+          <purpose>Searchable command palette for quick navigation and actions</purpose>
+          <location>/apps/web/src/components/command/CommandPalette.tsx</location>
+          <library>cmdk v1.1.1</library>
+          <state-management>Zustand useUIStore</state-management>
+        </component>
+      </architecture>
+
+      <dependencies>
+        <internal>
+          <dependency>
+            <name>useUIStore</name>
+            <location>/apps/web/src/stores/ui.ts</location>
+            <purpose>Command palette open state management</purpose>
+          </dependency>
+          <dependency>
+            <name>useTheme</name>
+            <library>next-themes</library>
+            <purpose>Toggle theme action</purpose>
+          </dependency>
+          <dependency>
+            <name>useRouter</name>
+            <library>next/navigation</library>
+            <purpose>Navigate to pages</purpose>
+          </dependency>
+        </internal>
+        <external>
+          <dependency>
+            <name>cmdk</name>
+            <version>^1.1.1</version>
+            <purpose>Command palette UI primitives</purpose>
+          </dependency>
+        </external>
+      </dependencies>
+
+      <design-system>
+        <wireframe>
+          <file>/docs/design/wireframes/Finished wireframes and html files/sh-05_command_palette_(cmd+k)/code.html</file>
+          <notes>
+            - Modal dialog with backdrop blur
+            - Search input at top with icon
+            - Categorized results: Recent, Navigation, Actions
+            - Keyboard navigation indicators at bottom
+            - 580px width, max-height 480px
+          </notes>
+        </wireframe>
+        <color-tokens>
+          <light>
+            <token name="background">rgb(var(--color-bg-surface))</token>
+            <token name="text-primary">rgb(var(--color-text-primary))</token>
+            <token name="text-secondary">rgb(var(--color-text-secondary))</token>
+            <token name="border">rgb(var(--color-border))</token>
+          </light>
+          <dark>
+            <token name="background">rgb(var(--color-bg-tertiary))</token>
+            <token name="text-primary">rgb(var(--color-text-primary))</token>
+            <token name="text-secondary">rgb(var(--color-text-secondary))</token>
+            <token name="border">rgb(var(--color-border))</token>
+          </dark>
+        </color-tokens>
+        <icons>lucide-react</icons>
+      </design-system>
+    </technical-context>
+
+    <implementation-details>
+      <features>
+        <feature name="Navigation Items">
+          <item label="Dashboard" icon="LayoutDashboard" href="/dashboard" />
+          <item label="Approvals" icon="CheckCircle" href="/dashboard/approvals" />
+          <item label="AI Team" icon="Bot" href="/dashboard/agents" />
+          <item label="Settings" icon="Settings" href="/dashboard/settings" />
+          <item label="Profile" icon="User" href="/dashboard/profile" />
+        </feature>
+
+        <feature name="Quick Actions">
+          <action label="New Contact" icon="UserPlus" />
+          <action label="New Task" icon="Plus" />
+          <action label="Toggle Theme" icon="Moon/Sun" handler="setTheme" />
+          <action label="Toggle Sidebar" icon="PanelLeftClose" handler="toggleSidebar" />
+          <action label="Toggle Chat" icon="MessageSquare" handler="toggleChatPanel" />
+        </feature>
+
+        <feature name="Keyboard Shortcuts">
+          <shortcut key="Cmd+K" platform="mac" action="open" />
+          <shortcut key="Ctrl+K" platform="windows/linux" action="open" />
+          <shortcut key="ArrowUp" action="navigate-up" />
+          <shortcut key="ArrowDown" action="navigate-down" />
+          <shortcut key="Enter" action="select" />
+          <shortcut key="Escape" action="close" />
+        </feature>
+
+        <feature name="Search">
+          <behavior>Filter all items by search query</behavior>
+          <matching>Case-insensitive substring matching</matching>
+          <categories>All categories searchable</categories>
+        </feature>
+
+        <feature name="Recent Items">
+          <behavior>Track recently accessed items</behavior>
+          <storage>Component state (can enhance with localStorage)</storage>
+          <limit>5 most recent items</limit>
+        </feature>
+      </features>
+
+      <state-management>
+        <global-state store="useUIStore">
+          <state name="isCommandPaletteOpen" type="boolean" />
+          <action name="openCommandPalette" />
+          <action name="closeCommandPalette" />
+          <action name="toggleCommandPalette" />
+          <action name="toggleSidebar" />
+          <action name="toggleChatPanel" />
+        </global-state>
+
+        <local-state>
+          <state name="search" type="string" default="" />
+          <state name="recentItems" type="array" default="[]" />
+        </local-state>
+      </state-management>
+
+      <component-structure>
+        <component name="CommandPalette">
+          <child name="Command" library="cmdk" />
+          <child name="CommandDialog" library="cmdk" />
+          <child name="CommandInput" library="cmdk" />
+          <child name="CommandList" library="cmdk" />
+          <child name="CommandEmpty" library="cmdk" />
+          <child name="CommandGroup" library="cmdk" />
+          <child name="CommandItem" library="cmdk" />
+          <child name="CommandSeparator" library="cmdk" />
+        </component>
+      </component-structure>
+    </implementation-details>
+
+    <acceptance-criteria>
+      <criterion id="1" status="complete">Create CommandPalette component</criterion>
+      <criterion id="2" status="complete">Open with Cmd/Ctrl+K</criterion>
+      <criterion id="3" status="complete">Search functionality for navigation and actions</criterion>
+      <criterion id="4" status="complete">Keyboard navigation (up/down, enter)</criterion>
+      <criterion id="5" status="complete">Recent items display</criterion>
+      <criterion id="6" status="complete">Categorized results</criterion>
+      <criterion id="7" status="complete">Close on selection or Escape</criterion>
+    </acceptance-criteria>
+
+    <related-files>
+      <file path="/apps/web/src/components/command/CommandPalette.tsx" type="created" />
+      <file path="/apps/web/src/components/command/index.ts" type="created" />
+      <file path="/apps/web/src/app/(dashboard)/layout.tsx" type="modified" />
+      <file path="/apps/web/src/stores/ui.ts" type="reference" />
+      <file path="/apps/web/package.json" type="modified" />
+    </related-files>
+
+    <testing>
+      <test type="manual">Open command palette with Cmd/Ctrl+K</test>
+      <test type="manual">Search and filter results</test>
+      <test type="manual">Navigate with keyboard arrows</test>
+      <test type="manual">Select items with Enter</test>
+      <test type="manual">Close with Escape</test>
+      <test type="manual">Verify navigation routing</test>
+      <test type="manual">Verify quick actions execution</test>
+      <test type="manual">Test in light and dark modes</test>
+      <test type="automated">TypeScript type check</test>
+      <test type="automated">ESLint validation</test>
+    </testing>
+
+    <related-documentation>
+      <doc type="wireframe">/docs/design/wireframes/Finished wireframes and html files/sh-05_command_palette_(cmd+k)/code.html</doc>
+      <doc type="tech-spec">/docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-07.md</doc>
+      <doc type="architecture">/docs/architecture.md</doc>
+      <doc type="prd">/docs/prd.md</doc>
+    </related-documentation>
+  </story>
+</story-context>

@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-Taskosaur is a full-stack project management application with AI assistant capabilities. The codebase demonstrates production-ready patterns directly applicable to **AI Business Hub** modules defined in MODULE-RESEARCH.md.
+Taskosaur is a full-stack project management application with AI assistant capabilities. The codebase demonstrates production-ready patterns directly applicable to **AI Business Hub** modules defined in docs/archive/foundation-phase/MODULE-RESEARCH.md.
 
 ### Key Patterns for AI Business Hub:
 - **BYOAI model switching** → Core Platform requirement
@@ -23,7 +23,7 @@ Taskosaur is a full-stack project management application with AI assistant capab
 **Taskosaur:** Next.js 16 + React 19 + NestJS + Prisma + Socket.io + Radix UI
 **AI Business Hub Target:** Next.js + NestJS + Prisma + PostgreSQL + Radix UI (same stack!)
 
-### Alignment with MODULE-RESEARCH.md Goals:
+### Alignment with docs/archive/foundation-phase/MODULE-RESEARCH.md Goals:
 | AI Business Hub Requirement | Taskosaur Pattern | Adoptability |
 |----------------------------|-------------------|--------------|
 | Conversational workflow creation | Chat panel + intent parsing | ✅ Adapt |
@@ -1983,7 +1983,7 @@ Based on the patterns analyzed, the following AI-specific enhancements are recom
 - [BM-PM Module Architecture](/docs/modules/bm-pm/architecture.md) - Full module specification
 - [Plane Analysis](/docs/modules/bm-pm/research/plane-analysis.md) - Additional patterns from Plane
 - [MASTER-PLAN](/docs/MASTER-PLAN.md) - Overall architecture vision
-- [MODULE-RESEARCH](/docs/MODULE-RESEARCH.md) - Module discovery and planning
+- [MODULE-RESEARCH](/docs/archive/foundation-phase/MODULE-RESEARCH.md) - Module discovery and planning
 
 ### Next Implementation Steps
 

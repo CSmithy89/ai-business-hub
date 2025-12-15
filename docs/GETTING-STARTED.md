@@ -442,7 +442,7 @@ Once your development environment is set up:
 
 1. **Explore the codebase** - Start with `apps/web/src/app/page.tsx`
 2. **Read the architecture** - See [architecture.md](architecture.md)
-3. **Check current sprint** - See `docs/sprint-artifacts/sprint-status.yaml`
+3. **Check current sprint** - See `docs/archive/foundation-phase/sprint-artifacts/sprint-status.yaml`
 4. **Review runbooks** - See `docs/runbooks/` for operational procedures
 5. **Contribute** - Follow [CONTRIBUTING.md](../CONTRIBUTING.md)
 

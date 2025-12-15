@@ -1947,5 +1947,5 @@ Auth:
 ## Related Documents
 
 - [BM-CRM Module Specification](../README.md)
-- [MODULE-RESEARCH.md](/docs/MODULE-RESEARCH.md) - Shared data architecture requirements
+- [docs/archive/foundation-phase/MODULE-RESEARCH.md](/docs/archive/foundation-phase/MODULE-RESEARCH.md) - Shared data architecture requirements
 - [Plane Analysis](/docs/modules/bm-pm/research/plane-analysis.md) - Complementary research

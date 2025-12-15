@@ -128,7 +128,7 @@ When a tool fails (e.g., `FileNotFound`), the agent should observe the error and
 Never pass API keys in plain text.
 
 *   **SDK Pattern:** Encrypted storage or Env Vars.
-*   **AgentOS Plan:** The **Secrets Manager** (planned in `detailed-implementation-plan.md`) must encrypt keys at rest in the DB using a master key (e.g., `OS_SECURITY_KEY` or a dedicated `ENCRYPTION_KEY`).
+*   **AgentOS Plan:** The **Secrets Manager** (planned in `docs/archive/foundation-phase/detailed-implementation-plan.md`) must encrypt keys at rest in the DB using a master key (e.g., `OS_SECURITY_KEY` or a dedicated `ENCRYPTION_KEY`).
 
 ---
 

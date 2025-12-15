@@ -3,7 +3,7 @@
 **Purpose:** Comprehensive research findings to inform the BM-PM (Project Management) Module PRD
 **Status:** Complete
 **Created:** 2025-11-30
-**Sources:** Plane Analysis, Taskosaur Analysis, Agno Analysis, MODULE-RESEARCH.md, MASTER-PLAN.md
+**Sources:** Plane Analysis, Taskosaur Analysis, Agno Analysis, docs/archive/foundation-phase/MODULE-RESEARCH.md, MASTER-PLAN.md
 
 ---
 

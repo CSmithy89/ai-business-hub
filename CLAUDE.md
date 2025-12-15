@@ -225,7 +225,7 @@ When starting work, reference these files:
 | `docs/sprint-artifacts/sprint-status.yaml` | Current sprint status |
 | `docs/sprint-artifacts/tech-spec-epic-00.md` | Current epic tech spec |
 | `docs/MASTER-PLAN.md` | Overall vision and strategy |
-| `docs/MODULE-RESEARCH.md` | Module specifications |
+| `docs/archive/foundation-phase/MODULE-RESEARCH.md` | Module specifications |
 | `docs/bmm-workflow-status.yaml` | BMM workflow progress |
 
 ---

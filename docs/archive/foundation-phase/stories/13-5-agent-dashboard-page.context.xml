@@ -1,0 +1,213 @@
+<context>
+  <story_file path="/home/chris/projects/work/Ai Bussiness Hub/docs/stories/13-5-agent-dashboard-page.md">
+    <summary>
+      Story 13.5: Agent Dashboard Page
+      Epic: 13 - AI Agent Management
+      Points: 4
+      Priority: P2 Medium
+      Dependencies: Story 13.1 (Agent Card Components), Story 13.2 (Agent Detail Modal)
+
+      User Story:
+      As a user, I want to view all AI agents in a dashboard with filtering and search capabilities,
+      so that I can quickly find and manage the agents working on my behalf.
+    </summary>
+
+    <acceptance_criteria>
+      - Display all 16+ agents in responsive grid (4/2/1 columns for desktop/tablet/mobile)
+      - Group agents by team with section headers
+      - Header includes status summary component (online/busy/offline counts)
+      - Search and filter controls (debounced search, team filter, status filter)
+      - Each agent card shows avatar, name, role, metrics
+      - Click agent card to open detail modal with URL sync
+      - Link to Activity Feed page
+      - Empty state when no agents match filters
+    </acceptance_criteria>
+  </story_file>
+
+  <tech_spec path="/home/chris/projects/work/Ai Bussiness Hub/docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-13.md">
+    <summary>
+      Epic 13: AI Agent Management Technical Specification
+
+      Key Architectural Decisions:
+      - ADR-013.1: Component-Based Agent Cards (Compact, Standard, Expanded)
+      - ADR-013.2: Modal-Based Detail View for faster interaction
+      - ADR-013.3: Real-Time Activity Feed using SSE
+      - ADR-013.4: Confidence Factor Breakdown in approval modal
+
+      Story 13.5 Specific Components:
+      1. AgentGrid.tsx - Responsive grid with team grouping
+      2. AgentFilters.tsx - Search + team/status filters with debouncing
+      3. AgentStatusSummary.tsx - Header stats with click-to-filter
+
+      State Management:
+      - Local state for filters (search, team, status)
+      - React Query for agent data fetching
+      - URL sync for modal state (deep linking)
+      - Derived state for filtered and grouped agents
+    </summary>
+
+    <api_endpoints>
+      GET /api/agents - List all agents for workspace
+      Query params: team, status, search
+    </api_endpoints>
+
+    <data_model>
+      Agent interface with:
+      - Identity: id, name, role, team, description, avatar, themeColor
+      - Status: status, lastActive
+      - Capabilities: string[]
+      - Metrics: tasksCompleted, successRate, avgResponseTime, confidenceAvg
+      - Config: providerId, model, temperature, maxTokens, etc.
+      - Permissions: dataAccess[], canExecuteActions, requiresApproval
+      - Metadata: workspaceId, enabled, createdAt, updatedAt
+
+      AgentTeam: 'validation' | 'planning' | 'branding' | 'approval' | 'orchestrator'
+      AgentStatus: 'online' | 'busy' | 'offline' | 'error'
+    </data_model>
+  </tech_spec>
+
+  <existing_components path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/agents">
+    <component name="AgentCardStandard" file="AgentCardStandard.tsx">
+      <description>
+        Standard agent card with performance statistics.
+        Displays avatar, name, role, status, and key metrics.
+        Used in dashboard grid displays.
+      </description>
+      <usage>
+        - Accepts agent prop and optional onClick handler
+        - Shows AgentAvatar with status indicator
+        - Shows AgentStatusBadge
+        - Displays performance metrics (tasks completed, success rate)
+        - Clickable with hover effects
+        - Keyboard accessible
+      </usage>
+    </component>
+
+    <component name="AgentDetailModal" file="AgentDetailModal.tsx">
+      <description>
+        Comprehensive 5-tab agent detail modal.
+        Tabs: Overview, Activity, Configuration, Permissions, Analytics
+      </description>
+      <usage>
+        - Props: agentId, open, onOpenChange
+        - Fetches agent data with useAgent hook
+        - Responsive: full screen on mobile, large modal on desktop
+        - Edit mode for Configuration tab
+        - Tab state management
+      </usage>
+    </component>
+
+    <component name="AgentAvatar" file="AgentAvatar.tsx">
+      <description>Avatar with emoji/image and status indicator</description>
+    </component>
+
+    <component name="AgentStatusBadge" file="AgentStatusBadge.tsx">
+      <description>Status badge with color coding</description>
+    </component>
+
+    <component name="ActivityFilters" file="ActivityFilters.tsx">
+      <description>Filter controls for activity feed (can be used as pattern reference)</description>
+    </component>
+  </existing_components>
+
+  <agent_types path="/home/chris/projects/work/Ai Bussiness Hub/packages/shared/src/types/agent.ts">
+    <exports>
+      - AgentTeam: 'validation' | 'planning' | 'branding' | 'approval' | 'orchestrator'
+      - AgentStatus: 'online' | 'busy' | 'offline' | 'error'
+      - AgentAutomationLevel: 'manual' | 'smart' | 'full_auto'
+      - Agent interface (complete agent data structure)
+    </exports>
+  </agent_types>
+
+  <hooks path="/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/hooks/use-agent.ts">
+    <available_hooks>
+      - useAgent(id: string) - Fetch single agent by ID
+      - useAgentActivity(agentId, page, limit, type) - Fetch agent activity with pagination
+      - useAgentAnalytics(agentId) - Fetch agent analytics data
+      - useUpdateAgent(id) - Mutation hook for updating agent config
+    </available_hooks>
+
+    <note>
+      Need to create useAgents() hook for fetching all agents list
+    </note>
+  </hooks>
+
+  <team_headers>
+    <mapping>
+      validation: "Vera's Validation Team"
+      planning: "Blake's Planning Team"
+      branding: "Bella's Branding Team"
+      orchestrator: "Orchid's Orchestration Team"
+    </mapping>
+  </team_headers>
+
+  <responsive_breakpoints>
+    <grid_layout>
+      - Mobile (< 768px): 1 column
+      - Tablet (768px - 1279px): 2 columns
+      - Desktop (1280px+): 4 columns
+    </grid_layout>
+    <tailwind_classes>
+      grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6
+    </tailwind_classes>
+  </responsive_breakpoints>
+
+  <url_sync_pattern>
+    <description>
+      Modal state syncs with URL for deep linking
+      - Opening modal: /agents?modal={agentId}
+      - Closing modal: Remove modal param
+      - Browser back button: Close modal
+    </description>
+    <implementation>
+      - useEffect to read URL params on mount
+      - Update URL on agent click (pushState)
+      - Update URL on modal close (pushState)
+      - Handle browser back/forward with popstate event
+    </implementation>
+  </url_sync_pattern>
+
+  <search_debounce>
+    <delay>300ms</delay>
+    <library>useDebouncedValue from @/hooks or implement with useEffect + setTimeout</library>
+  </search_debounce>
+
+  <empty_state>
+    <conditions>
+      - No agents match current filters
+      - Search term returns no results
+    </conditions>
+    <content>
+      - Illustration or icon
+      - Message: "No agents match your filters"
+      - Suggestion: "Try clearing filters or adjusting search"
+      - "Clear filters" button
+    </content>
+  </empty_state>
+
+  <implementation_files>
+    <to_create>
+      - apps/web/src/app/(dashboard)/agents/page.tsx (main page)
+      - apps/web/src/components/agents/AgentGrid.tsx
+      - apps/web/src/components/agents/AgentFilters.tsx
+      - apps/web/src/components/agents/AgentStatusSummary.tsx
+      - apps/web/src/hooks/use-agents.ts (all agents hook)
+      - apps/web/src/app/api/agents/route.ts (API endpoint)
+    </to_create>
+
+    <to_modify>
+      - apps/web/src/components/agents/index.ts (barrel exports)
+    </to_modify>
+  </implementation_files>
+
+  <coding_standards>
+    - Use TypeScript strict mode
+    - Use 'use client' directive for client components
+    - Follow existing shadcn/ui component patterns
+    - Use Tailwind for styling (avoid dynamic class construction)
+    - Implement keyboard accessibility
+    - Support dark mode via dark: variants
+    - Use React Query for data fetching
+    - Implement loading states and error handling
+  </coding_standards>
+</context>

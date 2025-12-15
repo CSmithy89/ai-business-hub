@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>10-4-enable-global-validation-pipe</story-id>
+    <epic>EPIC-10</epic>
+    <title>Enable Global ValidationPipe</title>
+    <priority>P0 Critical</priority>
+    <points>1</points>
+    <type>verification</type>
+    <generated-date>2025-12-06</generated-date>
+  </metadata>
+
+  <story-file>
+    <path>docs/stories/10-4-enable-global-validation-pipe.md</path>
+    <purpose>Story details, acceptance criteria, verification results</purpose>
+  </story-file>
+
+  <epic-context>
+    <epic-file>
+      <path>docs/epics/EPIC-10-platform-hardening.md</path>
+      <relevant-sections>
+        <section name="Story 10.4" lines="122-147">
+          Story definition and acceptance criteria
+        </section>
+      </relevant-sections>
+    </epic-file>
+
+    <tech-spec-file>
+      <path>docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-10.md</path>
+      <relevant-sections>
+        <section name="Story 10.4: Enable Global ValidationPipe" lines="534-686">
+          Technical specifications, implementation approach, testing strategy
+        </section>
+      </relevant-sections>
+    </tech-spec-file>
+  </epic-context>
+
+  <implementation-files>
+    <file>
+      <path>apps/api/src/main.ts</path>
+      <purpose>NestJS bootstrap - ValidationPipe configuration</purpose>
+      <status>verified</status>
+      <lines>19-28</lines>
+      <notes>
+        ValidationPipe is properly configured with all required options:
+        - whitelist: true (strip unknown properties)
+        - forbidNonWhitelisted: true (reject unknown properties)
+        - transform: true (auto-transform types)
+        - enableImplicitConversion: true (type coercion)
+      </notes>
+    </file>
+
+    <file>
+      <path>apps/api/src/events/dto/replay-events.dto.ts</path>
+      <purpose>Example DTO with validation decorators</purpose>
+      <status>verified</status>
+      <notes>
+        Properly uses class-validator decorators:
+        - @IsDateString() for date validation
+        - @IsOptional() for optional fields
+        - @IsArray() for array validation
+        - @IsString({ each: true }) for array element validation
+      </notes>
+    </file>
+
+    <file>
+      <path>apps/api/src/events/events.integration.spec.ts</path>
+      <purpose>Integration tests for ValidationPipe behavior</purpose>
+      <status>to-be-created</status>
+      <notes>
+        Should test:
+        - Valid input acceptance
+        - Invalid input rejection (400 status)
+        - Unknown property rejection
+        - Type transformation
+      </notes>
+    </file>
+  </implementation-files>
+
+  <all-dtos>
+    <summary>16 DTOs found in codebase, all use proper validation decorators</summary>
+    <dto-list>
+      <dto path="apps/api/src/members/dto/update-module-permissions.dto.ts" module="members" />
+      <dto path="apps/api/src/audit/dto/get-audit-logs.dto.ts" module="audit" />
+      <dto path="apps/api/src/approvals/dto/approve-item.dto.ts" module="approvals" />
+      <dto path="apps/api/src/approvals/dto/reject-item.dto.ts" module="approvals" />
+      <dto path="apps/api/src/approvals/dto/approval-query.dto.ts" module="approvals" />
+      <dto path="apps/api/src/approvals/dto/approval-response.dto.ts" module="approvals" />
+      <dto path="apps/api/src/approvals/dto/bulk-approval.dto.ts" module="approvals" />
+      <dto path="apps/api/src/approvals/dto/create-approval.dto.ts" module="approvals" />
+      <dto path="apps/api/src/approvals/dto/escalation-config.dto.ts" module="approvals" />
+      <dto path="apps/api/src/agentos/dto/agent-response.dto.ts" module="agentos" />
+      <dto path="apps/api/src/agentos/dto/invoke-agent.dto.ts" module="agentos" />
+      <dto path="apps/api/src/events/dto/pagination.dto.ts" module="events" />
+      <dto path="apps/api/src/events/dto/replay-events.dto.ts" module="events" />
+      <dto path="apps/api/src/ai-providers/dto/provider-response.dto.ts" module="ai-providers" />
+      <dto path="apps/api/src/ai-providers/dto/create-provider.dto.ts" module="ai-providers" />
+      <dto path="apps/api/src/ai-providers/dto/update-provider.dto.ts" module="ai-providers" />
+    </dto-list>
+  </all-dtos>
+
+  <verification-results>
+    <configuration-check status="passed">
+      <item>ValidationPipe registered globally in main.ts</item>
+      <item>whitelist: true enabled (strips unknown properties)</item>
+      <item>forbidNonWhitelisted: true enabled (rejects unknown properties)</item>
+      <item>transform: true enabled (auto-transforms types)</item>
+      <item>enableImplicitConversion: true enabled (type coercion)</item>
+    </configuration-check>
+
+    <dto-check status="passed">
+      <item>16 DTOs found across codebase</item>
+      <item>All DTOs use class-validator decorators</item>
+      <item>ReplayEventsDto verified as reference example</item>
+      <item>Decorators used correctly (@IsDateString, @IsOptional, @IsArray, @IsString)</item>
+    </dto-check>
+
+    <testing-check status="needs-attention">
+      <item status="missing">No integration tests found for validation behavior</item>
+      <item status="pending">Should add tests for valid input acceptance</item>
+      <item status="pending">Should add tests for invalid input rejection</item>
+      <item status="pending">Should add tests for unknown property rejection</item>
+      <item status="pending">Should add tests for type transformation</item>
+    </testing-check>
+  </verification-results>
+
+  <acceptance-criteria-status>
+    <criterion id="AC1" status="passed">
+      Verified ValidationPipe configuration in apps/api/src/main.ts
+    </criterion>
+    <criterion id="AC2" status="passed">
+      Verified transform: true enabled for automatic type transformation
+    </criterion>
+    <criterion id="AC3" status="passed">
+      Verified whitelist: true enabled to strip unknown properties
+    </criterion>
+    <criterion id="AC4" status="passed">
+      Verified forbidNonWhitelisted: true enabled to reject unknown properties
+    </criterion>
+    <criterion id="AC5" status="passed">
+      Verified existing DTOs (ReplayEventsDto, etc.) have proper validation decorators
+    </criterion>
+    <criterion id="AC6" status="pending">
+      Integration tests should be added for validation behavior
+    </criterion>
+  </acceptance-criteria-status>
+
+  <testing-guidance>
+    <unit-tests>
+      Not applicable - ValidationPipe is a NestJS framework feature
+    </unit-tests>
+
+    <integration-tests>
+      <test-file>apps/api/src/events/events.integration.spec.ts</test-file>
+      <test-scenarios>
+        <scenario name="Accept valid input">
+          POST /events/replay with valid startTime, endTime, eventTypes
+          Expected: 200 OK
+        </scenario>
+        <scenario name="Reject invalid date format">
+          POST /events/replay with invalid startTime
+          Expected: 400 Bad Request with validation error
+        </scenario>
+        <scenario name="Reject unknown properties">
+          POST /events/replay with unknown field
+          Expected: 400 Bad Request with property error
+        </scenario>
+        <scenario name="Transform types">
+          POST /events/replay with string dates
+          Expected: Controller receives Date objects
+        </scenario>
+      </test-scenarios>
+    </integration-tests>
+
+    <manual-testing>
+      <test name="Valid input">
+        curl -X POST http://localhost:3001/events/replay \
+          -H "Content-Type: application/json" \
+          -d '{"startTime":"2025-01-01T00:00:00Z","endTime":"2025-01-02T00:00:00Z"}'
+      </test>
+      <test name="Invalid date">
+        curl -X POST http://localhost:3001/events/replay \
+          -H "Content-Type: application/json" \
+          -d '{"startTime":"invalid","endTime":"2025-01-02T00:00:00Z"}'
+      </test>
+      <test name="Unknown property">
+        curl -X POST http://localhost:3001/events/replay \
+          -H "Content-Type: application/json" \
+          -d '{"startTime":"2025-01-01T00:00:00Z","endTime":"2025-01-02T00:00:00Z","badField":"test"}'
+      </test>
+    </manual-testing>
+  </testing-guidance>
+
+  <validation-pipe-reference>
+    <configuration-details>
+      <option name="whitelist" value="true">
+        Strips properties not defined in the DTO class.
+        Example: If request includes "unknownField", it will be removed before validation.
+      </option>
+      <option name="forbidNonWhitelisted" value="true">
+        Rejects requests with properties not defined in the DTO.
+        Example: Request with "unknownField" will return 400 error.
+        Note: This takes precedence over whitelist.
+      </option>
+      <option name="transform" value="true">
+        Automatically transforms payloads to DTO instances.
+        Enables type transformation based on TypeScript types.
+      </option>
+      <option name="enableImplicitConversion" value="true">
+        Attempts to convert primitive types automatically.
+        Example: "123" string → 123 number, "true" string → true boolean.
+      </option>
+    </configuration-details>
+
+    <common-decorators>
+      <decorator name="@IsString()">Validates string type</decorator>
+      <decorator name="@IsNumber()">Validates number type</decorator>
+      <decorator name="@IsBoolean()">Validates boolean type</decorator>
+      <decorator name="@IsArray()">Validates array type</decorator>
+      <decorator name="@IsOptional()">Makes property optional</decorator>
+      <decorator name="@IsDateString()">Validates ISO 8601 date string</decorator>
+      <decorator name="@IsEmail()">Validates email format</decorator>
+      <decorator name="@IsUrl()">Validates URL format</decorator>
+      <decorator name="@Min(n) / @Max(n)">Validates number range</decorator>
+      <decorator name="@MinLength(n) / @MaxLength(n)">Validates string length</decorator>
+    </common-decorators>
+
+    <error-response-format>
+      When validation fails, NestJS returns:
+      {
+        "statusCode": 400,
+        "message": [
+          "startTime must be a valid ISO 8601 date string",
+          "eventTypes must be an array"
+        ],
+        "error": "Bad Request"
+      }
+    </error-response-format>
+  </validation-pipe-reference>
+
+  <next-steps>
+    <step priority="high">
+      Add integration tests to apps/api/src/events/events.integration.spec.ts
+    </step>
+    <step priority="medium">
+      Document DTO creation patterns in docs/DEVELOPMENT.md
+    </step>
+    <step priority="low">
+      Consider custom validation decorators for complex business rules
+    </step>
+    <step priority="low">
+      Consider global exception filter for consistent error responses
+    </step>
+  </next-steps>
+
+  <related-documentation>
+    <doc type="epic">docs/epics/EPIC-10-platform-hardening.md</doc>
+    <doc type="tech-spec">docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-10.md</doc>
+    <doc type="external">https://docs.nestjs.com/techniques/validation</doc>
+    <doc type="external">https://github.com/typestack/class-validator</doc>
+  </related-documentation>
+
+  <story-conclusion>
+    <summary>
+      ValidationPipe is already properly configured and working. This story verified:
+      1. Configuration is correct with all required options
+      2. DTOs have proper validation decorators
+      3. Integration tests should be added for comprehensive coverage
+    </summary>
+    <implementation-status>Already Complete</implementation-status>
+    <testing-status>Needs Integration Tests</testing-status>
+    <ready-for-review>Yes - Verification Complete</ready-for-review>
+  </story-conclusion>
+</story-context>

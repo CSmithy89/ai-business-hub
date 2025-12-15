@@ -1,0 +1,713 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>05-4-implement-retry-and-dead-letter-queue</story-id>
+    <story-file>docs/archive/foundation-phase/sprint-artifacts/stories/05-4-implement-retry-and-dead-letter-queue.md</story-file>
+    <tech-spec>docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-05.md</tech-spec>
+    <epic>EPIC-05 - Event Bus Infrastructure</epic>
+    <phase>Phase 4 - Event Bus &amp; BYOAI</phase>
+    <generated-date>2025-12-03</generated-date>
+    <status>ready-for-dev</status>
+  </metadata>
+
+  <story-overview>
+    <objective>
+      Implement retry logic with exponential backoff and dead letter queue (DLQ) for failed events.
+      This completes the error handling loop for the event bus, ensuring transient failures are
+      automatically retried and persistent failures are captured for admin review.
+    </objective>
+
+    <dependencies>
+      <dependency status="done">Story 05-1: Redis Streams infrastructure</dependency>
+      <dependency status="done">Story 05-2: Event publisher</dependency>
+      <dependency status="done">Story 05-3: Event subscriber with handleError() placeholder</dependency>
+      <dependency status="available">BullMQ queue 'event-retry' already registered in EventsModule</dependency>
+    </dependencies>
+
+    <key-features>
+      <feature>EventRetryService with scheduleRetry() method</feature>
+      <feature>Exponential backoff: 1 minute, 5 minutes, 30 minutes</feature>
+      <feature>Move to DLQ after 3 failed attempts</feature>
+      <feature>BullMQ integration for delayed retry scheduling</feature>
+      <feature>EventRetryProcessor to handle retry jobs</feature>
+      <feature>Integration with EventConsumerService.handleError()</feature>
+      <feature>DLQ monitoring endpoints for admin</feature>
+    </key-features>
+  </story-overview>
+
+  <existing-infrastructure>
+    <bullmq-queue>
+      <location>apps/api/src/events/events.module.ts</location>
+      <registration>
+        <![CDATA[
+// Already registered in EventsModule - ready for use
+BullModule.registerQueue({
+  name: 'event-retry',
+})
+        ]]>
+      </registration>
+      <usage>
+        Used by EventRetryService to schedule delayed retry jobs.
+        Jobs are processed by EventRetryProcessor.
+      </usage>
+    </bullmq-queue>
+
+    <redis-streams>
+      <location>apps/api/src/events/constants/streams.constants.ts</location>
+      <streams>
+        <![CDATA[
+export const STREAMS = {
+  MAIN: 'hyvve:events:main',
+  DLQ: 'hyvve:events:dlq',      // Dead letter queue stream
+  REPLAY: 'hyvve:events:replay',
+} as const;
+        ]]>
+      </streams>
+      <retention>
+        <![CDATA[
+export const RETENTION = {
+  MAIN_STREAM_DAYS: 30,
+  DLQ_DAYS: 90,              // Longer retention for failed events
+  REPLAY_HOURS: 24,
+} as const;
+        ]]>
+      </retention>
+    </redis-streams>
+
+    <prisma-model>
+      <location>packages/db/prisma/schema.prisma</location>
+      <model>
+        <![CDATA[
+model EventMetadata {
+  id            String      @id @default(cuid())
+  eventId       String      @unique @map("event_id")
+  streamId      String      @map("stream_id")
+  type          String
+  source        String
+  tenantId      String      @map("tenant_id")
+  correlationId String?     @map("correlation_id")
+  status        EventStatus @default(PENDING)
+  attempts      Int         @default(0)          // Track retry attempts
+  lastError     String?     @map("last_error")   // Store error message
+  processedAt   DateTime?   @map("processed_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt])
+  @@index([type, status])
+  @@index([correlationId])
+  @@map("event_metadata")
+}
+
+enum EventStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DLQ        // For events in dead letter queue
+}
+        ]]>
+      </model>
+      <fields-for-retry>
+        - attempts: Tracks number of retry attempts (0-3)
+        - lastError: Stores the most recent error message
+        - status: Set to 'FAILED' during retries, 'DLQ' after max attempts
+      </fields-for-retry>
+    </prisma-model>
+
+    <event-consumer-placeholder>
+      <location>apps/api/src/events/event-consumer.service.ts</location>
+      <current-implementation>
+        <![CDATA[
+// Lines 379-412: handleError() method - PLACEHOLDER TO BE REPLACED
+private async handleError(
+  streamId: string,
+  event: BaseEvent,
+  errors: Array<{ handler: EventHandlerInfo; error: Error }>,
+): Promise<void> {
+  // TODO: Story 05-4 - Pass to EventRetryService for retry logic
+  this.logger.error({
+    message: 'All handlers failed for event',
+    eventId: event.id,
+    eventType: event.type,
+    streamId,
+    errorCount: errors.length,
+  });
+
+  // For now, just mark as failed
+  await this.updateEventStatus(
+    event.id,
+    'FAILED',
+    errors.map((e) => e.error.message).join('; '),
+  );
+
+  // Acknowledge to prevent infinite reprocessing
+  // In Story 05-4, we'll implement proper retry logic before acknowledging
+  const redis = this.redisProvider.getClient();
+  await redis.xack(STREAMS.MAIN, CONSUMER_GROUP, streamId);
+}
+        ]]>
+      </current-implementation>
+      <integration-requirements>
+        Replace placeholder with EventRetryService integration.
+        Key changes:
+        1. Inject EventRetryService in constructor
+        2. Get current attempt count from EventMetadata
+        3. Call eventRetryService.scheduleRetry() with event, error, and attempt count
+        4. DO NOT XACK the event yet - let retry service handle it
+        5. Keep error logging
+      </integration-requirements>
+    </event-consumer-placeholder>
+  </existing-infrastructure>
+
+  <implementation-guide>
+    <service name="EventRetryService">
+      <location>apps/api/src/events/event-retry.service.ts (NEW FILE)</location>
+      <purpose>
+        Manages retry scheduling and dead letter queue operations for failed events.
+      </purpose>
+
+      <constructor-dependencies>
+        - @InjectQueue('event-retry') private retryQueue: Queue
+        - private readonly redisProvider: RedisProvider
+        - private readonly prisma: PrismaService
+      </constructor-dependencies>
+
+      <retry-delays>
+        <![CDATA[
+private readonly RETRY_DELAYS = [60_000, 300_000, 1_800_000]; // 1min, 5min, 30min
+        ]]>
+        Exponential backoff delays for 1st, 2nd, and 3rd retries.
+      </retry-delays>
+
+      <method name="scheduleRetry">
+        <signature>
+          <![CDATA[
+async scheduleRetry(
+  streamId: string,
+  event: BaseEvent,
+  error: Error,
+  currentAttempt: number
+): Promise<void>
+          ]]>
+        </signature>
+
+        <implementation-steps>
+          1. Update EventMetadata:
+             - Increment attempts to currentAttempt + 1
+             - Set lastError to error.message
+             - Set status to 'FAILED' (will become PENDING when retry job runs)
+
+          2. Check if max retries reached (currentAttempt >= 3):
+             - If yes: Call moveToDLQ()
+             - If no: Continue to step 3
+
+          3. Schedule BullMQ job:
+             - Calculate delay: RETRY_DELAYS[currentAttempt]
+             - Add job to 'event-retry' queue with delay
+             - Job data: { eventId, streamId, attempt: currentAttempt + 1 }
+
+          4. Log retry scheduled with eventId, attempt, and delay
+        </implementation-steps>
+
+        <error-handling>
+          - Log failures but don't throw (allow event to be acknowledged)
+          - If BullMQ fails, mark event as FAILED and log alert
+        </error-handling>
+      </method>
+
+      <method name="moveToDLQ">
+        <signature>
+          <![CDATA[
+private async moveToDLQ(event: BaseEvent, error: Error): Promise<void>
+          ]]>
+        </signature>
+
+        <implementation-steps>
+          1. Add event to DLQ Redis Stream:
+             - Stream: STREAMS.DLQ
+             - Fields:
+               * 'event': JSON.stringify(event)
+               * 'error': error.message
+               * 'errorStack': error.stack || 'N/A'
+               * 'movedAt': new Date().toISOString()
+               * 'attempts': '3'
+
+          2. Update EventMetadata status to 'DLQ'
+
+          3. Log error with full context:
+             - Event ID, type
+             - Error message and stack
+             - Tenant ID for tracking
+        </implementation-steps>
+      </method>
+
+      <method name="retryFromDLQ">
+        <signature>
+          <![CDATA[
+async retryFromDLQ(eventId: string): Promise<string>
+          ]]>
+        </signature>
+
+        <purpose>
+          Admin-triggered manual retry of DLQ events.
+          Creates a new event with a fresh event ID.
+        </purpose>
+
+        <implementation-steps>
+          1. Find event in DLQ stream:
+             - Use XRANGE to scan DLQ stream
+             - Parse events until eventId matches
+
+          2. If not found: Throw NotFoundException
+
+          3. Reset EventMetadata:
+             - attempts = 0
+             - status = 'PENDING'
+             - lastError = null
+
+          4. Re-publish to main stream:
+             - Generate new event ID (createId())
+             - Copy event data from DLQ
+             - Use EventPublisherService.publish() or direct XADD
+
+          5. Delete from DLQ stream:
+             - XDEL from STREAMS.DLQ
+
+          6. Return new event ID
+        </implementation-steps>
+      </method>
+    </service>
+
+    <processor name="EventRetryProcessor">
+      <location>apps/api/src/events/processors/event-retry.processor.ts (NEW FILE)</location>
+      <purpose>
+        BullMQ processor that handles scheduled retry jobs.
+        Resets event status to PENDING so EventConsumerService picks it up again.
+      </purpose>
+
+      <decorator>@Processor('event-retry')</decorator>
+
+      <constructor-dependencies>
+        - private readonly eventConsumer: EventConsumerService
+        - private readonly prisma: PrismaService
+        - private readonly logger: Logger
+      </constructor-dependencies>
+
+      <method name="handleRetry">
+        <decorator>@Process('retry-event')</decorator>
+        <signature>
+          <![CDATA[
+async handleRetry(job: Job<{ eventId: string; streamId: string; attempt: number }>)
+          ]]>
+        </signature>
+
+        <implementation-steps>
+          1. Extract job data: eventId, streamId, attempt
+
+          2. Check if event already in DLQ (race condition protection):
+             - Query EventMetadata by eventId
+             - If status === 'DLQ': Log and return early
+
+          3. Reset event status to PENDING:
+             - Update EventMetadata: status = 'PENDING'
+             - This allows EventConsumerService to reprocess it
+
+          4. Log retry operation:
+             - Event ID, attempt number
+             - Note: EventConsumerService will pick up from Redis stream
+        </implementation-steps>
+
+        <notes>
+          - Event remains in Redis stream (not acknowledged yet)
+          - EventConsumerService's XREADGROUP will pick it up
+          - If it fails again, handleError() will schedule another retry
+        </notes>
+      </method>
+    </processor>
+
+    <event-consumer-integration>
+      <location>apps/api/src/events/event-consumer.service.ts</location>
+      <modification>Replace handleError() method (lines 379-412)</modification>
+
+      <new-implementation>
+        <![CDATA[
+/**
+ * Handle event processing errors with retry logic
+ * Integrates with EventRetryService for exponential backoff and DLQ
+ *
+ * @param streamId - Redis stream message ID
+ * @param event - The failed event
+ * @param errors - Array of handler errors
+ */
+private async handleError(
+  streamId: string,
+  event: BaseEvent,
+  errors: Array<{ handler: EventHandlerInfo; error: Error }>,
+): Promise<void> {
+  this.logger.error({
+    message: 'All handlers failed for event',
+    eventId: event.id,
+    eventType: event.type,
+    streamId,
+    errorCount: errors.length,
+    errors: errors.map(e => ({
+      handler: `${e.handler.instanceRef.constructor.name}.${e.handler.methodName}`,
+      error: e.error.message,
+    })),
+  });
+
+  // Get current metadata to check attempts
+  const metadata = await this.prisma.eventMetadata.findUnique({
+    where: { eventId: event.id },
+  });
+
+  const currentAttempt = metadata?.attempts ?? 0;
+
+  // Use the first error as the representative error
+  const primaryError = errors[0].error;
+
+  // Schedule retry via EventRetryService
+  await this.eventRetryService.scheduleRetry(
+    streamId,
+    event,
+    primaryError,
+    currentAttempt
+  );
+
+  // Note: DO NOT XACK the event yet - it should remain in pending
+  // until retry succeeds or moves to DLQ
+}
+        ]]>
+      </new-implementation>
+
+      <constructor-changes>
+        <![CDATA[
+// Add to constructor parameters:
+constructor(
+  private readonly redisProvider: RedisProvider,
+  private readonly discoveryService: DiscoveryService,
+  private readonly reflector: Reflector,
+  private readonly prisma: PrismaService,
+  private readonly eventRetryService: EventRetryService,  // ADD THIS
+) {}
+        ]]>
+      </constructor-changes>
+    </event-consumer-integration>
+
+    <controller-endpoints>
+      <location>apps/api/src/events/events.controller.ts</location>
+      <modifications>Add DLQ management endpoints</modifications>
+
+      <endpoint method="GET" path="/admin/events/dlq">
+        <purpose>List events in dead letter queue with pagination</purpose>
+        <query-params>
+          - page?: number (default: 1)
+          - limit?: number (default: 50)
+        </query-params>
+        <implementation>
+          <![CDATA[
+@Get('dlq')
+@ApiOperation({ summary: 'Get dead letter queue events' })
+async getDLQEvents(@Query() query: PaginationDto) {
+  const redis = this.redisProvider.getClient();
+
+  // Read from DLQ stream with pagination
+  const events = await redis.xrange(
+    STREAMS.DLQ,
+    '-', '+',
+    'COUNT', query.limit ?? 50
+  );
+
+  return {
+    events: events.map(([id, fields]) => ({
+      streamId: id,
+      event: JSON.parse(fields[1]),
+      error: fields[3],
+      errorStack: fields[5],
+      movedAt: fields[7],
+      attempts: parseInt(fields[9], 10),
+    })),
+    total: await redis.xlen(STREAMS.DLQ),
+    page: query.page ?? 1,
+    limit: query.limit ?? 50,
+  };
+}
+          ]]>
+        </implementation>
+      </endpoint>
+
+      <endpoint method="POST" path="/admin/events/dlq/:eventId/retry">
+        <purpose>Manually retry a failed event from DLQ</purpose>
+        <implementation>
+          <![CDATA[
+@Post('dlq/:eventId/retry')
+@ApiOperation({ summary: 'Retry an event from DLQ' })
+async retryDLQEvent(@Param('eventId') eventId: string) {
+  const newEventId = await this.eventRetryService.retryFromDLQ(eventId);
+  return {
+    success: true,
+    newEventId,
+    message: 'Event moved back to main stream for reprocessing'
+  };
+}
+          ]]>
+        </implementation>
+      </endpoint>
+
+      <endpoint method="DELETE" path="/admin/events/dlq/:eventId">
+        <purpose>Permanently delete an event from DLQ</purpose>
+        <implementation>
+          <![CDATA[
+@Delete('dlq/:eventId')
+@ApiOperation({ summary: 'Permanently delete an event from DLQ' })
+async deleteDLQEvent(@Param('eventId') eventId: string) {
+  const redis = this.redisProvider.getClient();
+
+  // Find event in DLQ stream
+  const events = await redis.xrange(STREAMS.DLQ, '-', '+');
+  const eventEntry = events.find(([_, fields]) => {
+    const event = JSON.parse(fields[1]) as BaseEvent;
+    return event.id === eventId;
+  });
+
+  if (!eventEntry) {
+    throw new NotFoundException('Event not found in DLQ');
+  }
+
+  // Delete from Redis
+  await redis.xdel(STREAMS.DLQ, eventEntry[0]);
+
+  // Update metadata
+  await this.prisma.eventMetadata.update({
+    where: { eventId },
+    data: {
+      status: 'FAILED',
+      lastError: 'Manually deleted from DLQ'
+    },
+  });
+
+  return { success: true };
+}
+          ]]>
+        </implementation>
+      </endpoint>
+
+      <guards-and-decorators>
+        <![CDATA[
+@Controller('admin/events')
+@UseGuards(AuthGuard, RolesGuard)
+@Roles('admin', 'owner')
+export class EventsController {
+  // ... endpoints
+}
+        ]]>
+        All DLQ endpoints require admin or owner role.
+      </guards-and-decorators>
+    </controller-endpoints>
+
+    <dto>
+      <name>PaginationDto</name>
+      <location>apps/api/src/events/dto/pagination.dto.ts (NEW FILE)</location>
+      <implementation>
+        <![CDATA[
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, Min } from 'class-validator';
+
+export class PaginationDto {
+  @ApiPropertyOptional({ default: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  page?: number = 1;
+
+  @ApiPropertyOptional({ default: 50 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  limit?: number = 50;
+}
+        ]]>
+      </implementation>
+    </dto>
+
+    <module-updates>
+      <location>apps/api/src/events/events.module.ts</location>
+      <changes>
+        <![CDATA[
+// Add to providers array:
+providers: [
+  RedisProvider,
+  EventPublisherService,
+  EventConsumerService,
+  EventRetryService,        // ADD THIS
+  EventRetryProcessor,      // ADD THIS
+  PrismaService,
+],
+
+// Update exports if needed:
+exports: [
+  RedisProvider,
+  EventPublisherService,
+  EventConsumerService,
+  EventRetryService,        // ADD THIS (if other modules need it)
+],
+        ]]>
+      </changes>
+    </module-updates>
+
+    <index-exports>
+      <location>apps/api/src/events/index.ts</location>
+      <changes>
+        <![CDATA[
+// Add exports:
+export * from './event-retry.service';
+export * from './processors/event-retry.processor';
+export * from './dto/pagination.dto';
+        ]]>
+      </changes>
+    </index-exports>
+  </implementation-guide>
+
+  <retry-flow-diagram>
+    <![CDATA[
+Event Processing Retry Flow
+============================
+
+1. Event handler throws exception in EventConsumerService
+   └─> processEvent() catches error
+
+2. EventConsumerService.handleError() called
+   ├─> Get current attempt count from EventMetadata
+   ├─> Log error with full context
+   └─> Call EventRetryService.scheduleRetry(streamId, event, error, attempt)
+
+3. EventRetryService.scheduleRetry()
+   ├─> Update EventMetadata: attempts++, lastError, status='FAILED'
+   ├─> Check: currentAttempt >= 3?
+   │   ├─> YES: Call moveToDLQ() → DONE
+   │   └─> NO: Continue
+   ├─> Calculate delay: RETRY_DELAYS[currentAttempt]
+   ├─> Schedule BullMQ job with delay
+   └─> Return (event NOT acknowledged yet)
+
+4. BullMQ waits for delay (1min, 5min, or 30min)
+
+5. EventRetryProcessor.handleRetry() runs
+   ├─> Check if event already in DLQ (race condition)
+   ├─> Update EventMetadata: status='PENDING'
+   ├─> Log retry attempt
+   └─> Return
+
+6. EventConsumerService picks up event again from stream
+   ├─> Event still in pending state (not acknowledged)
+   ├─> XREADGROUP returns it
+   └─> Attempt reprocessing
+
+7. If still fails: Go to step 2 (repeat up to 3 times)
+8. If succeeds: XACK event, status='COMPLETED'
+
+Dead Letter Queue Flow
+=======================
+
+After 3rd failure:
+1. EventRetryService.moveToDLQ() called
+   ├─> XADD to STREAMS.DLQ with full error context
+   ├─> Update EventMetadata: status='DLQ'
+   ├─> Log error with stack trace
+   └─> XACK original event (remove from main stream)
+
+2. Admin reviews in dashboard (Story 05-7)
+
+3. Admin decides to retry:
+   POST /admin/events/dlq/:eventId/retry
+   ├─> EventRetryService.retryFromDLQ()
+   ├─> Generate new event ID
+   ├─> Reset attempts to 0
+   ├─> Re-publish to main stream
+   ├─> XDEL from DLQ
+   └─> Return new event ID
+
+4. Event processed as new event (fresh retry cycle)
+    ]]>
+  </retry-flow-diagram>
+
+  <testing-requirements>
+    <unit-tests>
+      <test>scheduleRetry() updates EventMetadata attempts correctly</test>
+      <test>scheduleRetry() calls moveToDLQ() after 3rd attempt</test>
+      <test>scheduleRetry() adds BullMQ job with correct delay</test>
+      <test>moveToDLQ() adds event to DLQ stream with error details</test>
+      <test>moveToDLQ() updates EventMetadata status to 'DLQ'</test>
+      <test>EventRetryProcessor resets event status to PENDING</test>
+      <test>EventRetryProcessor handles race conditions (event already in DLQ)</test>
+      <test>retryFromDLQ() finds event in DLQ and re-publishes</test>
+      <test>retryFromDLQ() throws NotFoundException if event not found</test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>Failed event automatically retries after 1 minute delay</test>
+      <test>Event moves to DLQ after 3 consecutive failures</test>
+      <test>DLQ endpoint returns events with error details</test>
+      <test>Manual retry from DLQ creates new event successfully</test>
+      <test>Delete from DLQ removes event and updates metadata</test>
+      <test>Exponential backoff delays are respected</test>
+      <test>Multiple concurrent retries don't cause race conditions</test>
+    </integration-tests>
+  </testing-requirements>
+
+  <logging-requirements>
+    <log-points>
+      <log event="retry-scheduled">
+        - Event ID
+        - Current attempt number
+        - Delay until next retry (ms)
+        - Error message
+        - Correlation ID
+      </log>
+
+      <log event="moved-to-dlq">
+        - Event ID
+        - Event type
+        - Tenant ID
+        - Error message
+        - Error stack trace
+        - Total attempts (3)
+      </log>
+
+      <log event="retry-from-dlq">
+        - Original event ID
+        - New event ID
+        - Admin user ID (from context)
+        - Timestamp
+      </log>
+    </log-points>
+  </logging-requirements>
+
+  <file-checklist>
+    <files-to-create>
+      <file>apps/api/src/events/event-retry.service.ts</file>
+      <file>apps/api/src/events/event-retry.service.spec.ts</file>
+      <file>apps/api/src/events/processors/event-retry.processor.ts</file>
+      <file>apps/api/src/events/dto/pagination.dto.ts</file>
+    </files-to-create>
+
+    <files-to-modify>
+      <file>apps/api/src/events/events.module.ts (add providers)</file>
+      <file>apps/api/src/events/index.ts (add exports)</file>
+      <file>apps/api/src/events/event-consumer.service.ts (replace handleError method)</file>
+      <file>apps/api/src/events/events.controller.ts (add DLQ endpoints)</file>
+    </files-to-modify>
+  </file-checklist>
+
+  <related-documentation>
+    <document>docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-05.md (Story 05.4 section)</document>
+    <document>docs/archive/foundation-phase/sprint-artifacts/stories/05-1-set-up-redis-streams-infrastructure.md</document>
+    <document>docs/archive/foundation-phase/sprint-artifacts/stories/05-2-implement-event-publisher.md</document>
+    <document>docs/archive/foundation-phase/sprint-artifacts/stories/05-3-implement-event-subscriber.md</document>
+    <document>docs/architecture.md (Cross-Module Communication section)</document>
+    <document>packages/shared/src/types/events.ts (BaseEvent interface)</document>
+  </related-documentation>
+</story-context>

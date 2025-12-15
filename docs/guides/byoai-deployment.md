@@ -257,5 +257,5 @@ Track these metrics for operational visibility:
 ### Related Documentation
 
 - [Architecture: BYOAI Design](/docs/architecture.md#byoai-configuration)
-- [Tech Spec: Epic 06](/docs/sprint-artifacts/tech-spec-epic-06.md)
+- [Tech Spec: Epic 06](/docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-06.md)
 - [Control Plane Setup](/docs/guides/control-plane-setup.md)

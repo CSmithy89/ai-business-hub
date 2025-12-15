@@ -300,7 +300,7 @@ approval_agent = Agent(
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Event Schema (per MODULE-RESEARCH.md §1.4)
+### Event Schema (per docs/archive/foundation-phase/MODULE-RESEARCH.md §1.4)
 
 ```typescript
 interface CRMEvent {
@@ -389,8 +389,8 @@ def test_approval_required_tools_cannot_bypass():
 
 - **Agno Patterns:** `/docs/research/agno-analysis.md`
 - **Twenty CRM Research:** `/docs/modules/bm-crm/research/twenty-crm-analysis.md`
-- **Event Schema:** `MODULE-RESEARCH.md §1.4`
-- **Shared Data Contracts:** `MODULE-RESEARCH.md §1.6`
+- **Event Schema:** `docs/archive/foundation-phase/MODULE-RESEARCH.md §1.4`
+- **Shared Data Contracts:** `docs/archive/foundation-phase/MODULE-RESEARCH.md §1.6`
 
 ---
 

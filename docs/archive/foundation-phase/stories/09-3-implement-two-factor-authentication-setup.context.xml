@@ -1,0 +1,1532 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>09-3-implement-two-factor-authentication-setup</story-id>
+    <epic>EPIC-09</epic>
+    <priority>P2</priority>
+    <points>5</points>
+    <generated-date>2025-12-04</generated-date>
+  </metadata>
+
+  <!-- ============================================ -->
+  <!-- IMPLEMENTATION GUIDE -->
+  <!-- ============================================ -->
+
+  <implementation-guide>
+    <overview>
+      This story implements the two-factor authentication (2FA) setup flow using the better-auth twoFactor plugin.
+      Users will be able to enable TOTP-based 2FA using authenticator apps (Google Authenticator, Authy, 1Password).
+      The implementation includes QR code generation, manual entry code, verification, and backup code generation.
+    </overview>
+
+    <prerequisites>
+      <item>better-auth is already configured (Story 01-1)</item>
+      <item>User authentication system is functional</item>
+      <item>Security settings page exists at /settings/security</item>
+      <item>Database migrations can be applied</item>
+    </prerequisites>
+
+    <implementation-steps>
+      <step number="1">
+        <title>Install Required Dependencies</title>
+        <description>Install qrcode and otpauth packages for 2FA functionality</description>
+        <commands>
+          <command>cd apps/web</command>
+          <command>pnpm add qrcode otpauth</command>
+          <command>pnpm add -D @types/qrcode</command>
+        </commands>
+        <verification>Check package.json for qrcode, otpauth, and @types/qrcode</verification>
+      </step>
+
+      <step number="2">
+        <title>Update Database Schema</title>
+        <description>Add 2FA fields to User model and create BackupCode model</description>
+        <file>packages/db/prisma/schema.prisma</file>
+        <changes>
+          <change>Add twoFactorEnabled, twoFactorSecret, twoFactorVerified to User model</change>
+          <change>Create new BackupCode model with userId, code, usedAt, expiresAt</change>
+          <change>Add backupCodes relation to User model</change>
+        </changes>
+        <migration>
+          <command>cd packages/db</command>
+          <command>pnpm prisma migrate dev --name add_two_factor_fields</command>
+        </migration>
+      </step>
+
+      <step number="3">
+        <title>Configure better-auth twoFactor Plugin</title>
+        <description>Add twoFactor plugin to better-auth configuration</description>
+        <file>apps/web/src/lib/auth.ts</file>
+        <implementation>
+          <code><![CDATA[
+import { twoFactor } from 'better-auth/plugins/two-factor'
+
+// Add to plugins array:
+plugins: [
+  organization({ /* existing config */ }),
+  twoFactor({
+    issuer: 'HYVVE',
+    backupCodesCount: 10,
+    totpWindow: 1, // Allow 30s clock drift
+  }),
+]
+          ]]></code>
+        </implementation>
+      </step>
+
+      <step number="4">
+        <title>Create 2FA Utility Functions</title>
+        <description>Create helper functions for TOTP and QR code generation</description>
+        <file>apps/web/src/lib/two-factor.ts</file>
+        <functions>
+          <function name="generateTOTPSecret">Generate base32-encoded TOTP secret</function>
+          <function name="generateQRCode">Generate QR code data URI from TOTP URI</function>
+          <function name="formatManualEntryCode">Format secret for manual entry (spaces every 4 chars)</function>
+          <function name="verifyTOTPCode">Verify 6-digit TOTP code</function>
+          <function name="generateBackupCodes">Generate 10 unique backup codes</function>
+          <function name="hashBackupCode">Hash backup code with bcrypt before storage</function>
+        </functions>
+      </step>
+
+      <step number="5">
+        <title>Create 2FA Setup API Endpoints</title>
+        <description>Create API route handlers for 2FA setup flow</description>
+        <files>
+          <file>apps/web/src/app/api/auth/2fa/setup/route.ts</file>
+          <file>apps/web/src/app/api/auth/2fa/verify-setup/route.ts</file>
+        </files>
+        <endpoints>
+          <endpoint method="POST" path="/api/auth/2fa/setup">
+            <description>Generate TOTP secret and QR code</description>
+            <returns>{ secret, qrCode, manualEntryCode }</returns>
+          </endpoint>
+          <endpoint method="POST" path="/api/auth/2fa/verify-setup">
+            <description>Verify 6-digit code and enable 2FA</description>
+            <input>{ code: string }</input>
+            <returns>{ success: true, backupCodes: string[] }</returns>
+          </endpoint>
+        </endpoints>
+      </step>
+
+      <step number="6">
+        <title>Create Two-Factor Setup Modal Component</title>
+        <description>Build the multi-step modal for 2FA setup</description>
+        <file>apps/web/src/components/auth/two-factor-setup-modal.tsx</file>
+        <states>
+          <state name="setup-options">
+            <description>Show authenticator app option (recommended)</description>
+            <ui>Button: "Continue with Authenticator App"</ui>
+          </state>
+          <state name="qr-code">
+            <description>Display QR code and manual entry code</description>
+            <ui>QR code image, manual code with copy button, instructions</ui>
+          </state>
+          <state name="verification">
+            <description>Enter 6-digit verification code</description>
+            <ui>6-digit input field (numeric only), verify button</ui>
+          </state>
+          <state name="backup-codes">
+            <description>Display 10 backup codes</description>
+            <ui>Grid of 10 codes, download button, copy button, confirmation checkbox</ui>
+          </state>
+        </states>
+      </step>
+
+      <step number="7">
+        <title>Update Security Settings Page</title>
+        <description>Add 2FA section to security settings</description>
+        <file>apps/web/src/app/settings/security/page.tsx</file>
+        <ui-components>
+          <component>Two-Factor Authentication Card</component>
+          <component>Enable 2FA Button (opens modal)</component>
+          <component>Status indicator (Enabled/Disabled)</component>
+        </ui-components>
+      </step>
+
+      <step number="8">
+        <title>Add Client-Side 2FA Hooks</title>
+        <description>Create React hooks for 2FA operations</description>
+        <file>apps/web/src/hooks/use-two-factor.ts</file>
+        <hooks>
+          <hook name="useSetup2FA">Hook for initiating 2FA setup</hook>
+          <hook name="useVerify2FA">Hook for verifying setup code</hook>
+          <hook name="use2FAStatus">Hook for checking current 2FA status</hook>
+        </hooks>
+      </step>
+
+      <step number="9">
+        <title>Test Implementation</title>
+        <description>Comprehensive testing of 2FA setup flow</description>
+        <tests>
+          <test type="unit">TOTP secret generation and verification</test>
+          <test type="unit">QR code generation produces valid data URI</test>
+          <test type="unit">Backup codes generate 10 unique codes</test>
+          <test type="integration">Complete 2FA setup flow</test>
+          <test type="e2e">Full user journey from settings to enabled 2FA</test>
+        </tests>
+      </step>
+    </implementation-steps>
+  </implementation-guide>
+
+  <!-- ============================================ -->
+  <!-- DATABASE SCHEMA CHANGES -->
+  <!-- ============================================ -->
+
+  <database-schema>
+    <user-model-extensions>
+      <description>Add 2FA fields to existing User model</description>
+      <fields>
+        <field name="twoFactorEnabled" type="Boolean" default="false">
+          <description>Whether 2FA is enabled for this user</description>
+          <mapping>two_factor_enabled</mapping>
+        </field>
+        <field name="twoFactorSecret" type="String" nullable="true">
+          <description>Encrypted TOTP secret (base32-encoded)</description>
+          <mapping>two_factor_secret</mapping>
+          <security>Store encrypted using crypto.subtle</security>
+        </field>
+        <field name="twoFactorVerified" type="Boolean" default="false">
+          <description>Whether 2FA setup has been verified</description>
+          <mapping>two_factor_verified</mapping>
+        </field>
+      </fields>
+      <relations>
+        <relation name="backupCodes" type="BackupCode[]">
+          <description>One-to-many relation to backup codes</description>
+        </relation>
+      </relations>
+    </user-model-extensions>
+
+    <backup-code-model>
+      <description>New model for storing 2FA backup codes</description>
+      <schema><![CDATA[
+model BackupCode {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  code      String    // Hashed with bcrypt
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  expiresAt DateTime  @map("expires_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, usedAt]) // Find unused codes
+  @@map("backup_codes")
+}
+      ]]></schema>
+      <notes>
+        <note>Each user gets 10 backup codes during 2FA setup</note>
+        <note>Codes are hashed before storage for security</note>
+        <note>Single-use codes (marked with usedAt when used)</note>
+        <note>Format: XXXX-XXXX (8 alphanumeric characters)</note>
+        <note>Optional expiry date (1 year from creation recommended)</note>
+      </notes>
+    </backup-code-model>
+
+    <migration-sql>
+      <description>SQL migration for adding 2FA fields and tables</description>
+      <sql><![CDATA[
+-- Add 2FA fields to users table
+ALTER TABLE users
+ADD COLUMN two_factor_enabled BOOLEAN DEFAULT FALSE,
+ADD COLUMN two_factor_secret TEXT,
+ADD COLUMN two_factor_verified BOOLEAN DEFAULT FALSE;
+
+-- Create backup_codes table
+CREATE TABLE backup_codes (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  code TEXT NOT NULL,
+  used_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP NOT NULL
+);
+
+-- Create indexes
+CREATE INDEX idx_backup_codes_user ON backup_codes(user_id);
+CREATE INDEX idx_backup_codes_unused ON backup_codes(user_id, used_at);
+      ]]></sql>
+    </migration-sql>
+  </database-schema>
+
+  <!-- ============================================ -->
+  <!-- BETTER-AUTH CONFIGURATION -->
+  <!-- ============================================ -->
+
+  <better-auth-config>
+    <plugin-import>
+      <code><![CDATA[
+import { twoFactor } from 'better-auth/plugins/two-factor'
+      ]]></code>
+    </plugin-import>
+
+    <plugin-configuration>
+      <code><![CDATA[
+plugins: [
+  organization({
+    allowUserToCreateOrganization: true,
+  }),
+  twoFactor({
+    issuer: 'HYVVE',
+    backupCodesCount: 10,
+    totpWindow: 1, // Allow 30s clock drift (±30s)
+  }),
+]
+      ]]></code>
+    </plugin-configuration>
+
+    <plugin-features>
+      <feature name="issuer">Display name in authenticator apps</feature>
+      <feature name="backupCodesCount">Number of backup codes to generate (10)</feature>
+      <feature name="totpWindow">Time window tolerance (1 = 30s before/after)</feature>
+    </plugin-features>
+
+    <automatic-endpoints>
+      <note>better-auth automatically provides these endpoints when twoFactor plugin is enabled:</note>
+      <endpoint>POST /api/auth/two-factor/enable - Enable 2FA</endpoint>
+      <endpoint>POST /api/auth/two-factor/verify - Verify TOTP code</endpoint>
+      <endpoint>POST /api/auth/two-factor/disable - Disable 2FA</endpoint>
+      <endpoint>GET /api/auth/two-factor/backup-codes - Get backup codes</endpoint>
+    </automatic-endpoints>
+  </better-auth-config>
+
+  <!-- ============================================ -->
+  <!-- QR CODE GENERATION -->
+  <!-- ============================================ -->
+
+  <qr-code-generation>
+    <library>qrcode (npm package)</library>
+    <totp-uri-format>
+      <description>Standard otpauth URI format for authenticator apps</description>
+      <format>otpauth://totp/{ISSUER}:{EMAIL}?secret={SECRET}&amp;issuer={ISSUER}</format>
+      <example>otpauth://totp/HYVVE:user@example.com?secret=JBSWY3DPEHPK3PXP&amp;issuer=HYVVE</example>
+    </totp-uri-format>
+
+    <implementation>
+      <code><![CDATA[
+import QRCode from 'qrcode'
+import { TOTP } from 'otpauth'
+
+// Generate TOTP secret
+export function generateTOTPSecret(): string {
+  const totp = new TOTP({
+    issuer: 'HYVVE',
+    label: userEmail,
+    algorithm: 'SHA1',
+    digits: 6,
+    period: 30,
+  })
+  return totp.secret.base32
+}
+
+// Generate QR code data URI
+export async function generateQRCode(totpUri: string): Promise<string> {
+  try {
+    const qrCodeDataUrl = await QRCode.toDataURL(totpUri, {
+      errorCorrectionLevel: 'H',
+      width: 300,
+      margin: 2,
+    })
+    return qrCodeDataUrl
+  } catch (error) {
+    throw new Error('Failed to generate QR code')
+  }
+}
+
+// Format manual entry code (add spaces every 4 characters)
+export function formatManualEntryCode(secret: string): string {
+  return secret.match(/.{1,4}/g)?.join(' ') || secret
+}
+      ]]></code>
+    </implementation>
+
+    <qr-code-display>
+      <description>Display QR code as image in modal</description>
+      <jsx><![CDATA[
+<div className="flex flex-col items-center gap-4">
+  <img
+    src={qrCodeDataUrl}
+    alt="QR Code for 2FA Setup"
+    className="w-64 h-64 border rounded-lg"
+  />
+  <p className="text-sm text-gray-600">
+    Scan this QR code with your authenticator app
+  </p>
+</div>
+      ]]></jsx>
+    </qr-code-display>
+
+    <manual-entry-code>
+      <description>Display secret key for manual entry</description>
+      <jsx><![CDATA[
+<div className="flex items-center gap-2 bg-gray-100 p-3 rounded">
+  <code className="font-mono text-sm flex-1">{formattedSecret}</code>
+  <Button
+    variant="ghost"
+    size="sm"
+    onClick={() => copyToClipboard(secret)}
+  >
+    <Copy className="h-4 w-4" />
+  </Button>
+</div>
+      ]]></jsx>
+    </manual-entry-code>
+  </qr-code-generation>
+
+  <!-- ============================================ -->
+  <!-- TOTP VERIFICATION -->
+  <!-- ============================================ -->
+
+  <totp-verification>
+    <algorithm>
+      <specification>RFC 6238 - TOTP: Time-Based One-Time Password Algorithm</specification>
+      <hash-function>SHA-1</hash-function>
+      <digits>6</digits>
+      <time-step>30 seconds</time-step>
+      <time-window>±1 step (±30 seconds for clock drift)</time-window>
+    </algorithm>
+
+    <verification-implementation>
+      <code><![CDATA[
+import { TOTP } from 'otpauth'
+
+export function verifyTOTPCode(secret: string, code: string): boolean {
+  const totp = new TOTP({
+    secret: secret,
+    algorithm: 'SHA1',
+    digits: 6,
+    period: 30,
+  })
+
+  // Verify with time window for clock drift
+  const delta = totp.validate({
+    token: code,
+    window: 1, // Check current, previous, and next time step
+  })
+
+  return delta !== null
+}
+      ]]></code>
+    </verification-implementation>
+
+    <verification-ui>
+      <description>6-digit code input with auto-focus and numeric validation</description>
+      <jsx><![CDATA[
+<div className="space-y-4">
+  <label className="block text-sm font-medium">
+    Enter the 6-digit code from your authenticator app
+  </label>
+  <Input
+    type="text"
+    inputMode="numeric"
+    pattern="[0-9]{6}"
+    maxLength={6}
+    placeholder="000000"
+    value={verificationCode}
+    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+    autoFocus
+    className="text-center text-2xl tracking-widest font-mono"
+  />
+  {error && (
+    <p className="text-sm text-red-600">{error}</p>
+  )}
+  <Button
+    onClick={handleVerify}
+    disabled={verificationCode.length !== 6 || isVerifying}
+  >
+    {isVerifying ? 'Verifying...' : 'Verify & Enable'}
+  </Button>
+</div>
+      ]]></jsx>
+    </verification-ui>
+  </totp-verification>
+
+  <!-- ============================================ -->
+  <!-- BACKUP CODES GENERATION -->
+  <!-- ============================================ -->
+
+  <backup-codes>
+    <generation>
+      <description>Generate 10 unique single-use backup codes</description>
+      <format>XXXX-XXXX (8 alphanumeric characters with dash separator)</format>
+      <character-set>A-Z, 0-9 (uppercase letters and numbers, excluding similar chars: 0/O, 1/I/L)</character-set>
+      <implementation>
+        <code><![CDATA[
+import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
+
+const SAFE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // Exclude 0,O,1,I,L
+
+export function generateBackupCodes(count: number = 10): string[] {
+  const codes = new Set<string>()
+
+  while (codes.size < count) {
+    const code = generateSingleCode()
+    codes.add(code)
+  }
+
+  return Array.from(codes)
+}
+
+function generateSingleCode(): string {
+  const part1 = generateRandomString(4)
+  const part2 = generateRandomString(4)
+  return `${part1}-${part2}`
+}
+
+function generateRandomString(length: number): string {
+  const bytes = crypto.randomBytes(length)
+  let result = ''
+
+  for (let i = 0; i < length; i++) {
+    result += SAFE_CHARS[bytes[i] % SAFE_CHARS.length]
+  }
+
+  return result
+}
+
+export async function hashBackupCode(code: string): Promise<string> {
+  const salt = await bcrypt.genSalt(10)
+  return bcrypt.hash(code, salt)
+}
+        ]]></code>
+      </implementation>
+    </generation>
+
+    <storage>
+      <description>Store hashed backup codes in database</description>
+      <security-note>NEVER store plaintext backup codes. Always hash before storage.</security-note>
+      <expiry>Set expires_at to 1 year from creation date</expiry>
+      <database-insert>
+        <code><![CDATA[
+// Generate and store backup codes
+const plainCodes = generateBackupCodes(10)
+const expiresAt = new Date()
+expiresAt.setFullYear(expiresAt.getFullYear() + 1) // 1 year expiry
+
+const hashedCodes = await Promise.all(
+  plainCodes.map(async (code) => ({
+    userId: user.id,
+    code: await hashBackupCode(code),
+    expiresAt,
+  }))
+)
+
+await prisma.backupCode.createMany({
+  data: hashedCodes,
+})
+
+// Return plaintext codes to user (ONLY TIME they see them)
+return plainCodes
+        ]]></code>
+      </database-insert>
+    </storage>
+
+    <display-ui>
+      <description>Display backup codes in a grid with download and copy options</description>
+      <jsx><![CDATA[
+<div className="space-y-4">
+  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+    <h3 className="font-semibold text-yellow-900 mb-2">
+      Save these backup codes
+    </h3>
+    <p className="text-sm text-yellow-800">
+      Store these codes in a safe place. Each code can only be used once.
+    </p>
+  </div>
+
+  <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-lg">
+    {backupCodes.map((code, index) => (
+      <div
+        key={index}
+        data-testid="backup-code"
+        className="font-mono text-center py-2 bg-white border rounded"
+      >
+        {code}
+      </div>
+    ))}
+  </div>
+
+  <div className="flex gap-2">
+    <Button onClick={handleDownload} variant="outline" className="flex-1">
+      <Download className="mr-2 h-4 w-4" />
+      Download Codes
+    </Button>
+    <Button onClick={handleCopyAll} variant="outline" className="flex-1">
+      <Copy className="mr-2 h-4 w-4" />
+      Copy All Codes
+    </Button>
+  </div>
+
+  <label className="flex items-center gap-2">
+    <Checkbox
+      checked={confirmedSaved}
+      onCheckedChange={setConfirmedSaved}
+    />
+    <span className="text-sm">
+      I have saved these codes in a safe place
+    </span>
+  </label>
+
+  <Button
+    onClick={handleComplete}
+    disabled={!confirmedSaved}
+    className="w-full"
+  >
+    Complete Setup
+  </Button>
+</div>
+      ]]></jsx>
+    </display-ui>
+
+    <download-function>
+      <description>Download backup codes as text file</description>
+      <code><![CDATA[
+function handleDownload() {
+  const content = `HYVVE Two-Factor Authentication Backup Codes
+Generated: ${new Date().toLocaleString()}
+
+${backupCodes.join('\n')}
+
+IMPORTANT:
+- Each code can only be used once
+- Store these codes securely
+- Do not share these codes with anyone
+`
+
+  const blob = new Blob([content], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `hyvve-backup-codes-${Date.now()}.txt`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+      ]]></code>
+    </download-function>
+  </backup-codes>
+
+  <!-- ============================================ -->
+  <!-- UI COMPONENT STRUCTURE -->
+  <!-- ============================================ -->
+
+  <ui-components>
+    <two-factor-setup-modal>
+      <file>apps/web/src/components/auth/two-factor-setup-modal.tsx</file>
+      <description>Multi-step modal for 2FA setup flow</description>
+
+      <props>
+        <prop name="open" type="boolean" description="Whether modal is open" />
+        <prop name="onClose" type="() => void" description="Close modal callback" />
+        <prop name="onComplete" type="() => void" description="Setup complete callback" />
+      </props>
+
+      <state-management>
+        <state name="currentStep" type="'options' | 'qr-code' | 'verification' | 'backup-codes'" />
+        <state name="secret" type="string | null" description="TOTP secret" />
+        <state name="qrCode" type="string | null" description="QR code data URI" />
+        <state name="verificationCode" type="string" description="6-digit code input" />
+        <state name="backupCodes" type="string[]" description="Generated backup codes" />
+        <state name="confirmedSaved" type="boolean" description="User confirmed codes saved" />
+        <state name="isLoading" type="boolean" description="Loading state" />
+        <state name="error" type="string | null" description="Error message" />
+      </state-management>
+
+      <step-components>
+        <component name="SetupOptionsStep">
+          <description>Step 1: Choose authentication method</description>
+          <ui>
+            <item>Title: "Enable Two-Factor Authentication"</item>
+            <item>Recommended badge on Authenticator App option</item>
+            <item>SMS option (disabled, labeled "Coming Soon")</item>
+            <item>Button: "Continue with Authenticator App"</item>
+          </ui>
+        </component>
+
+        <component name="QRCodeStep">
+          <description>Step 2: Scan QR code</description>
+          <ui>
+            <item>Title: "Scan QR Code"</item>
+            <item>QR code image (300x300px)</item>
+            <item>Instructions: "Scan this code with your authenticator app"</item>
+            <item>Manual entry code with copy button</item>
+            <item>Back button, Continue button</item>
+          </ui>
+        </component>
+
+        <component name="VerificationStep">
+          <description>Step 3: Verify setup</description>
+          <ui>
+            <item>Title: "Verify Setup"</item>
+            <item>Instructions: "Enter the 6-digit code from your app"</item>
+            <item>6-digit input field (numeric, auto-focus)</item>
+            <item>Error message display</item>
+            <item>Back button, "Verify &amp; Enable" button</item>
+          </ui>
+        </component>
+
+        <component name="BackupCodesStep">
+          <description>Step 4: Save backup codes</description>
+          <ui>
+            <item>Title: "Save Your Backup Codes"</item>
+            <item>Warning banner (yellow)</item>
+            <item>2-column grid of 10 codes</item>
+            <item>Download button</item>
+            <item>Copy All button</item>
+            <item>Checkbox: "I have saved these codes"</item>
+            <item>"Complete Setup" button (disabled until checkbox)</item>
+          </ui>
+        </component>
+      </step-components>
+    </two-factor-setup-modal>
+
+    <security-settings-page>
+      <file>apps/web/src/app/settings/security/page.tsx</file>
+      <description>Security settings page with 2FA section</description>
+
+      <layout>
+        <code><![CDATA[
+import { SettingsLayout } from '@/components/layouts/settings-layout'
+import { TwoFactorCard } from '@/components/settings/two-factor-card'
+
+export default function SecuritySettingsPage() {
+  return (
+    <SettingsLayout
+      title="Security"
+      description="Manage your password and security preferences"
+    >
+      <div className="space-y-6">
+        {/* Password Change Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Password</CardTitle>
+            <CardDescription>Change your password</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Password change form */}
+          </CardContent>
+        </Card>
+
+        {/* Two-Factor Authentication Section */}
+        <TwoFactorCard />
+
+        {/* Session Management (Story 01-7) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Active Sessions</CardTitle>
+            <CardDescription>Manage your active sessions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Session list */}
+          </CardContent>
+        </Card>
+      </div>
+    </SettingsLayout>
+  )
+}
+        ]]></code>
+      </layout>
+    </security-settings-page>
+
+    <two-factor-card>
+      <file>apps/web/src/components/settings/two-factor-card.tsx</file>
+      <description>Card component showing 2FA status with enable/disable actions</description>
+
+      <states>
+        <state name="disabled">
+          <ui>
+            <item>Status badge: "Disabled" (gray)</item>
+            <item>Description: "Add an extra layer of security"</item>
+            <item>Button: "Enable Two-Factor Authentication"</item>
+          </ui>
+        </state>
+
+        <state name="enabled">
+          <ui>
+            <item>Status badge: "Enabled" (green)</item>
+            <item>Enabled date display</item>
+            <item>Backup codes count</item>
+            <item>Button: "View Backup Codes" (requires password)</item>
+            <item>Button: "Regenerate Backup Codes"</item>
+            <item>Danger zone: "Disable Two-Factor Authentication"</item>
+          </ui>
+        </state>
+      </states>
+    </two-factor-card>
+  </ui-components>
+
+  <!-- ============================================ -->
+  <!-- API ENDPOINTS -->
+  <!-- ============================================ -->
+
+  <api-endpoints>
+    <endpoint>
+      <method>POST</method>
+      <path>/api/auth/2fa/setup</path>
+      <description>Generate TOTP secret and QR code for 2FA setup</description>
+      <auth-required>true</auth-required>
+
+      <request>
+        <body>No body required (authenticated user from session)</body>
+      </request>
+
+      <response>
+        <success status="200">
+          <json><![CDATA[
+{
+  "secret": "JBSWY3DPEHPK3PXP",
+  "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+  "manualEntryCode": "JBSW Y3DP EHPK 3PXP"
+}
+          ]]></json>
+        </success>
+        <error status="401">
+          <json><![CDATA[
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  }
+}
+          ]]></json>
+        </error>
+        <error status="400">
+          <json><![CDATA[
+{
+  "error": {
+    "code": "ALREADY_ENABLED",
+    "message": "Two-factor authentication is already enabled"
+  }
+}
+          ]]></json>
+        </error>
+      </response>
+
+      <implementation-file>apps/web/src/app/api/auth/2fa/setup/route.ts</implementation-file>
+    </endpoint>
+
+    <endpoint>
+      <method>POST</method>
+      <path>/api/auth/2fa/verify-setup</path>
+      <description>Verify 6-digit code and enable 2FA with backup codes</description>
+      <auth-required>true</auth-required>
+
+      <request>
+        <body>
+          <json><![CDATA[
+{
+  "code": "123456"
+}
+          ]]></json>
+        </body>
+      </request>
+
+      <response>
+        <success status="200">
+          <json><![CDATA[
+{
+  "success": true,
+  "backupCodes": [
+    "XXXX-XXXX",
+    "YYYY-YYYY",
+    "ZZZZ-ZZZZ",
+    // ... 10 codes total
+  ]
+}
+          ]]></json>
+        </success>
+        <error status="400">
+          <json><![CDATA[
+{
+  "error": {
+    "code": "INVALID_CODE",
+    "message": "Invalid verification code"
+  }
+}
+          ]]></json>
+        </error>
+      </response>
+
+      <implementation-file>apps/web/src/app/api/auth/2fa/verify-setup/route.ts</implementation-file>
+
+      <implementation-notes>
+        <note>Verify the TOTP code against the temporary secret</note>
+        <note>If valid, update user: twoFactorEnabled=true, twoFactorVerified=true</note>
+        <note>Store encrypted secret in database</note>
+        <note>Generate 10 backup codes, hash them, store in database</note>
+        <note>Return plaintext backup codes to user (ONLY time they see them)</note>
+        <note>Clear temporary setup session data</note>
+      </implementation-notes>
+    </endpoint>
+
+    <better-auth-endpoints>
+      <note>These endpoints are automatically provided by the twoFactor plugin:</note>
+      <endpoint path="/api/auth/two-factor/enable" description="Alternative enable endpoint" />
+      <endpoint path="/api/auth/two-factor/verify" description="Verify TOTP during login" />
+      <endpoint path="/api/auth/two-factor/disable" description="Disable 2FA (requires password)" />
+      <endpoint path="/api/auth/two-factor/backup-codes" description="Regenerate backup codes" />
+    </better-auth-endpoints>
+  </api-endpoints>
+
+  <!-- ============================================ -->
+  <!-- TESTING CHECKLIST -->
+  <!-- ============================================ -->
+
+  <testing>
+    <unit-tests>
+      <test>
+        <name>TOTP secret generation produces valid base32 string</name>
+        <file>apps/web/src/lib/__tests__/two-factor.test.ts</file>
+        <assertion>Secret is 32 characters long and contains only A-Z, 2-7</assertion>
+      </test>
+
+      <test>
+        <name>QR code generation creates valid data URI</name>
+        <file>apps/web/src/lib/__tests__/two-factor.test.ts</file>
+        <assertion>QR code starts with "data:image/png;base64,"</assertion>
+      </test>
+
+      <test>
+        <name>TOTP code verification works with valid code</name>
+        <file>apps/web/src/lib/__tests__/two-factor.test.ts</file>
+        <assertion>Verify returns true for current valid code</assertion>
+      </test>
+
+      <test>
+        <name>TOTP code verification rejects expired code</name>
+        <file>apps/web/src/lib/__tests__/two-factor.test.ts</file>
+        <assertion>Verify returns false for old/invalid code</assertion>
+      </test>
+
+      <test>
+        <name>Backup codes generate 10 unique codes</name>
+        <file>apps/web/src/lib/__tests__/two-factor.test.ts</file>
+        <assertion>Returns array of 10 unique codes in XXXX-XXXX format</assertion>
+      </test>
+
+      <test>
+        <name>Backup codes are hashed before storage</name>
+        <file>apps/web/src/lib/__tests__/two-factor.test.ts</file>
+        <assertion>Hashed code is bcrypt format and verifies correctly</assertion>
+      </test>
+
+      <test>
+        <name>Manual entry code formatting adds spaces</name>
+        <file>apps/web/src/lib/__tests__/two-factor.test.ts</file>
+        <assertion>JBSWY3DPEHPK3PXP becomes "JBSW Y3DP EHPK 3PXP"</assertion>
+      </test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>
+        <name>2FA setup flow completes successfully</name>
+        <file>apps/web/tests/integration/two-factor.spec.ts</file>
+        <steps>
+          <step>Call /api/auth/2fa/setup</step>
+          <step>Receive secret and QR code</step>
+          <step>Generate valid TOTP code from secret</step>
+          <step>Call /api/auth/2fa/verify-setup with code</step>
+          <step>Receive backup codes</step>
+          <step>Verify database: twoFactorEnabled=true, 10 backup codes created</step>
+        </steps>
+      </test>
+
+      <test>
+        <name>QR code scans correctly in authenticator apps</name>
+        <file>Manual test</file>
+        <steps>
+          <step>Generate QR code</step>
+          <step>Scan in Google Authenticator</step>
+          <step>Verify account appears with "HYVVE" label</step>
+          <step>Verify 6-digit code generates</step>
+        </steps>
+      </test>
+
+      <test>
+        <name>Manual entry code works in Authy</name>
+        <file>Manual test</file>
+        <steps>
+          <step>Copy manual entry code</step>
+          <step>Add account manually in Authy</step>
+          <step>Paste code</step>
+          <step>Verify 6-digit code generates and matches</step>
+        </steps>
+      </test>
+
+      <test>
+        <name>Invalid verification code shows error</name>
+        <file>apps/web/tests/integration/two-factor.spec.ts</file>
+        <assertion>POST /api/auth/2fa/verify-setup with invalid code returns 400 error</assertion>
+      </test>
+
+      <test>
+        <name>Database stores encrypted 2FA secret</name>
+        <file>apps/web/tests/integration/two-factor.spec.ts</file>
+        <assertion>User.twoFactorSecret is not null and is encrypted (not plaintext)</assertion>
+      </test>
+    </integration-tests>
+
+    <e2e-tests>
+      <test>
+        <name>Complete 2FA setup flow from UI</name>
+        <file>apps/web/tests/e2e/two-factor-setup.spec.ts</file>
+        <playwright-test><![CDATA[
+test('complete 2FA setup flow', async ({ page }) => {
+  // 1. Sign in
+  await page.goto('/sign-in')
+  await page.fill('input[name="email"]', 'test@example.com')
+  await page.fill('input[name="password"]', 'password123')
+  await page.click('button[type="submit"]')
+
+  // 2. Navigate to security settings
+  await page.goto('/settings/security')
+
+  // 3. Start 2FA setup
+  await page.click('button:has-text("Enable 2FA")')
+
+  // 4. Should show QR code step
+  await expect(page.locator('img[alt*="QR Code"]')).toBeVisible()
+
+  // 5. Manual entry code should be visible
+  const manualCode = await page.locator('[data-testid="manual-entry-code"]')
+  await expect(manualCode).toBeVisible()
+
+  // 6. Click continue to verification
+  await page.click('button:has-text("Continue")')
+
+  // 7. Enter mock verification code
+  await page.fill('input[name="verificationCode"]', '123456')
+  await page.click('button:has-text("Verify & Enable")')
+
+  // 8. Should show backup codes
+  await expect(page.locator('text=Save these backup codes')).toBeVisible()
+  const backupCodes = await page.locator('[data-testid="backup-code"]').count()
+  expect(backupCodes).toBe(10)
+
+  // 9. Confirm saved
+  await page.click('input[type="checkbox"]')
+  await page.click('button:has-text("Complete Setup")')
+
+  // 10. Should show success message
+  await expect(page.locator('text=Two-factor authentication enabled')).toBeVisible()
+
+  // 11. Verify status on settings page
+  await expect(page.locator('text=Enabled')).toBeVisible()
+})
+        ]]></playwright-test>
+      </test>
+
+      <test>
+        <name>Cannot enable 2FA if already enabled</name>
+        <file>apps/web/tests/e2e/two-factor-setup.spec.ts</file>
+        <assertion>Enable button shows "Manage" instead when 2FA already enabled</assertion>
+      </test>
+
+      <test>
+        <name>Copy button works for manual entry code</name>
+        <file>apps/web/tests/e2e/two-factor-setup.spec.ts</file>
+        <assertion>Click copy button, verify clipboard contains secret</assertion>
+      </test>
+
+      <test>
+        <name>Download backup codes creates text file</name>
+        <file>apps/web/tests/e2e/two-factor-setup.spec.ts</file>
+        <assertion>Click download, verify .txt file downloads with all 10 codes</assertion>
+      </test>
+    </e2e-tests>
+
+    <manual-testing-checklist>
+      <category name="QR Code Scanning">
+        <item>QR code scans successfully in Google Authenticator</item>
+        <item>QR code scans successfully in Authy</item>
+        <item>QR code scans successfully in 1Password</item>
+        <item>Account appears with "HYVVE" label in all apps</item>
+        <item>6-digit codes generate every 30 seconds</item>
+      </category>
+
+      <category name="Manual Entry">
+        <item>Manual entry code displays with spaces for readability</item>
+        <item>Copy button copies code to clipboard</item>
+        <item>Manual entry code works in Google Authenticator</item>
+        <item>Manual entry code works in Authy</item>
+      </category>
+
+      <category name="Verification">
+        <item>Valid 6-digit code successfully enables 2FA</item>
+        <item>Invalid code shows error message</item>
+        <item>Error message is user-friendly</item>
+        <item>Can retry after invalid code</item>
+        <item>Cannot proceed without valid code</item>
+      </category>
+
+      <category name="Backup Codes">
+        <item>10 backup codes display in grid format</item>
+        <item>Each code is unique</item>
+        <item>Codes are in XXXX-XXXX format</item>
+        <item>Download button creates text file</item>
+        <item>Copy All button copies all codes</item>
+        <item>Checkbox must be checked to complete setup</item>
+        <item>Complete button is disabled until checkbox checked</item>
+      </category>
+
+      <category name="Security">
+        <item>TOTP secret is encrypted in database</item>
+        <item>Backup codes are hashed in database</item>
+        <item>Plaintext codes never stored</item>
+        <item>Setup requires authenticated session</item>
+      </category>
+
+      <category name="User Experience">
+        <item>Modal shows correct title for each step</item>
+        <item>Instructions are clear at each step</item>
+        <item>Back button works (except on backup codes)</item>
+        <item>Loading states display during API calls</item>
+        <item>Success message shows after completion</item>
+        <item>Settings page updates to show "Enabled" status</item>
+      </category>
+    </manual-testing-checklist>
+  </testing>
+
+  <!-- ============================================ -->
+  <!-- EXISTING CODE REFERENCES -->
+  <!-- ============================================ -->
+
+  <existing-code>
+    <auth-configuration>
+      <file>apps/web/src/lib/auth.ts</file>
+      <current-state>
+        <item>better-auth already configured with organization plugin</item>
+        <item>Google, Microsoft, GitHub OAuth providers configured</item>
+        <item>Email/password authentication enabled</item>
+        <item>Session management configured (7-day expiry)</item>
+      </current-state>
+      <modification>
+        <action>Add twoFactor plugin import</action>
+        <action>Add twoFactor to plugins array</action>
+      </modification>
+    </auth-configuration>
+
+    <auth-client>
+      <file>apps/web/src/lib/auth-client.ts</file>
+      <current-state>
+        <item>Client-side auth methods: signUp, signIn, signOut</item>
+        <item>useSession hook for session data</item>
+        <item>Session management functions: listSessions, revokeSession</item>
+      </current-state>
+      <modification>
+        <action>Add 2FA methods will be available automatically from better-auth client</action>
+        <action>No changes required to this file</action>
+      </modification>
+    </auth-client>
+
+    <security-settings-page>
+      <file>apps/web/src/app/settings/security/page.tsx</file>
+      <current-state>
+        <item>Basic page structure with SettingsLayout</item>
+        <item>Placeholder text: "Security settings coming soon."</item>
+      </current-state>
+      <modification>
+        <action>Replace placeholder with actual security sections</action>
+        <action>Add TwoFactorCard component</action>
+        <action>Add password change section</action>
+        <action>Link to session management (Story 01-7)</action>
+      </modification>
+    </security-settings-page>
+
+    <database-schema>
+      <file>packages/db/prisma/schema.prisma</file>
+      <current-state>
+        <item>User model exists with basic auth fields</item>
+        <item>Session, Account, VerificationToken models exist</item>
+        <item>TwoFactorBackupCode and TwoFactorSecret models exist but unused</item>
+      </current-state>
+      <modification>
+        <action>Add twoFactorEnabled, twoFactorSecret, twoFactorVerified to User</action>
+        <action>Replace TwoFactorBackupCode with BackupCode model (better structure)</action>
+        <action>Remove unused TwoFactorSecret model</action>
+      </modification>
+    </database-schema>
+  </existing-code>
+
+  <!-- ============================================ -->
+  <!-- SECURITY CONSIDERATIONS -->
+  <!-- ============================================ -->
+
+  <security>
+    <totp-secret-encryption>
+      <requirement>TOTP secret MUST be encrypted before database storage</requirement>
+      <implementation>
+        <algorithm>AES-256-GCM</algorithm>
+        <key-derivation>PBKDF2 with BETTER_AUTH_SECRET as master key</key-derivation>
+        <library>crypto.subtle (Web Crypto API)</library>
+        <code><![CDATA[
+import crypto from 'crypto'
+
+const ALGORITHM = 'aes-256-gcm'
+const KEY_LENGTH = 32
+const IV_LENGTH = 16
+const SALT_LENGTH = 64
+const TAG_LENGTH = 16
+
+export async function encryptSecret(plaintext: string, masterKey: string): Promise<string> {
+  // Derive encryption key from master key
+  const salt = crypto.randomBytes(SALT_LENGTH)
+  const key = crypto.pbkdf2Sync(masterKey, salt, 100000, KEY_LENGTH, 'sha256')
+
+  // Encrypt with AES-256-GCM
+  const iv = crypto.randomBytes(IV_LENGTH)
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
+
+  let encrypted = cipher.update(plaintext, 'utf8', 'hex')
+  encrypted += cipher.final('hex')
+
+  const authTag = cipher.getAuthTag()
+
+  // Combine salt + iv + encrypted + authTag
+  const combined = Buffer.concat([
+    salt,
+    iv,
+    Buffer.from(encrypted, 'hex'),
+    authTag
+  ])
+
+  return combined.toString('base64')
+}
+
+export async function decryptSecret(encrypted: string, masterKey: string): Promise<string> {
+  const combined = Buffer.from(encrypted, 'base64')
+
+  // Extract components
+  const salt = combined.slice(0, SALT_LENGTH)
+  const iv = combined.slice(SALT_LENGTH, SALT_LENGTH + IV_LENGTH)
+  const ciphertext = combined.slice(SALT_LENGTH + IV_LENGTH, -TAG_LENGTH)
+  const authTag = combined.slice(-TAG_LENGTH)
+
+  // Derive encryption key
+  const key = crypto.pbkdf2Sync(masterKey, salt, 100000, KEY_LENGTH, 'sha256')
+
+  // Decrypt
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
+  decipher.setAuthTag(authTag)
+
+  let decrypted = decipher.update(ciphertext.toString('hex'), 'hex', 'utf8')
+  decrypted += decipher.final('utf8')
+
+  return decrypted
+}
+        ]]></code>
+      </implementation>
+    </totp-secret-encryption>
+
+    <backup-code-hashing>
+      <requirement>Backup codes MUST be hashed before storage (like passwords)</requirement>
+      <algorithm>bcrypt with salt rounds = 10</algorithm>
+      <note>Never store plaintext backup codes in database</note>
+      <verification>
+        <code><![CDATA[
+import bcrypt from 'bcryptjs'
+
+// Hash before storing
+const hashedCode = await bcrypt.hash(plainCode, 10)
+
+// Verify when user uses backup code
+const isValid = await bcrypt.compare(userInputCode, storedHashedCode)
+        ]]></code>
+      </verification>
+    </backup-code-hashing>
+
+    <rate-limiting>
+      <requirement>Rate limit verification attempts to prevent brute force</requirement>
+      <limits>
+        <limit>5 failed attempts per 15 minutes per user</limit>
+        <limit>After 5 failures, require password re-authentication</limit>
+        <limit>Log all failed verification attempts</limit>
+      </limits>
+      <implementation>
+        <note>Use Redis for rate limiting (optional for MVP)</note>
+        <note>Alternative: Track attempts in session or database</note>
+      </implementation>
+    </rate-limiting>
+
+    <audit-logging>
+      <events>
+        <event>2FA setup initiated</event>
+        <event>2FA setup completed</event>
+        <event>2FA verification failed</event>
+        <event>2FA disabled</event>
+        <event>Backup codes regenerated</event>
+        <event>Backup code used</event>
+      </events>
+      <storage>Use existing AuditLog model</storage>
+    </audit-logging>
+
+    <session-requirements>
+      <requirement>Require re-authentication for sensitive 2FA operations</requirement>
+      <operations>
+        <operation>Disabling 2FA (require current password)</operation>
+        <operation>Regenerating backup codes (require current password)</operation>
+        <operation>Viewing backup codes (require current password)</operation>
+      </operations>
+    </session-requirements>
+  </security>
+
+  <!-- ============================================ -->
+  <!-- DEPENDENCIES -->
+  <!-- ============================================ -->
+
+  <dependencies>
+    <npm-packages>
+      <package name="qrcode" version="^1.5.4">
+        <description>Generate QR codes for TOTP setup</description>
+        <usage>Convert otpauth URI to QR code data URL</usage>
+      </package>
+      <package name="@types/qrcode" version="^1.5.5" dev="true">
+        <description>TypeScript types for qrcode</description>
+      </package>
+      <package name="otpauth" version="^9.3.5">
+        <description>TOTP/HOTP implementation (RFC 6238)</description>
+        <usage>Generate and verify TOTP codes</usage>
+      </package>
+      <package name="better-auth" version="^1.4.4" existing="true">
+        <description>Already installed - includes twoFactor plugin</description>
+      </package>
+    </npm-packages>
+
+    <environment-variables>
+      <variable name="BETTER_AUTH_SECRET" required="true">
+        <description>Master secret for encryption (already configured)</description>
+        <usage>Used to encrypt TOTP secrets before database storage</usage>
+      </variable>
+      <variable name="BETTER_AUTH_URL" required="true">
+        <description>Base URL for auth endpoints (already configured)</description>
+      </variable>
+    </environment-variables>
+
+    <completed-stories>
+      <story id="01-1">better-auth installation and configuration</story>
+      <story id="01-2">Email/password registration</story>
+      <story id="01-4">Email/password sign-in</story>
+      <story id="01-7">Session management</story>
+      <story id="09-1">Microsoft OAuth (adds provider option)</story>
+      <story id="09-2">GitHub OAuth (adds provider option)</story>
+    </completed-stories>
+
+    <blocking-dependencies>
+      <note>No blocking dependencies - story can be implemented immediately</note>
+    </blocking-dependencies>
+  </dependencies>
+
+  <!-- ============================================ -->
+  <!-- NOTES AND GOTCHAS -->
+  <!-- ============================================ -->
+
+  <implementation-notes>
+    <note priority="high">
+      <title>TOTP Secret Must Be Encrypted</title>
+      <description>
+        The TOTP secret is like a master password for 2FA. If exposed, an attacker can
+        generate valid codes. ALWAYS encrypt before storing in database using
+        BETTER_AUTH_SECRET as the encryption key.
+      </description>
+    </note>
+
+    <note priority="high">
+      <title>Backup Codes Are Single-Use</title>
+      <description>
+        Once a backup code is used, mark it with usedAt timestamp. Never allow
+        reuse of backup codes. Generate new codes if all are used.
+      </description>
+    </note>
+
+    <note priority="medium">
+      <title>QR Code Generation Is Async</title>
+      <description>
+        QRCode.toDataURL() returns a Promise. Handle loading states in UI while
+        generating the QR code. Cache the generated QR code during setup session.
+      </description>
+    </note>
+
+    <note priority="medium">
+      <title>Time Synchronization</title>
+      <description>
+        TOTP relies on time synchronization between server and client device.
+        Use totpWindow=1 to allow ±30 seconds clock drift. If users report issues,
+        check server time synchronization (NTP).
+      </description>
+    </note>
+
+    <note priority="low">
+      <title>Character Set for Backup Codes</title>
+      <description>
+        Exclude visually similar characters (0/O, 1/I/L) from backup codes to
+        prevent user confusion when entering codes manually.
+      </description>
+    </note>
+
+    <note priority="low">
+      <title>Mobile Responsiveness</title>
+      <description>
+        On mobile devices, the QR code modal should be full-screen for easier
+        scanning. Test on actual mobile devices, not just browser devtools.
+      </description>
+    </note>
+
+    <note priority="high">
+      <title>Don't Store Plaintext Codes</title>
+      <description>
+        The only time backup codes are shown in plaintext is during initial setup.
+        After that, they're hashed in the database like passwords. Never log
+        plaintext codes.
+      </description>
+    </note>
+  </implementation-notes>
+
+  <!-- ============================================ -->
+  <!-- DEFINITION OF DONE -->
+  <!-- ============================================ -->
+
+  <definition-of-done>
+    <database>
+      <item>✓ Database schema updated with 2FA fields on User model</item>
+      <item>✓ BackupCode model created with proper indexes</item>
+      <item>✓ Migration applied successfully to database</item>
+      <item>✓ Prisma client regenerated with new types</item>
+    </database>
+
+    <backend>
+      <item>✓ better-auth twoFactor plugin configured</item>
+      <item>✓ POST /api/auth/2fa/setup endpoint created</item>
+      <item>✓ POST /api/auth/2fa/verify-setup endpoint created</item>
+      <item>✓ TOTP secret encryption implemented</item>
+      <item>✓ Backup code hashing implemented</item>
+      <item>✓ QR code generation working</item>
+    </backend>
+
+    <frontend>
+      <item>✓ TwoFactorSetupModal component created with 4 states</item>
+      <item>✓ TwoFactorCard component created for settings page</item>
+      <item>✓ Security settings page updated with 2FA section</item>
+      <item>✓ QR code displays correctly</item>
+      <item>✓ Manual entry code displays with copy button</item>
+      <item>✓ 6-digit verification input works (numeric only)</item>
+      <item>✓ Backup codes display in grid</item>
+      <item>✓ Download codes button works</item>
+      <item>✓ Copy all codes button works</item>
+      <item>✓ Confirmation checkbox required before completion</item>
+    </frontend>
+
+    <testing>
+      <item>✓ Unit tests pass (TOTP, QR code, backup codes)</item>
+      <item>✓ Integration tests pass (setup flow, API endpoints)</item>
+      <item>✓ E2E test passes (complete UI flow)</item>
+      <item>✓ Manual testing checklist completed</item>
+      <item>✓ QR code scans in Google Authenticator</item>
+      <item>✓ QR code scans in Authy</item>
+      <item>✓ Manual entry code works</item>
+    </testing>
+
+    <security>
+      <item>✓ TOTP secrets encrypted in database</item>
+      <item>✓ Backup codes hashed in database</item>
+      <item>✓ No plaintext secrets in logs</item>
+      <item>✓ Audit logging implemented for 2FA events</item>
+    </security>
+
+    <documentation>
+      <item>✓ Code comments added for complex functions</item>
+      <item>✓ API endpoint documentation updated</item>
+      <item>✓ User-facing instructions clear in UI</item>
+    </documentation>
+
+    <deployment>
+      <item>✓ Code reviewed and approved</item>
+      <item>✓ Merged to epic branch</item>
+      <item>✓ Deployed to staging environment</item>
+      <item>✓ QA verification complete on staging</item>
+    </deployment>
+  </definition-of-done>
+
+  <!-- ============================================ -->
+  <!-- RELATED STORIES -->
+  <!-- ============================================ -->
+
+  <related-stories>
+    <next-story id="09-4">
+      <title>Implement Two-Factor Authentication Login</title>
+      <description>Add 2FA verification prompt during login flow</description>
+      <dependency>Requires 09-3 to be complete (can't login with 2FA if setup doesn't work)</dependency>
+    </next-story>
+
+    <next-story id="09-5">
+      <title>Implement 2FA Management</title>
+      <description>View backup codes, regenerate codes, disable 2FA, manage trusted devices</description>
+      <dependency>Requires 09-3 and 09-4 to be complete</dependency>
+    </next-story>
+
+    <prerequisite-story id="01-1">
+      <title>Install and Configure better-auth</title>
+      <status>Complete</status>
+      <relevance>Provides base authentication system</relevance>
+    </prerequisite-story>
+
+    <prerequisite-story id="01-7">
+      <title>Implement Session Management</title>
+      <status>Complete</status>
+      <relevance>Provides session context for authenticated operations</relevance>
+    </prerequisite-story>
+  </related-stories>
+
+  <!-- ============================================ -->
+  <!-- REFERENCE LINKS -->
+  <!-- ============================================ -->
+
+  <references>
+    <wireframe>
+      <name>AU-06: Two-Factor Authentication</name>
+      <location>docs/design/wireframes/Finished wireframes and html files/au-06_two-factor_authentication/</location>
+      <files>
+        <file>code.html - Interactive preview</file>
+        <file>screen.png - Static wireframe</file>
+      </files>
+      <states>
+        <state>State 1: Setup Options</state>
+        <state>State 2: QR Code Display</state>
+        <state>State 3: Backup Codes</state>
+      </states>
+    </wireframe>
+
+    <technical-spec>
+      <file>docs/archive/foundation-phase/sprint-artifacts/tech-spec-epic-09.md</file>
+      <sections>
+        <section>ADR-009-04: Two-Factor Authentication Implementation</section>
+        <section>Database Schema Changes - User Model Extensions</section>
+        <section>Database Schema Changes - BackupCode Model</section>
+        <section>API Endpoints - Two-Factor Authentication Setup</section>
+      </sections>
+    </technical-spec>
+
+    <story-file>
+      <file>docs/stories/09-3-implement-two-factor-authentication-setup.md</file>
+    </story-file>
+
+    <external-docs>
+      <doc>
+        <title>RFC 6238 - TOTP Specification</title>
+        <url>https://datatracker.ietf.org/doc/html/rfc6238</url>
+      </doc>
+      <doc>
+        <title>better-auth twoFactor Plugin Docs</title>
+        <url>https://www.better-auth.com/docs/plugins/two-factor</url>
+      </doc>
+      <doc>
+        <title>QRCode.js Documentation</title>
+        <url>https://github.com/soldair/node-qrcode</url>
+      </doc>
+      <doc>
+        <title>OTPAuth Documentation</title>
+        <url>https://github.com/hectorm/otpauth</url>
+      </doc>
+    </external-docs>
+  </references>
+</story-context>
