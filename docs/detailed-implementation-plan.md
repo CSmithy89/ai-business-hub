@@ -2,8 +2,8 @@
 
 **Status:** Living Document
 **Date:** 2025-12-14
-**Version:** 2.10
-**Last Audit:** 2025-12-14
+**Version:** 2.11
+**Last Audit:** 2025-12-15
 
 ---
 
@@ -444,6 +444,49 @@ Additional dev hardening: default WebSocket hostname to the current `window.loca
 
 ---
 
+#### 5.5.7. Remaining Follow-ups (P0–P3) 🔜 Planned
+
+This section captures remaining review recommendations and follow-ups that are **not yet implemented**. Items are grouped by priority and intended to be completed in sequential “P0 → P3” passes (commit + push after each priority group).
+
+##### P0 (Security + Operational Correctness)
+
+| # | Task | Rationale | Files | Status |
+|---|------|-----------|-------|--------|
+| 1 | Implement encryption key rotation script (re-encrypt stored secrets with a new `ENCRYPTION_MASTER_KEY`) | Current docs describe rotation but lack an executable migration; without re-encryption, secrets become undecryptable after rotation | `scripts/rotate-encryption-master-key.ts` (new), `packages/db/prisma/schema.prisma` (confirm encrypted fields), `docs/DEPLOYMENT.md` (update) | ⏳ Pending |
+| 2 | Document rotation procedure end-to-end (tables/fields, downtime expectations, rollback) | Avoid “docs placeholder” risk and make rotation safe for ops | `docs/DEPLOYMENT.md`, `docs/runbooks/key-rotation.md` | ⏳ Pending |
+| 3 | Make WebSocket cookie fallback opt-in even in dev (keep `handshake.auth.token` as the only default) | Cookie-auth fallback increases risk surface; reviewers recommended explicit enablement | `apps/api/src/realtime/realtime.gateway.ts`, `docs/DEPLOYMENT.md` | ⏳ Pending |
+| 4 | Add startup/runtime guardrails for insecure WS fallbacks | If cookie/auth-header fallbacks are enabled in production, require explicit acknowledgment and emit strong warnings | `apps/api/src/realtime/realtime.gateway.ts` | ⏳ Pending |
+
+##### P1 (Reliability + Performance)
+
+| # | Task | Rationale | Files | Status |
+|---|------|-----------|-------|--------|
+| 1 | Replace `KnowledgeFactory` class-level caches with bounded caches (TTL/LRU) and document lifecycle | Current `_instances/_locks/_table_name_cache` are unbounded globals (leak risk across workspaces and tests) | `agents/knowledge/factory.py` | ⏳ Pending |
+| 2 | Add asyncpg connection pooling for knowledge table-resolution + DDL helpers | Current `_resolve_table_name()` uses `asyncpg.connect()` per call; pooling reduces overhead and risk of exhaustion under load | `agents/knowledge/factory.py` | ⏳ Pending |
+| 3 | Ensure Redis fallback closes failed clients before nulling (avoid orphaned sockets) | `rate-limit.ts` currently sets `redisUrlClient=null` on error without quitting | `apps/web/src/lib/utils/rate-limit.ts` | ⏳ Pending |
+| 4 | Add stream-level timeout and reconnect backoff policy (client-side) | Prevent “hung stream” UX and limit long-lived connections | `apps/web/src/hooks/use-agent-stream.ts` | ⏳ Pending |
+| 5 | Harden `useAgentStream` rapid mount/unmount cleanup | Reviewer concern: cleanup may not fire under rapid lifecycle churn; add mounted flag tests and guard rails | `apps/web/src/hooks/use-agent-stream.ts`, `apps/web/src/hooks/__tests__/use-agent-stream.test.ts` (new) | ⏳ Pending |
+
+##### P2 (Testing Coverage)
+
+| # | Task | Rationale | Files | Status |
+|---|------|-----------|-------|--------|
+| 1 | Add MCP API route tests (validation, RBAC, masking, CRUD happy path) | Prevent regressions in MCP management and secret-handling | `apps/web/src/app/api/workspaces/[id]/mcp-servers/**/*.test.ts` (new) | ⏳ Pending |
+| 2 | Add Module API route tests (enable/disable timestamps + RBAC + config masking) | Catch logic regressions and ensure module timestamps are consistent | `apps/web/src/app/api/workspaces/[id]/modules/**/*.test.ts` (new) | ⏳ Pending |
+| 3 | Add Knowledge ingestion/search tests (tenant isolation + filters + error paths) | Critical correctness/security area; currently under-tested vs importance | `agents/tests/test_knowledge_ingestion.py` (new), `agents/tests/test_knowledge_search.py` (new) | ⏳ Pending |
+| 4 | Add BYOAI integration smoke tests (provider resolution with encrypted keys) | Ensure end-to-end provider resolution stays compatible with encryption key handling | `agents/tests/test_byoai_integration.py` (new) | ⏳ Pending |
+| 5 | Add WebSocket auth integration test coverage | Verify auth paths remain secure as fallbacks evolve | `apps/api/test/realtime.gateway.e2e-spec.ts` (new) | ⏳ Pending |
+| 6 | Add Playwright E2E for critical UI flows (API Keys, MCP, Modules, Realtime) | Validate UI + API integration in realistic browser environment | `apps/web/playwright/**/*.spec.ts` (new) | ⏳ Pending |
+
+##### P3 (Docs + DevEx)
+
+| # | Task | Rationale | Files | Status |
+|---|------|-----------|-------|--------|
+| 1 | Document MCP permission security model (especially EXECUTE) | Make risk/expectations explicit for admins | `docs/DEPLOYMENT.md` or `docs/architecture/mcp-security.md` (new) | ⏳ Pending |
+| 2 | Document Redis production + monitoring guidance (rate limiting vs event bus) | Avoid misconfiguration between Upstash and standard Redis | `docs/DEPLOYMENT.md`, `docs/runbooks/troubleshooting/*` | ⏳ Pending |
+| 3 | Add environment validation script (fail fast on missing critical envs) | Reduce runtime surprises; supports CI and deployment checklists | `scripts/validate-env.ts` (new) | ⏳ Pending |
+| 4 | Add rollback procedure for new migrations + realtime auth behavior changes | Needed for safe production rollout | `docs/runbooks/database-recovery.md`, `docs/DEPLOYMENT.md` | ⏳ Pending |
+
 ## 6. Dependency Requirements
 
 ### 6.1. Current Dependencies (`agents/requirements.txt`)
@@ -600,5 +643,5 @@ Use this checklist to verify implementation completeness:
 
 ---
 
-*Last Updated: 2025-12-14*
-*Version: 2.10 - Dev Redis env alignment + realtime cookie auth fallback*
+*Last Updated: 2025-12-15*
+*Version: 2.11 - Added remaining follow-ups backlog (P0–P3)*
