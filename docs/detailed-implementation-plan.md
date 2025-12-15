@@ -499,8 +499,8 @@ This section tracks additional follow-ups from the CodeRabbit review pass. Items
 - [x] Avoid leaking internal exception strings in SSE error events (prod-safe messages) (`agents/main.py`)
 
 ##### P2 (UX + Cleanup)
-- [ ] Reduce hydration layout shift by using a more neutral default `windowWidth` (`apps/web/src/hooks/use-responsive-layout.ts`)
-- [ ] Revoke attachment preview blob URLs on unmount (`apps/web/src/components/chat/ChatInput.tsx`)
+- [x] Reduce hydration layout shift by using a more neutral default `windowWidth` (`apps/web/src/hooks/use-responsive-layout.ts`)
+- [x] Revoke attachment preview blob URLs on unmount (`apps/web/src/components/chat/ChatInput.tsx`)
 
 ##### P3 (Docs Consistency)
 - [ ] Resolve status inconsistencies in `docs/NEXT-STEPS.md` (Phase 0.5 completion vs “wiring needed”)

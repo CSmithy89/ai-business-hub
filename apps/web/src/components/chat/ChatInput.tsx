@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useState, useRef, KeyboardEvent, useCallback, ChangeEvent } from 'react';
+import { useState, useRef, useEffect, KeyboardEvent, useCallback, ChangeEvent } from 'react';
 import { AtSign, Paperclip, ArrowUp, X, FileText, Image as ImageIcon, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MentionPopup, getFilteredAgents } from './MentionPopup';
@@ -55,6 +55,26 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const previewUrlsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    previewUrlsRef.current = attachedFiles
+      .map((f) => f.preview)
+      .filter((v): v is string => typeof v === 'string' && v.length > 0);
+  }, [attachedFiles]);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup any remaining image preview object URLs on unmount.
+      for (const url of previewUrlsRef.current) {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, []);
 
   const handleSend = () => {
     const hasContent = message.trim() || attachedFiles.length > 0;

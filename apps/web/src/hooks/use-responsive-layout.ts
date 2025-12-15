@@ -142,7 +142,8 @@ export interface UseResponsiveLayout {
 export function useResponsiveLayout(): UseResponsiveLayout {
   // Hydration-safe defaults: keep initial render deterministic across SSR/CSR,
   // then update from `window`/`localStorage` after mount.
-  const [windowWidth, setWindowWidth] = useState(1920);
+  // Default to a medium breakpoint to minimize layout shift on smaller devices.
+  const [windowWidth, setWindowWidth] = useState(1024);
   const [layoutPriority, setLayoutPriorityState] =
     useState<LayoutPriority>('sidebar');
   const [isTouchDevice, setIsTouchDevice] = useState(false);
