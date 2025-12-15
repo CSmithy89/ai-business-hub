@@ -10,6 +10,8 @@
 - Quality gates: `pnpm type-check`, `pnpm lint`, `pnpm build`.
 - Web tests: `pnpm --filter @hyvve/web test` (Vitest); Playwright E2E supports `PLAYWRIGHT_REPORT_DIR` env for reports.
 - Agents/API: use target filters (e.g., `pnpm --filter @hyvve/api test`); prefer local Postgres/Redis per `.env.example`.
+- Environment validation: `node scripts/validate-env.js` (fail-fast env checks).
+- Encryption key rotation: `pnpm --filter @hyvve/db exec node scripts/rotate-encryption-master-key.js --dry-run` (see `docs/runbooks/key-rotation.md`).
 
 ## Coding Style & Naming Conventions
 - TypeScript strict; prefer `unknown` over `any`. Imports: external → `@hyvve/...` → relative. Files kebab-case; components PascalCase; hooks prefixed with `use`; types in `*.types.ts`; tests `*.test.ts`.
