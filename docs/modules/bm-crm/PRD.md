@@ -2,8 +2,8 @@
 
 **Author:** Chris
 **Date:** 2025-12-15
-**Version:** 1.1
-**Status:** Draft (Enhanced with Journey Mapping + Six Thinking Hats elicitation)
+**Version:** 1.2
+**Status:** Draft (Enhanced with 5 elicitation methods)
 
 ---
 
@@ -230,14 +230,23 @@ Recommend reaching out before upgrading tier."
 
 **Daily Summary Content (Clara's Morning Briefing):**
 Clara delivers a personalized daily summary each morning containing:
-1. **Hot Leads Alert** - Contacts that crossed into HOT/SALES_READY overnight
-2. **Stale Deals Warning** - Deals stuck past SLA thresholds (Flow's data)
-3. **Engagement Spikes** - Contacts with unusual activity (Echo's data)
-4. **Follow-up Reminders** - Tasks due today
-5. **Pipeline Snapshot** - Quick metrics (deals by stage, weighted value)
-6. **Outreach Performance** - Sequence response rates (Cadence's data)
+1. **🎯 Who to Call Today** - Top 5 prioritized contacts by score × recency × deal value (the "just tell me who to call" answer)
+2. **Hot Leads Alert** - Contacts that crossed into HOT/SALES_READY overnight
+3. **Stale Deals Warning** - Deals stuck past SLA thresholds (Flow's data)
+4. **Engagement Spikes** - Contacts with unusual activity (Echo's data)
+5. **Follow-up Reminders** - Tasks due today
+6. **Pipeline Snapshot** - Quick metrics (deals by stage, weighted value)
+7. **Outreach Performance** - Sequence response rates (Cadence's data)
 
 Format: Card-based summary with expandable sections, delivered via in-app notification at user's configured time (default 8:00 AM local).
+
+**"Who to Call" Prioritization Algorithm:**
+```
+Priority Score = (Lead Score × 0.4) + (Days Since Contact × 0.3) + (Deal Value / 1000 × 0.3)
+```
+- Excludes contacts with activity in last 24 hours
+- Excludes contacts in active sequences (Cadence handling)
+- One-click "Call Now" button logs activity and opens phone dialer
 
 **Implementation:**
 ```python
@@ -291,13 +300,15 @@ Intent Factors:
 - Contact sales form (+35 points)
 ```
 
-**Tier Thresholds:**
-| Tier | Score Range | SLA |
-|------|-------------|-----|
-| SALES_READY | 90-100 | < 4 hours |
-| HOT | 70-89 | < 24 hours |
-| WARM | 50-69 | < 48 hours |
-| COLD | 0-49 | Nurture |
+**Tier Thresholds (Defaults - Configurable per Tenant):**
+| Tier | Default Range | SLA | Configurable |
+|------|---------------|-----|--------------|
+| SALES_READY | 90-100 | < 4 hours | ✅ |
+| HOT | 70-89 | < 24 hours | ✅ |
+| WARM | 50-69 | < 48 hours | ✅ |
+| COLD | 0-49 | Nurture | ✅ |
+
+> **E-9 Enhancement:** Tier thresholds are configurable per tenant in Settings → CRM → Scoring. Different industries have different qualification criteria - a WARM lead for enterprise software (score 60) might be HOT for a quick-sale product.
 
 **Tools:**
 - `calculate_score` - Compute lead score
@@ -332,12 +343,21 @@ Intent Factors:
 5. Trigger Scout to recalculate score
 6. Log enrichment cost
 
+**Enrichment Budget Management:** `[MVP]`
+- Configurable monthly spend limit per tenant (default: $50/month)
+- Real-time spend tracking in Settings → CRM → Enrichment
+- Alert thresholds: 50%, 75%, 90% of budget
+- Atlas announces: "Enrichment budget at 75%. 127 credits remaining this month."
+- Auto-pause enrichment at 100% (optional - can allow overage with warning)
+- Per-provider cost tracking (Clearbit vs Apollo vs Hunter)
+
 **Tools:**
 - `enrich_contact` - Enrich single contact
 - `enrich_company` - Enrich company firmographics
 - `verify_email` - Validate email address
 - `find_linkedin` - Find LinkedIn profile URL
 - `bulk_enrich` - Batch enrichment (requires approval)
+- `get_enrichment_spend` - Check current spend vs budget
 
 ---
 
@@ -444,11 +464,20 @@ Intent Factors:
 - Gmail/Outlook (email sync)
 - Google/Outlook Calendar (meeting sync)
 
+**Sync Health Dashboard:** `[Growth-Phase2]`
+- Visual status indicator per integration (🟢 Healthy, 🟡 Degraded, 🔴 Failed)
+- Last sync timestamp and record counts
+- Error log with retry status
+- Sync proactively alerts: "HubSpot sync failed 3 times. Last error: API rate limit. Retrying in 15 min."
+- One-click "Sync Now" and "Pause Sync" actions
+- Field mapping visualization showing source → destination
+
 **Tools:**
 - `sync_now` - Trigger immediate sync
 - `configure_mapping` - Set field mappings
 - `get_sync_status` - Check sync health
 - `resolve_conflict` - Handle sync conflicts
+- `get_sync_errors` - Retrieve recent sync failures
 
 ---
 
@@ -680,10 +709,11 @@ User requests data deletion
 - Configurable weights per tenant
 - Score history tracking
 
-**FR-5.2: Score Display**
+**FR-5.2: Score Display** `[MVP]`
 - Score badge on contact cards
-- Score breakdown view
-- Score trend over time
+- **Score explanation tooltip on hover** - Shows top 3 factors: "High: Demo request (+40), Email engagement (+15). Low: No company size data (-10)"
+- Score breakdown view (detailed modal)
+- Score trend over time (sparkline chart)
 - Tier change alerts
 
 **FR-5.3: Tier Actions** `[MVP]`
@@ -830,6 +860,17 @@ Users can configure how proactive the CRM agents are:
 | Slack/Teams | ❌ No | Yes (with integration) |
 | SMS | ❌ No | Yes (urgent only) |
 
+**Smart Notification Batching:**
+To prevent notification fatigue, CRM agents batch non-urgent notifications:
+- **Immediate**: SALES_READY tier upgrade, compliance alerts, sync failures
+- **Batched (hourly)**: WARM→HOT upgrades, stuck deal warnings, enrichment completions
+- **Daily digest**: Activity summaries, sequence performance, pipeline health
+
+Batching rules:
+- Max 5 immediate notifications per hour (6th+ batched)
+- Similar notifications grouped: "3 contacts moved to HOT tier" not 3 separate alerts
+- User can override to "All Immediate" in proactivity settings
+
 ---
 
 ## Data Model Summary
@@ -928,6 +969,24 @@ Users can configure agent visibility per workspace:
 - **All Agents Visible**: Full agent attribution on actions
 - **Team Only**: Actions attributed to "CRM Team"
 - **Silent Mode**: Agents work but no attribution shown
+
+### Single Entry Point: Clara First
+
+**Critical UX Principle:** Users always interact with Clara first. Clara routes internally.
+
+- **Chat interface** → Always opens with Clara greeting
+- **@ mentions** → `@Clara` is primary; `@Scout` etc. are advanced
+- **Action buttons** → "Ask Clara" not "Ask CRM Team"
+- **Error messages** → Clara explains, even for specialist agent errors
+
+This prevents user confusion about which agent to ask. Clara handles routing:
+```
+User: "Why is this lead scored so low?"
+Clara: "Let me check with Scout... [internal routing]"
+Clara: "Scout analyzed the score. Here's why: [presents Scout's findings]"
+```
+
+Advanced users can still address specialists directly via `@Scout`, `@Atlas`, etc.
 
 ---
 
