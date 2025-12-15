@@ -512,7 +512,7 @@ hyvve:ratelimit:api:client-ip-address
 **Token Security:**
 - Never commit `UPSTASH_REDIS_REST_TOKEN` to version control
 - Store in secure secrets manager (Vercel env vars, AWS Secrets Manager, etc.)
-- Rotate tokens periodically (every 90 days recommended)
+- Rotate tokens on a regular schedule and immediately on suspected compromise
 
 **Network Security:**
 - Upstash uses HTTPS for REST API (TLS 1.3)
