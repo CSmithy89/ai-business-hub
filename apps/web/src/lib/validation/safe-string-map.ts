@@ -7,6 +7,9 @@ export interface SafeStringMapOptions {
   maxKeyLength?: number
   maxValueLength?: number
   maxTotalChars?: number
+  allowedKeyRegex?: RegExp
+  allowedKeyPrefixes?: string[]
+  forbidNewlinesInValues?: boolean
 }
 
 const DEFAULT_OPTIONS: Required<SafeStringMapOptions> = {
@@ -14,6 +17,9 @@ const DEFAULT_OPTIONS: Required<SafeStringMapOptions> = {
   maxKeyLength: 100,
   maxValueLength: 2000,
   maxTotalChars: 20000,
+  allowedKeyRegex: /.*/u,
+  allowedKeyPrefixes: [],
+  forbidNewlinesInValues: true,
 }
 
 export function safeStringMap(
@@ -51,10 +57,37 @@ export function safeStringMap(
         return
       }
 
+      if (config.allowedKeyPrefixes.length > 0) {
+        const ok = config.allowedKeyPrefixes.some((prefix) => key.startsWith(prefix))
+        if (!ok) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `${label} keys must start with one of: ${config.allowedKeyPrefixes.join(', ')}`,
+          })
+          return
+        }
+      }
+
+      if (config.allowedKeyRegex && !config.allowedKeyRegex.test(key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${label} contains invalid key: ${key}`,
+        })
+        return
+      }
+
       if (val.length > config.maxValueLength) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `${label} values must be ≤ ${config.maxValueLength} characters (key: ${key})`,
+        })
+        return
+      }
+
+      if (config.forbidNewlinesInValues && (val.includes('\n') || val.includes('\r'))) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${label} values must not contain newlines (key: ${key})`,
         })
         return
       }
@@ -70,4 +103,3 @@ export function safeStringMap(
     }
   })
 }
-

@@ -41,8 +41,25 @@ const CreateMCPServerSchema = z.object({
   command: z.string().optional(),
   url: z.string().url().optional(),
   apiKey: z.string().min(1).max(500).optional(),
-  headers: safeStringMap('Headers').optional().default({}),
-  envVars: safeStringMap('Environment variables').optional().default({}),
+  headers: safeStringMap('Headers', {
+    maxEntries: 20,
+    maxKeyLength: 200,
+    maxValueLength: 4000,
+    maxTotalChars: 20000,
+    // RFC7230 header field-name (token)
+    allowedKeyRegex: /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/u,
+    forbidNewlinesInValues: true,
+  }).optional().default({}),
+  envVars: safeStringMap('Environment variables', {
+    maxEntries: 50,
+    maxKeyLength: 100,
+    maxValueLength: 4000,
+    maxTotalChars: 30000,
+    // Only allow MCP-scoped variables to avoid surprising injection of process env semantics.
+    allowedKeyPrefixes: ['MCP_'],
+    allowedKeyRegex: /^[A-Z0-9_]+$/u,
+    forbidNewlinesInValues: true,
+  }).optional().default({}),
   includeTools: z.array(z.string()).optional().default([]),
   excludeTools: z.array(z.string()).optional().default([]),
   permissions: z.number().int().min(0).max(7).optional().default(1),
