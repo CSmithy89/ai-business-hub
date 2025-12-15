@@ -482,6 +482,29 @@ Commits:
 - [x] Add environment validation script (fail-fast) (`scripts/validate-env.js`)
 - [x] Add rollback procedures for migrations + realtime auth behavior (`docs/runbooks/database-recovery.md`, `docs/DEPLOYMENT.md`)
 
+---
+
+#### 5.5.8. CodeRabbit Review Follow-ups (P0–P3) 🔜 In Progress
+
+This section tracks additional follow-ups from the CodeRabbit review pass. Items are grouped by priority and will be completed in sequential “P0 → P3” passes (commit + push after each group).
+
+##### P0 (Security + Operational Correctness)
+- [x] Anchor dev-origin regex checks to prevent hostname suffix bypass (`apps/api/src/realtime/realtime.gateway.ts`)
+- [x] Require non-empty `BETTER_AUTH_SECRET` for JWT validation (avoid empty secret fallback) (`agents/main.py`)
+- [x] Enforce authentication + workspace context for A2A JSON-RPC execution (`agents/main.py`)
+- [x] Key rotation safety: transactional batches + safe resume behavior (`packages/db/scripts/rotate-encryption-master-key.js`)
+
+##### P1 (Reliability)
+- [ ] Add timeout protection for team streaming path (avoid hung streams) (`agents/main.py`)
+- [ ] Avoid leaking internal exception strings in SSE error events (prod-safe messages) (`agents/main.py`)
+
+##### P2 (UX + Cleanup)
+- [ ] Reduce hydration layout shift by using a more neutral default `windowWidth` (`apps/web/src/hooks/use-responsive-layout.ts`)
+- [ ] Revoke attachment preview blob URLs on unmount (`apps/web/src/components/chat/ChatInput.tsx`)
+
+##### P3 (Docs Consistency)
+- [ ] Resolve status inconsistencies in `docs/NEXT-STEPS.md` (Phase 0.5 completion vs “wiring needed”)
+
 ## 6. Dependency Requirements
 
 ### 6.1. Current Dependencies (`agents/requirements.txt`)

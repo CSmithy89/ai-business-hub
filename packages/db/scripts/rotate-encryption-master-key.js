@@ -140,6 +140,7 @@ async function rotateEncryptedColumn({
   let cursor = undefined;
   let scanned = 0;
   let rotated = 0;
+  let skippedAlreadyRotated = 0;
 
   while (true) {
     const rows = await prisma[modelName].findMany({
@@ -152,14 +153,14 @@ async function rotateEncryptedColumn({
 
     if (rows.length === 0) break;
 
-    for (const row of rows) {
+    const processRow = async (row, client) => {
       scanned += 1;
       const id = row[idField];
       const encryptedValue = row[encryptedField];
 
       cursor = id;
 
-      if (!encryptedValue) continue;
+      if (!encryptedValue) return;
       if (!isLikelyEncryptedBase64(encryptedValue)) {
         throw new Error(
           `[${modelName}] Row ${String(id)}: ${encryptedField} is not a recognized encrypted envelope`
@@ -170,25 +171,47 @@ async function rotateEncryptedColumn({
       try {
         plaintext = decryptCredential(encryptedValue, oldKeyBytes);
       } catch (err) {
-        throw new Error(
-          `[${modelName}] Row ${String(id)}: failed to decrypt with old key (${encryptedField}). ` +
-            `Aborting rotation. ${(err && err.message) || String(err)}`
-        );
+        // If a previous run partially rotated this dataset, allow safe resume:
+        // - If it decrypts with the NEW key, treat as already rotated and skip.
+        try {
+          decryptCredential(encryptedValue, newKeyBytes);
+          skippedAlreadyRotated += 1;
+          return;
+        } catch {
+          throw new Error(
+            `[${modelName}] Row ${String(id)}: failed to decrypt with old key (${encryptedField}). ` +
+              `Aborting rotation. ${(err && err.message) || String(err)}`
+          );
+        }
       }
 
       const reEncrypted = encryptCredential(plaintext, newKeyBytes);
-
       rotated += 1;
-      if (dryRun) continue;
 
-      await prisma[modelName].update({
+      if (dryRun) return;
+
+      await client[modelName].update({
         where: { [idField]: id },
         data: { [encryptedField]: reEncrypted },
+      });
+    };
+
+    if (dryRun) {
+      for (const row of rows) {
+        // eslint-disable-next-line no-await-in-loop
+        await processRow(row, prisma);
+      }
+    } else {
+      await prisma.$transaction(async (tx) => {
+        for (const row of rows) {
+          // eslint-disable-next-line no-await-in-loop
+          await processRow(row, tx);
+        }
       });
     }
   }
 
-  return { scanned, rotated };
+  return { scanned, rotated, skippedAlreadyRotated };
 }
 
 async function main() {
@@ -223,7 +246,7 @@ async function main() {
       selectExtra: { workspaceId: true, provider: true },
     });
     console.log(
-      `[rotate] AIProviderConfig: scanned=${providerResult.scanned}, rotated=${providerResult.rotated}`
+      `[rotate] AIProviderConfig: scanned=${providerResult.scanned}, rotated=${providerResult.rotated}, skippedAlreadyRotated=${providerResult.skippedAlreadyRotated}`
     );
 
     const mcpResult = await rotateEncryptedColumn({
@@ -238,7 +261,9 @@ async function main() {
       where: { apiKeyEncrypted: { not: null } },
       selectExtra: { workspaceId: true, serverId: true },
     });
-    console.log(`[rotate] MCPServerConfig: scanned=${mcpResult.scanned}, rotated=${mcpResult.rotated}`);
+    console.log(
+      `[rotate] MCPServerConfig: scanned=${mcpResult.scanned}, rotated=${mcpResult.rotated}, skippedAlreadyRotated=${mcpResult.skippedAlreadyRotated}`
+    );
 
     if (dryRun) {
       console.log('[rotate] Dry-run complete. No data was modified.');
@@ -254,4 +279,3 @@ main().catch((err) => {
   console.error('[rotate] Failed:', err instanceof Error ? err.message : err);
   process.exitCode = 1;
 });
-

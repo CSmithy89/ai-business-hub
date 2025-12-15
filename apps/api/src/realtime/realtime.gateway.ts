@@ -106,10 +106,12 @@ const MAX_CONNECTIONS_PER_USER = parseInt(
       const isAllowedDevOrigin = (value: string): boolean => {
         // Accept both http and https; precisely match RFC1918/private ranges.
         const v = (value || '').toLowerCase();
-        if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?/.test(v)) return true;
-        if (/^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?/.test(v)) return true;
-        if (/^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?/.test(v)) return true;
-        if (/^https?:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}(:\d+)?/.test(v)) {
+        // SECURITY: Anchor to end-of-string to prevent hostname suffix bypasses
+        // (e.g. "http://localhost.evil.com").
+        if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(v)) return true;
+        if (/^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(v)) return true;
+        if (/^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(v)) return true;
+        if (/^https?:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(v)) {
           return true;
         }
         return false;

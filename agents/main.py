@@ -98,10 +98,11 @@ app.add_middleware(
 )
 
 # Tenant middleware (JWT validation and workspace_id injection)
-app.add_middleware(
-    TenantMiddleware,
-    secret_key=_unwrap_secret(settings.better_auth_secret) or ""
-)
+_auth_secret = _unwrap_secret(settings.better_auth_secret)
+if not _auth_secret:
+    raise RuntimeError("BETTER_AUTH_SECRET is required for JWT validation")
+
+app.add_middleware(TenantMiddleware, secret_key=_auth_secret)
 
 # Rate limiting
 try:
@@ -716,6 +717,20 @@ async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
                 message="Invalid Request",
                 data={"details": "jsonrpc must be '2.0'"}
             )
+        )
+
+    # SECURITY: Enforce tenant isolation / authentication for A2A calls.
+    # Do not allow unauthenticated callers to execute agent tasks.
+    workspace_id = getattr(req.state, "workspace_id", None)
+    user_id = getattr(req.state, "user_id", None)
+    if not workspace_id or not user_id:
+        return JSONRPCResponse(
+            id=request.id,
+            error=JSONRPCError(
+                code=-32600,
+                message="Authentication required",
+                data={"details": "Missing workspace context"},
+            ),
         )
 
     # Get the team/agent
