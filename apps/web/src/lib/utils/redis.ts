@@ -15,6 +15,8 @@ declare global {
   var __hyvve_io_redis__: Redis | undefined
    
   var __hyvve_upstash_redis__: UpstashRedis | undefined
+
+  var __hyvve_redis_shutdown_hooks_registered__: boolean | undefined
 }
 
 export type RedisBackend =
@@ -63,15 +65,40 @@ function createIoRedis(): Redis | null {
       // Safer defaults for dev/serverless-like environments:
       lazyConnect: true,
       enableOfflineQueue: false,
-      maxRetriesPerRequest: 1,
-      // Avoid infinite reconnection loops in dev; in production prefer Upstash.
-      retryStrategy: () => null,
+      maxRetriesPerRequest: 2,
+      // Limited reconnection with exponential backoff. In production prefer Upstash.
+      retryStrategy: (times) => {
+        if (times > 5) return null
+        return Math.min(1000 * 2 ** (times - 1), 10_000)
+      },
       connectTimeout: 1000,
     })
 
     client.on('error', (error) => {
       console.warn('[redis] ioredis error:', error)
     })
+    client.on('end', () => {
+      // Ensure subsequent calls can create a fresh client.
+      if (globalThis.__hyvve_io_redis__ === client) {
+        globalThis.__hyvve_io_redis__ = undefined
+      }
+    })
+
+    if (!globalThis.__hyvve_redis_shutdown_hooks_registered__) {
+      globalThis.__hyvve_redis_shutdown_hooks_registered__ = true
+      const shutdown = async () => {
+        try {
+          await globalThis.__hyvve_io_redis__?.quit()
+        } catch {
+          // ignore
+        } finally {
+          globalThis.__hyvve_io_redis__ = undefined
+        }
+      }
+      process.once('SIGTERM', () => void shutdown())
+      process.once('SIGINT', () => void shutdown())
+      process.once('beforeExit', () => void shutdown())
+    }
 
     globalThis.__hyvve_io_redis__ = client
     return client

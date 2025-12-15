@@ -184,7 +184,10 @@ function checkRateLimitInMemory(
   // If entry doesn't exist or window has expired, create new entry
   if (!entry || entry.resetAt < now) {
     // Ensure capacity before adding new entry
-    if (rateLimitStore.size >= RATE_LIMIT_MAX_ENTRIES && !rateLimitStore.has(key)) {
+    if (
+      (rateLimitStore.size >= RATE_LIMIT_MAX_ENTRIES - 100 && !rateLimitStore.has(key)) ||
+      rateLimitStore.size >= RATE_LIMIT_MAX_ENTRIES
+    ) {
       cleanupRateLimits()
     }
     entry = {
@@ -192,6 +195,9 @@ function checkRateLimitInMemory(
       resetAt: now + windowMs,
     }
     rateLimitStore.set(key, entry)
+    if (rateLimitStore.size > RATE_LIMIT_MAX_ENTRIES) {
+      cleanupRateLimits()
+    }
   }
 
   // Increment count

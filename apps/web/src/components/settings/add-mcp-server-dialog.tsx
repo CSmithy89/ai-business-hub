@@ -354,7 +354,7 @@ export function AddMCPServerDialog({
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="envVars">Environment variables (JSON object)</Label>
+                  <Label htmlFor="envVars">Environment variables (JSON object, keys must start with MCP_)</Label>
                   <Textarea
                     id="envVars"
                     value={envVarsJSON}

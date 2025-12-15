@@ -1,9 +1,10 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { User, Lock, Shield, Key, Bot, Palette, Settings, Users, ShieldCheck, Boxes, Plug } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ErrorBoundary } from '@/components/error-boundary'
 import type { Route } from 'next'
 
 /**
@@ -161,6 +162,7 @@ export function SettingsLayout({
   description,
 }: SettingsLayoutProps) {
   const pathname = usePathname()
+  const router = useRouter()
 
   return (
     <div className="container max-w-7xl mx-auto py-10 md:py-12 px-4">
@@ -219,7 +221,12 @@ export function SettingsLayout({
             </div>
 
             {/* Page Content */}
-            {children}
+            <ErrorBoundary
+              errorMessage="This settings section failed to load."
+              onRetry={() => router.refresh()}
+            >
+              {children}
+            </ErrorBoundary>
           </div>
         </main>
       </div>

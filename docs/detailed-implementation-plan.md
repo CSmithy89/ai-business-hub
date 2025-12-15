@@ -429,6 +429,19 @@ Additional dev hardening: default WebSocket hostname to the current `window.loca
 * ✅ `pnpm --filter @hyvve/web lint` (warnings only)
 * ✅ Playwright smoke: settings pages render; realtime tooltip shows active when API reachable
 
+#### 5.5.6. Additional Hardening Pass (P0–P2) ✅ COMPLETE
+
+| Area | Improvement | Files | Status |
+|------|-------------|-------|--------|
+| Knowledge | Defense-in-depth: validate identifiers at execution time and avoid fragile quote-escaping when dropping tables | `agents/knowledge/factory.py` | ✅ Done |
+| Knowledge | Reduce table-name collision probability by using a stronger hash suffix while staying under Postgres identifier limits | `agents/knowledge/factory.py` | ✅ Done |
+| AG-UI streaming | Buffer cap checks pre-append; limits configurable via env/options; fix hook dependency warnings | `apps/web/src/hooks/use-agent-stream.ts` | ✅ Done |
+| Redis (dev) | Add bounded reconnection backoff + best-effort shutdown handlers to avoid leaked clients in long-running dev processes | `apps/web/src/lib/utils/redis.ts` | ✅ Done |
+| Rate limiting | More aggressive cleanup when approaching in-memory cap | `apps/web/src/lib/utils/rate-limit.ts` | ✅ Done |
+| MCP config | Tighten header/env validation (counts, safe key regex, CRLF rejection, env var prefix allowlist) | `apps/web/src/lib/validation/safe-string-map.ts`, `apps/web/src/app/api/workspaces/[id]/mcp-servers/**/route.ts` | ✅ Done |
+| Settings UX | Wrap settings content in an error boundary to prevent whole-page crashes from hook/component failures | `apps/web/src/components/layouts/settings-layout.tsx` | ✅ Done |
+| BYOAI resolver | Add lightweight retry with exponential backoff for transient provider lookup failures | `agents/providers/provider_resolver.py` | ✅ Done |
+
 ---
 
 ## 6. Dependency Requirements

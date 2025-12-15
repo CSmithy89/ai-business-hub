@@ -8,6 +8,7 @@ Includes model factory for creating actual Agno model instances.
 """
 
 import logging
+import asyncio
 from typing import Optional, Dict, Any, Union
 from dataclasses import dataclass
 from enum import Enum
@@ -164,10 +165,25 @@ class ProviderResolver:
             f"preferred: {preferred_provider}/{preferred_model}"
         )
 
-        providers = await self.byoai_client.get_workspace_providers(
-            workspace_id=workspace_id,
-            jwt_token=jwt_token,
-        )
+        providers: list[ProviderConfig] = []
+        for attempt in range(3):
+            try:
+                providers = await self.byoai_client.get_workspace_providers(
+                    workspace_id=workspace_id,
+                    jwt_token=jwt_token,
+                )
+                break
+            except Exception as exc:  # noqa: BLE001
+                if attempt >= 2:
+                    raise
+                delay = 2 ** attempt
+                logger.warning(
+                    "Provider lookup failed (attempt %s/3): %s. Retrying in %ss",
+                    attempt + 1,
+                    type(exc).__name__,
+                    delay,
+                )
+                await asyncio.sleep(delay)
 
         if not providers:
             logger.warning(f"No providers configured for workspace {workspace_id}")

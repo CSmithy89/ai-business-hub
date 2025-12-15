@@ -199,6 +199,18 @@ export interface UseAgentStreamOptions {
    * @default process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:8001'
    */
   baseURL?: string
+
+  /**
+   * Maximum allowed SSE buffer size (characters)
+   * @default 1048576 (1MB), overridable via NEXT_PUBLIC_AGENT_STREAM_MAX_BUFFER_CHARS
+   */
+  maxSseBufferChars?: number
+
+  /**
+   * Maximum allowed outbound message length (characters)
+   * @default 10000, overridable via NEXT_PUBLIC_AGENT_STREAM_MAX_MESSAGE_LENGTH
+   */
+  maxMessageLength?: number
 }
 
 // ============================================================================
@@ -266,8 +278,15 @@ const createInitialState = (): AgentStreamState => ({
   events: [],
 })
 
-const MAX_SSE_BUFFER_CHARS = 1024 * 1024 // 1MB safety cap
-const MAX_MESSAGE_LENGTH = 10_000 // Prevent accidental huge requests
+const DEFAULT_MAX_SSE_BUFFER_CHARS = 1024 * 1024 // 1MB safety cap
+const DEFAULT_MAX_MESSAGE_LENGTH = 10_000
+
+function parseOptionalPositiveInt(value: string | undefined): number | undefined {
+  if (!value) return undefined
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined
+  return parsed
+}
 
 // ============================================================================
 // useAgentStream Hook
@@ -307,6 +326,10 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
     onError,
     collectEvents = false,
     baseURL = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:8001',
+    maxSseBufferChars = parseOptionalPositiveInt(process.env.NEXT_PUBLIC_AGENT_STREAM_MAX_BUFFER_CHARS) ??
+      DEFAULT_MAX_SSE_BUFFER_CHARS,
+    maxMessageLength = parseOptionalPositiveInt(process.env.NEXT_PUBLIC_AGENT_STREAM_MAX_MESSAGE_LENGTH) ??
+      DEFAULT_MAX_MESSAGE_LENGTH,
   } = options
 
   const [state, setState] = useState<AgentStreamState>(createInitialState)
@@ -553,8 +576,8 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
         return
       }
 
-      if (!request.message || request.message.length > MAX_MESSAGE_LENGTH) {
-        const error = new Error(`Message too long (max ${MAX_MESSAGE_LENGTH} characters)`)
+      if (!request.message || request.message.length > maxMessageLength) {
+        const error = new Error(`Message too long (max ${maxMessageLength} characters)`)
         if (currentStreamId === streamIdRef.current && mountedRef.current) {
           setState(prev => ({
             ...prev,
@@ -662,10 +685,11 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
           }
 
           // Decode chunk and add to buffer
-          buffer += decoder.decode(value, { stream: true })
-          if (buffer.length > MAX_SSE_BUFFER_CHARS) {
-            throw new Error('Stream buffer exceeded 1MB; aborting to prevent memory bloat')
+          const chunk = decoder.decode(value, { stream: true })
+          if (buffer.length + chunk.length > maxSseBufferChars) {
+            throw new Error('Stream buffer would exceed limit; aborting to prevent memory bloat')
           }
+          buffer += chunk
 
           // Process complete events (separated by double newline)
           const parts = buffer.split('\n\n')
@@ -717,7 +741,7 @@ export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStr
         }
       }
     },
-    [abort, baseURL, processEvent, parseSSELine]
+    [abort, baseURL, processEvent, parseSSELine, maxMessageLength, maxSseBufferChars]
   )
 
   // Cleanup on unmount
