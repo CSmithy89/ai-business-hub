@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-HYVVE is an AI-powered business orchestration platform designed to achieve **90% automation with 5 hours/week human involvement** for SMB businesses. This PRD covers the **Platform Foundation** - the core infrastructure that enables modular business automation modules to be built on top.
+HYVVE is an AI-powered business orchestration platform designed to achieve **high automation with human-in-the-loop oversight** for SMB businesses. This PRD covers the **Platform Foundation**: the core infrastructure that enables modular business automation modules to be built on top.
 
 The Platform Foundation provides:
 - Multi-tenant workspace architecture with Row-Level Security
@@ -18,16 +18,20 @@ The Platform Foundation provides:
 - Human-in-the-loop approval system for AI-proposed actions
 - Event bus for cross-module communication
 - BYOAI (Bring Your Own AI) key management
+- MCP (Model Context Protocol) integrations with permission controls
+- AgentOS runtime with A2A discovery + AG-UI streaming protocols
+- Workspace-scoped knowledge base (RAG) for retrieval-augmented agents
+- Real-time updates via WebSocket gateway
 - UI shell with responsive sidebar, main content, and chat panel
 
 ### What Makes This Special
 
-**The 90/5 Promise:** Unlike traditional business software that requires constant human attention, HYVVE's AI agents handle routine operations autonomously while surfacing only important decisions for human approval. The confidence-based routing system means:
+Unlike traditional business software that requires constant human attention, HYVVE's AI agents handle routine operations autonomously while surfacing only important decisions for human approval. The confidence-based routing system means:
 - High confidence actions (>85%) auto-execute with audit logging
 - Medium confidence (60-85%) get quick 1-click approval
 - Low confidence (<60%) require full human review
 
-This creates a **force multiplier** where a single SMB owner can operate with the efficiency of a much larger team.
+This creates a **force multiplier** where small teams can operate with the efficiency of much larger teams.
 
 ---
 
@@ -866,6 +870,38 @@ interface TokenUsage {
 | FR-6.7 | Command palette opens with Cmd/Ctrl+K | P1 |
 | FR-6.8 | Keyboard shortcuts for common actions | P1 |
 
+### FR-7: MCP Integrations
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-7.1 | Owners/Admins can configure MCP servers for a workspace | P0 |
+| FR-7.2 | Members can view the MCP server list (non-secret fields only) | P0 |
+| FR-7.3 | MCP server secrets (API keys, headers, env vars) are stored encrypted or protected from non-admin reads | P0 |
+| FR-7.4 | MCP server environment variables are restricted to MCP-scoped prefixes | P0 |
+| FR-7.5 | Users can restrict MCP tool exposure via allow/deny lists | P1 |
+| FR-7.6 | MCP permissions support READ / WRITE / EXECUTE separation | P0 |
+| FR-7.7 | Agents only load tools permitted by workspace MCP permissions | P0 |
+
+### FR-8: Knowledge Base (RAG)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-8.1 | Each workspace has an isolated knowledge store for retrieval | P0 |
+| FR-8.2 | Knowledge storage uses pgvector in Postgres | P0 |
+| FR-8.3 | Knowledge table naming prevents cross-tenant collisions | P0 |
+| FR-8.4 | Agents can search knowledge with workspace isolation | P0 |
+| FR-8.5 | Operators can clear cached knowledge instances without data loss (restart or cache clear) | P1 |
+| FR-8.6 | Operators can delete a workspace knowledge table during workspace reset/deletion | P1 |
+
+### FR-9: AgentOS Protocols (A2A + AG-UI)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-9.1 | AgentOS provides A2A discovery endpoints for registered agents/teams | P0 |
+| FR-9.2 | AgentOS provides an A2A RPC endpoint for invoking agent tasks | P0 |
+| FR-9.3 | AgentOS streams agent/team responses using AG-UI events over SSE | P0 |
+| FR-9.4 | AgentOS enforces workspace context for authenticated protocol calls | P0 |
+
 ---
 
 ## Non-Functional Requirements
@@ -886,15 +922,16 @@ interface TokenUsage {
 
 | ID | Requirement |
 |----|-------------|
-| NFR-S1 | All API keys encrypted at rest using AES-256 |
+| NFR-S1 | All API keys encrypted at rest using AES-256-GCM |
 | NFR-S2 | All traffic encrypted in transit using TLS 1.3 |
-| NFR-S3 | JWT tokens signed with RS256 |
+| NFR-S3 | JWT tokens signed and verified using a secure algorithm (HS256 for BetterAuth) |
 | NFR-S4 | CSRF protection on all state-changing endpoints |
 | NFR-S5 | XSS prevention with CSP headers |
 | NFR-S6 | SQL injection prevention via parameterized queries |
 | NFR-S7 | Rate limiting on all public endpoints |
 | NFR-S8 | Audit logging for security-sensitive operations |
 | NFR-S9 | OWASP Top 10 compliance |
+| NFR-S10 | Encryption master key rotation is supported with operational runbook + tooling |
 
 ### Scalability
 

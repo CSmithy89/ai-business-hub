@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { Agent } from '@hyvve/shared'
+import { safeJson } from '@/lib/utils/safe-json'
 
 interface ApiResponse<T> {
   data: T
@@ -34,7 +35,8 @@ async function fetchAgents(params?: AgentsQueryParams): Promise<Agent[]> {
     throw new Error('Failed to fetch agents')
   }
 
-  const result: ApiResponse<Agent[]> = await response.json()
+  const result = await safeJson<ApiResponse<Agent[]>>(response)
+  if (!result) throw new Error('Failed to fetch agents')
   return result.data
 }
 

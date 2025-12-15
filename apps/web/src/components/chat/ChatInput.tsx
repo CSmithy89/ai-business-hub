@@ -13,39 +13,148 @@
 
 'use client';
 
-import { useState, useRef, KeyboardEvent, useCallback } from 'react';
-import { AtSign, Paperclip, ArrowUp } from 'lucide-react';
+import { useState, useRef, useEffect, KeyboardEvent, useCallback, ChangeEvent } from 'react';
+import { AtSign, Paperclip, ArrowUp, X, FileText, Image as ImageIcon, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MentionPopup, getFilteredAgents } from './MentionPopup';
 import type { ChatAgent } from './AgentSelector';
 
+interface AttachedFile {
+  id: string;
+  file: File;
+  preview?: string;
+  type: 'image' | 'document' | 'other';
+}
+
 interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, attachments?: File[]) => void;
   agentName: string;
   disabled?: boolean;
   /** Optional callback when an agent is mentioned */
   onMention?: (agent: ChatAgent) => void;
+  /** Maximum file size in MB */
+  maxFileSizeMB?: number;
+  /** Allowed file types */
+  acceptedFileTypes?: string;
 }
 
-export function ChatInput({ onSend, agentName, disabled, onMention }: ChatInputProps) {
+export function ChatInput({
+  onSend,
+  agentName,
+  disabled,
+  onMention,
+  maxFileSizeMB = 10,
+  acceptedFileTypes = 'image/*,.pdf,.doc,.docx,.txt,.md,.csv,.json',
+}: ChatInputProps) {
   const [message, setMessage] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [showMentionPopup, setShowMentionPopup] = useState(false);
   const [mentionFilter, setMentionFilter] = useState('');
   const [mentionStartIndex, setMentionStartIndex] = useState(-1);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const previewUrlsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    previewUrlsRef.current = attachedFiles
+      .map((f) => f.preview)
+      .filter((v): v is string => typeof v === 'string' && v.length > 0);
+  }, [attachedFiles]);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup any remaining image preview object URLs on unmount.
+      for (const url of previewUrlsRef.current) {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, []);
 
   const handleSend = () => {
-    if (message.trim() && !disabled) {
-      onSend(message.trim());
+    const hasContent = message.trim() || attachedFiles.length > 0;
+    if (hasContent && !disabled) {
+      const files = attachedFiles.map((af) => af.file);
+      onSend(message.trim(), files.length > 0 ? files : undefined);
       setMessage('');
+      // Prevent memory leaks from image previews
+      attachedFiles.forEach((file) => {
+        if (file.preview) URL.revokeObjectURL(file.preview);
+      });
+      setAttachedFiles([]);
       setShowMentionPopup(false);
       // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
     }
+  };
+
+  // File handling functions
+  const getFileType = (file: File): AttachedFile['type'] => {
+    if (file.type.startsWith('image/')) return 'image';
+    if (
+      file.type === 'application/pdf' ||
+      file.type.includes('document') ||
+      file.type.includes('text')
+    ) {
+      return 'document';
+    }
+    return 'other';
+  };
+
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const maxSizeBytes = maxFileSizeMB * 1024 * 1024;
+    const newFiles: AttachedFile[] = [];
+
+    Array.from(files).forEach((file) => {
+      if (file.size > maxSizeBytes) {
+        console.warn(`File ${file.name} exceeds ${maxFileSizeMB}MB limit`);
+        return;
+      }
+
+      const attachedFile: AttachedFile = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        file,
+        type: getFileType(file),
+      };
+
+      // Create preview for images
+      if (attachedFile.type === 'image') {
+        attachedFile.preview = URL.createObjectURL(file);
+      }
+
+      newFiles.push(attachedFile);
+    });
+
+    setAttachedFiles((prev) => [...prev, ...newFiles]);
+
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeFile = (fileId: string) => {
+    setAttachedFiles((prev) => {
+      const file = prev.find((f) => f.id === fileId);
+      if (file?.preview) {
+        URL.revokeObjectURL(file.preview);
+      }
+      return prev.filter((f) => f.id !== fileId);
+    });
+  };
+
+  const handleAttachClick = () => {
+    fileInputRef.current?.click();
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -170,6 +279,15 @@ export function ChatInput({ onSend, agentName, disabled, onMention }: ChatInputP
     }
   };
 
+  // Helper to render file icon based on type
+  const FileTypeIcon = ({ type }: { type: AttachedFile['type'] }) => {
+    if (type === 'image') return <ImageIcon className="h-4 w-4" />;
+    if (type === 'document') return <FileText className="h-4 w-4" />;
+    return <File className="h-4 w-4" />;
+  };
+
+  const hasContent = message.trim() || attachedFiles.length > 0;
+
   return (
     <footer
       ref={containerRef}
@@ -178,24 +296,80 @@ export function ChatInput({ onSend, agentName, disabled, onMention }: ChatInputP
         'bg-[rgb(var(--color-bg-surface))] p-3 px-4'
       )}
     >
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept={acceptedFileTypes}
+        onChange={handleFileSelect}
+        className="hidden"
+        aria-hidden="true"
+      />
+
       {/* Mention Popup - positioned above the input */}
       <MentionPopup
         isOpen={showMentionPopup}
         filter={mentionFilter}
-        position={{ bottom: 60, left: 12 }}
+        position={{ bottom: attachedFiles.length > 0 ? 120 : 60, left: 12 }}
         highlightedIndex={highlightedIndex}
         onSelect={handleMentionSelect}
         onClose={() => setShowMentionPopup(false)}
       />
 
+      {/* Attached files preview */}
+      {attachedFiles.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-2">
+          {attachedFiles.map((file) => (
+            <div
+              key={file.id}
+              className={cn(
+                'relative flex items-center gap-2 rounded-lg px-3 py-2',
+                'bg-[rgb(var(--color-bg-tertiary))]',
+                'border border-[rgb(var(--color-border-default))]'
+              )}
+            >
+              {file.preview ? (
+                <img
+                  src={file.preview}
+                  alt={file.file.name}
+                  className="h-8 w-8 rounded object-cover"
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-[rgb(var(--color-bg-secondary))]">
+                  <FileTypeIcon type={file.type} />
+                </div>
+              )}
+              <span className="max-w-[120px] truncate text-xs text-[rgb(var(--color-text-secondary))]">
+                {file.file.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => removeFile(file.id)}
+                className={cn(
+                  'flex h-5 w-5 items-center justify-center rounded-full',
+                  'bg-[rgb(var(--color-bg-secondary))] text-[rgb(var(--color-text-muted))]',
+                  'hover:bg-[rgb(var(--color-error-500))] hover:text-white',
+                  'transition-colors duration-150'
+                )}
+                aria-label={`Remove ${file.file.name}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Input container with rounded corners */}
       <div
         className={cn(
-          'relative flex min-h-[44px] items-end gap-2',
-          'rounded-full bg-[rgb(var(--color-bg-tertiary))] py-2 pl-11 pr-2'
+          'flex min-h-[44px] items-end gap-2 rounded-2xl',
+          'bg-[rgb(var(--color-bg-tertiary))] py-2 px-3'
         )}
       >
-        {/* Left Icons */}
-        <div className="absolute bottom-3 left-3 flex items-center gap-1">
+        {/* Left action buttons */}
+        <div className="flex shrink-0 items-center gap-1 self-end pb-0.5">
           {/* @mention button */}
           <button
             type="button"
@@ -208,13 +382,13 @@ export function ChatInput({ onSend, agentName, disabled, onMention }: ChatInputP
               'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent',
               showMentionPopup && 'bg-[rgb(var(--color-border-default))] text-[rgb(var(--color-text-secondary))]'
             )}
-            aria-label="Mention agent"
+            aria-label="Mention agent (@)"
             onClick={handleAtButtonClick}
           >
             <AtSign className="h-5 w-5" />
           </button>
 
-          {/* Attachment button (placeholder) */}
+          {/* Attachment button */}
           <button
             type="button"
             disabled={disabled}
@@ -223,13 +397,11 @@ export function ChatInput({ onSend, agentName, disabled, onMention }: ChatInputP
               'text-[rgb(var(--color-text-muted))] transition-colors duration-150',
               'hover:bg-[rgb(var(--color-border-default))]',
               'hover:text-[rgb(var(--color-text-secondary))]',
-              'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent'
+              'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent',
+              attachedFiles.length > 0 && 'text-[rgb(var(--color-primary-500))]'
             )}
             aria-label="Attach file"
-            onClick={() => {
-              // TODO: Implement file attachment
-              // Placeholder - will trigger file picker when implemented
-            }}
+            onClick={handleAttachClick}
           >
             <Paperclip className="h-5 w-5" />
           </button>
@@ -244,7 +416,7 @@ export function ChatInput({ onSend, agentName, disabled, onMention }: ChatInputP
           placeholder={`Message ${agentName}...`}
           disabled={disabled}
           className={cn(
-            'w-full max-h-36 min-h-[24px] resize-none self-center',
+            'flex-1 max-h-36 min-h-[24px] resize-none self-center',
             'border-none bg-transparent text-sm',
             'text-[rgb(var(--color-text-primary))]',
             'placeholder:text-[rgb(var(--color-text-muted))]',
@@ -257,9 +429,9 @@ export function ChatInput({ onSend, agentName, disabled, onMention }: ChatInputP
         <button
           type="button"
           onClick={handleSend}
-          disabled={!message.trim() || disabled}
+          disabled={!hasContent || disabled}
           className={cn(
-            'flex h-9 w-9 shrink-0 items-center justify-center',
+            'flex h-9 w-9 shrink-0 items-center justify-center self-end',
             'rounded-full bg-[rgb(var(--color-primary-500))] text-white',
             'transition-all duration-150 hover:scale-105 active:scale-95',
             'disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-600'

@@ -89,8 +89,8 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hyvve?schema=public"
 BETTER_AUTH_SECRET="your-secure-secret-at-least-32-characters-long"
 BETTER_AUTH_URL="http://localhost:3000"
 
-# Encryption (CRITICAL: Must be 32+ characters)
-ENCRYPTION_MASTER_KEY="your-32-character-encryption-key-here"
+# Encryption (CRITICAL: base64-encoded 32-byte key)
+ENCRYPTION_MASTER_KEY="<openssl rand -base64 32>"
 
 # Redis
 REDIS_URL="redis://localhost:6379"
@@ -119,6 +119,14 @@ openssl rand -base64 32
 
 # Generate ENCRYPTION_MASTER_KEY
 openssl rand -base64 32
+```
+
+### Validate Environment
+
+Run the repository environment validator before starting services:
+
+```bash
+node scripts/validate-env.js
 ```
 
 ---
@@ -187,7 +195,7 @@ pnpm build
 ### Option A: Start All Services
 
 ```bash
-pnpm dev
+pnpm run dev
 ```
 
 This starts:

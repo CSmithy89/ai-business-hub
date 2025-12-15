@@ -3,14 +3,33 @@ Provider Resolver
 
 High-level interface for resolving BYOAI provider configurations
 and mapping them to Agno-compatible model configurations.
+
+Includes model factory for creating actual Agno model instances.
 """
 
 import logging
-from typing import Optional, Dict, Any, Tuple
+import asyncio
+from typing import Optional, Dict, Any, Union
 from dataclasses import dataclass
 from enum import Enum
 
 from .byoai_client import BYOAIClient, ProviderConfig
+
+# Agno model imports - lazy loaded to avoid import errors if not installed
+try:
+    from agno.models.anthropic import Claude
+    from agno.models.openai import OpenAIChat
+    from agno.models.google import Gemini
+    from agno.models.deepseek import DeepSeek
+    from agno.models.openrouter import OpenRouter
+    AGNO_AVAILABLE = True
+except ImportError:
+    AGNO_AVAILABLE = False
+    Claude = None
+    OpenAIChat = None
+    Gemini = None
+    DeepSeek = None
+    OpenRouter = None
 
 logger = logging.getLogger(__name__)
 
@@ -146,10 +165,25 @@ class ProviderResolver:
             f"preferred: {preferred_provider}/{preferred_model}"
         )
 
-        providers = await self.byoai_client.get_workspace_providers(
-            workspace_id=workspace_id,
-            jwt_token=jwt_token,
-        )
+        providers: list[ProviderConfig] = []
+        for attempt in range(3):
+            try:
+                providers = await self.byoai_client.get_workspace_providers(
+                    workspace_id=workspace_id,
+                    jwt_token=jwt_token,
+                )
+                break
+            except Exception as exc:  # noqa: BLE001
+                if attempt >= 2:
+                    raise
+                delay = 2 ** attempt
+                logger.warning(
+                    "Provider lookup failed (attempt %s/3): %s. Retrying in %ss",
+                    attempt + 1,
+                    type(exc).__name__,
+                    delay,
+                )
+                await asyncio.sleep(delay)
 
         if not providers:
             logger.warning(f"No providers configured for workspace {workspace_id}")
@@ -338,22 +372,173 @@ class ProviderResolver:
 
 # Global resolver instance
 _resolver: Optional[ProviderResolver] = None
+_resolver_init: Optional[tuple[str, Optional[str], Optional[str]]] = None
 
 
-def get_provider_resolver(api_base_url: str = "http://localhost:3001") -> ProviderResolver:
+def get_provider_resolver(
+    api_base_url: str = "http://localhost:3001",
+    database_url: Optional[str] = None,
+    encryption_master_key_base64: Optional[str] = None,
+) -> ProviderResolver:
     """
     Get or create the global provider resolver instance.
 
     Args:
         api_base_url: NestJS API base URL
+        database_url: Optional Postgres URL for reading encrypted provider keys
+        encryption_master_key_base64: Base64 master key for decrypting provider keys
 
     Returns:
         ProviderResolver instance
     """
     global _resolver
+    global _resolver_init
 
-    if _resolver is None:
-        client = BYOAIClient(api_base_url=api_base_url)
+    normalized = (api_base_url.rstrip("/"), database_url, encryption_master_key_base64)
+
+    if _resolver is None or _resolver_init != normalized:
+        if _resolver is not None:
+            logger.warning(
+                "ProviderResolver reinitialized due to configuration change. "
+                "Prefer using a single resolver per process or call with consistent parameters."
+            )
+        client = BYOAIClient(
+            api_base_url=normalized[0],
+            database_url=database_url,
+            encryption_master_key_base64=encryption_master_key_base64,
+        )
         _resolver = ProviderResolver(byoai_client=client)
+        _resolver_init = normalized
 
     return _resolver
+
+
+# Type alias for any Agno model
+AgnoModelType = Union["Claude", "OpenAIChat", "Gemini", "DeepSeek", "OpenRouter", None]
+
+
+def create_agno_model(
+    resolved: Optional[ResolvedProvider],
+    fallback_model: str = "claude-sonnet-4-20250514",
+) -> AgnoModelType:
+    """
+    Create an Agno model instance from a ResolvedProvider.
+
+    This is the key function that bridges BYOAI configurations to
+    actual Agno model objects that can be used in agents and teams.
+
+    Args:
+        resolved: ResolvedProvider from ProviderResolver, or None
+        fallback_model: Model ID to use if resolved is None (default Claude)
+
+    Returns:
+        Agno model instance ready for use in agents/teams
+
+    Raises:
+        RuntimeError: If Agno is not installed
+
+    Example:
+        resolver = get_provider_resolver()
+        resolved = await resolver.resolve_provider(workspace_id, jwt_token)
+        model = create_agno_model(resolved)
+
+        # Use in agent
+        agent = Agent(model=model)
+    """
+    if not AGNO_AVAILABLE:
+        raise RuntimeError(
+            "Agno is not installed. Install with: pip install agno"
+        )
+
+    # If no resolved provider, fall back to Claude
+    if resolved is None:
+        logger.warning(
+            f"No resolved provider, falling back to Claude ({fallback_model})"
+        )
+        return Claude(id=fallback_model)
+
+    provider_type = resolved.provider_type
+    model_id = resolved.model_id
+    api_key = resolved.api_key
+
+    logger.info(f"Creating Agno model: {provider_type}/{model_id}")
+
+    # Build kwargs
+    kwargs: Dict[str, Any] = {"id": model_id}
+    if api_key:
+        kwargs["api_key"] = api_key
+
+    # Create the appropriate model class
+    if provider_type == "openai":
+        return OpenAIChat(**kwargs)
+    elif provider_type == "claude":
+        return Claude(**kwargs)
+    elif provider_type == "gemini":
+        return Gemini(**kwargs)
+    elif provider_type == "deepseek":
+        return DeepSeek(**kwargs)
+    elif provider_type == "openrouter":
+        return OpenRouter(**kwargs)
+    else:
+        # Unknown provider - fall back to Claude
+        logger.warning(
+            f"Unknown provider type '{provider_type}', falling back to Claude"
+        )
+        return Claude(id=fallback_model)
+
+
+async def resolve_and_create_model(
+    workspace_id: str,
+    jwt_token: str,
+    api_base_url: str = "http://localhost:3001",
+    database_url: Optional[str] = None,
+    encryption_master_key_base64: Optional[str] = None,
+    preferred_provider: Optional[str] = None,
+    preferred_model: Optional[str] = None,
+    fallback_model: str = "claude-sonnet-4-20250514",
+) -> AgnoModelType:
+    """
+    Convenience function to resolve provider and create model in one call.
+
+    This is the main entry point for BYOAI integration in team factories.
+
+    Args:
+        workspace_id: Workspace ID for tenant isolation
+        jwt_token: JWT authentication token
+        api_base_url: NestJS API base URL
+        database_url: Optional Postgres URL for reading encrypted provider keys
+        encryption_master_key_base64: Base64 master key for decrypting provider keys
+        preferred_provider: Optional preferred provider type
+        preferred_model: Optional preferred model ID
+        fallback_model: Fallback model if resolution fails
+
+    Returns:
+        Agno model instance
+
+    Example:
+        # In team factory or main.py
+        model = await resolve_and_create_model(
+            workspace_id=workspace_id,
+            jwt_token=jwt_token,
+            preferred_model=model_override,
+        )
+        team = create_validation_team(model=model, ...)
+    """
+    resolver = get_provider_resolver(
+        api_base_url,
+        database_url=database_url,
+        encryption_master_key_base64=encryption_master_key_base64,
+    )
+
+    try:
+        resolved = await resolver.resolve_provider(
+            workspace_id=workspace_id,
+            jwt_token=jwt_token,
+            preferred_provider=preferred_provider,
+            preferred_model=preferred_model,
+        )
+    except Exception as e:
+        logger.error(f"Failed to resolve provider: {e}")
+        resolved = None
+
+    return create_agno_model(resolved, fallback_model=fallback_model)

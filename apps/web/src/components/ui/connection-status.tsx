@@ -8,6 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useSession } from '@/lib/auth-client';
 import { useRealtime, useRealtimeAvailable } from '@/lib/realtime';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -23,13 +24,15 @@ import { toast } from 'sonner';
  * @see Story 16-15: Implement WebSocket Real-Time Updates
  */
 export function ConnectionStatus({ className }: { className?: string }) {
+  const { data: session } = useSession();
+  const isSignedIn = !!session?.user?.id;
   const isAvailable = useRealtimeAvailable();
   const { connectionState, isConnected, isReconnecting, reconnect } = useRealtime();
   const [showToast, setShowToast] = useState(false);
 
   // Show toast on connection status changes
   useEffect(() => {
-    if (!isAvailable) return;
+    if (!isSignedIn || !isAvailable) return;
 
     if (connectionState.status === 'connected' && showToast) {
       toast.success('Real-time connection restored');
@@ -52,7 +55,10 @@ export function ConnectionStatus({ className }: { className?: string }) {
     } else if (connectionState.status === 'connected') {
       toast.dismiss('realtime-reconnecting');
     }
-  }, [connectionState.status, connectionState.error, isAvailable, reconnect, showToast]);
+  }, [connectionState.status, connectionState.error, isAvailable, isSignedIn, reconnect, showToast]);
+
+  // Hide when not signed in (realtime connection is user-scoped).
+  if (!isSignedIn) return null;
 
   // Don't render if realtime provider is not available
   if (!isAvailable) {
@@ -136,8 +142,12 @@ export function ConnectionStatus({ className }: { className?: string }) {
  * Shows a banner at the top of the page when connection is lost
  */
 export function ConnectionBanner({ className }: { className?: string }) {
+  const { data: session } = useSession();
   const isAvailable = useRealtimeAvailable();
   const { connectionState, isReconnecting, reconnect } = useRealtime();
+
+  // Hide when not signed in (realtime connection is user-scoped).
+  if (!session?.user?.id) return null;
 
   // Only show when not connected
   if (!isAvailable || connectionState.status === 'connected' || connectionState.status === 'connecting') {
@@ -194,8 +204,12 @@ export function ConnectionBanner({ className }: { className?: string }) {
  * Minimal status indicator for headers/toolbars
  */
 export function ConnectionDot({ className }: { className?: string }) {
+  const { data: session } = useSession();
   const isAvailable = useRealtimeAvailable();
   const { isConnected, isReconnecting, connectionState } = useRealtime();
+
+  // Hide when not signed in (realtime connection is user-scoped).
+  if (!session?.user?.id) return null;
 
   if (!isAvailable) return null;
 

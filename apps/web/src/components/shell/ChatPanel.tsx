@@ -400,7 +400,7 @@ export function ChatPanel() {
     );
   }
 
-  // Bottom horizontal position
+  // Bottom horizontal position - vertical layout like standard chat
   if (isBottom) {
     // Calculate sidebar width based on collapsed state
     const sidebarWidth = sidebarCollapsed
@@ -431,25 +431,19 @@ export function ChatPanel() {
           {headerContent}
         </header>
 
-        {/* Horizontal layout for bottom panel */}
-        <div className="flex flex-1 overflow-hidden">
-          <ChatMessageList
-            messages={messages}
-            isTyping={isTyping}
-            isStreaming={isStreaming}
-            currentAgent={currentAgent}
-            onStopStreaming={stopStreaming}
-            horizontal
-          />
-          <div className="w-px bg-[rgb(var(--color-border-default))]" />
-          <div className="w-[300px] flex-shrink-0">
-            <ChatInput
-              onSend={sendMessage}
-              agentName={currentAgent.name}
-              disabled={isTyping || isStreaming}
-            />
-          </div>
-        </div>
+        {/* Vertical layout - messages above, input below (standard chat layout) */}
+        <ChatMessageList
+          messages={messages}
+          isTyping={isTyping}
+          isStreaming={isStreaming}
+          currentAgent={currentAgent}
+          onStopStreaming={stopStreaming}
+        />
+        <ChatInput
+          onSend={sendMessage}
+          agentName={currentAgent.name}
+          disabled={isTyping || isStreaming}
+        />
       </aside>
     );
   }

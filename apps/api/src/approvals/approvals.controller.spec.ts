@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ApprovalsController } from './approvals.controller';
 import { ApprovalsService } from './approvals.service';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { AuthGuard } from '../common/guards/auth.guard';
+import { TenantGuard } from '../common/guards/tenant.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 describe('ApprovalsController', () => {
   let controller: ApprovalsController;
@@ -55,7 +58,14 @@ describe('ApprovalsController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
+      .overrideGuard(TenantGuard)
+      .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: jest.fn().mockResolvedValue(true) })
+      .compile();
 
     controller = module.get<ApprovalsController>(ApprovalsController);
     service = module.get(ApprovalsService) as jest.Mocked<ApprovalsService>;

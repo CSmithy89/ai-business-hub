@@ -1,0 +1,844 @@
+'use client'
+
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { z } from 'zod'
+import { getCurrentSessionToken } from '@/lib/auth-client'
+import type { AgentTeam } from '@/lib/agent-client'
+import { safeJson } from '@/lib/utils/safe-json'
+
+// ============================================================================
+// AG-UI Event Types (matches backend ag_ui/encoder.py)
+// ============================================================================
+
+/**
+ * AG-UI Event Types from the protocol specification
+ * @see docs/architecture/ag-ui-protocol.md
+ */
+export enum AGUIEventType {
+  // Lifecycle Events
+  RUN_STARTED = 'RUN_STARTED',
+  RUN_FINISHED = 'RUN_FINISHED',
+
+  // Text Streaming Events
+  TEXT_MESSAGE_CHUNK = 'TEXT_MESSAGE_CHUNK',
+
+  // Reasoning/Thinking Events
+  THOUGHT_CHUNK = 'THOUGHT_CHUNK',
+
+  // Tool Execution Events
+  TOOL_CALL_START = 'TOOL_CALL_START',
+  TOOL_CALL_ARGS = 'TOOL_CALL_ARGS',
+  TOOL_CALL_RESULT = 'TOOL_CALL_RESULT',
+
+  // Rich UI Events
+  UI_RENDER_HINT = 'UI_RENDER_HINT',
+
+  // Error Events
+  ERROR = 'ERROR',
+}
+
+// ============================================================================
+// Zod Schemas for Runtime Validation
+// ============================================================================
+
+const RunStartedEventSchema = z.object({
+  type: z.literal(AGUIEventType.RUN_STARTED),
+  runId: z.string(),
+  agentId: z.string().optional(),
+  timestamp: z.number().optional(),
+})
+
+const RunFinishedEventSchema = z.object({
+  type: z.literal(AGUIEventType.RUN_FINISHED),
+  runId: z.string(),
+  status: z.enum(['success', 'error']),
+})
+
+const TextMessageChunkEventSchema = z.object({
+  type: z.literal(AGUIEventType.TEXT_MESSAGE_CHUNK),
+  delta: z.string(),
+  messageId: z.string(),
+})
+
+const ThoughtChunkEventSchema = z.object({
+  type: z.literal(AGUIEventType.THOUGHT_CHUNK),
+  delta: z.string(),
+  messageId: z.string(),
+})
+
+const ToolCallStartEventSchema = z.object({
+  type: z.literal(AGUIEventType.TOOL_CALL_START),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  args: z.record(z.string(), z.unknown()).optional(),
+})
+
+const ToolCallArgsEventSchema = z.object({
+  type: z.literal(AGUIEventType.TOOL_CALL_ARGS),
+  toolCallId: z.string(),
+  argsDelta: z.string(),
+})
+
+const ToolCallResultEventSchema = z.object({
+  type: z.literal(AGUIEventType.TOOL_CALL_RESULT),
+  toolCallId: z.string(),
+  result: z.string(),
+  isError: z.boolean().optional(),
+})
+
+const UIRenderHintEventSchema = z.object({
+  type: z.literal(AGUIEventType.UI_RENDER_HINT),
+  component: z.string(),
+  props: z.record(z.string(), z.unknown()),
+})
+
+const ErrorEventSchema = z.object({
+  type: z.literal(AGUIEventType.ERROR),
+  code: z.string(),
+  message: z.string(),
+})
+
+const AGUIEventSchema = z.discriminatedUnion('type', [
+  RunStartedEventSchema,
+  RunFinishedEventSchema,
+  TextMessageChunkEventSchema,
+  ThoughtChunkEventSchema,
+  ToolCallStartEventSchema,
+  ToolCallArgsEventSchema,
+  ToolCallResultEventSchema,
+  UIRenderHintEventSchema,
+  ErrorEventSchema,
+])
+
+// ============================================================================
+// Event Payload Types (inferred from Zod schemas)
+// ============================================================================
+
+export type RunStartedEvent = z.infer<typeof RunStartedEventSchema>
+export type RunFinishedEvent = z.infer<typeof RunFinishedEventSchema>
+export type TextMessageChunkEvent = z.infer<typeof TextMessageChunkEventSchema>
+export type ThoughtChunkEvent = z.infer<typeof ThoughtChunkEventSchema>
+export type ToolCallStartEvent = z.infer<typeof ToolCallStartEventSchema>
+export type ToolCallArgsEvent = z.infer<typeof ToolCallArgsEventSchema>
+export type ToolCallResultEvent = z.infer<typeof ToolCallResultEventSchema>
+export type UIRenderHintEvent = z.infer<typeof UIRenderHintEventSchema>
+export type ErrorEvent = z.infer<typeof ErrorEventSchema>
+export type AGUIEvent = z.infer<typeof AGUIEventSchema>
+
+// ============================================================================
+// Tool Call State
+// ============================================================================
+
+export interface ToolCallState {
+  id: string
+  name: string
+  args: string
+  result?: string
+  isError?: boolean
+  status: 'pending' | 'running' | 'completed' | 'error'
+}
+
+// ============================================================================
+// Stream State
+// ============================================================================
+
+export type StreamStatus = 'idle' | 'connecting' | 'streaming' | 'completed' | 'error'
+
+export interface AgentStreamState {
+  // Connection status
+  status: StreamStatus
+  runId: string | null
+
+  // Accumulated text content
+  content: string
+
+  // Accumulated thinking/reasoning
+  thinking: string
+
+  // Tool calls in progress (using Record for serializability)
+  toolCalls: Record<string, ToolCallState>
+
+  // UI render hints received
+  renderHints: UIRenderHintEvent[]
+
+  // Error if any
+  error: Error | null
+
+  // Raw events for debugging
+  events: AGUIEvent[]
+}
+
+// ============================================================================
+// Hook Options
+// ============================================================================
+
+export interface UseAgentStreamOptions {
+  /**
+   * Callback fired for each event received
+   */
+  onEvent?: (event: AGUIEvent) => void
+
+  /**
+   * Callback fired when streaming completes
+   */
+  onComplete?: (content: string) => void
+
+  /**
+   * Callback fired on error
+   */
+  onError?: (error: Error) => void
+
+  /**
+   * Whether to collect raw events (for debugging)
+   * @default false
+   */
+  collectEvents?: boolean
+
+  /**
+   * Agent API base URL
+   * @default process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:8001'
+   */
+  baseURL?: string
+
+  /**
+   * Maximum allowed SSE buffer size (characters)
+   * @default 1048576 (1MB), overridable via NEXT_PUBLIC_AGENT_STREAM_MAX_BUFFER_CHARS
+   */
+  maxSseBufferChars?: number
+
+  /**
+   * Maximum allowed outbound message length (characters)
+   * @default 10000, overridable via NEXT_PUBLIC_AGENT_STREAM_MAX_MESSAGE_LENGTH
+   */
+  maxMessageLength?: number
+
+  /**
+   * Maximum time to allow a stream to run before aborting (ms).
+   * Useful to avoid hung connections that never emit RUN_FINISHED.
+   *
+   * @default 600000 (10 minutes), overridable via NEXT_PUBLIC_AGENT_STREAM_TIMEOUT_MS
+   */
+  streamTimeoutMs?: number
+
+  /**
+   * Max number of retry attempts for initial connection / transient failures.
+   * Retries are never attempted after an explicit user abort.
+   *
+   * @default 0 (no retries), overridable via NEXT_PUBLIC_AGENT_STREAM_MAX_RETRIES
+   */
+  maxRetries?: number
+
+  /**
+   * Base delay for retries (ms). Retry delay is exponential: base * 2^attempt.
+   *
+   * @default 1000, overridable via NEXT_PUBLIC_AGENT_STREAM_RETRY_BASE_DELAY_MS
+   */
+  retryBaseDelayMs?: number
+}
+
+// ============================================================================
+// Hook Return Type
+// ============================================================================
+
+export interface UseAgentStreamReturn {
+  /**
+   * Current stream state
+   */
+  state: AgentStreamState
+
+  /**
+   * Start streaming from an agent team
+   */
+  stream: (
+    team: AgentTeam,
+    request: {
+      message: string
+      business_id: string
+      session_id?: string
+      model_override?: string
+      context?: Record<string, unknown>
+    }
+  ) => void
+
+  /**
+   * Abort the current stream
+   */
+  abort: () => void
+
+  /**
+   * Reset state to initial values
+   */
+  reset: () => void
+
+  /**
+   * Whether currently streaming
+   */
+  isStreaming: boolean
+
+  /**
+   * Accumulated content text
+   */
+  content: string
+
+  /**
+   * Accumulated thinking text
+   */
+  thinking: string
+}
+
+// ============================================================================
+// Initial State
+// ============================================================================
+
+const createInitialState = (): AgentStreamState => ({
+  status: 'idle',
+  runId: null,
+  content: '',
+  thinking: '',
+  toolCalls: {},
+  renderHints: [],
+  error: null,
+  events: [],
+})
+
+const DEFAULT_MAX_SSE_BUFFER_CHARS = 1024 * 1024 // 1MB safety cap
+const DEFAULT_MAX_MESSAGE_LENGTH = 10_000
+const DEFAULT_STREAM_TIMEOUT_MS = 10 * 60 * 1000
+const DEFAULT_MAX_RETRIES = 0
+const DEFAULT_RETRY_BASE_DELAY_MS = 1000
+
+function parseOptionalPositiveInt(value: string | undefined): number | undefined {
+  if (!value) return undefined
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined
+  return parsed
+}
+
+// ============================================================================
+// useAgentStream Hook
+// ============================================================================
+
+/**
+ * useAgentStream - SSE streaming hook for AG-UI protocol
+ *
+ * Connects to agent endpoints with stream=true and processes AG-UI events
+ * in real-time. Provides accumulated content, thinking, and tool call states.
+ *
+ * @param options - Hook options
+ * @returns Stream state and control functions
+ *
+ * @example
+ * ```tsx
+ * const { stream, content, isStreaming, abort } = useAgentStream({
+ *   onComplete: (content) => console.log('Done:', content),
+ * })
+ *
+ * // Start streaming
+ * stream('validation', {
+ *   message: 'Validate this business idea...',
+ *   business_id: 'biz_123',
+ * })
+ *
+ * // Display content as it streams
+ * return <div>{content}</div>
+ * ```
+ *
+ * @see docs/architecture/ag-ui-protocol.md
+ */
+export function useAgentStream(options: UseAgentStreamOptions = {}): UseAgentStreamReturn {
+  const {
+    onEvent,
+    onComplete,
+    onError,
+    collectEvents = false,
+    baseURL = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:8001',
+    maxSseBufferChars = parseOptionalPositiveInt(process.env.NEXT_PUBLIC_AGENT_STREAM_MAX_BUFFER_CHARS) ??
+      DEFAULT_MAX_SSE_BUFFER_CHARS,
+    maxMessageLength = parseOptionalPositiveInt(process.env.NEXT_PUBLIC_AGENT_STREAM_MAX_MESSAGE_LENGTH) ??
+      DEFAULT_MAX_MESSAGE_LENGTH,
+    streamTimeoutMs = parseOptionalPositiveInt(process.env.NEXT_PUBLIC_AGENT_STREAM_TIMEOUT_MS) ??
+      DEFAULT_STREAM_TIMEOUT_MS,
+    maxRetries = parseOptionalPositiveInt(process.env.NEXT_PUBLIC_AGENT_STREAM_MAX_RETRIES) ??
+      DEFAULT_MAX_RETRIES,
+    retryBaseDelayMs = parseOptionalPositiveInt(process.env.NEXT_PUBLIC_AGENT_STREAM_RETRY_BASE_DELAY_MS) ??
+      DEFAULT_RETRY_BASE_DELAY_MS,
+  } = options
+
+  const [state, setState] = useState<AgentStreamState>(createInitialState)
+
+  // Refs for cleanup and race condition prevention
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null)
+  const streamIdRef = useRef<number>(0) // Unique ID for each stream to prevent race conditions
+  const contentRef = useRef<string>('') // Track content for onComplete callback
+  const mountedRef = useRef<boolean>(true)
+
+  // Store callbacks in refs to avoid stale closures
+  const onEventRef = useRef(onEvent)
+  const onCompleteRef = useRef(onComplete)
+  const onErrorRef = useRef(onError)
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onEventRef.current = onEvent
+    onCompleteRef.current = onComplete
+    onErrorRef.current = onError
+  }, [onEvent, onComplete, onError])
+
+  /**
+   * Reset state to initial values
+   */
+  const reset = useCallback(() => {
+    contentRef.current = ''
+    setState(createInitialState())
+  }, [])
+
+  /**
+   * Abort current stream
+   */
+  const abort = useCallback(() => {
+    // Invalidate current stream ID to prevent race conditions
+    streamIdRef.current += 1
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    if (readerRef.current) {
+      readerRef.current.cancel().catch(() => {
+        // Ignore cancel errors
+      })
+      readerRef.current = null
+    }
+    if (mountedRef.current) {
+      setState(prev => ({
+        ...prev,
+        status: 'idle',
+      }))
+    }
+  }, [])
+
+  /**
+   * Parse and validate SSE data line into event
+   */
+  const parseSSELine = useCallback((line: string): AGUIEvent | null => {
+    // SSE format: "data: {...}\n\n"
+    if (!line.startsWith('data: ')) {
+      return null
+    }
+
+    try {
+      const jsonStr = line.slice(6) // Remove "data: " prefix
+      const parsed = JSON.parse(jsonStr)
+
+      // Validate with Zod schema
+      const result = AGUIEventSchema.safeParse(parsed)
+      if (!result.success) {
+        console.warn('[useAgentStream] Invalid event structure:', result.error.issues)
+        return null
+      }
+
+      return result.data
+    } catch (err) {
+      console.error('[useAgentStream] Failed to parse SSE event:', err, line)
+      return null
+    }
+  }, [])
+
+  /**
+   * Process a single AG-UI event
+   * Returns the new content value for tracking
+   */
+  const processEvent = useCallback(
+    (event: AGUIEvent, currentStreamId: number): void => {
+      // Prevent processing events from stale streams
+      if (currentStreamId !== streamIdRef.current) {
+        return
+      }
+
+      // Call onEvent callback if provided (use ref to avoid stale closure)
+      onEventRef.current?.(event)
+
+      setState(prev => {
+        // Double-check stream ID hasn't changed during setState
+        if (currentStreamId !== streamIdRef.current) {
+          return prev
+        }
+
+        const newState = { ...prev }
+
+        // Collect raw events if enabled
+        if (collectEvents) {
+          newState.events = [...prev.events, event]
+        }
+
+        switch (event.type) {
+          case AGUIEventType.RUN_STARTED:
+            newState.status = 'streaming'
+            newState.runId = event.runId
+            break
+
+          case AGUIEventType.RUN_FINISHED:
+            newState.status = event.status === 'success' ? 'completed' : 'error'
+            if (event.status === 'success') {
+              // Use ref for current content to avoid stale closure
+              onCompleteRef.current?.(contentRef.current)
+            }
+            break
+
+          case AGUIEventType.TEXT_MESSAGE_CHUNK:
+            newState.content = prev.content + event.delta
+            // Update ref for onComplete callback
+            contentRef.current = newState.content
+            break
+
+          case AGUIEventType.THOUGHT_CHUNK:
+            newState.thinking = prev.thinking + event.delta
+            break
+
+          case AGUIEventType.TOOL_CALL_START: {
+            newState.toolCalls = {
+              ...prev.toolCalls,
+              [event.toolCallId]: {
+                id: event.toolCallId,
+                name: event.toolName,
+                args: event.args ? JSON.stringify(event.args) : '',
+                status: 'running',
+              },
+            }
+            break
+          }
+
+          case AGUIEventType.TOOL_CALL_ARGS: {
+            const existing = prev.toolCalls[event.toolCallId]
+            if (existing) {
+              newState.toolCalls = {
+                ...prev.toolCalls,
+                [event.toolCallId]: {
+                  ...existing,
+                  args: existing.args + event.argsDelta,
+                },
+              }
+            }
+            break
+          }
+
+          case AGUIEventType.TOOL_CALL_RESULT: {
+            const existing = prev.toolCalls[event.toolCallId]
+            if (existing) {
+              newState.toolCalls = {
+                ...prev.toolCalls,
+                [event.toolCallId]: {
+                  ...existing,
+                  result: event.result,
+                  isError: event.isError,
+                  status: event.isError ? 'error' : 'completed',
+                },
+              }
+            }
+            break
+          }
+
+          case AGUIEventType.UI_RENDER_HINT:
+            newState.renderHints = [...prev.renderHints, event]
+            break
+
+          case AGUIEventType.ERROR: {
+            const error = new Error(event.message)
+            error.name = event.code
+            newState.error = error
+            newState.status = 'error'
+            onErrorRef.current?.(error)
+            break
+          }
+        }
+
+        return newState
+      })
+    },
+    [collectEvents]
+  )
+
+  /**
+   * Start streaming from an agent team
+   */
+  const stream = useCallback(
+    async (
+      team: AgentTeam,
+      request: {
+        message: string
+        business_id: string
+        session_id?: string
+        model_override?: string
+        context?: Record<string, unknown>
+      }
+    ) => {
+      // Abort any existing stream
+      abort()
+
+      // Generate new stream ID for race condition prevention
+      streamIdRef.current += 1
+      const currentStreamId = streamIdRef.current
+
+      // Reset content ref
+      contentRef.current = ''
+
+      // Reset state
+      if (mountedRef.current) {
+        setState({
+          ...createInitialState(),
+          status: 'connecting',
+        })
+      }
+
+      // Get auth token
+      const token = getCurrentSessionToken()
+      if (!token) {
+        const error = new Error('No authentication token found. Please sign in.')
+        if (currentStreamId === streamIdRef.current) {
+          if (mountedRef.current) {
+            setState(prev => ({
+              ...prev,
+              status: 'error',
+              error,
+            }))
+          }
+          onErrorRef.current?.(error)
+        }
+        return
+      }
+
+      if (!request.message || request.message.length > maxMessageLength) {
+        const error = new Error(`Message too long (max ${maxMessageLength} characters)`)
+        if (currentStreamId === streamIdRef.current && mountedRef.current) {
+          setState(prev => ({
+            ...prev,
+            status: 'error',
+            error,
+          }))
+        }
+        onErrorRef.current?.(error)
+        return
+      }
+
+      // Create abort controller
+      const abortController = new AbortController()
+      abortControllerRef.current = abortController
+
+      const url = `${baseURL}/agents/${team}/runs`
+
+      let timeoutId: ReturnType<typeof setTimeout> | null = null
+      try {
+        timeoutId =
+          streamTimeoutMs > 0
+            ? setTimeout(() => {
+                abortController.abort()
+              }, streamTimeoutMs)
+            : null
+
+        const runOnce = async (): Promise<void> => {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+              Accept: 'text/event-stream',
+            },
+            body: JSON.stringify({
+              ...request,
+              stream: true, // Enable SSE streaming
+            }),
+            signal: abortController.signal,
+          })
+
+          // Check if stream was aborted while waiting for response
+          if (currentStreamId !== streamIdRef.current) {
+            return
+          }
+
+          if (!response.ok) {
+            const errorText = await response.text()
+            throw new Error(`Agent API error (${response.status}): ${errorText}`)
+          }
+
+          // Check if we got a streaming response
+          const contentType = response.headers.get('content-type')
+          if (!contentType?.includes('text/event-stream')) {
+            // Non-streaming response - parse as JSON
+            const data = await safeJson<Record<string, unknown>>(response)
+            if (!data) {
+              throw new Error('Agent API returned a non-streaming response without a JSON body')
+            }
+            if (currentStreamId !== streamIdRef.current) {
+              return
+            }
+            const content = typeof data.content === 'string' ? data.content : null
+            if (content) {
+              const sessionId = typeof data.session_id === 'string' ? data.session_id : 'unknown'
+              processEvent(
+                {
+                  type: AGUIEventType.RUN_STARTED,
+                  runId: sessionId,
+                },
+                currentStreamId
+              )
+              processEvent(
+                {
+                  type: AGUIEventType.TEXT_MESSAGE_CHUNK,
+                  delta: content,
+                  messageId: 'msg_1',
+                },
+                currentStreamId
+              )
+              processEvent(
+                {
+                  type: AGUIEventType.RUN_FINISHED,
+                  runId: sessionId,
+                  status: 'success',
+                },
+                currentStreamId
+              )
+            }
+            return
+          }
+
+          // Process streaming response
+          const reader = response.body?.getReader()
+          if (!reader) {
+            throw new Error('Response body is not readable')
+          }
+          readerRef.current = reader
+
+          const decoder = new TextDecoder()
+          let buffer = ''
+
+          while (true) {
+            // Check for abort before each read
+            if (currentStreamId !== streamIdRef.current) {
+              reader.cancel().catch(() => {})
+              break
+            }
+
+            const { done, value } = await reader.read()
+
+            if (done) {
+              break
+            }
+
+            // Decode chunk and add to buffer
+            const chunk = decoder.decode(value, { stream: true })
+            if (buffer.length + chunk.length > maxSseBufferChars) {
+              throw new Error('Stream buffer would exceed limit; aborting to prevent memory bloat')
+            }
+            buffer += chunk
+
+            // Process complete events (separated by double newline)
+            const parts = buffer.split('\n\n')
+            buffer = parts.pop() || '' // Keep incomplete part in buffer
+
+            for (const part of parts) {
+              const lines = part.split('\n')
+              for (const line of lines) {
+                const event = parseSSELine(line)
+                if (event) {
+                  processEvent(event, currentStreamId)
+                }
+              }
+            }
+          }
+
+          // Process any remaining buffer
+          if (buffer.trim() && currentStreamId === streamIdRef.current) {
+            const event = parseSSELine(buffer)
+            if (event) {
+              processEvent(event, currentStreamId)
+            }
+          }
+        }
+
+        let attempt = 0
+        while (true) {
+          try {
+            await runOnce()
+            break
+          } catch (error) {
+            // Retry only if this is still the active stream and the user hasn't aborted.
+            if (currentStreamId !== streamIdRef.current) return
+            if (abortController.signal.aborted) throw error
+            if (attempt >= maxRetries) throw error
+
+            attempt += 1
+            const delay = retryBaseDelayMs * 2 ** (attempt - 1)
+
+            if (mountedRef.current) {
+              setState(prev => ({
+                ...prev,
+                status: 'connecting',
+              }))
+            }
+
+            await new Promise(resolve => setTimeout(resolve, delay))
+            continue
+          }
+        }
+
+      } catch (err) {
+        // Ignore abort errors
+        if (err instanceof Error && err.name === 'AbortError') {
+          return
+        }
+
+        // Ignore errors from stale streams
+        if (currentStreamId !== streamIdRef.current) {
+          return
+        }
+
+        const error = err instanceof Error ? err : new Error('Unknown streaming error')
+        if (mountedRef.current) {
+          setState(prev => ({
+            ...prev,
+            status: 'error',
+            error,
+          }))
+        }
+        onErrorRef.current?.(error)
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId)
+        // Only clean up if this is still the current stream
+        if (currentStreamId === streamIdRef.current) {
+          abortControllerRef.current = null
+          readerRef.current = null
+        }
+      }
+    },
+    [
+      abort,
+      baseURL,
+      processEvent,
+      parseSSELine,
+      maxMessageLength,
+      maxSseBufferChars,
+      streamTimeoutMs,
+      maxRetries,
+      retryBaseDelayMs,
+    ]
+  )
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false
+      abort()
+    }
+  }, [abort])
+
+  return {
+    state,
+    stream,
+    abort,
+    reset,
+    isStreaming: state.status === 'connecting' || state.status === 'streaming',
+    content: state.content,
+    thinking: state.thinking,
+  }
+}

@@ -5,6 +5,7 @@ import type { ApprovalItem, ApprovalStatus } from '@hyvve/shared'
 import { NESTJS_API_URL, NEXTJS_API_URL } from '@/lib/api-config'
 import { toast } from 'sonner'
 import { useRealtimeApprovals } from './use-realtime-approvals'
+import { safeJson } from '@/lib/utils/safe-json'
 
 /**
  * Query parameters for fetching approvals list
@@ -76,12 +77,19 @@ async function fetchApprovals(filters: ApprovalFilters = {}): Promise<ApprovalsL
     credentials: 'include', // Include cookies for session
   })
 
+  const body = await safeJson<unknown>(response)
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to fetch approvals' }))
-    throw new Error(error.message || 'Failed to fetch approvals')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to fetch approvals')
   }
 
-  return response.json()
+  if (!body || typeof body !== 'object' || !('data' in body) || !('meta' in body)) {
+    throw new Error('Failed to fetch approvals')
+  }
+  return body as ApprovalsListResponse
 }
 
 /**
@@ -92,12 +100,17 @@ async function fetchApproval(id: string): Promise<ApprovalResponse> {
     credentials: 'include',
   })
 
+  const body = await safeJson<unknown>(response)
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to fetch approval' }))
-    throw new Error(error.message || 'Failed to fetch approval')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to fetch approval')
   }
 
-  return response.json()
+  if (!body || typeof body !== 'object' || !('data' in body)) throw new Error('Failed to fetch approval')
+  return body as ApprovalResponse
 }
 
 /**
@@ -113,12 +126,17 @@ async function approveApproval(id: string, data: ApprovalActionRequest = {}): Pr
     body: JSON.stringify(data),
   })
 
+  const body = await safeJson<unknown>(response)
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to approve' }))
-    throw new Error(error.message || 'Failed to approve')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to approve')
   }
 
-  return response.json()
+  if (!body || typeof body !== 'object' || !('data' in body)) throw new Error('Failed to approve')
+  return body as ApprovalResponse
 }
 
 /**
@@ -134,12 +152,17 @@ async function rejectApproval(id: string, data: ApprovalActionRequest = {}): Pro
     body: JSON.stringify(data),
   })
 
+  const body = await safeJson<unknown>(response)
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to reject' }))
-    throw new Error(error.message || 'Failed to reject')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to reject')
   }
 
-  return response.json()
+  if (!body || typeof body !== 'object' || !('data' in body)) throw new Error('Failed to reject')
+  return body as ApprovalResponse
 }
 
 /**
@@ -206,12 +229,19 @@ async function bulkApproval(data: BulkApprovalRequest): Promise<BulkApprovalResp
     body: JSON.stringify(data),
   })
 
+  const body = await safeJson<unknown>(response)
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to process bulk action' }))
-    throw new Error(error.message || 'Failed to process bulk action')
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to process bulk action')
   }
 
-  return response.json()
+  if (!body || typeof body !== 'object' || !('succeeded' in body) || !('failed' in body)) {
+    throw new Error('Failed to process bulk action')
+  }
+  return body as BulkApprovalResponse
 }
 
 /**

@@ -8,6 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Business } from '@hyvve/db'
 import { toast } from 'sonner'
+import { safeJson } from '@/lib/utils/safe-json'
 
 /**
  * Business API error with typed error code
@@ -28,14 +29,15 @@ export function useBusinesses() {
       })
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: 'Failed to fetch businesses' }))
+        const errorData =
+          (await safeJson<{ message?: string; error?: BusinessError['code'] }>(res)) || {}
         const error: BusinessError = new Error(errorData.message || 'Failed to fetch businesses')
         error.code = errorData.error
         throw error
       }
 
-      const json = await res.json()
-      return json.data as Business[]
+      const json = await safeJson<{ data?: Business[] }>(res)
+      return (json?.data || []) as Business[]
     },
     staleTime: 30000, // 30 seconds - businesses don't change frequently
     refetchOnWindowFocus: true,
@@ -56,11 +58,12 @@ async function updateBusiness(id: string, data: Partial<Business>): Promise<Busi
   })
 
   if (!res.ok) {
-    const errorData = await res.json().catch(() => ({ message: 'Failed to update business' }))
+    const errorData = (await safeJson<{ message?: string }>(res)) || {}
     throw new Error(errorData.message || 'Failed to update business')
   }
 
-  const json = await res.json()
+  const json = await safeJson<{ data?: Business }>(res)
+  if (!json?.data) throw new Error('Failed to update business')
   return json.data as Business
 }
 

@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { WorkspaceWithRole } from '@hyvve/shared'
+import { safeJson } from '@/lib/utils/safe-json'
 
 /**
  * Workspace hook for managing workspace state and switching
@@ -16,13 +17,13 @@ export function useWorkspace() {
    */
   const fetchWorkspaces = useCallback(async (): Promise<WorkspaceWithRole[]> => {
     const response = await fetch('/api/workspaces')
-    const data = await response.json()
+    const data = await safeJson<{ data?: WorkspaceWithRole[]; message?: string }>(response)
 
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to fetch workspaces')
+      throw new Error(data?.message || 'Failed to fetch workspaces')
     }
 
-    return data.data
+    return data?.data || []
   }, [])
 
   /**
@@ -40,10 +41,10 @@ export function useWorkspace() {
         body: JSON.stringify({ workspaceId }),
       })
 
-      const data = await response.json()
+      const data = await safeJson<{ message?: string }>(response)
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to switch workspace')
+        throw new Error(data?.message || 'Failed to switch workspace')
       }
 
       // Refresh the page to reload with new workspace context

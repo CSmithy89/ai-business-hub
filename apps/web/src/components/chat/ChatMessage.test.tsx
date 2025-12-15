@@ -10,6 +10,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import { ChatMessage } from './ChatMessage';
+import { getAgentIcon } from '@/config/agent-colors';
 
 // Mock DOMPurify - hoisted to module level by vitest
 vi.mock('dompurify', () => ({
@@ -176,7 +177,7 @@ describe('ChatMessage', () => {
       );
 
       expect(screen.getByText('Agent')).toBeInTheDocument();
-      expect(screen.getByText('🤖')).toBeInTheDocument();
+      expect(screen.getByText(getAgentIcon('maya'))).toBeInTheDocument();
     });
   });
 

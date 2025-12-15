@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { safeJson } from '@/lib/utils/safe-json';
 
 /**
  * API base URL for the NestJS backend
@@ -72,11 +73,13 @@ async function fetchEventStats(): Promise<EventStatsResponse> {
     credentials: 'include',
   });
 
+  const body = await safeJson<EventStatsResponse>(response);
   if (!response.ok) {
     throw new Error(`Failed to fetch event stats: ${response.statusText}`);
   }
 
-  return response.json();
+  if (!body) throw new Error('Failed to fetch event stats');
+  return body;
 }
 
 /**
@@ -98,11 +101,13 @@ async function fetchDLQEvents(
     }
   );
 
+  const body = await safeJson<DLQEventsResponse>(response);
   if (!response.ok) {
     throw new Error(`Failed to fetch DLQ events: ${response.statusText}`);
   }
 
-  return response.json();
+  if (!body) throw new Error('Failed to fetch DLQ events');
+  return body;
 }
 
 /**
@@ -119,11 +124,13 @@ async function retryDLQEvent(
     }
   );
 
+  const body = await safeJson<{ success: boolean; newEventId: string; message: string }>(response);
   if (!response.ok) {
     throw new Error(`Failed to retry event: ${response.statusText}`);
   }
 
-  return response.json();
+  if (!body) throw new Error('Failed to retry event');
+  return body;
 }
 
 /**
@@ -140,11 +147,13 @@ async function deleteDLQEvent(
     }
   );
 
+  const body = await safeJson<{ success: boolean }>(response);
   if (!response.ok) {
     throw new Error(`Failed to delete event: ${response.statusText}`);
   }
 
-  return response.json();
+  if (!body) throw new Error('Failed to delete event');
+  return body;
 }
 
 /**

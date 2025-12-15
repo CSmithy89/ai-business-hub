@@ -2,14 +2,23 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { ApprovalsService } from './approvals.service';
 import { PrismaService } from '../common/services/prisma.service';
-import { EventBusService } from './stubs/event-bus.stub';
-import { AuditLogService } from './stubs/audit-logger.stub';
+import { EventPublisherService } from '../events';
+import { ApprovalAuditService } from './services/approval-audit.service';
+import { EventTypes } from '@hyvve/shared';
 
 describe('ApprovalsService', () => {
   let service: ApprovalsService;
-  let prisma: jest.Mocked<PrismaService>;
-  let eventBus: jest.Mocked<EventBusService>;
-  let auditLogger: jest.Mocked<AuditLogService>;
+  type PrismaMock = {
+    approvalItem: {
+      findMany: jest.Mock<Promise<any>, any[]>;
+      findUnique: jest.Mock<Promise<any | null>, any[]>;
+      update: jest.Mock<Promise<any>, any[]>;
+      count: jest.Mock<Promise<number>, any[]>;
+    };
+  };
+  let prisma: PrismaMock;
+  let eventPublisher: jest.Mocked<EventPublisherService>;
+  let auditLogger: jest.Mocked<ApprovalAuditService>;
 
   const mockWorkspaceId = 'workspace-123';
   const mockUserId = 'user-123';
@@ -65,24 +74,25 @@ describe('ApprovalsService', () => {
           },
         },
         {
-          provide: EventBusService,
+          provide: EventPublisherService,
           useValue: {
-            emit: jest.fn(),
+            publish: jest.fn(),
           },
         },
         {
-          provide: AuditLogService,
+          provide: ApprovalAuditService,
           useValue: {
             logApprovalDecision: jest.fn(),
+            logBulkAction: jest.fn(),
           },
         },
       ],
     }).compile();
 
     service = module.get<ApprovalsService>(ApprovalsService);
-    prisma = module.get(PrismaService) as jest.Mocked<PrismaService>;
-    eventBus = module.get(EventBusService) as jest.Mocked<EventBusService>;
-    auditLogger = module.get(AuditLogService) as jest.Mocked<AuditLogService>;
+    prisma = module.get(PrismaService) as unknown as PrismaMock;
+    eventPublisher = module.get(EventPublisherService) as jest.Mocked<EventPublisherService>;
+    auditLogger = module.get(ApprovalAuditService) as jest.Mocked<ApprovalAuditService>;
   });
 
   afterEach(() => {
@@ -270,12 +280,17 @@ describe('ApprovalsService', () => {
 
       await service.approve(mockWorkspaceId, mockApprovalId, mockUserId, {});
 
-      expect(eventBus.emit).toHaveBeenCalledWith(
-        'approval.approved',
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        EventTypes.APPROVAL_APPROVED,
         expect.objectContaining({
-          id: mockApprovalId,
-          workspaceId: mockWorkspaceId,
+          approvalId: mockApprovalId,
+          decision: 'approved',
           decidedById: mockUserId,
+        }),
+        expect.objectContaining({
+          tenantId: mockWorkspaceId,
+          userId: mockUserId,
+          source: 'approvals',
         }),
       );
     });
@@ -354,11 +369,18 @@ describe('ApprovalsService', () => {
         reason: 'Not ready',
       });
 
-      expect(eventBus.emit).toHaveBeenCalledWith(
-        'approval.rejected',
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        EventTypes.APPROVAL_REJECTED,
         expect.objectContaining({
-          id: mockApprovalId,
-          reason: 'Not ready',
+          approvalId: mockApprovalId,
+          decision: 'rejected',
+          decidedById: mockUserId,
+          decisionNotes: 'Not ready',
+        }),
+        expect.objectContaining({
+          tenantId: mockWorkspaceId,
+          userId: mockUserId,
+          source: 'approvals',
         }),
       );
     });
@@ -378,9 +400,7 @@ describe('ApprovalsService', () => {
       expect(auditLogger.logApprovalDecision).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'approval.rejected',
-          metadata: expect.objectContaining({
-            reason,
-          }),
+          reason,
         }),
       );
     });
@@ -425,22 +445,6 @@ describe('ApprovalsService', () => {
       expect(result.successes).toHaveLength(1);
       expect(result.failures).toHaveLength(1);
       expect(result.failures[0].id).toBe('invalid-id');
-    });
-
-    it('should emit events for each success', async () => {
-      const ids = ['id-1', 'id-2'];
-      prisma.approvalItem.findUnique.mockResolvedValue(mockApproval);
-      prisma.approvalItem.update.mockResolvedValue({
-        ...mockApproval,
-        status: 'approved',
-      });
-
-      await service.bulkAction(mockWorkspaceId, mockUserId, {
-        ids,
-        action: 'approve',
-      });
-
-      expect(eventBus.emit).toHaveBeenCalledTimes(2);
     });
 
     it('should validate reject action has reason', async () => {

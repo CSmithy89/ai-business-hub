@@ -1,8 +1,9 @@
 # HYVVE Detailed Implementation Plan & Audit
 
 **Status:** Living Document
-**Date:** 2025-12-13
-**Version:** 1.5
+**Date:** 2025-12-14
+**Version:** 2.11
+**Last Audit:** 2025-12-15
 
 ---
 
@@ -22,27 +23,36 @@ This document outlines the strategic roadmap for evolving the HYVVE platform int
 
 ## 2. Audit & Gap Analysis
 
-**Current State (Based on `agents/` analysis):**
-*   **Runtime:** FastAPI server (`AgentOS`) hosting specific agent teams (Validation, Planning, Branding).
-*   **Data Access:** Agents use `PostgresStorage` for *session history* but lack integration for *business state*. Tools often return dummy data or lack DB persistence logic.
-*   **Knowledge:** No RAG implementation (PgVector) found in code, despite being in docs.
-*   **Configuration:** API keys and models are hardcoded. No dynamic injection mechanism (`get_user_api_key` missing).
-*   **Protocols:**
-    *   **A2A:** Missing implementation. No discovery (`/.well-known/agent-card.json`).
-    *   **AG-UI:** Missing implementation. Endpoints return standard JSON, not SSE streams.
+### 2.1. Current State (Based on `agents/` analysis - Dec 2025)
 
-**Gaps Identified:**
+**What's Built:**
+*   **Runtime:** FastAPI server (`AgentOS`) hosting agent teams (Validation, Planning, Branding, Platform/Approval).
+*   **Registry:** `AgentRegistry` class with A2A card generation (`agents/registry.py`) - **EXISTS BUT NOT WIRED**.
+*   **Streaming:** `EventEncoder` class for AG-UI SSE format (`agents/ag_ui/encoder.py`) - **EXISTS BUT NOT USED**.
+*   **BYOAI:** `BYOAIClient` for fetching provider configs (`agents/providers/byoai_client.py`) - **IMPLEMENTED**.
+*   **Middleware:** TenantMiddleware (JWT/workspace), Rate Limiting, Business Validator - **IMPLEMENTED**.
+*   **Teams:** Validation, Planning, Branding teams with factory pattern - **IMPLEMENTED**.
 
-| Component | Current Implementation | Target Requirement | Gap Severity |
-|-----------|------------------------|--------------------|--------------|
-| **Protocol** | Custom REST API | **A2A Protocol** (JSON-RPC 2.0 over HTTP) | 🔴 High |
-| **Discovery** | None | `/.well-known/agent-card.json` | 🔴 High |
-| **Streaming** | None (Blocking/Async wait) | **AG-UI** (SSE `text/event-stream`) | 🔴 High |
-| **Events** | Custom JSON Schema | Standard AG-UI Events (`RUN_STARTED`, `TEXT_MESSAGE_CHUNK`, `THOUGHT_CHUNK`, `UI_RENDER_HINT`) | 🔴 High |
-| **Persistence** | Placeholder/Logging only | **Shared Schema** (Prisma/SQLAlchemy) | 🔴 High |
-| **RAG** | None | **PgVector** Knowledge Base with Ingestion Pipeline | 🟠 Medium |
-| **Config** | Hardcoded | **Module Config API** & **User Secrets Manager** | 🟠 Medium |
-| **Tooling** | Hardcoded Python functions | **MCP** (Model Context Protocol) with Permissions | 🟠 Medium |
+**What's Missing:**
+*   **Endpoints return JSON, not SSE** - StreamingResponse not used in `main.py`.
+*   **A2A discovery endpoint** - `/.well-known/agent-card.json` not exposed.
+*   **A2A RPC endpoint** - `/a2a/{agent_id}/rpc` JSON-RPC not implemented.
+*   **Registry integration** - Registry exists but teams not registered.
+*   **RAG/Knowledge** - No PgVector implementation.
+*   **MCP Integration** - No MCP SDK in requirements.
+
+### 2.2. Gap Analysis Matrix
+
+| Component | Current State | Target Requirement | Gap Severity |
+|-----------|---------------|-------------------|--------------|
+| **Protocol** | Custom REST API | **A2A Protocol** (JSON-RPC 2.0) | 🔴 High |
+| **Discovery** | Registry exists, endpoint missing | `/.well-known/agent-card.json` | 🟡 Medium (code exists) |
+| **Streaming** | EventEncoder exists, not wired | **AG-UI** (SSE `text/event-stream`) | 🟡 Medium (code exists) |
+| **Events** | Basic events in encoder | Full AG-UI Event Set (see 4.2.1) | 🟠 Medium |
+| **BYOAI** | BYOAIClient implemented | Dynamic provider injection | 🟢 Low (mostly done) |
+| **Persistence** | PostgresStorage for sessions | **Shared Schema** (business data) | 🟠 Medium |
+| **RAG** | None | **PgVector** Knowledge Base | 🟠 Medium |
+| **MCP** | None | **MCP** with Permissions | 🟠 Medium |
 
 ---
 
@@ -70,7 +80,7 @@ Modules depend *only* on the Foundation, not each other directly.
 
 ### Phase 1: Agent Foundation Upgrade (The "AgentOS 2.0")
 
-**Status:** 🏗️ In Progress
+**Status:** ✅ Complete - A2A and AG-UI protocols implemented
 
 #### 4.1. Protocols & Standards
 *   **✅ Spec Completed:** `docs/architecture/a2a-protocol.md` (JSON-RPC, Agent Card).
@@ -79,105 +89,583 @@ Modules depend *only* on the Foundation, not each other directly.
 *   **✅ Spec Completed:** `docs/architecture/agno-implementation-guide.md` (Deep Dive into Agno components).
 
 #### 4.2. AG-UI Integration (Streaming)
+
 **Objective:** Replace standard JSON responses with SSE streams.
-*   **Action:** Implement `EventEncoder` and `StreamingResponse` in FastAPI.
-*   **Events:** Map Agno internal events to AG-UI types:
-    *   `TEXT_MESSAGE_CHUNK` (Token streaming)
-    *   `TOOL_CALL_START` / `TOOL_CALL_RESULT` (Action visibility)
-    *   `UI_RENDER_HINT` (For rich client-side components like charts)
-    *   `THOUGHT_CHUNK` (For reasoning models like o1/Claude-3.5 - **Critical for "Thinking" UI**)
-*   **Frontend:** The frontend will consume these streams using a custom hook (e.g., `useAgentStream`) that handles the `text/event-stream` response, parsing SSE data packets and updating the UI state in real-time.
+
+**Current Status:**
+*   ✅ `EventEncoder` class exists at `agents/ag_ui/encoder.py`
+*   ✅ Basic event types defined (`RUN_STARTED`, `TEXT_MESSAGE_CHUNK`, `RUN_FINISHED`, `ERROR`)
+*   ❌ `StreamingResponse` not used in `main.py` endpoints
+*   ❌ Tool call events have TODO comment
+*   ❌ Missing `THOUGHT_CHUNK` and `UI_RENDER_HINT` events
+
+##### 4.2.1. Complete AG-UI Event Types
+
+The following events MUST be supported (per `ag-ui-protocol.md` and `agno-implementation-guide.md`):
+
+| Event Type | Purpose | Status |
+|------------|---------|--------|
+| `RUN_STARTED` | Agent begins processing | ✅ Implemented |
+| `RUN_FINISHED` | Agent completes execution | ✅ Implemented |
+| `TEXT_MESSAGE_CHUNK` | Token-by-token text streaming | ✅ Implemented |
+| `TOOL_CALL_START` | Tool invocation begins | ⚠️ Enum only |
+| `TOOL_CALL_ARGS` | Progressive tool arguments display | ❌ Missing |
+| `TOOL_CALL_RESULT` | Tool returns result | ⚠️ Enum only |
+| `THOUGHT_CHUNK` | Reasoning model thinking (o1/Claude) | ❌ Missing |
+| `UI_RENDER_HINT` | Rich component rendering instruction | ❌ Missing |
+| `ERROR` | Fatal error occurred | ✅ Implemented |
+
+##### 4.2.2. Event Mapping (Agno to AG-UI)
+
+```
+| Agno Event     | AG-UI Event Type      |
+|----------------|----------------------|
+| RunStart       | RUN_STARTED          |
+| Stream (Text)  | TEXT_MESSAGE_CHUNK   |
+| Stream (Think) | THOUGHT_CHUNK        |
+| ToolCall       | TOOL_CALL_START      |
+| ToolCallArgs   | TOOL_CALL_ARGS       |
+| ToolOutput     | TOOL_CALL_RESULT     |
+| RenderHint     | UI_RENDER_HINT       |
+| RunFinish      | RUN_FINISHED         |
+| Error          | ERROR                |
+```
+
+##### 4.2.3. Implementation Tasks
+
+1.  **Update `ag_ui/encoder.py`:**
+    *   Add `THOUGHT_CHUNK` to `AGUIEventType` enum
+    *   Add `TOOL_CALL_ARGS` to `AGUIEventType` enum
+    *   Add `UI_RENDER_HINT` to `AGUIEventType` enum
+    *   Implement tool call detection in `stream_response()`
+
+2.  **Update `main.py` endpoints:**
+    *   Convert `/agents/*/runs` endpoints to use `StreamingResponse`
+    *   Import and use `EventEncoder.stream_response()`
+    *   Add `media_type="text/event-stream"` to responses
+
+3.  **Frontend Hook:**
+    *   Create `useAgentStream` hook for SSE consumption
+    *   Handle all event types with appropriate UI updates
 
 #### 4.3. A2A Protocol Implementation (Interoperability)
+
 **Objective:** Make agents discoverable and callable.
-*   **Registry:** Create `AgentRegistry` class (in-memory for now, Redis later). This registry will hold `AgentCard` objects.
-*   **Discovery Endpoint:** Implement `GET /.well-known/agent-card.json` which returns the agent's capabilities, description, and available tools/skills.
-*   **RPC Endpoint:** Implement `POST /agent/rpc` for JSON-RPC 2.0 calls. This allows other agents to invoke tasks synchronously.
-*   **Internal Routing:** The registry will allow `AgentOS` to route an internal request like `registry.get_agent("crm_agent").run("...")` without a network hop if possible, or via HTTP if distributed.
+
+**Current Status:**
+*   ✅ `AgentRegistry` class exists at `agents/registry.py`
+*   ✅ `AgentCard`, `AgentSkill`, `AgentCapabilities` Pydantic models defined
+*   ✅ Card generation from agent tools implemented
+*   ❌ Registry not instantiated/used in `main.py`
+*   ❌ Discovery endpoint not exposed
+*   ❌ RPC endpoint not implemented
+
+##### 4.3.1. Implementation Tasks
+
+1.  **Wire Registry in `main.py`:**
+    ```python
+    from registry import registry
+
+    @app.on_event("startup")
+    async def startup_event():
+        # Register all teams
+        registry.register_team(create_validation_team(...), "validation")
+        registry.register_team(create_planning_team(...), "planning")
+        registry.register_team(create_branding_team(...), "branding")
+    ```
+
+2.  **Add Discovery Endpoint:**
+    ```python
+    @app.get("/.well-known/agent-card.json")
+    async def get_agent_cards():
+        """List all registered agent cards (A2A Discovery)"""
+        return {"agents": [card.model_dump() for card in registry.list_cards()]}
+
+    @app.get("/a2a/{agent_id}/.well-known/agent-card.json")
+    async def get_agent_card(agent_id: str):
+        """Get specific agent card"""
+        card = registry.get_card(agent_id)
+        if not card:
+            raise HTTPException(404, "Agent not found")
+        return card.model_dump()
+    ```
+
+3.  **Add JSON-RPC Endpoint:**
+    ```python
+    @app.post("/a2a/{agent_id}/rpc")
+    async def a2a_rpc(agent_id: str, request: JSONRPCRequest):
+        """A2A JSON-RPC 2.0 endpoint"""
+        team = registry.get_team(agent_id)
+        if not team:
+            return JSONRPCError(code=-32601, message="Agent not found")
+
+        if request.method == "run":
+            response = await team.arun(request.params["task"])
+            return JSONRPCResponse(id=request.id, result={"content": response.content})
+    ```
 
 #### 4.4. Configuration & Secrets Management
+
 **Objective:** Enable "Bring Your Own AI" and Module Config.
-*   **Secrets Manager:** Create a service to fetch encrypted API keys (OpenAI, Anthropic) from the DB/Vault based on `user_id` or `workspace_id`.
-    *   *Implementation:* Use `cryptography` library to encrypt keys at rest in the Postgres `user_secrets` table.
-*   **Module Config API:** Endpoint to list/enable/disable modules.
-    *   *Implementation:* A meta-table `module_config` storing the enabled state and version of each module per workspace.
-*   **MCP Integration:** Support dynamic MCP server connections.
-    *   *Permission Flags:* Implement Read/Write/Execute flags for tools (inspired by Claude Code SDK).
-    *   *Dynamic Loading:* Middleware in `AgentOS` fetches user's MCP config, spawns/connects to MCP servers (or uses SSE-based MCP), and injects tools into the `Agent` context at runtime.
+
+**Current Status:**
+*   ✅ `BYOAIClient` implemented at `agents/providers/byoai_client.py`
+*   ✅ Provider config fetching with caching
+*   ✅ Token limit checking and usage recording
+*   ❌ Not integrated into agent creation flow
+*   ❌ MCP integration not started
+
+##### 4.4.1. Implementation Tasks
+
+1.  **Integrate BYOAI into Teams:**
+    *   Modify team factories to accept `ProviderConfig`
+    *   Inject API keys from BYOAI into Agno agent `model` parameter
+
+2.  **MCP Integration:**
+    *   Add `mcp` package to requirements
+    *   Create `agents/providers/mcp.py` for user-scoped MCP tools
+    *   Implement permission flags (Read/Write/Execute)
 
 ### Phase 2: Data & State Strategy
 
 #### 4.5. Shared Schema Persistence
 **Objective:** Agents must read/write actual business data.
-*   **Action:** Define Pydantic models that mirror the Prisma schema. This ensures type safety between the Python agents and the Postgres database managed by NestJS/Prisma.
-*   **Resumable Sessions:** Store `AgentSession` in Postgres to survive restarts (from `remote-coding-agent-patterns.md`).
-    *   *Mechanism:* Use Agno's `PostgresStorage` but map it to our shared schema to allow the NestJS backend to also query conversation history if needed.
+*   **Action:** Define Pydantic models that mirror the Prisma schema.
+*   **Resumable Sessions:** Store `AgentSession` in Postgres to survive restarts.
 
 #### 4.6. Knowledge Base (RAG)
 **Objective:** Long-term memory for business context.
 *   **Action:** Initialize `PgVector` knowledge base.
-*   **Ingestion Pipeline:** Implement `ReaderFactory` and `AgenticChunking` for robust document processing (from `agno-implementation-guide.md`).
+*   **Ingestion Pipeline:** Implement `ReaderFactory` and `AgenticChunking`.
     *   *Files:* PDF, CSV, Markdown processing.
     *   *Web:* Scrape and index relevant business URLs.
-    *   *Integration:* The `Agent` will have a `knowledge` parameter initialized with this vector store, allowing `agent.print_response("...", search_knowledge=True)`.
+    *   *Integration:* `agent.knowledge.search(query, filter={"workspace_id": ...})`
 
 ### Phase 3: Module Implementation (Iterative)
 
 #### 4.7. First Module: BM-CRM
 *   **Data:** Contacts, Companies, Interactions.
 *   **Agents:**
-    *   `LeadScorer`: Background agent listening to Redis events (e.g., `new_contact`).
-    *   `CRMAssistant`: A2A/AG-UI agent for user interaction ("Find me high value leads").
+    *   `LeadScorer`: Background agent listening to Redis events.
+    *   `CRMAssistant`: A2A/AG-UI agent for user interaction.
 *   **Integration:** Exposes `crm.search` tool via MCP/A2A.
 
 ### Phase 4: Frontend Implementation (Management UI)
 
-We will adapt existing `apps/web/src/app/(dashboard)/settings` structure and create new pages where missing.
-
 #### 4.8. Module Management UI
-**Location:** `apps/web/src/app/(dashboard)/settings/modules/page.tsx` (New)
-*   **Features:**
-    *   Grid view of available modules (CRM, Branding, Planning, etc.).
-    *   Toggle switches to Enable/Disable modules per workspace.
-    *   Status indicators (Active, Inactive, Error).
-    *   "Configure" button for module-specific settings.
+**Status:** ✅ Complete
+
+**Primary Location:** `apps/web/src/app/(dashboard)/settings/modules/page.tsx`
+
+**Implemented:**
+*   ✅ Grid view of available modules (grouped by category)
+    *   UI: `apps/web/src/components/settings/module-management.tsx`
+    *   Hook: `apps/web/src/hooks/use-workspace-modules.ts`
+*   ✅ Toggle switches to Enable/Disable optional modules per workspace
+    *   Core modules are forced enabled (toggle disabled)
+    *   Permission enforcement occurs in API routes (owner/admin required for mutations)
+*   ✅ Status indicators (Active/Inactive)
+    *   Note: explicit "Error" status is not currently emitted by the module API
+*   ✅ "Configure" button per module
+    *   Implemented as a JSON-backed config editor (workspace-scoped): `apps/web/src/components/settings/module-config-dialog.tsx`
 
 #### 4.9. AI & Keys Configuration
-**Location:** `apps/web/src/app/(dashboard)/settings/ai-config` (Existing - Adapt)
-*   **Adaptation:**
-    *   Rename/Refine `agent-preferences` to `model-settings`.
-    *   Add **"API Keys"** tab/section for securely adding OpenAI/Anthropic keys (BYOAI).
-    *   Add **"MCP Integrations"** tab/section.
-    *   **MCP UI:** List of connected MCP servers, "Add Connection" modal (URL + Auth Token), and connection status health check.
+**Status:** ✅ Complete (with final routing decisions)
+
+**Final UX Structure:**
+*   ✅ **API Keys (BYOAI / LLM connections)** is the canonical home for all workspace AI provider keys
+    *   Page: `apps/web/src/app/(dashboard)/settings/api-keys/page.tsx`
+    *   UI: `apps/web/src/components/settings/ai-provider-list.tsx`
+*   ✅ **AI Configuration** is focused on preferences + usage (not keys)
+    *   Redirect: `apps/web/src/app/(dashboard)/settings/ai-config/page.tsx` → `/settings/ai-config/agent-preferences`
+    *   Sub-navigation: `apps/web/src/components/settings/ai-config-subnav.tsx`
+    *   Preferences: `apps/web/src/app/(dashboard)/settings/ai-config/agent-preferences/page.tsx`
+    *   Usage: `apps/web/src/app/(dashboard)/settings/ai-config/usage/page.tsx`
+*   ✅ **MCP Integrations** is a dedicated page (not a tab inside AI config)
+    *   Page: `apps/web/src/app/(dashboard)/settings/mcp/page.tsx`
+    *   UI: `apps/web/src/components/settings/mcp-integrations.tsx`
+    *   Hooks: `apps/web/src/hooks/use-mcp-servers.ts`
+    *   Dialogs: `apps/web/src/components/settings/add-mcp-server-dialog.tsx`, `apps/web/src/components/settings/edit-mcp-server-dialog.tsx`
 
 #### 4.10. Agent Team Configuration
 **Location:** `apps/web/src/app/(dashboard)/agents/[id]/configure` (Existing - Refine)
-*   **Features:**
-    *   Dropdown to select Model (GPT-4, Claude 3.5) for *this specific agent*.
-    *   Toggle for "Enable Tools" (e.g., Web Search, Calculator).
-    *   Prompt/Persona editor (Admin only).
+*   Model selection dropdown (GPT-4, Claude 3.5)
+*   Tool toggle controls
+*   Prompt/Persona editor (Admin only)
 
 ---
 
-## 5. Next Steps (Immediate)
+## 5. Next Steps (Prioritized)
 
-1.  **Refactor `agents/main.py`**:
-    *   Remove hardcoded team endpoints.
-    *   Implement generic `A2ARouter` and `AGUIStreamer`.
-    *   Create `AgentRegistry`.
-2.  **Implement `EventEncoder`**: Port the logic from `ag-ui-protocol.md`.
-3.  **Implement `AgentRegistry`**: Create the discovery mechanism defined in `a2a-protocol.md`.
+### 5.1. Immediate (Wire Existing Code) ✅ COMPLETE
+
+| Task | File(s) | Status |
+|------|---------|--------|
+| Add missing AG-UI events to encoder | `agents/ag_ui/encoder.py` | ✅ Done |
+| Wire registry in main.py startup | `agents/main.py` | ✅ Done |
+| Add A2A discovery endpoint | `agents/main.py` | ✅ Done |
+| Add A2A RPC endpoint | `agents/main.py` | ✅ Done |
+| Convert team endpoints to SSE | `agents/main.py` | ✅ Done |
+| Update requirements.txt | `agents/requirements.txt` | ✅ Done |
+
+### 5.2. Short-Term (New Implementation) ✅ COMPLETE
+
+| Task | Description | Effort | Status |
+|------|-------------|--------|--------|
+| Integrate BYOAI into team factories | Use ProviderConfig for model selection | 4 hours | ✅ Done |
+| Create `useAgentStream` hook | Frontend SSE consumer with Zod validation | 4 hours | ✅ Done |
+| Add JSON-RPC request/response models | Pydantic models for A2A | 2 hours | ✅ Done |
+| Enable JWT signature verification | Security fix in tenant.py | 1 hour | ✅ Done |
+| Fix HTTP client lifecycle | Resource leak prevention in byoai_client.py | 1 hour | ✅ Done |
+| Add race condition prevention | Stream ID tracking in useAgentStream | 1 hour | ✅ Done |
+
+### 5.3. Medium-Term (New Features)
+
+| Task | Description | Effort | Status |
+|------|-------------|--------|--------|
+| PgVector setup | RAG knowledge base | 1 day | ✅ Done |
+| MCP provider integration | Dynamic tool loading | 2 days | ✅ Done |
+| Module config API | Enable/disable modules | 1 day | ✅ Done |
+
+### 5.4. Frontend Management UI ✅ COMPLETE
+
+| Task | Location(s) | Status |
+|------|-------------|--------|
+| Workspace module management page | `apps/web/src/app/(dashboard)/settings/modules/page.tsx` | ✅ Done |
+| Workspace module config editor (JSON) | `apps/web/src/components/settings/module-config-dialog.tsx` | ✅ Done |
+| MCP integrations management page | `apps/web/src/app/(dashboard)/settings/mcp/page.tsx` | ✅ Done |
+| MCP add/edit dialogs + hooks | `apps/web/src/components/settings/*mcp*`, `apps/web/src/hooks/use-mcp-servers.ts` | ✅ Done |
+| API Keys page for BYOAI providers | `apps/web/src/app/(dashboard)/settings/api-keys/page.tsx` | ✅ Done |
+| AI config sub-navigation (preferences/usage) | `apps/web/src/components/settings/ai-config-subnav.tsx` | ✅ Done |
+| Settings nav updated (Modules + MCP) | `apps/web/src/components/layouts/settings-layout.tsx` | ✅ Done |
+
+#### 5.4.1. UI + API Hardening Pass ✅ COMPLETE
+
+| Area | Improvement | Files | Status |
+|------|-------------|-------|--------|
+| Modules | Prevent sensitive module config exposure (admins/owners only) | `apps/web/src/app/api/workspaces/[id]/modules/route.ts`, `apps/web/src/app/api/workspaces/[id]/modules/[moduleId]/route.ts` | ✅ Done |
+| Modules | Ensure `disabledAt` is set when creating disabled module records | `apps/web/src/app/api/workspaces/[id]/modules/[moduleId]/route.ts` | ✅ Done |
+| MCP | Fix DELETE race condition (return 404 on already-deleted) | `apps/web/src/app/api/workspaces/[id]/mcp-servers/[serverId]/route.ts` | ✅ Done |
+| MCP | Include `envVars` on detail GET + support editing in UI | `apps/web/src/app/api/workspaces/[id]/mcp-servers/[serverId]/route.ts`, `apps/web/src/hooks/use-mcp-servers.ts`, `apps/web/src/components/settings/edit-mcp-server-dialog.tsx` | ✅ Done |
+| MCP | Clamp timeout inputs to backend constraints + reset form on Cancel | `apps/web/src/components/settings/add-mcp-server-dialog.tsx`, `apps/web/src/components/settings/edit-mcp-server-dialog.tsx` | ✅ Done |
+| MCP | Validate `headers`/`envVars` payload size/shape to avoid abuse/prototype keys | `apps/web/src/lib/validation/safe-string-map.ts`, `apps/web/src/app/api/workspaces/[id]/mcp-servers/route.ts`, `apps/web/src/app/api/workspaces/[id]/mcp-servers/[serverId]/route.ts` | ✅ Done |
+| AI Providers | Don’t swallow non-schema-drift DB errors when loading agent preferences | `apps/api/src/ai-providers/agent-preferences.service.ts` | ✅ Done |
+| Usage | Normalize Nest base URL + URL-encode IDs for token limit routes | `apps/web/src/hooks/use-token-limits.ts` | ✅ Done |
+| Chat | Revoke preview object URLs on send to avoid memory leaks | `apps/web/src/components/chat/ChatInput.tsx` | ✅ Done |
+| Web | Safe JSON parsing for fetch helpers to avoid unhandled `response.json()` exceptions | `apps/web/src/lib/utils/safe-json.ts`, `apps/web/src/hooks/*`, `apps/web/src/app/reset-password/page.tsx` | ✅ Done |
+| Dashboard | Signed-out UX: show Sign in CTA instead of alarming load error | `apps/web/src/app/(dashboard)/dashboard/DashboardContent.tsx` | ✅ Done |
+| Realtime | Fix hook-order crash in connection indicator (prevents “Header unavailable”) | `apps/web/src/components/ui/connection-status.tsx` | ✅ Done |
+| Tests | Stabilize upload progress duration test (remove real-time flake) | `apps/web/src/__tests__/file-upload.test.ts` | ✅ Done |
+
+---
+
+### 5.5. Dev Runtime + Key Interop ✅ COMPLETE
+
+#### 5.5.1. Redis Implementation for Development ✅ COMPLETE
+
+**Goal:** Enable local Redis for dev rate limiting, while maintaining easy switch to cloud providers in production.
+
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 1 | Update rate-limit.ts - Add ioredis support alongside Upstash | `apps/web/src/lib/utils/rate-limit.ts` | ✅ Done |
+| 2 | Add Redis connection utility - Shared Redis client with priority: REDIS_URL → UPSTASH → in-memory | `apps/web/src/lib/utils/redis.ts` | ✅ Done |
+| 3 | Update .env.example - Document REDIS_URL for local dev | `.env.example` | ✅ Done |
+| 4 | Verify Docker Redis - Ensure docker-compose.yml Redis works | `docker/docker-compose.yml` | ✅ Done |
+| 5 | Test & verify - Confirm rate limiting supports Redis backend | `apps/web/src/lib/utils/rate-limit.test.ts` | ✅ Done |
+| 6 | Monorepo env alignment - Ensure web app can read repo-root REDIS_URL during dev | `apps/web/next.config.ts` | ✅ Done |
+
+#### 5.5.2. Python-Side API Key Decryption ✅ COMPLETE
+
+**Goal:** Allow Python AgentOS to decrypt API keys that were encrypted by the Next.js app, enabling agents to use user-provided AI provider keys.
+
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 1 | Create encryption.py - Mirror the Node.js AES-256-GCM encryption/decryption | `agents/utils/encryption.py` | ✅ Done |
+| 2 | Verify cryptography dependency is installed | `agents/requirements.txt` | ✅ Done |
+| 3 | Update BYOAIClient - Decrypt API keys when fetching provider configs (via DB lookup) | `agents/providers/byoai_client.py` | ✅ Done |
+| 4 | Add unit tests - Round-trip + Node↔Python compatibility | `agents/tests/test_encryption.py` | ✅ Done |
+| 5 | Cross-language verification - Node encrypted → Python decrypted works | `agents/tests/test_encryption.py` | ✅ Done |
+
+#### 5.5.3. Realtime UX Regression ✅ FIXED
+
+**Issue:** “Real-time updates unavailable” shown due to missing/incorrect session token retrieval for WebSocket auth and dev hostname/CORS mismatches (Docker/VM/WSL access via non-`localhost` hostnames).
+
+**Fix:** Prefer Better Auth session token from `useSession()`, and fall back to cookie-based auth (HttpOnly session cookie) in development.
+Additional dev hardening: default WebSocket hostname to the current `window.location.hostname` when env points at `localhost`, and allow private-network origins when `CORS_ALLOWED_ORIGINS` is not set (dev only).
+
+*   ✅ `apps/web/src/lib/auth-client.ts`
+*   ✅ `apps/web/src/lib/realtime/realtime-provider.tsx`
+*   ✅ `apps/api/src/realtime/realtime.gateway.ts`
+*   ✅ Cookie parsing hardened (preserves `=` inside cookie values) in `apps/api/src/realtime/realtime.gateway.ts`
+
+#### 5.5.4. AgentOS + DB Hardening Follow-ups ✅ COMPLETE
+
+| Area | Improvement | Files | Status |
+|------|-------------|-------|--------|
+| AgentOS config | Treat empty/whitespace `ENCRYPTION_MASTER_KEY` as unset to avoid false “configured” state | `agents/config.py` | ✅ Done |
+| Knowledge | Collision-resistant tenant table naming (hash suffix), legacy table preservation, concurrent creation lock, and safe deletion even without cached instance | `agents/knowledge/factory.py` | ✅ Done |
+| BYOAI | Do not cache decrypted provider keys in process memory; cache encrypted values and hydrate decrypted keys only for returned objects | `agents/providers/byoai_client.py` | ✅ Done |
+| Auth | TenantMiddleware requires `sub`, supports optional issuer/audience validation, and avoids logging raw token errors | `agents/middleware/tenant.py` | ✅ Done |
+| Error handling | Avoid returning raw exception strings to clients for team execution failures | `agents/main.py` | ✅ Done |
+| DB migrations | Add DB-level default for `updated_at` on new module/MCP tables | `packages/db/prisma/migrations/20251214153000_add_updated_at_defaults/migration.sql` | ✅ Done |
+| Prisma schema | Align MCP tool filter arrays with DB defaults | `packages/db/prisma/schema.prisma` | ✅ Done |
+
+#### 5.5.5. Review Follow-ups (P1/P2) ✅ COMPLETE
+
+| Area | Improvement | Files | Status |
+|------|-------------|-------|--------|
+| Next.js route typing | Align route handler context typing with Next 15 generated types (`params: Promise<...>`) to restore `pnpm type-check` | `apps/web/src/app/api/workspaces/[id]/**/route.ts` | ✅ Done |
+| Streaming safety | Add SSE buffer cap (1MB), request message length guard, and unmount-safe state updates | `apps/web/src/hooks/use-agent-stream.ts` | ✅ Done |
+| Rate limiting | Avoid import-time side-effects/intervals; start in-memory cleanup lazily and skip serverless/edge runtimes | `apps/web/src/lib/utils/rate-limit.ts` | ✅ Done |
+| Token limits hook | Remove non-null assertion in queryFn by deriving workspaceId from queryKey; URL-encode IDs/base URL normalization | `apps/web/src/hooks/use-token-limits.ts` | ✅ Done |
+| Knowledge search | Add `offset` support (best-effort via limit+offset + slice) | `agents/knowledge/ingestion.py` | ✅ Done |
+| Agent preferences resiliency | Treat Prisma schema drift (`P2021`/`P2022`) as dev-only fallback to defaults | `apps/api/src/ai-providers/agent-preferences.service.ts` | ✅ Done |
+| Test stability | Fix brittle unit tests (guard mocks, optional fields, RLS env assertion, roles guard helper) | `apps/api/src/**/**/*.spec.ts`, `apps/api/test/rls.integration.e2e-spec.ts` | ✅ Done |
+
+**Verification:**
+* ✅ `pnpm type-check`
+* ✅ `pnpm --filter @hyvve/api test`
+* ✅ `pnpm --filter @hyvve/web test`
+* ✅ `pnpm --filter @hyvve/web lint` (warnings only)
+* ✅ Playwright smoke: settings pages render; realtime tooltip shows active when API reachable
+
+#### 5.5.6. Additional Hardening Pass (P0–P2) ✅ COMPLETE
+
+| Area | Improvement | Files | Status |
+|------|-------------|-------|--------|
+| Knowledge | Defense-in-depth: validate identifiers at execution time and avoid fragile quote-escaping when dropping tables | `agents/knowledge/factory.py` | ✅ Done |
+| Knowledge | Reduce table-name collision probability by using a stronger hash suffix while staying under Postgres identifier limits | `agents/knowledge/factory.py` | ✅ Done |
+| AG-UI streaming | Buffer cap checks pre-append; limits configurable via env/options; fix hook dependency warnings | `apps/web/src/hooks/use-agent-stream.ts` | ✅ Done |
+| Redis (dev) | Add bounded reconnection backoff + best-effort shutdown handlers to avoid leaked clients in long-running dev processes | `apps/web/src/lib/utils/redis.ts` | ✅ Done |
+| Rate limiting | More aggressive cleanup when approaching in-memory cap | `apps/web/src/lib/utils/rate-limit.ts` | ✅ Done |
+| MCP config | Tighten header/env validation (counts, safe key regex, CRLF rejection, env var prefix allowlist) | `apps/web/src/lib/validation/safe-string-map.ts`, `apps/web/src/app/api/workspaces/[id]/mcp-servers/**/route.ts` | ✅ Done |
+| Settings UX | Wrap settings content in an error boundary to prevent whole-page crashes from hook/component failures | `apps/web/src/components/layouts/settings-layout.tsx` | ✅ Done |
+| BYOAI resolver | Add lightweight retry with exponential backoff for transient provider lookup failures | `agents/providers/provider_resolver.py` | ✅ Done |
+
+---
+
+#### 5.5.7. Remaining Follow-ups (P0–P3) ✅ COMPLETE
+
+This section tracks review recommendations and follow-ups that were implemented in sequential “P0 → P3” passes (commit + push after each priority group) on the `feature/a2a-agui-protocol` branch.
+
+Commits:
+- P0: `75b9419`
+- P1: `0d31c5e`
+- P2: `8303329`
+- P3: `de39660`
+
+##### P0 (Security + Operational Correctness)
+- [x] Add encryption master key rotation script (re-encrypt stored secrets with a new `ENCRYPTION_MASTER_KEY`) (`packages/db/scripts/rotate-encryption-master-key.js`)
+- [x] Update deployment docs to reference the rotation script + required env vars (`docs/DEPLOYMENT.md`)
+- [x] Update runbook with an executable rotation procedure + rollback notes (`docs/runbooks/key-rotation.md`)
+- [x] Make WebSocket cookie fallback opt-in even in dev (default OFF) (`apps/api/src/realtime/realtime.gateway.ts`)
+- [x] Add explicit runtime guardrails + loud warnings when insecure WS fallbacks are enabled (esp. in prod) (`apps/api/src/realtime/realtime.gateway.ts`)
+
+##### P1 (Reliability + Performance)
+- [x] Convert `KnowledgeFactory` caches from class-level globals to bounded instance caches (TTL/LRU) (`agents/knowledge/factory.py`)
+- [x] Add asyncpg pooling for `_resolve_table_name` and deletion helpers (`agents/knowledge/factory.py`)
+- [x] Close Redis client on REDIS_URL backend failure before falling back (`apps/web/src/lib/utils/rate-limit.ts`)
+- [x] Add stream-level timeout + backoff policy (client-side) (`apps/web/src/hooks/use-agent-stream.ts`)
+- [x] Add rapid mount/unmount safety tests for `useAgentStream` (`apps/web/src/hooks/__tests__/use-agent-stream.test.tsx`)
+
+##### P2 (Testing Coverage)
+- [x] MCP API route tests (validation, RBAC, masking, CRUD) (`apps/web/src/app/api/workspaces/[id]/mcp-servers/route.test.ts`, `apps/web/src/app/api/workspaces/[id]/mcp-servers/[serverId]/route.test.ts`)
+- [x] Module API route tests (timestamps, RBAC, config masking) (`apps/web/src/app/api/workspaces/[id]/modules/route.test.ts`, `apps/web/src/app/api/workspaces/[id]/modules/[moduleId]/route.test.ts`)
+- [x] Knowledge ingestion/search tests (tenant isolation + filters + errors) (`agents/tests/test_knowledge_ingestion.py`, `agents/tests/test_knowledge_search.py`)
+- [x] BYOAI integration smoke test (encrypted key → resolver) (`agents/tests/test_byoai_integration.py`)
+- [x] WebSocket auth tests for fallback policy (`apps/api/src/realtime/realtime.gateway.spec.ts`)
+- [x] Playwright E2E for settings flows: API Keys, MCP, Modules, Realtime (`apps/web/tests/e2e/settings-integrations.spec.ts`)
+
+##### P3 (Docs + DevEx)
+- [x] Document MCP permission security model (esp. EXECUTE) (`docs/architecture/mcp-security.md`)
+- [x] Expand Redis production guidance (Upstash vs standard Redis, monitoring) (`docs/DEPLOYMENT.md`)
+- [x] Add environment validation script (fail-fast) (`scripts/validate-env.js`)
+- [x] Add rollback procedures for migrations + realtime auth behavior (`docs/runbooks/database-recovery.md`, `docs/DEPLOYMENT.md`)
+
+---
+
+#### 5.5.8. CodeRabbit Review Follow-ups (P0–P3) ✅ COMPLETE
+
+This section tracks additional follow-ups from the CodeRabbit review pass. Items were completed in sequential “P0 → P3” passes (commit + push after each group).
+
+Commits:
+- P0: `e29a59a`
+- P1: `a4b66bf`
+- P2: `f60614c`
+- P3: `8bc64cc`
+
+##### P0 (Security + Operational Correctness)
+- [x] Anchor dev-origin regex checks to prevent hostname suffix bypass (`apps/api/src/realtime/realtime.gateway.ts`)
+- [x] Require non-empty `BETTER_AUTH_SECRET` for JWT validation (avoid empty secret fallback) (`agents/main.py`)
+- [x] Enforce authentication + workspace context for A2A JSON-RPC execution (`agents/main.py`)
+- [x] Key rotation safety: transactional batches + safe resume behavior (`packages/db/scripts/rotate-encryption-master-key.js`)
+
+##### P1 (Reliability)
+- [x] Add timeout protection for team streaming path (avoid hung streams) (`agents/main.py`)
+- [x] Avoid leaking internal exception strings in SSE error events (prod-safe messages) (`agents/main.py`)
+
+##### P2 (UX + Cleanup)
+- [x] Reduce hydration layout shift by using a more neutral default `windowWidth` (`apps/web/src/hooks/use-responsive-layout.ts`)
+- [x] Revoke attachment preview blob URLs on unmount (`apps/web/src/components/chat/ChatInput.tsx`)
+
+##### P3 (Docs Consistency)
+- [x] Resolve status inconsistencies in `docs/NEXT-STEPS.md` (Phase 0.5 completion vs “wiring needed”)
 
 ## 6. Dependency Requirements
 
-To support the new protocols and architecture, we need to update `agents/requirements.txt`.
+### 6.1. Current Dependencies (`agents/requirements.txt`)
+```
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+agno
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+asyncpg>=0.29.0
+pyjwt==2.8.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+requests>=2.31.0
+httpx>=0.27.0
+respx>=0.20.2
+slowapi>=0.1.9
+limits>=3.7.0
+```
 
-**New Packages Required:**
-*   `sse-starlette`: For FastAPI Server-Sent Events (SSE) support (AG-UI).
-*   `orjson`: High-performance JSON parsing for A2A messages.
-*   `pgvector`: For RAG knowledge base integration.
-*   `cryptography`: For encrypting/decrypting BYOAI API keys in the database.
-*   `mcp`: The official Python SDK for Model Context Protocol.
+### 6.2. Required Additions
+```
+# AG-UI Streaming
+sse-starlette>=1.8.0
+
+# A2A Performance
+orjson>=3.9.0
+
+# RAG Knowledge Base
+pgvector>=0.2.5
+
+# BYOAI Key Encryption
+cryptography>=41.0.0
+
+# Model Context Protocol
+mcp>=0.1.0
+```
 
 ---
-*Created by BMad Master - 2025-12-13*
+
+## 7. Audit Checklist
+
+Use this checklist to verify implementation completeness:
+
+### 7.1. Infrastructure
+- [x] FastAPI server running (`agents/main.py`)
+- [x] TenantMiddleware active on routes (with JWT signature verification)
+- [x] Rate limiting configured
+- [ ] Redis connection for distributed registry (optional)
+
+### 7.1b. Security
+- [x] JWT signature verification enabled (tenant.py)
+- [x] HTTP client resource management (byoai_client.py)
+- [x] Input validation with Zod schemas (useAgentStream)
+- [x] Race condition prevention (stream ID tracking)
+- [x] API key encryption at rest (Node encrypt + Python decrypt)
+
+### 7.2. AG-UI Protocol
+- [x] `EventEncoder` class exists
+- [x] `THOUGHT_CHUNK` event type added
+- [x] `UI_RENDER_HINT` event type added
+- [x] `TOOL_CALL_ARGS` event type added
+- [x] `StreamingResponse` used in endpoints
+- [x] Tool call detection implemented
+- [x] Client error events sanitized (no raw exception strings)
+
+### 7.3. A2A Protocol
+- [x] `AgentRegistry` class exists
+- [x] `AgentCard` Pydantic model defined
+- [x] Registry instantiated at startup
+- [x] Teams registered in registry
+- [x] `/.well-known/agent-card.json` endpoint exposed
+- [x] `/a2a/{agent_id}/rpc` endpoint implemented
+
+### 7.4. BYOAI Integration
+- [x] `BYOAIClient` implemented
+- [x] Provider config caching
+- [x] HTTP client lifecycle management (reusable client)
+- [x] `create_agno_model()` factory function
+- [x] `resolve_and_create_model()` convenience function
+- [x] Integration in team execution (`_resolve_provider_for_team`)
+- [x] Token limit enforcement in agent runs (`_check_token_limit`)
+- [x] Usage recording after completions (`_record_usage`)
+
+### 7.5. Frontend SSE Integration
+- [x] `useAgentStream` React hook
+- [x] Zod validation for all AG-UI events
+- [x] Race condition prevention (stream ID tracking)
+- [x] Stale closure fixes (callback refs)
+- [x] Proper abort/cleanup handling
+- [x] Support for all AG-UI event types
+
+### 7.6. Dependencies
+- [x] `sse-starlette` in requirements.txt
+- [x] `orjson` in requirements.txt
+- [x] `pgvector` in requirements.txt
+- [x] `cryptography` in requirements.txt
+- [x] `tiktoken` in requirements.txt (token counting)
+- [x] Document processing libs (pypdf, python-docx, beautifulsoup4)
+- [x] `mcp` in requirements.txt
+
+### 7.7. RAG Knowledge Base
+- [x] `KnowledgeFactory` with tenant isolation (`agents/knowledge/factory.py`)
+- [x] Collision-safe table naming (hash suffix for long IDs)
+- [x] BYOAI integration for embeddings
+- [x] Document ingestion module (`agents/knowledge/ingestion.py`)
+- [x] Content type detection (PDF, CSV, URL, etc.)
+- [x] API endpoints (`/knowledge/ingest`, `/knowledge/search`)
+- [x] Metadata filters applied in search (`workspace_id` isolation + user filters)
+- [x] Team integration helpers (`agents/knowledge/team_integration.py`)
+- [x] `KnowledgeAwareTeamFactory` for enhanced teams
+
+### 7.8. MCP Integration
+- [x] `MCPProvider` class with permission-based filtering (`agents/providers/mcp.py`)
+- [x] Permission flags (READ/WRITE/EXECUTE)
+- [x] Prisma model for `MCPServerConfig`
+- [x] API endpoints for MCP server management:
+  - [x] GET/POST `/api/workspaces/:id/mcp-servers`
+  - [x] GET/PATCH/DELETE `/api/workspaces/:id/mcp-servers/:serverId`
+- [x] Integration with Agno's `MCPTools` and `MultiMCPTools`
+- [x] Agent-side config loading supports headers/env/api keys (DB-first; avoids exposing plaintext via HTTP)
+- [x] Common MCP server presets (filesystem, github, brave-search, memory)
+
+### 7.9. Module Configuration
+- [x] Prisma model for `WorkspaceModule`
+- [x] API endpoints for module management:
+  - [x] GET/POST `/api/workspaces/:id/modules`
+  - [x] GET/PATCH/DELETE `/api/workspaces/:id/modules/:moduleId`
+- [x] Core vs optional module distinction
+- [x] Module-specific configuration storage
+
+### 7.10. Frontend Management UI
+- [x] Settings navigation includes Modules + MCP Integrations
+- [x] `/settings/api-keys` manages workspace AI providers (BYOAI)
+- [x] `/settings/modules` module grid + enable/disable + config dialog
+- [x] `/settings/mcp` MCP server list + add/edit/delete dialogs
+- [x] AI config preferences + usage pages accessible via in-page subnav
+- [x] Agent preferences endpoint returns defaults (no 500 on empty settings)
+- [x] No hydration mismatch from responsive layout conditions
+- [x] Session includes `activeWorkspaceId` so workspace-scoped pages work
+- [x] Workspace-scoped pages show a friendly prompt when no workspace is selected
+
+---
+
+## 8. Reference Documentation
+
+| Document | Purpose |
+|----------|---------|
+| `docs/architecture/a2a-protocol.md` | A2A JSON-RPC specification |
+| `docs/architecture/ag-ui-protocol.md` | AG-UI SSE event specification |
+| `docs/architecture/agno-implementation-guide.md` | Agno framework deep dive |
+| `docs/architecture/remote-coding-agent-patterns.md` | Session management patterns |
+
+---
+
+*Last Updated: 2025-12-15*
+*Version: 2.11 - Added remaining follow-ups backlog (P0–P3)*

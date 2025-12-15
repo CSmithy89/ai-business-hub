@@ -1,39 +1,36 @@
 # HYVVE Platform Foundation - Architecture Document
 
 **Author:** chris
-**Date:** 2025-12-13
-**Version:** 2.0
+**Date:** 2025-12-15
+**Version:** 2.1
 **Status:** Approved (Foundation Complete)
 
 ---
 
 ## Executive Summary
 
-HYVVE Platform Foundation uses a **hybrid monorepo architecture** combining Next.js 15 (App Router) for the frontend and platform API routes with NestJS for modular business logic. The architecture employs **defense-in-depth multi-tenancy** through Row-Level Security (RLS) combined with Prisma Client Extensions. Real-time capabilities are provided via Socket.io with WebSocket gateway, with Redis Streams powering the event bus for cross-module communication. The BYOAI (Bring Your Own AI) pattern enables users to connect their preferred AI providers (Claude, OpenAI, Gemini, DeepSeek, OpenRouter) with encrypted credential storage.
+HYVVE Platform Foundation uses a **hybrid monorepo architecture** combining Next.js 15 (App Router) for the frontend and platform API routes, NestJS for modular business logic, and AgentOS (FastAPI + Agno) for agent execution. The architecture employs **defense-in-depth multi-tenancy** through Row-Level Security (RLS) combined with Prisma Client Extensions. Real-time capabilities are provided via Socket.io with a WebSocket gateway, with Redis Streams powering the event bus for cross-module communication. The BYOAI (Bring Your Own AI) pattern enables users to connect their preferred AI providers (Claude, OpenAI, Gemini, DeepSeek, OpenRouter) with encrypted credential storage, and AgentOS can decrypt those credentials for agent runs.
 
 **Foundation Phase Complete:** All 17 epics (190 stories, 541 points) have been delivered, establishing the complete platform foundation including multi-provider authentication (email, Google, Microsoft, GitHub, Magic Link), two-factor authentication, comprehensive RBAC, approval queue system, event bus infrastructure, BYOAI configuration, business portfolio management, onboarding wizard, real-time WebSocket updates, and premium UI polish with responsive design.
 
+This document focuses on how these pieces are wired together across:
+
+- `apps/web` (Next.js UI + platform routes)
+- `apps/api` (NestJS API)
+- `apps/agents` and `agents/` (AgentOS runtime + reusable agent code)
+- `packages/*` (shared DB/UI/config modules)
+
 ---
 
-## Project Initialization
+## Repository Bootstrapping
 
-First implementation story should execute:
+This repository is already bootstrapped as a Turborepo monorepo. For local setup and first-run instructions, see `docs/GETTING-STARTED.md`.
 
-```bash
-# Create monorepo with Turborepo
-npx create-turbo@latest hyvve --example basic
+High-level entry points:
 
-# Navigate to project
-cd hyvve
-
-# Add workspace structure
-mkdir -p apps/web apps/api packages/db packages/ui packages/shared
-```
-
-This establishes the base architecture with:
-- Turborepo for monorepo orchestration
-- Separate apps for web (Next.js) and api (NestJS)
-- Shared packages for database, UI components, and utilities
+- Web UI: `apps/web`
+- Nest API: `apps/api`
+- AgentOS: `apps/agents` and shared agent code under `agents/`
 
 ---
 

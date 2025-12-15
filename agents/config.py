@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # Authentication
     better_auth_secret: SecretStr
 
+    # AI provider key encryption (shared with Nest/Next)
+    encryption_master_key: Optional[SecretStr] = None
+
     # Server
     agentos_host: str = "0.0.0.0"
     agentos_port: int = 7777
@@ -53,6 +56,21 @@ class Settings(BaseSettings):
         value = v.get_secret_value()
         if not value or not value.strip():
             raise ValueError("BETTER_AUTH_SECRET must be set")
+        return v
+
+    @field_validator("encryption_master_key", mode="before")
+    @classmethod
+    def _normalize_encryption_master_key(cls, v: object) -> object:
+        """
+        Treat empty/whitespace-only ENCRYPTION_MASTER_KEY as unset.
+
+        This avoids subtle runtime failures where crypto appears "configured" but
+        decryption fails due to an empty secret.
+        """
+        if v is None:
+            return None
+        if isinstance(v, str) and not v.strip():
+            return None
         return v
 
     class Config:

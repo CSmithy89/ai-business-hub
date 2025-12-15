@@ -11,6 +11,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/lib/auth-client';
 import { NESTJS_API_URL } from '@/lib/api-config';
+import { safeJson } from '@/lib/utils/safe-json';
 
 /**
  * Agent definition
@@ -54,9 +55,11 @@ function useWorkspaceId(): string | undefined {
 }
 
 function getAccessToken(session: unknown): string | undefined {
+  const sessionTokenDirect = (session as { token?: string })?.token;
+  const sessionTokenNested = (session as { session?: { token?: string } })?.session?.token;
   const direct = (session as { accessToken?: string })?.accessToken;
   const nested = (session as { session?: { accessToken?: string } })?.session?.accessToken;
-  return direct || nested || undefined;
+  return direct || nested || sessionTokenDirect || sessionTokenNested || undefined;
 }
 
 function getApiBase(): string {
@@ -93,12 +96,13 @@ export function useAgentPreferences() {
         }
       );
 
+      const body = await safeJson<{ data: AgentPreference[] }>(response);
       if (!response.ok) {
         throw new Error('Failed to fetch agent preferences');
       }
 
-      const data = await response.json();
-      return data.data;
+      if (!body?.data) throw new Error('Failed to fetch agent preferences');
+      return body.data;
     },
     enabled: !!workspaceId && !!session,
   });
@@ -128,12 +132,13 @@ export function useAvailableModels() {
         }
       );
 
+      const body = await safeJson<{ data: AvailableModel[] }>(response);
       if (!response.ok) {
         throw new Error('Failed to fetch available models');
       }
 
-      const data = await response.json();
-      return data.data;
+      if (!body?.data) throw new Error('Failed to fetch available models');
+      return body.data;
     },
     enabled: !!workspaceId && !!session,
   });
@@ -182,11 +187,13 @@ export function useUpdateAgentPreference() {
         }
       );
 
+      const body = await safeJson<Record<string, unknown>>(response);
       if (!response.ok) {
         throw new Error('Failed to update preference');
       }
 
-      return response.json();
+      if (!body) throw new Error('Failed to update preference');
+      return body;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -228,11 +235,13 @@ export function useResetAgentPreference() {
         }
       );
 
+      const body = await safeJson<Record<string, unknown>>(response);
       if (!response.ok) {
         throw new Error('Failed to reset preference');
       }
 
-      return response.json();
+      if (!body) throw new Error('Failed to reset preference');
+      return body;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

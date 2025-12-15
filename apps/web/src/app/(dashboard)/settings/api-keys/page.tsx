@@ -1,19 +1,23 @@
 import { SettingsLayout } from '@/components/layouts/settings-layout'
+import { AIProviderList } from '@/components/settings/ai-provider-list'
+import { WorkspaceRequired } from '@/components/settings/workspace-required'
+import { getSession } from '@/lib/auth-server'
 
 export const metadata = {
   title: 'API Keys',
-  description: 'Manage your API keys',
+  description: 'Manage AI provider API keys for your workspace',
 }
 
-export default function SettingsApiKeysPage() {
+export default async function SettingsApiKeysPage() {
+  const session = await getSession()
+  const workspaceId = session?.session.activeWorkspaceId
+
   return (
     <SettingsLayout
       title="API Keys"
-      description="Manage API keys for integrations"
+      description="Add and manage AI provider API keys (BYOAI)"
     >
-      <div className="rounded-lg border bg-white p-6">
-        <p className="text-gray-500">API key management coming soon.</p>
-      </div>
+      {workspaceId ? <AIProviderList /> : <WorkspaceRequired />}
     </SettingsLayout>
   )
 }

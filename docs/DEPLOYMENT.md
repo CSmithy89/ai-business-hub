@@ -103,7 +103,23 @@ MICROSOFT_CLIENT_SECRET="..."
 NODE_ENV="production"
 NEXT_PUBLIC_API_URL="https://api.your-domain.com"
 NEXT_PUBLIC_AGENTS_URL="https://agents.your-domain.com"
+
+# ===========================================
+# REALTIME (WEBSOCKETS)
+# ===========================================
+# Required in production (API WebSocket CORS allowlist)
+CORS_ALLOWED_ORIGINS="https://your-domain.com,https://app.your-domain.com"
+
+# SECURITY: Disable fallbacks by default. Prefer passing token via `handshake.auth.token`.
+WS_ALLOW_COOKIE_FALLBACK="false"
+WS_ALLOW_AUTH_HEADER_FALLBACK="false"
+
+# Connection limits (optional hardening)
+WS_MAX_CONNECTIONS_PER_WORKSPACE="100"
+WS_MAX_CONNECTIONS_PER_USER="5"
 ```
+
+**Realtime rollback lever:** if a deployment breaks WebSocket auth because clients cannot pass `handshake.auth.token`, you can temporarily set `WS_ALLOW_COOKIE_FALLBACK="true"` to allow cookie-based token extraction. Treat this as a short-lived mitigation and validate CORS/origin controls before enabling.
 
 ### Generate Secure Keys
 
@@ -116,6 +132,13 @@ openssl rand -base64 32
 
 # Verify entropy
 echo -n "your-key-here" | wc -c  # Should be >= 32
+```
+
+### Environment Validation (Fail Fast)
+
+Validate required env vars before deploying:
+```bash
+node scripts/validate-env.js --service=all --mode=production
 ```
 
 ---
@@ -202,10 +225,23 @@ The `ENCRYPTION_MASTER_KEY` encrypts sensitive data including:
 
 2. **Update environment variable** in your secrets manager
 
-3. **Re-encrypt existing data** (requires custom migration):
-   ```typescript
-   // Decrypt with old key, encrypt with new key
-   // Run as one-time migration script
+3. **Re-encrypt existing encrypted credentials** (required):
+   - HYVVE stores encrypted credentials (e.g. BYOAI provider keys, MCP server API keys) using `ENCRYPTION_MASTER_KEY`.
+   - Rotating the key without re-encrypting existing rows will make those credentials undecryptable.
+
+   Run the rotation script from `@hyvve/db`:
+   ```bash
+   # Dry-run first (prints counts, no writes)
+   ENCRYPTION_MASTER_KEY_OLD="<old-base64-32-bytes>" \
+   ENCRYPTION_MASTER_KEY_NEW="<new-base64-32-bytes>" \
+   DATABASE_URL="<postgres-url>" \
+   pnpm --filter @hyvve/db exec node scripts/rotate-encryption-master-key.js --dry-run
+
+   # Apply rotation
+   ENCRYPTION_MASTER_KEY_OLD="<old-base64-32-bytes>" \
+   ENCRYPTION_MASTER_KEY_NEW="<new-base64-32-bytes>" \
+   DATABASE_URL="<postgres-url>" \
+   pnpm --filter @hyvve/db exec node scripts/rotate-encryption-master-key.js
    ```
 
 4. **Verify application works** with new key
@@ -231,6 +267,15 @@ if (!process.env.ENCRYPTION_MASTER_KEY ||
 HYVVE uses two Redis instances for different purposes:
 1. **Standard Redis** (via `REDIS_URL`) - Event bus, queues, caching
 2. **Upstash Redis REST API** (via `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`) - Distributed rate limiting
+
+### Rate Limiting Backend Selection (Web)
+
+The Next.js web app’s rate limiting uses this fallback chain:
+- `REDIS_URL` (local/dev or dedicated Redis) → best for non-serverless, shared environments
+- Upstash REST (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`) → recommended for serverless/production
+- in-memory (Map) → **development only** (single process; resets on restart)
+
+In production, do not rely on the in-memory backend.
 
 ### Production Redis Requirements
 
@@ -467,7 +512,7 @@ hyvve:ratelimit:api:client-ip-address
 **Token Security:**
 - Never commit `UPSTASH_REDIS_REST_TOKEN` to version control
 - Store in secure secrets manager (Vercel env vars, AWS Secrets Manager, etc.)
-- Rotate tokens periodically (every 90 days recommended)
+- Rotate tokens on a regular schedule and immediately on suspected compromise
 
 **Network Security:**
 - Upstash uses HTTPS for REST API (TLS 1.3)

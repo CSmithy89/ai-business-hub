@@ -105,7 +105,7 @@ export function HeaderBreadcrumbs() {
         className="hidden md:flex items-center gap-2 text-sm"
       >
         {breadcrumbs.map((crumb, index) => (
-          <div key={crumb.href} className="flex items-center gap-2">
+          <div key={`${crumb.segment}:${crumb.href}`} className="flex items-center gap-2">
             {index > 0 && (
               <ChevronRight
                 className="h-4 w-4 text-[rgb(var(--color-text-tertiary))]"
@@ -150,7 +150,7 @@ export function HeaderBreadcrumbs() {
         className="flex md:hidden items-center gap-1.5 text-sm"
       >
         {mobileBreadcrumbs.map((crumb, index) => (
-          <div key={crumb.href} className="flex items-center gap-1.5">
+          <div key={`${crumb.segment}:${crumb.href}`} className="flex items-center gap-1.5">
             {index > 0 && (
               <ChevronRight
                 className="h-3.5 w-3.5 text-[rgb(var(--color-text-tertiary))]"

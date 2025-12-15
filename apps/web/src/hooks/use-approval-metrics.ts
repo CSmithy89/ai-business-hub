@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { API_ENDPOINTS, IS_MOCK_DATA_ENABLED, CACHE_DURATIONS } from '@/lib/api-config'
+import { safeJson } from '@/lib/utils/safe-json'
 
 /**
  * Approval metrics data structure
@@ -32,13 +33,17 @@ async function fetchApprovalMetrics(): Promise<ApprovalMetrics> {
     credentials: 'include',
   })
 
+  const body = await safeJson<unknown>(response)
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to fetch metrics' }))
-    throw new Error(error.error || 'Failed to fetch metrics')
+    const error =
+      body && typeof body === 'object' && 'error' in body && typeof (body as { error?: unknown }).error === 'string'
+        ? (body as { error: string }).error
+        : undefined
+    throw new Error(error || 'Failed to fetch metrics')
   }
 
-  const json: ApprovalMetricsResponse = await response.json()
-  return json.data
+  if (!body || typeof body !== 'object' || !('data' in body)) throw new Error('Failed to fetch metrics')
+  return (body as ApprovalMetricsResponse).data
 }
 
 /**

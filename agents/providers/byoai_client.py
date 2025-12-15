@@ -5,11 +5,15 @@ HTTP client for fetching AI provider configurations from the NestJS API.
 Handles authentication via JWT tokens and caches configurations.
 """
 
+import asyncpg
 import httpx
 import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
+from dataclasses import replace
 from datetime import datetime, timedelta
+
+from utils.encryption import CredentialEncryptionService, CredentialDecryptionError
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +26,8 @@ class ProviderConfig:
     default_model: str
     is_valid: bool
     is_default: bool
+    # Encrypted API key (from DB). We intentionally prefer this to caching plaintext.
+    api_key_encrypted: Optional[str] = None
     api_key: Optional[str] = None  # Decrypted API key (only available via secure endpoint)
 
     # Token limits
@@ -50,6 +56,9 @@ class BYOAIClient:
             workspace_id="ws_123",
             jwt_token="eyJ..."
         )
+
+        # Clean up when done
+        await client.close()
     """
 
     # Cache TTL in seconds
@@ -58,6 +67,8 @@ class BYOAIClient:
     def __init__(
         self,
         api_base_url: str,
+        database_url: Optional[str] = None,
+        encryption_master_key_base64: Optional[str] = None,
         timeout: float = 10.0,
         cache_enabled: bool = True,
     ):
@@ -66,15 +77,64 @@ class BYOAIClient:
 
         Args:
             api_base_url: Base URL of the NestJS API (e.g., http://localhost:3001)
+            database_url: Optional Postgres URL for reading encrypted provider keys
+            encryption_master_key_base64: Base64 master key for decrypting provider keys
             timeout: HTTP request timeout in seconds
             cache_enabled: Whether to cache provider configurations
         """
         self.api_base_url = api_base_url.rstrip('/')
+        self.database_url = database_url
         self.timeout = timeout
         self.cache_enabled = cache_enabled
         self._cache: Dict[str, CachedConfig] = {}
+        self._client: Optional[httpx.AsyncClient] = None
+        self._db_pool: Optional[asyncpg.Pool] = None
+
+        self._encryption: Optional[CredentialEncryptionService] = None
+        if encryption_master_key_base64:
+            try:
+                self._encryption = CredentialEncryptionService(encryption_master_key_base64)
+            except Exception as e:
+                logger.warning(f"Failed to initialize encryption service: {e}")
 
         logger.info(f"BYOAIClient initialized with API: {self.api_base_url}")
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        """Get or create the HTTP client (lazy initialization)."""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(timeout=self.timeout)
+        return self._client
+
+    async def _get_db_pool(self) -> Optional[asyncpg.Pool]:
+        """Get or create the DB pool (lazy initialization)."""
+        if not self.database_url:
+            return None
+
+        if self._db_pool is None:
+            self._db_pool = await asyncpg.create_pool(
+                dsn=self.database_url,
+                min_size=1,
+                max_size=5,
+                command_timeout=self.timeout,
+            )
+        return self._db_pool
+
+    async def close(self) -> None:
+        """Close the HTTP client and release resources."""
+        if self._client is not None and not self._client.is_closed:
+            await self._client.aclose()
+            self._client = None
+        if self._db_pool is not None:
+            await self._db_pool.close()
+            self._db_pool = None
+
+    async def __aenter__(self) -> "BYOAIClient":
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Async context manager exit."""
+        await self.close()
 
     def _get_cache_key(self, workspace_id: str, provider_id: Optional[str] = None) -> str:
         """Generate cache key for provider config."""
@@ -89,7 +149,7 @@ class BYOAIClient:
 
         cached = self._cache.get(cache_key)
         if cached and cached.expires_at > datetime.now():
-            return cached.config
+            return self._hydrate_cached(cached.config)
         return None
 
     def _set_cached(self, cache_key: str, config: Any) -> None:
@@ -97,10 +157,68 @@ class BYOAIClient:
         if not self.cache_enabled:
             return
 
+        # Never cache decrypted API keys in process memory.
+        if isinstance(config, ProviderConfig):
+            config = replace(config, api_key=None)
+        elif isinstance(config, list):
+            config = [
+                replace(c, api_key=None) if isinstance(c, ProviderConfig) else c
+                for c in config
+            ]
+
         self._cache[cache_key] = CachedConfig(
             config=config,
             expires_at=datetime.now() + timedelta(seconds=self.CACHE_TTL),
         )
+
+    def _hydrate_config(self, config: ProviderConfig) -> ProviderConfig:
+        """
+        Return a copy of ProviderConfig with api_key decrypted (if available).
+
+        Important: we never mutate or cache decrypted secrets; this only affects the returned object.
+        """
+        if config.api_key is not None:
+            return config
+        if not self._encryption or not config.api_key_encrypted:
+            return config
+
+        try:
+            api_key = self._encryption.decrypt(config.api_key_encrypted)
+            return replace(config, api_key=api_key)
+        except CredentialDecryptionError as e:
+            logger.warning(
+                f"Failed to decrypt provider key from cache (providerId={config.id}): {e}"
+            )
+            return config
+
+    def _hydrate_cached(self, cached_value: Any) -> Any:
+        if isinstance(cached_value, ProviderConfig):
+            return self._hydrate_config(cached_value)
+        if isinstance(cached_value, list):
+            hydrated: list[Any] = []
+            for item in cached_value:
+                hydrated.append(
+                    self._hydrate_config(item) if isinstance(item, ProviderConfig) else item
+                )
+            return hydrated
+        return cached_value
+
+    def __del__(self) -> None:  # noqa: D401
+        """
+        Best-effort warning if the client is not explicitly closed.
+
+        This avoids silent DB pool/socket leaks when BYOAIClient is instantiated
+        without an async context manager and the caller forgets to call `close()`.
+        """
+        try:
+            if self._client is not None or self._db_pool is not None:
+                logger.warning(
+                    "BYOAIClient was garbage-collected without being closed. "
+                    "Use `async with BYOAIClient(...)` or call `await close()`."
+                )
+        except Exception:
+            # Never raise from __del__
+            return
 
     def clear_cache(self, workspace_id: Optional[str] = None) -> None:
         """Clear cache for a workspace or all caches."""
@@ -132,34 +250,165 @@ class BYOAIClient:
             logger.debug(f"Cache hit for workspace providers: {workspace_id}")
             return cached
 
+        # Prefer DB access when available so agents can decrypt keys without exposing them via HTTP.
+        # If DB access fails, fall back to HTTP for non-secret provider metadata.
+        try:
+            db_pool = await self._get_db_pool()
+            if db_pool:
+                configs = await self._get_workspace_providers_from_db(workspace_id)
+                self._set_cached(cache_key, configs)
+                return configs
+        except Exception as e:
+            logger.warning(f"DB provider lookup failed, falling back to HTTP: {e}")
+
         url = f"{self.api_base_url}/api/workspaces/{workspace_id}/ai-providers"
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    url,
-                    headers={
-                        "Authorization": f"Bearer {jwt_token}",
-                        "Content-Type": "application/json",
-                    },
-                )
-                response.raise_for_status()
+            client = await self._get_client()
+            response = await client.get(
+                url,
+                headers={
+                    "Authorization": f"Bearer {jwt_token}",
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
 
-                data = response.json()
-                providers = data.get("data", [])
+            data = response.json()
+            providers = data.get("data", [])
 
-                configs = [self._parse_provider(p) for p in providers]
-                self._set_cached(cache_key, configs)
+            configs = [self._parse_provider(p) for p in providers]
+            self._set_cached(cache_key, configs)
 
-                logger.info(f"Fetched {len(configs)} providers for workspace {workspace_id}")
-                return configs
+            logger.info(f"Fetched {len(configs)} providers for workspace {workspace_id}")
+            return configs
 
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP error fetching providers: {e.response.status_code}")
             raise
         except Exception as e:
-            logger.error(f"Error fetching providers: {str(e)}")
+            logger.error(f"Error fetching providers: {e}")
             raise
+
+    async def _get_workspace_providers_from_db(self, workspace_id: str) -> List[ProviderConfig]:
+        pool = await self._get_db_pool()
+        if not pool:
+            return []
+
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT
+                  id,
+                  provider,
+                  default_model,
+                  api_key_encrypted,
+                  is_valid,
+                  last_validated_at,
+                  validation_error,
+                  max_tokens_per_day,
+                  tokens_used_today,
+                  created_at
+                FROM ai_provider_configs
+                WHERE workspace_id = $1
+                ORDER BY created_at ASC
+                """,
+                workspace_id,
+            )
+
+        if not rows:
+            return []
+
+        # Match Nest's behavior: default is first valid provider, else the first provider.
+        default_id: Optional[str] = None
+        for row in rows:
+            if row.get("is_valid"):
+                default_id = row["id"]
+                break
+        if default_id is None:
+            default_id = rows[0]["id"]
+
+        configs: List[ProviderConfig] = []
+        for row in rows:
+            api_key = None
+            api_key_encrypted = row.get("api_key_encrypted")
+            if self._encryption and api_key_encrypted:
+                try:
+                    api_key = self._encryption.decrypt(api_key_encrypted)
+                except CredentialDecryptionError as e:
+                    logger.warning(f"Failed to decrypt provider key (providerId={row['id']}): {e}")
+
+            configs.append(
+                ProviderConfig(
+                    id=row["id"],
+                    provider=row["provider"],
+                    default_model=row.get("default_model") or "",
+                    is_valid=bool(row.get("is_valid")),
+                    is_default=row["id"] == default_id,
+                    api_key_encrypted=api_key_encrypted,
+                    api_key=api_key,
+                    max_tokens_per_day=int(row.get("max_tokens_per_day") or 0),
+                    tokens_used_today=int(row.get("tokens_used_today") or 0),
+                    last_validated_at=row.get("last_validated_at"),
+                    validation_error=row.get("validation_error"),
+                )
+            )
+
+        logger.info(f"Fetched {len(configs)} providers for workspace {workspace_id} via DB")
+        return configs
+
+    async def _get_provider_from_db(
+        self, workspace_id: str, provider_id: str
+    ) -> Optional[ProviderConfig]:
+        pool = await self._get_db_pool()
+        if not pool:
+            return None
+
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT
+                  id,
+                  provider,
+                  default_model,
+                  api_key_encrypted,
+                  is_valid,
+                  last_validated_at,
+                  validation_error,
+                  max_tokens_per_day,
+                  tokens_used_today,
+                  created_at
+                FROM ai_provider_configs
+                WHERE workspace_id = $1 AND id = $2
+                """,
+                workspace_id,
+                provider_id,
+            )
+
+        if not row:
+            return None
+
+        api_key = None
+        api_key_encrypted = row.get("api_key_encrypted")
+        if self._encryption and api_key_encrypted:
+            try:
+                api_key = self._encryption.decrypt(api_key_encrypted)
+            except CredentialDecryptionError as e:
+                logger.warning(f"Failed to decrypt provider key (providerId={row['id']}): {e}")
+
+        return ProviderConfig(
+            id=row["id"],
+            provider=row["provider"],
+            default_model=row.get("default_model") or "",
+            is_valid=bool(row.get("is_valid")),
+            is_default=False,  # Resolved by list call; single fetch doesn't infer default.
+            api_key_encrypted=api_key_encrypted,
+            api_key=api_key,
+            max_tokens_per_day=int(row.get("max_tokens_per_day") or 0),
+            tokens_used_today=int(row.get("tokens_used_today") or 0),
+            last_validated_at=row.get("last_validated_at"),
+            validation_error=row.get("validation_error"),
+        )
 
     async def get_provider(
         self,
@@ -184,28 +433,39 @@ class BYOAIClient:
             logger.debug(f"Cache hit for provider: {provider_id}")
             return cached
 
+        # Prefer DB access when available so we never require the HTTP API to return secrets.
+        try:
+            db_pool = await self._get_db_pool()
+            if db_pool:
+                config = await self._get_provider_from_db(workspace_id, provider_id)
+                if config:
+                    self._set_cached(cache_key, config)
+                    return config
+        except Exception as e:
+            logger.warning(f"DB provider lookup failed, falling back to HTTP: {e}")
+
         url = f"{self.api_base_url}/api/workspaces/{workspace_id}/ai-providers/{provider_id}"
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    url,
-                    headers={
-                        "Authorization": f"Bearer {jwt_token}",
-                        "Content-Type": "application/json",
-                    },
-                )
-                response.raise_for_status()
+            client = await self._get_client()
+            response = await client.get(
+                url,
+                headers={
+                    "Authorization": f"Bearer {jwt_token}",
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
 
-                data = response.json()
-                provider = data.get("data")
+            data = response.json()
+            provider = data.get("data")
 
-                if provider:
-                    config = self._parse_provider(provider)
-                    self._set_cached(cache_key, config)
-                    return config
+            if provider:
+                config = self._parse_provider(provider)
+                self._set_cached(cache_key, config)
+                return config
 
-                return None
+            return None
 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
@@ -213,7 +473,7 @@ class BYOAIClient:
             logger.error(f"HTTP error fetching provider: {e.response.status_code}")
             raise
         except Exception as e:
-            logger.error(f"Error fetching provider: {str(e)}")
+            logger.error(f"Error fetching provider: {e}")
             raise
 
     async def get_default_provider(
@@ -290,21 +550,21 @@ class BYOAIClient:
         url = f"{self.api_base_url}/api/workspaces/{workspace_id}/ai-providers/{provider_id}/limit"
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    url,
-                    headers={
-                        "Authorization": f"Bearer {jwt_token}",
-                        "Content-Type": "application/json",
-                    },
-                )
-                response.raise_for_status()
+            client = await self._get_client()
+            response = await client.get(
+                url,
+                headers={
+                    "Authorization": f"Bearer {jwt_token}",
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
 
-                data = response.json()
-                return data.get("data", {})
+            data = response.json()
+            return data.get("data", {})
 
         except Exception as e:
-            logger.error(f"Error checking token limit: {str(e)}")
+            logger.error(f"Error checking token limit: {e}")
             raise
 
     async def record_token_usage(
@@ -346,22 +606,22 @@ class BYOAIClient:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    url,
-                    headers={
-                        "Authorization": f"Bearer {jwt_token}",
-                        "Content-Type": "application/json",
-                    },
-                    json=payload,
-                )
-                response.raise_for_status()
+            client = await self._get_client()
+            response = await client.post(
+                url,
+                headers={
+                    "Authorization": f"Bearer {jwt_token}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            response.raise_for_status()
 
-                logger.debug(f"Recorded token usage: {input_tokens + output_tokens} tokens")
-                return True
+            logger.debug(f"Recorded token usage: {input_tokens + output_tokens} tokens")
+            return True
 
         except Exception as e:
-            logger.error(f"Error recording token usage: {str(e)}")
+            logger.error(f"Error recording token usage: {e}")
             return False
 
     def _parse_provider(self, data: Dict[str, Any]) -> ProviderConfig:

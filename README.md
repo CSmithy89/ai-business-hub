@@ -6,7 +6,7 @@
 [![NestJS](https://img.shields.io/badge/NestJS-10-red.svg)](https://nestjs.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **Transform your business with 90% automation, requiring only ~5 hours/week of human involvement.**
+> **Transform your business with AI-driven automation and human-in-the-loop approvals.**
 
 HYVVE is an AI-powered business orchestration platform that combines multi-agent AI teams with human-in-the-loop approval gates. Think of it as your AI workforce - a team of specialized agents handling market research, content creation, marketing, sales, and operations while you focus on strategic decisions.
 
@@ -21,11 +21,11 @@ Most business software requires constant human attention. HYVVE flips this model
 - **Confidence-based routing** means high-confidence actions auto-execute
 - **One SMB owner can operate with the efficiency of a much larger team**
 
-<!-- Diagram: Comparison of traditional software (100% manual) vs HYVVE (5 hrs/week human, 90% AI automated) -->
+<!-- Diagram: Comparison of traditional software (100% manual) vs HYVVE (human oversight + AI automation) -->
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                    THE 90/5 PROMISE                              │
+│               HUMAN-IN-THE-LOOP AUTOMATION                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  Traditional Business Software:                                  │
@@ -34,7 +34,7 @@ Most business software requires constant human attention. HYVVE flips this model
 │                                                                  │
 │  HYVVE:                                                          │
 │  [Human] ─► [Approval] ─► [AI Team] ─────────► [Output]         │
-│           5 hrs/week      90% automated                          │
+│           human oversight  high automation                        │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -63,6 +63,25 @@ Use your existing AI subscriptions. No vendor lock-in.
 - **DeepSeek** (cost-optimized)
 - **OpenRouter** (100+ models via single API)
 - **Local Models** (Ollama)
+
+### MCP Integrations (Model Context Protocol)
+Connect MCP servers to safely expand what agents can read, write, and execute.
+
+- Workspace-managed MCP servers (Settings → MCP Integrations)
+- Permission controls (READ / WRITE / EXECUTE)
+- Tool allow/deny lists to reduce blast radius
+
+### AgentOS Protocols (A2A + AG-UI)
+Agents run in AgentOS (FastAPI + Agno) with protocol support for discovery and streaming:
+
+- A2A discovery + JSON-RPC invocation
+- AG-UI event streaming over SSE for real-time agent output
+
+### Workspace Knowledge (RAG)
+Workspace-scoped knowledge retrieval to support retrieval-augmented agents:
+
+- Postgres + pgvector storage per workspace
+- Tenant isolation through table-per-workspace strategy
 
 ### Confidence-Based Approval System
 
@@ -436,5 +455,5 @@ For questions or feedback, please open an issue in this repository.
 <p align="center">
   <strong>HYVVE</strong> - Your AI Business Team
   <br>
-  <em>90% Automation. 5 Hours/Week. Infinite Possibilities.</em>
+  <em>High automation. Human oversight. Infinite possibilities.</em>
 </p>

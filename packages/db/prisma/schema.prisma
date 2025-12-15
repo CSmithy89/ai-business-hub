@@ -26,8 +26,8 @@ model User {
   password      String?
 
   // Two-Factor Authentication (Story 09-3)
-  twoFactorEnabled  Boolean @default(false) @map("two_factor_enabled")
-  twoFactorSecret   String? @map("two_factor_secret") // Encrypted TOTP secret
+  twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
+  twoFactorSecret  String? @map("two_factor_secret") // Encrypted TOTP secret
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -129,6 +129,8 @@ model Workspace {
   settings    WorkspaceSettings?
   customRoles CustomRole[]
   businesses  Business[]
+  modules     WorkspaceModule[]
+  mcpServers  MCPServerConfig[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -436,10 +438,10 @@ model WorkspaceSettings {
   enableTokenTracking Boolean @default(true) @map("enable_token_tracking")
 
   // Escalation Settings (Story 04-8)
-  enableEscalation                 Boolean @default(true) @map("enable_escalation")
-  escalationCheckIntervalMinutes   Int     @default(15) @map("escalation_check_interval_minutes")
-  escalationTargetUserId           String? @map("escalation_target_user_id")
-  enableEscalationNotifications    Boolean @default(true) @map("enable_escalation_notifications")
+  enableEscalation               Boolean @default(true) @map("enable_escalation")
+  escalationCheckIntervalMinutes Int     @default(15) @map("escalation_check_interval_minutes")
+  escalationTargetUserId         String? @map("escalation_target_user_id")
+  enableEscalationNotifications  Boolean @default(true) @map("enable_escalation_notifications")
 
   brandPrimaryColor String? @map("brand_primary_color")
   brandLogoUrl      String? @map("brand_logo_url")
@@ -457,13 +459,102 @@ model WorkspaceSettings {
 }
 
 // ============================================
+// MODULE CONFIGURATION
+// ============================================
+
+/// Tracks which modules are enabled for each workspace
+model WorkspaceModule {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+
+  /// Module identifier (e.g., 'bm-crm', 'bm-inventory', 'bm-marketing')
+  moduleId String @map("module_id")
+
+  /// Whether the module is enabled
+  enabled Boolean @default(false)
+
+  /// Module-specific configuration as JSON
+  config Json @default("{}")
+
+  /// When the module was last enabled/disabled
+  enabledAt  DateTime? @map("enabled_at")
+  disabledAt DateTime? @map("disabled_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, moduleId])
+  @@index([workspaceId])
+  @@index([moduleId])
+  @@map("workspace_modules")
+}
+
+// ============================================
+// MCP SERVER CONFIGURATION
+// ============================================
+
+/// MCP (Model Context Protocol) server configurations per workspace
+model MCPServerConfig {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+
+  /// Unique server identifier within workspace
+  serverId String @map("server_id")
+
+  /// Display name for the server
+  name String
+
+  /// Transport type: 'stdio', 'sse', 'streamable-http'
+  transport String
+
+  /// Connection details (command for stdio, URL for SSE/HTTP)
+  command String? @db.Text
+  url     String? @db.Text
+
+  /// Encrypted API key for authenticated servers
+  apiKeyEncrypted String? @map("api_key_encrypted") @db.Text
+
+  /// Additional headers as JSON
+  headers Json @default("{}")
+
+  /// Environment variables for the server (encrypted sensitive values)
+  envVars Json @default("{}") @map("env_vars")
+
+  /// Tool filtering
+  includeTools String[] @default([]) @map("include_tools")
+  excludeTools String[] @default([]) @map("exclude_tools")
+
+  /// Permission level: READ, WRITE, EXECUTE (bit flags stored as int)
+  permissions Int @default(1) // 1 = READ
+
+  /// Connection settings
+  timeoutSeconds Int @default(30) @map("timeout_seconds")
+  enabled        Boolean @default(true)
+
+  /// Health status
+  lastHealthCheck DateTime? @map("last_health_check")
+  healthStatus    String?   @map("health_status") // 'healthy', 'unhealthy', 'unknown'
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, serverId])
+  @@index([workspaceId])
+  @@map("mcp_server_configs")
+}
+
+// ============================================
 // TWO-FACTOR AUTHENTICATION (Story 09-3)
 // ============================================
 
 model BackupCode {
   id        String    @id @default(cuid())
   userId    String    @map("user_id")
-  code      String    // Hashed backup code
+  code      String // Hashed backup code
   used      Boolean   @default(false)
   usedAt    DateTime? @map("used_at")
   createdAt DateTime  @default(now()) @map("created_at")
@@ -512,18 +603,18 @@ enum EventStatus {
 /// Tracks event replay jobs for re-processing historical events
 /// Story: 05-6 - Implement Event Replay
 model ReplayJob {
-  id             String         @id @default(cuid())
+  id             String          @id @default(cuid())
   status         ReplayJobStatus @default(PENDING)
-  progress       Int            @default(0) // 0-100 percentage
-  eventsReplayed Int            @default(0) @map("events_replayed")
-  totalEvents    Int            @default(0) @map("total_events")
-  errors         Int            @default(0)
-  startedAt      DateTime?      @map("started_at")
-  completedAt    DateTime?      @map("completed_at")
-  errorMessage   String?        @map("error_message")
-  options        Json           @default("{}") // Replay options (time range, filters)
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  progress       Int             @default(0) // 0-100 percentage
+  eventsReplayed Int             @default(0) @map("events_replayed")
+  totalEvents    Int             @default(0) @map("total_events")
+  errors         Int             @default(0)
+  startedAt      DateTime?       @map("started_at")
+  completedAt    DateTime?       @map("completed_at")
+  errorMessage   String?         @map("error_message")
+  options        Json            @default("{}") // Replay options (time range, filters)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
 
   @@index([status])
   @@index([createdAt])
@@ -545,22 +636,22 @@ enum ReplayJobStatus {
 /// Users can mark devices as "trusted" during 2FA login to skip 2FA for that device
 /// Devices are identified by a secure token stored in an HTTP-only cookie
 model TrustedDevice {
-  id          String    @id @default(cuid())
-  userId      String    @map("user_id")
+  id     String @id @default(cuid())
+  userId String @map("user_id")
 
-  tokenHash   String    @unique @map("token_hash") // SHA-256 hash of the device token
-  name        String    // User-friendly device name (e.g., "Chrome on Windows")
-  fingerprint String    // SHA-256 hash of User-Agent + IP for verification
-  ipAddress   String    @map("ip_address")
-  userAgent   String    @map("user_agent") @db.Text
+  tokenHash   String @unique @map("token_hash") // SHA-256 hash of the device token
+  name        String // User-friendly device name (e.g., "Chrome on Windows")
+  fingerprint String // SHA-256 hash of User-Agent + IP for verification
+  ipAddress   String @map("ip_address")
+  userAgent   String @map("user_agent") @db.Text
 
-  lastUsedAt  DateTime  @map("last_used_at")
-  expiresAt   DateTime  @map("expires_at")
-  revokedAt   DateTime? @map("revoked_at")
+  lastUsedAt DateTime  @map("last_used_at")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
 
-  createdAt   DateTime  @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, tokenHash])
@@ -576,16 +667,16 @@ model TrustedDevice {
 /// Built-in roles (owner, admin, member, viewer, guest) are read-only
 /// Custom roles allow workspace owners to define granular permissions
 model CustomRole {
-  id          String   @id @default(cuid())
-  workspaceId String   @map("workspace_id")
+  id          String  @id @default(cuid())
+  workspaceId String  @map("workspace_id")
   name        String
   description String?
-  permissions Json     // Array of permission strings (e.g., ["workspace:read", "records:create"])
+  permissions Json // Array of permission strings (e.g., ["workspace:read", "records:create"])
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, name])
   @@index([workspaceId])
@@ -597,38 +688,38 @@ model CustomRole {
 // ============================================
 
 model Business {
-  id              String   @id @default(cuid())
-  workspaceId     String   @map("workspace_id")
-  userId          String   @map("user_id")  // Creator
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  userId      String @map("user_id") // Creator
 
   // Basic info
-  name            String
-  description     String?  @db.Text
-  industry        String?
-  stage           BusinessStage @default(IDEA)
+  name        String
+  description String?       @db.Text
+  industry    String?
+  stage       BusinessStage @default(IDEA)
 
   // Onboarding tracking
-  onboardingStatus    OnboardingStatus @default(WIZARD)
-  onboardingProgress  Int @default(0)  // 0-100
+  onboardingStatus   OnboardingStatus @default(WIZARD)
+  onboardingProgress Int              @default(0) // 0-100
 
   // Module status
-  validationStatus  ModuleStatus @default(NOT_STARTED)
-  planningStatus    ModuleStatus @default(NOT_STARTED)
-  brandingStatus    ModuleStatus @default(NOT_STARTED)
+  validationStatus ModuleStatus @default(NOT_STARTED)
+  planningStatus   ModuleStatus @default(NOT_STARTED)
+  brandingStatus   ModuleStatus @default(NOT_STARTED)
 
   // Validation outputs
-  validationScore          Int?     // 0-100
+  validationScore          Int? // 0-100
   validationRecommendation ValidationRecommendation?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  validationData  ValidationSession?
-  planningData    PlanningSession?
-  brandingData    BrandingSession?
-  documents       OnboardingDocument[]
+  workspace      Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  validationData ValidationSession?
+  planningData   PlanningSession?
+  brandingData   BrandingSession?
+  documents      OnboardingDocument[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId])
@@ -638,44 +729,44 @@ model Business {
 
 // BMV - Validation Session
 model ValidationSession {
-  id              String   @id @default(cuid())
-  businessId      String   @unique @map("business_id")
+  id         String @id @default(cuid())
+  businessId String @unique @map("business_id")
 
   // Idea Intake (Story 08.7)
-  ideaDescription     String?  @db.Text
-  problemStatement    String?  @db.Text
-  targetCustomer      String?  @db.Text
-  proposedSolution    String?  @db.Text
-  initialHypothesis   Json?    // { value_proposition, revenue_model }
+  ideaDescription   String? @db.Text
+  problemStatement  String? @db.Text
+  targetCustomer    String? @db.Text
+  proposedSolution  String? @db.Text
+  initialHypothesis Json? // { value_proposition, revenue_model }
 
   // Market Sizing (Story 08.8)
-  tam                 Json?    // { value, formatted, methodology, confidence, sources[] }
-  sam                 Json?
-  som                 Json?
+  tam Json? // { value, formatted, methodology, confidence, sources[] }
+  sam Json?
+  som Json?
 
   // Competitor Mapping (Story 08.9)
-  competitors         Json?    // [{ name, type, pricing, features, strengths, weaknesses, source_url }]
-  positioningMap      Json?    // { axes: [], positions: [] }
-  opportunityGaps     Json?    // []
+  competitors     Json? // [{ name, type, pricing, features, strengths, weaknesses, source_url }]
+  positioningMap  Json? // { axes: [], positions: [] }
+  opportunityGaps Json? // []
 
   // Customer Discovery (Story 08.10)
-  icps                Json?    // [{ name, company_size, industry, personas[] }]
+  icps Json? // [{ name, company_size, industry, personas[] }]
 
   // Validation Synthesis (Story 08.11)
-  validationScore     Int?
-  recommendation      ValidationRecommendation?
-  strengths           Json?
-  risks               Json?    // [{ risk, severity, mitigation }]
-  nextSteps           Json?
+  validationScore Int?
+  recommendation  ValidationRecommendation?
+  strengths       Json?
+  risks           Json? // [{ risk, severity, mitigation }]
+  nextSteps       Json?
 
   // Workflow tracking
-  completedWorkflows  String[]  @default([])
-  agentSessionId      String?   @map("agent_session_id")
+  completedWorkflows String[] @default([])
+  agentSessionId     String?  @map("agent_session_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
   sources  ValidationSource[]
 
   @@index([businessId])
@@ -687,12 +778,12 @@ model ValidationSource {
   id        String @id @default(cuid())
   sessionId String @map("session_id")
 
-  claimType String  @map("claim_type")  // market_size, competitor, customer
-  claim     String  @db.Text
-  sourceUrl String  @map("source_url")
-  sourceName String @map("source_name")
+  claimType  String   @map("claim_type") // market_size, competitor, customer
+  claim      String   @db.Text
+  sourceUrl  String   @map("source_url")
+  sourceName String   @map("source_name")
   sourceDate DateTime @map("source_date")
-  confidence String  // high, medium, low
+  confidence String // high, medium, low
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -704,22 +795,22 @@ model ValidationSource {
 
 // BMP - Planning Session
 model PlanningSession {
-  id              String   @id @default(cuid())
-  businessId      String   @unique @map("business_id")
+  id         String @id @default(cuid())
+  businessId String @unique @map("business_id")
 
   // Business Model Canvas (Story 08.14)
-  canvas          Json?    // { customer_segments, value_propositions, channels, ... }
+  canvas Json? // { customer_segments, value_propositions, channels, ... }
 
   // Financial Projections (Story 08.15)
-  financials      Json?    // { revenue, costs, pnl, cash_flow, unit_economics }
+  financials Json? // { revenue, costs, pnl, cash_flow, unit_economics }
 
   // Business Plan (Story 08.16)
-  businessPlanUrl String?  @map("business_plan_url")
-  pitchDeckUrl    String?  @map("pitch_deck_url")
+  businessPlanUrl String? @map("business_plan_url")
+  pitchDeckUrl    String? @map("pitch_deck_url")
 
   // Workflow tracking
-  completedWorkflows  String[]  @default([])
-  agentSessionId      String?   @map("agent_session_id")
+  completedWorkflows String[] @default([])
+  agentSessionId     String?  @map("agent_session_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -732,24 +823,24 @@ model PlanningSession {
 
 // BM-Brand - Branding Session
 model BrandingSession {
-  id              String   @id @default(cuid())
-  businessId      String   @unique @map("business_id")
+  id         String @id @default(cuid())
+  businessId String @unique @map("business_id")
 
   // Brand Strategy (Story 08.19)
-  positioning     Json?    // { archetype, values, personality, positioning_statement, taglines }
-  voiceGuidelines Json?    // { tone, vocabulary_dos, vocabulary_donts, messaging_templates, content_pillars }
+  positioning     Json? // { archetype, values, personality, positioning_statement, taglines }
+  voiceGuidelines Json? // { tone, vocabulary_dos, vocabulary_donts, messaging_templates, content_pillars }
 
   // Visual Identity (Story 08.20)
-  visualIdentity  Json?    // { colors, typography, logo_concept }
+  visualIdentity Json? // { colors, typography, logo_concept }
 
   // Generated Assets (Story 08.21)
-  generatedAssets Json?    // [{ type, name, url, size, format }]
-  assetPackageUrl String?  @map("asset_package_url")
-  guidelinesUrl   String?  @map("guidelines_url")
+  generatedAssets Json? // [{ type, name, url, size, format }]
+  assetPackageUrl String? @map("asset_package_url")
+  guidelinesUrl   String? @map("guidelines_url")
 
   // Workflow tracking
-  completedWorkflows  String[]  @default([])
-  agentSessionId      String?   @map("agent_session_id")
+  completedWorkflows String[] @default([])
+  agentSessionId     String?  @map("agent_session_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -765,15 +856,15 @@ model OnboardingDocument {
   id         String @id @default(cuid())
   businessId String @map("business_id")
 
-  fileName     String  @map("file_name")
-  fileUrl      String  @map("file_url")
-  fileType     String  @map("file_type")  // pdf, docx, md
-  fileSize     Int     @map("file_size")
+  fileName String @map("file_name")
+  fileUrl  String @map("file_url")
+  fileType String @map("file_type") // pdf, docx, md
+  fileSize Int    @map("file_size")
 
   // Extraction results
-  extractedData  Json?   @map("extracted_data")
-  extractionStatus String @default("pending") @map("extraction_status")
-  extractionError String? @map("extraction_error") @db.Text
+  extractedData    Json?   @map("extracted_data")
+  extractionStatus String  @default("pending") @map("extraction_status")
+  extractionError  String? @map("extraction_error") @db.Text
 
   uploadedAt DateTime @default(now()) @map("uploaded_at")
 
@@ -820,16 +911,16 @@ enum ValidationRecommendation {
 /// Stores chat messages for agent sessions
 /// Enables conversation continuity across page reloads/sessions
 model AgentChatMessage {
-  id        String   @id @default(cuid())
-  sessionId String   @map("session_id")
+  id        String @id @default(cuid())
+  sessionId String @map("session_id")
 
   // Message content
-  role      ChatMessageRole
-  agentId   String?  @map("agent_id")  // Which agent sent this (vera, marco, etc.)
-  content   String   @db.Text
+  role    ChatMessageRole
+  agentId String?         @map("agent_id") // Which agent sent this (vera, marco, etc.)
+  content String          @db.Text
 
   // Optional structured data
-  metadata  Json?    // { suggestedActions: [], attachments: [], etc. }
+  metadata Json? // { suggestedActions: [], attachments: [], etc. }
 
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
@@ -840,21 +931,21 @@ model AgentChatMessage {
 
 /// Links agent sessions to their source (validation, planning, branding)
 model AgentSession {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Which module this session belongs to
   moduleType      AgentModuleType @map("module_type")
-  moduleSessionId String   @map("module_session_id")  // ValidationSession.id, PlanningSession.id, etc.
+  moduleSessionId String          @map("module_session_id") // ValidationSession.id, PlanningSession.id, etc.
 
   // Session metadata
-  currentAgent    String?  @map("current_agent")  // Currently active agent
-  workflowStep    String?  @map("workflow_step")  // Current workflow step
-  status          AgentSessionStatus @default(ACTIVE)
+  currentAgent String?            @map("current_agent") // Currently active agent
+  workflowStep String?            @map("workflow_step") // Current workflow step
+  status       AgentSessionStatus @default(ACTIVE)
 
   // Timestamps
-  startedAt       DateTime @default(now()) @map("started_at")
-  lastActivityAt  DateTime @default(now()) @map("last_activity_at")
-  endedAt         DateTime? @map("ended_at")
+  startedAt      DateTime  @default(now()) @map("started_at")
+  lastActivityAt DateTime  @default(now()) @map("last_activity_at")
+  endedAt        DateTime? @map("ended_at")
 
   @@index([moduleType, moduleSessionId])
   @@index([status, lastActivityAt])

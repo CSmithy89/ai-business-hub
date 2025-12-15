@@ -10,8 +10,8 @@ The Approvals module implements a sophisticated approval system that:
 - Manages approval queue with filtering, sorting, and pagination
 - Supports bulk approve/reject operations
 - Escalates overdue approvals to prevent missed decisions
-- Emits events for approval lifecycle (stub - Epic 05)
-- Logs all decisions to audit trail (stub - Story 04-9)
+- Emits events for approval lifecycle (via `EventPublisherService`)
+- Logs all decisions to audit trail (via `ApprovalAuditService`)
 
 ## Architecture
 
@@ -33,9 +33,9 @@ The Approvals module implements a sophisticated approval system that:
 │  Processors:                                                    │
 │  └─ EscalationProcessor: BullMQ processor (04-8)               │
 │                                                                 │
-│  Stubs (Future):                                                │
-│  ├─ EventBusService: Event emission (Epic 05)                  │
-│  └─ AuditLogService: Audit logging (Story 04-9)                │
+│  Integrations:                                                  │
+│  ├─ EventPublisherService: Event emission                       │
+│  └─ ApprovalAuditService: Audit logging                         │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```

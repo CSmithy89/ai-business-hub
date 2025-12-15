@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ConfidenceBreakdown } from '@hyvve/shared'
+import { safeJson } from '@/lib/utils/safe-json'
 
 /**
  * Fetch confidence breakdown for an approval item
@@ -11,7 +12,9 @@ async function fetchConfidenceBreakdown(approvalId: string): Promise<ConfidenceB
     throw new Error('Failed to fetch confidence breakdown')
   }
 
-  return response.json()
+  const body = await safeJson<ConfidenceBreakdown>(response)
+  if (!body) throw new Error('Failed to fetch confidence breakdown')
+  return body
 }
 
 /**

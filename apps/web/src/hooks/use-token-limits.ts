@@ -3,6 +3,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
+import { safeJson } from '@/lib/utils/safe-json'
+
+function getSessionToken(session: unknown): string | undefined {
+  const direct = (session as { token?: string } | null)?.token
+  const nested = (session as { session?: { token?: string } } | null)?.session?.token
+  return direct || nested || undefined
+}
+
+function getNestBaseUrl(): string {
+  const base = NESTJS_API_URL?.replace(/\/$/, '')
+  if (!base) {
+    throw new Error('NEXT_PUBLIC_API_URL is not configured')
+  }
+  return base
+}
 
 /**
  * Token limit status
@@ -21,17 +36,23 @@ export interface TokenLimitStatus {
 /**
  * Fetch token limit status for all providers in workspace
  */
-async function fetchLimitStatus(workspaceId: string): Promise<{ data: TokenLimitStatus[] }> {
-  const response = await fetch(`${NESTJS_API_URL}/api/workspaces/${workspaceId}/ai-providers/limits`, {
+async function fetchLimitStatus(
+  workspaceId: string,
+  token: string | undefined
+): Promise<{ data: TokenLimitStatus[] }> {
+  const base = getNestBaseUrl()
+  const response = await fetch(`${base}/workspaces/${encodeURIComponent(workspaceId)}/ai-providers/limits`, {
     credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to fetch limits' }))
+    const error = (await safeJson<{ message?: string }>(response)) || { message: 'Failed to fetch limits' }
     throw new Error(error.message || 'Failed to fetch limits')
   }
 
-  return response.json()
+  const data = await safeJson<{ data?: TokenLimitStatus[] }>(response)
+  return { data: data?.data || [] }
 }
 
 /**
@@ -40,26 +61,31 @@ async function fetchLimitStatus(workspaceId: string): Promise<{ data: TokenLimit
 async function updateLimit(
   workspaceId: string,
   providerId: string,
-  maxTokensPerDay: number
+  maxTokensPerDay: number,
+  token: string | undefined
 ): Promise<{ message: string; data: TokenLimitStatus }> {
+  const base = getNestBaseUrl()
   const response = await fetch(
-    `${NESTJS_API_URL}/api/workspaces/${workspaceId}/ai-providers/${providerId}/limit`,
+    `${base}/workspaces/${encodeURIComponent(workspaceId)}/ai-providers/${encodeURIComponent(providerId)}/limit`,
     {
       method: 'PATCH',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ maxTokensPerDay }),
     }
   )
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to update limit' }))
+    const error = (await safeJson<{ message?: string }>(response)) || { message: 'Failed to update limit' }
     throw new Error(error.message || 'Failed to update limit')
   }
 
-  return response.json()
+  const data = await safeJson<{ message?: string; data?: TokenLimitStatus }>(response)
+  if (!data?.data) throw new Error(data?.message || 'Failed to update limit')
+  return { message: data.message || 'Updated', data: data.data }
 }
 
 /**
@@ -68,10 +94,15 @@ async function updateLimit(
 export function useTokenLimits() {
   const { data: session } = useSession()
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
 
-  return useQuery({
+  return useQuery<{ data: TokenLimitStatus[] }>({
     queryKey: ['token-limits', workspaceId],
-    queryFn: () => fetchLimitStatus(workspaceId!),
+    queryFn: ({ queryKey }) => {
+      const [, wsId] = queryKey as ['token-limits', string | undefined]
+      if (!wsId) throw new Error('No workspace selected')
+      return fetchLimitStatus(wsId, token)
+    },
     enabled: !!workspaceId,
     staleTime: 30000, // 30 seconds - check limits more frequently
     refetchInterval: 60000, // Refetch every minute
@@ -84,11 +115,14 @@ export function useTokenLimits() {
 export function useUpdateTokenLimit() {
   const { data: session } = useSession()
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ providerId, maxTokensPerDay }: { providerId: string; maxTokensPerDay: number }) =>
-      updateLimit(workspaceId!, providerId, maxTokensPerDay),
+    mutationFn: ({ providerId, maxTokensPerDay }: { providerId: string; maxTokensPerDay: number }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return updateLimit(workspaceId, providerId, maxTokensPerDay, token)
+    },
     onSuccess: () => {
       // Invalidate and refetch limits
       queryClient.invalidateQueries({ queryKey: ['token-limits', workspaceId] })

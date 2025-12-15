@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
+import { safeJson } from '@/lib/utils/safe-json'
 
 /**
  * Health check result for a provider
@@ -46,10 +47,12 @@ async function fetchWorkspaceHealth(workspaceId: string): Promise<HealthSummary>
   })
 
   if (!response.ok) {
-    throw new Error('Failed to fetch workspace health')
+    const error = (await safeJson<{ message?: string }>(response)) || {}
+    throw new Error(error.message || 'Failed to fetch workspace health')
   }
 
-  const data = await response.json()
+  const data = await safeJson<{ data?: HealthSummary }>(response)
+  if (!data?.data) throw new Error('Failed to fetch workspace health')
   return data.data
 }
 
@@ -69,10 +72,12 @@ async function triggerHealthCheck(
   )
 
   if (!response.ok) {
-    throw new Error('Failed to trigger health check')
+    const error = (await safeJson<{ message?: string }>(response)) || {}
+    throw new Error(error.message || 'Failed to trigger health check')
   }
 
-  const data = await response.json()
+  const data = await safeJson<{ data?: HealthCheckResult }>(response)
+  if (!data?.data) throw new Error('Failed to trigger health check')
   return data.data
 }
 

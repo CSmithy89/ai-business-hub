@@ -32,6 +32,7 @@ describe('Rate Limiter - In-Memory Mode', () => {
     vi.resetModules()
 
     // Clear env to force in-memory mode
+    delete process.env.REDIS_URL
     delete process.env.UPSTASH_REDIS_REST_URL
     delete process.env.UPSTASH_REDIS_REST_TOKEN
   })
@@ -126,6 +127,7 @@ describe('Rate Limiter - In-Memory Mode', () => {
 describe('Rate Limiter - Synchronous Check', () => {
   beforeEach(async () => {
     vi.resetModules()
+    delete process.env.REDIS_URL
     delete process.env.UPSTASH_REDIS_REST_URL
     delete process.env.UPSTASH_REDIS_REST_TOKEN
   })
@@ -165,6 +167,7 @@ describe('Rate Limiter - Synchronous Check', () => {
 describe('Rate Limiter - Info and Reset', () => {
   beforeEach(async () => {
     vi.resetModules()
+    delete process.env.REDIS_URL
     delete process.env.UPSTASH_REDIS_REST_URL
     delete process.env.UPSTASH_REDIS_REST_TOKEN
   })
@@ -225,6 +228,7 @@ describe('Rate Limiter - Info and Reset', () => {
 describe('Rate Limiter - Pre-configured Limiters', () => {
   beforeEach(async () => {
     vi.resetModules()
+    delete process.env.REDIS_URL
     delete process.env.UPSTASH_REDIS_REST_URL
     delete process.env.UPSTASH_REDIS_REST_TOKEN
   })
@@ -315,6 +319,7 @@ describe('Rate Limiter - Distributed Mode Detection', () => {
   })
 
   it('should detect when Redis is not configured', async () => {
+    delete process.env.REDIS_URL
     delete process.env.UPSTASH_REDIS_REST_URL
     delete process.env.UPSTASH_REDIS_REST_TOKEN
 
@@ -327,6 +332,7 @@ describe('Rate Limiter - Distributed Mode Detection', () => {
 describe('Rate Limiter - Edge Cases', () => {
   beforeEach(async () => {
     vi.resetModules()
+    delete process.env.REDIS_URL
     delete process.env.UPSTASH_REDIS_REST_URL
     delete process.env.UPSTASH_REDIS_REST_TOKEN
   })

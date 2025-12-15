@@ -103,6 +103,20 @@ const MAX_CONNECTIONS_PER_USER = parseInt(
       const isProduction = process.env.NODE_ENV === 'production';
       const configuredOrigins = process.env.CORS_ALLOWED_ORIGINS;
 
+      const isAllowedDevOrigin = (value: string): boolean => {
+        // Accept both http and https; precisely match RFC1918/private ranges.
+        const v = (value || '').toLowerCase();
+        // SECURITY: Anchor to end-of-string to prevent hostname suffix bypasses
+        // (e.g. "http://localhost.evil.com").
+        if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(v)) return true;
+        if (/^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(v)) return true;
+        if (/^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(v)) return true;
+        if (/^https?:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(v)) {
+          return true;
+        }
+        return false;
+      };
+
       // SECURITY: In production, CORS_ALLOWED_ORIGINS must be explicitly configured
       if (isProduction && !configuredOrigins) {
         console.error(
@@ -114,13 +128,26 @@ const MAX_CONNECTIONS_PER_USER = parseInt(
       }
 
       // Parse allowed origins - only use localhost fallback in development
-      const allowedOrigins = configuredOrigins?.split(',') || [
+      const allowedOrigins =
+        configuredOrigins?.split(',').map((s) => s.trim()).filter(Boolean) || [
         'http://localhost:3000',
         'http://localhost:3001',
       ];
 
       // Allow requests with no origin (mobile apps, curl, etc) in development only
       if (!origin && !isProduction) {
+        callback(null, true);
+        return;
+      }
+
+      // Dev fallback: permit local/private network origins even if the allowlist is missing or incomplete.
+      // This avoids confusing "Realtime unavailable" states during Docker/VM/WSL development.
+      if (!isProduction && origin && isAllowedDevOrigin(origin)) {
+        if (configuredOrigins && !allowedOrigins.includes(origin)) {
+          console.warn(
+            `[Realtime][CORS] Allowing dev origin not present in CORS_ALLOWED_ORIGINS: ${origin}`,
+          );
+        }
         callback(null, true);
         return;
       }
@@ -167,6 +194,22 @@ export class RealtimeGateway
       'http://localhost:3000',
     );
     this.logger.log(`WebSocket CORS configured for: ${frontendUrl}`);
+
+    if (process.env.NODE_ENV === 'production') {
+      if (process.env.WS_ALLOW_COOKIE_FALLBACK === 'true') {
+        this.logger.warn(
+          '[SECURITY] WS_ALLOW_COOKIE_FALLBACK is enabled in production. ' +
+            'Ensure origin validation, monitoring, and session controls are in place. ' +
+            'Prefer passing the token via handshake.auth.token instead of cookies.',
+        );
+      }
+      if (process.env.WS_ALLOW_AUTH_HEADER_FALLBACK === 'true') {
+        this.logger.warn(
+          '[SECURITY] WS_ALLOW_AUTH_HEADER_FALLBACK is enabled in production. ' +
+            'This is a migration-only fallback and should be disabled.',
+        );
+      }
+    }
   }
 
   /**
@@ -594,17 +637,57 @@ export class RealtimeGateway
    */
   private extractToken(client: Socket): string | null {
     const auth = client.handshake.auth || {};
+    const headers = client.handshake.headers || {};
+
+    const getCookieValue = (cookieHeader: string, cookieName: string): string | null => {
+      // Split on ';' pairs and parse each key=value pair using the first '=' occurrence.
+      for (const part of cookieHeader.split(';')) {
+        const trimmed = part.trim();
+        const eq = trimmed.indexOf('=');
+        if (eq === -1) continue;
+        const key = trimmed.slice(0, eq);
+        if (key !== cookieName) continue;
+        let value = trimmed.slice(eq + 1);
+        // Strip optional surrounding quotes
+        if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+          value = value.slice(1, -1);
+        }
+        return value;
+      }
+      return null;
+    };
 
     // Try handshake.auth.token (the only supported method)
     if (auth.token && typeof auth.token === 'string') {
       return auth.token;
     }
 
+    // Development fallback: allow token via cookie when session token is HttpOnly (browser can't read it).
+    // SECURITY: opt-in only via WS_ALLOW_COOKIE_FALLBACK=true (even in dev).
+    const allowCookieFallback = process.env.WS_ALLOW_COOKIE_FALLBACK === 'true';
+    if (process.env.NODE_ENV === 'production' && allowCookieFallback) {
+      this.logger.warn(
+        '[SECURITY] WS_ALLOW_COOKIE_FALLBACK is enabled in production. Ensure origin validation, monitoring, and session controls are in place.',
+      );
+    }
+    if (allowCookieFallback) {
+      const cookieHeader = headers.cookie;
+      if (cookieHeader && typeof cookieHeader === 'string') {
+        const token = getCookieValue(cookieHeader, 'hyvve.session_token');
+        if (token) {
+          try {
+            return decodeURIComponent(token);
+          } catch {
+            return token;
+          }
+        }
+      }
+    }
+
     // DEPRECATED: Authorization header fallback - disabled by default
     // Enable with WS_ALLOW_AUTH_HEADER_FALLBACK=true during migration only
     const allowHeaderFallback = process.env.WS_ALLOW_AUTH_HEADER_FALLBACK === 'true';
     if (allowHeaderFallback) {
-      const headers = client.handshake.headers || {};
       const authHeader = headers.authorization;
       if (authHeader && typeof authHeader === 'string') {
         const parts = authHeader.trim().split(/\s+/);

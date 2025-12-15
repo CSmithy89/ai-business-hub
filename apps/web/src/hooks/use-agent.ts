@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Agent } from '@hyvve/shared'
+import { safeJson } from '@/lib/utils/safe-json'
 
 interface ApiResponse<T> {
   data: T
@@ -45,7 +46,8 @@ async function fetchAgent(id: string): Promise<Agent> {
     throw new Error('Failed to fetch agent')
   }
 
-  const result: ApiResponse<Agent> = await response.json()
+  const result = await safeJson<ApiResponse<Agent>>(response)
+  if (!result) throw new Error('Failed to fetch agent')
   return result.data
 }
 
@@ -73,7 +75,9 @@ async function fetchAgentActivity(
     throw new Error('Failed to fetch agent activity')
   }
 
-  return response.json()
+  const result = await safeJson<ActivityResponse>(response)
+  if (!result) throw new Error('Failed to fetch agent activity')
+  return result
 }
 
 /**
@@ -86,7 +90,8 @@ async function fetchAgentAnalytics(agentId: string): Promise<AnalyticsData> {
     throw new Error('Failed to fetch agent analytics')
   }
 
-  const result: ApiResponse<AnalyticsData> = await response.json()
+  const result = await safeJson<ApiResponse<AnalyticsData>>(response)
+  if (!result) throw new Error('Failed to fetch agent analytics')
   return result.data
 }
 
@@ -105,13 +110,19 @@ async function updateAgent(
     body: JSON.stringify(config),
   })
 
+  const body = await safeJson<unknown>(response)
   if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to update agent')
+    const error =
+      body && typeof body === 'object' && 'error' in body && typeof (body as { error?: unknown }).error === 'string'
+        ? (body as { error: string }).error
+        : undefined
+    throw new Error(error || 'Failed to update agent')
   }
 
-  const result: ApiResponse<Agent> = await response.json()
-  return result.data
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to update agent')
+  }
+  return (body as ApiResponse<Agent>).data
 }
 
 /**
