@@ -27,6 +27,24 @@ Rotate sensitive keys (database, Redis, JWT/BetterAuth, Agent API) without downt
 - Deploy API/agent workloads to pick up new secrets.
 - Validate health checks and `/api/metrics` for connection errors.
 
+#### ENCRYPTION_MASTER_KEY (Credential Encryption) – Required re-encryption
+If rotating `ENCRYPTION_MASTER_KEY`, you must re-encrypt existing encrypted rows (BYOAI provider keys, MCP server API keys) or agents will not be able to decrypt credentials.
+
+Run the rotation script from `@hyvve/db`:
+```bash
+# Dry-run first (prints counts, no writes)
+ENCRYPTION_MASTER_KEY_OLD="<old-base64-32-bytes>" \
+ENCRYPTION_MASTER_KEY_NEW="<new-base64-32-bytes>" \
+DATABASE_URL="<postgres-url>" \
+pnpm --filter @hyvve/db exec node scripts/rotate-encryption-master-key.js --dry-run
+
+# Apply rotation
+ENCRYPTION_MASTER_KEY_OLD="<old-base64-32-bytes>" \
+ENCRYPTION_MASTER_KEY_NEW="<new-base64-32-bytes>" \
+DATABASE_URL="<postgres-url>" \
+pnpm --filter @hyvve/db exec node scripts/rotate-encryption-master-key.js
+```
+
 ### 4. Decommission old secrets
 - After validation window (30–60 minutes), revoke old keys from provider.
 - Remove old secret versions from deployment config.

@@ -129,6 +129,9 @@ describe('RealtimeGateway', () => {
     });
 
     it('should accept connection with token from cookie fallback', async () => {
+      const previous = process.env.WS_ALLOW_COOKIE_FALLBACK;
+      process.env.WS_ALLOW_COOKIE_FALLBACK = 'true';
+
       mockPrismaService.session.findUnique.mockResolvedValue({
         id: 'session-cookie',
         token: 'cookie-token',
@@ -156,7 +159,15 @@ describe('RealtimeGateway', () => {
         disconnect: jest.fn(),
       } as unknown as Socket;
 
-      await gateway.handleConnection(mockClient);
+      try {
+        await gateway.handleConnection(mockClient);
+      } finally {
+        if (previous === undefined) {
+          delete process.env.WS_ALLOW_COOKIE_FALLBACK;
+        } else {
+          process.env.WS_ALLOW_COOKIE_FALLBACK = previous;
+        }
+      }
 
       expect(mockClient.data.userId).toBe('user-from-cookie');
       expect(mockClient.data.workspaceId).toBe('workspace-from-cookie');

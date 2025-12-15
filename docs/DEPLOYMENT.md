@@ -103,6 +103,20 @@ MICROSOFT_CLIENT_SECRET="..."
 NODE_ENV="production"
 NEXT_PUBLIC_API_URL="https://api.your-domain.com"
 NEXT_PUBLIC_AGENTS_URL="https://agents.your-domain.com"
+
+# ===========================================
+# REALTIME (WEBSOCKETS)
+# ===========================================
+# Required in production (API WebSocket CORS allowlist)
+CORS_ALLOWED_ORIGINS="https://your-domain.com,https://app.your-domain.com"
+
+# SECURITY: Disable fallbacks by default. Prefer passing token via `handshake.auth.token`.
+WS_ALLOW_COOKIE_FALLBACK="false"
+WS_ALLOW_AUTH_HEADER_FALLBACK="false"
+
+# Connection limits (optional hardening)
+WS_MAX_CONNECTIONS_PER_WORKSPACE="100"
+WS_MAX_CONNECTIONS_PER_USER="5"
 ```
 
 ### Generate Secure Keys
@@ -202,10 +216,23 @@ The `ENCRYPTION_MASTER_KEY` encrypts sensitive data including:
 
 2. **Update environment variable** in your secrets manager
 
-3. **Re-encrypt existing data** (requires custom migration):
-   ```typescript
-   // Decrypt with old key, encrypt with new key
-   // Run as one-time migration script
+3. **Re-encrypt existing encrypted credentials** (required):
+   - HYVVE stores encrypted credentials (e.g. BYOAI provider keys, MCP server API keys) using `ENCRYPTION_MASTER_KEY`.
+   - Rotating the key without re-encrypting existing rows will make those credentials undecryptable.
+
+   Run the rotation script from `@hyvve/db`:
+   ```bash
+   # Dry-run first (prints counts, no writes)
+   ENCRYPTION_MASTER_KEY_OLD="<old-base64-32-bytes>" \
+   ENCRYPTION_MASTER_KEY_NEW="<new-base64-32-bytes>" \
+   DATABASE_URL="<postgres-url>" \
+   pnpm --filter @hyvve/db exec node scripts/rotate-encryption-master-key.js --dry-run
+
+   # Apply rotation
+   ENCRYPTION_MASTER_KEY_OLD="<old-base64-32-bytes>" \
+   ENCRYPTION_MASTER_KEY_NEW="<new-base64-32-bytes>" \
+   DATABASE_URL="<postgres-url>" \
+   pnpm --filter @hyvve/db exec node scripts/rotate-encryption-master-key.js
    ```
 
 4. **Verify application works** with new key

@@ -167,7 +167,6 @@ export class RealtimeGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   private readonly logger = new Logger(RealtimeGateway.name);
-  private hasWarnedCookieFallbackInProd = false;
 
   @WebSocketServer()
   server!: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
@@ -193,6 +192,22 @@ export class RealtimeGateway
       'http://localhost:3000',
     );
     this.logger.log(`WebSocket CORS configured for: ${frontendUrl}`);
+
+    if (process.env.NODE_ENV === 'production') {
+      if (process.env.WS_ALLOW_COOKIE_FALLBACK === 'true') {
+        this.logger.warn(
+          '[SECURITY] WS_ALLOW_COOKIE_FALLBACK is enabled in production. ' +
+            'Ensure origin validation, monitoring, and session controls are in place. ' +
+            'Prefer passing the token via handshake.auth.token instead of cookies.',
+        );
+      }
+      if (process.env.WS_ALLOW_AUTH_HEADER_FALLBACK === 'true') {
+        this.logger.warn(
+          '[SECURITY] WS_ALLOW_AUTH_HEADER_FALLBACK is enabled in production. ' +
+            'This is a migration-only fallback and should be disabled.',
+        );
+      }
+    }
   }
 
   /**
@@ -646,16 +661,9 @@ export class RealtimeGateway
     }
 
     // Development fallback: allow token via cookie when session token is HttpOnly (browser can't read it).
-    // Opt-in in prod via WS_ALLOW_COOKIE_FALLBACK=true.
-    const allowCookieFallback =
-      process.env.NODE_ENV !== 'production' ||
-      process.env.WS_ALLOW_COOKIE_FALLBACK === 'true';
-    if (
-      process.env.NODE_ENV === 'production' &&
-      process.env.WS_ALLOW_COOKIE_FALLBACK === 'true' &&
-      !this.hasWarnedCookieFallbackInProd
-    ) {
-      this.hasWarnedCookieFallbackInProd = true;
+    // SECURITY: opt-in only via WS_ALLOW_COOKIE_FALLBACK=true (even in dev).
+    const allowCookieFallback = process.env.WS_ALLOW_COOKIE_FALLBACK === 'true';
+    if (process.env.NODE_ENV === 'production' && allowCookieFallback) {
       this.logger.warn(
         '[SECURITY] WS_ALLOW_COOKIE_FALLBACK is enabled in production. Ensure origin validation, monitoring, and session controls are in place.',
       );
