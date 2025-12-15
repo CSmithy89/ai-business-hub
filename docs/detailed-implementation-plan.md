@@ -444,9 +444,15 @@ Additional dev hardening: default WebSocket hostname to the current `window.loca
 
 ---
 
-#### 5.5.7. Remaining Follow-ups (P0–P3) 🔜 Planned
+#### 5.5.7. Remaining Follow-ups (P0–P3) ✅ COMPLETE
 
-This section captures remaining review recommendations and follow-ups that are **not yet implemented**. Items are grouped by priority and intended to be completed in sequential “P0 → P3” passes (commit + push after each priority group).
+This section tracks review recommendations and follow-ups that were implemented in sequential “P0 → P3” passes (commit + push after each priority group) on the `feature/a2a-agui-protocol` branch.
+
+Commits:
+- P0: `75b9419`
+- P1: `0d31c5e`
+- P2: `8303329`
+- P3: `de39660`
 
 ##### P0 (Security + Operational Correctness)
 - [x] Add encryption master key rotation script (re-encrypt stored secrets with a new `ENCRYPTION_MASTER_KEY`) (`packages/db/scripts/rotate-encryption-master-key.js`)
