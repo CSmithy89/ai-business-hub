@@ -503,7 +503,7 @@ This section tracks additional follow-ups from the CodeRabbit review pass. Items
 - [x] Revoke attachment preview blob URLs on unmount (`apps/web/src/components/chat/ChatInput.tsx`)
 
 ##### P3 (Docs Consistency)
-- [ ] Resolve status inconsistencies in `docs/NEXT-STEPS.md` (Phase 0.5 completion vs “wiring needed”)
+- [x] Resolve status inconsistencies in `docs/NEXT-STEPS.md` (Phase 0.5 completion vs “wiring needed”)
 
 ## 6. Dependency Requirements
 
