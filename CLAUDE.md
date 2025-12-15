@@ -6,12 +6,29 @@ This file provides context for Claude Code when working on this project.
 
 ## Project Overview
 
-**HYVVE** is an AI-powered business orchestration platform designed to achieve **90% automation with ~5 hours/week human involvement** for SMB businesses.
+**HYVVE** is an AI-powered business orchestration platform designed to enable **high automation with explicit human oversight** for SMB businesses.
 
 **Current Phase:** Foundation Complete - Ready for Production & Module Development
 **Status:** All 17 epics complete (190 stories, 541 points). Platform foundation ready for deployment.
 
-### The 90/5 Promise
+### Key Reference Docs
+
+- Implementation plan (source of truth): `docs/detailed-implementation-plan.md`
+- Getting started: `docs/GETTING-STARTED.md`
+- Deployment: `docs/DEPLOYMENT.md`
+- Architecture: `docs/architecture.md` and `docs/architecture/`
+- MCP setup guide: `docs/guides/mcp-integrations.md`
+- Runbook: key rotation: `docs/runbooks/key-rotation.md`
+- Runbook: knowledge maintenance: `docs/runbooks/knowledge-base-maintenance.md`
+
+### Key Settings URLs (Web UI)
+
+- API Keys (BYOAI): `/settings/api-keys`
+- MCP Integrations: `/settings/mcp`
+- Workspace Modules: `/settings/modules`
+- AI Configuration (subnav): `/settings/ai-config`
+
+### Automation Model
 - AI agents handle routine operations autonomously
 - Humans approve only strategic decisions
 - Confidence-based routing (>85% auto-execute, 60-85% quick approval, <60% full review)
