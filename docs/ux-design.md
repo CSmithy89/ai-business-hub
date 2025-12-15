@@ -1,8 +1,8 @@
 # HYVVE Platform Foundation - UX Design Document
 
 **Author:** chris
-**Date:** 2025-11-30
-**Version:** 1.0
+**Date:** 2025-12-15
+**Version:** 1.1
 **Status:** Complete (Documentation Phase)
 
 ---
@@ -116,7 +116,7 @@ Sign Up → Email Verification → Create Workspace → Add AI Provider Key → 
 
 Key screens: AU-01, AU-02, AU-03, ST-02
 
-### Flow 2: Daily Workflow (90/5 Promise)
+### Flow 2: Daily Workflow (Approval-Driven Automation)
 
 ```
 Open Dashboard → Review Approval Queue → Quick Approve (1-click) → 
@@ -137,8 +137,8 @@ Key screens: AP-01, AP-02, AP-03, AP-04
 ### Flow 4: AI Team Configuration
 
 ```
-Settings → API Keys → Add Provider → Test Key →
-Agent Model Preferences → Set Limits
+Settings → API Keys → Add Key → Test Key →
+Agent Model Preferences → Set Limits → MCP Integrations (optional)
 ```
 
 **Sub-flow: Agent Model Preferences**
@@ -154,6 +154,16 @@ Features:
 - Cost indicator per model choice (💰 Low/Med/High)
 
 Key screens: ST-01, ST-02, ST-03, ST-04
+
+**Sub-flow: MCP Integrations (Optional)**
+```
+Settings → MCP Integrations → Add Server → Set Permissions →
+Restrict Tools (allow/deny) → Save → Re-test connectivity
+```
+
+Notes:
+- MCP Integrations are configured separately from API Keys.
+- Secret fields are hidden for non-admin workspace members.
 
 ### Flow 5: Business Onboarding (First Business)
 
