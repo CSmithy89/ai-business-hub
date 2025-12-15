@@ -21,8 +21,18 @@ This architecture covers:
 - Email sequence state machine
 - CRM-specific event patterns
 - Data retention and compliance implementation
+- **Growth features architecture** (Phase 2 & 3)
 
 For platform-level architecture (multi-tenancy, auth, event bus, BYOAI), see [Platform Architecture](/docs/architecture.md).
+
+### Phase Legend
+
+| Phase | Timeline | Focus |
+|-------|----------|-------|
+| **MVP** | Phase 1 | Core CRM with 5 agents (Clara, Scout, Atlas, Flow, Echo) |
+| **Growth-Phase2** | Phase 2 | +Sync, +Guardian, custom scoring, calendar integration |
+| **Growth-Phase3** | Phase 3 | +Cadence, multi-pipeline, analytics, mobile, LinkedIn |
+| **Vision** | Future | Predictive ML, conversation intelligence, revenue forecasting |
 
 ---
 
@@ -42,7 +52,7 @@ BM-CRM depends on these platform foundation capabilities:
 
 ---
 
-## Agent Team Architecture
+## Agent Team Architecture `[MVP]`
 
 ### Team Topology
 
@@ -111,7 +121,7 @@ Other Module Agent → A2A RPC → Clara → [Delegate] → Response
 
 ---
 
-## Data Enrichment Architecture
+## Data Enrichment Architecture `[MVP]`
 
 ### Provider Integration
 
@@ -263,7 +273,7 @@ enrich:{workspace_id}:{entity_type}:{entity_id}:{field}
 
 ---
 
-## Lead Scoring Engine
+## Lead Scoring Engine `[MVP]`
 
 ### Architecture
 
@@ -377,7 +387,7 @@ Score Cache (Redis):
 
 ---
 
-## Email Sequence State Machine
+## Email Sequence State Machine `[Growth-Phase3]`
 
 ### State Diagram
 
@@ -545,7 +555,7 @@ async def check_enrollment_conflicts(contact_id: str, sequence_id: str) -> list[
 
 ---
 
-## CRM Event Patterns
+## CRM Event Patterns `[MVP]`
 
 ### Event Schema
 
@@ -679,7 +689,7 @@ export class CrmEventHandler {
 
 ---
 
-## Data Retention & Compliance
+## Data Retention & Compliance `[Growth-Phase2]`
 
 ### GDPR Implementation
 
@@ -817,7 +827,7 @@ CREATE INDEX idx_consent_type ON crm_consents(consent_type, granted);
 
 ---
 
-## Integration Sync Architecture
+## Integration Sync Architecture `[Growth-Phase2]`
 
 ### Sync Engine Design
 
@@ -906,6 +916,457 @@ async def resolve_conflict(
                 "remoteUpdatedAt": remote_record["updatedAt"]
             })
             return {"winner": "pending", "value": None}
+```
+
+---
+
+## Growth Features Architecture
+
+This section documents architectural decisions for Growth-Phase2 and Growth-Phase3 features.
+
+---
+
+### Multi-Pipeline Support `[Growth-Phase3]`
+
+Enable multiple deal pipelines per workspace (e.g., by product line, region, or segment).
+
+**Data Model Extension:**
+
+```sql
+CREATE TABLE crm_pipelines (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  is_default BOOLEAN DEFAULT false,
+  stages JSONB NOT NULL, -- [{name, order, probability, color}]
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+
+  CONSTRAINT fk_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id),
+  UNIQUE(workspace_id, name)
+);
+
+-- Add pipeline_id to deals
+ALTER TABLE crm_deals ADD COLUMN pipeline_id TEXT REFERENCES crm_pipelines(id);
+```
+
+**Architecture Pattern:**
+- Each pipeline has its own stage configuration
+- Deals can be moved between pipelines (with stage mapping)
+- Pipeline-specific metrics and forecasting
+- Default pipeline auto-assigned on deal creation
+
+**Flow Agent Extension:**
+```python
+# New tools for multi-pipeline
+def get_pipeline_metrics(pipeline_id: str) -> dict
+def move_deal_to_pipeline(deal_id: str, target_pipeline_id: str, stage_mapping: dict) -> dict
+def compare_pipelines(pipeline_ids: list[str]) -> dict
+```
+
+---
+
+### Advanced Reporting & Analytics `[Growth-Phase3]`
+
+Comprehensive CRM analytics with drill-down capabilities.
+
+**Report Types:**
+
+| Report | Description | Data Source |
+|--------|-------------|-------------|
+| Pipeline Velocity | Time in each stage, conversion rates | crm_deals + crm_deal_stage_history |
+| Lead Source ROI | Conversion by source channel | crm_contacts + crm_deals |
+| Rep Performance | Activity metrics per sales rep | crm_activities + crm_deals |
+| Cohort Analysis | Win rates by contact creation date | crm_contacts + crm_deals |
+| Forecast Accuracy | Predicted vs actual close rates | crm_deals (historical) |
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ANALYTICS ENGINE                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────┐    ┌─────────────────┐                     │
+│  │  REPORT BUILDER │    │  CHART RENDERER │                     │
+│  │  - SQL queries  │───►│  - Line/Bar     │                     │
+│  │  - Aggregations │    │  - Funnel       │                     │
+│  │  - Filters      │    │  - Cohort       │                     │
+│  └─────────────────┘    └─────────────────┘                     │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │              MATERIALIZED VIEWS (Nightly)                │    │
+│  │  - mv_pipeline_metrics                                   │    │
+│  │  - mv_rep_performance                                    │    │
+│  │  - mv_source_conversion                                  │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Database Tables:**
+
+```sql
+-- Stage history for velocity tracking
+CREATE TABLE crm_deal_stage_history (
+  id TEXT PRIMARY KEY,
+  deal_id TEXT NOT NULL,
+  from_stage TEXT,
+  to_stage TEXT NOT NULL,
+  changed_at TIMESTAMP DEFAULT NOW(),
+  changed_by TEXT NOT NULL,
+  time_in_stage_hours INT,
+
+  CONSTRAINT fk_deal FOREIGN KEY (deal_id) REFERENCES crm_deals(id)
+);
+
+CREATE INDEX idx_stage_history_deal ON crm_deal_stage_history(deal_id);
+
+-- Materialized view for pipeline metrics
+CREATE MATERIALIZED VIEW mv_pipeline_metrics AS
+SELECT
+  workspace_id,
+  stage,
+  COUNT(*) as deal_count,
+  SUM(value) as total_value,
+  AVG(EXTRACT(EPOCH FROM (changed_at - LAG(changed_at) OVER (PARTITION BY deal_id ORDER BY changed_at)))/3600) as avg_hours_in_stage
+FROM crm_deals d
+JOIN crm_deal_stage_history h ON d.id = h.deal_id
+GROUP BY workspace_id, stage;
+```
+
+---
+
+### Custom Scoring Model Configuration `[Growth-Phase2]`
+
+Allow tenants to customize scoring weights and factors.
+
+**Configuration Schema:**
+
+```typescript
+interface ScoringModelConfig {
+  workspaceId: string;
+  name: string;
+  isActive: boolean;
+  weights: {
+    firmographic: number;  // 0-100, must sum to 100
+    behavioral: number;
+    intent: number;
+  };
+  firmographicFactors: {
+    employeeCount: { ranges: { min: number; max: number; score: number }[] };
+    industry: { values: { industry: string; score: number }[] };
+    revenue: { ranges: { min: number; max: number; score: number }[] };
+  };
+  behavioralFactors: {
+    emailOpens: { weight: number; decayDays: number };
+    emailClicks: { weight: number; decayDays: number };
+    websiteVisits: { weight: number; decayDays: number };
+  };
+  intentFactors: {
+    demoRequest: number;
+    pricingPageView: number;
+    trialSignup: number;
+    contactSalesForm: number;
+  };
+  tierThresholds: {
+    salesReady: number;  // default 90
+    hot: number;         // default 70
+    warm: number;        // default 50
+  };
+}
+```
+
+**Database Table:**
+
+```sql
+CREATE TABLE crm_scoring_models (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  config JSONB NOT NULL,
+  is_active BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+
+  CONSTRAINT fk_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id),
+  UNIQUE(workspace_id, name)
+);
+```
+
+**Scout Agent Extension:**
+- Load active scoring model for tenant
+- Apply custom weights and factors
+- Recalculate all scores when model changes (requires approval)
+
+---
+
+### Relationship Mapping Visualization `[Growth-Phase3]`
+
+Visual graph of relationships between contacts, companies, and deals.
+
+**Data Model:**
+
+```sql
+CREATE TABLE crm_relationships (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  from_entity_type TEXT NOT NULL, -- 'contact', 'account', 'deal'
+  from_entity_id TEXT NOT NULL,
+  to_entity_type TEXT NOT NULL,
+  to_entity_id TEXT NOT NULL,
+  relationship_type TEXT NOT NULL, -- 'reports_to', 'works_with', 'decision_maker', 'influencer'
+  strength INT DEFAULT 50, -- 0-100
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+
+  CONSTRAINT fk_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
+);
+
+CREATE INDEX idx_relationship_from ON crm_relationships(from_entity_type, from_entity_id);
+CREATE INDEX idx_relationship_to ON crm_relationships(to_entity_type, to_entity_id);
+```
+
+**Visualization Architecture:**
+- Use React Flow or D3.js for graph rendering
+- Server returns graph data (nodes + edges)
+- Client-side layout with force-directed algorithm
+- Zoom, pan, and click-to-drill-down
+
+**API Response:**
+
+```typescript
+interface RelationshipGraph {
+  nodes: {
+    id: string;
+    type: 'contact' | 'account' | 'deal';
+    label: string;
+    data: Record<string, any>;
+  }[];
+  edges: {
+    source: string;
+    target: string;
+    type: string;
+    strength: number;
+  }[];
+}
+```
+
+---
+
+### Mobile CRM Architecture `[Growth-Phase3]`
+
+Responsive web + optional PWA for mobile access.
+
+**Approach:** Progressive Web App (PWA) with offline-first patterns.
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    MOBILE CRM (PWA)                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                   SERVICE WORKER                         │    │
+│  │  - Cache static assets                                   │    │
+│  │  - Queue offline actions                                 │    │
+│  │  - Background sync                                       │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                   OFFLINE STORAGE                        │    │
+│  │  - IndexedDB for contacts (last 500)                    │    │
+│  │  - IndexedDB for deals (active pipeline)                │    │
+│  │  - Pending actions queue                                │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                   MOBILE-FIRST VIEWS                     │    │
+│  │  - Contact list (swipe actions)                         │    │
+│  │  - Contact detail (tap-to-call)                         │    │
+│  │  - Quick log activity                                   │    │
+│  │  - Pipeline board (swipe to advance)                    │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Key Features:**
+- Offline viewing of recent contacts and active deals
+- Queue actions (log call, update status) for sync when online
+- Push notifications for tier changes and deal updates
+- Click-to-call integration with native phone app
+
+---
+
+### Calendar Integration `[Growth-Phase2]`
+
+Bi-directional sync with Google Calendar and Outlook.
+
+**Integration Pattern:**
+
+```
+┌──────────────────┐     ┌──────────────────┐
+│  GOOGLE CALENDAR │     │ OUTLOOK CALENDAR │
+│  (OAuth + API)   │     │ (OAuth + Graph)  │
+└────────┬─────────┘     └────────┬─────────┘
+         │                        │
+         └──────────┬─────────────┘
+                    │
+         ┌──────────▼──────────┐
+         │  CALENDAR ADAPTER   │
+         │  - Fetch events     │
+         │  - Create meetings  │
+         │  - Update events    │
+         └──────────┬──────────┘
+                    │
+         ┌──────────▼──────────┐
+         │  ECHO AGENT         │
+         │  - Log meetings     │
+         │  - Match to contact │
+         │  - Update activity  │
+         └─────────────────────┘
+```
+
+**Database:**
+
+```sql
+CREATE TABLE crm_calendar_connections (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  provider TEXT NOT NULL, -- 'google', 'outlook'
+  access_token_encrypted TEXT NOT NULL,
+  refresh_token_encrypted TEXT NOT NULL,
+  calendar_id TEXT,
+  last_sync_at TIMESTAMP,
+  sync_enabled BOOLEAN DEFAULT true,
+
+  CONSTRAINT fk_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id),
+  UNIQUE(workspace_id, user_id, provider)
+);
+```
+
+**Sync Logic:**
+- Poll for new events every 15 minutes
+- Match event attendees to CRM contacts by email
+- Auto-create activity records for matched meetings
+- Two-way: Create calendar event when meeting scheduled in CRM
+
+---
+
+### LinkedIn Integration `[Growth-Phase3]`
+
+Sales Navigator integration for prospecting and engagement tracking.
+
+**Capabilities:**
+
+| Feature | API Required | Description |
+|---------|--------------|-------------|
+| Profile lookup | LinkedIn API | Fetch profile by URL |
+| Connection status | Sales Navigator | Track if connected |
+| InMail send | Sales Navigator | Queue InMail via Cadence |
+| Activity sync | Webhook | Log LinkedIn engagement |
+
+**Architecture:**
+- OAuth connection to LinkedIn/Sales Navigator
+- Store LinkedIn profile URL on contact
+- Cadence agent supports "linkedin" channel type
+- Activity tracking via webhook (connection accepted, message replied)
+
+**Limitations:**
+- LinkedIn API is restrictive; Sales Navigator required for full features
+- InMail quotas enforced by LinkedIn
+- Profile data refresh limited by API rate limits
+
+---
+
+### Webhooks & Zapier Integration `[Growth-Phase3]`
+
+Outbound webhooks for external automation platforms.
+
+**Webhook Configuration:**
+
+```sql
+CREATE TABLE crm_webhooks (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  events TEXT[] NOT NULL, -- ['crm.contact.created', 'crm.deal.won']
+  secret_encrypted TEXT NOT NULL, -- For HMAC signature
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW(),
+
+  CONSTRAINT fk_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
+);
+
+CREATE TABLE crm_webhook_deliveries (
+  id TEXT PRIMARY KEY,
+  webhook_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  response_status INT,
+  response_body TEXT,
+  delivered_at TIMESTAMP DEFAULT NOW(),
+  retry_count INT DEFAULT 0,
+
+  CONSTRAINT fk_webhook FOREIGN KEY (webhook_id) REFERENCES crm_webhooks(id)
+);
+```
+
+**Delivery Pattern:**
+- Events trigger webhook queue job
+- Sign payload with HMAC-SHA256 using secret
+- Retry with exponential backoff (max 5 attempts)
+- Log all deliveries for debugging
+
+**Zapier Integration:**
+- Publish CRM app to Zapier
+- Triggers: Contact created, Deal stage changed, Deal won/lost
+- Actions: Create contact, Update contact, Log activity
+
+---
+
+### Public API `[Growth-Phase3]`
+
+RESTful API for external integrations.
+
+**Authentication:**
+- API keys per workspace (stored encrypted)
+- Rate limiting: 100 requests/minute per key
+- Scoped permissions per key (read-only, read-write)
+
+**Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/contacts` | GET, POST | List/create contacts |
+| `/api/v1/contacts/:id` | GET, PATCH, DELETE | CRUD single contact |
+| `/api/v1/accounts` | GET, POST | List/create accounts |
+| `/api/v1/deals` | GET, POST | List/create deals |
+| `/api/v1/activities` | GET, POST | List/create activities |
+| `/api/v1/webhooks` | GET, POST, DELETE | Manage webhooks |
+
+**API Key Table:**
+
+```sql
+CREATE TABLE crm_api_keys (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  key_hash TEXT NOT NULL, -- Hashed, not stored in plain
+  key_prefix TEXT NOT NULL, -- First 8 chars for identification
+  scopes TEXT[] NOT NULL, -- ['contacts:read', 'contacts:write', ...]
+  last_used_at TIMESTAMP,
+  expires_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+
+  CONSTRAINT fk_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
+);
 ```
 
 ---
