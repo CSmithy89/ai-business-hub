@@ -495,8 +495,8 @@ This section tracks additional follow-ups from the CodeRabbit review pass. Items
 - [x] Key rotation safety: transactional batches + safe resume behavior (`packages/db/scripts/rotate-encryption-master-key.js`)
 
 ##### P1 (Reliability)
-- [ ] Add timeout protection for team streaming path (avoid hung streams) (`agents/main.py`)
-- [ ] Avoid leaking internal exception strings in SSE error events (prod-safe messages) (`agents/main.py`)
+- [x] Add timeout protection for team streaming path (avoid hung streams) (`agents/main.py`)
+- [x] Avoid leaking internal exception strings in SSE error events (prod-safe messages) (`agents/main.py`)
 
 ##### P2 (UX + Cleanup)
 - [ ] Reduce hydration layout shift by using a more neutral default `windowWidth` (`apps/web/src/hooks/use-responsive-layout.ts`)

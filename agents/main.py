@@ -226,6 +226,27 @@ TEAM_EXECUTION_TIMEOUT = 120
 # Team Execution Helpers
 # ============================================================================
 
+async def _iterate_stream_with_timeout(stream: Any, timeout_seconds: int):
+    """
+    Iterate an async stream with a total timeout.
+
+    This protects streaming execution paths from hanging indefinitely.
+    """
+    iterator = stream.__aiter__() if hasattr(stream, "__aiter__") else stream
+    start = time.monotonic()
+
+    while True:
+        remaining = timeout_seconds - (time.monotonic() - start)
+        if remaining <= 0:
+            raise asyncio.TimeoutError
+
+        try:
+            chunk = await asyncio.wait_for(iterator.__anext__(), timeout=remaining)  # type: ignore[attr-defined]
+        except StopAsyncIteration:
+            return
+
+        yield chunk
+
 async def _resolve_provider_for_team(
     workspace_id: str,
     jwt_token: Optional[str],
@@ -505,7 +526,8 @@ async def _run_team_stream(
 
             # Use streaming if available
             if hasattr(team, 'arun_stream'):
-                async for chunk in team.arun_stream(message=request_data.message):
+                stream = team.arun_stream(message=request_data.message)
+                async for chunk in _iterate_stream_with_timeout(stream, TEAM_EXECUTION_TIMEOUT):
                     if hasattr(chunk, "content") and chunk.content:
                         accumulated_content += chunk.content
                         yield encoder.encode(AGUIEventType.TEXT_MESSAGE_CHUNK, {
@@ -548,11 +570,19 @@ async def _run_team_stream(
                     request_id=session_id,
                 )
 
+        except asyncio.TimeoutError:
+            logger.warning("Team stream timed out (team=%s, session=%s)", team_name, session_id)
+            yield encoder.encode(AGUIEventType.ERROR, {
+                "code": "EXECUTION_TIMEOUT",
+                "message": "Execution timed out.",
+                "timeoutSeconds": TEAM_EXECUTION_TIMEOUT,
+            })
         except Exception as e:
-            logger.error(f"Stream error: {e}", exc_info=True)
+            logger.error("Stream error (team=%s, session=%s): %s", team_name, session_id, type(e).__name__, exc_info=True)
+            is_production = os.getenv("NODE_ENV") == "production" or os.getenv("ENV") == "production" or os.getenv("ENVIRONMENT") == "production"
             yield encoder.encode(AGUIEventType.ERROR, {
                 "code": "EXECUTION_ERROR",
-                "message": str(e)
+                "message": "An internal streaming error occurred." if is_production else str(e),
             })
 
     return StreamingResponse(
