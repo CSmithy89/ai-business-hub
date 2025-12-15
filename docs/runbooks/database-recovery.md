@@ -38,6 +38,20 @@ aws rds describe-db-snapshots --db-instance-identifier "$DB_INSTANCE" \
 DATABASE_URL="$RESTORED_DATABASE_URL" pnpm --filter @hyvve/api prisma migrate deploy
 ```
 
+### 4b. Rollback guidance for recent migrations (Prisma)
+Prisma migrations are not automatically reversible in production. Prefer restoring from a snapshot/PITR.
+
+If a deployment introduced an incompatible schema change (example: new tables like `workspace_modules` and `mcp_server_configs`, or updated defaults), use one of:
+- **Preferred:** restore DB from snapshot/PITR taken immediately before migration, then redeploy the last known good app version.
+- **Alternate (expert-only):** manually revert schema changes with SQL + mark migrations as rolled back using `prisma migrate resolve`.
+
+**Mark a migration as rolled back (does not change DB schema by itself):**
+```bash
+DATABASE_URL="$DATABASE_URL" pnpm --filter @hyvve/api prisma migrate resolve --rolled-back "<migration_name>"
+```
+
+**Important:** only use `--rolled-back` after you have manually restored schema state (or restored from snapshot). Otherwise Prisma state will diverge from the real database.
+
 ### 5. Validate data
 - Smoke queries: counts for key tables, recent rows.
 - Check Prisma introspection if schema drift is suspected.

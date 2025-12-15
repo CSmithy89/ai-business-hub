@@ -471,10 +471,10 @@ This section captures remaining review recommendations and follow-ups that are *
 - [x] Playwright E2E for settings flows: API Keys, MCP, Modules, Realtime (`apps/web/tests/e2e/settings-integrations.spec.ts`)
 
 ##### P3 (Docs + DevEx)
-- [ ] Document MCP permission security model (esp. EXECUTE) (`docs/architecture/mcp-security.md`)
-- [ ] Expand Redis production guidance (Upstash vs standard Redis, monitoring) (`docs/DEPLOYMENT.md`)
-- [ ] Add environment validation script (fail-fast) (`scripts/validate-env.js`)
-- [ ] Add rollback procedures for migrations + realtime auth behavior (`docs/runbooks/database-recovery.md`, `docs/DEPLOYMENT.md`)
+- [x] Document MCP permission security model (esp. EXECUTE) (`docs/architecture/mcp-security.md`)
+- [x] Expand Redis production guidance (Upstash vs standard Redis, monitoring) (`docs/DEPLOYMENT.md`)
+- [x] Add environment validation script (fail-fast) (`scripts/validate-env.js`)
+- [x] Add rollback procedures for migrations + realtime auth behavior (`docs/runbooks/database-recovery.md`, `docs/DEPLOYMENT.md`)
 
 ## 6. Dependency Requirements
 
