@@ -27,7 +27,7 @@ describe('useAgentStream', () => {
     const { result, unmount } = renderHook(() => useAgentStream({ streamTimeoutMs: 60_000 }))
 
     await act(async () => {
-      result.current.stream('hub', {
+      result.current.stream('validation', {
         message: 'hello',
         business_id: 'biz_1',
       })
@@ -47,7 +47,7 @@ describe('useAgentStream', () => {
     const { result } = renderHook(() => useAgentStream({ streamTimeoutMs: 10 }))
 
     await act(async () => {
-      result.current.stream('hub', {
+      result.current.stream('validation', {
         message: 'hello',
         business_id: 'biz_1',
       })
@@ -60,4 +60,3 @@ describe('useAgentStream', () => {
     expect(abortSpy).toHaveBeenCalled()
   })
 })
-

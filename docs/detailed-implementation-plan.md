@@ -463,12 +463,12 @@ This section captures remaining review recommendations and follow-ups that are *
 - [x] Add rapid mount/unmount safety tests for `useAgentStream` (`apps/web/src/hooks/__tests__/use-agent-stream.test.tsx`)
 
 ##### P2 (Testing Coverage)
-- [ ] MCP API route tests (validation, RBAC, masking, CRUD) (`apps/web/src/app/api/workspaces/[id]/mcp-servers/route.test.ts`, `apps/web/src/app/api/workspaces/[id]/mcp-servers/[serverId]/route.test.ts`)
-- [ ] Module API route tests (timestamps, RBAC, config masking) (`apps/web/src/app/api/workspaces/[id]/modules/route.test.ts`, `apps/web/src/app/api/workspaces/[id]/modules/[moduleId]/route.test.ts`)
-- [ ] Knowledge ingestion/search tests (tenant isolation + filters + errors) (`agents/tests/test_knowledge_ingestion.py`, `agents/tests/test_knowledge_search.py`)
-- [ ] BYOAI integration smoke test (encrypted key → resolver) (`agents/tests/test_byoai_integration.py`)
-- [ ] WebSocket auth tests for fallback policy (`apps/api/src/realtime/realtime.gateway.spec.ts`)
-- [ ] Playwright E2E for settings flows: API Keys, MCP, Modules, Realtime (`apps/web/tests/e2e/settings-integrations.spec.ts`)
+- [x] MCP API route tests (validation, RBAC, masking, CRUD) (`apps/web/src/app/api/workspaces/[id]/mcp-servers/route.test.ts`, `apps/web/src/app/api/workspaces/[id]/mcp-servers/[serverId]/route.test.ts`)
+- [x] Module API route tests (timestamps, RBAC, config masking) (`apps/web/src/app/api/workspaces/[id]/modules/route.test.ts`, `apps/web/src/app/api/workspaces/[id]/modules/[moduleId]/route.test.ts`)
+- [x] Knowledge ingestion/search tests (tenant isolation + filters + errors) (`agents/tests/test_knowledge_ingestion.py`, `agents/tests/test_knowledge_search.py`)
+- [x] BYOAI integration smoke test (encrypted key → resolver) (`agents/tests/test_byoai_integration.py`)
+- [x] WebSocket auth tests for fallback policy (`apps/api/src/realtime/realtime.gateway.spec.ts`)
+- [x] Playwright E2E for settings flows: API Keys, MCP, Modules, Realtime (`apps/web/tests/e2e/settings-integrations.spec.ts`)
 
 ##### P3 (Docs + DevEx)
 - [ ] Document MCP permission security model (esp. EXECUTE) (`docs/architecture/mcp-security.md`)

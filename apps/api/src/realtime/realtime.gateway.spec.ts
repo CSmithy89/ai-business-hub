@@ -172,6 +172,52 @@ describe('RealtimeGateway', () => {
       expect(mockClient.data.userId).toBe('user-from-cookie');
       expect(mockClient.data.workspaceId).toBe('workspace-from-cookie');
     });
+
+    it('should reject cookie token when cookie fallback is not explicitly enabled', async () => {
+      const previous = process.env.WS_ALLOW_COOKIE_FALLBACK;
+      delete process.env.WS_ALLOW_COOKIE_FALLBACK;
+
+      mockPrismaService.session.findUnique.mockResolvedValue({
+        id: 'session-cookie',
+        token: 'cookie-token',
+        activeWorkspaceId: 'workspace-from-cookie',
+        expiresAt: new Date(Date.now() + 60_000),
+        user: {
+          id: 'user-from-cookie',
+          email: 'cookie@example.com',
+          name: 'Cookie User',
+        },
+      });
+
+      const mockClient = {
+        id: 'test-socket-id',
+        handshake: {
+          auth: {},
+          query: {},
+          headers: {
+            cookie: 'hyvve.session_token=cookie-token',
+          },
+        },
+        data: {},
+        emit: jest.fn(),
+        join: jest.fn(),
+        disconnect: jest.fn(),
+      } as unknown as Socket;
+
+      try {
+        await gateway.handleConnection(mockClient);
+      } finally {
+        if (previous !== undefined) {
+          process.env.WS_ALLOW_COOKIE_FALLBACK = previous;
+        }
+      }
+
+      expect(mockClient.disconnect).toHaveBeenCalledWith(true);
+      expect(mockClient.emit).toHaveBeenCalledWith('connection.status', {
+        status: 'disconnected',
+        message: 'Authentication token required',
+      });
+    });
   });
 
   describe('handleDisconnect', () => {
