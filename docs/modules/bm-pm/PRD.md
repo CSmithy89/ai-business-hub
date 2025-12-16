@@ -1,19 +1,59 @@
-# Project Management Module (BM-PM) - Product Requirements Document
+# Core: Project Management & Knowledge Base - Product Requirements Document
 
-**Module:** BM-PM
-**Version:** 1.2
+**Component:** Core-PM
+**Version:** 2.0
 **Author:** AI Business Hub Team
 **Created:** 2025-12-15
 **Updated:** 2025-12-16
-**Status:** Draft (Post-Competitor Research)
+**Status:** Draft (Architecture Revision - PM as Platform Core)
 
 ---
 
 ## Executive Summary
 
+### Architectural Position: Platform Core
+
+**Core-PM is not a module—it is the platform's foundational infrastructure.**
+
+Unlike optional business modules (BM-CRM, BM-Content, etc.), Project Management and Knowledge Base are essential platform capabilities that:
+
+1. **Enable all business modules** - Every module (CRM, Content, Analytics) uses PM for orchestration
+2. **Provide team command & control** - Agent teams are managed from both chat windows AND the PM interface
+3. **Store organizational knowledge** - The Knowledge Base with RAG integration powers AI context across the platform
+4. **Execute BMAD workflows** - The 7 BUILD phases + 3 OPERATE loops run through Core-PM
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          PLATFORM CORE                                    │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   ┌─────────────────────────┐      ┌─────────────────────────────────┐  │
+│   │    Project Management   │      │        Knowledge Base           │  │
+│   │                         │      │                                 │  │
+│   │  • Products/Projects    │◄────►│  • Wiki Pages (Yjs collab)     │  │
+│   │  • Agent Teams (8)      │      │  • RAG-Powered Search          │  │
+│   │  • BMAD Workflow Engine │      │  • @mentions & #references     │  │
+│   │  • Human + AI Hybrid    │      │  • Verified Content System     │  │
+│   │                         │      │  • Vector Embeddings           │  │
+│   └─────────────────────────┘      └─────────────────────────────────┘  │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+                           ▲                    ▲
+                           │                    │
+           ┌───────────────┼────────────────────┼───────────────┐
+           │               │                    │               │
+     ┌─────┴─────┐   ┌─────┴─────┐        ┌─────┴─────┐   ┌─────┴─────┐
+     │  BM-CRM   │   │BM-Content │        │BM-Finance │   │  BM-...   │
+     │ (Module)  │   │ (Module)  │        │ (Module)  │   │ (Module)  │
+     └───────────┘   └───────────┘        └───────────┘   └───────────┘
+```
+
 ### What We're Building
 
-BM-PM is an AI-powered project management module that transforms how SMB businesses manage their product development lifecycle. Unlike traditional project management tools that simply track tasks, BM-PM provides an **8-agent AI team** that actively manages the PM tool while human teams and other module agents do the actual product building.
+Core-PM provides:
+
+1. **AI-Powered Project Management** - An **8-agent PM team** that actively manages projects while human teams and module agents build products
+2. **Collaborative Knowledge Base** - A Plane-inspired wiki system with real-time Yjs collaboration, RAG integration, and AI-powered search
 
 ### Key Distinction: PM Agents vs Product Teams
 
@@ -28,6 +68,12 @@ Product Team (Humans + Module Agents)
 ├── Human roles: Lead, Developers, Designers, QA
 ├── Module agents: CRM agents, Content agents, etc.
 └── Orchestrated by Team Leader (human or AI)
+
+Knowledge Base (Scribe, Wiki, RAG)
+├── Stores organizational knowledge
+├── Real-time collaborative editing
+├── AI-powered search and context
+└── Links to tasks, projects, and modules
 ```
 
 ### Why It Matters
@@ -38,14 +84,18 @@ SMB businesses struggle with:
 - **Context switching** - Teams waste time updating multiple tools
 - **AI integration** - Existing tools treat AI as an afterthought
 - **Team coordination** - Human teams and AI agents work in silos
+- **Knowledge fragmentation** - Critical information scattered across tools
+- **AI context** - AI agents lack access to organizational knowledge
 
-BM-PM solves these by:
+Core-PM solves these by:
 1. Embedding PM agents directly into the workflow
 2. Supporting human teams with role-based management
 3. Enabling hybrid human + AI task assignments
 4. Using BMAD workflows as the core orchestration engine
+5. **Centralizing knowledge in a searchable, AI-accessible wiki**
+6. **RAG integration for AI context across all modules**
 
-### What Makes BM-PM Special
+### What Makes Core-PM Special
 
 1. **BMAD-Native Workflows** - Built on the 7-phase BUILD methodology plus OPERATE loops as the core orchestration engine
 2. **8-Agent PM Team** - Comprehensive coverage of all PM functions (estimation, reporting, planning, risk, etc.)
@@ -53,6 +103,8 @@ BM-PM solves these by:
 4. **Confidence-Based Routing** - AI outputs flow through the approval queue automatically
 5. **Cross-Module Orchestration** - PM agents coordinate with CRM, Content, and Analytics modules
 6. **Future Workflow Builder** - BMAD workflows will support user-defined custom workflows
+7. **Integrated Knowledge Base** - Yjs collaborative wiki with RAG-powered AI search
+8. **Verified Content System** - Mark authoritative content for AI prioritization (ClickUp Brain-inspired)
 
 ---
 
@@ -60,13 +112,24 @@ BM-PM solves these by:
 
 | Attribute | Value |
 |-----------|-------|
-| **Module ID** | BM-PM |
-| **Category** | Operational Module |
+| **Component ID** | Core-PM |
+| **Category** | **Platform Core** (not optional module) |
 | **Complexity** | High |
-| **Priority** | P0 (Required for product execution modules) |
-| **Estimated Effort** | 10 weeks |
-| **Dependencies** | Platform Foundation (complete), BM-CRM (optional integration) |
-| **Target Users** | Product Managers, Team Leads, Business Owners, Project Teams |
+| **Priority** | P0 (Platform foundation—all modules depend on this) |
+| **Estimated Effort** | 12 weeks |
+| **Dependencies** | Platform Foundation (complete). **Core-PM enables all other modules.** |
+| **Target Users** | All platform users—Product Managers, Team Leads, Business Owners, Project Teams |
+| **Sub-Components** | Project Management, Knowledge Base |
+
+### Core vs Module Distinction
+
+| Aspect | Core (PM & KB) | Module (CRM, Content, etc.) |
+|--------|----------------|----------------------------|
+| **Required** | Yes—always available | Optional—can be disabled |
+| **Foundation** | Provides infrastructure | Consumes infrastructure |
+| **Team Control** | Manages all agent teams | Has its own agent team |
+| **KB Access** | Owns the Knowledge Base | Reads from Knowledge Base |
+| **Workflow Engine** | Runs BMAD workflows | Participates in workflows |
 
 ---
 
@@ -82,6 +145,8 @@ BM-PM solves these by:
 | User adoption | 70% DAU/MAU | Active users tracking tasks |
 | Agent task automation | 25% tasks auto-suggested | Navi-generated task suggestions |
 | Human team utilization | 80% tasks have human assignee | Role-based assignment tracking |
+| **KB adoption** | 50% of products have linked KB pages | Page-to-project linking |
+| **KB search accuracy** | 80% relevant results | RAG search quality score |
 
 ### Phase 2 Success Metrics
 
@@ -92,16 +157,20 @@ BM-PM solves these by:
 | Cross-module tasks | 40% linked | Tasks linked to CRM/Content |
 | Report generation time | <10 seconds | Herald-generated sprint reports |
 | Integration sync success | 99% | Bridge GitHub/GitLab operations |
+| **KB verified content** | 30% of pages verified | Authoritative content flagging |
+| **AI context utilization** | 60% of AI responses use KB | RAG context inclusion rate |
 
 ---
 
 ## Product Scope
 
-### MVP (Phase 1) - Core Project Management
+### MVP (Phase 1) - Core PM + Knowledge Base Foundation
 
-**Goal:** Functional PM system with 6 AI agents, human team support, and BMAD workflows
+**Goal:** Functional PM system with 6 AI agents, human team support, BMAD workflows, AND foundational Knowledge Base
 
 #### P0 Features (Must Have)
+
+**PROJECT MANAGEMENT**
 
 1. **Product & Phase Management**
    - Business → Product → Phase → Task hierarchy
@@ -141,7 +210,30 @@ BM-PM solves these by:
    - Agent activity streaming
    - Presence indicators
 
+**KNOWLEDGE BASE (MVP)**
+
+8. **Wiki Page System** *(Competitor-inspired: Plane, Notion, Confluence)*
+   - KnowledgePage model: title, content (JSON), parent_id, workspace_id
+   - Rich text content with Tiptap/ProseMirror (JSON storage)
+   - Hierarchical page nesting (unlimited depth)
+   - Page CRUD with soft delete
+   - Page versioning with history
+
+9. **Basic KB Navigation**
+   - Sidebar page tree navigation
+   - Breadcrumb navigation
+   - Full-text search (PostgreSQL tsvector)
+   - Recent pages list
+
+10. **Project-KB Linking**
+    - Link KB pages to Products/Projects
+    - ProjectPage many-to-many relationship
+    - Quick-link from task to KB page
+    - KB sidebar in project view
+
 #### P1 Features (Should Have)
+
+**PROJECT MANAGEMENT**
 
 1. **Calendar View** - Due date visualization
 2. **Notification Controls** - Granular per-event-type preferences
@@ -156,17 +248,33 @@ BM-PM solves these by:
    - Reveal-at-once mechanics
    - Voting history and consensus tracking
 
+**KNOWLEDGE BASE (P1)**
+
+7. **Real-Time Collaboration (Yjs)** *(Competitor-inspired: Plane, Notion)*
+   - Yjs CRDT for conflict-free editing
+   - Cursor presence (see other editors)
+   - Real-time sync across sessions
+   - Offline editing with sync on reconnect
+
+8. **@Mentions & #References**
+   - @mention users in KB pages
+   - #reference tasks, projects, or other pages
+   - Backlinks display (see what links to this page)
+   - Auto-complete for mentions/references
+
 #### P2 Features (Nice to Have in MVP)
 
 1. **Workload Dashboard** - Cross-product resource view
 2. **Simple Mode Toggle** - Hide agent features for light users
 3. **CSV Import** - Basic task import with mapping
+4. **KB Templates** - Pre-built page templates (meeting notes, project charter, etc.)
 
 ### Phase 2 - Growth Features
 
-**Goal:** Full agent team, advanced reporting, and integrations
+**Goal:** Full agent team, advanced reporting, integrations, AND RAG-powered Knowledge Base
 
-**Features:**
+**PROJECT MANAGEMENT**
+
 1. **Phase 2 Agents**
    - Bridge (integration manager) - GitHub/GitLab sync
    - Prism (analytics) - Predictive insights
@@ -199,8 +307,8 @@ BM-PM solves these by:
    - Slack notifications
    - Import from Jira/Asana/Trello
    - **MCP Server Implementation** *(Competitor-inspired: Linear, Wrike)*
-     - Publish BM-PM as MCP server
-     - Tool exposure: tasks, projects, status, estimates
+     - Publish Core-PM as MCP server
+     - Tool exposure: tasks, projects, status, estimates, KB search
      - Enable external AI agent integration
 
 5. **Budget Tracking**
@@ -212,11 +320,42 @@ BM-PM solves these by:
    - Doom-line projection (visual deadline risk based on velocity)
    - Baseline comparison snapshots (planned vs actual)
 
+**KNOWLEDGE BASE (Phase 2)**
+
+7. **RAG Integration** *(Core differentiator)*
+   - Vector embeddings for all KB pages (pgvector)
+   - Semantic search across KB
+   - AI agents automatically search KB for context
+   - Configurable embedding model (tenant BYOAI)
+   - Chunking strategy for optimal retrieval
+
+8. **Verified Content System** *(Competitor-inspired: ClickUp Brain Verified Wiki)*
+   - Mark pages as "Verified" (authoritative)
+   - Verified content prioritized in AI search
+   - Verification workflow (owner signs off)
+   - Verification expiration (auto-expire after N days)
+   - Visual indicator on verified pages
+
+9. **Scribe Agent** - Knowledge Base Manager
+   - Auto-summarize long pages
+   - Suggest related content
+   - Detect stale pages (no updates in N days)
+   - Generate KB insights (coverage gaps, popular pages)
+   - Draft page content from tasks/discussions
+
+10. **Advanced KB Features**
+    - Page comments and discussions
+    - Embed diagrams (Excalidraw integration)
+    - Table blocks (database-like tables in pages)
+    - Export to Markdown/PDF
+    - Import from Notion/Confluence
+
 ### Phase 3 - Vision Features
 
-**Goal:** Custom workflows, advanced analytics, and external API
+**Goal:** Custom workflows, advanced analytics, external API, AND AI-native Knowledge Base
 
-**Features:**
+**PROJECT MANAGEMENT**
+
 1. **Workflow Builder**
    - User-defined BMAD workflows
    - Custom phase templates
@@ -233,7 +372,6 @@ BM-PM solves these by:
    - Zapier integration
 
 4. **Advanced Collaboration**
-   - Y.js collaborative editing
    - Task templates library
    - Cross-product dependencies
 
@@ -247,41 +385,82 @@ BM-PM solves these by:
    - Multi-product roadmaps
    - Audit logging and compliance
 
+**KNOWLEDGE BASE (Phase 3)**
+
+7. **AI-Native KB Features**
+   - AI auto-generates page drafts from project context
+   - Automatic knowledge extraction from completed tasks
+   - AI Q&A over KB (chat with your knowledge base)
+   - Smart summaries and TL;DR generation
+   - Knowledge gap detection (what's missing?)
+
+8. **Advanced RAG Features**
+   - Multi-modal embeddings (images, diagrams)
+   - Cross-workspace KB federation (enterprise)
+   - Custom embedding fine-tuning
+   - RAG analytics (what context is being used?)
+
+9. **KB Governance**
+   - Content ownership and permissions
+   - Review workflows for sensitive pages
+   - Archival policies
+   - KB analytics dashboard
+
+10. **External KB Integrations**
+    - Sync from external docs (Google Docs, Dropbox Paper)
+    - Public documentation portal
+    - API for KB content
+    - Webhook triggers on KB changes
+
 ---
 
 ## Agent Team Specification
 
-### PM Agent Team Architecture
+### Core-PM Agent Team Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      PM Agent Team                               │
-│              (Manages the PM Tool & Process)                     │
+│                    Core-PM Agent Team                            │
+│         (Manages PM Tool, Knowledge Base & Process)              │
 │                                                                  │
 │    ┌─────────────────────────────────────────────────────────┐  │
 │    │                 Navi (Team Leader)                       │  │
-│    │            PM Orchestrator & Coordinator                 │  │
-│    │    "I coordinate your PM operations and keep you        │  │
-│    │     focused on what matters most."                      │  │
+│    │       PM Orchestrator & Coordinator + KB Navigator       │  │
+│    │    "I coordinate your PM operations, help you find       │  │
+│    │     knowledge, and keep you focused on what matters."   │  │
 │    └───────────────────────┬─────────────────────────────────┘  │
 │                            │                                     │
-│    ┌───────────┬───────────┼───────────┬───────────┐            │
-│    │           │           │           │           │            │
-│    ▼           ▼           ▼           ▼           ▼            │
-│ ┌──────┐  ┌──────┐   ┌──────┐   ┌──────┐   ┌──────┐            │
-│ │ Sage │  │Herald│   │Chrono│   │Scope │   │Pulse │            │
-│ │      │  │      │   │      │   │      │   │      │            │
-│ └──────┘  └──────┘   └──────┘   └──────┘   └──────┘            │
-│ Estimator  Reporter   Tracker   Planner    Risk                 │
+│    ┌───────────┬───────────┼───────────┬───────────┬───────┐    │
+│    │           │           │           │           │       │    │
+│    ▼           ▼           ▼           ▼           ▼       ▼    │
+│ ┌──────┐  ┌──────┐   ┌──────┐   ┌──────┐   ┌──────┐ ┌──────┐   │
+│ │ Sage │  │Herald│   │Chrono│   │Scope │   │Pulse │ │Scribe│   │
+│ │      │  │      │   │      │   │      │   │      │ │      │   │
+│ └──────┘  └──────┘   └──────┘   └──────┘   └──────┘ └──────┘   │
+│ Estimator  Reporter   Tracker   Planner    Risk     KB Manager  │
 │                                                                  │
 │ ┌──────┐  ┌──────┐                                              │
-│ │Bridge│  │Prism │   Phase 2 Agents                             │
+│ │Bridge│  │Prism │   Phase 2 Agents (PM)                        │
 │ │      │  │      │                                              │
 │ └──────┘  └──────┘                                              │
 │ Integrator Analytics                                             │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### Agent Responsibilities Summary
+
+| Agent | Primary Domain | KB Integration |
+|-------|----------------|----------------|
+| **Navi** | PM Orchestration | Searches KB for context, routes KB queries to Scribe |
+| **Sage** | Estimation | References historical KB docs for estimation context |
+| **Herald** | Reporting | Can generate reports into KB pages |
+| **Chrono** | Activity Tracking | Tracks KB page changes alongside task changes |
+| **Scope** | Planning | Links planning docs in KB to sprints |
+| **Pulse** | Risk Monitoring | Checks KB for risk documentation |
+| **Scribe** | **Knowledge Base** | Manages KB content, RAG, verification |
+| **Bridge** | Integrations | Imports external docs into KB |
+| **Prism** | Analytics | Analyzes KB usage and coverage |
 
 ### MVP Agents (Phase 1)
 
@@ -313,6 +492,7 @@ BM-PM solves these by:
 **Tools:**
 ```python
 navi_tools = [
+    # Task Management
     suggest_task,           # Suggest task creation (not auto-create)
     update_task,            # Modify task properties
     assign_task,            # Assign to human or agent
@@ -321,6 +501,12 @@ navi_tools = [
     get_daily_summary,      # Generate morning briefing
     route_to_specialist,    # Delegate to Sage, Herald, etc.
     link_to_crm,            # Link task to CRM contact/deal (optional)
+
+    # Knowledge Base Navigation
+    search_kb,              # Full-text and semantic KB search
+    get_related_kb_pages,   # Find KB pages related to current task/project
+    link_kb_to_task,        # Link a KB page to a task
+    route_to_scribe,        # Delegate KB operations to Scribe
 ]
 ```
 
@@ -330,6 +516,7 @@ navi_tools = [
 | `pm.phase.started` | Suggest task breakdown | Always suggest, never auto |
 | `pm.task.overdue` | Alert via Pulse | Notify |
 | `chat.message.task_intent` | Suggest task creation | Review before create |
+| `chat.message.kb_query` | Search KB and return context | Auto |
 | `user.login.morning` | Deliver daily briefing | Auto |
 
 **Implementation:**
@@ -727,12 +914,141 @@ bridge_tools = [
 
     # Webhooks
     manage_webhooks,         # Configure outbound webhooks
+
+    # Knowledge Base Import
+    import_docs_to_kb,       # Import external docs into KB
 ]
 ```
 
 ---
 
-#### 8. Prism - Analytics & Insights
+#### 8. Scribe - Knowledge Base Manager
+
+**Role:** Knowledge Base management, RAG operations, and content quality
+
+**Persona:**
+> "I'm Scribe, your knowledge keeper. I organize your wiki, ensure content stays fresh, and power the AI's understanding of your business. Ask me to find information, summarize pages, or help you write documentation."
+
+**Responsibilities:**
+- KB page CRUD operations
+- Content organization and structure
+- RAG pipeline management
+- Semantic search execution
+- Stale content detection
+- Verification workflow management
+- Auto-summarization of long content
+- Related content suggestions
+
+**KB Architecture:**
+```
+Knowledge Base
+├── Workspaces (tenant-level)
+│   └── Root Pages
+│       └── Nested Pages (unlimited depth)
+│
+├── Project Links (many-to-many)
+│   └── ProjectPage join table
+│
+├── RAG Pipeline
+│   ├── Content Chunking
+│   ├── Embedding Generation (tenant BYOAI)
+│   └── Vector Storage (pgvector)
+│
+└── Verification System
+    ├── Verified (authoritative)
+    ├── Unverified (default)
+    └── Expired (needs re-verification)
+```
+
+**Stale Content Detection:**
+```
+Default Thresholds (Configurable):
+- Page not updated in 90 days → Flag as "Needs Review"
+- Page not viewed in 180 days → Suggest archival
+- Linked project completed → Prompt for knowledge capture
+- Verification expired → Flag for re-verification
+```
+
+**RAG Configuration:**
+```python
+rag_config = {
+    "chunk_size": 512,           # Tokens per chunk
+    "chunk_overlap": 50,         # Overlap between chunks
+    "embedding_model": "tenant_default",  # Use tenant's BYOAI
+    "top_k": 5,                  # Results per query
+    "verified_boost": 1.5,       # Boost verified content
+    "recency_decay": 0.95,       # Recent content slight boost
+}
+```
+
+**Tools:**
+```python
+scribe_tools = [
+    # Page Management
+    create_kb_page,          # Create new KB page
+    update_kb_page,          # Update page content
+    delete_kb_page,          # Soft delete page
+    move_kb_page,            # Move to new parent
+    duplicate_kb_page,       # Clone page
+    get_page_history,        # Version history
+
+    # Search & Discovery
+    search_kb,               # Full-text + semantic search
+    find_related_pages,      # Pages related to topic/task
+    get_backlinks,           # Pages linking to this page
+    suggest_content,         # AI-suggest content for query
+
+    # RAG Operations
+    generate_embeddings,     # Create/update embeddings for page
+    query_rag,               # Semantic search with RAG
+    get_context_for_task,    # Get KB context for a task
+
+    # Quality & Verification
+    mark_verified,           # Mark page as verified
+    expire_verification,     # Remove verification status
+    detect_stale_pages,      # Find outdated content
+    suggest_updates,         # AI-suggest content updates
+    summarize_page,          # Generate TL;DR
+
+    # Organization
+    link_page_to_project,    # Link to Product/Project
+    unlink_page,             # Remove project link
+    generate_toc,            # Generate table of contents
+    suggest_structure,       # AI-suggest page organization
+]
+```
+
+**Triggers:**
+| Event | Action | Approval |
+|-------|--------|----------|
+| `kb.page.created` | Generate embeddings | Auto |
+| `kb.page.updated` | Update embeddings | Auto |
+| `pm.project.completed` | Suggest knowledge capture | Suggest |
+| `schedule.weekly` | Stale page scan | Auto, notify |
+| `kb.verification.expired` | Alert page owner | Notify |
+| `chat.message.kb_query` | RAG search | Auto |
+
+**Implementation:**
+```python
+scribe = Agent(
+    name="Scribe",
+    role="KB Manager",
+    model=get_tenant_model(tenant_id),
+    instructions=[
+        "Manage the Knowledge Base for this workspace.",
+        "Ensure content is organized, searchable, and up-to-date.",
+        "Prioritize verified content in search results.",
+        "Suggest knowledge capture when projects complete.",
+        "Help users find information quickly using RAG.",
+        "Flag stale content for review.",
+    ],
+    storage=PostgresStorage(table_name="kb_sessions"),
+)
+```
+
+---
+
+#### 9. Prism - Analytics & Insights
 
 **Role:** Predictive analytics and optimization
 
@@ -777,14 +1093,14 @@ prism_tools = [
 ### Agent Team Configuration
 
 ```yaml
-# agents/pm/team.py
-pm_team:
-  name: "PM Team"
+# agents/core-pm/team.py
+core_pm_team:
+  name: "Core PM Team"
   mode: "coordinate"
   leader: "navi"
   members:
     # MVP (Phase 1)
-    - navi      # Orchestrator
+    - navi      # Orchestrator + KB Navigator
     - sage      # Estimation
     - herald    # Reporting
     - chrono    # Tracking
@@ -792,14 +1108,16 @@ pm_team:
     - pulse     # Risk
     # Phase 2
     - bridge    # Integration
+    - scribe    # Knowledge Base Manager
     - prism     # Analytics
   storage: PostgresStorage
   memory:
     shared: true
-    key_prefix: "pm_team"
+    key_prefix: "core_pm_team"
   defaults:
     suggestion_mode: true  # Agents suggest, don't auto-execute
     confidence_threshold: 0.85
+    kb_rag_enabled: true   # Enable RAG for all agents
 ```
 
 ### Agent Disagreement Resolution Protocol
@@ -829,7 +1147,7 @@ Flag remaining 7 for next sprint. Monitor team capacity."
 
 ### Product Team Structure
 
-BM-PM supports human teams alongside AI agents:
+Core-PM supports human teams alongside AI agents:
 
 ```
 Product
@@ -841,8 +1159,9 @@ Product
     │   ├── QA Engineers (N)
     │   └── Custom Roles (N)
     │
-    └── AI Agent Team (PM Agents)
-        └── Navi, Sage, Herald, Chrono, Scope, Pulse
+    └── AI Agent Team (Core-PM Agents)
+        ├── MVP: Navi, Sage, Herald, Chrono, Scope, Pulse
+        └── Phase 2: Bridge, Scribe, Prism
 ```
 
 ### Human Role Definitions
@@ -1234,6 +1553,105 @@ interface TeamCapacity {
                         └─────────────────┘
 ```
 
+### Knowledge Base Entities
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│ KnowledgePage   │────<│ PageVersion     │     │ PageEmbedding   │
+│                 │     │                 │     │                 │
+│ id              │     │ id              │     │ id              │
+│ tenantId        │     │ pageId          │     │ pageId          │
+│ workspaceId     │     │ content (JSON)  │     │ chunkIndex      │
+│ parentId        │     │ version         │     │ chunkText       │
+│ title           │     │ createdBy       │     │ embedding[]     │
+│ slug            │     │ createdAt       │     │ createdAt       │
+│ content (JSON)  │     │ changeNote      │     └─────────────────┘
+│ isVerified      │     └─────────────────┘
+│ verifiedAt      │
+│ verifiedBy      │     ┌─────────────────┐
+│ verifyExpires   │     │ ProjectPage     │ (Many-to-Many)
+│ ownerId         │     │                 │
+│ viewCount       │     │ productId       │
+│ lastViewedAt    │     │ pageId          │
+│ createdAt       │     │ isPrimary       │
+│ updatedAt       │     │ createdAt       │
+│ deletedAt       │     └─────────────────┘
+└─────────────────┘
+         │
+         └────< (self-referential: parent-child hierarchy)
+```
+
+### Knowledge Base Entity Details
+
+| Entity | Purpose |
+|--------|---------|
+| `KnowledgePage` | Wiki page with rich text content (Tiptap JSON) |
+| `PageVersion` | Version history for each page edit |
+| `PageEmbedding` | Vector embeddings for RAG (pgvector) |
+| `ProjectPage` | Many-to-many link between Products and KB pages |
+| `PageComment` | Comments/discussions on KB pages |
+| `PageMention` | @mentions and #references within pages |
+
+### Knowledge Base Schema (Prisma)
+
+```prisma
+model KnowledgePage {
+  id            String    @id @default(cuid())
+  tenantId      String
+  workspaceId   String
+  parentId      String?
+  title         String
+  slug          String
+  content       Json      // Tiptap/ProseMirror JSON
+  contentText   String    // Plain text for full-text search
+
+  // Verification
+  isVerified    Boolean   @default(false)
+  verifiedAt    DateTime?
+  verifiedById  String?
+  verifyExpires DateTime?
+
+  // Ownership
+  ownerId       String
+
+  // Analytics
+  viewCount     Int       @default(0)
+  lastViewedAt  DateTime?
+
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  parent        KnowledgePage?   @relation("PageHierarchy", fields: [parentId], references: [id])
+  children      KnowledgePage[]  @relation("PageHierarchy")
+  versions      PageVersion[]
+  embeddings    PageEmbedding[]
+  projects      ProjectPage[]
+  comments      PageComment[]
+
+  @@index([tenantId])
+  @@index([workspaceId])
+  @@index([parentId])
+  @@index([ownerId])
+  @@index([isVerified])
+}
+
+model PageEmbedding {
+  id          String    @id @default(cuid())
+  pageId      String
+  chunkIndex  Int
+  chunkText   String
+  embedding   Unsupported("vector(1536)")  // pgvector
+  createdAt   DateTime  @default(now())
+
+  page        KnowledgePage @relation(fields: [pageId], references: [id])
+
+  @@index([pageId])
+}
+```
+
 ### Supporting Entities
 
 | Entity | Purpose |
@@ -1247,6 +1665,7 @@ interface TeamCapacity {
 | `PmPhaseTemplate` | BMAD phase templates |
 | `PmRiskEntry` | Risk tracking (Pulse) |
 | `PmCapacityPlan` | Team capacity per phase |
+| `KbPageActivity` | Activity log for KB pages (Chrono) |
 
 ---
 
@@ -1255,27 +1674,57 @@ interface TeamCapacity {
 ### Information Architecture
 
 ```
-/pm
-├── /dashboard                    # PM dashboard (cross-product)
-├── /products                     # Product list
-│   └── /[productId]              # Product detail
-│       ├── /overview             # Product dashboard
-│       ├── /team                 # Team management
-│       ├── /phases               # Phase list
-│       │   └── /[phaseId]        # Phase detail
-│       ├── /tasks                # Task views
-│       │   ├── /list             # List view
-│       │   ├── /kanban           # Kanban board
-│       │   ├── /calendar         # Calendar view
-│       │   ├── /timeline         # Timeline (Phase 2)
-│       │   └── /[taskId]         # Task detail
-│       ├── /reports              # Product reports
-│       └── /settings             # Product settings
-├── /my-tasks                     # Personal task list
-├── /portfolio                    # Executive dashboard (Phase 2)
-└── /settings                     # PM module settings
-    ├── /templates                # Phase templates
-    └── /integrations             # GitHub, etc.
+/pm                                   # Project Management (Core)
+├── /dashboard                        # PM dashboard (cross-product)
+├── /products                         # Product list
+│   └── /[productId]                  # Product detail
+│       ├── /overview                 # Product dashboard
+│       ├── /team                     # Team management
+│       ├── /phases                   # Phase list
+│       │   └── /[phaseId]            # Phase detail
+│       ├── /tasks                    # Task views
+│       │   ├── /list                 # List view
+│       │   ├── /kanban               # Kanban board
+│       │   ├── /calendar             # Calendar view
+│       │   ├── /timeline             # Timeline (Phase 2)
+│       │   └── /[taskId]             # Task detail
+│       ├── /docs                     # Project-linked KB pages (sidebar)
+│       ├── /reports                  # Product reports
+│       └── /settings                 # Product settings
+├── /my-tasks                         # Personal task list
+├── /portfolio                        # Executive dashboard (Phase 2)
+└── /settings                         # PM settings
+    ├── /templates                    # Phase templates
+    └── /integrations                 # GitHub, etc.
+
+/kb                                   # Knowledge Base (Core)
+├── /                                 # KB home (recent, favorites)
+├── /search                           # KB search results
+├── /[pageSlug]                       # Page view/edit
+│   ├── /history                      # Version history
+│   └── /comments                     # Page discussions
+├── /new                              # Create new page
+├── /verified                         # Verified pages list
+├── /stale                            # Pages needing review
+└── /settings                         # KB settings
+    ├── /verification                 # Verification policies
+    ├── /rag                          # RAG configuration
+    └── /templates                    # Page templates
+```
+
+### Command Bar Integration
+
+The command bar (`Cmd+K`) provides unified access to both PM and KB:
+
+```
+Command Bar Actions:
+├── "Create task..." → Quick task creation
+├── "Create page..." → Quick KB page creation
+├── "Search KB: {query}" → Semantic KB search
+├── "Find task: {query}" → Task search
+├── "Go to product..." → Product navigation
+├── "Go to page..." → KB page navigation
+└── "Ask Navi..." → Chat with PM agent
 ```
 
 ### Key User Flows
@@ -1317,21 +1766,56 @@ interface TeamCapacity {
     → [User takes action]
 ```
 
-### Onboarding: "Meet Your PM Team"
+**5. Create KB Page and Link to Project**
+```
+[KB Home] → [+ New Page] → [Select Template (optional)]
+    → [Enter Title] → [Rich text editor with Yjs]
+    → [Link to Project] → [Select Product]
+    → [Save] → [Page created with embeddings]
+```
 
-When a user first accesses BM-PM:
+**6. AI-Powered KB Search**
+```
+[Command Bar: "Search KB: deployment process"]
+    → [Scribe performs RAG search]
+    → [Results ranked by relevance + verification]
+    → [Verified content highlighted]
+    → [Click to view/edit page]
+```
+
+**7. Knowledge Capture from Completed Project**
+```
+[Project completed] → [Scribe suggests knowledge capture]
+    → [Auto-draft page from project summary]
+    → [User reviews and edits]
+    → [Links to project for context]
+    → [Verification workflow (optional)]
+```
+
+**8. Verify KB Content**
+```
+[KB Page] → [Mark as Verified]
+    → [Select verification expiry (30/60/90 days)]
+    → [Page marked verified with badge]
+    → [Boosted in AI search results]
+```
+
+### Onboarding: "Meet Your Core-PM Team"
+
+When a user first accesses Core-PM:
 
 1. **Introduction Modal**
-   - "Your PM Team is ready to help"
-   - 8-agent team overview
+   - "Your Core-PM Team is ready to help"
+   - 9-agent team overview (including Scribe for KB)
 
 2. **Agent Introductions**
-   - Navi: "I'm your PM co-pilot"
+   - Navi: "I'm your PM co-pilot and knowledge navigator"
    - Sage: "I help with estimates"
    - Herald: "I summarize your progress"
    - Chrono: "I track everything"
    - Scope: "I help with planning"
    - Pulse: "I watch for risks"
+   - Scribe: "I manage your knowledge base" *(Phase 2)*
 
 3. **First Product**
    - Guided product creation
@@ -1343,7 +1827,12 @@ When a user first accesses BM-PM:
    - Suggestion mode explanation
    - Assignment types demo
 
-5. **Simple Mode Option**
+5. **First KB Page**
+   - Create a project documentation page
+   - Link to product
+   - Quick template selection
+
+6. **Simple Mode Option**
    - "Prefer a simpler experience?"
    - Toggle to hide agent features
    - Can re-enable anytime
@@ -1356,68 +1845,110 @@ When a user first accesses BM-PM:
 
 ```
 apps/
-├── web/src/app/(dashboard)/pm/       # PM frontend
-│   ├── products/
-│   │   └── [productId]/
-│   │       ├── page.tsx              # Product overview
-│   │       ├── team/page.tsx         # Team management
-│   │       ├── tasks/
-│   │       │   ├── kanban/page.tsx
-│   │       │   ├── list/page.tsx
-│   │       │   ├── calendar/page.tsx
-│   │       │   └── timeline/page.tsx # Phase 2
-│   │       └── settings/page.tsx
-│   ├── dashboard/page.tsx
-│   ├── my-tasks/page.tsx
-│   └── portfolio/page.tsx            # Phase 2
+├── web/src/app/(dashboard)/
+│   ├── pm/                           # Project Management frontend
+│   │   ├── products/
+│   │   │   └── [productId]/
+│   │   │       ├── page.tsx          # Product overview
+│   │   │       ├── team/page.tsx     # Team management
+│   │   │       ├── docs/page.tsx     # Linked KB pages
+│   │   │       ├── tasks/
+│   │   │       │   ├── kanban/page.tsx
+│   │   │       │   ├── list/page.tsx
+│   │   │       │   ├── calendar/page.tsx
+│   │   │       │   └── timeline/page.tsx # Phase 2
+│   │   │       └── settings/page.tsx
+│   │   ├── dashboard/page.tsx
+│   │   ├── my-tasks/page.tsx
+│   │   └── portfolio/page.tsx        # Phase 2
+│   │
+│   └── kb/                           # Knowledge Base frontend
+│       ├── page.tsx                  # KB home (recent, favorites)
+│       ├── search/page.tsx           # Search results
+│       ├── new/page.tsx              # Create new page
+│       ├── verified/page.tsx         # Verified pages list
+│       ├── stale/page.tsx            # Pages needing review
+│       ├── [pageSlug]/
+│       │   ├── page.tsx              # Page view/edit (Yjs)
+│       │   ├── history/page.tsx      # Version history
+│       │   └── comments/page.tsx     # Page discussions
+│       └── settings/
+│           ├── page.tsx              # KB settings
+│           ├── verification/page.tsx
+│           ├── rag/page.tsx
+│           └── templates/page.tsx
 │
-├── api/src/modules/pm/               # PM backend
-│   ├── pm.module.ts
-│   ├── controllers/
-│   │   ├── products.controller.ts
-│   │   ├── phases.controller.ts
-│   │   ├── tasks.controller.ts
-│   │   ├── teams.controller.ts
-│   │   └── views.controller.ts
-│   ├── services/
-│   │   ├── products.service.ts
-│   │   ├── phases.service.ts
-│   │   ├── tasks.service.ts
-│   │   ├── teams.service.ts
-│   │   └── analytics.service.ts
-│   └── events/
-│       ├── pm.events.ts
-│       └── pm.handlers.ts
+├── api/src/modules/
+│   ├── pm/                           # PM backend
+│   │   ├── pm.module.ts
+│   │   ├── controllers/
+│   │   │   ├── products.controller.ts
+│   │   │   ├── phases.controller.ts
+│   │   │   ├── tasks.controller.ts
+│   │   │   ├── teams.controller.ts
+│   │   │   └── views.controller.ts
+│   │   ├── services/
+│   │   │   ├── products.service.ts
+│   │   │   ├── phases.service.ts
+│   │   │   ├── tasks.service.ts
+│   │   │   ├── teams.service.ts
+│   │   │   └── analytics.service.ts
+│   │   └── events/
+│   │       ├── pm.events.ts
+│   │       └── pm.handlers.ts
+│   │
+│   └── kb/                           # Knowledge Base backend
+│       ├── kb.module.ts
+│       ├── controllers/
+│       │   ├── pages.controller.ts
+│       │   ├── search.controller.ts
+│       │   ├── rag.controller.ts
+│       │   └── verification.controller.ts
+│       ├── services/
+│       │   ├── pages.service.ts
+│       │   ├── versions.service.ts
+│       │   ├── search.service.ts     # Full-text + semantic
+│       │   ├── rag.service.ts        # Embeddings, RAG pipeline
+│       │   └── verification.service.ts
+│       └── events/
+│           ├── kb.events.ts
+│           └── kb.handlers.ts
 │
 agents/
-├── pm/
-│   ├── team.py                       # PM team definition
-│   ├── navi.py                       # Navi orchestrator
+├── core-pm/                          # Core-PM agents (renamed from pm/)
+│   ├── team.py                       # Core-PM team definition
+│   ├── navi.py                       # Navi orchestrator + KB navigation
 │   ├── sage.py                       # Sage estimator
 │   ├── herald.py                     # Herald reporter
 │   ├── chrono.py                     # Chrono tracker
 │   ├── scope.py                      # Scope planner
 │   ├── pulse.py                      # Pulse risk monitor
 │   ├── bridge.py                     # Bridge integrator (Phase 2)
+│   ├── scribe.py                     # Scribe KB manager (Phase 2)
 │   ├── prism.py                      # Prism analytics (Phase 2)
-│   ├── tools.py                      # Shared PM tools
+│   ├── tools/
+│   │   ├── pm_tools.py               # PM-specific tools
+│   │   ├── kb_tools.py               # KB-specific tools
+│   │   └── rag_tools.py              # RAG-specific tools
 │   └── prompts/
 │       ├── navi_system.md
 │       ├── sage_system.md
 │       ├── herald_system.md
 │       ├── chrono_system.md
 │       ├── scope_system.md
-│       └── pulse_system.md
+│       ├── pulse_system.md
+│       └── scribe_system.md          # Phase 2
 │
 packages/db/prisma/
 └── schema/
-    └── pm.prisma                     # PM data models
+    ├── pm.prisma                     # PM data models
+    └── kb.prisma                     # KB data models
 ```
 
 ### Team Factory Pattern
 
 ```python
-# agents/pm/team.py
+# agents/core-pm/team.py
 from agno import Agent, Team
 from agno.storage.postgres import PostgresStorage
 from .navi import create_navi
@@ -1426,15 +1957,17 @@ from .herald import create_herald
 from .chrono import create_chrono
 from .scope import create_scope
 from .pulse import create_pulse
+from .scribe import create_scribe  # Phase 2
 
-def create_pm_team(tenant_id: str, product_id: str) -> Team:
-    """Create PM agent team for a product."""
+def create_core_pm_team(tenant_id: str, product_id: str) -> Team:
+    """Create Core-PM agent team for a product."""
 
     storage = PostgresStorage(
-        table_name=f"pm_team_{tenant_id}",
+        table_name=f"core_pm_team_{tenant_id}",
         schema="agent_memory"
     )
 
+    # MVP Agents
     navi = create_navi(tenant_id, product_id)
     sage = create_sage(tenant_id, product_id)
     herald = create_herald(tenant_id, product_id)
@@ -1442,18 +1975,23 @@ def create_pm_team(tenant_id: str, product_id: str) -> Team:
     scope = create_scope(tenant_id, product_id)
     pulse = create_pulse(tenant_id, product_id)
 
+    # Phase 2 Agents
+    scribe = create_scribe(tenant_id, product_id)
+
     return Team(
-        name="PM Team",
+        name="Core-PM Team",
         mode="coordinate",
         leader=navi,
-        members=[sage, herald, chrono, scope, pulse],
+        members=[sage, herald, chrono, scope, pulse, scribe],
         storage=storage,
         instructions=[
-            "You are the PM Team managing this product's project.",
-            "Navi leads and coordinates all PM operations.",
+            "You are the Core-PM Team managing this product and its knowledge.",
+            "Navi leads and coordinates all PM and KB operations.",
             "ALWAYS suggest actions, never auto-execute without confirmation.",
             "Route approvals through Sentinel when confidence < threshold.",
             "Support human team members alongside AI operations.",
+            "Use Scribe for all KB operations and RAG search.",
+            "Prioritize verified KB content in all AI responses.",
         ]
     )
 ```
@@ -1493,23 +2031,53 @@ def create_pm_team(tenant_id: str, product_id: str) -> Team:
 'pm.risk.detected'
 'pm.risk.resolved'
 'pm.health.critical'
+
+// KB Event Types
+'kb.page.created'
+'kb.page.updated'
+'kb.page.deleted'
+'kb.page.moved'
+'kb.page.viewed'
+
+'kb.page.verified'
+'kb.page.verification_expired'
+'kb.page.unverified'
+
+'kb.page.linked_to_project'
+'kb.page.unlinked_from_project'
+
+'kb.embedding.created'
+'kb.embedding.updated'
+'kb.embedding.deleted'
+
+'kb.search.performed'
+'kb.rag.query'
+'kb.rag.context_used'
+
+'kb.stale.detected'
+'kb.stale.resolved'
+
+'kb.comment.created'
+'kb.comment.updated'
+'kb.comment.deleted'
 ```
 
 ---
 
 ## Implementation Phases
 
-### Phase 1: MVP (5 weeks)
+### Phase 1: MVP (6 weeks)
 
 **Week 1-2: Data Layer & Core APIs**
 - Product, Phase, Task Prisma models
 - Team and TeamMember models
+- **KnowledgePage, PageVersion models**
 - CRUD API endpoints
 - RLS policies
 - Event bus publishers
 
 **Week 3-4: MVP Agents (6 Agents)**
-- Navi orchestrator
+- Navi orchestrator (with KB search routing)
 - Sage estimator
 - Herald reporter
 - Chrono tracker
@@ -1517,7 +2085,7 @@ def create_pm_team(tenant_id: str, product_id: str) -> Team:
 - Pulse risk monitor
 - Agent team configuration
 
-**Week 5: Core UI**
+**Week 5: Core PM UI**
 - Product dashboard
 - Kanban board
 - List view
@@ -1526,33 +2094,66 @@ def create_pm_team(tenant_id: str, product_id: str) -> Team:
 - Quick capture (`c` key)
 - WebSocket events
 
-### Phase 2: Growth Features (3 weeks)
+**Week 6: Core KB Foundation**
+- KB page CRUD (frontend + backend)
+- Rich text editor (Tiptap)
+- Page hierarchy navigation
+- Full-text search (PostgreSQL tsvector)
+- Project-KB linking (ProjectPage)
+- Basic KB home page
 
-**Week 6-7: Phase 2 Agents & Views**
+### Phase 2: Growth Features (4 weeks)
+
+**Week 7-8: Phase 2 Agents & Views**
 - Bridge integration agent
+- **Scribe KB manager agent**
 - Prism analytics agent
 - Timeline view
 - Saved views
 - Portfolio dashboard
 - GitHub integration
 
-**Week 8: Advanced Features**
+**Week 9: KB RAG & Collaboration**
+- **Yjs real-time collaboration**
+- **pgvector embeddings**
+- **Semantic search (RAG)**
+- **@mentions and #references**
+- Cursor presence
+
+**Week 10: KB Advanced Features**
+- **Verified content system**
+- **Stale page detection**
+- Page templates
+- Import from Notion/Confluence
+- Export to Markdown/PDF
+
+**Week 11: Advanced PM Features**
 - Import wizard (Jira, Asana)
 - Enhanced reporting (Herald)
 - Budget tracking
 - Slack notifications
 
-### Phase 3: Vision Features (2 weeks)
+### Phase 3: Vision Features (3 weeks)
 
-**Week 9-10: Workflow Builder & API**
+**Week 12-13: Workflow Builder & API**
 - Custom workflow builder
 - Public REST API
 - Webhooks
 - Predictive analytics (Prism)
+- **KB API endpoints**
+
+**Week 14: AI-Native KB**
+- **AI auto-generates page drafts**
+- **Knowledge extraction from completed tasks**
+- **AI Q&A over KB**
+- **Knowledge gap detection**
+- **Advanced RAG features**
 
 ---
 
 ## Epic Summary
+
+### Project Management Epics
 
 | Epic | Phase | Stories | Points | Focus |
 |------|-------|---------|--------|-------|
@@ -1566,29 +2167,57 @@ def create_pm_team(tenant_id: str, product_id: str) -> Team:
 | PM-08: Advanced Views | Phase 2 | 6 | 16 | Timeline, portfolio, saved views |
 | PM-09: Workflow Builder | Phase 3 | 6 | 18 | Custom workflows |
 | PM-10: External API | Phase 3 | 5 | 14 | REST API, webhooks |
-| **Total** | | **80** | **230** | |
+| **PM Subtotal** | | **80** | **230** | |
+
+### Knowledge Base Epics
+
+| Epic | Phase | Stories | Points | Focus |
+|------|-------|---------|--------|-------|
+| KB-01: Data Layer | MVP | 8 | 21 | KB models, versioning, linking |
+| KB-02: Core KB UI | MVP | 10 | 28 | Page editor, navigation, search |
+| KB-03: Scribe Agent | Phase 2 | 8 | 24 | KB management, stale detection |
+| KB-04: RAG Pipeline | Phase 2 | 10 | 32 | Embeddings, semantic search |
+| KB-05: Real-Time Collab | Phase 2 | 6 | 18 | Yjs, cursors, presence |
+| KB-06: Verified Content | Phase 2 | 5 | 14 | Verification workflow |
+| KB-07: AI-Native KB | Phase 3 | 8 | 26 | Auto-generation, Q&A |
+| KB-08: KB API & Governance | Phase 3 | 5 | 14 | REST API, permissions |
+| **KB Subtotal** | | **60** | **177** | |
+
+### Combined Totals
+
+| Phase | Stories | Points |
+|-------|---------|--------|
+| MVP (PM + KB) | 57 | 189 |
+| Phase 2 (PM + KB) | 59 | 170 |
+| Phase 3 (PM + KB) | 24 | 72 |
+| **Grand Total** | **140** | **407** |
 
 ### MVP Priority Tiers
 
 Within MVP (Phase 1), if timeline pressure occurs:
 
-**P0 (Must Ship):** 48 stories, 130 points
-- Data layer complete
+**P0 (Must Ship):** 55 stories, 145 points
+- PM data layer complete
+- KB data layer complete
 - Navi + Sage + Chrono agents
 - Kanban + List views
+- Basic KB page CRUD
 - Basic team management
 - Quick capture
 
-**P1 (Should Ship):** 15 stories, 45 points
+**P1 (Should Ship):** 18 stories, 52 points
 - Herald + Scope + Pulse agents
 - Calendar view
 - Full team capacity planning
 - Notification controls
+- KB full-text search
+- Project-KB linking
 
-**P2 (Nice to Have):** 7 stories, 20 points
+**P2 (Nice to Have):** 9 stories, 25 points
 - Simple timeline (view only)
 - Simple mode toggle
 - CSV import
+- KB templates
 
 ---
 
@@ -1604,14 +2233,26 @@ Within MVP (Phase 1), if timeline pressure occurs:
 | Approval Queue | Complete | Confidence routing |
 | WebSocket Gateway | Complete | Real-time events |
 | AgentOS | Complete | Agno runtime |
+| **pgvector** | Complete | Vector embeddings for RAG |
 
-### Module Dependencies
+### What Core-PM Enables (Downstream)
+
+| Component | How It Uses Core-PM |
+|-----------|---------------------|
+| BM-CRM | Link tasks to contacts/deals, agent orchestration |
+| BM-Content | Content project management, KB for content assets |
+| BME-* modules | Product execution via PM workflows |
+| All AI agents | Search KB for context (RAG) |
+| Platform chat | Navi answers questions with KB context |
+
+### Module Dependencies (Core-PM Provides)
 
 | Module | Dependency Type | Notes |
 |--------|-----------------|-------|
 | BM-CRM | Optional | Link tasks to contacts/deals |
 | BME-* | Consumer | Product execution modules use PM |
 | BMT-Analytics | Consumer | PM feeds analytics |
+| **All Modules** | **RAG Consumer** | All modules can search KB |
 
 ### External Dependencies
 
@@ -1622,48 +2263,72 @@ Within MVP (Phase 1), if timeline pressure occurs:
 | Slack | Phase 2 | Notifications |
 | Jira | Phase 2 | Import |
 | Asana | Phase 2 | Import |
+| **Notion** | Phase 2 | KB import |
+| **Confluence** | Phase 2 | KB import |
 
 ---
 
 ## Risk Register
+
+### Project Management Risks
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|------------|------------|
 | Estimation accuracy low (cold-start) | User trust | High | Calibration period, prominent manual override, clear messaging |
 | Agent over-suggestion | User annoyance | Medium | Default suggest mode, easy dismiss, learning from feedback |
 | Human team adoption | Feature underuse | Medium | Prominent team management, role-based defaults |
-| 8-agent complexity | Maintenance overhead | Medium | Clear agent boundaries, shared tools |
+| 9-agent complexity | Maintenance overhead | Medium | Clear agent boundaries, shared tools |
 | BMAD workflow rigidity | User friction | Low | Flexible templates (Kanban-only, Simple List) |
 | Real-time sync conflicts | Data issues | Low | Last-write-wins, Chrono logging |
 | Performance at scale | UX degradation | Medium | Pagination, virtual scroll, caching |
+
+### Knowledge Base Risks
+
+| Risk | Impact | Likelihood | Mitigation |
+|------|--------|------------|------------|
+| RAG search quality | User frustration | Medium | Verified content boost, embedding quality tuning |
+| Yjs collaboration conflicts | Data loss | Low | CRDT guarantees, version history rollback |
+| KB stale content | Misleading AI | Medium | Stale detection, verification expiry, Scribe alerts |
+| Embedding cost (BYOAI) | User cost | Medium | Batch processing, incremental updates, caching |
+| KB adoption | Feature underuse | Medium | Project linking, quick templates, onboarding |
+| Large KB performance | Slow search | Low | Vector index optimization, pagination |
+| Unverified content in AI | Wrong answers | Medium | Visual indicators, verification prioritization |
 
 ---
 
 ## References
 
 ### Research & Analysis
-- [BM-PM Research Findings](/docs/modules/bm-pm/research/BM-PM-RESEARCH-FINDINGS.md)
+- [Core-PM Research Findings](/docs/modules/bm-pm/research/BM-PM-RESEARCH-FINDINGS.md)
 - [Competitor AI/GitHub/Dependencies Analysis](/docs/modules/bm-pm/research/competitor-analysis.md)
 - [Comprehensive Feature Analysis](/docs/modules/bm-pm/research/comprehensive-feature-analysis.md)
-- [Plane Analysis](/docs/modules/bm-pm/research/plane-analysis.md)
+- [Plane Analysis](/docs/modules/bm-pm/research/plane-analysis.md) - KB architecture reference
 
 ### Architecture & Guides
-- [BM-PM Architecture](/docs/modules/bm-pm/architecture.md)
+- [Core-PM Architecture](/docs/modules/bm-pm/architecture.md)
+- [Knowledge Base Specification](/docs/modules/bm-pm/kb-specification.md) *(to be created)*
 - [BM-CRM PRD](/docs/modules/bm-crm/PRD.md) - Agent team reference
 - [Platform Architecture](/docs/architecture.md)
 - [Agno Implementation Guide](/docs/architecture/agno-implementation-guide.md)
 - [BMad Development Guide](/docs/guides/bmad-agno-development-guide.md)
 
 ### Competitor References
+
+**Project Management:**
 - [Linear](https://linear.app/) - Developer-first PM, best GitHub integration
 - [Monday.com](https://monday.com/) - Visual workflows, workload management
 - [ClickUp](https://clickup.com/) - All-in-one PM, multi-model AI (ClickUp Brain)
 - [Jira](https://www.atlassian.com/software/jira) - Enterprise agile, Rovo agents
 - [Asana](https://asana.com/) - Goals/portfolios, AI Studio
 - [Wrike](https://www.wrike.com/) - Resource management, proofing, MCP server
-- [Notion](https://www.notion.com/) - Flexible databases, sprints
 - [Taiga](https://taiga.io/) - Open-source Scrum/Kanban, planning poker
 - [OpenProject](https://www.openproject.org/) - Open-source enterprise PM, baselines
+
+**Knowledge Base:**
+- [Plane](https://plane.so/) - Pages/wiki with Yjs, ProjectPage linking
+- [Notion](https://www.notion.com/) - Flexible databases, real-time collab
+- [Confluence](https://www.atlassian.com/software/confluence) - Enterprise wiki, Jira integration
+- [ClickUp Brain](https://clickup.com/ai) - Verified Wiki for AI prioritization
 
 ---
 
@@ -1718,6 +2383,30 @@ Alert priorities:
 - Info (weekly): Trends, suggestions
 ```
 
+### Scribe System Prompt (Phase 2)
+```markdown
+You are Scribe, the Knowledge Base manager for {{workspace_name}}.
+
+Your core responsibilities:
+1. Manage KB pages (create, organize, maintain)
+2. Execute RAG searches for context
+3. Detect stale content and suggest updates
+4. Manage verification workflows
+5. Auto-summarize long content
+
+KB operations:
+- Prioritize verified content in all search results
+- Generate embeddings for new/updated pages
+- Alert page owners when verification expires
+- Suggest knowledge capture when projects complete
+
+When users ask questions:
+- Search KB using semantic search (RAG)
+- Include top verified sources in response
+- If KB lacks information, clearly state "No KB content found"
+- Suggest creating KB page to capture new knowledge
+```
+
 ---
 
 ## Appendix B: BMAD Phase Templates
@@ -1755,8 +2444,9 @@ Alert priorities:
 | 1.0 | 2025-12-15 | Initial PRD |
 | 1.1 | 2025-12-16 | Post-elicitation updates: 8 agents, human teams, BMAD strengthening, cold-start strategy, priority tiers |
 | 1.2 | 2025-12-16 | Competitor research enhancements: Visual dependency editor (P1), planning poker (P1), Linear-style GitHub deep integration (P2), AI release notes (P2), MCP server (P2), sprint cooldown (P2), doom-line projection (P2), baseline comparison (P2), OKR tracking (P3), enterprise features (P3). Added 9 competitor references. Enhanced Bridge agent with Linear-inspired GitHub integration spec. |
+| **2.0** | **2025-12-16** | **Major architectural revision: PM as Platform Core + Knowledge Base.** Key changes: (1) Changed from BM-PM module to Core-PM platform component, (2) Added Knowledge Base with Yjs real-time collab, RAG integration, verified content system, (3) Added Scribe agent for KB management, (4) Updated Navi with KB search routing, (5) Added KB data models (KnowledgePage, PageVersion, PageEmbedding), (6) Added /kb routes and user flows, (7) Added 8 KB epics (60 stories, 177 points), (8) Total scope now 140 stories, 407 points across 14 weeks, (9) Updated risk register with KB-specific risks. |
 
 ---
 
 _Document generated for AI Business Hub platform_
-_Version 1.2 - December 2025_
+_Version 2.0 - December 2025_
