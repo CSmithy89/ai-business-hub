@@ -3,6 +3,8 @@
 **Analysis Date:** 2025-12-16
 **Status:** ALL GAPS RESOLVED
 
+**UX alignment note (Phase 1–3):** This document tracks PRD → wireframe prompt coverage. For UX pack alignment (routes, hierarchy, approvals overlay, BMAD sub-state display), see `docs/design/wireframes/CORE-PM-UX-WIREFRAME-ALIGNMENT.md`.
+
 ---
 
 ## Executive Summary

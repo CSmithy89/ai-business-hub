@@ -27,6 +27,7 @@ Core-PM is **platform core infrastructure**, not an optional module. It provides
 | `docs/modules/bm-pm/PRD.md` | Requirements, phases, scope boundaries, DoD |
 | `docs/modules/bm-pm/architecture.md` | Target architecture + data model + integration notes |
 | `docs/modules/bm-pm/kb-specification.md` | Detailed KB behavior + UX requirements |
+| `docs/modules/bm-pm/ux/README.md` | UX pack (flows, screens, permissions, UI rules) |
 | `docs/modules/bm-pm/research/` | Research inputs (Plane/Taskosaur/etc.; may reference “BM-PM”) |
 
 ## Phase Summary (Execution Intent)

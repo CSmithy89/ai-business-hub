@@ -6,6 +6,8 @@
 **Architecture Version:** v2.0
 **Status:** Audit Complete - Action Required
 
+**UX alignment note (Phase 1–3):** For UX pack alignment (routes, hierarchy, approvals overlay, BMAD sub-state display), see `docs/design/wireframes/CORE-PM-UX-WIREFRAME-ALIGNMENT.md`.
+
 ---
 
 ## Executive Summary

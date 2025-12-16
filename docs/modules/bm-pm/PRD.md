@@ -15,6 +15,7 @@
 2. **Canonical tenancy identifier:** use `workspaceId` across Core-PM docs/models/APIs. `tenantId` appears in the event bus payloads today and must be treated as an alias (`tenantId == workspaceId`) until/unless the platform standardizes naming.
 3. Approval routing, audit logs, and the Redis Streams event bus already exist in the platform; Core-PM should reuse them rather than introducing parallel systems.
 4. **Future (non-goal for Phase 1–3):** separating a “tenant” concept from “workspace” would be a platform-wide breaking change. Core-PM assumes `workspaceId` is the isolation boundary.
+5. UX flows and UI interaction rules are defined in `docs/modules/bm-pm/ux/README.md`.
 
 ## Status Legend (Docs vs Repo)
 

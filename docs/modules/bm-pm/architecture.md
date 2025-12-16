@@ -12,6 +12,7 @@
 1. This document describes the **target** Core-PM architecture; several code paths, schemas, and packages referenced below are **proposed** and not yet present in the repository.
 2. **Canonical tenancy identifier:** use `workspaceId` across Core-PM docs/models/APIs. `tenantId` appears in the event bus payloads today and must be treated as an alias (`tenantId == workspaceId`) until/unless the platform standardizes naming.
 3. MVP real-time is already Socket.io-based in the codebase; **Yjs/Hocuspocus is intended for Phase 2 collaboration**, not a prerequisite for Phase 1 task updates.
+4. UX flows and UI interaction rules are defined in `docs/modules/bm-pm/ux/README.md`.
 
 ## Table of Contents
 
