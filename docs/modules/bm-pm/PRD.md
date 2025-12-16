@@ -1,11 +1,11 @@
 # Project Management Module (BM-PM) - Product Requirements Document
 
 **Module:** BM-PM
-**Version:** 1.1
+**Version:** 1.2
 **Author:** AI Business Hub Team
 **Created:** 2025-12-15
 **Updated:** 2025-12-16
-**Status:** Draft (Post-Elicitation)
+**Status:** Draft (Post-Competitor Research)
 
 ---
 
@@ -147,6 +147,14 @@ BM-PM solves these by:
 2. **Notification Controls** - Granular per-event-type preferences
 3. **Basic Reports** - Sprint summary, task distribution
 4. **Simple Timeline** - Visualization only (no drag-resize)
+5. **Visual Dependency Editor** *(Competitor-inspired: Monday, Wrike, OpenProject)*
+   - Drag-drop dependency creation on Gantt/Timeline
+   - Dependency type selector (FS, SS, FF, SF)
+   - Conflict warnings and cycle detection
+6. **Planning Poker / Estimation UI** *(Competitor-inspired: Taiga Seed)*
+   - Real-time collaborative estimation sessions
+   - Reveal-at-once mechanics
+   - Voting history and consensus tracking
 
 #### P2 Features (Nice to Have in MVP)
 
@@ -167,20 +175,42 @@ BM-PM solves these by:
    - Timeline/Gantt view with dependencies and drag-resize
    - Saved views and custom filters
    - Executive Portfolio Dashboard (cross-product)
+   - Critical path highlighting *(Competitor-inspired: Jira, Wrike)*
 
 3. **Enhanced Reporting**
    - Herald's full report suite (burndown, velocity, forecasts)
    - Stakeholder update generation
    - Export to PDF/CSV
+   - **AI-Generated Release Notes** *(Competitor-inspired: ClickUp)*
+     - Auto-generate from completed stories in sprint
+     - Categorize by type (features, fixes, improvements)
+     - Customizable templates
 
 4. **Integrations**
-   - GitHub/GitLab PR linking (Bridge agent)
+   - **GitHub/GitLab Deep Integration** *(Competitor-inspired: Linear - best-in-class)*
+     - Two-way synchronization (bidirectional sync)
+     - Branch naming conventions: `feat/PM-123-task-title` auto-links
+     - PR auto-linking: PRs referencing task IDs attach automatically
+     - Auto-close tasks: PR merge → Task status to Done
+     - Commit message parsing: `fixes PM-123` transitions task
+     - GitHub Actions triggers: CI/CD events update task status
+     - Development panel: See all commits, PRs, branches on task
+     - AI commit summaries (Bridge agent generates PR descriptions)
    - Slack notifications
    - Import from Jira/Asana/Trello
+   - **MCP Server Implementation** *(Competitor-inspired: Linear, Wrike)*
+     - Publish BM-PM as MCP server
+     - Tool exposure: tasks, projects, status, estimates
+     - Enable external AI agent integration
 
 5. **Budget Tracking**
    - Budget and actual spend fields on Product
    - Cost-per-phase tracking
+
+6. **Sprint Enhancements** *(Competitor-inspired: Linear, Taiga)*
+   - Sprint cooldown period (configurable break between sprints)
+   - Doom-line projection (visual deadline risk based on velocity)
+   - Baseline comparison snapshots (planned vs actual)
 
 ### Phase 3 - Vision Features
 
@@ -206,6 +236,16 @@ BM-PM solves these by:
    - Y.js collaborative editing
    - Task templates library
    - Cross-product dependencies
+
+5. **OKR & Goals Tracking** *(Competitor-inspired: Asana, ClickUp)*
+   - Define organizational goals and objectives
+   - Link tasks/projects to goals for progress rollup
+   - Goal health indicators and status tracking
+
+6. **Enterprise Features** *(Competitor-inspired: OpenProject, Jira)*
+   - Portfolio-level dependency tracking
+   - Multi-product roadmaps
+   - Audit logging and compliance
 
 ---
 
@@ -616,39 +656,76 @@ pulse_tools = [
 > "I'm Bridge, your connection to the outside world. I sync with GitHub, GitLab, and other tools so your project data stays unified. Import from Jira? Link PRs to tasks? I've got you covered."
 
 **Responsibilities:**
-- GitHub/GitLab PR linking
-- Commit message parsing for task references
-- Auto-update tasks on PR merge
+- **GitHub/GitLab Deep Integration** *(Linear-inspired, best-in-class)*
+  - Two-way synchronization
+  - Branch naming auto-linking
+  - PR auto-attachment
+  - Commit message parsing
+  - GitHub Actions event handling
+  - AI-generated PR descriptions
 - Import from external PM tools (Jira, Asana, Trello)
 - Export capabilities
 - Webhook management
 
-**GitHub Integration:**
+**GitHub Integration (Linear-Inspired):**
 ```
-Branch Pattern: {type}/{task-id}-{slug}
-Example: feature/PM-123-add-login-form
+Branch Pattern: {type}/PM-{task-id}-{slug}
+Example: feat/PM-123-add-login-form
+
+Auto-Link Trigger:
+- Branch created with PM-XXX → Links to task automatically
+- PR title contains PM-XXX → Links to task automatically
 
 Commit Patterns:
 - "fixes PM-123" → Marks task as Done
 - "refs PM-123" → Links commit to task
 - "closes PM-123" → Marks task as Done
+- "wip PM-123" → Task stays In Progress
 
 PR Events:
 - PR Opened → Task moves to "In Review"
 - PR Merged → Task moves to "Done"
 - PR Closed (not merged) → Task stays in current state
+
+GitHub Actions Integration:
+- CI/CD success → Notify task
+- CI/CD failure → Flag task with warning
+- Deployment → Update task with deployment link
+
+Development Panel (on each task):
+- All linked commits (with AI summaries)
+- All linked PRs (with status)
+- All linked branches (with last activity)
+```
+
+**AI Capabilities:**
+```
+Bridge AI Features:
+- Generate PR description from task details
+- Summarize commit history for task
+- Auto-categorize commits (feat, fix, refactor, docs)
+- Suggest task updates based on code changes
 ```
 
 **Tools:**
 ```python
 bridge_tools = [
+    # GitHub/GitLab Integration
     link_pr_to_task,         # Connect GitHub/GitLab PR
+    link_branch_to_task,     # Connect branch to task
     parse_commit_references, # Extract task refs from commits
+    generate_pr_description, # AI: Generate PR desc from task
+    summarize_commits,       # AI: Summarize commits for task
+    sync_github_events,      # Process GitHub Actions webhooks
+
+    # Import/Export
     import_from_jira,        # Jira import with field mapping
     import_from_asana,       # Asana import
     import_from_trello,      # Trello import
     import_from_csv,         # CSV import with mapping wizard
     export_to_csv,           # Export tasks to CSV
+
+    # Webhooks
     manage_webhooks,         # Configure outbound webhooks
 ]
 ```
@@ -1564,13 +1641,29 @@ Within MVP (Phase 1), if timeline pressure occurs:
 
 ## References
 
+### Research & Analysis
 - [BM-PM Research Findings](/docs/modules/bm-pm/research/BM-PM-RESEARCH-FINDINGS.md)
-- [BM-PM Architecture](/docs/modules/bm-pm/architecture.md)
+- [Competitor AI/GitHub/Dependencies Analysis](/docs/modules/bm-pm/research/competitor-analysis.md)
+- [Comprehensive Feature Analysis](/docs/modules/bm-pm/research/comprehensive-feature-analysis.md)
 - [Plane Analysis](/docs/modules/bm-pm/research/plane-analysis.md)
+
+### Architecture & Guides
+- [BM-PM Architecture](/docs/modules/bm-pm/architecture.md)
 - [BM-CRM PRD](/docs/modules/bm-crm/PRD.md) - Agent team reference
 - [Platform Architecture](/docs/architecture.md)
 - [Agno Implementation Guide](/docs/architecture/agno-implementation-guide.md)
 - [BMad Development Guide](/docs/guides/bmad-agno-development-guide.md)
+
+### Competitor References
+- [Linear](https://linear.app/) - Developer-first PM, best GitHub integration
+- [Monday.com](https://monday.com/) - Visual workflows, workload management
+- [ClickUp](https://clickup.com/) - All-in-one PM, multi-model AI (ClickUp Brain)
+- [Jira](https://www.atlassian.com/software/jira) - Enterprise agile, Rovo agents
+- [Asana](https://asana.com/) - Goals/portfolios, AI Studio
+- [Wrike](https://www.wrike.com/) - Resource management, proofing, MCP server
+- [Notion](https://www.notion.com/) - Flexible databases, sprints
+- [Taiga](https://taiga.io/) - Open-source Scrum/Kanban, planning poker
+- [OpenProject](https://www.openproject.org/) - Open-source enterprise PM, baselines
 
 ---
 
@@ -1661,8 +1754,9 @@ Alert priorities:
 |---------|------|---------|
 | 1.0 | 2025-12-15 | Initial PRD |
 | 1.1 | 2025-12-16 | Post-elicitation updates: 8 agents, human teams, BMAD strengthening, cold-start strategy, priority tiers |
+| 1.2 | 2025-12-16 | Competitor research enhancements: Visual dependency editor (P1), planning poker (P1), Linear-style GitHub deep integration (P2), AI release notes (P2), MCP server (P2), sprint cooldown (P2), doom-line projection (P2), baseline comparison (P2), OKR tracking (P3), enterprise features (P3). Added 9 competitor references. Enhanced Bridge agent with Linear-inspired GitHub integration spec. |
 
 ---
 
 _Document generated for AI Business Hub platform_
-_Version 1.1 - December 2025_
+_Version 1.2 - December 2025_
