@@ -213,7 +213,7 @@ pnpm --filter @hyvve/web dev
 pnpm --filter @hyvve/api dev
 
 # Terminal 3: AgentOS (Python)
-cd apps/agents && python -m uvicorn main:app --reload --port 8000
+cd agents && python -m uvicorn main:app --reload --port 8000
 ```
 
 ---
@@ -357,7 +357,7 @@ docker compose exec redis redis-cli ping
 ### Python Dependencies (AgentOS)
 
 ```bash
-cd apps/agents
+cd agents
 python -m venv venv
 source venv/bin/activate  # or `venv\Scripts\activate` on Windows
 pip install -r requirements.txt

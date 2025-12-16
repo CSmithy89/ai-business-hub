@@ -41,8 +41,8 @@ BM-CRM requires these platform foundation capabilities (all complete):
 | BYOAI | User-provided AI keys | ✅ Complete |
 | Approval system | Sentinel agent + approval queue | ✅ Complete |
 | Event bus | Redis Streams pub/sub | ✅ Complete |
-| Core-PM | Project/Task/KB management with Navi team | ✅ Complete |
-| Knowledge base | RAG with pgvector (via Core-PM) | ✅ Complete |
+| Core-PM | Project/Task/KB management with Navi team | Planned (depends on Core-PM delivery) |
+| Knowledge base | RAG with pgvector (via Core-PM) | Planned (Phase 2+ of Core-PM) |
 
 ---
 

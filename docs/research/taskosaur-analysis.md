@@ -1921,13 +1921,13 @@ Based on this deep analysis, the recommended implementation order is:
 
 ---
 
-## 15. Project Management Module (BM-PM) - MOVED
+## 15. Core-PM (formerly BM-PM) - MOVED
 
-> **Note**: Section 15 (BM-PM Architecture) and Section 16 (Plane Deep-Dive) have been extracted to dedicated module documentation for better organization.
+> **Note**: Section 15 (Core-PM Architecture) and Section 16 (Plane Deep-Dive) have been extracted to dedicated module documentation for better organization.
 
 ### New Location
 
-The BM-PM module architecture documentation is now located at:
+The Core-PM architecture documentation is now located at:
 
 - **Module Overview**: [`/docs/modules/bm-pm/README.md`](/docs/modules/bm-pm/README.md)
 - **Architecture Specification**: [`/docs/modules/bm-pm/architecture.md`](/docs/modules/bm-pm/architecture.md)
@@ -1980,7 +1980,7 @@ Based on the patterns analyzed, the following AI-specific enhancements are recom
 
 ### Related Documentation
 
-- [BM-PM Module Architecture](/docs/modules/bm-pm/architecture.md) - Full module specification
+- [Core-PM Architecture](/docs/modules/bm-pm/architecture.md) - Full specification
 - [Plane Analysis](/docs/modules/bm-pm/research/plane-analysis.md) - Additional patterns from Plane
 - [MASTER-PLAN](/docs/MASTER-PLAN.md) - Overall architecture vision
 - [MODULE-RESEARCH](/docs/archive/foundation-phase/MODULE-RESEARCH.md) - Module discovery and planning
@@ -1995,4 +1995,4 @@ Based on the patterns analyzed, the following AI-specific enhancements are recom
 6. Add Views system for custom filtering
 7. Integrate with Agno for multi-agent orchestration
 
-This document serves as the pattern research reference, while the BM-PM module documentation provides the implementation specification.
+This document serves as the pattern research reference, while the Core-PM documentation provides the implementation specification.

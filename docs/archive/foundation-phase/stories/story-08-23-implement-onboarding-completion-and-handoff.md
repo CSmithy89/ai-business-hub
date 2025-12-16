@@ -1,4 +1,4 @@
-# Story 08.23: Implement Onboarding Completion and Handoff to BM-PM
+# Story 08.23: Implement Onboarding Completion and Handoff to Core-PM (formerly BM-PM)
 
 **Story ID:** 08.23
 **Epic:** EPIC-08 - Business Onboarding & Foundation Modules
@@ -19,7 +19,7 @@
 
 ## Description
 
-This story implements the onboarding completion workflow that generates a completion summary, updates business status to ACTIVE, and prepares the business for product creation in the BM-PM module.
+This story implements the onboarding completion workflow that generates a completion summary, updates business status to ACTIVE, and prepares the business for product creation in Core-PM (platform core; formerly BM-PM).
 
 ---
 

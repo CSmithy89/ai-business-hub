@@ -51,6 +51,8 @@ BM-CRM depends on these platform foundation capabilities:
 | **A2A Protocol** | Inter-module agent communication (Clara↔Navi) |
 | **Core-PM** | Project linking, KB for playbooks, task integration |
 
+Note: Core-PM is platform core but not fully implemented yet; BM-CRM must degrade gracefully (queue/skip Core-PM link features) until Core-PM endpoints and models land.
+
 ---
 
 ## Agent Team Architecture `[MVP]`

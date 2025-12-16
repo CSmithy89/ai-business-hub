@@ -7,6 +7,12 @@
 
 ---
 
+## Read First (Scope + Terminology)
+
+1. This document describes the **target** Core-PM architecture; several code paths, schemas, and packages referenced below are **proposed** and not yet present in the repository.
+2. **Canonical tenancy identifier:** use `workspaceId` across Core-PM docs/models/APIs. `tenantId` appears in the event bus payloads today and must be treated as an alias (`tenantId == workspaceId`) until/unless the platform standardizes naming.
+3. MVP real-time is already Socket.io-based in the codebase; **Yjs/Hocuspocus is intended for Phase 2 collaboration**, not a prerequisite for Phase 1 task updates.
+
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
@@ -168,7 +174,7 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 │  │   Business  │──────<│   Product   │──────<│    Phase    │                │
 │  │             │  1:N  │             │  1:N  │             │                │
 │  │ id          │       │ id          │       │ id          │                │
-│  │ tenantId    │       │ businessId  │       │ productId   │                │
+│  │ workspaceId │       │ businessId  │       │ productId   │                │
 │  │ slug        │       │ name, slug  │       │ name        │                │
 │  │ name        │       │ type        │       │ bmadPhase   │                │
 │  │ aiConfig{}  │       │ status      │       │ status      │                │
@@ -211,7 +217,7 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 │  │  KnowledgePage  │◄───────┐ (self-referential: parent-child)              │
 │  │                 │        │                                                │
 │  │ id              │────────┘                                                │
-│  │ tenantId        │                                                        │
+│  │ workspaceId     │                                                        │
 │  │ workspaceId     │        ┌─────────────────┐                             │
 │  │ parentId        │───────►│  KnowledgePage  │ (parent)                    │
 │  │ title           │        └─────────────────┘                             │
@@ -256,11 +262,11 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 ### Core PM Prisma Schema
 
 ```prisma
-// packages/db/prisma/schema/pm.prisma
+// packages/db/prisma/schema.prisma (planned: split into pm/kb schema files when Core-PM lands)
 
 model Product {
   id            String        @id @default(cuid())
-  tenantId      String
+  workspaceId   String
   businessId    String
   slug          String
   name          String
@@ -308,8 +314,8 @@ model Product {
   views         SavedView[]
   pages         ProjectPage[]
 
-  @@unique([tenantId, slug])
-  @@index([tenantId])
+  @@unique([workspaceId, slug])
+  @@index([workspaceId])
   @@index([businessId])
   @@index([status])
 }
@@ -352,7 +358,7 @@ model Phase {
 
 model Task {
   id            String        @id @default(cuid())
-  tenantId      String
+  workspaceId   String
   phaseId       String
   productId     String        // Denormalized for queries
 
@@ -412,7 +418,7 @@ model Task {
   labels        TaskLabel[]
 
   @@unique([productId, taskNumber])
-  @@index([tenantId])
+  @@index([workspaceId])
   @@index([phaseId])
   @@index([productId])
   @@index([status])
@@ -555,11 +561,10 @@ enum TeamRole {
 ### Knowledge Base Prisma Schema
 
 ```prisma
-// packages/db/prisma/schema/kb.prisma
+// packages/db/prisma/schema.prisma (planned: split into pm/kb schema files when Core-PM lands)
 
 model KnowledgePage {
   id            String        @id @default(cuid())
-  tenantId      String
   workspaceId   String
   parentId      String?
 
@@ -600,8 +605,7 @@ model KnowledgePage {
   mentions      PageMention[]
   activities    PageActivity[]
 
-  @@unique([tenantId, workspaceId, slug])
-  @@index([tenantId])
+  @@unique([workspaceId, slug])
   @@index([workspaceId])
   @@index([parentId])
   @@index([ownerId])
@@ -795,36 +799,42 @@ enum PageActivityType {
 ### Agent Team Factory Pattern
 
 ```python
-# agents/core-pm/team.py
+# (proposed) agents/core-pm/team.py
 
 from agno import Agent, Team
 from agno.storage.postgres import PostgresStorage
 from agno.memory import Memory
 
-def create_core_pm_team(tenant_id: str, product_id: str) -> Team:
-    """Create Core-PM agent team for a product."""
+	def create_core_pm_team(
+	    session_id: str,
+	    user_id: str,
+	    workspace_id: str,
+	    business_id: str,
+	    product_id: str,
+	) -> Team:
+	    """Create Core-PM agent team for a product (pattern aligned with agents/*/team.py)."""
 
     # Shared memory for team context
     shared_memory = Memory(
         db=PostgresStorage(
-            table_name=f"core_pm_memory_{tenant_id}",
-            schema="agent_memory"
-        ),
-        namespace=f"product:{product_id}"
-    )
+	            table_name=f"core_pm_memory_{workspace_id}",
+	            schema="agent_memory"
+	        ),
+	        namespace=f"product:{product_id}"
+	    )
 
     # MVP Agents
-    navi = create_navi(tenant_id, product_id, shared_memory)
-    sage = create_sage(tenant_id, product_id, shared_memory)
-    herald = create_herald(tenant_id, product_id, shared_memory)
-    chrono = create_chrono(tenant_id, product_id, shared_memory)
-    scope = create_scope(tenant_id, product_id, shared_memory)
-    pulse = create_pulse(tenant_id, product_id, shared_memory)
+	    navi = create_navi(workspace_id, product_id, shared_memory)
+	    sage = create_sage(workspace_id, product_id, shared_memory)
+	    herald = create_herald(workspace_id, product_id, shared_memory)
+	    chrono = create_chrono(workspace_id, product_id, shared_memory)
+	    scope = create_scope(workspace_id, product_id, shared_memory)
+	    pulse = create_pulse(workspace_id, product_id, shared_memory)
 
     # Phase 2 Agents (initialized but not active until feature flag)
-    scribe = create_scribe(tenant_id, product_id, shared_memory)
-    bridge = create_bridge(tenant_id, product_id, shared_memory)
-    prism = create_prism(tenant_id, product_id, shared_memory)
+	    scribe = create_scribe(workspace_id, product_id, shared_memory)
+	    bridge = create_bridge(workspace_id, product_id, shared_memory)
+	    prism = create_prism(workspace_id, product_id, shared_memory)
 
     return Team(
         name="Core-PM Team",
@@ -855,7 +865,7 @@ def create_core_pm_team(tenant_id: str, product_id: str) -> Team:
 ### Scribe Agent Implementation
 
 ```python
-# agents/core-pm/scribe.py
+# (proposed) agents/core-pm/scribe.py
 
 from agno import Agent
 from agno.tools import tool
@@ -866,14 +876,14 @@ from .tools.kb_tools import (
     mark_verified, detect_stale_pages, summarize_page
 )
 
-def create_scribe(tenant_id: str, product_id: str, memory) -> Agent:
-    """Create Scribe - Knowledge Base Manager agent."""
+	def create_scribe(workspace_id: str, product_id: str, memory) -> Agent:
+	    """Create Scribe - Knowledge Base Manager agent."""
 
-    return Agent(
-        name="Scribe",
-        role="Knowledge Base Manager",
-        model=get_tenant_model(tenant_id),
-        instructions=load_prompt("scribe_system.md"),
+	    return Agent(
+	        name="Scribe",
+	        role="Knowledge Base Manager",
+	        model=get_workspace_model(workspace_id),
+	        instructions=load_prompt("scribe_system.md"),
         tools=[
             # Page Management
             create_kb_page,
@@ -975,10 +985,10 @@ def create_scribe(tenant_id: str, product_id: str, memory) -> Agent:
 ### RAG Service Implementation
 
 ```typescript
-// apps/api/src/modules/kb/services/rag.service.ts
+// (proposed) apps/api/src/core-pm/kb/rag.service.ts
 
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@/prisma/prisma.service';
+import { PrismaService } from '@/common/services/prisma.service';
 import { ByoaiService } from '@/modules/ai/byoai.service';
 
 interface RAGConfig {
@@ -1017,7 +1027,7 @@ export class RAGService {
    * Generate embeddings for a KB page
    */
   async generateEmbeddings(
-    tenantId: string,
+    workspaceId: string,
     pageId: string,
   ): Promise<void> {
     // 1. Get page content
@@ -1036,8 +1046,8 @@ export class RAGService {
       where: { pageId },
     });
 
-    // 4. Generate embeddings using tenant's BYOAI
-    const embeddings = await this.byoai.embed(tenantId, chunks);
+    // 4. Generate embeddings using workspace's BYOAI
+    const embeddings = await this.byoai.embed(workspaceId, chunks);
 
     // 5. Store embeddings with raw SQL for pgvector
     for (let i = 0; i < chunks.length; i++) {
@@ -1059,7 +1069,6 @@ export class RAGService {
    * Query KB using RAG
    */
   async query(
-    tenantId: string,
     workspaceId: string,
     queryText: string,
     options?: { topK?: number; boostVerified?: boolean },
@@ -1068,7 +1077,7 @@ export class RAGService {
     const boostVerified = options?.boostVerified ?? true;
 
     // 1. Embed query
-    const [queryEmbedding] = await this.byoai.embed(tenantId, [queryText]);
+    const [queryEmbedding] = await this.byoai.embed(workspaceId, [queryText]);
 
     // 2. Vector search with pgvector
     const results = await this.prisma.$queryRaw<RAGResult[]>`
@@ -1086,8 +1095,7 @@ export class RAGService {
         END as score
       FROM "PageEmbedding" pe
       JOIN "KnowledgePage" kp ON pe."pageId" = kp.id
-      WHERE kp."tenantId" = ${tenantId}
-        AND kp."workspaceId" = ${workspaceId}
+      WHERE kp."workspaceId" = ${workspaceId}
         AND kp."deletedAt" IS NULL
       ORDER BY score DESC
       LIMIT ${topK}
@@ -1100,7 +1108,7 @@ export class RAGService {
    * Get context for a task (used by agents)
    */
   async getContextForTask(
-    tenantId: string,
+    workspaceId: string,
     taskId: string,
   ): Promise<string> {
     // 1. Get task details
@@ -1114,8 +1122,7 @@ export class RAGService {
     // 2. Search KB for relevant context
     const query = `${task.title} ${task.description || ''}`;
     const results = await this.query(
-      tenantId,
-      task.phase.product.businessId,
+      workspaceId,
       query,
       { topK: 3, boostVerified: true },
     );
@@ -1231,7 +1238,7 @@ export class RAGService {
 ### Hocuspocus Server Configuration
 
 ```typescript
-// apps/api/src/modules/kb/hocuspocus/hocuspocus.service.ts
+// (proposed) apps/api/src/core-pm/kb/hocuspocus/hocuspocus.service.ts
 
 import { Hocuspocus } from '@hocuspocus/server';
 import { Database } from '@hocuspocus/extension-database';
@@ -1293,7 +1300,7 @@ export function createHocuspocusServer(prisma: PrismaService) {
 ### Tiptap Editor Integration
 
 ```typescript
-// apps/web/src/components/kb/editor/CollaborativeEditor.tsx
+// (proposed) apps/web/src/components/kb/editor/CollaborativeEditor.tsx
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -1465,6 +1472,11 @@ export function CollaborativeEditor({ pageId, initialContent, onSave }: Props) {
 ### WebSocket Events
 
 ```typescript
+// Planned Core-PM domain events (pm.* / kb.*).
+// Note: these are not yet defined in `packages/shared/src/types/events.ts` and should not be emitted
+// until they are (a) added as typed EventTypes and (b) validated at runtime in `packages/shared/src/schemas/events.ts`.
+// For Phase 1, reuse existing platform events (approval.*, agent.*) and Socket.io channels where applicable.
+
 // PM Events
 'pm.product.created'
 'pm.product.updated'
@@ -1522,7 +1534,7 @@ export function CollaborativeEditor({ pageId, initialContent, onSave }: Props) {
 ### Row Level Security (RLS)
 
 ```sql
--- All Core-PM tables have tenant isolation
+-- All Core-PM tables have workspace isolation (tenant == workspace)
 ALTER TABLE "Product" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Phase" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Task" ENABLE ROW LEVEL SECURITY;
@@ -1531,22 +1543,22 @@ ALTER TABLE "PageEmbedding" ENABLE ROW LEVEL SECURITY;
 
 -- Product RLS
 CREATE POLICY "tenant_isolation" ON "Product"
-  USING (tenant_id = current_setting('app.tenant_id'));
+  USING (workspace_id = current_setting('app.tenant_id', true)::uuid);
 
 -- Task RLS (inherits from Product via Phase)
 CREATE POLICY "tenant_isolation" ON "Task"
-  USING (tenant_id = current_setting('app.tenant_id'));
+  USING (workspace_id = current_setting('app.tenant_id', true)::uuid);
 
 -- KnowledgePage RLS
 CREATE POLICY "tenant_isolation" ON "KnowledgePage"
-  USING (tenant_id = current_setting('app.tenant_id'));
+  USING (workspace_id = current_setting('app.tenant_id', true)::uuid);
 
 -- PageEmbedding RLS (via page)
 CREATE POLICY "tenant_isolation" ON "PageEmbedding"
   USING (
     page_id IN (
       SELECT id FROM "KnowledgePage"
-      WHERE tenant_id = current_setting('app.tenant_id')
+      WHERE workspace_id = current_setting('app.tenant_id', true)::uuid
     )
   );
 ```
@@ -1827,8 +1839,8 @@ if (!metrics) {
 
 - [PRD.md](./PRD.md) - Product Requirements Document
 - [Platform Architecture](../../architecture.md) - Overall platform architecture
-- [BMAD Method](../../bmad/) - BMAD methodology reference
-- [Agent Patterns](../../research/remote-coding-agent-patterns.md) - Agent design patterns
+- [BMAD Workflows](../../../.bmad/) - BMAD workflows/configuration (repo folder)
+- [Agent Patterns](./research/sdk-layer-integration.md) - Remote coding agent integration patterns
 
 ---
 

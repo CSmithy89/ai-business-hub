@@ -191,7 +191,7 @@ Each module works standalone or integrates with others:
 | Analytics | BMT | Matomo-style tracking |
 | CRM | BM-CRM | Twenty CRM architecture |
 | Sales | BMS | Pipeline automation |
-| Project Management | BM-PM | Plane-inspired boards |
+| Core-PM (PM + KB) | Core-PM | Platform core: projects, tasks, knowledge base |
 
 ---
 
@@ -249,30 +249,21 @@ For ongoing operations:
 /
 ├── apps/
 │   ├── web/                 # Next.js 15 frontend
-│   ├── api/                 # NestJS backend
-│   └── agents/              # Python AgentOS
-│
+│   └── api/                 # NestJS backend
+├── agents/                  # Python AgentOS (FastAPI + Agno)
 ├── packages/
 │   ├── db/                  # Prisma schema + migrations
 │   ├── ui/                  # Shared React components
-│   ├── shared/              # Shared TypeScript types
-│   └── config/              # Shared configuration
-│
+│   └── shared/              # Shared TypeScript types
 ├── docs/
 │   ├── prd.md               # Product Requirements
 │   ├── architecture.md      # Technical Architecture
 │   ├── ux-design.md         # UX Design Document
-│   ├── epics/               # Epic breakdown
-│   │   ├── EPIC-INDEX.md    # Epic overview
-│   │   └── EPIC-00-16/      # Individual epics (17 total)
-│   ├── sprint-artifacts/    # Sprint planning
-│   │   ├── sprint-status.yaml
-│   │   └── tech-spec-*.md
+│   ├── modules/             # Module specifications (Core-PM, BM-CRM, etc.)
+│   ├── archive/             # Foundation epics + sprint artifacts
 │   └── research/            # Research documents
-│
 ├── docker/
 │   └── docker-compose.yml   # Local development
-│
 ├── turbo.json               # Turborepo config
 └── pnpm-workspace.yaml      # Workspace config
 ```
@@ -390,7 +381,7 @@ pnpm type-check
 | [PRD](docs/prd.md) | Product requirements and scope |
 | [Architecture](docs/architecture.md) | Technical architecture decisions |
 | [UX Design](docs/ux-design.md) | User experience and flows |
-| [Epic Index](docs/epics/EPIC-INDEX.md) | Development roadmap |
+| [Epic Index](docs/archive/foundation-phase/epics/EPIC-INDEX.md) | Foundation development roadmap |
 | [Master Plan](docs/MASTER-PLAN.md) | Vision and strategy |
 | [Module Research](docs/archive/foundation-phase/MODULE-RESEARCH.md) | Module specifications |
 | [Next Steps](docs/NEXT-STEPS.md) | Implementation roadmap |

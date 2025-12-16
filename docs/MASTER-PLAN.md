@@ -223,7 +223,7 @@ Each module must:
 
 | Module | Code | Purpose | Inspired By | Status |
 |--------|------|---------|-------------|--------|
-| Project Mgmt | BM-PM | Project tracking, agent visualization | Taskosaur | Priority 1 |
+| Core-PM (PM + KB) | Core-PM | Platform core: project/task orchestration + knowledge base | Taskosaur, Plane | Priority 1 |
 | Content | BMC | Content creation pipeline | - | Planned |
 | Marketing | BMX | Marketing campaigns, automation | Mautic | Priority 2 |
 | Social Media | BM-Social | Social media management | Postiz | Priority 3 |
@@ -861,7 +861,7 @@ const getWorkspacePath = (userId: string, sessionId: string): string => {
 
 ### Phase 5: Module Development (NEXT)
 - [ ] CRM Module (BM-CRM)
-- [ ] Project Management (BM-PM)
+- [ ] Core-PM (PM + Knowledge Base)
 - [ ] Content Creation (BMC)
 - [ ] Marketing (BMX)
 - [ ] Social Media (BM-Social)

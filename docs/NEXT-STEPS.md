@@ -716,7 +716,7 @@ cryptography>=41.0.0    # BYOAI encryption
 | Priority | Module | Code | Purpose | Status |
 |----------|--------|------|---------|--------|
 | 1 | CRM | BM-CRM | Contact & deal management | Ready to Start |
-| 2 | Project Management | BM-PM | Task & project tracking | Planned |
+| 2 | Core-PM (PM + KB) | Core-PM | Project/task orchestration + knowledge base | Planned |
 | 3 | Content | BMC | AI content pipeline | Planned |
 | 4 | Marketing | BMX | Campaign automation | Planned |
 | 5 | Social Media | BM-Social | Multi-platform management | Planned |

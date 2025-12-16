@@ -1,0 +1,66 @@
+# BM-CRM Module Configuration
+# Defines installation questions and module configuration values
+
+code: bm-crm
+name: "Customer Relationship Management"
+default_selected: false
+
+prompt:
+  - "Installing BM-CRM..."
+  - "Setting up your AI Sales Team: Clara, Scout, Atlas, Flow, and Echo."
+
+# Core values inherited from installer:
+## user_name
+## communication_language
+## output_folder
+
+# ============================================================================
+# INTERACTIVE FIELDS
+# ============================================================================
+
+enrichment_budget:
+  prompt: "Monthly budget for data enrichment (USD)?"
+  default: 50
+  result: "{value}"
+
+proactivity_level:
+  prompt: "How proactive should the CRM agents be?"
+  default: "helpful"
+  result: "{value}"
+  single-select:
+    - value: "quiet"
+      label: "Quiet - Only respond when asked"
+    - value: "helpful"
+      label: "Helpful - Daily briefings & contextual suggestions"
+    - value: "proactive"
+      label: "Proactive - Real-time interruptions for urgent items"
+
+scoring_threshold_hot:
+  prompt: "Score threshold (0-100) for HOT leads?"
+  default: 70
+  result: "{value}"
+
+# ============================================================================
+# STATIC FIELDS
+# ============================================================================
+
+module_version:
+  result: "1.0.0"
+
+pipeline_stages:
+  result:
+    - name: "Lead"
+      probability: 10
+    - name: "Qualified"
+      probability: 25
+    - name: "Proposal"
+      probability: 50
+    - name: "Negotiation"
+      probability: 75
+    - name: "Closed Won"
+      probability: 100
+    - name: "Closed Lost"
+      probability: 0
+
+retention_days:
+  result: 730

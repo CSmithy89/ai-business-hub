@@ -630,9 +630,9 @@ CMD ["node", "dist/main.js"]
 # Dockerfile for AgentOS
 FROM python:3.12-slim
 WORKDIR /app
-COPY apps/agents/requirements.txt .
+COPY agents/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY apps/agents .
+COPY agents .
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 

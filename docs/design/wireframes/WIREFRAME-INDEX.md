@@ -274,7 +274,7 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 |-------|------|-------|------|--------|
 | Hub | 🎯 | Coral #FF6B6B | Orchestrator | Platform |
 | Maya | 🐚 | Teal #20B2AA | CRM Agent | BM-CRM |
-| Atlas | 🗺️ | Orange #FF9F43 | PM Agent | BM-PM |
+| Atlas | 🗺️ | Orange #FF9F43 | PM Agent | Core-PM |
 | Sage | 🌿 | Green #2ECC71 | Finance Agent | BM-FIN |
 | Nova | ✨ | Pink #FF6B9D | Marketing Agent | BM-MKT |
 | Echo | 📊 | Blue #4B7BEC | Analytics Agent | BMT |
@@ -489,7 +489,7 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 
 ---
 
-## 8. Project Management Module - BM-PM (16 wireframes) 🟢
+## 8. Core-PM (Project Management + KB) (16 wireframes) 🟢
 
 > **Status:** Research complete - Ready for wireframing
 > **Reference:** `/docs/modules/bm-pm/research/` - All research findings documents

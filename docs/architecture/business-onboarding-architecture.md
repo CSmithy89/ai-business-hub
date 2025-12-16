@@ -151,7 +151,7 @@ planning_team:
 6. **business-plan** - Investor-ready comprehensive plan (requires: canvas, projections)
 7. **pitch-deck** - Presentation content generation
 8. **multi-product-planning** - Cross-product synergy analysis
-9. **export-to-development** - Prepare for BMM/BM-PM handoff
+9. **export-to-development** - Prepare for BMM/Core-PM handoff
 
 **Workflow Dependencies:**
 ```
@@ -323,7 +323,7 @@ User Entry
                                                        │
                                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  HANDOFF: TO BM-PM (Project Management)                                     │
+│  HANDOFF: TO Core-PM (Project Management + Knowledge Base)                 │
 │  ───────────────────────────────────────────────────────────────────────    │
 │  Business is now ready for product development                              │
 │  - All foundation documents created                                         │
@@ -835,7 +835,7 @@ Response: { messages: Message[], context: object }
 | ID | Story | Points | Priority |
 |----|-------|--------|----------|
 | 08-22 | Implement workflow handoff between modules (BMV→BMP→Brand) | 3 | P1 |
-| 08-23 | Implement onboarding completion and handoff to BM-PM | 2 | P2 |
+| 08-23 | Implement onboarding completion and handoff to Core-PM | 2 | P2 |
 
 ### Priority Distribution
 - **P0 (MVP):** 8 stories, ~27 points - Core validation + wizard

@@ -229,7 +229,7 @@ This creates a **two-level dashboard architecture**:
                                ▼
                   ┌─────────────────────┐
                   │ Business Dashboard  │  ← Ready for operational modules
-                  │ (BM-CRM, BM-PM...)  │
+                  │ (BM-CRM, Core-PM...)│
                   └─────────────────────┘
 ```
 

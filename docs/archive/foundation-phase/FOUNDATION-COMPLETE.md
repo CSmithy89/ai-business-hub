@@ -211,7 +211,7 @@ With the foundation complete, the following operational modules can now be devel
 | Priority | Module | Code | Purpose |
 |----------|--------|------|---------|
 | 1 | CRM | BM-CRM | Contact & deal management |
-| 2 | Project Management | BM-PM | Task & project tracking |
+| 2 | Core-PM (PM + KB) | Core-PM | Project/task tracking + knowledge base |
 | 3 | Content | BMC | AI content pipeline |
 | 4 | Marketing | BMX | Campaign automation |
 | 5 | Social Media | BM-Social | Multi-platform management |

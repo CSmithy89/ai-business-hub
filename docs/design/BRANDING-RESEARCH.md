@@ -343,7 +343,7 @@ Consider:
 ```
 AI Business Hub (Master Brand)
 ├── BM-CRM (Customer Relationships)
-├── BM-PM (Project Management)
+├── Core-PM (Project Management + Knowledge Base)
 ├── BM-Finance (Financial Operations)
 ├── BM-Marketing (Marketing Automation)
 └── BM-Analytics (Business Intelligence)
@@ -355,7 +355,7 @@ AI Business Hub (Master Brand)
 |----------|---------|------|------|
 | **Descriptive** | Hub CRM, Hub Projects | Clear, SEO-friendly | Generic |
 | **Abstract** | Pulse, Flow, Nexus | Memorable, unique | Requires explanation |
-| **Alphanumeric** | BM-CRM, BM-PM | Systematic, scalable | Technical feel |
+| **Alphanumeric** | BM-CRM, Core-PM | Systematic, scalable | Technical feel |
 | **Blended** | Hub Pulse (CRM), Hub Flow (PM) | Best of both | Longer names |
 
 ### Naming Protocol Best Practices
@@ -648,4 +648,3 @@ AI Business Hub (Master Brand)
 - [Typography in Branding](https://www.quillcreativestudio.com/blog/typography-in-design-choosing-the-right-fonts-for-your-brand)
 - [SaaS Positioning Guide](https://www.tripledart.com/saas-marketing/saas-positioning)
 - [Designing for Dark Mode](https://stytch.com/blog/designing-for-dark-mode/)
-

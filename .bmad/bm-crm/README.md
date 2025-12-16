@@ -1,89 +1,69 @@
-# BM-CRM Module
+# Customer Relationship Management (BM-CRM)
 
-**Status:** Scaffold (agents defined, implementation pending)
-**Created:** 2025-11-29
+AI-first CRM module with an 8-agent team that proactively manages customer relationships, scores leads, enriches data, and automates pipeline operations.
 
-## Purpose
+## Overview
 
-Customer Relationship Management module with AI-powered capabilities:
-- Intelligent lead scoring based on firmographic and behavioral data
-- Contact data enrichment from external sources
-- Deal pipeline automation with approval gates
+Unlike traditional CRMs, BM-CRM is built around an agent team:
+- **Clara:** Your CRM Team Lead
+- **Scout:** Lead Scoring Specialist
+- **Atlas:** Data Enrichment Specialist
+- **Flow:** Pipeline Manager
+- **Echo:** Activity Tracker
 
-## Agents
+## Installation
 
-| Agent | Name | Icon | Status | Description |
-|-------|------|------|--------|-------------|
-| `lead-scorer-agent` | Scout | 🎯 | Scaffold | Lead scoring specialist |
-| `data-enricher-agent` | Atlas | 🔍 | Scaffold | Data enrichment specialist |
-| `pipeline-agent` | Flow | 🔄 | Scaffold | Pipeline automation specialist |
-
-## Directory Structure
-
-```
-.bmad/bm-crm/
-├── README.md           ← You are here
-├── config.yaml         ← Module configuration
-├── agents/
-│   ├── lead-scorer-agent.agent.yaml   ← BMAD spec for Scout
-│   ├── data-enricher-agent.agent.yaml ← BMAD spec for Atlas
-│   └── pipeline-agent.agent.yaml      ← BMAD spec for Flow
-├── workflows/          ← (To be created)
-│   ├── lead-scoring/
-│   ├── contact-enrichment/
-│   └── pipeline-automation/
-└── research/
-    └── twenty-crm-analysis.md  ← Research from Twenty CRM
+```bash
+bmad install bm-crm
 ```
 
-## Runtime Implementation
+## Components
 
-Agno Python implementations are in: `agents/crm/`
+### Agents (8)
 
-See `agents/crm/README.md` for implementation status.
+| Agent | Role | Status |
+|-------|------|--------|
+| **Clara** | Team Orchestrator | MVP |
+| **Scout** | Lead Scorer (40/35/25) | MVP |
+| **Atlas** | Data Enricher | MVP |
+| **Flow** | Pipeline Manager | MVP |
+| **Echo** | Activity Tracker | MVP |
+| **Sync** | Integration Specialist | Phase 2 |
+| **Guardian** | Compliance Officer | Phase 2 |
+| **Cadence** | Outreach Specialist | Phase 3 |
 
-## Workflows To Create
+### Workflows
 
-| Workflow | Trigger | Status | Description |
-|----------|---------|--------|-------------|
-| `lead-scoring` | contact.created | TODO | Score leads automatically |
-| `contact-enrichment` | user-initiated | TODO | Enrich contact data |
-| `pipeline-automation` | deal.stage_changed | TODO | Suggest automations |
-| `stuck-deal-alert` | scheduled (daily) | TODO | Alert on stuck deals |
+- `lead-scoring`: Automatic scoring on contact creation
+- `enrichment-flow`: User-initiated data enrichment
+- `pipeline-automation`: Stage transition automation
+- `daily-briefing`: Morning summary from Clara
 
-## Checklists To Create
+## Quick Start
 
-| Checklist | Status | Description |
-|-----------|--------|-------------|
-| `new-lead-checklist` | TODO | Steps for processing new leads |
-| `deal-stage-checklist` | TODO | Steps for stage transitions |
+1.  **Meet the Team:**
+    ```
+    agent Clara
+    > "Who should I call today?"
+    ```
 
-## Dependencies
+2.  **Score a Lead:**
+    ```
+    workflow lead-scoring
+    ```
 
-- **Requires:** orchestrator (for approval gates)
-- **Required By:** bms (Sales), bmx (Email)
+3.  **View Pipeline:**
+    Navigate to `/dashboard/crm/pipeline`
 
-## User Flows
+## Configuration
 
-Documented in `/docs/modules/bm-crm/agent-mapping.md`:
+Configuration is stored in `.bmad/bm-crm/config.yaml`:
 
-1. **Lead Capture & Scoring** - Automatic scoring on lead arrival
-2. **Contact Enrichment** - User-initiated data lookup
-3. **Deal Pipeline** - Drag-drop with automation suggestions
-4. **High-Value Approval** - Manager approval for big deals
+- `enrichment_budget`: Monthly limit (USD)
+- `proactivity_level`: Quiet / Helpful / Proactive
+- `scoring_thresholds`: Custom tier definitions
 
-## Next Steps
+## Architecture
 
-1. [ ] Create PRD using `/bmad:bmm:workflows:prd`
-2. [ ] Create architecture doc
-3. [ ] Create workflows for each agent
-4. [ ] Implement Agno tools (Clearbit, LinkedIn APIs)
-5. [ ] Set up database schema (contacts, deals, etc.)
-6. [ ] Build UI components (pipeline board, contact cards)
-
-## Related Documentation
-
-- Agent Mapping: `/docs/modules/bm-crm/agent-mapping.md`
-- Twenty CRM Research: `/docs/modules/bm-crm/research/twenty-crm-analysis.md`
-- Agno Patterns: `/docs/research/agno-analysis.md`
-- Runtime Implementation: `/agents/crm/README.md`
+BM-CRM uses a "Team Leader + Specialists" topology. All user requests should route through **Clara**.
+High-impact actions (bulk enrichment, deletion) are routed to **Sentinel** for approval.

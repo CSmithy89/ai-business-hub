@@ -9,6 +9,52 @@
 
 ---
 
+## Read First (Scope + Terminology)
+
+1. This PRD describes the **target** Core-PM design; many sections are not yet implemented in `apps/web`, `apps/api`, or `packages/db`.
+2. **Canonical tenancy identifier:** use `workspaceId` across Core-PM docs/models/APIs. `tenantId` appears in the event bus payloads today and must be treated as an alias (`tenantId == workspaceId`) until/unless the platform standardizes naming.
+3. Approval routing, audit logs, and the Redis Streams event bus already exist in the platform; Core-PM should reuse them rather than introducing parallel systems.
+4. **Future (non-goal for Phase 1–3):** separating a “tenant” concept from “workspace” would be a platform-wide breaking change. Core-PM assumes `workspaceId` is the isolation boundary.
+
+## Status Legend (Docs vs Repo)
+
+| Label | Meaning | Expectation |
+|-------|---------|-------------|
+| **Implemented** | Exists in the repo today | Doc should link to real paths and current behavior |
+| **Planned (Phase 1)** | Target for MVP build | Doc may show proposed shapes, clearly marked |
+| **Planned (Phase 2+)** | Post-MVP work | Doc must be explicit about gating/dependencies |
+
+## Glossary (Core Terms)
+
+| Term | Canonical meaning in this repo | ID field(s) |
+|------|-------------------------------|-------------|
+| **Workspace** | Primary tenant/isolation boundary (RLS, billing, membership) | `workspaceId` |
+| **Business** | A workspace-owned business entity (onboarding context) | `businessId` (scoped to workspace) |
+| **Product** | A deliverable being built/operated under a business | `productId` (scoped to business/workspace) |
+| **Phase** | A time-boxed work segment (BMAD phase or custom template) | `phaseId` (scoped to product/workspace) |
+| **Task** | Unit of work (Epic/Story/Task/etc.) with assignment + status | `taskId` (scoped to product/workspace) |
+| **Approval Queue** | Platform-wide approval system (Sentinel/ApprovalItem) | `approvalId` |
+| **Awaiting Approval** | A task state indicating work is blocked on an approval decision | links to `approvalId` |
+
+## Workflow State Mapping (BMAD ↔ Core-PM)
+
+BMAD story states in this repo follow: `backlog → drafted → ready-for-dev → in-progress → review → done`.
+
+Core-PM must support this without inventing a second competing workflow. **Proposed MVP mapping:**
+
+| BMAD story state | Core-PM `TaskStatus` | Additional field (recommended) |
+|------------------|----------------------|--------------------------------|
+| backlog | `BACKLOG` | `task.metadata.bmadState = "backlog"` |
+| drafted | `BACKLOG` | `task.metadata.bmadState = "drafted"` |
+| ready-for-dev | `TODO` | `task.metadata.bmadState = "ready-for-dev"` |
+| in-progress | `IN_PROGRESS` | `task.metadata.bmadState = "in-progress"` |
+| review | `REVIEW` | `task.metadata.bmadState = "review"` |
+| done | `DONE` | `task.metadata.bmadState = "done"` |
+
+Notes:
+1. “Awaiting Approval” is **orthogonal**: it can apply to any BMAD state when an approval gate is required.
+2. “Drafted/ready-for-dev” are **sub-states**; keep Core-PM’s primary status model stable while preserving BMAD precision in metadata.
+
 ## Executive Summary
 
 ### Architectural Position: Platform Core
@@ -31,7 +77,7 @@ Unlike optional business modules (BM-CRM, BM-Content, etc.), Project Management 
 │   │    Project Management   │      │        Knowledge Base           │  │
 │   │                         │      │                                 │  │
 │   │  • Products/Projects    │◄────►│  • Wiki Pages (Yjs collab)     │  │
-│   │  • Agent Teams (8)      │      │  • RAG-Powered Search          │  │
+│   │  • Agent Teams (9)      │      │  • RAG-Powered Search          │  │
 │   │  • BMAD Workflow Engine │      │  • @mentions & #references     │  │
 │   │  • Human + AI Hybrid    │      │  • Verified Content System     │  │
 │   │                         │      │  • Vector Embeddings           │  │
@@ -52,7 +98,7 @@ Unlike optional business modules (BM-CRM, BM-Content, etc.), Project Management 
 
 Core-PM provides:
 
-1. **AI-Powered Project Management** - An **8-agent PM team** that actively manages projects while human teams and module agents build products
+1. **AI-Powered Project Management** - A **9-agent PM team** that actively manages projects while human teams and module agents build products
 2. **Collaborative Knowledge Base** - A Plane-inspired wiki system with real-time Yjs collaboration, RAG integration, and AI-powered search
 
 ### Key Distinction: PM Agents vs Product Teams
@@ -98,7 +144,7 @@ Core-PM solves these by:
 ### What Makes Core-PM Special
 
 1. **BMAD-Native Workflows** - Built on the 7-phase BUILD methodology plus OPERATE loops as the core orchestration engine
-2. **8-Agent PM Team** - Comprehensive coverage of all PM functions (estimation, reporting, planning, risk, etc.)
+2. **9-Agent PM Team** - Comprehensive coverage of all PM functions (estimation, reporting, planning, risk, etc.)
 3. **Human + AI Teams** - First-class support for human team roles alongside AI agents
 4. **Confidence-Based Routing** - AI outputs flow through the approval queue automatically
 5. **Cross-Module Orchestration** - PM agents coordinate with CRM, Content, and Analytics modules
@@ -116,7 +162,7 @@ Core-PM solves these by:
 | **Category** | **Platform Core** (not optional module) |
 | **Complexity** | High |
 | **Priority** | P0 (Platform foundation—all modules depend on this) |
-| **Estimated Effort** | 12 weeks |
+| **Estimated Effort** | 14 weeks |
 | **Dependencies** | Platform Foundation (complete). **Core-PM enables all other modules.** |
 | **Target Users** | All platform users—Product Managers, Team Leads, Business Owners, Project Teams |
 | **Sub-Components** | Project Management, Knowledge Base |
@@ -1093,7 +1139,7 @@ prism_tools = [
 ### Agent Team Configuration
 
 ```yaml
-# agents/core-pm/team.py
+# (proposed) Core-PM team config shape (location/format TBD)
 core_pm_team:
   name: "Core PM Team"
   mode: "coordinate"
@@ -1499,12 +1545,12 @@ interface TeamCapacity {
 | Tasks per product | 10,000 | 100,000 |
 | Team members per product | 20 | 100 |
 | Concurrent users per product | 100 | 1,000 |
-| Agent concurrent executions | 10/tenant | 100/tenant |
+| Agent concurrent executions | 10/workspace | 100/workspace |
 
 ### Security
 
 - **Row Level Security (RLS)** on all PM tables
-- **tenantId required** on every model
+- **workspaceId required** on every Core-PM model (RLS isolation boundary). Where legacy code uses `tenantId` (event bus), treat it as `workspaceId`.
 - **Agent outputs** routed through approval queue
 - **Audit logging** via Chrono for all state changes
 - **Rate limiting** on API endpoints
@@ -1528,7 +1574,7 @@ interface TeamCapacity {
 │  Business   │────<│   Product   │────<│    Phase    │────<│    Task     │
 │             │     │             │     │             │     │             │
 │ id          │     │ id          │     │ id          │     │ id          │
-│ tenantId    │     │ businessId  │     │ productId   │     │ phaseId     │
+│ workspaceId │     │ businessId  │     │ productId   │     │ phaseId     │
 │ slug        │     │ slug        │     │ name        │     │ taskNumber  │
 │ name        │     │ name        │     │ bmadPhase   │     │ title       │
 │ aiConfig    │     │ type        │     │ startDate   │     │ type        │
@@ -1560,7 +1606,6 @@ interface TeamCapacity {
 │ KnowledgePage   │────<│ PageVersion     │     │ PageEmbedding   │
 │                 │     │                 │     │                 │
 │ id              │     │ id              │     │ id              │
-│ tenantId        │     │ pageId          │     │ pageId          │
 │ workspaceId     │     │ content (JSON)  │     │ chunkIndex      │
 │ parentId        │     │ version         │     │ chunkText       │
 │ title           │     │ createdBy       │     │ embedding[]     │
@@ -1597,7 +1642,6 @@ interface TeamCapacity {
 ```prisma
 model KnowledgePage {
   id            String    @id @default(cuid())
-  tenantId      String
   workspaceId   String
   parentId      String?
   title         String
@@ -1631,7 +1675,6 @@ model KnowledgePage {
   projects      ProjectPage[]
   comments      PageComment[]
 
-  @@index([tenantId])
   @@index([workspaceId])
   @@index([parentId])
   @@index([ownerId])
@@ -1843,147 +1886,68 @@ When a user first accesses Core-PM:
 
 ### Directory Structure
 
+This section is split into:
+1. **Current repo structure** (what exists today)
+2. **Proposed Core-PM additions** (what will be created when Core-PM is implemented)
+
+#### Current (as of 2025-12-16)
+
+- Frontend routes live under `apps/web/src/app/` (App Router); Core-PM routes do **not** exist yet.
+- Backend features live under `apps/api/src/` (feature folders like `approvals/`, `events/`, `realtime/`); there is no `src/modules/*` layout today.
+- Database schema is currently a single file: `packages/db/prisma/schema.prisma`.
+- Agent runtime lives under `agents/` with domain teams like `agents/validation/`, `agents/planning/`, `agents/knowledge/`.
+
+#### Proposed Core-PM additions (Planned)
+
 ```
 apps/
-├── web/src/app/(dashboard)/
-│   ├── pm/                           # Project Management frontend
-│   │   ├── products/
-│   │   │   └── [productId]/
-│   │   │       ├── page.tsx          # Product overview
-│   │   │       ├── team/page.tsx     # Team management
-│   │   │       ├── docs/page.tsx     # Linked KB pages
-│   │   │       ├── tasks/
-│   │   │       │   ├── kanban/page.tsx
-│   │   │       │   ├── list/page.tsx
-│   │   │       │   ├── calendar/page.tsx
-│   │   │       │   └── timeline/page.tsx # Phase 2
-│   │   │       └── settings/page.tsx
-│   │   ├── dashboard/page.tsx
-│   │   ├── my-tasks/page.tsx
-│   │   └── portfolio/page.tsx        # Phase 2
-│   │
-│   └── kb/                           # Knowledge Base frontend
-│       ├── page.tsx                  # KB home (recent, favorites)
-│       ├── search/page.tsx           # Search results
-│       ├── new/page.tsx              # Create new page
-│       ├── verified/page.tsx         # Verified pages list
-│       ├── stale/page.tsx            # Pages needing review
-│       ├── [pageSlug]/
-│       │   ├── page.tsx              # Page view/edit (Yjs)
-│       │   ├── history/page.tsx      # Version history
-│       │   └── comments/page.tsx     # Page discussions
-│       └── settings/
-│           ├── page.tsx              # KB settings
-│           ├── verification/page.tsx
-│           ├── rag/page.tsx
-│           └── templates/page.tsx
+├── web/src/app/(dashboard)/core-pm/          # Core-PM UI (planned)
+│   ├── products/                            # Product pages (Phase 1)
+│   ├── tasks/                               # Kanban/List (Phase 1), timeline (Phase 2)
+│   └── kb/                                  # KB CRUD (Phase 1), collab/RAG (Phase 2)
 │
-├── api/src/modules/
-│   ├── pm/                           # PM backend
-│   │   ├── pm.module.ts
-│   │   ├── controllers/
-│   │   │   ├── products.controller.ts
-│   │   │   ├── phases.controller.ts
-│   │   │   ├── tasks.controller.ts
-│   │   │   ├── teams.controller.ts
-│   │   │   └── views.controller.ts
-│   │   ├── services/
-│   │   │   ├── products.service.ts
-│   │   │   ├── phases.service.ts
-│   │   │   ├── tasks.service.ts
-│   │   │   ├── teams.service.ts
-│   │   │   └── analytics.service.ts
-│   │   └── events/
-│   │       ├── pm.events.ts
-│   │       └── pm.handlers.ts
-│   │
-│   └── kb/                           # Knowledge Base backend
-│       ├── kb.module.ts
-│       ├── controllers/
-│       │   ├── pages.controller.ts
-│       │   ├── search.controller.ts
-│       │   ├── rag.controller.ts
-│       │   └── verification.controller.ts
-│       ├── services/
-│       │   ├── pages.service.ts
-│       │   ├── versions.service.ts
-│       │   ├── search.service.ts     # Full-text + semantic
-│       │   ├── rag.service.ts        # Embeddings, RAG pipeline
-│       │   └── verification.service.ts
-│       └── events/
-│           ├── kb.events.ts
-│           └── kb.handlers.ts
+├── api/src/core-pm/                          # Core-PM API (planned)
+│   ├── pm/                                   # Products/Phases/Tasks
+│   ├── kb/                                   # Pages/Search/Verification
+│   └── events/                               # Event publishing via existing event bus
 │
-agents/
-├── core-pm/                          # Core-PM agents (renamed from pm/)
-│   ├── team.py                       # Core-PM team definition
-│   ├── navi.py                       # Navi orchestrator + KB navigation
-│   ├── sage.py                       # Sage estimator
-│   ├── herald.py                     # Herald reporter
-│   ├── chrono.py                     # Chrono tracker
-│   ├── scope.py                      # Scope planner
-│   ├── pulse.py                      # Pulse risk monitor
-│   ├── bridge.py                     # Bridge integrator (Phase 2)
-│   ├── scribe.py                     # Scribe KB manager (Phase 2)
-│   ├── prism.py                      # Prism analytics (Phase 2)
-│   ├── tools/
-│   │   ├── pm_tools.py               # PM-specific tools
-│   │   ├── kb_tools.py               # KB-specific tools
-│   │   └── rag_tools.py              # RAG-specific tools
-│   └── prompts/
-│       ├── navi_system.md
-│       ├── sage_system.md
-│       ├── herald_system.md
-│       ├── chrono_system.md
-│       ├── scope_system.md
-│       ├── pulse_system.md
-│       └── scribe_system.md          # Phase 2
-│
-packages/db/prisma/
-└── schema/
-    ├── pm.prisma                     # PM data models
-    └── kb.prisma                     # KB data models
+agents/                                       # AgentOS runtime (existing)
+└── (planned) agents/core_pm/                 # New Core-PM team + tools (future)
+
+packages/db/prisma/schema.prisma              # Single schema file (current)
 ```
 
 ### Team Factory Pattern
 
 ```python
-# agents/core-pm/team.py
-from agno import Agent, Team
-from agno.storage.postgres import PostgresStorage
-from .navi import create_navi
-from .sage import create_sage
-from .herald import create_herald
-from .chrono import create_chrono
-from .scope import create_scope
-from .pulse import create_pulse
-from .scribe import create_scribe  # Phase 2
+# (proposed) Core-PM team factory (pattern aligned with existing teams in agents/*/team.py)
+from agno.team import Team
 
-def create_core_pm_team(tenant_id: str, product_id: str) -> Team:
-    """Create Core-PM agent team for a product."""
+def create_core_pm_team(
+    session_id: str,
+    user_id: str,
+    workspace_id: str,
+    business_id: str,
+    product_id: str,
+) -> Team:
+    """Create Core-PM agent team for a product (Phase-gated feature flags)."""
 
-    storage = PostgresStorage(
-        table_name=f"core_pm_team_{tenant_id}",
-        schema="agent_memory"
-    )
+    # MVP Agents (Phase 1)
+    navi = create_navi(...)
+    sage = create_sage(...)
+    herald = create_herald(...)
+    chrono = create_chrono(...)
+    scope = create_scope(...)
+    pulse = create_pulse(...)
 
-    # MVP Agents
-    navi = create_navi(tenant_id, product_id)
-    sage = create_sage(tenant_id, product_id)
-    herald = create_herald(tenant_id, product_id)
-    chrono = create_chrono(tenant_id, product_id)
-    scope = create_scope(tenant_id, product_id)
-    pulse = create_pulse(tenant_id, product_id)
-
-    # Phase 2 Agents
-    scribe = create_scribe(tenant_id, product_id)
+    # Phase 2 Agents (initialized only when enabled)
+    scribe = create_scribe(...)
 
     return Team(
         name="Core-PM Team",
         mode="coordinate",
         leader=navi,
         members=[sage, herald, chrono, scope, pulse, scribe],
-        storage=storage,
         instructions=[
             "You are the Core-PM Team managing this product and its knowledge.",
             "Navi leads and coordinates all PM and KB operations.",
@@ -1999,7 +1963,15 @@ def create_core_pm_team(tenant_id: str, product_id: str) -> Team:
 ### Event Bus Events
 
 ```typescript
-// PM Event Types
+// Planned Core-PM event types (not yet present in packages/shared/src/types/events.ts)
+// Phase 1 should continue to use existing platform events:
+// - approval.* (ApprovalItem lifecycle)
+// - agent.* (Agent run lifecycle)
+// - workspace.* (membership changes)
+//
+// Only add pm.* / kb.* when they are typed + validated (Zod) in packages/shared.
+
+// PM Event Types (planned)
 'pm.product.created'
 'pm.product.updated'
 'pm.product.archived'
@@ -2063,6 +2035,37 @@ def create_core_pm_team(tenant_id: str, product_id: str) -> Team:
 ```
 
 ---
+
+## Scope Boundaries (Prevent Phase Leakage)
+
+Core-PM is the platform core, but Phase 1 still needs strict boundaries to ship safely and avoid “Phase 2-by-accident”.
+
+### Explicitly Out of Scope in Phase 1 (MVP)
+
+1. Real-time collaborative KB editing (Yjs/Hocuspocus)
+2. pgvector embeddings + semantic search (RAG)
+3. Verified content governance (verification workflows + expiry enforcement)
+4. Import/export from Notion/Confluence/PDF beyond basic Markdown export
+5. Public REST API + webhooks for third parties
+6. Custom workflow builder (user-defined workflows)
+
+### Explicitly Out of Scope in Phase 2 (unless re-scoped)
+
+1. Full “AI-native KB” auto-generation suite (Phase 3)
+2. External API stability guarantees and versioning (Phase 3)
+3. Workflow builder GA (Phase 3)
+
+## Event Strategy (Typed + Validated)
+
+1. Phase 1 should reuse existing platform event bus contracts (`packages/shared/src/types/events.ts`):
+   - approval.* (ApprovalItem lifecycle)
+   - agent.* (Agent run lifecycle)
+   - workspace.* (membership changes)
+2. pm.* / kb.* domain events are allowed only after:
+   - EventTypes are added to `packages/shared/src/types/events.ts`
+   - Payload schemas are added to `packages/shared/src/schemas/events.ts`
+   - Producers/consumers validate payloads at runtime
+3. Real-time updates in Phase 1 should follow the existing Socket.io patterns in `apps/api/src/realtime/` (KB collaboration via Yjs/Hocuspocus remains Phase 2).
 
 ## Implementation Phases
 
@@ -2150,6 +2153,55 @@ def create_core_pm_team(tenant_id: str, product_id: str) -> Team:
 - **Advanced RAG features**
 
 ---
+
+## Phase Exit Criteria (Definition of Done)
+
+### Phase 1 (MVP) Exit Criteria
+
+1. Data model + RLS
+   - Core-PM tables exist with `workspaceId` isolation and RLS validated against cross-workspace access attempts
+2. API + permissions
+   - CRUD endpoints for Products/Phases/Tasks and KB Pages/Versions (no collaboration required)
+   - Authorization rules documented and enforced (who can create/edit/verify)
+3. UI
+   - Kanban + List views, quick capture, task detail, team management
+   - KB CRUD + navigation + full-text search (FTS)
+4. HITL + audit
+   - Agent suggestions route through existing ApprovalItem flow
+   - Critical state transitions are audit logged using existing audit/event infrastructure
+5. Quality gates
+   - `pnpm type-check` + `pnpm lint` pass; deterministic tests for new services
+   - Baseline P95 performance for list/search endpoints measured
+
+### Phase 2 Exit Criteria
+
+1. Collaboration
+   - Yjs/Hocuspocus live editing works with authentication, authorization, and persistence
+2. Semantic search
+   - pgvector extension installed via migrations; embeddings pipeline operational and backfillable
+3. Governance
+   - Verified content workflow implemented with explicit permission rules + UI affordances
+4. Scalability
+   - Vector index strategy chosen and tuned; background jobs for embedding refresh are observable/retriable
+
+### Phase 3 Exit Criteria
+
+1. Workflow builder
+   - User-defined workflows are persisted, versioned, and executed safely with approval gates
+2. External API
+   - Public API + webhooks with authentication, rate limits, versioning policy, and documentation
+3. AI-native KB
+   - Auto-generation, extraction, and gap detection features ship with explicit approval gates and clear provenance
+
+## Traceability Matrix (Starter)
+
+| Capability | PRD reference | Data model | API surface (planned) | Phase 1 events | Phase 1 tests |
+|-----------|---------------|------------|------------------------|----------------|--------------|
+| Product CRUD | FR-1 | Product | `apps/api/src/core-pm/pm/*` | approval.* when agent-created | Service + authorization tests |
+| Phase CRUD | FR-2 | Phase | `apps/api/src/core-pm/pm/*` | none required | Service tests + ordering rules |
+| Task workflow | FR-3 | Task | `apps/api/src/core-pm/pm/*` | approval.* + agent.* | State transition tests |
+| KB CRUD | KB-01/KB-02 | KnowledgePage, PageVersion | `apps/api/src/core-pm/kb/*` | agent.* for drafts | Versioning + permissions tests |
+| KB full-text search | KB-02 | KnowledgePage.contentText | `GET /kb/search` | none required | Query tests (fixtures) |
 
 ## Epic Summary
 
@@ -2306,7 +2358,7 @@ Within MVP (Phase 1), if timeline pressure occurs:
 
 ### Architecture & Guides
 - [Core-PM Architecture](/docs/modules/bm-pm/architecture.md)
-- [Knowledge Base Specification](/docs/modules/bm-pm/kb-specification.md) *(to be created)*
+- [Knowledge Base Specification](/docs/modules/bm-pm/kb-specification.md)
 - [BM-CRM PRD](/docs/modules/bm-crm/PRD.md) - Agent team reference
 - [Platform Architecture](/docs/architecture.md)
 - [Agno Implementation Guide](/docs/architecture/agno-implementation-guide.md)
@@ -2431,7 +2483,7 @@ When users ask questions:
 | Configuration | Value |
 |---------------|-------|
 | Phases | None (single backlog) |
-| States | Backlog, Todo, In Progress, Review, Done |
+| States | Backlog, Todo, In Progress, Review, Awaiting Approval, Done, Cancelled *(configurable)* |
 | BMAD Integration | Optional |
 | Best For | Ongoing work, support, small projects |
 

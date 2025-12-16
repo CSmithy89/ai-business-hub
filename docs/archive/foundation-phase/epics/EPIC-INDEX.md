@@ -199,7 +199,7 @@
 - Advanced keyboard shortcuts
 - **Document Upload Pipeline:** Extract existing business docs (Story 08.4)
 - **Branding Team:** Team config, Branding Page, Brand workflows (Stories 08.17-08.21)
-- **Onboarding Completion:** Handoff to BM-PM (Story 08.23)
+- **Onboarding Completion:** Handoff to Core-PM (Story 08.23)
 
 ---
 

@@ -1,8 +1,9 @@
 # Repository Guidelines
 
 ## Project Structure & Modules
-- Turborepo + pnpm monorepo: `apps/web` (Next 15), `apps/api` (Nest), `apps/agents` (FastAPI/Agno), shared packages in `packages/{db,ui,shared,config}`, and reusable Agno code in `agents/`.
-- Key docs: `README.md` (vision/stack), `.cursorrules` (Agno rules), `.gemini/styleguide.md` (TypeScript/Nest/Tailwind standards), `CLAUDE.md` (MCP + BMAD workflow commands), sprint status in `docs/sprint-artifacts/sprint-status.yaml`.
+- Turborepo + pnpm monorepo: `apps/web` (Next 15), `apps/api` (Nest), AgentOS runtime in `agents/` (FastAPI/Agno), shared packages in `packages/{db,ui,shared}`.
+- Key docs: `README.md` (vision/stack), `.cursorrules` (Agno rules), `.gemini/styleguide.md` (TypeScript/Nest/Tailwind standards), `CLAUDE.md` (MCP + BMAD workflow commands), sprint/workflow status in `docs/bmm-workflow-status.yaml`.
+- Sprint status artifacts live under `docs/` (e.g., `docs/bmm-workflow-status.yaml`) and archived sprint artifacts are under `docs/archive/foundation-phase/sprint-artifacts/`.
 - BMAD workflows live in `.bmad/`; story states flow backlog → drafted → ready-for-dev → in-progress → review → done.
 
 ## Build, Test, and Development Commands
@@ -15,7 +16,7 @@
 
 ## Coding Style & Naming Conventions
 - TypeScript strict; prefer `unknown` over `any`. Imports: external → `@hyvve/...` → relative. Files kebab-case; components PascalCase; hooks prefixed with `use`; types in `*.types.ts`; tests `*.test.ts`.
-- React/Next: functional components, named exports, Tailwind class strings fully spelled out (avoid dynamic fragments). Multi-tenant: every query filters by `tenantId`; enforce RLS.
+- React/Next: functional components, named exports, Tailwind class strings fully spelled out (avoid dynamic fragments). Multi-tenant: every query filters by `workspaceId` (event bus may use `tenantId` as an alias); enforce RLS.
 - Nest: one feature per module; DTOs with `class-validator`; constructor injection; throw specific HTTP exceptions.
 - Agents (from `.cursorrules`): create once and reuse (never in loops), always set `output_schema`, use Postgres in prod (SQLite only for dev), enable `search_knowledge` when using knowledge bases.
 

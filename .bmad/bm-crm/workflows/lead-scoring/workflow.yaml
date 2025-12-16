@@ -1,0 +1,16 @@
+name: lead-scoring
+description: "Calculate lead score based on 40/35/25 model and update tier"
+trigger:
+  event: "crm.contact.created"
+  manual: true
+
+input_schema:
+  contact_id:
+    type: string
+    description: "ID of the contact to score"
+
+agents:
+  - scout
+
+flow:
+  instructions: "./instructions.md"

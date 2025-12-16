@@ -1169,7 +1169,7 @@ branding.completed → business.onboarding.complete
 
 ---
 
-### Story 08.23: Implement Onboarding Completion and Handoff to BM-PM
+### Story 08.23: Implement Onboarding Completion and Handoff to Core-PM (formerly BM-PM)
 
 **Points:** 2
 **Priority:** P2
@@ -1190,7 +1190,7 @@ branding.completed → business.onboarding.complete
 - [ ] Trigger `business.onboarding.complete` event
 - [ ] Show completion celebration UI
 - [ ] Navigate to business dashboard
-- [ ] Enable product creation (future BM-PM features)
+- [ ] Enable product creation (future Core-PM features)
 
 **Completion Output:**
 ```json

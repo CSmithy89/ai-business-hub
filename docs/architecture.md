@@ -17,7 +17,7 @@ This document focuses on how these pieces are wired together across:
 
 - `apps/web` (Next.js UI + platform routes)
 - `apps/api` (NestJS API)
-- `apps/agents` and `agents/` (AgentOS runtime + reusable agent code)
+- `agents/` (AgentOS runtime + reusable agent code)
 - `packages/*` (shared DB/UI/config modules)
 
 ---
@@ -30,7 +30,7 @@ High-level entry points:
 
 - Web UI: `apps/web`
 - Nest API: `apps/api`
-- AgentOS: `apps/agents` and shared agent code under `agents/`
+- AgentOS: `agents/`
 
 ---
 
@@ -1832,7 +1832,7 @@ The foundation modules implement strict data quality controls:
 | [PRD](prd.md) | Product requirements and scope |
 | [UX Design](ux-design.md) | User experience decisions |
 | [Wireframe Index](design/wireframes/WIREFRAME-INDEX.md) | **109 completed wireframes** with HTML/PNG assets |
-| [Epic Index](epics/EPIC-INDEX.md) | Sprint planning and story breakdown |
+| [Epic Index](archive/foundation-phase/epics/EPIC-INDEX.md) | Sprint planning and story breakdown |
 | [Brand Guidelines](design/BRAND-GUIDELINES.md) | Visual identity and brand standards |
 | [Style Guide](design/STYLE-GUIDE.md) | Design tokens and component specifications |
 
