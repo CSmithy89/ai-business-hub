@@ -165,12 +165,12 @@ The Knowledge Base is a major component of Core-PM with no existing wireframes. 
 
 | ID | Wireframe | Description | Priority |
 |----|-----------|-------------|----------|
-| **PM-17** | `pm-bmad-phase-view.excalidraw` | BMAD 7-phase timeline with BUILD/OPERATE mode toggle | P1 |
-| **PM-18** | `pm-agent-team-panel.excalidraw` | Core-PM 9-agent team overview (not platform AI team) | P1 |
-| **PM-19** | `pm-hybrid-assignment.excalidraw` | Human + AI hybrid task assignment UI | P2 |
-| **PM-20** | `pm-planning-poker.excalidraw` | Real-time collaborative estimation session | P2 |
+| **PM-21** | `pm-bmad-phase-view.excalidraw` | BMAD 7-phase timeline with BUILD/OPERATE mode toggle | P1 |
+| **PM-22** | `pm-agent-team-panel.excalidraw` | Core-PM 9-agent team overview (not platform AI team) | P1 |
+| **PM-23** | `pm-hybrid-assignment.excalidraw` | Human + AI hybrid task assignment UI | P2 |
+| **PM-24** | `pm-planning-poker.excalidraw` | Real-time collaborative estimation session | P2 |
 
-### PM-17: BMAD Phase View
+### PM-21: BMAD Phase View
 **Description:** Visualization of BMAD methodology phases with current phase highlighting
 
 **Design Elements:**
@@ -188,7 +188,7 @@ OPERATE Mode:
 └───────────────┴───────────────┴───────────────┘
 ```
 
-### PM-18: Agent Team Panel
+### PM-22: Agent Team Panel
 **Description:** Core-PM's 9-agent team overview (different from platform AI-01)
 
 **Agents to Display:**
@@ -329,7 +329,7 @@ For new KB and PM wireframes, ensure:
 
 ### New Required
 - KB-01 to KB-12 (12 wireframes)
-- PM-17 to PM-20 (4 wireframes)
+- PM-21 to PM-24 (4 wireframes)
 - RT-01 to RT-03 (3 wireframes)
 
 ### Grand Total

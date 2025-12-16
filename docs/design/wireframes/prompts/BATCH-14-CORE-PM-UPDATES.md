@@ -36,10 +36,10 @@
 
 | ID | Name | File | Priority | Description |
 |----|------|------|----------|-------------|
-| PM-17 | BMAD Phase View | `pm-bmad-phase-view.excalidraw` | P1 | 7-phase BUILD timeline + OPERATE loops |
-| PM-18 | Agent Team Panel | `pm-agent-team-panel.excalidraw` | P1 | Core-PM 9-agent team overview |
-| PM-19 | Hybrid Assignment | `pm-hybrid-assignment.excalidraw` | P2 | Human + AI task assignment |
-| PM-20 | Planning Poker | `pm-planning-poker.excalidraw` | P2 | Real-time collaborative estimation |
+| PM-21 | BMAD Phase View | `pm-bmad-phase-view.excalidraw` | P1 | 7-phase BUILD timeline + OPERATE loops |
+| PM-22 | Agent Team Panel | `pm-agent-team-panel.excalidraw` | P1 | Core-PM 9-agent team overview |
+| PM-23 | Hybrid Assignment | `pm-hybrid-assignment.excalidraw` | P2 | Human + AI task assignment |
+| PM-24 | Planning Poker | `pm-planning-poker.excalidraw` | P2 | Real-time collaborative estimation |
 
 ---
 
@@ -748,7 +748,7 @@ Transition:             150ms ease-out
 
 ---
 
-## PM-17: BMAD Phase View (NEW)
+## PM-21: BMAD Phase View (NEW)
 
 **File:** `pm-bmad-phase-view.excalidraw`
 **Priority:** P1 (High)
@@ -917,7 +917,7 @@ Transition:             150ms ease-out
 
 ---
 
-## PM-18: Agent Team Panel (NEW)
+## PM-22: Agent Team Panel (NEW)
 
 **File:** `pm-agent-team-panel.excalidraw`
 **Priority:** P1 (High)
@@ -1090,7 +1090,7 @@ Transition:             150ms ease-out
 
 ---
 
-## PM-19: Hybrid Assignment (NEW)
+## PM-23: Hybrid Assignment (NEW)
 
 **File:** `pm-hybrid-assignment.excalidraw`
 **Priority:** P2 (Medium)
@@ -1250,7 +1250,7 @@ Transition:             150ms ease-out
 
 ---
 
-## PM-20: Planning Poker (NEW)
+## PM-24: Planning Poker (NEW)
 
 **File:** `pm-planning-poker.excalidraw`
 **Priority:** P2 (Medium)
