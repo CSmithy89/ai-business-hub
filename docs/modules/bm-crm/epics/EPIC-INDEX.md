@@ -16,8 +16,8 @@ BM-CRM is an **8-agent AI team** for customer relationship management. This inde
 |-------|-------|---------|--------|-------|
 | **MVP (Phase 1)** | 4 | 32 | 89 | Core CRM with 5 agents |
 | **Growth Phase 2** | 3 | 18 | 52 | +Sync, +Guardian, integrations |
-| **Growth Phase 3** | 3 | 22 | 68 | +Cadence, advanced features |
-| **Total** | **10** | **72** | **209** | Full BM-CRM module |
+| **Growth Phase 3** | 4 | 27 | 83 | +Cadence, advanced, Core-PM integration |
+| **Total** | **11** | **77** | **224** | Full BM-CRM module |
 
 ---
 
@@ -199,6 +199,21 @@ Implement LinkedIn integration, webhooks, Zapier, and public API.
 
 ---
 
+### EPIC-CRM-11: Core-PM Integration
+**Stories:** 5 | **Points:** 15 | **Status:** `backlog`
+
+Implement deep integration with Core-PM for project linking, KB playbooks, and cross-team coordination.
+
+| Story | Title | Points | Status |
+|-------|-------|--------|--------|
+| CRM-11.1 | Create CRM playbooks in Knowledge Base | 3 | `backlog` |
+| CRM-11.2 | Implement Deal→Project linking on deal won | 3 | `backlog` |
+| CRM-11.3 | Add Clara↔Navi A2A coordination for handoffs | 3 | `backlog` |
+| CRM-11.4 | Link Echo activities to PM tasks | 3 | `backlog` |
+| CRM-11.5 | Create CRM reports as KB verified content | 3 | `backlog` |
+
+---
+
 ## Sprint Recommendations
 
 ### Sprint 1-2: MVP Foundation (EPIC-CRM-01 + CRM-02)
@@ -226,11 +241,17 @@ Implement LinkedIn integration, webhooks, Zapier, and public API.
 - Email sequences
 - **Goal:** Outreach automation
 
-### Sprint 11-12: Growth Phase 3 Complete (EPIC-CRM-09 + CRM-10)
+### Sprint 11-12: Growth Phase 3 Part 2 (EPIC-CRM-09 + CRM-10)
 - Advanced analytics
 - Public API
 - Mobile PWA
-- **Goal:** Full BM-CRM module complete
+- **Goal:** External integrations complete
+
+### Sprint 13: Core-PM Integration (EPIC-CRM-11)
+- KB playbooks for CRM
+- Deal→Project linking
+- Cross-team coordination
+- **Goal:** Full BM-CRM module complete with Core-PM integration
 
 ---
 
@@ -243,6 +264,7 @@ Implement LinkedIn integration, webhooks, Zapier, and public API.
 - Approval queue
 - WebSocket gateway
 - AgentOS runtime
+- Core-PM with Knowledge Base
 
 ### External Dependencies
 | Integration | API Required | Notes |
@@ -268,4 +290,4 @@ Implement LinkedIn integration, webhooks, Zapier, and public API.
 
 ---
 
-_Generated from BM-CRM PRD v1.3 and Architecture v1.0_
+_Generated from BM-CRM PRD v1.4 and Architecture v1.1_

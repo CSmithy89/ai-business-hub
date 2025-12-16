@@ -1,9 +1,9 @@
 # BM-CRM Module - Product Requirements Document
 
 **Author:** Chris
-**Date:** 2025-12-15
-**Version:** 1.3
-**Status:** Draft (Aligned with codebase implementation patterns)
+**Date:** 2025-12-16
+**Version:** 1.4
+**Status:** Draft (Updated for Core-PM integration)
 
 ---
 
@@ -41,7 +41,8 @@ BM-CRM requires these platform foundation capabilities (all complete):
 | BYOAI | User-provided AI keys | ✅ Complete |
 | Approval system | Sentinel agent + approval queue | ✅ Complete |
 | Event bus | Redis Streams pub/sub | ✅ Complete |
-| Knowledge base | RAG with pgvector | ✅ Complete |
+| Core-PM | Project/Task/KB management with Navi team | ✅ Complete |
+| Knowledge base | RAG with pgvector (via Core-PM) | ✅ Complete |
 
 ---
 
@@ -121,6 +122,13 @@ BM-CRM requires these platform foundation capabilities (all complete):
 - [ ] Salesforce two-way sync `[Growth-Phase2]`
 - [ ] Zapier/Make webhooks `[Growth-Phase3]`
 - [ ] API access for external tools `[Growth-Phase3]`
+
+**Core-PM Integration:** `[Growth-Phase3]`
+- [ ] CRM playbooks stored in Knowledge Base (sales scripts, objection handling) `[Growth-Phase3]`
+- [ ] Deal→Project linking (won deals create onboarding projects) `[Growth-Phase3]`
+- [ ] Clara↔Navi cross-team coordination for customer handoffs `[Growth-Phase3]`
+- [ ] Echo activity logging to PM tasks (meeting outcomes) `[Growth-Phase3]`
+- [ ] CRM reports as KB verified content `[Growth-Phase3]`
 
 ### Vision (Future) `[Vision]`
 

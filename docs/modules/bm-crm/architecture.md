@@ -1,9 +1,9 @@
 # BM-CRM Module Architecture
 
 **Author:** Chris
-**Date:** 2025-12-15
-**Version:** 1.0
-**Status:** Draft
+**Date:** 2025-12-16
+**Version:** 1.1
+**Status:** Draft (Updated for Core-PM integration)
 **Parent:** [Platform Architecture](/docs/architecture.md)
 
 ---
@@ -44,11 +44,12 @@ BM-CRM depends on these platform foundation capabilities:
 |---------------------|-----------|
 | **Multi-tenancy (RLS)** | All CRM data tenant-scoped |
 | **BYOAI** | AI provider selection for agent execution |
-| **Event Bus** | Publish CRM events, subscribe to platform events |
+| **Event Bus** | Publish CRM events, subscribe to platform/pm events |
 | **Approval Queue** | High-impact CRM actions require approval |
 | **WebSocket Gateway** | Real-time tier change notifications |
 | **AgentOS** | CRM team execution runtime |
-| **A2A Protocol** | Inter-module agent communication |
+| **A2A Protocol** | Inter-module agent communication (Clara↔Navi) |
+| **Core-PM** | Project linking, KB for playbooks, task integration |
 
 ---
 
@@ -89,7 +90,7 @@ BM-CRM depends on these platform foundation capabilities:
                               │
 ┌─────────────────────────────┴───────────────────────────────────┐
 │                      PLATFORM LAYER                              │
-│   Sentinel (Approval)  │  Event Bus  │  Knowledge Base          │
+│   Sentinel (Approval)  │  Event Bus  │  Core-PM (Navi + KB)     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -118,6 +119,20 @@ Other Module Agent → A2A RPC → Clara → [Delegate] → Response
 ```
 - External modules invoke CRM via A2A protocol
 - Clara acts as gateway, routing to specialists
+
+**4. Core-PM Cross-Team Coordination `[Growth-Phase3]`**
+```
+Clara ←→ Navi (A2A)
+  │
+  ├── Deal Won → Create Onboarding Project
+  ├── Activity Logged → Link to PM Task
+  ├── KB Query → Search CRM Playbooks
+  └── Customer Handoff → Cross-Team Context Transfer
+```
+- Clara coordinates with Navi for project/task integration
+- CRM playbooks stored in KB via Scribe agent
+- Deal lifecycle events can trigger PM workflows
+- Echo activities can reference PM tasks
 
 ---
 
