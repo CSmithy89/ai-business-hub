@@ -32,7 +32,7 @@ The Knowledge Base (KB) is a core platform component that provides:
 - **Collaborative Wiki** - Real-time document editing with Yjs CRDT
 - **RAG-Powered Search** - Semantic search using pgvector embeddings
 - **Verified Content System** - Authoritative content flagging for AI prioritization
-- **Project Integration** - Deep linking between KB pages and PM products/tasks
+- **Project Integration** - Deep linking between KB pages and PM projects/tasks
 
 ### Competitive Inspiration
 
@@ -66,7 +66,7 @@ The Knowledge Base (KB) is a core platform component that provides:
    - Verification expires to ensure freshness
 
 4. **Deep Integration**
-   - Pages link to products, tasks, contacts
+   - Pages link to projects, tasks, contacts
    - @mention users, #reference tasks
    - Context flows both ways (PM ↔ KB)
 
@@ -123,18 +123,18 @@ The Knowledge Base (KB) is a core platform component that provides:
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| F3.1 Link Page to Product | Many-to-many relationship | P0 |
-| F3.2 Primary Page Flag | Mark one page as product's main doc | P0 |
-| F3.3 Project Docs Tab | See linked pages in product view | P0 |
+| F3.1 Link Page to Project | Many-to-many relationship | P0 |
+| F3.2 Primary Page Flag | Mark one page as project's main doc | P0 |
+| F3.3 Project Docs Tab | See linked pages in project view | P0 |
 | F3.4 Quick Link from Task | Link KB page from task detail | P1 |
 | F3.5 Backlink Display | Show which projects link to page | P1 |
 
 **Acceptance Criteria (F3.1):**
-- [ ] User can link existing page to product
-- [ ] User can create new page linked to product
-- [ ] Linked pages appear in product's Docs tab
+- [ ] User can link existing page to project
+- [ ] User can create new page linked to project
+- [ ] Linked pages appear in project's Docs tab
 - [ ] Unlinking removes association (not page)
-- [ ] One page can link to multiple products
+- [ ] One page can link to multiple projects
 
 ### Phase 2 Features
 
@@ -270,7 +270,7 @@ The Knowledge Base (KB) is a core platform component that provides:
 │  │  PageVersion    │     │ PageEmbedding   │     │  ProjectPage    │ │... │ │
 │  │                 │     │                 │     │  (join table)   │ │    │ │
 │  │ id              │     │ id              │     │                 │ │    │ │
-│  │ pageId          │     │ pageId          │     │ productId ──────┼─┼──┐ │ │
+│  │ pageId          │     │ pageId          │     │ projectId ──────┼─┼──┐ │ │
 │  │ version (int)   │     │ chunkIndex      │     │ pageId          │ │  │ │ │
 │  │ content (JSON)  │     │ chunkText       │     │ isPrimary       │ │  │ │ │
 │  │ contentText     │     │ embedding[1536] │     │ createdAt       │ │  │ │ │
@@ -293,7 +293,7 @@ The Knowledge Base (KB) is a core platform component that provides:
 │                                                                       │  │ │ │
 │                                                                       ▼  ▼ │ │
 │                                                               ┌───────────┐│ │
-│                                                               │  Product  ││ │
+│                                                               │  Project  ││ │
 │                                                               │  (PM)     ││ │
 │                                                               └───────────┘│ │
 │                                                                             │ │
@@ -406,16 +406,16 @@ model PageEmbedding {
 
 model ProjectPage {
   id            String    @id @default(cuid())
-  productId     String
+  projectId     String
   pageId        String
   isPrimary     Boolean   @default(false)
   createdAt     DateTime  @default(now())
 
-  // Note: Product model defined in pm.prisma
+  // Note: Project model defined in pm.prisma
   page          KnowledgePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
-  @@unique([productId, pageId])
-  @@index([productId])
+  @@unique([projectId, pageId])
+  @@index([projectId])
   @@index([pageId])
 }
 
@@ -1414,7 +1414,7 @@ components/kb/
         title: string
         parentId?: string
         content?: TiptapJSON
-        linkedProducts?: string[]
+        linkedProjects?: string[]
       response: Page
 
   /pages/:id:
@@ -1467,16 +1467,16 @@ components/kb/
 
   /pages/:id/link:
     POST:
-      summary: Link to product
+      summary: Link to project
       body:
-        productId: string
+        projectId: string
         isPrimary?: boolean
       response: ProjectPage
 
     DELETE:
-      summary: Unlink from product
+      summary: Unlink from project
       body:
-        productId: string
+        projectId: string
       response: { success: true }
 
   /search:
@@ -1528,8 +1528,8 @@ components/kb/
 'kb.page.verified'    // { pageId, verifiedBy, expiresAt }
 'kb.page.unverified'  // { pageId }
 
-'kb.page.linked'      // { pageId, productId }
-'kb.page.unlinked'    // { pageId, productId }
+'kb.page.linked'      // { pageId, projectId }
+'kb.page.unlinked'    // { pageId, projectId }
 
 'kb.comment.created'  // { pageId, commentId, userId }
 'kb.comment.deleted'  // { pageId, commentId }
@@ -1546,7 +1546,7 @@ components/kb/
 
 ```typescript
 // 1. Project docs tab shows linked KB pages
-// GET /api/pm/products/:id/docs
+// GET /api/pm/projects/:id/docs
 // Returns linked pages with ProjectPage.isPrimary
 
 // 2. Task detail can link to KB page
@@ -1655,7 +1655,7 @@ scribe_tools = [
 | Tiptap editor setup | 3 | None |
 | Page tree navigation | 2 | CRUD API |
 | Basic search (FTS) | 2 | ContentText index |
-| ProjectPage linking | 2 | Product model |
+| ProjectPage linking | 2 | Project model |
 
 **Total: 15 points (1 week)**
 

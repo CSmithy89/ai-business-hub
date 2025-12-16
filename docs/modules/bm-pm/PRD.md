@@ -31,9 +31,9 @@
 |------|-------------------------------|-------------|
 | **Workspace** | Primary tenant/isolation boundary (RLS, billing, membership) | `workspaceId` |
 | **Business** | A workspace-owned business entity (onboarding context) | `businessId` (scoped to workspace) |
-| **Product** | A deliverable being built/operated under a business | `productId` (scoped to business/workspace) |
-| **Phase** | A time-boxed work segment (BMAD phase or custom template) | `phaseId` (scoped to product/workspace) |
-| **Task** | Unit of work (Epic/Story/Task/etc.) with assignment + status | `taskId` (scoped to product/workspace) |
+| **Project** | A deliverable being built/operated under a business | `projectId` (scoped to business/workspace) |
+| **Phase** | A time-boxed work segment (BMAD phase or custom template) | `phaseId` (scoped to project/workspace) |
+| **Task** | Unit of work (Epic/Story/Task/etc.) with assignment + status | `taskId` (scoped to project/workspace) |
 | **Approval Queue** | Platform-wide approval system (Sentinel/ApprovalItem) | `approvalId` |
 | **Awaiting Approval** | A task state indicating work is blocked on an approval decision | links to `approvalId` |
 
@@ -77,7 +77,7 @@ Unlike optional business modules (BM-CRM, BM-Content, etc.), Project Management 
 │   ┌─────────────────────────┐      ┌─────────────────────────────────┐  │
 │   │    Project Management   │      │        Knowledge Base           │  │
 │   │                         │      │                                 │  │
-│   │  • Products/Projects    │◄────►│  • Wiki Pages (Yjs collab)     │  │
+│   │  • Projects             │◄────►│  • Wiki Pages (Yjs collab)     │  │
 │   │  • Agent Teams (9)      │      │  • RAG-Powered Search          │  │
 │   │  • BMAD Workflow Engine │      │  • @mentions & #references     │  │
 │   │  • Human + AI Hybrid    │      │  • Verified Content System     │  │
@@ -102,7 +102,7 @@ Core-PM provides:
 1. **AI-Powered Project Management** - A **9-agent PM team** that actively manages projects while human teams and module agents build products
 2. **Collaborative Knowledge Base** - A Plane-inspired wiki system with real-time Yjs collaboration, RAG integration, and AI-powered search
 
-### Key Distinction: PM Agents vs Product Teams
+### Key Distinction: PM Agents vs Project Teams
 
 ```
 PM Agent Team (Navi, Sage, Herald, etc.)
@@ -110,8 +110,8 @@ PM Agent Team (Navi, Sage, Herald, etc.)
 ├── Handles estimates, reports, planning, tracking
 └── Ensures project health and visibility
 
-Product Team (Humans + Module Agents)
-├── Actually BUILDS the product
+Project Team (Humans + Module Agents)
+├── Actually BUILDS the deliverable
 ├── Human roles: Lead, Developers, Designers, QA
 ├── Module agents: CRM agents, Content agents, etc.
 └── Orchestrated by Team Leader (human or AI)
@@ -192,7 +192,7 @@ Core-PM solves these by:
 | User adoption | 70% DAU/MAU | Active users tracking tasks |
 | Agent task automation | 25% tasks auto-suggested | Navi-generated task suggestions |
 | Human team utilization | 80% tasks have human assignee | Role-based assignment tracking |
-| **KB adoption** | 50% of products have linked KB pages | Page-to-project linking |
+| **KB adoption** | 50% of projects have linked KB pages | Page-to-project linking |
 | **KB search accuracy** | 80% relevant results | RAG search quality score |
 
 ### Phase 2 Success Metrics
@@ -209,7 +209,7 @@ Core-PM solves these by:
 
 ---
 
-## Product Scope
+## Project Scope
 
 ### MVP (Phase 1) - Core PM + Knowledge Base Foundation
 
@@ -219,8 +219,8 @@ Core-PM solves these by:
 
 **PROJECT MANAGEMENT**
 
-1. **Product & Phase Management**
-   - Business → Product → Phase → Task hierarchy
+1. **Project & Phase Management**
+   - Business → Project → Phase → Task hierarchy
    - BMAD phase templates (7 BUILD + 3 OPERATE)
    - Custom phase templates (Kanban-only, Simple List)
    - Phase progress tracking with snapshots
@@ -233,8 +233,8 @@ Core-PM solves these by:
    - **Quick Capture:** 1-click task creation, keyboard shortcut (`c` key)
 
 3. **Human Team Management**
-   - Product team definition with human roles
-   - Role types: Product Lead, Developer, Designer, QA, Custom
+   - Project team definition with human roles
+   - Role types: Project Lead, Developer, Designer, QA, Custom
    - Capacity planning (hours per team member per phase)
    - Role-based task filtering ("My Tasks")
 
@@ -250,7 +250,7 @@ Core-PM solves these by:
 6. **Core Views**
    - List view with sorting/filtering
    - Kanban board by status
-   - Product dashboard with metrics
+   - Project dashboard with metrics
 
 7. **Real-time Updates**
    - WebSocket events for task changes
@@ -273,7 +273,7 @@ Core-PM solves these by:
    - Recent pages list
 
 10. **Project-KB Linking**
-    - Link KB pages to Products/Projects
+    - Link KB pages to Projects
     - ProjectPage many-to-many relationship
     - Quick-link from task to KB page
     - KB sidebar in project view
@@ -359,7 +359,7 @@ Core-PM solves these by:
      - Enable external AI agent integration
 
 5. **Budget Tracking**
-   - Budget and actual spend fields on Product
+   - Budget and actual spend fields on Project
    - Cost-per-phase tracking
 
 6. **Sprint Enhancements** *(Competitor-inspired: Linear, Taiga)*
@@ -1058,7 +1058,7 @@ scribe_tools = [
     summarize_page,          # Generate TL;DR
 
     # Organization
-    link_page_to_project,    # Link to Product/Project
+    link_page_to_project,    # Link to Project
     unlink_page,             # Remove project link
     generate_toc,            # Generate table of contents
     suggest_structure,       # AI-suggest page organization
@@ -1192,15 +1192,15 @@ Flag remaining 7 for next sprint. Monitor team capacity."
 
 ## Human Team Management
 
-### Product Team Structure
+### Project Team Structure
 
 Core-PM supports human teams alongside AI agents:
 
 ```
-Product
-└── Product Team
+Project
+└── Project Team
     ├── Human Team Members
-    │   ├── Product Lead (1, required)
+    │   ├── Project Lead (1, required)
     │   ├── Developers (N)
     │   ├── Designers (N)
     │   ├── QA Engineers (N)
@@ -1214,9 +1214,9 @@ Product
 ### Human Role Definitions
 
 ```typescript
-interface ProductTeamMember {
+interface ProjectTeamMember {
   userId: string;
-  productId: string;
+  projectId: string;
   role: TeamRole;
   customRoleName?: string;  // If role is CUSTOM
 
@@ -1248,7 +1248,7 @@ enum TeamRole {
 
 ```typescript
 interface TeamCapacity {
-  productId: string;
+  projectId: string;
   phaseId: string;
 
   // Per-member capacity
@@ -1273,7 +1273,7 @@ interface TeamCapacity {
 
 | Role | Default View | Filters |
 |------|--------------|---------|
-| Product Lead | Product Dashboard | All tasks |
+| Project Lead | Project Dashboard | All tasks |
 | Developer | My Tasks (Kanban) | Assigned to me |
 | Designer | My Tasks (List) | Type = Design tasks |
 | QA | Review Queue | Status = Review, Type = Bug |
@@ -1283,26 +1283,26 @@ interface TeamCapacity {
 
 ## Functional Requirements
 
-### FR-1: Product Management
+### FR-1: Project Management
 
-**FR-1.1: Product CRUD**
-- Create, read, update, delete products
-- Product types: Course, Podcast, Book, SaaS, Website, Custom
+**FR-1.1: Project CRUD**
+- Create, read, update, delete projects
+- Project types: Course, Podcast, Book, SaaS, Website, Custom
 - Color coding and icon assignment
-- Product lead assignment (required)
+- Project lead assignment (required)
 - PM agent team auto-assigned
 
-**FR-1.2: Product Templates**
+**FR-1.2: Project Templates**
 - **BMAD templates** (primary, recommended)
   - Course creation template (7 BUILD + 3 OPERATE)
   - Podcast template (Planning → Production → Distribution)
-  - SaaS Product template (Discovery → Design → Development → Launch)
+  - SaaS Project template (Discovery → Design → Development → Launch)
 - **Flexible templates** (for non-BMAD users)
   - Kanban-only (no phases, just task states)
   - Simple List (minimal structure)
   - Custom template builder
 
-**FR-1.3: Product Settings**
+**FR-1.3: Project Settings**
 - Auto-approval threshold (0-100%, default: 85%)
 - Default assignee per task type
 - Phase template selection
@@ -1311,7 +1311,7 @@ interface TeamCapacity {
 - Archive settings
 
 **FR-1.4: Budget Tracking**
-- Budget field on Product (optional)
+- Budget field on Project (optional)
 - Actual spend tracking
 - Cost-per-phase breakdown
 - Budget alerts at thresholds
@@ -1441,11 +1441,11 @@ interface TeamCapacity {
 - 48-hour deadline warnings
 - Blocker notifications
 - Health score dashboard widget
-- Escalation to Product Lead
+- Escalation to Project Lead
 
 ### FR-6: Reporting & Analytics
 
-**FR-6.1: Product Dashboard**
+**FR-6.1: Project Dashboard**
 - Phase progress (current + next)
 - Active tasks count by state
 - Pending approvals
@@ -1542,10 +1542,10 @@ interface TeamCapacity {
 
 | Dimension | MVP Target | Growth Target |
 |-----------|------------|---------------|
-| Products per business | 50 | 500 |
-| Tasks per product | 10,000 | 100,000 |
-| Team members per product | 20 | 100 |
-| Concurrent users per product | 100 | 1,000 |
+| Projects per business | 50 | 500 |
+| Tasks per project | 10,000 | 100,000 |
+| Team members per project | 20 | 100 |
+| Concurrent users per project | 100 | 1,000 |
 | Agent concurrent executions | 10/workspace | 100/workspace |
 
 ### Security
@@ -1572,10 +1572,10 @@ interface TeamCapacity {
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Business   │────<│   Product   │────<│    Phase    │────<│    Task     │
+│  Business   │────<│   Project   │────<│    Phase    │────<│    Task     │
 │             │     │             │     │             │     │             │
 │ id          │     │ id          │     │ id          │     │ id          │
-│ workspaceId │     │ businessId  │     │ productId   │     │ phaseId     │
+│ workspaceId │     │ businessId  │     │ projectId   │     │ phaseId     │
 │ slug        │     │ slug        │     │ name        │     │ taskNumber  │
 │ name        │     │ name        │     │ bmadPhase   │     │ title       │
 │ aiConfig    │     │ type        │     │ startDate   │     │ type        │
@@ -1590,10 +1590,10 @@ interface TeamCapacity {
 
 ```
 ┌─────────────────┐     ┌─────────────────┐
-│ ProductTeam     │────<│ TeamMember      │
+│ ProjectTeam     │────<│ TeamMember      │
 │                 │     │                 │
-│ productId       │     │ userId          │
-│ leadUserId      │     │ productId       │
+│ projectId       │     │ userId          │
+│ leadUserId      │     │ projectId       │
 │ createdAt       │     │ role            │
 │                 │     │ capacity{}      │
 └─────────────────┘     │ permissions{}   │
@@ -1617,7 +1617,7 @@ interface TeamCapacity {
 │ verifiedBy      │     ┌─────────────────┐
 │ verifyExpires   │     │ ProjectPage     │ (Many-to-Many)
 │ ownerId         │     │                 │
-│ viewCount       │     │ productId       │
+│ viewCount       │     │ projectId       │
 │ lastViewedAt    │     │ pageId          │
 │ createdAt       │     │ isPrimary       │
 │ updatedAt       │     │ createdAt       │
@@ -1634,7 +1634,7 @@ interface TeamCapacity {
 | `KnowledgePage` | Wiki page with rich text content (Tiptap JSON) |
 | `PageVersion` | Version history for each page edit |
 | `PageEmbedding` | Vector embeddings for RAG (pgvector) |
-| `ProjectPage` | Many-to-many link between Products and KB pages |
+| `ProjectPage` | Many-to-many link between Projects and KB pages |
 | `PageComment` | Comments/discussions on KB pages |
 | `PageMention` | @mentions and #references within pages |
 
@@ -1720,9 +1720,9 @@ model PageEmbedding {
 ```
 /pm                                   # Project Management (Core)
 ├── /dashboard                        # PM dashboard (cross-product)
-├── /products                         # Product list
-│   └── /[productId]                  # Product detail
-│       ├── /overview                 # Product dashboard
+├── /projects                         # Project list
+│   └── /[projectId]                  # Project detail
+│       ├── /overview                 # Project dashboard
 │       ├── /team                     # Team management
 │       ├── /phases                   # Phase list
 │       │   └── /[phaseId]            # Phase detail
@@ -1733,8 +1733,8 @@ model PageEmbedding {
 │       │   ├── /timeline             # Timeline (Phase 2)
 │       │   └── /[taskId]             # Task detail
 │       ├── /docs                     # Project-linked KB pages (sidebar)
-│       ├── /reports                  # Product reports
-│       └── /settings                 # Product settings
+│       ├── /reports                  # Project reports
+│       └── /settings                 # Project settings
 ├── /my-tasks                         # Personal task list
 ├── /portfolio                        # Executive dashboard (Phase 2)
 └── /settings                         # PM settings
@@ -1766,16 +1766,16 @@ Command Bar Actions:
 ├── "Create page..." → Quick KB page creation
 ├── "Search KB: {query}" → Semantic KB search
 ├── "Find task: {query}" → Task search
-├── "Go to product..." → Product navigation
+├── "Go to project..." → Project navigation
 ├── "Go to page..." → KB page navigation
 └── "Ask Navi..." → Chat with PM agent
 ```
 
 ### Key User Flows
 
-**1. Create Product with Team**
+**1. Create Project with Team**
 ```
-[Dashboard] → [+ New Product] → [Select Template] → [Configure]
+[Dashboard] → [+ New Project] → [Select Template] → [Configure]
     → [Add Team Members] → [Assign Roles] → [Create]
          ↓
     BMAD Template (recommended)
@@ -1804,7 +1804,7 @@ Command Bar Actions:
 **4. Risk Alert Flow**
 ```
 [Pulse detects risk] → [Alert to Navi]
-    → [Navi notifies Product Lead]
+    → [Navi notifies Project Lead]
     → [Risk card with context]
     → [Suggested actions]
     → [User takes action]
@@ -1814,7 +1814,7 @@ Command Bar Actions:
 ```
 [KB Home] → [+ New Page] → [Select Template (optional)]
     → [Enter Title] → [Rich text editor with Yjs]
-    → [Link to Project] → [Select Product]
+    → [Link to Project] → [Select Project]
     → [Save] → [Page created with embeddings]
 ```
 
@@ -1861,8 +1861,8 @@ When a user first accesses Core-PM:
    - Pulse: "I watch for risks"
    - Scribe: "I manage your knowledge base" *(Phase 2)*
 
-3. **First Product**
-   - Guided product creation
+3. **First Project**
+   - Guided project creation
    - Template selection (BMAD recommended)
    - Team setup wizard
 
@@ -1903,12 +1903,12 @@ This section is split into:
 ```
 apps/
 ├── web/src/app/(dashboard)/core-pm/          # Core-PM UI (planned)
-│   ├── products/                            # Product pages (Phase 1)
+│   ├── projects/                            # Project pages (Phase 1)
 │   ├── tasks/                               # Kanban/List (Phase 1), timeline (Phase 2)
 │   └── kb/                                  # KB CRUD (Phase 1), collab/RAG (Phase 2)
 │
 ├── api/src/core-pm/                          # Core-PM API (planned)
-│   ├── pm/                                   # Products/Phases/Tasks
+│   ├── pm/                                   # Projects/Phases/Tasks
 │   ├── kb/                                   # Pages/Search/Verification
 │   └── events/                               # Event publishing via existing event bus
 │
@@ -2073,7 +2073,7 @@ Core-PM is the platform core, but Phase 1 still needs strict boundaries to ship 
 ### Phase 1: MVP (6 weeks)
 
 **Week 1-2: Data Layer & Core APIs**
-- Product, Phase, Task Prisma models
+- Project, Phase, Task Prisma models
 - Team and TeamMember models
 - **KnowledgePage, PageVersion models**
 - CRUD API endpoints
@@ -2090,7 +2090,7 @@ Core-PM is the platform core, but Phase 1 still needs strict boundaries to ship 
 - Agent team configuration
 
 **Week 5: Core PM UI**
-- Product dashboard
+- Project dashboard
 - Kanban board
 - List view
 - Task detail panel
@@ -2162,7 +2162,7 @@ Core-PM is the platform core, but Phase 1 still needs strict boundaries to ship 
 1. Data model + RLS
    - Core-PM tables exist with `workspaceId` isolation and RLS validated against cross-workspace access attempts
 2. API + permissions
-   - CRUD endpoints for Products/Phases/Tasks and KB Pages/Versions (no collaboration required)
+   - CRUD endpoints for Projects/Phases/Tasks and KB Pages/Versions (no collaboration required)
    - Authorization rules documented and enforced (who can create/edit/verify)
 3. UI
    - Kanban + List views, quick capture, task detail, team management
@@ -2198,7 +2198,7 @@ Core-PM is the platform core, but Phase 1 still needs strict boundaries to ship 
 
 | Capability | PRD reference | Data model | API surface (planned) | Phase 1 events | Phase 1 tests |
 |-----------|---------------|------------|------------------------|----------------|--------------|
-| Product CRUD | FR-1 | Product | `apps/api/src/core-pm/pm/*` | approval.* when agent-created | Service + authorization tests |
+| Project CRUD | FR-1 | Project | `apps/api/src/core-pm/pm/*` | approval.* when agent-created | Service + authorization tests |
 | Phase CRUD | FR-2 | Phase | `apps/api/src/core-pm/pm/*` | none required | Service tests + ordering rules |
 | Task workflow | FR-3 | Task | `apps/api/src/core-pm/pm/*` | approval.* + agent.* | State transition tests |
 | KB CRUD | KB-01/KB-02 | KnowledgePage, PageVersion | `apps/api/src/core-pm/kb/*` | agent.* for drafts | Versioning + permissions tests |
@@ -2294,7 +2294,7 @@ Within MVP (Phase 1), if timeline pressure occurs:
 |-----------|---------------------|
 | BM-CRM | Link tasks to contacts/deals, agent orchestration |
 | BM-Content | Content project management, KB for content assets |
-| BME-* modules | Product execution via PM workflows |
+| BME-* modules | Project execution via PM workflows |
 | All AI agents | Search KB for context (RAG) |
 | Platform chat | Navi answers questions with KB context |
 
@@ -2303,7 +2303,7 @@ Within MVP (Phase 1), if timeline pressure occurs:
 | Module | Dependency Type | Notes |
 |--------|-----------------|-------|
 | BM-CRM | Optional | Link tasks to contacts/deals |
-| BME-* | Consumer | Product execution modules use PM |
+| BME-* | Consumer | Project execution modules use PM |
 | BMT-Analytics | Consumer | PM feeds analytics |
 | **All Modules** | **RAG Consumer** | All modules can search KB |
 
@@ -2468,7 +2468,7 @@ When users ask questions:
 
 | Phase | Name | Suggested Duration | Primary Agent | Key Deliverables |
 |-------|------|-------------------|---------------|------------------|
-| 1 | Brief & Vision | 1 week | Navi | Product brief, success criteria |
+| 1 | Brief & Vision | 1 week | Navi | Project brief, success criteria |
 | 2 | Requirements | 1 week | Navi + Scope | PRD, user stories |
 | 3 | Architecture | 1 week | Navi | Technical design, content structure |
 | 4 | Content Development | 4 weeks | Module agents | Course content, assets |

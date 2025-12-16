@@ -15,7 +15,7 @@ This document consolidates research findings for the BM-PM module across 9 key a
 - Specific implementation guidance
 
 **Key Decisions Made:**
-1. **Hierarchy**: Business → Product → Phase → Task (adapting Plane's Workspace → Project → Cycle → Issue)
+1. **Hierarchy**: Business → Project → Phase → Task (adapting Plane's Workspace → Project → Cycle → Issue)
 2. **Issue Types**: Epic, Story, Task, Subtask, Bug, Research, Content (AI-specific additions)
 3. **States**: Global state groups with project-level customization
 4. **Views**: List, Kanban, Calendar, Timeline for MVP (Spreadsheet/Gantt post-MVP)
@@ -40,7 +40,7 @@ Organization → Workspace → Project → Sprint → Task → Subtask
 
 **BM-PM Recommended Pattern:**
 ```
-Business (Tenant) → Product → Phase → Task → Subtask
+Business (Tenant) → Project → Phase → Task → Subtask
 ```
 
 ### Hierarchy Structure Decision
@@ -48,7 +48,7 @@ Business (Tenant) → Product → Phase → Task → Subtask
 | Level | Entity | Description | Key Fields |
 |-------|--------|-------------|------------|
 | 1 | **Business** | Tenant/organization | slug, name, aiConfig, billing, branding |
-| 2 | **Product** | Product being built | template_type (Course, Podcast, SaaS), agent_team |
+| 2 | **Project** | Deliverable being built | template_type (Course, Podcast, SaaS), agent_team |
 | 3 | **Phase** | BMAD phase or sprint | phase_type, start_date, end_date, progress_snapshot |
 | 4 | **Task** | Work item (human or agent) | assignment_type, assigned_agent, confidence |
 | 5 | **Subtask** | Child of task | parent_task_id |
@@ -56,25 +56,25 @@ Business (Tenant) → Product → Phase → Task → Subtask
 ### Questions Answered
 
 **Q1: One workspace per tenant or multiple?**
-- **Answer:** One Business per tenant. Multiple Products per Business.
-- **Rationale:** Simpler billing, RBAC, and data isolation. Products provide natural grouping.
+- **Answer:** One Business per tenant. Multiple Projects per Business.
+- **Rationale:** Simpler billing, RBAC, and data isolation. Projects provide natural grouping.
 
 **Q2: Can issues exist without a project?**
-- **Answer:** No. All Tasks must belong to a Product.
+- **Answer:** No. All Tasks must belong to a Project.
 - **Rationale:** Orphaned tasks complicate reporting and access control.
 
 **Q3: How do we handle issue movement between projects?**
-- **Answer:** Support task move with `moved_to_product`, `moved_from_product` tracking.
+- **Answer:** Support task move with `moved_to_project`, `moved_from_project` tracking.
 - **Pattern:** Plane's `moved_to_page`, `moved_to_project` pattern.
 
 **Q4: What's the maximum hierarchy depth?**
-- **Answer:** 5 levels (Business → Product → Phase → Task → Subtask)
+- **Answer:** 5 levels (Business → Project → Phase → Task → Subtask)
 - **Rationale:** Sub-subtasks add complexity without significant value.
 
 ### Project Configuration
 
 ```typescript
-interface Product {
+interface Project {
   id: string;
   businessId: string;
   name: string;
@@ -184,7 +184,7 @@ interface Business {
 ```typescript
 interface AgentTask {
   id: string;
-  productId: string;
+  projectId: string;
   phaseId?: string;
 
   // Core fields
@@ -384,7 +384,7 @@ interface TaskDescription {
 ```typescript
 interface Phase {
   id: string;
-  productId: string;
+  projectId: string;
   name: string;
   description: string;
 
@@ -478,7 +478,7 @@ interface PhaseTask {
 ### Sprint Planning
 
 - Sprint backlog: Tasks in phase with status != completed
-- Product backlog: Tasks not in any phase
+- Project backlog: Tasks not in any phase
 - Capacity: Sum of story points for assigned team members
 - Velocity: Average completed points per phase
 
@@ -593,7 +593,7 @@ interface SavedView {
   description?: string;
 
   // Scope
-  productId?: string; // null = workspace-level
+  projectId?: string; // null = workspace-level
 
   // View configuration
   filters: ViewFilters;
@@ -629,7 +629,7 @@ Pre-configured views for new products:
 - List, Kanban, Calendar (Timeline as P2)
 
 **Q2: Can views be shared across projects?**
-- Yes, via workspace-level views (productId = null)
+- Yes, via workspace-level views (projectId = null)
 
 **Q3: How do we handle view performance with large datasets?**
 - Pagination (50 items default)
@@ -848,7 +848,7 @@ interface ReporterAgent {
 ```typescript
 interface ImportJob {
   id: string;
-  productId: string;
+  projectId: string;
   source: 'csv' | 'jira' | 'trello' | 'github' | 'asana';
   status: 'pending' | 'mapping' | 'importing' | 'completed' | 'failed';
 
@@ -879,7 +879,7 @@ interface ImportJob {
 
 ```typescript
 interface GitIntegration {
-  productId: string;
+  projectId: string;
   provider: 'github' | 'gitlab' | 'bitbucket';
   repositoryUrl: string;
 
@@ -908,7 +908,7 @@ interface GitIntegration {
 ```typescript
 interface Webhook {
   id: string;
-  productId: string;
+  projectId: string;
   url: string;
   secret: string; // For signature verification
 
@@ -977,7 +977,7 @@ type WebhookEvent =
 ```typescript
 // Room hierarchy (from Taskosaur pattern)
 client.join(`business:${businessId}`);
-client.join(`product:${productId}`);
+client.join(`project:${projectId}`);
 client.join(`phase:${phaseId}`);
 client.join(`task:${taskId}`);
 
@@ -994,8 +994,8 @@ type PMSocketEvent =
 ### Presence Tracking
 
 ```typescript
-interface ProductPresence {
-  productId: string;
+interface ProjectPresence {
+  projectId: string;
   activeUsers: {
     userId: string;
     userName: string;
@@ -1055,12 +1055,12 @@ interface ProductPresence {
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Header: Product selector | Phase tabs | Search | Avatar     │
+│ Header: Project selector | Phase tabs | Search | Avatar     │
 ├──────────┬──────────────────────────────────────────────────┤
 │          │                                                   │
 │ Sidebar  │                 Main Content                      │
 │ --------│                                                   │
-│ Products │  ┌───────────────────────────────────────────┐   │
+│ Projects │  ┌───────────────────────────────────────────┐   │
 │ Phases   │  │                                           │   │
 │ Views    │  │         Kanban / List / Calendar          │   │
 │ Reports  │  │                                           │   │
@@ -1205,7 +1205,7 @@ interface PhaseAnalytics {
 
 ### Dashboards
 
-**Product Dashboard:**
+**Project Dashboard:**
 - Active phase progress
 - Upcoming deadlines
 - Recent activity
@@ -1213,8 +1213,8 @@ interface PhaseAnalytics {
 - Key metrics (velocity, cycle time)
 
 **Portfolio Dashboard (Business-level):**
-- Products overview
-- Cross-product metrics
+- Projects overview
+- Cross-project metrics
 - Resource utilization
 - Overall agent performance
 
@@ -1246,7 +1246,7 @@ interface PhaseAnalytics {
 
 | PM Requirement | Platform Feature | Status |
 |----------------|------------------|--------|
-| Product permissions | RBAC system | Depends on Platform PRD |
+| Project permissions | RBAC system | Depends on Platform PRD |
 | Business isolation | Multi-tenant isolation | Depends on Platform PRD |
 | Activity logging | Audit trail | Depends on Platform PRD |
 | Agent interactions | Sentinel approval system | Depends on Platform PRD |
@@ -1259,8 +1259,8 @@ interface PhaseAnalytics {
 
 | PM Feature | CRM Integration | Notes |
 |------------|-----------------|-------|
-| Link tasks to contacts | Contact entity | Product can reference deal/contact |
-| Customer projects | Company association | Filter products by company |
+| Link tasks to contacts | Contact entity | Project can reference deal/contact |
+| Customer projects | Company association | Filter projects by company |
 | Client billing | Deal pipeline | Track hours against deals |
 
 **Recommendation:** Build BM-CRM first to establish shared entities, or define minimal shared entity interfaces in Platform Foundation.
@@ -1270,7 +1270,7 @@ interface PhaseAnalytics {
 ## Implementation Priority
 
 ### Phase 1: Core Data Model (Weeks 1-2)
-1. Business, Product, Phase, Task entities
+1. Business, Project, Phase, Task entities
 2. State management and workflows
 3. Basic CRUD APIs
 4. Task relations

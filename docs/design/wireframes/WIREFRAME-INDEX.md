@@ -494,12 +494,12 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 > **Status:** Research complete - Ready for wireframing
 > **Reference:** `/docs/modules/bm-pm/research/` - All research findings documents
 
-### Product & Project Views (4 wireframes)
+### Project & Phase Views (4 wireframes)
 
 | ID | Wireframe | Description | Priority | Status | Assets |
 |----|-----------|-------------|----------|--------|--------|
-| PM-01 | `pm-product-dashboard.excalidraw` | Products overview: cards with progress bars, phase status, agent count, pending approvals | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/screen.png) |
-| PM-02 | `pm-product-detail.excalidraw` | Single product view: phase timeline, metrics summary, team members, BMAD progress | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-02_project_detail_overview/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-02_project_detail_overview/screen.png) |
+| PM-01 | `pm-project-dashboard.excalidraw` | Projects overview: cards with progress bars, phase status, agent count, pending approvals | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/screen.png) |
+| PM-02 | `pm-project-detail.excalidraw` | Single project view: phase timeline, metrics summary, team members, BMAD progress | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-02_project_detail_overview/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-02_project_detail_overview/screen.png) |
 | PM-03 | `pm-phase-view.excalidraw` | Phase/sprint view with burndown chart, capacity bar, sprint backlog | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/screen.png) |
 | PM-04 | `pm-sprint-planning.excalidraw` | Sprint planning board: backlog → sprint, capacity visualization, drag-drop assignment | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-04_task_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-04_task_list_view/screen.png) |
 
@@ -533,12 +533,12 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 ### PM Wireframe Design Specs
 
 **Layout Pattern:** Plane-inspired three-column layout
-- Left: Product/phase navigation + saved views
+- Left: Project/phase navigation + saved views
 - Center: Main content (list/board/calendar/timeline)
 - Right: Task detail slide-out panel
 
 **Key Design Elements:**
-- Command palette (Cmd+K) with PM shortcuts: `c` create, `p` products, `gm` my tasks
+- Command palette (Cmd+K) with PM shortcuts: `c` create, `p` projects, `gm` my tasks
 - Agent task badges with confidence score (e.g., "🤖 94%")
 - Phase progress indicators with BMAD phase colors
 - Story point estimates with fibonacci sequence
@@ -1277,8 +1277,8 @@ Step 1: Documents → Step 2: Details → Step 3: Idea → Step 4: Launch
 25. CRM-13 Agent Suggestions
 
 ### Sprint 4 - PM Module Core (P1)
-26. PM-01 Product Dashboard
-27. PM-02 Product Detail
+26. PM-01 Project Dashboard
+27. PM-02 Project Detail
 28. PM-03 Phase View
 29. PM-05 Task List
 30. PM-06 Kanban Board
@@ -1343,7 +1343,7 @@ Step 1: Documents → Step 2: Details → Step 3: Idea → Step 4: Launch
 - `/docs/modules/bm-pm/README.md` - Module overview and roadmap
 
 **PM Research Sections:**
-1. Project & Workspace Hierarchy - Business → Product → Phase → Task
+1. Project & Workspace Hierarchy - Business → Project → Phase → Task
 2. Issue Management - Task entity, states, relations, rich content
 3. Sprint/Cycle Management - BMAD phases, progress snapshots
 4. Views & Filters - List, Kanban, Calendar, Timeline, saved views

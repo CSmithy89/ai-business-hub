@@ -454,7 +454,7 @@ This checklist identifies project management-specific gaps that need research be
 
 | Section | Research Status | Notes |
 |---------|-----------------|-------|
-| 1. Hierarchy | ✅ Complete | Business → Product → Phase → Task hierarchy defined |
+| 1. Hierarchy | ✅ Complete | Business → Project → Phase → Task hierarchy defined |
 | 2. Issue Management | ✅ Complete | Task entity, states, relations documented |
 | 3. Sprints/Cycles | ✅ Complete | Phase entity with BMAD phase types |
 | 4. Views & Filters | ✅ Complete | List, Kanban, Calendar views; filter system |

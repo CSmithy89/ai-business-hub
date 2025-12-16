@@ -17,7 +17,7 @@ Core-PM is **platform core infrastructure**, not an optional module. It provides
 ## Tenancy + Hierarchy (Canonical)
 
 1. **Isolation boundary:** Workspace (`workspaceId`)
-2. **Hierarchy:** `Workspace → Business → Product → Phase → Task`
+2. **Hierarchy:** `Workspace → Business → Project → Phase → Task`
 3. Event bus payloads currently use `tenantId`; treat it as an alias (`tenantId == workspaceId`) until naming is standardized platform-wide.
 
 ## Key Documents

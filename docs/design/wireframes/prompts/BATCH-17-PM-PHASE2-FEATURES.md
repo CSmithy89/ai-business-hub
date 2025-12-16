@@ -89,7 +89,7 @@ Transition:             150ms ease-out
 **File:** `pm-portfolio-dashboard.excalidraw`
 **Priority:** P2 (Medium)
 **PRD Reference:** FR-4.6, lines 1361-1366; Phase 2, line 285
-**Goal:** Design a cross-product executive dashboard showing health summaries, aggregate metrics, resource utilization, and risk overview across all products in a workspace.
+**Goal:** Design a cross-project executive dashboard showing health summaries, aggregate metrics, resource utilization, and risk overview across all projects in a workspace.
 
 ### Feature Requirements (from PRD)
 ```
@@ -107,7 +107,7 @@ Transition:             150ms ease-out
 |  EXECUTIVE PORTFOLIO DASHBOARD                                                 |
 |  +--------------------------------------------------------------------------+ |
 |  | Portfolio Overview                        [Last 30 Days v] [Export] [...]| |
-|  | 12 Active Products | 847 Total Tasks | 23 Team Members                   | |
+|  | 12 Active Projects | 847 Total Tasks | 23 Team Members                   | |
 |  +--------------------------------------------------------------------------+ |
 |                                                                                |
 |  AGGREGATE METRICS                                                             |
@@ -142,7 +142,7 @@ Transition:             150ms ease-out
 |  | Marketing Hub    ███████░░░  72%   | |                                  | |
 |  |                  [Fair]             | | [View All Risks]                 | |
 |  |                                     | |                                  | |
-|  | [Show All 12 Products]              | +----------------------------------+ |
+|  | [Show All 12 Projects]              | +----------------------------------+ |
 |  +-------------------------------------+                                      |
 |                                                                                |
 |  +-------------------------------------+ +----------------------------------+ |
@@ -152,13 +152,13 @@ Transition:             150ms ease-out
 |  | TEAM MEMBER      ALLOCATION  AVAIL  | | PROJECT          DUE      STATUS | |
 |  | ----------------------------------- | | -------------------------------- | |
 |  | Sarah Chen       ████████░░  85%   | | Website v2.0     Dec 20  [=====]| |
-|  |   4 products     15% avail          | | Mobile App       Jan 15  [===--]| |
+|  |   4 projects     15% avail          | | Mobile App       Jan 15  [===--]| |
 |  |                                     | | API Platform     Dec 30  [====!]| |
 |  | John Martinez    ██████████ 100%   | | CRM Integration  Feb 01  [==---]| |
-|  |   3 products     0% avail           | | Marketing Hub    Jan 30  [===--]| |
+|  |   3 projects     0% avail           | | Marketing Hub    Jan 30  [===--]| |
 |  |                                     | |                                  | |
 |  | Maya Johnson     ██████░░░░  60%   | | ! = At Risk                      | |
-|  |   2 products     40% avail          | |                                  | |
+|  |   2 projects     40% avail          | |                                  | |
 |  |                                     | | [View Full Timeline]             | |
 |  | [View All Team Members]             | |                                  | |
 |  +-------------------------------------+ +----------------------------------+ |
@@ -182,14 +182,14 @@ Transition:             150ms ease-out
 +------------------------------------------------------------------------------+
 ```
 
-### Product Health Card Detail
+### Project Health Card Detail
 
 ```
 +------------------------------------------------------------------------------+
 |  PRODUCT DETAIL CARD (On hover/click from grid)                                |
 |                                                                                |
 |  +--------------------------------------------------------------------------+ |
-|  | Website Redesign v2.0                                    [Open Product]  | |
+|  | Website Redesign v2.0                                    [Open Project]  | |
 |  | -----------------------------------------------------------------------  | |
 |  |                                                                           | |
 |  | HEALTH SCORE                                                              | |
@@ -224,7 +224,7 @@ Transition:             150ms ease-out
 
 1. **Header Section**
    - Portfolio title
-   - Summary stats: Products, Tasks, Team Members
+   - Summary stats: Projects, Tasks, Team Members
    - Time range selector
    - Export button
 
@@ -235,20 +235,20 @@ Transition:             150ms ease-out
    - Month-over-month trend indicator
    - Green/red trend arrows
 
-3. **Product Health Overview**
-   - List of products with health bars
+3. **Project Health Overview**
+   - List of projects with health bars
    - Health percentage and status badge
    - Click to drill down
-   - Show more link for all products
+   - Show more link for all projects
 
 4. **Risk Overview Panel**
    - Risk level breakdown (Critical/High/Medium/Low)
-   - Top risks list with product context
+   - Top risks list with project context
    - Action link to view all risks
 
 5. **Resource Utilization**
    - Team members with allocation bars
-   - Products count per member
+   - Projects count per member
    - Available capacity percentage
    - Over-allocation warning (red)
 
@@ -258,8 +258,8 @@ Transition:             150ms ease-out
    - Status indicators
    - At-risk flagging
 
-7. **Product Health Grid**
-   - Card grid for all products
+7. **Project Health Grid**
+   - Card grid for all projects
    - Color-coded health scores
    - Quick visual scan
    - Click for detail card
@@ -424,8 +424,8 @@ Transition:             150ms ease-out
 |  |  +-------------------------------------------------------------------+   | |
 |  |  | Include tasks from:                                                |   | |
 |  |  |                                                                    |   | |
-|  |  | (*) All my assigned products                                       |   | |
-|  |  | ( ) Selected products only:                                        |   | |
+|  |  | (*) All my assigned projects                                       |   | |
+|  |  | ( ) Selected projects only:                                        |   | |
 |  |  |     [ ] Website v2.0                                               |   | |
 |  |  |     [ ] API Platform                                               |   | |
 |  |  |     [ ] Mobile App                                                 |   | |
@@ -484,7 +484,7 @@ Transition:             150ms ease-out
 3. **Due Today Section**
    - Expandable/collapsible
    - Tasks with priority indicators
-   - Product context
+   - Project context
    - One-click actions: Complete, Extend
 
 4. **Blockers & Risks**
@@ -514,7 +514,7 @@ Transition:             150ms ease-out
    - Delivery time picker
    - Delivery method selection
    - Content section toggles
-   - Product scope selection
+   - Project scope selection
    - Quiet days configuration
 
 ### Style Notes

@@ -48,7 +48,7 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 │   ┌─────────────────────────────┐      ┌─────────────────────────────────┐  │
 │   │     Project Management      │      │        Knowledge Base           │  │
 │   │                             │      │                                 │  │
-│   │  • Products/Projects        │◄────►│  • Wiki Pages (Yjs CRDT)       │  │
+│   │  • Projects                 │◄────►│  • Wiki Pages (Yjs CRDT)       │  │
 │   │  • BMAD Workflow Engine     │      │  • RAG Pipeline (pgvector)     │  │
 │   │  • 9-Agent Team             │      │  • Verified Content System     │  │
 │   │  • Human + AI Hybrid Tasks  │      │  • @mentions & #references     │  │
@@ -77,7 +77,7 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 │                            Frontend (Next.js 15)                             │
 ├──────────────────────────────┬──────────────────────────────────────────────┤
 │         PM UI Components     │           KB UI Components                    │
-│  • Product Dashboard         │  • KB Home (Recent, Favorites)               │
+│  • Project Dashboard         │  • KB Home (Recent, Favorites)               │
 │  • Kanban/List/Calendar      │  • Page Editor (Tiptap + Yjs)                │
 │  • Team Management           │  • Search Results                             │
 │  • Task Detail Panel         │  • Version History                            │
@@ -101,7 +101,7 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 │                          Service Layer (NestJS)                              │
 ├──────────────────────────────┬──────────────────────────────────────────────┤
 │         PM Services          │           KB Services                         │
-│  • ProductsService           │  • PagesService                              │
+│  • ProjectsService           │  • PagesService                              │
 │  • PhasesService             │  • VersionsService                           │
 │  • TasksService              │  • SearchService (FTS + Semantic)            │
 │  • TeamsService              │  • RAGService                                │
@@ -113,8 +113,8 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 │                         Data Layer (Prisma + PostgreSQL)                     │
 ├──────────────────────────────┬──────────────────────────────────────────────┤
 │         PM Models            │           KB Models                           │
-│  • Product, Phase, Task      │  • KnowledgePage, PageVersion                │
-│  • ProductTeam, TeamMember   │  • PageEmbedding (pgvector)                  │
+│  • Project, Phase, Task      │  • KnowledgePage, PageVersion                │
+│  • ProjectTeam, TeamMember   │  • PageEmbedding (pgvector)                  │
 │  • TaskActivity, TaskRelation│  • ProjectPage (many-to-many)               │
 │  • SavedView, RiskEntry      │  • PageComment, PageMention                  │
 └──────────────────────────────┴──────────────────────────────────────────────┘
@@ -172,10 +172,10 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐                │
-│  │   Business  │──────<│   Product   │──────<│    Phase    │                │
+│  │   Business  │──────<│   Project   │──────<│    Phase    │                │
 │  │             │  1:N  │             │  1:N  │             │                │
 │  │ id          │       │ id          │       │ id          │                │
-│  │ workspaceId │       │ businessId  │       │ productId   │                │
+│  │ workspaceId │       │ businessId  │       │ projectId   │                │
 │  │ slug        │       │ name, slug  │       │ name        │                │
 │  │ name        │       │ type        │       │ bmadPhase   │                │
 │  │ aiConfig{}  │       │ status      │       │ status      │                │
@@ -186,9 +186,9 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 │                               │ 1:1                 │                       │
 │                               ▼                     ▼                       │
 │                        ┌─────────────┐       ┌─────────────┐                │
-│                        │ ProductTeam │       │    Task     │                │
+│                        │ ProjectTeam │       │    Task     │                │
 │                        │             │       │             │                │
-│                        │ productId   │       │ id          │                │
+│                        │ projectId   │       │ id          │                │
 │                        │ leadUserId  │       │ phaseId     │                │
 │                        └──────┬──────┘       │ taskNumber  │                │
 │                               │              │ title       │                │
@@ -198,7 +198,7 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 │                        │ TeamMember  │       │ approval{}  │                │
 │                        │             │       │ estimate{}  │                │
 │                        │ userId      │       └──────┬──────┘                │
-│                        │ productId   │              │                       │
+│                        │ projectId   │              │                       │
 │                        │ role        │              │ 1:N                    │
 │                        │ capacity{}  │              ▼                       │
 │                        └─────────────┘       ┌─────────────┐                │
@@ -252,7 +252,7 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 │           │ N:M             ┌─────────────────┐                             │
 │           └────────────────►│  ProjectPage    │ (Many-to-Many join)         │
 │                             │                 │                             │
-│                             │ productId       │────────► Product            │
+│                             │ projectId       │────────► Project            │
 │                             │ pageId          │────────► KnowledgePage      │
 │                             │ isPrimary       │                             │
 │                             └─────────────────┘                             │
@@ -265,7 +265,7 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 ```prisma
 // packages/db/prisma/schema.prisma (planned: split into pm/kb schema files when Core-PM lands)
 
-model Product {
+model Project {
   id            String        @id @default(cuid())
   workspaceId   String
   businessId    String
@@ -279,7 +279,7 @@ model Product {
   coverImage    String?
 
   // Type Classification
-  type          ProductType   @default(CUSTOM)
+  type          ProjectType   @default(CUSTOM)
 
   // BMAD Configuration
   bmadTemplateId String?
@@ -290,7 +290,7 @@ model Product {
   actualSpend   Decimal?      @db.Decimal(12, 2)
 
   // Status
-  status        ProductStatus @default(PLANNING)
+  status        ProjectStatus @default(PLANNING)
   startDate     DateTime?
   targetDate    DateTime?
 
@@ -311,7 +311,7 @@ model Product {
   // Relations
   business      Business      @relation(fields: [businessId], references: [id])
   phases        Phase[]
-  team          ProductTeam?
+  team          ProjectTeam?
   views         SavedView[]
   pages         ProjectPage[]
 
@@ -323,7 +323,7 @@ model Product {
 
 model Phase {
   id            String        @id @default(cuid())
-  productId     String
+  projectId     String
   name          String
   description   String?
 
@@ -349,11 +349,11 @@ model Phase {
   updatedAt     DateTime      @updatedAt
 
   // Relations
-  product       Product       @relation(fields: [productId], references: [id])
+  project       Project       @relation(fields: [projectId], references: [id])
   tasks         Task[]
   snapshots     PhaseSnapshot[]
 
-  @@index([productId])
+  @@index([projectId])
   @@index([status])
 }
 
@@ -361,10 +361,10 @@ model Task {
   id            String        @id @default(cuid())
   workspaceId   String
   phaseId       String
-  productId     String        // Denormalized for queries
+  projectId     String        // Denormalized for queries
 
   // Basic Info
-  taskNumber    Int           // Sequential per product: PROD-001
+  taskNumber    Int           // Sequential per project: PROJ-001
   title         String
   description   String?       // Rich text markdown
 
@@ -418,23 +418,23 @@ model Task {
   comments      TaskComment[]
   labels        TaskLabel[]
 
-  @@unique([productId, taskNumber])
+  @@unique([projectId, taskNumber])
   @@index([workspaceId])
   @@index([phaseId])
-  @@index([productId])
+  @@index([projectId])
   @@index([status])
   @@index([assigneeId])
   @@index([dueDate])
 }
 
-model ProductTeam {
+model ProjectTeam {
   id            String        @id @default(cuid())
-  productId     String        @unique
+  projectId     String        @unique
   leadUserId    String
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  product       Product       @relation(fields: [productId], references: [id])
+  project       Project       @relation(fields: [projectId], references: [id])
   members       TeamMember[]
 
   @@index([leadUserId])
@@ -460,13 +460,13 @@ model TeamMember {
   isActive      Boolean       @default(true)
   joinedAt      DateTime      @default(now())
 
-  team          ProductTeam   @relation(fields: [teamId], references: [id])
+  team          ProjectTeam   @relation(fields: [teamId], references: [id])
 
   @@unique([teamId, userId])
   @@index([userId])
 }
 
-enum ProductType {
+enum ProjectType {
   COURSE
   PODCAST
   BOOK
@@ -478,7 +478,7 @@ enum ProductType {
   CUSTOM
 }
 
-enum ProductStatus {
+enum ProjectStatus {
   PLANNING
   ACTIVE
   ON_HOLD
@@ -550,7 +550,7 @@ enum ApprovalStatus {
 }
 
 enum TeamRole {
-  PRODUCT_LEAD
+  PROJECT_LEAD
   DEVELOPER
   DESIGNER
   QA_ENGINEER
@@ -654,16 +654,16 @@ model PageEmbedding {
 
 model ProjectPage {
   id            String        @id @default(cuid())
-  productId     String
+  projectId     String
   pageId        String
   isPrimary     Boolean       @default(false)
   createdAt     DateTime      @default(now())
 
-  product       Product       @relation(fields: [productId], references: [id])
+  project       Project       @relation(fields: [projectId], references: [id])
   page          KnowledgePage @relation(fields: [pageId], references: [id])
 
-  @@unique([productId, pageId])
-  @@index([productId])
+  @@unique([projectId, pageId])
+  @@index([projectId])
   @@index([pageId])
 }
 
@@ -811,9 +811,9 @@ from agno.memory import Memory
 	    user_id: str,
 	    workspace_id: str,
 	    business_id: str,
-	    product_id: str,
+	    project_id: str,
 	) -> Team:
-	    """Create Core-PM agent team for a product (pattern aligned with agents/*/team.py)."""
+	    """Create Core-PM agent team for a project (pattern aligned with agents/*/team.py)."""
 
     # Shared memory for team context
     shared_memory = Memory(
@@ -821,21 +821,21 @@ from agno.memory import Memory
 	            table_name=f"core_pm_memory_{workspace_id}",
 	            schema="agent_memory"
 	        ),
-	        namespace=f"product:{product_id}"
+	        namespace=f"project:{project_id}"
 	    )
 
     # MVP Agents
-	    navi = create_navi(workspace_id, product_id, shared_memory)
-	    sage = create_sage(workspace_id, product_id, shared_memory)
-	    herald = create_herald(workspace_id, product_id, shared_memory)
-	    chrono = create_chrono(workspace_id, product_id, shared_memory)
-	    scope = create_scope(workspace_id, product_id, shared_memory)
-	    pulse = create_pulse(workspace_id, product_id, shared_memory)
+	    navi = create_navi(workspace_id, project_id, shared_memory)
+	    sage = create_sage(workspace_id, project_id, shared_memory)
+	    herald = create_herald(workspace_id, project_id, shared_memory)
+	    chrono = create_chrono(workspace_id, project_id, shared_memory)
+	    scope = create_scope(workspace_id, project_id, shared_memory)
+	    pulse = create_pulse(workspace_id, project_id, shared_memory)
 
     # Phase 2 Agents (initialized but not active until feature flag)
-	    scribe = create_scribe(workspace_id, product_id, shared_memory)
-	    bridge = create_bridge(workspace_id, product_id, shared_memory)
-	    prism = create_prism(workspace_id, product_id, shared_memory)
+	    scribe = create_scribe(workspace_id, project_id, shared_memory)
+	    bridge = create_bridge(workspace_id, project_id, shared_memory)
+	    prism = create_prism(workspace_id, project_id, shared_memory)
 
     return Team(
         name="Core-PM Team",
@@ -877,7 +877,7 @@ from .tools.kb_tools import (
     mark_verified, detect_stale_pages, summarize_page
 )
 
-	def create_scribe(workspace_id: str, product_id: str, memory) -> Agent:
+	def create_scribe(workspace_id: str, project_id: str, memory) -> Agent:
 	    """Create Scribe - Knowledge Base Manager agent."""
 
 	    return Agent(
@@ -1536,17 +1536,17 @@ export function CollaborativeEditor({ pageId, initialContent, onSave }: Props) {
 
 ```sql
 -- All Core-PM tables have workspace isolation (tenant == workspace)
-ALTER TABLE "Product" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Project" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Phase" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Task" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "KnowledgePage" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "PageEmbedding" ENABLE ROW LEVEL SECURITY;
 
--- Product RLS
-CREATE POLICY "tenant_isolation" ON "Product"
+-- Project RLS
+CREATE POLICY "tenant_isolation" ON "Project"
   USING (workspace_id = current_setting('app.tenant_id', true)::uuid);
 
--- Task RLS (inherits from Product via Phase)
+-- Task RLS (inherits from Project via Phase)
 CREATE POLICY "tenant_isolation" ON "Task"
   USING (workspace_id = current_setting('app.tenant_id', true)::uuid);
 
@@ -1569,7 +1569,7 @@ CREATE POLICY "tenant_isolation" ON "PageEmbedding"
 ```typescript
 // PM Permissions
 enum PMPermission {
-  // Product
+  // Project
   PRODUCT_VIEW = 'pm:product:view',
   PRODUCT_CREATE = 'pm:product:create',
   PRODUCT_UPDATE = 'pm:product:update',
@@ -1605,7 +1605,7 @@ enum KBPermission {
 
 // Role → Permission mapping
 const ROLE_PERMISSIONS = {
-  PRODUCT_LEAD: [
+  PROJECT_LEAD: [
     ...Object.values(PMPermission),
     ...Object.values(KBPermission),
   ],
@@ -1641,8 +1641,8 @@ const ROLE_PERMISSIONS = {
 
 | Dimension | MVP | Growth |
 |-----------|-----|--------|
-| Products per tenant | 50 | 500 |
-| Tasks per product | 10,000 | 100,000 |
+| Projects per tenant | 50 | 500 |
+| Tasks per project | 10,000 | 100,000 |
 | KB pages per workspace | 1,000 | 50,000 |
 | Embeddings per tenant | 100,000 | 5,000,000 |
 | Concurrent KB editors | 10 | 100 |
@@ -1652,9 +1652,9 @@ const ROLE_PERMISSIONS = {
 
 ```typescript
 // 1. Denormalization for read performance
-// Product stores aggregated task counts
-await prisma.product.update({
-  where: { id: productId },
+// Project stores aggregated task counts
+await prisma.project.update({
+  where: { id: projectId },
   data: {
     totalTasks: { increment: 1 },
     lastActivityAt: new Date(),
@@ -1662,14 +1662,14 @@ await prisma.product.update({
 });
 
 // 2. Materialized views for analytics
-CREATE MATERIALIZED VIEW mv_product_metrics AS
+CREATE MATERIALIZED VIEW mv_project_metrics AS
 SELECT
-  p.id as product_id,
+  p.id as project_id,
   COUNT(t.id) as total_tasks,
   COUNT(t.id) FILTER (WHERE t.status = 'DONE') as completed_tasks,
   SUM(t.story_points) as total_points
-FROM "Product" p
-LEFT JOIN "Phase" ph ON p.id = ph.product_id
+FROM "Project" p
+LEFT JOIN "Phase" ph ON p.id = ph.project_id
 LEFT JOIN "Task" t ON ph.id = t.phase_id
 GROUP BY p.id;
 
@@ -1686,10 +1686,10 @@ WITH (lists = 100);
 // Use PgBouncer for high-concurrency KB editing
 
 // 5. Redis caching for frequently accessed data
-const cacheKey = `product:${productId}:metrics`;
+const cacheKey = `project:${projectId}:metrics`;
 let metrics = await redis.get(cacheKey);
 if (!metrics) {
-  metrics = await computeMetrics(productId);
+  metrics = await computeMetrics(projectId);
   await redis.setex(cacheKey, 300, JSON.stringify(metrics)); // 5 min TTL
 }
 ```

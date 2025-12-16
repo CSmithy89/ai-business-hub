@@ -10,7 +10,7 @@
 This analysis examined Plane's actual codebase to extract patterns for the BM-PM (Project Management) module. Key findings:
 
 1. **Data Models**: Django models with soft-delete pattern, JSON fields for flexible filters/display props
-2. **Hierarchy**: Workspace → Project → Module/Cycle → Issue (maps well to Business → Product → Phase → Task)
+2. **Hierarchy**: Workspace → Project → Module/Cycle → Issue (maps well to Business → Project → Phase → Task)
 3. **Frontend State**: MobX stores with computed properties and service layer separation
 4. **Real-time**: Hocuspocus server with Redis pub/sub for horizontal scaling
 5. **Views System**: JSON-based filter persistence with display filters and display properties separation
@@ -700,9 +700,9 @@ export class Redis extends HocuspocusRedis {
 | Plane Entity | BM-PM Entity | Key Differences |
 |--------------|--------------|-----------------|
 | Workspace | Business | Add BYOAI config, billing, branding |
-| Project | Product | Add BMAD template type (Course, Podcast, etc.), agent team |
+| Project | Project | Add BMAD template type (Course, Podcast, etc.), agent team |
 | Cycle | Phase | Map to BMAD phases (BUILD 1-7, OPERATE), phase templates |
-| Module | ProductCategory | Optional, for grouping related products |
+| Module | ProjectCategory | Optional, for grouping related projects |
 | Issue | AgentTask | Add assignment_type (HUMAN/AGENT/HYBRID), confidence score |
 | IntakeIssue | AgentOutput | Agent deliverables awaiting human approval |
 | IssueView | DashboardView | Views for agent activity, approvals, errors |
@@ -759,7 +759,7 @@ class AgentTask(ProjectBaseModel):
 | Pattern | When | Why |
 |---------|------|-----|
 | Y.js + Hocuspocus | Phase 2 | Complex, needed for collaborative docs |
-| Module | If needed | May not need grouping beyond Product |
+| Module | If needed | May not need grouping beyond Project |
 | IssueVersion | If needed | Complex versioning system |
 
 ---
