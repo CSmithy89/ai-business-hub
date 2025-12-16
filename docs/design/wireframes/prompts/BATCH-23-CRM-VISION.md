@@ -1,0 +1,734 @@
+# BATCH-23: CRM Vision (Future) Wireframes
+
+**Created:** 2025-12-17
+**PRD Reference:** BM-CRM v1.4, Vision Features
+**Priority:** P4 (Vision/Future)
+**Wireframes:** CRM-38 to CRM-43
+
+---
+
+## Overview
+
+This batch covers Vision (Future) CRM features including ML-powered insights and enterprise capabilities:
+
+| ID | Name | PRD Reference |
+|----|------|---------------|
+| CRM-38 | Predictive Lead Scoring | Vision, line 135 |
+| CRM-39 | Conversation Intelligence | Vision, line 136 |
+| CRM-40 | Revenue Forecasting | Vision, line 137 |
+| CRM-41 | Deal Coaching Panel | Vision, line 138 |
+| CRM-42 | Territory Management | Vision, line 140 |
+| CRM-43 | Commission Tracking | Vision, line 141 |
+
+---
+
+## CRM-38: Predictive Lead Scoring
+
+**Filename:** `crm-predictive-scoring.excalidraw`
+**Priority:** P4 (Vision)
+**PRD Reference:** Vision, line 135
+
+### Purpose
+
+ML-powered lead scoring with prediction explanations, model training status, and accuracy metrics.
+
+### Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  CRM > Lead Scoring > Predictive Model                  [?] [👤] [⚙️]  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌──────────────────┐                                                   │
+│  │ [Rule-Based] │ [ML Predictive] │                                    │
+│  └──────────────────┘                                                   │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  🧠 ML Model Status                                                │ │
+│  │                                                                    │ │
+│  │  Model: BM-CRM Lead Scorer v2.3                                   │ │
+│  │  Status: ● Active                                                  │ │
+│  │  Last trained: Dec 15, 2025 (auto-retrain every 30 days)          │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │  Training Data                                               │ │ │
+│  │  │  • 12,456 historical contacts                                │ │ │
+│  │  │  • 3,234 converted (26% base rate)                           │ │ │
+│  │  │  • 156 features analyzed                                     │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  │  [Retrain Now] [View Training History] [Export Model]             │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  📊 Model Performance                                              │ │
+│  │                                                                    │ │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │ │
+│  │  │  87%     │  │  82%     │  │  0.91    │  │  2.3x    │           │ │
+│  │  │ Accuracy │  │ Precision│  │ AUC-ROC  │  │ Lift     │           │ │
+│  │  │ ↑ 5%     │  │ ↑ 3%     │  │ ↑ 0.04   │  │ vs rules │           │ │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘           │ │
+│  │                                                                    │ │
+│  │  Prediction Accuracy (Last 90 Days)                                │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │   ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ │ │ │
+│  │  │   87% ───────────────────────────────────────────────────── │ │ │
+│  │  │   ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ │ │ │
+│  │  │   Oct         Nov         Dec                              │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  🔍 Feature Importance                                             │ │
+│  │                                                                    │ │
+│  │  Top Predictive Factors:                                           │ │
+│  │                                                                    │ │
+│  │  1. Demo request              ████████████████████  28%           │ │
+│  │  2. Company size (100-500)    ██████████████       18%            │ │
+│  │  3. Pricing page visits       ████████████         15%            │ │
+│  │  4. Email engagement rate     ██████████           12%            │ │
+│  │  5. Industry (Tech/SaaS)      ████████             10%            │ │
+│  │  6. Decision maker role       ██████               8%             │ │
+│  │  7. Previous vendor usage     ████                 5%             │ │
+│  │  8. Website session count     ███                  4%             │ │
+│  │                                                                    │ │
+│  │  [View All 156 Features]                                          │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  🤖 Scout says: "ML model is outperforming rule-based scoring     │ │
+│  │  by 2.3x. Top leads predicted by ML convert at 45% vs 19% for     │ │
+│  │  rule-based. Recommend enabling ML for all new contacts."         │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Prediction Explanation Modal
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  🧠 Why This Score? - John Smith                                [✕]    │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Predicted Conversion Probability: 78%                                  │
+│  Confidence: High (based on 234 similar profiles)                       │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  Positive Factors (increasing score)                               │ │
+│  │                                                                    │ │
+│  │  ✅ Requested demo last week              +25 points               │ │
+│  │  ✅ Company size: 250 employees           +18 points               │ │
+│  │  ✅ Visited pricing page 5 times          +15 points               │ │
+│  │  ✅ VP of Engineering (decision maker)    +12 points               │ │
+│  │  ✅ Tech industry                         +10 points               │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  Negative Factors (decreasing score)                               │ │
+│  │                                                                    │ │
+│  │  ❌ No email engagement in 7 days         -8 points                │ │
+│  │  ❌ Free email domain (gmail.com)         -5 points                │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  📊 Similar Profiles That Converted                                │ │
+│  │                                                                    │ │
+│  │  • Sarah Chen (TechCorp) - Converted in 14 days                   │ │
+│  │  • Mike Johnson (DataFlow) - Converted in 21 days                 │ │
+│  │  • Lisa Wang (CloudSoft) - Converted in 18 days                   │ │
+│  │                                                                    │ │
+│  │  Average time to conversion for similar: 18 days                   │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  [View Full Analysis] [Compare to Rule-Based Score]                     │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## CRM-39: Conversation Intelligence
+
+**Filename:** `crm-conversation-intelligence.excalidraw`
+**Priority:** P4 (Vision)
+**PRD Reference:** Vision, line 136
+
+### Purpose
+
+AI-powered call transcription, analysis, key moment detection, and sentiment tracking.
+
+### Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Call Recording: Acme Corp Demo Call                    [?] [👤] [⚙️]  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  🎙️ Call Details                                                   │ │
+│  │                                                                    │ │
+│  │  Date: Dec 16, 2025 │ Duration: 32:45 │ Participants: 3            │ │
+│  │  Contact: John Smith │ Deal: Acme Enterprise ($125K)               │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │  ▶  ━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━━━━━━━━  15:23 / 32:45 │ │ │
+│  │  │      [⏪ 15s] [▶️ Play] [⏩ 15s]   Speed: [1x ▼]   🔊         │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  📊 Call Analysis                                                  │ │
+│  │                                                                    │ │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │ │
+│  │  │  68%     │  │  72%     │  │  45%     │  │  3       │           │ │
+│  │  │ Talk Time│  │ Positive │  │ Questions│  │ Objections│          │ │
+│  │  │ (Rep)    │  │ Sentiment│  │ Asked    │  │ Raised   │           │ │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘           │ │
+│  │                                                                    │ │
+│  │  Sentiment Timeline                                                │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │  😊 ▄▄▄▄▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ │ │ │
+│  │  │  😐 ──────────────▄▄▄▄──────────────▄▄──────────────────── │ │ │
+│  │  │  😟          ▄▄▄▄▄                                         │ │ │
+│  │  │     Intro    Pricing Discussion    Demo    Close           │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  ⭐ Key Moments                                      [View All]    │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │ 🔴 Price Objection                               [5:23]      │ │ │
+│  │  │ "That's more than we budgeted for this quarter..."           │ │ │
+│  │  │ Rep Response: Reframed to annual ROI ✓ Good                  │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │ 🟢 Buying Signal                                 [18:45]     │ │ │
+│  │  │ "Can we get this implemented before Q1?"                     │ │ │
+│  │  │ Detected: Timeline urgency, decision indicator               │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │ 🟡 Competitor Mention                            [22:10]     │ │ │
+│  │  │ "We're also looking at [Competitor A]..."                    │ │ │
+│  │  │ Suggested response: See Competitor Battlecard                │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  📝 Transcript                                     [Download]      │ │
+│  │                                                                    │ │
+│  │  [0:00] Chris (Rep): Hi John, thanks for joining today...         │ │
+│  │  [0:15] John (Contact): Thanks for having me. We're excited...    │ │
+│  │  [0:32] Chris: Great! So I wanted to start by understanding...    │ │
+│  │  ...                                                               │ │
+│  │  [5:23] John: That's more than we budgeted for this quarter.      │ │
+│  │  [5:30] Chris: I understand. Let me show you the ROI...           │ │
+│  │  ...                                                               │ │
+│  │                                                                    │ │
+│  │  [Show Full Transcript]                                            │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  ✅ Auto-Generated Action Items                                    │ │
+│  │                                                                    │ │
+│  │  ☐ Send ROI calculator to John                                     │ │
+│  │  ☐ Share Q1 implementation timeline                                │ │
+│  │  ☐ Schedule follow-up with technical team                          │ │
+│  │                                                                    │ │
+│  │  [Create Tasks in CRM]                                             │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## CRM-40: Revenue Forecasting
+
+**Filename:** `crm-revenue-forecasting.excalidraw`
+**Priority:** P4 (Vision)
+**PRD Reference:** Vision, line 137
+
+### Purpose
+
+AI-powered revenue forecasting with scenario modeling, confidence intervals, and trend analysis.
+
+### Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  CRM > Revenue Forecast                                 [?] [👤] [⚙️]  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Period: [Q1 2026 ▼]  View: [By Month ▼]  Team: [All Reps ▼]           │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  📈 Q1 2026 Revenue Forecast                                       │ │
+│  │                                                                    │ │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │ │
+│  │  │ $2.1M    │  │ $1.8M    │  │ $2.4M    │  │ 85%      │           │ │
+│  │  │ Forecast │  │ Commit   │  │ Best Case│  │ Confidence│          │ │
+│  │  │ (likely) │  │ (sure)   │  │ (upside) │  │ Level    │           │ │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘           │ │
+│  │                                                                    │ │
+│  │  Target: $2.0M │ Attainment: 105% (forecast) │ Gap: +$100K         │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  📊 Forecast Trend                                                 │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │  $2.5M ┤                                    ╱ Best Case      │ │ │
+│  │  │        │                              ╱╱╱╱╱                  │ │ │
+│  │  │  $2.0M ┤ ─────────────────────────────────── Target          │ │ │
+│  │  │        │                      ╱╱╱╱╱                          │ │ │
+│  │  │  $1.5M ┤              ╱╱╱╱╱╱╱╱    ════════ Likely            │ │ │
+│  │  │        │       ╱╱╱╱╱╱╱                                       │ │ │
+│  │  │  $1.0M ┤╱╱╱╱╱╱╱             ════════════════ Commit          │ │ │
+│  │  │        │                                                     │ │ │
+│  │  │  $0.5M ┤                                                     │ │ │
+│  │  │        └─────────────────────────────────────────────────── │ │ │
+│  │  │          Jan        Feb        Mar                           │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  │  ░░░ Confidence interval (80%)                                    │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  🎯 Scenario Modeling                                              │ │
+│  │                                                                    │ │
+│  │  What if we...                                                     │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │ Close Acme deal ($125K) this month?    → +$125K forecast     │ │ │
+│  │  │ ████████████████████░░░░░░░░░░░░░░░░  65% probability        │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │ Lose TechStart deal ($45K)?            → -$45K forecast      │ │ │
+│  │  │ ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░  25% probability        │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │ Add 2 new enterprise opportunities?    → +$200K upside       │ │ │
+│  │  │ Based on current pipeline velocity                           │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  │  [Run Custom Scenario]                                            │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  👥 Forecast by Rep                                                │ │
+│  │                                                                    │ │
+│  │  Rep             │ Quota   │ Commit  │ Forecast │ Attain%         │ │
+│  │  ═══════════════════════════════════════════════════════════════  │ │
+│  │  Sarah Chen      │ $600K   │ $550K   │ $680K    │ 113% 🟢         │ │
+│  │  Mike Johnson    │ $500K   │ $420K   │ $510K    │ 102% 🟢         │ │
+│  │  Alex Kim        │ $500K   │ $380K   │ $450K    │ 90%  🟡         │ │
+│  │  Lisa Wang       │ $400K   │ $280K   │ $320K    │ 80%  🟡         │ │
+│  │  Tom Brown       │ $300K   │ $170K   │ $240K    │ 80%  🟡         │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  🔮 Prism says: "Q1 forecast is tracking 5% above target.         │ │
+│  │  Key risk: 3 deals in Negotiation for 30+ days. Key upside:       │ │
+│  │  Acme deal showing strong buying signals."                        │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## CRM-41: Deal Coaching Panel
+
+**Filename:** `crm-deal-coaching.excalidraw`
+**Priority:** P4 (Vision)
+**PRD Reference:** Vision, line 138
+
+### Purpose
+
+In-context AI coaching for deals with suggested next steps, similar deal comparisons, and risk indicators.
+
+### Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Deal: Acme Enterprise                                  [?] [👤] [⚙️]  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Main Deal View                        │ Coaching Panel                 │
+│                                        │                                │
+│  Deal details, timeline, contacts      │ ┌────────────────────────────┐│
+│                                        │ │ 🎯 Deal Coach              ││
+│                                        │ │                            ││
+│                                        │ │ Win Probability: 72%       ││
+│                                        │ │ ████████████████░░░░       ││
+│                                        │ │                            ││
+│                                        │ │ vs Similar Deals: +8%      ││
+│                                        │ │ Time in Stage: 12 days     ││
+│                                        │ │ (avg for winners: 10 days) ││
+│                                        │ └────────────────────────────┘│
+│                                        │                                │
+│                                        │ ┌────────────────────────────┐│
+│                                        │ │ ⚠️ Risk Factors            ││
+│                                        │ │                            ││
+│                                        │ │ • No exec sponsor         ││
+│                                        │ │   identified yet           ││
+│                                        │ │                            ││
+│                                        │ │ • Competitor mentioned     ││
+│                                        │ │   in last call             ││
+│                                        │ │                            ││
+│                                        │ │ • Budget not confirmed     ││
+│                                        │ │                            ││
+│                                        │ └────────────────────────────┘│
+│                                        │                                │
+│                                        │ ┌────────────────────────────┐│
+│                                        │ │ 💡 Suggested Next Steps    ││
+│                                        │ │                            ││
+│                                        │ │ 1. Schedule executive      ││
+│                                        │ │    alignment meeting       ││
+│                                        │ │    [Create Task]           ││
+│                                        │ │                            ││
+│                                        │ │ 2. Send ROI calculator     ││
+│                                        │ │    to address budget       ││
+│                                        │ │    [Send Email]            ││
+│                                        │ │                            ││
+│                                        │ │ 3. Share competitor        ││
+│                                        │ │    comparison doc          ││
+│                                        │ │    [View Playbook]         ││
+│                                        │ │                            ││
+│                                        │ └────────────────────────────┘│
+│                                        │                                │
+│                                        │ ┌────────────────────────────┐│
+│                                        │ │ 📊 Similar Won Deals       ││
+│                                        │ │                            ││
+│                                        │ │ TechCorp ($140K) 18 days   ││
+│                                        │ │ Key factor: Exec buy-in    ││
+│                                        │ │                            ││
+│                                        │ │ DataSoft ($110K) 22 days   ││
+│                                        │ │ Key factor: POC success    ││
+│                                        │ │                            ││
+│                                        │ │ [View Deal Comparison]     ││
+│                                        │ └────────────────────────────┘│
+│                                        │                                │
+│                                        │ ┌────────────────────────────┐│
+│                                        │ │ 📋 Objection Handling      ││
+│                                        │ │                            ││
+│                                        │ │ Detected: Price concern    ││
+│                                        │ │                            ││
+│                                        │ │ "Reframe to value..."      ││
+│                                        │ │ [See Full Response →]      ││
+│                                        │ └────────────────────────────┘│
+│                                        │                                │
+└────────────────────────────────────────┴────────────────────────────────┘
+```
+
+---
+
+## CRM-42: Territory Management
+
+**Filename:** `crm-territory-management.excalidraw`
+**Priority:** P4 (Vision)
+**PRD Reference:** Vision, line 140
+
+### Purpose
+
+Geographic and segmented territory management with assignment, coverage analysis, and performance tracking.
+
+### Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  CRM > Territory Management                             [?] [👤] [⚙️]  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌──────────────────┐                                                   │
+│  │ [Map View] │ [List View] │ [Performance] │                          │
+│  └──────────────────┘                                                   │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  🗺️ Territory Map                                                  │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │                                                              │ │ │
+│  │  │        ┌──────────────┐                                      │ │ │
+│  │  │        │  NORTHWEST   │    ┌─────────────┐                   │ │ │
+│  │  │        │  Sarah Chen  │    │  NORTHEAST  │                   │ │ │
+│  │  │        │  $1.2M pipe  │    │  Mike J.    │                   │ │ │
+│  │  │        │  🟢 78%      │    │  $890K pipe │                   │ │ │
+│  │  │        └──────────────┘    │  🟡 62%     │                   │ │ │
+│  │  │                            └─────────────┘                   │ │ │
+│  │  │   ┌─────────────┐                                            │ │ │
+│  │  │   │  WEST       │         ┌─────────────┐                    │ │ │
+│  │  │   │  Alex Kim   │         │  CENTRAL    │                    │ │ │
+│  │  │   │  $650K pipe │         │  Lisa Wang  │                    │ │ │
+│  │  │   │  🟢 71%     │         │  $1.5M pipe │                    │ │ │
+│  │  │   └─────────────┘         │  🟢 85%     │                    │ │ │
+│  │  │                           └─────────────┘                    │ │ │
+│  │  │                   ┌─────────────┐                            │ │ │
+│  │  │                   │  SOUTHEAST  │                            │ │ │
+│  │  │                   │  Tom Brown  │      Legend:               │ │ │
+│  │  │                   │  $420K pipe │      🟢 On track           │ │ │
+│  │  │                   │  🔴 45%     │      🟡 At risk            │ │ │
+│  │  │                   └─────────────┘      🔴 Behind             │ │ │
+│  │  │                                                              │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  📊 Coverage Analysis                                              │ │
+│  │                                                                    │ │
+│  │  ┌────────────────────────────────────────────────────────────┐   │ │
+│  │  │ Territory   │ Accounts │ Coverage │ TAM      │ SAM        │   │ │
+│  │  │══════════════════════════════════════════════════════════════│   │ │
+│  │  │ Northwest   │ 234      │ 68%      │ $4.5M    │ $3.1M      │   │ │
+│  │  │ Northeast   │ 189      │ 52%      │ $3.8M    │ $2.0M      │   │ │
+│  │  │ Central     │ 312      │ 78%      │ $5.2M    │ $4.1M      │   │ │
+│  │  │ West        │ 156      │ 61%      │ $2.9M    │ $1.8M      │   │ │
+│  │  │ Southeast   │ 98       │ 42%      │ $1.8M    │ $760K      │   │ │
+│  │  └────────────────────────────────────────────────────────────┘   │ │
+│  │                                                                    │ │
+│  │  ⚠️ Southeast territory under-covered. Consider reassignment.    │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  [+ Create Territory] [Reassign Accounts] [Balance Territories]         │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Territory Assignment Modal
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Edit Territory: Northwest                                      [✕]    │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Territory Name: [Northwest                           ]                 │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  Assignment Rules                                                  │ │
+│  │                                                                    │ │
+│  │  ☑️ By Geography:                                                  │ │
+│  │     States: [WA, OR, ID, MT, WY, AK]                              │ │
+│  │                                                                    │ │
+│  │  ☑️ By Industry:                                                   │ │
+│  │     [Technology ▼] [Healthcare ▼] [+ Add]                         │ │
+│  │                                                                    │ │
+│  │  ☐ By Company Size:                                                │ │
+│  │     Employee range: [___] to [___]                                │ │
+│  │                                                                    │ │
+│  │  ☐ By Revenue:                                                     │ │
+│  │     Revenue range: [$___] to [$___]                               │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  Assigned Rep: [Sarah Chen ▼]                                      │ │
+│  │                                                                    │ │
+│  │  Backup Rep: [Mike Johnson ▼]                                      │ │
+│  │                                                                    │ │
+│  │  Quota: [$600,000]  Annual                                         │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  Preview: 234 accounts would be assigned to this territory        │ │
+│  │                                                                    │ │
+│  │  Changes from current:                                             │ │
+│  │  • +12 accounts added (from unassigned)                           │ │
+│  │  • -5 accounts removed (reassigned to West)                       │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  [Cancel]                                           [Save Territory]    │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## CRM-43: Commission Tracking
+
+**Filename:** `crm-commission-tracking.excalidraw`
+**Priority:** P4 (Vision)
+**PRD Reference:** Vision, line 141
+
+### Purpose
+
+Sales commission calculator, earnings dashboard, deal commission breakdown, and payout schedule.
+
+### Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  CRM > Commissions                                      [?] [👤] [⚙️]  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Period: [Q4 2025 ▼]  Rep: [Sarah Chen ▼]                              │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  💰 Commission Summary                                             │ │
+│  │                                                                    │ │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │ │
+│  │  │ $48,200  │  │ $42,500  │  │ $5,700   │  │ Dec 31   │           │ │
+│  │  │ Earned   │  │ Paid YTD │  │ Pending  │  │ Next     │           │ │
+│  │  │ this qtr │  │          │  │ Payout   │  │ Payout   │           │ │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘           │ │
+│  │                                                                    │ │
+│  │  Quota Progress                                                    │ │
+│  │  ████████████████████████████████████░░░░░░  112% attainment      │ │
+│  │  $672K closed / $600K quota                                        │ │
+│  │                                                                    │ │
+│  │  Commission Rate: 8% base + 2% accelerator (over 100%)            │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  📊 Earnings by Deal                                               │ │
+│  │                                                                    │ │
+│  │  ┌────────────────────────────────────────────────────────────┐   │ │
+│  │  │ Deal                │ Value   │ Rate │ Commission │ Status │   │ │
+│  │  │══════════════════════════════════════════════════════════════│   │ │
+│  │  │ Acme Enterprise     │ $125K   │ 10%  │ $12,500    │ 🟢 Paid │   │ │
+│  │  │ TechStart Growth    │ $45K    │ 8%   │ $3,600     │ 🟢 Paid │   │ │
+│  │  │ DataFlow Pro        │ $64K    │ 8%   │ $5,120     │ 🟡 Pending │ │
+│  │  │ CloudSoft Annual    │ $89K    │ 10%  │ $8,900     │ 🟢 Paid │   │ │
+│  │  │ MegaCorp Pilot      │ $230K   │ 10%  │ $23,000    │ 🟡 Pending │ │
+│  │  └────────────────────────────────────────────────────────────┘   │ │
+│  │                                                                    │ │
+│  │  [Export Statement] [View All Deals]                              │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  📅 Payout Schedule                                                │ │
+│  │                                                                    │ │
+│  │  ┌────────────────────────────────────────────────────────────┐   │ │
+│  │  │ Date         │ Amount   │ Deals Included    │ Status       │   │ │
+│  │  │══════════════════════════════════════════════════════════════│   │ │
+│  │  │ Dec 31, 2025 │ $5,700   │ DataFlow, MegaCorp│ ⏳ Scheduled │   │ │
+│  │  │ Nov 30, 2025 │ $18,200  │ Acme, TechStart   │ ✅ Paid      │   │ │
+│  │  │ Oct 31, 2025 │ $12,100  │ CloudSoft + 3     │ ✅ Paid      │   │ │
+│  │  │ Sep 30, 2025 │ $8,900   │ 4 deals           │ ✅ Paid      │   │ │
+│  │  └────────────────────────────────────────────────────────────┘   │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  📈 Earnings Trend                                                 │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │  $60K ┤                                                ▄▄    │ │ │
+│  │  │       │                                          ▄▄▄▄██    │ │ │
+│  │  │  $40K ┤                        ▄▄▄▄      ▄▄▄▄▄▄██████    │ │ │
+│  │  │       │              ▄▄▄▄▄▄▄▄████████████████████████    │ │ │
+│  │  │  $20K ┤▄▄▄▄▄▄▄▄▄▄▄▄████████████████████████████████████│ │ │
+│  │  │       │████████████████████████████████████████████████│ │ │
+│  │  │   $0K └─────────────────────────────────────────────────── │ │ │
+│  │  │        Q1     Q2     Q3     Q4                             │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  │  YTD Earnings: $156,400  │  Full Year Forecast: $192,000          │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Commission Rules Configuration (Admin)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Settings > CRM > Commission Rules                      [?] [👤] [⚙️]  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  📋 Commission Plans                                    [+ New]   │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │ Standard Sales Plan                               [Edit]     │ │ │
+│  │  │                                                              │ │ │
+│  │  │ Base Rate: 8% on all closed revenue                          │ │ │
+│  │  │ Accelerators:                                                │ │ │
+│  │  │ • 100-125% quota: +2% (total 10%)                           │ │ │
+│  │  │ • 125%+ quota: +4% (total 12%)                              │ │ │
+│  │  │                                                              │ │ │
+│  │  │ Assigned to: Sarah, Mike, Alex, Lisa, Tom                    │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐ │ │
+│  │  │ Enterprise Plan                                   [Edit]     │ │ │
+│  │  │                                                              │ │ │
+│  │  │ Base Rate: 6% on deals < $100K, 10% on deals $100K+          │ │ │
+│  │  │ Multipliers:                                                 │ │ │
+│  │  │ • Multi-year deal: 1.25x                                    │ │ │
+│  │  │ • New logo: 1.5x                                            │ │ │
+│  │  │                                                              │ │ │
+│  │  │ Assigned to: None (VP-level only)                           │ │ │
+│  │  └──────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  ⚙️ Payout Settings                                               │ │
+│  │                                                                    │ │
+│  │  Payout Frequency: [Monthly ▼]                                    │ │
+│  │  Payout Date: [Last day of month ▼]                               │ │
+│  │  Minimum Payout: [$100]                                           │ │
+│  │                                                                    │ │
+│  │  ☑️ Hold commission until deal payment received                    │ │
+│  │  ☐ Clawback on refunds within [90] days                           │ │
+│  │                                                                    │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Implementation Notes
+
+1. **Predictive Scoring (CRM-38)**: ML model training pipeline, feature engineering
+2. **Conversation Intelligence (CRM-39)**: Speech-to-text API, NLP for sentiment
+3. **Revenue Forecasting (CRM-40)**: Time series forecasting, Monte Carlo simulation
+4. **Deal Coaching (CRM-41)**: Pattern matching against historical won/lost deals
+5. **Territory Management (CRM-42)**: Geo-mapping library, assignment algorithms
+6. **Commission Tracking (CRM-43)**: Complex calculation engine, payout scheduling
+
+---
+
+## Agent Involvement
+
+| Wireframe | Primary Agent | Supporting Agents |
+|-----------|---------------|-------------------|
+| CRM-38 | Scout | Prism (analytics) |
+| CRM-39 | Echo | Clara (coordination) |
+| CRM-40 | Prism | Flow (pipeline data) |
+| CRM-41 | Clara | Scout, Flow |
+| CRM-42 | Clara | Flow (quota) |
+| CRM-43 | Flow | Clara (reporting) |
+
+---
+
+_BATCH-23: CRM Vision wireframes complete._
