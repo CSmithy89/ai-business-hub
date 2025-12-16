@@ -11,7 +11,7 @@
 
 ## Global Interaction Patterns
 
-1. **Create flows**: use a single “Create” button with type selector (Product/Phase/Task/KB page) in context.
+1. **Create flows**: use a single "Create" button with type selector (Project/Phase/Task/KB page) in context.
 2. **Edit flows**:
    1. Quick edits in a drawer (title/status/assignee/priority).
    2. Full edits on detail pages.

@@ -16,9 +16,9 @@ Roles:
 |--------|------------------|--------------|-------|
 | Create Business | ✅ | ❌ | ✅ |
 | Edit Business | ✅ | ❌ | ✅ |
-| Create Product | ✅ | ✅ | ✅ |
-| Edit Product | ✅ | ✅ | ✅ |
-| Archive Product | ✅ | ❌ (policy) | ✅ |
+| Create Project | ✅ | ✅ | ✅ |
+| Edit Project | ✅ | ✅ | ✅ |
+| Archive Project | ✅ | ❌ (policy) | ✅ |
 | Create Phase | ✅ | ✅ | ✅ |
 | Edit Phase | ✅ | ✅ | ✅ |
 | Create Task | ✅ | ✅ | ✅ |

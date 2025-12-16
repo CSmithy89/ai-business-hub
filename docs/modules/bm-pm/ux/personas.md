@@ -4,7 +4,7 @@
 
 1. `workspaceId` is the isolation boundary; everything shown or mutated is workspace-scoped.
 2. Approvals are a **platform overlay**: Core-PM tasks can be blocked by an approval item without creating a second status workflow.
-3. “Business → Product → Phase → Task” is the canonical work hierarchy in Core-PM.
+3. "Business → Project → Phase → Task" is the canonical work hierarchy in Core-PM.
 
 ---
 
@@ -12,15 +12,15 @@
 
 ### Goals (Jobs-to-be-Done)
 
-1. Set direction quickly: define the Business context, create Products, and plan Phases.
+1. Set direction quickly: define the Business context, create Projects, and plan Phases.
 2. Maintain clarity: see what is blocked, what is progressing, and what needs decisions.
 3. Control risk: require approvals for high-impact changes (scope, priority, due dates, budgets).
 4. Keep knowledge usable: ensure key decisions and system knowledge are captured in the KB.
 
 ### Typical Day Loop
 
-1. Open `/dashboard/pm` and review “Today” (blocked items, approvals, due soon).
-2. Review active Product and current Phase.
+1. Open `/dashboard/pm` and review "Today" (blocked items, approvals, due soon).
+2. Review active Project and current Phase.
 3. Adjust priorities/assignments.
 4. Approve or reject gated actions.
 5. Capture decisions in KB and link to tasks.
@@ -28,7 +28,7 @@
 ### Key UX Needs
 
 1. Fast “what do I need to decide?” visibility (Approvals + blocked-on-approval).
-2. Minimal clicks to create Product/Phase/Task.
+2. Minimal clicks to create Project/Phase/Task.
 3. Strong defaults and templates (Phase templates, task presets).
 4. High signal-to-noise reporting (lightweight by default; deeper analytics later).
 
@@ -45,7 +45,7 @@
 
 ### Typical Day Loop
 
-1. Review “My products” and active Phase boards (Kanban + List).
+1. Review "My projects" and active Phase boards (Kanban + List).
 2. Groom backlog for the next Phase; ensure tasks are “ready-for-dev”.
 3. Move work through statuses; request approvals where needed.
 4. Update KB for decisions, runbooks, and references used by agents/humans.

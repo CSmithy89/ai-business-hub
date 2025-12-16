@@ -8,16 +8,16 @@
 
 ---
 
-## Flow 1 (P1): PM Home → Product → Phase → Task Execution
+## Flow 1 (P1): PM Home → Project → Phase → Task Execution
 
 ```mermaid
 flowchart TD
   A[/dashboard/pm/] --> B{Has Business?}
   B -- No --> C[Create Business]
-  B -- Yes --> D{Has Product?}
+  B -- Yes --> D{Has Project?}
   C --> D
-  D -- No --> E[Create Product]
-  D -- Yes --> F[Select Product]
+  D -- No --> E[Create Project]
+  D -- Yes --> F[Select Project]
   E --> F
   F --> G{Has Active Phase?}
   G -- No --> H[Create Phase]
@@ -51,7 +51,7 @@ flowchart TD
   A[Open Task Detail] --> B[Identify decision/knowledge gap]
   B --> C[Create KB Page]
   C --> D[Write decision/runbook]
-  D --> E[Add references: tasks, phases, products]
+  D --> E[Add references: tasks, phases, projects]
   E --> F[Mark as Draft or Verified]
   F --> G[Link KB Page to Task]
   G --> H[Task shows related KB]
