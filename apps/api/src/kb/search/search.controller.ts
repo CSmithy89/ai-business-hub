@@ -1,10 +1,11 @@
-import { Controller, Get, Query, UseGuards, Logger, HttpException, HttpStatus } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query, UseGuards, Logger, HttpException, HttpStatus } from '@nestjs/common'
 import { AuthGuard } from '../../common/guards/auth.guard'
 import { TenantGuard } from '../../common/guards/tenant.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import { CurrentWorkspace } from '../../common/decorators/current-workspace.decorator'
 import { SearchService } from './search.service'
 import { SearchQueryDto } from './dto/search-query.dto'
+import { SemanticSearchDto } from './dto/semantic-search.dto'
 
 type SearchRateLimitBucket = {
   count: number
@@ -69,6 +70,31 @@ export class SearchController {
       total,
       limit: query.limit || 20,
       offset: query.offset || 0,
+    }
+  }
+
+  @Post('semantic')
+  async semanticSearch(
+    @CurrentUser() user: { tenantId: string; id: string },
+    @CurrentWorkspace() workspaceId: string,
+    @Body() body: SemanticSearchDto,
+  ) {
+    const tenantId = user.tenantId
+    this.enforceRateLimit(`${user.id}:${workspaceId}`)
+    this.logger.log(`Semantic search request: "${body.q}" (workspace: ${workspaceId})`)
+
+    const { results, total } = await this.searchService.semanticSearch(
+      tenantId,
+      workspaceId,
+      body,
+    )
+
+    return {
+      query: body.q,
+      results,
+      total,
+      limit: body.limit || 10,
+      offset: body.offset || 0,
     }
   }
 }

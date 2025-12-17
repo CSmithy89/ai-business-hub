@@ -172,15 +172,15 @@ development_status:
   # Phase 2 | 8 stories | Yjs collab, embeddings, semantic search
   # FRs: KB-F4, KB-F6
   # ===========================================
-  kb-02: backlog
-  kb-02-1-yjs-collaboration-setup: backlog
-  kb-02-2-presence-cursors: backlog
-  kb-02-3-conflict-resolution: backlog
-  kb-02-4-offline-support: backlog
-  kb-02-5-embedding-pipeline: backlog
-  kb-02-6-semantic-search: backlog
-  kb-02-7-agent-kb-queries: backlog
-  kb-02-8-related-pages-suggestions: backlog
+  kb-02: contexted
+  kb-02-1-yjs-collaboration-setup: done
+  kb-02-2-presence-cursors: done
+  kb-02-3-conflict-resolution: done
+  kb-02-4-offline-support: done
+  kb-02-5-embedding-pipeline: done
+  kb-02-6-semantic-search: done
+  kb-02-7-agent-kb-queries: done
+  kb-02-8-related-pages-suggestions: done
   kb-02-retrospective: optional
 
   # ===========================================

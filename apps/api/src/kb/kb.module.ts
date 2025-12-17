@@ -9,20 +9,25 @@ import { SearchController } from './search/search.controller'
 import { SearchService } from './search/search.service'
 import { LinkingController } from './linking/linking.controller'
 import { LinkingService } from './linking/linking.service'
+import { KbCollabModule } from './collab/kb-collab.module'
+import { EmbeddingsModule } from './embeddings/embeddings.module'
+import { RagController } from './rag/rag.controller'
+import { RagService } from './rag/rag.service'
 
 @Module({
-  imports: [CommonModule, EventsModule],
-  controllers: [PagesController, VersionsController, SearchController, LinkingController],
+  imports: [CommonModule, EventsModule, KbCollabModule, EmbeddingsModule],
+  controllers: [PagesController, VersionsController, SearchController, LinkingController, RagController],
   providers: [
     PagesService,
     VersionsService,
     SearchService,
+    RagService,
     LinkingService,
     {
       provide: 'VersionsService',
       useExisting: forwardRef(() => VersionsService),
     },
   ],
-  exports: [PagesService, VersionsService, SearchService, LinkingService],
+  exports: [PagesService, VersionsService, SearchService, LinkingService, EmbeddingsModule],
 })
 export class KbModule {}

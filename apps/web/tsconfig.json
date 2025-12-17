@@ -22,6 +22,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@hyvve/shared": ["../../packages/shared/src"],
+      "@hyvve/shared/*": ["../../packages/shared/src/*"],
       "@hyvve/ui": ["../../packages/ui/src"]
     }
   },
