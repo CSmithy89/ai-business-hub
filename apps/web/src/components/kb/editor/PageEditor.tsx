@@ -6,8 +6,10 @@ import { createExtensions } from './extensions'
 import { EditorToolbar } from './EditorToolbar'
 import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
 import * as Y from 'yjs'
+import { IndexeddbPersistence } from 'y-indexeddb'
 import { isChangeOrigin } from '@tiptap/extension-collaboration'
 import { KB_COLLAB_WS_URL } from '@/lib/api-config'
+import { useNetworkStatus } from '@/hooks/use-network-status'
 
 interface PageEditorProps {
   pageId?: string
@@ -31,6 +33,8 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
   const [provider, setProvider] = useState<HocuspocusProvider | null>(null)
   const [isSynced, setIsSynced] = useState(false)
   const [unsyncedChanges, setUnsyncedChanges] = useState(0)
+  const [isIdbSynced, setIsIdbSynced] = useState(false)
+  const isOnline = useNetworkStatus()
 
   const collaborationEnabled = !!pageId && !!collaboration?.token
   const collabDoc = useMemo(() => new Y.Doc(), [pageId])
@@ -40,6 +44,21 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
       collabDoc.destroy()
     }
   }, [collabDoc])
+
+  useEffect(() => {
+    if (!collaborationEnabled || !pageId) {
+      setIsIdbSynced(false)
+      return
+    }
+
+    const persistence = new IndexeddbPersistence(`kb:page:${pageId}`, collabDoc)
+    persistence.on('synced', () => setIsIdbSynced(true))
+
+    return () => {
+      setIsIdbSynced(false)
+      void persistence.destroy()
+    }
+  }, [collaborationEnabled, pageId, collabDoc])
 
   useEffect(() => {
     if (!collaborationEnabled || !pageId) {
@@ -232,14 +251,22 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
               />
               <span>
                 {collabStatus === WebSocketStatus.Connected
-                  ? isSynced
-                    ? unsyncedChanges > 0
-                      ? `Syncing (${unsyncedChanges})`
-                      : 'Live'
-                    : 'Syncing...'
+                  ? !isOnline
+                    ? isIdbSynced
+                      ? 'Offline (saved locally)'
+                      : 'Offline (saving locally...)'
+                    : isSynced
+                      ? unsyncedChanges > 0
+                        ? `Syncing (${unsyncedChanges})`
+                        : 'Live'
+                      : 'Syncing...'
                   : collabStatus === WebSocketStatus.Connecting
                     ? 'Connecting...'
-                    : 'Offline'}
+                    : !isOnline
+                      ? isIdbSynced
+                        ? 'Offline (saved locally)'
+                        : 'Offline (saving locally...)'
+                      : 'Offline'}
               </span>
             </div>
           )}
