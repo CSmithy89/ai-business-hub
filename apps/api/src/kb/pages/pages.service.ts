@@ -175,6 +175,10 @@ export class PagesService {
   }
 
   async list(tenantId: string, workspaceId: string, query: ListPagesQueryDto) {
+    const page = query.page ?? 1
+    const limit = Math.min(query.limit ?? 50, 100)
+    const skip = (page - 1) * limit
+
     const where: Prisma.KnowledgePageWhereInput = {
       tenantId,
       workspaceId,
@@ -183,55 +187,83 @@ export class PagesService {
     }
 
     if (query.flat) {
-      // Return flat list
-      const pages = await this.prisma.knowledgePage.findMany({
-        where,
-        orderBy: { updatedAt: 'desc' },
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          parentId: true,
-          ownerId: true,
-          viewCount: true,
-          lastViewedAt: true,
-          createdAt: true,
-          updatedAt: true,
-          deletedAt: true,
-        },
-      })
+      // Return flat list with pagination
+      const [total, pages] = await this.prisma.$transaction([
+        this.prisma.knowledgePage.count({ where }),
+        this.prisma.knowledgePage.findMany({
+          where,
+          orderBy: { updatedAt: 'desc' },
+          skip,
+          take: limit,
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            parentId: true,
+            ownerId: true,
+            viewCount: true,
+            lastViewedAt: true,
+            createdAt: true,
+            updatedAt: true,
+            deletedAt: true,
+          },
+        }),
+      ])
 
-      return { data: pages }
-    } else {
-      // Return tree structure (root level only, client can fetch children)
-      const pages = await this.prisma.knowledgePage.findMany({
-        where: {
-          ...where,
-          parentId: query.parentId || null,
+      return {
+        data: pages,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
         },
-        orderBy: { updatedAt: 'desc' },
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          parentId: true,
-          ownerId: true,
-          viewCount: true,
-          lastViewedAt: true,
-          createdAt: true,
-          updatedAt: true,
-          deletedAt: true,
-          children: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
+      }
+    } else {
+      // Return tree structure with pagination (root level only)
+      const treeWhere: Prisma.KnowledgePageWhereInput = {
+        ...where,
+        parentId: query.parentId || null,
+      }
+
+      const [total, pages] = await this.prisma.$transaction([
+        this.prisma.knowledgePage.count({ where: treeWhere }),
+        this.prisma.knowledgePage.findMany({
+          where: treeWhere,
+          orderBy: { updatedAt: 'desc' },
+          skip,
+          take: limit,
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            parentId: true,
+            ownerId: true,
+            viewCount: true,
+            lastViewedAt: true,
+            createdAt: true,
+            updatedAt: true,
+            deletedAt: true,
+            children: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+              },
             },
           },
-        },
-      })
+        }),
+      ])
 
-      return { data: pages }
+      return {
+        data: pages,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      }
     }
   }
 

@@ -1,5 +1,5 @@
-import { IsOptional, IsString, IsBoolean } from 'class-validator'
-import { Transform } from 'class-transformer'
+import { IsOptional, IsString, IsBoolean, IsInt, Min, Max } from 'class-validator'
+import { Transform, Type } from 'class-transformer'
 
 // Transform that properly validates boolean query params
 const transformBoolean = ({ value }: { value: unknown }) => {
@@ -22,4 +22,17 @@ export class ListPagesQueryDto {
   @IsBoolean()
   @Transform(transformBoolean)
   includeDeleted?: boolean
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 50
 }

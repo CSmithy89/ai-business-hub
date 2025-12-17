@@ -1,13 +1,19 @@
-import { IsOptional, IsString, IsObject, IsBoolean, MaxLength } from 'class-validator'
+import { IsOptional, IsString, IsBoolean, MaxLength, Validate } from 'class-validator'
+import { TiptapContentValidator } from '../validators/tiptap-content.validator'
+
+// Type for Tiptap JSON content - compatible with Prisma's JSON type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TiptapContent = any
 
 export class UpdatePageDto {
   @IsOptional()
   @IsString()
+  @MaxLength(500, { message: 'Title must not exceed 500 characters' })
   title?: string
 
   @IsOptional()
-  @IsObject()
-  content?: any // Tiptap JSON document
+  @Validate(TiptapContentValidator)
+  content?: TiptapContent // Tiptap JSON document - validated by custom validator
 
   @IsOptional()
   @IsString()

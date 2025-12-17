@@ -80,6 +80,11 @@ export function PageEditor({ initialContent, onSave, placeholder }: PageEditorPr
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault()
         if (editor && hasUnsavedChanges) {
+          // Clear any pending auto-save to prevent race condition
+          if (saveTimeoutId) {
+            clearTimeout(saveTimeoutId)
+            setSaveTimeoutId(null)
+          }
           setSaveStatus('saving')
           onSave(editor.getJSON())
             .then(() => {
@@ -96,7 +101,7 @@ export function PageEditor({ initialContent, onSave, placeholder }: PageEditorPr
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [editor, hasUnsavedChanges, onSave])
+  }, [editor, hasUnsavedChanges, onSave, saveTimeoutId])
 
   // Warn on navigation with unsaved changes
   useEffect(() => {

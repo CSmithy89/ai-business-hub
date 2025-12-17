@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
 const RECENT_SEARCHES_KEY = 'kb-recent-searches'
@@ -19,14 +19,25 @@ interface KBSearchInputProps {
 export function KBSearchInput({ className, autoFocus, onSearch }: KBSearchInputProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [query, setQuery] = useState(searchParams?.get('q') || '')
 
-  // Load recent searches from localStorage
+  // Sync query state with URL searchParams when they change
+  useEffect(() => {
+    const urlQuery = searchParams?.get('q') || ''
+    setQuery(urlQuery)
+  }, [searchParams])
+
+  // Load recent searches from localStorage with type safety
   const getRecentSearches = useCallback((): string[] => {
     if (typeof window === 'undefined') return []
     try {
       const stored = localStorage.getItem(RECENT_SEARCHES_KEY)
-      return stored ? JSON.parse(stored) : []
+      if (!stored) return []
+      const parsed: unknown = JSON.parse(stored)
+      // Validate that parsed value is an array of strings
+      if (!Array.isArray(parsed)) return []
+      return parsed.filter((item): item is string => typeof item === 'string')
     } catch {
       return []
     }
@@ -66,6 +77,10 @@ export function KBSearchInput({ className, autoFocus, onSearch }: KBSearchInputP
 
   const handleClear = () => {
     setQuery('')
+    // If on search page, clear the URL query param
+    if (pathname?.includes('/kb/search')) {
+      router.push('/kb/search')
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
