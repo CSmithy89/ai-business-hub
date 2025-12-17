@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/auth-client'
 import { useKBPages, useKBPage, useUpdateKBPage, useDeleteKBPage } from '@/hooks/use-kb-pages'
 import { PageEditor } from '@/components/kb/editor/PageEditor'
+import { PageBreadcrumbs } from '@/components/kb/PageBreadcrumbs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ArrowLeft, Trash2 } from 'lucide-react'
@@ -106,47 +107,55 @@ export default function KBPagePage({ params }: PageProps) {
       <div className="flex h-full flex-col">
         {/* Header */}
         <div className="border-b bg-background">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/kb">
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
+          <div className="flex flex-col gap-3 p-4">
+            {/* Breadcrumbs */}
+            {pagesData?.data && (
+              <PageBreadcrumbs currentPage={pageData.data} allPages={pagesData.data} />
+            )}
+
+            {/* Title and Actions */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/kb">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Link>
+                </Button>
+
+                {isTitleEditing ? (
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    onBlur={handleSaveTitle}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSaveTitle()
+                      } else if (e.key === 'Escape') {
+                        setTitle(pageData.data.title)
+                        setIsTitleEditing(false)
+                      }
+                    }}
+                    autoFocus
+                    className="text-xl font-semibold"
+                  />
+                ) : (
+                  <h1
+                    className="text-xl font-semibold cursor-pointer truncate hover:text-muted-foreground"
+                    onClick={() => setIsTitleEditing(true)}
+                  >
+                    {pageData.data.title}
+                  </h1>
+                )}
+              </div>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
-
-              {isTitleEditing ? (
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  onBlur={handleSaveTitle}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSaveTitle()
-                    } else if (e.key === 'Escape') {
-                      setTitle(pageData.data.title)
-                      setIsTitleEditing(false)
-                    }
-                  }}
-                  autoFocus
-                  className="text-xl font-semibold"
-                />
-              ) : (
-                <h1
-                  className="text-xl font-semibold cursor-pointer truncate hover:text-muted-foreground"
-                  onClick={() => setIsTitleEditing(true)}
-                >
-                  {pageData.data.title}
-                </h1>
-              )}
             </div>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 
