@@ -17,12 +17,14 @@ The Social Media Management Module (BM-Social) provides AI-powered social media 
 
 | Capability | Description |
 |------------|-------------|
-| **Multi-Platform Posting** | Schedule to Twitter/X, LinkedIn, Facebook, Instagram, TikTok, YouTube, Pinterest, Threads |
+| **Multi-Platform Posting** | Schedule to Twitter/X, LinkedIn, Facebook, Instagram, TikTok, YouTube, Pinterest, Threads, Bluesky |
 | **Content Calendar** | Visual calendar with day/week/month views and drag-drop scheduling |
 | **AI Content Generation** | Generate posts, threads, and hooks using BYOAI providers |
 | **Analytics Dashboard** | Track performance metrics across all connected platforms |
 | **Team Collaboration** | Role-based access with approval workflows |
 | **Auto-Posting** | AI-generated content with configurable automation rules |
+| **Social Listening** | Monitor brand mentions, sentiment, and competitive intelligence |
+| **Unified Inbox** | Manage all comments and messages in one place |
 
 ---
 
@@ -33,8 +35,11 @@ The Social Media Management Module (BM-Social) provides AI-powered social media 
 | Architecture Research | ✅ Complete | Postiz patterns analyzed |
 | Data Model Design | ✅ Complete | Prisma models defined |
 | Provider Framework | ✅ Complete | SocialProvider interface |
-| Agent Architecture | ✅ Complete | 6 agents designed |
+| Agent Architecture | ✅ Complete | 16 agents designed |
 | Workflow Design | ✅ Complete | 8 workflows defined |
+| Competitive Analysis | ✅ Complete | Buffer, Hootsuite, Sprout, Sendible |
+| Social Listening Research | ✅ Complete | Brandwatch, Talkwalker, Brand24, Awario, Octolens |
+| Analytics Architecture | ✅ Complete | Dashboard components, metrics |
 | PRD | ⏳ Pending | Next step |
 
 ---
@@ -54,7 +59,7 @@ The Social Media Management Module (BM-Social) provides AI-powered social media 
 
 ## Module Architecture
 
-### Agent Team (15 Agents: 6 Core + 9 Platform Specialists)
+### Agent Team (16 Agents: 6 Core + 9 Platform + 1 Listening)
 
 #### Core Agents
 
@@ -63,7 +68,7 @@ The Social Media Management Module (BM-Social) provides AI-powered social media 
 | **Conductor** | Strategic, organized | Orchestrates all social activities |
 | **Spark** | Creative, brand-focused | Content strategy & delegation |
 | **Tempo** | Precise, analytical | Manages posting schedules |
-| **Pulse** | Data-driven, insightful | Analyzes performance |
+| **Pulse** | Data-driven, insightful | Analyzes performance & reporting |
 | **Echo** | Responsive, social | Manages engagement |
 | **Scout** | Curious, connected | Identifies trends |
 
@@ -80,6 +85,12 @@ The Social Media Management Module (BM-Social) provides AI-powered social media 
 | **Pin** | Pinterest | Pins, boards, visual search |
 | **Thread** | Threads | Conversational, cross-posting |
 | **Blue** | Bluesky/Mastodon | Decentralized, community norms |
+
+#### Listening Agent
+
+| Agent | Role | Capabilities |
+|-------|------|--------------|
+| **Sentinel** | Brand monitoring | Mentions, sentiment, alerts, competitive intel |
 
 ### Workflows (8)
 
@@ -113,13 +124,27 @@ The Social Media Management Module (BM-Social) provides AI-powered social media 
 
 ---
 
-## Reference System
+## Reference Systems
 
+### Primary Reference: Postiz
 Research based on [Postiz](https://github.com/gitroomhq/postiz-app):
 - Open-source social media scheduling platform
 - NestJS + Next.js + Prisma stack
 - Provider abstraction pattern
 - BullMQ worker architecture
+
+### Competitive Analysis
+- [Buffer](https://buffer.com/) - Ideas boards, first comment scheduling
+- [Hootsuite](https://www.hootsuite.com/) - Whiteboard, unified inbox, Talkwalker listening
+- [Sprout Social](https://sproutsocial.com/) - AI listening (#1 G2), competitive benchmarking
+- [Sendible](https://www.sendible.com/) - Unlimited scheduling, white-label, Google Analytics
+
+### Social Listening Tools
+- [Brandwatch](https://www.brandwatch.com/) - Enterprise listening, visual detection
+- [Talkwalker](https://www.talkwalker.com/) - 30 networks, 150M websites, 5yr history
+- [Brand24](https://brand24.com/) - AI Brand Assistant, podcast monitoring
+- [Awario](https://awario.com/) - Lead generation, in-app replies
+- [Octolens](https://octolens.com/) - B2B/developer focus, buying signals
 
 ---
 

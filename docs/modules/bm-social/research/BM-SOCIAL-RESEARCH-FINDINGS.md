@@ -23,7 +23,10 @@
 12. [Agent Architecture](#12-agent-architecture)
 13. [Workflow Definitions](#13-workflow-definitions)
 14. [Integration with Platform](#14-integration-with-platform)
-15. [Implementation Recommendations](#15-implementation-recommendations)
+15. [Competitive Analysis](#15-competitive-analysis) *(NEW)*
+16. [Social Listening & Brand Monitoring](#16-social-listening--brand-monitoring) *(NEW)*
+17. [Enhanced Analytics Architecture](#17-enhanced-analytics-architecture) *(NEW)*
+18. [Implementation Recommendations](#18-implementation-recommendations-updated)
 
 ---
 
@@ -1193,7 +1196,8 @@ User Request: "Create content about our new product launch"
 |-------|--------|-------|
 | **Core** | Conductor, Spark, Tempo, Pulse, Echo, Scout | 6 |
 | **Platform** | Chirp, Link, Meta, Gram, Tok, Tube, Pin, Thread, Blue | 9 |
-| **Total** | | **15** |
+| **Listening** | Sentinel | 1 |
+| **Total** | | **16** |
 
 ---
 
@@ -1384,7 +1388,401 @@ interface SocialApprovalItem {
 
 ---
 
-## 15. Implementation Recommendations
+## 15. Competitive Analysis
+
+### Social Media Management Tools Comparison
+
+Research was conducted on leading social media management platforms to identify features and capabilities that should be included in BM-Social.
+
+#### Buffer
+
+**Source:** [Buffer](https://buffer.com/) | [Buffer Review 2025](https://thecmo.com/tools/buffer-review/)
+
+| Feature | Details |
+|---------|---------|
+| **Platforms** | Facebook, Instagram, TikTok, LinkedIn, Threads, Bluesky, YouTube Shorts, Pinterest, Google Business, Mastodon, X |
+| **Scheduling** | One-click options (Share Next, Share Now, Next Available, Prioritize), bulk scheduling (100 posts), optimal time suggestions |
+| **Analytics** | Engagement rates, click-through rates, follower growth, reach tracking, exportable reports |
+| **Content Tools** | Visual content calendar, Ideas boards (To Do, In Progress), Canva/Dropbox/Google Drive integrations |
+| **AI Features** | Unlimited AI for content creation, repurposing, and refinement |
+| **Collaboration** | Channel grouping, first comment scheduling (Instagram/LinkedIn), reusable tag storage |
+| **Pricing** | Free (basic), $6/mo (Essentials), $12/mo per channel (Team) |
+
+**Key Takeaways for BM-Social:**
+- Ideas board concept for content pipeline
+- One-click scheduling options
+- First comment scheduling feature
+
+---
+
+#### Hootsuite
+
+**Source:** [Hootsuite](https://www.hootsuite.com/) | [Hootsuite G2 2025](https://blog.hootsuite.com/hootsuite-g2-fall-2025/)
+
+| Feature | Details |
+|---------|---------|
+| **Platforms** | Instagram, TikTok, Twitter, Facebook, LinkedIn, Pinterest, YouTube, Bluesky |
+| **Unified Dashboard** | Manage organic + paid social together, customer conversation tracking |
+| **AI (OwlyGPT)** | AI assistant for writing, trend detection, auto alt-text generation |
+| **Whiteboard** | Team space for early content planning, brainstorming, campaign building |
+| **Integrations** | 100+ integrations, Canva, Adobe Express, Grammarly direct integration |
+| **Social Listening** | Powered by Talkwalker, Wiki Entities for precision, Predefined Scores (Reach, Engagement, EMV) |
+| **Enterprise** | Governed calendar across brands/regions, approval workflows, executive reporting |
+| **Inbox** | TikTok Business Messaging, cross-platform conversation management |
+| **Advertising** | Click to Message ad campaigns (Facebook/Instagram) from dashboard |
+
+**Key Takeaways for BM-Social:**
+- Whiteboard for collaborative planning
+- Unified inbox across platforms
+- Social listening integration (consider Talkwalker patterns)
+- Click-to-message ad management
+
+---
+
+#### Sprout Social
+
+**Source:** [Sprout Social](https://sproutsocial.com/) | [G2 2026 Winter Reports](https://www.globenewswire.com/news-release/2025/12/08/3201577/0/en/Sprout-Social-Named-1-Social-Listening-Product-in-G2-s-2026-Winter-Reports-Achieving-40-Top-Rankings-Overall.html)
+
+| Feature | Details |
+|---------|---------|
+| **Recognition** | #1 Social Listening, #1 Social Customer Service, #1 Social Media Analytics (G2 2026) |
+| **Listening Scale** | 50k posts/second, 600M messages/day average |
+| **Platforms Monitored** | Facebook, X, Instagram, LinkedIn Mentions, Reddit, YouTube, Tumblr, Web |
+| **AI Capabilities** | AI Assist (summarizes 800+ char messages), Analyze by AI Assist (trend analysis), Queries by AI Assist (OpenAI keyword suggestions) |
+| **Competitive Intel** | Side-by-side comparisons, share of voice, engagement, impressions benchmarking |
+| **Influencer** | Influencer marketing features |
+| **AI Agent** | Trellis - proprietary AI agent |
+| **Bluesky** | New listening source for Bluesky (Q4 2025) |
+
+**Key Takeaways for BM-Social:**
+- AI-powered message summarization for high-volume mentions
+- Competitive benchmarking (share of voice)
+- Unified listening + management + analytics platform
+- Proprietary AI agent concept
+
+---
+
+#### Sendible
+
+**Source:** [Sendible](https://www.sendible.com/) | [Sendible Review 2025](https://bloggingwizard.com/sendible-review/)
+
+| Feature | Details |
+|---------|---------|
+| **Scheduling** | Unlimited scheduling on all plans, bulk import via CSV, drag-and-drop calendar |
+| **Instagram** | Direct publishing: photos, videos, Reels, Stories, carousels; real-time comment monitoring |
+| **Calendar** | Visual planning, filter by user, export/print as PDF |
+| **Reporting** | Pre-built reports (Facebook, Instagram, LinkedIn, YouTube), Google Analytics integration, automated reports with live links |
+| **White Label** | Custom branding, custom domain, automated client reporting |
+| **Social Listening** | Included social listening tools |
+| **Unified Inbox** | Consolidated comments and messages |
+| **Pricing** | $29/mo (Creator), $89/mo (Traction), $240/mo (White Label) |
+| **Limitation** | No Twitter/X analytics (API fees) |
+
+**Key Takeaways for BM-Social:**
+- Unlimited scheduling (not tier-limited)
+- Calendar PDF export
+- White-label client dashboards
+- Google Analytics integration for traffic attribution
+
+---
+
+### Feature Gap Analysis
+
+Based on competitive research, the following features should be considered for BM-Social:
+
+#### Must-Have Features (Currently Planned) ✅
+
+| Feature | Status | Source |
+|---------|--------|--------|
+| Multi-platform scheduling | ✅ Planned | All competitors |
+| Visual content calendar | ✅ Planned | All competitors |
+| Platform-specific content optimization | ✅ Planned (specialists) | All competitors |
+| Analytics dashboard | ✅ Planned | All competitors |
+| AI content generation | ✅ Planned | Buffer, Hootsuite, Sprout |
+| Team collaboration | ✅ Planned | All competitors |
+
+#### High-Priority Additions
+
+| Feature | Priority | Source | Notes |
+|---------|----------|--------|-------|
+| **Unified Inbox** | HIGH | Hootsuite, Sendible | Single place for all comments/messages |
+| **Social Listening** | HIGH | Hootsuite, Sprout, Sendible | See Section 16 |
+| **First Comment Scheduling** | HIGH | Buffer | Auto-post first comment with hashtags |
+| **Whiteboard/Ideas Board** | MEDIUM | Buffer, Hootsuite | Content ideation space |
+| **Bulk Import (CSV)** | MEDIUM | Buffer, Sendible | Import scheduled content |
+| **Google Analytics Integration** | MEDIUM | Sendible | Traffic attribution |
+| **Competitor Benchmarking** | MEDIUM | Sprout | Share of voice analysis |
+
+#### Nice-to-Have Features
+
+| Feature | Priority | Source | Notes |
+|---------|----------|--------|-------|
+| Click-to-Message Ads | LOW | Hootsuite | Ad management integration |
+| White-Label Dashboards | LOW | Sendible | Agency/client use case |
+| Calendar PDF Export | LOW | Sendible | Client reporting |
+| Reusable Tag Library | LOW | Buffer | Saved hashtag sets |
+
+---
+
+## 16. Social Listening & Brand Monitoring
+
+### Overview
+
+Social listening goes beyond scheduling to monitor brand mentions, sentiment, and competitive intelligence across the web. This capability should be integrated into BM-Social or offered as a complementary module.
+
+### Social Listening Tools Research
+
+#### Brandwatch
+
+**Source:** [Brandwatch](https://www.brandwatch.com/) | [Listen Product](https://www.brandwatch.com/products/listen/)
+
+| Feature | Details |
+|---------|---------|
+| **Sources** | 100+ million sources, social media, blogs, review sites, news, forums |
+| **Real-Time** | Real-time monitoring with smart alerts |
+| **Queries** | Unlimited quick searches, refined Boolean queries |
+| **Analytics** | Popularity, phrases, sentiment, demographics auto-populated |
+| **Competitive Intel** | Track competitor moves, successes, innovations |
+| **Integration** | 360-degree customer view, integrates social + web + marketing data |
+| **Visual Analysis** | Track brand mentions in images and video |
+
+**Key Capabilities:**
+- Enterprise-grade listening at scale
+- Visual/image mention detection
+- Competitive intelligence
+- Integrated data approach
+
+---
+
+#### Talkwalker (Hootsuite Listening)
+
+**Source:** [Talkwalker](https://www.talkwalker.com/) | [Social Listening](https://www.talkwalker.com/products/social-listening)
+
+| Feature | Details |
+|---------|---------|
+| **Coverage** | 30 social networks, 150M websites, 239 countries |
+| **AI Engine** | Blue Silk™ AI for deep analysis |
+| **Visual Recognition** | Detect brand mentions in images, video, and audio |
+| **Historical Data** | Up to 5 years of historic data access |
+| **Alerts** | Sentiment shifts, trend spikes, negativity spread notifications |
+| **AI Query Builder** | Automatic precise query building |
+| **Integrations** | Hootsuite, Khoros, Facelift, Tableau |
+| **Pricing** | Starting at $9,600/year |
+
+**Key Capabilities:**
+- Industry-leading coverage breadth
+- Visual/audio mention detection
+- Long historical data access
+- Deep Hootsuite integration
+
+---
+
+#### Brand24
+
+**Source:** [Brand24](https://brand24.com/) | [Brand24 Review 2025](https://thecmo.com/tools/brand24-review/)
+
+| Feature | Details |
+|---------|---------|
+| **Sources** | 25 million online sources, social, news, blogs, videos, forums, podcasts, reviews |
+| **Platforms** | Facebook, Instagram, Twitter, TikTok, YouTube, Twitch, App Store, Google Play, Yelp, TripAdvisor |
+| **AI Insights** | Auto-analysis of mention trends, recommendations |
+| **AI Brand Assistant** | ChatGPT-like interface for project data queries |
+| **Influencer Scoring** | Identify key influencers |
+| **Metrics** | Presence Score, volume, engagement, reach, sentiment, influence |
+| **Pricing** | $99/mo (Individual), $239/mo (Pro), $399/mo (Enterprise) |
+| **Limitation** | Listening only - no publishing/scheduling |
+
+**Key Capabilities:**
+- Podcast monitoring
+- AI Brand Assistant for natural language queries
+- Influencer identification
+- Review site monitoring (Yelp, TripAdvisor, App Store)
+
+---
+
+#### Awario
+
+**Source:** [Awario](https://awario.com/) | [Awario Features](https://awario.com/features/)
+
+| Feature | Details |
+|---------|---------|
+| **Crawling** | 13 billion website pages daily |
+| **Sources** | Social media, blogs, forums, news, Reddit, YouTube, Vimeo |
+| **Boolean Search** | Advanced granular query control |
+| **Lead Generation** | Awario Leads - finds product recommendations, competitor complaints |
+| **In-App Engagement** | Reply to social posts directly from app |
+| **Author Cards** | User info, follow, like, reply, notes/labels |
+| **Competitor Analysis** | Side-by-side share of voice comparison |
+| **Reports** | Brandable reports, share of voice, influencer reports |
+| **Pricing** | $29/mo (Starter), $89/mo (Pro), $249/mo (Enterprise) |
+| **Limitations** | 6-month historical data, no mobile app |
+
+**Key Capabilities:**
+- Lead generation from social mentions
+- In-app reply functionality
+- Boolean search precision
+- Competitive share of voice
+
+---
+
+#### Octolens
+
+**Source:** [Octolens](https://octolens.com/) | [G2 Reviews](https://www.g2.com/products/crowdlens-octolens/reviews)
+
+| Feature | Details |
+|---------|---------|
+| **Focus** | B2B SaaS, developer-focused brands |
+| **Platforms** | X/Twitter, Reddit, Hacker News, YouTube, GitHub Issues, LinkedIn, Stack Overflow, Dev.to |
+| **AI Scoring** | AI-vetted relevance scoring for mentions |
+| **Notifications** | Slack/email alerts, configurable frequency (hourly/daily/weekly) |
+| **Keyword Analytics** | Trend tracking, keyword refinement |
+| **Buying Signals** | Identifies posts with purchase intent |
+| **Pricing** | $69/mo (Starter), $99/mo (Pro), $299/mo (Scale) |
+| **Limitation** | No mobile app, web-only |
+
+**Key Capabilities:**
+- Developer platform focus (GitHub, Hacker News, Stack Overflow)
+- Buying signal detection
+- AI relevance filtering
+- B2B-specific monitoring
+
+---
+
+### Social Listening Integration Strategy
+
+#### Option A: Built-In Listening (Recommended for MVP)
+
+Add basic listening capabilities to BM-Social:
+
+| Feature | Implementation |
+|---------|----------------|
+| **Mention Tracking** | Track @mentions and brand keywords on connected platforms |
+| **Sentiment Analysis** | Basic positive/negative/neutral classification |
+| **Unified Inbox** | All comments and messages in one place |
+| **Alerts** | Notify on mention spikes or negative sentiment |
+
+#### Option B: Advanced Listening Module
+
+Create separate **BM-Listen** module for enterprise needs:
+
+| Feature | Implementation |
+|---------|----------------|
+| **Web Crawling** | Monitor blogs, news, forums beyond social |
+| **Competitive Intel** | Share of voice, competitor tracking |
+| **Influencer Discovery** | Identify and score influencers |
+| **Lead Generation** | Find buying signals and recommendations |
+| **Visual Listening** | Detect brand in images/video |
+| **Historical Data** | Long-term trend analysis |
+
+#### New Agent for Listening: **Sentinel**
+
+| Agent | Code | Role |
+|-------|------|------|
+| **Sentinel** | listening-agent | Monitors mentions, sentiment, and alerts on brand/competitor activity |
+
+**Capabilities:**
+- Real-time mention monitoring
+- Sentiment classification
+- Alert generation
+- Competitive intelligence summaries
+- Influencer identification
+
+---
+
+## 17. Enhanced Analytics Architecture
+
+### Analytics Requirements by Stakeholder
+
+| Stakeholder | Needs | Metrics |
+|-------------|-------|---------|
+| **Content Creator** | Post performance | Engagement rate, reach, saves, shares |
+| **Social Manager** | Channel health | Follower growth, posting frequency, best times |
+| **Marketing Lead** | Campaign ROI | Traffic attribution, conversions, revenue impact |
+| **Executive** | Business impact | Brand awareness, share of voice, sentiment trends |
+
+### Platform-Specific Metrics
+
+| Platform | Key Metrics |
+|----------|-------------|
+| **Twitter/X** | Impressions, likes, retweets, replies, bookmarks, quotes, profile visits |
+| **LinkedIn** | Page views, clicks, shares, engagement rate, followers (organic/paid) |
+| **Facebook** | Impressions, engagements, follows, video views, reach |
+| **Instagram** | Reach, likes, views, comments, shares, saves, story exits |
+| **TikTok** | Views, likes, comments, shares, watch time, completion rate |
+| **YouTube** | Views, watch time, avg duration, subscribers gained/lost, likes, CTR |
+| **Pinterest** | Impressions, clicks, saves, engagement rate, outbound clicks |
+
+### Analytics Dashboard Components
+
+#### 1. Overview Dashboard
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    SOCIAL MEDIA OVERVIEW                         │
+├─────────────────────────────────────────────────────────────────┤
+│  Total Reach    │  Engagement Rate  │  Follower Growth  │ Posts │
+│   1.2M (+12%)   │     4.2% (+0.3%)  │    +2,847         │  127  │
+├─────────────────────────────────────────────────────────────────┤
+│  [Chart: Reach over time]          [Chart: Engagement by day]  │
+├─────────────────────────────────────────────────────────────────┤
+│  TOP PERFORMING POSTS              │  PLATFORM BREAKDOWN        │
+│  1. Product launch (23K reach)     │  Twitter: 45%             │
+│  2. How-to video (18K reach)       │  LinkedIn: 30%            │
+│  3. Customer story (15K reach)     │  Instagram: 25%           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 2. Post Performance View
+
+| Metric | Description |
+|--------|-------------|
+| Engagement Rate | (Likes + Comments + Shares) / Reach × 100 |
+| Amplification Rate | Shares / Followers × 100 |
+| Virality Rate | Shares / Impressions × 100 |
+| Conversation Rate | Comments / Followers × 100 |
+
+#### 3. Competitor Benchmarking
+
+| Metric | Your Brand | Competitor A | Competitor B |
+|--------|------------|--------------|--------------|
+| Share of Voice | 35% | 40% | 25% |
+| Avg Engagement | 4.2% | 3.8% | 2.9% |
+| Post Frequency | 4/day | 6/day | 2/day |
+| Sentiment | 72% pos | 68% pos | 75% pos |
+
+#### 4. Content Type Analysis
+
+| Content Type | Posts | Avg Reach | Avg Engagement | Best Platform |
+|--------------|-------|-----------|----------------|---------------|
+| Video | 23 | 15,234 | 6.2% | TikTok |
+| Carousel | 18 | 12,456 | 5.8% | Instagram |
+| Image | 45 | 8,234 | 4.1% | Twitter |
+| Text-only | 31 | 5,123 | 3.2% | LinkedIn |
+| Link | 10 | 3,456 | 2.1% | Twitter |
+
+### Analytics Agent Enhancement (Pulse)
+
+Enhance the Pulse agent with additional capabilities:
+
+**New Capabilities:**
+- Automated weekly/monthly report generation
+- Anomaly detection (unusual spikes/drops)
+- Content recommendation based on performance
+- Best time to post analysis
+- Hashtag performance tracking
+- Traffic attribution (with Google Analytics)
+- ROI calculation for campaigns
+
+**Report Types:**
+1. **Executive Summary** - High-level KPIs, trends, recommendations
+2. **Platform Deep-Dive** - Per-platform detailed metrics
+3. **Content Performance** - Post-level analysis
+4. **Competitive Report** - Share of voice, benchmarking
+5. **Campaign Report** - Campaign-specific ROI analysis
+
+---
+
+## 18. Implementation Recommendations (Updated)
 
 ### Phase 1: MVP (Weeks 1-4)
 
