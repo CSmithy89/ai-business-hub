@@ -50,6 +50,40 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
+- DB migration: `packages/db/prisma/migrations/20251217230000_add_knowledge_base/`
+- Uses existing `KnowledgePage`, `PageVersion`, `PageActivity`, `ProjectPage` models
+
+---
+
+## EPIC-KB-02: KB Real-Time & RAG (8 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-18
+**Branch:** `epic/kb-02-realtime-rag`
+
+### Added
+
+- **Real-time collaboration**: Yjs + Hocuspocus server for multi-user KB page editing
+- **Presence cursors**: collaborator cursor + selection UI in the editor
+- **Offline-first editing**: IndexedDB persistence with automatic sync/merge on reconnect
+- **Embedding pipeline**: background job to chunk and embed `content_text` into `page_embeddings`
+- **Semantic search**: vector similarity endpoint (`/api/kb/search/semantic`)
+- **RAG query endpoint**: top-k chunk retrieval with citations + preformatted context (`/api/kb/rag/query`)
+- **Related pages**: similarity-based suggestions for a page (`/api/kb/pages/:id/related`)
+
+### API Endpoints
+
+- `POST /api/kb/search/semantic` - Semantic (vector) search across KB pages
+- `POST /api/kb/rag/query` - Retrieve top matching KB chunks for agent/RAG use
+- `GET /api/kb/pages/:id/related` - Related pages suggestions for a KB page
+
+### Notes
+
+- Vector index migration: `packages/db/prisma/migrations/20251217230000_add_page_embeddings_vector_index/`
+- Embeddings are OpenAI-compatible only (OpenAI / OpenRouter / DeepSeek) via workspace BYOAI config
+
+---
+
 ## EPIC-PM-01: Project & Phase Management (9 stories)
 
 **Status:** Complete

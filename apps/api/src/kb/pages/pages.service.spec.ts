@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client'
 import { EventPublisherService } from '../../events'
 import { PrismaService } from '../../common/services/prisma.service'
 import { PagesService } from './pages.service'
+import { EmbeddingsService } from '../embeddings/embeddings.service'
 
 type PrismaMock = {
   knowledgePage: {
@@ -21,6 +22,7 @@ type PrismaMock = {
     create: jest.Mock
     findMany: jest.Mock
   }
+  $queryRaw: jest.Mock
   $transaction: jest.Mock
 }
 
@@ -51,6 +53,7 @@ describe('PagesService', () => {
               create: jest.fn(),
               findMany: jest.fn(),
             },
+            $queryRaw: jest.fn(),
             $transaction: jest.fn(),
           },
         },
@@ -58,6 +61,12 @@ describe('PagesService', () => {
           provide: EventPublisherService,
           useValue: {
             publish: jest.fn(),
+          },
+        },
+        {
+          provide: EmbeddingsService,
+          useValue: {
+            enqueuePageEmbeddings: jest.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -538,6 +547,42 @@ describe('PagesService', () => {
       ).rejects.toThrow(BadRequestException)
 
       expect(prisma.knowledgePage.update).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('getRelatedPages', () => {
+    it('returns related page suggestions based on embeddings', async () => {
+      prisma.knowledgePage.findFirst.mockResolvedValueOnce({ id: 'page-1' })
+      prisma.$queryRaw.mockResolvedValueOnce([
+        {
+          page_id: 'page-2',
+          title: 'Beta',
+          slug: 'beta',
+          snippet: 'Beta chunk',
+          distance: 0.25,
+          updated_at: new Date('2025-01-01T00:00:00.000Z'),
+        },
+      ])
+
+      const result = await service.getRelatedPages('tenant-1', 'ws-1', 'page-1', 5)
+
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0]).toEqual(
+        expect.objectContaining({
+          pageId: 'page-2',
+          title: 'Beta',
+          slug: 'beta',
+          snippet: 'Beta chunk',
+        }),
+      )
+      expect(prisma.$queryRaw).toHaveBeenCalled()
+    })
+
+    it('throws if page does not exist', async () => {
+      prisma.knowledgePage.findFirst.mockResolvedValueOnce(null)
+      await expect(
+        service.getRelatedPages('tenant-1', 'ws-1', 'missing', 5),
+      ).rejects.toBeInstanceOf(NotFoundException)
     })
   })
 })

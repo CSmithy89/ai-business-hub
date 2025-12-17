@@ -87,6 +87,20 @@ export class PagesController {
     return this.pagesService.getFavorites(workspaceId, workspaceId, actor.id)
   }
 
+  @Get(':id/related')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get related pages suggestions' })
+  @ApiParam({ name: 'id', description: 'Page ID' })
+  async getRelatedPages(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedLimit = limit ? parseInt(limit, 10) : 8
+    const limitNum = Number.isNaN(parsedLimit) || parsedLimit <= 0 ? 8 : parsedLimit
+    return this.pagesService.getRelatedPages(workspaceId, workspaceId, id, limitNum)
+  }
+
   @Get(':id')
   @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'Get a page by ID' })

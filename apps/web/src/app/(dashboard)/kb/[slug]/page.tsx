@@ -2,7 +2,7 @@
 
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from '@/lib/auth-client'
+import { getCurrentSessionToken, useSession } from '@/lib/auth-client'
 import { useKBPages, useKBPage, useUpdateKBPage, useDeleteKBPage, useToggleFavorite } from '@/hooks/use-kb-pages'
 import { PageEditor } from '@/components/kb/editor/PageEditor'
 import { PageBreadcrumbs } from '@/components/kb/PageBreadcrumbs'
@@ -13,6 +13,7 @@ import { ArrowLeft, Trash2, Star, PanelRightClose, PanelRightOpen } from 'lucide
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { stringToHslColor } from '@/lib/utils/color'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +39,11 @@ export default function KBPagePage({ params }: PageProps) {
     sessionData?.workspaceId ||
     sessionData?.session?.activeWorkspaceId ||
     ''
+  const sessionToken =
+    sessionData?.token ||
+    sessionData?.session?.token ||
+    getCurrentSessionToken() ||
+    ''
   const { data: pagesData } = useKBPages(workspaceId, true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [showInfoPanel, setShowInfoPanel] = useState(true)
@@ -51,6 +57,11 @@ export default function KBPagePage({ params }: PageProps) {
   const deletePage = useDeleteKBPage(workspaceId)
   const toggleFavorite = useToggleFavorite(workspaceId)
   const userId = (session as any)?.user?.id || ''
+  const userName =
+    sessionData?.user?.name ||
+    sessionData?.user?.email ||
+    'User'
+  const userColor = userId ? stringToHslColor(userId) : 'hsl(210 10% 50%)'
   const isFavorited = pageData?.data?.favoritedBy?.includes(userId) ?? false
 
   const [title, setTitle] = useState('')
@@ -209,6 +220,14 @@ export default function KBPagePage({ params }: PageProps) {
               initialContent={pageData.data.content}
               onSave={handleSaveContent}
               placeholder="Start writing your page content..."
+              collaboration={
+                sessionToken
+                  ? {
+                      token: sessionToken,
+                      user: { name: userName, color: userColor },
+                    }
+                  : undefined
+              }
             />
           </div>
 

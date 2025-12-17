@@ -82,6 +82,9 @@ Workspace-scoped knowledge retrieval to support retrieval-augmented agents:
 
 - Postgres + pgvector storage per workspace
 - Tenant isolation through table-per-workspace strategy
+- Knowledge Base collaboration (Yjs + Hocuspocus) with cursor presence
+- Offline-first editing (IndexedDB) with automatic merge on reconnect
+- Background embedding pipeline + semantic search + RAG query API
 
 ### Confidence-Based Approval System
 
@@ -296,6 +299,12 @@ For ongoing operations:
 | EPIC-16 | Premium Polish & Advanced Features | 28/28 | ✅ Complete |
 
 **Progress: 190/190 stories completed (100%) | 541 Story Points | Foundation Complete**
+
+### Core-PM (Projects + Knowledge Base)
+
+- Sprint tracking: `docs/modules/bm-pm/sprint-status.yaml`
+- KB-01: Knowledge Base Foundation ✅ Complete
+- KB-02: KB Real-Time & RAG ✅ Complete (collab editing + embeddings + semantic search + RAG)
 
 ### Latest Epic: Premium Polish & Advanced Features (EPIC-16)
 
