@@ -31,9 +31,56 @@ export class TasksService {
     if (!phase) throw new BadRequestException('phaseId is not valid for this project')
   }
 
+  private async assertValidParentId(params: {
+    workspaceId: string
+    projectId: string
+    taskId?: string
+    parentId: string | null | undefined
+  }) {
+    if (!params.parentId) return
+    if (params.taskId && params.parentId === params.taskId) {
+      throw new BadRequestException('parentId cannot reference the task itself')
+    }
+
+    const parent = await this.prisma.task.findFirst({
+      where: { id: params.parentId, workspaceId: params.workspaceId, deletedAt: null },
+      select: { id: true, projectId: true, parentId: true },
+    })
+    if (!parent) throw new BadRequestException('parentId is not a valid task')
+    if (parent.projectId !== params.projectId) throw new BadRequestException('parentId must be in the same project')
+
+    // Prevent cycles: walk up ancestors from parent, ensure we never hit taskId.
+    if (params.taskId) {
+      let cursor: { id: string; parentId: string | null } | null = parent
+      for (let depth = 0; depth < 10 && cursor?.parentId; depth += 1) {
+        if (cursor.parentId === params.taskId) {
+          throw new BadRequestException('parentId would create a cycle')
+        }
+        cursor = await this.prisma.task.findFirst({
+          where: { id: cursor.parentId, workspaceId: params.workspaceId, deletedAt: null },
+          select: { id: true, parentId: true },
+        })
+      }
+    }
+
+    // Enforce max depth: root (0) -> child (1) -> grandchild (2); disallow deeper.
+    // That means the parent can have at most 1 ancestor with a parentId.
+    const parentParentId = parent.parentId
+    if (!parentParentId) return
+
+    const parentParent = await this.prisma.task.findFirst({
+      where: { id: parentParentId, workspaceId: params.workspaceId, deletedAt: null },
+      select: { id: true, parentId: true },
+    })
+    if (parentParent?.parentId) {
+      throw new BadRequestException('Task hierarchy supports a maximum of 3 levels')
+    }
+  }
+
   async create(workspaceId: string, actorId: string, dto: CreateTaskDto) {
     await this.assertProjectInWorkspace(workspaceId, dto.projectId)
     await this.assertPhaseInProject(dto.projectId, dto.phaseId)
+    await this.assertValidParentId({ workspaceId, projectId: dto.projectId, parentId: dto.parentId })
 
     const created = await this.prisma.$transaction(async (tx) => {
       const last = await tx.task.findFirst({
@@ -59,6 +106,7 @@ export class TasksService {
           agentId: dto.agentId ?? null,
           storyPoints: dto.storyPoints ?? null,
           dueDate: dto.dueDate ?? null,
+          parentId: dto.parentId ?? null,
           status: dto.status ?? undefined,
           createdBy: actorId,
         },
@@ -100,6 +148,7 @@ export class TasksService {
       ...(query.priority ? { priority: query.priority } : {}),
       ...(query.assignmentType ? { assignmentType: query.assignmentType } : {}),
       ...(query.assigneeId ? { assigneeId: query.assigneeId } : {}),
+      ...(query.parentId ? { parentId: query.parentId } : {}),
       ...(query.search
         ? {
             OR: [
@@ -157,6 +206,25 @@ export class TasksService {
     const task = await this.prisma.task.findFirst({
       where: { id, workspaceId, deletedAt: null },
       include: {
+        parent: {
+          select: { id: true, parentId: true, taskNumber: true, title: true },
+        },
+        children: {
+          where: { deletedAt: null },
+          orderBy: [{ status: 'asc' }, { taskNumber: 'asc' }],
+          select: {
+            id: true,
+            taskNumber: true,
+            title: true,
+            status: true,
+            type: true,
+            priority: true,
+            assigneeId: true,
+            dueDate: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         relations: true,
         relatedTo: true,
         labels: true,
@@ -171,7 +239,12 @@ export class TasksService {
       },
     })
     if (!task) throw new NotFoundException('Task not found')
-    return { data: task }
+
+    const childTotal = task.children.length
+    const childDone = task.children.filter((c) => c.status === TaskStatus.DONE).length
+    const completionPercent = childTotal === 0 ? 0 : Math.round((childDone / childTotal) * 100)
+
+    return { data: { ...task, subtasks: { total: childTotal, done: childDone, completionPercent } } }
   }
 
   async update(workspaceId: string, actorId: string, id: string, dto: UpdateTaskDto) {
@@ -183,6 +256,15 @@ export class TasksService {
 
     if (dto.phaseId) {
       await this.assertPhaseInProject(existing.projectId, dto.phaseId)
+    }
+
+    if (dto.parentId !== undefined) {
+      await this.assertValidParentId({
+        workspaceId,
+        projectId: existing.projectId,
+        taskId: existing.id,
+        parentId: dto.parentId,
+      })
     }
 
     const nextStatus = dto.status

@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { format, parseISO } from 'date-fns'
@@ -14,6 +16,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Textarea } from '@/components/ui/textarea'
 import { usePmTeam } from '@/hooks/use-pm-team'
 import {
+  useCreatePmTask,
   usePmTask,
   useUpdatePmTask,
   type TaskPriority,
@@ -52,9 +55,15 @@ export function TaskDetailSheet({
   taskId: string | null
   onOpenChange: (open: boolean) => void
 }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const queryClient = useQueryClient()
+
   const { data, isLoading, error } = usePmTask(taskId)
   const task = data?.data
 
+  const createTask = useCreatePmTask()
   const updateTask = useUpdatePmTask()
 
   const team = usePmTeam(task?.projectId ?? '')
@@ -63,12 +72,16 @@ export function TaskDetailSheet({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState<string>('')
   const [storyPoints, setStoryPoints] = useState<string>('')
+  const [subtaskTitle, setSubtaskTitle] = useState('')
+  const [subtaskOpen, setSubtaskOpen] = useState(false)
 
   useEffect(() => {
     if (!task) return
     setTitle(task.title ?? '')
     setDescription(task.description ?? '')
     setStoryPoints(task.storyPoints === null ? '' : String(task.storyPoints))
+    setSubtaskTitle('')
+    setSubtaskOpen(false)
   }, [task?.id])
 
   const dueDate = useMemo(() => {
@@ -85,6 +98,33 @@ export function TaskDetailSheet({
   function saveField(input: UpdateTaskInput) {
     if (!taskId) return
     updateTask.mutate({ taskId, input })
+  }
+
+  function openTask(nextTaskId: string) {
+    const next = new URLSearchParams(searchParams.toString())
+    next.set('taskId', nextTaskId)
+    router.push(`${pathname}?${next.toString()}` as any)
+  }
+
+  async function handleCreateSubtask() {
+    if (!task) return
+    const trimmed = subtaskTitle.trim()
+    if (!trimmed) return
+
+    const created = await createTask.mutateAsync({
+      input: {
+        projectId: task.projectId,
+        phaseId: task.phaseId,
+        title: trimmed,
+        parentId: task.id,
+        type: 'SUBTASK',
+      },
+    })
+
+    setSubtaskTitle('')
+    setSubtaskOpen(false)
+    queryClient.invalidateQueries({ queryKey: ['pm-task'] })
+    openTask(created.data.id)
   }
 
   return (
@@ -239,6 +279,123 @@ export function TaskDetailSheet({
                 />
               </div>
             </div>
+
+            {task.subtasks ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Subtasks</div>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-[rgb(var(--color-text-secondary))]">
+                      <span>{task.subtasks.total} total</span>
+                      <span>•</span>
+                      <span>{task.subtasks.completionPercent}% done</span>
+                    </div>
+                  </div>
+                  <Button type="button" size="sm" variant="secondary" onClick={() => setSubtaskOpen((v) => !v)}>
+                    {subtaskOpen ? 'Close' : 'Add subtask'}
+                  </Button>
+                </div>
+
+                <div className="h-2 overflow-hidden rounded-full bg-[rgb(var(--color-bg-tertiary))]">
+                  <div
+                    className="h-full rounded-full bg-[rgb(var(--color-primary-500))]"
+                    style={{ width: `${Math.max(0, Math.min(100, task.subtasks.completionPercent))}%` }}
+                  />
+                </div>
+
+                {task.subtasks.total > 0 &&
+                task.subtasks.done === task.subtasks.total &&
+                task.status !== 'DONE' ? (
+                  <div className="rounded-md border border-[rgb(var(--color-border-default))] bg-[rgb(var(--color-bg-tertiary))] p-3">
+                    <div className="text-sm font-medium text-[rgb(var(--color-text-primary))]">
+                      All subtasks are done
+                    </div>
+                    <div className="mt-1 text-xs text-[rgb(var(--color-text-secondary))]">
+                      Mark the parent task as Done?
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <Button type="button" size="sm" onClick={() => saveField({ status: 'DONE' })}>
+                        Mark Done
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {subtaskOpen ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={subtaskTitle}
+                      onChange={(e) => setSubtaskTitle(e.target.value)}
+                      placeholder="Subtask title"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          e.preventDefault()
+                          setSubtaskOpen(false)
+                        }
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          void handleCreateSubtask()
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => void handleCreateSubtask()}
+                      disabled={!subtaskTitle.trim() || createTask.isPending}
+                    >
+                      Create
+                    </Button>
+                  </div>
+                ) : null}
+
+                {task.children?.length ? (
+                  <div className="rounded-md border border-[rgb(var(--color-border-default))]">
+                    <ul className="divide-y divide-[rgb(var(--color-border-default))]">
+                      {task.children.map((child) => {
+                        const typeMeta = TASK_TYPE_META[child.type]
+                        const TypeIcon = typeMeta.icon
+                        const priorityMeta = TASK_PRIORITY_META[child.priority]
+
+                        return (
+                          <li key={child.id}>
+                            <button
+                              type="button"
+                              className={cn(
+                                'flex w-full items-center justify-between gap-3 px-3 py-2 text-left',
+                                'hover:bg-[rgb(var(--color-bg-tertiary))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-primary-500))]',
+                              )}
+                              onClick={() => openTask(child.id)}
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <TypeIcon className={cn('h-4 w-4', typeMeta.iconClassName)} aria-hidden="true" />
+                                  <span className="text-xs text-[rgb(var(--color-text-secondary))]">
+                                    #{child.taskNumber}
+                                  </span>
+                                  <span className="truncate text-sm font-medium text-[rgb(var(--color-text-primary))]">
+                                    {child.title}
+                                  </span>
+                                </div>
+                                <div className="mt-1 flex items-center gap-2 text-xs text-[rgb(var(--color-text-secondary))]">
+                                  <span className={cn('h-2.5 w-2.5 rounded-full', priorityMeta.dotClassName)} />
+                                  <span>{priorityMeta.label}</span>
+                                  <span>•</span>
+                                  <span>{child.status.replace(/_/g, ' ')}</span>
+                                </div>
+                              </div>
+                              <span className="text-xs text-[rgb(var(--color-text-secondary))]">Open</span>
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="text-sm text-[rgb(var(--color-text-secondary))]">No subtasks yet.</div>
+                )}
+              </div>
+            ) : null}
 
             <div className="flex flex-col gap-2">
               <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Due date</span>

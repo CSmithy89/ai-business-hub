@@ -52,7 +52,10 @@ export class CreateTaskDto {
   dueDate?: Date | null
 
   @IsOptional()
+  @IsString()
+  parentId?: string | null
+
+  @IsOptional()
   @IsEnum(TaskStatus)
   status?: TaskStatus
 }
-

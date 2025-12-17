@@ -33,6 +33,10 @@ export class ListTasksQueryDto {
 
   @IsOptional()
   @IsString()
+  parentId?: string
+
+  @IsOptional()
+  @IsString()
   search?: string
 
   @IsOptional()
@@ -48,4 +52,3 @@ export class ListTasksQueryDto {
   @Max(100)
   limit?: number
 }
-

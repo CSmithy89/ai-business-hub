@@ -116,6 +116,66 @@ describe('TasksService', () => {
     expect(result.data.taskNumber).toBe(8)
   })
 
+  it('creates a subtask when parentId is provided', async () => {
+    prisma.project.findFirst.mockResolvedValueOnce({ id: 'proj-1' })
+    prisma.phase.findFirst.mockResolvedValueOnce({ id: 'phase-1' })
+    prisma.task.findFirst.mockResolvedValueOnce({ id: 'task-parent', projectId: 'proj-1', parentId: null })
+
+    const taskFindFirst = jest.fn().mockResolvedValueOnce({ taskNumber: 1 })
+    const taskCreate = jest.fn().mockResolvedValueOnce({
+      id: 'task-2',
+      workspaceId: 'ws-1',
+      projectId: 'proj-1',
+      phaseId: 'phase-1',
+      taskNumber: 2,
+      title: 'Child',
+      parentId: 'task-parent',
+      status: TaskStatus.BACKLOG,
+    })
+    const activityCreate = jest.fn().mockResolvedValueOnce({ id: 'act-1' })
+
+    prisma.$transaction.mockImplementationOnce(async (fn: any) =>
+      fn({
+        task: { findFirst: taskFindFirst, create: taskCreate },
+        taskActivity: { create: activityCreate },
+      }),
+    )
+
+    const result = await service.create('ws-1', 'user-1', {
+      projectId: 'proj-1',
+      phaseId: 'phase-1',
+      title: 'Child',
+      parentId: 'task-parent',
+    })
+
+    expect(taskCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          parentId: 'task-parent',
+        }),
+      }),
+    )
+    expect(result.data.parentId).toBe('task-parent')
+  })
+
+  it('rejects creating a task deeper than 3 levels', async () => {
+    prisma.project.findFirst.mockResolvedValueOnce({ id: 'proj-1' })
+    prisma.phase.findFirst.mockResolvedValueOnce({ id: 'phase-1' })
+
+    // Parent has a parentId, and that parent also has a parentId => too deep
+    prisma.task.findFirst.mockResolvedValueOnce({ id: 'task-parent', projectId: 'proj-1', parentId: 'task-pp' })
+    prisma.task.findFirst.mockResolvedValueOnce({ id: 'task-pp', parentId: 'task-ppp' })
+
+    await expect(
+      service.create('ws-1', 'user-1', {
+        projectId: 'proj-1',
+        phaseId: 'phase-1',
+        title: 'Too deep',
+        parentId: 'task-parent',
+      }),
+    ).rejects.toThrow('Task hierarchy supports a maximum of 3 levels')
+  })
+
   it('lists tasks scoped to workspaceId and excludes soft-deleted rows', async () => {
     prisma.task.count.mockResolvedValueOnce(1)
     prisma.task.findMany.mockResolvedValueOnce([{ id: 'task-1' }])
@@ -164,4 +224,3 @@ describe('TasksService', () => {
     expect(result.data.count).toBe(2)
   })
 })
-

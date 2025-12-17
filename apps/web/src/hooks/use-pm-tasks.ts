@@ -82,9 +82,38 @@ export type TaskActivity = {
   createdAt: string
 }
 
+export type TaskParentSummary = {
+  id: string
+  parentId: string | null
+  taskNumber: number
+  title: string
+}
+
+export type TaskChildSummary = {
+  id: string
+  taskNumber: number
+  title: string
+  status: TaskStatus
+  type: TaskType
+  priority: TaskPriority
+  assigneeId: string | null
+  dueDate: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type SubtasksSummary = {
+  total: number
+  done: number
+  completionPercent: number
+}
+
 export interface TaskDetailResponse {
   data: TaskListItem & {
     activities: TaskActivity[]
+    parent?: TaskParentSummary | null
+    children: TaskChildSummary[]
+    subtasks: SubtasksSummary
   }
 }
 
@@ -127,6 +156,7 @@ export type CreateTaskInput = {
   agentId?: string | null
   storyPoints?: number | null
   dueDate?: string | null
+  parentId?: string | null
 }
 
 async function fetchTasks(params: {

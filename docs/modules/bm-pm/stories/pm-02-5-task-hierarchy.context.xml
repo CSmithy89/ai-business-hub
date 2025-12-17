@@ -1,0 +1,56 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-02</epicId>
+    <storyId>pm-02-5</storyId>
+    <title>Task Hierarchy</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-02-5-task-hierarchy.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>project user</asA>
+    <iWant>to create parent-child task relationships</iWant>
+    <soThat>I can break down work into subtasks</soThat>
+    <tasks>
+      - Create task with parentId (subtask)
+      - Show subtask count + completion percent on parent
+      - Enforce max hierarchy depth (3 levels)
+      - Suggest completing parent when children all done
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1) "Add Subtask" creates a child task with parentId set.
+    2) Parent shows subtask count and completion percentage.
+    3) Max 3 levels supported (Epic → Story → Task/Subtask).
+    4) When all children are Done, suggest completing parent.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      - docs/modules/bm-pm/epics/epic-pm-02-task-management-system.md (Story PM-02.5)
+      - docs/modules/bm-pm/tech-spec-epic-pm-02.md
+    </docs>
+    <code>
+      - apps/api/src/pm/tasks/dto/create-task.dto.ts (add parentId)
+      - apps/api/src/pm/tasks/tasks.service.ts (hierarchy validation + create)
+      - apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/TaskDetailSheet.tsx (subtasks UI)
+      - apps/web/src/hooks/use-pm-tasks.ts (create input + task detail type)
+    </code>
+  </artifacts>
+
+  <interfaces>
+    - POST /pm/tasks
+    - PATCH /pm/tasks/:id
+    - GET /pm/tasks/:id
+  </interfaces>
+  <tests>
+    <ideas>
+      - Ensure create enforces max depth and prevents cycles.
+      - Ensure parent shows accurate % from children statuses.
+    </ideas>
+  </tests>
+</story-context>
+
