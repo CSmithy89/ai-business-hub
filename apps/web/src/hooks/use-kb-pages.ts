@@ -278,3 +278,20 @@ export function useDeleteKBPage(workspaceId: string) {
     },
   })
 }
+
+export function useMoveKBPage(workspaceId: string) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, parentId }: { id: string; parentId: string | null | undefined }) =>
+      updateKBPage({ id, input: { parentId: parentId ?? undefined }, workspaceId, token }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kb', 'pages', workspaceId] })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to move page')
+    },
+  })
+}
