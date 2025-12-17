@@ -176,6 +176,82 @@ describe('TasksService', () => {
     ).rejects.toThrow('Task hierarchy supports a maximum of 3 levels')
   })
 
+  it('sets startedAt when moving into IN_PROGRESS for the first time', async () => {
+    prisma.task.findFirst.mockResolvedValueOnce({
+      id: 'task-1',
+      projectId: 'proj-1',
+      phaseId: 'phase-1',
+      status: TaskStatus.TODO,
+      startedAt: null,
+      completedAt: null,
+    })
+
+    const taskUpdate = jest.fn().mockResolvedValueOnce({
+      id: 'task-1',
+      projectId: 'proj-1',
+      phaseId: 'phase-1',
+      status: TaskStatus.IN_PROGRESS,
+    })
+    const activityCreate = jest.fn().mockResolvedValueOnce({ id: 'act-1' })
+
+    prisma.$transaction.mockImplementationOnce(async (fn: any) =>
+      fn({
+        task: { update: taskUpdate },
+        taskActivity: { create: activityCreate },
+      }),
+    )
+
+    await service.update('ws-1', 'user-1', 'task-1', { status: TaskStatus.IN_PROGRESS })
+
+    expect(taskUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'task-1' },
+        data: expect.objectContaining({
+          status: TaskStatus.IN_PROGRESS,
+          startedAt: expect.any(Date),
+        }),
+      }),
+    )
+  })
+
+  it('sets completedAt when moving into DONE', async () => {
+    prisma.task.findFirst.mockResolvedValueOnce({
+      id: 'task-1',
+      projectId: 'proj-1',
+      phaseId: 'phase-1',
+      status: TaskStatus.IN_PROGRESS,
+      startedAt: new Date('2025-01-01T00:00:00.000Z'),
+      completedAt: null,
+    })
+
+    const taskUpdate = jest.fn().mockResolvedValueOnce({
+      id: 'task-1',
+      projectId: 'proj-1',
+      phaseId: 'phase-1',
+      status: TaskStatus.DONE,
+    })
+    const activityCreate = jest.fn().mockResolvedValueOnce({ id: 'act-1' })
+
+    prisma.$transaction.mockImplementationOnce(async (fn: any) =>
+      fn({
+        task: { update: taskUpdate },
+        taskActivity: { create: activityCreate },
+      }),
+    )
+
+    await service.update('ws-1', 'user-1', 'task-1', { status: TaskStatus.DONE })
+
+    expect(taskUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'task-1' },
+        data: expect.objectContaining({
+          status: TaskStatus.DONE,
+          completedAt: expect.any(Date),
+        }),
+      }),
+    )
+  })
+
   it('lists tasks scoped to workspaceId and excludes soft-deleted rows', async () => {
     prisma.task.count.mockResolvedValueOnce(1)
     prisma.task.findMany.mockResolvedValueOnce([{ id: 'task-1' }])

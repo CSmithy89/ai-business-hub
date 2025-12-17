@@ -1,0 +1,28 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-02</epicId>
+    <storyId>pm-02-7</storyId>
+    <title>Task States &amp; Workflow</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-02-7-task-state-machine.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>project user</asA>
+    <iWant>tasks to follow a consistent workflow</iWant>
+    <soThat>task progress is tracked reliably</soThat>
+    <tasks>
+      - Ensure canonical status options
+      - Ensure status activity logging
+      - Ensure completedAt startedAt timestamps are set appropriately
+    </tasks>
+  </story>
+
+  <interfaces>
+    - PATCH /pm/tasks/:id
+    - PATCH /pm/tasks/bulk
+  </interfaces>
+</story-context>
+

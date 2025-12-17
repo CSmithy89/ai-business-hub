@@ -250,7 +250,7 @@ export class TasksService {
   async update(workspaceId: string, actorId: string, id: string, dto: UpdateTaskDto) {
     const existing = await this.prisma.task.findFirst({
       where: { id, workspaceId, deletedAt: null },
-      select: { id: true, projectId: true, phaseId: true, status: true, completedAt: true },
+      select: { id: true, projectId: true, phaseId: true, status: true, startedAt: true, completedAt: true },
     })
     if (!existing) throw new NotFoundException('Task not found')
 
@@ -294,6 +294,10 @@ export class TasksService {
         updateData.completedAt = new Date()
       } else if (existing.completedAt) {
         updateData.completedAt = null
+      }
+
+      if (nextStatus === TaskStatus.IN_PROGRESS && !existing.startedAt) {
+        updateData.startedAt = new Date()
       }
     }
 
@@ -385,6 +389,13 @@ export class TasksService {
         where: { id: { in: dto.ids }, workspaceId, deletedAt: null },
         data: updateData,
       })
+
+      if (dto.status === TaskStatus.IN_PROGRESS) {
+        await tx.task.updateMany({
+          where: { id: { in: dto.ids }, workspaceId, deletedAt: null, startedAt: null },
+          data: { startedAt: new Date() },
+        })
+      }
 
       const activities = existingTasks.map((t) => ({
         taskId: t.id,
