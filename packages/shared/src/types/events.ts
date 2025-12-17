@@ -116,6 +116,10 @@ export const EventTypes = {
   PM_PROJECT_CREATED: 'pm.project.created',
   PM_PROJECT_UPDATED: 'pm.project.updated',
   PM_PROJECT_DELETED: 'pm.project.deleted',
+
+  PM_PHASE_CREATED: 'pm.phase.created',
+  PM_PHASE_UPDATED: 'pm.phase.updated',
+  PM_PHASE_TRANSITIONED: 'pm.phase.transitioned',
 } as const;
 
 /**

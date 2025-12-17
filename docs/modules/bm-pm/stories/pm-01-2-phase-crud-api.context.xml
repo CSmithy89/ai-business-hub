@@ -1,0 +1,75 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-01</epicId>
+    <storyId>pm-01-2</storyId>
+    <title>Phase CRUD API</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-01-2-phase-crud-api.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>platform developer</asA>
+    <iWant>Phase CRUD operations nested under projects</iWant>
+    <soThat>projects can have structured work phases</soThat>
+    <tasks>
+      - Implement phases create/list/update endpoints with state machine + CURRENT uniqueness
+      - Emit pm.phase.* events
+      - Add unit tests for transition and CURRENT enforcement
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1) POST /pm/projects/:projectId/phases creates a phase (required: name, phaseNumber).
+    2) GET /pm/projects/:projectId/phases returns ordered phases.
+    3) PATCH /pm/phases/:id updates phase fields.
+    4) Only one phase can be CURRENT per project.
+    5) Enforce transitions: UPCOMING -> CURRENT -> COMPLETED (no backward transitions).
+    6) Emit pm.phase.created / updated / transitioned events.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      - docs/modules/bm-pm/epics/epic-pm-01-project-phase-management.md (Story PM-01.2)
+      - docs/modules/bm-pm/tech-spec-epic-pm-01.md (phase state machine notes)
+    </docs>
+    <code>
+      - packages/db/prisma/schema.prisma (Phase model + PhaseStatus enum)
+      - apps/api/src/pm/projects/projects.service.ts (workspace-scoped project lookup pattern)
+      - apps/api/src/common/guards/tenant.guard.ts (workspace context)
+      - apps/api/src/events/event-publisher.service.ts (event publishing)
+    </code>
+    <dependencies>
+      - Prisma transaction for CURRENT uniqueness enforcement
+      - @hyvve/shared EventTypes additions for PM phase events
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - All operations must be scoped to workspaceId.
+    - Phase numbering should remain unique/orderable per project.
+    - State transitions must be validated server-side.
+  </constraints>
+
+  <interfaces>
+    - POST /pm/projects/:projectId/phases
+    - GET /pm/projects/:projectId/phases
+    - PATCH /pm/phases/:id
+  </interfaces>
+
+  <tests>
+    <standards>
+      - Unit tests must not require DB/Redis.
+      - Mock PrismaService + EventPublisherService.
+    </standards>
+    <locations>
+      - apps/api/src/pm/phases/phases.service.spec.ts
+    </locations>
+    <ideas>
+      - Prevent UPCOMING -> COMPLETED directly.
+      - When setting phase to CURRENT, any existing CURRENT phase becomes COMPLETED or UPCOMING (choose a consistent rule).
+    </ideas>
+  </tests>
+</story-context>
+
