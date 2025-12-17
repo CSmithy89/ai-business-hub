@@ -35,5 +35,8 @@ export class CreateProjectDto {
   @IsOptional()
   @IsString()
   bmadTemplateId?: string
-}
 
+  @IsOptional()
+  @IsString()
+  leadUserId?: string
+}

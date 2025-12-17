@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { PhaseStatus } from '@prisma/client'
 import { EventTypes } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
@@ -19,6 +19,33 @@ export class PhasesService {
     private readonly prisma: PrismaService,
     private readonly eventPublisher: EventPublisherService,
   ) {}
+
+  async assertProjectLead(workspaceId: string, actorId: string, projectId: string) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, workspaceId, deletedAt: null },
+      select: { team: { select: { leadUserId: true } } },
+    })
+
+    const leadUserId = project?.team?.leadUserId
+    if (!leadUserId || leadUserId !== actorId) {
+      throw new ForbiddenException('Project lead access required')
+    }
+  }
+
+  async assertPhaseProjectLead(workspaceId: string, actorId: string, phaseId: string) {
+    const phase = await this.prisma.phase.findFirst({
+      where: {
+        id: phaseId,
+        project: { workspaceId, deletedAt: null },
+      },
+      select: { project: { select: { team: { select: { leadUserId: true } } } } },
+    })
+
+    const leadUserId = phase?.project?.team?.leadUserId
+    if (!leadUserId || leadUserId !== actorId) {
+      throw new ForbiddenException('Project lead access required')
+    }
+  }
 
   async create(workspaceId: string, actorId: string, projectId: string, dto: CreatePhaseDto) {
     const project = await this.prisma.project.findFirst({

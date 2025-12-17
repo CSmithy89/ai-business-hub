@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
@@ -17,6 +18,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard'
 import { CreatePhaseDto } from './dto/create-phase.dto'
 import { UpdatePhaseDto } from './dto/update-phase.dto'
 import { PhasesService } from './phases.service'
+import type { Request } from 'express'
 
 @ApiTags('PM Phases')
 @Controller('pm')
@@ -26,7 +28,7 @@ export class PhasesController {
   constructor(private readonly phasesService: PhasesService) {}
 
   @Post('projects/:projectId/phases')
-  @Roles('owner', 'admin')
+  @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'Create a phase under a project' })
   @ApiParam({ name: 'projectId', description: 'Project ID' })
   async createPhase(
@@ -34,7 +36,12 @@ export class PhasesController {
     @Param('projectId') projectId: string,
     @Body() dto: CreatePhaseDto,
     @CurrentUser() actor: any,
+    @Req() req: Request,
   ) {
+    const memberRole = (req as unknown as { memberRole?: string }).memberRole
+    if (memberRole === 'member') {
+      await this.phasesService.assertProjectLead(workspaceId, actor.id, projectId)
+    }
     return this.phasesService.create(workspaceId, actor.id, projectId, dto)
   }
 
@@ -50,7 +57,7 @@ export class PhasesController {
   }
 
   @Patch('phases/:id')
-  @Roles('owner', 'admin')
+  @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'Update a phase' })
   @ApiParam({ name: 'id', description: 'Phase ID' })
   async updatePhase(
@@ -58,8 +65,12 @@ export class PhasesController {
     @Param('id') id: string,
     @Body() dto: UpdatePhaseDto,
     @CurrentUser() actor: any,
+    @Req() req: Request,
   ) {
+    const memberRole = (req as unknown as { memberRole?: string }).memberRole
+    if (memberRole === 'member') {
+      await this.phasesService.assertPhaseProjectLead(workspaceId, actor.id, id)
+    }
     return this.phasesService.update(workspaceId, actor.id, id, dto)
   }
 }
-

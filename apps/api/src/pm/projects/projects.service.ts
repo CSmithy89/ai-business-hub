@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
-import { Prisma, ProjectStatus } from '@prisma/client'
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
+import { Prisma, ProjectStatus, TeamRole } from '@prisma/client'
 import { EventTypes } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
 import { EventPublisherService } from '../../events'
@@ -42,19 +42,42 @@ export class ProjectsService {
   async create(workspaceId: string, actorId: string, dto: CreateProjectDto) {
     const slug = await this.generateUniqueSlug(workspaceId, dto.name)
 
-    const project = await this.prisma.project.create({
-      data: {
-        workspaceId,
-        businessId: dto.businessId,
-        slug,
-        name: dto.name,
-        description: dto.description,
-        type: dto.type,
-        color: dto.color,
-        icon: dto.icon,
-        bmadTemplateId: dto.bmadTemplateId,
-        status: ProjectStatus.PLANNING,
-      },
+    const leadUserId = dto.leadUserId || actorId
+
+    const project = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          workspaceId,
+          businessId: dto.businessId,
+          slug,
+          name: dto.name,
+          description: dto.description,
+          type: dto.type,
+          color: dto.color,
+          icon: dto.icon,
+          bmadTemplateId: dto.bmadTemplateId,
+          status: ProjectStatus.PLANNING,
+        },
+      })
+
+      // Initialize a project team so "project lead" access can be enforced.
+      const team = await tx.projectTeam.create({
+        data: {
+          projectId: created.id,
+          leadUserId,
+          members: {
+            create: {
+              userId: leadUserId,
+              role: TeamRole.PROJECT_LEAD,
+              canAssignTasks: true,
+              canApproveAgents: true,
+              canModifyPhases: true,
+            },
+          },
+        },
+      })
+
+      return { ...created, team }
     })
 
     await this.eventPublisher.publish(
@@ -186,6 +209,14 @@ export class ProjectsService {
         autoApprovalThreshold: dto.autoApprovalThreshold,
         suggestionMode: dto.suggestionMode,
       },
+      include: {
+        phases: {
+          orderBy: { phaseNumber: 'asc' },
+        },
+        team: {
+          include: { members: true },
+        },
+      },
     })
 
     await this.eventPublisher.publish(
@@ -195,6 +226,18 @@ export class ProjectsService {
     )
 
     return { data: project }
+  }
+
+  async assertProjectLead(workspaceId: string, actorId: string, projectId: string) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, workspaceId, deletedAt: null },
+      select: { team: { select: { leadUserId: true } } },
+    })
+
+    const leadUserId = project?.team?.leadUserId
+    if (!leadUserId || leadUserId !== actorId) {
+      throw new ForbiddenException('Project lead access required')
+    }
   }
 
   async softDelete(workspaceId: string, actorId: string, id: string) {

@@ -51,7 +51,7 @@ export function CreateProjectModal({
 
   const defaultLead = useMemo(() => {
     const user = (session as { user?: { id?: string } } | null)?.user
-    return user?.id ?? 'me'
+    return user?.id ?? ''
   }, [session])
 
   const [step, setStep] = useState<(typeof STEPS)[number]['id']>(1)
@@ -81,7 +81,9 @@ export function CreateProjectModal({
   })
 
   useEffect(() => {
-    setValue('leadUserId', defaultLead, { shouldValidate: true })
+    if (defaultLead) {
+      setValue('leadUserId', defaultLead, { shouldValidate: true })
+    }
   }, [defaultLead, setValue])
 
   useEffect(() => {
@@ -102,6 +104,13 @@ export function CreateProjectModal({
 
   const activeBusinessId = watch('businessId')
 
+  useEffect(() => {
+    if (!open) return
+    if (!businesses?.length) return
+    if (activeBusinessId) return
+    setValue('businessId', businesses[0].id, { shouldValidate: true })
+  }, [activeBusinessId, businesses, open, setValue])
+
   const canGoNext = async () => {
     if (step === 1) return trigger(['businessId', 'name', 'type', 'color', 'icon'])
     if (step === 2) return trigger(['bmadTemplateId'])
@@ -118,6 +127,7 @@ export function CreateProjectModal({
       color: values.color,
       icon: values.icon,
       bmadTemplateId: values.bmadTemplateId,
+      leadUserId: values.leadUserId,
     })
 
     onOpenChange(false)
@@ -265,7 +275,7 @@ export function CreateProjectModal({
                       <SelectValue placeholder="Select a lead" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={defaultLead}>Me</SelectItem>
+                      {defaultLead ? <SelectItem value={defaultLead}>Me</SelectItem> : null}
                     </SelectContent>
                   </Select>
                 )}
@@ -323,4 +333,3 @@ export function CreateProjectModal({
     </Dialog>
   )
 }
-

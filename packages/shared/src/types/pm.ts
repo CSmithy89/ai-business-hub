@@ -29,6 +29,7 @@ export const CreateProjectSchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   icon: z.string().optional(),
   bmadTemplateId: z.string().optional(),
+  leadUserId: z.string().optional(),
 })
 
 export const UpdateProjectSchema = z.object({

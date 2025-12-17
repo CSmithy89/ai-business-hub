@@ -74,7 +74,10 @@ export interface ProjectDetailResponse {
     status: z.infer<typeof ProjectStatus>
     totalTasks: number
     completedTasks: number
+    startDate: string | null
     targetDate: string | null
+    autoApprovalThreshold: number
+    suggestionMode: boolean
     phases: Array<{
       id: string
       name: string
@@ -245,5 +248,117 @@ export function usePmProject(slug: string) {
     enabled: !!workspaceId && !!slug,
     staleTime: 15000,
     refetchOnWindowFocus: true,
+  })
+}
+
+async function updateProject(params: {
+  workspaceId: string
+  token?: string
+  projectId: string
+  data: Record<string, unknown>
+}): Promise<ProjectDetailResponse> {
+  const base = getBaseUrl()
+
+  const query = new URLSearchParams()
+  query.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(`${base}/pm/projects/${encodeURIComponent(params.projectId)}?${query.toString()}`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+    },
+    body: JSON.stringify(params.data),
+    cache: 'no-store',
+  })
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to update project')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) throw new Error('Failed to update project')
+  return body as ProjectDetailResponse
+}
+
+async function deleteProject(params: {
+  workspaceId: string
+  token?: string
+  projectId: string
+}): Promise<{ data: { id: string; deletedAt: string | null } }> {
+  const base = getBaseUrl()
+
+  const query = new URLSearchParams()
+  query.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(`${base}/pm/projects/${encodeURIComponent(params.projectId)}?${query.toString()}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: {
+      ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+    },
+    cache: 'no-store',
+  })
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to delete project')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) throw new Error('Failed to delete project')
+  return body as { data: { id: string; deletedAt: string | null } }
+}
+
+export function useUpdatePmProject() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ projectId, data }: { projectId: string; data: Record<string, unknown> }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return updateProject({ workspaceId, token, projectId, data })
+    },
+    onSuccess: (result) => {
+      toast.success('Saved')
+      queryClient.invalidateQueries({ queryKey: ['pm-project', workspaceId, result.data.slug] })
+      queryClient.invalidateQueries({ queryKey: ['pm-projects', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to update project'
+      toast.error(message)
+    },
+  })
+}
+
+export function useDeletePmProject() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ projectId }: { projectId: string }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return deleteProject({ workspaceId, token, projectId })
+    },
+    onSuccess: () => {
+      toast.success('Project deleted')
+      queryClient.invalidateQueries({ queryKey: ['pm-projects', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to delete project'
+      toast.error(message)
+    },
   })
 }

@@ -1,3 +1,5 @@
+import { ForbiddenException } from '@nestjs/common'
+import { TeamRole } from '@prisma/client'
 import { Test } from '@nestjs/testing'
 import { EventPublisherService } from '../../events'
 import { PrismaService } from '../../common/services/prisma.service'
@@ -54,12 +56,27 @@ describe('ProjectsService', () => {
 
   it('creates a project scoped to workspaceId', async () => {
     prisma.project.findUnique.mockResolvedValueOnce(null as any)
-    prisma.project.create.mockResolvedValueOnce({
+    const projectCreate = jest.fn().mockResolvedValueOnce({
       id: 'proj-1',
       workspaceId: 'ws-1',
       businessId: 'biz-1',
       slug: 'my-project',
-    } as any)
+    })
+    const teamCreate = jest.fn().mockResolvedValueOnce({
+      id: 'team-1',
+      projectId: 'proj-1',
+      leadUserId: 'user-1',
+    })
+    prisma.$transaction.mockImplementationOnce(async (fn: any) =>
+      fn({
+        project: {
+          create: projectCreate,
+        },
+        projectTeam: {
+          create: teamCreate,
+        },
+      }),
+    )
 
     const result = await service.create('ws-1', 'user-1', {
       businessId: 'biz-1',
@@ -67,12 +84,28 @@ describe('ProjectsService', () => {
       workspaceId: 'ws-1',
     })
 
-    expect(prisma.project.create).toHaveBeenCalledWith(
+    expect(prisma.$transaction).toHaveBeenCalled()
+    expect(projectCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           workspaceId: 'ws-1',
           businessId: 'biz-1',
           slug: 'my-project',
+          name: 'My Project',
+        }),
+      }),
+    )
+    expect(teamCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          projectId: 'proj-1',
+          leadUserId: 'user-1',
+          members: {
+            create: expect.objectContaining({
+              userId: 'user-1',
+              role: TeamRole.PROJECT_LEAD,
+            }),
+          },
         }),
       }),
     )
@@ -84,12 +117,27 @@ describe('ProjectsService', () => {
     prisma.project.findUnique
       .mockResolvedValueOnce({ id: 'existing-1' } as any)
       .mockResolvedValueOnce(null as any)
-    prisma.project.create.mockResolvedValueOnce({
+    const projectCreate = jest.fn().mockResolvedValueOnce({
       id: 'proj-2',
       workspaceId: 'ws-1',
       businessId: 'biz-1',
       slug: 'my-project-2',
-    } as any)
+    })
+    const teamCreate = jest.fn().mockResolvedValueOnce({
+      id: 'team-2',
+      projectId: 'proj-2',
+      leadUserId: 'user-1',
+    })
+    prisma.$transaction.mockImplementationOnce(async (fn: any) =>
+      fn({
+        project: {
+          create: projectCreate,
+        },
+        projectTeam: {
+          create: teamCreate,
+        },
+      }),
+    )
 
     const result = await service.create('ws-1', 'user-1', {
       businessId: 'biz-1',
@@ -109,6 +157,24 @@ describe('ProjectsService', () => {
       }),
     )
     expect(result.data.slug).toBe('my-project-2')
+  })
+
+  it('enforces project lead access for members', async () => {
+    prisma.project.findFirst.mockResolvedValueOnce({
+      team: { leadUserId: 'lead-1' },
+    } as any)
+
+    await expect(service.assertProjectLead('ws-1', 'member-1', 'proj-1')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    )
+  })
+
+  it('allows project lead access for lead user', async () => {
+    prisma.project.findFirst.mockResolvedValueOnce({
+      team: { leadUserId: 'lead-1' },
+    } as any)
+
+    await expect(service.assertProjectLead('ws-1', 'lead-1', 'proj-1')).resolves.toBeUndefined()
   })
 
   it('excludes soft-deleted projects from list', async () => {

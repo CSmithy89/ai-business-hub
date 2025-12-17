@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -21,6 +22,7 @@ import { CreateProjectDto } from './dto/create-project.dto'
 import { ListProjectsQueryDto } from './dto/list-projects.query.dto'
 import { UpdateProjectDto } from './dto/update-project.dto'
 import { ProjectsService } from './projects.service'
+import type { Request } from 'express'
 
 @ApiTags('PM Projects')
 @Controller('pm/projects')
@@ -74,7 +76,7 @@ export class ProjectsController {
   }
 
   @Patch(':id')
-  @Roles('owner', 'admin')
+  @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'Update a project' })
   @ApiParam({ name: 'id', description: 'Project ID' })
   async updateProject(
@@ -82,19 +84,29 @@ export class ProjectsController {
     @Param('id') id: string,
     @Body() dto: UpdateProjectDto,
     @CurrentUser() actor: any,
+    @Req() req: Request,
   ) {
+    const memberRole = (req as unknown as { memberRole?: string }).memberRole
+    if (memberRole === 'member') {
+      await this.projectsService.assertProjectLead(workspaceId, actor.id, id)
+    }
     return this.projectsService.update(workspaceId, actor.id, id, dto)
   }
 
   @Delete(':id')
-  @Roles('owner', 'admin')
+  @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'Soft delete a project' })
   @ApiParam({ name: 'id', description: 'Project ID' })
   async deleteProject(
     @CurrentWorkspace() workspaceId: string,
     @Param('id') id: string,
     @CurrentUser() actor: any,
+    @Req() req: Request,
   ) {
+    const memberRole = (req as unknown as { memberRole?: string }).memberRole
+    if (memberRole === 'member') {
+      await this.projectsService.assertProjectLead(workspaceId, actor.id, id)
+    }
     return this.projectsService.softDelete(workspaceId, actor.id, id)
   }
 }
