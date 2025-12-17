@@ -1,0 +1,83 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-02</epicId>
+    <storyId>pm-02-1</storyId>
+    <title>Task Data Model &amp; API</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-02-1-task-data-model-api.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>platform developer</asA>
+    <iWant>Task CRUD API with filters and bulk operations</iWant>
+    <soThat>users can manage work items with consistent workflow semantics</soThat>
+    <tasks>
+      - Implement pm/tasks CRUD + bulk endpoints with workspace scoping and soft delete
+      - Generate sequential taskNumber per project (transactionally)
+      - Create TaskActivity entries for create/update/status changes
+      - Publish pm.task.* events for create/update/status changes
+      - Add deterministic unit tests (mock Prisma + EventPublisher)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1) POST /pm/tasks creates a task with sequential taskNumber per project.
+    2) GET /pm/tasks supports filters: phaseId, status, assigneeId, type, priority.
+    3) PATCH /pm/tasks/:id updates fields and logs activity.
+    4) DELETE /pm/tasks/:id soft-deletes.
+    5) PATCH /pm/tasks/bulk supports status/assignee/phase updates for multiple tasks.
+    6) Emit pm.task.created / pm.task.updated / pm.task.status_changed events.
+    7) Enforce workspace isolation in all queries.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      - docs/modules/bm-pm/epics/epic-pm-02-task-management-system.md (Story PM-02.1)
+      - docs/modules/bm-pm/PRD.md (FR-3: Task Management)
+      - docs/modules/bm-pm/tech-spec-epic-pm-02.md
+    </docs>
+    <code>
+      - packages/db/prisma/schema.prisma (Task models + enums)
+      - apps/api/src/pm/projects/projects.service.ts (workspace scoping pattern)
+      - apps/api/src/common/guards/tenant.guard.ts (workspace context)
+      - apps/api/src/events/event-publisher.service.ts (event publishing)
+      - packages/shared/src/types/events.ts (EventTypes registry)
+    </code>
+    <dependencies>
+      - Prisma transaction for taskNumber sequencing
+      - @hyvve/shared additions for PM task event names
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - All operations must be scoped to workspaceId and exclude deletedAt tasks by default.
+    - taskNumber must be unique per project and safe under concurrent creation.
+    - Bulk updates should not leak cross-workspace updates.
+  </constraints>
+
+  <interfaces>
+    - POST /pm/tasks
+    - GET /pm/tasks
+    - PATCH /pm/tasks/:id
+    - DELETE /pm/tasks/:id
+    - PATCH /pm/tasks/bulk
+  </interfaces>
+
+  <tests>
+    <standards>
+      - Unit tests must not require DB/Redis.
+      - Mock PrismaService + EventPublisherService.
+    </standards>
+    <locations>
+      - apps/api/src/pm/tasks/tasks.service.spec.ts
+    </locations>
+    <ideas>
+      - Ensure next taskNumber increments from max per project even if some tasks are soft-deleted.
+      - Ensure list filters never return tasks from other workspaces.
+      - Ensure bulk update uses updateMany with workspace-scoped where clause.
+    </ideas>
+  </tests>
+</story-context>
+
