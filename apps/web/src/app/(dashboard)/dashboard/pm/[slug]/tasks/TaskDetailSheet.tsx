@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { format, parseISO } from 'date-fns'
 import { CalendarIcon, Loader2, X } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
@@ -14,6 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useAgents } from '@/hooks/use-agents'
 import { usePmTeam } from '@/hooks/use-pm-team'
 import {
   useCreatePmTask,
@@ -24,6 +27,7 @@ import {
   type TaskType,
   type UpdateTaskInput,
 } from '@/hooks/use-pm-tasks'
+import { deriveAssignmentType } from '@/lib/pm/task-assignment'
 import { TASK_PRIORITIES, TASK_PRIORITY_META, TASK_TYPES, TASK_TYPE_META } from '@/lib/pm/task-meta'
 import { cn } from '@/lib/utils'
 
@@ -68,6 +72,8 @@ export function TaskDetailSheet({
 
   const team = usePmTeam(task?.projectId ?? '')
   const members = team.data?.data.members ?? []
+  const agentsQuery = useAgents()
+  const agents = agentsQuery.data ?? []
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState<string>('')
@@ -94,6 +100,15 @@ export function TaskDetailSheet({
   }, [task?.dueDate])
 
   const isSaving = updateTask.isPending
+
+  function initials(label?: string | null) {
+    if (!label) return '?'
+    const normalized = label.trim()
+    if (!normalized) return '?'
+    const parts = normalized.split(/\s+/).filter(Boolean)
+    const letters = parts.slice(0, 2).map((p) => p[0]?.toUpperCase()).filter(Boolean)
+    return letters.join('') || normalized[0]?.toUpperCase() || '?'
+  }
 
   function saveField(input: UpdateTaskInput) {
     if (!taskId) return
@@ -240,12 +255,20 @@ export function TaskDetailSheet({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Assignee</span>
                 <Select
                   value={task.assigneeId ?? 'unassigned'}
-                  onValueChange={(value) => saveField({ assigneeId: value === 'unassigned' ? null : value })}
+                  onValueChange={(value) => {
+                    const nextAssigneeId = value === 'unassigned' ? null : value
+                    const nextAgentId = task.agentId ?? null
+                    saveField({
+                      assigneeId: nextAssigneeId,
+                      agentId: nextAgentId,
+                      assignmentType: deriveAssignmentType({ assigneeId: nextAssigneeId, agentId: nextAgentId }),
+                    })
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Unassigned" />
@@ -256,7 +279,58 @@ export function TaskDetailSheet({
                       .filter((m) => m.user)
                       .map((m) => (
                         <SelectItem key={m.userId} value={m.userId}>
-                          {m.user?.name || m.user?.email || m.userId}
+                          <span className="inline-flex items-center gap-2">
+                            <Avatar className="h-5 w-5">
+                              {m.user?.image ? <AvatarImage src={m.user.image} alt="" /> : null}
+                              <AvatarFallback className="text-[10px]">
+                                {initials(m.user?.name || m.user?.email)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="truncate">{m.user?.name || m.user?.email || m.userId}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Agent</span>
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                    {task.assignmentType.replace(/_/g, ' ')}
+                  </Badge>
+                </div>
+                <Select
+                  value={task.agentId ?? 'unassigned'}
+                  onValueChange={(value) => {
+                    const nextAgentId = value === 'unassigned' ? null : value
+                    const nextAssigneeId = task.assigneeId ?? null
+                    saveField({
+                      assigneeId: nextAssigneeId,
+                      agentId: nextAgentId,
+                      assignmentType: deriveAssignmentType({ assigneeId: nextAssigneeId, agentId: nextAgentId }),
+                    })
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Unassigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {agents
+                      .filter((agent) => agent.enabled)
+                      .map((agent) => (
+                        <SelectItem key={agent.id} value={agent.id}>
+                          <span className="inline-flex items-center gap-2">
+                            <span className="text-base leading-none" aria-hidden="true">
+                              {agent.avatar}
+                            </span>
+                            <span className="truncate">{agent.name}</span>
+                            <Badge variant="outline" className="ml-1 h-5 px-1.5 text-[10px]">
+                              AI
+                            </Badge>
+                          </span>
                         </SelectItem>
                       ))}
                   </SelectContent>
