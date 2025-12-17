@@ -2,8 +2,8 @@
 
 **Purpose:** Comprehensive list of all wireframes needed for Hyvve platform
 **Created:** 2025-11-29
-**Updated:** 2025-12-02
-**Status:** 109 Wireframes Complete (including 18 Business Onboarding)
+**Updated:** 2025-12-17
+**Status:** 185 Wireframes Complete (All Core Modules Done)
 
 ---
 
@@ -11,7 +11,7 @@
 
 This document catalogs all wireframes required for the Hyvve platform, organized by category. Each wireframe should be created as an Excalidraw file in this directory.
 
-**Total Wireframes:** 124+
+**Total Wireframes:** 185
 
 ---
 
@@ -25,13 +25,15 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 | **Approval Queue** | **7/7** | ✅ **Complete** | [View All](#4-approval-queue-7-wireframes-) |
 | **AI Team Panel** | **5/5** | ✅ **Complete** | [View All](#5-ai-team-panel-5-wireframes-) |
 | **Settings Pages** | **8/8** | ✅ **Complete** | [View All](#6-settings-pages-8-wireframes-) |
-| **CRM Module** | **14/14** | ✅ **Complete** | [View All](#7-crm-module---bm-crm-14-wireframes-) |
-| **PM Module** | **20/16** | ✅ **Complete (+4 bonus)** | [View All](#8-project-management-module---bm-pm-16-wireframes-) |
-| **Data Components** | **6/6** | ✅ **Complete** | [View All](#9-data-components-6-wireframes-) |
-| **Forms & Inputs** | **5/5** | ✅ **Complete** | [View All](#10-forms--inputs-5-wireframes-) |
-| **Feedback & States** | **5/5** | ✅ **Complete** | [View All](#11-feedback--states-5-wireframes-) |
-| **Authentication** | **6/6** | ✅ **Complete** | [View All](#12-authentication-6-wireframes-) |
-| **Business Onboarding** | **18/18** | ✅ **Complete** | [View All](#17-business-onboarding-18-wireframes-) |
+| **CRM Module** | **43/43** | ✅ **Complete** | [View All](#7-crm-module---bm-crm-43-wireframes-) |
+| **Core-PM Module** | **33/33** | ✅ **Complete** | [View All](#8-core-pm-project-management--kb-33-wireframes-) |
+| **Knowledge Base** | **16/16** | ✅ **Complete** | [View All](#9-knowledge-base-16-wireframes-) |
+| **Real-time Collaboration** | **3/3** | ✅ **Complete** | [View All](#10-real-time-collaboration-3-wireframes-) |
+| **Data Components** | **6/6** | ✅ **Complete** | [View All](#11-data-components-6-wireframes-) |
+| **Forms & Inputs** | **5/5** | ✅ **Complete** | [View All](#12-forms--inputs-5-wireframes-) |
+| **Feedback & States** | **5/5** | ✅ **Complete** | [View All](#13-feedback--states-5-wireframes-) |
+| **Authentication** | **6/6** | ✅ **Complete** | [View All](#14-authentication-6-wireframes-) |
+| **Business Onboarding** | **18/18** | ✅ **Complete** | [View All](#18-business-onboarding-18-wireframes-) |
 | Workflow Builder | 0/6 | 🔴 Future | Need research |
 | Content Module | 0/5 | 🔴 Future | Need research |
 | Email Module | 0/5 | 🔴 Future | Need research |
@@ -39,7 +41,7 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 
 **Legend:** ✅ Complete | 🟡 Partial | 🔴 Future
 
-**Totals:** 109 wireframes complete · 4 bonus wireframes included · Business Onboarding complete (18/18)
+**Totals:** 185 wireframes complete · All core modules done · Knowledge Base & Real-time added
 
 ---
 
@@ -418,7 +420,7 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 
 ---
 
-## 7. CRM Module - BM-CRM (14 wireframes) 🟢
+## 7. CRM Module - BM-CRM (43 wireframes) 🟢
 
 > **Status:** Research complete - Ready for wireframing
 > **Reference:** `/docs/modules/bm-crm/research/` - All 8 research findings documents
@@ -429,38 +431,72 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 |----|-----------|-------------|----------|--------|--------|
 | CRM-01 | `crm-contacts-list.excalidraw` | Contact list with table/kanban toggle, saved views, bulk actions | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-01_contacts_list/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-01_contacts_list/screen.png) |
 | CRM-02 | `crm-contact-detail.excalidraw` | Three-panel contact record: info sidebar, main content, activity timeline | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-02_contact_detail/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-02_contact_detail/screen.png) |
-| CRM-03 | `crm-company-detail.excalidraw` | Company/Account record with hierarchy, related contacts, org chart | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-03_deals_pipeline/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-03_deals_pipeline/screen.png) |
-| CRM-04 | `crm-deals-pipeline.excalidraw` | Deal kanban board with stage totals, velocity metrics, quick add | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-04_deal_detail/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-04_deal_detail/screen.png) |
-| CRM-05 | `crm-deal-detail.excalidraw` | Deal record with multi-stakeholder contacts, stage history, win probability | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-05_companies_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-05_companies_list_view/screen.png) |
-| CRM-06 | `crm-activity-timeline.excalidraw` | Polymorphic activity feed (calls, emails, meetings, notes, agent actions) | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-06_company_detail_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-06_company_detail_view/screen.png) |
+| CRM-03 | `crm-deals-pipeline.excalidraw` | Deal kanban board with stage totals, velocity metrics, quick add | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-03_deals_pipeline/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-03_deals_pipeline/screen.png) |
+| CRM-04 | `crm-deal-detail.excalidraw` | Deal record with multi-stakeholder contacts, stage history, win probability | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-04_deal_detail/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-04_deal_detail/screen.png) |
+| CRM-05 | `crm-companies-list.excalidraw` | Company list with search/filter, key columns, and bulk actions | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-05_companies_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-05_companies_list_view/screen.png) |
+| CRM-06 | `crm-company-detail.excalidraw` | Company/Account record with hierarchy, related contacts, and org chart | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-06_company_detail_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-06_company_detail_view/screen.png) |
 
-### Intelligence & Scoring (2 wireframes)
+### Activity & Content (2 wireframes)
 
 | ID | Wireframe | Description | Priority | Status | Assets |
 |----|-----------|-------------|----------|--------|--------|
-| CRM-07 | `crm-lead-scoring.excalidraw` | Lead score breakdown: 40% firmographic, 35% behavioral, 25% intent. Tier badges, score history chart | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-07_activities_list/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-07_activities_list/screen.png) |
-| CRM-08 | `crm-enrichment-panel.excalidraw` | Data enrichment status, one-click enrich, provider badges (Clearbit/Apollo), confidence scores | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-08_email_templates/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-08_email_templates/screen.png) |
+| CRM-07 | `crm-activities-list.excalidraw` | Activities list/timeline (calls, emails, meetings, notes, agent actions) | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-07_activities_list/timeline/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-07_activities_list/timeline/screen.png) |
+| CRM-08 | `crm-email-templates.excalidraw` | Email templates library with categories, variables, and preview | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-08_email_templates/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-08_email_templates/screen.png) |
 
 ### Data Operations (2 wireframes)
 
 | ID | Wireframe | Description | Priority | Status | Assets |
 |----|-----------|-------------|----------|--------|--------|
-| CRM-09 | `crm-import-wizard.excalidraw` | Multi-step CSV import: upload, field mapping, preview, validation, duplicate handling | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-09_import/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-09_import/screen.png) |
-| CRM-10 | `crm-sync-status.excalidraw` | Integration sync dashboard: HubSpot/Salesforce status, last sync, conflict resolution queue | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-10_reports_%26_analytics/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-10_reports_%26_analytics/screen.png) |
+| CRM-09 | `crm-import.excalidraw` | Multi-step CSV import: upload, field mapping, preview, validation, duplicates | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-09_import/export/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-09_import/export/screen.png) |
+| CRM-10 | `crm-reports-analytics.excalidraw` | Reports & analytics overview (KPIs, charts, filters) | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-10_reports_%26_analytics/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-10_reports_%26_analytics/screen.png) |
 
-### Dashboard & Analytics (2 wireframes)
-
-| ID | Wireframe | Description | Priority | Status | Assets |
-|----|-----------|-------------|----------|--------|--------|
-| CRM-11 | `crm-dashboard.excalidraw` | CRM overview: pipeline value, lead tier distribution, activity metrics, conversion funnel | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-11_crm_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-11_crm_settings/screen.png) |
-| CRM-12 | `crm-custom-fields.excalidraw` | Custom field configuration: field types, validation rules, display order | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-12_lead_scoring/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-12_lead_scoring/screen.png) |
-
-### Agent & Compliance (2 wireframes)
+### Settings & Scoring (2 wireframes)
 
 | ID | Wireframe | Description | Priority | Status | Assets |
 |----|-----------|-------------|----------|--------|--------|
-| CRM-13 | `crm-agent-suggestions.excalidraw` | Scout/Atlas/Flow agent cards: notification levels (silent→blocking), inline actions, feedback thumbs | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-13_contact_quick_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-13_contact_quick_view/screen.png) |
-| CRM-14 | `crm-consent-center.excalidraw` | GDPR consent management, email preferences, suppression list, DSR request handling | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-14_bulk_actions/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-14_bulk_actions/screen.png) |
+| CRM-11 | `crm-settings.excalidraw` | CRM settings hub (integrations, scoring, enrichment, preferences) | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-11_crm_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-11_crm_settings/screen.png) |
+| CRM-12 | `crm-lead-scoring.excalidraw` | Lead score breakdown, tiers, score history, explainability | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-12_lead_scoring/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-12_lead_scoring/screen.png) |
+
+### Utilities (2 wireframes)
+
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| CRM-13 | `crm-contact-quick-view.excalidraw` | Contact quick-view panel/modal for fast context + actions | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-13_contact_quick_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-13_contact_quick_view/screen.png) |
+| CRM-14 | `crm-bulk-actions.excalidraw` | Bulk selection actions (edit, assign, export, tag) | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-14_bulk_actions/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-14_bulk_actions/screen.png) |
+
+### CRM Expansion (CRM-15 to CRM-43) (29 wireframes)
+
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| CRM-15 | `crm-meet-your-team-onboarding.excalidraw` | "Meet your team" onboarding flow for CRM agents | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-15_meet_your_team_onboarding/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-15_meet_your_team_onboarding/screen.png) |
+| CRM-16 | `crm-agent-conflict-resolution.excalidraw` | Resolve agent conflicts (suggestions vs human edits) | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-16_agent_conflict_resolution/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-16_agent_conflict_resolution/screen.png) |
+| CRM-17 | `crm-scoring-model-editor.excalidraw` | Lead scoring model editor (weights, factors, rules) | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-17_scoring_model_editor/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-17_scoring_model_editor/screen.png) |
+| CRM-18 | `crm-enrichment-settings.excalidraw` | Enrichment provider settings and confidence thresholds | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-18_enrichment_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-18_enrichment_settings/screen.png) |
+| CRM-19 | `crm-integration-field-mapping.excalidraw` | Field mapping UI for CRM integrations | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-19_integration_field_mapping/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-19_integration_field_mapping/screen.png) |
+| CRM-20 | `crm-clara-daily-briefing.excalidraw` | Clara's daily briefing for sales context + priorities | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-20_clara%27s_daily_briefing/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-20_clara%27s_daily_briefing/screen.png) |
+| CRM-21 | `crm-email-integration-settings.excalidraw` | Gmail/Outlook OAuth, sync toggles, tracking settings | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-21_email_integration_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-21_email_integration_settings/screen.png) |
+| CRM-22 | `crm-manual-score-override-modal.excalidraw` | Manual score override (+/-), reason, and audit trail | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-22_manual_score_override_modal/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-22_manual_score_override_modal/screen.png) |
+| CRM-23 | `crm-tier-change-notifications-panel.excalidraw` | Tier change notification panel + preferences | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-23_tier_change_notifications_panel/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-23_tier_change_notifications_panel/screen.png) |
+| CRM-24 | `crm-agent-proactivity-settings.excalidraw` | Quiet/Helpful/Proactive settings, per-agent overrides, snooze | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-24_agent_proactivity_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-24_agent_proactivity_settings/screen.png) |
+| CRM-25 | `crm-companies-list-view.excalidraw` | Companies list view (alternate/extended) | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-25_companies_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-25_companies_list_view/screen.png) |
+| CRM-26 | `crm-cadence-sequence-builder.excalidraw` | Visual sequence builder for cadences (steps, branching) | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-26_cadence_sequence_builder/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-26_cadence_sequence_builder/screen.png) |
+| CRM-27 | `crm-cadence-enrollment-modal.excalidraw` | Enrollment modal + conflict detection options | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-27_cadence_enrollment_modal/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-27_cadence_enrollment_modal/screen.png) |
+| CRM-28 | `crm-calendar-integration-settings.excalidraw` | Calendar OAuth + sync settings | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-28_calendar_integration_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-28_calendar_integration_settings/screen.png) |
+| CRM-29 | `crm-linkedin-integration-settings.excalidraw` | LinkedIn setup + automation + tracking toggles | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-29_linkedin_integration_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-29_linkedin_integration_settings/screen.png) |
+| CRM-30 | `crm-multi-pipeline-configuration.excalidraw` | Multiple pipelines configuration (stages, assignments) | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-30_multi-pipeline_configuration/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-30_multi-pipeline_configuration/screen.png) |
+| CRM-31 | `crm-sync-health-dashboard.excalidraw` | Enhanced sync health dashboard (cards, errors, retry) | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-31_sync_health_dashboard/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-31_sync_health_dashboard/screen.png) |
+| CRM-32 | `crm-advanced-analytics-dashboard.excalidraw` | Advanced analytics (funnel, velocity, rep leaderboard) | P3 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-32_advanced_analytics_dashboard/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-32_advanced_analytics_dashboard/screen.png) |
+| CRM-33 | `crm-relationship-mapping-visualization.excalidraw` | Relationship mapping visualization (org chart, influence) | P3 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-33_relationship_mapping_visualization/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-33_relationship_mapping_visualization/screen.png) |
+| CRM-34 | `crm-deal-to-project-linking.excalidraw` | Link a deal to a project / create onboarding project from win | P3 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-34_deal-to-project_linking/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-34_deal-to-project_linking/screen.png) |
+| CRM-35 | `crm-playbooks-in-kb.excalidraw` | CRM playbooks stored/linked from Knowledge Base | P3 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-35_crm_playbooks_in_kb/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-35_crm_playbooks_in_kb/screen.png) |
+| CRM-36 | `crm-api-webhooks-configuration.excalidraw` | API key management + webhook configuration | P3 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-36_api_%26_webhooks_configuration/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-36_api_%26_webhooks_configuration/screen.png) |
+| CRM-37 | `crm-mobile-crm-views.excalidraw` | Mobile-optimized CRM views | P3 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-37_mobile_crm_views/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-37_mobile_crm_views/screen.png) |
+| CRM-38 | `crm-predictive-lead-scoring.excalidraw` | Predictive scoring with model confidence + explainability | P4 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-38_predictive_lead_scoring/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-38_predictive_lead_scoring/screen.png) |
+| CRM-39 | `crm-conversation-intelligence.excalidraw` | Call transcription + analysis (highlights, sentiment, actions) | P4 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-39_conversation_intelligence/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-39_conversation_intelligence/screen.png) |
+| CRM-40 | `crm-revenue-forecasting.excalidraw` | Revenue forecasting (confidence, scenarios, trends) | P4 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-40_revenue_forecasting/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-40_revenue_forecasting/screen.png) |
+| CRM-41 | `crm-deal-coaching-panel.excalidraw` | Deal coaching panel with suggested next steps and risks | P4 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-41_deal_coaching_panel/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-41_deal_coaching_panel/screen.png) |
+| CRM-42 | `crm-territory-management.excalidraw` | Territory management (map, assignments, coverage) | P4 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-42_territory_management/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-42_territory_management/screen.png) |
+| CRM-43 | `crm-commission-tracking.excalidraw` | Commission tracking dashboards + rules | P4 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/crm-43_commission_tracking/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/crm-43_commission_tracking/screen.png) |
 
 ### CRM Wireframe Design Specs
 
@@ -489,46 +525,59 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 
 ---
 
-## 8. Core-PM (Project Management + KB) (16 wireframes) 🟢
+## 8. Core-PM (Project Management) (33 wireframes) 🟢
 
-> **Status:** Research complete - Ready for wireframing
+> **Status:** Complete - All 33 wireframes created
 > **Reference:** `/docs/modules/bm-pm/research/` - All research findings documents
 
-### Project & Phase Views (4 wireframes)
+### Core Views (PM-01 to PM-10)
 
 | ID | Wireframe | Description | Priority | Status | Assets |
 |----|-----------|-------------|----------|--------|--------|
-| PM-01 | `pm-project-dashboard.excalidraw` | Projects overview: cards with progress bars, phase status, agent count, pending approvals | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/screen.png) |
-| PM-02 | `pm-project-detail.excalidraw` | Single project view: phase timeline, metrics summary, team members, BMAD progress | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-02_project_detail_overview/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-02_project_detail_overview/screen.png) |
-| PM-03 | `pm-phase-view.excalidraw` | Phase/sprint view with burndown chart, capacity bar, sprint backlog | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/screen.png) |
-| PM-04 | `pm-sprint-planning.excalidraw` | Sprint planning board: backlog → sprint, capacity visualization, drag-drop assignment | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-04_task_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-04_task_list_view/screen.png) |
+| PM-01 | `pm-projects-list.excalidraw` | Projects overview: cards with progress bars, phase status, agent count, pending approvals | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/screen.png) |
+| PM-02 | `pm-project-detail.excalidraw` | Single project view: phase timeline, metrics summary, team members, BMAD progress | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-02_project_detail_overview/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-02_project_detail_overview/screen.png) |
+| PM-03 | `pm-task-board.excalidraw` | Kanban view with drag-drop, WIP limits, quick add | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/screen.png) |
+| PM-04 | `pm-task-list.excalidraw` | List/table view with sortable columns, inline editing, bulk actions | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-04_task_list_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-04_task_list_view/screen.png) |
+| PM-05 | `pm-task-detail.excalidraw` | Slide-out panel: properties, description, activity, subtasks, agent output section | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-05_task_detail_modal/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-05_task_detail_modal/screen.png) |
+| PM-06 | `pm-timeline.excalidraw` | Gantt-style timeline with dependencies, milestones | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-06_timeline/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-06_timeline/screen.png) |
+| PM-07 | `pm-calendar.excalidraw` | Calendar view for due dates, drag to reschedule | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-07_project_calendar_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-07_project_calendar_view/screen.png) |
+| PM-08 | `pm-files-documents.excalidraw` | Project files & documents with upload, preview, versioning | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-08_project_files_%26_documents/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-08_project_files_%26_documents/screen.png) |
+| PM-09 | `pm-team-permissions.excalidraw` | Project team management & permissions | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-09_project_team_%26_permissions/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-09_project_team_%26_permissions/screen.png) |
+| PM-10 | `pm-project-settings.excalidraw` | Project settings: name, visibility, integrations | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-10_project_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-10_project_settings/screen.png) |
 
-### Task Views (5 wireframes)
-
-| ID | Wireframe | Description | Priority | Status | Assets |
-|----|-----------|-------------|----------|--------|--------|
-| PM-05 | `pm-task-list.excalidraw` | List/table view with sortable columns, inline editing, bulk actions | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-05_task_detail_modal/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-05_task_detail_modal/screen.png) |
-| PM-06 | `pm-kanban-board.excalidraw` | Task kanban by state/assignee, drag-drop, quick add, agent badges | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-06_timeline/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-06_timeline/screen.png) |
-| PM-07 | `pm-task-detail.excalidraw` | Slide-out panel: properties, description, activity, subtasks, agent output section | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-07_project_calendar_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-07_project_calendar_view/screen.png) |
-| PM-08 | `pm-calendar-view.excalidraw` | Calendar view for due dates, drag to reschedule | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-08_project_files_%26_documents/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-08_project_files_%26_documents/screen.png) |
-| PM-09 | `pm-timeline-view.excalidraw` | Gantt-style timeline with dependencies, milestones | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-09_project_team_%26_permissions/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-09_project_team_%26_permissions/screen.png) |
-
-### Agent Integration (3 wireframes)
+### Extended Views (PM-11 to PM-20)
 
 | ID | Wireframe | Description | Priority | Status | Assets |
 |----|-----------|-------------|----------|--------|--------|
-| PM-10 | `pm-intake-queue.excalidraw` | Agent output triage: review, approve, reject, request changes | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-10_project_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-10_project_settings/screen.png) |
-| PM-11 | `pm-agent-activity.excalidraw` | Agent activity panel: running tasks, progress bars, confidence scores, queue | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-11_milestones_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-11_milestones_view/screen.png) |
-| PM-12 | `pm-agent-suggestions.excalidraw` | Navigator/Estimator suggestion cards: task breakdown, estimates, workload alerts | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-12_time_tracking/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-12_time_tracking/screen.png) |
+| PM-11 | `pm-milestones.excalidraw` | Milestones view with progress tracking | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-11_milestones_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-11_milestones_view/screen.png) |
+| PM-12 | `pm-time-tracking.excalidraw` | Time tracking with entries, reports | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-12_time_tracking/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-12_time_tracking/screen.png) |
+| PM-13 | `pm-resource-management.excalidraw` | Resource allocation & workload balancing | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-13_resource_management/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-13_resource_management/screen.png) |
+| PM-14 | `pm-project-templates.excalidraw` | Project templates library | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-14_project_templates/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-14_project_templates/screen.png) |
+| PM-15 | `pm-reports.excalidraw` | Analytics dashboard: velocity, burndown, agent metrics | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-15_project_reports/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-15_project_reports/screen.png) |
+| PM-16 | `pm-notifications.excalidraw` | Notifications center with filters | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/screen.png) |
+| PM-17 | `pm-global-search.excalidraw` | Global search with filters, recent items | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-17_global_search/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-17_global_search/screen.png) |
+| PM-18 | `pm-user-profile.excalidraw` | User profile & account settings | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-18_user_profile_%26_account/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-18_user_profile_%26_account/screen.png) |
+| PM-19 | `pm-onboarding.excalidraw` | PM module onboarding flow | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-19_onboarding_flow/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-19_onboarding_flow/screen.png) |
+| PM-20 | `pm-help-center.excalidraw` | Help & support center | P3 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-20_help_%26_support_center/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-20_help_%26_support_center/screen.png) |
 
-### Data Operations & Analytics (4 wireframes)
+### Advanced Features (PM-21 to PM-37)
 
 | ID | Wireframe | Description | Priority | Status | Assets |
 |----|-----------|-------------|----------|--------|--------|
-| PM-13 | `pm-import-wizard.excalidraw` | Multi-step import: CSV/Jira/Trello, field mapping, preview, duplicate handling | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-13_resource_management/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-13_resource_management/screen.png) |
-| PM-14 | `pm-filter-builder.excalidraw` | Advanced filter UI: AND/OR logic, date ranges, agent-specific filters | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-14_project_templates/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-14_project_templates/screen.png) |
-| PM-15 | `pm-reports-dashboard.excalidraw` | Analytics dashboard: velocity chart, burndown, workload distribution, agent metrics | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-15_project_reports/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-15_project_reports/screen.png) |
-| PM-16 | `pm-burndown-charts.excalidraw` | Burndown/burnup visualization with scope change markers | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/screen.png) |
+| PM-21 | `pm-bmad-phase-view.excalidraw` | BMAD phase visualization (Build, Measure, Adapt, Deliver) | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-21_bmad_phase_view/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-21_bmad_phase_view/screen.png) |
+| PM-25 | `pm-dependency-editor.excalidraw` | Visual dependency editor with graph view | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-25_visual_dependency_editor/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-25_visual_dependency_editor/screen.png) |
+| PM-26 | `pm-saved-views.excalidraw` | Saved views manager with sharing | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-26_saved_views_manager/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-26_saved_views_manager/screen.png) |
+| PM-27 | `pm-portfolio-dashboard.excalidraw` | Executive portfolio dashboard with cross-project metrics | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-27_executive_portfolio_dashboard/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-27_executive_portfolio_dashboard/screen.png) |
+| PM-28 | `pm-daily-briefing.excalidraw` | Navi's daily briefing with priorities, blockers | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-28_daily_briefing_(navi)/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-28_daily_briefing_(navi)/screen.png) |
+| PM-29 | `pm-github-integration.excalidraw` | GitHub integration settings & PR linking | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-29_github/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-29_github/screen.png) |
+| PM-30 | `pm-csv-import.excalidraw` | CSV import wizard with field mapping | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-30_csv_import_wizard/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-30_csv_import_wizard/screen.png) |
+| PM-31 | `pm-sprint-dashboard.excalidraw` | Sprint enhancements dashboard with velocity | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-31_sprint_enhancements_dashboard/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-31_sprint_enhancements_dashboard/screen.png) |
+| PM-32 | `pm-workflow-builder.excalidraw` | Custom workflow builder with states, transitions | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-32_workflow_builder/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-32_workflow_builder/screen.png) |
+| PM-33 | `pm-predictive-analytics.excalidraw` | Prism predictive analytics with risk scoring | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-33_predictive_analytics_(prism)/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-33_predictive_analytics_(prism)/screen.png) |
+| PM-34 | `pm-api-webhooks.excalidraw` | API & webhooks configuration | P3 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-34_api_%26_webhooks_configuration/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-34_api_%26_webhooks_configuration/screen.png) |
+| PM-35 | `pm-task-templates.excalidraw` | Task templates library | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-35_task_templates_library/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-35_task_templates_library/screen.png) |
+| PM-36 | `pm-okr-goals.excalidraw` | OKR & goals tracking | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-36_okr_%26_goals_tracking/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-36_okr_%26_goals_tracking/screen.png) |
+| PM-37 | `pm-audit-compliance.excalidraw` | Enterprise audit & compliance dashboard | P3 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/pm-37_enterprise_audit_%26_compliance/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/pm-37_enterprise_audit_%26_compliance/screen.png) |
 
 ### PM Wireframe Design Specs
 
@@ -561,7 +610,85 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 
 ---
 
-## 9. Data Components (6 wireframes) 🟢
+## 9. Knowledge Base (16 wireframes) 🟢
+
+> **Status:** Complete - All 16 wireframes created
+> **Reference:** `/docs/modules/bm-pm/research/` - KB integration research
+
+### Core Navigation & Editing (KB-01 to KB-08)
+
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| KB-01 | `kb-page-tree.excalidraw` | Page tree navigation with hierarchy, drag-drop, favorites | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-01_page_tree_navigation/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-01_page_tree_navigation/screen.png) |
+| KB-02 | `kb-page-editor.excalidraw` | Rich text editor with blocks, slash commands, AI assist | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-02_page_editor/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-02_page_editor/screen.png) |
+| KB-03 | `kb-page-viewer.excalidraw` | Read-only page view with table of contents | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-03_page_viewer/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-03_page_viewer/screen.png) |
+| KB-04 | `kb-search.excalidraw` | Full-text search with filters, snippets, recent | P0 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-04_search_results/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-04_search_results/screen.png) |
+| KB-05 | `kb-verified-content.excalidraw` | Verified content management with badges, approval | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-05_verified_content_management/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-05_verified_content_management/screen.png) |
+| KB-06 | `kb-version-history.excalidraw` | Page version history with diff view, restore | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-06_page_version_history/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-06_page_version_history/screen.png) |
+| KB-07 | `kb-comments.excalidraw` | Inline comments with threads, mentions, resolution | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-07_page_comments/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-07_page_comments/screen.png) |
+| KB-08 | `kb-project-linking.excalidraw` | Link KB pages to projects and tasks | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-08_project_linking/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-08_project_linking/screen.png) |
+
+### Advanced Features (KB-09 to KB-16)
+
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| KB-09 | `kb-presence-cursors.excalidraw` | Real-time presence cursors on pages | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-09_presence_cursors/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-09_presence_cursors/screen.png) |
+| KB-10 | `kb-scribe-panel.excalidraw` | Scribe AI panel for content generation, summarization | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-10_scribe_panel/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-10_scribe_panel/screen.png) |
+| KB-11 | `kb-embed-blocks.excalidraw` | Embed blocks: code, diagrams, videos, tables | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-11_embed_blocks/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-11_embed_blocks/screen.png) |
+| KB-12 | `kb-templates.excalidraw` | Page templates library with categories | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-12_page_templates/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-12_page_templates/screen.png) |
+| KB-13 | `kb-ai-chat.excalidraw` | AI Q&A chat interface for KB queries | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-13_ai_q%26a_chat_interface/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-13_ai_q%26a_chat_interface/screen.png) |
+| KB-14 | `kb-analytics.excalidraw` | KB analytics dashboard: views, engagement, stale content | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-14_kb_analytics_dashboard/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-14_kb_analytics_dashboard/screen.png) |
+| KB-15 | `kb-governance.excalidraw` | KB governance & permissions management | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-15_kb_governance_%26_permissions/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-15_kb_governance_%26_permissions/screen.png) |
+| KB-16 | `kb-external-sync.excalidraw` | External KB sync settings (Notion, Confluence) | P3 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/kb-16_external_kb_sync_settings/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/kb-16_external_kb_sync_settings/screen.png) |
+
+### KB Design Specs
+
+**Editor Pattern:** Notion-inspired block editor
+- Slash commands for block insertion
+- Drag-drop block reordering
+- Inline formatting toolbar
+- AI-assisted content suggestions
+
+**Key Features:**
+- Page tree with infinite nesting
+- Full-text search with AI semantic understanding
+- Verified content badges for reviewed documentation
+- Real-time collaboration cursors
+- Scribe agent for documentation assistance
+
+---
+
+## 10. Real-time Collaboration (3 wireframes) 🟢
+
+> **Status:** Complete - All 3 wireframes created
+> **Reference:** `/docs/modules/bm-pm/research/` - Real-time collaboration patterns
+
+| ID | Wireframe | Description | Priority | Status | Assets |
+|----|-----------|-------------|----------|--------|--------|
+| RT-01 | `rt-cursors.excalidraw` | Real-time cursors with user avatars, position sync | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/rt-01_real-time_cursors/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/rt-01_real-time_cursors/screen.png) |
+| RT-02 | `rt-presence-bar.excalidraw` | Presence bar showing active users on resource | P1 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/rt-02_presence_bar/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/rt-02_presence_bar/screen.png) |
+| RT-03 | `rt-conflict-resolution.excalidraw` | Conflict resolution UI for concurrent edits | P2 | ✅ Complete | [HTML](Finished%20wireframes%20and%20html%20files/rt-03_conflict_resolution/code.html) · [PNG](Finished%20wireframes%20and%20html%20files/rt-03_conflict_resolution/screen.png) |
+
+### Real-time Design Specs
+
+**Cursor Display:**
+- User avatar + name tooltip
+- Distinct colors per user
+- Fade out after inactivity (30s)
+
+**Presence Bar:**
+- Shows up to 5 avatars + "+N more"
+- Click to see full user list
+- Status dots (active/away/editing)
+
+**Conflict Resolution:**
+- Side-by-side diff view
+- "Keep Mine" / "Use Theirs" / "Merge" options
+- Auto-merge for non-conflicting changes
+
+---
+
+## 11. Data Components (6 wireframes) 🟢
 
 > **Status:** STYLE-GUIDE specs complete - Ready for wireframing
 > **Reference:** `/docs/design/STYLE-GUIDE.md` - Section 6: Data Components
@@ -636,7 +763,7 @@ This document catalogs all wireframes required for the Hyvve platform, organized
 
 ---
 
-## 10. Forms & Inputs (5 wireframes) 🟢
+## 12. Forms & Inputs (5 wireframes) 🟢
 
 > **Status:** STYLE-GUIDE specs complete - Ready for wireframing
 > **Reference:** `/docs/design/STYLE-GUIDE.md` - Section 8: Forms & Inputs
@@ -728,7 +855,7 @@ Password ───────────────────────�
 
 ---
 
-## 11. Feedback & States (5 wireframes) 🟢
+## 13. Feedback & States (5 wireframes) 🟢
 
 > **Status:** STYLE-GUIDE specs complete - Ready for wireframing
 > **Reference:** `/docs/design/STYLE-GUIDE.md` - Section 9: Feedback & States
@@ -837,7 +964,7 @@ Warning ────────────────────────
 
 ---
 
-## 12. Authentication (6 wireframes) 🟢
+## 14. Authentication (6 wireframes) 🟢
 
 > **Status:** PRD specs complete - Ready for wireframing
 > **Reference:** `/docs/prd.md` - Authentication & Authorization section
@@ -1000,7 +1127,7 @@ Step 4: Ready! ─────────────────────�
 
 ---
 
-## 13. Workflow Builder Module (6 wireframes) 🔴
+## 15. Workflow Builder Module (6 wireframes) 🔴
 
 > **Status:** Needs research before wireframing
 
@@ -1020,7 +1147,7 @@ Step 4: Ready! ─────────────────────�
 
 ---
 
-## 14. Content Module - BMC (5 wireframes) 🔴
+## 16. Content Module - BMC (5 wireframes) 🔴
 
 > **Status:** Needs research before wireframing
 
@@ -1039,7 +1166,7 @@ Step 4: Ready! ─────────────────────�
 
 ---
 
-## 15. Email Module - BMX (5 wireframes) 🔴
+## 17. Email Module - BMX (5 wireframes) 🔴
 
 > **Status:** Needs research before wireframing
 
@@ -1058,7 +1185,7 @@ Step 4: Ready! ─────────────────────�
 
 ---
 
-## 16. Video Module - BMC-Video (4 wireframes) 🔴
+## 18. Video Module - BMC-Video (4 wireframes) 🔴
 
 > **Status:** Needs research before wireframing
 
@@ -1076,7 +1203,7 @@ Step 4: Ready! ─────────────────────�
 
 ---
 
-## 17. Business Onboarding (18 wireframes) ✅
+## 19. Business Onboarding (18 wireframes) ✅
 
 > **Status:** 18/18 Complete
 > **Reference:** `/docs/epics/EPIC-08-business-onboarding.md`, `/docs/architecture/business-onboarding-architecture.md`
