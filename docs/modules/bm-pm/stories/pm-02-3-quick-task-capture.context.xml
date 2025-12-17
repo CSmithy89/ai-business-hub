@@ -1,0 +1,63 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-02</epicId>
+    <storyId>pm-02-3</storyId>
+    <title>Quick Task Capture</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-02-3-quick-task-capture.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>project user</asA>
+    <iWant>to create tasks quickly with a keyboard shortcut</iWant>
+    <soThat>I can capture ideas without friction</soThat>
+    <tasks>
+      - Register 'c' keyboard shortcut on project pages
+      - Show quick capture modal with title + phase dropdown
+      - POST /pm/tasks to create the task
+      - Enter creates and closes; Shift+Enter creates and opens task detail panel
+      - Escape cancels without creating
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1) 'c' opens quick capture modal on any project page, focusing title input.
+    2) Enter creates a task and closes modal.
+    3) Shift+Enter creates a task and opens the detail panel (deep link taskId).
+    4) Escape closes without creating.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      - docs/modules/bm-pm/epics/epic-pm-02-task-management-system.md (Story PM-02.3)
+      - docs/modules/bm-pm/tech-spec-epic-pm-02.md
+    </docs>
+    <code>
+      - apps/web/src/hooks/use-keyboard-shortcut.ts (keyboard shortcuts)
+      - apps/web/src/hooks/use-pm-projects.ts (phase data for dropdown)
+      - apps/web/src/hooks/use-pm-tasks.ts (task create hook to add)
+      - apps/web/src/app/(dashboard)/dashboard/pm/[slug]/* (project pages)
+      - apps/api/src/pm/tasks/tasks.controller.ts (POST /pm/tasks)
+    </code>
+  </artifacts>
+
+  <constraints>
+    - Shortcut must not trigger when focus is in inputs/textarea/contentEditable.
+    - Modal must focus title input on open.
+    - Creation must default to current phase when available.
+  </constraints>
+
+  <interfaces>
+    - POST /pm/tasks
+  </interfaces>
+
+  <tests>
+    <ideas>
+      - Ensure shortcut is active on project pages but not global dashboard pages.
+      - Enter/Shift+Enter/Escape behaviors are deterministic and not timing-dependent.
+    </ideas>
+  </tests>
+</story-context>
+

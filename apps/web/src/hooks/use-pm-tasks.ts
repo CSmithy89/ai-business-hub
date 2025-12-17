@@ -113,6 +113,20 @@ export type UpdateTaskInput = Partial<{
   storyPoints: number | null
 }>
 
+export type CreateTaskInput = {
+  projectId: string
+  phaseId: string
+  title: string
+  description?: string
+  status?: TaskStatus
+  priority?: TaskPriority
+  assignmentType?: AssignmentType
+  assigneeId?: string | null
+  agentId?: string | null
+  storyPoints?: number | null
+  dueDate?: string | null
+}
+
 async function fetchTasks(params: {
   workspaceId: string
   token?: string
@@ -227,6 +241,43 @@ async function updateTask(params: {
   return body as TaskDetailResponse
 }
 
+async function createTask(params: {
+  workspaceId: string
+  token?: string
+  input: CreateTaskInput
+}): Promise<{ data: TaskListItem }> {
+  const base = getBaseUrl()
+
+  const search = new URLSearchParams()
+  search.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(`${base}/pm/tasks?${search.toString()}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+    },
+    body: JSON.stringify(params.input),
+    cache: 'no-store',
+  })
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to create task')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to create task')
+  }
+
+  return body as { data: TaskListItem }
+}
+
 export function usePmTasks(query: ListTasksQuery) {
   const { data: session } = useSession()
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
@@ -273,6 +324,29 @@ export function useUpdatePmTask() {
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to update task'
+      toast.error(message)
+    },
+  })
+}
+
+export function useCreatePmTask() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ input }: { input: CreateTaskInput }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return createTask({ workspaceId, token, input })
+    },
+    onSuccess: (result) => {
+      toast.success('Created')
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['pm-task', workspaceId, result.data.id] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to create task'
       toast.error(message)
     },
   })
