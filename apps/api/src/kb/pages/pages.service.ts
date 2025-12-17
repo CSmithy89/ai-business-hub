@@ -477,4 +477,70 @@ export class PagesService {
 
     return { data: { success: true } }
   }
+
+  async getRecentPages(tenantId: string, workspaceId: string, actorId: string, limit = 10) {
+    // Get pages that the user has recently viewed
+    const recentActivities = await this.prisma.pageActivity.findMany({
+      where: {
+        userId: actorId,
+        type: 'VIEWED',
+        page: {
+          tenantId,
+          workspaceId,
+          deletedAt: null,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      distinct: ['pageId'],
+      take: limit,
+      select: {
+        pageId: true,
+        createdAt: true,
+        page: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            parentId: true,
+            updatedAt: true,
+          },
+        },
+      },
+    })
+
+    const pages = recentActivities.map((activity) => ({
+      ...activity.page,
+      lastViewedAt: activity.createdAt,
+    }))
+
+    return { data: pages }
+  }
+
+  async getFavorites(tenantId: string, workspaceId: string, actorId: string) {
+    const pages = await this.prisma.knowledgePage.findMany({
+      where: {
+        tenantId,
+        workspaceId,
+        deletedAt: null,
+        favoritedBy: { has: actorId },
+      },
+      orderBy: { title: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        parentId: true,
+        updatedAt: true,
+        favoritedBy: true,
+      },
+    })
+
+    // Add isFavorited flag (always true for this query, but useful for consistency)
+    const pagesWithFavorite = pages.map((page) => ({
+      ...page,
+      isFavorited: true,
+    }))
+
+    return { data: pagesWithFavorite }
+  }
 }

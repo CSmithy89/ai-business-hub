@@ -62,6 +62,29 @@ export class PagesController {
     return this.pagesService.list(workspaceId, workspaceId, query)
   }
 
+  // Note: These routes must be defined before :id to prevent "me" from matching as an ID
+  @Get('me/recent')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get recently viewed pages' })
+  async getRecentPages(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser() actor: any,
+    @Query('limit') limit?: string,
+  ) {
+    const limitNum = limit ? parseInt(limit, 10) : 10
+    return this.pagesService.getRecentPages(workspaceId, workspaceId, actor.id, limitNum)
+  }
+
+  @Get('me/favorites')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get favorited pages' })
+  async getFavorites(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser() actor: any,
+  ) {
+    return this.pagesService.getFavorites(workspaceId, workspaceId, actor.id)
+  }
+
   @Get(':id')
   @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'Get a page by ID' })

@@ -3,12 +3,13 @@
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/auth-client'
-import { useKBPages, useKBPage, useUpdateKBPage, useDeleteKBPage } from '@/hooks/use-kb-pages'
+import { useKBPages, useKBPage, useUpdateKBPage, useDeleteKBPage, useToggleFavorite } from '@/hooks/use-kb-pages'
 import { PageEditor } from '@/components/kb/editor/PageEditor'
 import { PageBreadcrumbs } from '@/components/kb/PageBreadcrumbs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Trash2 } from 'lucide-react'
+import { ArrowLeft, Trash2, Star } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import {
@@ -41,6 +42,9 @@ export default function KBPagePage({ params }: PageProps) {
   const { data: pageData, isLoading } = useKBPage(pageId, workspaceId)
   const updatePage = useUpdateKBPage(workspaceId)
   const deletePage = useDeleteKBPage(workspaceId)
+  const toggleFavorite = useToggleFavorite(workspaceId)
+  const userId = (session as any)?.user?.id || ''
+  const isFavorited = pageData?.data?.favoritedBy?.includes(userId) ?? false
 
   const [title, setTitle] = useState('')
   const [isTitleEditing, setIsTitleEditing] = useState(false)
@@ -148,13 +152,30 @@ export default function KBPagePage({ params }: PageProps) {
                 )}
               </div>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDeleteDialogOpen(true)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleFavorite.mutate({ pageId, favorite: !isFavorited })}
+                  disabled={toggleFavorite.isPending}
+                  title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <Star
+                    className={cn(
+                      'h-4 w-4',
+                      isFavorited && 'fill-yellow-500 text-yellow-500'
+                    )}
+                  />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>

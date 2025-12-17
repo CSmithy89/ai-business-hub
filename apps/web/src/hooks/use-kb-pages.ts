@@ -362,3 +362,151 @@ export function useKBSearch(workspaceId: string, query: string, enabled = true) 
     staleTime: 30000, // Cache results for 30 seconds
   })
 }
+
+// ============================================
+// Recent Pages & Favorites
+// ============================================
+
+export interface RecentPage {
+  id: string
+  title: string
+  slug: string
+  parentId: string | null
+  updatedAt: string
+  lastViewedAt: string
+}
+
+export interface FavoritePage {
+  id: string
+  title: string
+  slug: string
+  parentId: string | null
+  updatedAt: string
+  favoritedBy: string[]
+  isFavorited: boolean
+}
+
+async function fetchRecentPages(params: {
+  workspaceId: string
+  token?: string
+  limit?: number
+}): Promise<{ data: RecentPage[] }> {
+  const { workspaceId, token, limit = 10 } = params
+
+  const url = new URL(`${getBaseUrl()}/api/kb/pages/me/recent`)
+  url.searchParams.set('limit', String(limit))
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Failed to fetch recent pages: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as { data: RecentPage[] }
+}
+
+async function fetchFavorites(params: {
+  workspaceId: string
+  token?: string
+}): Promise<{ data: FavoritePage[] }> {
+  const { workspaceId, token } = params
+
+  const response = await fetch(`${getBaseUrl()}/api/kb/pages/me/favorites`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Failed to fetch favorites: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as { data: FavoritePage[] }
+}
+
+async function toggleFavorite(params: {
+  pageId: string
+  workspaceId: string
+  token?: string
+  favorite: boolean
+}): Promise<{ data: { success: boolean } }> {
+  const { pageId, workspaceId, token, favorite } = params
+
+  const response = await fetch(`${getBaseUrl()}/api/kb/pages/${pageId}/favorite`, {
+    method: favorite ? 'POST' : 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Failed to toggle favorite: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as { data: { success: boolean } }
+}
+
+export function useRecentPages(workspaceId: string, limit = 10) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+
+  return useQuery({
+    queryKey: ['kb', 'recent', workspaceId, limit],
+    queryFn: () => fetchRecentPages({ workspaceId, token, limit }),
+    enabled: !!workspaceId && !!token,
+    staleTime: 60000, // Cache for 1 minute
+  })
+}
+
+export function useFavorites(workspaceId: string) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+
+  return useQuery({
+    queryKey: ['kb', 'favorites', workspaceId],
+    queryFn: () => fetchFavorites({ workspaceId, token }),
+    enabled: !!workspaceId && !!token,
+  })
+}
+
+export function useToggleFavorite(workspaceId: string) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ pageId, favorite }: { pageId: string; favorite: boolean }) =>
+      toggleFavorite({ pageId, workspaceId, token, favorite }),
+    onSuccess: (_data, variables) => {
+      // Invalidate favorites list
+      queryClient.invalidateQueries({ queryKey: ['kb', 'favorites', workspaceId] })
+      // Also invalidate the specific page to update its favorite status
+      queryClient.invalidateQueries({ queryKey: ['kb', 'pages'] })
+      toast.success(variables.favorite ? 'Added to favorites' : 'Removed from favorites')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update favorite')
+    },
+  })
+}
