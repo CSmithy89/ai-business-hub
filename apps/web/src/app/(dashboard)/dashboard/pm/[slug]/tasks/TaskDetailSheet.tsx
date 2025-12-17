@@ -27,8 +27,10 @@ import {
   useDeletePmTaskAttachment,
   useDeletePmTaskComment,
   useDeletePmTaskRelation,
+  useDeletePmTaskLabel,
   usePmTasks,
   usePmTask,
+  useUpsertPmTaskLabel,
   useUpdatePmTaskComment,
   useUpdatePmTask,
   type TaskPriority,
@@ -104,6 +106,8 @@ export function TaskDetailSheet({
   const deleteComment = useDeletePmTaskComment()
   const createAttachment = useCreatePmTaskAttachment()
   const deleteAttachment = useDeletePmTaskAttachment()
+  const upsertLabel = useUpsertPmTaskLabel()
+  const deleteLabel = useDeletePmTaskLabel()
 
   const team = usePmTeam(task?.projectId ?? '')
   const members = team.data?.data.members ?? []
@@ -123,6 +127,8 @@ export function TaskDetailSheet({
   const [commentEditingId, setCommentEditingId] = useState<string | null>(null)
   const [commentEditingContent, setCommentEditingContent] = useState('')
   const [attachmentUploading, setAttachmentUploading] = useState(false)
+  const [labelDraft, setLabelDraft] = useState('')
+  const [labelColor, setLabelColor] = useState('#6B7280')
 
   useEffect(() => {
     if (!task) return
@@ -139,6 +145,8 @@ export function TaskDetailSheet({
     setCommentEditingId(null)
     setCommentEditingContent('')
     setAttachmentUploading(false)
+    setLabelDraft('')
+    setLabelColor('#6B7280')
   }, [task?.id])
 
   const relationSearchQuery = usePmTasks({
@@ -258,6 +266,14 @@ export function TaskDetailSheet({
     } finally {
       setAttachmentUploading(false)
     }
+  }
+
+  async function handleAddLabel() {
+    if (!task) return
+    const trimmed = labelDraft.trim()
+    if (!trimmed) return
+    await upsertLabel.mutateAsync({ taskId: task.id, input: { name: trimmed, color: labelColor } })
+    setLabelDraft('')
   }
 
   return (
@@ -836,6 +852,61 @@ export function TaskDetailSheet({
                   </ReactMarkdown>
                 </div>
               </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Labels</span>
+                {upsertLabel.isPending || deleteLabel.isPending ? (
+                  <span className="inline-flex items-center gap-2 text-xs text-[rgb(var(--color-text-secondary))]">
+                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                    Saving…
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="flex items-start gap-2">
+                <Input
+                  value={labelDraft}
+                  onChange={(e) => setLabelDraft(e.target.value)}
+                  placeholder="Add label…"
+                />
+                <input
+                  type="color"
+                  value={labelColor}
+                  onChange={(e) => setLabelColor(e.target.value)}
+                  className="h-9 w-10 cursor-pointer rounded-md border border-[rgb(var(--color-border-default))] bg-transparent p-1"
+                  aria-label="Label color"
+                />
+                <Button type="button" size="sm" onClick={() => void handleAddLabel()} disabled={!labelDraft.trim()}>
+                  Add
+                </Button>
+              </div>
+
+              {task.labels?.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {task.labels.map((label) => (
+                    <Badge
+                      key={label.id}
+                      variant="secondary"
+                      className="inline-flex items-center gap-1"
+                      style={{ borderColor: label.color, color: label.color }}
+                    >
+                      <span className="truncate">{label.name}</span>
+                      <button
+                        type="button"
+                        className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded hover:bg-[rgb(var(--color-bg-tertiary))]"
+                        onClick={() => deleteLabel.mutate({ taskId: task.id, labelId: label.id })}
+                        aria-label="Remove label"
+                      >
+                        <X className="h-3 w-3" aria-hidden="true" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-[rgb(var(--color-text-secondary))]">No labels yet.</div>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">

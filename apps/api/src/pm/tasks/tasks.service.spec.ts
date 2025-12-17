@@ -18,6 +18,7 @@ type PrismaMock = {
   taskRelation: { findFirst: jest.Mock; createMany: jest.Mock; deleteMany: jest.Mock }
   taskComment: { findFirst: jest.Mock; create: jest.Mock; update: jest.Mock }
   taskAttachment: { findFirst: jest.Mock; create: jest.Mock; delete: jest.Mock }
+  taskLabel: { findFirst: jest.Mock; create: jest.Mock; update: jest.Mock; delete: jest.Mock }
   taskActivity: { create: jest.Mock; createMany: jest.Mock }
   $transaction: jest.Mock
 }
@@ -47,6 +48,7 @@ describe('TasksService', () => {
             taskRelation: { findFirst: jest.fn(), createMany: jest.fn(), deleteMany: jest.fn() },
             taskComment: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
             taskAttachment: { findFirst: jest.fn(), create: jest.fn(), delete: jest.fn() },
+            taskLabel: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
             taskActivity: { create: jest.fn(), createMany: jest.fn() },
             $transaction: jest.fn(),
           },
@@ -444,6 +446,45 @@ describe('TasksService', () => {
           fileSize: 123,
           uploadedBy: 'user-1',
         }),
+      }),
+    )
+    expect(activityCreate).toHaveBeenCalled()
+    expect(eventPublisher.publish).toHaveBeenCalled()
+  })
+
+  it('upserts a label for a task', async () => {
+    const taskFindFirst = jest.fn().mockResolvedValueOnce({ id: 'task-1' })
+    const labelFindFirst = jest.fn().mockResolvedValueOnce(null)
+    const labelCreate = jest.fn().mockResolvedValueOnce({ id: 'lbl-1' })
+    const activityCreate = jest.fn().mockResolvedValueOnce({ id: 'act-1' })
+
+    prisma.$transaction.mockImplementationOnce(async (fn: any) =>
+      fn({
+        task: { findFirst: taskFindFirst },
+        taskLabel: { findFirst: labelFindFirst, create: labelCreate, update: jest.fn() },
+        taskActivity: { create: activityCreate },
+      }),
+    )
+
+    prisma.task.findFirst.mockResolvedValueOnce({
+      id: 'task-1',
+      workspaceId: 'ws-1',
+      projectId: 'proj-1',
+      phaseId: 'phase-1',
+      children: [],
+      relations: [],
+      relatedTo: [],
+      labels: [],
+      attachments: [],
+      comments: [],
+      activities: [],
+    })
+
+    await service.upsertLabel('ws-1', 'user-1', 'task-1', { name: 'Urgent', color: '#FF0000' })
+
+    expect(labelCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ taskId: 'task-1', name: 'Urgent', color: '#FF0000' }),
       }),
     )
     expect(activityCreate).toHaveBeenCalled()

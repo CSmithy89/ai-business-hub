@@ -25,6 +25,7 @@ import { CreateTaskRelationDto } from './dto/create-task-relation.dto'
 import { ListTasksQueryDto } from './dto/list-tasks.query.dto'
 import { UpdateTaskCommentDto } from './dto/update-task-comment.dto'
 import { UpdateTaskDto } from './dto/update-task.dto'
+import { UpsertTaskLabelDto } from './dto/upsert-task-label.dto'
 import { TasksService } from './tasks.service'
 
 @ApiTags('PM Tasks')
@@ -190,5 +191,32 @@ export class TasksController {
     @CurrentUser() actor: any,
   ) {
     return this.tasksService.deleteAttachment(workspaceId, actor.id, id, attachmentId)
+  }
+
+  @Post(':id/labels')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Add or update a task label' })
+  @ApiParam({ name: 'id', description: 'Task ID' })
+  async upsertLabel(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpsertTaskLabelDto,
+    @CurrentUser() actor: any,
+  ) {
+    return this.tasksService.upsertLabel(workspaceId, actor.id, id, dto)
+  }
+
+  @Delete(':id/labels/:labelId')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Remove a task label' })
+  @ApiParam({ name: 'id', description: 'Task ID' })
+  @ApiParam({ name: 'labelId', description: 'TaskLabel ID' })
+  async deleteLabel(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Param('labelId') labelId: string,
+    @CurrentUser() actor: any,
+  ) {
+    return this.tasksService.deleteLabel(workspaceId, actor.id, id, labelId)
   }
 }

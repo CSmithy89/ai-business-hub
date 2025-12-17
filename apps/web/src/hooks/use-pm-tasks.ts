@@ -200,6 +200,7 @@ export type ListTasksQuery = {
   priority?: TaskPriority
   assignmentType?: AssignmentType
   assigneeId?: string
+  label?: string
   search?: string
   page?: number
   limit?: number
@@ -255,6 +256,11 @@ export type CreateTaskAttachmentInput = {
   fileSize: number
 }
 
+export type UpsertTaskLabelInput = {
+  name: string
+  color?: string
+}
+
 async function fetchTasks(params: {
   workspaceId: string
   token?: string
@@ -274,6 +280,7 @@ async function fetchTasks(params: {
   if (query.assignmentType) search.set('assignmentType', query.assignmentType)
   if (query.assigneeId) search.set('assigneeId', query.assigneeId)
   if (query.search) search.set('search', query.search)
+  if (query.label) search.set('label', query.label)
   if (query.page) search.set('page', String(query.page))
   if (query.limit) search.set('limit', String(query.limit))
 
@@ -521,6 +528,81 @@ async function deleteTaskAttachment(params: {
 
   if (!body || typeof body !== 'object' || !('data' in body)) {
     throw new Error('Failed to remove attachment')
+  }
+
+  return body as TaskDetailResponse
+}
+
+async function upsertTaskLabel(params: {
+  workspaceId: string
+  token?: string
+  taskId: string
+  input: UpsertTaskLabelInput
+}): Promise<TaskDetailResponse> {
+  const base = getBaseUrl()
+
+  const search = new URLSearchParams()
+  search.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(`${base}/pm/tasks/${encodeURIComponent(params.taskId)}/labels?${search.toString()}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+    },
+    body: JSON.stringify(params.input),
+    cache: 'no-store',
+  })
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to add label')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to add label')
+  }
+
+  return body as TaskDetailResponse
+}
+
+async function deleteTaskLabel(params: {
+  workspaceId: string
+  token?: string
+  taskId: string
+  labelId: string
+}): Promise<TaskDetailResponse> {
+  const base = getBaseUrl()
+
+  const search = new URLSearchParams()
+  search.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(
+    `${base}/pm/tasks/${encodeURIComponent(params.taskId)}/labels/${encodeURIComponent(params.labelId)}?${search.toString()}`,
+    {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: params.token ? { Authorization: `Bearer ${params.token}` } : {},
+      cache: 'no-store',
+    },
+  )
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to remove label')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to remove label')
   }
 
   return body as TaskDetailResponse
@@ -909,6 +991,52 @@ export function useDeletePmTaskAttachment() {
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to remove attachment'
+      toast.error(message)
+    },
+  })
+}
+
+export function useUpsertPmTaskLabel() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ taskId, input }: { taskId: string; input: UpsertTaskLabelInput }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return upsertTaskLabel({ workspaceId, token, taskId, input })
+    },
+    onSuccess: (result) => {
+      toast.success('Label saved')
+      queryClient.invalidateQueries({ queryKey: ['pm-task', workspaceId, result.data.id] })
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to add label'
+      toast.error(message)
+    },
+  })
+}
+
+export function useDeletePmTaskLabel() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ taskId, labelId }: { taskId: string; labelId: string }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return deleteTaskLabel({ workspaceId, token, taskId, labelId })
+    },
+    onSuccess: (result) => {
+      toast.success('Label removed')
+      queryClient.invalidateQueries({ queryKey: ['pm-task', workspaceId, result.data.id] })
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to remove label'
       toast.error(message)
     },
   })

@@ -11,6 +11,7 @@ import { CreateTaskDto } from './dto/create-task.dto'
 import { ListTasksQueryDto } from './dto/list-tasks.query.dto'
 import { UpdateTaskCommentDto } from './dto/update-task-comment.dto'
 import { UpdateTaskDto } from './dto/update-task.dto'
+import { UpsertTaskLabelDto } from './dto/upsert-task-label.dto'
 
 const RELATION_INVERSE: Record<TaskRelationType, TaskRelationType> = {
   BLOCKS: TaskRelationType.BLOCKED_BY,
@@ -165,6 +166,15 @@ export class TasksService {
       ...(query.assignmentType ? { assignmentType: query.assignmentType } : {}),
       ...(query.assigneeId ? { assigneeId: query.assigneeId } : {}),
       ...(query.parentId ? { parentId: query.parentId } : {}),
+      ...(query.label
+        ? {
+            labels: {
+              some: {
+                name: { equals: query.label, mode: 'insensitive' },
+              },
+            },
+          }
+        : {}),
       ...(query.search
         ? {
             OR: [
@@ -259,7 +269,9 @@ export class TasksService {
           },
           orderBy: [{ relationType: 'asc' }, { createdAt: 'desc' }],
         },
-        labels: true,
+        labels: {
+          orderBy: { name: 'asc' },
+        },
         attachments: {
           orderBy: { uploadedAt: 'desc' },
         },
@@ -725,6 +737,88 @@ export class TasksService {
           userId: actorId,
           type: TaskActivityType.ATTACHMENT_REMOVED,
           data: { attachmentId: attachment.id, fileName: attachment.fileName, fileUrl: attachment.fileUrl },
+        },
+      })
+    })
+
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_UPDATED,
+      { taskId },
+      { tenantId: workspaceId, userId: actorId, source: 'api' },
+    )
+
+    return this.getById(workspaceId, taskId)
+  }
+
+  async upsertLabel(workspaceId: string, actorId: string, taskId: string, dto: UpsertTaskLabelDto) {
+    const trimmed = dto.name.trim()
+    if (!trimmed) throw new BadRequestException('name cannot be empty')
+
+    await this.prisma.$transaction(async (tx) => {
+      const task = await tx.task.findFirst({
+        where: { id: taskId, workspaceId, deletedAt: null },
+        select: { id: true },
+      })
+      if (!task) throw new NotFoundException('Task not found')
+
+      const existing = await tx.taskLabel.findFirst({
+        where: { taskId, name: { equals: trimmed, mode: 'insensitive' } },
+        select: { id: true, color: true },
+      })
+
+      if (existing) {
+        if (dto.color && dto.color !== existing.color) {
+          await tx.taskLabel.update({ where: { id: existing.id }, data: { color: dto.color } })
+        }
+        return
+      }
+
+      await tx.taskLabel.create({
+        data: { taskId, name: trimmed, color: dto.color ?? undefined },
+        select: { id: true },
+      })
+
+      await tx.taskActivity.create({
+        data: {
+          taskId,
+          userId: actorId,
+          type: TaskActivityType.LABEL_ADDED,
+          data: { name: trimmed, color: dto.color ?? null },
+        },
+      })
+    })
+
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_UPDATED,
+      { taskId },
+      { tenantId: workspaceId, userId: actorId, source: 'api' },
+    )
+
+    return this.getById(workspaceId, taskId)
+  }
+
+  async deleteLabel(workspaceId: string, actorId: string, taskId: string, labelId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      const task = await tx.task.findFirst({
+        where: { id: taskId, workspaceId, deletedAt: null },
+        select: { id: true },
+      })
+      if (!task) throw new NotFoundException('Task not found')
+
+      const existing = await tx.taskLabel.findFirst({
+        where: { id: labelId, taskId },
+        select: { id: true, name: true, color: true },
+      })
+      if (!existing) throw new NotFoundException('Label not found')
+
+      await tx.taskLabel.delete({ where: { id: existing.id } })
+
+      await tx.taskActivity.create({
+        data: {
+          taskId,
+          userId: actorId,
+          type: TaskActivityType.LABEL_REMOVED,
+          data: { name: existing.name, color: existing.color },
         },
       })
     })

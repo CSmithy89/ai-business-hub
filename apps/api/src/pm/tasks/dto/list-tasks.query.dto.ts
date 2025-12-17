@@ -40,6 +40,10 @@ export class ListTasksQueryDto {
   search?: string
 
   @IsOptional()
+  @IsString()
+  label?: string
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
