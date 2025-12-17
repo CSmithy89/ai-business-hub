@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Controller, useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ProjectTypeSchema } from '@hyvve/shared'
@@ -66,7 +67,8 @@ export function CreateProjectModal({
     formState: { errors },
     reset,
   } = useForm<CreateProjectWizardValues>({
-    resolver: zodResolver(CreateProjectWizardSchema),
+    resolver:
+      zodResolver(CreateProjectWizardSchema as unknown as Parameters<typeof zodResolver>[0]) as unknown as Resolver<CreateProjectWizardValues>,
     defaultValues: {
       businessId: '',
       name: '',

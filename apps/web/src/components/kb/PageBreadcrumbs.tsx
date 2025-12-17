@@ -89,7 +89,7 @@ export function PageBreadcrumbs({
         {/* KB Home */}
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link href="/kb" className="flex items-center gap-1.5">
+            <Link href={'/kb' as any} className="flex items-center gap-1.5">
               <Home className="h-3.5 w-3.5" />
               <span>KB Home</span>
             </Link>
@@ -108,7 +108,7 @@ export function PageBreadcrumbs({
               <div key={segment.id} className="inline-flex items-center gap-1.5">
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link href={`/kb/${segment.slug}`}>{segment.title}</Link>
+                    <Link href={`/kb/${segment.slug}` as any}>{segment.title}</Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
@@ -127,7 +127,7 @@ export function PageBreadcrumbs({
                   <BreadcrumbPage>{segment.title}</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
-                    <Link href={`/kb/${segment.slug}`}>{segment.title}</Link>
+                    <Link href={`/kb/${segment.slug}` as any}>{segment.title}</Link>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>

@@ -34,7 +34,7 @@ export default function NewKBPagePage() {
         },
       })
 
-      router.push(`/kb/${result.data.slug}`)
+      router.push(`/kb/${result.data.slug}` as any)
     } catch (error) {
       console.error('Failed to create page:', error)
     }
@@ -45,7 +45,7 @@ export default function NewKBPagePage() {
       <div className="mx-auto max-w-2xl space-y-8">
         <div>
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/kb">
+            <Link href={'/kb' as any}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to KB
             </Link>
@@ -84,7 +84,7 @@ export default function NewKBPagePage() {
               {createPage.isPending ? 'Creating...' : 'Create Page'}
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/kb">Cancel</Link>
+              <Link href={'/kb' as any}>Cancel</Link>
             </Button>
           </div>
         </div>

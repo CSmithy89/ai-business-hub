@@ -88,7 +88,7 @@ export default function KBPagePage({ params }: PageProps) {
     if (!pageId) return
 
     await deletePage.mutateAsync(pageId)
-    router.push('/kb')
+    router.push('/kb' as any)
   }
 
   if (isLoading || !pageData) {
@@ -107,7 +107,7 @@ export default function KBPagePage({ params }: PageProps) {
           The page you&apos;re looking for doesn&apos;t exist
         </p>
         <Button asChild>
-          <Link href="/kb">Back to KB</Link>
+          <Link href={'/kb' as any}>Back to KB</Link>
         </Button>
       </div>
     )
@@ -128,7 +128,7 @@ export default function KBPagePage({ params }: PageProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-1 min-w-0">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="/kb">
+                  <Link href={'/kb' as any}>
                     <ArrowLeft className="h-4 w-4" />
                   </Link>
                 </Button>

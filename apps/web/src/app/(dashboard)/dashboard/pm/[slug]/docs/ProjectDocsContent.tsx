@@ -87,7 +87,7 @@ function DocCard({ doc, isPrimary }: { doc: ProjectDocLink; isPrimary: boolean }
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
               <Link
-                href={`/kb/${doc.page.slug}`}
+                href={`/kb/${doc.page.slug}` as any}
                 className="truncate font-medium hover:underline"
               >
                 {doc.page.title}
@@ -118,7 +118,7 @@ function DocCard({ doc, isPrimary }: { doc: ProjectDocLink; isPrimary: boolean }
             </p>
           </div>
           <Link
-            href={`/kb/${doc.page.slug}`}
+            href={`/kb/${doc.page.slug}` as any}
             className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title="Open doc"
           >
@@ -197,7 +197,7 @@ export function ProjectDocsContent() {
 
   const handleCreateNew = () => {
     // Navigate to KB with context to create and link
-    router.push(`/kb?createFor=${project.id}`)
+    router.push(`/kb?createFor=${project.id}` as any)
   }
 
   return (

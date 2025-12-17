@@ -103,7 +103,7 @@ export function PageTree({
   }
 
   const handleNavigate = (slug: string) => {
-    router.push(`/kb/${slug}`)
+    router.push(`/kb/${slug}` as any)
   }
 
   const handleDragStart = (event: DragStartEvent) => {
