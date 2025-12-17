@@ -11,7 +11,8 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { usePmProject } from '@/hooks/use-pm-projects'
-import { usePmTasks, type TaskListItem, type TaskStatus } from '@/hooks/use-pm-tasks'
+import { usePmTasks, type TaskListItem, type TaskPriority, type TaskStatus, type TaskType } from '@/hooks/use-pm-tasks'
+import { TASK_PRIORITIES, TASK_PRIORITY_META, TASK_TYPES, TASK_TYPE_META } from '@/lib/pm/task-meta'
 import { cn } from '@/lib/utils'
 import { TaskDetailSheet } from './TaskDetailSheet'
 
@@ -68,16 +69,20 @@ export function ProjectTasksContent() {
 
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<TaskStatus | 'all'>('all')
+  const [type, setType] = useState<TaskType | 'all'>('all')
+  const [priority, setPriority] = useState<TaskPriority | 'all'>('all')
 
   const query = useMemo(() => {
     return {
       projectId: project?.id,
       search: search.trim() ? search.trim() : undefined,
       status: status === 'all' ? undefined : status,
+      type: type === 'all' ? undefined : type,
+      priority: priority === 'all' ? undefined : priority,
       page: 1,
       limit: 50,
     }
-  }, [project?.id, search, status])
+  }, [priority, project?.id, search, status, type])
 
   const { data, isLoading, error } = usePmTasks(query)
   const tasks = data?.data ?? []
@@ -132,7 +137,7 @@ export function ProjectTasksContent() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Filters</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
+        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4 text-[rgb(var(--color-text-secondary))]" aria-hidden="true" />
             <Input
@@ -155,6 +160,53 @@ export function ProjectTasksContent() {
                     {s.replace(/_/g, ' ')}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-[rgb(var(--color-text-secondary))]" aria-hidden="true" />
+            <Select value={type} onValueChange={(value) => setType(value as TaskType | 'all')}>
+              <SelectTrigger>
+                <SelectValue placeholder="All types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                {TASK_TYPES.map((value) => {
+                  const meta = TASK_TYPE_META[value]
+                  const Icon = meta.icon
+                  return (
+                    <SelectItem key={value} value={value}>
+                      <span className="inline-flex items-center gap-2">
+                        <Icon className={cn('h-4 w-4', meta.iconClassName)} aria-hidden="true" />
+                        {meta.label}
+                      </span>
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-[rgb(var(--color-text-secondary))]" aria-hidden="true" />
+            <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority | 'all')}>
+              <SelectTrigger>
+                <SelectValue placeholder="All priorities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                {TASK_PRIORITIES.map((value) => {
+                  const meta = TASK_PRIORITY_META[value]
+                  return (
+                    <SelectItem key={value} value={value}>
+                      <span className="inline-flex items-center gap-2">
+                        <span className={cn('h-2.5 w-2.5 rounded-full', meta.dotClassName)} aria-hidden="true" />
+                        {meta.label}
+                      </span>
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -181,7 +233,7 @@ export function ProjectTasksContent() {
         <EmptyState
           icon={ChevronRight}
           headline="No tasks yet"
-          description="Create tasks via API for now; quick capture arrives in PM-02.3."
+          description="Press `c` on any project page to quick capture, or create via API."
           ctaText="Back to overview"
           onCtaClick={() => router.push(`/dashboard/pm/${slug}` as any)}
         />
@@ -216,6 +268,10 @@ export function ProjectTasksContent() {
 }
 
 function TaskRow({ task, onClick }: { task: TaskListItem; onClick: () => void }) {
+  const typeMeta = TASK_TYPE_META[task.type]
+  const TypeIcon = typeMeta.icon
+  const priorityMeta = TASK_PRIORITY_META[task.priority]
+
   return (
     <button
       type="button"
@@ -227,6 +283,7 @@ function TaskRow({ task, onClick }: { task: TaskListItem; onClick: () => void })
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2">
+          <TypeIcon className={cn('h-4 w-4 shrink-0', typeMeta.iconClassName)} aria-hidden="true" />
           <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">
             #{task.taskNumber}
           </span>
@@ -236,6 +293,10 @@ function TaskRow({ task, onClick }: { task: TaskListItem; onClick: () => void })
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--color-text-secondary))]">
           <Badge variant={statusBadgeVariant(task.status) as any}>{task.status.replace(/_/g, ' ')}</Badge>
+          <span className="inline-flex items-center gap-1.5">
+            <span className={cn('h-2.5 w-2.5 rounded-full', priorityMeta.dotClassName)} aria-hidden="true" />
+            {priorityMeta.label}
+          </span>
           <span className="inline-flex items-center gap-1">
             <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
             {formatDate(task.dueDate)}

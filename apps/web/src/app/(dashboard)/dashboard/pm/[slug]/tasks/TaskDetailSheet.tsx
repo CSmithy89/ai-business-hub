@@ -13,7 +13,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
 import { usePmTeam } from '@/hooks/use-pm-team'
-import { usePmTask, useUpdatePmTask, type TaskPriority, type TaskStatus, type UpdateTaskInput } from '@/hooks/use-pm-tasks'
+import {
+  usePmTask,
+  useUpdatePmTask,
+  type TaskPriority,
+  type TaskStatus,
+  type TaskType,
+  type UpdateTaskInput,
+} from '@/hooks/use-pm-tasks'
+import { TASK_PRIORITIES, TASK_PRIORITY_META, TASK_TYPES, TASK_TYPE_META } from '@/lib/pm/task-meta'
 import { cn } from '@/lib/utils'
 
 const TASK_STATUSES: TaskStatus[] = [
@@ -25,8 +33,6 @@ const TASK_STATUSES: TaskStatus[] = [
   'DONE',
   'CANCELLED',
 ]
-
-const TASK_PRIORITIES: TaskPriority[] = ['URGENT', 'HIGH', 'MEDIUM', 'LOW', 'NONE']
 
 function formatDateLabel(value: string | null): string {
   if (!value) return 'No due date'
@@ -128,7 +134,7 @@ export function TaskDetailSheet({
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Status</span>
                 <Select
@@ -149,20 +155,46 @@ export function TaskDetailSheet({
               </div>
 
               <div className="flex flex-col gap-2">
-                <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Priority</span>
-                <Select
-                  value={task.priority}
-                  onValueChange={(value) => saveField({ priority: value as TaskPriority })}
-                >
+                <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Type</span>
+                <Select value={task.type} onValueChange={(value) => saveField({ type: value as TaskType })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {TASK_PRIORITIES.map((priority) => (
-                      <SelectItem key={priority} value={priority}>
-                        {priority.replace(/_/g, ' ')}
-                      </SelectItem>
-                    ))}
+                    {TASK_TYPES.map((type) => {
+                      const meta = TASK_TYPE_META[type]
+                      const Icon = meta.icon
+                      return (
+                        <SelectItem key={type} value={type}>
+                          <span className="inline-flex items-center gap-2">
+                            <Icon className={cn('h-4 w-4', meta.iconClassName)} aria-hidden="true" />
+                            {meta.label}
+                          </span>
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Priority</span>
+                <Select value={task.priority} onValueChange={(value) => saveField({ priority: value as TaskPriority })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TASK_PRIORITIES.map((priority) => {
+                      const meta = TASK_PRIORITY_META[priority]
+                      return (
+                        <SelectItem key={priority} value={priority}>
+                          <span className="inline-flex items-center gap-2">
+                            <span className={cn('h-2.5 w-2.5 rounded-full', meta.dotClassName)} aria-hidden="true" />
+                            {meta.label}
+                          </span>
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>

@@ -104,6 +104,7 @@ export type ListTasksQuery = {
 export type UpdateTaskInput = Partial<{
   title: string
   description: string | null
+  type: TaskType
   status: TaskStatus
   priority: TaskPriority
   assigneeId: string | null
@@ -119,6 +120,7 @@ export type CreateTaskInput = {
   title: string
   description?: string
   status?: TaskStatus
+  type?: TaskType
   priority?: TaskPriority
   assignmentType?: AssignmentType
   assigneeId?: string | null

@@ -1,0 +1,55 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-02</epicId>
+    <storyId>pm-02-4</storyId>
+    <title>Task Type &amp; Priority</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-02-4-task-type-priority.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>project user</asA>
+    <iWant>to classify tasks by type and priority</iWant>
+    <soThat>I can organize and filter work</soThat>
+    <tasks>
+      - Add type selector to task detail panel
+      - Add priority color indicator to task detail panel + task list
+      - Add list filters for type and priority
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1) Type selector includes: Epic, Story, Task, Subtask, Bug, Research, Content, Agent Review.
+    2) Each type is visually distinct (icon + color).
+    3) Priority selector includes: Urgent/High/Medium/Low/None with color.
+    4) Tasks list supports filtering by type and priority.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      - docs/modules/bm-pm/epics/epic-pm-02-task-management-system.md (Story PM-02.4)
+      - docs/modules/bm-pm/tech-spec-epic-pm-02.md
+    </docs>
+    <code>
+      - apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/ProjectTasksContent.tsx (list filters + rows)
+      - apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/TaskDetailSheet.tsx (edit panel)
+      - apps/web/src/hooks/use-pm-tasks.ts (UpdateTaskInput + query params)
+      - apps/api/src/pm/tasks/tasks.controller.ts (filters and update endpoints)
+    </code>
+  </artifacts>
+
+  <interfaces>
+    - GET /pm/tasks
+    - PATCH /pm/tasks/:id
+  </interfaces>
+
+  <tests>
+    <ideas>
+      - Verify filter state flows into `usePmTasks` query.
+      - Verify updating type/priority triggers PATCH update.
+    </ideas>
+  </tests>
+</story-context>
+
