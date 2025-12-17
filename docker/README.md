@@ -6,7 +6,7 @@ This directory contains the Docker Compose configuration for local development o
 
 The Docker environment provides all necessary backend services for local development:
 
-- **PostgreSQL 16**: Primary database (port 5432)
+- **PostgreSQL 16 + pgvector**: Primary database + vector embeddings (port 5432)
 - **Redis 7**: Cache, queue, and event streaming (port 6379)
 - **AgentOS**: Python/FastAPI AI agent runtime (port 7777)
 - **pgAdmin**: Database management UI (port 5050)
@@ -42,7 +42,7 @@ docker compose -f docker/docker-compose.yml ps
 Expected output:
 ```
 NAME              IMAGE                  STATUS         PORTS
-hyvve_postgres    postgres:16-alpine     Up (healthy)   0.0.0.0:5432->5432/tcp
+hyvve_postgres    pgvector/pgvector:pg16 Up (healthy)   0.0.0.0:5432->5432/tcp
 hyvve_redis       redis:7-alpine         Up (healthy)   0.0.0.0:6379->6379/tcp
 hyvve_agentos     agents-agentos         Up             0.0.0.0:7777->7777/tcp
 hyvve_pgadmin     dpage/pgadmin4:latest  Up             0.0.0.0:5050->80/tcp
@@ -452,6 +452,7 @@ Production uses:
 
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
 - [PostgreSQL Docker Image](https://hub.docker.com/_/postgres)
+- [pgvector Docker Image](https://hub.docker.com/r/pgvector/pgvector)
 - [Redis Docker Image](https://hub.docker.com/_/redis)
 - [pgAdmin Docker Image](https://hub.docker.com/r/dpage/pgadmin4)
 - [HYVVE Architecture](../docs/architecture.md)
