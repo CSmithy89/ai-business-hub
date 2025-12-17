@@ -32,7 +32,12 @@ export default function KBPagePage({ params }: PageProps) {
   const { slug } = use(params)
   const router = useRouter()
   const { data: session } = useSession()
-  const workspaceId = (session as any)?.workspaceId || ''
+  // Check both possible session paths for workspaceId
+  const sessionData = session as any
+  const workspaceId =
+    sessionData?.workspaceId ||
+    sessionData?.session?.activeWorkspaceId ||
+    ''
   const { data: pagesData } = useKBPages(workspaceId, true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [showInfoPanel, setShowInfoPanel] = useState(true)

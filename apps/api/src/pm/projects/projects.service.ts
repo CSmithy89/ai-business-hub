@@ -299,7 +299,11 @@ export class ProjectsService {
     if (!project) throw new NotFoundException('Project not found')
 
     const links = await this.prisma.projectPage.findMany({
-      where: { projectId },
+      where: {
+        projectId,
+        // Exclude soft-deleted pages from results
+        page: { deletedAt: null },
+      },
       include: {
         page: {
           select: {

@@ -23,7 +23,10 @@ export class SearchService {
     workspaceId: string,
     dto: SearchQueryDto,
   ): Promise<{ results: SearchResult[]; total: number }> {
-    const { q, limit = 20, offset = 0 } = dto
+    const { q, limit: rawLimit = 20, offset: rawOffset = 0 } = dto
+    // Ensure limit and offset are integers for PostgreSQL
+    const limit = Math.floor(rawLimit)
+    const offset = Math.floor(rawOffset)
 
     try {
       // Use PostgreSQL full-text search with tsvector
@@ -80,21 +83,22 @@ export class SearchService {
 
       const total = Number(countResult[0]?.count || 0)
 
-      // Build breadcrumb paths for each result
-      const results: SearchResult[] = await Promise.all(
-        rawResults.map(async (row) => {
-          const path = await this.buildBreadcrumbPath(row.id)
-          return {
-            pageId: row.id,
-            title: row.title,
-            slug: row.slug,
-            snippet: row.snippet,
-            rank: Number(row.rank),
-            updatedAt: row.updated_at.toISOString(),
-            path: path.slice(0, -1), // Exclude current page from path
-          }
-        }),
-      )
+      // Build breadcrumb paths for all results in a single batch query
+      const pageIds = rawResults.map((r) => r.id)
+      const breadcrumbMap = await this.buildBreadcrumbPathsBatch(pageIds)
+
+      const results: SearchResult[] = rawResults.map((row) => {
+        const path = breadcrumbMap.get(row.id) || []
+        return {
+          pageId: row.id,
+          title: row.title,
+          slug: row.slug,
+          snippet: row.snippet,
+          rank: Number(row.rank),
+          updatedAt: row.updated_at.toISOString(),
+          path: path.slice(0, -1), // Exclude current page from path
+        }
+      })
 
       this.logger.log(
         `Search for "${q}" returned ${results.length} results (${total} total)`,
@@ -107,29 +111,69 @@ export class SearchService {
     }
   }
 
-  private async buildBreadcrumbPath(pageId: string): Promise<string[]> {
-    // Recursively build path from current page to root
-    const path: string[] = []
-    let currentId: string | null = pageId
+  /**
+   * Build breadcrumb paths for multiple pages in a single batch query.
+   * Fetches all necessary pages iteratively and builds paths in memory.
+   */
+  private async buildBreadcrumbPathsBatch(
+    pageIds: string[],
+  ): Promise<Map<string, string[]>> {
+    if (pageIds.length === 0) {
+      return new Map()
+    }
 
-    // Limit recursion depth to prevent infinite loops
+    // Fetch initial pages and their parents
+    const pageMap = new Map<string, { title: string; parentId: string | null }>()
+    const idsToFetch = new Set(pageIds)
     const maxDepth = 10
     let depth = 0
 
-    while (currentId && depth < maxDepth) {
-      const page: { title: string; parentId: string | null } | null =
-        await this.prisma.knowledgePage.findUnique({
-          where: { id: currentId },
-          select: { title: true, parentId: true },
-        })
+    // Iteratively fetch pages until we have all ancestors or hit max depth
+    while (idsToFetch.size > 0 && depth < maxDepth) {
+      const ids = Array.from(idsToFetch)
+      idsToFetch.clear()
 
-      if (!page) break
+      const pages = await this.prisma.knowledgePage.findMany({
+        where: {
+          id: { in: ids },
+          deletedAt: null,
+        },
+        select: { id: true, title: true, parentId: true },
+      })
 
-      path.unshift(page.title)
-      currentId = page.parentId
+      for (const page of pages) {
+        if (!pageMap.has(page.id)) {
+          pageMap.set(page.id, { title: page.title, parentId: page.parentId })
+          // Queue parent for fetching if we haven't seen it yet
+          if (page.parentId && !pageMap.has(page.parentId)) {
+            idsToFetch.add(page.parentId)
+          }
+        }
+      }
+
       depth += 1
     }
 
-    return path
+    // Build breadcrumb paths from the fetched data
+    const result = new Map<string, string[]>()
+
+    for (const pageId of pageIds) {
+      const path: string[] = []
+      let currentId: string | null = pageId
+      let pathDepth = 0
+
+      while (currentId && pathDepth < maxDepth) {
+        const page = pageMap.get(currentId)
+        if (!page) break
+
+        path.unshift(page.title)
+        currentId = page.parentId
+        pathDepth += 1
+      }
+
+      result.set(pageId, path)
+    }
+
+    return result
   }
 }

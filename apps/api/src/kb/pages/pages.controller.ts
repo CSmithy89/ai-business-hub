@@ -71,7 +71,9 @@ export class PagesController {
     @CurrentUser() actor: any,
     @Query('limit') limit?: string,
   ) {
-    const limitNum = limit ? parseInt(limit, 10) : 10
+    const parsedLimit = limit ? parseInt(limit, 10) : 10
+    // Handle NaN or invalid values by defaulting to 10
+    const limitNum = Number.isNaN(parsedLimit) || parsedLimit <= 0 ? 10 : parsedLimit
     return this.pagesService.getRecentPages(workspaceId, workspaceId, actor.id, limitNum)
   }
 

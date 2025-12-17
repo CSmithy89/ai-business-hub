@@ -1,4 +1,11 @@
-import { Injectable, Logger, NotFoundException, forwardRef, Inject } from '@nestjs/common'
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  forwardRef,
+  Inject,
+  ConflictException,
+} from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { EventTypes } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
@@ -41,7 +48,12 @@ export class PagesService {
     private readonly versionsService: VersionsService,
   ) {}
 
+  /**
+   * Generate a unique slug within a transaction to prevent race conditions.
+   * @param tx - Prisma transaction client (or PrismaService for non-transactional use)
+   */
   private async generateUniqueSlug(
+    tx: Prisma.TransactionClient | PrismaService,
     tenantId: string,
     workspaceId: string,
     title: string,
@@ -50,7 +62,7 @@ export class PagesService {
     let candidate = base
 
     for (let attempt = 0; attempt < 100; attempt += 1) {
-      const existing = await this.prisma.knowledgePage.findUnique({
+      const existing = await tx.knowledgePage.findUnique({
         where: {
           tenantId_workspaceId_slug: { tenantId, workspaceId, slug: candidate },
         },
@@ -70,8 +82,6 @@ export class PagesService {
     actorId: string,
     dto: CreatePageDto,
   ) {
-    const slug = await this.generateUniqueSlug(tenantId, workspaceId, dto.title)
-
     const defaultContent = {
       type: 'doc',
       content: [],
@@ -80,58 +90,88 @@ export class PagesService {
     const content = dto.content || defaultContent
     const contentText = extractPlainText(content)
 
-    const page = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.knowledgePage.create({
-        data: {
-          tenantId,
-          workspaceId,
-          slug,
-          title: dto.title,
-          parentId: dto.parentId || null,
-          content,
-          contentText,
-          ownerId: actorId,
-        },
-      })
+    // Retry logic for race conditions on slug uniqueness
+    const maxRetries = 3
+    let lastError: unknown
 
-      // Create initial version
-      await tx.pageVersion.create({
-        data: {
-          pageId: created.id,
-          version: 1,
-          content,
-          contentText,
-          changeNote: 'Initial version',
-          createdById: actorId,
-        },
-      })
+    for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+      try {
+        const page = await this.prisma.$transaction(async (tx) => {
+          // Generate slug inside transaction for atomicity
+          const slug = await this.generateUniqueSlug(tx, tenantId, workspaceId, dto.title)
 
-      // Create activity log
-      await tx.pageActivity.create({
-        data: {
-          pageId: created.id,
-          userId: actorId,
-          type: 'CREATED',
-        },
-      })
+          const created = await tx.knowledgePage.create({
+            data: {
+              tenantId,
+              workspaceId,
+              slug,
+              title: dto.title,
+              parentId: dto.parentId || null,
+              content,
+              contentText,
+              ownerId: actorId,
+            },
+          })
 
-      return created
-    })
+          // Create initial version
+          await tx.pageVersion.create({
+            data: {
+              pageId: created.id,
+              version: 1,
+              content,
+              contentText,
+              changeNote: 'Initial version',
+              createdById: actorId,
+            },
+          })
 
-    await this.eventPublisher.publish(
-      EventTypes.KB_PAGE_CREATED,
-      {
-        pageId: page.id,
-        workspaceId: page.workspaceId,
-        title: page.title,
-        slug: page.slug,
-        ownerId: page.ownerId,
-        parentId: page.parentId,
-      },
-      { tenantId, userId: actorId, source: 'api' },
-    )
+          // Create activity log
+          await tx.pageActivity.create({
+            data: {
+              pageId: created.id,
+              userId: actorId,
+              type: 'CREATED',
+            },
+          })
 
-    return { data: page }
+          return created
+        })
+
+        // Success - publish event and return
+        await this.eventPublisher.publish(
+          EventTypes.KB_PAGE_CREATED,
+          {
+            pageId: page.id,
+            workspaceId: page.workspaceId,
+            title: page.title,
+            slug: page.slug,
+            ownerId: page.ownerId,
+            parentId: page.parentId,
+          },
+          { tenantId, userId: actorId, source: 'api' },
+        )
+
+        return { data: page }
+      } catch (error) {
+        lastError = error
+        // Check if it's a unique constraint violation on slug (Prisma error P2002)
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002' &&
+          (error.meta?.target as string[] | undefined)?.includes('slug')
+        ) {
+          this.logger.warn(
+            `Slug collision on attempt ${attempt + 1}, retrying...`,
+          )
+          continue // Retry
+        }
+        throw error // Rethrow non-slug errors
+      }
+    }
+
+    // All retries exhausted
+    this.logger.error('Failed to create page after max retries', lastError)
+    throw new ConflictException('Failed to generate unique slug, please try again')
   }
 
   async list(tenantId: string, workspaceId: string, query: ListPagesQueryDto) {
@@ -262,33 +302,38 @@ export class PagesService {
     })
     if (!existing) throw new NotFoundException('Page not found')
 
-    const data: Prisma.KnowledgePageUpdateInput = {}
     let contentChanged = false
 
-    // Update title and regenerate slug if title changed
-    if (dto.title && dto.title !== existing.title) {
-      data.title = dto.title
-      data.slug = await this.generateUniqueSlug(tenantId, workspaceId, dto.title)
-    }
-
-    // Update content and extract plain text
+    // Check if content changed
     if (dto.content) {
-      data.content = dto.content
-      data.contentText = extractPlainText(dto.content)
-      // Check if content actually changed
       contentChanged = JSON.stringify(existing.content) !== JSON.stringify(dto.content)
     }
 
-    // Update parent (use parent relation instead of parentId field)
-    if (dto.parentId !== undefined) {
-      if (dto.parentId === null) {
-        data.parent = { disconnect: true }
-      } else {
-        data.parent = { connect: { id: dto.parentId } }
-      }
-    }
-
     const page = await this.prisma.$transaction(async (tx) => {
+      const data: Prisma.KnowledgePageUpdateInput = {}
+
+      // Update title and regenerate slug if title changed
+      if (dto.title && dto.title !== existing.title) {
+        data.title = dto.title
+        // Generate slug inside transaction for atomicity
+        data.slug = await this.generateUniqueSlug(tx, tenantId, workspaceId, dto.title)
+      }
+
+      // Update content and extract plain text
+      if (dto.content) {
+        data.content = dto.content
+        data.contentText = extractPlainText(dto.content)
+      }
+
+      // Update parent (use parent relation instead of parentId field)
+      if (dto.parentId !== undefined) {
+        if (dto.parentId === null) {
+          data.parent = { disconnect: true }
+        } else {
+          data.parent = { connect: { id: dto.parentId } }
+        }
+      }
+
       const updated = await tx.knowledgePage.update({
         where: { id },
         data,

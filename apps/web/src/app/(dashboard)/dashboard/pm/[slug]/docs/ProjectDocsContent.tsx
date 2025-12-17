@@ -19,8 +19,12 @@ import { LinkDocModal } from './LinkDocModal'
 import { cn } from '@/lib/utils'
 
 function formatRelativeTime(date: string): string {
-  const now = new Date()
   const d = new Date(date)
+  // Guard against invalid date input to avoid runtime errors
+  if (Number.isNaN(d.getTime())) {
+    return ''
+  }
+  const now = new Date()
   const diffMs = now.getTime() - d.getTime()
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 

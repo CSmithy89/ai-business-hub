@@ -13,7 +13,12 @@ import Link from 'next/link'
 export default function NewKBPagePage() {
   const router = useRouter()
   const { data: session } = useSession()
-  const workspaceId = (session as any)?.workspaceId || ''
+  // Check both possible session paths for workspaceId
+  const sessionData = session as any
+  const workspaceId =
+    sessionData?.workspaceId ||
+    sessionData?.session?.activeWorkspaceId ||
+    ''
   const createPage = useCreateKBPage(workspaceId)
   const [title, setTitle] = useState('')
 
@@ -63,7 +68,7 @@ export default function NewKBPagePage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && title.trim()) {
+                if (e.key === 'Enter' && title.trim() && !createPage.isPending) {
                   handleCreate()
                 }
               }}

@@ -28,7 +28,12 @@ interface KBLayoutProps {
 export default function KBLayout({ children }: KBLayoutProps) {
   const router = useRouter()
   const { data: session } = useSession()
-  const workspaceId = (session as any)?.workspaceId || ''
+  // Check both possible session paths for workspaceId
+  const sessionData = session as any
+  const workspaceId =
+    sessionData?.workspaceId ||
+    sessionData?.session?.activeWorkspaceId ||
+    ''
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [deletePageId, setDeletePageId] = useState<string | null>(null)
 

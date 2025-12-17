@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../common/services/prisma.service'
 
 function extractPlainText(content: any): string {
@@ -17,8 +17,6 @@ function extractPlainText(content: any): string {
 
 @Injectable()
 export class VersionsService {
-  private readonly logger = new Logger(VersionsService.name)
-
   constructor(private readonly prisma: PrismaService) {}
 
   /**

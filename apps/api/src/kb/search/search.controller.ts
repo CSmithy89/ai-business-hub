@@ -15,10 +15,11 @@ export class SearchController {
 
   @Get()
   async search(
-    @CurrentUser('tenantId') tenantId: string,
-    @CurrentWorkspace('id') workspaceId: string,
+    @CurrentUser() user: { tenantId: string },
+    @CurrentWorkspace() workspaceId: string,
     @Query() query: SearchQueryDto,
   ) {
+    const tenantId = user.tenantId
     this.logger.log(`Search request: "${query.q}" (workspace: ${workspaceId})`)
 
     const { results, total } = await this.searchService.search(

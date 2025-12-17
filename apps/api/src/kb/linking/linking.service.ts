@@ -47,29 +47,32 @@ export class LinkingService {
       throw new ConflictException('Page is already linked to this project')
     }
 
-    // If setting as primary, unset any existing primary for this project
-    if (dto.isPrimary) {
-      await this.prisma.projectPage.updateMany({
-        where: { projectId: dto.projectId, isPrimary: true },
-        data: { isPrimary: false },
-      })
-    }
+    // Wrap in transaction to prevent race condition with primary flag
+    const link = await this.prisma.$transaction(async (tx) => {
+      // If setting as primary, unset any existing primary for this project
+      if (dto.isPrimary) {
+        await tx.projectPage.updateMany({
+          where: { projectId: dto.projectId, isPrimary: true },
+          data: { isPrimary: false },
+        })
+      }
 
-    const link = await this.prisma.projectPage.create({
-      data: {
-        projectId: dto.projectId,
-        pageId,
-        isPrimary: dto.isPrimary ?? false,
-        linkedBy: actorId,
-      },
-      include: {
-        project: {
-          select: { id: true, name: true, slug: true },
+      return tx.projectPage.create({
+        data: {
+          projectId: dto.projectId,
+          pageId,
+          isPrimary: dto.isPrimary ?? false,
+          linkedBy: actorId,
         },
-        page: {
-          select: { id: true, title: true, slug: true },
+        include: {
+          project: {
+            select: { id: true, name: true, slug: true },
+          },
+          page: {
+            select: { id: true, title: true, slug: true },
+          },
         },
-      },
+      })
     })
 
     await this.eventPublisher.publish(
@@ -94,9 +97,9 @@ export class LinkingService {
     projectId: string,
     actorId: string,
   ) {
-    // Verify page exists
+    // Verify page exists (exclude soft-deleted)
     const page = await this.prisma.knowledgePage.findFirst({
-      where: { id: pageId, tenantId, workspaceId },
+      where: { id: pageId, tenantId, workspaceId, deletedAt: null },
       select: { id: true },
     })
     if (!page) throw new NotFoundException('Page not found')
@@ -140,9 +143,9 @@ export class LinkingService {
     actorId: string,
     dto: UpdateLinkDto,
   ) {
-    // Verify page exists
+    // Verify page exists (exclude soft-deleted)
     const page = await this.prisma.knowledgePage.findFirst({
-      where: { id: pageId, tenantId, workspaceId },
+      where: { id: pageId, tenantId, workspaceId, deletedAt: null },
       select: { id: true },
     })
     if (!page) throw new NotFoundException('Page not found')
@@ -160,27 +163,30 @@ export class LinkingService {
       throw new NotFoundException('Page is not linked to this project')
     }
 
-    // If setting as primary, unset any existing primary for this project
-    if (dto.isPrimary) {
-      await this.prisma.projectPage.updateMany({
-        where: { projectId, isPrimary: true, NOT: { id: link.id } },
-        data: { isPrimary: false },
-      })
-    }
+    // Wrap in transaction to prevent race condition with primary flag
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // If setting as primary, unset any existing primary for this project
+      if (dto.isPrimary) {
+        await tx.projectPage.updateMany({
+          where: { projectId, isPrimary: true, NOT: { id: link.id } },
+          data: { isPrimary: false },
+        })
+      }
 
-    const updated = await this.prisma.projectPage.update({
-      where: { id: link.id },
-      data: {
-        isPrimary: dto.isPrimary ?? link.isPrimary,
-      },
-      include: {
-        project: {
-          select: { id: true, name: true, slug: true },
+      return tx.projectPage.update({
+        where: { id: link.id },
+        data: {
+          isPrimary: dto.isPrimary ?? link.isPrimary,
         },
-        page: {
-          select: { id: true, title: true, slug: true },
+        include: {
+          project: {
+            select: { id: true, name: true, slug: true },
+          },
+          page: {
+            select: { id: true, title: true, slug: true },
+          },
         },
-      },
+      })
     })
 
     return { data: updated }
@@ -191,9 +197,9 @@ export class LinkingService {
     workspaceId: string,
     pageId: string,
   ) {
-    // Verify page exists
+    // Verify page exists (exclude soft-deleted)
     const page = await this.prisma.knowledgePage.findFirst({
-      where: { id: pageId, tenantId, workspaceId },
+      where: { id: pageId, tenantId, workspaceId, deletedAt: null },
       select: { id: true },
     })
     if (!page) throw new NotFoundException('Page not found')
