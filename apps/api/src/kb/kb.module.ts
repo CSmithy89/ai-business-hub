@@ -11,14 +11,17 @@ import { LinkingController } from './linking/linking.controller'
 import { LinkingService } from './linking/linking.service'
 import { KbCollabModule } from './collab/kb-collab.module'
 import { EmbeddingsModule } from './embeddings/embeddings.module'
+import { RagController } from './rag/rag.controller'
+import { RagService } from './rag/rag.service'
 
 @Module({
   imports: [CommonModule, EventsModule, KbCollabModule, EmbeddingsModule],
-  controllers: [PagesController, VersionsController, SearchController, LinkingController],
+  controllers: [PagesController, VersionsController, SearchController, LinkingController, RagController],
   providers: [
     PagesService,
     VersionsService,
     SearchService,
+    RagService,
     LinkingService,
     {
       provide: 'VersionsService',
