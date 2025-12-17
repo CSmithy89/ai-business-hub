@@ -152,7 +152,8 @@ development_status:
   kb-01: contexted
   kb-01-1-knowledge-page-model-api: done
   kb-01-2-page-editor-tiptap: done
-  kb-01-3-page-hierarchy-tree: backlog
+  kb-01-3-rich-text-editor: done
+  kb-01-4-page-hierarchy-tree: backlog
   kb-01-4-page-versioning: backlog
   kb-01-5-kb-sidebar-navigation: backlog
   kb-01-6-breadcrumb-navigation: backlog
