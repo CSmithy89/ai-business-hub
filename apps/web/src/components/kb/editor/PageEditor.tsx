@@ -29,6 +29,8 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
   const [saveTimeoutId, setSaveTimeoutId] = useState<NodeJS.Timeout | null>(null)
   const [collabStatus, setCollabStatus] = useState<WebSocketStatus>(WebSocketStatus.Disconnected)
   const [provider, setProvider] = useState<HocuspocusProvider | null>(null)
+  const [isSynced, setIsSynced] = useState(false)
+  const [unsyncedChanges, setUnsyncedChanges] = useState(0)
 
   const collaborationEnabled = !!pageId && !!collaboration?.token
   const collabDoc = useMemo(() => new Y.Doc(), [pageId])
@@ -43,6 +45,8 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
     if (!collaborationEnabled || !pageId) {
       setCollabStatus(WebSocketStatus.Disconnected)
       setProvider(null)
+      setIsSynced(false)
+      setUnsyncedChanges(0)
       return
     }
 
@@ -55,6 +59,8 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
       token,
       document: collabDoc,
       onStatus: ({ status }) => setCollabStatus(status),
+      onSynced: ({ state }) => setIsSynced(state),
+      onUnsyncedChanges: ({ number }) => setUnsyncedChanges(number),
     })
 
     setProvider(newProvider)
@@ -62,6 +68,8 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
     return () => {
       newProvider.destroy()
       setProvider(null)
+      setIsSynced(false)
+      setUnsyncedChanges(0)
     }
   }, [collaborationEnabled, pageId, collaboration?.token, collabDoc])
 
@@ -224,7 +232,11 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
               />
               <span>
                 {collabStatus === WebSocketStatus.Connected
-                  ? 'Live'
+                  ? isSynced
+                    ? unsyncedChanges > 0
+                      ? `Syncing (${unsyncedChanges})`
+                      : 'Live'
+                    : 'Syncing...'
                   : collabStatus === WebSocketStatus.Connecting
                     ? 'Connecting...'
                     : 'Offline'}
