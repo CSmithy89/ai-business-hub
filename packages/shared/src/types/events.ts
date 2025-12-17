@@ -124,6 +124,17 @@ export const EventTypes = {
   PM_TEAM_MEMBER_ADDED: 'pm.team.member_added',
   PM_TEAM_MEMBER_UPDATED: 'pm.team.member_updated',
   PM_TEAM_MEMBER_REMOVED: 'pm.team.member_removed',
+
+  // KB events (bm-pm Knowledge Base)
+  KB_PAGE_CREATED: 'kb.page.created',
+  KB_PAGE_UPDATED: 'kb.page.updated',
+  KB_PAGE_DELETED: 'kb.page.deleted',
+  KB_PAGE_RESTORED: 'kb.page.restored',
+  KB_PAGE_MOVED: 'kb.page.moved',
+  KB_PAGE_LINKED_TO_PROJECT: 'kb.page.linked_to_project',
+  KB_PAGE_UNLINKED_FROM_PROJECT: 'kb.page.unlinked_from_project',
+  KB_PAGE_FAVORITED: 'kb.page.favorited',
+  KB_PAGE_UNFAVORITED: 'kb.page.unfavorited',
 } as const;
 
 /**
@@ -238,6 +249,94 @@ export interface TokenLimitExceededPayload {
 }
 
 /**
+ * PM event payloads
+ */
+export interface PMProjectPayload {
+  projectId: string;
+  name: string;
+  slug: string;
+}
+
+export interface PMPhasePayload {
+  phaseId: string;
+  projectId: string;
+  name: string;
+  type: string;
+}
+
+export interface PMTeamMemberPayload {
+  projectId: string;
+  userId: string;
+  role: string;
+}
+
+/**
+ * KB event payloads
+ */
+export interface KBPageCreatedPayload {
+  pageId: string;
+  workspaceId: string;
+  title: string;
+  slug: string;
+  ownerId: string;
+  parentId: string | null;
+}
+
+export interface KBPageUpdatedPayload {
+  pageId: string;
+  workspaceId: string;
+  title: string;
+  slug: string;
+}
+
+export interface KBPageDeletedPayload {
+  pageId: string;
+  workspaceId: string;
+  title: string;
+  slug: string;
+}
+
+export interface KBPageRestoredPayload {
+  pageId: string;
+  workspaceId: string;
+  title: string;
+  slug: string;
+}
+
+export interface KBPageMovedPayload {
+  pageId: string;
+  workspaceId: string;
+  oldParentId: string | null;
+  newParentId: string | null;
+}
+
+export interface KBPageLinkedPayload {
+  pageId: string;
+  projectId: string;
+  workspaceId: string;
+  isPrimary: boolean;
+  linkedBy: string;
+}
+
+export interface KBPageUnlinkedPayload {
+  pageId: string;
+  projectId: string;
+  workspaceId: string;
+}
+
+export interface KBPageFavoritedPayload {
+  pageId: string;
+  workspaceId: string;
+  userId: string;
+}
+
+export interface KBPageUnfavoritedPayload {
+  pageId: string;
+  workspaceId: string;
+  userId: string;
+}
+
+/**
  * Event payload type mapping for type-safe event creation
  * Maps event types to their corresponding payload types
  */
@@ -258,6 +357,28 @@ export type EventPayloadMap = {
   [EventTypes.AGENT_CONFIRMATION_REQUESTED]: AgentConfirmationPayload;
   [EventTypes.AGENT_CONFIRMATION_GRANTED]: AgentConfirmationPayload;
   [EventTypes.AGENT_CONFIRMATION_DENIED]: AgentConfirmationPayload;
+
+  // PM events
+  [EventTypes.PM_PROJECT_CREATED]: PMProjectPayload;
+  [EventTypes.PM_PROJECT_UPDATED]: PMProjectPayload;
+  [EventTypes.PM_PROJECT_DELETED]: PMProjectPayload;
+  [EventTypes.PM_PHASE_CREATED]: PMPhasePayload;
+  [EventTypes.PM_PHASE_UPDATED]: PMPhasePayload;
+  [EventTypes.PM_PHASE_TRANSITIONED]: PMPhasePayload;
+  [EventTypes.PM_TEAM_MEMBER_ADDED]: PMTeamMemberPayload;
+  [EventTypes.PM_TEAM_MEMBER_UPDATED]: PMTeamMemberPayload;
+  [EventTypes.PM_TEAM_MEMBER_REMOVED]: PMTeamMemberPayload;
+
+  // KB events
+  [EventTypes.KB_PAGE_CREATED]: KBPageCreatedPayload;
+  [EventTypes.KB_PAGE_UPDATED]: KBPageUpdatedPayload;
+  [EventTypes.KB_PAGE_DELETED]: KBPageDeletedPayload;
+  [EventTypes.KB_PAGE_RESTORED]: KBPageRestoredPayload;
+  [EventTypes.KB_PAGE_MOVED]: KBPageMovedPayload;
+  [EventTypes.KB_PAGE_LINKED_TO_PROJECT]: KBPageLinkedPayload;
+  [EventTypes.KB_PAGE_UNLINKED_FROM_PROJECT]: KBPageUnlinkedPayload;
+  [EventTypes.KB_PAGE_FAVORITED]: KBPageFavoritedPayload;
+  [EventTypes.KB_PAGE_UNFAVORITED]: KBPageUnfavoritedPayload;
 
   // Generic fallback for events without specific payloads
   [EventTypes.AUTH_USER_CREATED]: Record<string, unknown>;

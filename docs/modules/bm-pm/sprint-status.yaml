@@ -150,7 +150,7 @@ development_status:
   # FRs: KB-F1, KB-F2, KB-F3
   # ===========================================
   kb-01: contexted
-  kb-01-1-knowledge-page-model-api: backlog
+  kb-01-1-knowledge-page-model-api: done
   kb-01-2-page-editor-tiptap: backlog
   kb-01-3-page-hierarchy-tree: backlog
   kb-01-4-page-versioning: backlog
