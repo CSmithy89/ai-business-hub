@@ -1,35 +1,110 @@
 'use client'
 
 import { useEditor, EditorContent } from '@tiptap/react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createExtensions } from './extensions'
 import { EditorToolbar } from './EditorToolbar'
+import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
+import * as Y from 'yjs'
+import { isChangeOrigin } from '@tiptap/extension-collaboration'
+import { KB_COLLAB_WS_URL } from '@/lib/api-config'
 
 interface PageEditorProps {
   pageId?: string
   initialContent?: any
   onSave: (content: any) => Promise<void>
   placeholder?: string
+  collaboration?: {
+    token: string
+    user?: {
+      name: string
+      color: string
+    }
+  }
 }
 
-export function PageEditor({ initialContent, onSave, placeholder }: PageEditorProps) {
+export function PageEditor({ pageId, initialContent, onSave, placeholder, collaboration }: PageEditorProps) {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [saveTimeoutId, setSaveTimeoutId] = useState<NodeJS.Timeout | null>(null)
+  const [collabStatus, setCollabStatus] = useState<WebSocketStatus>(WebSocketStatus.Disconnected)
+  const [provider, setProvider] = useState<HocuspocusProvider | null>(null)
+
+  const collaborationEnabled = !!pageId && !!collaboration?.token
+  const collabDoc = useMemo(() => new Y.Doc(), [pageId])
+
+  useEffect(() => {
+    return () => {
+      collabDoc.destroy()
+    }
+  }, [collabDoc])
+
+  useEffect(() => {
+    if (!collaborationEnabled || !pageId) {
+      setCollabStatus(WebSocketStatus.Disconnected)
+      setProvider(null)
+      return
+    }
+
+    const token = collaboration?.token
+    if (!token) return
+
+    const newProvider = new HocuspocusProvider({
+      url: KB_COLLAB_WS_URL,
+      name: `kb:page:${pageId}`,
+      token,
+      document: collabDoc,
+      onStatus: ({ status }) => setCollabStatus(status),
+    })
+
+    setProvider(newProvider)
+
+    return () => {
+      newProvider.destroy()
+      setProvider(null)
+    }
+  }, [collaborationEnabled, pageId, collaboration?.token, collabDoc])
 
   const editor = useEditor({
-    extensions: createExtensions(placeholder || 'Start writing...'),
-    content: initialContent,
+    extensions: createExtensions(
+      placeholder || 'Start writing...',
+      collaborationEnabled
+        ? {
+            collaboration: { document: collabDoc },
+            ...(provider && collaboration?.user
+              ? { cursor: { provider, user: collaboration.user } }
+              : {}),
+          }
+        : undefined,
+    ),
+    content: collaborationEnabled ? undefined : initialContent,
     editorProps: {
       attributes: {
         class: 'prose prose-slate dark:prose-invert max-w-none focus:outline-none min-h-[400px]',
       },
     },
-    onUpdate: () => {
+    onUpdate: ({ transaction }) => {
+      // Avoid treating remote Yjs transactions as local "unsaved changes"
+      if (collaborationEnabled && isChangeOrigin(transaction)) {
+        return
+      }
+
       setHasUnsavedChanges(true)
       setSaveStatus('unsaved')
     },
-  })
+  }, [collaborationEnabled, pageId, provider])
+
+  // Seed Yjs-backed docs with initial JSON if the shared document is empty.
+  useEffect(() => {
+    if (!collaborationEnabled || !editor) return
+    if (!initialContent) return
+
+    const isEmpty = editor.getText().trim().length === 0
+    if (!isEmpty) return
+
+    editor.commands.setContent(initialContent)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collaborationEnabled, editor, pageId])
 
   // Debounced auto-save (2 seconds after typing stops)
   const debouncedSave = useCallback(async () => {
@@ -135,7 +210,28 @@ export function PageEditor({ initialContent, onSave, placeholder }: PageEditorPr
       </div>
 
       <div className="flex items-center justify-end border-t bg-muted/30 px-4 py-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          {collaborationEnabled && (
+            <div className="flex items-center gap-2">
+              <div
+                className={
+                  collabStatus === WebSocketStatus.Connected
+                    ? 'h-2 w-2 rounded-full bg-green-500'
+                    : collabStatus === WebSocketStatus.Connecting
+                      ? 'h-2 w-2 animate-pulse rounded-full bg-blue-500'
+                      : 'h-2 w-2 rounded-full bg-muted-foreground'
+                }
+              />
+              <span>
+                {collabStatus === WebSocketStatus.Connected
+                  ? 'Live'
+                  : collabStatus === WebSocketStatus.Connecting
+                    ? 'Connecting...'
+                    : 'Offline'}
+              </span>
+            </div>
+          )}
+
           {saveStatus === 'saving' && (
             <>
               <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />

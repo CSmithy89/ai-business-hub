@@ -174,7 +174,7 @@ development_status:
   # ===========================================
   kb-02: contexted
   kb-02-1-yjs-collaboration-setup: done
-  kb-02-2-presence-cursors: backlog
+  kb-02-2-presence-cursors: done
   kb-02-3-conflict-resolution: backlog
   kb-02-4-offline-support: backlog
   kb-02-5-embedding-pipeline: backlog

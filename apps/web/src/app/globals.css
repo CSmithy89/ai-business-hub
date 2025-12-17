@@ -1138,3 +1138,30 @@
 .dark .prose blockquote {
   border-left-color: rgb(var(--color-primary-500));
 }
+
+/* KB collaboration cursors (Yjs) */
+.collaboration-cursor__caret {
+  position: relative;
+  border-left: 2px solid;
+  margin-left: -1px;
+  margin-right: -1px;
+  pointer-events: none;
+}
+
+.collaboration-cursor__label {
+  position: absolute;
+  top: -1.6em;
+  left: -1px;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: white;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.collaboration-cursor__selection {
+  border-radius: 0.15rem;
+  pointer-events: none;
+}

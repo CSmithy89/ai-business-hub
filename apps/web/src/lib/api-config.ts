@@ -19,6 +19,29 @@
 export const NESTJS_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 /**
+ * KB collaboration WebSocket URL (Hocuspocus/Yjs)
+ *
+ * Environment Variables:
+ * - NEXT_PUBLIC_KB_COLLAB_WS_URL: Full ws(s):// URL (recommended for prod)
+ * - NEXT_PUBLIC_KB_COLLAB_PORT: Port override when deriving from NEXT_PUBLIC_API_URL (default: 3002)
+ */
+export const KB_COLLAB_WS_URL = (() => {
+  const explicit = process.env.NEXT_PUBLIC_KB_COLLAB_WS_URL
+  if (explicit && explicit.trim().length > 0) {
+    return explicit.replace(/\/$/, '')
+  }
+
+  try {
+    const apiUrl = new URL(NESTJS_API_URL)
+    apiUrl.protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:'
+    apiUrl.port = process.env.NEXT_PUBLIC_KB_COLLAB_PORT || '3002'
+    return apiUrl.toString().replace(/\/$/, '')
+  } catch {
+    return 'ws://localhost:3002'
+  }
+})()
+
+/**
  * Next.js API Routes base URL
  * Used for: Metrics, session management, BFF patterns
  * Note: Empty string means same-origin requests
