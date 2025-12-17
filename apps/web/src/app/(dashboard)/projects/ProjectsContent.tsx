@@ -5,8 +5,8 @@ import Link from 'next/link';
 /**
  * Projects Module Content (Client Component)
  *
- * Coming soon page for the Projects module.
- * This module will be implemented in a future epic.
+ * Back-compat entry point for the Projects module.
+ * The Projects UI now lives under /dashboard/pm.
  */
 export function ProjectsContent() {
   return (
@@ -30,54 +30,21 @@ export function ProjectsContent() {
 
       {/* Title */}
       <h1 className="text-3xl font-bold text-gray-900 mb-4">
-        Projects Module Coming Soon
+        Projects Module
       </h1>
 
       {/* Description */}
       <p className="text-gray-600 max-w-md mb-8">
-        The AI-powered Project Management module is currently in development. It
-        will help you plan, track, and manage projects with intelligent
-        automation and insights.
+        Project Management is now available in your dashboard.
       </p>
-
-      {/* Features Preview */}
-      <div className="grid md:grid-cols-3 gap-4 max-w-2xl mb-8">
-        <FeaturePreview
-          title="Task Management"
-          description="Organize tasks with AI-suggested priorities"
-        />
-        <FeaturePreview
-          title="Timeline Planning"
-          description="Smart scheduling and deadline management"
-        />
-        <FeaturePreview
-          title="Team Collaboration"
-          description="Coordinate work with AI-assisted communication"
-        />
-      </div>
 
       {/* CTA */}
       <Link
-        href="/dashboard"
+        href={{ pathname: '/dashboard/pm' }}
         className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
       >
-        Return to Dashboard
+        Open Projects
       </Link>
-    </div>
-  );
-}
-
-function FeaturePreview({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="p-4 bg-gray-50 rounded-lg">
-      <h3 className="font-medium text-gray-900 mb-1">{title}</h3>
-      <p className="text-sm text-gray-600">{description}</p>
     </div>
   );
 }

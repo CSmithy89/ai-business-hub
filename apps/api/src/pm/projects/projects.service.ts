@@ -77,6 +77,14 @@ export class ProjectsService {
       ...(query.status ? { status: query.status } : {}),
       ...(query.type ? { type: query.type } : {}),
       ...(query.businessId ? { businessId: query.businessId } : {}),
+      ...(query.search
+        ? {
+            OR: [
+              { name: { contains: query.search, mode: 'insensitive' } },
+              { slug: { contains: query.search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
     }
 
     const [total, projects] = await this.prisma.$transaction([

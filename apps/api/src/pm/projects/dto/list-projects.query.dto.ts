@@ -16,6 +16,10 @@ export class ListProjectsQueryDto {
   businessId?: string
 
   @IsOptional()
+  @IsString()
+  search?: string
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
@@ -27,4 +31,3 @@ export class ListProjectsQueryDto {
   @Min(1)
   limit?: number = 20
 }
-

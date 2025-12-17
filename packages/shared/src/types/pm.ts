@@ -49,6 +49,7 @@ export const ListProjectsQuerySchema = z.object({
   status: ProjectStatusSchema.optional(),
   type: ProjectTypeSchema.optional(),
   businessId: z.string().optional(),
+  search: z.string().optional(),
   page: z.number().int().min(1).optional(),
   limit: z.number().int().min(1).max(100).optional(),
 })
@@ -56,4 +57,3 @@ export const ListProjectsQuerySchema = z.object({
 export type CreateProjectInput = z.infer<typeof CreateProjectSchema>
 export type UpdateProjectInput = z.infer<typeof UpdateProjectSchema>
 export type ListProjectsQuery = z.infer<typeof ListProjectsQuerySchema>
-

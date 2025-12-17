@@ -1,0 +1,75 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-01</epicId>
+    <storyId>pm-01-3</storyId>
+    <title>Project List Page</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-01-3-project-list-page.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>workspace user</asA>
+    <iWant>to view my projects in a filterable list</iWant>
+    <soThat>I can quickly navigate to a project</soThat>
+    <tasks>
+      - Add a React Query hook to list projects from Nest
+      - Implement /dashboard/pm list UI with filters + empty state
+      - Link each project card to /dashboard/pm/[slug]
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    - Route /dashboard/pm shows cards (icon, name, type, progress).
+    - Filter bar for status, type, search.
+    - New Project button visible.
+    - Card click navigates to /dashboard/pm/[slug].
+    - Empty state CTA when no projects.
+    - Responsive grid 3/2/1 columns.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      - docs/modules/bm-pm/epics/epic-pm-01-project-phase-management.md (Story PM-01.3)
+      - docs/modules/bm-pm/ux/ (wireframes referenced by epic, optional)
+    </docs>
+    <code>
+      - apps/web/src/components/shell/SidebarNav.tsx (Projects nav item)
+      - apps/web/src/app/(dashboard)/dashboard (existing dashboard route group)
+      - apps/web/src/hooks/use-ai-providers.ts (token + base url pattern)
+      - apps/api/src/pm/projects/projects.controller.ts (GET /pm/projects)
+    </code>
+    <dependencies>
+      - @tanstack/react-query (data fetching)
+      - better-auth (session token)
+      - Tailwind CSS (responsive grid and components)
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Use Authorization bearer token for Nest AuthGuard.
+    - Use workspace context (activeWorkspaceId) for TenantGuard.
+    - Keep Tailwind class strings explicit (no dynamic fragments).
+  </constraints>
+
+  <interfaces>
+    - Web: /dashboard/pm
+    - API: GET /pm/projects (filters: status, type, businessId; pagination)
+  </interfaces>
+
+  <tests>
+    <standards>
+      - Prefer component-level tests only if the repo already has patterns.
+      - Keep any tests deterministic; avoid live backend calls.
+    </standards>
+    <locations>
+      - apps/web/src/__tests__/ (if adding UI tests)
+    </locations>
+    <ideas>
+      - Verify empty state renders when API returns empty list.
+      - Verify filters update query key and refetch.
+    </ideas>
+  </tests>
+</story-context>
+
