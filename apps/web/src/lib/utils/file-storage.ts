@@ -17,6 +17,8 @@ import { join, extname, basename } from 'path'
 
 const UPLOAD_DIR = join(process.cwd(), 'public', 'uploads', 'business-documents')
 
+let lastGeneratedTimestamp = 0
+
 /**
  * Allowed file extensions for upload
  * Security: Only these extensions are permitted
@@ -57,7 +59,9 @@ function validateExtension(filename: string): string {
  * @throws Error if extension is not allowed
  */
 function generateFilename(businessId: string, originalName: string): string {
-  const timestamp = Date.now()
+  const now = Date.now()
+  lastGeneratedTimestamp = Math.max(now, lastGeneratedTimestamp + 1)
+  const timestamp = lastGeneratedTimestamp
 
   // Validate and extract extension first (throws if invalid)
   const ext = validateExtension(originalName)
