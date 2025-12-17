@@ -295,3 +295,70 @@ export function useMoveKBPage(workspaceId: string) {
     },
   })
 }
+
+// ============================================
+// Search
+// ============================================
+
+export interface KBSearchResult {
+  pageId: string
+  title: string
+  slug: string
+  snippet: string
+  rank: number
+  updatedAt: string
+  path: string[]
+}
+
+export interface KBSearchResponse {
+  query: string
+  results: KBSearchResult[]
+  total: number
+  limit: number
+  offset: number
+}
+
+async function searchKBPages(params: {
+  query: string
+  workspaceId: string
+  token?: string
+  limit?: number
+  offset?: number
+}): Promise<KBSearchResponse> {
+  const { query, workspaceId, token, limit = 20, offset = 0 } = params
+
+  const url = new URL(`${getBaseUrl()}/api/kb/search`)
+  url.searchParams.set('q', query)
+  url.searchParams.set('limit', String(limit))
+  url.searchParams.set('offset', String(offset))
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Search failed: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as KBSearchResponse
+}
+
+export function useKBSearch(workspaceId: string, query: string, enabled = true) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+
+  return useQuery({
+    queryKey: ['kb', 'search', workspaceId, query],
+    queryFn: () => searchKBPages({ query, workspaceId, token }),
+    enabled: !!workspaceId && !!token && !!query && enabled,
+    staleTime: 30000, // Cache results for 30 seconds
+  })
+}

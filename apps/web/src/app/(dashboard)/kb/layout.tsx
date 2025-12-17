@@ -5,6 +5,7 @@ import { useSession } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
 import { useKBPages, useDeleteKBPage, useUpdateKBPage } from '@/hooks/use-kb-pages'
 import { PageTree } from '@/components/kb/sidebar/PageTree'
+import { KBSearchInput } from '@/components/kb/KBSearchInput'
 import { Button } from '@/components/ui/button'
 import { PanelLeftClose, PanelLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -119,13 +120,13 @@ export default function KBLayout({ children }: KBLayoutProps) {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Toggle Sidebar Button */}
-        <div className="border-b px-4 py-2">
+        {/* Header with Toggle and Search */}
+        <div className="border-b px-4 py-2 flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="h-8 w-8"
+            className="h-8 w-8 flex-shrink-0"
           >
             {sidebarCollapsed ? (
               <PanelLeft className="h-4 w-4" />
@@ -133,6 +134,10 @@ export default function KBLayout({ children }: KBLayoutProps) {
               <PanelLeftClose className="h-4 w-4" />
             )}
           </Button>
+
+          <div className="flex-1 max-w-md">
+            <KBSearchInput />
+          </div>
         </div>
 
         {/* Page Content */}
