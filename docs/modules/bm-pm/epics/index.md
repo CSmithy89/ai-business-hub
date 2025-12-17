@@ -1,0 +1,25 @@
+# Core-PM (bm-pm) - Epic Breakdown
+
+## Table of Contents
+
+- [Core-PM (bm-pm) - Epic Breakdown](#table-of-contents)
+  - [Overview](#overview)
+  - [Functional Requirements Inventory](#functional-requirements-inventory)
+  - [FR Coverage Map](#fr-coverage-map)
+  - [Epic PM-01: Project & Phase Management](#epic-pm-01-project-phase-management)
+  - [Epic PM-02: Task Management System](#epic-pm-02-task-management-system)
+  - [Epic PM-03: Views & Navigation](#epic-pm-03-views-navigation)
+  - [Epic PM-04: AI Team - Navi, Sage, Chrono](#epic-pm-04-ai-team-navi-sage-chrono)
+  - [Epic PM-05: AI Team - Scope, Pulse, Herald](#epic-pm-05-ai-team-scope-pulse-herald)
+  - [Epic PM-06: Real-Time & Notifications](#epic-pm-06-real-time-notifications)
+  - [Epic KB-01: Knowledge Base Foundation](#epic-kb-01-knowledge-base-foundation)
+  - [Epic KB-02: KB Real-Time & RAG](#epic-kb-02-kb-real-time-rag)
+  - [Epic KB-03: KB Verification & Scribe Agent](#epic-kb-03-kb-verification-scribe-agent)
+  - [Epic PM-07: Integrations & Bridge Agent](#epic-pm-07-integrations-bridge-agent)
+  - [Epic PM-08: Prism Agent & Predictive Analytics](#epic-pm-08-prism-agent-predictive-analytics)
+  - [Epic PM-09: Advanced Views](#epic-pm-09-advanced-views)
+  - [Epic KB-04: AI-Native Knowledge Base](#epic-kb-04-ai-native-knowledge-base)
+  - [Epic PM-10: Workflow Builder](#epic-pm-10-workflow-builder)
+  - [Epic PM-11: External API & Governance](#epic-pm-11-external-api-governance)
+  - [FR Coverage Matrix (Validated)](#fr-coverage-matrix-validated)
+  - [Epic Dependencies](#epic-dependencies)

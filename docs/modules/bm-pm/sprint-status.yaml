@@ -8,11 +8,11 @@
 # STATUS DEFINITIONS:
 # ==================
 # Epic Status:
-#   - backlog: Epic exists in epics.md but not contexted
+#   - backlog: Epic exists in epics/ folder but not contexted
 #   - contexted: Epic tech context created by *epic-tech-context (required before stories)
 #
 # Story Status:
-#   - backlog: Story only exists in epics.md
+#   - backlog: Story only exists in epics/ folder
 #   - drafted: Story file created in stories folder by *create-story
 #   - ready-for-dev: Draft approved and story context created by *story-ready
 #   - in-progress: Developer actively working on implementation by *dev-story
@@ -32,7 +32,7 @@
 # - Architecture: docs/modules/bm-pm/architecture.md
 # - KB Spec: docs/modules/bm-pm/kb-specification.md
 # - UX Design: docs/modules/bm-pm/ux/
-# - Epics: docs/modules/bm-pm/epics.md
+# - Epics: docs/modules/bm-pm/epics/ (sharded - see index.md)
 
 generated: 2025-12-17
 project: Ai Bussiness Hub
