@@ -720,6 +720,7 @@ model Business {
   planningData   PlanningSession?
   brandingData   BrandingSession?
   documents      OnboardingDocument[]
+  projects       Project[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId])
@@ -969,4 +970,767 @@ enum AgentSessionStatus {
   PAUSED
   COMPLETED
   ABANDONED
+}
+
+// ============================================
+// CORE-PM: PROJECT MANAGEMENT (bm-pm)
+// ============================================
+
+/// Project - Root of PM hierarchy, scoped to Business
+model Project {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  businessId  String @map("business_id")
+
+  // Identity
+  slug        String
+  name        String
+  description String? @db.Text
+
+  // Visual Identity
+  color      String  @default("#3B82F6")
+  icon       String  @default("folder")
+  coverImage String? @map("cover_image")
+
+  // Type Classification
+  type ProjectType @default(CUSTOM)
+
+  // BMAD Configuration
+  bmadTemplateId String? @map("bmad_template_id")
+  currentPhase   String? @map("current_phase")
+
+  // Budget
+  budget      Decimal? @db.Decimal(12, 2)
+  actualSpend Decimal? @map("actual_spend") @db.Decimal(12, 2)
+
+  // Status
+  status     ProjectStatus @default(PLANNING)
+  startDate  DateTime?     @map("start_date")
+  targetDate DateTime?     @map("target_date")
+
+  // Progress (denormalized for performance)
+  totalTasks     Int       @default(0) @map("total_tasks")
+  completedTasks Int       @default(0) @map("completed_tasks")
+  lastActivityAt DateTime? @map("last_activity_at")
+
+  // Settings
+  autoApprovalThreshold Float   @default(0.85) @map("auto_approval_threshold")
+  suggestionMode        Boolean @default(true) @map("suggestion_mode")
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  phases   Phase[]
+  team     ProjectTeam?
+  views    SavedView[]
+  pages    ProjectPage[]
+  risks    RiskEntry[]
+
+  @@unique([workspaceId, slug])
+  @@index([workspaceId])
+  @@index([businessId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("projects")
+}
+
+/// Phase - Time-boxed work segment within a Project
+model Phase {
+  id          String  @id @default(cuid())
+  projectId   String  @map("project_id")
+  name        String
+  description String? @db.Text
+
+  // BMAD Mapping
+  bmadPhase   BmadPhaseType?
+  phaseNumber Int            @map("phase_number")
+
+  // Timeline
+  startDate DateTime? @map("start_date")
+  endDate   DateTime? @map("end_date")
+
+  // Status
+  status PhaseStatus @default(UPCOMING)
+
+  // Progress (denormalized)
+  totalTasks      Int @default(0) @map("total_tasks")
+  completedTasks  Int @default(0) @map("completed_tasks")
+  totalPoints     Int @default(0) @map("total_points")
+  completedPoints Int @default(0) @map("completed_points")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+  snapshots PhaseSnapshot[]
+
+  @@index([projectId])
+  @@index([status])
+  @@map("phases")
+}
+
+/// Task - Unit of work with assignment and status
+model Task {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  phaseId     String @map("phase_id")
+  projectId   String @map("project_id") // Denormalized for queries
+
+  // Basic Info
+  taskNumber  Int     @map("task_number") // Sequential per project: PROJ-001
+  title       String
+  description String? @db.Text // Rich text markdown
+
+  // Classification
+  type     TaskType     @default(TASK)
+  priority TaskPriority @default(MEDIUM)
+
+  // Assignment
+  assignmentType AssignmentType @default(HUMAN) @map("assignment_type")
+  assigneeId     String?        @map("assignee_id") // Human user ID
+  agentId        String?        @map("agent_id") // Module agent ID
+
+  // Estimation
+  storyPoints     Int?   @map("story_points")
+  estimatedHours  Float? @map("estimated_hours")
+  actualHours     Float? @map("actual_hours")
+  confidenceScore Float? @map("confidence_score") // 0-1, from Sage
+
+  // Status
+  status  TaskStatus @default(BACKLOG)
+  stateId String?    @map("state_id") // Custom state reference
+
+  // Timeline
+  dueDate     DateTime? @map("due_date")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  // Hierarchy
+  parentId String? @map("parent_id")
+
+  // Approval
+  approvalRequired Boolean        @default(false) @map("approval_required")
+  approvalStatus   ApprovalStatus @default(NOT_NEEDED) @map("approval_status")
+  approvedBy       String?        @map("approved_by")
+  approvedAt       DateTime?      @map("approved_at")
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String    @map("created_by")
+
+  // Relations
+  phase       Phase            @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  parent      Task?            @relation("TaskHierarchy", fields: [parentId], references: [id])
+  children    Task[]           @relation("TaskHierarchy")
+  activities  TaskActivity[]
+  relations   TaskRelation[]   @relation("SourceTask")
+  relatedTo   TaskRelation[]   @relation("TargetTask")
+  attachments TaskAttachment[]
+  comments    TaskComment[]
+  labels      TaskLabel[]
+
+  @@unique([projectId, taskNumber])
+  @@index([workspaceId])
+  @@index([phaseId])
+  @@index([projectId])
+  @@index([status])
+  @@index([assigneeId])
+  @@index([dueDate])
+  @@index([deletedAt])
+  @@map("tasks")
+}
+
+/// ProjectTeam - Team assigned to a project
+model ProjectTeam {
+  id         String @id @default(cuid())
+  projectId  String @unique @map("project_id")
+  leadUserId String @map("lead_user_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  members TeamMember[]
+
+  @@index([leadUserId])
+  @@map("project_teams")
+}
+
+/// TeamMember - Individual member of a project team
+model TeamMember {
+  id             String  @id @default(cuid())
+  teamId         String  @map("team_id")
+  userId         String  @map("user_id")
+  role           TeamRole @default(DEVELOPER)
+  customRoleName String? @map("custom_role_name")
+
+  // Capacity
+  hoursPerWeek Float @default(40) @map("hours_per_week")
+  productivity Float @default(0.8)
+
+  // Permissions
+  canAssignTasks   Boolean @default(false) @map("can_assign_tasks")
+  canApproveAgents Boolean @default(false) @map("can_approve_agents")
+  canModifyPhases  Boolean @default(false) @map("can_modify_phases")
+
+  // Status
+  isActive Boolean  @default(true) @map("is_active")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  team ProjectTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+/// TaskActivity - Activity log for tasks
+model TaskActivity {
+  id     String @id @default(cuid())
+  taskId String @map("task_id")
+  userId String @map("user_id")
+
+  type TaskActivityType
+  data Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("task_activities")
+}
+
+/// TaskRelation - Relationships between tasks (blocks, depends on, etc.)
+model TaskRelation {
+  id           String           @id @default(cuid())
+  sourceTaskId String           @map("source_task_id")
+  targetTaskId String           @map("target_task_id")
+  relationType TaskRelationType @map("relation_type")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String   @map("created_by")
+
+  sourceTask Task @relation("SourceTask", fields: [sourceTaskId], references: [id], onDelete: Cascade)
+  targetTask Task @relation("TargetTask", fields: [targetTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceTaskId, targetTaskId, relationType])
+  @@index([sourceTaskId])
+  @@index([targetTaskId])
+  @@map("task_relations")
+}
+
+/// TaskAttachment - Files attached to tasks
+model TaskAttachment {
+  id     String @id @default(cuid())
+  taskId String @map("task_id")
+
+  fileName String @map("file_name")
+  fileUrl  String @map("file_url")
+  fileType String @map("file_type")
+  fileSize Int    @map("file_size")
+
+  uploadedBy String   @map("uploaded_by")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_attachments")
+}
+
+/// TaskComment - Comments on tasks
+model TaskComment {
+  id       String  @id @default(cuid())
+  taskId   String  @map("task_id")
+  userId   String  @map("user_id")
+  content  String  @db.Text
+  parentId String? @map("parent_id")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  task    Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  parent  TaskComment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies TaskComment[] @relation("CommentThread")
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([parentId])
+  @@map("task_comments")
+}
+
+/// TaskLabel - Labels/tags for tasks
+model TaskLabel {
+  id     String @id @default(cuid())
+  taskId String @map("task_id")
+
+  name  String
+  color String @default("#6B7280")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, name])
+  @@index([taskId])
+  @@map("task_labels")
+}
+
+/// SavedView - Saved filter/view configurations
+model SavedView {
+  id        String @id @default(cuid())
+  projectId String @map("project_id")
+  userId    String @map("user_id")
+
+  name      String
+  viewType  ViewType @default(LIST) @map("view_type")
+  filters   Json     @default("{}")
+  sortBy    String?  @map("sort_by")
+  sortOrder String?  @map("sort_order")
+  columns   Json?    // For list view column config
+  isDefault Boolean  @default(false) @map("is_default")
+  isShared  Boolean  @default(false) @map("is_shared")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("saved_views")
+}
+
+/// RiskEntry - Risk tracking for projects
+model RiskEntry {
+  id        String @id @default(cuid())
+  projectId String @map("project_id")
+
+  title       String
+  description String? @db.Text
+  category    String? // technical, schedule, resource, external
+  severity    RiskSeverity @default(MEDIUM)
+  probability RiskProbability @default(POSSIBLE)
+  impact      String? @db.Text
+  mitigation  String? @db.Text
+
+  status     RiskStatus @default(IDENTIFIED)
+  ownerId    String?    @map("owner_id")
+  resolvedAt DateTime?  @map("resolved_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+  @@map("risk_entries")
+}
+
+/// PhaseSnapshot - Point-in-time snapshots of phase progress
+model PhaseSnapshot {
+  id      String @id @default(cuid())
+  phaseId String @map("phase_id")
+
+  snapshotDate    DateTime @map("snapshot_date")
+  totalTasks      Int      @map("total_tasks")
+  completedTasks  Int      @map("completed_tasks")
+  totalPoints     Int      @map("total_points")
+  completedPoints Int      @map("completed_points")
+  velocity        Float?
+  burndownData    Json?    @map("burndown_data")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  phase Phase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@index([phaseId])
+  @@index([snapshotDate])
+  @@map("phase_snapshots")
+}
+
+// Core-PM Enums
+enum ProjectType {
+  COURSE
+  PODCAST
+  BOOK
+  NEWSLETTER
+  VIDEO_SERIES
+  COMMUNITY
+  SOFTWARE
+  WEBSITE
+  CUSTOM
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+enum BmadPhaseType {
+  PHASE_1_BRIEF
+  PHASE_2_REQUIREMENTS
+  PHASE_3_ARCHITECTURE
+  PHASE_4_IMPLEMENTATION
+  PHASE_5_TESTING
+  PHASE_6_DEPLOYMENT
+  PHASE_7_LAUNCH
+  OPERATE_MAINTAIN
+  OPERATE_ITERATE
+  OPERATE_SCALE
+}
+
+enum PhaseStatus {
+  UPCOMING
+  CURRENT
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskType {
+  EPIC
+  STORY
+  TASK
+  SUBTASK
+  BUG
+  RESEARCH
+  CONTENT
+  AGENT_REVIEW
+}
+
+enum TaskPriority {
+  URGENT
+  HIGH
+  MEDIUM
+  LOW
+  NONE
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  REVIEW
+  AWAITING_APPROVAL
+  DONE
+  CANCELLED
+}
+
+enum AssignmentType {
+  HUMAN
+  AGENT
+  HYBRID
+}
+
+enum ApprovalStatus {
+  NOT_NEEDED
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+}
+
+enum TeamRole {
+  PROJECT_LEAD
+  DEVELOPER
+  DESIGNER
+  QA_ENGINEER
+  STAKEHOLDER
+  CUSTOM
+}
+
+enum TaskActivityType {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  ASSIGNED
+  UNASSIGNED
+  COMMENTED
+  ATTACHMENT_ADDED
+  ATTACHMENT_REMOVED
+  LABEL_ADDED
+  LABEL_REMOVED
+  RELATION_ADDED
+  RELATION_REMOVED
+  ESTIMATED
+  STARTED
+  COMPLETED
+  REOPENED
+  APPROVAL_REQUESTED
+  APPROVED
+  REJECTED
+}
+
+enum TaskRelationType {
+  BLOCKS
+  BLOCKED_BY
+  DEPENDS_ON
+  DEPENDENCY_OF
+  RELATES_TO
+  DUPLICATES
+  DUPLICATED_BY
+  PARENT_OF
+  CHILD_OF
+}
+
+enum ViewType {
+  LIST
+  KANBAN
+  CALENDAR
+  TIMELINE
+  TABLE
+}
+
+enum RiskSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum RiskProbability {
+  VERY_LIKELY
+  LIKELY
+  POSSIBLE
+  UNLIKELY
+  RARE
+}
+
+enum RiskStatus {
+  IDENTIFIED
+  ANALYZING
+  MITIGATING
+  MONITORING
+  RESOLVED
+  ACCEPTED
+}
+
+// ============================================
+// KNOWLEDGE BASE (KB) - Part of Core-PM
+// ============================================
+
+/// KnowledgePage - Wiki page with hierarchical structure
+model KnowledgePage {
+  id          String @id @default(cuid())
+  tenantId    String @map("tenant_id")
+  workspaceId String @map("workspace_id")
+
+  // Hierarchy
+  parentId String? @map("parent_id")
+
+  // Content
+  title       String
+  slug        String  @db.VarChar(255)
+  content     Json    // Tiptap/ProseMirror JSON
+  contentText String  @map("content_text") @db.Text // Plain text for FTS
+
+  // Verification
+  isVerified    Boolean   @default(false) @map("is_verified")
+  verifiedAt    DateTime? @map("verified_at")
+  verifiedById  String?   @map("verified_by_id")
+  verifyExpires DateTime? @map("verify_expires")
+
+  // Ownership
+  ownerId String @map("owner_id")
+
+  // Analytics
+  viewCount    Int       @default(0) @map("view_count")
+  lastViewedAt DateTime? @map("last_viewed_at")
+
+  // Yjs State (for real-time collaboration - Phase 2)
+  yjsState Bytes? @map("yjs_state")
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  parent     KnowledgePage?  @relation("PageHierarchy", fields: [parentId], references: [id])
+  children   KnowledgePage[] @relation("PageHierarchy")
+  versions   PageVersion[]
+  embeddings PageEmbedding[]
+  projects   ProjectPage[]
+  comments   KBPageComment[]
+  mentions   PageMention[]
+  activities PageActivity[]
+
+  @@unique([tenantId, workspaceId, slug])
+  @@index([tenantId])
+  @@index([workspaceId])
+  @@index([parentId])
+  @@index([ownerId])
+  @@index([isVerified])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@map("knowledge_pages")
+}
+
+/// PageVersion - Version history for KB pages
+model PageVersion {
+  id      String @id @default(cuid())
+  pageId  String @map("page_id")
+  version Int
+
+  // Content snapshot
+  content     Json
+  contentText String @map("content_text") @db.Text
+
+  // Metadata
+  changeNote  String? @map("change_note") @db.VarChar(500)
+  createdById String  @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  page KnowledgePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, version])
+  @@index([pageId])
+  @@index([createdAt])
+  @@map("page_versions")
+}
+
+/// PageEmbedding - Vector embeddings for RAG search
+/// Note: Requires pgvector extension - CREATE EXTENSION IF NOT EXISTS vector;
+model PageEmbedding {
+  id         String @id @default(cuid())
+  pageId     String @map("page_id")
+  chunkIndex Int    @map("chunk_index")
+
+  // Content
+  chunkText String @map("chunk_text") @db.Text
+
+  // Vector embedding (pgvector)
+  // Note: vector(1536) for OpenAI ada-002 / text-embedding-3-small
+  // Using Unsupported for pgvector type - requires raw SQL for operations
+  embedding Unsupported("vector(1536)")
+
+  // Metadata
+  embeddingModel String   @default("text-embedding-3-small") @map("embedding_model") @db.VarChar(100)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  page KnowledgePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  // Vector index created via migration:
+  // CREATE INDEX idx_embedding_vector ON page_embeddings
+  //   USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+  @@map("page_embeddings")
+}
+
+/// ProjectPage - Many-to-many link between Projects and KB Pages
+model ProjectPage {
+  id        String  @id @default(cuid())
+  projectId String  @map("project_id")
+  pageId    String  @map("page_id")
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  page    KnowledgePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, pageId])
+  @@index([projectId])
+  @@index([pageId])
+  @@map("project_pages")
+}
+
+/// KBPageComment - Comments on KB pages (renamed to avoid conflict with TaskComment)
+model KBPageComment {
+  id       String  @id @default(cuid())
+  pageId   String  @map("page_id")
+  userId   String  @map("user_id")
+  content  String  @db.Text
+  parentId String? @map("parent_id")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  page    KnowledgePage   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  parent  KBPageComment?  @relation("KBCommentThread", fields: [parentId], references: [id])
+  replies KBPageComment[] @relation("KBCommentThread")
+
+  @@index([pageId])
+  @@index([userId])
+  @@index([parentId])
+  @@map("kb_page_comments")
+}
+
+/// PageMention - @mentions, #task references, [[page links]] in KB content
+model PageMention {
+  id     String @id @default(cuid())
+  pageId String @map("page_id")
+
+  // Mention details
+  mentionType KBMentionType @map("mention_type")
+  targetId    String        @map("target_id") // User ID, Task ID, or Page ID
+
+  // Position (character offset in content)
+  position Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  page KnowledgePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@index([targetId])
+  @@index([mentionType])
+  @@map("page_mentions")
+}
+
+/// PageActivity - Activity log for KB pages
+model PageActivity {
+  id     String @id @default(cuid())
+  pageId String @map("page_id")
+  userId String @map("user_id")
+
+  type KBPageActivityType
+  data Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  page KnowledgePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("page_activities")
+}
+
+// Knowledge Base Enums
+enum KBMentionType {
+  USER // @username
+  TASK // #PM-123
+  PAGE // [[Page Title]]
+}
+
+enum KBPageActivityType {
+  CREATED
+  UPDATED
+  DELETED
+  RESTORED
+  VIEWED
+  VERIFIED
+  UNVERIFIED
+  LINKED_TO_PROJECT
+  UNLINKED_FROM_PROJECT
+  COMMENTED
 }
