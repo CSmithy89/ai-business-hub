@@ -111,6 +111,11 @@ export const EventTypes = {
   // AI Provider token limit events (Epic 06)
   TOKEN_LIMIT_WARNING: 'ai.token.limit_warning',
   TOKEN_LIMIT_EXCEEDED: 'ai.token.limit_exceeded',
+
+  // PM events (bm-pm)
+  PM_PROJECT_CREATED: 'pm.project.created',
+  PM_PROJECT_UPDATED: 'pm.project.updated',
+  PM_PROJECT_DELETED: 'pm.project.deleted',
 } as const;
 
 /**

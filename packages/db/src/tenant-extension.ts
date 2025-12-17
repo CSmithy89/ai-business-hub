@@ -35,11 +35,13 @@ export function createTenantPrismaClient() {
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
+          const op = operation as unknown as string
+
           // Get tenant context
           const context = tenantContext.getStore()
           if (!context?.tenantId) {
             throw new Error(
-              `Tenant context required for database access. Model: ${model}, Operation: ${operation}`
+              `Tenant context required for database access. Model: ${model}, Operation: ${op}`
             )
           }
 
@@ -51,19 +53,19 @@ export function createTenantPrismaClient() {
           }
 
           // Add tenant filter to read operations
-          if (['findMany', 'findFirst', 'findUnique', 'count', 'aggregate'].includes(operation)) {
+          if (['findMany', 'findFirst', 'findUnique', 'count', 'aggregate'].includes(op)) {
             // Type assertion needed for Prisma's complex type system
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ;(args as any).where = { ...(args as any).where, workspaceId: tenantId }
           }
 
           // Add tenant to create operations
-          if (operation === 'create') {
+          if (op === 'create') {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ;(args as any).data = { ...(args as any).data, workspaceId: tenantId }
           }
 
-          if (operation === 'createMany') {
+          if (op === 'createMany') {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if (Array.isArray((args as any).data)) {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,7 +77,7 @@ export function createTenantPrismaClient() {
           }
 
           // Add tenant filter to update/delete operations
-          if (['update', 'updateMany', 'delete', 'deleteMany'].includes(operation)) {
+          if (['update', 'updateMany', 'delete', 'deleteMany'].includes(op)) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ;(args as any).where = { ...(args as any).where, workspaceId: tenantId }
           }
