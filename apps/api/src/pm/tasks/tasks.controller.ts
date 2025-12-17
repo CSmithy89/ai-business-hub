@@ -19,8 +19,10 @@ import { RolesGuard } from '../../common/guards/roles.guard'
 import { TenantGuard } from '../../common/guards/tenant.guard'
 import { BulkUpdateTasksDto } from './dto/bulk-update-tasks.dto'
 import { CreateTaskDto } from './dto/create-task.dto'
+import { CreateTaskCommentDto } from './dto/create-task-comment.dto'
 import { CreateTaskRelationDto } from './dto/create-task-relation.dto'
 import { ListTasksQueryDto } from './dto/list-tasks.query.dto'
+import { UpdateTaskCommentDto } from './dto/update-task-comment.dto'
 import { UpdateTaskDto } from './dto/update-task.dto'
 import { TasksService } from './tasks.service'
 
@@ -118,5 +120,47 @@ export class TasksController {
     @CurrentUser() actor: any,
   ) {
     return this.tasksService.deleteRelation(workspaceId, actor.id, id, relationId)
+  }
+
+  @Post(':id/comments')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Add a comment to a task' })
+  @ApiParam({ name: 'id', description: 'Task ID' })
+  async createComment(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: CreateTaskCommentDto,
+    @CurrentUser() actor: any,
+  ) {
+    return this.tasksService.createComment(workspaceId, actor.id, id, dto)
+  }
+
+  @Patch(':id/comments/:commentId')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Edit a task comment (author only)' })
+  @ApiParam({ name: 'id', description: 'Task ID' })
+  @ApiParam({ name: 'commentId', description: 'TaskComment ID' })
+  async updateComment(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
+    @Body() dto: UpdateTaskCommentDto,
+    @CurrentUser() actor: any,
+  ) {
+    return this.tasksService.updateComment(workspaceId, actor.id, id, commentId, dto)
+  }
+
+  @Delete(':id/comments/:commentId')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Delete a task comment (author only)' })
+  @ApiParam({ name: 'id', description: 'Task ID' })
+  @ApiParam({ name: 'commentId', description: 'TaskComment ID' })
+  async deleteComment(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
+    @CurrentUser() actor: any,
+  ) {
+    return this.tasksService.deleteComment(workspaceId, actor.id, id, commentId)
   }
 }

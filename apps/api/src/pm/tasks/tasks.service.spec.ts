@@ -16,6 +16,7 @@ type PrismaMock = {
     updateMany: jest.Mock
   }
   taskRelation: { findFirst: jest.Mock; createMany: jest.Mock; deleteMany: jest.Mock }
+  taskComment: { findFirst: jest.Mock; create: jest.Mock; update: jest.Mock }
   taskActivity: { create: jest.Mock; createMany: jest.Mock }
   $transaction: jest.Mock
 }
@@ -43,6 +44,7 @@ describe('TasksService', () => {
               updateMany: jest.fn(),
             },
             taskRelation: { findFirst: jest.fn(), createMany: jest.fn(), deleteMany: jest.fn() },
+            taskComment: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
             taskActivity: { create: jest.fn(), createMany: jest.fn() },
             $transaction: jest.fn(),
           },
@@ -355,6 +357,44 @@ describe('TasksService', () => {
       }),
     )
     expect(activityCreateMany).toHaveBeenCalled()
+    expect(eventPublisher.publish).toHaveBeenCalled()
+  })
+
+  it('creates a comment for a task', async () => {
+    const taskFindFirst = jest.fn().mockResolvedValueOnce({ id: 'task-1', projectId: 'proj-1' })
+    const commentCreate = jest.fn().mockResolvedValueOnce({ id: 'comment-1' })
+    const activityCreate = jest.fn().mockResolvedValueOnce({ id: 'act-1' })
+
+    prisma.$transaction.mockImplementationOnce(async (fn: any) =>
+      fn({
+        task: { findFirst: taskFindFirst },
+        taskComment: { findFirst: jest.fn(), create: commentCreate },
+        taskActivity: { create: activityCreate },
+      }),
+    )
+
+    prisma.task.findFirst.mockResolvedValueOnce({
+      id: 'task-1',
+      workspaceId: 'ws-1',
+      projectId: 'proj-1',
+      phaseId: 'phase-1',
+      children: [],
+      relations: [],
+      relatedTo: [],
+      labels: [],
+      attachments: [],
+      comments: [],
+      activities: [],
+    })
+
+    await service.createComment('ws-1', 'user-1', 'task-1', { content: 'Hello' })
+
+    expect(commentCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ taskId: 'task-1', userId: 'user-1', content: 'Hello', parentId: null }),
+      }),
+    )
+    expect(activityCreate).toHaveBeenCalled()
     expect(eventPublisher.publish).toHaveBeenCalled()
   })
 })

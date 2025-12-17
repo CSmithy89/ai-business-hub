@@ -1,12 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { Prisma, TaskActivityType, TaskRelationType, TaskStatus } from '@prisma/client'
 import { EventTypes } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
 import { EventPublisherService } from '../../events'
 import { BulkUpdateTasksDto } from './dto/bulk-update-tasks.dto'
+import { CreateTaskCommentDto } from './dto/create-task-comment.dto'
 import { CreateTaskRelationDto } from './dto/create-task-relation.dto'
 import { CreateTaskDto } from './dto/create-task.dto'
 import { ListTasksQueryDto } from './dto/list-tasks.query.dto'
+import { UpdateTaskCommentDto } from './dto/update-task-comment.dto'
 import { UpdateTaskDto } from './dto/update-task.dto'
 
 const RELATION_INVERSE: Record<TaskRelationType, TaskRelationType> = {
@@ -519,6 +521,144 @@ export class TasksService {
     )
 
     return { data: deleted }
+  }
+
+  async createComment(workspaceId: string, actorId: string, taskId: string, dto: CreateTaskCommentDto) {
+    const trimmed = dto.content.trim()
+    if (!trimmed) throw new BadRequestException('content cannot be empty')
+
+    await this.prisma.$transaction(async (tx) => {
+      const task = await tx.task.findFirst({
+        where: { id: taskId, workspaceId, deletedAt: null },
+        select: { id: true, projectId: true },
+      })
+      if (!task) throw new NotFoundException('Task not found')
+
+      const parentId = dto.parentId ?? null
+      if (parentId) {
+        const parent = await tx.taskComment.findFirst({
+          where: { id: parentId, taskId, deletedAt: null },
+          select: { id: true },
+        })
+        if (!parent) throw new BadRequestException('parentId is not a valid comment for this task')
+      }
+
+      const comment = await tx.taskComment.create({
+        data: {
+          taskId,
+          userId: actorId,
+          content: trimmed,
+          parentId,
+        },
+        select: { id: true },
+      })
+
+      await tx.taskActivity.create({
+        data: {
+          taskId,
+          userId: actorId,
+          type: TaskActivityType.COMMENTED,
+          data: { commentId: comment.id, parentId },
+        },
+      })
+    })
+
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_UPDATED,
+      { taskId },
+      { tenantId: workspaceId, userId: actorId, source: 'api' },
+    )
+
+    return this.getById(workspaceId, taskId)
+  }
+
+  async updateComment(
+    workspaceId: string,
+    actorId: string,
+    taskId: string,
+    commentId: string,
+    dto: UpdateTaskCommentDto,
+  ) {
+    const trimmed = dto.content.trim()
+    if (!trimmed) throw new BadRequestException('content cannot be empty')
+
+    await this.prisma.$transaction(async (tx) => {
+      const task = await tx.task.findFirst({
+        where: { id: taskId, workspaceId, deletedAt: null },
+        select: { id: true },
+      })
+      if (!task) throw new NotFoundException('Task not found')
+
+      const existing = await tx.taskComment.findFirst({
+        where: { id: commentId, taskId, deletedAt: null },
+        select: { id: true, userId: true, content: true },
+      })
+      if (!existing) throw new NotFoundException('Comment not found')
+      if (existing.userId !== actorId) throw new ForbiddenException('Only the comment author can edit this comment')
+
+      if (existing.content !== trimmed) {
+        await tx.taskComment.update({
+          where: { id: existing.id },
+          data: { content: trimmed },
+        })
+      }
+
+      await tx.taskActivity.create({
+        data: {
+          taskId,
+          userId: actorId,
+          type: TaskActivityType.UPDATED,
+          data: { commentId, action: 'comment_updated' },
+        },
+      })
+    })
+
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_UPDATED,
+      { taskId },
+      { tenantId: workspaceId, userId: actorId, source: 'api' },
+    )
+
+    return this.getById(workspaceId, taskId)
+  }
+
+  async deleteComment(workspaceId: string, actorId: string, taskId: string, commentId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      const task = await tx.task.findFirst({
+        where: { id: taskId, workspaceId, deletedAt: null },
+        select: { id: true },
+      })
+      if (!task) throw new NotFoundException('Task not found')
+
+      const existing = await tx.taskComment.findFirst({
+        where: { id: commentId, taskId, deletedAt: null },
+        select: { id: true, userId: true },
+      })
+      if (!existing) throw new NotFoundException('Comment not found')
+      if (existing.userId !== actorId) throw new ForbiddenException('Only the comment author can delete this comment')
+
+      await tx.taskComment.update({
+        where: { id: existing.id },
+        data: { deletedAt: new Date() },
+      })
+
+      await tx.taskActivity.create({
+        data: {
+          taskId,
+          userId: actorId,
+          type: TaskActivityType.UPDATED,
+          data: { commentId, action: 'comment_deleted' },
+        },
+      })
+    })
+
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_UPDATED,
+      { taskId },
+      { tenantId: workspaceId, userId: actorId, source: 'api' },
+    )
+
+    return this.getById(workspaceId, taskId)
   }
 
   async update(workspaceId: string, actorId: string, id: string, dto: UpdateTaskDto) {

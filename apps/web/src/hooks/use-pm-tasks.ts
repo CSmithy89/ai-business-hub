@@ -239,6 +239,15 @@ export type CreateTaskRelationInput = {
   relationType: TaskRelationType
 }
 
+export type CreateTaskCommentInput = {
+  content: string
+  parentId?: string | null
+}
+
+export type UpdateTaskCommentInput = {
+  content: string
+}
+
 async function fetchTasks(params: {
   workspaceId: string
   token?: string
@@ -310,6 +319,123 @@ async function fetchTask(params: {
 
   if (!body || typeof body !== 'object' || !('data' in body)) {
     throw new Error('Failed to fetch task')
+  }
+
+  return body as TaskDetailResponse
+}
+
+async function createTaskComment(params: {
+  workspaceId: string
+  token?: string
+  taskId: string
+  input: CreateTaskCommentInput
+}): Promise<TaskDetailResponse> {
+  const base = getBaseUrl()
+
+  const search = new URLSearchParams()
+  search.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(`${base}/pm/tasks/${encodeURIComponent(params.taskId)}/comments?${search.toString()}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+    },
+    body: JSON.stringify(params.input),
+    cache: 'no-store',
+  })
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to create comment')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to create comment')
+  }
+
+  return body as TaskDetailResponse
+}
+
+async function updateTaskComment(params: {
+  workspaceId: string
+  token?: string
+  taskId: string
+  commentId: string
+  input: UpdateTaskCommentInput
+}): Promise<TaskDetailResponse> {
+  const base = getBaseUrl()
+
+  const search = new URLSearchParams()
+  search.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(
+    `${base}/pm/tasks/${encodeURIComponent(params.taskId)}/comments/${encodeURIComponent(params.commentId)}?${search.toString()}`,
+    {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+      },
+      body: JSON.stringify(params.input),
+      cache: 'no-store',
+    },
+  )
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to update comment')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to update comment')
+  }
+
+  return body as TaskDetailResponse
+}
+
+async function deleteTaskComment(params: {
+  workspaceId: string
+  token?: string
+  taskId: string
+  commentId: string
+}): Promise<TaskDetailResponse> {
+  const base = getBaseUrl()
+
+  const search = new URLSearchParams()
+  search.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(
+    `${base}/pm/tasks/${encodeURIComponent(params.taskId)}/comments/${encodeURIComponent(params.commentId)}?${search.toString()}`,
+    {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: params.token ? { Authorization: `Bearer ${params.token}` } : {},
+      cache: 'no-store',
+    },
+  )
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to delete comment')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to delete comment')
   }
 
   return body as TaskDetailResponse
@@ -583,6 +709,75 @@ export function useDeletePmTaskRelation() {
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to delete relation'
+      toast.error(message)
+    },
+  })
+}
+
+export function useCreatePmTaskComment() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ taskId, input }: { taskId: string; input: CreateTaskCommentInput }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return createTaskComment({ workspaceId, token, taskId, input })
+    },
+    onSuccess: (result) => {
+      toast.success('Comment added')
+      queryClient.invalidateQueries({ queryKey: ['pm-task', workspaceId, result.data.id] })
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to create comment'
+      toast.error(message)
+    },
+  })
+}
+
+export function useUpdatePmTaskComment() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ taskId, commentId, input }: { taskId: string; commentId: string; input: UpdateTaskCommentInput }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return updateTaskComment({ workspaceId, token, taskId, commentId, input })
+    },
+    onSuccess: (result) => {
+      toast.success('Comment updated')
+      queryClient.invalidateQueries({ queryKey: ['pm-task', workspaceId, result.data.id] })
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to update comment'
+      toast.error(message)
+    },
+  })
+}
+
+export function useDeletePmTaskComment() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ taskId, commentId }: { taskId: string; commentId: string }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return deleteTaskComment({ workspaceId, token, taskId, commentId })
+    },
+    onSuccess: (result) => {
+      toast.success('Comment deleted')
+      queryClient.invalidateQueries({ queryKey: ['pm-task', workspaceId, result.data.id] })
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to delete comment'
       toast.error(message)
     },
   })

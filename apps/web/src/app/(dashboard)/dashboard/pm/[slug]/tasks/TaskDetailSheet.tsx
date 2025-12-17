@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { format, parseISO } from 'date-fns'
-import { CalendarIcon, Loader2, X } from 'lucide-react'
+import { CalendarIcon, Check, Loader2, Pencil, Trash2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -17,13 +17,17 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAgents } from '@/hooks/use-agents'
+import { useSession } from '@/lib/auth-client'
 import { usePmTeam } from '@/hooks/use-pm-team'
 import {
   useCreatePmTask,
+  useCreatePmTaskComment,
   useCreatePmTaskRelation,
+  useDeletePmTaskComment,
   useDeletePmTaskRelation,
   usePmTasks,
   usePmTask,
+  useUpdatePmTaskComment,
   useUpdatePmTask,
   type TaskPriority,
   type TaskRelationType,
@@ -83,6 +87,9 @@ export function TaskDetailSheet({
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
 
+  const { data: session } = useSession()
+  const currentUserId = session?.user?.id
+
   const { data, isLoading, error } = usePmTask(taskId)
   const task = data?.data
 
@@ -90,6 +97,9 @@ export function TaskDetailSheet({
   const updateTask = useUpdatePmTask()
   const createRelation = useCreatePmTaskRelation()
   const deleteRelation = useDeletePmTaskRelation()
+  const createComment = useCreatePmTaskComment()
+  const updateComment = useUpdatePmTaskComment()
+  const deleteComment = useDeletePmTaskComment()
 
   const team = usePmTeam(task?.projectId ?? '')
   const members = team.data?.data.members ?? []
@@ -105,6 +115,9 @@ export function TaskDetailSheet({
   const [relationType, setRelationType] = useState<TaskRelationType>('BLOCKS')
   const [relationSearch, setRelationSearch] = useState('')
   const [relationTargetTaskId, setRelationTargetTaskId] = useState<string | null>(null)
+  const [commentDraft, setCommentDraft] = useState('')
+  const [commentEditingId, setCommentEditingId] = useState<string | null>(null)
+  const [commentEditingContent, setCommentEditingContent] = useState('')
 
   useEffect(() => {
     if (!task) return
@@ -117,6 +130,9 @@ export function TaskDetailSheet({
     setRelationType('BLOCKS')
     setRelationSearch('')
     setRelationTargetTaskId(null)
+    setCommentDraft('')
+    setCommentEditingId(null)
+    setCommentEditingContent('')
   }, [task?.id])
 
   const relationSearchQuery = usePmTasks({
@@ -195,6 +211,15 @@ export function TaskDetailSheet({
     setSubtaskOpen(false)
     queryClient.invalidateQueries({ queryKey: ['pm-task'] })
     openTask(created.data.id)
+  }
+
+  async function handleCreateComment() {
+    if (!task) return
+    const trimmed = commentDraft.trim()
+    if (!trimmed) return
+
+    await createComment.mutateAsync({ taskId: task.id, input: { content: trimmed } })
+    setCommentDraft('')
   }
 
   return (
@@ -773,6 +798,134 @@ export function TaskDetailSheet({
                   </ReactMarkdown>
                 </div>
               </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Comments</span>
+                {createComment.isPending || updateComment.isPending || deleteComment.isPending ? (
+                  <span className="inline-flex items-center gap-2 text-xs text-[rgb(var(--color-text-secondary))]">
+                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                    Saving…
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="flex items-start gap-2">
+                <Textarea
+                  value={commentDraft}
+                  onChange={(e) => setCommentDraft(e.target.value)}
+                  placeholder="Add a comment…"
+                  className="min-h-[64px]"
+                />
+                <Button type="button" size="sm" onClick={() => void handleCreateComment()} disabled={!commentDraft.trim()}>
+                  Post
+                </Button>
+              </div>
+
+              {task.comments?.length ? (
+                <div className="max-h-[220px] overflow-auto rounded-md border border-[rgb(var(--color-border-default))]">
+                  <ul className="divide-y divide-[rgb(var(--color-border-default))]">
+                    {task.comments.map((comment) => {
+                      const isAuthor = !!currentUserId && comment.userId === currentUserId
+                      const isEditing = commentEditingId === comment.id
+
+                      return (
+                        <li key={comment.id} className="p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-xs font-medium text-[rgb(var(--color-text-primary))]">
+                                  {isAuthor ? 'You' : comment.userId}
+                                </span>
+                                <span className="text-xs text-[rgb(var(--color-text-secondary))]">
+                                  {(() => {
+                                    try {
+                                      return format(parseISO(comment.createdAt), 'MMM d, HH:mm')
+                                    } catch {
+                                      return '—'
+                                    }
+                                  })()}
+                                </span>
+                              </div>
+
+                              {isEditing ? (
+                                <div className="mt-2">
+                                  <Textarea
+                                    value={commentEditingContent}
+                                    onChange={(e) => setCommentEditingContent(e.target.value)}
+                                    className="min-h-[72px]"
+                                  />
+                                  <div className="mt-2 flex items-center justify-end gap-2">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setCommentEditingId(null)
+                                        setCommentEditingContent('')
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={() =>
+                                        updateComment.mutate({
+                                          taskId: task.id,
+                                          commentId: comment.id,
+                                          input: { content: commentEditingContent },
+                                        })
+                                      }
+                                      disabled={!commentEditingContent.trim()}
+                                    >
+                                      <Check className="h-4 w-4" aria-hidden="true" />
+                                      Save
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="mt-2 whitespace-pre-wrap text-sm text-[rgb(var(--color-text-primary))]">
+                                  {comment.content}
+                                </div>
+                              )}
+                            </div>
+
+                            {isAuthor && !isEditing ? (
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setCommentEditingId(comment.id)
+                                    setCommentEditingContent(comment.content)
+                                  }}
+                                  aria-label="Edit comment"
+                                >
+                                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => deleteComment.mutate({ taskId: task.id, commentId: comment.id })}
+                                  aria-label="Delete comment"
+                                >
+                                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                              </div>
+                            ) : null}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              ) : (
+                <div className="text-sm text-[rgb(var(--color-text-secondary))]">No comments yet.</div>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">
