@@ -41,6 +41,16 @@ function extractPlainText(content: any): string {
 
 const MAX_FAVORITED_BY_PER_PAGE = 10_000
 
+export type RelatedPageSuggestion = {
+  pageId: string
+  title: string
+  slug: string
+  snippet: string
+  distance: number
+  score: number
+  updatedAt: string
+}
+
 @Injectable()
 export class PagesService {
   private readonly logger = new Logger(PagesService.name)
@@ -702,5 +712,81 @@ export class PagesService {
     }))
 
     return { data: pagesWithFavorite }
+  }
+
+  async getRelatedPages(
+    tenantId: string,
+    workspaceId: string,
+    pageId: string,
+    limit: number = 8,
+  ): Promise<{ data: RelatedPageSuggestion[] }> {
+    const clampedLimit = Math.min(Math.max(Math.floor(limit), 1), 20)
+
+    const exists = await this.prisma.knowledgePage.findFirst({
+      where: { id: pageId, tenantId, workspaceId, deletedAt: null },
+      select: { id: true },
+    })
+    if (!exists) throw new NotFoundException('Page not found')
+
+    const rows = await this.prisma.$queryRaw<
+      Array<{
+        page_id: string
+        title: string
+        slug: string
+        snippet: string
+        distance: number
+        updated_at: Date
+      }>
+    >`
+      WITH source AS (
+        SELECT embedding
+        FROM page_embeddings
+        WHERE page_id = ${pageId}
+        ORDER BY chunk_index ASC
+        LIMIT 1
+      ),
+      best_chunk_per_page AS (
+        SELECT
+          pe.page_id,
+          kp.title,
+          kp.slug,
+          kp.updated_at,
+          pe.chunk_text AS snippet,
+          (pe.embedding <=> source.embedding) AS distance,
+          ROW_NUMBER() OVER (
+            PARTITION BY pe.page_id
+            ORDER BY (pe.embedding <=> source.embedding) ASC
+          ) AS chunk_rank
+        FROM source
+        INNER JOIN page_embeddings pe ON true
+        INNER JOIN knowledge_pages kp ON kp.id = pe.page_id
+        WHERE
+          kp.tenant_id = ${tenantId}
+          AND kp.workspace_id = ${workspaceId}
+          AND kp.deleted_at IS NULL
+          AND pe.page_id <> ${pageId}
+      )
+      SELECT page_id, title, slug, snippet, distance, updated_at
+      FROM best_chunk_per_page
+      WHERE chunk_rank = 1
+      ORDER BY distance ASC, updated_at DESC
+      LIMIT ${clampedLimit}
+    `
+
+    const data: RelatedPageSuggestion[] = rows.map((row) => {
+      const distance = Number(row.distance)
+      const score = 1 / (1 + distance)
+      return {
+        pageId: row.page_id,
+        title: row.title,
+        slug: row.slug,
+        snippet: row.snippet,
+        distance,
+        score,
+        updatedAt: row.updated_at.toISOString(),
+      }
+    })
+
+    return { data }
   }
 }

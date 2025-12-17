@@ -180,7 +180,7 @@ development_status:
   kb-02-5-embedding-pipeline: done
   kb-02-6-semantic-search: done
   kb-02-7-agent-kb-queries: done
-  kb-02-8-related-pages-suggestions: backlog
+  kb-02-8-related-pages-suggestions: done
   kb-02-retrospective: optional
 
   # ===========================================
