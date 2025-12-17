@@ -4,6 +4,7 @@ import { EventTypes } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
 import { EventPublisherService } from '../../events'
 import { BulkUpdateTasksDto } from './dto/bulk-update-tasks.dto'
+import { CreateTaskAttachmentDto } from './dto/create-task-attachment.dto'
 import { CreateTaskCommentDto } from './dto/create-task-comment.dto'
 import { CreateTaskRelationDto } from './dto/create-task-relation.dto'
 import { CreateTaskDto } from './dto/create-task.dto'
@@ -259,7 +260,9 @@ export class TasksService {
           orderBy: [{ relationType: 'asc' }, { createdAt: 'desc' }],
         },
         labels: true,
-        attachments: true,
+        attachments: {
+          orderBy: { uploadedAt: 'desc' },
+        },
         comments: {
           where: { deletedAt: null },
           orderBy: { createdAt: 'asc' },
@@ -648,6 +651,80 @@ export class TasksService {
           userId: actorId,
           type: TaskActivityType.UPDATED,
           data: { commentId, action: 'comment_deleted' },
+        },
+      })
+    })
+
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_UPDATED,
+      { taskId },
+      { tenantId: workspaceId, userId: actorId, source: 'api' },
+    )
+
+    return this.getById(workspaceId, taskId)
+  }
+
+  async createAttachment(workspaceId: string, actorId: string, taskId: string, dto: CreateTaskAttachmentDto) {
+    await this.prisma.$transaction(async (tx) => {
+      const task = await tx.task.findFirst({
+        where: { id: taskId, workspaceId, deletedAt: null },
+        select: { id: true },
+      })
+      if (!task) throw new NotFoundException('Task not found')
+
+      const attachment = await tx.taskAttachment.create({
+        data: {
+          taskId,
+          fileName: dto.fileName,
+          fileUrl: dto.fileUrl,
+          fileType: dto.fileType,
+          fileSize: dto.fileSize,
+          uploadedBy: actorId,
+        },
+        select: { id: true },
+      })
+
+      await tx.taskActivity.create({
+        data: {
+          taskId,
+          userId: actorId,
+          type: TaskActivityType.ATTACHMENT_ADDED,
+          data: { attachmentId: attachment.id, fileName: dto.fileName, fileUrl: dto.fileUrl },
+        },
+      })
+    })
+
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_UPDATED,
+      { taskId },
+      { tenantId: workspaceId, userId: actorId, source: 'api' },
+    )
+
+    return this.getById(workspaceId, taskId)
+  }
+
+  async deleteAttachment(workspaceId: string, actorId: string, taskId: string, attachmentId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      const task = await tx.task.findFirst({
+        where: { id: taskId, workspaceId, deletedAt: null },
+        select: { id: true },
+      })
+      if (!task) throw new NotFoundException('Task not found')
+
+      const attachment = await tx.taskAttachment.findFirst({
+        where: { id: attachmentId, taskId },
+        select: { id: true, fileName: true, fileUrl: true },
+      })
+      if (!attachment) throw new NotFoundException('Attachment not found')
+
+      await tx.taskAttachment.delete({ where: { id: attachment.id } })
+
+      await tx.taskActivity.create({
+        data: {
+          taskId,
+          userId: actorId,
+          type: TaskActivityType.ATTACHMENT_REMOVED,
+          data: { attachmentId: attachment.id, fileName: attachment.fileName, fileUrl: attachment.fileUrl },
         },
       })
     })

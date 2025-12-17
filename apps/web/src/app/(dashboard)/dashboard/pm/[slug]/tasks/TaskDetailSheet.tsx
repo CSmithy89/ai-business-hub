@@ -21,8 +21,10 @@ import { useSession } from '@/lib/auth-client'
 import { usePmTeam } from '@/hooks/use-pm-team'
 import {
   useCreatePmTask,
+  useCreatePmTaskAttachment,
   useCreatePmTaskComment,
   useCreatePmTaskRelation,
+  useDeletePmTaskAttachment,
   useDeletePmTaskComment,
   useDeletePmTaskRelation,
   usePmTasks,
@@ -100,6 +102,8 @@ export function TaskDetailSheet({
   const createComment = useCreatePmTaskComment()
   const updateComment = useUpdatePmTaskComment()
   const deleteComment = useDeletePmTaskComment()
+  const createAttachment = useCreatePmTaskAttachment()
+  const deleteAttachment = useDeletePmTaskAttachment()
 
   const team = usePmTeam(task?.projectId ?? '')
   const members = team.data?.data.members ?? []
@@ -118,6 +122,7 @@ export function TaskDetailSheet({
   const [commentDraft, setCommentDraft] = useState('')
   const [commentEditingId, setCommentEditingId] = useState<string | null>(null)
   const [commentEditingContent, setCommentEditingContent] = useState('')
+  const [attachmentUploading, setAttachmentUploading] = useState(false)
 
   useEffect(() => {
     if (!task) return
@@ -133,6 +138,7 @@ export function TaskDetailSheet({
     setCommentDraft('')
     setCommentEditingId(null)
     setCommentEditingContent('')
+    setAttachmentUploading(false)
   }, [task?.id])
 
   const relationSearchQuery = usePmTasks({
@@ -220,6 +226,38 @@ export function TaskDetailSheet({
 
     await createComment.mutateAsync({ taskId: task.id, input: { content: trimmed } })
     setCommentDraft('')
+  }
+
+  async function uploadAttachment(file: File) {
+    if (!task) return
+    if (file.size <= 0) return
+
+    setAttachmentUploading(true)
+    try {
+      const form = new FormData()
+      form.set('file', file)
+
+      const response = await fetch(`/api/pm/tasks/${encodeURIComponent(task.id)}/attachments/upload`, {
+        method: 'POST',
+        body: form,
+      })
+
+      const body = (await response.json().catch(() => null)) as
+        | { success: true; data: { fileName: string; fileUrl: string; fileType: string; fileSize: number } }
+        | { success: false; message?: string }
+        | null
+
+      if (!response.ok || !body || !('success' in body) || !body.success) {
+        throw new Error((body && 'message' in body && typeof body.message === 'string' ? body.message : null) || 'Upload failed')
+      }
+
+      await createAttachment.mutateAsync({
+        taskId: task.id,
+        input: body.data,
+      })
+    } finally {
+      setAttachmentUploading(false)
+    }
   }
 
   return (
@@ -798,6 +836,84 @@ export function TaskDetailSheet({
                   </ReactMarkdown>
                 </div>
               </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Attachments</span>
+                {attachmentUploading || createAttachment.isPending || deleteAttachment.isPending ? (
+                  <span className="inline-flex items-center gap-2 text-xs text-[rgb(var(--color-text-secondary))]">
+                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                    Uploading…
+                  </span>
+                ) : null}
+              </div>
+
+              <label
+                className={cn(
+                  'flex cursor-pointer items-center justify-between gap-3 rounded-md border border-dashed border-[rgb(var(--color-border-default))] px-3 py-2',
+                  'hover:bg-[rgb(var(--color-bg-tertiary))]',
+                )}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  const file = e.dataTransfer.files?.[0]
+                  if (file) void uploadAttachment(file)
+                }}
+              >
+                <span className="text-sm text-[rgb(var(--color-text-secondary))]">
+                  Drag & drop a file or click to choose
+                </span>
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) void uploadAttachment(file)
+                    e.currentTarget.value = ''
+                  }}
+                  disabled={attachmentUploading}
+                />
+                <Button type="button" size="sm" variant="outline" disabled={attachmentUploading}>
+                  Choose
+                </Button>
+              </label>
+
+              {task.attachments?.length ? (
+                <div className="max-h-[180px] overflow-auto rounded-md border border-[rgb(var(--color-border-default))]">
+                  <ul className="divide-y divide-[rgb(var(--color-border-default))]">
+                    {task.attachments.map((attachment) => (
+                      <li key={attachment.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                        <a
+                          className={cn('min-w-0 flex-1 truncate text-sm text-[rgb(var(--color-text-primary))]', 'hover:underline')}
+                          href={attachment.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {attachment.fileName}
+                        </a>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() =>
+                            deleteAttachment.mutate({ taskId: task.id, attachmentId: attachment.id })
+                          }
+                          aria-label="Remove attachment"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="text-sm text-[rgb(var(--color-text-secondary))]">No attachments yet.</div>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">

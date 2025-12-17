@@ -20,6 +20,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard'
 import { BulkUpdateTasksDto } from './dto/bulk-update-tasks.dto'
 import { CreateTaskDto } from './dto/create-task.dto'
 import { CreateTaskCommentDto } from './dto/create-task-comment.dto'
+import { CreateTaskAttachmentDto } from './dto/create-task-attachment.dto'
 import { CreateTaskRelationDto } from './dto/create-task-relation.dto'
 import { ListTasksQueryDto } from './dto/list-tasks.query.dto'
 import { UpdateTaskCommentDto } from './dto/update-task-comment.dto'
@@ -162,5 +163,32 @@ export class TasksController {
     @CurrentUser() actor: any,
   ) {
     return this.tasksService.deleteComment(workspaceId, actor.id, id, commentId)
+  }
+
+  @Post(':id/attachments')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Attach a file to a task' })
+  @ApiParam({ name: 'id', description: 'Task ID' })
+  async createAttachment(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: CreateTaskAttachmentDto,
+    @CurrentUser() actor: any,
+  ) {
+    return this.tasksService.createAttachment(workspaceId, actor.id, id, dto)
+  }
+
+  @Delete(':id/attachments/:attachmentId')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Remove a task attachment' })
+  @ApiParam({ name: 'id', description: 'Task ID' })
+  @ApiParam({ name: 'attachmentId', description: 'TaskAttachment ID' })
+  async deleteAttachment(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+    @CurrentUser() actor: any,
+  ) {
+    return this.tasksService.deleteAttachment(workspaceId, actor.id, id, attachmentId)
   }
 }

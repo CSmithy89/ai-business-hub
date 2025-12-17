@@ -1,0 +1,19 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-02</epicId>
+    <storyId>pm-02-10</storyId>
+    <title>Task Attachments</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-02-10-task-attachments.md</sourceStoryPath>
+  </metadata>
+
+  <interfaces>
+    - GET /pm/tasks/:id
+    - POST /pm/tasks/:id/attachments
+    - DELETE /pm/tasks/:id/attachments/:attachmentId
+    - POST /api/pm/tasks/:taskId/attachments/upload
+  </interfaces>
+</story-context>
+

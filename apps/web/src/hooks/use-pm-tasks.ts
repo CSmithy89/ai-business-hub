@@ -248,6 +248,13 @@ export type UpdateTaskCommentInput = {
   content: string
 }
 
+export type CreateTaskAttachmentInput = {
+  fileName: string
+  fileUrl: string
+  fileType: string
+  fileSize: number
+}
+
 async function fetchTasks(params: {
   workspaceId: string
   token?: string
@@ -436,6 +443,84 @@ async function deleteTaskComment(params: {
 
   if (!body || typeof body !== 'object' || !('data' in body)) {
     throw new Error('Failed to delete comment')
+  }
+
+  return body as TaskDetailResponse
+}
+
+async function createTaskAttachment(params: {
+  workspaceId: string
+  token?: string
+  taskId: string
+  input: CreateTaskAttachmentInput
+}): Promise<TaskDetailResponse> {
+  const base = getBaseUrl()
+
+  const search = new URLSearchParams()
+  search.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(
+    `${base}/pm/tasks/${encodeURIComponent(params.taskId)}/attachments?${search.toString()}`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+      },
+      body: JSON.stringify(params.input),
+      cache: 'no-store',
+    },
+  )
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to attach file')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to attach file')
+  }
+
+  return body as TaskDetailResponse
+}
+
+async function deleteTaskAttachment(params: {
+  workspaceId: string
+  token?: string
+  taskId: string
+  attachmentId: string
+}): Promise<TaskDetailResponse> {
+  const base = getBaseUrl()
+
+  const search = new URLSearchParams()
+  search.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(
+    `${base}/pm/tasks/${encodeURIComponent(params.taskId)}/attachments/${encodeURIComponent(params.attachmentId)}?${search.toString()}`,
+    {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: params.token ? { Authorization: `Bearer ${params.token}` } : {},
+      cache: 'no-store',
+    },
+  )
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to remove attachment')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to remove attachment')
   }
 
   return body as TaskDetailResponse
@@ -778,6 +863,52 @@ export function useDeletePmTaskComment() {
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to delete comment'
+      toast.error(message)
+    },
+  })
+}
+
+export function useCreatePmTaskAttachment() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ taskId, input }: { taskId: string; input: CreateTaskAttachmentInput }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return createTaskAttachment({ workspaceId, token, taskId, input })
+    },
+    onSuccess: (result) => {
+      toast.success('Attached')
+      queryClient.invalidateQueries({ queryKey: ['pm-task', workspaceId, result.data.id] })
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to attach file'
+      toast.error(message)
+    },
+  })
+}
+
+export function useDeletePmTaskAttachment() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ taskId, attachmentId }: { taskId: string; attachmentId: string }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return deleteTaskAttachment({ workspaceId, token, taskId, attachmentId })
+    },
+    onSuccess: (result) => {
+      toast.success('Removed')
+      queryClient.invalidateQueries({ queryKey: ['pm-task', workspaceId, result.data.id] })
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to remove attachment'
       toast.error(message)
     },
   })

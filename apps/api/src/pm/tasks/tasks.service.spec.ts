@@ -17,6 +17,7 @@ type PrismaMock = {
   }
   taskRelation: { findFirst: jest.Mock; createMany: jest.Mock; deleteMany: jest.Mock }
   taskComment: { findFirst: jest.Mock; create: jest.Mock; update: jest.Mock }
+  taskAttachment: { findFirst: jest.Mock; create: jest.Mock; delete: jest.Mock }
   taskActivity: { create: jest.Mock; createMany: jest.Mock }
   $transaction: jest.Mock
 }
@@ -45,6 +46,7 @@ describe('TasksService', () => {
             },
             taskRelation: { findFirst: jest.fn(), createMany: jest.fn(), deleteMany: jest.fn() },
             taskComment: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
+            taskAttachment: { findFirst: jest.fn(), create: jest.fn(), delete: jest.fn() },
             taskActivity: { create: jest.fn(), createMany: jest.fn() },
             $transaction: jest.fn(),
           },
@@ -392,6 +394,56 @@ describe('TasksService', () => {
     expect(commentCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ taskId: 'task-1', userId: 'user-1', content: 'Hello', parentId: null }),
+      }),
+    )
+    expect(activityCreate).toHaveBeenCalled()
+    expect(eventPublisher.publish).toHaveBeenCalled()
+  })
+
+  it('creates an attachment for a task', async () => {
+    const taskFindFirst = jest.fn().mockResolvedValueOnce({ id: 'task-1' })
+    const attachmentCreate = jest.fn().mockResolvedValueOnce({ id: 'att-1' })
+    const activityCreate = jest.fn().mockResolvedValueOnce({ id: 'act-1' })
+
+    prisma.$transaction.mockImplementationOnce(async (fn: any) =>
+      fn({
+        task: { findFirst: taskFindFirst },
+        taskAttachment: { create: attachmentCreate },
+        taskActivity: { create: activityCreate },
+      }),
+    )
+
+    prisma.task.findFirst.mockResolvedValueOnce({
+      id: 'task-1',
+      workspaceId: 'ws-1',
+      projectId: 'proj-1',
+      phaseId: 'phase-1',
+      children: [],
+      relations: [],
+      relatedTo: [],
+      labels: [],
+      attachments: [],
+      comments: [],
+      activities: [],
+    })
+
+    await service.createAttachment('ws-1', 'user-1', 'task-1', {
+      fileName: 'spec.pdf',
+      fileUrl: '/uploads/task-attachments/spec.pdf',
+      fileType: 'application/pdf',
+      fileSize: 123,
+    })
+
+    expect(attachmentCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          taskId: 'task-1',
+          fileName: 'spec.pdf',
+          fileUrl: '/uploads/task-attachments/spec.pdf',
+          fileType: 'application/pdf',
+          fileSize: 123,
+          uploadedBy: 'user-1',
+        }),
       }),
     )
     expect(activityCreate).toHaveBeenCalled()
