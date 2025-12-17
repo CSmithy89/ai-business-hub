@@ -20,9 +20,13 @@ import { useAgents } from '@/hooks/use-agents'
 import { usePmTeam } from '@/hooks/use-pm-team'
 import {
   useCreatePmTask,
+  useCreatePmTaskRelation,
+  useDeletePmTaskRelation,
+  usePmTasks,
   usePmTask,
   useUpdatePmTask,
   type TaskPriority,
+  type TaskRelationType,
   type TaskStatus,
   type TaskType,
   type UpdateTaskInput,
@@ -40,6 +44,21 @@ const TASK_STATUSES: TaskStatus[] = [
   'DONE',
   'CANCELLED',
 ]
+
+const TASK_RELATION_OPTIONS: Array<{ value: TaskRelationType; label: string }> = [
+  { value: 'BLOCKS', label: 'Blocks' },
+  { value: 'BLOCKED_BY', label: 'Blocked by' },
+  { value: 'RELATES_TO', label: 'Relates to' },
+  { value: 'DUPLICATES', label: 'Duplicates' },
+]
+
+const TASK_RELATION_INVERSE: Partial<Record<TaskRelationType, TaskRelationType>> = {
+  BLOCKS: 'BLOCKED_BY',
+  BLOCKED_BY: 'BLOCKS',
+  DUPLICATES: 'DUPLICATED_BY',
+  DUPLICATED_BY: 'DUPLICATES',
+  RELATES_TO: 'RELATES_TO',
+}
 
 function formatDateLabel(value: string | null): string {
   if (!value) return 'No due date'
@@ -69,6 +88,8 @@ export function TaskDetailSheet({
 
   const createTask = useCreatePmTask()
   const updateTask = useUpdatePmTask()
+  const createRelation = useCreatePmTaskRelation()
+  const deleteRelation = useDeletePmTaskRelation()
 
   const team = usePmTeam(task?.projectId ?? '')
   const members = team.data?.data.members ?? []
@@ -80,6 +101,10 @@ export function TaskDetailSheet({
   const [storyPoints, setStoryPoints] = useState<string>('')
   const [subtaskTitle, setSubtaskTitle] = useState('')
   const [subtaskOpen, setSubtaskOpen] = useState(false)
+  const [relationOpen, setRelationOpen] = useState(false)
+  const [relationType, setRelationType] = useState<TaskRelationType>('BLOCKS')
+  const [relationSearch, setRelationSearch] = useState('')
+  const [relationTargetTaskId, setRelationTargetTaskId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!task) return
@@ -88,7 +113,23 @@ export function TaskDetailSheet({
     setStoryPoints(task.storyPoints === null ? '' : String(task.storyPoints))
     setSubtaskTitle('')
     setSubtaskOpen(false)
+    setRelationOpen(false)
+    setRelationType('BLOCKS')
+    setRelationSearch('')
+    setRelationTargetTaskId(null)
   }, [task?.id])
+
+  const relationSearchQuery = usePmTasks({
+    projectId: task?.projectId,
+    search: relationSearch.trim() ? relationSearch.trim() : undefined,
+    limit: 10,
+  })
+
+  const relationSearchResults = useMemo(() => {
+    if (!task?.projectId) return []
+    const candidates = relationSearchQuery.data?.data ?? []
+    return candidates.filter((candidate) => candidate.id !== task.id)
+  }, [relationSearchQuery.data?.data, task?.id, task?.projectId])
 
   const dueDate = useMemo(() => {
     if (!task?.dueDate) return undefined
@@ -119,6 +160,20 @@ export function TaskDetailSheet({
     const next = new URLSearchParams(searchParams.toString())
     next.set('taskId', nextTaskId)
     router.push(`${pathname}?${next.toString()}` as any)
+  }
+
+  async function handleAddRelation() {
+    if (!task) return
+    if (!relationTargetTaskId) return
+
+    await createRelation.mutateAsync({
+      taskId: task.id,
+      input: { targetTaskId: relationTargetTaskId, relationType },
+    })
+
+    setRelationSearch('')
+    setRelationTargetTaskId(null)
+    setRelationOpen(false)
   }
 
   async function handleCreateSubtask() {
@@ -470,6 +525,201 @@ export function TaskDetailSheet({
                 )}
               </div>
             ) : null}
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Relations</span>
+                  {task.isBlocked ? (
+                    <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
+                      Blocked
+                    </Badge>
+                  ) : null}
+                </div>
+                <Button type="button" size="sm" variant="outline" onClick={() => setRelationOpen((v) => !v)}>
+                  {relationOpen ? 'Cancel' : 'Add relation'}
+                </Button>
+              </div>
+
+              {relationOpen ? (
+                <div className="rounded-md border border-[rgb(var(--color-border-default))] p-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="flex flex-col gap-2">
+                      <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Type</span>
+                      <Select value={relationType} onValueChange={(value) => setRelationType(value as TaskRelationType)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TASK_RELATION_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Target task</span>
+                      <Input
+                        value={relationSearch}
+                        onChange={(e) => {
+                          setRelationSearch(e.target.value)
+                          setRelationTargetTaskId(null)
+                        }}
+                        placeholder="Search tasks…"
+                      />
+                    </div>
+                  </div>
+
+                  {relationSearch.trim() ? (
+                    <div className="mt-3 max-h-[180px] overflow-auto rounded-md border border-[rgb(var(--color-border-default))]">
+                      {relationSearchQuery.isLoading ? (
+                        <div className="p-3 text-sm text-[rgb(var(--color-text-secondary))]">Searching…</div>
+                      ) : relationSearchResults.length ? (
+                        <ul className="divide-y divide-[rgb(var(--color-border-default))]">
+                          {relationSearchResults.map((candidate) => (
+                            <li key={candidate.id}>
+                              <button
+                                type="button"
+                                className={cn(
+                                  'flex w-full items-center justify-between gap-3 px-3 py-2 text-left',
+                                  'hover:bg-[rgb(var(--color-bg-tertiary))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-primary-500))]',
+                                )}
+                                onClick={() => {
+                                  setRelationTargetTaskId(candidate.id)
+                                  setRelationSearch(`#${candidate.taskNumber} ${candidate.title}`)
+                                }}
+                              >
+                                <span className="truncate text-sm text-[rgb(var(--color-text-primary))]">
+                                  #{candidate.taskNumber} {candidate.title}
+                                </span>
+                                <span className="text-xs text-[rgb(var(--color-text-secondary))]">
+                                  {candidate.status.replace(/_/g, ' ')}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="p-3 text-sm text-[rgb(var(--color-text-secondary))]">No matches.</div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => void handleAddRelation()}
+                      disabled={!relationTargetTaskId || createRelation.isPending}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              {(() => {
+                const outgoing = task.relations ?? []
+                const outgoingKeys = new Set(outgoing.map((relation) => `${relation.targetTaskId}:${relation.relationType}`))
+
+                const incomingUnique =
+                  task.relatedTo?.filter((relation) => {
+                    const inferred = TASK_RELATION_INVERSE[relation.relationType] ?? relation.relationType
+                    const key = `${relation.sourceTaskId}:${inferred}`
+                    return !outgoingKeys.has(key)
+                  }) ?? []
+
+                if (!outgoing.length && !incomingUnique.length) {
+                  return <div className="text-sm text-[rgb(var(--color-text-secondary))]">No relations yet.</div>
+                }
+
+                return (
+                  <div className="rounded-md border border-[rgb(var(--color-border-default))]">
+                    <ul className="divide-y divide-[rgb(var(--color-border-default))]">
+                      {outgoing.map((relation) => {
+                        const related = relation.targetTask
+                        const label =
+                          TASK_RELATION_OPTIONS.find((option) => option.value === relation.relationType)?.label ??
+                          relation.relationType.replace(/_/g, ' ')
+
+                        return (
+                          <li key={relation.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                            <button
+                              type="button"
+                              className={cn(
+                                'min-w-0 flex-1 text-left',
+                                'hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-primary-500))]',
+                              )}
+                              onClick={() => (related ? openTask(related.id) : null)}
+                            >
+                              <div className="truncate text-sm font-medium text-[rgb(var(--color-text-primary))]">
+                                {label}:{' '}
+                                {related ? `#${related.taskNumber} ${related.title}` : relation.targetTaskId}
+                              </div>
+                              {related ? (
+                                <div className="mt-1 text-xs text-[rgb(var(--color-text-secondary))]">
+                                  {related.status.replace(/_/g, ' ')}
+                                </div>
+                              ) : null}
+                            </button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => deleteRelation.mutate({ taskId: task.id, relationId: relation.id })}
+                              disabled={deleteRelation.isPending}
+                              aria-label="Remove relation"
+                            >
+                              <X className="h-4 w-4" aria-hidden="true" />
+                            </Button>
+                          </li>
+                        )
+                      })}
+
+                      {incomingUnique.length ? (
+                        <li className="px-3 py-2 text-xs font-medium text-[rgb(var(--color-text-secondary))]">
+                          Incoming
+                        </li>
+                      ) : null}
+
+                      {incomingUnique.map((relation) => {
+                        const inferred = TASK_RELATION_INVERSE[relation.relationType] ?? relation.relationType
+                        const related = relation.sourceTask
+                        const label =
+                          TASK_RELATION_OPTIONS.find((option) => option.value === inferred)?.label ??
+                          inferred.replace(/_/g, ' ')
+
+                        return (
+                          <li key={relation.id} className="px-3 py-2">
+                            <button
+                              type="button"
+                              className={cn(
+                                'min-w-0 text-left',
+                                'hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-primary-500))]',
+                              )}
+                              onClick={() => (related ? openTask(related.id) : null)}
+                            >
+                              <div className="truncate text-sm font-medium text-[rgb(var(--color-text-primary))]">
+                                {label}:{' '}
+                                {related ? `#${related.taskNumber} ${related.title}` : relation.sourceTaskId}
+                              </div>
+                              {related ? (
+                                <div className="mt-1 text-xs text-[rgb(var(--color-text-secondary))]">
+                                  {related.status.replace(/_/g, ' ')}
+                                </div>
+                              ) : null}
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )
+              })()}
+            </div>
 
             <div className="flex flex-col gap-2">
               <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Due date</span>

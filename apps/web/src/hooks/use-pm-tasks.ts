@@ -82,6 +82,75 @@ export type TaskActivity = {
   createdAt: string
 }
 
+export type TaskRelationType =
+  | 'BLOCKS'
+  | 'BLOCKED_BY'
+  | 'RELATES_TO'
+  | 'DUPLICATES'
+  | 'DUPLICATED_BY'
+  | 'DEPENDS_ON'
+  | 'DEPENDENCY_OF'
+  | 'PARENT_OF'
+  | 'CHILD_OF'
+
+export type TaskRelationTaskSummary = {
+  id: string
+  taskNumber: number
+  title: string
+  status: TaskStatus
+  type: TaskType
+  priority: TaskPriority
+}
+
+export type TaskRelationOutgoing = {
+  id: string
+  sourceTaskId: string
+  targetTaskId: string
+  relationType: TaskRelationType
+  createdAt: string
+  createdBy: string
+  targetTask?: TaskRelationTaskSummary
+}
+
+export type TaskRelationIncoming = {
+  id: string
+  sourceTaskId: string
+  targetTaskId: string
+  relationType: TaskRelationType
+  createdAt: string
+  createdBy: string
+  sourceTask?: TaskRelationTaskSummary
+}
+
+export type TaskAttachment = {
+  id: string
+  taskId: string
+  fileName: string
+  fileUrl: string
+  fileType: string
+  fileSize: number
+  uploadedBy: string
+  uploadedAt: string
+}
+
+export type TaskComment = {
+  id: string
+  taskId: string
+  userId: string
+  content: string
+  parentId: string | null
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
+}
+
+export type TaskLabel = {
+  id: string
+  taskId: string
+  name: string
+  color: string
+}
+
 export type TaskParentSummary = {
   id: string
   parentId: string | null
@@ -114,6 +183,12 @@ export interface TaskDetailResponse {
     parent?: TaskParentSummary | null
     children: TaskChildSummary[]
     subtasks: SubtasksSummary
+    relations: TaskRelationOutgoing[]
+    relatedTo: TaskRelationIncoming[]
+    isBlocked?: boolean
+    labels: TaskLabel[]
+    attachments: TaskAttachment[]
+    comments: TaskComment[]
   }
 }
 
@@ -157,6 +232,11 @@ export type CreateTaskInput = {
   storyPoints?: number | null
   dueDate?: string | null
   parentId?: string | null
+}
+
+export type CreateTaskRelationInput = {
+  targetTaskId: string
+  relationType: TaskRelationType
 }
 
 async function fetchTasks(params: {
@@ -230,6 +310,84 @@ async function fetchTask(params: {
 
   if (!body || typeof body !== 'object' || !('data' in body)) {
     throw new Error('Failed to fetch task')
+  }
+
+  return body as TaskDetailResponse
+}
+
+async function createTaskRelation(params: {
+  workspaceId: string
+  token?: string
+  taskId: string
+  input: CreateTaskRelationInput
+}): Promise<TaskDetailResponse> {
+  const base = getBaseUrl()
+
+  const search = new URLSearchParams()
+  search.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(
+    `${base}/pm/tasks/${encodeURIComponent(params.taskId)}/relations?${search.toString()}`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+      },
+      body: JSON.stringify(params.input),
+      cache: 'no-store',
+    },
+  )
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to create relation')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to create relation')
+  }
+
+  return body as TaskDetailResponse
+}
+
+async function deleteTaskRelation(params: {
+  workspaceId: string
+  token?: string
+  taskId: string
+  relationId: string
+}): Promise<TaskDetailResponse> {
+  const base = getBaseUrl()
+
+  const search = new URLSearchParams()
+  search.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(
+    `${base}/pm/tasks/${encodeURIComponent(params.taskId)}/relations/${encodeURIComponent(params.relationId)}?${search.toString()}`,
+    {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: params.token ? { Authorization: `Bearer ${params.token}` } : {},
+      cache: 'no-store',
+    },
+  )
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to delete relation')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to delete relation')
   }
 
   return body as TaskDetailResponse
@@ -379,6 +537,52 @@ export function useCreatePmTask() {
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to create task'
+      toast.error(message)
+    },
+  })
+}
+
+export function useCreatePmTaskRelation() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ taskId, input }: { taskId: string; input: CreateTaskRelationInput }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return createTaskRelation({ workspaceId, token, taskId, input })
+    },
+    onSuccess: (result) => {
+      toast.success('Relation added')
+      queryClient.invalidateQueries({ queryKey: ['pm-task', workspaceId, result.data.id] })
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to create relation'
+      toast.error(message)
+    },
+  })
+}
+
+export function useDeletePmTaskRelation() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ taskId, relationId }: { taskId: string; relationId: string }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return deleteTaskRelation({ workspaceId, token, taskId, relationId })
+    },
+    onSuccess: (result) => {
+      toast.success('Relation removed')
+      queryClient.invalidateQueries({ queryKey: ['pm-task', workspaceId, result.data.id] })
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to delete relation'
       toast.error(message)
     },
   })

@@ -1,12 +1,25 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
-import { Prisma, TaskActivityType, TaskStatus } from '@prisma/client'
+import { Prisma, TaskActivityType, TaskRelationType, TaskStatus } from '@prisma/client'
 import { EventTypes } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
 import { EventPublisherService } from '../../events'
 import { BulkUpdateTasksDto } from './dto/bulk-update-tasks.dto'
+import { CreateTaskRelationDto } from './dto/create-task-relation.dto'
 import { CreateTaskDto } from './dto/create-task.dto'
 import { ListTasksQueryDto } from './dto/list-tasks.query.dto'
 import { UpdateTaskDto } from './dto/update-task.dto'
+
+const RELATION_INVERSE: Record<TaskRelationType, TaskRelationType> = {
+  BLOCKS: TaskRelationType.BLOCKED_BY,
+  BLOCKED_BY: TaskRelationType.BLOCKS,
+  DUPLICATES: TaskRelationType.DUPLICATED_BY,
+  DUPLICATED_BY: TaskRelationType.DUPLICATES,
+  RELATES_TO: TaskRelationType.RELATES_TO,
+  DEPENDS_ON: TaskRelationType.DEPENDENCY_OF,
+  DEPENDENCY_OF: TaskRelationType.DEPENDS_ON,
+  PARENT_OF: TaskRelationType.CHILD_OF,
+  CHILD_OF: TaskRelationType.PARENT_OF,
+}
 
 @Injectable()
 export class TasksService {
@@ -225,8 +238,24 @@ export class TasksService {
             updatedAt: true,
           },
         },
-        relations: true,
-        relatedTo: true,
+        relations: {
+          where: { targetTask: { deletedAt: null } },
+          include: {
+            targetTask: {
+              select: { id: true, taskNumber: true, title: true, status: true, type: true, priority: true },
+            },
+          },
+          orderBy: [{ relationType: 'asc' }, { createdAt: 'desc' }],
+        },
+        relatedTo: {
+          where: { sourceTask: { deletedAt: null } },
+          include: {
+            sourceTask: {
+              select: { id: true, taskNumber: true, title: true, status: true, type: true, priority: true },
+            },
+          },
+          orderBy: [{ relationType: 'asc' }, { createdAt: 'desc' }],
+        },
         labels: true,
         attachments: true,
         comments: {
@@ -244,7 +273,252 @@ export class TasksService {
     const childDone = task.children.filter((c) => c.status === TaskStatus.DONE).length
     const completionPercent = childTotal === 0 ? 0 : Math.round((childDone / childTotal) * 100)
 
-    return { data: { ...task, subtasks: { total: childTotal, done: childDone, completionPercent } } }
+    const isBlocked = task.relations.some((r) => r.relationType === TaskRelationType.BLOCKED_BY)
+      ? true
+      : task.relatedTo.some((r) => r.relationType === TaskRelationType.BLOCKS)
+
+    return {
+      data: { ...task, subtasks: { total: childTotal, done: childDone, completionPercent }, isBlocked },
+    }
+  }
+
+  async createRelation(workspaceId: string, actorId: string, taskId: string, dto: CreateTaskRelationDto) {
+    if (taskId === dto.targetTaskId) throw new BadRequestException('targetTaskId cannot be the same as taskId')
+
+    const allowed: Set<TaskRelationType> = new Set([
+      TaskRelationType.BLOCKS,
+      TaskRelationType.BLOCKED_BY,
+      TaskRelationType.RELATES_TO,
+      TaskRelationType.DUPLICATES,
+      TaskRelationType.DUPLICATED_BY,
+    ])
+
+    if (!allowed.has(dto.relationType)) {
+      throw new BadRequestException('relationType is not supported')
+    }
+
+    const inverseType = RELATION_INVERSE[dto.relationType] ?? dto.relationType
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const source = await tx.task.findFirst({
+        where: { id: taskId, workspaceId, deletedAt: null },
+        select: { id: true, projectId: true, phaseId: true },
+      })
+      if (!source) throw new NotFoundException('Task not found')
+
+      const target = await tx.task.findFirst({
+        where: { id: dto.targetTaskId, workspaceId, deletedAt: null },
+        select: { id: true, projectId: true, phaseId: true },
+      })
+      if (!target) throw new BadRequestException('targetTaskId is not a valid task')
+      if (target.projectId !== source.projectId) throw new BadRequestException('targetTaskId must be in the same project')
+
+      await tx.taskRelation.createMany({
+        data: [
+          {
+            sourceTaskId: source.id,
+            targetTaskId: target.id,
+            relationType: dto.relationType,
+            createdBy: actorId,
+          },
+          {
+            sourceTaskId: target.id,
+            targetTaskId: source.id,
+            relationType: inverseType,
+            createdBy: actorId,
+          },
+        ],
+        skipDuplicates: true,
+      })
+
+      await tx.taskActivity.createMany({
+        data: [
+          {
+            taskId: source.id,
+            userId: actorId,
+            type: TaskActivityType.RELATION_ADDED,
+            data: { targetTaskId: target.id, relationType: dto.relationType },
+          },
+          {
+            taskId: target.id,
+            userId: actorId,
+            type: TaskActivityType.RELATION_ADDED,
+            data: { targetTaskId: source.id, relationType: inverseType },
+          },
+        ],
+      })
+
+      const updated = await tx.task.findFirst({
+        where: { id: source.id, workspaceId, deletedAt: null },
+        include: {
+          parent: { select: { id: true, parentId: true, taskNumber: true, title: true } },
+          children: {
+            where: { deletedAt: null },
+            orderBy: [{ status: 'asc' }, { taskNumber: 'asc' }],
+            select: {
+              id: true,
+              taskNumber: true,
+              title: true,
+              status: true,
+              type: true,
+              priority: true,
+              assigneeId: true,
+              dueDate: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          relations: {
+            where: { targetTask: { deletedAt: null } },
+            include: {
+              targetTask: {
+                select: { id: true, taskNumber: true, title: true, status: true, type: true, priority: true },
+              },
+            },
+            orderBy: [{ relationType: 'asc' }, { createdAt: 'desc' }],
+          },
+          relatedTo: {
+            where: { sourceTask: { deletedAt: null } },
+            include: {
+              sourceTask: {
+                select: { id: true, taskNumber: true, title: true, status: true, type: true, priority: true },
+              },
+            },
+            orderBy: [{ relationType: 'asc' }, { createdAt: 'desc' }],
+          },
+          labels: true,
+          attachments: true,
+          comments: { where: { deletedAt: null }, orderBy: { createdAt: 'asc' } },
+          activities: { orderBy: { createdAt: 'desc' } },
+        },
+      })
+      if (!updated) throw new NotFoundException('Task not found')
+
+      const childTotal = updated.children.length
+      const childDone = updated.children.filter((c) => c.status === TaskStatus.DONE).length
+      const completionPercent = childTotal === 0 ? 0 : Math.round((childDone / childTotal) * 100)
+
+      const isBlocked = updated.relations.some((r) => r.relationType === TaskRelationType.BLOCKED_BY)
+        ? true
+        : updated.relatedTo.some((r) => r.relationType === TaskRelationType.BLOCKS)
+
+      return { ...updated, subtasks: { total: childTotal, done: childDone, completionPercent }, isBlocked }
+    })
+
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_UPDATED,
+      { taskId: taskId },
+      { tenantId: workspaceId, userId: actorId, source: 'api' },
+    )
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_UPDATED,
+      { taskId: dto.targetTaskId },
+      { tenantId: workspaceId, userId: actorId, source: 'api' },
+    )
+
+    return { data: created }
+  }
+
+  async deleteRelation(workspaceId: string, actorId: string, taskId: string, relationId: string) {
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      const relation = await tx.taskRelation.findFirst({
+        where: { id: relationId, sourceTaskId: taskId, sourceTask: { workspaceId, deletedAt: null } },
+        select: { id: true, sourceTaskId: true, targetTaskId: true, relationType: true },
+      })
+      if (!relation) throw new NotFoundException('Relation not found')
+
+      const inverseType = RELATION_INVERSE[relation.relationType] ?? relation.relationType
+
+      await tx.taskRelation.deleteMany({
+        where: {
+          OR: [
+            { sourceTaskId: relation.sourceTaskId, targetTaskId: relation.targetTaskId, relationType: relation.relationType },
+            { sourceTaskId: relation.targetTaskId, targetTaskId: relation.sourceTaskId, relationType: inverseType },
+          ],
+        },
+      })
+
+      await tx.taskActivity.createMany({
+        data: [
+          {
+            taskId: relation.sourceTaskId,
+            userId: actorId,
+            type: TaskActivityType.RELATION_REMOVED,
+            data: { targetTaskId: relation.targetTaskId, relationType: relation.relationType },
+          },
+          {
+            taskId: relation.targetTaskId,
+            userId: actorId,
+            type: TaskActivityType.RELATION_REMOVED,
+            data: { targetTaskId: relation.sourceTaskId, relationType: inverseType },
+          },
+        ],
+      })
+
+      const updated = await tx.task.findFirst({
+        where: { id: relation.sourceTaskId, workspaceId, deletedAt: null },
+        include: {
+          parent: { select: { id: true, parentId: true, taskNumber: true, title: true } },
+          children: {
+            where: { deletedAt: null },
+            orderBy: [{ status: 'asc' }, { taskNumber: 'asc' }],
+            select: {
+              id: true,
+              taskNumber: true,
+              title: true,
+              status: true,
+              type: true,
+              priority: true,
+              assigneeId: true,
+              dueDate: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          relations: {
+            where: { targetTask: { deletedAt: null } },
+            include: {
+              targetTask: {
+                select: { id: true, taskNumber: true, title: true, status: true, type: true, priority: true },
+              },
+            },
+            orderBy: [{ relationType: 'asc' }, { createdAt: 'desc' }],
+          },
+          relatedTo: {
+            where: { sourceTask: { deletedAt: null } },
+            include: {
+              sourceTask: {
+                select: { id: true, taskNumber: true, title: true, status: true, type: true, priority: true },
+              },
+            },
+            orderBy: [{ relationType: 'asc' }, { createdAt: 'desc' }],
+          },
+          labels: true,
+          attachments: true,
+          comments: { where: { deletedAt: null }, orderBy: { createdAt: 'asc' } },
+          activities: { orderBy: { createdAt: 'desc' } },
+        },
+      })
+      if (!updated) throw new NotFoundException('Task not found')
+
+      const childTotal = updated.children.length
+      const childDone = updated.children.filter((c) => c.status === TaskStatus.DONE).length
+      const completionPercent = childTotal === 0 ? 0 : Math.round((childDone / childTotal) * 100)
+
+      const isBlocked = updated.relations.some((r) => r.relationType === TaskRelationType.BLOCKED_BY)
+        ? true
+        : updated.relatedTo.some((r) => r.relationType === TaskRelationType.BLOCKS)
+
+      return { ...updated, subtasks: { total: childTotal, done: childDone, completionPercent }, isBlocked }
+    })
+
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_UPDATED,
+      { taskId: taskId },
+      { tenantId: workspaceId, userId: actorId, source: 'api' },
+    )
+
+    return { data: deleted }
   }
 
   async update(workspaceId: string, actorId: string, id: string, dto: UpdateTaskDto) {

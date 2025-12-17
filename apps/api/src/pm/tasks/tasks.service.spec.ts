@@ -15,6 +15,7 @@ type PrismaMock = {
     update: jest.Mock
     updateMany: jest.Mock
   }
+  taskRelation: { findFirst: jest.Mock; createMany: jest.Mock; deleteMany: jest.Mock }
   taskActivity: { create: jest.Mock; createMany: jest.Mock }
   $transaction: jest.Mock
 }
@@ -41,6 +42,7 @@ describe('TasksService', () => {
               update: jest.fn(),
               updateMany: jest.fn(),
             },
+            taskRelation: { findFirst: jest.fn(), createMany: jest.fn(), deleteMany: jest.fn() },
             taskActivity: { create: jest.fn(), createMany: jest.fn() },
             $transaction: jest.fn(),
           },
@@ -298,5 +300,61 @@ describe('TasksService', () => {
     expect(activityCreateMany).toHaveBeenCalled()
     expect(eventPublisher.publish).toHaveBeenCalled()
     expect(result.data.count).toBe(2)
+  })
+
+  it('creates an inverse relation when creating BLOCKS', async () => {
+    const taskFindFirst = jest
+      .fn()
+      // source task
+      .mockResolvedValueOnce({ id: 'task-a', workspaceId: 'ws-1', projectId: 'proj-1', phaseId: 'phase-1' })
+      // target task
+      .mockResolvedValueOnce({ id: 'task-b', workspaceId: 'ws-1', projectId: 'proj-1', phaseId: 'phase-1' })
+      // updated source task
+      .mockResolvedValueOnce({
+        id: 'task-a',
+        projectId: 'proj-1',
+        phaseId: 'phase-1',
+        children: [],
+        relations: [{ relationType: 'BLOCKS' }],
+        relatedTo: [],
+      })
+
+    const relationCreateMany = jest.fn().mockResolvedValueOnce({ count: 2 })
+    const activityCreateMany = jest.fn().mockResolvedValueOnce({ count: 2 })
+
+    prisma.$transaction.mockImplementationOnce(async (fn: any) =>
+      fn({
+        task: { findFirst: taskFindFirst },
+        taskRelation: { createMany: relationCreateMany },
+        taskActivity: { createMany: activityCreateMany },
+      }),
+    )
+
+    await service.createRelation('ws-1', 'user-1', 'task-a', {
+      targetTaskId: 'task-b',
+      relationType: 'BLOCKS' as any,
+    })
+
+    expect(relationCreateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            sourceTaskId: 'task-a',
+            targetTaskId: 'task-b',
+            relationType: 'BLOCKS',
+            createdBy: 'user-1',
+          }),
+          expect.objectContaining({
+            sourceTaskId: 'task-b',
+            targetTaskId: 'task-a',
+            relationType: 'BLOCKED_BY',
+            createdBy: 'user-1',
+          }),
+        ]),
+        skipDuplicates: true,
+      }),
+    )
+    expect(activityCreateMany).toHaveBeenCalled()
+    expect(eventPublisher.publish).toHaveBeenCalled()
   })
 })

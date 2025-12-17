@@ -19,6 +19,7 @@ import { RolesGuard } from '../../common/guards/roles.guard'
 import { TenantGuard } from '../../common/guards/tenant.guard'
 import { BulkUpdateTasksDto } from './dto/bulk-update-tasks.dto'
 import { CreateTaskDto } from './dto/create-task.dto'
+import { CreateTaskRelationDto } from './dto/create-task-relation.dto'
 import { ListTasksQueryDto } from './dto/list-tasks.query.dto'
 import { UpdateTaskDto } from './dto/update-task.dto'
 import { TasksService } from './tasks.service'
@@ -91,5 +92,31 @@ export class TasksController {
   async deleteTask(@CurrentWorkspace() workspaceId: string, @Param('id') id: string, @CurrentUser() actor: any) {
     return this.tasksService.softDelete(workspaceId, actor.id, id)
   }
-}
 
+  @Post(':id/relations')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Create a task relation (and inverse where applicable)' })
+  @ApiParam({ name: 'id', description: 'Task ID (source)' })
+  async createRelation(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: CreateTaskRelationDto,
+    @CurrentUser() actor: any,
+  ) {
+    return this.tasksService.createRelation(workspaceId, actor.id, id, dto)
+  }
+
+  @Delete(':id/relations/:relationId')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Remove a task relation (and inverse where applicable)' })
+  @ApiParam({ name: 'id', description: 'Task ID (source)' })
+  @ApiParam({ name: 'relationId', description: 'TaskRelation ID' })
+  async deleteRelation(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Param('relationId') relationId: string,
+    @CurrentUser() actor: any,
+  ) {
+    return this.tasksService.deleteRelation(workspaceId, actor.id, id, relationId)
+  }
+}
