@@ -4,6 +4,17 @@
 
 **FRs Covered:** KB-F1, KB-F2, KB-F3
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| KB-01.3: Rich Text Editor | KB-02 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-02_page_editor/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-02_page_editor/screen.png) |
+| KB-01.5: Page Tree Navigation | KB-01 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-01_page_tree_navigation/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-01_page_tree_navigation/screen.png) |
+| KB-01.7: Full-Text Search | KB-04 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-04_search_results/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-04_search_results/screen.png) |
+| KB-01.9: Project-KB Linking | KB-08 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-08_project_linking/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-08_project_linking/screen.png) |
+| Version History | KB-06 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-06_page_version_history/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-06_page_version_history/screen.png) |
+| Page Viewer | KB-03 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-03_page_viewer/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-03_page_viewer/screen.png) |
+
 ---
 
 ### Story KB-01.1: KB Data Model & API

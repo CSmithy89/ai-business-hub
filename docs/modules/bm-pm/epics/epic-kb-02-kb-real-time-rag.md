@@ -4,6 +4,14 @@
 
 **FRs Covered:** KB-F4, KB-F6
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| KB-02: Presence Cursors | KB-09 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-09_presence_cursors/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-09_presence_cursors/screen.png) |
+| KB-02: Real-time Cursors | RT-01 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/rt-01_real-time_cursors/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/rt-01_real-time_cursors/screen.png) |
+| KB-02: AI Q&A Chat | KB-13 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-13_ai_q%26a_chat_interface/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-13_ai_q%26a_chat_interface/screen.png) |
+
 ---
 
 ### Story KB-02.1: Hocuspocus Server Setup

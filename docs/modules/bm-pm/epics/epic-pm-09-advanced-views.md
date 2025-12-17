@@ -4,6 +4,14 @@
 
 **FRs Covered:** FR-4.4, FR-4.6
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| PM-09.1: Timeline/Gantt | PM-06 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-06_timeline/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-06_timeline/screen.png) |
+| PM-09.2: Portfolio Dashboard | PM-27 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-27_executive_portfolio_dashboard/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-27_executive_portfolio_dashboard/screen.png) |
+| PM-09.3: Dependency Editor | PM-25 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-25_visual_dependency_editor/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-25_visual_dependency_editor/screen.png) |
+
 ---
 
 ### Story PM-09.1: Timeline View (Gantt)

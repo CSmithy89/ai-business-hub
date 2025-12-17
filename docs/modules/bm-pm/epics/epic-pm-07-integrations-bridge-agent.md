@@ -4,6 +4,13 @@
 
 **FRs Covered:** FR-8.1, FR-8.3, FR-8.4
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| PM-07.2: CSV Import | PM-30 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-30_csv_import_wizard/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-30_csv_import_wizard/screen.png) |
+| PM-07.3: GitHub Integration | PM-29 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-29_github/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-29_github/screen.png) |
+
 ---
 
 ### Story PM-07.1: CSV Export

@@ -4,6 +4,13 @@
 
 **FRs Covered:** FR-6 (advanced)
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| PM-08: Predictive Analytics Dashboard | PM-33 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-33_predictive_analytics_(prism)/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-33_predictive_analytics_(prism)/screen.png) |
+| PM-08: Reports Dashboard | PM-15 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-15_project_reports/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-15_project_reports/screen.png) |
+
 ---
 
 ### Story PM-08.1: Prism Agent Foundation

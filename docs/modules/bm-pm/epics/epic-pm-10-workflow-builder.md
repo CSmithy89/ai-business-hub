@@ -2,6 +2,12 @@
 
 **Goal:** Users can create custom workflows and automations for their projects.
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| PM-10.1: Workflow Builder UI | PM-32 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-32_workflow_builder/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-32_workflow_builder/screen.png) |
+
 ---
 
 ### Story PM-10.1: Workflow Builder UI

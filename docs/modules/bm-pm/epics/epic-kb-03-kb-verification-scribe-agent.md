@@ -4,6 +4,14 @@
 
 **FRs Covered:** KB-F5, KB-F7
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| KB-03.1: Verification System | KB-05 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-05_verified_content_management/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-05_verified_content_management/screen.png) |
+| KB-03: Scribe Panel | KB-10 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-10_scribe_panel/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-10_scribe_panel/screen.png) |
+| KB-03: Comments | KB-07 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-07_page_comments/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-07_page_comments/screen.png) |
+
 ---
 
 ### Story KB-03.1: Verification System

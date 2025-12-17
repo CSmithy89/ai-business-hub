@@ -4,6 +4,16 @@
 
 **FRs Covered:** FR-1, FR-2
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| PM-01.3: Projects List | PM-01 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-01_projects_list_view/screen.png) |
+| PM-01.5: Project Detail | PM-02 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-02_project_detail_overview/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-02_project_detail_overview/screen.png) |
+| PM-01.6: Project Settings | PM-10 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-10_project_settings/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-10_project_settings/screen.png) |
+| PM-01.7: BMAD Phases | PM-21 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-21_bmad_phase_view/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-21_bmad_phase_view/screen.png) |
+| Project Templates | PM-14 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-14_project_templates/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-14_project_templates/screen.png) |
+
 ---
 
 ### Story PM-01.1: Project Data Model & API

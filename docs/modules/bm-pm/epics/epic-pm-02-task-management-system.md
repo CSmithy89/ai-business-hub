@@ -4,6 +4,15 @@
 
 **FRs Covered:** FR-3
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| PM-02.2: Task Detail Panel | PM-05 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-05_task_detail_modal/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-05_task_detail_modal/screen.png) |
+| PM-02.8: Kanban View | PM-03 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/screen.png) |
+| PM-02: Dependencies | PM-25 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-25_visual_dependency_editor/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-25_visual_dependency_editor/screen.png) |
+| Task Templates | PM-35 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-35_task_templates_library/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-35_task_templates_library/screen.png) |
+
 ---
 
 ### Story PM-02.1: Task Data Model & API
