@@ -120,6 +120,10 @@ export const EventTypes = {
   PM_PHASE_CREATED: 'pm.phase.created',
   PM_PHASE_UPDATED: 'pm.phase.updated',
   PM_PHASE_TRANSITIONED: 'pm.phase.transitioned',
+
+  PM_TEAM_MEMBER_ADDED: 'pm.team.member_added',
+  PM_TEAM_MEMBER_UPDATED: 'pm.team.member_updated',
+  PM_TEAM_MEMBER_REMOVED: 'pm.team.member_removed',
 } as const;
 
 /**

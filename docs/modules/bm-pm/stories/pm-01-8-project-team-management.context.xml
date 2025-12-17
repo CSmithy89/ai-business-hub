@@ -1,0 +1,38 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-01</epicId>
+    <storyId>pm-01-8</storyId>
+    <title>Project Team Management</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-01-8-project-team-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>project lead</asA>
+    <iWant>to manage my project team</iWant>
+    <soThat>I can assign roles and control access</soThat>
+    <tasks>
+      - Add PM team CRUD endpoints for members
+      - Join WorkspaceMember user details for display
+      - Implement Team tab UI with add/edit/remove and reassignment
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    - Team tab shows members with avatar, role, capacity.
+    - Lead can add/edit/remove members with permissions.
+    - Removal enforces reassignment when tasks are assigned.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <code>
+      - apps/api/src/pm/team/* (controllers, services, DTOs)
+      - apps/web/src/app/(dashboard)/dashboard/pm/[slug]/team/* (Team tab UI)
+      - apps/web/src/hooks/use-pm-team.ts (team queries/mutations)
+      - apps/web/src/hooks/use-workspace-members.ts (workspace member list)
+    </code>
+  </artifacts>
+</story-context>
+
