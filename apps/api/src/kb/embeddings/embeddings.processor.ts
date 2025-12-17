@@ -5,7 +5,7 @@ import { KB_EMBEDDINGS_QUEUE, KB_EMBEDDINGS_JOB_NAME } from './embeddings.consta
 import type { GeneratePageEmbeddingsJobData } from './embeddings.types'
 import { EmbeddingsService } from './embeddings.service'
 
-@Processor(KB_EMBEDDINGS_QUEUE)
+@Processor(KB_EMBEDDINGS_QUEUE, { concurrency: 1 })
 export class EmbeddingsProcessor extends WorkerHost {
   private readonly logger = new Logger(EmbeddingsProcessor.name)
 
@@ -35,4 +35,3 @@ export class EmbeddingsProcessor extends WorkerHost {
     await this.embeddingsService.generateAndStorePageEmbeddings(job.data)
   }
 }
-

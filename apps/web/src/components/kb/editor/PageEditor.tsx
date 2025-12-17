@@ -1,7 +1,7 @@
 'use client'
 
 import { useEditor, EditorContent } from '@tiptap/react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createExtensions } from './extensions'
 import { EditorToolbar } from './EditorToolbar'
 import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
@@ -28,7 +28,7 @@ interface PageEditorProps {
 export function PageEditor({ pageId, initialContent, onSave, placeholder, collaboration }: PageEditorProps) {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [saveTimeoutId, setSaveTimeoutId] = useState<NodeJS.Timeout | null>(null)
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [collabStatus, setCollabStatus] = useState<WebSocketStatus>(WebSocketStatus.Disconnected)
   const [provider, setProvider] = useState<HocuspocusProvider | null>(null)
   const [isSynced, setIsSynced] = useState(false)
@@ -157,8 +157,8 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
     }
 
     // Clear existing timeout
-    if (saveTimeoutId) {
-      clearTimeout(saveTimeoutId)
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
     }
 
     // Set new timeout
@@ -166,15 +166,13 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
       debouncedSave()
     }, 2000)
 
-    setSaveTimeoutId(newTimeoutId)
+    saveTimeoutRef.current = newTimeoutId
 
     // Cleanup
     return () => {
-      if (newTimeoutId) {
-        clearTimeout(newTimeoutId)
-      }
+      clearTimeout(newTimeoutId)
     }
-  }, [hasUnsavedChanges, debouncedSave, saveTimeoutId])
+  }, [hasUnsavedChanges, debouncedSave])
 
   // Manual save (Cmd+S / Ctrl+S)
   useEffect(() => {
@@ -183,9 +181,9 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
         e.preventDefault()
         if (editor && hasUnsavedChanges) {
           // Clear any pending auto-save to prevent race condition
-          if (saveTimeoutId) {
-            clearTimeout(saveTimeoutId)
-            setSaveTimeoutId(null)
+          if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current)
+            saveTimeoutRef.current = null
           }
           setSaveStatus('saving')
           onSave(editor.getJSON())
@@ -203,7 +201,7 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [editor, hasUnsavedChanges, onSave, saveTimeoutId])
+  }, [editor, hasUnsavedChanges, onSave])
 
   // Warn on navigation with unsaved changes
   useEffect(() => {

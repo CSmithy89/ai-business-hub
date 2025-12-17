@@ -28,6 +28,7 @@ describe('RagService', () => {
         embeddings: [Array.from({ length: 1536 }, () => 0.01)],
         providerType: 'openai',
       }),
+      getEmbeddingDims: jest.fn().mockReturnValue(1536),
     }
 
     const service = new RagService(prisma as any, embeddingsService as any)
@@ -45,4 +46,3 @@ describe('RagService', () => {
     expect(result.context).toContain('Beta chunk')
   })
 })
-

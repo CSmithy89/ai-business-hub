@@ -37,7 +37,8 @@ export class RagService {
       throw new BadRequestException('No valid embeddings provider configured for RAG queries')
     }
 
-    const queryVectorText = vectorToPgvectorText(embedded.embeddings[0] ?? [], 1536)
+    const dims = this.embeddingsService.getEmbeddingDims()
+    const queryVectorText = vectorToPgvectorText(embedded.embeddings[0] ?? [], dims)
     const pageIds = Array.isArray(dto.pageIds) ? dto.pageIds.filter(Boolean) : []
     const pageIdFilter =
       pageIds.length > 0
@@ -60,7 +61,7 @@ export class RagService {
         pe.chunk_text,
         kp.title,
         kp.slug,
-        (pe.embedding <=> ${queryVectorText}::vector(1536)) AS distance
+        (pe.embedding <=> ${queryVectorText}::vector(${dims})) AS distance
       FROM page_embeddings pe
       INNER JOIN knowledge_pages kp ON kp.id = pe.page_id
       WHERE

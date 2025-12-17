@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../common/services/prisma.service'
 import { SearchQueryDto } from './dto/search-query.dto'
 import { SemanticSearchDto } from './dto/semantic-search.dto'
@@ -91,7 +92,11 @@ export class SearchService {
 
       // Build breadcrumb paths for all results in a single batch query
       const pageIds = rawResults.map((r) => r.id)
-      const breadcrumbMap = await this.buildBreadcrumbPathsBatch(pageIds)
+      const breadcrumbMap = await this.buildBreadcrumbPathsBatch(
+        tenantId,
+        workspaceId,
+        pageIds,
+      )
 
       const results: SearchResult[] = rawResults.map((row) => {
         const path = breadcrumbMap.get(row.id) || []
@@ -131,7 +136,8 @@ export class SearchService {
       throw new BadRequestException('No valid embeddings provider configured for semantic search')
     }
 
-    const queryVectorText = vectorToPgvectorText(embedded.embeddings[0] ?? [], 1536)
+    const dims = this.embeddingsService.getEmbeddingDims()
+    const queryVectorText = vectorToPgvectorText(embedded.embeddings[0] ?? [], dims)
 
     const rawResults = await this.prisma.$queryRaw<
       Array<{
@@ -147,13 +153,13 @@ export class SearchService {
         SELECT
           pe.page_id,
           kp.title,
-          kp.slug,
-          kp.updated_at,
-          pe.chunk_text AS snippet,
-          (pe.embedding <=> ${queryVectorText}::vector(1536)) AS distance,
+        kp.slug,
+        kp.updated_at,
+        pe.chunk_text AS snippet,
+          (pe.embedding <=> ${queryVectorText}::vector(${dims})) AS distance,
           ROW_NUMBER() OVER (
             PARTITION BY pe.page_id
-            ORDER BY (pe.embedding <=> ${queryVectorText}::vector(1536)) ASC
+            ORDER BY (pe.embedding <=> ${queryVectorText}::vector(${dims})) ASC
           ) AS chunk_rank
         FROM page_embeddings pe
         INNER JOIN knowledge_pages kp ON kp.id = pe.page_id
@@ -180,9 +186,13 @@ export class SearchService {
         AND kp.deleted_at IS NULL
     `
 
-    const total = Number(countResult[0]?.count || 0)
-    const pageIds = rawResults.map((r) => r.page_id)
-    const breadcrumbMap = await this.buildBreadcrumbPathsBatch(pageIds)
+      const total = Number(countResult[0]?.count || 0)
+      const pageIds = rawResults.map((r) => r.page_id)
+      const breadcrumbMap = await this.buildBreadcrumbPathsBatch(
+        tenantId,
+        workspaceId,
+        pageIds,
+      )
 
     const results: SearchResult[] = rawResults.map((row) => {
       const path = breadcrumbMap.get(row.page_id) || []
@@ -210,66 +220,67 @@ export class SearchService {
    * Fetches all necessary pages iteratively and builds paths in memory.
    */
   private async buildBreadcrumbPathsBatch(
+    tenantId: string,
+    workspaceId: string,
     pageIds: string[],
   ): Promise<Map<string, string[]>> {
     if (pageIds.length === 0) {
       return new Map()
     }
 
-    // Fetch initial pages and their parents
-    const pageMap = new Map<string, { title: string; parentId: string | null }>()
-    const idsToFetch = new Set(pageIds)
     const maxDepth = 10
-    let depth = 0
+    const uniquePageIds = Array.from(new Set(pageIds))
 
-    // Iteratively fetch pages until we have all ancestors or hit max depth
-    while (idsToFetch.size > 0 && depth < maxDepth) {
-      const ids = Array.from(idsToFetch)
-      idsToFetch.clear()
+    const rows = await this.prisma.$queryRaw<
+      Array<{ origin_id: string; path: string[] | null }>
+    >(Prisma.sql`
+      WITH RECURSIVE ancestors AS (
+        SELECT
+          kp.id,
+          kp.title,
+          kp.parent_id,
+          kp.id AS origin_id,
+          ARRAY[kp.id] AS visited,
+          0 AS depth
+        FROM knowledge_pages kp
+        WHERE kp.id IN (${Prisma.join(uniquePageIds)})
+          AND kp.tenant_id = ${tenantId}
+          AND kp.workspace_id = ${workspaceId}
+          AND kp.deleted_at IS NULL
 
-      const pages = await this.prisma.knowledgePage.findMany({
-        where: {
-          id: { in: ids },
-          deletedAt: null,
-        },
-        select: { id: true, title: true, parentId: true },
-      })
+        UNION ALL
 
-      for (const page of pages) {
-        if (!pageMap.has(page.id)) {
-          pageMap.set(page.id, { title: page.title, parentId: page.parentId })
-          // Queue parent for fetching if we haven't seen it yet
-          if (page.parentId && !pageMap.has(page.parentId)) {
-            idsToFetch.add(page.parentId)
-          }
-  }
-}
+        SELECT
+          parent.id,
+          parent.title,
+          parent.parent_id,
+          ancestors.origin_id,
+          ancestors.visited || parent.id,
+          ancestors.depth + 1
+        FROM ancestors
+        JOIN knowledge_pages parent ON parent.id = ancestors.parent_id
+        WHERE ancestors.parent_id IS NOT NULL
+          AND ancestors.depth < ${maxDepth}
+          AND parent.tenant_id = ${tenantId}
+          AND parent.workspace_id = ${workspaceId}
+          AND parent.deleted_at IS NULL
+          AND NOT (parent.id = ANY(ancestors.visited))
+      )
+      SELECT
+        origin_id,
+        ARRAY_AGG(title ORDER BY depth DESC) AS path
+      FROM ancestors
+      GROUP BY origin_id
+    `)
 
-      depth += 1
+    const result = new Map<string, string[]>()
+    for (const row of rows) {
+      result.set(row.origin_id, row.path ?? [])
     }
 
-    // Build breadcrumb paths from the fetched data
-    const result = new Map<string, string[]>()
-
-    for (const pageId of pageIds) {
-      const path: string[] = []
-      let currentId: string | null = pageId
-      let pathDepth = 0
-      const visited = new Set<string>()
-
-      while (currentId && pathDepth < maxDepth) {
-        if (visited.has(currentId)) break
-        visited.add(currentId)
-
-        const page = pageMap.get(currentId)
-        if (!page) break
-
-        path.unshift(page.title)
-        currentId = page.parentId
-        pathDepth += 1
-      }
-
-      result.set(pageId, path)
+    // Ensure all requested ids exist in map (even if missing/deleted)
+    for (const id of pageIds) {
+      if (!result.has(id)) result.set(id, [])
     }
 
     return result

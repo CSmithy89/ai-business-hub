@@ -15,6 +15,11 @@ import {
   getOpenAiCompatibleBaseUrl,
   vectorToPgvectorText,
 } from './embeddings.utils'
+import {
+  assertKbEmbeddingsDimsSupported,
+  getKbEmbeddingsDims,
+  getKbEmbeddingsModel,
+} from './embeddings.config'
 
 type OpenAiEmbeddingsResponse = {
   data: Array<{ embedding: number[]; index: number }>
@@ -24,9 +29,8 @@ type OpenAiEmbeddingsResponse = {
 export class EmbeddingsService {
   private readonly logger = new Logger(EmbeddingsService.name)
 
-  private readonly expectedDims = 1536
-  private readonly embeddingModel =
-    process.env.KB_EMBEDDINGS_MODEL || 'text-embedding-3-small'
+  private readonly embeddingDims = getKbEmbeddingsDims()
+  private readonly embeddingModel = getKbEmbeddingsModel()
 
   constructor(
     private readonly prisma: PrismaService,
@@ -35,15 +39,40 @@ export class EmbeddingsService {
     private readonly queue: Queue,
   ) {}
 
+  getEmbeddingDims(): number {
+    return this.embeddingDims
+  }
+
   async enqueuePageEmbeddings(data: GeneratePageEmbeddingsJobData): Promise<void> {
     const enabled = process.env.KB_EMBEDDINGS_ENABLED !== 'false'
     if (!enabled) return
 
-    await this.queue.add(KB_EMBEDDINGS_JOB_NAME, data, {
-      removeOnComplete: true,
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 5_000 },
-    })
+    assertKbEmbeddingsDimsSupported(this.embeddingDims)
+
+    const jobId = `kb-embeddings:${data.tenantId}:${data.workspaceId}:${data.pageId}`
+    const delay = data.reason === 'updated' ? 5_000 : 0
+
+    try {
+      await this.queue.add(KB_EMBEDDINGS_JOB_NAME, data, {
+        jobId,
+        delay,
+        removeOnComplete: true,
+        removeOnFail: 100,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5_000 },
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (!message.toLowerCase().includes('already exists')) throw error
+
+      const existing = await this.queue.getJob(jobId)
+      if (!existing) return
+
+      await existing.updateData(data)
+      if (delay > 0) {
+        await existing.changeDelay(delay)
+      }
+    }
   }
 
   async embedTextsForWorkspace(
@@ -52,6 +81,7 @@ export class EmbeddingsService {
   ): Promise<{ embeddings: number[][]; providerType: OpenAiCompatibleProvider } | null> {
     const enabled = process.env.KB_EMBEDDINGS_ENABLED !== 'false'
     if (!enabled) return null
+    assertKbEmbeddingsDimsSupported(this.embeddingDims)
 
     const { providerId, providerType, apiKey } =
       await this.getEmbeddingsProvider(workspaceId)
@@ -79,6 +109,7 @@ export class EmbeddingsService {
   async generateAndStorePageEmbeddings(data: GeneratePageEmbeddingsJobData): Promise<void> {
     const enabled = process.env.KB_EMBEDDINGS_ENABLED !== 'false'
     if (!enabled) return
+    assertKbEmbeddingsDimsSupported(this.embeddingDims)
 
     const { tenantId, workspaceId, pageId } = data
 
@@ -92,10 +123,14 @@ export class EmbeddingsService {
       return
     }
 
+    const maxWords = Number.parseInt(process.env.KB_EMBEDDINGS_MAX_WORDS ?? '', 10)
+    const overlapWords = Number.parseInt(process.env.KB_EMBEDDINGS_OVERLAP_WORDS ?? '', 10)
+    const maxChunks = Number.parseInt(process.env.KB_EMBEDDINGS_MAX_CHUNKS ?? '', 10)
+
     const chunks = chunkTextByWords(page.contentText, {
-      maxWords: 250,
-      overlapWords: 30,
-      maxChunks: 200,
+      maxWords: Number.isFinite(maxWords) ? maxWords : 250,
+      overlapWords: Number.isFinite(overlapWords) ? overlapWords : 30,
+      maxChunks: Number.isFinite(maxChunks) ? maxChunks : 200,
     })
 
     if (chunks.length === 0) {
@@ -126,10 +161,13 @@ export class EmbeddingsService {
         pageId,
         chunkIndex,
         chunkText,
-        embeddingText: vectorToPgvectorText(embeddings[chunkIndex], this.expectedDims),
+        embeddingText: vectorToPgvectorText(embeddings[chunkIndex], this.embeddingDims),
       }))
 
-      const batchSize = 25
+      const rawDbBatchSize = Number.parseInt(process.env.KB_EMBEDDINGS_DB_BATCH_SIZE ?? '', 10)
+      const batchSize = Number.isFinite(rawDbBatchSize)
+        ? Math.min(Math.max(rawDbBatchSize, 1), 25)
+        : 10
       for (let start = 0; start < rows.length; start += batchSize) {
         const batch = rows.slice(start, start + batchSize)
         const valuesSql = batch.map((row) => Prisma.sql`(
@@ -137,7 +175,7 @@ export class EmbeddingsService {
           ${row.pageId},
           ${row.chunkIndex},
           ${row.chunkText},
-          ${row.embeddingText}::vector(${this.expectedDims}),
+          ${row.embeddingText}::vector(${this.embeddingDims}),
           ${this.embeddingModel},
           ${createdAt}
         )`)
@@ -202,6 +240,12 @@ export class EmbeddingsService {
     const results: number[][] = []
     const batchSize = 64
 
+    const breakerKey = `${baseUrl}:${model}`
+    const breaker = this.breakers.get(breakerKey) ?? { failures: 0, openUntil: 0 }
+    if (breaker.openUntil > Date.now()) {
+      throw new BadRequestException('Embeddings temporarily unavailable. Please retry shortly.')
+    }
+
     for (let start = 0; start < texts.length; start += batchSize) {
       const input = texts.slice(start, start + batchSize)
 
@@ -215,10 +259,41 @@ export class EmbeddingsService {
       })
 
       if (!response.ok) {
+        const status = response.status
         const body = await response.text().catch(() => '')
-        throw new BadRequestException(
-          `Embeddings request failed (${response.status}): ${body}`,
-        )
+
+        // Avoid leaking provider response bodies in production
+        if (process.env.NODE_ENV !== 'production') {
+          const redacted = body
+            .replace(/Bearer\\s+[^\\s\"']+/gi, 'Bearer [REDACTED]')
+            .replace(/sk-[A-Za-z0-9_-]{10,}/g, 'sk-[REDACTED]')
+            .slice(0, 500)
+          this.logger.warn({
+            message: 'Embeddings request failed',
+            status,
+            providerBaseUrl: baseUrl,
+            model,
+            body: redacted,
+          })
+        } else {
+          this.logger.warn({
+            message: 'Embeddings request failed',
+            status,
+            providerBaseUrl: baseUrl,
+            model,
+          })
+        }
+
+        if (status === 429 || status >= 500) {
+          const nextFailures = breaker.failures + 1
+          const openForMs = Math.min(60_000, nextFailures * 10_000)
+          this.breakers.set(breakerKey, {
+            failures: nextFailures,
+            openUntil: Date.now() + openForMs,
+          })
+        }
+
+        throw new BadRequestException('Embeddings provider request failed')
       }
 
       const json = (await response.json()) as OpenAiEmbeddingsResponse
@@ -230,6 +305,9 @@ export class EmbeddingsService {
       results.push(...batchEmbeddings)
     }
 
+    this.breakers.delete(breakerKey)
     return results
   }
+
+  private readonly breakers = new Map<string, { failures: number; openUntil: number }>()
 }
