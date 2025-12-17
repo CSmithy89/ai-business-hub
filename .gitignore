@@ -28,6 +28,9 @@ out/
 # Turborepo
 .turbo/
 
+# Git worktrees (local-only)
+.worktrees/
+
 # Logs
 *.log
 npm-debug.log*
