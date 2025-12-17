@@ -65,6 +65,17 @@ export class TasksController {
     return this.tasksService.getById(workspaceId, id)
   }
 
+  @Patch('bulk')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Bulk update tasks (status, assignee, phase)' })
+  async bulkUpdate(
+    @CurrentWorkspace() workspaceId: string,
+    @Body() dto: BulkUpdateTasksDto,
+    @CurrentUser() actor: any,
+  ) {
+    return this.tasksService.bulkUpdate(workspaceId, actor.id, dto)
+  }
+
   @Patch(':id')
   @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'Update a task' })
@@ -76,17 +87,6 @@ export class TasksController {
     @CurrentUser() actor: any,
   ) {
     return this.tasksService.update(workspaceId, actor.id, id, dto)
-  }
-
-  @Patch('bulk')
-  @Roles('owner', 'admin', 'member')
-  @ApiOperation({ summary: 'Bulk update tasks (status, assignee, phase)' })
-  async bulkUpdate(
-    @CurrentWorkspace() workspaceId: string,
-    @Body() dto: BulkUpdateTasksDto,
-    @CurrentUser() actor: any,
-  ) {
-    return this.tasksService.bulkUpdate(workspaceId, actor.id, dto)
   }
 
   @Delete(':id')

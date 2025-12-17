@@ -766,10 +766,35 @@ export function usePmTasks(query: ListTasksQuery) {
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
   const token = getSessionToken(session)
 
+  const hasScope =
+    !!query.projectId ||
+    !!query.phaseId ||
+    !!query.status ||
+    !!query.type ||
+    !!query.priority ||
+    !!query.assignmentType ||
+    !!query.assigneeId ||
+    !!query.label ||
+    !!query.search
+
   return useQuery({
-    queryKey: ['pm-tasks', workspaceId, query],
+    queryKey: [
+      'pm-tasks',
+      workspaceId,
+      query.projectId ?? null,
+      query.phaseId ?? null,
+      query.status ?? null,
+      query.type ?? null,
+      query.priority ?? null,
+      query.assignmentType ?? null,
+      query.assigneeId ?? null,
+      query.label ?? null,
+      query.search ?? null,
+      query.page ?? null,
+      query.limit ?? null,
+    ],
     queryFn: () => fetchTasks({ workspaceId: workspaceId!, token, query }),
-    enabled: !!workspaceId && !!query.projectId,
+    enabled: !!workspaceId && hasScope,
     staleTime: 15000,
     refetchOnWindowFocus: true,
   })

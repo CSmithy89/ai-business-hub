@@ -52,6 +52,7 @@ export function ProjectShell({ children }: { children: React.ReactNode }) {
 
   async function handleCreate(options: { openAfter: boolean }) {
     if (!project?.id || !phaseId) return
+    if (createTask.isPending) return
     const trimmed = title.trim()
     if (!trimmed) return
 
@@ -147,4 +148,3 @@ export function ProjectShell({ children }: { children: React.ReactNode }) {
     </>
   )
 }
-

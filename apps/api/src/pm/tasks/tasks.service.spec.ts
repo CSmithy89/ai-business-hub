@@ -286,12 +286,16 @@ describe('TasksService', () => {
       { id: 'task-2', status: TaskStatus.TODO, projectId: 'proj-1' },
     ])
 
+    const findManyBeforeUpdate = jest.fn().mockResolvedValueOnce([
+      { id: 'task-1', status: TaskStatus.BACKLOG },
+      { id: 'task-2', status: TaskStatus.TODO },
+    ])
     const updateMany = jest.fn().mockResolvedValueOnce({ count: 2 })
     const activityCreateMany = jest.fn().mockResolvedValueOnce({ count: 2 })
 
     prisma.$transaction.mockImplementationOnce(async (fn: any) =>
       fn({
-        task: { updateMany },
+        task: { findMany: findManyBeforeUpdate, updateMany },
         taskActivity: { createMany: activityCreateMany },
       }),
     )

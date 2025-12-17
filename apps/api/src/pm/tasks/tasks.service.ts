@@ -970,6 +970,14 @@ export class TasksService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
+      const tasksBeforeUpdate = await tx.task.findMany({
+        where: { id: { in: dto.ids }, workspaceId, deletedAt: null },
+        select: { id: true, status: true },
+      })
+      if (tasksBeforeUpdate.length === 0) {
+        throw new NotFoundException('No tasks found')
+      }
+
       const updated = await tx.task.updateMany({
         where: { id: { in: dto.ids }, workspaceId, deletedAt: null },
         data: updateData,
@@ -982,7 +990,7 @@ export class TasksService {
         })
       }
 
-      const activities = existingTasks.map((t) => ({
+      const activities = tasksBeforeUpdate.map((t) => ({
         taskId: t.id,
         userId: actorId,
         type: statusProvided && dto.status !== t.status ? TaskActivityType.STATUS_CHANGED : TaskActivityType.UPDATED,
