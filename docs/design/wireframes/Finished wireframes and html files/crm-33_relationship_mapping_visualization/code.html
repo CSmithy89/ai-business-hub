@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-33 Relationship Mapping Visualization</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111318",
+                        "card-dark": "#1c1f27",
+                        "border-dark": "#282e39",
+                        "text-secondary": "#9da6b9",
+                        "scout": "#4B7BEC",
+                        "success": "#22C55E",
+                        "warning": "#F59E0B",
+                        "error": "#EF4444",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar for sidebar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        
+        .bg-grid-pattern {
+            background-image: radial-gradient(#282e39 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-white overflow-hidden h-screen flex flex-col font-display">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-border-dark bg-background-dark px-6 py-3 shrink-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-white">
+<div class="size-8 flex items-center justify-center bg-primary/20 rounded-lg text-primary">
+<span class="material-symbols-outlined">hub</span>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em]">HYVVE CRM</h2>
+</div>
+<div class="flex items-center gap-6 hidden md:flex">
+<a class="text-text-secondary hover:text-white text-sm font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-white text-sm font-medium transition-colors" href="#">Accounts</a>
+<a class="text-text-secondary hover:text-white text-sm font-medium transition-colors" href="#">Deals</a>
+<a class="text-text-secondary hover:text-white text-sm font-medium transition-colors" href="#">Playbooks</a>
+</div>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<div class="relative hidden sm:block w-64">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined text-[20px]">search</span>
+<input class="w-full bg-card-dark border border-border-dark rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-primary placeholder:text-text-secondary transition-all" placeholder="Search contacts..."/>
+</div>
+<div class="flex items-center gap-3">
+<button class="size-9 rounded-full bg-card-dark flex items-center justify-center text-text-secondary hover:text-white hover:bg-border-dark transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-9 border border-border-dark" data-alt="User profile picture showing a professional headshot" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCPj9YGS75lWBDiPeWr0WPSZOrDowg1m6fKUCbgrN3-TC2RgNf8_C6TVFjDnGw8YnVTeK3fmqxSFZMs9FoakXeg_YLjYDx7_yrP6QfMRSf465bX097LVPA71s-Sx52ja7LABMZOkCw76lApikki7bSA4zQXrVAIuNvDfUbFRsRCLux0UeMxtdqqvcgOGLBqsap-m56tLbpMPNHz8AObrZSlMkYCOiWFFkShJestzzjmyTQoYqs5Z9Mx9oElCUV-KUiWpNpMCLwUytI");'></div>
+</div>
+</div>
+</header>
+<!-- Sub-Header / Controls -->
+<div class="border-b border-border-dark bg-background-dark px-6 py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0 z-40 shadow-sm">
+<!-- Breadcrumbs & Title -->
+<div>
+<div class="flex items-center gap-2 text-sm mb-1">
+<a class="text-text-secondary hover:text-white" href="#">Accounts</a>
+<span class="text-text-secondary">/</span>
+<a class="text-text-secondary hover:text-white" href="#">Acme Corp</a>
+<span class="text-text-secondary">/</span>
+<span class="text-white font-medium">Relationship Map</span>
+</div>
+<h1 class="text-xl font-bold text-white">Acme Corp</h1>
+</div>
+<!-- Controls -->
+<div class="flex items-center gap-3 flex-wrap">
+<div class="flex items-center bg-card-dark border border-border-dark rounded-lg p-1">
+<button class="px-3 py-1.5 rounded bg-border-dark text-white text-xs font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">account_tree</span>
+                    Org Chart
+                </button>
+<button class="px-3 py-1.5 rounded hover:bg-border-dark/50 text-text-secondary text-xs font-medium flex items-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-[16px]">list</span>
+                    List View
+                </button>
+</div>
+<div class="h-8 w-px bg-border-dark mx-1"></div>
+<div class="relative group">
+<button class="flex items-center gap-2 bg-card-dark hover:bg-border-dark border border-border-dark text-white text-sm px-3 py-2 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+<span>Buying Committee</span>
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+</div>
+<div class="flex items-center bg-card-dark border border-border-dark rounded-lg overflow-hidden">
+<button class="p-2 hover:bg-border-dark text-text-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<span class="px-2 text-xs font-medium text-text-secondary min-w-[3rem] text-center">100%</span>
+<button class="p-2 hover:bg-border-dark text-text-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Main Workspace -->
+<div class="flex-1 flex overflow-hidden relative">
+<!-- Legend Overlay -->
+<div class="absolute bottom-6 left-6 z-30 bg-card-dark/90 backdrop-blur border border-border-dark rounded-lg p-4 shadow-xl w-64">
+<div class="flex justify-between items-center mb-3">
+<h4 class="text-xs font-bold uppercase tracking-wider text-text-secondary">Legend</h4>
+<button class="text-text-secondary hover:text-white"><span class="material-symbols-outlined text-[16px]">close</span></button>
+</div>
+<div class="space-y-2 text-xs">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-warning text-[16px]">star</span>
+<span class="text-white">Champion</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-scout text-[16px]">verified_user</span>
+<span class="text-white">Decision Maker</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-[16px]">block</span>
+<span class="text-white">Blocker</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-4 h-[2px] bg-text-secondary"></div>
+<span class="text-text-secondary">Reports To</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-4 h-[2px] border-b border-dashed border-scout"></div>
+<span class="text-text-secondary">Influences</span>
+</div>
+</div>
+</div>
+<!-- Canvas Area -->
+<main class="flex-1 bg-background-dark bg-grid-pattern overflow-auto relative cursor-grab active:cursor-grabbing flex justify-center py-10">
+<!-- SVG Layer for Connectors -->
+<svg class="absolute top-0 left-0 w-full h-full pointer-events-none z-0 overflow-visible" xmlns="http://www.w3.org/2000/svg">
+<!-- Defs for markers -->
+<defs>
+<marker id="arrowhead" markerheight="7" markerwidth="10" orient="auto" refx="0" refy="3.5">
+<polygon fill="#4B5563" points="0 0, 10 3.5, 0 7"></polygon>
+</marker>
+<marker id="arrowhead-blue" markerheight="7" markerwidth="10" orient="auto" refx="0" refy="3.5">
+<polygon fill="#4B7BEC" points="0 0, 10 3.5, 0 7"></polygon>
+</marker>
+</defs>
+<!-- Reporting Lines (Solid Gray) -->
+<!-- CEO to CTO -->
+<path d="M600 120 L600 160 L400 160 L400 200" fill="none" stroke="#374151" stroke-width="2"></path>
+<!-- CEO to CFO -->
+<path d="M600 120 L600 160 L800 160 L800 200" fill="none" stroke="#374151" stroke-width="2"></path>
+<!-- CTO to VP Eng -->
+<path d="M400 280 L400 340" fill="none" stroke="#374151" stroke-width="2"></path>
+<!-- CTO to Director Product -->
+<path d="M400 280 L400 310 L200 310 L200 340" fill="none" stroke="#374151" stroke-width="2"></path>
+<!-- Influence Lines (Dashed Colored) -->
+<!-- CTO influences CFO -->
+<path d="M480 240 C 550 240, 650 240, 720 240" fill="none" marker-end="url(#arrowhead-blue)" stroke="#4B7BEC" stroke-dasharray="6,4" stroke-width="2"></path>
+</svg>
+<!-- Nodes Container -->
+<div class="relative z-10 w-[1200px] h-[800px] mx-auto text-center">
+<!-- Level 1: CEO -->
+<div class="absolute top-[40px] left-1/2 -translate-x-1/2">
+<div class="w-64 bg-card-dark border border-border-dark rounded-xl p-4 shadow-lg hover:shadow-primary/20 hover:border-primary/50 transition-all cursor-pointer group">
+<div class="flex items-start gap-3">
+<div class="bg-cover bg-center rounded-full size-12 border-2 border-border-dark shrink-0" data-alt="Portrait of Sarah Jenkins, CEO" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCUcl2UVCXl9eQ0jTCDMHvIMZNqa_GMLUvk9cJxShPZefP-JXTA6R8E2hxtctueF9prBF3v1ckl6xRIysMrf6YrAte0UYtUgiemTo75ssg8hC9NrGae6fghmrZZ9yEFMbCKPWWNXei4w7Ciwz_LyGqCfZB9t_mSvM7z-spoL2UQrdXYgG0dUAIjViSNjGY1BIZrfc2QT2p81Cec7UAAQq9qgY9_h2PYXPEMkmt7kCdKpZ0KC5fgzh1XAvliTQtm4pG2bWrB2oi5t6w");'></div>
+<div class="text-left overflow-hidden">
+<h3 class="text-white font-bold text-sm truncate">Sarah Jenkins</h3>
+<p class="text-text-secondary text-xs truncate">Chief Executive Officer</p>
+<div class="mt-2 flex gap-1">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-border-dark text-text-secondary border border-border-dark">Neutral</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Level 2: CTO & CFO -->
+<div class="absolute top-[200px] left-[400px] -translate-x-1/2">
+<!-- Selected State Example -->
+<div class="w-64 bg-card-dark border-2 border-primary rounded-xl p-4 shadow-lg shadow-primary/10 cursor-pointer relative">
+<div class="absolute -top-3 -right-3 bg-scout text-white rounded-full p-1 shadow-md" title="Decision Maker">
+<span class="material-symbols-outlined text-[16px] block">verified_user</span>
+</div>
+<div class="flex items-start gap-3">
+<div class="bg-cover bg-center rounded-full size-12 border-2 border-primary shrink-0" data-alt="Portrait of David Kim, CTO" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCRqA-Vfu1qqiM5DTHub341PGpzeAn5BXJCPtLYHU88C2miAEU54yAwp5le8pmYnyb1YO5EJ2GoGlAmD7i9FUphkRMmCgoJh-JzvzhIfgDdm-2DbfEYEIb2GVzjyGzvZSwK8tX3DKgb147NsT5x4pqlK_O030h6MfWU2Gec5Y7FCBV-O8oW0hNNOEZ0HKwBbTVj7w8L8R_28uEgQUm14gTo76YAUb5Wy7VWSY_5Vz0gsqNqXydn16krvO_Q2mnPfTWKWeMnMbG4yGw");'></div>
+<div class="text-left overflow-hidden">
+<h3 class="text-white font-bold text-sm truncate">David Kim</h3>
+<p class="text-text-secondary text-xs truncate">Chief Technology Officer</p>
+<div class="mt-2 flex gap-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-warning/10 text-warning border border-warning/20">
+<span class="material-symbols-outlined text-[10px]">star</span> Champion
+                                    </span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="absolute top-[200px] left-[800px] -translate-x-1/2">
+<div class="w-64 bg-card-dark border border-border-dark rounded-xl p-4 shadow-lg hover:shadow-primary/20 hover:border-primary/50 transition-all cursor-pointer">
+<div class="flex items-start gap-3">
+<div class="bg-cover bg-center rounded-full size-12 border-2 border-border-dark shrink-0" data-alt="Portrait of Marcus Reid, CFO" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC6fKAF7g9jzlRl_kzJ5lqScgoGyXfj7i0jQMlhqnWewy8yLKW95DNv69_rRZmlGEgsDv5IuPi8iaD3ZEvDLDiQRivxk7TLQpFoJMKT7RAXgFNhrCsVhqRgK3_xg6bHvrhyotQsofAutF2JpR-_5P9NUXbxmkEZ-LlSD8Ixm82tAE5Z_NZez75Tskv9a93vcxOokoCAS5C4s4QZWKUl4nvtIvATV4HOyrQfPZOaORE0VlHGvGpc32U8wGoR4Zjtzwx2m9Xvny0QbO8");'></div>
+<div class="text-left overflow-hidden">
+<h3 class="text-white font-bold text-sm truncate">Marcus Reid</h3>
+<p class="text-text-secondary text-xs truncate">Chief Financial Officer</p>
+<div class="mt-2 flex gap-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-error/10 text-error border border-error/20">
+<span class="material-symbols-outlined text-[10px]">block</span> Blocker
+                                    </span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Level 3: VP Eng & Director Product -->
+<div class="absolute top-[340px] left-[200px] -translate-x-1/2">
+<div class="w-64 bg-card-dark border border-border-dark rounded-xl p-4 shadow-lg hover:shadow-primary/20 hover:border-primary/50 transition-all cursor-pointer">
+<div class="flex items-start gap-3">
+<div class="bg-cover bg-center rounded-full size-12 border-2 border-border-dark shrink-0" data-alt="Portrait of Emily Chen, VP Engineering" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBJSG0kJa0rQ1h9mSLwxyZVI-pAIhjQtb4rM1BwcYWHLPh8f7AxyMsz8MJe1a5LKbwMThW8AOGNA9aBjEIz0PAWcqOZkg2yNd895Cx0ZRuEAWIZ6hyP74fgyFaertDMMmHOkqwBQKP2_FiDU9nnTDsqf4ENl3vGn2O_ShGa1bmwubqwQrAV89J6jWK8RifSA1c-uCV5p2gsbXmRp9kRhXZS8htxur2vztNzcxHm2KwERb7qsqTYzt8eH6UUJHSXYvsoafBXDMY9oOA");'></div>
+<div class="text-left overflow-hidden">
+<h3 class="text-white font-bold text-sm truncate">Emily Chen</h3>
+<p class="text-text-secondary text-xs truncate">VP of Engineering</p>
+<div class="mt-2 flex gap-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-scout/10 text-scout border border-scout/20">
+<span class="material-symbols-outlined text-[10px]">thumb_up</span> Evaluator
+                                    </span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="absolute top-[340px] left-[400px] -translate-x-1/2">
+<div class="w-64 bg-card-dark border border-border-dark rounded-xl p-4 shadow-lg hover:shadow-primary/20 hover:border-primary/50 transition-all cursor-pointer">
+<div class="flex items-start gap-3">
+<div class="bg-cover bg-center rounded-full size-12 border-2 border-border-dark shrink-0" data-alt="Portrait of James Wilson, Director of Product" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA12j-bnqxB-zwwanI30BXNIJu3agMObAyYRLeNzGOflMrfcLBIWkQZbkGQEgJ2safVnNcWzAm9axEs35O1JFfPqJe1zTCLceh3n4HYJ3b2o0y33cPJSA-EfjjHmBjN12RA8G_dgs48vcOCwvzHm4kHbB6RomJ815ucXs2W2UCZL3-_y9AYly0JnnbaG-EblGus_tO72CVZcxrUhbTPN7WYOXteJxLFj2dB6RcAb2JuMeedrF0qslhKOFKG6VCmOdFD05l4ZXlRgq0");'></div>
+<div class="text-left overflow-hidden">
+<h3 class="text-white font-bold text-sm truncate">James Wilson</h3>
+<p class="text-text-secondary text-xs truncate">Director of Product</p>
+<div class="mt-2 flex gap-1">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-border-dark text-text-secondary border border-border-dark">Unknown</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Right Sidebar - Contact Detail -->
+<aside class="w-[360px] bg-card-dark border-l border-border-dark flex flex-col z-20 shadow-2xl shrink-0 transition-transform">
+<!-- Sidebar Header -->
+<div class="p-5 border-b border-border-dark">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center justify-center px-2 py-1 rounded bg-success/20 text-success text-xs font-bold border border-success/30">
+                            ONLINE
+                        </span>
+<span class="text-text-secondary text-xs">Last active: 2m ago</span>
+</div>
+<button class="text-text-secondary hover:text-white">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="flex flex-col items-center text-center">
+<div class="relative">
+<div class="bg-cover bg-center rounded-full size-20 border-2 border-primary mb-3" data-alt="Large profile picture of David Kim" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCeUKBd6JVmk5OFBD6NcmELmUIHPiLgctFahb4WgNBlDf6Xf4UumTuv6cU0t2baUoyO9tdcO353NkFJo5Vt5xOa_Be4pDck5viBoThydv3wFw-OtFMdDuIxg0n3mkt2fqaGCUK6uKOO8PF9DTPQG_Lmb_5cj7YDVCjwktMh1yY2zFKzHfqWCRaPKfRKIj1f3gIcaLW-5BVQbORVhMkOVDr2n-QKr5BWXpNYRjETFwm3yrb9vhO8dkfryLkE0BVIor1uKKOTVHuNxfY");'></div>
+<div class="absolute bottom-3 right-0 bg-primary text-white rounded-full p-1 border-2 border-card-dark">
+<span class="material-symbols-outlined text-[14px] block">link</span>
+</div>
+</div>
+<h2 class="text-xl font-bold text-white">David Kim</h2>
+<p class="text-text-secondary text-sm">Chief Technology Officer</p>
+<p class="text-text-secondary text-xs mt-1">San Francisco, CA</p>
+</div>
+<div class="grid grid-cols-2 gap-3 mt-6">
+<button class="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-lg py-2 px-4 text-sm font-medium transition-colors">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+                        Email
+                    </button>
+<button class="flex items-center justify-center gap-2 bg-background-dark hover:bg-border-dark text-white border border-border-dark rounded-lg py-2 px-4 text-sm font-medium transition-colors">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+                        Meet
+                    </button>
+</div>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto p-5 space-y-6">
+<!-- Attributes Section -->
+<div class="space-y-4">
+<h3 class="text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">Attributes</h3>
+<div class="space-y-3">
+<div>
+<label class="text-xs text-text-secondary block mb-1">Role in Deal</label>
+<div class="relative">
+<select class="w-full bg-background-dark border border-border-dark rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-primary appearance-none">
+<option>Champion</option>
+<option>Decision Maker</option>
+<option>Influencer</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-text-secondary pointer-events-none text-[18px]">expand_more</span>
+</div>
+</div>
+<div>
+<label class="text-xs text-text-secondary block mb-1">Influence Level</label>
+<div class="flex items-center gap-2">
+<div class="flex-1 bg-background-dark h-2 rounded-full overflow-hidden">
+<div class="bg-warning h-full w-[85%]"></div>
+</div>
+<span class="text-xs font-bold text-warning">High</span>
+</div>
+</div>
+<div>
+<label class="text-xs text-text-secondary block mb-1">Engagement Score (Scout)</label>
+<div class="flex items-center gap-3 bg-background-dark p-2 rounded-lg border border-border-dark">
+<div class="bg-scout/20 p-1.5 rounded text-scout">
+<span class="material-symbols-outlined text-[20px]">insights</span>
+</div>
+<div>
+<div class="text-sm font-bold text-white">85/100</div>
+<div class="text-[10px] text-text-secondary">Trending Up</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Notes / History -->
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<h3 class="text-xs font-bold uppercase tracking-wider text-text-secondary">Recent Notes</h3>
+<button class="text-primary hover:text-primary/80 text-xs font-medium">Add Note</button>
+</div>
+<div class="bg-background-dark border border-border-dark rounded-lg p-3">
+<p class="text-sm text-white leading-relaxed">
+                            Met for coffee. David is very keen on the new API endpoints. He mentioned that budget approval is pending CFO review next Tuesday.
+                        </p>
+<div class="flex justify-between items-center mt-2 pt-2 border-t border-border-dark/50">
+<span class="text-[10px] text-text-secondary">Oct 24, 2023</span>
+<div class="flex items-center gap-1">
+<div class="size-4 rounded-full bg-cover" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCreo183vtieDTnRqJfw5dCNuHlfjiBDhzLuL0IwnUK6ANDprhpOmHJGzIPJXOGraosJ3F2Yr_wfYTu-pLquwgOJyfeooJvqx80GCdixTHAHJSrlGJPB8rhpPMPR5PblGXVeB5eAQb1P41INHfqZN5uvz1tA_cI6UT8VEQeHmgT2TGIQJgDiXRSAnc4gSFNI_4i3P6TymC0iH7fs_6sO9CduLZtyBa0AY2XmjShILel1YdSxYz2eNqE-N4D5po6Yw76b6ycgSO4ujk");'></div>
+<span class="text-[10px] text-text-secondary">You</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Actions List -->
+<div class="space-y-2 pt-2 border-t border-border-dark">
+<button class="w-full text-left px-3 py-2 rounded hover:bg-border-dark text-sm text-text-secondary hover:text-white flex items-center gap-3 transition-colors">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                        View Full Profile
+                    </button>
+<button class="w-full text-left px-3 py-2 rounded hover:bg-border-dark text-sm text-text-secondary hover:text-white flex items-center gap-3 transition-colors">
+<span class="material-symbols-outlined text-[18px]">history</span>
+                        Log Activity
+                    </button>
+<button class="w-full text-left px-3 py-2 rounded hover:bg-border-dark text-sm text-text-secondary hover:text-white flex items-center gap-3 transition-colors">
+<span class="material-symbols-outlined text-[18px]">link</span>
+                        Copy Link to Map
+                    </button>
+</div>
+</div>
+</aside>
+</div>
+</body></html>

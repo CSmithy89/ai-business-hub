@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-27 Executive Portfolio Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#111318",
+              "surface-dark": "#1d212a",
+              "surface-border": "#282e39",
+              "success": "#22C55E",
+              "warning": "#F59E0B",
+              "critical": "#EF4444",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#111318] dark:text-white font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-solid border-surface-border bg-background-dark/95 backdrop-blur px-6 py-3 lg:px-10">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-white">
+<div class="size-6 text-primary">
+<span class="material-symbols-outlined !text-3xl">dashboard_customize</span>
+</div>
+<h2 class="text-white text-xl font-bold leading-tight tracking-[-0.015em]">PM-27</h2>
+</div>
+<label class="flex flex-col min-w-40 !h-10 max-w-64 hidden md:flex">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full">
+<div class="text-[#9da6b9] flex border-none bg-surface-dark items-center justify-center pl-4 rounded-l-lg border-r-0">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-0 border-none bg-surface-dark focus:border-none h-full placeholder:text-[#9da6b9] px-4 rounded-l-none border-l-0 pl-2 text-sm font-normal leading-normal" placeholder="Search portfolio..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex flex-1 justify-end gap-8 items-center">
+<div class="hidden lg:flex items-center gap-9">
+<a class="text-white text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="text-[#9da6b9] text-sm font-medium leading-normal hover:text-white transition-colors" href="#">Daily Briefing</a>
+<a class="text-[#9da6b9] text-sm font-medium leading-normal hover:text-white transition-colors" href="#">Reports</a>
+</div>
+<button class="flex items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-primary hover:bg-primary/90 transition-colors text-white text-sm font-bold leading-normal">
+<span class="material-symbols-outlined text-[18px] mr-2">add</span>
+<span class="truncate">New Project</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-9 border border-surface-border" data-alt="User profile avatar showing a professional person" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC0KSjOB_3Uu9AyWR3WeglLCsz587isL9s8Sss-ICO-iqoeAhwkdDNOL0kn08D1kCxmrSB1FxRBmgZ97hHYoL0WYMWrK0ZYDCAcJWgCr0lXStZrqb5jBLT5FB4ae-9jVI1zwVGubQj4df1Zs2DxcBlO_h4y_sOkYnKFKFC7wj7SkLABhE1EvgdpoN0dv-gwXFiYE6lVguIJX_eHXYJq1fIzat8dPd-pCe-by2ACNrwks_TH9r1xvGliriGLUIQYkZhCkyLAP5nb7L4");'></div>
+</div>
+</header>
+<div class="flex flex-1 flex-col p-4 lg:p-8 max-w-[1600px] mx-auto w-full gap-6">
+<!-- Page Header & Actions -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-2">
+<div class="flex flex-col gap-2">
+<h1 class="text-white text-3xl font-black leading-tight tracking-[-0.033em]">Executive Portfolio Dashboard</h1>
+<p class="text-[#9da6b9] text-base font-normal">High-level overview of portfolio health, risks, and resource allocation across Phase 2.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="relative">
+<select class="h-10 pl-4 pr-10 rounded-lg border border-surface-border bg-surface-dark text-white text-sm font-medium focus:ring-primary focus:border-primary appearance-none cursor-pointer">
+<option>Q3 2024</option>
+<option>Q4 2024</option>
+<option>YTD 2024</option>
+</select>
+<div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#9da6b9]">
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</div>
+</div>
+<button class="flex items-center justify-center rounded-lg h-10 px-4 bg-surface-dark border border-surface-border hover:bg-surface-border transition-colors text-white text-sm font-bold">
+<span class="material-symbols-outlined text-[18px] mr-2">download</span>
+                    Export Report
+                </button>
+</div>
+</div>
+<!-- Aggregate Metrics Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+<!-- Portfolio Health -->
+<div class="flex flex-col gap-3 rounded-xl p-5 bg-surface-dark border border-surface-border shadow-sm">
+<div class="flex items-center justify-between">
+<p class="text-[#9da6b9] text-sm font-medium">Portfolio Health</p>
+<span class="material-symbols-outlined text-[#9da6b9] text-[20px]">monitor_heart</span>
+</div>
+<div class="flex items-end gap-3">
+<p class="text-white text-3xl font-bold">88%</p>
+<div class="flex items-center text-success text-xs font-bold mb-1.5 bg-success/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+                        12%
+                    </div>
+</div>
+<div class="w-full bg-surface-border h-1.5 rounded-full overflow-hidden mt-1">
+<div class="bg-success h-full rounded-full" style="width: 88%"></div>
+</div>
+</div>
+<!-- Budget Variance -->
+<div class="flex flex-col gap-3 rounded-xl p-5 bg-surface-dark border border-surface-border shadow-sm">
+<div class="flex items-center justify-between">
+<p class="text-[#9da6b9] text-sm font-medium">Budget Variance</p>
+<span class="material-symbols-outlined text-[#9da6b9] text-[20px]">attach_money</span>
+</div>
+<div class="flex items-end gap-3">
+<p class="text-white text-3xl font-bold">$12k</p>
+<div class="flex items-center text-critical text-xs font-bold mb-1.5 bg-critical/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[14px]">trending_down</span>
+                        5%
+                    </div>
+</div>
+<div class="w-full bg-surface-border h-1.5 rounded-full overflow-hidden mt-1">
+<div class="bg-critical h-full rounded-full" style="width: 65%"></div>
+</div>
+</div>
+<!-- Feature Completion -->
+<div class="flex flex-col gap-3 rounded-xl p-5 bg-surface-dark border border-surface-border shadow-sm">
+<div class="flex items-center justify-between">
+<p class="text-[#9da6b9] text-sm font-medium">Feature Completion</p>
+<span class="material-symbols-outlined text-[#9da6b9] text-[20px]">check_circle</span>
+</div>
+<div class="flex items-end gap-3">
+<p class="text-white text-3xl font-bold">76%</p>
+<div class="flex items-center text-success text-xs font-bold mb-1.5 bg-success/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+                        4%
+                    </div>
+</div>
+<div class="w-full bg-surface-border h-1.5 rounded-full overflow-hidden mt-1">
+<div class="bg-primary h-full rounded-full" style="width: 76%"></div>
+</div>
+</div>
+<!-- Critical Risks -->
+<div class="flex flex-col gap-3 rounded-xl p-5 bg-surface-dark border border-surface-border shadow-sm">
+<div class="flex items-center justify-between">
+<p class="text-[#9da6b9] text-sm font-medium">Critical Risks</p>
+<span class="material-symbols-outlined text-[#9da6b9] text-[20px]">warning</span>
+</div>
+<div class="flex items-end gap-3">
+<p class="text-white text-3xl font-bold">3</p>
+<div class="flex items-center text-warning text-xs font-bold mb-1.5 bg-warning/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[14px]">add</span>
+                        1 New
+                    </div>
+</div>
+<div class="w-full bg-surface-border h-1.5 rounded-full overflow-hidden mt-1">
+<div class="bg-warning h-full rounded-full" style="width: 25%"></div>
+</div>
+</div>
+<!-- Resource Load -->
+<div class="flex flex-col gap-3 rounded-xl p-5 bg-surface-dark border border-surface-border shadow-sm">
+<div class="flex items-center justify-between">
+<p class="text-[#9da6b9] text-sm font-medium">Resource Load</p>
+<span class="material-symbols-outlined text-[#9da6b9] text-[20px]">group</span>
+</div>
+<div class="flex items-end gap-3">
+<p class="text-white text-3xl font-bold">92%</p>
+<div class="flex items-center text-success text-xs font-bold mb-1.5 bg-success/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+                        8%
+                    </div>
+</div>
+<div class="w-full bg-surface-border h-1.5 rounded-full overflow-hidden mt-1">
+<div class="bg-[#20B2AA] h-full rounded-full" style="width: 92%"></div>
+</div>
+</div>
+</div>
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+<!-- Left Column: Product Health & Timeline (Span 2) -->
+<div class="xl:col-span-2 flex flex-col gap-6">
+<!-- Product Health Overview -->
+<div class="flex flex-col rounded-xl bg-surface-dark border border-surface-border overflow-hidden">
+<div class="px-6 py-4 border-b border-surface-border flex justify-between items-center">
+<h3 class="text-white font-bold text-lg">Product Health Overview</h3>
+<button class="text-primary text-sm font-medium hover:text-primary/80">View All</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-surface-border text-[#9da6b9] text-xs uppercase tracking-wider">
+<th class="px-6 py-3 font-medium">Product Name</th>
+<th class="px-6 py-3 font-medium">Lead</th>
+<th class="px-6 py-3 font-medium w-1/3">Health Score</th>
+<th class="px-6 py-3 font-medium">Status</th>
+<th class="px-6 py-3 font-medium text-right">Action</th>
+</tr>
+</thead>
+<tbody class="text-sm">
+<tr class="group hover:bg-surface-border/30 transition-colors border-b border-surface-border/50">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded bg-primary/20 flex items-center justify-center text-primary font-bold">N</div>
+<span class="text-white font-medium">Navi Analytics</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[#9da6b9]">Sarah Chen</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="flex-1 h-2 bg-surface-border rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-success/60 to-success w-[94%] rounded-full"></div>
+</div>
+<span class="text-white font-medium">94%</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-success/10 text-success border border-success/20">
+<span class="size-1.5 rounded-full bg-success"></span> Excellent
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-[#9da6b9] hover:text-white"><span class="material-symbols-outlined">more_vert</span></button>
+</td>
+</tr>
+<tr class="group hover:bg-surface-border/30 transition-colors border-b border-surface-border/50">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded bg-[#20B2AA]/20 flex items-center justify-center text-[#20B2AA] font-bold">B</div>
+<span class="text-white font-medium">Bridge Integration</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[#9da6b9]">Mike Ross</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="flex-1 h-2 bg-surface-border rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-warning/60 to-warning w-[72%] rounded-full"></div>
+</div>
+<span class="text-white font-medium">72%</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-warning/10 text-warning border border-warning/20">
+<span class="size-1.5 rounded-full bg-warning"></span> Fair
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-[#9da6b9] hover:text-white"><span class="material-symbols-outlined">more_vert</span></button>
+</td>
+</tr>
+<tr class="group hover:bg-surface-border/30 transition-colors border-b border-surface-border/50">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded bg-critical/20 flex items-center justify-center text-critical font-bold">C</div>
+<span class="text-white font-medium">Core Platform</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[#9da6b9]">Jessica Pearson</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="flex-1 h-2 bg-surface-border rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-critical/60 to-critical w-[45%] rounded-full"></div>
+</div>
+<span class="text-white font-medium">45%</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-critical/10 text-critical border border-critical/20">
+<span class="size-1.5 rounded-full bg-critical"></span> Critical
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-[#9da6b9] hover:text-white"><span class="material-symbols-outlined">more_vert</span></button>
+</td>
+</tr>
+<tr class="group hover:bg-surface-border/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded bg-primary/20 flex items-center justify-center text-primary font-bold">S</div>
+<span class="text-white font-medium">Sprint Enhancer</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[#9da6b9]">Louis Litt</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="flex-1 h-2 bg-surface-border rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-success/60 to-success w-[88%] rounded-full"></div>
+</div>
+<span class="text-white font-medium">88%</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-success/10 text-success border border-success/20">
+<span class="size-1.5 rounded-full bg-success"></span> Good
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-[#9da6b9] hover:text-white"><span class="material-symbols-outlined">more_vert</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Delivery Timeline (Mini Gantt) -->
+<div class="flex flex-col rounded-xl bg-surface-dark border border-surface-border p-6 gap-5">
+<div class="flex justify-between items-center">
+<h3 class="text-white font-bold text-lg">Delivery Timeline</h3>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-primary/20 text-primary text-xs rounded-full font-medium border border-primary/20">Q3</span>
+<span class="px-3 py-1 bg-surface-border text-[#9da6b9] text-xs rounded-full font-medium">Q4</span>
+</div>
+</div>
+<div class="relative pt-6">
+<!-- Month Labels -->
+<div class="flex justify-between text-xs text-[#9da6b9] mb-2 px-1">
+<span>July</span>
+<span>August</span>
+<span>September</span>
+</div>
+<!-- Grid Lines -->
+<div class="absolute top-12 bottom-0 w-full flex justify-between pointer-events-none">
+<div class="w-px h-full bg-surface-border/50 border-l border-dashed border-[#3b4354]"></div>
+<div class="w-px h-full bg-surface-border/50 border-l border-dashed border-[#3b4354]"></div>
+<div class="w-px h-full bg-surface-border/50 border-l border-dashed border-[#3b4354]"></div>
+</div>
+<!-- Gantt Bars -->
+<div class="flex flex-col gap-4 relative z-10">
+<!-- Item 1 -->
+<div class="flex items-center group">
+<div class="w-32 text-sm text-white font-medium truncate pr-4">Navi V2.0</div>
+<div class="flex-1 h-8 bg-surface-border/30 rounded-full relative">
+<div class="absolute left-[10%] w-[40%] h-6 top-1 rounded-full bg-primary/80 border border-primary group-hover:bg-primary transition-colors flex items-center justify-center text-[10px] text-white font-medium shadow-lg shadow-primary/20 cursor-pointer">
+                                        In Progress
+                                    </div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center group">
+<div class="w-32 text-sm text-white font-medium truncate pr-4">Bridge API</div>
+<div class="flex-1 h-8 bg-surface-border/30 rounded-full relative">
+<div class="absolute left-[30%] w-[50%] h-6 top-1 rounded-full bg-[#20B2AA]/80 border border-[#20B2AA] group-hover:bg-[#20B2AA] transition-colors flex items-center justify-center text-[10px] text-white font-medium shadow-lg shadow-[#20B2AA]/20 cursor-pointer">
+                                        Integration
+                                    </div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center group">
+<div class="w-32 text-sm text-white font-medium truncate pr-4">Sec. Audit</div>
+<div class="flex-1 h-8 bg-surface-border/30 rounded-full relative">
+<div class="absolute left-[60%] w-[20%] h-6 top-1 rounded-full bg-warning/80 border border-warning group-hover:bg-warning transition-colors flex items-center justify-center text-[10px] text-white font-medium shadow-lg shadow-warning/20 cursor-pointer">
+                                        Pending
+                                    </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Risk & Resources (Span 1) -->
+<div class="flex flex-col gap-6">
+<!-- Risk Overview Panel -->
+<div class="rounded-xl bg-surface-dark border border-surface-border p-6">
+<h3 class="text-white font-bold text-lg mb-4">Risk Overview</h3>
+<div class="flex items-center gap-6 mb-6">
+<!-- Simple CSS Donut Chart Representation -->
+<div class="relative size-24 shrink-0 rounded-full border-[10px] border-surface-border flex items-center justify-center" style="background: conic-gradient(#EF4444 0% 25%, #F59E0B 25% 60%, #22C55E 60% 100%); border-radius: 50%;">
+<div class="absolute inset-0 bg-surface-dark m-2 rounded-full flex flex-col items-center justify-center">
+<span class="text-white text-xl font-bold">12</span>
+<span class="text-[10px] text-[#9da6b9] uppercase">Total</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 flex-1">
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2"><div class="size-2 rounded-full bg-critical"></div><span class="text-[#9da6b9]">High</span></div>
+<span class="text-white font-bold">3</span>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2"><div class="size-2 rounded-full bg-warning"></div><span class="text-[#9da6b9]">Medium</span></div>
+<span class="text-white font-bold">4</span>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2"><div class="size-2 rounded-full bg-success"></div><span class="text-[#9da6b9]">Low</span></div>
+<span class="text-white font-bold">5</span>
+</div>
+</div>
+</div>
+<div class="space-y-3">
+<p class="text-xs font-semibold text-[#9da6b9] uppercase tracking-wider">Top Critical Risks</p>
+<div class="p-3 rounded-lg bg-critical/10 border border-critical/20 flex gap-3 items-start">
+<span class="material-symbols-outlined text-critical shrink-0 mt-0.5 text-[18px]">error</span>
+<div>
+<p class="text-white text-sm font-medium leading-tight">API Rate Limiting</p>
+<p class="text-critical text-xs mt-1">Impact: High · Prob: 80%</p>
+</div>
+</div>
+<div class="p-3 rounded-lg bg-surface-border/50 border border-surface-border flex gap-3 items-start">
+<span class="material-symbols-outlined text-warning shrink-0 mt-0.5 text-[18px]">warning</span>
+<div>
+<p class="text-white text-sm font-medium leading-tight">Legacy Data Migration</p>
+<p class="text-warning text-xs mt-1">Impact: Med · Prob: 45%</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Resource Utilization -->
+<div class="rounded-xl bg-surface-dark border border-surface-border p-6 flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<h3 class="text-white font-bold text-lg">Resource Utilization</h3>
+<button class="text-[#9da6b9] hover:text-white"><span class="material-symbols-outlined">filter_list</span></button>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Resource Item -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cover bg-center" data-alt="Team member portrait" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDJA-W3F1q_Ytuna8VDPdQ08RqlJYW8cGbFlWNJJFwZMrp1-KUMY_NE1Nw8OypsKaZEHsR4ahKGjAnLcLW3X9zA_T6fusOPyUYrvBWQTRiEjavWewuhodIlVpyRv_0ts89UxVTWGNMDB3J69wc3KO3iG8In2B-NkoWBtIywsi50Pgyi4gK7oUdQWS6Xl1AUFvuaNxeDzIJoz0uCqlb8KXPle-Y3ahiHQ43KxGWDCIXNJqLc65NKgKX8rKs36dY3O5SkBgr4eG6hY-w");'></div>
+<span class="text-sm text-white">Anna K.</span>
+</div>
+<span class="text-xs text-critical font-bold">110%</span>
+</div>
+<div class="h-2 w-full bg-surface-border rounded-full overflow-hidden">
+<div class="h-full bg-critical w-[100%] rounded-full relative">
+<div class="absolute right-0 top-0 bottom-0 w-2 bg-white/20 animate-pulse"></div>
+</div>
+</div>
+<div class="flex justify-between text-[10px] text-[#9da6b9]">
+<span>3 Projects</span>
+<span>Over Capacity</span>
+</div>
+</div>
+<!-- Resource Item -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cover bg-center" data-alt="Team member portrait" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuANYolFfB05zT0MpiE-07i08q0mZuqCTA95EThN2FDp4WaB1VLL0RHCja8XV3zR3s3wVjqjbuoisNGHlIPQCnPMWwZWJraNkmZMPSu6W7tHkLPHCbsqxZBptMA7b_NLvWuEICNLPl_MtdeaC96tKeIMBhlt866YtPClvW9DwlWO0jZvSLUJ0OX-aX29_oD0zaaxfbRlNqtMr6TW06LyD5VgUOsWAf4YM4IdzsL-Ehg68o_YZ1hBYmUfqSuv1lpBP6R7gWu5vbULBNI");'></div>
+<span class="text-sm text-white">David L.</span>
+</div>
+<span class="text-xs text-success font-bold">85%</span>
+</div>
+<div class="h-2 w-full bg-surface-border rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[85%] rounded-full"></div>
+</div>
+<div class="flex justify-between text-[10px] text-[#9da6b9]">
+<span>2 Projects</span>
+<span>Optimal</span>
+</div>
+</div>
+<!-- Resource Item -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cover bg-center" data-alt="Team member portrait" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA-hL0spUyDuvuISWoqobZMOR0wyDePicjwPgrnJyn9zayxssTph0I_EDVaknRXdh2F42iW5GATCcC2OF8iWGYQYKzvR6DdCq2GX9Lxb_qtGnn08bnufqQv1cdamLArF0JJojqD84wAKOMdBO-7wSmFBWnPPaLqXxIIpUw04bkeqhgPU4DsfuRSm3GnNeYfjN48puEYODVISAy1rdYYDIrj7Ka6XBkRjVAQN6hqkZoBTnqwPnrr7SffxrvFjd0T_5cKF1w1z1IO4vs");'></div>
+<span class="text-sm text-white">Marcus R.</span>
+</div>
+<span class="text-xs text-[#9da6b9] font-bold">40%</span>
+</div>
+<div class="h-2 w-full bg-surface-border rounded-full overflow-hidden">
+<div class="h-full bg-success w-[40%] rounded-full"></div>
+</div>
+<div class="flex justify-between text-[10px] text-[#9da6b9]">
+<span>1 Project</span>
+<span>Available</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Product Health Grid (Bottom Section) -->
+<div class="flex flex-col gap-4 mt-2">
+<h3 class="text-white font-bold text-lg px-1">Detailed Metrics</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Card 1 -->
+<div class="group relative rounded-xl bg-surface-dark border border-surface-border p-5 hover:border-primary/50 transition-colors cursor-pointer overflow-hidden">
+<div class="absolute top-0 right-0 p-5 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-primary">arrow_outward</span>
+</div>
+<div class="flex items-start gap-4 mb-4">
+<div class="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">analytics</span>
+</div>
+<div>
+<p class="text-white font-bold">Navi Dashboard</p>
+<p class="text-[#9da6b9] text-xs">Analytics Module</p>
+</div>
+</div>
+<div class="flex items-end justify-between">
+<div>
+<p class="text-xs text-[#9da6b9]">Sprint Velocity</p>
+<p class="text-white text-xl font-bold mt-1">42 pts</p>
+</div>
+<!-- Sparkline representation -->
+<div class="flex items-end gap-1 h-8">
+<div class="w-1.5 bg-primary/20 h-[40%] rounded-sm"></div>
+<div class="w-1.5 bg-primary/40 h-[60%] rounded-sm"></div>
+<div class="w-1.5 bg-primary/60 h-[50%] rounded-sm"></div>
+<div class="w-1.5 bg-primary h-[80%] rounded-sm"></div>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="group relative rounded-xl bg-surface-dark border border-surface-border p-5 hover:border-warning/50 transition-colors cursor-pointer overflow-hidden">
+<div class="absolute top-0 right-0 p-5 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-warning">arrow_outward</span>
+</div>
+<div class="flex items-start gap-4 mb-4">
+<div class="size-10 rounded-lg bg-warning/10 flex items-center justify-center text-warning">
+<span class="material-symbols-outlined">api</span>
+</div>
+<div>
+<p class="text-white font-bold">Bridge API</p>
+<p class="text-[#9da6b9] text-xs">Integration Layer</p>
+</div>
+</div>
+<div class="flex items-end justify-between">
+<div>
+<p class="text-xs text-[#9da6b9]">Uptime (30d)</p>
+<p class="text-white text-xl font-bold mt-1">99.2%</p>
+</div>
+<div class="flex items-end gap-1 h-8">
+<div class="w-1.5 bg-warning/20 h-[90%] rounded-sm"></div>
+<div class="w-1.5 bg-warning/40 h-[85%] rounded-sm"></div>
+<div class="w-1.5 bg-warning/60 h-[95%] rounded-sm"></div>
+<div class="w-1.5 bg-warning h-[70%] rounded-sm"></div>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="group relative rounded-xl bg-surface-dark border border-surface-border p-5 hover:border-success/50 transition-colors cursor-pointer overflow-hidden">
+<div class="absolute top-0 right-0 p-5 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-success">arrow_outward</span>
+</div>
+<div class="flex items-start gap-4 mb-4">
+<div class="size-10 rounded-lg bg-success/10 flex items-center justify-center text-success">
+<span class="material-symbols-outlined">rocket_launch</span>
+</div>
+<div>
+<p class="text-white font-bold">Sprint Enhancer</p>
+<p class="text-[#9da6b9] text-xs">Productivity Tool</p>
+</div>
+</div>
+<div class="flex items-end justify-between">
+<div>
+<p class="text-xs text-[#9da6b9]">Adoption Rate</p>
+<p class="text-white text-xl font-bold mt-1">+18%</p>
+</div>
+<div class="flex items-end gap-1 h-8">
+<div class="w-1.5 bg-success/20 h-[30%] rounded-sm"></div>
+<div class="w-1.5 bg-success/40 h-[50%] rounded-sm"></div>
+<div class="w-1.5 bg-success/60 h-[70%] rounded-sm"></div>
+<div class="w-1.5 bg-success h-[90%] rounded-sm"></div>
+</div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="group relative rounded-xl bg-surface-dark border border-surface-border p-5 hover:border-critical/50 transition-colors cursor-pointer overflow-hidden">
+<div class="absolute top-0 right-0 p-5 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-critical">arrow_outward</span>
+</div>
+<div class="flex items-start gap-4 mb-4">
+<div class="size-10 rounded-lg bg-critical/10 flex items-center justify-center text-critical">
+<span class="material-symbols-outlined">bug_report</span>
+</div>
+<div>
+<p class="text-white font-bold">Core Platform</p>
+<p class="text-[#9da6b9] text-xs">Infrastructure</p>
+</div>
+</div>
+<div class="flex items-end justify-between">
+<div>
+<p class="text-xs text-[#9da6b9]">Open Defects</p>
+<p class="text-white text-xl font-bold mt-1">24</p>
+</div>
+<div class="flex items-end gap-1 h-8">
+<div class="w-1.5 bg-critical/20 h-[20%] rounded-sm"></div>
+<div class="w-1.5 bg-critical/40 h-[40%] rounded-sm"></div>
+<div class="w-1.5 bg-critical/60 h-[80%] rounded-sm"></div>
+<div class="w-1.5 bg-critical h-[100%] rounded-sm"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

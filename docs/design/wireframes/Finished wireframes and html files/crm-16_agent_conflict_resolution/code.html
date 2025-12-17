@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-16 Agent Conflict Resolution</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "hyvve-coral": "#FF6B6B",
+                        "hyvve-teal": "#20B2AA",
+                        "hyvve-cream": "#FFFBF5",
+                        "hyvve-charcoal": "#2D3436",
+                        "hyvve-scout": "#4f46e5", // Indigo/Blue
+                        "hyvve-scout-bg": "#EEF2FF", 
+                        "hyvve-echo": "#9333ea",  // Purple
+                        "hyvve-echo-bg": "#F3E8FF",
+                        "hyvve-clara": "#FF6B6B", // Coral
+                        "hyvve-warning": "#F59E0B",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    boxShadow: {
+                        "soft": "0 20px 40px -5px rgba(45, 52, 54, 0.1)",
+                        "card-hover": "0 10px 30px -5px rgba(0, 0, 0, 0.05)"
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-hyvve-cream font-display text-hyvve-charcoal flex items-center justify-center min-h-screen p-4">
+<div aria-hidden="true" class="fixed inset-0 bg-[#2D3436]/20 backdrop-blur-sm z-0"></div>
+<div class="relative z-10 w-full max-w-5xl bg-white rounded-2xl shadow-soft overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
+<div class="flex flex-col border-b border-gray-100">
+<div class="bg-yellow-50 border-l-4 border-yellow-400 px-6 py-4 flex items-center gap-3">
+<span class="material-symbols-outlined text-yellow-500 text-2xl">warning</span>
+<div>
+<h2 class="text-yellow-800 tracking-tight text-xl font-bold leading-tight">Agent Perspectives Differ</h2>
+<p class="text-yellow-700 text-sm font-medium">Conflict Detected: Lead Scoring vs. Engagement Metrics</p>
+</div>
+</div>
+<div class="px-6 py-3 bg-gray-50 flex items-center justify-between border-t border-gray-100">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-gray-400 text-lg">person</span>
+<p class="text-gray-500 text-sm font-medium">Context: <span class="text-hyvve-charcoal font-bold">Contact John Doe (Lead #8842)</span></p>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Last Activity: 2h ago</span>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-6 md:p-8 bg-white">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+<div class="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 border border-gray-200 text-gray-400 font-bold text-xs shadow-lg">
+                    VS
+                </div>
+<div class="flex flex-col h-full rounded-xl overflow-hidden border border-indigo-100 bg-hyvve-scout-bg transition-all hover:shadow-card-hover group/scout">
+<div class="h-1 bg-hyvve-scout w-full"></div>
+<div class="p-6 flex flex-col gap-4 flex-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-hyvve-scout border border-indigo-200">
+<span class="material-symbols-outlined">radar</span>
+</div>
+<div>
+<h3 class="text-hyvve-scout font-bold text-lg">Scout</h3>
+<p class="text-xs text-gray-500">Identity: Scorer</p>
+</div>
+</div>
+<span class="px-2 py-1 bg-white text-hyvve-scout border border-indigo-100 text-xs font-bold rounded uppercase">Score 92</span>
+</div>
+<div class="space-y-4">
+<div>
+<h4 class="text-hyvve-charcoal font-bold text-2xl tracking-tight mb-1">Recommendation: SALES_READY</h4>
+<p class="text-gray-600 text-sm leading-relaxed">
+                                    Strong signals detected. This lead matches 98% of your Ideal Customer Profile.
+                                </p>
+</div>
+<div class="bg-white/60 rounded-lg p-4 border border-indigo-100/50">
+<p class="text-xs font-semibold text-indigo-400 mb-2 uppercase tracking-wide">Rationale</p>
+<ul class="space-y-2">
+<li class="flex items-start gap-2 text-sm text-gray-700">
+<span class="material-symbols-outlined text-hyvve-teal text-base mt-0.5">check_circle</span>
+<span>High firmographic fit (Series B, SaaS)</span>
+</li>
+<li class="flex items-start gap-2 text-sm text-gray-700">
+<span class="material-symbols-outlined text-hyvve-teal text-base mt-0.5">check_circle</span>
+<span>Decision-maker identified on LinkedIn</span>
+</li>
+<li class="flex items-start gap-2 text-sm text-gray-700">
+<span class="material-symbols-outlined text-hyvve-teal text-base mt-0.5">check_circle</span>
+<span>Budget cycle aligns with Q4</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col h-full rounded-xl overflow-hidden border border-purple-100 bg-hyvve-echo-bg transition-all hover:shadow-card-hover group/echo">
+<div class="h-1 bg-hyvve-echo w-full"></div>
+<div class="p-6 flex flex-col gap-4 flex-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-hyvve-echo border border-purple-200">
+<span class="material-symbols-outlined">graphic_eq</span>
+</div>
+<div>
+<h3 class="text-hyvve-echo font-bold text-lg">Echo</h3>
+<p class="text-xs text-gray-500">Identity: Tracker</p>
+</div>
+</div>
+<span class="px-2 py-1 bg-white text-hyvve-echo border border-purple-100 text-xs font-bold rounded uppercase">Low Engagement</span>
+</div>
+<div class="space-y-4">
+<div>
+<h4 class="text-hyvve-charcoal font-bold text-2xl tracking-tight mb-1">Caution: Engagement Dropping</h4>
+<p class="text-gray-600 text-sm leading-relaxed">
+                                    Warning signs observed. Digital body language suggests waning interest.
+                                </p>
+</div>
+<div class="bg-white/60 rounded-lg p-4 border border-purple-100/50">
+<p class="text-xs font-semibold text-purple-400 mb-2 uppercase tracking-wide">Rationale</p>
+<ul class="space-y-2">
+<li class="flex items-start gap-2 text-sm text-gray-700">
+<span class="material-symbols-outlined text-hyvve-coral text-base mt-0.5">error</span>
+<span>No email opens in last 14 days</span>
+</li>
+<li class="flex items-start gap-2 text-sm text-gray-700">
+<span class="material-symbols-outlined text-hyvve-coral text-base mt-0.5">error</span>
+<span>Unsubscribed from product newsletter</span>
+</li>
+<li class="flex items-start gap-2 text-sm text-gray-700">
+<span class="material-symbols-outlined text-yellow-600 text-base mt-0.5">warning</span>
+<span>Visit duration &lt; 30s on pricing page</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-8 relative">
+<div class="absolute -top-4 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-gray-200 hidden md:block"></div>
+<div class="flex flex-col md:flex-row items-start md:items-center gap-5 p-6 rounded-xl border border-orange-100 bg-orange-50/50">
+<div class="shrink-0 relative">
+<div class="w-14 h-14 rounded-full bg-gradient-to-br from-hyvve-coral to-orange-300 p-[2px] shadow-sm">
+<div class="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+<img alt="Clara Avatar" class="w-full h-full object-cover opacity-90" data-alt="Abstract geometric avatar representing Clara AI agent" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1xb4QT2divMg9Oym7c91jsVON-3oGEBXCbXdYjkh1zDfM5NJDWsiFvadleyO-WcMdqECsUR0rqdtY1zcPquzjhklICZCng3qUyHEIg5A5_cCvIRl6QAeZ3GucJrr9bqsLtLAizWESYQ3i6GMmwjlutFmjU1sFNUGTxB81fltdLp105H994ROt3koJQ_S6HO58D3hVPGY0w-C7V1qSiiVvTAXXRFSsLE01hq-0MhGAAKlcC9Yb1LaLENUweSbU1UbaO8z0IvDURKY"/>
+</div>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-hyvve-coral text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">LEAD</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<span class="text-hyvve-coral font-bold text-sm uppercase tracking-wide">Clara's Synthesis</span>
+<span class="w-1 h-1 rounded-full bg-gray-400"></span>
+<span class="text-xs text-gray-500">Team Lead Analysis</span>
+</div>
+<p class="text-hyvve-charcoal text-base leading-relaxed italic">
+                            "While the fit is perfect <span class="text-hyvve-scout font-medium not-italic">(Scout)</span>, the silence is concerning <span class="text-hyvve-echo font-medium not-italic">(Echo)</span>. I recommend a check-in before upgrading the status. Don't burn the lead."
+                        </p>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-gray-50 border-t border-gray-100 p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+<label class="flex items-center gap-2 cursor-pointer group select-none">
+<input class="w-4 h-4 rounded border-gray-300 bg-white text-hyvve-coral focus:ring-hyvve-coral transition-colors" type="checkbox"/>
+<span class="text-sm text-gray-500 group-hover:text-gray-700 transition-colors">Remember this decision?</span>
+</label>
+<div class="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+<button class="w-full md:w-auto px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-200 transition-colors">
+                    Ask for Details
+                </button>
+<div class="w-px h-6 bg-gray-300 hidden md:block"></div>
+<button class="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-hyvve-echo hover:bg-purple-700 shadow-lg shadow-purple-200 transition-all active:scale-[0.98]">
+<span>Accept Echo</span>
+<span class="text-purple-200 text-xs font-normal ml-1 border-l border-purple-400 pl-1">Keep as Warm</span>
+</button>
+<button class="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-hyvve-scout hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]">
+<span>Accept Scout</span>
+<span class="text-indigo-200 text-xs font-normal ml-1 border-l border-indigo-400 pl-1">Mark as Ready</span>
+</button>
+</div>
+</div>
+</div>
+</body></html>

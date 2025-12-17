@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KB-02 Page Editor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ecc8",
+                        "primary-dark": "#0ebca0",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#10221f",
+                        "verified": "#2ECC71",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem", 
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Editor specific styles */
+        .editor-block {
+            position: relative;
+        }
+        .editor-block .drag-handle {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .editor-block:hover .drag-handle {
+            opacity: 1;
+        }
+        .ProseMirror:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display overflow-hidden h-screen flex">
+<!-- LEFT SIDEBAR: Page Tree -->
+<aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full shrink-0 z-20">
+<div class="h-14 flex items-center px-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+<div class="flex items-center gap-2 text-slate-900 dark:text-white font-bold tracking-tight">
+<div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">library_books</span>
+</div>
+<span>Knowledge Base</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto py-4 px-2">
+<div class="flex flex-col gap-1">
+<!-- Search -->
+<div class="px-2 mb-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2.5 top-2 text-slate-400 text-[18px]">search</span>
+<input class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg py-1.5 pl-9 text-sm focus:ring-1 focus:ring-primary placeholder-slate-400" placeholder="Filter pages..." type="text"/>
+</div>
+</div>
+<!-- Tree Items -->
+<div class="group flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">folder</span>
+                        Home
+                    </div>
+</div>
+<div class="group flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium text-slate-900 dark:text-slate-200 bg-primary/10 cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] transform rotate-90">arrow_right</span>
+<span class="material-symbols-outlined text-[18px] text-primary">folder_open</span>
+                        Engineering
+                    </div>
+<span class="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100 text-slate-400">more_horiz</span>
+</div>
+<div class="pl-7 flex flex-col gap-1 mt-1">
+<div class="group flex items-center justify-between px-3 py-1.5 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">article</span>
+                            Onboarding
+                        </div>
+</div>
+<div class="group flex items-center justify-between px-3 py-1.5 rounded-lg text-sm text-primary font-medium bg-white dark:bg-slate-800 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">article</span>
+                            Deployment Guides
+                        </div>
+</div>
+<div class="group flex items-center justify-between px-3 py-1.5 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">article</span>
+                            API Reference
+                        </div>
+</div>
+</div>
+<div class="group flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer mt-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">folder</span>
+                        Design System
+                    </div>
+</div>
+</div>
+</div>
+<div class="p-4 border-t border-slate-100 dark:border-slate-800">
+<button class="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-primary text-white dark:text-slate-900 py-2 text-sm font-medium hover:bg-slate-800 dark:hover:bg-primary-dark transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                New Page
+            </button>
+</div>
+</aside>
+<!-- MAIN EDITOR AREA -->
+<main class="flex-1 flex flex-col min-w-0 bg-background-light dark:bg-background-dark relative">
+<!-- Top Navigation / Action Bar -->
+<header class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-20">
+<!-- Left: Breadcrumbs & Meta -->
+<div class="flex flex-col justify-center gap-0.5">
+<nav class="flex items-center text-xs text-slate-500">
+<a class="hover:text-primary transition-colors" href="#">Knowledge Base</a>
+<span class="mx-1.5">/</span>
+<a class="hover:text-primary transition-colors" href="#">Engineering</a>
+<span class="mx-1.5">/</span>
+<span class="text-slate-800 dark:text-slate-200 font-medium">Deployment Guides</span>
+</nav>
+<div class="flex items-center gap-2 text-xs text-slate-400">
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Saved
+                    </span>
+<span>•</span>
+<span>Last edited 2h ago by Sarah J.</span>
+</div>
+</div>
+<!-- Right: Actions -->
+<div class="flex items-center gap-3">
+<!-- Avatars -->
+<div class="flex -space-x-2 mr-4">
+<div class="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 bg-cover bg-center" data-alt="User avatar 1" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA658IvN8meJr0_dWVIPStokZi52IsDLjezlS-TOy-O4QhP6pJRtirkEGqYS7foVOCfYoM4Umm64A1SgviF9MRt5vYZjd_gEpCAa2WTqKDKkBobFcImrH-mSyCphDouSLpgSgxP8CuqyiQHs3NEVz51AZzq2Jl_IJce1HMnbQ9OJ0bB56mhtxRiuGzhkFKAlGb7Cm6LbOaYpIA-it1Ji_SkPliZ5Hoqgggd6ge-GB3I1IAM2INz0IEb7-rxPpPsj-t4Z1_Ro9aWN_o')"></div>
+<div class="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 bg-cover bg-center" data-alt="User avatar 2" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBsKMzfSWbRaacdf-bDN1v62oUclc0zJnFTe9Par0YlXqL772tDjuE1JogF7rnnmMT17xueqeVSL_2F-OLXAbNwZPXjNHENrsrdlao3zjvvCiPJMiFJ7x5EjheYU7IvRsOkPIvwgF1YNy9eDM3QzvL6HNSyokoa-7154sh-b6D0676tjGy4XfdgZLDd2oYKl-9clRFbGtjmsHYLJWi9s9dveEe4FvAdhNb_THNL6jfezw5JIj8KrZX3j397meh5UV7xTV_3CUKGgag')"></div>
+<div class="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">+2</div>
+</div>
+<div class="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+<!-- Verify Button -->
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-verified/50 text-verified hover:bg-verified/5 transition-colors text-sm font-medium">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    Verify
+                </button>
+<!-- Share -->
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium">
+                    Share
+                </button>
+<!-- More -->
+<button class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+<!-- Favorite -->
+<button class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">star</span>
+</button>
+</div>
+</header>
+<!-- Editor Scroll Container -->
+<div class="flex-1 overflow-y-auto relative scroll-smooth">
+<!-- Sticky Formatting Toolbar -->
+<div class="sticky top-4 z-10 flex justify-center px-4 pointer-events-none mb-4">
+<div class="bg-white dark:bg-slate-800 shadow-lg ring-1 ring-black/5 rounded-xl px-1.5 py-1.5 flex items-center gap-1 pointer-events-auto backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95">
+<!-- Text Type -->
+<button class="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Normal
+                        <span class="material-symbols-outlined text-[16px]">arrow_drop_down</span>
+</button>
+<div class="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+<!-- Basic Formatting -->
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-[20px]">format_bold</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-[20px]">format_italic</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-[20px]">format_underlined</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-[20px]">link</span>
+</button>
+<div class="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+<!-- Alignment / Lists -->
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-[20px]">format_list_bulleted</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-[20px]">format_list_numbered</span>
+</button>
+<div class="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+<!-- Scribe AI -->
+<button class="flex items-center gap-1.5 px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 text-sm font-medium transition-colors">
+<span class="material-symbols-outlined text-[16px] filled">auto_awesome</span>
+                        Ask Scribe
+                    </button>
+</div>
+</div>
+<!-- Page Canvas -->
+<div class="max-w-[850px] mx-auto pb-32 px-4 sm:px-8">
+<div class="bg-white dark:bg-slate-900 shadow-sm rounded-lg min-h-[1000px] px-12 py-16 relative">
+<!-- Verified Badge in Document -->
+<div class="absolute top-16 right-12">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-verified/10 text-verified text-xs font-semibold border border-verified/20">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+                            Verified
+                        </span>
+</div>
+<!-- Title -->
+<h1 class="text-4xl font-bold text-slate-900 dark:text-white mb-8 tracking-tight outline-none" contenteditable="true">Production Deployment Protocol v2</h1>
+<!-- Content Blocks -->
+<div class="space-y-6 text-slate-700 dark:text-slate-300 text-lg leading-relaxed font-normal">
+<!-- P Block -->
+<div class="editor-block group flex items-start -ml-10 pl-10">
+<div class="drag-handle absolute left-2 top-1.5 cursor-grab text-slate-300 hover:text-slate-500 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-[20px]">drag_indicator</span>
+</div>
+<p class="outline-none w-full" contenteditable="true">This document outlines the standard operating procedure for deploying new services to the production cluster. All engineers must verify they have the necessary permissions before initiating a rollout.</p>
+</div>
+<!-- Scribe AI Suggestion Block -->
+<div class="editor-block group -ml-10 pl-10 relative">
+<div class="drag-handle absolute left-2 top-4 cursor-grab text-slate-300 hover:text-slate-500 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-[20px]">drag_indicator</span>
+</div>
+<div class="border border-primary rounded-xl bg-white dark:bg-slate-800 overflow-hidden shadow-sm">
+<div class="bg-primary/10 px-4 py-2 flex items-center justify-between border-b border-primary/20">
+<div class="flex items-center gap-2 text-primary font-medium text-sm">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+                                        Scribe Suggestion
+                                    </div>
+<div class="flex items-center gap-2">
+<button class="text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white px-2 py-1 rounded hover:bg-white/50">Dismiss</button>
+<button class="text-xs font-medium bg-primary text-slate-900 px-3 py-1 rounded-md hover:bg-primary-dark transition-colors">Apply Fix</button>
+</div>
+</div>
+<div class="p-4 text-base">
+<p class="text-slate-500 text-sm mb-2 uppercase tracking-wide font-bold">Summary</p>
+<p class="text-slate-800 dark:text-slate-200">The introduction is a bit technical. <span class="text-primary font-medium">Suggestion:</span> "This guide explains how to safely release code to production. Make sure you have access before starting."</p>
+</div>
+</div>
+</div>
+<!-- Heading 2 -->
+<div class="editor-block group flex items-start -ml-10 pl-10 mt-8">
+<div class="drag-handle absolute left-2 top-1 cursor-grab text-slate-300 hover:text-slate-500 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-[20px]">drag_indicator</span>
+</div>
+<h2 class="text-2xl font-semibold text-slate-900 dark:text-white w-full outline-none" contenteditable="true">1. Prerequisites</h2>
+</div>
+<!-- Checklist -->
+<div class="editor-block group flex items-start -ml-10 pl-10">
+<div class="drag-handle absolute left-2 top-1 cursor-grab text-slate-300 hover:text-slate-500 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-[20px]">drag_indicator</span>
+</div>
+<div class="flex flex-col gap-3 w-full">
+<label class="flex items-start gap-3 cursor-pointer group/check">
+<input checked="" class="mt-1.5 w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-slate-500 line-through decoration-slate-400">Verify AWS CLI v2 is installed</span>
+</label>
+<label class="flex items-start gap-3 cursor-pointer group/check">
+<input class="mt-1.5 w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/>
+<span class="">Confirm database snapshot status in RDS console</span>
+</label>
+<label class="flex items-start gap-3 cursor-pointer group/check">
+<input class="mt-1.5 w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/>
+<span class="">Notify #dev-ops channel on Slack</span>
+</label>
+</div>
+</div>
+<!-- Callout Block -->
+<div class="editor-block group flex items-start -ml-10 pl-10">
+<div class="drag-handle absolute left-2 top-4 cursor-grab text-slate-300 hover:text-slate-500 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-[20px]">drag_indicator</span>
+</div>
+<div class="flex gap-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 w-full">
+<span class="material-symbols-outlined text-amber-500 mt-0.5">warning</span>
+<div>
+<h4 class="font-medium text-amber-800 dark:text-amber-200 text-base">Critical Warning</h4>
+<p class="text-amber-700 dark:text-amber-300 text-base mt-1">Do not proceed with deployment on Fridays after 4 PM EST unless explicit approval is granted by the CTO.</p>
+</div>
+</div>
+</div>
+<!-- Code Block -->
+<div class="editor-block group flex items-start -ml-10 pl-10">
+<div class="drag-handle absolute left-2 top-4 cursor-grab text-slate-300 hover:text-slate-500 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-[20px]">drag_indicator</span>
+</div>
+<div class="w-full rounded-lg bg-slate-800 dark:bg-black p-4 font-mono text-sm text-slate-300 overflow-x-auto border border-slate-700 relative group/code">
+<button class="absolute top-2 right-2 p-1.5 rounded bg-white/10 text-white opacity-0 group-hover/code:opacity-100 transition-opacity hover:bg-white/20">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+</button>
+<div class="flex select-none mb-2 border-b border-slate-700 pb-2">
+<span class="text-xs text-slate-500 uppercase tracking-wider">bash</span>
+</div>
+<pre><code>npm run build
+aws s3 sync ./dist s3://prod-bucket --delete
+aws cloudfront create-invalidation --distribution-id E12345 --paths "/*"</code></pre>
+</div>
+</div>
+<!-- Slash Command Placeholder -->
+<div class="editor-block group flex items-center -ml-10 pl-10 relative">
+<div class="drag-handle absolute left-2 top-1.5 cursor-grab text-slate-300 hover:text-slate-500 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-[20px]">drag_indicator</span>
+</div>
+<p class="text-slate-400 w-full outline-none" contenteditable="true">Type '/' for commands...</p>
+<!-- Slash Menu Popup (Simulated active state) -->
+<div class="absolute top-10 left-10 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden z-20">
+<div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Basic blocks</div>
+<button class="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-primary/10 hover:text-primary transition-colors">
+<div class="w-10 h-10 rounded border border-slate-200 bg-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[20px]">text_fields</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium">Text</span>
+<span class="text-xs text-slate-500">Just start writing with plain text.</span>
+</div>
+</button>
+<button class="w-full text-left px-3 py-2 flex items-center gap-3 bg-primary/10 text-primary transition-colors">
+<div class="w-10 h-10 rounded border border-primary/30 bg-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[20px]">title</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium">Heading 1</span>
+<span class="text-xs text-primary/70">Big section heading.</span>
+</div>
+</button>
+<button class="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-primary/10 hover:text-primary transition-colors">
+<div class="w-10 h-10 rounded border border-slate-200 bg-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[20px]">format_list_bulleted</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium">Bulleted list</span>
+<span class="text-xs text-slate-500">Create a simple bulleted list.</span>
+</div>
+</button>
+<div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">Scribe AI</div>
+<button class="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-primary/10 hover:text-primary transition-colors">
+<div class="w-10 h-10 rounded border border-primary text-primary bg-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium">Ask Scribe</span>
+<span class="text-xs text-slate-500">Draft content with AI.</span>
+</div>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- RIGHT SIDEBAR: Context Panel -->
+<aside class="w-72 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hidden xl:flex flex-col shrink-0 z-20">
+<!-- Tabs -->
+<div class="flex border-b border-slate-200 dark:border-slate-800">
+<button class="flex-1 py-3 text-sm font-medium text-primary border-b-2 border-primary">Outline</button>
+<button class="flex-1 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">Details</button>
+<button class="flex-1 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">Activity</button>
+</div>
+<div class="flex-1 overflow-y-auto p-4">
+<!-- Table of Contents -->
+<div class="mb-8">
+<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Table of Contents</h3>
+<ul class="space-y-2 text-sm">
+<li>
+<a class="block text-primary font-medium pl-2 border-l-2 border-primary" href="#">Introduction</a>
+</li>
+<li>
+<a class="block text-slate-600 dark:text-slate-400 hover:text-primary pl-2 border-l-2 border-transparent transition-colors" href="#">1. Prerequisites</a>
+</li>
+<li>
+<a class="block text-slate-600 dark:text-slate-400 hover:text-primary pl-2 border-l-2 border-transparent transition-colors" href="#">2. Build Process</a>
+</li>
+<li>
+<a class="block text-slate-600 dark:text-slate-400 hover:text-primary pl-2 border-l-2 border-transparent transition-colors" href="#">3. Rollout Strategy</a>
+</li>
+<li>
+<a class="block text-slate-600 dark:text-slate-400 hover:text-primary pl-2 border-l-2 border-transparent transition-colors" href="#">4. Rollback Plan</a>
+</li>
+</ul>
+</div>
+<!-- Contributors -->
+<div class="mb-8">
+<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Top Contributors</h3>
+<div class="flex flex-col gap-3">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-cover bg-center" data-alt="Contributor avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCibnNNpQ-Ie6ExJhXWmgF0Im21DmGdVGHF9S5gAOjhbgqczCnb5huxEGrA7dlgw5GAlu-Y_VIcy_rYmXh2l7mhMPqpppGt18fIr-dUjuGPdq8fateGjm3XDArdTU7oC6aywpJz82YMIU199KZUjUAbSGcRiKNsNZ5fxpOigpGP3ezuniaMLW4j8xDIoLM0KppN9UELbmVys7LnM_-pmBVrX86HKJxXa_kg7th66fplS-UcSJIxlck6ky954EpNt1UmpH9hDbduiKA')"></div>
+<div>
+<p class="text-sm font-medium text-slate-900 dark:text-white">Sarah Jenkins</p>
+<p class="text-xs text-slate-500">Edited 2h ago</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-cover bg-center" data-alt="Contributor avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCUHnD3e6hwN9T4u0cmSfseNOOhYZRt0x043mbz1YuYhYXL1BMvj2Uv8wiSHUM225DDo_ING7EnKRNAFNddXdN1j6WrMY4UbNOo_F8jjVEn80BVtI-jivRushZ-ZdF2aFVvzXkReCSmfpeVjPeUj1Kvowy0q4HAisL3EktVHl5QZX05meFnIRQFqjYeFsImEyGvv1bNAzsVdIjHFu0mrJZ5a-9ZoKft4abMX0vIm9SsgiqgnHOKwvW-BNG4BH5iOVJRpcAx81XnH3Q')"></div>
+<div>
+<p class="text-sm font-medium text-slate-900 dark:text-white">Mike Ross</p>
+<p class="text-xs text-slate-500">Created 3d ago</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Linked Tasks -->
+<div>
+<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Linked Tasks</h3>
+<div class="space-y-2">
+<div class="flex items-start gap-2 p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+<div class="mt-0.5">
+<span class="material-symbols-outlined text-[16px] text-blue-500">check_box</span>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-800 dark:text-slate-200 line-clamp-1">Update AWS Credentials</p>
+<p class="text-xs text-slate-500">KB-102 • In Progress</p>
+</div>
+</div>
+<div class="flex items-start gap-2 p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+<div class="mt-0.5">
+<span class="material-symbols-outlined text-[16px] text-green-500">check_box</span>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-800 dark:text-slate-200 line-clamp-1">Review Security Protocol</p>
+<p class="text-xs text-slate-500">KB-105 • Done</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</body></html>

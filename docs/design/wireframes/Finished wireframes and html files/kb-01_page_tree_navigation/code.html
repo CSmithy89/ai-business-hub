@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KB-01 Page Tree Navigation</title>
+<!-- Fonts and Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#13ecec",
+              "primary-dark": "#0ebdbd",
+              "cream": "#FFFBF5",
+              "coral": "#FF6B6B",
+              "coral-hover": "#FA5252",
+              "verified": "#2ECC71",
+              "background-light": "#f6f8f8",
+              "background-dark": "#102222",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"],
+              "sans": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px"},
+            boxShadow: {
+                'soft': '0 2px 10px rgba(0, 0, 0, 0.03)',
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for webkit */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #e2e8f0;
+            border-radius: 20px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 20px; 
+            /* Prevent layout shifts */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-white text-slate-800 h-screen overflow-hidden flex">
+<!-- SIDEBAR: Knowledge Base Navigation -->
+<aside class="flex flex-col w-[320px] h-full bg-cream border-r border-stone-200 shrink-0 relative z-20">
+<!-- Sidebar Header -->
+<div class="px-5 pt-6 pb-2 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h2 class="text-stone-900 text-xl font-bold tracking-tight">Knowledge Base</h2>
+<!-- Minimal User Profile or Notifications placeholder could go here -->
+</div>
+<!-- New Page Button (Coral) -->
+<button class="flex w-full cursor-pointer items-center justify-center rounded-lg h-10 px-4 bg-coral hover:bg-coral-hover transition-colors text-white gap-2 font-semibold shadow-soft group">
+<span class="material-symbols-outlined text-white" style="font-size: 20px;">add</span>
+<span class="text-sm">New Page</span>
+</button>
+<!-- Search Bar -->
+<div class="relative group/search">
+<div class="flex w-full items-center rounded-lg bg-white border border-stone-200 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all shadow-sm h-10 overflow-hidden">
+<span class="material-symbols-outlined text-stone-400 pl-3" style="font-size: 20px;">search</span>
+<input class="w-full bg-transparent border-none text-sm text-stone-700 placeholder:text-stone-400 focus:ring-0 h-full px-2" placeholder="Search pages..."/>
+<div class="pr-3">
+<kbd class="hidden group-focus-within/search:hidden lg:inline-flex h-5 items-center gap-1 rounded border border-stone-200 bg-stone-50 px-1.5 font-mono text-[10px] font-medium text-stone-500">
+<span class="text-xs">⌘</span>K
+                        </kbd>
+</div>
+</div>
+<!-- Search Dropdown (Hidden by default, shown here for visual context or hidden via logic usually) -->
+<!-- Ideally hidden, simple state here assumes inactive -->
+</div>
+</div>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-6">
+<!-- FAVORITES SECTION -->
+<div>
+<div class="group flex items-center justify-between px-3 py-1 cursor-pointer text-stone-500 hover:text-stone-800 transition-colors mb-1">
+<h3 class="text-xs font-bold uppercase tracking-wider">Favorites</h3>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 text-stone-400 hover:bg-stone-200 rounded p-0.5 transition-all" style="font-size: 16px;">expand_less</span>
+</div>
+<ul class="space-y-0.5">
+<!-- Favorite Item 1 -->
+<li>
+<a class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-stone-200/50 group text-sm text-stone-700 font-medium" href="#">
+<span class="material-symbols-outlined text-yellow-500 icon-fill" style="font-size: 18px;">star</span>
+<span class="truncate flex-1">Quarterly Review</span>
+<span class="material-symbols-outlined text-stone-400 opacity-0 group-hover:opacity-100" style="font-size: 16px;">drag_indicator</span>
+</a>
+</li>
+<!-- Favorite Item 2 (Verified) -->
+<li>
+<a class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-stone-200/50 group text-sm text-stone-700 font-medium" href="#">
+<span class="material-symbols-outlined text-yellow-500 icon-fill" style="font-size: 18px;">star</span>
+<span class="truncate flex-1">Brand Guidelines</span>
+<span class="material-symbols-outlined text-verified icon-fill" style="font-size: 16px;" title="Verified">verified</span>
+</a>
+</li>
+</ul>
+</div>
+<!-- RECENT PAGES SECTION -->
+<div>
+<div class="group flex items-center justify-between px-3 py-1 cursor-pointer text-stone-500 hover:text-stone-800 transition-colors mb-1">
+<h3 class="text-xs font-bold uppercase tracking-wider">Recent</h3>
+</div>
+<ul class="space-y-0.5">
+<li>
+<a class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-stone-200/50 group text-sm text-stone-600" href="#">
+<span class="material-symbols-outlined text-stone-400" style="font-size: 18px;">schedule</span>
+<span class="truncate flex-1">Onboarding Flow</span>
+<span class="text-[10px] text-stone-400">2m</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-stone-200/50 group text-sm text-stone-600" href="#">
+<span class="material-symbols-outlined text-stone-400" style="font-size: 18px;">schedule</span>
+<span class="truncate flex-1">Q3 Marketing Plan</span>
+<span class="text-[10px] text-stone-400">1h</span>
+</a>
+</li>
+</ul>
+</div>
+<!-- PAGE TREE SECTION -->
+<div class="pb-4">
+<div class="flex items-center justify-between px-3 py-1 mb-1">
+<h3 class="text-xs font-bold uppercase tracking-wider text-stone-500">Page Tree</h3>
+<span class="bg-stone-200 text-stone-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">124</span>
+</div>
+<div class="flex flex-col gap-0.5">
+<!-- Tree Item: Folder (Expanded) -->
+<div class="group relative flex items-center pr-2 pl-0 py-1.5 rounded-lg hover:bg-stone-200/50 cursor-pointer text-sm text-stone-700">
+<!-- Drag Handle -->
+<div class="absolute left-1 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-grab">
+<span class="material-symbols-outlined text-stone-400" style="font-size: 14px;">drag_indicator</span>
+</div>
+<!-- Content -->
+<div class="flex items-center gap-2 pl-6 w-full">
+<span class="material-symbols-outlined text-stone-400 hover:text-stone-800 transition-colors" style="font-size: 18px;">expand_more</span>
+<span class="material-symbols-outlined text-stone-500 icon-fill" style="font-size: 18px;">folder</span>
+<span class="truncate flex-1 font-medium">Product Specs</span>
+</div>
+<!-- Actions Menu -->
+<button class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-stone-300 rounded text-stone-500">
+<span class="material-symbols-outlined" style="font-size: 16px;">more_vert</span>
+</button>
+</div>
+<!-- Nested Item 1 -->
+<div class="group relative flex items-center pr-2 pl-0 py-1.5 rounded-lg hover:bg-stone-200/50 cursor-pointer text-sm text-stone-700">
+<div class="absolute left-1 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-grab">
+<span class="material-symbols-outlined text-stone-400" style="font-size: 14px;">drag_indicator</span>
+</div>
+<div class="flex items-center gap-2 pl-12 w-full">
+<!-- Spacer for no chevron -->
+<span class="w-[18px]"></span>
+<span class="material-symbols-outlined text-stone-400" style="font-size: 18px;">description</span>
+<span class="truncate flex-1">v2.0 Requirements</span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-stone-300 rounded text-stone-500">
+<span class="material-symbols-outlined" style="font-size: 16px;">more_vert</span>
+</button>
+</div>
+<!-- Nested Item 2 (Active) -->
+<!-- Active State: Teal left border, light teal bg -->
+<div class="relative flex items-center pr-2 pl-0 py-1.5 rounded-r-lg bg-primary/10 border-l-[3px] border-primary cursor-pointer text-sm text-stone-900 font-semibold group">
+<div class="absolute left-1 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-grab z-10">
+<span class="material-symbols-outlined text-primary-dark" style="font-size: 14px;">drag_indicator</span>
+</div>
+<div class="flex items-center gap-2 pl-[45px] w-full">
+<span class="material-symbols-outlined text-primary-dark" style="font-size: 18px;">description</span>
+<span class="truncate flex-1">API Documentation</span>
+<span class="material-symbols-outlined text-verified icon-fill" style="font-size: 16px;">verified</span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-primary/20 rounded text-stone-600">
+<span class="material-symbols-outlined" style="font-size: 16px;">more_vert</span>
+</button>
+</div>
+<!-- Nested Item 3 -->
+<div class="group relative flex items-center pr-2 pl-0 py-1.5 rounded-lg hover:bg-stone-200/50 cursor-pointer text-sm text-stone-700">
+<div class="absolute left-1 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-grab">
+<span class="material-symbols-outlined text-stone-400" style="font-size: 14px;">drag_indicator</span>
+</div>
+<div class="flex items-center gap-2 pl-12 w-full">
+<span class="w-[18px]"></span>
+<span class="material-symbols-outlined text-stone-400" style="font-size: 18px;">description</span>
+<span class="truncate flex-1">Migration Guide</span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-stone-300 rounded text-stone-500">
+<span class="material-symbols-outlined" style="font-size: 16px;">more_vert</span>
+</button>
+</div>
+<!-- Top Level Folder (Collapsed) -->
+<div class="group relative flex items-center pr-2 pl-0 py-1.5 rounded-lg hover:bg-stone-200/50 cursor-pointer text-sm text-stone-700 mt-1">
+<div class="absolute left-1 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-grab">
+<span class="material-symbols-outlined text-stone-400" style="font-size: 14px;">drag_indicator</span>
+</div>
+<div class="flex items-center gap-2 pl-6 w-full">
+<span class="material-symbols-outlined text-stone-400 hover:text-stone-800 transition-colors" style="font-size: 18px;">chevron_right</span>
+<span class="material-symbols-outlined text-stone-500 icon-fill" style="font-size: 18px;">folder</span>
+<span class="truncate flex-1 font-medium">Design Assets</span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-stone-300 rounded text-stone-500">
+<span class="material-symbols-outlined" style="font-size: 16px;">more_vert</span>
+</button>
+</div>
+<!-- Top Level Folder (Collapsed) -->
+<div class="group relative flex items-center pr-2 pl-0 py-1.5 rounded-lg hover:bg-stone-200/50 cursor-pointer text-sm text-stone-700">
+<div class="absolute left-1 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-grab">
+<span class="material-symbols-outlined text-stone-400" style="font-size: 14px;">drag_indicator</span>
+</div>
+<div class="flex items-center gap-2 pl-6 w-full">
+<span class="material-symbols-outlined text-stone-400 hover:text-stone-800 transition-colors" style="font-size: 18px;">chevron_right</span>
+<span class="material-symbols-outlined text-stone-500 icon-fill" style="font-size: 18px;">folder</span>
+<span class="truncate flex-1 font-medium">Engineering</span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-stone-300 rounded text-stone-500">
+<span class="material-symbols-outlined" style="font-size: 16px;">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Empty State / Scribe Agent Tip -->
+<div class="mt-8 px-3">
+<div class="bg-white border border-primary/40 rounded-xl p-4 shadow-soft relative overflow-hidden">
+<div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full -mr-4 -mt-4"></div>
+<div class="flex flex-col items-center text-center gap-3 relative z-10">
+<div class="w-12 h-12 bg-cream rounded-full flex items-center justify-center shadow-sm border border-stone-100">
+<span class="material-symbols-outlined text-primary-dark" style="font-size: 24px;">smart_toy</span>
+</div>
+<div>
+<h4 class="text-stone-900 font-semibold text-xs mb-1">Scribe Suggestion</h4>
+<p class="text-[11px] text-stone-500 leading-snug">This folder looks empty. Need help generating a structure for your Engineering docs?</p>
+</div>
+<button class="text-[11px] font-bold text-primary-dark hover:text-primary hover:underline transition-colors">Generate Outline</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sidebar Footer -->
+<div class="border-t border-stone-200 bg-cream p-3 flex flex-col gap-2">
+<div class="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-stone-200/50 cursor-pointer group text-stone-600">
+<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+<span class="text-sm ml-2">Trash</span>
+</div>
+<div class="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-stone-200/50 cursor-pointer group text-stone-600">
+<span class="material-symbols-outlined" style="font-size: 18px;">settings</span>
+<span class="text-sm ml-2">Settings</span>
+</div>
+<!-- Storage Usage -->
+<div class="mt-2 px-2">
+<div class="flex justify-between text-[10px] font-medium text-stone-500 mb-1">
+<span>Storage</span>
+<span>4.5GB / 10GB</span>
+</div>
+<div class="h-1.5 w-full bg-stone-200 rounded-full overflow-hidden">
+<div class="h-full bg-stone-400 rounded-full w-[45%]"></div>
+</div>
+</div>
+</div>
+</aside>
+<!-- MAIN EDITOR AREA (Placeholder Context) -->
+<main class="flex-1 bg-white h-full flex flex-col relative overflow-hidden">
+<!-- Top Toolbar Placeholder -->
+<div class="h-14 border-b border-stone-100 flex items-center justify-between px-8 bg-white shrink-0">
+<div class="flex items-center gap-3 text-stone-400 text-sm">
+<span class="hover:text-stone-800 cursor-pointer">Product Specs</span>
+<span class="material-symbols-outlined" style="font-size: 14px;">chevron_right</span>
+<span class="text-stone-900 font-medium flex items-center gap-2">
+                    API Documentation
+                    <span class="material-symbols-outlined text-verified icon-fill" style="font-size: 16px;">verified</span>
+</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600" title="User A">JD</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-purple-100 flex items-center justify-center text-xs font-bold text-purple-600" title="User B">RK</div>
+</div>
+<button class="bg-primary text-stone-900 px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:brightness-95">Share</button>
+</div>
+</div>
+<!-- Editor Content Placeholder -->
+<div class="flex-1 overflow-y-auto p-12 max-w-[900px] mx-auto w-full">
+<div class="w-full h-64 bg-gradient-to-b from-stone-50 to-white rounded-xl mb-8 flex items-center justify-center border border-stone-100" data-alt="Abstract hero image representing API documentation structure with connected nodes">
+<span class="text-stone-300 font-medium">Cover Image</span>
+</div>
+<h1 class="text-4xl font-bold text-stone-900 mb-6 tracking-tight">API Documentation</h1>
+<div class="space-y-4 text-stone-600 leading-relaxed">
+<div class="h-4 bg-stone-100 rounded w-full"></div>
+<div class="h-4 bg-stone-100 rounded w-[92%]"></div>
+<div class="h-4 bg-stone-100 rounded w-[96%]"></div>
+<div class="h-4 bg-stone-100 rounded w-[80%]"></div>
+</div>
+<div class="mt-8 p-6 bg-cream border border-stone-200 rounded-xl">
+<h3 class="text-lg font-semibold text-stone-800 mb-2">Endpoint Overview</h3>
+<div class="h-4 bg-stone-200/50 rounded w-full mb-2"></div>
+<div class="h-4 bg-stone-200/50 rounded w-2/3"></div>
+</div>
+</div>
+</main>
+<!-- RIGHT PANEL: Context Panel (Collapsed Hint) -->
+<aside class="w-14 border-l border-stone-200 bg-white h-full flex flex-col items-center py-4 gap-6 shrink-0">
+<button class="p-2 rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-800 transition-colors" title="Comments">
+<span class="material-symbols-outlined">comment</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-800 transition-colors" title="Activity">
+<span class="material-symbols-outlined">history</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-800 transition-colors" title="Scribe Agent">
+<span class="material-symbols-outlined">smart_toy</span>
+</button>
+</aside>
+</body></html>

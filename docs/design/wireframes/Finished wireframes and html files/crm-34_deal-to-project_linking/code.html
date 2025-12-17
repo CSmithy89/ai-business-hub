@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Deal-to-Project Linking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                        "card-dark": "#1c2333",
+                        "border-dark": "#2a3447",
+                        "text-secondary": "#9da6b9"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1c2333;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #3b4354;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-white overflow-hidden h-screen flex justify-center items-center">
+<!-- Modal Backdrop / Container -->
+<div class="relative w-full max-w-5xl h-[90vh] flex flex-col rounded-xl bg-card-dark border border-border-dark shadow-2xl overflow-hidden my-auto mx-4">
+<!-- Header -->
+<div class="flex items-center justify-between px-8 py-5 border-b border-border-dark bg-[#181e2b]">
+<div>
+<h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">link</span>
+                    Deal-to-Project Handoff
+                </h1>
+<p class="text-text-secondary text-sm mt-1">Acme Corp - Enterprise Expansion Deal</p>
+</div>
+<button class="p-2 rounded-lg hover:bg-white/5 text-text-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto custom-scrollbar p-8">
+<div class="max-w-4xl mx-auto flex flex-col gap-8">
+<!-- Deal Won Banner -->
+<div class="relative rounded-xl overflow-hidden shadow-lg border border-primary/20 group">
+<div class="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent z-10"></div>
+<div class="relative z-20 flex flex-col sm:flex-row items-center justify-between p-6 gap-6 bg-[#181e2b]">
+<div class="flex items-center gap-5">
+<div class="flex h-14 w-14 items-center justify-center rounded-full bg-primary/20 text-primary border border-primary/30">
+<span class="material-symbols-outlined text-3xl">celebration</span>
+</div>
+<div>
+<h2 class="text-xl font-bold text-white">Deal Won! 🎉</h2>
+<p class="text-text-secondary mt-1">Contract signed on Oct 24, 2023. Let's get the customer onboarded.</p>
+</div>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
+<span class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+<span class="text-sm font-medium text-green-400">Ready for Handoff</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Left Column: Main Configuration -->
+<div class="lg:col-span-2 flex flex-col gap-8">
+<!-- Link to Project Section -->
+<section class="flex flex-col gap-4">
+<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">account_tree</span>
+                                Link to Project
+                            </h3>
+<div class="flex flex-col gap-3">
+<!-- Create New Option -->
+<label class="flex items-start gap-4 rounded-lg border border-border-dark bg-[#1f2633] p-4 cursor-pointer hover:border-primary/50 transition-colors group">
+<input checked="" class="mt-1 h-5 w-5 border-border-dark bg-transparent text-primary focus:ring-primary focus:ring-offset-0" name="project_action" type="radio"/>
+<div class="flex grow flex-col gap-3">
+<div>
+<p class="text-white font-medium">Create New Onboarding Project</p>
+<p class="text-text-secondary text-sm">Initialize a new workspace from a template.</p>
+</div>
+<!-- Template Selector (Conditional Logic would show this) -->
+<div class="flex flex-col gap-1.5 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Select Template</label>
+<div class="relative">
+<select class="w-full appearance-none rounded-lg bg-[#2a3447] border border-border-dark text-white py-2.5 pl-4 pr-10 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm">
+<option>Standard Enterprise Onboarding</option>
+<option>Fast-Track Implementation</option>
+<option>Custom Migration Project</option>
+</select>
+<span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary">
+<span class="material-symbols-outlined text-lg">expand_more</span>
+</span>
+</div>
+</div>
+</div>
+</label>
+<!-- Link Existing Option -->
+<label class="flex items-start gap-4 rounded-lg border border-border-dark bg-[#1f2633] p-4 cursor-pointer hover:border-primary/50 transition-colors">
+<input class="mt-1 h-5 w-5 border-border-dark bg-transparent text-primary focus:ring-primary focus:ring-offset-0" name="project_action" type="radio"/>
+<div class="flex grow flex-col">
+<p class="text-white font-medium">Link to Existing Project</p>
+<p class="text-text-secondary text-sm">Connect this deal to a project already in progress.</p>
+<!-- Search Input (Hidden by default logic, but visualized here for wireframe completeness) -->
+<div class="hidden mt-3 relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined text-[20px]">search</span>
+<input class="w-full rounded-lg bg-[#2a3447] border border-border-dark text-white py-2 pl-10 pr-4 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-sm placeholder:text-gray-500" placeholder="Search projects by name or ID..." type="text"/>
+</div>
+</div>
+</label>
+</div>
+</section>
+<!-- Handoff Details Section -->
+<section class="flex flex-col gap-4">
+<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">diversity_3</span>
+                                Handoff Details
+                            </h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Project Owner</label>
+<div class="flex items-center gap-2 p-2 rounded-lg bg-[#2a3447] border border-border-dark">
+<img class="h-8 w-8 rounded-full object-cover ring-2 ring-primary/20" data-alt="Female portrait avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBO3FaBZFZj39pkW9HIIHb-NmFwdm4pUOPndG8jULUD1GHq8zK7POAsN3k_qu8ezpnaVzACwLFVxJIkNasvsOQX_zNXx4qoCbuYWm55iQnYQioYdBYyO1XLISAv4UVMewWRHshP3aMYRvo5uGDOz5zdpKYAhGzNagNiEHU5T_LmiTubTsrCmpRSiEiNTIugOnmaSTnj8IvMQQzc9meSRIA_IO83l-OX91-UUZ2hc_BDNagTn6RkMRr3SnsWUlYoXuU66VJeGGiuRtc"/>
+<span class="text-sm text-white flex-1">Sarah Jenkins</span>
+<button class="text-text-secondary hover:text-white"><span class="material-symbols-outlined text-lg">edit</span></button>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Kickoff Date</label>
+<div class="relative">
+<input class="w-full rounded-lg bg-[#2a3447] border border-border-dark text-white py-2.5 px-3 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm appearance-none" type="date" value="2023-11-01"/>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Target Go-Live</label>
+<div class="relative">
+<input class="w-full rounded-lg bg-[#2a3447] border border-border-dark text-white py-2.5 px-3 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm appearance-none" type="date" value="2023-12-15"/>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Priority</label>
+<div class="relative">
+<select class="w-full appearance-none rounded-lg bg-[#2a3447] border border-border-dark text-white py-2.5 pl-3 pr-8 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm">
+<option>High</option>
+<option>Medium</option>
+<option>Low</option>
+</select>
+<span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary">
+<span class="material-symbols-outlined text-lg">expand_more</span>
+</span>
+</div>
+</div>
+</div>
+<div class="p-4 bg-[#1f2633] rounded-lg border border-border-dark mt-2">
+<div class="flex justify-between items-center mb-3">
+<span class="text-sm font-medium text-white">Transfer Summary</span>
+<span class="text-xs text-primary bg-primary/10 px-2 py-1 rounded">Auto-detected</span>
+</div>
+<div class="flex gap-6 text-sm">
+<div class="flex items-center gap-2 text-text-secondary">
+<span class="material-symbols-outlined text-lg text-emerald-400">check_circle</span>
+<span>3 Key Contacts</span>
+</div>
+<div class="flex items-center gap-2 text-text-secondary">
+<span class="material-symbols-outlined text-lg text-emerald-400">check_circle</span>
+<span>12 Deal Notes</span>
+</div>
+<div class="flex items-center gap-2 text-text-secondary">
+<span class="material-symbols-outlined text-lg text-emerald-400">check_circle</span>
+<span>5 Files</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: AI Assistant & Preview -->
+<div class="flex flex-col gap-6">
+<!-- AI Handoff Chat -->
+<div class="flex flex-col bg-[#1f2633] border border-border-dark rounded-xl overflow-hidden shadow-sm">
+<div class="bg-gradient-to-r from-[#20B2AA]/20 to-[#4B7BEC]/20 p-4 border-b border-border-dark flex items-center gap-3">
+<div class="flex -space-x-2">
+<div class="h-8 w-8 rounded-full bg-[#FF7F50] flex items-center justify-center text-white text-xs font-bold ring-2 ring-[#1f2633]">C</div>
+<div class="h-8 w-8 rounded-full bg-[#4B7BEC] flex items-center justify-center text-white text-xs font-bold ring-2 ring-[#1f2633]">N</div>
+</div>
+<span class="text-sm font-semibold text-white">Clara → Navi Handoff</span>
+</div>
+<div class="p-4 flex flex-col gap-4">
+<div class="bg-[#2a3447] p-3 rounded-lg rounded-tl-none border border-border-dark text-sm text-text-secondary">
+<p><span class="text-white font-medium">Clara (Sales):</span> I've prepared the handoff package. Navi, please confirm the following actions for the CS team.</p>
+</div>
+<div class="flex flex-col gap-2 pl-2">
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="relative flex items-center">
+<input checked="" class="peer h-4 w-4 rounded border-gray-600 bg-transparent text-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+</div>
+<span class="text-sm text-text-secondary peer-checked:text-white transition-colors">Copy all deal notes to project</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="relative flex items-center">
+<input checked="" class="peer h-4 w-4 rounded border-gray-600 bg-transparent text-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+</div>
+<span class="text-sm text-text-secondary peer-checked:text-white transition-colors">Link decision maker contacts</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="relative flex items-center">
+<input class="peer h-4 w-4 rounded border-gray-600 bg-transparent text-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+</div>
+<span class="text-sm text-text-secondary peer-checked:text-white transition-colors">Notify #cs-onboarding Slack</span>
+</label>
+</div>
+</div>
+</div>
+<!-- Preview Card: Linked Project View -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-end">
+<h4 class="text-sm font-semibold text-text-secondary uppercase tracking-wider">Linked Project Preview</h4>
+</div>
+<div class="bg-card-dark border border-border-dark rounded-xl p-5 shadow-lg relative overflow-hidden">
+<!-- Background decoration -->
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 bg-primary/20 text-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined">rocket_launch</span>
+</div>
+<div>
+<h3 class="text-base font-bold text-white leading-tight">Acme Corp Onboarding</h3>
+<span class="text-xs text-text-secondary">ID: PRJ-2023-884</span>
+</div>
+</div>
+<span class="px-2 py-1 rounded bg-blue-500/10 text-blue-400 text-xs font-medium border border-blue-500/20">Planning</span>
+</div>
+<div class="space-y-3">
+<div>
+<div class="flex justify-between text-xs text-text-secondary mb-1">
+<span>Progress</span>
+<span>0%</span>
+</div>
+<div class="h-1.5 w-full bg-[#2a3447] rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[5%] rounded-full"></div>
+</div>
+</div>
+<div class="flex items-center justify-between text-xs pt-2 border-t border-border-dark">
+<div class="flex items-center gap-1.5 text-text-secondary">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+<span>Due Dec 15</span>
+</div>
+<div class="flex -space-x-2">
+<img class="h-6 w-6 rounded-full border border-[#1c2333]" data-alt="Team member 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0g0pq47BsAIReQiqCn51DvedV8zs5iGJ7NsCi6BbJZSs2IllfVz5Q6ibS4HTXpDtwKibnUJjuFHDeFVyuM_GAgZgrdVBz_08NF-zFrct7dzGWoEya9qTn5UBq6XnxbG0ws7SJ3lyyoJifVIKrPIVt5zyRxEjeYtqywXuPQqo7zB0J3puGO6_cU_1Or9PmPhZ_CPMZcXOXjcBeDj_QWlvR9pl92f84zKY83HaJNVLAT1OUOhZnYJitcTnHCJ5g4SDOhOsiVYohbdE"/>
+<div class="h-6 w-6 rounded-full bg-[#2a3447] border border-[#1c2333] flex items-center justify-center text-[10px] text-text-secondary">+2</div>
+</div>
+</div>
+</div>
+<div class="mt-4 grid grid-cols-2 gap-2">
+<button class="flex items-center justify-center gap-2 py-1.5 px-3 rounded bg-[#2a3447] hover:bg-[#3b4354] text-xs text-white transition-colors border border-border-dark">
+<span class="material-symbols-outlined text-sm">visibility</span>
+                                        View
+                                    </button>
+<button class="flex items-center justify-center gap-2 py-1.5 px-3 rounded bg-[#2a3447] hover:bg-[#3b4354] text-xs text-white transition-colors border border-border-dark">
+<span class="material-symbols-outlined text-sm">link_off</span>
+                                        Unlink
+                                    </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Footer -->
+<div class="border-t border-border-dark bg-[#181e2b] px-8 py-4 flex justify-end items-center gap-4">
+<button class="px-6 py-2.5 rounded-lg text-sm font-medium text-text-secondary hover:text-white hover:bg-white/5 transition-colors">
+                Cancel
+            </button>
+<button class="px-6 py-2.5 rounded-lg text-sm font-medium bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">rocket_launch</span>
+                Initialize Project
+            </button>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KB-10 Scribe Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#0df2f2",
+              "primary-dark": "#089191", // Added for text contrast
+              "primary-soft": "#E0FCFC", // Added for light backgrounds
+              "background-light": "#f8fafc",
+              "panel-bg": "#ffffff",
+              "verified": "#2ECC71",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.5rem",
+              "lg": "0.75rem",
+              "xl": "1rem",
+              "2xl": "1.5rem",
+              "full": "9999px"
+            },
+            boxShadow: {
+              'glow': '0 0 15px -3px rgba(13, 242, 242, 0.15)',
+              'panel': '0 0 20px -5px rgba(0, 0, 0, 0.1)',
+            }
+          },
+        },
+      }
+    </script>
+<style>
+      .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-track {
+          background: transparent;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+          background-color: #cbd5e1;
+          border-radius: 20px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background-color: #94a3b8;
+      }
+    </style>
+</head>
+<body class="font-display bg-background-light text-slate-900 h-screen w-full overflow-hidden flex selection:bg-primary/30 selection:text-teal-900">
+<div class="flex-1 flex flex-col relative h-full bg-white transition-colors duration-300">
+<header class="h-16 border-b border-slate-200 flex items-center justify-between px-6 bg-white z-10">
+<div class="flex items-center gap-4 text-slate-400">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary-dark">menu</span>
+<nav class="flex items-center gap-2 text-sm font-medium">
+<span class="hover:text-primary-dark cursor-pointer">Knowledge Base</span>
+<span class="material-symbols-outlined text-base">chevron_right</span>
+<span class="text-slate-900">Product Guide v10</span>
+</nav>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex -space-x-2">
+<div class="h-8 w-8 rounded-full border-2 border-white bg-indigo-500 bg-cover" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA9DMYDfrtg8DX87hJVn2Oqd-PRsg34-Jvq9S-1KQ2_xRIfrSzdFHtZ98hN7CBMvVrnRSQEmc-sKqUJKGOijBNOrEiWYqwbi7o8W2RCM5QKx18plYSMr8VMGQAzwZGyYuvEMVJFFbouFvCn6VVqSYXJSMkRVRdxUfYTaQ2J5P2dEH2RAr1yhDnNoz7Rc-h7bwQnrfCvvKRJYRLwKMa4pRhq3thwGuA5ewnOBmGCXX90XYpYjKgY4KrzU7SsSUubBVGET8_YBFcIGRU')"></div>
+<div class="h-8 w-8 rounded-full border-2 border-white bg-emerald-500 bg-cover" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBtqZA3-GlUTkLQCsWKZEglpAYsGjcyvKcIXHlPFaUJ8w7dILgk1uDh7xAsw2PBYtTd2OdgGMsDv4xpFmsq-dUySmmxYUcektWefv5t_yi5K_bjC3F-2_AJq7dnbQy1qXSjSK8Kbrj_1qrfgb-XBHoii0sBb0M6iWSc0asy4o1UJTHq7DXXiELrXg4jNA3LWNk2yA4OqaLd-b1lTa-Rr-hdaD6ZRmIvuftn-7CxbnjlgI9Z95-w_lWbYMx7qO83KsZvOB9YpHp5Ctc')"></div>
+</div>
+<div class="h-4 w-px bg-slate-200 mx-1"></div>
+<button class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded-lg text-sm font-bold transition-colors">Publish</button>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto p-8 lg:p-12 relative bg-white">
+<div class="max-w-3xl mx-auto space-y-8">
+<div class="space-y-2">
+<h1 class="text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">Getting Started with Scribe</h1>
+<div class="flex items-center gap-3 text-sm text-slate-500">
+<span>Last updated 2 days ago</span>
+<span class="h-1 w-1 rounded-full bg-slate-300"></span>
+<div class="flex items-center gap-1 text-verified bg-verified/10 px-2 py-0.5 rounded-full text-xs font-bold border border-verified/20">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+<span>Verified</span>
+</div>
+</div>
+</div>
+<div class="prose prose-slate max-w-none">
+<p class="lead text-xl text-slate-600">
+                    Scribe is an AI-powered assistant designed to help you write better documentation, faster. It integrates directly into your workflow.
+                </p>
+<h3 class="text-2xl font-bold mt-8 mb-4">Core Concepts</h3>
+<p>The system is designed with a modular architecture allowing for seamless integration of third-party plugins. <span class="bg-red-50 text-red-500 line-through decoration-red-400 decoration-2 px-1 rounded mx-1">However, user must ensure that</span> ensuring data integrity is maintained across all nodes.</p>
+<div class="my-8 rounded-xl border border-primary/30 bg-white overflow-hidden shadow-lg ring-1 ring-black/5">
+<div class="bg-primary-soft px-4 py-3 border-b border-primary/10 flex justify-between items-center">
+<div class="flex items-center gap-2 text-primary-dark font-bold text-sm">
+<span class="material-symbols-outlined text-[18px]">auto_fix</span>
+<span>Suggestion: Simplify Language</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs text-slate-500 font-medium">AI Confidence: 94%</span>
+<button class="text-slate-400 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+</div>
+<div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+<div class="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-white p-1.5 rounded-full border border-slate-200 shadow-sm text-slate-400">
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</div>
+<div class="space-y-2 opacity-70">
+<div class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Original</div>
+<p class="text-sm leading-relaxed border-l-2 border-red-200 pl-3 bg-red-50/50 py-2 pr-2 rounded-r">However, user must ensure that data integrity is maintained by the user manually across all nodes.</p>
+</div>
+<div class="space-y-2">
+<div class="text-[10px] uppercase tracking-widest font-bold text-primary-dark">Improved</div>
+<p class="text-sm leading-relaxed border-l-2 border-primary pl-3 bg-primary-soft/50 py-2 pr-2 rounded-r text-slate-800">Users must manually maintain data integrity across all nodes.</p>
+</div>
+</div>
+<div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+<button class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-200 transition-colors">Discard</button>
+<button class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors shadow-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">check</span>
+                            Apply Change
+                        </button>
+</div>
+</div>
+<p>When deploying to production, verify your environment variables match the configuration schema.</p>
+</div>
+</div>
+<div class="absolute bottom-12 left-12 w-80 bg-white rounded-xl border border-slate-200 shadow-2xl z-20 overflow-hidden hidden xl:block animate-fade-in-up ring-1 ring-black/5">
+<div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/80">
+<h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-dark text-sm">link</span>
+                    Related Pages Found
+                </h3>
+<span class="bg-primary/20 text-primary-dark text-[10px] font-bold px-1.5 py-0.5 rounded border border-primary/20">2 New</span>
+</div>
+<div class="p-2 space-y-1">
+<div class="flex items-start gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer group transition-colors">
+<input class="mt-1 rounded bg-transparent border-slate-300 text-primary-dark focus:ring-primary focus:ring-offset-0" type="checkbox"/>
+<div>
+<div class="text-sm font-medium text-slate-700 group-hover:text-primary-dark transition-colors">API Rate Limits</div>
+<div class="text-xs text-slate-400 mt-0.5">Relevance: 92%</div>
+</div>
+</div>
+<div class="flex items-start gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer group transition-colors">
+<input checked="" class="mt-1 rounded bg-transparent border-slate-300 text-primary-dark focus:ring-primary focus:ring-offset-0" type="checkbox"/>
+<div>
+<div class="text-sm font-medium text-slate-700 group-hover:text-primary-dark transition-colors">Error Handling</div>
+<div class="text-xs text-slate-400 mt-0.5">Relevance: 88%</div>
+</div>
+</div>
+</div>
+<div class="p-3 bg-slate-50/50 flex justify-center border-t border-slate-100">
+<button class="text-xs font-bold text-primary-dark hover:underline">Review All Suggestions</button>
+</div>
+</div>
+</main>
+</div>
+<aside class="w-[320px] flex-shrink-0 flex flex-col border-l border-slate-200 bg-background-light z-30 shadow-panel relative">
+<div class="h-16 flex items-center justify-between px-5 border-b border-teal-100 bg-primary-soft/40 backdrop-blur-sm sticky top-0 z-20">
+<div class="flex items-center gap-3">
+<div class="h-9 w-9 rounded-xl bg-white flex items-center justify-center text-primary-dark shadow-sm ring-1 ring-teal-900/5">
+<span class="material-symbols-outlined text-[20px]">edit_note</span>
+</div>
+<div>
+<h2 class="font-bold text-base leading-tight tracking-tight text-slate-800">Scribe</h2>
+<div class="flex items-center gap-1">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+<span class="text-[10px] font-bold text-primary-dark uppercase tracking-wider">Online</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button aria-label="Minimize" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 transition-colors">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<button aria-label="Close" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 transition-colors">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto scrollbar-thin p-5 space-y-8 pb-32">
+<div class="animate-fade-in">
+<h3 class="text-xl font-bold text-slate-900 mb-1">Hi, ready to edit?</h3>
+<p class="text-sm text-slate-500 leading-relaxed">I've analyzed your content and have a few ideas to make it shine.</p>
+<div class="mt-4 flex items-center justify-between text-xs font-medium text-slate-500">
+<span>Document Health</span>
+<span class="text-primary-dark font-bold">85%</span>
+</div>
+<div class="mt-1.5 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[85%] rounded-full shadow-[0_0_10px_rgba(13,242,242,0.4)]"></div>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<h4 class="text-xs font-bold uppercase tracking-widest text-slate-400">Suggestions (3)</h4>
+<button class="text-xs text-primary-dark font-medium hover:underline">Clear All</button>
+</div>
+<div class="group relative rounded-xl bg-white p-4 border border-slate-200 hover:border-primary transition-all duration-300 shadow-sm hover:shadow-md overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<div class="pl-2">
+<div class="flex items-start justify-between mb-2">
+<div class="flex items-center gap-2 text-primary-dark font-bold text-sm">
+<span class="material-symbols-outlined text-[18px]">update</span>
+<span>Content Stale</span>
+</div>
+<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 border border-orange-200">WARNING</span>
+</div>
+<p class="text-sm text-slate-600 mb-4 leading-snug">This page hasn't been updated in 6 months. Data may be inaccurate.</p>
+<div class="flex gap-2">
+<button class="flex-1 py-2 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-800 hover:text-white hover:border-slate-800 text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1 group-hover:shadow-sm">
+                            Verify Content
+                        </button>
+<button class="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200 hover:bg-red-50 hover:text-red-500 hover:border-red-200 text-slate-400 transition-colors" title="Dismiss">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+</div>
+</div>
+<div class="group relative rounded-xl bg-white p-4 border border-slate-200 hover:border-primary transition-all duration-300 shadow-sm hover:shadow-md overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<div class="pl-2">
+<div class="flex items-start justify-between mb-2">
+<div class="flex items-center gap-2 text-primary-dark font-bold text-sm">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+<span>Improve Writing</span>
+</div>
+</div>
+<p class="text-sm text-slate-600 mb-4 leading-snug">Section 2 is hard to read (Flesch Score: 45). Try simplifying.</p>
+<button class="w-full py-2 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 hover:bg-primary hover:text-slate-900 hover:border-primary/50 text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2">
+<span>View Improvements</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<div class="group relative rounded-xl bg-white p-4 border border-slate-200 hover:border-primary transition-all duration-300 shadow-sm hover:shadow-md overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<div class="pl-2">
+<div class="flex items-start justify-between mb-2">
+<div class="flex items-center gap-2 text-primary-dark font-bold text-sm">
+<span class="material-symbols-outlined text-[18px]">add_link</span>
+<span>Link to Tasks</span>
+</div>
+</div>
+<p class="text-sm text-slate-600 mb-4 leading-snug">Found 3 Jira tickets referencing this module.</p>
+<button class="w-full py-2 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 hover:bg-primary hover:text-slate-900 hover:border-primary/50 text-xs font-bold transition-all duration-200">
+                        Review Links
+                    </button>
+</div>
+</div>
+</div>
+<div class="space-y-4">
+<h4 class="text-xs font-bold uppercase tracking-widest text-slate-400">Quick Actions</h4>
+<div class="grid grid-cols-2 gap-3">
+<button class="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white border border-slate-200 hover:bg-primary-soft hover:border-primary/30 transition-all group shadow-sm">
+<div class="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-white group-hover:text-primary-dark transition-colors text-slate-500">
+<span class="material-symbols-outlined text-[18px]">short_text</span>
+</div>
+<span class="text-xs font-semibold text-slate-700 group-hover:text-primary-dark">Summarize</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white border border-slate-200 hover:bg-primary-soft hover:border-primary/30 transition-all group shadow-sm">
+<div class="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-white group-hover:text-primary-dark transition-colors text-slate-500">
+<span class="material-symbols-outlined text-[18px]">spellcheck</span>
+</div>
+<span class="text-xs font-semibold text-slate-700 group-hover:text-primary-dark">Fix Grammar</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white border border-slate-200 hover:bg-primary-soft hover:border-primary/30 transition-all group shadow-sm">
+<div class="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-white group-hover:text-primary-dark transition-colors text-slate-500">
+<span class="material-symbols-outlined text-[18px]">translate</span>
+</div>
+<span class="text-xs font-semibold text-slate-700 group-hover:text-primary-dark">Translate</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white border border-slate-200 hover:bg-primary-soft hover:border-primary/30 transition-all group shadow-sm">
+<div class="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-white group-hover:text-primary-dark transition-colors text-slate-500">
+<span class="material-symbols-outlined text-[18px]">list_alt</span>
+</div>
+<span class="text-xs font-semibold text-slate-700 group-hover:text-primary-dark">Add TOC</span>
+</button>
+</div>
+</div>
+</div>
+<div class="absolute bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.05)]">
+<div class="relative group">
+<input class="w-full pl-4 pr-11 py-3.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary text-sm placeholder-slate-400 text-slate-900 transition-all shadow-sm" placeholder="Ask Scribe to edit or write..." type="text"/>
+<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+<button class="h-8 w-8 rounded-lg bg-slate-900 hover:bg-primary hover:text-slate-900 text-white shadow-md transition-all transform active:scale-95 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">arrow_upward</span>
+</button>
+</div>
+</div>
+<div class="mt-2 flex justify-center">
+<p class="text-[10px] text-slate-400">AI can make mistakes. Please verify.</p>
+</div>
+</div>
+</aside>
+
+</body></html>

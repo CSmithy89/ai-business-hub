@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Clara's Daily Briefing</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ec6d13",
+              "background-light": "#f8f7f6",
+              "background-dark": "#221810",
+              "brand-teal": "#20B2AA", // Secondary Teal
+              "brand-purple": "#8A2BE2", // Echo Purple
+              "brand-indigo": "#4B0082", // Scout Indigo
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+            boxShadow: {
+                'card': '0 10px 40px -10px rgba(0,0,0,0.05)',
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#181411]">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e5e0dc] px-10 py-3 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-[#181411]">
+<div class="size-8 rounded-lg bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">hexagon</span>
+</div>
+<h2 class="text-[#181411] text-lg font-bold leading-tight tracking-[-0.015em]">HYVVE CRM</h2>
+</div>
+<nav class="hidden md:flex items-center gap-9">
+<a class="text-[#181411] text-sm font-bold border-b-2 border-primary pb-0.5 leading-normal" href="#">Briefing</a>
+<a class="text-[#897261] hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">Leads</a>
+<a class="text-[#897261] hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">Deals</a>
+<a class="text-[#897261] hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">Reports</a>
+</nav>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<div class="relative hidden sm:block">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[#897261] text-[20px]">search</span>
+<input class="bg-[#f4f2f0] rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-64 placeholder-[#897261]" placeholder="Search contacts, deals..."/>
+</div>
+<button class="size-10 rounded-full bg-[#f4f2f0] flex items-center justify-center relative hover:bg-[#ebe8e4] transition-colors">
+<span class="material-symbols-outlined text-[#181411]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-white"></span>
+</button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border-2 border-white shadow-sm" data-alt="User profile picture of a smiling man" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuACRdVHBdldMoMGDIwE-vrAv9r5yYVV0LWpbfg0f9TnGur3Zc_E1hMTTrYBW1n6WYkkQb6bNvLkppWinOVbJQy9zs26_kmfYtpUCsY2JYUVxmapA0U1muJqkj8hOIVmSPEb4NHXF51GXOKZvbHiqAwj_fczrolPwM7qEefqtZ4mUquaY6kEBcujnerlrruQA-XUQEkGd1xqXXR-xvKrAwe3Bf1tuSEawkZzxPn6naa7JDWVh_nDaUekZ9kYqLLMemxpxQ2DhwtYLgE");'></div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 flex justify-center p-6 md:p-10 lg:px-20">
+<div class="w-full max-w-[1100px] flex flex-col gap-6">
+<!-- Greeting Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4">
+<div>
+<div class="flex items-center gap-2 text-[#897261] mb-1">
+<span class="material-symbols-outlined text-[20px]">wb_sunny</span>
+<span class="text-sm font-medium uppercase tracking-wider">Daily Briefing • Dec 15</span>
+</div>
+<h1 class="text-[#181411] tracking-tight text-3xl md:text-4xl font-extrabold leading-tight">Good Morning, Chris! ☕</h1>
+<p class="text-[#897261] mt-2 text-lg">You have <span class="text-primary font-bold">3 high-priority calls</span> and 2 deals expiring soon.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex -space-x-3">
+<div class="size-8 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700" title="Scout">S</div>
+<div class="size-8 rounded-full border-2 border-white bg-purple-100 flex items-center justify-center text-xs font-bold text-purple-700" title="Echo">E</div>
+<div class="size-8 rounded-full border-2 border-white bg-orange-100 flex items-center justify-center text-xs font-bold text-orange-700" title="Atlas">A</div>
+</div>
+<span class="text-xs text-[#897261] font-medium">Agents Active</span>
+</div>
+</div>
+<!-- Briefing Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Left Column: Priority Actions (Who to Call) -->
+<div class="lg:col-span-8 flex flex-col gap-6">
+<!-- Alerts Bar -->
+<div class="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+<div class="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-full border border-red-100 whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">warning</span>
+<span class="text-sm font-bold">3 Stale Deals</span>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 bg-yellow-50 text-yellow-700 rounded-full border border-yellow-100 whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">pie_chart</span>
+<span class="text-sm font-bold">Budget 90% Used</span>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full border border-green-100 whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">trending_up</span>
+<span class="text-sm font-bold">Goal on Track</span>
+</div>
+</div>
+<!-- Main Card: Who to Call -->
+<div class="bg-white rounded-xl shadow-card border border-[#f0f0f0] overflow-hidden">
+<div class="px-6 py-5 border-b border-[#f4f2f0] flex justify-between items-center bg-gradient-to-r from-white to-[#fffbf5]">
+<div>
+<h3 class="text-lg font-bold text-[#181411]">Who to Call Today</h3>
+<p class="text-sm text-[#897261]">Scout identified 3 leads showing high intent signals.</p>
+</div>
+<button class="text-sm text-primary font-bold hover:underline">View All Leads</button>
+</div>
+<div class="divide-y divide-[#f4f2f0]">
+<!-- Item 1 -->
+<div class="group flex flex-col sm:flex-row gap-4 px-6 py-5 hover:bg-[#faf9f8] transition-colors">
+<div class="flex items-start gap-4 flex-1">
+<div class="relative">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-12" data-alt="Portrait of Sarah Jenkins" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBNPA5sp3E4IWhEAFEvoxWHziLCUjt0W3lGqehR01lLvqpEFichPcQyBX4QjtSHmp06XCyIYYr0_jogUvnUWdJRr1oywzTaAed8l4oY8RZJmtZXLA356PIgN900x-p8_y6fPNUmyMSRU5A2f5qA22NEIpP5RR5A04prBMWzFO9i7B2agnFHw7fouhxY3TzBAuKj5FTW4oOaFehj2gMPWq4JdQisDsh_kWtcE0zL7ag8rb0uBUDfQ5heTKLXW-1aFXKeGsNwvfAov5w");'></div>
+<div class="absolute -bottom-1 -right-1 bg-green-500 border-2 border-white rounded-full size-4"></div>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2 flex-wrap">
+<h4 class="text-[#181411] text-base font-bold">Sarah Jenkins</h4>
+<span class="text-xs text-[#897261]">CTO at TechFlow</span>
+<span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Scout Score: 92</span>
+</div>
+<div class="flex items-center gap-2 mt-1 text-sm">
+<span class="text-green-600 font-bold bg-green-50 px-1.5 rounded flex items-center gap-1 text-xs">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> Warm → Hot
+                                                </span>
+<span class="text-[#897261]">•</span>
+<span class="text-[#555] italic">Visited pricing page yesterday</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 sm:self-center justify-end">
+<button class="size-9 rounded-lg border border-[#e5e0dc] text-[#555] hover:text-primary hover:border-primary hover:bg-orange-50 flex items-center justify-center transition-all" title="Email">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+</button>
+<button class="h-9 px-4 rounded-lg bg-primary text-white text-sm font-bold shadow-sm hover:bg-orange-600 flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined text-[18px]">call</span>
+                                            Call
+                                        </button>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="group flex flex-col sm:flex-row gap-4 px-6 py-5 hover:bg-[#faf9f8] transition-colors">
+<div class="flex items-start gap-4 flex-1">
+<div class="relative">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-12" data-alt="Portrait of Michael Ross" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD_i04KsM1H6WFoyXXpEOB7Hz4wN3m6K5LMmRJUexL3ljDVg_dwAyjGfc0VDHnoGxMVbeIDf3XEwy9_m_GIBGIifWKiAtZhREkJ9lYOc1M9EAwSr3YIb1-zEABCo43tN56EPW359K8ADxlA-tQo9Hp7ZPourznd3R7GNxZiVDTrRLsjkBzYMYc1gggPNwTlBOrF4kBltnM6Ydgol9nOQ7V92unVZCIBoYIadEWL7W8ghMkf8u_9V-Cv6GS2JrI844nSag8VTbza4wk");'></div>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2 flex-wrap">
+<h4 class="text-[#181411] text-base font-bold">Michael Ross</h4>
+<span class="text-xs text-[#897261]">VP Sales at OmniCorp</span>
+<span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Scout Score: 85</span>
+</div>
+<div class="flex items-center gap-2 mt-1 text-sm">
+<span class="text-green-600 font-bold bg-green-50 px-1.5 rounded flex items-center gap-1 text-xs">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> +8 Pts
+                                                </span>
+<span class="text-[#897261]">•</span>
+<span class="text-[#555] italic">Opened last 3 campaign emails</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 sm:self-center justify-end">
+<button class="size-9 rounded-lg border border-[#e5e0dc] text-[#555] hover:text-primary hover:border-primary hover:bg-orange-50 flex items-center justify-center transition-all" title="Email">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+</button>
+<button class="h-9 px-4 rounded-lg bg-white border border-[#e5e0dc] text-[#181411] text-sm font-bold shadow-sm hover:bg-gray-50 flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined text-[18px]">call</span>
+                                            Call
+                                        </button>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="group flex flex-col sm:flex-row gap-4 px-6 py-5 hover:bg-[#faf9f8] transition-colors">
+<div class="flex items-start gap-4 flex-1">
+<div class="relative">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-12" data-alt="Portrait of Elena Fisher" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAzsqRSjdbaQenrExw89UTBjXlRDwWy3A8ja3VKCK9sd_q1V8NXDnv8FoJoHXu-YIxvCpADwboQSHO5R1AmdLYL8mnIBz1PQPbEKiyNCjJdMLXSG04T6k-9tm_Nl5-Mo-GhDXzCDEYNjK9Syuu3ebIwp6YKcNsuKxigcWDN_FRxHCwJLGGwbeC2SAHSG6ist2hrSTv6a3eZnl9BgKLPlZD87VGTCsAif2dJQZEzS1E8BwcNlGpu8tKPqXnnmA3Bo-Asmy7wSq-Bvm8");'></div>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2 flex-wrap">
+<h4 class="text-[#181411] text-base font-bold">Elena Fisher</h4>
+<span class="text-xs text-[#897261]">Director at Solstice</span>
+<span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Scout Score: 78</span>
+</div>
+<div class="flex items-center gap-2 mt-1 text-sm">
+<span class="text-green-600 font-bold bg-green-50 px-1.5 rounded flex items-center gap-1 text-xs">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> +5 Pts
+                                                </span>
+<span class="text-[#897261]">•</span>
+<span class="text-[#555] italic">Requested demo from Atlas bot</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 sm:self-center justify-end">
+<button class="size-9 rounded-lg border border-[#e5e0dc] text-[#555] hover:text-primary hover:border-primary hover:bg-orange-50 flex items-center justify-center transition-all" title="Email">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+</button>
+<button class="h-9 px-4 rounded-lg bg-white border border-[#e5e0dc] text-[#181411] text-sm font-bold shadow-sm hover:bg-gray-50 flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined text-[18px]">call</span>
+                                            Call
+                                        </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Insights & Stats -->
+<div class="lg:col-span-4 flex flex-col gap-6">
+<!-- Agent Insight Card (Echo) -->
+<div class="bg-purple-50 rounded-xl p-5 border border-purple-100 relative overflow-hidden group">
+<!-- Decorative background icon -->
+<span class="material-symbols-outlined absolute -right-4 -top-4 text-[100px] text-purple-100 opacity-50 group-hover:rotate-12 transition-transform duration-500 pointer-events-none">lightbulb</span>
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-3">
+<div class="size-6 rounded-full bg-purple-600 flex items-center justify-center text-white text-[10px] font-bold">E</div>
+<span class="text-xs font-bold text-purple-700 uppercase tracking-wider">Echo Insight</span>
+</div>
+<p class="text-[#181411] font-medium leading-relaxed mb-4">
+                                    "Based on tracking data, Mondays between 10 AM and 11 AM show a <span class="bg-purple-200 px-1 rounded">20% higher</span> pick-up rate for Tech leads. Call Sarah first."
+                                </p>
+<button class="text-xs font-bold text-purple-700 flex items-center gap-1 hover:gap-2 transition-all">
+                                    See Analysis <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Pipeline Snapshot -->
+<div class="bg-white rounded-xl shadow-card border border-[#f0f0f0] p-5">
+<h3 class="text-base font-bold text-[#181411] mb-4">Pipeline Snapshot</h3>
+<div class="flex flex-col gap-4">
+<!-- Chart Row -->
+<div class="flex items-center gap-4">
+<div class="size-16 relative rounded-full border-[6px] border-[#f4f2f0] flex items-center justify-center">
+<!-- Mock SVG donut chart segments -->
+<svg class="size-full absolute top-0 left-0 -rotate-90" viewbox="0 0 36 36">
+<path class="text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 -11.2 -4.8" fill="none" stroke="currentColor" stroke-dasharray="75, 100" stroke-width="6"></path>
+<path class="text-brand-teal" d="M18 2.0845 a 15.9155 15.9155 0 0 0 -11.2 27" fill="none" stroke="#20B2AA" stroke-dasharray="25, 100" stroke-width="6"></path>
+</svg>
+<div class="text-[10px] font-bold text-[#181411] flex flex-col items-center leading-none">
+<span class="text-sm">12</span>
+<span class="text-[#897261] font-normal">Active</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 flex-1">
+<div class="flex justify-between items-center text-xs">
+<span class="flex items-center gap-2 text-[#555]"><span class="size-2 rounded-full bg-primary"></span>Negotiation</span>
+<span class="font-bold">4 deals</span>
+</div>
+<div class="flex justify-between items-center text-xs">
+<span class="flex items-center gap-2 text-[#555]"><span class="size-2 rounded-full bg-[#20B2AA]"></span>Qualified</span>
+<span class="font-bold">8 deals</span>
+</div>
+</div>
+</div>
+<div class="h-px bg-[#f4f2f0]"></div>
+<div class="flex justify-between items-center">
+<span class="text-xs text-[#897261]">Est. Revenue (Q4)</span>
+<span class="text-sm font-bold text-[#181411]">$142,500</span>
+</div>
+</div>
+</div>
+<!-- Meeting Up Next -->
+<div class="bg-white rounded-xl shadow-card border border-[#f0f0f0] p-5">
+<div class="flex items-start justify-between mb-2">
+<h3 class="text-base font-bold text-[#181411]">Up Next</h3>
+<span class="bg-[#f4f2f0] text-[#555] text-[10px] font-bold px-2 py-1 rounded">11:00 AM</span>
+</div>
+<div class="flex items-center gap-3 mt-3">
+<div class="size-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined">videocam</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-[#181411]">Demo with Acme Corp</span>
+<a class="text-xs text-primary font-medium hover:underline" href="#">Join Zoom Meeting</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Actions -->
+<div class="sticky bottom-4 z-40 mt-4">
+<div class="bg-[#221810] text-white rounded-xl shadow-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-[1100px] mx-auto border border-[#3a2e26]">
+<div class="flex items-center gap-4 pl-2">
+<div class="hidden sm:flex size-10 rounded-full bg-white/10 items-center justify-center">
+<span class="material-symbols-outlined text-white">check_circle</span>
+</div>
+<div class="flex flex-col">
+<span class="font-bold text-sm">Briefing Complete?</span>
+<span class="text-xs text-gray-400">Your activity will be logged by Clara.</span>
+</div>
+</div>
+<div class="flex items-center gap-3 w-full sm:w-auto">
+<button class="flex-1 sm:flex-none px-6 h-10 rounded-lg border border-white/20 hover:bg-white/10 transition-colors text-sm font-medium">
+                                Mark Read
+                            </button>
+<button class="flex-1 sm:flex-none px-6 h-10 rounded-lg bg-primary hover:bg-orange-600 transition-colors text-sm font-bold shadow-lg shadow-orange-900/50 flex items-center justify-center gap-2">
+                                Start Working
+                                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

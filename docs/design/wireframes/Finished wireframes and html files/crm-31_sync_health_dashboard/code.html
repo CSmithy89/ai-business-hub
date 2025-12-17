@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-31 Sync Health Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111318",
+                        "card-dark": "#1e2128", // Slightly lighter for cards
+                        "sync-agent": "#3498DB",
+                        "status-green": "#2ECC71",
+                        "status-yellow": "#F1C40F",
+                        "status-red": "#E74C3C",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white antialiased overflow-x-hidden">
+<div class="relative flex h-full min-h-screen w-full flex-col">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#282e39] bg-[#111318] px-10 py-3 sticky top-0 z-50">
+<div class="flex items-center gap-4 text-white">
+<div class="size-8 flex items-center justify-center rounded bg-primary/20 text-primary">
+<span class="material-symbols-outlined">sync_alt</span>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Sync Health Dashboard</h2>
+</div>
+<div class="flex flex-1 justify-end gap-8">
+<div class="hidden md:flex items-center gap-9">
+<a class="text-gray-400 hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Dashboard</a>
+<a class="text-white text-sm font-medium leading-normal" href="#">Integrations</a>
+<a class="text-gray-400 hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Settings</a>
+<a class="text-gray-400 hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Logs</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center rounded-lg h-9 px-4 bg-[#282e39] hover:bg-[#323946] text-white text-sm font-medium transition-colors">
+<span class="material-symbols-outlined text-[18px] mr-2">help</span>
+                        Help
+                    </button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-9 ring-2 ring-[#282e39]" data-alt="User profile picture placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCqyhezzqzZFxWwLyVt7KsOpyb2MuXlH_7N86Q9QXya3gZSESdfy2gCKqolDOH-MjFUVdkG-5lehaCOnCIfjYHj6EWnqa3MRxTQbQSOKX9-fP4lqc1QEERD057bWF6S7HLf6q81ShjlMy1UBYYHjxOBfaYHA7oseonWEpWkkQehAT6TXoJK96xT8g85DrMf-LkjqyQkWTh-UxLwL-45kI6lY362BATpIJXcbOBcAG3wykE2WKdUvGdRRfQOAVDjHQFEK6ivvzFERMI");'></div>
+</div>
+</div>
+</header>
+<main class="flex-1 flex flex-col p-6 md:px-10 md:py-8 max-w-[1400px] mx-auto w-full gap-8">
+<!-- Header & Overview Stats -->
+<section class="flex flex-col gap-6">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<div class="flex items-center gap-3">
+<h1 class="text-white tracking-tight text-[32px] font-bold leading-tight">Overall Health: 98% Operational</h1>
+<span class="inline-flex items-center rounded-full bg-status-green/10 px-2.5 py-0.5 text-xs font-medium text-status-green ring-1 ring-inset ring-status-green/20">
+<span class="mr-1.5 h-1.5 w-1.5 rounded-full bg-status-green"></span>
+                                Healthy
+                            </span>
+</div>
+<p class="text-[#9da6b9] text-sm font-normal leading-normal mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+                            Last checked: 2 minutes ago
+                        </p>
+</div>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary hover:bg-primary/90 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-[18px] mr-2">refresh</span>
+<span class="truncate">Refresh All</span>
+</button>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="flex flex-col gap-2 rounded-xl p-5 bg-[#1e2128] border border-[#282e39]">
+<div class="flex items-center justify-between">
+<p class="text-[#9da6b9] text-sm font-medium">Total Integrations</p>
+<span class="material-symbols-outlined text-[#9da6b9]">hub</span>
+</div>
+<p class="text-white tracking-tight text-3xl font-bold">6</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-5 bg-[#1e2128] border border-[#282e39] relative overflow-hidden group">
+<div class="absolute right-0 top-0 h-full w-1 bg-status-green"></div>
+<div class="flex items-center justify-between">
+<p class="text-[#9da6b9] text-sm font-medium">Healthy</p>
+<span class="material-symbols-outlined text-status-green">check_circle</span>
+</div>
+<p class="text-white tracking-tight text-3xl font-bold">4</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-5 bg-[#1e2128] border border-[#282e39] relative overflow-hidden group">
+<div class="absolute right-0 top-0 h-full w-1 bg-status-yellow"></div>
+<div class="flex items-center justify-between">
+<p class="text-[#9da6b9] text-sm font-medium">Degraded</p>
+<span class="material-symbols-outlined text-status-yellow">warning</span>
+</div>
+<p class="text-white tracking-tight text-3xl font-bold">1</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-5 bg-[#1e2128] border border-[#282e39] relative overflow-hidden group">
+<div class="absolute right-0 top-0 h-full w-1 bg-status-red"></div>
+<div class="flex items-center justify-between">
+<p class="text-[#9da6b9] text-sm font-medium">Failed</p>
+<span class="material-symbols-outlined text-status-red">error</span>
+</div>
+<p class="text-white tracking-tight text-3xl font-bold">1</p>
+</div>
+</div>
+</section>
+<!-- Integration Health Grid -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-white text-xl font-bold leading-tight">Integration Health</h2>
+<button class="text-primary text-sm font-medium hover:text-white transition-colors">View All</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Card: HubSpot (Healthy) -->
+<div class="flex flex-col bg-[#1e2128] border border-[#282e39] rounded-xl p-5 hover:border-gray-600 transition-colors">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-[#ff7a59]/10 flex items-center justify-center p-2">
+<img alt="HubSpot logo" class="w-full h-full object-contain filter grayscale invert opacity-90" data-alt="HubSpot Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBTq9Vpj5aAiJJTUcgdJVaUFnXPZwkKKAraXWKeB_WVsRov23fEK-7qgWxgMXL8TZGJEMeizLtZjiDdHmZAnZrak6bX34ZwNFr_lnE5k-eihkYjE-0EwRtafNrq-KQRcZ5QnEG4iCYHQELXAb48Slu6g-odu9cKgTI9kwPA1_MGH2e2Ljr70lJzRUj0aMrnREgZEoUTVylWjAprlQ2mP3Zb2r7A1cw0LtEXIATa4fq4z1K2HjZpgvY-Mc_NPCuFxaKFkh3yNd0vns"/>
+</div>
+<div>
+<h3 class="text-white font-semibold">HubSpot</h3>
+<p class="text-[#9da6b9] text-xs">Last sync: 1m ago</p>
+</div>
+</div>
+<span class="inline-flex items-center rounded bg-status-green/10 px-2 py-1 text-xs font-medium text-status-green ring-1 ring-inset ring-status-green/20">Healthy</span>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-4">
+<div class="bg-[#111318] rounded p-2">
+<p class="text-[#9da6b9] text-xs">Contacts</p>
+<p class="text-white font-medium">1,204</p>
+</div>
+<div class="bg-[#111318] rounded p-2">
+<p class="text-[#9da6b9] text-xs">Deals</p>
+<p class="text-white font-medium">85</p>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-auto pt-4 border-t border-[#282e39]">
+<button class="flex-1 bg-[#282e39] hover:bg-[#323946] text-white text-xs font-medium py-1.5 rounded transition-colors">Details</button>
+<button class="flex-1 bg-[#282e39] hover:bg-[#323946] text-white text-xs font-medium py-1.5 rounded transition-colors">Force Sync</button>
+</div>
+</div>
+<!-- Card: Gmail (Degraded) -->
+<div class="flex flex-col bg-[#1e2128] border border-status-yellow/30 rounded-xl p-5 hover:border-status-yellow/50 transition-colors shadow-[0_0_15px_-5px_rgba(241,196,15,0.1)]">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-[#EA4335]/10 flex items-center justify-center p-2">
+<span class="material-symbols-outlined text-[#EA4335] text-2xl">mail</span>
+</div>
+<div>
+<h3 class="text-white font-semibold">Gmail</h3>
+<p class="text-[#9da6b9] text-xs">Last sync: 15m ago</p>
+</div>
+</div>
+<span class="inline-flex items-center rounded bg-status-yellow/10 px-2 py-1 text-xs font-medium text-status-yellow ring-1 ring-inset ring-status-yellow/20">Degraded</span>
+</div>
+<div class="bg-status-yellow/10 border border-status-yellow/20 rounded p-3 mb-4">
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-status-yellow text-sm mt-0.5">warning</span>
+<div>
+<p class="text-status-yellow text-xs font-medium">Rate Limit Warning</p>
+<p class="text-status-yellow/80 text-[10px] mt-0.5">API usage at 92% capacity. Throttling active.</p>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-auto pt-4 border-t border-[#282e39]">
+<button class="flex-1 bg-[#282e39] hover:bg-[#323946] text-white text-xs font-medium py-1.5 rounded transition-colors">Details</button>
+<button class="flex-1 bg-status-yellow text-black text-xs font-bold py-1.5 rounded hover:bg-opacity-90 transition-colors">Optimize</button>
+</div>
+</div>
+<!-- Card: Salesforce (Failed) -->
+<div class="flex flex-col bg-[#1e2128] border border-status-red/30 rounded-xl p-5 hover:border-status-red/50 transition-colors shadow-[0_0_15px_-5px_rgba(231,76,60,0.1)]">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-[#00A1E0]/10 flex items-center justify-center p-2">
+<span class="material-symbols-outlined text-[#00A1E0] text-2xl">cloud_sync</span>
+</div>
+<div>
+<h3 class="text-white font-semibold">Salesforce</h3>
+<p class="text-[#9da6b9] text-xs">Last sync: 4h ago</p>
+</div>
+</div>
+<span class="inline-flex items-center rounded bg-status-red/10 px-2 py-1 text-xs font-medium text-status-red ring-1 ring-inset ring-status-red/20">Failed</span>
+</div>
+<div class="bg-status-red/10 border border-status-red/20 rounded p-3 mb-4">
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-status-red text-sm mt-0.5">error</span>
+<div>
+<p class="text-status-red text-xs font-medium">Auth Token Expired</p>
+<p class="text-status-red/80 text-[10px] mt-0.5">Please reconnect to resume synchronization.</p>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-auto pt-4 border-t border-[#282e39]">
+<button class="flex-1 bg-[#282e39] hover:bg-[#323946] text-white text-xs font-medium py-1.5 rounded transition-colors">Logs</button>
+<button class="flex-1 bg-status-red text-white text-xs font-bold py-1.5 rounded hover:bg-opacity-90 transition-colors">Reconnect</button>
+</div>
+</div>
+<!-- Card: Outlook (Not Configured) -->
+<div class="flex flex-col bg-[#1e2128] border border-[#282e39] rounded-xl p-5 hover:border-gray-600 transition-colors opacity-75 hover:opacity-100">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-[#0078D4]/10 flex items-center justify-center p-2">
+<span class="material-symbols-outlined text-[#0078D4] text-2xl">email</span>
+</div>
+<div>
+<h3 class="text-white font-semibold">Outlook</h3>
+<p class="text-[#9da6b9] text-xs">Not connected</p>
+</div>
+</div>
+<span class="inline-flex items-center rounded bg-gray-700/50 px-2 py-1 text-xs font-medium text-gray-400 ring-1 ring-inset ring-gray-600/20">Inactive</span>
+</div>
+<p class="text-sm text-[#9da6b9] mb-4">Connect your Outlook calendar and emails to sync meetings and communication logs.</p>
+<div class="flex items-center gap-2 mt-auto pt-4 border-t border-[#282e39]">
+<button class="flex-1 bg-[#111318] border border-gray-700 hover:bg-[#282e39] text-white text-xs font-medium py-1.5 rounded transition-colors">Learn More</button>
+<button class="flex-1 bg-white text-black text-xs font-bold py-1.5 rounded hover:bg-gray-200 transition-colors">Connect</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Lower Section: Activity, Errors, Conflicts -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Left: Sync Activity Chart -->
+<div class="bg-[#1e2128] border border-[#282e39] rounded-xl p-5 flex flex-col h-full">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-white font-semibold">Sync Activity</h3>
+<select class="bg-[#111318] border border-[#282e39] text-[#9da6b9] text-xs rounded px-2 py-1">
+<option>Last 24 Hours</option>
+<option>Last 7 Days</option>
+</select>
+</div>
+<!-- Chart Graphic Placeholder -->
+<div class="flex-1 flex flex-col justify-end gap-2 min-h-[200px] relative w-full">
+<div class="absolute inset-0 flex items-end justify-between px-2 pb-6 gap-2 opacity-90">
+<!-- Bars representing activity -->
+<div class="w-full bg-primary/20 rounded-t-sm h-[40%] relative group">
+<div class="absolute bottom-0 w-full bg-primary h-full rounded-t-sm"></div>
+<div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-10">240 Records</div>
+</div>
+<div class="w-full bg-primary/20 rounded-t-sm h-[65%] relative group">
+<div class="absolute bottom-0 w-full bg-primary h-full rounded-t-sm"></div>
+</div>
+<div class="w-full bg-primary/20 rounded-t-sm h-[30%] relative group">
+<div class="absolute bottom-0 w-full bg-primary h-full rounded-t-sm"></div>
+</div>
+<div class="w-full bg-primary/20 rounded-t-sm h-[85%] relative group">
+<div class="absolute bottom-0 w-full bg-primary h-full rounded-t-sm"></div>
+</div>
+<!-- Error Bar -->
+<div class="w-full bg-status-red/20 rounded-t-sm h-[25%] relative group">
+<div class="absolute bottom-0 w-full bg-status-red h-full rounded-t-sm"></div>
+<div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-status-red text-[10px] px-2 py-1 rounded whitespace-nowrap z-10">12 Errors</div>
+</div>
+<div class="w-full bg-primary/20 rounded-t-sm h-[55%] relative group">
+<div class="absolute bottom-0 w-full bg-primary h-full rounded-t-sm"></div>
+</div>
+<div class="w-full bg-primary/20 rounded-t-sm h-[70%] relative group">
+<div class="absolute bottom-0 w-full bg-primary h-full rounded-t-sm"></div>
+</div>
+<div class="w-full bg-primary/20 rounded-t-sm h-[45%] relative group">
+<div class="absolute bottom-0 w-full bg-primary h-full rounded-t-sm"></div>
+</div>
+</div>
+<!-- X Axis Labels -->
+<div class="flex justify-between px-2 text-[10px] text-[#9da6b9] mt-2 border-t border-[#282e39] pt-2 w-full">
+<span>12 AM</span>
+<span>6 AM</span>
+<span>12 PM</span>
+<span>6 PM</span>
+</div>
+</div>
+</div>
+<!-- Middle: Recent Errors List -->
+<div class="bg-[#1e2128] border border-[#282e39] rounded-xl p-5 flex flex-col h-full">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<h3 class="text-white font-semibold">Recent Errors</h3>
+<span class="bg-status-red/20 text-status-red text-[10px] px-1.5 py-0.5 rounded-full font-bold">3</span>
+</div>
+<button class="text-xs text-[#9da6b9] hover:text-white">Clear All</button>
+</div>
+<div class="flex flex-col gap-3 overflow-y-auto max-h-[300px] pr-1 custom-scrollbar">
+<!-- Error Item -->
+<div class="p-3 rounded-lg bg-[#111318] border border-l-2 border-[#282e39] border-l-status-red group hover:bg-[#1a1d24] transition-colors">
+<div class="flex justify-between items-start">
+<p class="text-white text-xs font-semibold">Salesforce Auth Error</p>
+<span class="text-[10px] text-[#9da6b9]">2m ago</span>
+</div>
+<p class="text-[#9da6b9] text-[11px] mt-1 leading-relaxed">Token expired during contact sync batch #9921.</p>
+<button class="mt-2 text-[10px] font-bold text-status-red hover:underline flex items-center">
+                                Resolve <span class="material-symbols-outlined text-[10px] ml-0.5">arrow_forward</span>
+</button>
+</div>
+<!-- Error Item -->
+<div class="p-3 rounded-lg bg-[#111318] border border-l-2 border-[#282e39] border-l-status-yellow group hover:bg-[#1a1d24] transition-colors">
+<div class="flex justify-between items-start">
+<p class="text-white text-xs font-semibold">Gmail Rate Limit</p>
+<span class="text-[10px] text-[#9da6b9]">1h ago</span>
+</div>
+<p class="text-[#9da6b9] text-[11px] mt-1 leading-relaxed">Daily message quota reached. Sync paused.</p>
+<button class="mt-2 text-[10px] font-bold text-status-yellow hover:underline flex items-center">
+                                View Usage <span class="material-symbols-outlined text-[10px] ml-0.5">arrow_forward</span>
+</button>
+</div>
+<!-- Error Item -->
+<div class="p-3 rounded-lg bg-[#111318] border border-l-2 border-[#282e39] border-l-[#9da6b9] group hover:bg-[#1a1d24] transition-colors">
+<div class="flex justify-between items-start">
+<p class="text-white text-xs font-semibold">Field Mismatch</p>
+<span class="text-[10px] text-[#9da6b9]">3h ago</span>
+</div>
+<p class="text-[#9da6b9] text-[11px] mt-1 leading-relaxed">HubSpot 'Job Title' cannot map to 'Position'.</p>
+<button class="mt-2 text-[10px] font-bold text-white hover:underline flex items-center">
+                                Fix Mapping <span class="material-symbols-outlined text-[10px] ml-0.5">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Right: Conflict Queue & Agent -->
+<div class="flex flex-col gap-6">
+<!-- Conflict Queue -->
+<div class="bg-[#1e2128] border border-[#282e39] rounded-xl p-5 flex flex-col">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-white font-semibold">Conflict Queue</h3>
+<span class="bg-primary/20 text-primary text-[10px] px-1.5 py-0.5 rounded-full font-bold">12 Pending</span>
+</div>
+<div class="bg-[#111318] rounded-lg p-3 border border-[#282e39]">
+<div class="flex items-center gap-2 mb-3 pb-2 border-b border-[#282e39]">
+<span class="material-symbols-outlined text-status-yellow text-sm">call_merge</span>
+<span class="text-xs text-white font-medium">Contact: Sarah Jenkins</span>
+</div>
+<div class="grid grid-cols-2 gap-2 mb-3">
+<div class="bg-[#1e2128] p-2 rounded border border-[#282e39]">
+<p class="text-[10px] text-[#9da6b9] mb-1">CRM (Old)</p>
+<p class="text-xs text-white font-mono">555-0199</p>
+</div>
+<div class="bg-[#1e2128] p-2 rounded border border-primary/50 relative">
+<div class="absolute -top-1 -right-1 size-2 bg-primary rounded-full"></div>
+<p class="text-[10px] text-primary mb-1">HubSpot (New)</p>
+<p class="text-xs text-white font-mono">555-0000</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 bg-[#282e39] hover:bg-[#323946] text-white text-[10px] font-medium py-1.5 rounded transition-colors">Keep CRM</button>
+<button class="flex-1 bg-primary hover:bg-primary/90 text-white text-[10px] font-bold py-1.5 rounded transition-colors">Update</button>
+</div>
+</div>
+</div>
+<!-- Sync Agent Card -->
+<div class="bg-gradient-to-br from-[#1e2128] to-[#111318] border border-sync-agent/30 rounded-xl p-5 relative overflow-hidden">
+<div class="absolute right-0 top-0 w-24 h-24 bg-sync-agent/10 blur-3xl rounded-full"></div>
+<div class="flex items-start gap-3 relative z-10">
+<div class="size-10 rounded-full bg-sync-agent/20 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(52,152,219,0.3)]">
+<span class="material-symbols-outlined text-sync-agent">smart_toy</span>
+</div>
+<div>
+<h3 class="text-white font-semibold text-sm">Sync Agent Insight</h3>
+<p class="text-gray-300 text-xs mt-1 leading-relaxed">
+                                    Connection stability is at 92%. I noticed frequent timeouts with Outlook. 
+                                    <span class="text-sync-agent font-medium cursor-pointer hover:underline">Click here</span> to run a diagnostic.
+                                </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

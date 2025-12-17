@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-25 Visual Dependency Editor</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111418", // Matching the component example
+                        "surface-dark": "#283039",
+                        "surface-dark-lighter": "#3b4754",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111418; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b4754; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563; 
+        }
+        
+        /* Grid pattern for the canvas */
+        .gantt-grid {
+            background-size: 100px 100%;
+            background-image: linear-gradient(to right, #283039 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#1a1a2e] dark:text-white overflow-hidden h-screen flex flex-col">
+<!-- Header -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e5e7eb] dark:border-b-[#283039] px-6 py-3 bg-white dark:bg-[#111418] z-20 shrink-0">
+<div class="flex items-center gap-4">
+<div class="size-8 flex items-center justify-center rounded-lg bg-primary/20 text-primary">
+<span class="material-symbols-outlined">account_tree</span>
+</div>
+<div>
+<h2 class="text-lg font-bold leading-tight tracking-tight dark:text-white">Project Phoenix</h2>
+<div class="flex items-center gap-2 text-xs text-gray-500 dark:text-[#9dabb9]">
+<span>Visual Dependency Editor</span>
+<span class="size-1 rounded-full bg-gray-500"></span>
+<span>Last saved 2m ago</span>
+</div>
+</div>
+</div>
+<!-- Header Stats -->
+<div class="hidden lg:flex gap-6 mx-8">
+<div class="flex flex-col">
+<span class="text-xs text-gray-500 dark:text-[#9dabb9] font-medium uppercase tracking-wider">Dependencies</span>
+<span class="text-base font-bold dark:text-white">142 <span class="text-green-500 text-xs ml-1 font-normal">(+12%)</span></span>
+</div>
+<div class="flex flex-col border-l border-gray-200 dark:border-[#283039] pl-6">
+<span class="text-xs text-gray-500 dark:text-[#9dabb9] font-medium uppercase tracking-wider">Critical Path</span>
+<span class="text-base font-bold text-red-500">28 Tasks</span>
+</div>
+<div class="flex flex-col border-l border-gray-200 dark:border-[#283039] pl-6">
+<span class="text-xs text-gray-500 dark:text-[#9dabb9] font-medium uppercase tracking-wider">Slack</span>
+<span class="text-base font-bold dark:text-white">12 Days</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<label class="hidden md:flex flex-col min-w-40 h-9">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full bg-gray-100 dark:bg-[#283039] overflow-hidden">
+<div class="flex items-center justify-center pl-3 pr-1 text-gray-500 dark:text-[#9dabb9]">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="w-full bg-transparent border-none text-sm px-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-[#9dabb9] focus:ring-0" placeholder="Search tasks..."/>
+</div>
+</label>
+<button class="size-9 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-[#283039] text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-[#3b4754]">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-9 border border-gray-200 dark:border-[#3b4754]" data-alt="User avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCufZl0DFq7AkmScqV8pkJYIRlGXqyqaYWNz4Hf8BJTnOHVtjBAUu_kQX1SjSG62zIvdypC0k3-bWsLolfGMhny4zhINWFemuqYnbIKSgcfawzEc1nm1AFl7V18HNo6zCWWtBUe31n2UNkk6t2ltp6sRMGATnfLKva4vCJuDhY-W4ur-qz8RGuKOM7xTMMNK1t6ayEJs5SiLp9X2c7vvGsPq1hY_cjAeUsjej2caxlUkA8uukWR2TtYB59uMag1mZnLN1JTuTah1YE");'></div>
+</div>
+</header>
+<!-- Toolbar -->
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 px-6 py-3 bg-white dark:bg-[#111418] border-b border-[#e5e7eb] dark:border-b-[#283039] z-20 shrink-0 shadow-sm">
+<div class="flex flex-wrap gap-2">
+<button class="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors shadow-lg shadow-blue-500/20">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span class="hidden sm:inline">Add Dependency</span>
+</button>
+<div class="h-9 w-px bg-gray-200 dark:bg-[#283039] mx-1"></div>
+<div class="flex items-center rounded-lg bg-gray-100 dark:bg-[#283039] p-1">
+<button class="px-3 py-1 text-xs font-medium rounded-md bg-white dark:bg-[#3b4754] shadow-sm text-gray-900 dark:text-white">All</button>
+<button class="px-3 py-1 text-xs font-medium rounded-md text-gray-500 dark:text-[#9dabb9] hover:text-gray-900 dark:hover:text-white">Critical</button>
+<button class="px-3 py-1 text-xs font-medium rounded-md text-gray-500 dark:text-[#9dabb9] hover:text-gray-900 dark:hover:text-white">Conflicts</button>
+</div>
+<button class="flex items-center gap-2 h-9 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg border border-red-500/20 transition-colors">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+<span>Detect Conflicts</span>
+</button>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs text-gray-500 dark:text-[#9dabb9] font-medium mr-2">Zoom:</span>
+<button class="size-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-[#283039] text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-[#3b4754]">
+<span class="material-symbols-outlined text-[20px]">remove</span>
+</button>
+<span class="text-sm font-medium w-12 text-center text-gray-900 dark:text-white">100%</span>
+<button class="size-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-[#283039] text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-[#3b4754]">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-[#283039] text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-[#3b4754] ml-2">
+<span class="material-symbols-outlined text-[20px]">fit_screen</span>
+</button>
+</div>
+</div>
+<!-- Main Canvas Area -->
+<main class="flex-1 relative overflow-auto bg-[#1e2329] dark:bg-[#0b0e11] cursor-grab active:cursor-grabbing">
+<!-- Timeline Header (Fixed at top of scroll area ideally, simplified here) -->
+<div class="sticky top-0 left-0 right-0 h-10 bg-[#283039] border-b border-[#3b4754] flex items-center z-10 pl-[240px]">
+<!-- Generated time markers -->
+<div class="flex w-full">
+<div class="w-[100px] shrink-0 border-r border-[#3b4754] px-2 py-2 text-xs text-[#9dabb9]">Nov 01</div>
+<div class="w-[100px] shrink-0 border-r border-[#3b4754] px-2 py-2 text-xs text-[#9dabb9]">Nov 08</div>
+<div class="w-[100px] shrink-0 border-r border-[#3b4754] px-2 py-2 text-xs text-[#9dabb9]">Nov 15</div>
+<div class="w-[100px] shrink-0 border-r border-[#3b4754] px-2 py-2 text-xs text-[#9dabb9]">Nov 22</div>
+<div class="w-[100px] shrink-0 border-r border-[#3b4754] px-2 py-2 text-xs text-[#9dabb9]">Nov 29</div>
+<div class="w-[100px] shrink-0 border-r border-[#3b4754] px-2 py-2 text-xs text-[#9dabb9]">Dec 06</div>
+<div class="w-[100px] shrink-0 border-r border-[#3b4754] px-2 py-2 text-xs text-[#9dabb9]">Dec 13</div>
+<div class="w-[100px] shrink-0 border-r border-[#3b4754] px-2 py-2 text-xs text-[#9dabb9]">Dec 20</div>
+<div class="w-[100px] shrink-0 border-r border-[#3b4754] px-2 py-2 text-xs text-[#9dabb9]">Dec 27</div>
+<div class="w-[100px] shrink-0 border-r border-[#3b4754] px-2 py-2 text-xs text-[#9dabb9]">Jan 03</div>
+</div>
+</div>
+<!-- Canvas Body -->
+<div class="relative min-w-full min-h-full pb-20">
+<!-- Grid Background -->
+<div class="absolute inset-0 gantt-grid pointer-events-none pl-[240px] opacity-10"></div>
+<!-- Swimlanes & Tasks Container -->
+<div class="flex flex-col pt-4">
+<!-- Swimlane 1: Core Platform -->
+<div class="relative mb-6">
+<div class="sticky left-4 w-[220px] mb-2 pl-4 z-10 flex items-center gap-2">
+<span class="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider">Epic</span>
+<h3 class="text-white text-sm font-bold">Core Platform</h3>
+</div>
+<div class="relative h-[160px] border-t border-b border-[#283039]/50 bg-[#111418]/30">
+<!-- Task 1: Database Setup -->
+<div class="absolute left-[260px] top-6 w-[120px] group">
+<div class="h-10 rounded-lg bg-[#283039] border border-green-500 flex items-center px-3 shadow-lg relative hover:ring-2 ring-blue-500/50 transition-all cursor-pointer z-10">
+<span class="material-symbols-outlined text-green-500 text-sm mr-2">check_circle</span>
+<span class="text-xs font-medium text-white truncate">DB Setup</span>
+<!-- Connection Points (visible on hover) -->
+<div class="absolute -right-1 top-1/2 -translate-y-1/2 size-3 bg-white rounded-full shadow border border-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+</div>
+<!-- Task 2: API Architecture -->
+<div class="absolute left-[400px] top-[70px] w-[180px] group">
+<div class="h-10 rounded-lg bg-blue-600 border border-blue-400 flex items-center px-3 shadow-lg shadow-blue-500/20 relative hover:ring-2 ring-white transition-all cursor-pointer z-10">
+<span class="text-xs font-medium text-white truncate">API Architecture</span>
+<div class="absolute -left-1 top-1/2 -translate-y-1/2 size-3 bg-white rounded-full shadow border border-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="absolute -right-1 top-1/2 -translate-y-1/2 size-3 bg-white rounded-full shadow border border-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+</div>
+<!-- Task 3: Auth Service (Critical Path) -->
+<div class="absolute left-[600px] top-6 w-[140px] group">
+<div class="h-10 rounded-lg bg-[#283039] border-2 border-red-500 flex items-center px-3 shadow-lg shadow-red-500/10 relative z-10">
+<span class="material-symbols-outlined text-red-500 text-sm mr-2">priority_high</span>
+<span class="text-xs font-bold text-white truncate">Auth Service</span>
+<div class="absolute -left-1 top-1/2 -translate-y-1/2 size-3 bg-white rounded-full shadow border border-red-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="absolute -right-1 top-1/2 -translate-y-1/2 size-3 bg-white rounded-full shadow border border-red-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Swimlane 2: User Interface -->
+<div class="relative">
+<div class="sticky left-4 w-[220px] mb-2 pl-4 z-10 flex items-center gap-2">
+<span class="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs font-bold uppercase tracking-wider">Epic</span>
+<h3 class="text-white text-sm font-bold">User Interface</h3>
+</div>
+<div class="relative h-[200px] border-t border-b border-[#283039]/50 bg-[#111418]/30">
+<!-- Task 4: UI Kit (Start-to-Start dependency example) -->
+<div class="absolute left-[400px] top-6 w-[150px] group">
+<div class="h-10 rounded-lg bg-[#283039] border border-[#3b4754] hover:border-blue-500 flex items-center px-3 shadow-lg relative z-10">
+<span class="text-xs font-medium text-white truncate">UI Kit Development</span>
+<div class="absolute -left-1 top-1/2 -translate-y-1/2 size-3 bg-white rounded-full shadow border border-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+</div>
+<!-- Task 5: Dashboard Layout (Conflict Example) -->
+<div class="absolute left-[580px] top-[70px] w-[160px] group">
+<div class="h-10 rounded-lg bg-[#283039] border border-amber-500 flex items-center px-3 shadow-lg shadow-amber-500/10 relative z-10">
+<span class="material-symbols-outlined text-amber-500 text-sm mr-2">warning</span>
+<span class="text-xs font-medium text-white truncate">Dashboard Layout</span>
+<div class="absolute -left-1 top-1/2 -translate-y-1/2 size-3 bg-white rounded-full shadow border border-amber-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<!-- Simulated Popover for Type Selector -->
+<div class="absolute left-1/2 -translate-x-1/2 -bottom-[150px] z-50 w-64 bg-[#111418] border border-[#3b4754] rounded-xl shadow-2xl p-4 animate-in fade-in zoom-in duration-200">
+<div class="flex justify-between items-center mb-3">
+<span class="text-xs font-bold text-gray-400 uppercase">New Dependency</span>
+<button class="text-gray-500 hover:text-white"><span class="material-symbols-outlined text-sm">close</span></button>
+</div>
+<div class="space-y-2">
+<div class="flex items-center gap-2 p-2 rounded bg-primary/20 border border-primary/50 cursor-pointer">
+<div class="w-1 h-8 bg-primary rounded-full"></div>
+<div>
+<div class="text-xs font-bold text-white">Finish-to-Start (FS)</div>
+<div class="text-[10px] text-blue-200">Standard sequential flow</div>
+</div>
+<span class="material-symbols-outlined text-primary ml-auto text-sm">check</span>
+</div>
+<div class="flex items-center gap-2 p-2 rounded hover:bg-[#283039] border border-transparent hover:border-[#3b4754] cursor-pointer">
+<div class="w-1 h-8 bg-purple-500 rounded-full"></div>
+<div>
+<div class="text-xs font-bold text-gray-400">Start-to-Start (SS)</div>
+<div class="text-[10px] text-gray-600">Parallel start</div>
+</div>
+</div>
+</div>
+<div class="mt-3 pt-3 border-t border-[#283039] flex items-center gap-2">
+<span class="text-xs text-gray-400">Lag:</span>
+<input class="w-12 h-6 bg-[#283039] border border-[#3b4754] rounded text-xs text-white px-1 text-center" type="number" value="0"/>
+<span class="text-xs text-gray-400">days</span>
+<button class="ml-auto bg-primary hover:bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">Link</button>
+</div>
+</div>
+</div>
+<!-- Task 6: Analytics Widgets -->
+<div class="absolute left-[760px] top-[130px] w-[140px] group">
+<div class="h-10 rounded-lg bg-[#283039] border border-[#3b4754] flex items-center px-3 shadow-lg relative z-10">
+<span class="text-xs font-medium text-white truncate">Analytics Widgets</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Dependency Lines Layer (SVG Overlay) -->
+<svg class="absolute top-0 left-0 w-full h-full pointer-events-none z-0">
+<defs>
+<marker id="arrow-blue" markerheight="10" markerunits="strokeWidth" markerwidth="10" orient="auto" refx="9" refy="3">
+<path d="M0,0 L0,6 L9,3 z" fill="#3B82F6"></path>
+</marker>
+<marker id="arrow-red" markerheight="10" markerunits="strokeWidth" markerwidth="10" orient="auto" refx="9" refy="3">
+<path d="M0,0 L0,6 L9,3 z" fill="#EF4444"></path>
+</marker>
+<marker id="arrow-purple" markerheight="10" markerunits="strokeWidth" markerwidth="10" orient="auto" refx="9" refy="3">
+<path d="M0,0 L0,6 L9,3 z" fill="#8B5CF6"></path>
+</marker>
+<marker id="arrow-dashed" markerheight="10" markerunits="strokeWidth" markerwidth="10" orient="auto" refx="9" refy="3">
+<path d="M0,0 L0,6 L9,3 z" fill="#6b7280"></path>
+</marker>
+</defs>
+<!-- FS Link: DB Setup -> API Arch -->
+<path d="M 380 66 C 390 66, 390 110, 400 110" fill="none" marker-end="url(#arrow-blue)" stroke="#3B82F6" stroke-width="2"></path>
+<!-- Critical Path (Red): API Arch -> Auth Service -->
+<path class="drop-shadow-lg shadow-red-500" d="M 580 110 C 590 110, 590 66, 600 66" fill="none" marker-end="url(#arrow-red)" stroke="#EF4444" stroke-width="3"></path>
+<!-- SS Link (Purple Dashed): API Arch -> UI Kit -->
+<!-- Start of API Arch is 400. Start of UI Kit is 400. This is SS. -->
+<!-- Drawing line from start of Task 2 to start of Task 4 -->
+<path d="M 400 110 C 380 110, 380 250, 400 250" fill="none" marker-end="url(#arrow-purple)" stroke="#8B5CF6" stroke-dasharray="5,3" stroke-width="2"></path>
+<!-- Conflict Link (Amber): UI Kit -> Dashboard Layout -->
+<!-- This visualizes a dependency causing a conflict -->
+<path d="M 550 250 C 565 250, 565 294, 580 294" fill="none" stroke="#F59E0B" stroke-dasharray="5,3" stroke-width="2"></path>
+<!-- Drag Creation Simulation -->
+<!-- From Auth Service to some point -->
+<path d="M 740 66 C 760 66, 700 200, 720 280" fill="none" marker-end="url(#arrow-dashed)" opacity="0.6" stroke="#6b7280" stroke-dasharray="4,4" stroke-width="2"></path>
+<circle cx="720" cy="280" fill="#6b7280" opacity="0.6" r="4"></circle>
+</svg>
+</div>
+</main>
+<!-- Floating Conflict Panel (Right Side) -->
+<div class="fixed right-6 top-[140px] w-80 bg-[#111418]/95 backdrop-blur-md border border-red-500/30 rounded-xl shadow-2xl z-30 overflow-hidden animate-in slide-in-from-right duration-300">
+<div class="p-4 border-b border-[#283039] flex items-center justify-between bg-red-500/10">
+<div class="flex items-center gap-2 text-red-500">
+<span class="material-symbols-outlined">warning</span>
+<span class="font-bold text-sm">Conflict Detected</span>
+</div>
+<button class="text-gray-400 hover:text-white"><span class="material-symbols-outlined text-sm">close</span></button>
+</div>
+<div class="p-4 space-y-4">
+<div>
+<h4 class="text-white text-sm font-medium mb-1">Circular Dependency</h4>
+<p class="text-xs text-gray-400 leading-relaxed">
+                    Task <span class="text-blue-400">Dashboard Layout</span> depends on <span class="text-blue-400">Analytics</span>, which depends on <span class="text-blue-400">Dashboard Layout</span>.
+                </p>
+</div>
+<div class="flex items-center gap-2 p-3 rounded-lg bg-[#283039] border border-[#3b4754]">
+<div class="flex items-center gap-1 text-xs text-gray-300">
+<span class="size-2 rounded-full bg-blue-500"></span>
+                    Task A
+                </div>
+<span class="material-symbols-outlined text-gray-500 text-xs">arrow_forward</span>
+<div class="flex items-center gap-1 text-xs text-gray-300">
+<span class="size-2 rounded-full bg-blue-500"></span>
+                    Task B
+                </div>
+<span class="material-symbols-outlined text-red-500 text-xs">sync_problem</span>
+</div>
+<div class="grid grid-cols-2 gap-2 pt-2">
+<button class="col-span-1 px-3 py-2 bg-[#283039] hover:bg-[#3b4754] text-white text-xs font-medium rounded-lg border border-[#3b4754] transition-colors">
+                    View in Canvas
+                </button>
+<button class="col-span-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg shadow-lg shadow-red-500/20 transition-colors">
+                    Auto-Fix
+                </button>
+</div>
+</div>
+</div>
+<!-- Bottom Legend Bar -->
+<div class="h-12 bg-white dark:bg-[#111418] border-t border-[#e5e7eb] dark:border-t-[#283039] flex items-center justify-between px-6 z-20 shrink-0">
+<div class="flex items-center gap-6 overflow-x-auto">
+<div class="flex items-center gap-2">
+<div class="w-8 h-0.5 bg-blue-500 relative">
+<div class="absolute right-0 top-1/2 -translate-y-1/2 border-l-4 border-l-blue-500 border-y-4 border-y-transparent"></div>
+</div>
+<span class="text-xs text-gray-500 dark:text-gray-400 font-medium">FS (Finish-to-Start)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-8 h-0.5 border-t-2 border-dashed border-purple-500 relative">
+<div class="absolute right-0 top-1/2 -translate-y-[2px] border-l-4 border-l-purple-500 border-y-4 border-y-transparent"></div>
+</div>
+<span class="text-xs text-gray-500 dark:text-gray-400 font-medium">SS (Start-to-Start)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-8 h-0.5 bg-green-500 relative">
+<div class="absolute right-0 top-1/2 -translate-y-1/2 border-l-4 border-l-green-500 border-y-4 border-y-transparent"></div>
+</div>
+<span class="text-xs text-gray-500 dark:text-gray-400 font-medium">FF (Finish-to-Finish)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-8 h-0.5 border-t-2 border-dashed border-amber-500 relative">
+<div class="absolute right-0 top-1/2 -translate-y-[2px] border-l-4 border-l-amber-500 border-y-4 border-y-transparent"></div>
+</div>
+<span class="text-xs text-gray-500 dark:text-gray-400 font-medium">SF (Start-to-Finish)</span>
+</div>
+<div class="h-4 w-px bg-gray-300 dark:bg-[#3b4754]"></div>
+<div class="flex items-center gap-2">
+<div class="w-8 h-1 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+<span class="text-xs text-red-500 font-bold">Critical Path</span>
+</div>
+</div>
+<div class="hidden md:flex items-center gap-2 text-xs text-gray-500 dark:text-[#9dabb9]">
+<span class="material-symbols-outlined text-sm">help</span>
+<span>Shortcuts: Shift+Drag to clone</span>
+</div>
+</div>
+</body></html>

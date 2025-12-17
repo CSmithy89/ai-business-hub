@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KB-07 Page Comments</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2b8cee",
+                        "verified": "#2ECC71",
+                        "scribe": "#0d9488", // Teal for Scribe
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for a cleaner SaaS look */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .prose-content p {
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+            color: #334155;
+        }
+        .dark .prose-content p {
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white h-screen overflow-hidden flex flex-col">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e5e7eb] dark:border-b-[#1f2937] bg-white dark:bg-[#111827] px-6 py-3 shrink-0 z-20">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3 text-primary">
+<div class="size-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">grid_view</span>
+</div>
+<h2 class="text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Knowledge Base</h2>
+</div>
+<!-- Breadcrumbs -->
+<div class="hidden md:flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+<span>Engineering</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span>Onboarding</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-[#111418] dark:text-white font-medium">System Architecture</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<!-- Search -->
+<label class="hidden lg:flex flex-col min-w-40 !h-9 max-w-64">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full">
+<div class="text-[#617589] flex border-none bg-background-light dark:bg-[#1f2937] items-center justify-center pl-3 rounded-l-lg border-r-0">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111418] dark:text-white focus:outline-0 focus:ring-0 border-none bg-background-light dark:bg-[#1f2937] focus:border-none h-full placeholder:text-[#617589] px-3 rounded-l-none border-l-0 pl-2 text-sm font-normal" placeholder="Search docs..." value=""/>
+</div>
+</label>
+<div class="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-2"></div>
+<!-- Avatar Group (Facepile) -->
+<div class="flex items-center -space-x-2 mr-2">
+<div class="bg-center bg-no-repeat bg-cover ring-2 ring-white dark:ring-[#111827] rounded-full size-8 bg-gray-200" data-alt="User avatar 1" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDya-ChWLptDmEt8WE2JlKGHZJ36YnAlD7uZ6vzZRJdNl0QWbE561LCSlCRzz13nuDjwP4F3FJDiodmqp0cTSZhNEJpoMD7czlttfvbAuQVvuagMvtaJY7M5Bft_nh-LhVxKogs1Yh6M7B-gVWAMAc4aaHaYNeBIGJOiCmrrCQaCBqSWOnUiY5MQz2hsXyjbTcIyKAxeUPm4lWlLnpA2qrJj9lDms6kWztIFK_cA6wQXWkqpNYMvsaWWDcuS898KaZlWvKDBXpo-yc");'></div>
+<div class="bg-center bg-no-repeat bg-cover ring-2 ring-white dark:ring-[#111827] rounded-full size-8 bg-gray-200" data-alt="User avatar 2" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAsaN5xvGQuIFhVgsCl91w3rZ9a8-H18nqNJ5A0i2__gJLNk2uCX0CYB0n-U89nKaC9DDOsl_-LOPow4zFNKLwvM90_AS-bn-rPGZCI62gs7p6nD0Q2lMuczKh7XZS6GRyoTrQCkPgzgTPt3JILdocU3UryOdPZoUxqxNEs6isjsx6cEVUbmJR4QUm3EwtXiJR1SPfDvr_vw3WAT-J8aLgXDfq_ctaNdjikkPome9R9turL5g8MfiKblgZ3B8ZkvsTqf4PT13l_G5s");'></div>
+<div class="bg-center bg-no-repeat bg-cover ring-2 ring-white dark:ring-[#111827] rounded-full size-8 bg-gray-200" data-alt="User avatar 3" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCTv6CiNA5_xVBLAQw9eEd5PbP4-cttS4yOZxtQNOOEeY1gPfZKTgbZQ0GrRcfeshKzq_Njd7G4B02hMmy3WNAHUv-De-nE3IinOqdNFdn4sGyZrlxcRge2bawUt3AbGDs-yj3zyvDzb1AQ9q-ppEp8VCklrN6_wPusxST8mSVT_FHwzoqAhPAjVwO1ZV980nggE81tb83-BppkwqOIRYfGgVgbmgjvuxWES_xnFZD89Lm7hKFYso8MM6v1-sXL2D0QwMUhKVCgPeQ");'></div>
+<button class="flex items-center justify-center size-8 rounded-full bg-background-light dark:bg-[#374151] ring-2 ring-white dark:ring-[#111827] text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    +2
+                </button>
+</div>
+<button class="flex items-center justify-center size-9 rounded-lg bg-primary text-white hover:bg-blue-600 transition shadow-sm">
+<span class="material-symbols-outlined text-[20px]">share</span>
+</button>
+</div>
+</header>
+<!-- Main Content Layout -->
+<div class="flex flex-1 overflow-hidden">
+<!-- Left Sidebar (Page Tree) -->
+<aside class="w-64 flex-col bg-white dark:bg-[#111827] border-r border-[#e5e7eb] dark:border-[#1f2937] hidden md:flex">
+<div class="p-4">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pages</h3>
+<button class="text-gray-400 hover:text-primary"><span class="material-symbols-outlined text-[18px]">add</span></button>
+</div>
+<div class="flex flex-col gap-1">
+<!-- Nav Items -->
+<div class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-[#1f2937] group cursor-pointer text-gray-600 dark:text-gray-300">
+<span class="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-primary">folder</span>
+<span class="text-sm font-medium">Engineering</span>
+<span class="material-symbols-outlined text-[16px] ml-auto opacity-0 group-hover:opacity-100 text-gray-400">more_horiz</span>
+</div>
+<div class="pl-4 flex flex-col gap-1 border-l border-gray-100 dark:border-gray-800 ml-4">
+<div class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-[#1f2937] group cursor-pointer text-gray-600 dark:text-gray-300">
+<span class="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-primary">folder</span>
+<span class="text-sm font-medium">Onboarding</span>
+</div>
+<!-- Active Page -->
+<div class="flex items-center gap-2 px-2 py-1.5 rounded-md bg-primary/10 text-primary cursor-pointer relative">
+<span class="material-symbols-outlined text-[20px] fill-current">description</span>
+<span class="text-sm font-medium">Architecture Overview</span>
+<div class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-primary rounded-r-md -ml-[17px]"></div>
+</div>
+<div class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-[#1f2937] group cursor-pointer text-gray-600 dark:text-gray-300">
+<span class="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-primary">description</span>
+<span class="text-sm font-medium">API Documentation</span>
+</div>
+</div>
+<div class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-[#1f2937] group cursor-pointer text-gray-600 dark:text-gray-300 mt-2">
+<span class="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-primary">folder</span>
+<span class="text-sm font-medium">Product Design</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Center Editor Panel -->
+<main class="flex-1 flex flex-col bg-white dark:bg-[#111827] overflow-y-auto relative">
+<div class="w-full max-w-[820px] mx-auto px-10 py-12 pb-32">
+<!-- Page Header -->
+<div class="mb-8 border-b border-gray-100 dark:border-gray-800 pb-6">
+<div class="flex items-center gap-3 mb-4">
+<h1 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">System Architecture Overview</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#f0fdf4] dark:bg-green-900/20 border border-green-100 dark:border-green-800">
+<span class="material-symbols-outlined text-[16px] text-verified" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-xs font-semibold text-green-700 dark:text-green-400">Verified Content</span>
+</div>
+<span class="text-sm text-gray-400">Last updated 2 days ago by Sarah Chen</span>
+</div>
+</div>
+<!-- Editor Content -->
+<div class="prose prose-slate max-w-none prose-content dark:text-gray-300">
+<p>
+                        The application follows a microservices architecture pattern, utilizing containerization for deployment scalability. The core services handle authentication, data processing, and reporting independently, communicating via RESTful APIs and asynchronous message queues.
+                    </p>
+<!-- Content Block with Comment -->
+<div class="relative group">
+<p>
+<span class="bg-primary/20 dark:bg-primary/40 rounded-sm decoration-clone py-0.5 box-decoration-clone relative cursor-pointer" id="comment-trigger-1">
+                                Data persistence is managed through a polyglot approach, using PostgreSQL for relational data and Redis for high-speed caching of session states.
+                            </span>
+                            This ensures optimal performance under high load conditions while maintaining data integrity.
+                        </p>
+<!-- Margin Indicator (Bubble) -->
+<div class="absolute -right-16 top-1 cursor-pointer hover:scale-110 transition-transform hidden lg:flex">
+<div class="size-8 rounded-full bg-background-light dark:bg-[#1f2937] shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-center group-hover:border-primary group-hover:text-primary">
+<span class="material-symbols-outlined text-[18px] text-gray-500 dark:text-gray-400 group-hover:text-primary" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+</div>
+<span class="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold px-1 rounded-full min-w-[16px] h-4 flex items-center justify-center">2</span>
+</div>
+<!-- Floating Popover (Simulated for Demo) -->
+<!-- Positioned relative to the span above -->
+<div class="absolute left-20 -top-12 z-10 shadow-xl rounded-lg bg-[#1e293b] text-white px-1 py-1 flex items-center gap-1 animate-fade-in">
+<button class="p-1.5 hover:bg-white/10 rounded flex items-center gap-2 text-sm font-medium">
+<span class="material-symbols-outlined text-[18px]">add_comment</span>
+                                Add comment
+                            </button>
+<div class="w-px h-4 bg-white/20 mx-1"></div>
+<button class="p-1.5 hover:bg-white/10 rounded"><span class="material-symbols-outlined text-[18px]">format_bold</span></button>
+<button class="p-1.5 hover:bg-white/10 rounded"><span class="material-symbols-outlined text-[18px]">format_italic</span></button>
+</div>
+</div>
+<p>
+                        For the frontend, we utilize a component-based library to ensure consistency across the platform. The design system tokens are synchronized automatically from Figma to the codebase via a CI/CD pipeline script.
+                    </p>
+<!-- Text selection simulation -->
+<div class="relative">
+<p>
+                             Security protocols mandate that all external API endpoints must be protected by OAuth2 authentication flows. <span class="bg-blue-200 dark:bg-blue-900/50 selection:bg-blue-200">Rate limiting is applied at the gateway level to prevent abuse.</span>
+</p>
+</div>
+<h3 class="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Infrastructure &amp; Deployment</h3>
+<p>
+                        The infrastructure is defined as code (IaC) using Terraform, allowing for reproducible environments across development, staging, and production.
+                    </p>
+</div>
+</div>
+</main>
+<!-- Right Sidebar (Context Panel - Comments) -->
+<aside class="w-[360px] flex flex-col bg-background-light dark:bg-[#0b111a] border-l border-[#e5e7eb] dark:border-[#1f2937] shadow-xl z-10">
+<!-- Panel Header -->
+<div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#111827] flex items-center justify-between shrink-0">
+<div class="flex items-center gap-2">
+<h3 class="font-bold text-gray-900 dark:text-white">Comments</h3>
+<span class="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full text-xs font-medium">3</span>
+</div>
+<div class="relative">
+<button class="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800 dark:hover:text-gray-200">
+                        All open
+                        <span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+</button>
+</div>
+</div>
+<!-- Scrollable Thread List -->
+<div class="flex-1 overflow-y-auto p-4 space-y-4">
+<!-- Thread Card 1: Open / Active -->
+<div class="bg-white dark:bg-[#111827] rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 border-l-[4px] border-l-primary group transition-shadow hover:shadow-md">
+<!-- Quote Header -->
+<div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 flex justify-between items-start rounded-t-lg">
+<div class="flex gap-2">
+<div class="w-1 rounded-full bg-primary/20"></div>
+<p class="text-xs text-gray-500 font-medium italic line-clamp-1">"Data persistence is managed through..."</p>
+</div>
+<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="w-2 h-2 rounded-full bg-primary block"></span>
+<button class="text-gray-400 hover:text-gray-600"><span class="material-symbols-outlined text-[18px]">more_horiz</span></button>
+</div>
+</div>
+<!-- Comment 1 -->
+<div class="p-4 pb-0">
+<div class="flex gap-3">
+<div class="shrink-0">
+<div class="size-8 rounded-full bg-cover bg-center" data-alt="Mike's Avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCab_TUk1cadzbMVAPiGCfY8BMHVqscEXOBn5KY1VCm3-4TlHMFJt9GuD5XxPRNjvyrhFogPQmfWEbfbn50m0woQMXJi1e817WxOOpfeYrkoCFDRgs1fN0AFX0PCO3Efb5dLcS_mFwCGVffrnTiw-buPWT5iQ4klwX6DY8VLmteXcZTyvpm9vTRRx2FMD5W7sSfHYfE5Bpx0DKf2mOhZ9qZA6Ydo2aqUxVF0EU0LW7L1ZEb__OqYwAwpOeYNySh01HePt2petOSOCs");'></div>
+</div>
+<div class="flex-1">
+<div class="flex items-baseline justify-between">
+<span class="text-sm font-bold text-gray-900 dark:text-white">Mike Ross</span>
+<span class="text-xs text-gray-400">2h ago</span>
+</div>
+<p class="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                                    Should we mention <a class="text-primary hover:underline font-medium" href="#">@Sarah</a> regarding the Redis configuration for clustered environments?
+                                </p>
+</div>
+</div>
+</div>
+<!-- Reply 1 -->
+<div class="p-4 pt-3">
+<div class="flex gap-3">
+<div class="shrink-0">
+<div class="size-8 rounded-full bg-cover bg-center" data-alt="Sarah's Avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCReDltMhd6cXC7vdkNFZnKhSquPhA2WaudFrLMEwnJhS_ARCzNGHcA3pXTXrzXAgxBOn5X65Z3vU4bSLgpu7G2rUUAQzkbp8ZJtAA6GNXRQCF09UsZ4qD56dl18I43yfQrf1BFLjggu3cI_94tmM1CEa_0Otu11VlozFzJVlDwE2UEGlRHKBypUAnroqCmJJzRN8SoT8EX8_qr1oWnCnzTr_lF7NTxFtv55X27GV899MCUyYz1cysoJ3Zc9tedAsPBJv-14JfsJs4");'></div>
+</div>
+<div class="flex-1">
+<div class="flex items-baseline justify-between">
+<span class="text-sm font-bold text-gray-900 dark:text-white">Sarah Chen</span>
+<span class="text-xs text-gray-400">1h ago</span>
+</div>
+<p class="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                                    Good point. I'll add a section about sentinel mode below.
+                                </p>
+<div class="flex items-center gap-3 mt-2">
+<button class="text-xs text-gray-500 font-medium hover:text-primary">Reply</button>
+<button class="flex items-center gap-1 text-xs text-gray-500 hover:text-pink-500 bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 rounded-full border border-gray-100 dark:border-gray-700">
+<span>👍</span> 1
+                                    </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Inline Reply Composer -->
+<div class="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-b-lg border-t border-gray-100 dark:border-gray-800 mx-1 mb-1">
+<div class="flex gap-2 items-start">
+<div class="size-6 rounded-full bg-cover bg-center opacity-50" data-alt="My Avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuClftwxYHviVutMPukrpEn1wi9qrivg3HKIuK0wWjL8MuNyFM0EYOjZIZoNTGvZygCgn2KzsGx7Ulalzc4DjsZv41p8kpGmoqgmP1NKXsEH4-KLzjjZqqa8lyRou-dFfbjcvXMgJ0h-bJNgGr8T7Gj-QbQJt2XyI9D9auiZEZjRoONkSWT-OGDgesXvxJ_5vkZNqeVhvGhjguVlmWk5c2IW18GV-6H6QSIdhlT9yF3FVu2vaVBSICRYmrU2K9VBoyCR3gL51b7GqIw");'></div>
+<div class="flex-1">
+<textarea class="w-full bg-transparent border-none text-sm focus:ring-0 p-0 placeholder:text-gray-400 resize-none" placeholder="Reply to thread..." rows="1"></textarea>
+<div class="flex justify-between items-center mt-2">
+<div class="flex gap-1">
+<button class="text-gray-400 hover:text-gray-600"><span class="material-symbols-outlined text-[18px]">alternate_email</span></button>
+<button class="text-gray-400 hover:text-gray-600"><span class="material-symbols-outlined text-[18px]">attach_file</span></button>
+</div>
+<button class="bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-md hover:bg-blue-600">Send</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Thread Card 2: Scribe Agent (AI) Suggestion -->
+<div class="bg-white dark:bg-[#111827] rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 border-l-[4px] border-l-scribe relative overflow-hidden">
+<div class="absolute top-0 right-0 p-1">
+<span class="material-symbols-outlined text-scribe/20 text-[64px] -mt-4 -mr-4 rotate-12">auto_awesome</span>
+</div>
+<div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-scribe/5 flex justify-between items-start">
+<div class="flex items-center gap-2">
+<div class="bg-scribe text-white p-1 rounded text-xs flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px]">smart_toy</span>
+</div>
+<span class="text-xs font-bold text-scribe uppercase tracking-wide">Suggestion</span>
+</div>
+<button class="text-gray-400 hover:text-gray-600 z-10"><span class="material-symbols-outlined text-[18px]">close</span></button>
+</div>
+<div class="p-4">
+<p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
+<span class="font-medium text-scribe">Scribe Agent</span> suggests rephrasing for clarity:
+                        </p>
+<div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-md border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 italic">
+                            "To ensure data integrity under heavy loads, we use a hybrid storage strategy: PostgreSQL for relational consistency and Redis for high-speed session caching."
+                        </div>
+<div class="flex gap-2 mt-4">
+<button class="flex-1 bg-scribe text-white text-xs font-bold py-1.5 rounded-md hover:bg-teal-700 shadow-sm">Accept</button>
+<button class="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold py-1.5 rounded-md hover:bg-gray-50">Dismiss</button>
+</div>
+</div>
+</div>
+<!-- Thread Card 3: Resolved -->
+<div class="bg-white dark:bg-[#111827] rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 border-l-[4px] border-l-gray-400 opacity-75 hover:opacity-100 transition-opacity">
+<div class="px-4 py-2 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-green-500">check_circle</span>
+<span class="text-xs font-bold text-gray-500">Resolved</span>
+</div>
+<button class="text-gray-400 hover:text-gray-600"><span class="material-symbols-outlined text-[18px]">expand_more</span></button>
+</div>
+<div class="p-4">
+<div class="flex gap-3">
+<div class="shrink-0">
+<div class="size-8 rounded-full bg-cover bg-center grayscale" data-alt="Devin's Avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBINTCUqRbbpon5gCclZfcbsjZlQWC8WgYvVCktPbx6bnAhzaAFO_fsFermcryl5YKh0JBCCfFpOg2CZ0icowUzCoe8tNwzuhrR5n_7tib_tOZTevpD-bOUz7aEUeHkDGj2IZtcdnThOTq6HDAZuUEUz-z495zlVGMmIKuMYATXuC9GzUrYZHMvV0o7FzaKRjCzsv6zvKtjTYvzZSGl9uCRHyBSo1TLzqK6U6_TwBCB-I1s99a-1w6NxYD1NeRhCm4eC5a1BDi0lfo");'></div>
+</div>
+<div class="flex-1">
+<div class="flex items-baseline justify-between">
+<span class="text-sm font-bold text-gray-600 dark:text-gray-400">Devin Holt</span>
+<span class="text-xs text-gray-400">Yesterday</span>
+</div>
+<p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                                    Is the authentication flow documented in the API spec?
+                                </p>
+<div class="mt-2 text-xs text-gray-400 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check</span>
+                                    Resolved by You
+                                </div>
+</div>
+</div>
+</div>
+</div>
+<!-- Empty state spacer -->
+<div class="h-10"></div>
+</div>
+<!-- Context Footer -->
+<div class="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#0b111a] text-center">
+<button class="text-xs text-gray-500 hover:text-primary font-medium flex items-center justify-center gap-1 w-full">
+                    View archived comments
+                    <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</aside>
+</div>
+</body></html>

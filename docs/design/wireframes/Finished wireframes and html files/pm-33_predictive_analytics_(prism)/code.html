@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-33 Predictive Analytics (Prism)</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#EC4899", // Prism Color
+                        "primary-dark": "#be185d",
+                        "hyvve-bg": "#FFFBF5",
+                        "hyvve-card": "#FFFFFF",
+                        "hyvve-border": "#f1ebe4",
+                        "text-main": "#1a1a2e",
+                        "text-secondary": "#6b7280",
+                        "pm-theme": "#FF9F43",
+                        "success": "#22C55E",
+                        "warning": "#F59E0B",
+                        "error": "#EF4444",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "md": "0.375rem", 
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 8px -2px rgba(26, 26, 46, 0.05)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FFFBF5; /* Fallback */
+        }
+        /* Custom scrollbar for data tables */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d1d5db; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af; 
+        }
+        
+        /* Shimmer effect for "AI Loading" placeholder if needed */
+        .prism-gradient-text {
+            background: linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .prism-border {
+            position: relative;
+        }
+        .prism-border::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #EC4899;
+            border-radius: 4px 0 0 4px;
+        }
+    </style>
+</head>
+<body class="bg-hyvve-bg text-text-main font-display antialiased min-h-screen">
+<!-- Top Navigation / Header -->
+<header class="bg-hyvve-card border-b border-hyvve-border sticky top-0 z-30 shadow-sm">
+<div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex justify-between h-16 items-center">
+<!-- Title Area -->
+<div class="flex items-center gap-4">
+<div class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary">
+<span class="material-icons-round text-2xl">auto_fix_high</span>
+</div>
+<div>
+<h1 class="text-xl font-semibold text-text-main tracking-tight">Predictive Analytics <span class="text-primary font-medium text-sm ml-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">Prism AI</span></h1>
+<p class="text-xs text-text-secondary">Project Vision / PM-33 Phase 3</p>
+</div>
+</div>
+<!-- Controls -->
+<div class="flex items-center gap-3">
+<div class="flex items-center bg-hyvve-bg border border-hyvve-border rounded-lg px-3 py-1.5 shadow-sm">
+<span class="material-icons-round text-text-secondary text-sm mr-2">calendar_today</span>
+<select class="bg-transparent border-none text-sm text-text-main font-medium focus:ring-0 p-0 pr-8 cursor-pointer">
+<option>Next 30 Days</option>
+<option>Next Quarter</option>
+<option>Rest of Year</option>
+</select>
+</div>
+<button class="flex items-center gap-2 bg-text-main hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-soft">
+<span class="material-icons-round text-sm">download</span>
+                        Export Report
+                    </button>
+<div class="h-8 w-8 rounded-full bg-gray-200 border border-gray-300 overflow-hidden">
+<img alt="User Profile" class="h-full w-full object-cover" data-alt="Profile picture of a male user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxDKf7hyp9XXWHHZhZtcPEyBW6MPAaSuP1fVvzur_5pUpXcY2nk8E3nPj1FK628cJJSAKGBWDADQBPXsGotyMChFWz92pr_foBoZEOUBsRjGyk43CQzg88UHW4SKBSwyfkKx4BCjzFTkdjkP7SHGLINx1HwrIx0-kS4_NGCN96q1zjY3wXKr7ayP8k-PQvmXWGVTCT-rOWNfJA5wyh8UZxHeZa-1BGLO3iX98IqKfI3ZIUPGxOlOVLPFRrR31HNyaPu1LrIrlX7p4"/>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<!-- Metrics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<!-- Metric 1: Confidence -->
+<div class="bg-hyvve-card rounded-xl border border-hyvve-border p-5 shadow-soft hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-blue-50 rounded-lg text-blue-600">
+<span class="material-icons-round text-xl">psychology</span>
+</div>
+<span class="flex items-center text-xs font-semibold text-success bg-success/10 px-2 py-1 rounded-full">
+<span class="material-icons-round text-xs mr-1">trending_up</span> +4.2%
+                    </span>
+</div>
+<div>
+<p class="text-sm font-medium text-text-secondary">Confidence Score</p>
+<h3 class="text-3xl font-bold text-text-main mt-1">87%</h3>
+<p class="text-xs text-text-secondary mt-2">Probability of on-time delivery</p>
+</div>
+</div>
+<!-- Metric 2: Completion Date -->
+<div class="bg-hyvve-card rounded-xl border border-hyvve-border p-5 shadow-soft hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-purple-50 rounded-lg text-purple-600">
+<span class="material-icons-round text-xl">event_available</span>
+</div>
+<span class="flex items-center text-xs font-semibold text-success bg-success/10 px-2 py-1 rounded-full">
+                        On Track
+                    </span>
+</div>
+<div>
+<p class="text-sm font-medium text-text-secondary">Predicted Completion</p>
+<h3 class="text-3xl font-bold text-text-main mt-1">Oct 24</h3>
+<p class="text-xs text-text-secondary mt-2">2 days earlier than baseline</p>
+</div>
+</div>
+<!-- Metric 3: Quality Score -->
+<div class="bg-hyvve-card rounded-xl border border-hyvve-border p-5 shadow-soft hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-amber-50 rounded-lg text-warning">
+<span class="material-icons-round text-xl">grade</span>
+</div>
+<span class="flex items-center text-xs font-semibold text-warning bg-warning/10 px-2 py-1 rounded-full">
+<span class="material-icons-round text-xs mr-1">horizontal_rule</span> 0.0%
+                    </span>
+</div>
+<div>
+<p class="text-sm font-medium text-text-secondary">Quality Score</p>
+<h3 class="text-3xl font-bold text-text-main mt-1">4.8<span class="text-lg text-text-secondary font-normal">/5</span></h3>
+<p class="text-xs text-text-secondary mt-2">Based on code review &amp; QA pass rate</p>
+</div>
+</div>
+<!-- Metric 4: Savings -->
+<div class="bg-hyvve-card rounded-xl border border-hyvve-border p-5 shadow-soft hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="absolute right-0 top-0 w-16 h-16 bg-gradient-to-br from-primary/20 to-transparent rounded-bl-full -mr-4 -mt-4"></div>
+<div class="flex justify-between items-start mb-4 relative z-10">
+<div class="p-2 bg-pink-50 rounded-lg text-primary">
+<span class="material-icons-round text-xl">savings</span>
+</div>
+<span class="flex items-center text-xs font-semibold text-success bg-success/10 px-2 py-1 rounded-full">
+<span class="material-icons-round text-xs mr-1">trending_up</span> 12%
+                    </span>
+</div>
+<div class="relative z-10">
+<p class="text-sm font-medium text-text-secondary">Projected Savings</p>
+<h3 class="text-3xl font-bold text-text-main mt-1">$12.4k</h3>
+<p class="text-xs text-text-secondary mt-2">Via resource optimization</p>
+</div>
+</div>
+</div>
+<!-- Main Chart & Forecast Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+<!-- Chart Section -->
+<div class="lg:col-span-2 bg-hyvve-card rounded-xl border border-hyvve-border p-6 shadow-soft">
+<div class="flex justify-between items-center mb-6">
+<div>
+<h3 class="text-lg font-semibold text-text-main">ML Completion Forecast</h3>
+<p class="text-sm text-text-secondary">Projected velocity based on recent sprint performance</p>
+</div>
+<div class="flex items-center gap-4 text-xs">
+<div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-success"></span> Optimistic</div>
+<div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-pm-theme"></span> Likely</div>
+<div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-error"></span> Pessimistic</div>
+</div>
+</div>
+<!-- Chart Placeholder using CSS shapes/gradients -->
+<div class="relative h-64 w-full bg-hyvve-bg/50 rounded-lg border border-hyvve-border p-4 overflow-hidden">
+<!-- Grid Lines -->
+<div class="absolute inset-0 grid grid-cols-6 grid-rows-4">
+<div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-dashed border-gray-200"></div>
+<div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-dashed border-gray-200"></div>
+<div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-r border-dashed border-gray-200"></div><div class="border-b border-dashed border-gray-200"></div>
+<div class="border-r border-dashed border-gray-200"></div><div class="border-r border-dashed border-gray-200"></div><div class="border-r border-dashed border-gray-200"></div><div class="border-r border-dashed border-gray-200"></div><div class="border-r border-dashed border-gray-200"></div><div></div>
+</div>
+<!-- Today Marker -->
+<div class="absolute top-0 bottom-0 left-1/3 w-px border-l-2 border-primary border-dashed z-20">
+<div class="absolute top-0 -ml-8 mt-2 bg-primary text-white text-[10px] px-2 py-0.5 rounded-full">Today</div>
+</div>
+<!-- Confidence Bands (Simplified SVGs for visual representation) -->
+<svg class="absolute inset-0 w-full h-full z-10" preserveaspectratio="none">
+<!-- Optimistic Area -->
+<path d="M0,200 C50,180 150,150 250,100 C350,50 450,20 600,10 L600,250 L0,250 Z" fill="url(#gradSuccess)" opacity="0.1"></path>
+<path d="M0,200 C50,180 150,150 250,100 C350,50 450,20 600,10" fill="none" stroke="#22C55E" stroke-width="2"></path>
+<!-- Likely Area -->
+<path d="M0,200 C60,190 160,170 250,140 C350,110 450,90 600,80" fill="none" stroke="#F59E0B" stroke-dasharray="4" stroke-width="2"></path>
+<!-- Pessimistic Area -->
+<path d="M0,200 C70,200 170,210 250,200 C350,190 450,180 600,160" fill="none" stroke="#EF4444" stroke-width="2"></path>
+<defs>
+<lineargradient id="gradSuccess" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#22C55E;stop-opacity:1"></stop>
+<stop offset="100%" style="stop-color:#fff;stop-opacity:0"></stop>
+</lineargradient>
+</defs>
+</svg>
+</div>
+<!-- Legend / X-Axis Labels -->
+<div class="flex justify-between text-xs text-text-secondary mt-2 px-2">
+<span>Aug 01</span>
+<span>Aug 15</span>
+<span>Sep 01</span>
+<span>Sep 15</span>
+<span>Oct 01</span>
+<span>Oct 15</span>
+</div>
+</div>
+<!-- Forecast List -->
+<div class="bg-hyvve-card rounded-xl border border-hyvve-border p-6 shadow-soft flex flex-col">
+<h3 class="text-lg font-semibold text-text-main mb-4">Project Forecasts</h3>
+<div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
+<!-- Item 1 -->
+<div class="group">
+<div class="flex justify-between items-center mb-1">
+<span class="text-sm font-medium text-text-main">Mobile App Phase 2</span>
+<span class="text-xs px-2 py-0.5 rounded bg-success/10 text-success font-medium">High Conf.</span>
+</div>
+<div class="w-full bg-gray-100 rounded-full h-2 mb-1">
+<div class="bg-primary h-2 rounded-full" style="width: 75%"></div>
+</div>
+<div class="flex justify-between text-xs text-text-secondary">
+<span>75% Done</span>
+<span>Est: Oct 12</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="group">
+<div class="flex justify-between items-center mb-1">
+<span class="text-sm font-medium text-text-main">Backend API Migration</span>
+<span class="text-xs px-2 py-0.5 rounded bg-warning/10 text-warning font-medium">Med Conf.</span>
+</div>
+<div class="w-full bg-gray-100 rounded-full h-2 mb-1">
+<div class="bg-pm-theme h-2 rounded-full" style="width: 45%"></div>
+</div>
+<div class="flex justify-between text-xs text-text-secondary">
+<span>45% Done</span>
+<span>Est: Nov 05</span>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="group">
+<div class="flex justify-between items-center mb-1">
+<span class="text-sm font-medium text-text-main">Design System Update</span>
+<span class="text-xs px-2 py-0.5 rounded bg-success/10 text-success font-medium">High Conf.</span>
+</div>
+<div class="w-full bg-gray-100 rounded-full h-2 mb-1">
+<div class="bg-primary h-2 rounded-full" style="width: 90%"></div>
+</div>
+<div class="flex justify-between text-xs text-text-secondary">
+<span>90% Done</span>
+<span>Est: Sep 28</span>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="group">
+<div class="flex justify-between items-center mb-1">
+<span class="text-sm font-medium text-text-main">Analytics Integration</span>
+<span class="text-xs px-2 py-0.5 rounded bg-error/10 text-error font-medium">Low Conf.</span>
+</div>
+<div class="w-full bg-gray-100 rounded-full h-2 mb-1">
+<div class="bg-error h-2 rounded-full" style="width: 20%"></div>
+</div>
+<div class="flex justify-between text-xs text-text-secondary">
+<span>20% Done</span>
+<span>Est: Dec 15</span>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-hyvve-border">
+<button class="w-full text-sm text-primary font-medium hover:text-primary-dark transition-colors flex items-center justify-center gap-1">
+                        View All Forecasts <span class="material-icons-round text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Risk & AI Suggestions -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+<!-- Risk Prediction -->
+<div class="bg-hyvve-card rounded-xl border border-hyvve-border p-6 shadow-soft">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-lg font-semibold text-text-main flex items-center gap-2">
+                        Risk Prediction
+                        <span class="flex h-2 w-2 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-error"></span>
+</span>
+</h3>
+<button class="text-xs text-text-secondary hover:text-text-main">Filter by Impact</button>
+</div>
+<div class="space-y-4">
+<!-- Risk Item 1 -->
+<div class="border border-hyvve-border rounded-lg p-4 hover:border-error/30 transition-colors">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h4 class="text-sm font-semibold text-text-main">Scope Creep in Phase 2</h4>
+<p class="text-xs text-text-secondary mt-0.5">Affected: Mobile App Team</p>
+</div>
+<div class="flex gap-2">
+<span class="text-[10px] uppercase font-bold tracking-wider text-error bg-error/10 px-2 py-1 rounded">High Prob.</span>
+<span class="text-[10px] uppercase font-bold tracking-wider text-warning bg-warning/10 px-2 py-1 rounded">Med Impact</span>
+</div>
+</div>
+<!-- Prism Insight -->
+<div class="bg-primary/5 rounded-md p-3 flex gap-3 mt-3 border border-primary/10">
+<span class="material-icons-round text-primary text-sm mt-0.5">auto_awesome</span>
+<div>
+<p class="text-xs text-text-main font-medium">Prism Insight</p>
+<p class="text-xs text-text-secondary leading-relaxed">Historical data suggests 40% chance of delay due to recent requirement additions. Recommend freezing scope immediately.</p>
+</div>
+</div>
+</div>
+<!-- Risk Item 2 -->
+<div class="border border-hyvve-border rounded-lg p-4 hover:border-warning/30 transition-colors">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h4 class="text-sm font-semibold text-text-main">Resource Bottleneck</h4>
+<p class="text-xs text-text-secondary mt-0.5">Affected: Backend Engineering</p>
+</div>
+<div class="flex gap-2">
+<span class="text-[10px] uppercase font-bold tracking-wider text-warning bg-warning/10 px-2 py-1 rounded">Med Prob.</span>
+<span class="text-[10px] uppercase font-bold tracking-wider text-error bg-error/10 px-2 py-1 rounded">High Impact</span>
+</div>
+</div>
+<!-- Prism Insight -->
+<div class="bg-primary/5 rounded-md p-3 flex gap-3 mt-3 border border-primary/10">
+<span class="material-icons-round text-primary text-sm mt-0.5">auto_awesome</span>
+<div>
+<p class="text-xs text-text-main font-medium">Prism Insight</p>
+<p class="text-xs text-text-secondary leading-relaxed">Backend team capacity is overbooked by 15% in sprint 4. Consider shifting non-critical tickets.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Resource Optimization (Prism AI) -->
+<div class="bg-gradient-to-br from-hyvve-card to-primary/5 rounded-xl border border-primary/20 p-6 shadow-soft relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-icons-round text-9xl text-primary">psychology</span>
+</div>
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-icons-round text-primary">auto_fix_high</span>
+<h3 class="text-lg font-semibold prism-gradient-text">Resource Optimization</h3>
+</div>
+<div class="space-y-4">
+<!-- Suggestion 1 -->
+<div class="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-white shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center">
+<div class="flex-1">
+<h4 class="text-sm font-semibold text-text-main">Workload Rebalancing</h4>
+<p class="text-xs text-text-secondary mt-1">Shift 2 tasks from <span class="font-medium text-text-main">Sarah J.</span> to <span class="font-medium text-text-main">Mike T.</span> to reduce burnout risk.</p>
+<div class="flex gap-2 mt-2">
+<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Saves 3 Days</span>
+</div>
+</div>
+<button class="shrink-0 bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded text-xs font-medium transition-colors shadow-sm">
+                                Apply Fix
+                            </button>
+</div>
+<!-- Suggestion 2 -->
+<div class="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-white shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center">
+<div class="flex-1">
+<h4 class="text-sm font-semibold text-text-main">Parallelization Opportunity</h4>
+<p class="text-xs text-text-secondary mt-1">Modules A and B have no dependencies. Run in parallel to accelerate delivery.</p>
+<div class="flex gap-2 mt-2">
+<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Saves 1 Week</span>
+</div>
+</div>
+<button class="shrink-0 bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded text-xs font-medium transition-colors shadow-sm">
+                                Apply Fix
+                            </button>
+</div>
+<!-- Suggestion 3 -->
+<div class="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-white shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center">
+<div class="flex-1">
+<h4 class="text-sm font-semibold text-text-main">Scope Reduction</h4>
+<p class="text-xs text-text-secondary mt-1">Removing "Dark Mode V1" aligns with Q3 goals and guarantees deadline.</p>
+</div>
+<button class="shrink-0 bg-white border border-gray-200 text-text-secondary hover:text-text-main px-3 py-1.5 rounded text-xs font-medium transition-colors shadow-sm">
+                                Review
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Grid: Quality Scoring -->
+<div class="bg-hyvve-card rounded-xl border border-hyvve-border p-6 shadow-soft mb-8">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-lg font-semibold text-text-main">Team Quality Scoring</h3>
+<div class="flex gap-2">
+<button class="p-1.5 text-text-secondary hover:bg-gray-50 rounded"><span class="material-icons-round text-lg">filter_list</span></button>
+<button class="p-1.5 text-text-secondary hover:bg-gray-50 rounded"><span class="material-icons-round text-lg">more_horiz</span></button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="min-w-full text-left text-sm whitespace-nowrap">
+<thead class="uppercase tracking-wider border-b border-hyvve-border bg-gray-50/50 text-xs font-medium text-text-secondary">
+<tr>
+<th class="px-6 py-3" scope="col">Team Member</th>
+<th class="px-6 py-3" scope="col">Role</th>
+<th class="px-6 py-3" scope="col">Tasks Completed</th>
+<th class="px-6 py-3" scope="col">Rework Rate</th>
+<th class="px-6 py-3" scope="col">Prism Quality Score</th>
+<th class="px-6 py-3 text-right" scope="col">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-hyvve-border">
+<!-- Row 1 -->
+<tr class="hover:bg-hyvve-bg transition-colors">
+<td class="px-6 py-4 font-medium text-text-main flex items-center gap-3">
+<img alt="Team member Sarah" class="w-8 h-8 rounded-full" data-alt="Portrait of Sarah" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLkdOtEukiimn36kIUPewGzxGLcaYLd7WxczrG9YIHwpE9eiQFLdbhYwmDqyaYki7-Cr5JWi_xGA67opGx2RpNM5yv57Ix3Ejh7p1WTy1zaBDpwu8IH2mFmQmY45iHRub3JdXAB1AE0dGsmBJJRWz-YrkQr3evFWF5gKTyDn89wDwGklLRfu3OwgmqlK-ECsoqiCC_byclbiAJlqHMWulErSD08DEtm5IpDnTCse6MseXJjgS1TswDbOpt3UKIYmsFN6_YeFTlu7c"/>
+                                Sarah Jenkins
+                            </td>
+<td class="px-6 py-4 text-text-secondary">Senior Dev</td>
+<td class="px-6 py-4 text-text-main">42</td>
+<td class="px-6 py-4 text-success font-medium">1.2%</td>
+<td class="px-6 py-4">
+<div class="flex items-center text-warning">
+<span class="material-icons-round text-sm">star</span>
+<span class="material-icons-round text-sm">star</span>
+<span class="material-icons-round text-sm">star</span>
+<span class="material-icons-round text-sm">star</span>
+<span class="material-icons-round text-sm">star_half</span>
+<span class="text-text-main text-xs font-semibold ml-2">4.9</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<a class="text-primary hover:text-primary-dark text-xs font-medium" href="#">View Profile</a>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-hyvve-bg transition-colors">
+<td class="px-6 py-4 font-medium text-text-main flex items-center gap-3">
+<img alt="Team member Michael" class="w-8 h-8 rounded-full" data-alt="Portrait of Michael" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8QgJO9n3JHFm6pTjPW9gr3yZPss9ZqJcSN9eIM6o4gyo0XSzck7z-TSlr-vfJ2NgJsnjHJtZFa3k-eWGT_LxILGKpnvDOKYlMmSitvYKhY_FyHAdGRIYIn8Hv_eBIzW6MWOWVMNsbM-PkVhj2Jyns7stMeLMF_vopPF56BEbXui13wrtuMeXH2hXbD53u11w2h5G30gJwDNANagF-ixbhQoelE-qsI-GMrqzZVUJsnG3VH8cDht9CdO3OA5O8PnqWq9bx-XeUu3I"/>
+                                Michael Chen
+                            </td>
+<td class="px-6 py-4 text-text-secondary">Frontend Dev</td>
+<td class="px-6 py-4 text-text-main">38</td>
+<td class="px-6 py-4 text-warning font-medium">5.4%</td>
+<td class="px-6 py-4">
+<div class="flex items-center text-warning">
+<span class="material-icons-round text-sm">star</span>
+<span class="material-icons-round text-sm">star</span>
+<span class="material-icons-round text-sm">star</span>
+<span class="material-icons-round text-sm">star_border</span>
+<span class="material-icons-round text-sm">star_border</span>
+<span class="text-text-main text-xs font-semibold ml-2">3.2</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1 rounded text-xs font-medium transition-colors">Suggest Training</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-hyvve-bg transition-colors">
+<td class="px-6 py-4 font-medium text-text-main flex items-center gap-3">
+<img alt="Team member Elena" class="w-8 h-8 rounded-full" data-alt="Portrait of Elena" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdvMDlIH9n6yMwJbHUOOLhonQ92CfGuVbwzgwTnOGsy0G18LjJTa9OIl5BStrxZJeON60x2q5-ntD-M9pqDPjCCNfKmQHx_Re6cZ_kkX-5diAoyXPmaJWs1My6H_IExI0lYm1nNoq34JyM4WDtJQjhG0m7VlSYtQarwoCMEQEDLVpokBOWT15t1_JABYOLdICTynwvOvZn-LpkOjDB1sL3Y8mcLpmvs6QXQr-QLRHvsgWztoiRlkMOt4s24kB4_-hTjOC98tklEYI"/>
+                                Elena Rodriguez
+                            </td>
+<td class="px-6 py-4 text-text-secondary">UI Designer</td>
+<td class="px-6 py-4 text-text-main">24</td>
+<td class="px-6 py-4 text-success font-medium">0.5%</td>
+<td class="px-6 py-4">
+<div class="flex items-center text-warning">
+<span class="material-icons-round text-sm">star</span>
+<span class="material-icons-round text-sm">star</span>
+<span class="material-icons-round text-sm">star</span>
+<span class="material-icons-round text-sm">star</span>
+<span class="material-icons-round text-sm">star</span>
+<span class="text-text-main text-xs font-semibold ml-2">5.0</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<a class="text-primary hover:text-primary-dark text-xs font-medium" href="#">View Profile</a>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+</body></html>

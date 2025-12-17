@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Mobile CRM Views - HYVVE</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "primary-content": "#ffffff",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111318",
+                        "surface-dark": "#282e39",
+                        "crm-bg": "#FFFBF5", // From prompt
+                        "crm-card": "#FFFFFF",
+                        "crm-teal": "#20B2AA",
+                        "crm-scout": "#4B7BEC",
+                        "crm-success": "#22C55E",
+                        "crm-warning": "#F59E0B",
+                        "crm-error": "#EF4444",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "3xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Scrollbar for the preview page */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111318;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #282e39;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #374151;
+        }
+
+        /* Hide scrollbar for mobile screens but keep functionality */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-white font-display overflow-x-hidden">
+<div class="relative flex h-screen w-full flex-col overflow-hidden">
+<!-- Top Nav (Desktop) -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-surface-dark bg-background-dark px-6 py-3 shrink-0 z-20">
+<div class="flex items-center gap-4 text-white">
+<div class="size-8 flex items-center justify-center bg-primary rounded-lg text-white">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em]">HYVVE CRM <span class="text-gray-500 font-normal ml-2 text-sm">| Phase 3 Growth</span></h2>
+</div>
+<div class="flex flex-1 justify-end gap-4">
+<div class="flex items-center gap-2 mr-4 border-r border-surface-dark pr-6">
+<span class="text-sm text-gray-400">Preview Device:</span>
+<select class="bg-surface-dark border-none text-sm text-white rounded-lg focus:ring-1 focus:ring-primary py-1.5 pl-3 pr-8 cursor-pointer">
+<option>iPhone 15 Pro (375px)</option>
+<option>Pixel 8</option>
+<option>iPad Mini</option>
+</select>
+</div>
+<button class="flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-primary text-white text-sm font-bold transition hover:bg-primary/90">
+<span class="truncate">Save Configuration</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-9 ring-2 ring-surface-dark" data-alt="User Avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD_8e83hQQ7JQMO50dVnTTqKBYWPDmxYIG_a2BJ-hWkrqWKn6Ud-CvMU_h6xHelR5yBSlb3vBU2TlTzn_DkQ2AskUcBRme0JO6JT1AsD61Fh67JUFpYVo0P4OzY2OMV-16RdvXTvpNiViy72Pu5OrHlc6OsJGLl13z7O9L8YdV0knZb8tQZKXSvSlHsTiZtHebvFD7o8u8gvCJsxnyDjPwnMV1RjQ3nzqmrOmqeIWz3ByTeWc8z0wzFkmKreGKjOlabi8FlLIl9aAQ");'></div>
+</div>
+</header>
+<!-- Sub Header / Breadcrumbs -->
+<div class="border-b border-surface-dark bg-background-dark px-6 py-3 flex justify-between items-center shrink-0">
+<div class="flex gap-2 items-center text-sm">
+<a class="text-gray-400 hover:text-white transition" href="#">Settings</a>
+<span class="text-gray-600">/</span>
+<a class="text-gray-400 hover:text-white transition" href="#">Mobile Configuration</a>
+<span class="text-gray-600">/</span>
+<span class="text-white font-medium">Views Preview</span>
+</div>
+<div class="flex gap-3">
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-dark rounded-full text-xs text-gray-300">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+                System Status: Online
+            </div>
+</div>
+</div>
+<!-- Main Content Canvas -->
+<main class="flex-1 relative overflow-hidden flex flex-col">
+<!-- Background Grid Pattern -->
+<div class="absolute inset-0 z-0 opacity-[0.03]" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 20px 20px;"></div>
+<div class="flex-1 overflow-x-auto overflow-y-hidden z-10 flex items-center px-12 pb-8 pt-4 gap-12 snap-x snap-mandatory">
+<!-- VIEW 1: CONTACT LIST -->
+<div class="flex flex-col gap-4 shrink-0 snap-center">
+<div class="text-center">
+<h3 class="font-bold text-white text-lg">Contact List</h3>
+<p class="text-xs text-gray-500">375px Width • Primary View</p>
+</div>
+<!-- Phone Frame -->
+<div class="relative w-[340px] h-[680px] bg-black rounded-[3rem] border-8 border-gray-800 shadow-2xl ring-1 ring-white/10 overflow-hidden flex flex-col">
+<!-- Dynamic Island / Notch Simulation -->
+<div class="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-24 bg-black rounded-b-xl z-50"></div>
+<!-- Mobile Screen Content -->
+<div class="flex-1 bg-crm-bg text-gray-900 overflow-hidden flex flex-col font-sans relative">
+<!-- Mobile Header -->
+<div class="bg-crm-card px-4 pt-12 pb-3 flex justify-between items-center sticky top-0 z-30 shadow-sm">
+<h1 class="text-xl font-bold text-[#1a1a2e]">Contacts</h1>
+<div class="flex gap-3 text-gray-500">
+<span class="material-symbols-outlined cursor-pointer text-[24px]">search</span>
+<span class="material-symbols-outlined cursor-pointer text-[24px]">add</span>
+</div>
+</div>
+<!-- Filters -->
+<div class="flex gap-2 px-4 py-3 overflow-x-auto no-scrollbar bg-crm-bg shrink-0">
+<button class="bg-crm-teal text-white px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm">My Leads</button>
+<button class="bg-white text-gray-600 border border-[#f1ebe4] px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap">New Today</button>
+<button class="bg-white text-gray-600 border border-[#f1ebe4] px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap">Needs Action</button>
+</div>
+<!-- List -->
+<div class="flex-1 overflow-y-auto px-4 pb-20 no-scrollbar space-y-3">
+<!-- Card 1 -->
+<div class="bg-crm-card p-3 rounded-xl border border-[#f1ebe4] shadow-sm flex items-center gap-3 active:scale-[0.98] transition-transform">
+<div class="relative">
+<div class="size-12 rounded-full bg-cover bg-center" data-alt="Portrait of man" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAiAcq_BqCuUEC3pIQGbLoZon6GtzW0rBCC75XmNAXhl7M35wnrzFqLG7dr_9B77N-TubtEkHMyYfMcATPjyRK0PIvfRjZN77XAllTHC2fr2UTOKE1KLBUrWtKFl-nZoJfXG-wPULKYJYFPG8SzE7ab7-SGNHLE9Bj4dTMlWI7Ji0WgLeBonDO_AVUdOxBhuTxurwHrVIDfX8cbBhCdZlLdVk3n6W81KR3zDcOspnlnE3-EVnKYAa7Anu1Cm3LU45O977iVPikrupQ");'></div>
+<div class="absolute -bottom-1 -right-1 bg-crm-teal text-[9px] text-white font-bold px-1.5 py-0.5 rounded-full border border-white">92</div>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-sm text-[#1a1a2e] truncate">John Doe</h4>
+<p class="text-xs text-gray-500 truncate">VP Sales @ Tech Corp</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="text-[10px] bg-purple-100 text-purple-700 px-1.5 rounded font-medium">Decision Maker</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<button class="text-crm-teal hover:bg-teal-50 rounded-full p-1"><span class="material-symbols-outlined text-[20px]">call</span></button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-crm-card p-3 rounded-xl border border-[#f1ebe4] shadow-sm flex items-center gap-3">
+<div class="relative">
+<div class="size-12 rounded-full bg-cover bg-center" data-alt="Portrait of woman" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCcM3zY3zbUXU8yYiLApqJ6z8CZJk0wccUPTZaqP6MjmQjqR65m5VuAN5-4B0gSf74ohZXAwirDLtubga4MNcUb_TYn3pLrwSBumP4ru_i7wySJWnLOhsWckHYjKKFd2xwkCGfhZ1qCSyYH0pOACb_tuvWWT53lXNGB5hRjOVEJrjYR00HhQ4hKpHHOTWhIw3bbdno_3ImgRqbS_kL-998tI3yY93TfmVSCHXovyYz4PzzN-JaU1SFKklCuANoWPAsSmDXFiZHYn70");'></div>
+<div class="absolute -bottom-1 -right-1 bg-crm-warning text-[9px] text-white font-bold px-1.5 py-0.5 rounded-full border border-white">45</div>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-sm text-[#1a1a2e] truncate">Sarah Connor</h4>
+<p class="text-xs text-gray-500 truncate">Ops Lead @ Skynet</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="text-[10px] bg-orange-100 text-orange-700 px-1.5 rounded font-medium">Warm</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<button class="text-gray-400 hover:bg-gray-50 rounded-full p-1"><span class="material-symbols-outlined text-[20px]">mail</span></button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-crm-card p-3 rounded-xl border border-[#f1ebe4] shadow-sm flex items-center gap-3 opacity-60">
+<div class="size-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-sm">MK</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-sm text-[#1a1a2e] truncate">Michael Knight</h4>
+<p class="text-xs text-gray-500 truncate">Driver @ Foundation</p>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-crm-card p-3 rounded-xl border border-[#f1ebe4] shadow-sm flex items-center gap-3">
+<div class="relative">
+<div class="size-12 rounded-full bg-cover bg-center" data-alt="Portrait of man" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAqON1xRaSiu1rV2jFPPUJepnzweftCwJYI2pjzc5y_SDERjvAEb9Dc7V1GFUT4GJLxNH5woSUcza3YsshIl_Gd9DJCTksNtItolXIASUPTe6nf4ABMnFxC9lJnhA1amDDums4GjWgwthdUJ98LC5FUjHe49sDFn_j8xQcE-UvbtJXSFmRVV19guRjJTLeo_6P6llj4I9LJsily5uAnM_kS_w7GC6SPjx8Rsm80kf7-lrqhZzYVNwdIfsCjmnL_zKQCZvn0cj402is");'></div>
+<div class="absolute -bottom-1 -right-1 bg-crm-success text-[9px] text-white font-bold px-1.5 py-0.5 rounded-full border border-white">88</div>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-sm text-[#1a1a2e] truncate">David Chen</h4>
+<p class="text-xs text-gray-500 truncate">CTO @ Innovation Labs</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="text-[10px] bg-green-100 text-green-700 px-1.5 rounded font-medium">Champion</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<button class="text-crm-teal hover:bg-teal-50 rounded-full p-1"><span class="material-symbols-outlined text-[20px]">call</span></button>
+</div>
+</div>
+</div>
+<!-- Bottom Nav -->
+<div class="absolute bottom-0 w-full bg-crm-card border-t border-[#f1ebe4] px-6 py-4 flex justify-between items-end z-40">
+<div class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-crm-teal">
+<span class="material-symbols-outlined text-[24px] font-variation-settings-fill">group</span>
+<span class="text-[10px] font-medium">Contacts</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined text-[24px]">candlestick_chart</span>
+<span class="text-[10px] font-medium">Deals</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined text-[24px]">menu</span>
+<span class="text-[10px] font-medium">Menu</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- VIEW 2: CONTACT DETAIL -->
+<div class="flex flex-col gap-4 shrink-0 snap-center">
+<div class="text-center">
+<h3 class="font-bold text-white text-lg">Contact Detail</h3>
+<p class="text-xs text-gray-500">Drill-down view</p>
+</div>
+<!-- Phone Frame -->
+<div class="relative w-[340px] h-[680px] bg-black rounded-[3rem] border-8 border-gray-800 shadow-2xl ring-1 ring-white/10 overflow-hidden flex flex-col">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-24 bg-black rounded-b-xl z-50"></div>
+<div class="flex-1 bg-crm-bg text-gray-900 overflow-hidden flex flex-col font-sans relative">
+<!-- Top Nav Overlay -->
+<div class="px-4 pt-12 pb-2 flex justify-between items-center z-30">
+<button class="size-8 flex items-center justify-center bg-white/80 rounded-full backdrop-blur-sm shadow-sm">
+<span class="material-symbols-outlined text-gray-700 text-[20px]">arrow_back</span>
+</button>
+<button class="size-8 flex items-center justify-center bg-white/80 rounded-full backdrop-blur-sm shadow-sm">
+<span class="material-symbols-outlined text-gray-700 text-[20px]">more_horiz</span>
+</button>
+</div>
+<!-- Hero Profile -->
+<div class="flex flex-col items-center px-4 -mt-4 pb-6 border-b border-[#f1ebe4] bg-gradient-to-b from-transparent to-white/50">
+<div class="size-24 rounded-full p-1 bg-white shadow-md mb-3">
+<div class="size-full rounded-full bg-cover bg-center" data-alt="Portrait of John Doe" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD3_3KfmI00qL_6U1_HVU15U5r4wC-nYanqoOzNuLSirWqQM_yBnW7DxY6Qq13w_AMFHykIcfMrlYBu2jK7k7T3TYm6oZ8wSCkKgm3Wr9Y-lCWIoVxhZWdGtz4w6VW7BR9aETgdNYSpN_-7279nmMw4lgsPBAd5TiblKk-fqeBq1Rdrmwo4cKvPN_NgKi7apDcXk5O0JUmGCNbROAGkev2JmeaHBOrY_kP4cOaJdhnpcgOuaeTIkyIbTkCjgWnELpY-N60K9zHsP_s");'></div>
+</div>
+<h2 class="text-xl font-bold text-[#1a1a2e]">John Doe</h2>
+<p class="text-sm text-gray-500 mb-4">VP Sales @ Tech Corp</p>
+<div class="flex w-full justify-between gap-2">
+<div class="flex-1 bg-white p-2 rounded-lg shadow-sm border border-[#f1ebe4] text-center">
+<p class="text-[10px] text-gray-400 uppercase tracking-wide">Score</p>
+<p class="text-lg font-bold text-crm-teal">92</p>
+</div>
+<div class="flex-1 bg-white p-2 rounded-lg shadow-sm border border-[#f1ebe4] text-center">
+<p class="text-[10px] text-gray-400 uppercase tracking-wide">Tier</p>
+<p class="text-lg font-bold text-[#1a1a2e]">A+</p>
+</div>
+<div class="flex-1 bg-white p-2 rounded-lg shadow-sm border border-[#f1ebe4] text-center flex items-center justify-center">
+<span class="material-symbols-outlined text-[#0077b5] text-[24px]">group</span>
+</div>
+</div>
+</div>
+<!-- Tabs -->
+<div class="flex border-b border-[#f1ebe4] bg-white sticky top-0">
+<button class="flex-1 py-3 text-sm font-medium text-crm-teal border-b-2 border-crm-teal">Activity</button>
+<button class="flex-1 py-3 text-sm font-medium text-gray-400">Info</button>
+<button class="flex-1 py-3 text-sm font-medium text-gray-400">Deals</button>
+</div>
+<!-- Timeline -->
+<div class="flex-1 overflow-y-auto px-4 py-4 no-scrollbar bg-white">
+<div class="space-y-6">
+<!-- Item 1 -->
+<div class="flex gap-3">
+<div class="flex flex-col items-center">
+<div class="size-2 bg-crm-teal rounded-full mt-1.5"></div>
+<div class="w-px bg-gray-200 flex-1 my-1"></div>
+</div>
+<div class="pb-2">
+<p class="text-xs text-gray-400 mb-0.5">Today, 9:41 AM</p>
+<p class="text-sm text-[#1a1a2e] font-medium">Email Opened: "Q3 Proposal"</p>
+<p class="text-xs text-gray-500 mt-1">Read 3 times in San Francisco, CA</p>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex gap-3">
+<div class="flex flex-col items-center">
+<div class="size-2 bg-crm-scout rounded-full mt-1.5"></div>
+<div class="w-px bg-gray-200 flex-1 my-1"></div>
+</div>
+<div class="pb-2">
+<p class="text-xs text-gray-400 mb-0.5">Yesterday</p>
+<p class="text-sm text-[#1a1a2e] font-medium">Meeting Logged</p>
+<div class="mt-2 p-2 bg-gray-50 rounded border border-gray-100 text-xs text-gray-600 italic">
+                                            "John is interested in the enterprise plan. Needs approval from CFO."
+                                        </div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="flex gap-3">
+<div class="flex flex-col items-center">
+<div class="size-2 bg-gray-300 rounded-full mt-1.5"></div>
+</div>
+<div class="pb-2">
+<p class="text-xs text-gray-400 mb-0.5">Oct 12</p>
+<p class="text-sm text-[#1a1a2e] font-medium">Created Contact</p>
+</div>
+</div>
+</div>
+</div>
+<!-- FAB -->
+<button class="absolute bottom-6 right-6 size-12 bg-crm-teal text-white rounded-full shadow-lg flex items-center justify-center hover:bg-teal-600 transition active:scale-95 z-40">
+<span class="material-symbols-outlined text-[24px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- VIEW 3: DEAL PIPELINE -->
+<div class="flex flex-col gap-4 shrink-0 snap-center">
+<div class="text-center">
+<h3 class="font-bold text-white text-lg">Mobile Pipeline</h3>
+<p class="text-xs text-gray-500">Horizontal Swipe Interaction</p>
+</div>
+<!-- Phone Frame -->
+<div class="relative w-[340px] h-[680px] bg-black rounded-[3rem] border-8 border-gray-800 shadow-2xl ring-1 ring-white/10 overflow-hidden flex flex-col">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-24 bg-black rounded-b-xl z-50"></div>
+<div class="flex-1 bg-crm-bg text-gray-900 overflow-hidden flex flex-col font-sans relative">
+<!-- Header -->
+<div class="bg-crm-card px-4 pt-12 pb-3 flex justify-between items-center border-b border-[#f1ebe4]">
+<div class="flex flex-col">
+<h1 class="text-xl font-bold text-[#1a1a2e]">Pipeline</h1>
+<span class="text-xs text-gray-500">Enterprise Sales Q4</span>
+</div>
+<button class="p-2 bg-gray-100 rounded-full"><span class="material-symbols-outlined text-[20px]">filter_list</span></button>
+</div>
+<!-- Horizontal Stages Scroll -->
+<div class="flex-1 overflow-x-auto overflow-y-hidden flex snap-x snap-mandatory pb-20 pt-4 px-4 gap-4 no-scrollbar">
+<!-- Stage 1 -->
+<div class="min-w-[280px] flex flex-col gap-3 snap-center h-full">
+<div class="flex justify-between items-center mb-1">
+<span class="font-bold text-gray-700 text-sm">Qualified (3)</span>
+<span class="text-xs font-semibold text-gray-400">$120k</span>
+</div>
+<!-- Deal Card -->
+<div class="bg-white p-3 rounded-xl border-l-4 border-crm-scout shadow-sm flex flex-col gap-2 relative">
+<div class="flex justify-between items-start">
+<span class="text-xs font-bold text-crm-scout bg-blue-50 px-2 py-0.5 rounded">Cold</span>
+<span class="material-symbols-outlined text-gray-300 text-[16px]">drag_indicator</span>
+</div>
+<h4 class="font-bold text-sm text-[#1a1a2e]">Project Alpha Revamp</h4>
+<p class="text-xs text-gray-500">Acme Corp • 12 days in stage</p>
+<div class="w-full bg-gray-100 rounded-full h-1.5 mt-1">
+<div class="bg-crm-scout h-1.5 rounded-full" style="width: 40%"></div>
+</div>
+<div class="flex justify-between items-center mt-1">
+<div class="flex -space-x-1.5">
+<div class="size-5 rounded-full bg-gray-300 border border-white"></div>
+</div>
+<span class="font-bold text-sm text-[#1a1a2e]">$45,000</span>
+</div>
+</div>
+<!-- Deal Card -->
+<div class="bg-white p-3 rounded-xl border-l-4 border-crm-scout shadow-sm flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="text-xs font-bold text-crm-warning bg-orange-50 px-2 py-0.5 rounded">Stalled</span>
+</div>
+<h4 class="font-bold text-sm text-[#1a1a2e]">Global Licensing</h4>
+<p class="text-xs text-gray-500">Stark Ind • 25 days in stage</p>
+<div class="w-full bg-gray-100 rounded-full h-1.5 mt-1">
+<div class="bg-crm-warning h-1.5 rounded-full" style="width: 20%"></div>
+</div>
+<div class="flex justify-between items-center mt-1">
+<span class="text-xs text-gray-400">Close: Nov 15</span>
+<span class="font-bold text-sm text-[#1a1a2e]">$75,000</span>
+</div>
+</div>
+</div>
+<!-- Stage 2 -->
+<div class="min-w-[280px] flex flex-col gap-3 snap-center h-full">
+<div class="flex justify-between items-center mb-1">
+<span class="font-bold text-gray-700 text-sm">Negotiation (1)</span>
+<span class="text-xs font-semibold text-gray-400">$200k</span>
+</div>
+<!-- Deal Card -->
+<div class="bg-white p-3 rounded-xl border-l-4 border-crm-teal shadow-sm flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="text-xs font-bold text-crm-success bg-green-50 px-2 py-0.5 rounded">Hot</span>
+</div>
+<h4 class="font-bold text-sm text-[#1a1a2e]">Series B Infrastructure</h4>
+<p class="text-xs text-gray-500">Pied Piper • 2 days in stage</p>
+<div class="w-full bg-gray-100 rounded-full h-1.5 mt-1">
+<div class="bg-crm-teal h-1.5 rounded-full" style="width: 85%"></div>
+</div>
+<div class="flex justify-between items-center mt-1">
+<span class="text-xs text-gray-400">Close: Tomorrow</span>
+<span class="font-bold text-sm text-[#1a1a2e]">$200,000</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Nav (Reused) -->
+<div class="absolute bottom-0 w-full bg-crm-card border-t border-[#f1ebe4] px-6 py-4 flex justify-between items-end z-40">
+<div class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined text-[24px]">group</span>
+<span class="text-[10px] font-medium">Contacts</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-crm-teal">
+<span class="material-symbols-outlined text-[24px] font-variation-settings-fill">candlestick_chart</span>
+<span class="text-[10px] font-medium">Deals</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined text-[24px]">menu</span>
+<span class="text-[10px] font-medium">Menu</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- VIEW 4: DAILY BRIEFING -->
+<div class="flex flex-col gap-4 shrink-0 snap-center">
+<div class="text-center">
+<h3 class="font-bold text-white text-lg">Daily Briefing</h3>
+<p class="text-xs text-gray-500">Navi AI Assistant View</p>
+</div>
+<!-- Phone Frame -->
+<div class="relative w-[340px] h-[680px] bg-black rounded-[3rem] border-8 border-gray-800 shadow-2xl ring-1 ring-white/10 overflow-hidden flex flex-col">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-24 bg-black rounded-b-xl z-50"></div>
+<div class="flex-1 bg-crm-bg text-gray-900 overflow-hidden flex flex-col font-sans relative">
+<!-- Header -->
+<div class="px-4 pt-12 pb-4">
+<div class="flex justify-between items-center mb-4">
+<div class="size-8 rounded-full bg-gray-200 bg-cover" data-alt="User profile" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBNBd9VemXQn5AVVfZgTxHvxRxCE4S0KVsj48pPEJZcMQe-exps0HaSZYW2Tua7Q7E4ZyzU4f4_Zla-jWAJc3tNxTieWtOFxP51OcQEbIGpiX1SQDcVT5hrHRqbG1H8Nr5YN17S0PL8SxkWsxkB1Rrwl10dbcFZnW-H1wo7w4Vc90QdIZB96hhJf4tuMGj529o3gYNF7spLzgGtiIvqIngYKfjPQfCrfnxvwISr7zpp4OW7V3_ZFzley39A5B3JtnSYvjYGN36ZZhs");'></div>
+<span class="material-symbols-outlined text-gray-700">notifications</span>
+</div>
+<h1 class="text-2xl font-bold text-[#1a1a2e]">Good Morning,<br/>Navi here.</h1>
+<p class="text-sm text-gray-500 mt-1">Here is your focus for today.</p>
+</div>
+<div class="flex-1 overflow-y-auto px-4 pb-20 no-scrollbar space-y-5">
+<!-- Focus Section -->
+<section>
+<div class="flex justify-between items-center mb-3">
+<h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Attention Needed</h3>
+</div>
+<div class="bg-white p-4 rounded-2xl shadow-sm border border-[#f1ebe4] relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1.5 h-full bg-crm-error"></div>
+<div class="flex justify-between">
+<div>
+<p class="text-sm font-bold text-[#1a1a2e]">3 Hot Leads Stalled</p>
+<p class="text-xs text-gray-500 mt-1 mb-3">They haven't been contacted in 5 days.</p>
+</div>
+<div class="size-8 rounded-full bg-red-50 flex items-center justify-center text-crm-error">
+<span class="material-symbols-outlined text-[18px]">local_fire_department</span>
+</div>
+</div>
+<button class="w-full py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-xs font-bold text-gray-700 border border-gray-100">Review List</button>
+</div>
+</section>
+<!-- Tasks Section -->
+<section>
+<div class="flex justify-between items-center mb-3">
+<h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Up Next</h3>
+<span class="text-xs text-crm-teal font-medium">View Calendar</span>
+</div>
+<div class="space-y-3">
+<div class="bg-white p-3 rounded-xl border border-[#f1ebe4] flex gap-3 items-center">
+<div class="flex flex-col items-center bg-gray-50 p-2 rounded-lg min-w-[50px]">
+<span class="text-xs font-bold text-gray-400">10:00</span>
+<span class="text-[10px] text-gray-400">AM</span>
+</div>
+<div class="flex-1">
+<h4 class="text-sm font-bold text-[#1a1a2e]">Demo with Wayne Ent.</h4>
+<p class="text-xs text-gray-500">Zoom • 30m</p>
+</div>
+<button class="size-8 rounded-full bg-crm-teal text-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[16px]">videocam</span>
+</button>
+</div>
+<div class="bg-white p-3 rounded-xl border border-[#f1ebe4] flex gap-3 items-center">
+<div class="flex flex-col items-center bg-gray-50 p-2 rounded-lg min-w-[50px]">
+<span class="text-xs font-bold text-gray-400">02:30</span>
+<span class="text-[10px] text-gray-400">PM</span>
+</div>
+<div class="flex-1">
+<h4 class="text-sm font-bold text-[#1a1a2e]">Contract Review</h4>
+<p class="text-xs text-gray-500">Internal • 1h</p>
+</div>
+</div>
+</div>
+</section>
+<!-- AI Insight -->
+<div class="bg-gradient-to-r from-crm-teal to-crm-scout p-4 rounded-2xl text-white shadow-lg relative overflow-hidden">
+<span class="material-symbols-outlined absolute -right-4 -bottom-4 text-[100px] text-white/10">psychology</span>
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+<span class="text-xs font-bold uppercase opacity-80">Navi Insight</span>
+</div>
+<p class="text-sm font-medium leading-relaxed">"Based on recent email sentiment, <span class="font-bold underline">Tech Corp</span> is 30% more likely to close if you call before Friday."</p>
+</div>
+</div>
+</div>
+<!-- Bottom Nav (Reused) -->
+<div class="absolute bottom-0 w-full bg-crm-card border-t border-[#f1ebe4] px-6 py-4 flex justify-between items-end z-40">
+<div class="flex flex-col items-center gap-1 text-crm-teal">
+<span class="material-symbols-outlined text-[24px] font-variation-settings-fill">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined text-[24px]">group</span>
+<span class="text-[10px] font-medium">Contacts</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined text-[24px]">candlestick_chart</span>
+<span class="text-[10px] font-medium">Deals</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined text-[24px]">menu</span>
+<span class="text-[10px] font-medium">Menu</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="w-12 shrink-0"></div> <!-- Spacer -->
+</div>
+</main>
+<!-- Footer Controls -->
+<div class="bg-background-dark border-t border-surface-dark p-4 flex justify-center gap-4 z-20">
+<button class="bg-surface-dark hover:bg-surface-dark/80 text-white rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 transition">
+<span class="material-symbols-outlined text-[18px]">rotate_right</span>
+            Rotate View
+        </button>
+<button class="bg-surface-dark hover:bg-surface-dark/80 text-white rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 transition">
+<span class="material-symbols-outlined text-[18px]">dark_mode</span>
+            Toggle Dark Mode Preview
+        </button>
+<button class="bg-surface-dark hover:bg-surface-dark/80 text-white rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 transition">
+<span class="material-symbols-outlined text-[18px]">share</span>
+            Share Prototype
+        </button>
+</div>
+</div>
+</body></html>

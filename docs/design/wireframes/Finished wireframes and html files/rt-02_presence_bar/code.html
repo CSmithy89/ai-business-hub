@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RT-02 Presence Bar</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2b90d",
+                        "background-light": "#f8f8f5", // Close to #FFFBF5
+                        "background-dark": "#221e10",
+                        "brand-bg": "#FFFBF5",
+                        "brand-card": "#FFFFFF",
+                        "brand-border": "#f1ebe4",
+                        "brand-text-main": "#1a1a2e",
+                        "brand-text-sec": "#6b7280",
+                        // User Colors
+                        "user-1": "#FF6B6B",
+                        "user-2": "#10B981",
+                        "user-3": "#8B5CF6",
+                        "user-4": "#F59E0B",
+                        "user-5": "#06B6D4",
+                        "user-6": "#EC4899",
+                        "user-7": "#14B8A6",
+                        "user-8": "#F97316",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                    boxShadow: {
+                        "soft": "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
+                        "float": "0 8px 30px -4px rgba(0, 0, 0, 0.1)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Utilities for Avatar Rings */
+        .avatar-ring {
+            box-shadow: 0 0 0 2px white; 
+        }
+        /* Hide scrollbar for cleaner UI in overflow containers */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-brand-bg text-brand-text-main font-display antialiased min-h-screen flex flex-col relative">
+<!-- Header / Navigation -->
+<header class="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-brand-border h-16 flex items-center justify-between px-6 transition-all duration-300">
+<!-- Left: Logo & Doc Title -->
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3 text-brand-text-main">
+<div class="size-8 bg-brand-text-main text-white rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+</div>
+<div>
+<h1 class="font-bold text-sm leading-tight">Q3 Roadmap</h1>
+<p class="text-xs text-brand-text-sec">Last edited just now</p>
+</div>
+</div>
+</div>
+<!-- Right: Compact Presence Bar -->
+<div class="flex items-center justify-end h-full">
+<!-- Container for Presence -->
+<div class="group relative flex items-center gap-4 pl-4 rounded-full transition-colors hover:bg-black/5 cursor-pointer py-1.5 pr-2">
+<!-- Sync Status -->
+<div class="hidden sm:flex items-center gap-1.5 text-brand-text-sec" title="All changes saved">
+<span class="material-symbols-outlined text-[18px] text-[#10B981]" style="font-variation-settings: 'wght' 600;">cloud_done</span>
+<span class="text-xs font-medium">Saved</span>
+</div>
+<!-- Divider -->
+<div class="hidden sm:block h-4 w-px bg-brand-border"></div>
+<!-- Meta Text -->
+<div class="hidden md:block text-xs font-medium text-brand-text-sec">
+<span class="text-brand-text-main font-bold">3</span> Editing, <span class="text-brand-text-main font-bold">2</span> Viewing
+                </div>
+<!-- Avatar Stack -->
+<div class="flex items-center -space-x-2.5">
+<!-- User 1 (Editing) -->
+<div class="relative z-30 transition-transform hover:-translate-y-1">
+<div class="relative size-8 rounded-full ring-[2px] ring-user-1 border-[2px] border-white overflow-hidden bg-gray-100">
+<img alt="Alex M." class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqiMz3Q1rBKwcYosRFtnqxcYKAy9IPHovlRK2Xc3YanLzQdfprpoHmA95WK_MoUZM6WQK2fN81mT8i--KWs16Us5RXQLw706R6RepbvPWvKoCf-YFFmdukZSPWAsXYoGlQxKzqoPQUCZnET9LdnRUsdoV_NFYctm_t1J2VtTkcsLuzR9WYJzRDxR3n3Sf7ulaFvbCOfzR0bxTun9P9nXimsdjjKs5NCa8OZpBT8K0g3W8gJah-euNPYPv6xzNxjWZJgXrMpA-_z7k"/>
+</div>
+<!-- Status Badge (Absolute) -->
+<div class="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-[1px]">
+<div class="size-2.5 rounded-full bg-user-1 border border-white"></div>
+</div>
+</div>
+<!-- User 2 (Editing) -->
+<div class="relative z-20 transition-transform hover:-translate-y-1">
+<div class="relative size-8 rounded-full ring-[2px] ring-user-2 border-[2px] border-white overflow-hidden bg-gray-100">
+<img alt="Sarah K." class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaqsbmJhJi0wAqOFGBQ0dLypN7bvNxydHi8k8Iv-aJxZ3UqAJcWrQUbt9er6Y7JkEMBt8x4oAe6Jj8N99kX0iDGmEKuNJhw9PzqhTp5X4UoBCptEPLtps9zGrODVjr0mXxOFwI8PcpresKI-KQmVh2dq22Y4o0Di3zCpzyzsJiC9-5opVc8wPie_AEpXxdzZlYPFW0kbuCapQVzkGRMavHHm280jP_NRxGBdJ943QqcqiTCF81di9EI6IZNWUeook5y4j7ZUyLegk"/>
+</div>
+<!-- Status Badge -->
+<div class="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-[1px]">
+<div class="size-2.5 rounded-full bg-user-2 border border-white"></div>
+</div>
+</div>
+<!-- User 3 (Viewing) -->
+<div class="relative z-10 transition-transform hover:-translate-y-1">
+<div class="relative size-8 rounded-full ring-[2px] ring-user-3 border-[2px] border-white overflow-hidden bg-gray-100">
+<img alt="Mike R." class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClbosriiJ0tH5gfQuLVnkJ2CuB0pdxLCoEY-EwiIzXW6QLRqUkdLgSgu1n-Kr8qMq0Py94Ae0OMeKtTgKFVbsRVPqkV_WceP3gZWMig3q251qw0oQguyClvR7vk2uCXN5M_CQhwReEfZKCmcSIZsq0WYTIjQHr73QycYTWzpaTatiWa2HxCOi6OhBQjXCuwGL3Sqc8l17e_mWv86bp4uCbduuN4w7lblMHz9ftbsAegFoyYHeu2KSwMCpU4gFqQABR6jxfAC148dk"/>
+</div>
+</div>
+<!-- Overflow Pill -->
+<div class="relative z-0 transition-transform hover:-translate-y-1">
+<div class="flex size-8 items-center justify-center rounded-full bg-brand-text-main text-white text-xs font-bold border-[2px] border-white ring-[2px] ring-brand-border">
+                            +2
+                        </div>
+</div>
+</div>
+<!-- Expand Icon -->
+<span class="material-symbols-outlined text-brand-text-sec text-[20px]">expand_more</span>
+</div>
+<!-- User Profile -->
+<div class="ml-6 border-l border-brand-border pl-6">
+<button class="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm border border-transparent hover:border-primary transition-colors">
+                    ME
+                </button>
+</div>
+</div>
+</header>
+<!-- Main Content Area (Context) -->
+<main class="flex-1 w-full max-w-5xl mx-auto p-8 lg:p-12 space-y-8">
+<!-- Document Title Block -->
+<div class="space-y-4 border-b border-brand-border pb-8">
+<div class="w-24 h-6 bg-gray-200 rounded animate-pulse"></div>
+<div class="w-3/4 h-12 bg-gray-100 rounded animate-pulse"></div>
+</div>
+<!-- Document Content Skeleton -->
+<div class="grid grid-cols-12 gap-8">
+<div class="col-span-8 space-y-6">
+<div class="w-full h-4 bg-gray-100 rounded"></div>
+<div class="w-full h-4 bg-gray-100 rounded"></div>
+<div class="w-2/3 h-4 bg-gray-100 rounded"></div>
+<!-- Mock Real-time cursor/selection -->
+<div class="relative p-1 bg-user-1/10 rounded border border-user-1/30 my-4">
+<div class="absolute -top-3 left-0 bg-user-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-t rounded-br shadow-sm z-10">
+                        Alex M.
+                    </div>
+<p class="text-brand-text-main opacity-80 leading-relaxed">
+                        The Q3 roadmap focuses on <span class="bg-user-1/20 text-brand-text-main">improving infrastructure scalability</span> and user retention metrics. We aim to reduce churn by 15% through targeted feature adoption campaigns.
+                    </p>
+<div class="absolute -right-0.5 -bottom-0.5 w-1.5 h-1.5 bg-user-1 rounded-full"></div>
+</div>
+<div class="w-full h-4 bg-gray-100 rounded"></div>
+<div class="w-5/6 h-4 bg-gray-100 rounded"></div>
+<!-- Mock Real-time cursor/selection -->
+<div class="relative inline border-l-2 border-user-2 pl-1 ml-4">
+<div class="absolute -top-4 -left-[2px] bg-user-2 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-t rounded-br shadow-sm z-10">
+                        Sarah K.
+                    </div>
+<span class="text-brand-text-main">Please review the quarterly budget allocation before approval.</span>
+</div>
+</div>
+<div class="col-span-4 space-y-4">
+<div class="w-full h-32 bg-gray-50 rounded-xl border border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
+                    Chart Placeholder
+                </div>
+<div class="w-full h-4 bg-gray-100 rounded"></div>
+<div class="w-2/3 h-4 bg-gray-100 rounded"></div>
+</div>
+</div>
+</main>
+<!-- Expanded Presence Panel (Absolute positioned to simulate "Open" state) -->
+<!-- Positioned below the header for demonstration purposes -->
+<div class="absolute top-[70px] right-6 z-50 w-[320px] bg-brand-card rounded-xl shadow-soft border border-brand-border flex flex-col overflow-hidden animate-[fade-in-down_0.2s_ease-out]">
+<!-- Panel Header -->
+<div class="px-4 py-3 border-b border-brand-border flex items-center justify-between bg-gray-50/50">
+<h3 class="font-bold text-sm text-brand-text-main">Presence</h3>
+<button class="text-brand-text-sec hover:text-brand-text-main transition-colors">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Scrollable List -->
+<div class="flex-1 overflow-y-auto max-h-[400px] p-2 space-y-1">
+<!-- Section: Editing -->
+<div class="px-2 pt-2 pb-1">
+<p class="text-[11px] font-bold uppercase tracking-wider text-brand-text-sec mb-2">Editing (3)</p>
+<!-- User Row -->
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 group cursor-pointer transition-colors">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-8 rounded-full ring-[2px] ring-user-1 border-[2px] border-white overflow-hidden">
+<img alt="Alex M" class="object-cover size-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4scvu6B2uBiSq3zd0fwreUsejxjszgKDVhK4vtmpiBRfo_MvzdG_-cCe_GY4elBERpRlPfUmWxycFVS7Yn-juishxgs8AYEJtyaO9NIBZ2405pp7m3-XWNY4XKIRGc62m1zUB1d0sW70scc0BaGqoem3fXKgyH5KbMaaTCrVlT8s0pnwDFO93kjok9opr5GqbWXYIUdkbltZoUW71eB9M5jNNXdDotkQxpRxAAKMcVatRDDkjf9eEE9yhR7iIDLMpPlQkwYI-SD8"/>
+</div>
+<div class="absolute -bottom-0.5 -right-0.5 size-2.5 bg-user-1 border border-white rounded-full"></div>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-brand-text-main leading-tight">Alex M.</span>
+<span class="text-[11px] text-brand-text-sec">Editing paragraph 2</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-user-1 text-[18px]" title="Editing">edit</span>
+</div>
+<!-- User Row -->
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 group cursor-pointer transition-colors">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-8 rounded-full ring-[2px] ring-user-2 border-[2px] border-white overflow-hidden">
+<img alt="Sarah K" class="object-cover size-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARZZIxxFm7x9kjbtQx-T61YNydpH0kfi2fBnsoFFuAPDiL3jaCuZCncBcUq2mPCMLA46WKjBDmEoQUL692dUGIN3xSrLNaSqTh8tkZ7Ex2M_N-VLk_oSEAnT6coC53OQKIIW4HcGgwDCcgfTgV2iACZxer2dfCWAC-2UZFgK3PQMUQkjWvASzHWLYUwm-1jJ7dQSGpL0ozLeM5o-Wa7iOysBX52bkF3biivqx2--b36RnLXRx_fpTdehQyNVajAL6Onqae2qRCiOc"/>
+</div>
+<div class="absolute -bottom-0.5 -right-0.5 size-2.5 bg-user-2 border border-white rounded-full"></div>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-brand-text-main leading-tight">Sarah K.</span>
+<span class="text-[11px] text-brand-text-sec">Editing title</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-user-2 text-[18px]" title="Editing">edit</span>
+</div>
+<!-- User Row -->
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 group cursor-pointer transition-colors">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-8 rounded-full ring-[2px] ring-user-6 border-[2px] border-white overflow-hidden">
+<img alt="Jenny W" class="object-cover size-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCU7Lkhgpck0vdmPDcMFM8N-yOPsrIHr_qZcYN6MIoOmH7ltk7Of8Hfn1rZpYUDz1vnFttuRetNLMjS2FIhn5L4ZDLmvuHQkb21L2zOqjHIZf9S6oaiJVAIiJXFVcWmjr_R7Uye3YJwFLXc9lWnXNKTm326er7aRyQ_TkprUX9L8J1C96dQvvNqUUWeMr-1K054kiKksrM-SkQ9n18IQ-xFEbYgKcSG9Q38qsKrkGQBR3ycEKvJhMG6Hk-ekQ66kdV_neuK1_xhmiY"/>
+</div>
+<div class="absolute -bottom-0.5 -right-0.5 size-2.5 bg-user-6 border border-white rounded-full"></div>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-brand-text-main leading-tight">Jenny W.</span>
+<span class="text-[11px] text-brand-text-sec">Editing chart</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-user-6 text-[18px]" title="Editing">edit</span>
+</div>
+</div>
+<!-- Separator -->
+<div class="h-px bg-gray-100 mx-2 my-1"></div>
+<!-- Section: Viewing -->
+<div class="px-2 pt-2 pb-1">
+<p class="text-[11px] font-bold uppercase tracking-wider text-brand-text-sec mb-2">Viewing (2)</p>
+<!-- User Row -->
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 group cursor-pointer transition-colors">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-8 rounded-full ring-[2px] ring-user-3 border-[2px] border-white overflow-hidden">
+<img alt="Mike R" class="object-cover size-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAw_JLPn-k5OHlUcz2EwwIE8r5G7VriLjBQ96eoBN2vL-JrLyljTP_efnRI16DqSzXRiqWnB7XPh-DGnSWrPrb0pnf9ty8uT3lTSj8GK618UZR6M--b7mgZhnfPwu6D62U1JTCrjTjBAIPN9s2NtUwphOQ66yNI8T9HS5McrAKXX6hIoZ23CL55qPfQFGdtGnUPIO9VHHBcGeN-s8rGefpF2hapYdEqtzvHyM7msVvQdLqHzhwz6vlWMKdBDlVzb9NkwEkfgAxIifk"/>
+</div>
+<!-- Idle dot -->
+<div class="absolute -bottom-0.5 -right-0.5 size-2.5 bg-gray-300 border border-white rounded-full"></div>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-brand-text-main leading-tight">Mike R.</span>
+<span class="text-[11px] text-brand-text-sec">Idle for 10m</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-gray-400 text-[18px]">bedtime</span>
+</div>
+<!-- User Row -->
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 group cursor-pointer transition-colors">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-8 rounded-full ring-[2px] ring-user-4 border-[2px] border-white overflow-hidden">
+<img alt="Emily J" class="object-cover size-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvxtpavXeNvN4Kcnn5dkJgRYfzsEOBVed4oXbQdnMWUNHrM4L4xSwUCFXXG6pJjlCaF89dyv7x3CgoxIXe0hVaBznAIGT94G2vmRbwz05Baf_8P1a-N5vzoF8jnGPhIV-yYD6nr0hilnsPaPq63e8o6wSdiI-RFY28IdFOzPmN3_szx34_w2EtCqnETEaY0ooEvGn01X2PcDLCJF7EcBxjQX3s8MNWQ9pIEnyvVwBqXcjk-StjUVoBWjpJdWICKlSfJQdBjzmWtdI"/>
+</div>
+<div class="absolute -bottom-0.5 -right-0.5 size-2.5 bg-user-4 border border-white rounded-full"></div>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-brand-text-main leading-tight">Emily J.</span>
+<span class="text-[11px] text-brand-text-sec">Viewing page 1</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-user-4 text-[18px]">visibility</span>
+</div>
+</div>
+<!-- Separator -->
+<div class="h-px bg-gray-100 mx-2 my-1"></div>
+<!-- Section: Recent -->
+<div class="px-2 pt-2 pb-1">
+<p class="text-[11px] font-bold uppercase tracking-wider text-brand-text-sec mb-2">Recent</p>
+<!-- User Row (Offline) -->
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 group cursor-pointer transition-colors opacity-60 hover:opacity-100">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-8 rounded-full border border-gray-200 overflow-hidden grayscale">
+<img alt="David L" class="object-cover size-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIY-zeyW_VAXnK3K_fR0b5qaPtdxkF7sC1svqzfs8FRzu3STXNYyL4I8etDh5FnK6_3AkdIV2oZRMbCaMZaHC6gkUfMS03XldFgjmBdkf8O_kguqgwBDhmOnjKZ-f8_AgPREOFqQfc2e4m3HBzIcyIqevx8YUUt5RaaPLjRq9pAxs3Q0M8zg_XyIWbqY3gkkF6-8rfFIB_if8oUBNfs4d_FrbPuXMPnzTciOeA-vN48DzLzpuTxFKCpQK68mFAnV5TOoRJDbRVZzE"/>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-brand-text-main leading-tight">David L.</span>
+<span class="text-[11px] text-brand-text-sec">Left 5m ago</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<div class="p-3 bg-gray-50 border-t border-brand-border flex items-center justify-between">
+<span class="text-[10px] text-brand-text-sec flex items-center gap-1">
+<span class="size-2 rounded-full bg-green-500"></span>
+                Connected
+            </span>
+<button class="text-xs font-semibold text-primary hover:text-yellow-600">Share settings</button>
+</div>
+</div>
+<!-- Floating Pill (Fixed Bottom Center) -->
+<!-- This represents the collapsed sticky state when user scrolls -->
+<div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 animate-[slide-up_0.5s_ease-out]">
+<div class="flex items-center bg-white border border-brand-border shadow-float rounded-full px-1.5 py-1.5 gap-3">
+<!-- Simplified Avatar Stack -->
+<div class="flex items-center -space-x-3 pl-1">
+<div class="size-8 rounded-full ring-[2px] ring-user-1 border-2 border-white overflow-hidden bg-gray-100 relative z-30">
+<img alt="Alex M." class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkaXULCxx4Lgd4-Kc2_VNV8bM5sXk4vbkJoNVj3yuK9-Mq6Cm3sLwHwd8KK5vxeH6iIjTeYeiZTEuYlcsn4O4PSv2fgAfGx_tgfAX_O1RC1-HjvMQr-VTeRicpO0FbxiELItZAPY2PMn9q9voNniHDSRexdrtWacZqj525hxgTJXcYr2YX0GtDmaZkUPLc8ZLrNOVcJuRZ-GS5rqeWBeDl89IugPcHP8t3oMoysE3LsTo9o14JHmTwYu7GixF13524BY6K7XIgrBA"/>
+</div>
+<div class="size-8 rounded-full ring-[2px] ring-user-2 border-2 border-white overflow-hidden bg-gray-100 relative z-20">
+<img alt="Sarah K." class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTR8zFf1ouI_9m9xdkYt3CaemJyCHskXiXKVY7llWcBy_kH2fsMJqre3A4dDtHRI11r8hEdUBgrqCtazI53LqpfbVgx58oMaYx3_5MBmtSwOrWD5YCizuV1G7vDoWgDaM_1Kh-VhfP54kpLuahG5tkVKz9Hm6bTGowgQxUwL2gapUhcE1UhPoBNmjh8oGxZq0bYNtGA7dUm44eqGrLuYO2-2vG8JO4BXi3p3cFah68gp_hfJ7D8DrDWsdqZezDR10ji55SElGAcJc"/>
+</div>
+<div class="size-8 rounded-full bg-brand-text-main text-white text-xs font-bold border-2 border-white flex items-center justify-center relative z-10">
+                    +3
+                </div>
+</div>
+<div class="flex flex-col pr-3">
+<span class="text-xs font-bold text-brand-text-main leading-none">5 Users</span>
+<span class="text-[10px] font-medium text-brand-text-sec leading-none pt-0.5">Active now</span>
+</div>
+<button class="size-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-brand-text-main transition-colors">
+<span class="material-symbols-outlined text-[20px]">expand_less</span>
+</button>
+</div>
+</div>
+</body></html>

@@ -64,3 +64,6 @@ credentials.json
 # Uploaded files (keep .gitkeep only)
 public/uploads/**/*
 !public/uploads/**/.gitkeep
+
+# WSL Zone.Identifier files
+**/*:Zone.Identifier

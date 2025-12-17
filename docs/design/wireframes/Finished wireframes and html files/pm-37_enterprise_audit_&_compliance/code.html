@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Enterprise Audit &amp; Compliance - HYVVE</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Config -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                        "card-light": "#ffffff",
+                        "card-dark": "#1c2333", // Slightly lighter than background-dark
+                        "border-light": "#e5e7eb",
+                        "border-dark": "#2d3748",
+                        "pm-orange": "#FF9F43",
+                        "pm-pink": "#EC4899",
+                        "pm-success": "#22C55E",
+                        "pm-warning": "#F59E0B",
+                        "pm-error": "#EF4444",
+                        "pm-teal": "#14b8a6",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for better aesthetics in dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display transition-colors duration-200">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 flex items-center justify-between border-b border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark px-6 py-3 shadow-sm">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3">
+<div class="size-8 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fill="currentColor" fill-rule="evenodd"></path>
+<path clip-rule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-tight text-gray-900 dark:text-white">HYVVE Enterprise</h2>
+</div>
+<!-- Global Search -->
+<div class="hidden md:flex w-full max-w-md items-center rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2">
+<span class="material-symbols-outlined text-gray-400">search</span>
+<input class="ml-2 w-full bg-transparent border-none p-0 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:ring-0" placeholder="Search logs, resources, or policies..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 rounded-lg border border-border-light dark:border-border-dark px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-[20px]">file_download</span>
+<span class="hidden sm:inline">Export</span>
+</button>
+<button class="flex items-center gap-2 rounded-lg border border-border-light dark:border-border-dark px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="hidden sm:inline">Settings</span>
+</button>
+<div class="h-8 w-px bg-gray-200 dark:bg-gray-700"></div>
+<div class="relative size-10 rounded-full bg-cover bg-center cursor-pointer ring-2 ring-transparent hover:ring-primary transition-all" data-alt="User profile avatar showing a professional portrait" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBG1wpI9NArUKCznrWGej8Kh08tLk1LJmgeWJxCMinbP3_8VzMtdRRq7tbrRZeQQuxr-q9qWRe25ejFel0NOw85UTjm6OmYtqpeJOeFIdu6_lfanHn5103OCG6qQmvYHhrQ_kAdCZV3QHZaEWZh0yP3ySamOoP58kxo9zsBQvOkvh5A4qdGCtTyZVuI4KF9hsHNvbOrn2-ZkdBddovWBHI8rYPrYc3mkaz36yfJ7B80SJHPJkF-cJ-oRs0zZ81KWsclK3RHFA4TisU");'></div>
+</div>
+</header>
+<!-- Main Content Layout -->
+<main class="flex flex-1 flex-col px-4 py-8 md:px-8 lg:px-16 max-w-[1600px] mx-auto w-full">
+<!-- Page Heading -->
+<div class="mb-8 flex flex-col gap-2">
+<h1 class="text-3xl font-black tracking-tight md:text-4xl text-gray-900 dark:text-white">Enterprise Audit &amp; Compliance</h1>
+<p class="text-gray-500 dark:text-gray-400 text-lg">Track activity, manage access logs, and generate compliance reports across your organization.</p>
+</div>
+<!-- Tab Navigation -->
+<div class="mb-6 border-b border-border-light dark:border-border-dark">
+<nav aria-label="Tabs" class="flex gap-8">
+<a class="group flex items-center gap-2 border-b-2 border-primary pb-4 px-1 text-primary font-bold" href="#">
+<span class="material-symbols-outlined text-[20px]">table_chart</span>
+                        Activity Log
+                    </a>
+<a class="group flex items-center gap-2 border-b-2 border-transparent pb-4 px-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">lock_person</span>
+                        Access Log
+                    </a>
+<a class="group flex items-center gap-2 border-b-2 border-transparent pb-4 px-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">fact_check</span>
+                        Compliance Reports
+                    </a>
+<a class="group flex items-center gap-2 border-b-2 border-transparent pb-4 px-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">history</span>
+                        Data Retention
+                    </a>
+</nav>
+</div>
+<!-- Filter Toolbar -->
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-card-light dark:bg-card-dark p-4 shadow-sm border border-border-light dark:border-border-dark">
+<div class="flex flex-wrap gap-3">
+<div class="relative">
+<button class="flex h-10 items-center justify-between gap-2 rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark px-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800">
+<span>Last 30 Days</span>
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</button>
+</div>
+<div class="relative">
+<button class="flex h-10 items-center justify-between gap-2 rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark px-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800">
+<span>User: All Users</span>
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+</div>
+<div class="relative">
+<button class="flex h-10 items-center justify-between gap-2 rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark px-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800">
+<span>Action: All Actions</span>
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+</div>
+<div class="relative">
+<button class="flex h-10 items-center justify-between gap-2 rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark px-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800">
+<span>Resource: All</span>
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-sm text-gray-500 dark:text-gray-400">Showing 2450 results</span>
+<button class="flex size-9 items-center justify-center rounded-lg border border-border-light dark:border-border-dark hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-[20px]">refresh</span>
+</button>
+</div>
+</div>
+<!-- Data Table Container -->
+<div class="overflow-hidden rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+<tr>
+<th class="p-4 font-semibold w-48">Timestamp</th>
+<th class="p-4 font-semibold w-48">User</th>
+<th class="p-4 font-semibold w-40">Action</th>
+<th class="p-4 font-semibold w-40">Resource</th>
+<th class="p-4 font-semibold min-w-[200px]">Changes</th>
+<th class="p-4 font-semibold w-32">IP Address</th>
+<th class="p-4 font-semibold w-32">Status</th>
+<th class="p-4 font-semibold w-10"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-light dark:divide-border-dark text-sm">
+<!-- Row 1: Normal Success -->
+<tr class="group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+<td class="p-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">Oct 24, 14:32:05</td>
+<td class="p-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-cover bg-center" data-alt="Portrait of user Sarah Chen" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDKZ8bI4loG1585WlGmT33vF_EmAx9QnAGD9LobjN_N8yWhTCf-mt-2czN51Kd6xcLWI4F-ufOuYcaNmYDxR_91HKl4ZQTkLnAV0XbfeJCJdoFZkUf2BC2gIwhJKHGuRlN1Th6bh4nWAu6phkfRhH43QNif-uFVV0MnGjOcmGbW8EYlFhS0HEBYMPWzytv7nkVNrf_tmwWwjJaTPGP4WndkdQ4pnyZwH2A9TsQN0_hi1G_bMByjYyJWeyRY5jD6UFNROxMe6JrMI3A");'></div>
+<div class="flex flex-col">
+<span class="font-medium text-gray-900 dark:text-white">Sarah Chen</span>
+<span class="text-xs text-gray-500">Admin</span>
+</div>
+</div>
+</td>
+<td class="p-4"><span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300">Update Policy</span></td>
+<td class="p-4 text-gray-600 dark:text-gray-300 font-mono text-xs">Firewall-Rule-12</td>
+<td class="p-4 text-gray-500 dark:text-gray-400 truncate max-w-xs">Changed 'Allow' to 'Deny' for port 8080</td>
+<td class="p-4 text-gray-500 dark:text-gray-400 font-mono text-xs">192.168.1.42</td>
+<td class="p-4">
+<span class="inline-flex items-center gap-1.5 rounded-full bg-green-50 dark:bg-green-900/20 px-2.5 py-0.5 text-xs font-medium text-pm-success">
+<span class="size-1.5 rounded-full bg-pm-success"></span>
+                                        Success
+                                    </span>
+</td>
+<td class="p-4 text-right">
+<button class="text-gray-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Failed Event (Highlighted Red) -->
+<tr class="group bg-red-50/50 dark:bg-red-900/10 hover:bg-red-100/50 dark:hover:bg-red-900/20 transition-colors border-l-2 border-l-pm-error">
+<td class="p-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">Oct 24, 12:15:22</td>
+<td class="p-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs">JD</div>
+<div class="flex flex-col">
+<span class="font-medium text-gray-900 dark:text-white">John Doe</span>
+<span class="text-xs text-gray-500">Editor</span>
+</div>
+</div>
+</td>
+<td class="p-4"><span class="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300">Login Attempt</span></td>
+<td class="p-4 text-gray-600 dark:text-gray-300 font-mono text-xs">Auth-Service</td>
+<td class="p-4 text-pm-error font-medium truncate max-w-xs">Invalid Password (Attempt 3/5)</td>
+<td class="p-4 text-gray-500 dark:text-gray-400 font-mono text-xs">203.0.113.5</td>
+<td class="p-4">
+<span class="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/40 px-2.5 py-0.5 text-xs font-medium text-pm-error">
+<span class="material-symbols-outlined text-[14px]">error</span>
+                                        Failed
+                                    </span>
+</td>
+<td class="p-4 text-right">
+<button class="text-gray-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Security Alert (Amber Background) -->
+<tr class="group bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border-l-4 border-l-pm-warning">
+<td class="p-4 text-gray-900 dark:text-white font-medium whitespace-nowrap">Oct 24, 09:45:10</td>
+<td class="p-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-pm-warning/20 flex items-center justify-center text-pm-warning font-bold">
+<span class="material-symbols-outlined text-[16px]">warning</span>
+</div>
+<div class="flex flex-col">
+<span class="font-medium text-gray-900 dark:text-white">Unknown User</span>
+<span class="text-xs text-pm-warning">Suspicious</span>
+</div>
+</div>
+</td>
+<td class="p-4"><span class="inline-flex items-center rounded-md bg-amber-100 dark:bg-amber-900/50 px-2 py-1 text-xs font-medium text-amber-800 dark:text-amber-200">API Access</span></td>
+<td class="p-4 text-gray-900 dark:text-white font-mono text-xs">/api/v1/users/export</td>
+<td class="p-4 text-gray-900 dark:text-white font-medium truncate max-w-xs">Unauthorized bulk export attempt</td>
+<td class="p-4 text-gray-900 dark:text-white font-mono text-xs font-bold">45.22.19.112</td>
+<td class="p-4">
+<span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-900/60 px-2.5 py-0.5 text-xs font-bold text-pm-warning">
+<span class="material-symbols-outlined text-[14px]">security</span>
+                                        Security Alert
+                                    </span>
+</td>
+<td class="p-4 text-right">
+<button class="text-gray-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">expand_more</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 Expanded Detail View (Simulated) -->
+<tr class="bg-amber-50/50 dark:bg-amber-900/10 border-l-4 border-l-pm-warning">
+<td class="p-0" colspan="8">
+<div class="p-4 pl-14 grid grid-cols-2 gap-4 text-sm">
+<div class="col-span-2 md:col-span-1 space-y-2">
+<p class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Request Headers</p>
+<div class="rounded bg-white dark:bg-black/40 p-3 font-mono text-xs text-gray-600 dark:text-gray-300 border border-border-light dark:border-border-dark">
+                                                {<br/>
+                                                  "User-Agent": "Python-urllib/3.9",<br/>
+                                                  "Authorization": "Bearer [INVALID_TOKEN]",<br/>
+                                                  "X-Forwarded-For": "45.22.19.112"<br/>
+                                                }
+                                            </div>
+</div>
+<div class="col-span-2 md:col-span-1 space-y-2">
+<p class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">System Response</p>
+<div class="rounded bg-white dark:bg-black/40 p-3 font-mono text-xs text-gray-600 dark:text-gray-300 border border-border-light dark:border-border-dark">
+                                                Status: 403 Forbidden<br/>
+                                                Action: IP Blocked for 24h<br/>
+                                                Alert Sent: SOC-Team-Alpha
+                                            </div>
+</div>
+</div>
+</td>
+</tr>
+<!-- Row 4: Agent Action (Teal Indicator) -->
+<tr class="group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+<td class="p-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">Oct 23, 16:20:44</td>
+<td class="p-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-pm-teal/20 flex items-center justify-center text-pm-teal">
+<span class="material-symbols-outlined text-[18px]">smart_toy</span>
+</div>
+<div class="flex flex-col">
+<span class="font-medium text-gray-900 dark:text-white">System Agent</span>
+<span class="text-xs text-pm-teal">Automated</span>
+</div>
+</div>
+</td>
+<td class="p-4"><span class="inline-flex items-center rounded-md bg-teal-50 dark:bg-teal-900/20 px-2 py-1 text-xs font-medium text-pm-teal">Auto-Scale</span></td>
+<td class="p-4 text-gray-600 dark:text-gray-300 font-mono text-xs">Server-Cluster-A</td>
+<td class="p-4 text-gray-500 dark:text-gray-400 truncate max-w-xs">Added 2 nodes due to high CPU load</td>
+<td class="p-4 text-gray-500 dark:text-gray-400 font-mono text-xs">Localhost</td>
+<td class="p-4">
+<span class="inline-flex items-center gap-1.5 rounded-full bg-teal-50 dark:bg-teal-900/20 px-2.5 py-0.5 text-xs font-medium text-pm-teal">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+                                        Executed
+                                    </span>
+</td>
+<td class="p-4 text-right">
+<button class="text-gray-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 5: Warning -->
+<tr class="group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+<td class="p-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">Oct 23, 11:00:12</td>
+<td class="p-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-cover bg-center" data-alt="Portrait of user Michael Ross" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC-JjlxLQN4_SzZHnOwobBhB2NJZitYMRtKgwqehzZ2IJmnD3HgHJNnoQXyp3oA_um78Fn5Y9LSO1yFV0xLxeDHoSL-cHj15dIfRKSK4RQNq-X8qZKcJ3NXrX3a6W2j4D180zoRBzi2_VQ6lwqkpwIYfY9ELP71vRacdV3TY1ZDsTTgv66yM65ucDHY_AdnitV4cgMYkP7TP7XRk4f12Rl5vlUG8aUTNOhxvZdeExsi3PkRh_Mvj3YROKitM7dlSk6Yud-LghQ01po");'></div>
+<div class="flex flex-col">
+<span class="font-medium text-gray-900 dark:text-white">Michael Ross</span>
+<span class="text-xs text-gray-500">DevOps</span>
+</div>
+</div>
+</td>
+<td class="p-4"><span class="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300">Delete File</span></td>
+<td class="p-4 text-gray-600 dark:text-gray-300 font-mono text-xs">Compliance-Doc-v1.pdf</td>
+<td class="p-4 text-gray-500 dark:text-gray-400 truncate max-w-xs">Moved to trash</td>
+<td class="p-4 text-gray-500 dark:text-gray-400 font-mono text-xs">10.0.0.55</td>
+<td class="p-4">
+<span class="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 dark:bg-yellow-900/20 px-2.5 py-0.5 text-xs font-medium text-pm-warning">
+<span class="size-1.5 rounded-full bg-pm-warning"></span>
+                                        Warning
+                                    </span>
+</td>
+<td class="p-4 text-right">
+<button class="text-gray-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="flex items-center justify-between border-t border-border-light dark:border-border-dark bg-gray-50 dark:bg-gray-800/50 px-4 py-3 sm:px-6">
+<div class="flex flex-1 justify-between sm:hidden">
+<button class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Previous</button>
+<button class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Next</button>
+</div>
+<div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+<div>
+<p class="text-sm text-gray-700 dark:text-gray-400">
+                                Showing <span class="font-medium text-gray-900 dark:text-white">1</span> to <span class="font-medium text-gray-900 dark:text-white">10</span> of <span class="font-medium text-gray-900 dark:text-white">2450</span> results
+                            </p>
+</div>
+<div>
+<nav aria-label="Pagination" class="isolate inline-flex -space-x-px rounded-md shadow-sm">
+<button class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 focus:z-20 focus:outline-offset-0">
+<span class="sr-only">Previous</span>
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<button aria-current="page" class="relative z-10 inline-flex items-center bg-primary px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">1</button>
+<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-200 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 focus:z-20 focus:outline-offset-0">2</button>
+<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-200 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 focus:z-20 focus:outline-offset-0">3</button>
+<span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-400 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:outline-offset-0">...</span>
+<button class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-200 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 focus:z-20 focus:outline-offset-0">10</button>
+<button class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 focus:z-20 focus:outline-offset-0">
+<span class="sr-only">Next</span>
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</nav>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

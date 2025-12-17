@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-40 Revenue Forecasting</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#111318",
+              "surface-dark": "#1c212c",
+              "surface-hover": "#282e39",
+              "success": "#22C55E",
+              "warning": "#F59E0B",
+              "error": "#EF4444",
+              "prism": "#ec4899", // Pink for AI
+              "text-secondary": "#9da6b9",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        /* Custom styles for chart lines to simulate dashed/dotted */
+        .chart-line-dashed {
+            stroke-dasharray: 6, 6;
+        }
+        .chart-line-dotted {
+            stroke-dasharray: 2, 4;
+        }
+        /* Hide scrollbar for clean look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased text-white overflow-x-hidden min-h-screen flex">
+<!-- Sidebar -->
+<aside class="w-64 bg-background-dark border-r border-surface-hover hidden md:flex flex-col flex-shrink-0 h-screen sticky top-0">
+<div class="p-6">
+<div class="flex items-center gap-3 mb-8">
+<div class="size-10 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white font-bold text-xl">
+                    V
+                </div>
+<div>
+<h1 class="font-bold text-lg leading-tight">CRM Vision</h1>
+<p class="text-text-secondary text-xs">Enterprise Edition</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2.5 text-text-secondary hover:text-white hover:bg-surface-hover rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-white bg-surface-hover rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined fill-1">payments</span>
+<span class="font-medium">Revenue</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-text-secondary hover:text-white hover:bg-surface-hover rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">work</span>
+<span class="font-medium">Opportunities</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-text-secondary hover:text-white hover:bg-surface-hover rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-medium">Customers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-text-secondary hover:text-white hover:bg-surface-hover rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-medium">Reports</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto p-6 border-t border-surface-hover">
+<div class="bg-surface-dark rounded-xl p-4 border-l-4 border-prism">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-prism text-sm">auto_awesome</span>
+<span class="text-xs font-bold uppercase tracking-wider text-prism">Prism AI</span>
+</div>
+<p class="text-sm text-gray-300 leading-snug">
+                    3 major deals in 'Commit' have stalled. <a class="text-primary hover:underline" href="#">View Insights</a>
+</p>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<div class="flex-1 flex flex-col min-w-0">
+<!-- Top Header -->
+<header class="h-16 border-b border-surface-hover bg-background-dark/95 backdrop-blur flex items-center justify-between px-8 sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<h2 class="text-xl font-bold tracking-tight">Revenue Forecasting</h2>
+<div class="h-6 w-px bg-surface-hover mx-2"></div>
+<!-- Global Search -->
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors text-[20px]">search</span>
+<input class="bg-surface-dark border border-transparent focus:border-primary/50 text-sm rounded-lg pl-10 pr-4 py-1.5 w-64 text-white focus:ring-0 transition-all placeholder:text-text-secondary/50" placeholder="Search forecasts, reps..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="size-9 rounded-lg bg-surface-hover hover:bg-surface-hover/80 flex items-center justify-center text-white transition-colors relative">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-error rounded-full border-2 border-surface-hover"></span>
+</button>
+<div class="size-9 rounded-full bg-cover bg-center ring-2 ring-surface-hover cursor-pointer" data-alt="User profile avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDdzGUoACmJDYZKux_p0LhW-4zsRzT3Gw2AoafcR9plpe-QGpGE6xDS37NVYkDr4e6MFNFGxAR4oRQCAD0B9fcU_74NFa_3TSLtQMQUtnRF1AJ6HQMrivk5Nx1RuudNI1YNTTlX7Y1bkpLhWG7Ku03uMtkORsv7XLwrqmw-3L7a_UYmfVnRZd3ijC9hh0tezPLFT9-cmpEUUs0wTMLJQPnehah9v2DeOnKK0g4bjnfVAOE4AT9Sg1qOpIQWaIGLcbCfBNpm1Nzlofc');"></div>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto p-8">
+<div class="max-w-[1400px] mx-auto space-y-8">
+<!-- Page Filters & Actions -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<div class="flex flex-col gap-1">
+<h3 class="text-3xl font-black text-white">Q1 2026 Forecast</h3>
+<p class="text-text-secondary">Enterprise Sales Team • Global View</p>
+</div>
+<div class="flex flex-wrap gap-3">
+<div class="flex bg-surface-dark rounded-lg p-1 border border-surface-hover">
+<button class="px-3 py-1.5 rounded-md bg-surface-hover text-white text-sm font-medium shadow-sm">Quarterly</button>
+<button class="px-3 py-1.5 rounded-md text-text-secondary hover:text-white text-sm font-medium transition-colors">Monthly</button>
+</div>
+<div class="relative group">
+<button class="flex items-center gap-2 bg-surface-dark border border-surface-hover hover:border-text-secondary/50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
+<span>Period: Q1 2026</span>
+<span class="material-symbols-outlined text-[18px] text-text-secondary">expand_more</span>
+</button>
+</div>
+<button class="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-primary/20 transition-all">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                            Export Report
+                        </button>
+</div>
+</div>
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+<!-- Forecast -->
+<div class="bg-surface-dark rounded-xl p-5 border border-surface-hover hover:border-primary/30 transition-colors group">
+<div class="flex justify-between items-start mb-2">
+<p class="text-text-secondary font-medium text-sm">Forecast</p>
+<span class="material-symbols-outlined text-text-secondary group-hover:text-primary transition-colors text-[20px]">trending_up</span>
+</div>
+<div class="flex items-baseline gap-2">
+<h4 class="text-3xl font-bold text-white">$4.2M</h4>
+<span class="text-success text-xs font-bold bg-success/10 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">arrow_upward</span> 12%
+                            </span>
+</div>
+<p class="text-text-secondary text-xs mt-2">vs. $3.75M Target</p>
+</div>
+<!-- Commit -->
+<div class="bg-surface-dark rounded-xl p-5 border border-surface-hover hover:border-primary/30 transition-colors">
+<div class="flex justify-between items-start mb-2">
+<p class="text-text-secondary font-medium text-sm">Commit</p>
+<span class="material-symbols-outlined text-text-secondary text-[20px]">verified</span>
+</div>
+<div class="flex items-baseline gap-2">
+<h4 class="text-3xl font-bold text-white">$3.8M</h4>
+<span class="text-success text-xs font-bold bg-success/10 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">arrow_upward</span> 5% MoM
+                            </span>
+</div>
+<p class="text-text-secondary text-xs mt-2">90% Coverage</p>
+</div>
+<!-- Best Case -->
+<div class="bg-surface-dark rounded-xl p-5 border border-surface-hover hover:border-primary/30 transition-colors">
+<div class="flex justify-between items-start mb-2">
+<p class="text-text-secondary font-medium text-sm">Best Case</p>
+<span class="material-symbols-outlined text-text-secondary text-[20px]">star</span>
+</div>
+<div class="flex items-baseline gap-2">
+<h4 class="text-3xl font-bold text-white">$5.1M</h4>
+</div>
+<p class="text-text-secondary text-xs mt-2">Includes upside pipeline</p>
+</div>
+<!-- Confidence -->
+<div class="bg-surface-dark rounded-xl p-5 border border-surface-hover hover:border-primary/30 transition-colors relative overflow-hidden">
+<div class="absolute top-0 right-0 p-2 opacity-10">
+<span class="material-symbols-outlined text-9xl text-white">psychology</span>
+</div>
+<div class="flex justify-between items-start mb-2 relative z-10">
+<p class="text-text-secondary font-medium text-sm">AI Confidence</p>
+</div>
+<div class="flex items-baseline gap-2 relative z-10">
+<h4 class="text-3xl font-bold text-white">85%</h4>
+<span class="text-white text-xs font-bold bg-primary px-2 py-0.5 rounded-full">
+                                High
+                            </span>
+</div>
+<div class="w-full bg-surface-hover rounded-full h-1.5 mt-4 relative z-10">
+<div class="bg-gradient-to-r from-primary to-indigo-400 h-1.5 rounded-full" style="width: 85%"></div>
+</div>
+</div>
+</div>
+<!-- Main Chart & Scenario Section -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+<!-- Chart Area -->
+<div class="xl:col-span-2 bg-surface-dark rounded-xl border border-surface-hover p-6 flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-bold text-lg">Forecast Trend</h3>
+<div class="flex items-center gap-4 text-xs font-medium">
+<div class="flex items-center gap-2">
+<div class="w-3 h-0.5 bg-primary"></div>
+<span class="text-white">Likely</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-0.5 border-t border-dashed border-success"></div>
+<span class="text-text-secondary">Commit</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-0.5 border-t border-dotted border-gray-400"></div>
+<span class="text-text-secondary">Best Case</span>
+</div>
+</div>
+</div>
+<!-- Chart Placeholder -->
+<div class="flex-1 w-full min-h-[300px] relative">
+<!-- Y Axis Labels -->
+<div class="absolute left-0 top-0 bottom-8 w-10 flex flex-col justify-between text-xs text-text-secondary font-medium">
+<span>$6M</span>
+<span>$4M</span>
+<span>$2M</span>
+<span>$0</span>
+</div>
+<!-- Chart Canvas Area -->
+<div class="absolute left-12 right-0 top-2 bottom-8 border-l border-b border-surface-hover">
+<!-- Grid lines -->
+<div class="w-full h-1/3 border-t border-surface-hover/30"></div>
+<div class="w-full h-1/3 border-t border-surface-hover/30"></div>
+<!-- Target Line -->
+<div class="absolute top-[35%] w-full border-t border-dashed border-white/20 flex items-center">
+<span class="text-[10px] text-white/40 -mt-5 ml-2">Target $3.75M</span>
+</div>
+<!-- Current Week Marker -->
+<div class="absolute left-[60%] top-0 bottom-0 border-r border-primary/20 flex flex-col items-center justify-end pb-2">
+<div class="bg-primary/20 text-primary text-[10px] px-1 rounded uppercase font-bold mb-2">Today</div>
+</div>
+<!-- SVGs for lines -->
+<svg class="absolute inset-0 w-full h-full overflow-visible" preserveaspectratio="none">
+<!-- Confidence Interval Gradient -->
+<defs>
+<lineargradient id="confidenceGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#135bec" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#135bec" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path d="M0 250 Q100 240 200 200 T400 150 T600 100 T800 80" fill="url(#confidenceGradient)" stroke="none"></path>
+<!-- Best Case (Dotted) -->
+<path d="M0 250 Q100 230 200 180 T400 120 T600 60 T800 20" fill="none" stroke="#9da6b9" stroke-dasharray="4,4" stroke-width="2"></path>
+<!-- Commit (Dashed) -->
+<path d="M0 250 Q100 245 200 220 T400 180 T600 160 T800 150" fill="none" stroke="#22C55E" stroke-dasharray="8,4" stroke-width="2"></path>
+<!-- Likely (Solid Primary) -->
+<path d="M0 250 Q100 240 200 200 T400 150 T600 100 T800 80" fill="none" stroke="#135bec" stroke-width="3"></path>
+<!-- Points -->
+<circle cx="600" cy="100" fill="#135bec" r="4" stroke="#fff" stroke-width="2"></circle>
+</svg>
+</div>
+<!-- X Axis Labels -->
+<div class="absolute left-12 right-0 bottom-0 flex justify-between text-xs text-text-secondary font-medium pt-2">
+<span>Week 1</span>
+<span>Week 3</span>
+<span>Week 5</span>
+<span>Week 7</span>
+<span>Week 9</span>
+<span>Week 11</span>
+<span>Week 13</span>
+</div>
+</div>
+</div>
+<!-- Scenario Modeling -->
+<div class="space-y-4">
+<div class="bg-surface-dark rounded-xl border border-surface-hover p-5">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary">tune</span>
+<h3 class="font-bold text-lg">Scenario Modeling</h3>
+</div>
+<div class="space-y-3">
+<!-- Scenario Card 1 -->
+<label class="flex items-start gap-3 p-3 rounded-lg bg-surface-hover/30 border border-transparent hover:border-surface-hover cursor-pointer transition-all select-none">
+<div class="relative flex items-center">
+<input class="peer size-4 appearance-none rounded border border-text-secondary bg-surface-dark checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none material-symbols-outlined text-[14px]">check</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-medium text-white">Close Acme Corp Deal</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-xs text-success font-bold flex items-center">+ $120k</span>
+<span class="text-xs text-text-secondary">• Prob: 60%</span>
+</div>
+</div>
+</label>
+<!-- Scenario Card 2 -->
+<label class="flex items-start gap-3 p-3 rounded-lg bg-surface-hover/30 border border-transparent hover:border-surface-hover cursor-pointer transition-all select-none">
+<div class="relative flex items-center">
+<input class="peer size-4 appearance-none rounded border border-text-secondary bg-surface-dark checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none material-symbols-outlined text-[14px]">check</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-medium text-white">Lose TechStart Opp</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-xs text-error font-bold flex items-center">- $50k</span>
+<span class="text-xs text-text-secondary">• Risk: High</span>
+</div>
+</div>
+</label>
+<!-- Scenario Card 3 -->
+<label class="flex items-start gap-3 p-3 rounded-lg bg-surface-hover/30 border border-transparent hover:border-surface-hover cursor-pointer transition-all select-none">
+<div class="relative flex items-center">
+<input checked="" class="peer size-4 appearance-none rounded border border-text-secondary bg-surface-dark checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none material-symbols-outlined text-[14px]">check</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-medium text-white">Pull-in Q2 Pipeline</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-xs text-success font-bold flex items-center">+ $210k</span>
+<span class="text-xs text-text-secondary">• 5 Deals</span>
+</div>
+</div>
+</label>
+</div>
+<button class="w-full mt-4 py-2 border border-primary text-primary font-bold text-sm rounded-lg hover:bg-primary/10 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                Run Custom Scenario
+                            </button>
+</div>
+<!-- Prism AI Mini Card -->
+<div class="bg-surface-dark rounded-xl border-l-4 border-l-prism border-y border-r border-surface-hover p-4 shadow-lg shadow-prism/5">
+<div class="flex justify-between items-center mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-prism">auto_awesome</span>
+<span class="font-bold text-white text-sm">Prism says:</span>
+</div>
+<span class="text-[10px] text-text-secondary uppercase tracking-widest font-semibold">AI Insight</span>
+</div>
+<ul class="space-y-2">
+<li class="flex gap-2 text-xs text-gray-300 leading-normal">
+<span class="text-prism">•</span>
+                                    Forecast is trending <span class="text-success font-bold">12% above</span> baseline due to unexpected enterprise upsells.
+                                </li>
+<li class="flex gap-2 text-xs text-gray-300 leading-normal">
+<span class="text-prism">•</span>
+<span class="text-white font-semibold">Action:</span> Reallocate SDR support to EMEA region to secure best-case commit.
+                                </li>
+</ul>
+</div>
+</div>
+</div>
+<!-- Forecast by Rep Table -->
+<div class="bg-surface-dark rounded-xl border border-surface-hover overflow-hidden">
+<div class="p-5 border-b border-surface-hover flex justify-between items-center">
+<h3 class="font-bold text-lg">Forecast by Rep</h3>
+<div class="flex gap-2">
+<button class="text-text-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+<button class="text-text-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm text-text-secondary">
+<thead class="bg-surface-hover/50 text-xs uppercase font-semibold text-text-secondary">
+<tr>
+<th class="px-6 py-4">Rep Name</th>
+<th class="px-6 py-4">Quota</th>
+<th class="px-6 py-4">Commit</th>
+<th class="px-6 py-4">Forecast</th>
+<th class="px-6 py-4 text-center">Attainment</th>
+<th class="px-6 py-4"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-hover">
+<tr class="hover:bg-surface-hover/30 transition-colors">
+<td class="px-6 py-4 font-medium text-white flex items-center gap-3">
+<div class="size-8 rounded-full bg-cover bg-center" data-alt="Sales rep portrait" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB08Fl7lkVBVQwMzKwFX-6DbezyxMpb0q9pkE7pNPxBkUpWAzcABUI7SW-EHpA4AKstuwjEbMyRe3b6ukcupJ0_6125WCbEjDby5c44cjj0sTCj4xzpChAUBST4EXR-rOUHqeOkT_6dEecIVwjtwQm6_kRzeLGr5aD2mbd4ohvIELIWAQyguBk_gVAhDRgO7cej6jI5CvmyxPE-TYXp2xTvcpfeVetIgRRchFkI2zTCTmLQDI2sPNPF3RgqLH-J58ogIWhJQba4a-E');"></div>
+                                        Sarah Miller
+                                    </td>
+<td class="px-6 py-4">$450,000</td>
+<td class="px-6 py-4 text-white font-medium">$420,000</td>
+<td class="px-6 py-4">$510,000</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-success/10 text-success border border-success/20">
+                                            113%
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right">
+<span class="material-symbols-outlined text-text-secondary hover:text-white cursor-pointer text-[20px]">chevron_right</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-hover/30 transition-colors">
+<td class="px-6 py-4 font-medium text-white flex items-center gap-3">
+<div class="size-8 rounded-full bg-cover bg-center" data-alt="Sales rep portrait" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuADUN1-0ngNklbex7e1riNfDVpPzNFKkuM9GrhbfCpvUmSsOpxY_kXNYb_NCwx9kZSQ-dZ4tqjMHK1TwlpdSBAx2V3v08baNfYwYUTau3JTG2XMxCUKuWLVdJcNd_q1cbsJ2AzY_Vfm1wtp-4fOrb-vCVXGDVKkfr-OzPhBX28geW-2E9_p02E0nJMot5AvPn3cRHFl9iYeFuchbnyoUBQeLpiCio-KaT9i3u7WXVB7As_IbmdLT5Po0U2LNII_bflUikehYVz2l40');"></div>
+                                        David Chen
+                                    </td>
+<td class="px-6 py-4">$450,000</td>
+<td class="px-6 py-4 text-white font-medium">$380,000</td>
+<td class="px-6 py-4">$410,000</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-warning/10 text-warning border border-warning/20">
+                                            91%
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right">
+<span class="material-symbols-outlined text-text-secondary hover:text-white cursor-pointer text-[20px]">chevron_right</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-hover/30 transition-colors">
+<td class="px-6 py-4 font-medium text-white flex items-center gap-3">
+<div class="size-8 rounded-full bg-cover bg-center" data-alt="Sales rep portrait" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA5z-rlkXDaxTcFXLhtmcdCI_2y6L8qCpi19Cl5YVKrDU3UYCF03TRMqJorl_t5Zvd1mHPxwejUYTI5WIztZifPQTvQAn4_rC2Gz6TBhjQ3OCXoefawyc6CLSXbUAVdUTM_OcFYjzkZ1DQx7TROD1WQwsCFwzUw-Nwg_o5r09jW2dS8d-4TI7yxqeRpCXQZmODHrVtjHDrjzrIQRBxs7A2KCYjD1YFQIIAMRXzWYyU5GSMjQY-cZgXmuSs7n1rKeQRBMg9CEnQkjg8');"></div>
+                                        Marcus Johnson
+                                    </td>
+<td class="px-6 py-4">$500,000</td>
+<td class="px-6 py-4 text-white font-medium">$310,000</td>
+<td class="px-6 py-4">$345,000</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-error/10 text-error border border-error/20">
+                                            69%
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right">
+<span class="material-symbols-outlined text-text-secondary hover:text-white cursor-pointer text-[20px]">chevron_right</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-hover/30 transition-colors">
+<td class="px-6 py-4 font-medium text-white flex items-center gap-3">
+<div class="size-8 rounded-full bg-cover bg-center" data-alt="Sales rep portrait" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCTJbEhb0PgSwu47jX3OJrqvTzrvFawmCIU_X3namhx-BqxzEB0VrMJ2zL3HNX61NAJlwcS7XRETxoFhFK9BrmGFP81VIMxlMy60zFT18-wnKxfqpnlmolPzgavs6HomX0XvESpwHD1QfjGV69N8bcYeADLAeAnANH2basgjA7PyHm_zb2iyh5sF6uOpc_Ecke7w46VcF-TJ7bQAMRj-cqkPYPWFI8J2Ce_cPWj-PWNa0UqYv63YtU2-ASA7NHqAAqpIgGLpAlhbTg');"></div>
+                                        Elena Rodriguez
+                                    </td>
+<td class="px-6 py-4">$450,000</td>
+<td class="px-6 py-4 text-white font-medium">$460,000</td>
+<td class="px-6 py-4">$495,000</td>
+<td class="px-6 py-4 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-success/10 text-success border border-success/20">
+                                            110%
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right">
+<span class="material-symbols-outlined text-text-secondary hover:text-white cursor-pointer text-[20px]">chevron_right</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

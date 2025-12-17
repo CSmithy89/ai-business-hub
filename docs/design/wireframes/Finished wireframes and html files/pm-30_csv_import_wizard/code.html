@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-30 CSV Import Wizard</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f24a0d",
+                        "primary-hover": "#d93d0b",
+                        "background-light": "#f8f6f5",
+                        "background-dark": "#181311", 
+                        "card-dark": "#221915",
+                        "border-dark": "#392c28",
+                        "text-secondary": "#baa49c",
+                        "success": "#22C55E",
+                        "warning": "#F59E0B",
+                        "error": "#EF4444",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem", 
+                        "2xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #181311; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #392c28; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #54413b; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased overflow-x-hidden">
+<div class="relative flex h-full min-h-screen w-full flex-col">
+<!-- Navigation Bar -->
+<header class="sticky top-0 z-50 flex items-center justify-between border-b border-border-dark bg-[#181311]/95 backdrop-blur-md px-6 py-3">
+<div class="flex items-center gap-4 text-white">
+<div class="size-8 text-primary">
+<svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_6_543)">
+<path d="M42.1739 20.1739L27.8261 5.82609C29.1366 7.13663 28.3989 10.1876 26.2002 13.7654C24.8538 15.9564 22.9595 18.3449 20.6522 20.6522C18.3449 22.9595 15.9564 24.8538 13.7654 26.2002C10.1876 28.3989 7.13663 29.1366 5.82609 27.8261L20.1739 42.1739C21.4845 43.4845 24.5355 42.7467 28.1133 40.548C30.3042 39.2016 32.6927 37.3073 35 35C37.3073 32.6927 39.2016 30.3042 40.548 28.1133C42.7467 24.5355 43.4845 21.4845 42.1739 20.1739Z" fill="currentColor"></path>
+<path clip-rule="evenodd" d="M7.24189 26.4066C7.31369 26.4411 7.64204 26.5637 8.52504 26.3738C9.59462 26.1438 11.0343 25.5311 12.7183 24.4963C14.7583 23.2426 17.0256 21.4503 19.238 19.238C21.4503 17.0256 23.2426 14.7583 24.4963 12.7183C25.5311 11.0343 26.1438 9.59463 26.3738 8.52504C26.5637 7.64204 26.4411 7.31369 26.4066 7.24189C26.345 7.21246 26.143 7.14535 25.6664 7.1918C24.9745 7.25925 23.9954 7.5498 22.7699 8.14278C20.3369 9.32007 17.3369 11.4915 14.4142 14.4142C11.4915 17.3369 9.32007 20.3369 8.14278 22.7699C7.5498 23.9954 7.25925 24.9745 7.1918 25.6664C7.14534 26.143 7.21246 26.345 7.24189 26.4066ZM29.9001 10.7285C29.4519 12.0322 28.7617 13.4172 27.9042 14.8126C26.465 17.1544 24.4686 19.6641 22.0664 22.0664C19.6641 24.4686 17.1544 26.465 14.8126 27.9042C13.4172 28.7617 12.0322 29.4519 10.7285 29.9001L21.5754 40.747C21.6001 40.7606 21.8995 40.931 22.8729 40.7217C23.9424 40.4916 25.3821 39.879 27.0661 38.8441C29.1062 37.5904 31.3734 35.7982 33.5858 33.5858C35.7982 31.3734 37.5904 29.1062 38.8441 27.0661C39.879 25.3821 40.4916 23.9425 40.7216 22.8729C40.931 21.8995 40.7606 21.6001 40.747 21.5754L29.9001 10.7285ZM29.2403 4.41187L43.5881 18.7597C44.9757 20.1473 44.9743 22.1235 44.6322 23.7139C44.2714 25.3919 43.4158 27.2666 42.252 29.1604C40.8128 31.5022 38.8165 34.012 36.4142 36.4142C34.012 38.8165 31.5022 40.8128 29.1604 42.252C27.2666 43.4158 25.3919 44.2714 23.7139 44.6322C22.1235 44.9743 20.1473 44.9757 18.7597 43.5881L4.41187 29.2403C3.29027 28.1187 3.08209 26.5973 3.21067 25.2783C3.34099 23.9415 3.8369 22.4852 4.54214 21.0277C5.96129 18.0948 8.43335 14.7382 11.5858 11.5858C14.7382 8.43335 18.0948 5.9613 21.0277 4.54214C22.4852 3.8369 23.9415 3.34099 25.2783 3.21067C26.5973 3.08209 28.1187 3.29028 29.2403 4.41187Z" fill="currentColor" fill-rule="evenodd"></path>
+</g>
+</svg>
+</div>
+<h2 class="text-white text-xl font-bold tracking-tight">PM-30</h2>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#392c28] hover:bg-[#54413b] text-text-secondary transition-colors">
+<span class="material-symbols-outlined text-sm">help</span>
+<span class="text-sm font-medium">Docs</span>
+</button>
+<div class="size-9 rounded-full bg-cover bg-center border border-border-dark" data-alt="User profile avatar image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCCoiVR7m3a3Oi051eDiWx3vzpkgaHmg1FkRCoOArT2zydPSjEa_ekJGFRNxNefnJUdyjaOAezZ1ZDnmqevOGE3nflICOqBxcW1X87BXJH-d-13e2P3o7VyFcnX7cRQCFqda5z2jRop4H4wO7_DG8K8gBbqD2FFW23LDE-6mLXL0g47b8tiZPRG2mzYOg0ocEyOQS5GYMQ0UpysKJ-Sb8aKw-Tr5Mq0pMyNmro9dprY64T_5aj-7eCpKtIfzntbcO9B6KS_EcxuyZA");'></div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col items-center justify-start p-6 md:p-10 relative">
+<!-- Contextual Background Elements to make it feel like an overlay -->
+<div class="absolute inset-0 z-0 pointer-events-none opacity-20 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background-dark to-background-dark"></div>
+<!-- Wizard Modal Container -->
+<div class="relative z-10 w-full max-w-5xl flex flex-col bg-card-dark rounded-2xl border border-border-dark shadow-2xl overflow-hidden">
+<!-- Wizard Header: Title & Close -->
+<div class="flex items-center justify-between p-6 border-b border-border-dark bg-[#1d1614]">
+<div>
+<h1 class="text-2xl font-bold text-white tracking-tight">Import Data Wizard</h1>
+<p class="text-text-secondary text-sm mt-1">Bulk create tasks, stories, and epics via CSV.</p>
+</div>
+<button class="p-2 rounded-lg hover:bg-white/5 text-text-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Wizard Stepper -->
+<div class="w-full bg-[#181311] px-8 py-6 border-b border-border-dark">
+<div class="relative flex items-center justify-between">
+<!-- Connecting Line -->
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-border-dark -z-10"></div>
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-[66%] h-0.5 bg-primary/50 -z-10"></div>
+<!-- Step 1: Upload (Completed) -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer">
+<div class="size-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm shadow-[0_0_15px_rgba(242,74,13,0.3)]">
+<span class="material-symbols-outlined text-lg">check</span>
+</div>
+<span class="text-xs font-semibold text-primary">Upload</span>
+</div>
+<!-- Step 2: Map Columns (Completed) -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer">
+<div class="size-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm shadow-[0_0_15px_rgba(242,74,13,0.3)]">
+<span class="material-symbols-outlined text-lg">check</span>
+</div>
+<span class="text-xs font-semibold text-primary">Map Columns</span>
+</div>
+<!-- Step 3: Preview (Active) -->
+<div class="flex flex-col items-center gap-2">
+<div class="size-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm ring-4 ring-primary/20">
+                                3
+                            </div>
+<span class="text-xs font-semibold text-white">Preview</span>
+</div>
+<!-- Step 4: Import (Pending) -->
+<div class="flex flex-col items-center gap-2">
+<div class="size-8 rounded-full bg-[#392c28] border border-[#54413b] flex items-center justify-center text-text-secondary font-bold text-sm">
+                                4
+                            </div>
+<span class="text-xs font-medium text-text-secondary">Import</span>
+</div>
+</div>
+</div>
+<!-- Wizard Content Body (Scrollable) -->
+<div class="flex flex-col p-6 md:p-8 max-h-[600px] overflow-y-auto gap-8">
+<!-- COMPONENT: Step 1 Summary (Visual representation of step 1 collapsed) -->
+<div class="flex items-center justify-between p-4 rounded-xl border border-border-dark bg-[#1d1614]">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-[#2a201c] flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div>
+<p class="text-sm font-medium text-text-secondary">Source File</p>
+<p class="text-white font-semibold">Q3_Backlog_Export_Final.csv <span class="text-xs font-normal text-text-secondary ml-2">(2.4 MB)</span></p>
+</div>
+</div>
+<button class="text-primary hover:text-primary-hover text-sm font-semibold px-3 py-1.5 rounded hover:bg-primary/10 transition-colors">Change File</button>
+</div>
+<!-- COMPONENT: Step 2 Mapping Summary (Visual representation of step 2 collapsed) -->
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h3 class="text-white font-bold text-lg">Column Mapping</h3>
+<button class="text-primary text-sm font-medium hover:underline">Edit Mappings</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+<div class="bg-[#1d1614] border border-border-dark p-3 rounded-lg flex items-center justify-between">
+<span class="text-text-secondary text-sm">Summary</span>
+<span class="material-symbols-outlined text-text-secondary text-xs">arrow_forward</span>
+<span class="text-white text-sm font-medium">Task Title</span>
+</div>
+<div class="bg-[#1d1614] border border-border-dark p-3 rounded-lg flex items-center justify-between">
+<span class="text-text-secondary text-sm">Status</span>
+<span class="material-symbols-outlined text-text-secondary text-xs">arrow_forward</span>
+<span class="text-white text-sm font-medium">State</span>
+</div>
+<div class="bg-[#1d1614] border border-border-dark p-3 rounded-lg flex items-center justify-between">
+<span class="text-text-secondary text-sm">Assignee</span>
+<span class="material-symbols-outlined text-text-secondary text-xs">arrow_forward</span>
+<span class="text-white text-sm font-medium">Owner</span>
+</div>
+</div>
+</div>
+<!-- COMPONENT: Step 3 Preview (Active) -->
+<div class="flex flex-col gap-4">
+<div class="flex flex-wrap items-center justify-between gap-4">
+<h3 class="text-white font-bold text-lg">Validation Preview</h3>
+<div class="flex gap-2">
+<div class="px-3 py-1 rounded-full bg-success/10 border border-success/20 text-success text-xs font-bold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-success"></span>
+                                    215 Ready
+                                </div>
+<div class="px-3 py-1 rounded-full bg-warning/10 border border-warning/20 text-warning text-xs font-bold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-warning"></span>
+                                    12 Warnings
+                                </div>
+<div class="px-3 py-1 rounded-full bg-error/10 border border-error/20 text-error text-xs font-bold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+                                    3 Errors
+                                </div>
+</div>
+</div>
+<!-- Data Table -->
+<div class="w-full overflow-hidden rounded-xl border border-border-dark bg-[#1d1614] shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm">
+<thead class="bg-[#2a201c] text-text-secondary border-b border-border-dark">
+<tr>
+<th class="px-4 py-3 font-medium whitespace-nowrap w-12">#</th>
+<th class="px-4 py-3 font-medium whitespace-nowrap">Status</th>
+<th class="px-4 py-3 font-medium whitespace-nowrap">Task Title</th>
+<th class="px-4 py-3 font-medium whitespace-nowrap">Assignee</th>
+<th class="px-4 py-3 font-medium whitespace-nowrap">Due Date</th>
+<th class="px-4 py-3 font-medium whitespace-nowrap text-right">Points</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-dark">
+<!-- Row 1: Error -->
+<tr class="group hover:bg-[#2a201c] transition-colors relative">
+<td class="px-4 py-3 text-text-secondary font-mono border-l-4 border-error bg-error/5">1</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center gap-1.5 text-error font-medium">
+<span class="material-symbols-outlined text-sm">error</span> Critical
+                                                </span>
+</td>
+<td class="px-4 py-3 text-white">Implement OAuth 2.0 Flow</td>
+<td class="px-4 py-3 text-text-secondary italic">--</td>
+<td class="px-4 py-3 text-white">Oct 24, 2023</td>
+<td class="px-4 py-3 text-white text-right">8</td>
+</tr>
+<!-- Error Detail Expanded -->
+<tr class="bg-error/5 border-l-4 border-error">
+<td class="px-4 py-2" colspan="6">
+<div class="flex items-start gap-2 text-xs text-error">
+<span class="material-symbols-outlined text-sm">info</span>
+<span>Missing required field 'Assignee'. Default value cannot be applied because no default is set for Critical tasks.</span>
+</div>
+</td>
+</tr>
+<!-- Row 2: Warning -->
+<tr class="group hover:bg-[#2a201c] transition-colors">
+<td class="px-4 py-3 text-text-secondary font-mono border-l-4 border-warning bg-warning/5">2</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center gap-1.5 text-warning font-medium">
+<span class="material-symbols-outlined text-sm">warning</span> Warning
+                                                </span>
+</td>
+<td class="px-4 py-3 text-white">Refactor User Component</td>
+<td class="px-4 py-3 text-white flex items-center gap-2">
+<div class="size-5 rounded-full bg-purple-500 text-[10px] text-white flex items-center justify-center">JD</div>
+                                                John Doe
+                                            </td>
+<td class="px-4 py-3 text-text-secondary line-through decoration-warning">Sep 12, 2022</td>
+<td class="px-4 py-3 text-white text-right">5</td>
+</tr>
+<!-- Row 3: Success -->
+<tr class="group hover:bg-[#2a201c] transition-colors">
+<td class="px-4 py-3 text-text-secondary font-mono border-l-4 border-success">3</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center gap-1.5 text-success font-medium">
+<span class="material-symbols-outlined text-sm">check_circle</span> Ready
+                                                </span>
+</td>
+<td class="px-4 py-3 text-white">Update Landing Page Hero</td>
+<td class="px-4 py-3 text-white flex items-center gap-2">
+<div class="size-5 rounded-full bg-blue-500 text-[10px] text-white flex items-center justify-center">AS</div>
+                                                Alice Smith
+                                            </td>
+<td class="px-4 py-3 text-white">Oct 30, 2023</td>
+<td class="px-4 py-3 text-white text-right">3</td>
+</tr>
+<!-- Row 4: Success -->
+<tr class="group hover:bg-[#2a201c] transition-colors">
+<td class="px-4 py-3 text-text-secondary font-mono border-l-4 border-success">4</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center gap-1.5 text-success font-medium">
+<span class="material-symbols-outlined text-sm">check_circle</span> Ready
+                                                </span>
+</td>
+<td class="px-4 py-3 text-white">Fix Navigation Bug on Mobile</td>
+<td class="px-4 py-3 text-white flex items-center gap-2">
+<div class="size-5 rounded-full bg-green-500 text-[10px] text-white flex items-center justify-center">MK</div>
+                                                Mike Kowalski
+                                            </td>
+<td class="px-4 py-3 text-white">Nov 02, 2023</td>
+<td class="px-4 py-3 text-white text-right">2</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="bg-[#2a201c] px-4 py-2 border-t border-border-dark flex justify-center">
+<span class="text-xs text-text-secondary">Showing 4 of 230 rows</span>
+</div>
+</div>
+<!-- Settings -->
+<div class="flex flex-col sm:flex-row gap-6 mt-2 p-4 bg-[#1d1614] rounded-xl border border-border-dark">
+<div class="flex-1">
+<label class="block text-sm font-medium text-white mb-2">Import Target</label>
+<select class="w-full h-10 px-3 bg-[#2a201c] border border-border-dark rounded-lg text-white text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none">
+<option>Project: Main Web App (Q4 Sprint)</option>
+<option>Project: Mobile API</option>
+</select>
+</div>
+<div class="flex-1">
+<label class="block text-sm font-medium text-white mb-2">Error Handling</label>
+<div class="flex gap-4 items-center h-10">
+<label class="flex items-center gap-2 cursor-pointer">
+<input checked="" class="text-primary focus:ring-primary bg-[#2a201c] border-border-dark" name="error_handling" type="radio"/>
+<span class="text-sm text-text-secondary">Skip errors</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer">
+<input class="text-primary focus:ring-primary bg-[#2a201c] border-border-dark" name="error_handling" type="radio"/>
+<span class="text-sm text-text-secondary">Stop import on error</span>
+</label>
+</div>
+</div>
+</div>
+</div>
+<!-- COMPONENT: Step 4 Simulation (Hidden by default logic, but shown here for UI completeness) -->
+<!-- Simulating a collapsed "Import Progress" section below to show the component design -->
+<div class="opacity-40 hover:opacity-100 transition-opacity border-t border-dashed border-border-dark pt-8 relative">
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-card-dark px-3 text-xs text-text-secondary uppercase tracking-widest">UI Kit: Progress State</div>
+<div class="flex flex-col gap-3 mb-4">
+<div class="flex justify-between items-end">
+<div>
+<p class="text-white font-medium">Importing Data...</p>
+<p class="text-text-secondary text-xs">Est. time remaining: 12s</p>
+</div>
+<p class="text-primary font-bold">45%</p>
+</div>
+<!-- Progress Bar -->
+<div class="h-3 w-full bg-[#392c28] rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[45%] relative overflow-hidden">
+<div class="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] -skew-x-12 translate-x-[-100%]"></div>
+</div>
+</div>
+</div>
+<!-- Live Log Terminal -->
+<div class="bg-black/40 rounded-lg border border-border-dark p-4 h-32 overflow-y-auto font-mono text-xs flex flex-col gap-1">
+<div class="text-success flex items-center gap-2"><span class="material-symbols-outlined text-[10px]">check</span> Row 118: Task 'API Rate Limiting' created.</div>
+<div class="text-success flex items-center gap-2"><span class="material-symbols-outlined text-[10px]">check</span> Row 119: Task 'Update Documentation' created.</div>
+<div class="text-warning flex items-center gap-2"><span class="material-symbols-outlined text-[10px]">warning</span> Row 120: Warning - User 'mjones' not found, assigned to 'Unassigned'.</div>
+<div class="text-text-secondary animate-pulse">Processing Row 121...</div>
+</div>
+</div>
+</div>
+<!-- Wizard Footer -->
+<div class="p-6 border-t border-border-dark bg-[#1d1614] flex items-center justify-between">
+<button class="px-6 py-2.5 rounded-xl border border-border-dark text-white font-medium hover:bg-[#2a201c] transition-colors">
+                        Back
+                    </button>
+<div class="flex items-center gap-3">
+<button class="px-6 py-2.5 rounded-xl text-text-secondary font-medium hover:text-white transition-colors">
+                            Cancel
+                        </button>
+<button class="px-8 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/20 transition-all transform active:scale-95 flex items-center gap-2">
+<span>Import Data</span>
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+<style>
+        @keyframes shimmer {
+            100% {
+                transform: translateX(200%);
+            }
+        }
+    </style>
+</body></html>

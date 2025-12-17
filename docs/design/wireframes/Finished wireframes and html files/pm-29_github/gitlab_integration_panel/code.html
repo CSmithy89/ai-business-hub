@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-29 GitHub/GitLab Integration Panel</title>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ecec",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#102222",
+                        "card-dark": "#1c2727",
+                        "card-light": "#ffffff",
+                        "border-dark": "#3b5454",
+                        "border-light": "#e5e7eb",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for better dark mode experience */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #102222; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b5454; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a6666; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex flex-col overflow-x-hidden">
+<!-- Main Layout Container -->
+<div class="layout-container flex h-full grow flex-col">
+<div class="flex flex-1 justify-center py-5 px-4 md:px-10 lg:px-40">
+<div class="layout-content-container flex flex-col max-w-[1024px] flex-1 w-full gap-6">
+<!-- Header & Tabs -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-between items-end">
+<div>
+<p class="text-slate-500 dark:text-[#9db9b9] text-sm font-medium mb-1">PM-29 • Feature Wireframes</p>
+<h1 class="text-2xl md:text-3xl font-bold dark:text-white text-slate-900">Task Details</h1>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-transparent hover:bg-slate-200 dark:hover:bg-[#1c2727] transition-colors text-slate-500 dark:text-[#9db9b9]">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</div>
+<!-- Tabs Component -->
+<div class="border-b border-border-light dark:border-border-dark">
+<div class="flex gap-8 overflow-x-auto">
+<a class="group flex flex-col items-center justify-center border-b-[3px] border-b-transparent gap-2 pb-3 pt-2 min-w-[80px]" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-600 dark:text-[#9db9b9] dark:group-hover:text-white">description</span>
+<p class="text-slate-500 group-hover:text-slate-700 dark:text-[#9db9b9] dark:group-hover:text-white text-sm font-bold">Overview</p>
+</a>
+<a class="group flex flex-col items-center justify-center border-b-[3px] border-b-transparent gap-2 pb-3 pt-2 min-w-[80px]" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-600 dark:text-[#9db9b9] dark:group-hover:text-white">forum</span>
+<p class="text-slate-500 group-hover:text-slate-700 dark:text-[#9db9b9] dark:group-hover:text-white text-sm font-bold">Comments</p>
+</a>
+<a class="group flex flex-col items-center justify-center border-b-[3px] border-b-transparent gap-2 pb-3 pt-2 min-w-[80px]" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-600 dark:text-[#9db9b9] dark:group-hover:text-white">folder_open</span>
+<p class="text-slate-500 group-hover:text-slate-700 dark:text-[#9db9b9] dark:group-hover:text-white text-sm font-bold">Files</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-[3px] border-primary gap-2 pb-3 pt-2 min-w-[100px]" href="#">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">terminal</span>
+<p class="text-slate-900 dark:text-white text-sm font-bold">Development</p>
+</a>
+</div>
+</div>
+</div>
+<!-- Main Content Area -->
+<div class="flex flex-col gap-6">
+<!-- Top Row: Repo Card & Bridge Panel -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Repository Card -->
+<div class="lg:col-span-2 flex flex-col sm:flex-row items-stretch justify-between gap-4 rounded-xl bg-card-light dark:bg-card-dark p-5 shadow-sm border border-border-light dark:border-border-dark">
+<div class="flex flex-col justify-between gap-4 flex-1">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-slate-400 dark:text-[#9db9b9] text-[20px]">code</span>
+<p class="text-slate-500 dark:text-[#9db9b9] text-xs font-bold uppercase tracking-wider">Connected Repository</p>
+</div>
+<div class="flex items-center gap-2">
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight">frontend-monorepo</h2>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">GitHub</span>
+</div>
+<p class="text-slate-500 dark:text-[#9db9b9] text-sm">Last synced: 2 mins ago</p>
+</div>
+<div class="flex gap-3 mt-2">
+<button class="flex cursor-pointer items-center justify-center rounded-lg h-9 px-4 bg-slate-200 dark:bg-[#283939] hover:bg-slate-300 dark:hover:bg-[#3b5454] text-slate-900 dark:text-white gap-2 text-sm font-medium transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                                        Change Repo
+                                    </button>
+<button class="flex cursor-pointer items-center justify-center rounded-lg h-9 w-9 bg-slate-200 dark:bg-[#283939] hover:bg-slate-300 dark:hover:bg-[#3b5454] text-slate-900 dark:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+</div>
+</div>
+<div class="w-full sm:w-40 h-24 sm:h-auto bg-center bg-no-repeat bg-cover rounded-lg relative overflow-hidden group" data-alt="Abstract code pattern visualization">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-purple-500/20 mix-blend-overlay"></div>
+<div class="absolute inset-0 bg-[url('https://placeholder.pics/svg/160x100/102222/283939/code-preview')] opacity-50 bg-cover bg-center"></div>
+</div>
+</div>
+<!-- Bridge Activity Panel -->
+<div class="flex flex-col gap-3 rounded-xl bg-card-light dark:bg-card-dark p-5 shadow-sm border border-border-light dark:border-border-dark border-l-4 border-l-primary relative overflow-hidden">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-[20px]">smart_toy</span>
+<h3 class="text-slate-900 dark:text-white font-bold text-sm">Bridge Insights</h3>
+</div>
+<p class="text-slate-600 dark:text-[#9db9b9] text-sm leading-relaxed">
+<span class="text-primary font-bold">Auto-Action:</span> Detected new PR #402. Status moved to <span class="italic text-slate-800 dark:text-white">'In Review'</span>.
+                            </p>
+<p class="text-slate-600 dark:text-[#9db9b9] text-sm leading-relaxed mt-1">
+                                2 potential conflicts detected in <code class="bg-slate-200 dark:bg-[#283939] px-1 rounded text-xs">utils/api.ts</code>.
+                            </p>
+<!-- Decorative glow -->
+<div class="absolute -top-10 -right-10 w-20 h-20 bg-primary/10 rounded-full blur-xl pointer-events-none"></div>
+</div>
+</div>
+<!-- Branches Section -->
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between px-1">
+<h3 class="text-slate-900 dark:text-white text-lg font-bold">Branches</h3>
+<button class="text-primary hover:text-primary/80 text-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">add</span> New Branch
+                            </button>
+</div>
+<div class="w-full overflow-x-auto rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark shadow-sm">
+<table class="w-full text-left border-collapse min-w-[800px]">
+<thead>
+<tr class="bg-slate-100 dark:bg-[#1c2727] border-b border-border-light dark:border-border-dark text-slate-500 dark:text-[#9db9b9] text-xs uppercase tracking-wider">
+<th class="px-6 py-4 font-semibold w-1/3">Branch Name</th>
+<th class="px-6 py-4 font-semibold">Creator</th>
+<th class="px-6 py-4 font-semibold">Last Updated</th>
+<th class="px-6 py-4 font-semibold">Commits</th>
+<th class="px-6 py-4 font-semibold text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="text-sm">
+<tr class="border-b border-border-light dark:border-[#3b5454] hover:bg-slate-50 dark:hover:bg-[#243030] transition-colors">
+<td class="px-6 py-4 text-slate-900 dark:text-white font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-[18px]">call_split</span>
+<span class="font-mono text-xs md:text-sm">feat/pm-29-integration-panel</span>
+</td>
+<td class="px-6 py-4">
+<div class="w-8 h-8 rounded-full bg-slate-300 dark:bg-[#3b5454] bg-cover bg-center border-2 border-white dark:border-[#1c2727]" data-alt="User avatar of creator" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBMl0_CWl2FktD4z9ANSAmKa00HyrBECXOZcvSP-wi5ha9jiE_Ke8rHdfI8yjSwGSqDm4yioJLR6bhlX8yTGtkvCsDmFE0cyS5ywhbTk10Ub1_BSnbxO_Ra8laTgsV2R3hkNvcBrxVGfg7_uWq3iqbMrEMHpR1BVpNWvq2EUmsIGzIZXW2IxgOwAFHaTsAuDSDRCVxPd2cKFcUKedni9hkjijHmKfgXKBiQstOaXqCmG5SCYNHK-WUx01KPCCxoqMo0NMwSwWTeuwQ");'></div>
+</td>
+<td class="px-6 py-4 text-slate-600 dark:text-[#9db9b9]">2 hours ago</td>
+<td class="px-6 py-4 text-slate-600 dark:text-[#9db9b9]">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">history</span> 5
+                                            </div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-[#243030] transition-colors">
+<td class="px-6 py-4 text-slate-900 dark:text-white font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-[18px]">call_split</span>
+<span class="font-mono text-xs md:text-sm">fix/pm-29-layout-adjustment</span>
+</td>
+<td class="px-6 py-4">
+<div class="w-8 h-8 rounded-full bg-slate-300 dark:bg-[#3b5454] bg-cover bg-center border-2 border-white dark:border-[#1c2727]" data-alt="User avatar of creator" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCuo4yP2-6WZWKolDWzv-TYaS6_5lEO48yoaLSNAF43aI3EDwc_Sn6jR7k9nxsxfGgBQsLSG4ou4DEDqwmjUiztXKopQL_KJNDjAYqfHcMTgJYTRnaWpAtq0c8nGJ192ZxqsqI0UGRBCj_C49nMuqPZhZOobo_P3IdEuRGV820Zs5EvGiUlQXB1ghA_qmSfFn1CT6yPtgbLKH_asAJuYp2TF0xdTXE2Ita3_zjb2GzndpTPwOzb9wnVkMT8M7rllk9qgZ-oSkNNEU4");'></div>
+</td>
+<td class="px-6 py-4 text-slate-600 dark:text-[#9db9b9]">1 day ago</td>
+<td class="px-6 py-4 text-slate-600 dark:text-[#9db9b9]">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">history</span> 12
+                                            </div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Split Section: Pull Requests & Recent Commits -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- Pull Requests -->
+<div class="flex flex-col gap-3">
+<h3 class="text-slate-900 dark:text-white text-lg font-bold px-1">Pull Requests</h3>
+<div class="flex flex-col gap-3">
+<!-- PR Card 1 -->
+<div class="rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-5 shadow-sm hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-3">
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-green-500 pt-0.5">check_circle</span>
+<div>
+<h4 class="text-slate-900 dark:text-white font-semibold text-base group-hover:text-primary transition-colors">Implement Git Integration Panel</h4>
+<p class="text-slate-500 dark:text-[#9db9b9] text-xs mt-1">#402 opened by <span class="text-slate-700 dark:text-slate-300 font-medium">alex-dev</span> • 3 hours ago</p>
+</div>
+</div>
+<span class="bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-1 rounded text-xs font-bold uppercase">Open</span>
+</div>
+<div class="flex flex-wrap items-center gap-4 mt-4 border-t border-border-light dark:border-border-dark pt-4">
+<div class="flex items-center gap-1.5" title="CI/CD Status">
+<span class="material-symbols-outlined text-green-500 text-[18px]">check</span>
+<span class="text-xs text-slate-600 dark:text-[#9db9b9] font-medium">Build Passed</span>
+</div>
+<div class="flex items-center gap-1.5" title="Review Status">
+<span class="material-symbols-outlined text-yellow-500 text-[18px]">pending</span>
+<span class="text-xs text-slate-600 dark:text-[#9db9b9] font-medium">Review Required</span>
+</div>
+<div class="flex-1"></div>
+<div class="flex gap-2">
+<button class="px-3 py-1.5 bg-transparent border border-border-light dark:border-border-dark hover:bg-slate-100 dark:hover:bg-[#283939] rounded text-xs font-semibold text-slate-700 dark:text-white transition-colors">
+                                                View
+                                            </button>
+<button class="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded text-xs font-semibold text-primary transition-colors">
+                                                Merge
+                                            </button>
+</div>
+</div>
+</div>
+<!-- PR Card 2 -->
+<div class="rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-5 shadow-sm opacity-75">
+<div class="flex justify-between items-start mb-3">
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-purple-400 pt-0.5">merge</span>
+<div>
+<h4 class="text-slate-900 dark:text-white font-semibold text-base">Layout Adjustments for Mobile</h4>
+<p class="text-slate-500 dark:text-[#9db9b9] text-xs mt-1">#398 merged by <span class="text-slate-700 dark:text-slate-300 font-medium">sarah-lead</span> • Yesterday</p>
+</div>
+</div>
+<span class="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-1 rounded text-xs font-bold uppercase">Merged</span>
+</div>
+<div class="flex flex-wrap items-center gap-4 mt-4 border-t border-border-light dark:border-border-dark pt-4">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-green-500 text-[18px]">check</span>
+<span class="text-xs text-slate-600 dark:text-[#9db9b9] font-medium">Deployed</span>
+</div>
+<div class="flex-1"></div>
+<button class="px-3 py-1.5 bg-transparent border border-border-light dark:border-border-dark hover:bg-slate-100 dark:hover:bg-[#283939] rounded text-xs font-semibold text-slate-700 dark:text-white transition-colors">
+                                            Details
+                                        </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Commits -->
+<div class="flex flex-col gap-3">
+<h3 class="text-slate-900 dark:text-white text-lg font-bold px-1">Recent Commits</h3>
+<div class="rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark shadow-sm overflow-hidden flex flex-col h-full">
+<div class="flex-1 overflow-y-auto max-h-[340px]">
+<div class="flex flex-col">
+<!-- Commit Item -->
+<div class="flex items-start gap-3 p-4 border-b border-border-light dark:border-border-dark hover:bg-slate-50 dark:hover:bg-[#243030] transition-colors group">
+<span class="material-symbols-outlined text-slate-400 text-[20px] mt-0.5">commit</span>
+<div class="flex flex-col flex-1 gap-1">
+<div class="flex justify-between items-start">
+<p class="text-slate-900 dark:text-white text-sm font-medium line-clamp-1">Update branch configuration logic</p>
+<span class="text-[10px] text-slate-500 whitespace-nowrap bg-slate-100 dark:bg-[#283939] px-1.5 py-0.5 rounded font-mono">3a4b5c</span>
+</div>
+<div class="flex items-center gap-2 text-xs text-slate-500 dark:text-[#9db9b9]">
+<span class="font-semibold text-slate-700 dark:text-slate-300">alex-dev</span>
+<span>•</span>
+<span>10 mins ago</span>
+</div>
+</div>
+</div>
+<!-- Commit Item -->
+<div class="flex items-start gap-3 p-4 border-b border-border-light dark:border-border-dark hover:bg-slate-50 dark:hover:bg-[#243030] transition-colors group">
+<span class="material-symbols-outlined text-slate-400 text-[20px] mt-0.5">commit</span>
+<div class="flex flex-col flex-1 gap-1">
+<div class="flex justify-between items-start">
+<p class="text-slate-900 dark:text-white text-sm font-medium line-clamp-1">Fix responsive table layout</p>
+<span class="text-[10px] text-slate-500 whitespace-nowrap bg-slate-100 dark:bg-[#283939] px-1.5 py-0.5 rounded font-mono">9d8e7f</span>
+</div>
+<div class="flex items-center gap-2 text-xs text-slate-500 dark:text-[#9db9b9]">
+<span class="font-semibold text-slate-700 dark:text-slate-300">alex-dev</span>
+<span>•</span>
+<span>45 mins ago</span>
+</div>
+</div>
+</div>
+<!-- Commit Item -->
+<div class="flex items-start gap-3 p-4 border-b border-border-light dark:border-border-dark hover:bg-slate-50 dark:hover:bg-[#243030] transition-colors group">
+<span class="material-symbols-outlined text-slate-400 text-[20px] mt-0.5">commit</span>
+<div class="flex flex-col flex-1 gap-1">
+<div class="flex justify-between items-start">
+<p class="text-slate-900 dark:text-white text-sm font-medium line-clamp-1">Initial component setup for Git Panel</p>
+<span class="text-[10px] text-slate-500 whitespace-nowrap bg-slate-100 dark:bg-[#283939] px-1.5 py-0.5 rounded font-mono">1a2b3c</span>
+</div>
+<div class="flex items-center gap-2 text-xs text-slate-500 dark:text-[#9db9b9]">
+<span class="font-semibold text-slate-700 dark:text-slate-300">alex-dev</span>
+<span>•</span>
+<span>2 hours ago</span>
+</div>
+</div>
+</div>
+<!-- Commit Item -->
+<div class="flex items-start gap-3 p-4 hover:bg-slate-50 dark:hover:bg-[#243030] transition-colors group">
+<span class="material-symbols-outlined text-slate-400 text-[20px] mt-0.5">commit</span>
+<div class="flex flex-col flex-1 gap-1">
+<div class="flex justify-between items-start">
+<p class="text-slate-900 dark:text-white text-sm font-medium line-clamp-1">Merge pull request #398 from fix/mobile-layout</p>
+<span class="text-[10px] text-slate-500 whitespace-nowrap bg-slate-100 dark:bg-[#283939] px-1.5 py-0.5 rounded font-mono">f5g6h7</span>
+</div>
+<div class="flex items-center gap-2 text-xs text-slate-500 dark:text-[#9db9b9]">
+<span class="font-semibold text-slate-700 dark:text-slate-300">sarah-lead</span>
+<span>•</span>
+<span>Yesterday</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="p-3 bg-slate-50 dark:bg-[#243030] border-t border-border-light dark:border-border-dark text-center">
+<button class="text-xs font-semibold text-primary hover:text-primary/80 transition-colors">View All Commits</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

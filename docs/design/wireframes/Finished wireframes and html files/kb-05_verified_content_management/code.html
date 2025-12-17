@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KB-05 Verified Content Management</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#11d452",
+                        "primary-dark": "#0ea641",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                        "surface-dark": "#182e21",
+                        "surface-darker": "#0b1a10",
+                        "verified": "#2ECC71",
+                        "expiring": "#F59E0B",
+                        "expired": "#EF4444",
+                        "scribe": "#14b8a6",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "2xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for dark mode panels */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #102216;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #28392e;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3e5246;
+        }
+        .ProseMirror p {
+            margin-bottom: 1em;
+            color: #d1d5db;
+            line-height: 1.6;
+        }
+        .ProseMirror h2 {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: white;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        .ProseMirror ul {
+            list-style-type: disc;
+            padding-left: 1.5em;
+            margin-bottom: 1em;
+            color: #d1d5db;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white overflow-hidden h-screen w-full flex flex-col">
+<!-- App Layout -->
+<div class="flex flex-1 h-full overflow-hidden">
+<!-- Left Sidebar: Navigation -->
+<aside class="w-64 flex flex-col border-r border-white/10 bg-surface-darker hidden md:flex shrink-0">
+<!-- Brand -->
+<div class="h-16 flex items-center gap-3 px-5 border-b border-white/5">
+<div class="size-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">dataset</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-white text-sm font-semibold tracking-wide">KB-05 SaaS</h1>
+<span class="text-xs text-emerald-400/60 font-medium">Knowledge Manager</span>
+</div>
+</div>
+<!-- Nav Items -->
+<nav class="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-1">
+<div class="mb-4">
+<p class="px-3 text-xs font-semibold text-emerald-100/30 uppercase tracking-wider mb-2">Main</p>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-emerald-100/60 hover:text-white hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-dark text-white shadow-sm border border-white/5" href="#">
+<span class="material-symbols-outlined text-[20px] text-primary">description</span>
+<span class="text-sm font-medium">Page Tree</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-emerald-100/60 hover:text-white hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">edit_note</span>
+<span class="text-sm font-medium">Drafts</span>
+</a>
+</div>
+<!-- Tree View Mockup -->
+<div class="mb-4">
+<p class="px-3 text-xs font-semibold text-emerald-100/30 uppercase tracking-wider mb-2">Engineering Space</p>
+<div class="pl-2">
+<div class="flex items-center gap-2 py-1.5 px-2 text-sm text-white/80 hover:bg-white/5 rounded cursor-pointer">
+<span class="material-symbols-outlined text-[16px] text-white/40">expand_more</span>
+<span class="material-symbols-outlined text-[18px] text-primary/80">folder</span>
+<span>Protocols</span>
+</div>
+<div class="pl-7 flex flex-col gap-0.5 border-l border-white/10 ml-3">
+<div class="flex items-center justify-between py-1.5 px-2 text-sm bg-primary/10 text-primary font-medium rounded cursor-pointer">
+<span class="truncate">Q3 Eng Protocols</span>
+<span class="material-symbols-outlined text-[14px] text-verified" title="Verified">check_circle</span>
+</div>
+<div class="flex items-center justify-between py-1.5 px-2 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded cursor-pointer">
+<span class="truncate">API Standards</span>
+<span class="material-symbols-outlined text-[14px] text-expiring" title="Expiring Soon">schedule</span>
+</div>
+<div class="flex items-center justify-between py-1.5 px-2 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded cursor-pointer">
+<span class="truncate">Deployment Guide</span>
+</div>
+</div>
+</div>
+</div>
+</nav>
+<!-- Bottom Actions -->
+<div class="p-4 border-t border-white/5">
+<button class="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-emerald-100/60 hover:text-white hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 bg-background-dark relative">
+<!-- Breadcrumbs & Top Bar -->
+<header class="h-16 flex items-center justify-between px-8 border-b border-white/5 bg-background-dark z-10">
+<div class="flex items-center gap-2 text-sm text-emerald-100/50">
+<span class="hover:text-white cursor-pointer">Engineering</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="hover:text-white cursor-pointer">Protocols</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-white font-medium">Q3 Protocols</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex -space-x-2">
+<img class="size-8 rounded-full border-2 border-background-dark" data-alt="User Avatar Sarah" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOVH2l-LPkDrM7AYj49nZwUduSTOYtBDHEMLZ-sazZhpHhgpgajs-9_W7NIZ94JP2yqsjEmYdWH72dHvanYBIS6FezqAsw2Q7DUbyxtVNXylyKI6e7_pCUYl1yr-QtXQztkl6sOlRdwia-9-DvjewL-DlXoNenhDOy0IXFyhNbvq01saGAH-20VeKsAAHcm5KSFII_3UcJO19itv0vvwgBwlWaK7m71Q4bLDZxo4_FAe-r7iXdlVX2NlELC3Fny73JBg-xzY9dHrY"/>
+<img class="size-8 rounded-full border-2 border-background-dark" data-alt="User Avatar Mike" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDV6E4zP4zbKdNThglKci0yu8479mxopjbwt2oHaWIrV_G4LC3ZqmrPCZlIYUGlYyi6yvR6iuzE8-d0rTANu4hSYklGLJE5bOMHqG1xjsEuUsLpMXDYfwKvEisBVoMfHFmYm56Nr9ZqCoNEFJ28zSgn5gzS4ZiJPNLcNb_pULXI_Nff8r6RVpq7kQXYmVk6Ze0A0Jl9nhZPwxzsiUpe7P7EP0bFGMSvCPZ1Gh8D98mof-l5HV0aBeHqek1U4JvwPLo_baX0DPW8zv0"/>
+<div class="size-8 rounded-full border-2 border-background-dark bg-white/10 flex items-center justify-center text-xs text-white">+3</div>
+</div>
+<button class="bg-primary hover:bg-primary-dark text-background-dark px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-[0_0_15px_rgba(17,212,82,0.3)]">
+                        Share
+                    </button>
+</div>
+</header>
+<!-- Scrollable Editor Surface -->
+<div class="flex-1 overflow-y-auto">
+<div class="max-w-4xl mx-auto py-10 px-8">
+<!-- Page Heading Area -->
+<div class="mb-8">
+<div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+<div>
+<h1 class="text-4xl font-bold text-white tracking-tight mb-2">Q3 Engineering Protocols</h1>
+<div class="flex items-center gap-3 text-sm text-emerald-100/40">
+<span>Last updated 2 hours ago by Sarah J.</span>
+<span>•</span>
+<span>v4.2</span>
+</div>
+</div>
+<!-- Header Actions -->
+<div class="flex items-center gap-3">
+<!-- Verified Badge Button -->
+<button class="group flex items-center gap-2 px-3 py-1.5 rounded-full bg-verified/10 border border-verified/20 hover:bg-verified/20 transition-all cursor-pointer">
+<span class="material-symbols-outlined text-[18px] text-verified fill-1">verified_user</span>
+<span class="text-sm font-semibold text-verified">Verified</span>
+</button>
+<button class="p-2 text-emerald-100/40 hover:text-white transition-colors rounded-lg hover:bg-white/5">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+</div>
+<!-- Verification Alert Banner -->
+<div class="flex items-start gap-3 p-4 rounded-xl bg-expiring/10 border border-expiring/20 mb-6">
+<span class="material-symbols-outlined text-expiring mt-0.5">warning</span>
+<div class="flex-1">
+<h3 class="text-sm font-semibold text-expiring">Verification Expiring Soon</h3>
+<p class="text-sm text-emerald-100/60 mt-1">This page's verified status will expire in 3 days (Nov 15, 2023). Review contents to maintain trusted status.</p>
+</div>
+<button class="text-sm font-medium text-white underline decoration-white/30 hover:decoration-white underline-offset-4">Renew Now</button>
+</div>
+<!-- Chips / Tags -->
+<div class="flex gap-2 mb-6">
+<span class="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-xs font-medium text-emerald-100/60">#engineering</span>
+<span class="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-xs font-medium text-emerald-100/60">#protocols</span>
+<span class="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-xs font-medium text-emerald-100/60">#compliance</span>
+</div>
+</div>
+<!-- Toolbar -->
+<div class="sticky top-0 z-20 mx-auto mb-8 bg-surface-dark/80 backdrop-blur-md rounded-xl border border-white/5 p-1 flex items-center gap-1 w-fit shadow-xl">
+<button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"><span class="material-symbols-outlined text-[20px]">format_bold</span></button>
+<button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"><span class="material-symbols-outlined text-[20px]">format_italic</span></button>
+<button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"><span class="material-symbols-outlined text-[20px]">format_underlined</span></button>
+<div class="w-px h-5 bg-white/10 mx-1"></div>
+<button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"><span class="material-symbols-outlined text-[20px]">format_list_bulleted</span></button>
+<button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"><span class="material-symbols-outlined text-[20px]">format_list_numbered</span></button>
+<div class="w-px h-5 bg-white/10 mx-1"></div>
+<button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"><span class="material-symbols-outlined text-[20px]">image</span></button>
+<button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"><span class="material-symbols-outlined text-[20px]">link</span></button>
+</div>
+<!-- Editor Content -->
+<article class="ProseMirror min-h-[400px]">
+<h2>1. Introduction</h2>
+<p>The Q3 engineering protocols are designed to streamline our deployment pipeline and ensure zero-downtime migrations. All team members must adhere to these guidelines starting October 1st.</p>
+<h2>2. Code Review Standards</h2>
+<p>All Pull Requests (PRs) require at least two approvals from senior engineers. We are introducing a new static analysis step in the CI/CD pipeline using SonarQube.</p>
+<ul>
+<li>Variable naming must follow the camelCase convention for JavaScript.</li>
+<li>Component logic should be separated from presentation layers.</li>
+<li>Unit test coverage must remain above 85%.</li>
+</ul>
+<h2>3. Incident Response</h2>
+<p>In the event of a P1 incident, the on-call engineer must acknowledge the alert within 5 minutes. Escalation policies have been updated in PagerDuty.</p>
+<div class="my-6 p-4 rounded-xl bg-surface-dark border border-white/5 flex gap-4">
+<div class="h-24 aspect-video bg-cover bg-center rounded-lg" data-alt="Data dashboard visualization on a monitor" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC8OMzh9q-v4oqls2UJ7tBdckwTPONW06obllmHjbo6H7LMaCc-RYjSysPRHocqK1mDaRGXrx7dJRE6N0rIraV-F-UBSpQGcdVpRCpa7T6NqApK32Neped1yJbq-wppW9NVDF1wZL9DZr-JyRCx_JNxZmsnGG2kUOoT2fP2srVpZ4a3m6_Es-5B3QgoNzsCq1bmxLMBihOit34QyX8NTng1M21gng1Q1EY6m4rUclOjweIULhuDZYgBX2z5rs1TAh_EFRGOSjje0Ew');"></div>
+<div class="flex flex-col justify-center">
+<h4 class="text-white font-medium">Incident Flowchart v3</h4>
+<p class="text-sm text-emerald-100/50">Updated workflow for Q3 2023</p>
+</div>
+</div>
+<h2>4. Compliance &amp; Verification</h2>
+<p>This document is subject to quarterly verification by the Engineering Director. Please ensure all links to external compliance docs are valid.</p>
+</article>
+<!-- Verification List Table (Requested Component) -->
+<div class="mt-16 pt-10 border-t border-white/10">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-lg font-semibold text-white">Related Verified Pages</h3>
+<button class="text-sm text-primary hover:text-primary-dark font-medium">View All</button>
+</div>
+<div class="overflow-hidden rounded-xl border border-white/10 bg-surface-dark/50">
+<table class="w-full text-left text-sm">
+<thead class="bg-white/5 text-emerald-100/60 font-medium">
+<tr>
+<th class="px-4 py-3">Page Name</th>
+<th class="px-4 py-3">Verified By</th>
+<th class="px-4 py-3">Status</th>
+<th class="px-4 py-3">Expires</th>
+<th class="px-4 py-3 text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/5">
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-4 py-3 text-white">API Standards v2</td>
+<td class="px-4 py-3 text-emerald-100/60">Mike R.</td>
+<td class="px-4 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-verified/10 text-verified border border-verified/20">Active</span></td>
+<td class="px-4 py-3 text-emerald-100/60">Dec 12, 2023</td>
+<td class="px-4 py-3 text-right"><button class="text-white/60 hover:text-white"><span class="material-symbols-outlined text-[18px]">more_vert</span></button></td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors">
+<td class="px-4 py-3 text-white">Security Policy</td>
+<td class="px-4 py-3 text-emerald-100/60">Sarah J.</td>
+<td class="px-4 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-expiring/10 text-expiring border border-expiring/20">Expiring</span></td>
+<td class="px-4 py-3 text-emerald-100/60">Nov 18, 2023</td>
+<td class="px-4 py-3 text-right"><button class="text-white/60 hover:text-white"><span class="material-symbols-outlined text-[18px]">more_vert</span></button></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Right Sidebar: Context Panel -->
+<aside class="w-80 bg-surface-dark border-l border-white/10 flex flex-col shrink-0">
+<!-- Context Header -->
+<div class="h-16 flex items-center justify-between px-5 border-b border-white/5">
+<span class="text-sm font-semibold text-white">Context</span>
+<button class="text-white/40 hover:text-white"><span class="material-symbols-outlined">close</span></button>
+</div>
+<div class="flex-1 overflow-y-auto p-5 flex flex-col gap-6">
+<!-- Verification Details Card -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h4 class="text-xs font-bold text-emerald-100/40 uppercase tracking-wider">Verification Status</h4>
+<span class="text-xs text-expiring font-medium">Expiring Soon</span>
+</div>
+<div class="rounded-xl bg-surface-darker border border-verified/30 p-4 shadow-lg relative overflow-hidden group">
+<!-- Decorative gradient -->
+<div class="absolute top-0 right-0 w-20 h-20 bg-verified/10 blur-2xl rounded-full -mr-10 -mt-10 pointer-events-none"></div>
+<div class="flex items-center gap-3 mb-4">
+<div class="size-10 rounded-full bg-verified/20 flex items-center justify-center text-verified border border-verified/20">
+<span class="material-symbols-outlined">verified</span>
+</div>
+<div>
+<p class="text-white font-semibold">Verified</p>
+<p class="text-xs text-emerald-100/50">Valid for 90 days</p>
+</div>
+</div>
+<div class="space-y-3 mb-4">
+<div class="flex justify-between items-center text-sm">
+<span class="text-emerald-100/50">Verifier</span>
+<div class="flex items-center gap-2">
+<img class="size-5 rounded-full" data-alt="Verifier Sarah" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAMxqQgPF9V1tfQEhaj5l-K3VcNZvsVz1tEWpQDzx4WT1YzfAtJ58k45XOltc5f5HKkXvzR80q7t31-MVajGT5NFN1AQFZWhdBBHHKfENkpeB5lho6p3Jc_9GwWSOGPmqFdjvFHQMIuor9YRDuegoYPUHNi36r15slZt9OnRE7BXzOjeVWo6lDpQ10Xu_s5i4Dvov6HIpdTeH2az03ugM8Jiv1jkaWvqFRhUrID0j75M5SxmtZpYp8-HS9iJP3gIn3zL7Li0nEv7o"/>
+<span class="text-white">Sarah J.</span>
+</div>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-emerald-100/50">Verified On</span>
+<span class="text-white">Aug 15, 2023</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-emerald-100/50">Expires</span>
+<span class="text-expiring font-medium">Nov 15, 2023</span>
+</div>
+</div>
+<div class="p-3 bg-white/5 rounded-lg mb-4">
+<p class="text-xs text-emerald-100/60 italic">"Confirmed content matches the Q3 compliance checklist."</p>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<button class="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-medium text-white transition-colors border border-white/5">
+                                Revoke
+                            </button>
+<button class="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-primary text-background-dark hover:bg-primary-dark text-xs font-bold transition-colors shadow-lg shadow-primary/20">
+                                Extend
+                            </button>
+</div>
+</div>
+</div>
+<hr class="border-white/5"/>
+<!-- Scribe AI Suggestions -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-scribe text-[18px]">auto_awesome</span>
+<h4 class="text-xs font-bold text-scribe uppercase tracking-wider">Scribe Suggestions</h4>
+</div>
+<!-- Suggestion Card -->
+<div class="rounded-xl bg-surface-darker border border-scribe/50 p-4 relative overflow-hidden">
+<div class="flex gap-3 mb-2">
+<div class="mt-1 min-w-[4px] h-full rounded-full bg-scribe/50 absolute left-0 top-0 bottom-0"></div>
+<div class="flex-1">
+<p class="text-sm text-white leading-snug">Content mentions <span class="text-scribe font-medium">"Legacy API v1"</span> which is deprecated.</p>
+</div>
+</div>
+<p class="text-xs text-emerald-100/50 mb-3 pl-3">Suggested 2 hours ago based on platform changelog.</p>
+<div class="flex justify-end gap-2 pl-3">
+<button class="text-xs text-white/60 hover:text-white px-2 py-1">Dismiss</button>
+<button class="text-xs bg-scribe/20 text-scribe hover:bg-scribe/30 border border-scribe/30 px-3 py-1 rounded-md font-medium transition-colors">Apply Fix</button>
+</div>
+</div>
+<!-- Another Suggestion -->
+<div class="rounded-xl bg-surface-darker border border-white/5 p-4 hover:border-white/10 transition-colors">
+<p class="text-sm text-emerald-100/70 mb-3">Add a link to the new <span class="text-white underline">Security Protocols</span> page?</p>
+<div class="flex justify-end gap-2">
+<button class="text-xs bg-white/5 text-white hover:bg-white/10 border border-white/10 px-3 py-1 rounded-md font-medium transition-colors">Accept</button>
+</div>
+</div>
+</div>
+<hr class="border-white/5"/>
+<!-- Metadata -->
+<div class="flex flex-col gap-3 text-xs text-emerald-100/40">
+<div class="flex justify-between">
+<span>Created</span>
+<span>Jan 12, 2023</span>
+</div>
+<div class="flex justify-between">
+<span>Views (30d)</span>
+<span class="text-white">1,240</span>
+</div>
+<div class="flex justify-between">
+<span>Owner</span>
+<span class="text-white">Engineering Team</span>
+</div>
+</div>
+</div>
+</aside>
+</div>
+<!-- Optional: Modal Simulation (Absolutely positioned to show "Verify" flow design) -->
+<!-- In a real app, this would be triggered. Showing it as a minimized/hidden element for code completeness or a subtle overlay -->
+<!-- 
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-[#182e21] border border-white/10 w-full max-w-md rounded-2xl shadow-2xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white">Verify Page</h2>
+                <button class="text-white/40 hover:text-white"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-emerald-100/70 mb-2">Duration</label>
+                    <select class="w-full bg-[#102216] border border-white/10 rounded-lg p-2.5 text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none">
+                        <option>90 Days (Recommended)</option>
+                        <option>30 Days</option>
+                        <option>180 Days</option>
+                        <option>1 Year</option>
+                        <option>No Expiration</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-emerald-100/70 mb-2">Verification Notes</label>
+                    <textarea class="w-full bg-[#102216] border border-white/10 rounded-lg p-3 text-white h-24 focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none" placeholder="e.g. Reviewed for Q3 compliance updates..."></textarea>
+                </div>
+
+                <div class="flex items-center gap-2 p-3 bg-primary/10 rounded-lg">
+                    <span class="material-symbols-outlined text-primary text-[20px]">shield</span>
+                    <p class="text-xs text-primary/90">You are verifying this content as <strong>Subject Matter Expert</strong>.</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-8">
+                <button class="px-4 py-2 text-sm font-medium text-white hover:bg-white/5 rounded-lg transition-colors">Cancel</button>
+                <button class="px-6 py-2 text-sm font-bold text-[#102216] bg-primary hover:bg-[#0ea641] rounded-lg shadow-lg shadow-primary/25 transition-all">
+                    Verify Page
+                </button>
+            </div>
+        </div>
+    </div> 
+    -->
+</body></html>

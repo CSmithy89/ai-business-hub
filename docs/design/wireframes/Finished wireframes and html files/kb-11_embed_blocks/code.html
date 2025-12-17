@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KB-11 Embed Blocks</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2b90d",
+                        "bg-app": "#f9fafb", // Very light gray for app bg
+                        "bg-doc": "#ffffff", // White for document/panels
+                        "surface": "#ffffff",
+                        "surface-hover": "#f3f4f6",
+                        "border-light": "#e5e7eb",
+                        "text-main": "#111827",
+                        "text-muted": "#6b7280",
+                        "verified": "#2ECC71",
+                        "scribe": "#14b8a6", // Teal for agent
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"]
+                    },
+                    boxShadow: {
+                        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                        'float': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db; 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af; 
+        }
+        .ProseMirror-focused {
+            outline: none;
+        }.token.keyword { color: #d73a49; }
+        .token.function { color: #6f42c1; }
+        .token.string { color: #032f62; }
+        .token.comment { color: #6a737d; font-style: italic; }
+        .token.operator { color: #d73a49; }
+        .token.number { color: #005cc5; }.block-container:hover .block-controls {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-bg-app text-text-main font-display overflow-hidden h-screen flex flex-col">
+<header class="h-14 border-b border-border-light flex items-center justify-between px-4 bg-white shrink-0 z-20">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 text-text-main">
+<div class="size-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">dataset</span>
+</div>
+<h2 class="text-text-main text-lg font-bold tracking-tight">KB-11</h2>
+</div>
+<div class="h-6 w-px bg-border-light mx-2"></div>
+<div class="flex items-center gap-2 text-sm text-text-muted">
+<span>Engineering</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-text-main font-medium">Q3 Roadmap</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex -space-x-2">
+<div class="size-8 rounded-full border-2 border-white bg-gray-200 bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDWhjIgeFkL6-IRwQtpUckHmlKnkRABADuPIeriWT2YCEN-EHnI7wLFR8e_WXlbqmh8WM13NZS7TwZY1NFl4P3QwIDWkOGM8yG77TnfjCoJAfhRaO_Wg1wgksugfkSEuWHZtMe9ii4VLw9xyN-BLLoRHwFjVmgKpPdmBHcd_ltl1sFZIr3dVam_GT6XEk4JYN5PBIkL0LvthCmC57sKGPjXua9pqxZp3zuFVFkczlYN81l_Y8GnkHKH-np70b8wE9f2RUj5-XdvlBk');"></div>
+<div class="size-8 rounded-full border-2 border-white bg-gray-300 bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAnczP4wTTcOn_B8giSgdmV3oFNHu8G1BTYuxdnwfZlBPCwc55LDQDPUprLAjlFPQSpopv0RPDCYruFLXGS3Zrl1pFaIh9sZn250IRQ8WIiP-6D0jpF3T4SdiENpjf8DW8ki4O77f3BKSI8MFjiDHMfWie80GRzTq4dkGr9wHtOFraFW6CQKG6ZqjSKpRwqY32LFx6CxPBGe9-dOe9sbDyxjNTZCV6JyvNwzU7w9ieRAfOv9KEjd4Bmg5mhB8X_HNalCWWVCknPznA');"></div>
+<div class="size-8 rounded-full border-2 border-white bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">+3</div>
+</div>
+<button class="bg-primary hover:bg-yellow-500 text-black px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">Share</button>
+<button class="text-text-muted hover:bg-gray-100 p-1.5 rounded-full transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-64 bg-surface border-r border-border-light flex flex-col shrink-0">
+<div class="p-3">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2 top-2 text-text-muted text-[20px]">search</span>
+<input class="w-full bg-gray-50 border border-border-light rounded-lg py-1.5 pl-9 pr-3 text-sm text-text-main placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Search pages..."/>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
+<div class="text-text-muted text-xs font-bold uppercase tracking-wider px-3 py-3 mt-1">Workspace</div>
+<div class="group flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-surface-hover cursor-pointer text-text-muted hover:text-text-main transition-colors">
+<span class="material-symbols-outlined text-[20px]">folder</span>
+<span class="text-sm truncate">Product specs</span>
+</div>
+<div class="group flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-surface-hover cursor-pointer text-text-main font-medium transition-colors">
+<span class="material-symbols-outlined text-[20px] fill-current">folder_open</span>
+<span class="text-sm truncate">Engineering</span>
+</div>
+<div class="ml-4 border-l border-border-light pl-2 space-y-0.5 mt-1">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-medium cursor-pointer">
+<span class="material-symbols-outlined text-[18px]">description</span>
+<span class="text-sm truncate">Q3 Roadmap</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-surface-hover cursor-pointer text-text-muted hover:text-text-main">
+<span class="material-symbols-outlined text-[18px]">description</span>
+<span class="text-sm truncate">API Documentation</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-surface-hover cursor-pointer text-text-muted hover:text-text-main">
+<span class="material-symbols-outlined text-[18px]">description</span>
+<span class="text-sm truncate">System Architecture</span>
+</div>
+</div>
+<div class="group flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-surface-hover cursor-pointer text-text-muted hover:text-text-main transition-colors mt-2">
+<span class="material-symbols-outlined text-[20px]">folder</span>
+<span class="text-sm truncate">Design System</span>
+</div>
+</div>
+<div class="p-3 border-t border-border-light">
+<div class="flex items-center gap-2 text-text-muted text-sm hover:text-primary cursor-pointer px-2 py-1 transition-colors">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+<span>New Page</span>
+</div>
+</div>
+</aside>
+<main class="flex-1 overflow-y-auto relative bg-bg-doc">
+<div class="max-w-[850px] mx-auto px-12 py-12 pb-32">
+<div class="mb-8 group">
+<div class="flex flex-col gap-3">
+<h1 class="text-4xl font-black text-text-main leading-tight tracking-tight outline-none placeholder:text-gray-300" contenteditable="true">Q3 Engineering Roadmap</h1>
+<div class="flex items-center gap-4 text-sm">
+<div class="flex items-center gap-1.5 bg-verified/10 border border-verified/20 text-verified px-2 py-0.5 rounded-md">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span class="font-bold text-xs">Verified Content</span>
+</div>
+<span class="text-text-muted">Last updated 2m ago by <span class="text-text-main font-medium">Alex M.</span></span>
+</div>
+</div>
+</div>
+<div class="relative group block-container mb-6 pl-10">
+<div class="block-controls absolute left-0 top-0.5 opacity-0 transition-opacity flex items-center justify-center w-6 h-6 cursor-grab text-text-muted hover:text-text-main rounded hover:bg-gray-100" title="Drag to move">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</div>
+<p class="text-text-main text-lg leading-relaxed text-gray-700">
+                    This document outlines the key deliverables and timelines for the upcoming quarter. We are focusing heavily on stability, performance, and shipping the new API v2 endpoints. Please review the blocks below for detailed specs.
+                </p>
+</div>
+<div class="relative group block-container mb-8 pl-10">
+<div class="block-controls absolute left-0 top-1/2 -translate-y-1/2 opacity-0 transition-opacity flex flex-col gap-1 items-center">
+<div class="flex items-center justify-center w-6 h-6 cursor-grab text-text-muted hover:text-text-main rounded hover:bg-gray-100">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</div>
+</div>
+<div class="relative border border-border-light bg-white rounded-lg p-0 hover:border-primary/50 transition-colors shadow-card group/card overflow-hidden">
+<div class="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity flex gap-1 bg-white border border-gray-200 rounded-md shadow-sm p-0.5 z-10">
+<button class="p-1 hover:bg-gray-100 rounded text-gray-500" title="Edit"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+<button class="p-1 hover:bg-gray-100 rounded text-gray-500" title="Open in Project"><span class="material-symbols-outlined text-[16px]">open_in_new</span></button>
+<button class="p-1 hover:bg-red-50 rounded text-gray-500 hover:text-red-500" title="Delete"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</div>
+<div class="flex items-center p-3 gap-3">
+<div class="size-10 rounded-md bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 mb-0.5">
+<span class="text-xs font-mono text-gray-400">TASK-402</span>
+<span class="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">In Progress</span>
+</div>
+<h3 class="text-sm font-semibold text-text-main truncate">Refactor API Middleware Layer</h3>
+<div class="flex items-center gap-3 mt-1 text-xs text-text-muted">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">calendar_today</span> Oct 12</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">folder</span> Core Backend</span>
+</div>
+</div>
+<div class="flex items-center gap-3 pl-3 border-l border-gray-100">
+<div class="size-7 rounded-full bg-cover bg-center ring-2 ring-white shadow-sm" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBIqCcZSgJzA1Lahxij9_pg5qRqSoJDuwNpluDnmuy03kZoPWI3HF8v4tVnrp7fmpsYODGp_kHtPnKVonLs9uAmppAyY9t1azZYq-cOqWPHi-8UDeB8mbjkD7kZFRnDZoCRXaYlwzp-TgS89MeflN-oMB33yPotHMrLCscGNYPGrmpyNinP5nL5nwckhC5rsmfqgr3GAizlblXuwp3SQDsV3bbbHxnIvEtzhJoyFyRSPcq0VeaT8o8HDrmGy9h73FA_Qapk0nv9n78');" title="Assignee: Sarah"></div>
+</div>
+</div>
+</div>
+<div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-bold ml-1">Synced Integration</div>
+</div>
+<div class="relative group block-container mb-8 pl-10">
+<div class="block-controls absolute left-0 top-6 opacity-0 transition-opacity flex items-center justify-center w-6 h-6 cursor-grab text-text-muted hover:text-text-main rounded hover:bg-gray-100">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</div>
+<div class="border border-border-light bg-white rounded-lg shadow-sm overflow-hidden">
+<div class="bg-gray-50 px-4 py-2 border-b border-border-light flex items-center justify-between">
+<span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Launch Checklist</span>
+<div class="flex items-center gap-2">
+<span class="text-xs text-gray-500 font-medium">3/5</span>
+<div class="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[60%]"></div>
+</div>
+</div>
+</div>
+<div class="p-2">
+<div class="flex items-start gap-3 p-2 hover:bg-gray-50 rounded group/item">
+<input checked="" class="mt-1 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" type="checkbox"/>
+<span class="text-sm text-gray-400 line-through flex-1">Database migration script verification</span>
+<div class="opacity-0 group-hover/item:opacity-100">
+<span class="material-symbols-outlined text-[16px] text-gray-400 cursor-pointer">more_horiz</span>
+</div>
+</div>
+<div class="flex items-start gap-3 p-2 hover:bg-gray-50 rounded group/item">
+<input checked="" class="mt-1 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" type="checkbox"/>
+<span class="text-sm text-gray-400 line-through flex-1">Update environment variables in production</span>
+<div class="opacity-0 group-hover/item:opacity-100">
+<span class="material-symbols-outlined text-[16px] text-gray-400 cursor-pointer">more_horiz</span>
+</div>
+</div>
+<div class="flex items-start gap-3 p-2 hover:bg-gray-50 rounded group/item">
+<input checked="" class="mt-1 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" type="checkbox"/>
+<span class="text-sm text-gray-400 line-through flex-1">Internal QA smoke test</span>
+<div class="opacity-0 group-hover/item:opacity-100">
+<span class="material-symbols-outlined text-[16px] text-gray-400 cursor-pointer">more_horiz</span>
+</div>
+</div>
+<div class="flex items-start gap-3 p-2 hover:bg-gray-50 rounded group/item">
+<input class="mt-1 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" type="checkbox"/>
+<span class="text-sm text-gray-700 flex-1">Notify customer support team</span>
+<div class="opacity-0 group-hover/item:opacity-100">
+<span class="material-symbols-outlined text-[16px] text-gray-400 cursor-pointer">more_horiz</span>
+</div>
+</div>
+<div class="flex items-start gap-3 p-2 hover:bg-gray-50 rounded group/item">
+<input class="mt-1 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" type="checkbox"/>
+<span class="text-sm text-gray-700 flex-1">Flip feature flags</span>
+<div class="opacity-0 group-hover/item:opacity-100">
+<span class="material-symbols-outlined text-[16px] text-gray-400 cursor-pointer">more_horiz</span>
+</div>
+</div>
+<div class="flex items-center gap-2 p-2 pl-8 text-gray-400 hover:text-primary cursor-pointer text-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                            Add item
+                        </div>
+</div>
+</div>
+</div>
+<div class="relative group block-container mb-8 pl-10">
+<div class="block-controls absolute left-0 top-4 opacity-0 transition-opacity flex items-center justify-center w-6 h-6 cursor-grab text-text-muted hover:text-text-main rounded hover:bg-gray-100">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</div>
+<div class="rounded-lg overflow-hidden border border-border-light bg-gray-50 shadow-sm">
+<div class="flex items-center justify-between px-4 py-2 bg-gray-100 border-b border-border-light">
+<div class="flex items-center gap-2">
+<span class="text-xs font-mono text-gray-500">middleware.ts</span>
+</div>
+<div class="flex items-center gap-2">
+<select class="bg-transparent text-xs text-gray-600 font-medium focus:outline-none cursor-pointer border-none py-0 pr-6 hover:text-black">
+<option>TypeScript</option>
+<option>JavaScript</option>
+<option>Python</option>
+</select>
+<button class="text-gray-500 hover:text-black transition-colors p-1 rounded hover:bg-gray-200" title="Copy code">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+</button>
+<button class="text-gray-500 hover:text-black transition-colors p-1 rounded hover:bg-gray-200">
+<span class="material-symbols-outlined text-[16px]">settings</span>
+</button>
+</div>
+</div>
+<div class="flex text-sm font-mono bg-white overflow-x-auto">
+<div class="py-4 px-3 text-right text-gray-300 select-none bg-gray-50 border-r border-gray-100 text-xs leading-6">
+                            1<br/>2<br/>3<br/>4<br/>5<br/>6<br/>7<br/>8<br/>9
+                        </div>
+<div class="p-4 w-full leading-6">
+<pre><code><span class="token keyword">export</span> <span class="token keyword">const</span> <span class="token function">middleware</span> <span class="token operator">=</span> <span class="token punctuation">(</span>req, res, next<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+  <span class="token keyword">const</span> token <span class="token operator">=</span> req.headers<span class="token punctuation">[</span><span class="token string">'authorization'</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+  <span class="token comment">// Validate the token integrity</span>
+  <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>token<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">return</span> res.<span class="token function">status</span><span class="token punctuation">(</span><span class="token number">401</span><span class="token punctuation">)</span>.<span class="token function">json</span><span class="token punctuation">(</span><span class="token punctuation">{</span> error: <span class="token string">'Unauthorized'</span> <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+  <span class="token function">next</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="relative group block-container mb-8 pl-10">
+<div class="block-controls absolute left-0 top-1/2 -translate-y-1/2 opacity-0 transition-opacity flex items-center justify-center w-6 h-6 cursor-grab text-text-muted hover:text-text-main rounded hover:bg-gray-100">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</div>
+<div class="border border-border-light bg-gray-50 rounded-lg overflow-hidden group/draw relative shadow-sm">
+<div class="absolute top-3 right-3 flex gap-2 opacity-0 group-hover/draw:opacity-100 transition-opacity z-10">
+<button class="bg-white text-gray-700 text-xs font-medium px-3 py-1.5 rounded-md border border-gray-200 shadow-sm hover:bg-gray-50 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">edit</span> Edit
+                        </button>
+<button class="bg-white text-gray-700 p-1.5 rounded-md border border-gray-200 shadow-sm hover:bg-gray-50">
+<span class="material-symbols-outlined text-[16px]">fullscreen</span>
+</button>
+</div>
+<div class="h-64 flex items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/graphy.png')] bg-white relative">
+<div class="absolute inset-0 opacity-10 pointer-events-none"></div>
+<div class="flex flex-col items-center gap-8">
+<div class="flex items-center gap-8">
+<div class="w-24 h-12 border-2 border-black rounded flex items-center justify-center font-handwriting text-sm bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -rotate-1">Client</div>
+<div class="w-16 h-0.5 bg-black relative">
+<div class="absolute -right-1 -top-1.5 w-3 h-3 border-t-2 border-r-2 border-black rotate-45"></div>
+</div>
+<div class="w-24 h-12 border-2 border-black rounded flex items-center justify-center font-handwriting text-sm bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rotate-1">API v2</div>
+</div>
+<div class="h-8 w-0.5 bg-black relative">
+<div class="absolute -bottom-1 -left-1.5 w-3 h-3 border-b-2 border-r-2 border-black rotate-45"></div>
+</div>
+<div class="w-24 h-20 border-2 border-black rounded-full flex items-center justify-center font-handwriting text-sm bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">DB Cluster</div>
+</div>
+</div>
+<div class="bg-gray-50 px-3 py-1.5 border-t border-border-light flex items-center justify-between">
+<span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">draw</span> Excalidraw
+                         </span>
+<span class="text-[10px] text-gray-400">Updated just now</span>
+</div>
+</div>
+</div>
+<div class="relative group block-container mb-8 pl-10">
+<div class="block-controls absolute left-0 top-8 opacity-0 transition-opacity flex items-center justify-center w-6 h-6 cursor-grab text-text-muted hover:text-text-main rounded hover:bg-gray-100">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</div>
+<div class="overflow-hidden rounded-lg border border-border-light bg-white shadow-sm relative">
+<div class="absolute -right-3 top-0 bottom-0 w-6 hover:bg-primary/10 cursor-col-resize z-20 transition-colors flex items-center justify-center group/col-add">
+<div class="w-px h-full bg-border-light group-hover/col-add:bg-primary"></div>
+<span class="material-symbols-outlined text-[12px] text-primary absolute opacity-0 group-hover/col-add:opacity-100 bg-white rounded-full shadow border border-primary">add</span>
+</div>
+<table class="w-full text-sm text-left">
+<thead class="bg-gray-50 text-gray-500">
+<tr>
+<th class="px-4 py-2 font-medium border-r border-border-light w-1/3 relative group/th">
+                                    Feature
+                                    <div class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary"></div>
+</th>
+<th class="px-4 py-2 font-medium border-r border-border-light w-1/3 relative group/th">
+                                    Status
+                                    <div class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary"></div>
+</th>
+<th class="px-4 py-2 font-medium relative group/th">
+                                    Owner
+                                </th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-light">
+<tr class="group/row hover:bg-gray-50 transition-colors">
+<td class="px-4 py-2.5 border-r border-border-light relative">
+                                    Unified Search
+                                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-primary opacity-0 group-hover/row:opacity-100"></div>
+</td>
+<td class="px-4 py-2.5 border-r border-border-light">
+<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-semibold">Completed</span>
+</td>
+<td class="px-4 py-2.5 flex items-center gap-2">
+<div class="size-5 rounded-full bg-orange-200 bg-cover ring-1 ring-white" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCYfC0svbW3P-fbtoYfiGcTcapYc1V09SIsWptIoBAn9L1ihXo3RjepgiBdU28Uqzu2l46ElZPq8zhkiJ-M62uYIWbcHMLOnjo5528yBWPvQGRsDf6XcgBGFL7jLP7QyNbJRHigg_2Jiq8QGIH-nsIV6MKB4PZkAGe74ciiBzJlRUju_sndOzM8o23qm63cTD9KPRUOG7-vHbuXDLFUMIHCTJ2PC7AgxNXTOUPfix2NRcPWRMGRQ0VSQUjWfFsY2POtp-Xgvpak9lo');"></div>
+<span class="text-gray-600">Sarah J.</span>
+</td>
+</tr>
+<tr class="group/row hover:bg-gray-50 transition-colors">
+<td class="px-4 py-2.5 border-r border-border-light relative">
+                                    Block Embeds
+                                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-primary opacity-0 group-hover/row:opacity-100"></div>
+</td>
+<td class="px-4 py-2.5 border-r border-border-light">
+<span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-xs font-semibold">In Design</span>
+</td>
+<td class="px-4 py-2.5 flex items-center gap-2">
+<div class="size-5 rounded-full bg-purple-200 bg-cover ring-1 ring-white" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZzmWmi6NQRQO0Q8C09g-jVI7wH2pEXHW0kh3MrixLbKLbNR-uZM69eWt6eVDDVNfzAvsT0QhOAHxgYTGGxIpSftSImHVtxmY9QdNqpaIP6rDMpbOLmLOBDFF2IcBeMZWBYUC_4J83TxU3ok8ruhRkxk1HeAsYsX6zjzcN4jwz4Et_vpA8Sze7ElwrtcnmmDvvAMVxzss_jzGwE-u7mkeaNd0fiK3SzVmTie7ut_1jMZcHi2XdzlqN55lV46aXTbhkHP1dYR7z4g4');"></div>
+<span class="text-gray-600">Mike T.</span>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary text-xs py-1.5 text-center cursor-pointer border-t border-border-light transition-colors font-medium">
+                        + Add Row
+                    </div>
+</div>
+</div>
+<div class="relative group block-container mb-8 pl-10">
+<div class="block-controls absolute left-0 top-1/2 -translate-y-1/2 opacity-0 transition-opacity flex items-center justify-center w-6 h-6 cursor-grab text-text-muted hover:text-text-main rounded hover:bg-gray-100">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</div>
+<div class="flex border border-border-light bg-white rounded-lg overflow-hidden hover:bg-gray-50 cursor-pointer h-28 shadow-sm transition-all hover:shadow-md">
+<div class="flex-1 p-3 flex flex-col justify-between min-w-0">
+<div>
+<h4 class="text-sm font-semibold text-text-main truncate">Stripe API Reference - Pagination</h4>
+<p class="text-xs text-text-muted mt-1 line-clamp-2">All top-level API resources have support for bulk fetches via "list" API methods. For instance, you can list charges, list customers, and list invoices.</p>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<img alt="Icon" class="size-4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0ccgiCH6j4IXaKEVlttnYcTuYEyiTtGdbEES--Cpa6u7cp8ue5YNgiFYWREcEZeP02UnZSDdlmWvwLjyuqNtlk1pF3TrAF8B-xhsoU2A5O-P2NHEo2a_HWgFpg3IFkyIo5n_kkS9DsqvCNuxefoPgaQUa_77KlLh4aJ1vJDrTeuHpXXzJ_N5hLWBJL9bWED2kiLBvFOjWAUo9YiE8eWF16uMq9MzNslCIR77OO2z5LecwT0xIiXYL8GeA-e7rdUCy_v_BrauQetY"/>
+<span class="text-xs text-text-main truncate">stripe.com/docs/api/pagination</span>
+</div>
+</div>
+<div class="w-32 bg-gray-100 border-l border-border-light bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCsvoxjfnTt6cyaljWGAQNkbPQEVpmgK0yxplGZZjCdS3D8QA8QYF4Pr2u4viksuGESNhoUaxIXbjBekNWAO7lmzdafINlExoaICu8GJS-pkY71BhVMhQswWvcMgQ3UUb5-P_pyOwDW_UjC5QuRkpHKOMglce3TAcxkB_8saBVchfy95ZblfR6k1sVrHHJwXGesS0KnoJ_wD-wXD0Ta8MCfdPYqACLMqhpP4CN5RhUwX36X2i6AP4BViAj6tT0IoPTn4ZPSQxhBaDc');">
+</div>
+</div>
+</div>
+<div class="relative group block-container mb-8 pl-10">
+<div class="block-controls absolute left-0 top-1/2 -translate-y-1/2 opacity-0 transition-opacity flex items-center justify-center w-6 h-6 cursor-grab text-text-muted hover:text-text-main rounded hover:bg-gray-100">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</div>
+<div class="border border-border-light bg-surface rounded-lg p-3 hover:border-primary/50 transition-colors cursor-pointer shadow-sm group/embed relative">
+<div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/embed:opacity-100 transition-opacity">
+<button class="text-gray-400 hover:text-gray-700 p-1"><span class="material-symbols-outlined text-[18px]">open_in_full</span></button>
+</div>
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-gray-400 text-[20px]">description</span>
+<span class="text-sm font-semibold text-text-main">System Architecture - v1.2</span>
+</div>
+<div class="pl-7 border-l-2 border-gray-100">
+<p class="text-xs text-text-muted line-clamp-3">
+                             The current system architecture relies on a microservices approach deployed via Kubernetes. Key services include the Authentication Service, Payment Gateway, and Notification Dispatcher.
+                         </p>
+</div>
+<div class="mt-2 pl-7 flex items-center gap-2">
+<span class="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">Page Embed</span>
+</div>
+</div>
+</div>
+<div class="relative pl-10 mb-40">
+<div class="flex items-center gap-0.5 text-text-muted text-lg font-medium">
+<span class="text-text-main">/</span><span class="animate-pulse w-[2px] h-5 bg-primary block"></span>
+</div>
+<div class="absolute top-8 left-8 w-[320px] bg-white border border-border-light rounded-xl shadow-float overflow-hidden z-30 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+<div class="p-2 border-b border-border-light bg-gray-50">
+<input autofocus="" class="w-full bg-white border border-gray-200 rounded-md py-1.5 px-3 text-sm text-text-main placeholder-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none" placeholder="Filter blocks..."/>
+</div>
+<div class="overflow-y-auto max-h-[320px] py-2">
+<div class="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Basic Blocks</div>
+<button class="w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-left transition-colors group">
+<div class="size-10 rounded-lg bg-white border border-gray-200 group-hover:border-gray-300 shadow-sm flex items-center justify-center text-gray-600">
+<span class="material-symbols-outlined text-[20px]">title</span>
+</div>
+<div>
+<div class="text-sm font-medium text-text-main">Heading 1</div>
+<div class="text-[11px] text-text-muted">Big section header</div>
+</div>
+</button>
+<button class="w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-left transition-colors group">
+<div class="size-10 rounded-lg bg-white border border-gray-200 group-hover:border-gray-300 shadow-sm flex items-center justify-center text-gray-600">
+<span class="material-symbols-outlined text-[20px]">format_list_bulleted</span>
+</div>
+<div>
+<div class="text-sm font-medium text-text-main">Bulleted List</div>
+<div class="text-[11px] text-text-muted">Simple list items</div>
+</div>
+</button>
+<div class="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-2">Embeds</div>
+<button class="w-full px-3 py-2 flex items-center gap-3 bg-primary/5 border-l-4 border-primary text-left transition-colors group">
+<div class="size-10 rounded-lg bg-white border border-primary/30 shadow-sm flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">table_chart</span>
+</div>
+<div>
+<div class="text-sm font-medium text-text-main">Table</div>
+<div class="text-[11px] text-text-muted">Rows and columns</div>
+</div>
+</button>
+<button class="w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-left transition-colors group">
+<div class="size-10 rounded-lg bg-white border border-gray-200 group-hover:border-gray-300 shadow-sm flex items-center justify-center text-purple-500">
+<span class="material-symbols-outlined text-[20px]">draw</span>
+</div>
+<div>
+<div class="text-sm font-medium text-text-main">Excalidraw</div>
+<div class="text-[11px] text-text-muted">Sketch diagrams</div>
+</div>
+</button>
+<button class="w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-left transition-colors group">
+<div class="size-10 rounded-lg bg-white border border-gray-200 group-hover:border-gray-300 shadow-sm flex items-center justify-center text-blue-500">
+<span class="material-symbols-outlined text-[20px]">code</span>
+</div>
+<div>
+<div class="text-sm font-medium text-text-main">Code Block</div>
+<div class="text-[11px] text-text-muted">Capture a snippet</div>
+</div>
+</button>
+<button class="w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-left transition-colors group">
+<div class="size-10 rounded-lg bg-white border border-gray-200 group-hover:border-gray-300 shadow-sm flex items-center justify-center text-pink-500">
+<span class="material-symbols-outlined text-[20px]">image</span>
+</div>
+<div>
+<div class="text-sm font-medium text-text-main">Image</div>
+<div class="text-[11px] text-text-muted">Upload or embed</div>
+</div>
+</button>
+<div class="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-2">Integrations</div>
+<button class="w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-left transition-colors group">
+<div class="size-10 rounded-lg bg-white border border-gray-200 group-hover:border-gray-300 shadow-sm flex items-center justify-center text-green-600">
+<span class="material-symbols-outlined text-[20px]">view_kanban</span>
+</div>
+<div>
+<div class="text-sm font-medium text-text-main">Task Reference</div>
+<div class="text-[11px] text-text-muted">Sync PM status</div>
+</div>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<aside class="w-[300px] bg-surface border-l border-border-light flex flex-col shrink-0 overflow-y-auto">
+<div class="p-4 border-b border-border-light">
+<div class="flex items-center gap-2 mb-3">
+<div class="size-5 bg-scribe rounded-full flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+</div>
+<span class="text-sm font-bold text-text-main">Scribe Suggestions</span>
+</div>
+<div class="bg-white border border-scribe/30 rounded-xl p-3 shadow-[0_4px_12px_-5px_rgba(20,184,166,0.2)]">
+<p class="text-sm text-gray-600 mb-3">The section on "Middleware" seems technical. Consider adding a summary for non-technical stakeholders?</p>
+<div class="flex gap-2">
+<button class="flex-1 bg-scribe/10 hover:bg-scribe/20 text-scribe text-xs font-semibold py-1.5 rounded border border-scribe/20 transition-colors shadow-sm">Generate Summary</button>
+<button class="px-2 hover:bg-gray-100 rounded text-gray-400 transition-colors"><span class="material-symbols-outlined text-[16px]">close</span></button>
+</div>
+</div>
+</div>
+<div class="p-4">
+<h3 class="text-xs font-bold text-text-muted uppercase tracking-wider mb-4">Table of Contents</h3>
+<div class="relative pl-3 border-l-2 border-gray-100 space-y-3">
+<div class="absolute left-[-2px] top-0 h-4 w-[2px] bg-primary"></div>
+<div class="text-sm text-text-main font-medium cursor-pointer hover:text-primary transition-colors">Introduction</div>
+<div class="text-sm text-text-muted cursor-pointer hover:text-primary transition-colors ml-2">Objectives</div>
+<div class="text-sm text-text-muted cursor-pointer hover:text-primary transition-colors">Technical Architecture</div>
+<div class="text-sm text-text-muted cursor-pointer hover:text-primary transition-colors ml-2">Middleware Refactor</div>
+<div class="text-sm text-text-muted cursor-pointer hover:text-primary transition-colors ml-2">Database Schema</div>
+<div class="text-sm text-text-muted cursor-pointer hover:text-primary transition-colors">Timeline</div>
+</div>
+</div>
+<div class="p-4 border-t border-border-light mt-auto">
+<h3 class="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">Linked Assets</h3>
+<div class="space-y-2">
+<div class="flex items-center gap-2 p-2 rounded-lg hover:bg-surface-hover cursor-pointer group border border-transparent hover:border-gray-200 transition-all">
+<div class="size-8 rounded bg-purple-50 flex items-center justify-center text-purple-500 border border-purple-100">
+<span class="material-symbols-outlined text-[18px]">draw</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="text-sm text-text-main truncate font-medium">Architecture Diagram</div>
+<div class="text-[10px] text-text-muted">Updated yesterday</div>
+</div>
+</div>
+<div class="flex items-center gap-2 p-2 rounded-lg hover:bg-surface-hover cursor-pointer group border border-transparent hover:border-gray-200 transition-all">
+<div class="size-8 rounded bg-blue-50 flex items-center justify-center text-blue-500 border border-blue-100">
+<span class="material-symbols-outlined text-[18px]">folder_zip</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="text-sm text-text-main truncate font-medium">Assets_v2.zip</div>
+<div class="text-[10px] text-text-muted">24MB</div>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</div>
+
+</body></html>

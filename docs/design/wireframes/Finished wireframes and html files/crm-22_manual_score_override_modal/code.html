@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-22 Manual Score Override</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "primary-hover": "#1d4ed8",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                        "card-dark": "#1A202C",
+                        "border-dark": "#2D3748",
+                        "scout-blue": "#4B7BEC",
+                        "success": "#22C55E",
+                        "warning": "#F59E0B",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased min-h-screen flex items-center justify-center p-4">
+<!-- Modal Backdrop/Wrapper -->
+<div class="w-full max-w-5xl bg-white dark:bg-card-dark rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-border-dark flex flex-col max-h-[90vh]">
+<!-- Modal Header -->
+<div class="px-6 py-5 border-b border-slate-200 dark:border-border-dark flex justify-between items-center bg-slate-50 dark:bg-[#151923]">
+<div>
+<h2 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Manual Score Override</h2>
+<p class="text-sm text-slate-500 dark:text-slate-400">Adjust automated scoring for key accounts</p>
+</div>
+<button class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto">
+<div class="flex flex-col lg:flex-row h-full">
+<!-- Left Column: Context & Visuals -->
+<div class="flex-1 p-6 lg:p-8 flex flex-col gap-8 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-border-dark">
+<!-- Profile Header (Simplified) -->
+<div class="flex items-center gap-4">
+<div class="h-16 w-16 rounded-full bg-cover bg-center border-2 border-slate-200 dark:border-slate-700" data-alt="Profile picture of Jane Doe" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBaD56BNqZFdrmPRjTeHhnkpMMX5InYEug146PkG_A6og9jWqs9B-aB_SMT6cxl3d3Yl5Qx-maZKDvtNVRbwAjwi9PPejpKapGx81rnvmuKrkSgcW5-na0Lbn12WkBjx2mfOyKSbCLPTnhJ-RDbNR0LCFwFtodtA2sja8j_y--YWNg9ktCTlYjJnk2AZEZ-zf5lumOaIx0hN4NDXzQX7fqwLyEwjVq6GbJJC3c6SgAoFZHNfTERET2Qg-Jyf3Jnmmi1evX2OLKi6WU");'></div>
+<div>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white leading-tight">Jane Doe</h3>
+<div class="flex flex-col sm:flex-row sm:gap-2 text-sm text-slate-500 dark:text-slate-400">
+<span>VP of Marketing</span>
+<span class="hidden sm:inline">•</span>
+<span class="text-primary font-medium">Acme Corp</span>
+</div>
+</div>
+</div>
+<!-- Current Score Display -->
+<div class="bg-slate-50 dark:bg-[#151923] rounded-xl p-5 border border-slate-200 dark:border-border-dark">
+<div class="flex justify-between items-end mb-3">
+<div>
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Current Score</p>
+<div class="flex items-baseline gap-2">
+<span class="text-3xl font-bold text-slate-900 dark:text-white">65</span>
+<span class="text-sm text-slate-400">/ 100</span>
+</div>
+</div>
+<span class="px-3 py-1 rounded-full bg-warning/20 text-warning text-xs font-bold tracking-wide uppercase border border-warning/30">Tier: WARM</span>
+</div>
+<!-- Progress Bar -->
+<div class="relative h-3 w-full rounded-full bg-slate-200 dark:bg-slate-700 mb-6 overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-gradient-to-r from-warning to-orange-500 rounded-full" style="width: 65%;"></div>
+</div>
+<!-- Stats Breakdown -->
+<div class="grid grid-cols-3 gap-3">
+<div class="flex flex-col items-center justify-center p-3 rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+<span class="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">Firmographic</span>
+<span class="text-success font-bold">High</span>
+</div>
+<div class="flex flex-col items-center justify-center p-3 rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+<span class="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">Behavioral</span>
+<span class="text-slate-400 font-bold">Low</span>
+</div>
+<div class="flex flex-col items-center justify-center p-3 rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+<span class="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">Intent</span>
+<span class="text-warning font-bold">Med</span>
+</div>
+</div>
+</div>
+<!-- Adjustment Slider Section -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<label class="text-sm font-medium text-slate-900 dark:text-white">Score Adjustment</label>
+<span class="text-xs font-medium px-2 py-0.5 rounded bg-primary/20 text-primary-300 border border-primary/30">+10 Points</span>
+</div>
+<!-- Custom Range Slider Visualization -->
+<div class="relative h-12 flex items-center select-none group">
+<!-- Track -->
+<div class="absolute w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+<!-- Center Marker -->
+<div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-400 dark:bg-slate-500"></div>
+<!-- Active Fill (Example: Positive Adjustment) -->
+<div class="absolute left-1/2 h-full bg-primary opacity-80" style="width: 25%;"></div>
+</div>
+<!-- Ticks -->
+<div class="absolute w-full flex justify-between px-1 text-[10px] text-slate-400 font-medium mt-8">
+<span>-20</span>
+<span>-10</span>
+<span>0</span>
+<span>+10</span>
+<span>+20</span>
+</div>
+<!-- Thumb (Positioned at +10 aka 75%) -->
+<div class="absolute h-6 w-6 bg-white dark:bg-primary rounded-full shadow-lg border-2 border-primary dark:border-white cursor-pointer hover:scale-110 transition-transform z-10 flex items-center justify-center" style="left: 75%; transform: translateX(-50%);">
+<div class="w-1.5 h-1.5 rounded-full bg-primary dark:bg-white"></div>
+</div>
+</div>
+<!-- Result Preview -->
+<div class="mt-4 p-4 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-xs text-primary-300 mb-0.5">Projected Score</span>
+<div class="flex items-center gap-2">
+<span class="text-2xl font-bold text-white">75</span>
+<span class="material-symbols-outlined text-success text-sm">arrow_upward</span>
+</div>
+</div>
+<div class="text-right">
+<span class="text-xs text-primary-300 mb-0.5">New Tier</span>
+<div class="px-2 py-0.5 rounded bg-success/20 text-success text-sm font-bold border border-success/30">HOT</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Form & Settings -->
+<div class="flex-1 p-6 lg:p-8 bg-slate-50 dark:bg-[#12161f] flex flex-col gap-6">
+<!-- Reason Selector -->
+<div class="flex flex-col gap-3">
+<label class="text-sm font-medium text-slate-900 dark:text-white flex items-center gap-2">
+                            Reason for Override
+                            <span class="text-red-500">*</span>
+</label>
+<div class="space-y-2">
+<label class="flex items-center p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-card-dark hover:border-primary/50 cursor-pointer transition-colors group">
+<input class="w-4 h-4 text-primary bg-slate-100 border-slate-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-primary focus:ring-2" name="reason" type="radio"/>
+<span class="ml-3 text-sm text-slate-700 dark:text-slate-300 group-hover:text-white">Recent Conversation (Positive)</span>
+</label>
+<label class="flex items-center p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-card-dark hover:border-primary/50 cursor-pointer transition-colors group">
+<input class="w-4 h-4 text-primary bg-slate-100 border-slate-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-primary focus:ring-2" name="reason" type="radio"/>
+<span class="ml-3 text-sm text-slate-700 dark:text-slate-300 group-hover:text-white">Executive Referral</span>
+</label>
+<label class="flex items-center p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-card-dark hover:border-primary/50 cursor-pointer transition-colors group">
+<input class="w-4 h-4 text-primary bg-slate-100 border-slate-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-primary focus:ring-2" name="reason" type="radio"/>
+<span class="ml-3 text-sm text-slate-700 dark:text-slate-300 group-hover:text-white">Pricing Objection (Negative)</span>
+</label>
+<label class="flex items-center p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-card-dark hover:border-primary/50 cursor-pointer transition-colors group">
+<input class="w-4 h-4 text-primary bg-slate-100 border-slate-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-primary focus:ring-2" name="reason" type="radio"/>
+<span class="ml-3 text-sm text-slate-700 dark:text-slate-300 group-hover:text-white">Other</span>
+</label>
+</div>
+</div>
+<!-- Notes Textarea -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-medium text-slate-900 dark:text-white" for="notes">Additional Notes</label>
+<textarea class="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-card-dark text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-primary placeholder:text-slate-400 p-3" id="notes" placeholder="Please provide context for this adjustment..." rows="3"></textarea>
+</div>
+<!-- Scout Agent Card -->
+<div class="mt-auto pt-4 border-t border-slate-200 dark:border-slate-800">
+<div class="rounded-xl bg-scout-blue/10 border border-scout-blue/20 p-4 flex gap-4 items-start">
+<div class="bg-scout-blue/20 p-2 rounded-lg text-scout-blue">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-sm font-semibold text-white">Scout Agent</p>
+<p class="text-xs text-slate-400 leading-relaxed">
+                                    I will monitor this contact for 30 days. If no significant activity occurs, I will revert the score to the algorithmic baseline on <span class="text-white font-medium">Nov 24, 2023</span>.
+                                </p>
+<label class="flex items-center gap-2 mt-2 cursor-pointer">
+<div class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-9 h-5 bg-slate-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-scout-blue rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-scout-blue"></div>
+</div>
+<span class="text-xs font-medium text-slate-300">Notify me before reverting</span>
+</label>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Actions -->
+<div class="p-6 border-t border-slate-200 dark:border-border-dark bg-white dark:bg-card-dark flex justify-end items-center gap-3">
+<button class="px-5 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-600">
+                Cancel
+            </button>
+<button class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-primary hover:bg-primary-hover transition-colors shadow-lg shadow-primary/25 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                Apply Score Override
+            </button>
+</div>
+</div>
+</body></html>

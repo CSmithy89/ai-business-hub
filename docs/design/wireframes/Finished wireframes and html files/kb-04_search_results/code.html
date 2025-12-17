@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KB Search Results</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13daec",
+                        "verified": "#2ECC71",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#102022",
+                        "card-dark": "#162224", // Slightly lighter than background-dark
+                        "card-hover": "#1c2b2d",
+                        "border-dark": "#283739",
+                        "text-sub": "#9db7b9"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                    backdropBlur: {
+                        'xs': '2px',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #102022; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #283739; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a4e50; 
+        }
+        
+        .shimmer {
+            background: linear-gradient(to right, #1c2627 0%, #283739 50%, #1c2627 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-white font-display overflow-y-auto">
+<!-- Backdrop / Overlay Wrapper -->
+<div class="fixed inset-0 z-50 flex justify-center items-start pt-[10vh] pb-10 px-4">
+<!-- Blurred Background Layer (Simulating overlay on existing app) -->
+<div aria-hidden="true" class="absolute inset-0 bg-[#0f1115]/80 backdrop-blur-sm"></div>
+<!-- Main Modal Container -->
+<div class="relative w-full max-w-[960px] flex flex-col max-h-[85vh] bg-background-dark rounded-2xl shadow-2xl border border-border-dark overflow-hidden ring-1 ring-white/10">
+<!-- Header: Search Bar & Filters -->
+<div class="flex flex-col bg-background-dark border-b border-border-dark z-10 sticky top-0">
+<!-- Search Hero -->
+<div class="p-6 pb-2">
+<label class="flex flex-col w-full group">
+<div class="flex w-full items-center rounded-xl bg-card-dark border border-border-dark group-focus-within:border-primary/50 group-focus-within:ring-2 group-focus-within:ring-primary/20 transition-all duration-200">
+<div class="text-text-sub flex items-center justify-center pl-4 pr-3 py-4">
+<span class="material-symbols-outlined text-[28px] group-focus-within:text-primary transition-colors">search</span>
+</div>
+<input autofocus="" class="flex-1 bg-transparent border-none text-white text-lg placeholder:text-text-sub focus:ring-0 focus:outline-none h-14" placeholder="Search knowledge base..." value="API integration"/>
+<div class="flex items-center pr-4 gap-3">
+<button class="text-text-sub hover:text-white transition-colors" title="Clear search">
+<span class="material-symbols-outlined text-[24px]">cancel</span>
+</button>
+<div class="hidden sm:flex items-center gap-1 px-2 py-1 rounded bg-border-dark border border-white/5">
+<span class="text-xs font-mono text-text-sub">⌘K</span>
+</div>
+</div>
+</div>
+</label>
+</div>
+<!-- Filter Ribbon -->
+<div class="px-6 pb-4 flex flex-wrap items-center gap-3 overflow-x-auto no-scrollbar">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card-dark border border-border-dark hover:bg-card-hover hover:border-text-sub/30 transition-all text-sm font-medium text-white group">
+<span class="text-text-sub group-hover:text-white">Scope:</span> Entire KB
+                        <span class="material-symbols-outlined text-[18px] text-text-sub">expand_more</span>
+</button>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card-dark border border-border-dark hover:bg-card-hover hover:border-text-sub/30 transition-all text-sm font-medium text-white group">
+<span class="text-text-sub group-hover:text-white">Date:</span> Anytime
+                        <span class="material-symbols-outlined text-[18px] text-text-sub">expand_more</span>
+</button>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card-dark border border-border-dark hover:bg-card-hover hover:border-text-sub/30 transition-all text-sm font-medium text-white group">
+<span class="text-text-sub group-hover:text-white">Author:</span> All
+                        <span class="material-symbols-outlined text-[18px] text-text-sub">expand_more</span>
+</button>
+<div class="w-px h-6 bg-border-dark mx-1"></div>
+<!-- Verified Toggle -->
+<label class="flex items-center gap-2 cursor-pointer group">
+<div class="relative">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-border-dark peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-verified"></div>
+</div>
+<span class="text-sm font-medium text-text-sub group-hover:text-white transition-colors">Show Verified First</span>
+</label>
+<div class="flex-1"></div>
+<button class="text-sm text-text-sub hover:text-primary transition-colors underline decoration-dotted">Clear filters</button>
+</div>
+</div>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto p-6 pt-2 bg-background-dark/50">
+<!-- Results Header -->
+<div class="flex justify-between items-center mb-6 mt-2">
+<p class="text-text-sub text-sm">Found 42 results for <span class="text-white font-medium">'API integration'</span></p>
+<div class="flex items-center gap-2">
+<span class="text-text-sub text-sm">Sort by:</span>
+<button class="flex items-center gap-1 text-sm font-medium text-white hover:text-primary transition-colors">
+                            Relevance
+                            <span class="material-symbols-outlined text-[18px]">sort</span>
+</button>
+</div>
+</div>
+<!-- Section: Verified Results -->
+<div class="mb-8">
+<h3 class="text-verified text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+                        Verified Results
+                    </h3>
+<!-- Verified Card 1 -->
+<div class="group relative flex flex-col md:flex-row gap-4 p-5 rounded-xl bg-card-dark border border-border-dark hover:border-verified/50 hover:shadow-[0_0_15px_rgba(46,204,113,0.1)] transition-all duration-300 cursor-pointer overflow-hidden mb-3">
+<!-- Green Accent Bar -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-verified"></div>
+<div class="flex-1 flex flex-col gap-2">
+<div class="flex items-center gap-2 text-xs text-text-sub mb-0.5">
+<span class="bg-verified/10 text-verified px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase">Verified</span>
+<span>Engineering</span>
+<span class="material-symbols-outlined text-[12px]">chevron_right</span>
+<span>Security</span>
+<span class="material-symbols-outlined text-[12px]">chevron_right</span>
+<span>Standards</span>
+</div>
+<h4 class="text-lg font-bold text-white group-hover:text-verified transition-colors flex items-center gap-2">
+                                API Authentication Standards
+                                <span class="material-symbols-outlined text-verified text-[18px]">check_circle</span>
+</h4>
+<p class="text-sm text-gray-300 leading-relaxed line-clamp-2">
+                                ...required for all new services. When implementing <span class="text-primary font-medium bg-primary/10 px-0.5 rounded">API integration</span>, you must use the Bearer Token method for all v2 endpoints. This ensures compatibility with the new gateway...
+                            </p>
+<div class="flex items-center gap-4 mt-2 text-xs text-text-sub">
+<span class="flex items-center gap-1">
+<span class="w-4 h-4 rounded-full bg-gray-600 flex items-center justify-center text-[8px] text-white">S</span>
+                                    Updated 2h ago by Sarah
+                                </span>
+<span class="flex items-center gap-1 text-verified">
+<span class="material-symbols-outlined text-[14px]">stars</span>
+                                    98% Match
+                                </span>
+</div>
+</div>
+<!-- Quick Actions (Visible on Hover/Focus) -->
+<div class="flex md:flex-col justify-between md:justify-start items-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="flex items-center justify-center h-8 w-8 rounded-lg bg-border-dark text-text-sub hover:bg-primary hover:text-black transition-colors" title="Copy Link">
+<span class="material-symbols-outlined text-[18px]">link</span>
+</button>
+<button class="flex items-center justify-center h-8 w-8 rounded-lg bg-border-dark text-text-sub hover:bg-verified hover:text-black transition-colors" title="Open in new tab">
+<span class="material-symbols-outlined text-[18px]">open_in_new</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Section: All Results -->
+<div class="mb-4">
+<h3 class="text-white text-xs font-bold uppercase tracking-wider mb-3">All Results</h3>
+<!-- Standard Card 1 -->
+<div class="group flex flex-col md:flex-row gap-4 p-4 rounded-xl bg-card-dark border border-border-dark hover:border-primary/50 hover:bg-card-hover transition-all duration-200 cursor-pointer mb-3">
+<div class="flex-1 flex flex-col gap-1">
+<div class="flex items-center gap-2 text-xs text-text-sub mb-0.5">
+<span>Product</span>
+<span class="material-symbols-outlined text-[12px]">chevron_right</span>
+<span>Roadmap</span>
+</div>
+<h4 class="text-base font-semibold text-white group-hover:text-primary transition-colors">
+                                Q3 Integration Roadmap
+                            </h4>
+<p class="text-sm text-text-sub leading-relaxed line-clamp-2">
+                                ...timeline for the Salesforce <span class="text-white font-medium bg-white/10 px-0.5 rounded">API integration</span> has been moved to Sprint 4. The team needs to review the auth specs...
+                            </p>
+<div class="flex items-center gap-4 mt-2 text-xs text-text-sub/70">
+<span>Updated yesterday by Mike</span>
+</div>
+</div>
+</div>
+<!-- Standard Card 2 -->
+<div class="group flex flex-col md:flex-row gap-4 p-4 rounded-xl bg-card-dark border border-border-dark hover:border-primary/50 hover:bg-card-hover transition-all duration-200 cursor-pointer mb-3">
+<div class="flex-1 flex flex-col gap-1">
+<div class="flex items-center gap-2 text-xs text-text-sub mb-0.5">
+<span>Support</span>
+<span class="material-symbols-outlined text-[12px]">chevron_right</span>
+<span>Troubleshooting</span>
+</div>
+<h4 class="text-base font-semibold text-white group-hover:text-primary transition-colors">
+                                Troubleshooting Webhook Failures
+                            </h4>
+<p class="text-sm text-text-sub leading-relaxed line-clamp-2">
+                                ...common errors during <span class="text-white font-medium bg-white/10 px-0.5 rounded">integration</span> setup include 403 Forbidden. Check your whitelist IP addresses...
+                            </p>
+<div class="flex items-center gap-4 mt-2 text-xs text-text-sub/70">
+<span>Updated 3 days ago by Team</span>
+</div>
+</div>
+</div>
+<!-- Standard Card 3 -->
+<div class="group flex flex-col md:flex-row gap-4 p-4 rounded-xl bg-card-dark border border-border-dark hover:border-primary/50 hover:bg-card-hover transition-all duration-200 cursor-pointer mb-3">
+<div class="flex-1 flex flex-col gap-1">
+<div class="flex items-center gap-2 text-xs text-text-sub mb-0.5">
+<span>Developer Docs</span>
+<span class="material-symbols-outlined text-[12px]">chevron_right</span>
+<span>SDK</span>
+</div>
+<h4 class="text-base font-semibold text-white group-hover:text-primary transition-colors">
+                                Javascript SDK Initialization
+                            </h4>
+<p class="text-sm text-text-sub leading-relaxed line-clamp-2">
+                                ...to start the <span class="text-white font-medium bg-white/10 px-0.5 rounded">integration</span>, initialize the client with your public API key. Do not expose your secret key...
+                            </p>
+<div class="flex items-center gap-4 mt-2 text-xs text-text-sub/70">
+<span>Updated 1 week ago by Alex</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Hints -->
+<div class="p-3 border-t border-border-dark bg-background-dark flex justify-between items-center text-xs text-text-sub">
+<div class="flex gap-4">
+<span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-card-dark border border-border-dark font-mono text-[10px]">↑</kbd> <kbd class="px-1.5 py-0.5 rounded bg-card-dark border border-border-dark font-mono text-[10px]">↓</kbd> to navigate</span>
+<span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-card-dark border border-border-dark font-mono text-[10px]">↵</kbd> to open</span>
+</div>
+<span>Search powered by Scribe AI</span>
+</div>
+</div>
+</div>
+<!-- 
+      DEMONSTRATION SECTION: 
+      Below are the other requested states (Loading & No Results) displayed statically 
+      so the user can review all required UI states in one render.
+    -->
+<div class="relative max-w-[960px] mx-auto mt-[100vh] mb-20 px-4">
+<h2 class="text-2xl font-bold text-white mb-8 border-b border-border-dark pb-4">UI States Variation Showcase</h2>
+<!-- Loading State Layout -->
+<div class="mb-12">
+<h3 class="text-primary font-mono text-sm mb-4">State: Loading</h3>
+<div class="w-full bg-background-dark rounded-2xl border border-border-dark p-6 overflow-hidden max-w-[600px]">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+<span class="text-sm text-primary font-medium animate-pulse">Scribe is searching...</span>
+</div>
+<!-- Skeleton Card 1 -->
+<div class="flex flex-col gap-3 p-4 rounded-xl bg-card-dark border border-border-dark mb-3">
+<div class="h-3 w-1/3 rounded bg-[#283739] shimmer"></div>
+<div class="h-5 w-3/4 rounded bg-[#283739] shimmer"></div>
+<div class="space-y-2 mt-1">
+<div class="h-3 w-full rounded bg-[#283739] shimmer"></div>
+<div class="h-3 w-5/6 rounded bg-[#283739] shimmer"></div>
+</div>
+</div>
+<!-- Skeleton Card 2 -->
+<div class="flex flex-col gap-3 p-4 rounded-xl bg-card-dark border border-border-dark">
+<div class="h-3 w-1/4 rounded bg-[#283739] shimmer"></div>
+<div class="h-5 w-2/3 rounded bg-[#283739] shimmer"></div>
+<div class="space-y-2 mt-1">
+<div class="h-3 w-full rounded bg-[#283739] shimmer"></div>
+<div class="h-3 w-4/5 rounded bg-[#283739] shimmer"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- No Results / Empty State Layout -->
+<div>
+<h3 class="text-primary font-mono text-sm mb-4">State: No Results</h3>
+<div class="w-full bg-background-dark rounded-2xl border border-border-dark p-6 overflow-hidden max-w-[600px] flex flex-col items-center justify-center text-center py-12">
+<div class="w-16 h-16 rounded-full bg-card-dark flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-text-sub text-[32px]">search_off</span>
+</div>
+<h4 class="text-white text-lg font-bold mb-2">No results found</h4>
+<p class="text-text-sub text-sm max-w-xs mb-8">
+                    We couldn't find anything for "flibberflabber". Try adjusting your filters or search for a different keyword.
+                </p>
+<div class="w-full max-w-md">
+<div class="text-xs text-left font-bold text-primary uppercase tracking-wider mb-3">Scribe Suggestions</div>
+<!-- Scribe Suggestion Card -->
+<button class="w-full flex items-center justify-between p-4 rounded-xl bg-card-dark border border-primary/30 hover:bg-primary/5 hover:border-primary transition-all group text-left mb-3">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-[20px]">add_circle</span>
+<div>
+<p class="text-sm font-medium text-white group-hover:text-primary transition-colors">Create a new page</p>
+<p class="text-xs text-text-sub">Start a draft about "flibberflabber"</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-text-sub text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+<button class="w-full flex items-center justify-between p-4 rounded-xl bg-card-dark border border-border-dark hover:border-text-sub/50 transition-all group text-left">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-text-sub text-[20px]">help</span>
+<div>
+<p class="text-sm font-medium text-white">Ask in Community</p>
+<p class="text-xs text-text-sub">Post a question to the team</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-text-sub text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

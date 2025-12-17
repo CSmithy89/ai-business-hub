@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-26 Cadence Sequence Builder</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+              "surface-dark": "#1A202C",
+              "border-dark": "#2D3748",
+              "agent-cadence": "#1ABC9C", // Teal
+              "agent-sync": "#3498DB",    // Blue
+              "agent-flow": "#2ECC71",    // Green
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #101622;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #2D3748;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #4A5568;
+        }
+        .canvas-grid {
+            background-image: radial-gradient(#2D3748 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-white font-display flex flex-col h-screen overflow-hidden">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-border-dark bg-[#111318] px-6 py-3 shrink-0 z-20">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3 text-white cursor-pointer">
+<div class="size-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">hub</span>
+</div>
+<h2 class="text-white text-lg font-bold tracking-tight">HYVVE CRM</h2>
+</div>
+<div class="h-6 w-[1px] bg-border-dark"></div>
+<nav class="flex items-center gap-6">
+<a class="text-gray-400 hover:text-white text-sm font-medium transition-colors" href="#">Campaigns</a>
+<a class="text-white text-sm font-medium" href="#">Sequences</a>
+<a class="text-gray-400 hover:text-white text-sm font-medium transition-colors" href="#">Contacts</a>
+<a class="text-gray-400 hover:text-white text-sm font-medium transition-colors" href="#">Analytics</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 bg-surface-dark px-3 py-1.5 rounded-lg border border-border-dark">
+<span class="material-symbols-outlined text-gray-400 text-[20px]">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm p-0 w-48 placeholder-gray-500" placeholder="Search..."/>
+</div>
+<div class="size-8 rounded-full bg-cover bg-center border border-border-dark cursor-pointer" data-alt="User profile avatar showing a man's face" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAkYdk7yzDGe3lJl0pj5EaIL6wJ-nuXAvy0fsdIdFHlo2YsAOqUg3tV18jGXrJnhXrGTyW7x0Jk9IIrkrOdoJr8-GCrKKGGGNP7uJs0J3QQ7qTAn7VmmMZ5qOGUICxIVgITHYQy2s_HipE2IWkGq5klTLyqKRDDJMKuEeqjMYrE0KJ_D3Es8nEBgVFpwLf6FDOwwZmVoUKgk375MNYRokh3w9ZN2GaQ9Q9n0UhzXa0jONRQTtkkQeiQ3W_nM4YldnoiFNIz9eKSfOQ");'></div>
+</div>
+</header>
+<!-- Sequence Action Bar -->
+<div class="flex items-center justify-between px-6 py-4 bg-[#111318] border-b border-border-dark shrink-0 z-10">
+<div class="flex items-center gap-4">
+<div class="flex flex-col">
+<div class="flex items-center gap-3">
+<h1 class="text-2xl font-bold tracking-tight">Q3 Enterprise Outreach</h1>
+<span class="px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">Draft</span>
+</div>
+<p class="text-gray-400 text-xs mt-1">Last edited 2 minutes ago by Sarah J.</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-dark text-white text-sm font-medium hover:bg-border-dark border border-border-dark transition-colors">
+<span class="material-symbols-outlined text-[18px]">save</span>
+<span>Save Draft</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-dark text-white text-sm font-medium hover:bg-border-dark border border-border-dark transition-colors">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+<span>Preview</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-900/20">
+<span class="material-symbols-outlined text-[18px]">rocket_launch</span>
+<span>Activate Sequence</span>
+</button>
+</div>
+</div>
+<!-- Main Workspace -->
+<div class="flex flex-1 overflow-hidden">
+<!-- Left Sidebar: Step Palette -->
+<aside class="w-64 bg-[#111318] border-r border-border-dark flex flex-col z-10">
+<div class="p-4 border-b border-border-dark">
+<h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">Step Palette</h3>
+<p class="text-xs text-gray-500">Drag steps to canvas</p>
+</div>
+<div class="p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+<!-- Palette Items -->
+<div class="group flex items-center gap-3 p-3 rounded-lg bg-surface-dark border border-border-dark hover:border-agent-sync cursor-grab active:cursor-grabbing transition-all hover:translate-x-1">
+<div class="size-8 rounded-md bg-blue-500/20 text-blue-400 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+</div>
+<div>
+<p class="text-sm font-medium">Email</p>
+<p class="text-[10px] text-gray-500">Automated send</p>
+</div>
+</div>
+<div class="group flex items-center gap-3 p-3 rounded-lg bg-surface-dark border border-border-dark hover:border-agent-sync cursor-grab active:cursor-grabbing transition-all hover:translate-x-1">
+<div class="size-8 rounded-md bg-green-500/20 text-green-400 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+</div>
+<div>
+<p class="text-sm font-medium">SMS</p>
+<p class="text-[10px] text-gray-500">Twilio Integrated</p>
+</div>
+</div>
+<div class="group flex items-center gap-3 p-3 rounded-lg bg-surface-dark border border-border-dark hover:border-blue-700 cursor-grab active:cursor-grabbing transition-all hover:translate-x-1">
+<div class="size-8 rounded-md bg-[#0077b5]/20 text-[#0077b5] flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">work</span>
+</div>
+<div>
+<p class="text-sm font-medium">LinkedIn</p>
+<p class="text-[10px] text-gray-500">Connect/Message</p>
+</div>
+</div>
+<div class="my-2 h-[1px] bg-border-dark"></div>
+<div class="group flex items-center gap-3 p-3 rounded-lg bg-surface-dark border border-border-dark hover:border-agent-flow cursor-grab active:cursor-grabbing transition-all hover:translate-x-1">
+<div class="size-8 rounded-md bg-purple-500/20 text-purple-400 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">call_split</span>
+</div>
+<div>
+<p class="text-sm font-medium">Branch</p>
+<p class="text-[10px] text-gray-500">Conditional logic</p>
+</div>
+</div>
+<div class="group flex items-center gap-3 p-3 rounded-lg bg-surface-dark border border-border-dark hover:border-orange-500 cursor-grab active:cursor-grabbing transition-all hover:translate-x-1">
+<div class="size-8 rounded-md bg-orange-500/20 text-orange-400 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">schedule</span>
+</div>
+<div>
+<p class="text-sm font-medium">Wait</p>
+<p class="text-[10px] text-gray-500">Delay sequence</p>
+</div>
+</div>
+<div class="group flex items-center gap-3 p-3 rounded-lg bg-surface-dark border border-border-dark hover:border-gray-500 cursor-grab active:cursor-grabbing transition-all hover:translate-x-1">
+<div class="size-8 rounded-md bg-gray-500/20 text-gray-400 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+</div>
+<div>
+<p class="text-sm font-medium">Task</p>
+<p class="text-[10px] text-gray-500">Manual action</p>
+</div>
+</div>
+</div>
+<!-- Bottom Agent Summary -->
+<div class="mt-auto p-4 border-t border-border-dark bg-surface-dark/50">
+<div class="flex items-center gap-2 mb-2">
+<div class="size-2 rounded-full bg-agent-cadence animate-pulse"></div>
+<span class="text-xs font-semibold text-agent-cadence">Cadence Agent Active</span>
+</div>
+<p class="text-xs text-gray-400">Monitoring sequence health and providing real-time optimization tips.</p>
+</div>
+</aside>
+<!-- Center: Sequence Canvas -->
+<main class="flex-1 relative flex flex-col min-w-0">
+<!-- Canvas Area -->
+<div class="flex-1 bg-background-dark canvas-grid relative overflow-auto custom-scrollbar p-8 pb-96">
+<!-- Floating Agent Card -->
+<div class="absolute top-6 right-6 w-80 bg-surface-dark/90 backdrop-blur-md border border-agent-cadence/30 rounded-xl shadow-2xl z-20 overflow-hidden">
+<div class="p-4 border-b border-border-dark flex justify-between items-center bg-agent-cadence/10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-agent-cadence">psychology</span>
+<span class="font-bold text-sm text-white">Sequence Analysis</span>
+</div>
+<span class="text-xs font-bold px-2 py-0.5 rounded bg-agent-cadence text-black">92/100</span>
+</div>
+<div class="p-4 flex flex-col gap-3">
+<p class="text-sm text-gray-300">
+<span class="text-agent-cadence font-semibold">Prediction:</span> Adding a LinkedIn touchpoint on Day 5 could increase response rates by <span class="text-white font-bold">15%</span>.
+                        </p>
+<button class="text-xs flex items-center gap-1 text-agent-cadence hover:text-white transition-colors font-medium">
+<span class="material-symbols-outlined text-[14px]">add_circle</span>
+                            Apply Suggestion
+                        </button>
+</div>
+</div>
+<!-- Sequence Flow Visualization -->
+<div class="flex flex-col items-center max-w-3xl mx-auto space-y-0">
+<!-- Start Node -->
+<div class="flex flex-col items-center">
+<div class="h-8 w-px bg-border-dark"></div> <!-- Top spacer line -->
+<div class="px-4 py-1.5 rounded-full bg-surface-dark border border-green-500/50 text-green-400 text-xs font-bold uppercase tracking-wide mb-4 shadow-lg shadow-green-900/20">
+                            Sequence Start
+                        </div>
+</div>
+<!-- Step 1: Email (Selected) -->
+<div class="flex flex-col items-center group relative w-full">
+<div class="h-6 w-0.5 bg-border-dark"></div>
+<!-- Node Card -->
+<div class="w-96 p-4 rounded-xl bg-surface-dark border-2 border-primary shadow-lg shadow-primary/10 cursor-pointer relative z-10 hover:translate-y-[-2px] transition-transform">
+<div class="absolute -left-3 top-1/2 -translate-y-1/2 size-6 rounded-full bg-background-dark border border-primary flex items-center justify-center text-xs font-bold text-primary">1</div>
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">mail</span>
+<span class="font-bold text-white">Intro Email</span>
+</div>
+<span class="text-xs text-gray-500">Day 0</span>
+</div>
+<p class="text-sm text-gray-400 truncate">Subject: Quick question for {{Company}}...</p>
+</div>
+</div>
+<!-- Step 2: Wait -->
+<div class="flex flex-col items-center group relative w-full">
+<div class="h-8 w-0.5 bg-border-dark"></div>
+<!-- Node Card -->
+<div class="w-64 p-3 rounded-lg bg-surface-dark border border-border-dark hover:border-orange-500/50 cursor-pointer relative z-10">
+<div class="absolute -left-3 top-1/2 -translate-y-1/2 size-6 rounded-full bg-background-dark border border-border-dark flex items-center justify-center text-xs font-bold text-gray-500">2</div>
+<div class="flex items-center justify-center gap-2 text-orange-400">
+<span class="material-symbols-outlined text-[20px]">schedule</span>
+<span class="font-medium text-sm">Wait 3 Days</span>
+</div>
+</div>
+</div>
+<!-- Step 3: Branch -->
+<div class="flex flex-col items-center w-full">
+<div class="h-8 w-0.5 bg-border-dark"></div>
+<!-- Diamond Shape for Branch Logic -->
+<div class="size-10 bg-surface-dark border border-agent-flow rotate-45 flex items-center justify-center mb-0 relative z-10 shadow-lg shadow-green-900/10">
+<span class="material-symbols-outlined -rotate-45 text-agent-flow text-[20px]">call_split</span>
+</div>
+<!-- Branching Lines -->
+<div class="relative w-[500px] h-8">
+<!-- Left Line -->
+<div class="absolute left-0 top-0 w-1/2 h-full border-t-2 border-l-2 border-border-dark rounded-tl-xl translate-x-[2px]"></div>
+<!-- Right Line -->
+<div class="absolute right-0 top-0 w-1/2 h-full border-t-2 border-r-2 border-border-dark rounded-tr-xl -translate-x-[2px]"></div>
+<!-- Labels -->
+<div class="absolute top-[-10px] left-1/4 -translate-x-1/2 px-2 bg-background-dark text-[10px] text-gray-400">If Opened</div>
+<div class="absolute top-[-10px] right-1/4 translate-x-1/2 px-2 bg-background-dark text-[10px] text-gray-400">Else</div>
+</div>
+<!-- Branch Targets -->
+<div class="flex justify-between w-[500px]">
+<!-- Left Path -->
+<div class="flex flex-col items-center w-64">
+<div class="h-4 w-0.5 bg-border-dark"></div>
+<div class="w-full p-4 rounded-xl bg-surface-dark border border-border-dark hover:border-gray-500 cursor-pointer relative">
+<div class="absolute -left-3 top-1/2 -translate-y-1/2 size-6 rounded-full bg-background-dark border border-border-dark flex items-center justify-center text-xs font-bold text-gray-500">3a</div>
+<div class="flex justify-between items-start mb-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-gray-400">check_circle</span>
+<span class="font-bold text-white text-sm">Manual Call</span>
+</div>
+</div>
+<p class="text-xs text-gray-500">Call priority contacts</p>
+</div>
+</div>
+<!-- Right Path -->
+<div class="flex flex-col items-center w-64">
+<div class="h-4 w-0.5 bg-border-dark"></div>
+<div class="w-full p-4 rounded-xl bg-surface-dark border border-border-dark hover:border-blue-500 cursor-pointer relative">
+<div class="absolute -left-3 top-1/2 -translate-y-1/2 size-6 rounded-full bg-background-dark border border-border-dark flex items-center justify-center text-xs font-bold text-gray-500">3b</div>
+<div class="flex justify-between items-start mb-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-blue-400">mail</span>
+<span class="font-bold text-white text-sm">Follow-up Email</span>
+</div>
+</div>
+<p class="text-xs text-gray-500">Subject: Did you see this?</p>
+</div>
+</div>
+</div>
+<!-- Add Step Button at bottom -->
+<div class="mt-8">
+<button class="size-10 rounded-full border border-dashed border-gray-600 flex items-center justify-center hover:border-primary hover:text-primary transition-colors text-gray-500">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Panel: Step Details (Collapsible/Fixed) -->
+<div class="h-80 bg-[#111318] border-t border-border-dark flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-30">
+<!-- Panel Header -->
+<div class="flex items-center justify-between px-6 py-3 border-b border-border-dark bg-surface-dark">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded bg-primary/20 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+</div>
+<div>
+<h3 class="text-sm font-bold text-white">Step 1: Intro Email</h3>
+<p class="text-xs text-gray-500">Configure email content and settings</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1 text-xs text-agent-cadence bg-agent-cadence/10 px-2 py-1 rounded border border-agent-cadence/20 cursor-pointer hover:bg-agent-cadence/20 transition-colors">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+<span>AI Personalization On</span>
+</div>
+<button class="p-2 hover:bg-background-dark rounded text-gray-400">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</div>
+<!-- Editor Content -->
+<div class="flex flex-1 min-h-0">
+<!-- Editor Left: Inputs -->
+<div class="flex-1 p-6 overflow-y-auto custom-scrollbar border-r border-border-dark">
+<div class="space-y-4 max-w-3xl">
+<!-- Subject Line -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-medium text-gray-400">Subject</label>
+<div class="flex items-center gap-2">
+<input class="flex-1 bg-background-dark border border-border-dark rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-primary focus:border-primary text-white" type="text" value="Quick question for {{Company}}"/>
+<button class="text-xs font-medium text-primary hover:text-white px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 transition-colors whitespace-nowrap">
+                                        + Variable
+                                    </button>
+</div>
+</div>
+<!-- Body Editor (Simulated) -->
+<div class="flex flex-col gap-1.5 flex-1 h-full">
+<label class="text-xs font-medium text-gray-400">Email Body</label>
+<div class="flex flex-col border border-border-dark rounded-md bg-background-dark overflow-hidden flex-1 min-h-[140px]">
+<!-- Toolbar -->
+<div class="flex items-center gap-1 p-2 border-b border-border-dark bg-surface-dark">
+<button class="p-1 hover:bg-background-dark rounded text-gray-400"><span class="material-symbols-outlined text-[18px]">format_bold</span></button>
+<button class="p-1 hover:bg-background-dark rounded text-gray-400"><span class="material-symbols-outlined text-[18px]">format_italic</span></button>
+<button class="p-1 hover:bg-background-dark rounded text-gray-400"><span class="material-symbols-outlined text-[18px]">format_underlined</span></button>
+<div class="h-4 w-[1px] bg-border-dark mx-1"></div>
+<button class="p-1 hover:bg-background-dark rounded text-gray-400"><span class="material-symbols-outlined text-[18px]">link</span></button>
+<button class="p-1 hover:bg-background-dark rounded text-gray-400"><span class="material-symbols-outlined text-[18px]">image</span></button>
+<div class="flex-1"></div>
+<button class="flex items-center gap-1 text-[10px] font-medium text-purple-400 hover:text-purple-300 px-2 py-1 rounded hover:bg-purple-500/10 transition-colors">
+<span class="material-symbols-outlined text-[14px]">auto_fix_high</span>
+                                            Rewrite with AI
+                                        </button>
+</div>
+<!-- Text Area -->
+<textarea class="flex-1 bg-transparent border-none p-4 text-sm resize-none focus:ring-0 text-gray-300 font-normal leading-relaxed custom-scrollbar">Hi {{FirstName}},
+
+I noticed that {{Company}} is currently expanding its sales team. Typically, teams at this stage struggle with maintaining consistent outreach quality.
+
+Our new 'Cadence Agent' can help you automate this while keeping it personal.
+
+Would you be open to a 5-minute chat next Tuesday?</textarea>
+</div>
+</div>
+</div>
+</div>
+<!-- Editor Right: Config -->
+<div class="w-80 p-6 overflow-y-auto custom-scrollbar bg-surface-dark">
+<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Configuration</h4>
+<div class="space-y-5">
+<div class="flex items-center justify-between">
+<div>
+<p class="text-sm font-medium text-white">Track Opens</p>
+<p class="text-xs text-gray-500">Pixel tracking enabled</p>
+</div>
+<div class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary" id="toggle1" name="toggle" type="checkbox"/>
+<label class="block overflow-hidden h-5 rounded-full bg-gray-700 cursor-pointer checked:bg-primary/50" for="toggle1"></label>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<p class="text-sm font-medium text-white">Track Links</p>
+<p class="text-xs text-gray-500">Click tracking enabled</p>
+</div>
+<div class="relative inline-block w-10 h-6 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary" id="toggle2" name="toggle2" type="checkbox"/>
+<label class="block overflow-hidden h-5 rounded-full bg-gray-700 cursor-pointer checked:bg-primary/50" for="toggle2"></label>
+</div>
+</div>
+<div class="border-t border-border-dark pt-4">
+<label class="text-xs font-medium text-gray-400 mb-2 block">Stop Sequence Condition</label>
+<select class="w-full bg-background-dark border border-border-dark text-white text-sm rounded-md px-3 py-2 focus:ring-primary focus:border-primary">
+<option>If recipient replies</option>
+<option>If recipient clicks link</option>
+<option>If recipient opens email</option>
+<option>Never stop</option>
+</select>
+</div>
+<div class="border-t border-border-dark pt-4">
+<label class="text-xs font-medium text-gray-400 mb-2 block">Send Window</label>
+<div class="grid grid-cols-2 gap-2">
+<div class="bg-background-dark border border-border-dark rounded p-2 text-center text-xs text-white cursor-pointer hover:border-primary">Weekdays</div>
+<div class="bg-background-dark border border-border-dark rounded p-2 text-center text-xs text-gray-500 cursor-pointer hover:border-gray-500">Weekend</div>
+</div>
+<div class="mt-2 flex items-center gap-2">
+<input class="w-full bg-background-dark border border-border-dark rounded px-2 py-1 text-xs text-white" type="text" value="9:00 AM"/>
+<span class="text-gray-500">-</span>
+<input class="w-full bg-background-dark border border-border-dark rounded px-2 py-1 text-xs text-white" type="text" value="5:00 PM"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+
+<html class="" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Multi-Pipeline Configuration - HYVVE CRM</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "brand-bg": "#FFFBF5",
+                        "brand-card": "#FFFFFF",
+                        "brand-border": "#f1ebe4",
+                        "text-main": "#1a1a2e",
+                        "text-sub": "#6b7280",
+                        "agent-flow": "#2ECC71",
+                        "agent-cadence": "#1ABC9C",
+                        "agent-sync": "#3498DB",
+                        "success": "#2ECC71",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                    boxShadow: {
+                        'soft': '0 2px 10px rgba(0, 0, 0, 0.03)',
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
+                        'modal': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 20px; 
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Custom scrollbar for the modal stage list */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+<body class="bg-brand-bg text-text-main font-display antialiased min-h-screen flex flex-col overflow-hidden relative">
+<!-- Navbar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-brand-border bg-brand-card px-8 py-3 sticky top-0 z-10 shadow-sm">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-text-main">
+<div class="size-8 flex items-center justify-center bg-primary rounded-lg text-white">
+<span class="material-symbols-outlined">hive</span>
+</div>
+<h2 class="text-text-main text-lg font-bold leading-tight tracking-tight">HYVVE CRM</h2>
+</div>
+<div class="flex items-center gap-6 hidden md:flex">
+<a class="text-text-sub hover:text-primary transition-colors text-sm font-medium" href="#">Dashboard</a>
+<a class="text-text-main border-b-2 border-primary text-sm font-semibold" href="#">Pipelines</a>
+<a class="text-text-sub hover:text-primary transition-colors text-sm font-medium" href="#">Contacts</a>
+<a class="text-text-sub hover:text-primary transition-colors text-sm font-medium" href="#">Reports</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-sub">search</span>
+<input class="form-input h-10 w-64 rounded-lg border border-brand-border bg-brand-bg pl-10 text-sm placeholder:text-text-sub focus:border-primary focus:ring-1 focus:ring-primary" placeholder="Search pipelines..."/>
+</div>
+<button class="size-10 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center hover:bg-gray-50 text-text-sub">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20">
+                JD
+            </div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto p-8 relative">
+<!-- Breadcrumbs & Header -->
+<div class="max-w-7xl mx-auto flex flex-col gap-6 mb-8">
+<div class="flex items-center gap-2 text-sm text-text-sub">
+<a class="hover:text-primary" href="#">Settings</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<a class="hover:text-primary" href="#">CRM</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-text-main font-medium">Multi-Pipeline Configuration</span>
+</div>
+<div class="flex flex-wrap items-end justify-between gap-4">
+<div>
+<h1 class="text-3xl font-bold text-text-main tracking-tight">Pipelines</h1>
+<p class="text-text-sub mt-2">Manage your sales processes, configure stages, and optimize with AI agents.</p>
+</div>
+<button class="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors">
+<span class="material-symbols-outlined">add</span>
+                        New Pipeline
+                    </button>
+</div>
+<!-- Stats Row -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-brand-card rounded-xl p-5 border border-brand-border shadow-soft flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<p class="text-text-sub text-sm font-medium">Total Pipelines</p>
+<span class="material-symbols-outlined text-primary bg-primary/10 p-1 rounded">view_kanban</span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<h3 class="text-2xl font-bold text-text-main">5</h3>
+<span class="text-agent-flow text-xs font-medium bg-agent-flow/10 px-1.5 py-0.5 rounded">+1 new</span>
+</div>
+</div>
+<div class="bg-brand-card rounded-xl p-5 border border-brand-border shadow-soft flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<p class="text-text-sub text-sm font-medium">Active Deals</p>
+<span class="material-symbols-outlined text-agent-sync bg-agent-sync/10 p-1 rounded">sync_alt</span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<h3 class="text-2xl font-bold text-text-main">1,240</h3>
+<span class="text-agent-flow text-xs font-medium bg-agent-flow/10 px-1.5 py-0.5 rounded">+12% vs last month</span>
+</div>
+</div>
+<div class="bg-brand-card rounded-xl p-5 border border-brand-border shadow-soft flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<p class="text-text-sub text-sm font-medium">Avg Cycle Time</p>
+<span class="material-symbols-outlined text-orange-500 bg-orange-50 p-1 rounded">timer</span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<h3 class="text-2xl font-bold text-text-main">32 Days</h3>
+<span class="text-agent-flow text-xs font-medium bg-agent-flow/10 px-1.5 py-0.5 rounded">-4 days optimized</span>
+</div>
+</div>
+</div>
+<!-- Pipeline List -->
+<div class="flex flex-col gap-4 mt-2">
+<!-- Active Pipeline Card (Enterprise) -->
+<div class="group relative bg-brand-card rounded-xl border border-brand-border border-l-4 border-l-agent-flow p-6 shadow-card hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+<!-- Left: Info -->
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-3 mb-2">
+<h3 class="text-lg font-bold text-text-main truncate">Enterprise Sales</h3>
+<span class="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-text-sub border border-gray-200">Default</span>
+</div>
+<div class="flex items-center gap-4 text-sm text-text-sub mb-4">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">work</span> 12 Active Deals</span>
+<span class="w-1 h-1 rounded-full bg-gray-300"></span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">attach_money</span> $1.2M Value</span>
+<span class="w-1 h-1 rounded-full bg-gray-300"></span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">schedule</span> 45 Days Cycle</span>
+</div>
+<!-- Visual Stages -->
+<div class="flex w-full h-2.5 rounded-full overflow-hidden bg-gray-100 gap-0.5">
+<div class="bg-primary/40 w-[10%]"></div>
+<div class="bg-primary/60 w-[25%]"></div>
+<div class="bg-primary/80 w-[30%]"></div>
+<div class="bg-primary w-[20%]"></div>
+<div class="bg-agent-flow w-[15%]"></div>
+</div>
+<div class="flex justify-between text-xs text-text-sub mt-1.5">
+<span>Discovery</span>
+<span>Won</span>
+</div>
+</div>
+<!-- Right: Actions -->
+<div class="flex items-center gap-3 self-start md:self-center">
+<button class="px-4 py-2 bg-brand-bg border border-brand-border text-text-main text-sm font-medium rounded-lg hover:bg-gray-50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                                    View Deals
+                                </button>
+<button class="px-4 py-2 bg-primary/10 border border-primary/10 text-primary text-sm font-bold rounded-lg hover:bg-primary/20 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] filled">edit</span>
+                                    Edit Stages
+                                </button>
+<button class="p-2 text-text-sub hover:text-text-main rounded-lg hover:bg-gray-100">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Pipeline Card (SMB) -->
+<div class="bg-brand-card rounded-xl border border-brand-border p-6 shadow-card hover:shadow-md transition-shadow opacity-90">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-3 mb-2">
+<h3 class="text-lg font-bold text-text-main truncate">SMB Quick Close</h3>
+</div>
+<div class="flex items-center gap-4 text-sm text-text-sub mb-4">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">work</span> 45 Active Deals</span>
+<span class="w-1 h-1 rounded-full bg-gray-300"></span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">attach_money</span> $200k Value</span>
+<span class="w-1 h-1 rounded-full bg-gray-300"></span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">schedule</span> 14 Days Cycle</span>
+</div>
+<div class="flex w-full h-2.5 rounded-full overflow-hidden bg-gray-100 gap-0.5">
+<div class="bg-blue-300 w-[30%]"></div>
+<div class="bg-blue-400 w-[30%]"></div>
+<div class="bg-blue-600 w-[40%]"></div>
+</div>
+</div>
+<div class="flex items-center gap-3 self-start md:self-center">
+<button class="px-4 py-2 bg-brand-bg border border-brand-border text-text-main text-sm font-medium rounded-lg hover:bg-gray-50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                                    View Deals
+                                </button>
+<button class="px-4 py-2 bg-brand-bg border border-brand-border text-text-main text-sm font-medium rounded-lg hover:bg-gray-50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                                    Edit Stages
+                                </button>
+<button class="p-2 text-text-sub hover:text-text-main rounded-lg hover:bg-gray-100">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Pipeline Card (Partnerships) -->
+<div class="bg-brand-card rounded-xl border border-brand-border p-6 shadow-card hover:shadow-md transition-shadow opacity-90">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-3 mb-2">
+<h3 class="text-lg font-bold text-text-main truncate">Partnerships</h3>
+<span class="px-2 py-0.5 rounded text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-100">Draft</span>
+</div>
+<div class="flex items-center gap-4 text-sm text-text-sub mb-4">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">work</span> 0 Active Deals</span>
+<span class="w-1 h-1 rounded-full bg-gray-300"></span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">attach_money</span> $0 Value</span>
+</div>
+<div class="flex w-full h-2.5 rounded-full overflow-hidden bg-gray-100 gap-0.5">
+<div class="bg-gray-300 w-[20%]"></div>
+<div class="bg-gray-300 w-[20%]"></div>
+<div class="bg-gray-300 w-[20%]"></div>
+<div class="bg-gray-300 w-[20%]"></div>
+<div class="bg-gray-300 w-[20%]"></div>
+</div>
+</div>
+<div class="flex items-center gap-3 self-start md:self-center">
+<button class="px-4 py-2 bg-brand-bg border border-brand-border text-text-main text-sm font-medium rounded-lg hover:bg-gray-50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">settings</span>
+                                    Configure
+                                </button>
+<button class="p-2 text-text-sub hover:text-text-main rounded-lg hover:bg-gray-100">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Modal Overlay -->
+<div class="absolute inset-0 z-50 flex items-center justify-center bg-[#1a1a2e]/40 backdrop-blur-sm p-4 overflow-hidden">
+<!-- Modal Card -->
+<div class="bg-brand-card w-full max-w-5xl rounded-2xl shadow-modal flex flex-col max-h-[90vh] overflow-hidden border border-brand-border">
+<!-- Modal Header -->
+<div class="flex items-center justify-between px-8 py-5 border-b border-brand-border bg-white">
+<div>
+<h2 class="text-xl font-bold text-text-main">Edit Pipeline</h2>
+<p class="text-text-sub text-sm">Configure stages, rules, and automation for 'Enterprise Sales'</p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 rounded-lg border border-brand-border text-text-sub hover:bg-gray-50 font-medium text-sm">Cancel</button>
+<button class="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium text-sm shadow-sm">Save Changes</button>
+</div>
+</div>
+<!-- Modal Body Grid -->
+<div class="flex flex-1 overflow-hidden">
+<!-- Left Sidebar: Settings -->
+<div class="w-80 bg-brand-bg border-r border-brand-border p-6 overflow-y-auto flex flex-col gap-6 shrink-0">
+<div class="flex flex-col gap-1">
+<label class="text-sm font-semibold text-text-main">Pipeline Name</label>
+<input class="form-input rounded-lg border-brand-border bg-white text-sm focus:border-primary focus:ring-primary w-full" type="text" value="Enterprise Sales"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-sm font-semibold text-text-main">Description</label>
+<textarea class="form-textarea rounded-lg border-brand-border bg-white text-sm focus:border-primary focus:ring-primary w-full h-24 resize-none" placeholder="Describe the purpose of this pipeline...">Standard enterprise sales cycle for deals &gt;$50k.</textarea>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-1">
+<label class="text-sm font-semibold text-text-main">Icon</label>
+<button class="flex items-center justify-between px-3 py-2 bg-white border border-brand-border rounded-lg text-sm text-text-main hover:border-primary">
+<span class="material-symbols-outlined text-[20px]">business_center</span>
+<span class="material-symbols-outlined text-[16px] text-text-sub">expand_more</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-sm font-semibold text-text-main">Color</label>
+<div class="flex items-center gap-2 px-3 py-2 bg-white border border-brand-border rounded-lg cursor-pointer">
+<div class="w-5 h-5 rounded-full bg-primary border border-gray-200"></div>
+<span class="text-sm">Blue</span>
+</div>
+</div>
+</div>
+<!-- Win/Loss Config -->
+<div class="mt-4 pt-4 border-t border-brand-border flex flex-col gap-4">
+<h4 class="font-bold text-sm text-text-main flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">emoji_events</span> Win/Loss Stages
+                            </h4>
+<div class="bg-white p-3 rounded-lg border border-brand-border text-sm">
+<div class="flex justify-between items-center mb-2">
+<span class="font-medium">Closed Won</span>
+<span class="text-green-600 text-xs font-bold bg-green-50 px-1.5 py-0.5 rounded">100%</span>
+</div>
+<div class="flex justify-between items-center text-text-sub">
+<span class="font-medium">Closed Lost</span>
+<span class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">0%</span>
+</div>
+<div class="mt-2 text-xs text-primary cursor-pointer hover:underline font-medium">Configure Reasons</div>
+</div>
+</div>
+</div>
+<!-- Right Main: Stages -->
+<div class="flex-1 bg-white p-8 overflow-y-auto custom-scrollbar relative">
+<!-- Flow Agent Insight -->
+<div class="mb-8 bg-brand-bg rounded-xl border border-agent-flow/30 p-4 flex items-start gap-4 relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-agent-flow"></div>
+<div class="bg-white p-2 rounded-lg shadow-sm border border-agent-flow/20 text-agent-flow shrink-0">
+<span class="material-symbols-outlined filled">auto_awesome</span>
+</div>
+<div class="flex-1">
+<h4 class="text-sm font-bold text-text-main flex items-center gap-2">
+                                    Flow Agent Insight
+                                    <span class="bg-agent-flow text-white text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold">AI Tip</span>
+</h4>
+<p class="text-sm text-text-sub mt-1 leading-relaxed">
+                                    Historical data suggests deals stall at <span class="font-medium text-text-main">'Demo'</span> stage. Consider adding a <span class="font-medium text-text-main">'Pre-qualify'</span> stage before demos to increase conversion velocity by ~15%.
+                                </p>
+</div>
+<button class="text-xs font-bold text-agent-flow border border-agent-flow/30 px-3 py-1.5 rounded-lg hover:bg-agent-flow hover:text-white transition-colors">Apply Suggestion</button>
+</div>
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-bold text-text-main">Pipeline Stages</h3>
+<button class="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">add_circle</span> Add Stage
+                            </button>
+</div>
+<!-- Draggable Stages List -->
+<div class="space-y-3">
+<!-- Stage 1 -->
+<div class="flex items-center gap-3 group">
+<span class="material-symbols-outlined text-text-sub cursor-grab active:cursor-grabbing hover:text-text-main">drag_indicator</span>
+<div class="flex-1 bg-white border border-brand-border rounded-lg p-3 flex items-center gap-4 shadow-sm hover:border-primary/50 transition-colors">
+<div class="w-1 h-8 bg-primary/30 rounded-full"></div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-1">
+<span class="font-bold text-text-main text-sm">Discovery</span>
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium bg-gray-100 text-text-sub px-2 py-0.5 rounded">10% Prob</span>
+<button class="text-text-sub hover:text-red-500"><span class="material-symbols-outlined text-[16px]">close</span></button>
+</div>
+</div>
+<div class="flex items-center gap-3 text-xs text-text-sub">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">timer</span> SLA: 2 Days</span>
+<span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+<span>No required fields</span>
+</div>
+</div>
+<button class="text-text-sub hover:text-primary"><span class="material-symbols-outlined text-[18px]">settings</span></button>
+</div>
+</div>
+<!-- Stage 2 -->
+<div class="flex items-center gap-3 group">
+<span class="material-symbols-outlined text-text-sub cursor-grab active:cursor-grabbing hover:text-text-main">drag_indicator</span>
+<div class="flex-1 bg-white border border-brand-border rounded-lg p-3 flex items-center gap-4 shadow-sm hover:border-primary/50 transition-colors">
+<div class="w-1 h-8 bg-primary/50 rounded-full"></div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-1">
+<span class="font-bold text-text-main text-sm">Qualification</span>
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium bg-gray-100 text-text-sub px-2 py-0.5 rounded">20% Prob</span>
+<button class="text-text-sub hover:text-red-500"><span class="material-symbols-outlined text-[16px]">close</span></button>
+</div>
+</div>
+<div class="flex items-center gap-3 text-xs text-text-sub">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">timer</span> SLA: 5 Days</span>
+<span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+<span class="flex items-center gap-1 text-orange-600"><span class="material-symbols-outlined text-[14px]">assignment_late</span> 1 Required Field</span>
+</div>
+</div>
+<button class="text-text-sub hover:text-primary"><span class="material-symbols-outlined text-[18px]">settings</span></button>
+</div>
+</div>
+<!-- Stage 3 -->
+<div class="flex items-center gap-3 group">
+<span class="material-symbols-outlined text-text-sub cursor-grab active:cursor-grabbing hover:text-text-main">drag_indicator</span>
+<div class="flex-1 bg-white border border-brand-border rounded-lg p-3 flex items-center gap-4 shadow-sm hover:border-primary/50 transition-colors ring-1 ring-primary/10">
+<div class="w-1 h-8 bg-primary/70 rounded-full"></div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-1">
+<span class="font-bold text-text-main text-sm">Demo</span>
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium bg-gray-100 text-text-sub px-2 py-0.5 rounded">40% Prob</span>
+<button class="text-text-sub hover:text-red-500"><span class="material-symbols-outlined text-[16px]">close</span></button>
+</div>
+</div>
+<div class="flex items-center gap-3 text-xs text-text-sub">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">timer</span> SLA: 7 Days</span>
+<span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+<span class="flex items-center gap-1 text-orange-600"><span class="material-symbols-outlined text-[14px]">assignment_late</span> Decision Maker Req</span>
+</div>
+</div>
+<button class="text-primary"><span class="material-symbols-outlined text-[18px] filled">settings</span></button>
+</div>
+</div>
+<!-- Stage 4 -->
+<div class="flex items-center gap-3 group opacity-60">
+<span class="material-symbols-outlined text-text-sub cursor-grab active:cursor-grabbing hover:text-text-main">drag_indicator</span>
+<div class="flex-1 bg-white border border-brand-border rounded-lg p-3 flex items-center gap-4 shadow-sm hover:border-primary/50 transition-colors">
+<div class="w-1 h-8 bg-primary rounded-full"></div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-1">
+<span class="font-bold text-text-main text-sm">Proposal</span>
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium bg-gray-100 text-text-sub px-2 py-0.5 rounded">60% Prob</span>
+<button class="text-text-sub hover:text-red-500"><span class="material-symbols-outlined text-[16px]">close</span></button>
+</div>
+</div>
+<div class="flex items-center gap-3 text-xs text-text-sub">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">timer</span> SLA: 3 Days</span>
+</div>
+</div>
+<button class="text-text-sub hover:text-primary"><span class="material-symbols-outlined text-[18px]">settings</span></button>
+</div>
+</div>
+<!-- Drop Zone Placeholder -->
+<div class="h-14 border-2 border-dashed border-brand-border rounded-lg flex items-center justify-center text-text-sub text-sm bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors">
+<span class="material-symbols-outlined mr-2">add</span> Drop stage here or click to add
+                            </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

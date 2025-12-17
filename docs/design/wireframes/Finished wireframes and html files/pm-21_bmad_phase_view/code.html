@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BMAD Phase View - HYVVE</title>
+<!-- Fonts and Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3B82F6", // Blue for BUILD Mode
+                        "secondary": "#22C55E", // Green for OPERATE Mode
+                        "brand-bg": "#FFFBF5",
+                        "brand-text-main": "#1a1a2e",
+                        "brand-text-sub": "#6b7280",
+                        "brand-border": "#f1ebe4",
+                        "pm-orange": "#FF9F43",
+                        "kb-teal": "#20B2AA",
+                        // Agent Colors
+                        "agent-navi": "#FF6B6B",
+                        "agent-sage": "#22C55E",
+                        "agent-herald": "#3B82F6",
+                        "agent-chrono": "#FF9F43",
+                        "agent-scope": "#8B5CF6",
+                        "agent-pulse": "#EF4444",
+                        "agent-bridge": "#20B2AA",
+                        "agent-prism": "#EC4899",
+                        "agent-scribe": "#20B2AA",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "2xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        "soft": "0 4px 20px -2px rgba(26, 26, 46, 0.05)",
+                        "glow-blue": "0 0 15px rgba(59, 130, 246, 0.3)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom animations for pulsing effects */
+        @keyframes subtle-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.02); }
+        }
+        .animate-subtle-pulse {
+            animation: subtle-pulse 3s infinite ease-in-out;
+        }
+        
+        @keyframes ring-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        .animate-ring-pulse {
+            animation: ring-pulse 2s infinite;
+        }
+
+        /* Hide scrollbar for timeline but allow scrolling */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-brand-bg text-brand-text-main font-display antialiased overflow-hidden">
+<div class="flex h-screen w-full">
+<!-- Sidebar Navigation -->
+<aside class="w-20 lg:w-64 bg-white border-r border-brand-border flex-shrink-0 flex flex-col h-full transition-all duration-300">
+<div class="p-6 flex items-center gap-3">
+<div class="bg-center bg-no-repeat bg-cover rounded-xl size-10 shadow-sm shrink-0" data-alt="Abstract geometric logo in orange and blue gradient" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCbBjCQEgllp9yJ4lp4T5Stk0fT40J4eOeqy1dOStfiFjn0Lu2UIUJRimjqbPtsNNne7UwgmP_FhEgra6efXXulyMgMtHtuszedX_fHJtURc-d8xN-TkoSCJWjpmILcJzql8hSWvKsNj7EU_fg-FKcRdGad80NjIC2aEspOkO6BLe7xt8EIN7ztYBZIENBn-3GNbJGSzoPn63bK0Bg-Vb6tcxDc7LqKhJZHiUuyAAhRDOEgk7X83gTQZCrC76YJtJbZDkZRFdGI65s");'></div>
+<div class="hidden lg:flex flex-col overflow-hidden">
+<h1 class="text-brand-text-main text-base font-bold leading-tight truncate">HYVVE SaaS</h1>
+<p class="text-brand-text-sub text-xs font-medium truncate">Premium Workspace</p>
+</div>
+</div>
+<nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-text-sub hover:bg-brand-bg hover:text-brand-text-main transition-colors group" href="#">
+<span class="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">dashboard</span>
+<span class="hidden lg:block text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-bg text-primary shadow-sm" href="#">
+<span class="material-symbols-outlined text-2xl fill-1">layers</span>
+<span class="hidden lg:block text-sm font-bold">Projects</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-text-sub hover:bg-brand-bg hover:text-brand-text-main transition-colors group" href="#">
+<span class="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">group</span>
+<span class="hidden lg:block text-sm font-medium">Team</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-text-sub hover:bg-brand-bg hover:text-brand-text-main transition-colors group" href="#">
+<span class="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">description</span>
+<span class="hidden lg:block text-sm font-medium">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-brand-text-sub hover:bg-brand-bg hover:text-brand-text-main transition-colors group" href="#">
+<span class="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">settings</span>
+<span class="hidden lg:block text-sm font-medium">Settings</span>
+</a>
+</nav>
+<div class="p-4 border-t border-brand-border">
+<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-brand-bg cursor-pointer transition-colors">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-9 shrink-0 border border-brand-border" data-alt="User profile photo showing a smiling professional" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBMjCU95nucu5MPABhiJJDKy3SjdlVSWQ6QACGK38eev9W_0bR0-tmqiGvd5K2qxq9BKdzSrJnbTbJ3qzPZK0SK5y6HdkEtewAVq0nLR1Ci2d5zXcSfN7-GCUmlu-9dYy0whMDViQmnGTgen-0X40Ylm792Jh2orx4BGOjzFDdEb6u7EPH9FaRwnuv_AyhYMNEdT7IIu6Kt_2lThqs3Bh0PoRWvhOXQ7RusnPZL9lv13tuj4ilapmKF5PmnXwZFfIvt7MtR_7Mj7Wg");'></div>
+<div class="hidden lg:flex flex-col">
+<p class="text-sm font-bold text-brand-text-main">Alex Morgan</p>
+<p class="text-xs text-brand-text-sub">Product Manager</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-brand-bg">
+<!-- Top Header -->
+<header class="h-16 bg-white/80 backdrop-blur-md border-b border-brand-border flex items-center justify-between px-6 z-10 shrink-0">
+<div class="flex items-center gap-4 min-w-0">
+<div class="flex items-center gap-2 text-brand-text-sub text-sm font-medium">
+<a class="hover:text-primary transition-colors" href="#">Project Alpha</a>
+<span class="material-symbols-outlined text-base">chevron_right</span>
+<span class="text-brand-text-main font-semibold">Phase View</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<!-- Search -->
+<div class="hidden md:flex items-center bg-brand-bg rounded-lg h-9 px-3 w-64 border border-transparent focus-within:border-primary/20 transition-all">
+<span class="material-symbols-outlined text-brand-text-sub text-xl">search</span>
+<input class="bg-transparent border-none text-sm w-full text-brand-text-main placeholder-brand-text-sub focus:ring-0" placeholder="Search resources..." type="text"/>
+</div>
+<!-- Actions -->
+<button class="size-9 flex items-center justify-center rounded-full text-brand-text-sub hover:bg-brand-bg hover:text-primary transition-colors relative">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-agent-pulse rounded-full border border-white"></span>
+</button>
+<button class="size-9 flex items-center justify-center rounded-full text-brand-text-sub hover:bg-brand-bg hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">help</span>
+</button>
+</div>
+</header>
+<!-- Scrollable Content -->
+<main class="flex-1 overflow-y-auto p-6 lg:p-10 scroll-smooth">
+<div class="max-w-7xl mx-auto flex flex-col gap-8">
+<!-- Page Heading & Controls -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div class="space-y-1">
+<h2 class="text-3xl font-black tracking-tight text-brand-text-main">BMAD Methodology</h2>
+<p class="text-brand-text-sub max-w-xl">Manage lifecycle phases and visualize agent automation across the project timeline.</p>
+</div>
+<!-- Mode Toggle -->
+<div class="bg-white p-1 rounded-xl shadow-sm border border-brand-border inline-flex">
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary font-bold text-sm shadow-sm ring-1 ring-black/5 transition-all">
+<span class="material-symbols-outlined text-lg fill-1">linear_scale</span>
+                                BUILD Mode
+                            </button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg text-brand-text-sub hover:bg-brand-bg font-medium text-sm transition-all">
+<span class="material-symbols-outlined text-lg">sync</span>
+                                OPERATE Mode
+                            </button>
+</div>
+</div>
+<!-- Timeline Visualization (BUILD Mode) -->
+<div class="w-full bg-white rounded-2xl p-6 shadow-soft border border-brand-border overflow-hidden relative">
+<!-- Connecting Line Background -->
+<div class="absolute top-1/2 left-0 w-full h-0.5 bg-brand-border -translate-y-1/2 z-0 hidden md:block"></div>
+<!-- Scrollable Container -->
+<div class="flex items-center justify-between gap-4 overflow-x-auto no-scrollbar relative z-10 py-4 min-w-[800px]">
+<!-- Phase 1: BRIEF (Done) -->
+<div class="flex flex-col items-center gap-3 group cursor-pointer">
+<div class="w-[60px] h-[50px] rounded-xl bg-blue-50 border-2 border-primary flex items-center justify-center shadow-sm transition-transform group-hover:-translate-y-1">
+<span class="material-symbols-outlined text-primary text-2xl font-bold">check</span>
+</div>
+<span class="text-primary font-bold text-xs tracking-wider">BRIEF</span>
+</div>
+<!-- Connector Done -->
+<div class="h-0.5 flex-1 bg-primary min-w-[20px]"></div>
+<!-- Phase 2: BRSTR (Done) -->
+<div class="flex flex-col items-center gap-3 group cursor-pointer">
+<div class="w-[60px] h-[50px] rounded-xl bg-blue-50 border-2 border-primary flex items-center justify-center shadow-sm transition-transform group-hover:-translate-y-1">
+<span class="material-symbols-outlined text-primary text-2xl font-bold">check</span>
+</div>
+<span class="text-primary font-bold text-xs tracking-wider">BRSTR</span>
+</div>
+<!-- Connector Active -->
+<div class="h-0.5 flex-1 bg-gradient-to-r from-primary to-gray-200 min-w-[20px]"></div>
+<!-- Phase 3: REQ (Current) -->
+<div class="flex flex-col items-center gap-3 relative z-20">
+<div class="absolute -inset-3 bg-blue-100/50 rounded-full blur-md animate-pulse"></div>
+<div class="w-[70px] h-[60px] rounded-xl bg-white border-2 border-primary flex items-center justify-center shadow-glow-blue animate-ring-pulse relative z-10">
+<div class="size-3 rounded-full bg-primary animate-subtle-pulse"></div>
+</div>
+<span class="text-brand-text-main font-black text-sm tracking-wider bg-white px-2 py-0.5 rounded-full shadow-sm border border-brand-border">REQ</span>
+</div>
+<!-- Connector Future -->
+<div class="h-0.5 flex-1 bg-gray-200 min-w-[20px]"></div>
+<!-- Phase 4: DSGN (Future) -->
+<div class="flex flex-col items-center gap-3 group cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+<div class="w-[60px] h-[50px] rounded-xl bg-white border border-dashed border-brand-text-sub flex items-center justify-center">
+<div class="size-2 rounded-full bg-brand-text-sub/30"></div>
+</div>
+<span class="text-brand-text-sub font-medium text-xs tracking-wider">DSGN</span>
+</div>
+<!-- Connector Future -->
+<div class="h-0.5 flex-1 bg-gray-200 min-w-[20px]"></div>
+<!-- Phase 5: IMPL (Future) -->
+<div class="flex flex-col items-center gap-3 group cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+<div class="w-[60px] h-[50px] rounded-xl bg-white border border-dashed border-brand-text-sub flex items-center justify-center">
+<div class="size-2 rounded-full bg-brand-text-sub/30"></div>
+</div>
+<span class="text-brand-text-sub font-medium text-xs tracking-wider">IMPL</span>
+</div>
+<!-- Connector Future -->
+<div class="h-0.5 flex-1 bg-gray-200 min-w-[20px]"></div>
+<!-- Phase 6: TEST (Future) -->
+<div class="flex flex-col items-center gap-3 group cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+<div class="w-[60px] h-[50px] rounded-xl bg-white border border-dashed border-brand-text-sub flex items-center justify-center">
+<div class="size-2 rounded-full bg-brand-text-sub/30"></div>
+</div>
+<span class="text-brand-text-sub font-medium text-xs tracking-wider">TEST</span>
+</div>
+<!-- Connector Future -->
+<div class="h-0.5 flex-1 bg-gray-200 min-w-[20px]"></div>
+<!-- Phase 7: DPLY (Future) -->
+<div class="flex flex-col items-center gap-3 group cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+<div class="w-[60px] h-[50px] rounded-xl bg-white border border-dashed border-brand-text-sub flex items-center justify-center">
+<div class="size-2 rounded-full bg-brand-text-sub/30"></div>
+</div>
+<span class="text-brand-text-sub font-medium text-xs tracking-wider">DPLY</span>
+</div>
+</div>
+</div>
+<!-- Main Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+<!-- Left Column: Current Phase Card -->
+<div class="xl:col-span-2 space-y-6">
+<div class="bg-white rounded-2xl border border-brand-border shadow-soft p-0 overflow-hidden">
+<!-- Card Header -->
+<div class="p-6 sm:p-8 border-b border-brand-border bg-gradient-to-r from-white to-brand-bg relative">
+<div class="absolute top-0 right-0 p-4 opacity-5">
+<span class="material-symbols-outlined text-[120px]">assignment_turned_in</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="px-2.5 py-1 rounded-md bg-blue-100 text-primary text-xs font-bold uppercase tracking-wide">Phase 3</span>
+<span class="flex items-center gap-1 text-xs text-brand-text-sub font-medium bg-brand-bg px-2 py-1 rounded-md border border-brand-border">
+<span class="material-symbols-outlined text-sm">calendar_today</span> Oct 12 - Oct 24
+                                                </span>
+</div>
+<h3 class="text-2xl font-bold text-brand-text-main">Requirements Gathering</h3>
+<p class="text-brand-text-sub mt-1">Define technical specs and confirm stakeholder needs.</p>
+</div>
+<div class="text-right hidden sm:block">
+<span class="text-4xl font-black text-brand-text-main">65%</span>
+<p class="text-xs text-brand-text-sub font-medium uppercase tracking-wider">Completion</p>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="mt-8 relative h-3 bg-gray-100 rounded-full overflow-hidden w-full">
+<div class="absolute top-0 left-0 h-full bg-pm-orange rounded-full" style="width: 65%"></div>
+</div>
+</div>
+<!-- Card Body: Content -->
+<div class="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Checklist -->
+<div class="space-y-4">
+<h4 class="text-sm font-bold text-brand-text-sub uppercase tracking-wider mb-2">Phase Checklist</h4>
+<label class="flex items-start gap-3 p-3 rounded-lg hover:bg-brand-bg transition-colors cursor-pointer group">
+<input checked="" class="mt-1 size-5 rounded border-gray-300 text-primary focus:ring-primary/20" type="checkbox"/>
+<div class="text-sm">
+<span class="block font-medium text-brand-text-main line-through opacity-50">Stakeholder Interviews</span>
+<span class="text-xs text-brand-text-sub opacity-50">Completed by Navi on Oct 14</span>
+</div>
+</label>
+<label class="flex items-start gap-3 p-3 rounded-lg hover:bg-brand-bg transition-colors cursor-pointer group">
+<input checked="" class="mt-1 size-5 rounded border-gray-300 text-primary focus:ring-primary/20" type="checkbox"/>
+<div class="text-sm">
+<span class="block font-medium text-brand-text-main line-through opacity-50">Draft Initial PRD</span>
+<span class="text-xs text-brand-text-sub opacity-50">Verified by Scribe</span>
+</div>
+</label>
+<label class="flex items-start gap-3 p-3 rounded-lg bg-blue-50/50 border border-blue-100 hover:bg-blue-50 transition-colors cursor-pointer group">
+<input class="mt-1 size-5 rounded border-gray-300 text-primary focus:ring-primary/20" type="checkbox"/>
+<div class="text-sm">
+<span class="block font-semibold text-brand-text-main">Approve Tech Stack</span>
+<span class="text-xs text-brand-text-sub">Waiting for CTO Review</span>
+</div>
+</label>
+<label class="flex items-start gap-3 p-3 rounded-lg hover:bg-brand-bg transition-colors cursor-pointer group">
+<input class="mt-1 size-5 rounded border-gray-300 text-primary focus:ring-primary/20" type="checkbox"/>
+<div class="text-sm">
+<span class="block font-medium text-brand-text-main">Finalize UI Wireframes</span>
+<span class="text-xs text-brand-text-sub">Due Oct 22</span>
+</div>
+</label>
+</div>
+<!-- Metrics / Mini Stats -->
+<div class="space-y-6">
+<h4 class="text-sm font-bold text-brand-text-sub uppercase tracking-wider mb-2">Phase Health</h4>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-brand-bg rounded-xl p-4 border border-brand-border">
+<div class="flex items-center gap-2 mb-2">
+<span class="size-2 rounded-full bg-agent-sage"></span>
+<span class="text-xs font-bold text-brand-text-sub">Budget</span>
+</div>
+<p class="text-xl font-bold text-brand-text-main">$12.4k</p>
+<p class="text-xs text-green-600 flex items-center mt-1">
+<span class="material-symbols-outlined text-sm mr-1">trending_down</span>
+                                                    -4% vs est
+                                                </p>
+</div>
+<div class="bg-brand-bg rounded-xl p-4 border border-brand-border">
+<div class="flex items-center gap-2 mb-2">
+<span class="size-2 rounded-full bg-agent-chrono"></span>
+<span class="text-xs font-bold text-brand-text-sub">Time</span>
+</div>
+<p class="text-xl font-bold text-brand-text-main">4 Days</p>
+<p class="text-xs text-brand-text-sub mt-1">Remaining</p>
+</div>
+</div>
+<div class="bg-blue-50 rounded-xl p-4 border border-blue-100 flex gap-4 items-start">
+<div class="bg-white p-2 rounded-lg shadow-sm text-primary shrink-0">
+<span class="material-symbols-outlined">smart_toy</span>
+</div>
+<div>
+<p class="text-sm font-bold text-brand-text-main">AI Suggestion</p>
+<p class="text-xs text-brand-text-sub mt-1 leading-relaxed">Agent <span class="text-agent-scope font-semibold">Scope</span> detected a potential creep in "User Auth" requirements. Review strictly.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Card Footer: Actions -->
+<div class="px-8 py-5 bg-brand-bg border-t border-brand-border flex flex-wrap items-center justify-between gap-4">
+<button class="text-brand-text-sub hover:text-brand-text-main text-sm font-medium flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+<span class="material-symbols-outlined">list_alt</span>
+                                        View All Tasks
+                                    </button>
+<div class="flex items-center gap-3">
+<button class="px-5 py-2.5 rounded-xl border border-brand-border bg-white text-brand-text-main font-semibold text-sm hover:bg-gray-50 transition-colors shadow-sm">
+                                            Pause Phase
+                                        </button>
+<button class="px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-blue-600 transition-colors shadow-lg shadow-blue-200 flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">check_circle</span>
+                                            Complete Phase
+                                        </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Sidebar -->
+<div class="space-y-6">
+<!-- Agent Activity Feed -->
+<div class="bg-white rounded-2xl border border-brand-border shadow-soft p-6">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-lg font-bold text-brand-text-main">Agent Activity</h3>
+<button class="text-xs font-bold text-primary hover:underline">View Log</button>
+</div>
+<div class="space-y-5 relative">
+<!-- Vertical Line -->
+<div class="absolute left-[19px] top-2 bottom-2 w-0.5 bg-brand-border z-0"></div>
+<!-- Item 1: Chrono -->
+<div class="flex gap-4 relative z-10">
+<div class="size-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center shrink-0">
+<div class="size-8 rounded-full bg-gray-100 flex items-center justify-center relative">
+<span class="material-symbols-outlined text-gray-500 text-sm">schedule</span>
+<span class="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-agent-chrono border-2 border-white"></span>
+</div>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-0.5">
+<span class="text-xs font-bold text-brand-text-main">Chrono</span>
+<span class="text-[10px] text-brand-text-sub">2m ago</span>
+</div>
+<p class="text-xs text-brand-text-sub leading-snug bg-brand-bg p-2 rounded-lg rounded-tl-none border border-brand-border">
+                                                "Updated timeline projections based on recent delays in 'Tech Stack' approval."
+                                            </p>
+</div>
+</div>
+<!-- Item 2: Scribe -->
+<div class="flex gap-4 relative z-10">
+<div class="size-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center shrink-0">
+<div class="size-8 rounded-full bg-gray-100 flex items-center justify-center relative">
+<span class="material-symbols-outlined text-gray-500 text-sm">edit_note</span>
+<span class="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-agent-scribe border-2 border-white"></span>
+</div>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-0.5">
+<span class="text-xs font-bold text-brand-text-main">Scribe</span>
+<span class="text-[10px] text-brand-text-sub">1h ago</span>
+</div>
+<p class="text-xs text-brand-text-sub leading-snug bg-brand-bg p-2 rounded-lg rounded-tl-none border border-brand-border">
+                                                "Generated meeting minutes for 'Kickoff' and attached to Project Files."
+                                            </p>
+</div>
+</div>
+<!-- Item 3: Navi -->
+<div class="flex gap-4 relative z-10">
+<div class="size-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center shrink-0">
+<div class="size-8 rounded-full bg-gray-100 flex items-center justify-center relative">
+<span class="material-symbols-outlined text-gray-500 text-sm">explore</span>
+<span class="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-agent-navi border-2 border-white"></span>
+</div>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-0.5">
+<span class="text-xs font-bold text-brand-text-main">Navi</span>
+<span class="text-[10px] text-brand-text-sub">3h ago</span>
+</div>
+<p class="text-xs text-brand-text-sub leading-snug bg-brand-bg p-2 rounded-lg rounded-tl-none border border-brand-border">
+                                                "Identified 3 potential risks in the new Requirements document."
+                                            </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Related KB Resources -->
+<div class="bg-white rounded-2xl border border-brand-border shadow-soft p-6">
+<h3 class="text-lg font-bold text-brand-text-main mb-4">KB Resources</h3>
+<ul class="space-y-3">
+<li>
+<a class="flex items-start gap-3 group" href="#">
+<div class="mt-1 size-8 rounded-lg bg-kb-teal/10 text-kb-teal flex items-center justify-center shrink-0 group-hover:bg-kb-teal group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">article</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-brand-text-main group-hover:text-kb-teal transition-colors">BMAD Requirement Guide</p>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-kb-teal text-[10px] fill-1">verified</span>
+<span class="text-xs text-brand-text-sub">Verified Standard</span>
+</div>
+</div>
+</a>
+</li>
+<li>
+<a class="flex items-start gap-3 group" href="#">
+<div class="mt-1 size-8 rounded-lg bg-kb-teal/10 text-kb-teal flex items-center justify-center shrink-0 group-hover:bg-kb-teal group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">folder_open</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-brand-text-main group-hover:text-kb-teal transition-colors">Project Alpha Assets</p>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="text-xs text-brand-text-sub">Updated yesterday</span>
+</div>
+</div>
+</a>
+</li>
+</ul>
+<button class="w-full mt-5 py-2 text-sm font-medium text-brand-text-sub border border-dashed border-brand-border rounded-lg hover:border-kb-teal hover:text-kb-teal transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">add</span>
+                                    Link Resource
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

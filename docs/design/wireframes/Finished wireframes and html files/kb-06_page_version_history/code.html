@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KB-06 Page Version History</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2b90d",
+                        "background-light": "#f8f8f5",
+                        "background-dark": "#181611",
+                        "background-panel": "#221e16", // Slightly lighter for panels
+                        "border-dark": "#393528",
+                        "text-muted": "#bab29c",
+                        "success": "#2ECC71",
+                        "scribe": "#2dd4bf", // Teal for Scribe Agent
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Scrollbar for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #181611; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #393528; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #544e3b; 
+        }
+        
+        .diff-add {
+            background-color: rgba(46, 204, 113, 0.2);
+            color: #86efac;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .diff-remove {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            text-decoration: line-through;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .diff-mod {
+            background-color: rgba(242, 185, 13, 0.2);
+            color: #fde047;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display h-screen flex flex-col overflow-hidden">
+<!-- Global Header -->
+<header class="flex items-center justify-between px-6 py-4 border-b border-border-dark bg-background-light dark:bg-background-dark shrink-0 z-20">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 text-xs font-medium text-text-muted">
+<span>Knowledge Base</span>
+<span class="material-symbols-outlined text-[10px]">chevron_right</span>
+<span>Engineering Guidelines</span>
+<span class="material-symbols-outlined text-[10px]">chevron_right</span>
+<span>API Documentation</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+                API Authentication Standards
+                <span class="bg-success/20 text-success text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-success/30 font-semibold">Verified</span>
+</h1>
+</div>
+<div class="flex items-center gap-4">
+<button aria-label="Close" class="flex items-center justify-center w-8 h-8 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<div class="flex flex-1 overflow-hidden">
+<!-- Left Panel: Version Timeline -->
+<aside class="w-[360px] flex flex-col border-r border-border-dark bg-[#1c1a15] shrink-0">
+<!-- Filter Bar -->
+<div class="p-4 flex flex-col gap-3 border-b border-border-dark/50">
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-text-muted text-lg">search</span>
+<input class="w-full bg-[#27241b] border border-border-dark rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-text-muted focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" placeholder="Search versions..." type="text"/>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 flex items-center justify-between px-3 py-2 bg-[#27241b] border border-border-dark rounded-lg text-xs text-text-muted hover:text-white transition-colors">
+<span>Filter by Author</span>
+<span class="material-symbols-outlined text-base">arrow_drop_down</span>
+</button>
+<button class="flex-1 flex items-center justify-between px-3 py-2 bg-[#27241b] border border-border-dark rounded-lg text-xs text-text-muted hover:text-white transition-colors">
+<span>Date Range</span>
+<span class="material-symbols-outlined text-base">calendar_today</span>
+</button>
+</div>
+</div>
+<!-- Timeline List -->
+<div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+<div class="relative pl-2">
+<!-- Connector Line -->
+<div class="absolute left-[19px] top-4 bottom-4 w-[2px] bg-border-dark"></div>
+<!-- Item 1: Current -->
+<div class="relative flex gap-4 mb-6 group cursor-pointer">
+<div class="relative z-10 mt-1">
+<div class="w-4 h-4 rounded-full bg-primary ring-4 ring-primary/20"></div>
+</div>
+<div class="flex-1 bg-[#2a271f] p-3 rounded-xl border border-primary/50 shadow-lg transition-transform active:scale-[0.98]">
+<div class="flex justify-between items-start mb-1">
+<span class="text-xs font-bold text-primary">v3.2 (Current)</span>
+<span class="text-[10px] text-text-muted">2 hours ago</span>
+</div>
+<p class="text-sm font-medium text-white mb-2 leading-snug">Updated pricing table structure</p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<img class="w-5 h-5 rounded-full object-cover" data-alt="Jane Doe Avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWwTXzpB3-rPbmcMLAsZTIdRuyiaTccmalhJf202HGTJXY6cIugWO7k_3iCRVHVTcJDCTwIyINemvPjYq1lfkPber0z4cvKw5UvKJDGMZPX0r5s1TscsWCZvX3QFUUiBoPm34tVJfLav5GyB0c_Y7scy0QpgbA3gMzfqtVubT_SLbZuwHo2LBkNcKl5w23GifLiAQ3w5AzDpn7jvrKMW_3anK29j7G-9xA5f4ot9tznJMdRjuZRO-JUq0XTp56CMGSyrVA3etfJRQ"/>
+<span class="text-xs text-text-muted">Jane Doe</span>
+</div>
+<div class="text-[10px] font-mono flex gap-1 bg-black/20 px-1.5 py-0.5 rounded">
+<span class="text-success">+12</span>
+<span class="text-red-400">-4</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Item 2: Scribe Agent -->
+<div class="relative flex gap-4 mb-6 group cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
+<div class="relative z-10 mt-1">
+<div class="w-4 h-4 rounded-full bg-[#27241b] border-2 border-scribe"></div>
+</div>
+<div class="flex-1 p-3 rounded-xl border border-scribe/30 bg-scribe/5 hover:bg-scribe/10 transition-colors">
+<div class="flex justify-between items-start mb-1">
+<div class="flex items-center gap-1.5">
+<span class="text-xs font-bold text-scribe">v3.1</span>
+<span class="material-symbols-outlined text-[14px] text-scribe">auto_awesome</span>
+</div>
+<span class="text-[10px] text-text-muted">Yesterday</span>
+</div>
+<p class="text-sm font-medium text-white mb-2 leading-snug">Scribe Agent Suggestions: Grammar &amp; Tone</p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-5 h-5 rounded-full bg-scribe flex items-center justify-center">
+<span class="material-symbols-outlined text-[12px] text-black font-bold">smart_toy</span>
+</div>
+<span class="text-xs text-text-muted">Scribe Bot</span>
+</div>
+<div class="text-[10px] font-mono flex gap-1 bg-black/20 px-1.5 py-0.5 rounded">
+<span class="text-success">+45</span>
+<span class="text-text-muted">0</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Item 3: Past Version -->
+<div class="relative flex gap-4 mb-6 group cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+<div class="relative z-10 mt-1">
+<div class="w-4 h-4 rounded-full bg-[#27241b] border-2 border-text-muted"></div>
+</div>
+<div class="flex-1 p-3 rounded-xl border border-transparent hover:border-border-dark hover:bg-[#27241b] transition-all">
+<div class="flex justify-between items-start mb-1">
+<span class="text-xs font-bold text-white">v3.0</span>
+<span class="text-[10px] text-text-muted">Oct 24</span>
+</div>
+<p class="text-sm font-medium text-white mb-2 leading-snug">Initial Q3 Draft Import</p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<img class="w-5 h-5 rounded-full object-cover" data-alt="John Smith Avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCk2C2BD7WmfmTv1Yif-MaGsvYa-_BWfCgET5nzi5oDNAnKzdcczG7pgizk0YvYRE4l1XiJ7fkAUDr76pbqhaOZAIJYte5bkDbVk5StZ7ikNss_YN2r0WqWI4MoGOXVVuag9zm4ileqDig3hnHBrAy6L9xTqTA47wsEhBG54KaBC5TvpXUTDbGwBv3TUkWRNIxIZjy8MbRZgddEbgqghJhsOAtlsfmQzBnbRGfUmbFz9de6tnTaDIoCaGA4U7ghWVOxTev5vf-OJ8o"/>
+<span class="text-xs text-text-muted">John Smith</span>
+</div>
+<div class="text-[10px] font-mono flex gap-1 bg-black/20 px-1.5 py-0.5 rounded">
+<span class="text-success">+150</span>
+<span class="text-red-400">-20</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Item 4: Past Version -->
+<div class="relative flex gap-4 mb-6 group cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+<div class="relative z-10 mt-1">
+<div class="w-4 h-4 rounded-full bg-[#27241b] border-2 border-text-muted"></div>
+</div>
+<div class="flex-1 p-3 rounded-xl border border-transparent hover:border-border-dark hover:bg-[#27241b] transition-all">
+<div class="flex justify-between items-start mb-1">
+<span class="text-xs font-bold text-white">v2.9</span>
+<span class="text-[10px] text-text-muted">Oct 22</span>
+</div>
+<p class="text-sm font-medium text-white mb-2 leading-snug">Fixed typos in introduction</p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<img class="w-5 h-5 rounded-full object-cover" data-alt="Jane Doe Avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVeKVCjbQ95SwQL_Imy8jvNiJ3MhRL6ELIDqSOmHWGNyqw7GNNYIJOlivZR7lbO3mFSGnK70Y6blQOWEMRbo6YlVNVfIxD0gAqyCw4-96mKWOGT5ZLXQDLvx4EmUEM3q0wcSsn1RvxehZg1XyRwe8KW57Ge_cX3sTaDjQE-xQpCvJ1376HaaChvn2Rn431KbAKNx30Owjw8lh0IURqnSUQv1w-aoXnXy15fSfNJp0Ofy3Zlg2vxbeH0wEtxSPdTdZUvymz65xVX0g"/>
+<span class="text-xs text-text-muted">Jane Doe</span>
+</div>
+<div class="text-[10px] font-mono flex gap-1 bg-black/20 px-1.5 py-0.5 rounded">
+<span class="text-success">+2</span>
+<span class="text-red-400">-2</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Right Panel: Version Preview & Diff -->
+<main class="flex-1 flex flex-col bg-background-dark min-w-0 relative">
+<!-- Toolbar -->
+<div class="h-16 border-b border-border-dark flex items-center justify-between px-6 bg-[#1c1a15]">
+<div class="flex items-center gap-4">
+<div class="flex items-center bg-[#27241b] rounded-lg p-1 border border-border-dark">
+<button class="px-3 py-1.5 rounded text-xs font-medium bg-primary text-black shadow-sm transition-all">Unified</button>
+<button class="px-3 py-1.5 rounded text-xs font-medium text-text-muted hover:text-white transition-all">Split View</button>
+</div>
+<div class="h-6 w-px bg-border-dark"></div>
+<label class="flex items-center gap-2 cursor-pointer group">
+<div class="relative">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-border-dark rounded-full peer peer-checked:bg-primary/20 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-muted peer-checked:after:bg-primary after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+</div>
+<span class="text-sm text-text-muted group-hover:text-white transition-colors">Compare to Current</span>
+</label>
+<div class="flex gap-4 ml-4 text-xs font-medium">
+<div class="flex items-center gap-1.5">
+<div class="w-2 h-2 rounded-full bg-success"></div>
+<span class="text-text-muted">Added</span>
+</div>
+<div class="flex items-center gap-1.5">
+<div class="w-2 h-2 rounded-full bg-red-400"></div>
+<span class="text-text-muted">Removed</span>
+</div>
+<div class="flex items-center gap-1.5">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="text-text-muted">Modified</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-sm text-text-muted">v3.2 - Oct 24, 2023, 10:45 AM</span>
+<button class="flex items-center justify-center gap-2 bg-primary hover:bg-yellow-400 text-black px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+<span class="material-symbols-outlined text-[18px] font-bold">history</span>
+<span>Restore This Version</span>
+</button>
+</div>
+</div>
+<!-- Content Preview -->
+<div class="flex-1 overflow-y-auto p-10 bg-[#181611]">
+<div class="max-w-4xl mx-auto bg-[#1c1a15] min-h-[800px] shadow-2xl rounded-xl border border-border-dark p-12 relative">
+<!-- Paper Badge -->
+<div class="absolute top-0 right-0 p-4">
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+<span class="material-symbols-outlined text-[14px]">visibility</span>
+                            Preview Mode
+                        </span>
+</div>
+<!-- Document Content -->
+<div class="prose prose-invert prose-lg max-w-none">
+<h1 class="text-3xl font-bold text-white mb-6">Authentication &amp; Security Standards</h1>
+<div class="p-4 mb-6 bg-scribe/5 border border-scribe/30 rounded-lg flex gap-3 items-start">
+<span class="material-symbols-outlined text-scribe mt-0.5">auto_awesome</span>
+<div>
+<p class="text-sm text-scribe font-semibold mb-1">Scribe Suggestion</p>
+<p class="text-sm text-text-muted">The original introduction was overly technical. I've suggested a more concise version that aligns with our developer experience guidelines.</p>
+</div>
+</div>
+<p class="text-text-muted leading-relaxed mb-6">
+                            This document outlines the standard authentication protocols for all <span class="diff-remove">internal and external</span> <span class="diff-add">public-facing</span> APIs. Following these guidelines ensures consistent security practices across our microservices architecture.
+                        </p>
+<h2 class="text-xl font-bold text-white mt-8 mb-4">1. Token-Based Authentication</h2>
+<p class="text-text-muted leading-relaxed mb-4">
+                            All API requests must be authenticated using JSON Web Tokens (JWT). The token should be passed in the <code class="bg-black/30 px-1 py-0.5 rounded text-primary font-mono text-sm">Authorization</code> header using the <span class="diff-mod">Bearer schema</span>.
+                        </p>
+<div class="bg-black/40 rounded-lg p-4 font-mono text-sm text-text-muted mb-6 border border-border-dark">
+                            Authorization: Bearer &lt;token&gt;
+                        </div>
+<h3 class="text-lg font-semibold text-white mt-6 mb-3">Token Expiration Policies</h3>
+<ul class="list-disc pl-5 space-y-2 text-text-muted mb-6">
+<li>Access tokens are valid for <span class="diff-remove">24 hours</span> <span class="diff-add">1 hour</span> to minimize security risks.</li>
+<li>Refresh tokens are valid for 7 days and can be used to obtain new access tokens.</li>
+<li><span class="diff-add">Tokens are automatically revoked upon password reset events.</span></li>
+</ul>
+<h2 class="text-xl font-bold text-white mt-8 mb-4">2. API Rate Limiting</h2>
+<p class="text-text-muted leading-relaxed mb-4">
+                            To prevent abuse, all endpoints are rate-limited by IP address and User ID. The standard limits are:
+                        </p>
+<div class="overflow-hidden rounded-lg border border-border-dark mb-6">
+<table class="w-full text-sm text-left">
+<thead class="bg-[#27241b] text-white">
+<tr>
+<th class="px-4 py-3 font-medium">Tier</th>
+<th class="px-4 py-3 font-medium">Requests / Minute</th>
+<th class="px-4 py-3 font-medium">Burst Capacity</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-dark bg-[#1c1a15] text-text-muted">
+<tr>
+<td class="px-4 py-3">Free</td>
+<td class="px-4 py-3"><span class="diff-remove">60</span> <span class="diff-add">100</span></td>
+<td class="px-4 py-3">150</td>
+</tr>
+<tr>
+<td class="px-4 py-3">Pro</td>
+<td class="px-4 py-3">1,000</td>
+<td class="px-4 py-3">2,000</td>
+</tr>
+<tr class="diff-add">
+<td class="px-4 py-3">Enterprise</td>
+<td class="px-4 py-3">Unlimited</td>
+<td class="px-4 py-3">Custom</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<!-- Restore Modal (Hidden by default logic, but visually represented here as a 'potential' state if user clicked Restore) -->
+<!-- Uncomment to see modal visual -->
+<!--
+            <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <div class="bg-[#221e16] border border-border-dark rounded-2xl p-6 max-w-sm w-full shadow-2xl transform scale-100 opacity-100 transition-all">
+                    <div class="flex flex-col items-center text-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mb-2">
+                            <span class="material-symbols-outlined text-primary text-2xl">history</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white">Restore Version 3.2?</h3>
+                        <p class="text-sm text-text-muted leading-relaxed">
+                            This will overwrite the current content with the version from Oct 24. Any unsaved changes in the current draft will be moved to history.
+                        </p>
+                        <div class="flex w-full gap-3 mt-4">
+                            <button class="flex-1 py-2.5 rounded-lg border border-border-dark text-white text-sm font-medium hover:bg-[#27241b] transition-colors">Cancel</button>
+                            <button class="flex-1 py-2.5 rounded-lg bg-primary text-black text-sm font-bold hover:bg-yellow-400 transition-colors">Confirm Restore</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            -->
+</main>
+</div>
+</body></html>

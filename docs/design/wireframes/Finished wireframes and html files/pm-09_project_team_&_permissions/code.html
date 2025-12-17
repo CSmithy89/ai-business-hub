@@ -1,19 +1,28 @@
 <!DOCTYPE html>
-
 <html class="light" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>PM-09 Project Team &amp; Permissions</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <style>
         .material-symbols-outlined {
             font-variation-settings:
-                'FILL' 0,
+                'FILL' 1,
                 'wght' 400,
                 'GRAD' 0,
-                'opsz' 24
+                'opsz' 24;
+            font-size: 20px;
+        }input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+        }
+        input[type=range]:focus {
+            outline: none; 
         }
     </style>
 <script>
@@ -22,9 +31,24 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#135bec",
-                        "background-light": "#f6f6f8",
-                        "background-dark": "#101622",
+                        primary: "#FF9F43", // PM Theme Color
+                        "primary-hover": "#e68a30",
+                        "pm-bg": "#FFFBF5",
+                        "pm-card": "#FFFFFF",
+                        "pm-border": "#f1ebe4",
+                        "pm-text": "#1a1a2e",
+                        "pm-subtext": "#6b7280",
+                        "pm-teal": "#20B2AA",
+                        // Agent Colors
+                        "agent-navi": "#FF6B6B",
+                        "agent-sage": "#22C55E",
+                        "agent-herald": "#3B82F6",
+                        "agent-chrono": "#FF9F43",
+                        "agent-scope": "#8B5CF6",
+                        "agent-pulse": "#EF4444",
+                        "agent-bridge": "#20B2AA",
+                        "agent-prism": "#EC4899",
+                        "agent-scribe": "#20B2AA",
                     },
                     fontFamily: {
                         "display": ["Inter", "sans-serif"]
@@ -40,191 +64,450 @@
         }
     </script>
 </head>
-<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+<body class="bg-pm-bg font-display text-pm-text antialiased">
 <div class="relative flex min-h-screen w-full">
-<!-- SideNavBar -->
-<aside class="flex-shrink-0 w-64 bg-white dark:bg-gray-900/50 p-4 flex flex-col justify-between border-r border-gray-200 dark:border-gray-800">
+<aside class="flex-shrink-0 w-64 bg-pm-card p-4 flex flex-col justify-between border-r border-pm-border">
 <div class="flex flex-col gap-4">
 <div class="flex items-center gap-3 px-2">
-<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA4RreBka5at56d93L7LXI1Z9d4VsHvuNmSj48aDlebbMq3EDmUszNRpPPJAkROPePcS1ydkOpMLmDxK7kP_Wtw-_K6r2Okg3P18vYUgx5z3eGxr6PaCNAcTylrMv1nFM8vlvAwnV101py600hRQlLbc3lI226q5IrMBOr-ACQP93WczF4cta2XJ81aRj98IZNJ-xDFx8oPuDzRgV-soc9_ni1E1K9iT5rnSgWNr6Bf3GCBkPgfxFBjBBkSQzpB_fmnlS_1IizImWY");'></div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shadow-sm border border-pm-border" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA4RreBka5at56d93L7LXI1Z9d4VsHvuNmSj48aDlebbMq3EDmUszNRpPPJAkROPePcS1ydkOpMLmDxK7kP_Wtw-_K6r2Okg3P18vYUgx5z3eGxr6PaCNAcTylrMv1nFM8vlvAwnV101py600hRQlLbc3lI226q5IrMBOr-ACQP93WczF4cta2XJ81aRj98IZNJ-xDFx8oPuDzRgV-soc9_ni1E1K9iT5rnSgWNr6Bf3GCBkPgfxFBjBBkSQzpB_fmnlS_1IizImWY");'></div>
 <div class="flex flex-col">
-<h1 class="text-[#111318] dark:text-white text-base font-medium leading-normal">HYVVE</h1>
-<p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">Workspace</p>
+<h1 class="text-pm-text text-base font-bold leading-normal">HYVVE</h1>
+<p class="text-pm-subtext text-xs font-medium leading-normal">Workspace</p>
 </div>
 </div>
-<nav class="flex flex-col gap-2 mt-4">
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded" href="#">
-<span class="material-symbols-outlined">dashboard</span>
+<nav class="flex flex-col gap-1 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 text-pm-subtext hover:bg-pm-bg hover:text-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
 <p class="text-sm font-medium">Dashboard</p>
 </a>
-<a class="flex items-center gap-3 px-3 py-2 rounded bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" href="#">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">folder</span>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary border border-primary/20" href="#">
+<span class="material-symbols-outlined">folder</span>
 <p class="text-sm font-medium">Projects</p>
 </a>
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded" href="#">
-<span class="material-symbols-outlined">task_alt</span>
+<a class="flex items-center gap-3 px-3 py-2 text-pm-subtext hover:bg-pm-bg hover:text-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">task_alt</span>
 <p class="text-sm font-medium">Tasks</p>
 </a>
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded" href="#">
-<span class="material-symbols-outlined">calendar_today</span>
+<a class="flex items-center gap-3 px-3 py-2 text-pm-subtext hover:bg-pm-bg hover:text-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">calendar_today</span>
 <p class="text-sm font-medium">Calendar</p>
 </a>
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded" href="#">
-<span class="material-symbols-outlined">monitoring</span>
+<a class="flex items-center gap-3 px-3 py-2 text-pm-subtext hover:bg-pm-bg hover:text-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">monitoring</span>
 <p class="text-sm font-medium">Reports</p>
 </a>
 </nav>
 </div>
 <div class="flex flex-col gap-1">
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded" href="#">
-<span class="material-symbols-outlined">settings</span>
+<a class="flex items-center gap-3 px-3 py-2 text-pm-subtext hover:bg-pm-bg hover:text-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
 <p class="text-sm font-medium">Settings</p>
 </a>
-<a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded" href="#">
-<span class="material-symbols-outlined">help_outline</span>
+<a class="flex items-center gap-3 px-3 py-2 text-pm-subtext hover:bg-pm-bg hover:text-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">help_outline</span>
 <p class="text-sm font-medium">Help</p>
 </a>
 </div>
 </aside>
-<!-- Main Content -->
 <main class="flex-1 p-8 overflow-y-auto">
-<div class="max-w-7xl mx-auto">
-<!-- PageHeading -->
-<header class="flex flex-wrap justify-between items-center gap-4 mb-8">
-<h1 class="text-gray-900 dark:text-white text-3xl font-bold leading-tight tracking-tight">Project Team &amp; Permissions</h1>
-<button class="flex items-center justify-center gap-2 min-w-[84px] cursor-pointer rounded h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
-<span class="material-symbols-outlined">add</span>
+<div class="max-w-[1400px] mx-auto">
+<header class="flex flex-wrap justify-between items-center gap-4 mb-6">
+<div>
+<h1 class="text-pm-text text-3xl font-bold leading-tight tracking-tight">Project Team &amp; Permissions</h1>
+<p class="text-pm-subtext mt-1 text-sm">Manage human resources and AI agent allocation.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center gap-2 min-w-[84px] cursor-pointer rounded-lg h-10 px-4 bg-white border border-pm-border text-pm-subtext text-sm font-bold shadow-sm hover:bg-gray-50">
+<span class="material-symbols-outlined text-lg">settings</span>
+<span class="truncate">Config</span>
+</button>
+<button class="flex items-center justify-center gap-2 min-w-[84px] cursor-pointer rounded-lg h-10 px-4 bg-primary hover:bg-primary-hover text-white text-sm font-bold shadow-md transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
 <span class="truncate">Add Team Member</span>
 </button>
+</div>
 </header>
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-<!-- Left Column -->
-<div class="lg:col-span-2 space-y-8">
-<!-- Team Members Section -->
+<div class="mb-6 border-b border-pm-border">
+<nav aria-label="Tabs" class="flex space-x-8">
+<a class="border-primary text-primary whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2" href="#">
+<span>👥 All</span>
+<span class="bg-primary/10 text-primary py-0.5 px-2 rounded-full text-xs">12</span>
+</a>
+<a class="border-transparent text-pm-subtext hover:text-pm-text hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2" href="#">
+<span>👤 Humans</span>
+<span class="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">3</span>
+</a>
+<a class="border-transparent text-pm-subtext hover:text-pm-text hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2" href="#">
+<span>🤖 Agents</span>
+<span class="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">9</span>
+</a>
+</nav>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+<div class="xl:col-span-2 space-y-8">
+<div class="bg-pm-card rounded-xl border border-pm-border shadow-sm p-6">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">tune</span>
+<h2 class="text-pm-text text-lg font-bold">Hybrid Assignment Settings</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div>
+<h3 class="text-sm font-semibold text-pm-text mb-3">Assignment Mode</h3>
+<div class="flex gap-4">
+<label class="relative flex items-center gap-2 cursor-pointer">
+<input class="peer sr-only" name="mode" type="radio"/>
+<div class="w-4 h-4 rounded-full border border-gray-300 peer-checked:border-primary peer-checked:border-4 transition-all"></div>
+<span class="text-sm text-pm-subtext peer-checked:text-pm-text peer-checked:font-medium">Human Only</span>
+</label>
+<label class="relative flex items-center gap-2 cursor-pointer">
+<input checked="" class="peer sr-only" name="mode" type="radio"/>
+<div class="w-4 h-4 rounded-full border border-gray-300 peer-checked:border-primary peer-checked:border-4 transition-all"></div>
+<span class="text-sm text-pm-subtext peer-checked:text-pm-text peer-checked:font-medium">Hybrid</span>
+</label>
+<label class="relative flex items-center gap-2 cursor-pointer">
+<input class="peer sr-only" name="mode" type="radio"/>
+<div class="w-4 h-4 rounded-full border border-gray-300 peer-checked:border-primary peer-checked:border-4 transition-all"></div>
+<span class="text-sm text-pm-subtext peer-checked:text-pm-text peer-checked:font-medium">AI Primary</span>
+</label>
+</div>
+</div>
+<div>
+<div class="flex justify-between mb-2">
+<h3 class="text-sm font-semibold text-pm-text">AI Assistance Level</h3>
+<span class="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">High (75%)</span>
+</div>
+<div class="relative w-full h-2 bg-gray-100 rounded-full mt-2">
+<div class="absolute top-0 left-0 h-full bg-primary rounded-full" style="width: 75%"></div>
+<input class="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-10" max="100" min="0" type="range" value="75"/>
+<div class="absolute w-4 h-4 bg-white border-2 border-primary rounded-full top-1/2 -translate-y-1/2 shadow-sm pointer-events-none" style="left: 75%"></div>
+</div>
+</div>
+</div>
+</div>
 <section>
-<h2 class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight mb-4">Team Members</h2>
-<div class="bg-white dark:bg-gray-900/50 rounded-lg shadow-sm divide-y divide-gray-200 dark:divide-gray-800">
-<!-- List Item 1 -->
-<div class="flex items-center gap-4 p-4 justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50">
+<h2 class="text-pm-text text-xl font-bold leading-tight tracking-tight mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-gray-400">person</span> Human Team Members
+                            </h2>
+<div class="bg-pm-card rounded-xl shadow-sm border border-pm-border divide-y divide-pm-border">
+<div class="flex flex-col md:flex-row md:items-center gap-4 p-5 hover:bg-gray-50 transition-colors">
 <div class="flex items-center gap-4 flex-1">
-<img class="rounded-full size-12" data-alt="Avatar for Olivia Rhye" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAinSisRCrONkVZ8mZy_zZGYcjKBrs1xSOIVKGRBYkxxPnsu9mThZbfWo7gpU8TNVT4McI08Dx5y7w0ORqyyuMoY40ayIVs816wPxRnhcnzcmYwPNzL4kJqcAYr8Jxmie7PxD1TVengx5Oo5-6bSjsHM92ch3hatqlVAOzBZtBOxKwYPk30QVJwo3EggeDljm5WQME6azgaMTysYJ76qQM0qXQx1IVKuk8R64rOn533DKmWh3qWxeZ49gyuRfslCA9EZpw0zIxZVGY"/>
+<div class="relative">
+<img class="rounded-full size-12 object-cover border border-gray-100" data-alt="Avatar for Olivia Rhye" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAinSisRCrONkVZ8mZy_zZGYcjKBrs1xSOIVKGRBYkxxPnsu9mThZbfWo7gpU8TNVT4McI08Dx5y7w0ORqyyuMoY40ayIVs816wPxRnhcnzcmYwPNzL4kJqcAYr8Jxmie7PxD1TVengx5Oo5-6bSjsHM92ch3hatqlVAOzBZtBOxKwYPk30QVJwo3EggeDljm5WQME6azgaMTysYJ76qQM0qXQx1IVKuk8R64rOn533DKmWh3qWxeZ49gyuRfslCA9EZpw0zIxZVGY"/>
+<div class="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
+<div class="w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+</div>
+</div>
 <div class="flex-1">
 <div class="flex items-center gap-2">
-<p class="text-gray-900 dark:text-white text-base font-medium">Olivia Rhye</p>
-<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">Designer</span>
+<p class="text-pm-text text-base font-bold">Olivia Rhye</p>
+<span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-full bg-blue-50 text-blue-600 border border-blue-100">Designer</span>
 </div>
-<p class="text-gray-500 dark:text-gray-400 text-sm">olivia@example.com</p>
-</div>
-</div>
-<div class="flex items-center gap-4 shrink-0">
-<div class="w-40">
-<div class="flex justify-between mb-1">
-<span class="text-xs font-medium text-gray-500 dark:text-gray-400">Workload</span>
-<span class="text-xs font-medium text-yellow-600 dark:text-yellow-400">80%</span>
-</div>
-<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"><div class="bg-yellow-500 h-1.5 rounded-full" style="width: 80%;"></div></div>
-</div>
-<div class="text-gray-600 dark:text-gray-400">Admin</div>
-<button class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"><span class="material-symbols-outlined">more_vert</span></button>
+<p class="text-pm-subtext text-xs">olivia@example.com</p>
 </div>
 </div>
-<!-- List Item 2 -->
-<div class="flex items-center gap-4 p-4 justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50">
+<div class="flex items-center gap-6 w-full md:w-auto mt-2 md:mt-0">
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium text-pm-subtext">AI Assist</span>
+<button class="relative inline-flex h-5 w-9 items-center rounded-full bg-pm-teal transition-colors focus:outline-none focus:ring-2 focus:ring-pm-teal focus:ring-offset-2">
+<span class="translate-x-4.5 inline-block h-3.5 w-3.5 transform rounded-full bg-white transition duration-200 ease-in-out translate-x-4"></span>
+</button>
+</div>
+<div class="w-48">
+<div class="flex justify-between mb-1.5">
+<span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Capacity</span>
+<div class="flex gap-2 text-[10px] font-medium">
+<span class="text-blue-600">Hu: 60%</span>
+<span class="text-pm-teal">AI: 20%</span>
+</div>
+</div>
+<div class="w-full bg-gray-100 rounded-full h-2 flex overflow-hidden">
+<div class="bg-blue-500 h-full" style="width: 60%;"></div>
+<div class="bg-pm-teal h-full" style="width: 20%;"></div>
+</div>
+</div>
+<button class="text-gray-400 hover:text-pm-text p-1"><span class="material-symbols-outlined">more_vert</span></button>
+</div>
+</div>
+<div class="flex flex-col md:flex-row md:items-center gap-4 p-5 hover:bg-gray-50 transition-colors">
 <div class="flex items-center gap-4 flex-1">
-<img class="rounded-full size-12" data-alt="Avatar for Phoenix Baker" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEmV72vm3oLOVx0RhQ3KV9vF7jlRrkK44dI-qWVgM2GHW_nRHJSQGR7-5qzX_gGKi1VSqulC9-Pd8tvvsqtX8_s_YaKiOad97soUWYBJ6pqNnvwHqUlcGUt440uQMttSbrzuDOxXWIDkin7SfyYRaOyQl7E_nGC7dIYeqle5zOQLtLxyBDssqBXdg_L9YL1R4NXbN3jjIVlCx6FdqFtsLsUAlrWhTUtJumSDZOK8kvDeNs5rrUfErKzLHoLSSL1zgnRKsz59gOTRw"/>
+<div class="relative">
+<img class="rounded-full size-12 object-cover border border-gray-100" data-alt="Avatar for Phoenix Baker" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEmV72vm3oLOVx0RhQ3KV9vF7jlRrkK44dI-qWVgM2GHW_nRHJSQGR7-5qzX_gGKi1VSqulC9-Pd8tvvsqtX8_s_YaKiOad97soUWYBJ6pqNnvwHqUlcGUt440uQMttSbrzuDOxXWIDkin7SfyYRaOyQl7E_nGC7dIYeqle5zOQLtLxyBDssqBXdg_L9YL1R4NXbN3jjIVlCx6FdqFtsLsUAlrWhTUtJumSDZOK8kvDeNs5rrUfErKzLHoLSSL1zgnRKsz59gOTRw"/>
+<div class="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
+<div class="w-3 h-3 bg-yellow-500 rounded-full border-2 border-white"></div>
+</div>
+</div>
 <div class="flex-1">
 <div class="flex items-center gap-2">
-<p class="text-gray-900 dark:text-white text-base font-medium">Phoenix Baker</p>
-<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300">Developer</span>
+<p class="text-pm-text text-base font-bold">Phoenix Baker</p>
+<span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-full bg-purple-50 text-purple-600 border border-purple-100">Dev</span>
 </div>
-<p class="text-gray-500 dark:text-gray-400 text-sm">phoenix@example.com</p>
-</div>
-</div>
-<div class="flex items-center gap-4 shrink-0">
-<div class="w-40">
-<div class="flex justify-between mb-1 items-center">
-<span class="text-xs font-medium text-gray-500 dark:text-gray-400">Workload</span>
-<span class="text-xs font-medium text-red-600 dark:text-red-400 flex items-center gap-1">100% <span class="material-symbols-outlined text-base text-red-500">warning</span></span>
-</div>
-<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"><div class="bg-red-500 h-1.5 rounded-full" style="width: 100%;"></div></div>
-</div>
-<div class="text-gray-600 dark:text-gray-400">Member</div>
-<button class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"><span class="material-symbols-outlined">more_vert</span></button>
+<p class="text-pm-subtext text-xs">phoenix@example.com</p>
 </div>
 </div>
-<!-- List Item 3 -->
-<div class="flex items-center gap-4 p-4 justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50">
+<div class="flex items-center gap-6 w-full md:w-auto mt-2 md:mt-0">
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium text-pm-subtext">AI Assist</span>
+<button class="relative inline-flex h-5 w-9 items-center rounded-full bg-pm-teal transition-colors focus:outline-none">
+<span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition duration-200 ease-in-out translate-x-4"></span>
+</button>
+</div>
+<div class="w-48">
+<div class="flex justify-between mb-1.5">
+<span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Capacity</span>
+<div class="flex gap-2 text-[10px] font-medium">
+<span class="text-blue-600">Hu: 40%</span>
+<span class="text-pm-teal">AI: 50%</span>
+</div>
+</div>
+<div class="w-full bg-gray-100 rounded-full h-2 flex overflow-hidden">
+<div class="bg-blue-500 h-full" style="width: 40%;"></div>
+<div class="bg-pm-teal h-full" style="width: 50%;"></div>
+</div>
+</div>
+<button class="text-gray-400 hover:text-pm-text p-1"><span class="material-symbols-outlined">more_vert</span></button>
+</div>
+</div>
+<div class="flex flex-col md:flex-row md:items-center gap-4 p-5 hover:bg-gray-50 transition-colors">
 <div class="flex items-center gap-4 flex-1">
-<img class="rounded-full size-12" data-alt="Avatar for Lana Steiner" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClL9p1R2-1AhkietpuDSntLGowm_OyLksh95Yi53obTcJ3UfxgUZ17WeUSD8fs1Qml8zejboqgL5MpfU5b_blz4TT2zx2QfvEFKe3XCK4e_pU9BMjvdPv7zNGvdLAlTcFi3m7HSmk0sWm9u4I6LOKz8Q48ff_IBhGMz62akQsz0Qnzh2x8lX1RBCCO6WhYjsf2dmu9YzITVaeQQRUOBYFUAu5QVpncGGVA2bqG2tPjvqjrzdzj6ZM-aOQK8ZKB1u7n2PnbmrH4jdo"/>
+<div class="relative">
+<img class="rounded-full size-12 object-cover border border-gray-100" data-alt="Avatar for Lana Steiner" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClL9p1R2-1AhkietpuDSntLGowm_OyLksh95Yi53obTcJ3UfxgUZ17WeUSD8fs1Qml8zejboqgL5MpfU5b_blz4TT2zx2QfvEFKe3XCK4e_pU9BMjvdPv7zNGvdLAlTcFi3m7HSmk0sWm9u4I6LOKz8Q48ff_IBhGMz62akQsz0Qnzh2x8lX1RBCCO6WhYjsf2dmu9YzITVaeQQRUOBYFUAu5QVpncGGVA2bqG2tPjvqjrzdzj6ZM-aOQK8ZKB1u7n2PnbmrH4jdo"/>
+<div class="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
+<div class="w-3 h-3 bg-gray-300 rounded-full border-2 border-white"></div>
+</div>
+</div>
 <div class="flex-1">
 <div class="flex items-center gap-2">
-<p class="text-gray-900 dark:text-white text-base font-medium">Lana Steiner</p>
-<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">Project Manager</span>
+<p class="text-pm-text text-base font-bold">Lana Steiner</p>
+<span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded-full bg-orange-50 text-orange-600 border border-orange-100">PM</span>
 </div>
-<p class="text-gray-500 dark:text-gray-400 text-sm">lana@example.com</p>
+<p class="text-pm-subtext text-xs">lana@example.com</p>
 </div>
 </div>
-<div class="flex items-center gap-4 shrink-0">
-<div class="w-40">
-<div class="flex justify-between mb-1">
-<span class="text-xs font-medium text-gray-500 dark:text-gray-400">Workload</span>
-<span class="text-xs font-medium text-green-600 dark:text-green-400">45%</span>
+<div class="flex items-center gap-6 w-full md:w-auto mt-2 md:mt-0">
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium text-pm-subtext">AI Assist</span>
+<button class="relative inline-flex h-5 w-9 items-center rounded-full bg-gray-200 transition-colors focus:outline-none">
+<span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition duration-200 ease-in-out translate-x-0.5"></span>
+</button>
 </div>
-<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"><div class="bg-green-500 h-1.5 rounded-full" style="width: 45%;"></div></div>
+<div class="w-48">
+<div class="flex justify-between mb-1.5">
+<span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Capacity</span>
+<div class="flex gap-2 text-[10px] font-medium">
+<span class="text-blue-600">Hu: 90%</span>
+<span class="text-gray-400">Off</span>
 </div>
-<div class="text-gray-600 dark:text-gray-400">Admin</div>
-<button class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"><span class="material-symbols-outlined">more_vert</span></button>
+</div>
+<div class="w-full bg-gray-100 rounded-full h-2 flex overflow-hidden">
+<div class="bg-blue-500 h-full" style="width: 90%;"></div>
+</div>
+</div>
+<button class="text-gray-400 hover:text-pm-text p-1"><span class="material-symbols-outlined">more_vert</span></button>
 </div>
 </div>
 </div>
 </section>
-<!-- Client Contacts Section -->
 <section>
-<h2 class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight mb-4">Client Contacts</h2>
-<div class="bg-white dark:bg-gray-900/50 rounded-lg shadow-sm divide-y divide-gray-200 dark:divide-gray-800">
-<!-- Client Item 1 -->
-<div class="flex items-center gap-4 p-4 justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50">
-<div class="flex items-center gap-4 flex-1">
-<img class="rounded-full size-12" data-alt="Avatar for Candice Wu" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLglwJoLL64MYXOMcGaPJ8APj1JdSxoyPDxk3MUu2Keb5z6yvwXcQA9QHU9ypjhe9j8mO0DL7HB6ONh0QRBulTkPdhsxNqopH9cvtAtuPMdDx6VFpgLcNS4PlXO-Fe3BQPGDUakpS7-kqRVsTs5jUy1kNm4kbgSze0KNf0cA_aTzYVdWvIyJzpz2yPMLz_rU535qEtqQO5WL1DO_iga4VobjXy0GqVEe5RUgRLxHYBCJkYsb9Nir_-l7yXd03Ug7VIW25eSRHFe14"/>
-<div class="flex-1">
-<p class="text-gray-900 dark:text-white text-base font-medium">Candice Wu</p>
-<p class="text-gray-500 dark:text-gray-400 text-sm">candice@client.com</p>
+<h2 class="text-pm-text text-xl font-bold leading-tight tracking-tight mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-gray-400">smart_toy</span> 9-Agent Team
+                            </h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+<div class="bg-white rounded-xl border border-pm-border p-4 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-agent-navi ring-2 ring-agent-navi/20"></span>
+<h3 class="font-bold text-pm-text">Navi</h3>
+</div>
+<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Active</span>
+</div>
+<p class="text-xs text-pm-subtext font-medium mb-3">Product Owner</p>
+<div class="bg-gray-50 p-2 rounded mb-3">
+<p class="text-xs text-gray-500 italic">"Prioritizing Q3 backlog items based on recent feedback..."</p>
+</div>
+<div class="flex gap-1 justify-end border-t border-gray-100 pt-2">
+<button class="p-1 text-gray-400 hover:text-agent-navi rounded hover:bg-red-50"><span class="material-symbols-outlined" style="font-size: 18px;">pause_circle</span></button>
+<button class="p-1 text-gray-400 hover:text-pm-text rounded hover:bg-gray-100"><span class="material-symbols-outlined" style="font-size: 18px;">settings</span></button>
 </div>
 </div>
-<div class="flex items-center gap-4 shrink-0">
-<div class="text-gray-600 dark:text-gray-400 flex items-center gap-1">
-<span class="material-symbols-outlined text-base">visibility</span>
-<span>View Only</span>
+<div class="bg-white rounded-xl border border-pm-border p-4 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-agent-sage ring-2 ring-agent-sage/20"></span>
+<h3 class="font-bold text-pm-text">Sage</h3>
 </div>
-<button class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"><span class="material-symbols-outlined">more_vert</span></button>
+<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Active</span>
+</div>
+<p class="text-xs text-pm-subtext font-medium mb-3">Architect</p>
+<div class="bg-gray-50 p-2 rounded mb-3">
+<p class="text-xs text-gray-500 italic">"Validating schema changes for the user module..."</p>
+</div>
+<div class="flex gap-1 justify-end border-t border-gray-100 pt-2">
+<button class="p-1 text-gray-400 hover:text-agent-sage rounded hover:bg-green-50"><span class="material-symbols-outlined" style="font-size: 18px;">pause_circle</span></button>
+<button class="p-1 text-gray-400 hover:text-pm-text rounded hover:bg-gray-100"><span class="material-symbols-outlined" style="font-size: 18px;">settings</span></button>
+</div>
+</div>
+<div class="bg-white rounded-xl border border-pm-border p-4 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-agent-herald ring-2 ring-agent-herald/20"></span>
+<h3 class="font-bold text-pm-text">Herald</h3>
+</div>
+<span class="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Paused</span>
+</div>
+<p class="text-xs text-pm-subtext font-medium mb-3">Communications</p>
+<div class="bg-gray-50 p-2 rounded mb-3">
+<p class="text-xs text-gray-500 italic">"Awaiting approval for the weekly sprint report..."</p>
+</div>
+<div class="flex gap-1 justify-end border-t border-gray-100 pt-2">
+<button class="p-1 text-gray-400 hover:text-agent-herald rounded hover:bg-blue-50"><span class="material-symbols-outlined" style="font-size: 18px;">play_circle</span></button>
+<button class="p-1 text-gray-400 hover:text-pm-text rounded hover:bg-gray-100"><span class="material-symbols-outlined" style="font-size: 18px;">settings</span></button>
+</div>
+</div>
+<div class="bg-white rounded-xl border border-pm-border p-4 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-agent-chrono ring-2 ring-agent-chrono/20"></span>
+<h3 class="font-bold text-pm-text">Chrono</h3>
+</div>
+<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Active</span>
+</div>
+<p class="text-xs text-pm-subtext font-medium mb-3">Scrum Master</p>
+<div class="bg-gray-50 p-2 rounded mb-3">
+<p class="text-xs text-gray-500 italic">"Updating burndown charts. We are 5% ahead of schedule."</p>
+</div>
+<div class="flex gap-1 justify-end border-t border-gray-100 pt-2">
+<button class="p-1 text-gray-400 hover:text-agent-chrono rounded hover:bg-orange-50"><span class="material-symbols-outlined" style="font-size: 18px;">pause_circle</span></button>
+<button class="p-1 text-gray-400 hover:text-pm-text rounded hover:bg-gray-100"><span class="material-symbols-outlined" style="font-size: 18px;">settings</span></button>
+</div>
+</div>
+<div class="bg-white rounded-xl border border-pm-border p-4 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-agent-scope ring-2 ring-agent-scope/20"></span>
+<h3 class="font-bold text-pm-text">Scope</h3>
+</div>
+<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Active</span>
+</div>
+<p class="text-xs text-pm-subtext font-medium mb-3">QA / Testing</p>
+<div class="bg-gray-50 p-2 rounded mb-3">
+<p class="text-xs text-gray-500 italic">"Running regression suite on build #420..."</p>
+</div>
+<div class="flex gap-1 justify-end border-t border-gray-100 pt-2">
+<button class="p-1 text-gray-400 hover:text-agent-scope rounded hover:bg-purple-50"><span class="material-symbols-outlined" style="font-size: 18px;">pause_circle</span></button>
+<button class="p-1 text-gray-400 hover:text-pm-text rounded hover:bg-gray-100"><span class="material-symbols-outlined" style="font-size: 18px;">settings</span></button>
+</div>
+</div>
+<div class="bg-white rounded-xl border border-pm-border p-4 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-agent-pulse ring-2 ring-agent-pulse/20"></span>
+<h3 class="font-bold text-pm-text">Pulse</h3>
+</div>
+<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Active</span>
+</div>
+<p class="text-xs text-pm-subtext font-medium mb-3">DevOps</p>
+<div class="bg-gray-50 p-2 rounded mb-3">
+<p class="text-xs text-gray-500 italic">"Monitoring cluster health. CPU usage nominal."</p>
+</div>
+<div class="flex gap-1 justify-end border-t border-gray-100 pt-2">
+<button class="p-1 text-gray-400 hover:text-agent-pulse rounded hover:bg-red-50"><span class="material-symbols-outlined" style="font-size: 18px;">pause_circle</span></button>
+<button class="p-1 text-gray-400 hover:text-pm-text rounded hover:bg-gray-100"><span class="material-symbols-outlined" style="font-size: 18px;">settings</span></button>
+</div>
+</div>
+<div class="bg-white rounded-xl border border-pm-border p-4 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-agent-bridge ring-2 ring-agent-bridge/20"></span>
+<h3 class="font-bold text-pm-text">Bridge</h3>
+</div>
+<span class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Training</span>
+</div>
+<p class="text-xs text-pm-subtext font-medium mb-3">Integrations</p>
+<div class="bg-gray-50 p-2 rounded mb-3">
+<p class="text-xs text-gray-500 italic">"Learning the new Stripe API webhooks..."</p>
+</div>
+<div class="flex gap-1 justify-end border-t border-gray-100 pt-2">
+<button class="p-1 text-gray-400 hover:text-agent-bridge rounded hover:bg-teal-50"><span class="material-symbols-outlined" style="font-size: 18px;">pause_circle</span></button>
+<button class="p-1 text-gray-400 hover:text-pm-text rounded hover:bg-gray-100"><span class="material-symbols-outlined" style="font-size: 18px;">settings</span></button>
+</div>
+</div>
+<div class="bg-white rounded-xl border border-pm-border p-4 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-agent-prism ring-2 ring-agent-prism/20"></span>
+<h3 class="font-bold text-pm-text">Prism</h3>
+</div>
+<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Active</span>
+</div>
+<p class="text-xs text-pm-subtext font-medium mb-3">Design / UI</p>
+<div class="bg-gray-50 p-2 rounded mb-3">
+<p class="text-xs text-gray-500 italic">"Generating color palette variations for dark mode..."</p>
+</div>
+<div class="flex gap-1 justify-end border-t border-gray-100 pt-2">
+<button class="p-1 text-gray-400 hover:text-agent-prism rounded hover:bg-pink-50"><span class="material-symbols-outlined" style="font-size: 18px;">pause_circle</span></button>
+<button class="p-1 text-gray-400 hover:text-pm-text rounded hover:bg-gray-100"><span class="material-symbols-outlined" style="font-size: 18px;">settings</span></button>
+</div>
+</div>
+<div class="bg-white rounded-xl border border-pm-border p-4 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-agent-scribe ring-2 ring-agent-scribe/20"></span>
+<h3 class="font-bold text-pm-text">Scribe</h3>
+</div>
+<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Active</span>
+</div>
+<p class="text-xs text-pm-subtext font-medium mb-3">Documentation</p>
+<div class="bg-gray-50 p-2 rounded mb-3">
+<p class="text-xs text-gray-500 italic">"Compiling API reference for v2.0 release..."</p>
+</div>
+<div class="flex gap-1 justify-end border-t border-gray-100 pt-2">
+<button class="p-1 text-gray-400 hover:text-agent-scribe rounded hover:bg-teal-50"><span class="material-symbols-outlined" style="font-size: 18px;">pause_circle</span></button>
+<button class="p-1 text-gray-400 hover:text-pm-text rounded hover:bg-gray-100"><span class="material-symbols-outlined" style="font-size: 18px;">settings</span></button>
 </div>
 </div>
 </div>
 </section>
 </div>
-<!-- Right Sidebar -->
 <aside class="space-y-6">
-<div class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-6">
+<div class="bg-purple-50 border border-purple-200 rounded-xl p-6">
 <div class="flex items-center gap-3 mb-4">
-<div class="bg-purple-100 dark:bg-purple-900/50 p-2 rounded-full">
-<span class="material-symbols-outlined text-purple-600 dark:text-purple-300">auto_awesome</span>
+<div class="bg-white border border-purple-200 p-2 rounded-full">
+<span class="material-symbols-outlined text-purple-600">auto_awesome</span>
 </div>
-<h3 class="text-lg font-bold text-purple-900 dark:text-purple-200">AI Workload Insights</h3>
+<h3 class="text-base font-bold text-purple-900">AI Workload Insights</h3>
 </div>
-<ul class="space-y-3 text-sm text-purple-800 dark:text-purple-300">
-<li class="flex items-start gap-2">
-<span class="material-symbols-outlined text-base mt-0.5">trending_down</span>
-<span>Consider reassigning tasks from <strong>Phoenix Baker</strong> to balance workload.</span>
+<ul class="space-y-4 text-sm text-purple-900">
+<li class="flex items-start gap-3 p-3 bg-white/60 rounded-lg border border-purple-100">
+<span class="material-symbols-outlined text-purple-500 text-lg mt-0.5">balance</span>
+<span><strong>Hybrid Balance:</strong> Human workload is 10% higher than recommended. Suggest offloading regression testing to <strong>Scope</strong>.</span>
 </li>
-<li class="flex items-start gap-2">
-<span class="material-symbols-outlined text-base mt-0.5">check_circle</span>
-<span>Team capacity is optimal for the next sprint.</span>
+<li class="flex items-start gap-3 p-3 bg-white/60 rounded-lg border border-purple-100">
+<span class="material-symbols-outlined text-green-600 text-lg mt-0.5">check_circle</span>
+<span><strong>Agent Efficiency:</strong> Scribe has completed 45 docs this week. Optimal performance.</span>
 </li>
 </ul>
 </div>
+<section>
+<h2 class="text-pm-text text-sm font-bold uppercase tracking-wider mb-4 text-pm-subtext">External Clients</h2>
+<div class="bg-pm-card rounded-xl shadow-sm border border-pm-border divide-y divide-pm-border">
+<div class="flex items-center gap-4 p-4 justify-between hover:bg-gray-50">
+<div class="flex items-center gap-3 flex-1">
+<img class="rounded-full size-10 object-cover" data-alt="Avatar for Candice Wu" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLglwJoLL64MYXOMcGaPJ8APj1JdSxoyPDxk3MUu2Keb5z6yvwXcQA9QHU9ypjhe9j8mO0DL7HB6ONh0QRBulTkPdhsxNqopH9cvtAtuPMdDx6VFpgLcNS4PlXO-Fe3BQPGDUakpS7-kqRVsTs5jUy1kNm4kbgSze0KNf0cA_aTzYVdWvIyJzpz2yPMLz_rU535qEtqQO5WL1DO_iga4VobjXy0GqVEe5RUgRLxHYBCJkYsb9Nir_-l7yXd03Ug7VIW25eSRHFe14"/>
+<div class="flex-1">
+<p class="text-pm-text text-sm font-bold">Candice Wu</p>
+<p class="text-pm-subtext text-xs">candice@client.com</p>
+</div>
+</div>
+<div class="text-pm-subtext">
+<span class="material-symbols-outlined text-sm" title="View Only">visibility</span>
+</div>
+</div>
+</div>
+</section>
 </aside>
 </div>
 </div>
 </main>
 </div>
+
 </body></html>

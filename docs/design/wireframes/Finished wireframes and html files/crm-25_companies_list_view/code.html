@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-25 Companies List View</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111318",
+                        "surface-dark": "#1c1f27",
+                        "border-dark": "#282e39",
+                        "text-secondary": "#9da6b9",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for table if needed */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-white overflow-x-hidden antialiased">
+<div class="relative flex h-screen w-full overflow-hidden">
+<!-- Sidebar -->
+<div class="hidden md:flex flex-col w-[260px] border-r border-border-dark bg-[#111318] flex-shrink-0">
+<div class="flex flex-col h-full p-4 justify-between">
+<div class="flex flex-col gap-6">
+<!-- Branding -->
+<div class="flex items-center gap-3 px-2">
+<div class="bg-center bg-no-repeat bg-cover rounded-lg size-10 shadow-inner" data-alt="CRM Logo gradient square" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCllbBk4D1ytbPATLqCQ3rcWwDZ4L--pkA5WEyn9KAdLGOj4KgAoiL8yAOuabjJrjk-ysZCe0IyI_9qntASwptHP0BgshWcceqBE6731lB9CinVvEorp2glgxU6LbfqlT_s5Td9qLdypCWAgCWJYtWug_zFRc_mK7QvP7ONvS5ZbQliBarf9879IusJIrOlB1B_LLXHP1_Hi12oQq7xfMPG9RS-IaVJeQymkXpPX1YWgR340okh3IbEv5EZwKWX4cXADCq087G2HZk");'></div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-bold leading-tight">CRM-25</h1>
+<p class="text-text-secondary text-xs font-normal">Admin Workspace</p>
+</div>
+</div>
+<!-- Nav Items -->
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:bg-surface-dark hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-white text-text-secondary">home</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#282e39] text-white shadow-sm ring-1 ring-white/5" href="#">
+<span class="material-symbols-outlined text-[20px] text-primary" style="font-variation-settings: 'FILL' 1;">business</span>
+<span class="text-sm font-bold">Companies</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:bg-surface-dark hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-white text-text-secondary">group</span>
+<span class="text-sm font-medium">Contacts</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:bg-surface-dark hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-white text-text-secondary">monetization_on</span>
+<span class="text-sm font-medium">Deals</span>
+</a>
+</nav>
+</div>
+<!-- Bottom Settings -->
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-secondary hover:bg-surface-dark hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-white text-text-secondary">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+<div class="mt-4 pt-4 border-t border-border-dark flex items-center gap-3 px-2">
+<div class="size-8 rounded-full bg-cover bg-center" data-alt="User profile photo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDjZooRTXmMnLc6kRmQVCRRgQk_GSRNy5rFbiECXzxOOHIq0LKlnEUmD-4qF51QV5I1n9JGC3BOXKaT-1NNWrXJaSo-0UqferP51mkY-tJDQSlaRKTdcfA4AbKnyXDZaDgGFB_mtJgKbvzvKB2rRWFFqlbor0mOGDF28pJzrdxVAEqVwgS8ry49Eatge_Nrr7s90eE2u41VyjIdNgecmWs3OW4PZNNLlGTOqru6DlPhc_S98YYBbxwNZRunQtXrKDP2MBpSroybXr0");'></div>
+<div class="flex flex-col">
+<p class="text-sm font-medium text-white">Alex Morgan</p>
+<p class="text-xs text-text-secondary">alex@crm25.com</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Content -->
+<div class="flex-1 flex flex-col h-full relative overflow-y-auto bg-background-dark">
+<main class="w-full max-w-[1400px] mx-auto p-6 md:p-8 flex flex-col gap-8">
+<!-- Page Heading & Primary Action -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div class="flex flex-col gap-1">
+<h1 class="text-white text-3xl font-black tracking-tight">Companies</h1>
+<p class="text-text-secondary text-base">Manage your accounts and track health scores.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-surface-dark border border-border-dark text-white text-sm font-bold hover:bg-[#323945] transition-colors">
+<span class="material-symbols-outlined text-[20px]">file_upload</span>
+                        Import
+                    </button>
+<button class="flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-blue-600 transition-colors">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                        Add Company
+                    </button>
+</div>
+</div>
+<!-- Atlas Agent Suggestion Card -->
+<div class="w-full bg-surface-dark border border-border-dark border-l-4 border-l-orange-500 rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-transparent pointer-events-none"></div>
+<div class="flex gap-4 items-start relative z-10">
+<div class="size-10 rounded-full bg-orange-500/10 flex items-center justify-center shrink-0 text-orange-500">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+</div>
+<div class="flex flex-col gap-1">
+<h3 class="text-white font-bold text-lg">Atlas Agent Suggestion</h3>
+<p class="text-text-secondary text-sm">5 companies have missing revenue data. Enriching this data can improve health score accuracy by 15%.</p>
+</div>
+</div>
+<button class="relative z-10 whitespace-nowrap px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold transition-colors">
+                    Enrich Data
+                </button>
+</div>
+<!-- Search, Filters, and Toolbar -->
+<div class="flex flex-col gap-4">
+<!-- Top Toolbar: Search & Dropdowns -->
+<div class="flex flex-col xl:flex-row gap-4 justify-between">
+<!-- Search -->
+<div class="relative flex-1 min-w-[300px] max-w-[480px]">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined">search</span>
+<input class="w-full h-10 pl-10 pr-4 bg-surface-dark border border-border-dark rounded-lg text-white text-sm focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-text-secondary/70" placeholder="Search companies, domains..." type="text"/>
+</div>
+<!-- Filters & Toggles -->
+<div class="flex flex-wrap items-center gap-3">
+<div class="h-6 w-px bg-border-dark mx-1 hidden sm:block"></div>
+<!-- Filter Dropdowns -->
+<button class="flex items-center gap-2 h-10 px-3 rounded-lg bg-surface-dark border border-border-dark text-text-secondary text-sm hover:text-white hover:border-gray-600 transition-colors">
+<span>Industry</span>
+<span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+</button>
+<button class="flex items-center gap-2 h-10 px-3 rounded-lg bg-surface-dark border border-border-dark text-text-secondary text-sm hover:text-white hover:border-gray-600 transition-colors">
+<span>Size</span>
+<span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+</button>
+<button class="flex items-center gap-2 h-10 px-3 rounded-lg bg-surface-dark border border-border-dark text-text-secondary text-sm hover:text-white hover:border-gray-600 transition-colors">
+<span>Owner</span>
+<span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+</button>
+<button class="flex items-center gap-2 h-10 px-3 rounded-lg bg-surface-dark border border-border-dark text-text-secondary text-sm hover:text-white hover:border-gray-600 transition-colors">
+<span>Health</span>
+<span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+</button>
+<div class="h-6 w-px bg-border-dark mx-1 hidden sm:block"></div>
+<!-- View Toggle -->
+<div class="flex p-1 bg-surface-dark border border-border-dark rounded-lg">
+<button class="p-1 rounded bg-[#2c333f] text-white shadow-sm">
+<span class="material-symbols-outlined text-[20px]">view_list</span>
+</button>
+<button class="p-1 rounded hover:bg-[#2c333f] text-text-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Bottom Toolbar: Chips & Active Filters -->
+<div class="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar">
+<span class="text-xs font-semibold text-text-secondary uppercase tracking-wider shrink-0">Quick Views:</span>
+<button class="flex shrink-0 items-center gap-2 px-3 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-medium">
+                        All Companies <span class="bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">150</span>
+</button>
+<button class="flex shrink-0 items-center gap-2 px-3 py-1.5 rounded-full bg-surface-dark border border-border-dark hover:border-gray-600 text-text-secondary text-xs font-medium transition-colors">
+                        Enterprise <span class="bg-[#2c333f] text-text-secondary text-[10px] px-1.5 py-0.5 rounded-full">15</span>
+</button>
+<button class="flex shrink-0 items-center gap-2 px-3 py-1.5 rounded-full bg-surface-dark border border-border-dark hover:border-gray-600 text-text-secondary text-xs font-medium transition-colors">
+                        Mid-Market <span class="bg-[#2c333f] text-text-secondary text-[10px] px-1.5 py-0.5 rounded-full">42</span>
+</button>
+<button class="flex shrink-0 items-center gap-2 px-3 py-1.5 rounded-full bg-surface-dark border border-border-dark hover:border-gray-600 text-text-secondary text-xs font-medium transition-colors">
+                        At Risk <span class="bg-red-500/20 text-red-400 text-[10px] px-1.5 py-0.5 rounded-full">3</span>
+</button>
+</div>
+</div>
+<!-- Bulk Actions Bar (Simulated Active State) -->
+<!-- Positioned relatively here for layout, but typically sticky/fixed -->
+<div class="w-full bg-[#18263e] border border-primary/20 rounded-lg flex items-center justify-between px-4 py-3 animate-pulse-slow hidden">
+<div class="flex items-center gap-3">
+<div class="bg-primary text-white text-xs font-bold px-2 py-1 rounded">2 Selected</div>
+<span class="text-sm text-blue-200">Apply actions to selected items</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="text-xs font-medium text-white hover:bg-white/10 px-3 py-1.5 rounded transition">Assign Owner</button>
+<button class="text-xs font-medium text-white hover:bg-white/10 px-3 py-1.5 rounded transition">Add Tags</button>
+<button class="text-xs font-medium text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded transition">Delete</button>
+</div>
+</div>
+<!-- Main Data Table -->
+<div class="w-full overflow-hidden rounded-lg border border-border-dark bg-surface-dark shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm whitespace-nowrap">
+<thead class="bg-[#252a33] text-text-secondary border-b border-border-dark font-medium">
+<tr>
+<th class="w-10 px-4 py-3">
+<div class="flex items-center">
+<input class="rounded border-gray-600 bg-[#1c1f27] text-primary focus:ring-0 focus:ring-offset-0 size-4" type="checkbox"/>
+</div>
+</th>
+<th class="px-4 py-3 font-medium cursor-pointer hover:text-white group">
+<div class="flex items-center gap-1">
+                                        Company Name
+                                        <span class="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100">arrow_downward</span>
+</div>
+</th>
+<th class="px-4 py-3 font-medium">Industry</th>
+<th class="px-4 py-3 font-medium">Size</th>
+<th class="px-4 py-3 font-medium">Contacts</th>
+<th class="px-4 py-3 font-medium">Owner</th>
+<th class="px-4 py-3 font-medium text-right">Health Score</th>
+<th class="w-10 px-4 py-3"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-dark">
+<!-- Row 1: Healthy -->
+<tr class="hover:bg-[#252a33] transition-colors group">
+<td class="px-4 py-3">
+<div class="flex items-center">
+<input class="rounded border-gray-600 bg-[#1c1f27] text-primary focus:ring-0 focus:ring-offset-0 size-4" type="checkbox"/>
+</div>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded bg-white flex items-center justify-center p-1" data-alt="TechFlow Logo">
+<img alt="" class="w-full h-full object-contain opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxYrA0JmgUZ4I8a0wAuWf1gSEEPBB3XiNpZ3hOPxaI4Dl5VwlFmu4jU7xlk4ZaR0HkFVuA6T2XOw4iAwdVdbZVf2-VT7yBFyH1S_HluCPlb32ITETszaOMhBBCrVas5YPZjEftcUmX5gbN_7YxK9BBP2s05rm1NgYvuRvH8OkOurFINLy_J_9G7Caqp1wHG2ueIwrNZ2ZQAbFSYapfOWUBFyKj9nvi18DBK9RdqfXdolVIdhK9pYjMSprvtz4LCsj58HpMuSGNB_k"/>
+</div>
+<div class="flex flex-col">
+<a class="font-semibold text-white hover:text-primary transition-colors" href="#">TechFlow Inc.</a>
+<span class="text-xs text-text-secondary">techflow.io</span>
+</div>
+</div>
+</td>
+<td class="px-4 py-3 text-text-secondary">SaaS / Software</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center rounded-md bg-[#282e39] px-2 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/10">50-200</span>
+</td>
+<td class="px-4 py-3 text-text-secondary">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">group</span> 12
+                                    </div>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cover" data-alt="Owner Avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA563BdKYzvsMdFSsO4WyOqrH5mW0mUpN5dMFiKE6EkYAocGeR2AhUqB0WuNDK9Zj8H6nDoNmMB2VJMzECBGr5wppMtsX0pBUa4Be1Rx-A3wjJ2awKwCWXyhwYuPBRcUTk_7qDG6o75Jh3wF4NeNVLLuAk3AxVEkS6eO-3aOU1vVlxjxdGEBbvlyZXsBj8qCYGgHUv0F5_8_ISutEKst0wIdCYR0bSRy2_5tpdOaNSwL_1hs674qZ-TPyzxt_aPBVQ04hlg5rkis-s");'></div>
+<span class="text-xs text-gray-300">Alex M.</span>
+</div>
+</td>
+<td class="px-4 py-3 text-right">
+<div class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-[#14532d]/20 border border-[#22c55e]/20">
+<div class="size-2 rounded-full bg-[#22c55e]"></div>
+<span class="text-sm font-bold text-[#22c55e]">92</span>
+</div>
+</td>
+<td class="px-4 py-3 text-right">
+<button class="text-text-secondary hover:text-white p-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Selected -->
+<tr class="bg-[#18263e]/40 hover:bg-[#18263e]/60 transition-colors group border-l-2 border-l-primary">
+<td class="px-4 py-3">
+<div class="flex items-center">
+<input checked="" class="rounded border-gray-600 bg-[#1c1f27] text-primary focus:ring-0 focus:ring-offset-0 size-4" type="checkbox"/>
+</div>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded bg-white flex items-center justify-center p-1" data-alt="Acro Corp Logo">
+<img alt="" class="w-full h-full object-contain opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZ7wCWFazohaq6zcZ0hcX1VIopuZ62MwoPBpG4EwW0mf0-YF8IJEqL5mnhYoUN7bUyoEqO94Ll6xUqI-5Vdchevpv36MMfx-7nlztbe97vm3Iotg2R51SANCBtsdeLn6iVcyH27PmroVdzB0rtKimpNnsriz5cd6xxr1S9Od97JNttM56Tf5LeXyN69m_GM9uxqCkWUZK3GrUnPqiSsjQOGVDO013YWO3mnoO8m8iAj5RhYwfqpZhMj-nucIOiRMBavqWhG3Xjc-U"/>
+</div>
+<div class="flex flex-col">
+<a class="font-semibold text-white hover:text-primary transition-colors" href="#">Acro Corp</a>
+<span class="text-xs text-text-secondary">acro.com</span>
+</div>
+</div>
+</td>
+<td class="px-4 py-3 text-text-secondary">Manufacturing</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center rounded-md bg-[#282e39] px-2 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/10">1k+</span>
+</td>
+<td class="px-4 py-3 text-text-secondary">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">group</span> 5
+                                    </div>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-blue-500 flex items-center justify-center text-[10px] font-bold text-white">JD</div>
+<span class="text-xs text-gray-300">Jane D.</span>
+</div>
+</td>
+<td class="px-4 py-3 text-right">
+<div class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-[#713f12]/20 border border-[#f59e0b]/20">
+<div class="size-2 rounded-full bg-[#f59e0b]"></div>
+<span class="text-sm font-bold text-[#f59e0b]">65</span>
+</div>
+</td>
+<td class="px-4 py-3 text-right">
+<button class="text-text-secondary hover:text-white p-1 rounded hover:bg-white/10 opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: At Risk -->
+<tr class="hover:bg-[#252a33] transition-colors group">
+<td class="px-4 py-3">
+<div class="flex items-center">
+<input class="rounded border-gray-600 bg-[#1c1f27] text-primary focus:ring-0 focus:ring-offset-0 size-4" type="checkbox"/>
+</div>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded bg-white flex items-center justify-center p-1" data-alt="BetaSource Logo">
+<img alt="" class="w-full h-full object-contain opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdYE6oXi0SSmLrQPemw6j0Ejv8ApZNfD94qElIw_QQcE8584WqmE_RT78vXn_-vLqTIT6CXEZ23LYO_6pRNvMen_j19b2Kd7ej9YBDSQY5S5EfVFbgTvCha5r497sXKymDTAmaYn-su3gDX1cGdHpGc5DR5f1lgaKhPZxRtgsRzKD1zRPkkcDd96Jefc6k1eL_5wr6z53Nq5BrEoLYQSN8qlk_ypHLoElqeo5AQBX59vVeh7mU-sJx3iQKuD9Eoi3ZuzLBaMy1Gg8"/>
+</div>
+<div class="flex flex-col">
+<a class="font-semibold text-white hover:text-primary transition-colors" href="#">BetaSource</a>
+<span class="text-xs text-text-secondary">betasource.net</span>
+</div>
+</div>
+</td>
+<td class="px-4 py-3 text-text-secondary">Retail</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center rounded-md bg-[#282e39] px-2 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/10">10-50</span>
+</td>
+<td class="px-4 py-3 text-text-secondary">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">group</span> 2
+                                    </div>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cover" data-alt="Owner Avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBrQl-apzlgFsxlINQQA5X1WjIbywDM4abNFD6hPurQaFsOMI89zkuokji8-0X2kb87Z7SygZcubq8wkXnEoASUZbjOsVl0luLsuW1qDMU0DH4jy_nYzMom-E-IbFsQewQvyXr36bSvAV3deUZJWEe5C5znHn3CH10SpZIfMJKdtRX-3L5-Hf6sq9PPwIwy52rRGicWk6sJrYzHFAW4ZMdrt-rwubDyXscL7ckw0xYSxSswZNWgwkCSS5Nhb5Tg5r-GkTQSV2S_P8I");'></div>
+<span class="text-xs text-gray-300">Alex M.</span>
+</div>
+</td>
+<td class="px-4 py-3 text-right">
+<div class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-[#7f1d1d]/20 border border-[#ef4444]/20">
+<div class="size-2 rounded-full bg-[#ef4444]"></div>
+<span class="text-sm font-bold text-[#ef4444]">30</span>
+</div>
+</td>
+<td class="px-4 py-3 text-right">
+<button class="text-text-secondary hover:text-white p-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-[#252a33] transition-colors group">
+<td class="px-4 py-3">
+<div class="flex items-center">
+<input class="rounded border-gray-600 bg-[#1c1f27] text-primary focus:ring-0 focus:ring-offset-0 size-4" type="checkbox"/>
+</div>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded bg-white flex items-center justify-center p-1" data-alt="Global Dynamics Logo">
+<div class="w-full h-full bg-purple-600 rounded-sm"></div>
+</div>
+<div class="flex flex-col">
+<a class="font-semibold text-white hover:text-primary transition-colors" href="#">Global Dynamics</a>
+<span class="text-xs text-text-secondary">globaldyn.com</span>
+</div>
+</div>
+</td>
+<td class="px-4 py-3 text-text-secondary">Logistics</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center rounded-md bg-[#282e39] px-2 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/10">500-1k</span>
+</td>
+<td class="px-4 py-3 text-text-secondary">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">group</span> 18
+                                    </div>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-green-600 flex items-center justify-center text-[10px] font-bold text-white">SR</div>
+<span class="text-xs text-gray-300">Sarah R.</span>
+</div>
+</td>
+<td class="px-4 py-3 text-right">
+<div class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-[#14532d]/20 border border-[#22c55e]/20">
+<div class="size-2 rounded-full bg-[#22c55e]"></div>
+<span class="text-sm font-bold text-[#22c55e]">88</span>
+</div>
+</td>
+<td class="px-4 py-3 text-right">
+<button class="text-text-secondary hover:text-white p-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-[#252a33] transition-colors group">
+<td class="px-4 py-3">
+<div class="flex items-center">
+<input class="rounded border-gray-600 bg-[#1c1f27] text-primary focus:ring-0 focus:ring-offset-0 size-4" type="checkbox"/>
+</div>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded bg-white flex items-center justify-center p-1" data-alt="Zenith Logo">
+<div class="w-full h-full bg-indigo-500 rounded-full"></div>
+</div>
+<div class="flex flex-col">
+<a class="font-semibold text-white hover:text-primary transition-colors" href="#">Zenith Corp</a>
+<span class="text-xs text-text-secondary">zenith.io</span>
+</div>
+</div>
+</td>
+<td class="px-4 py-3 text-text-secondary">Fintech</td>
+<td class="px-4 py-3">
+<span class="inline-flex items-center rounded-md bg-[#282e39] px-2 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/10">200-500</span>
+</td>
+<td class="px-4 py-3 text-text-secondary">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">group</span> 8
+                                    </div>
+</td>
+<td class="px-4 py-3">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cover" data-alt="Owner Avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCRFOS56zuMX29N43uj6FRx0c2Uqr9lzVdXUn9RBzhwZniVrXqqoPTTn_L5GAYdv0f8ZRx3nnxM58lBEiu0ZKPNOLUkAuKPrLjFieUcrzIC50_4pxchiM2t_3Gu8uhReyXQ5pjCPuIeUCzhiUAZxgyVhIE6iv1DiizWZrFymTm99VocmgYHF7pIpdTWqXJpKqCZub8vG_TpApjnOEUeJchgfD6SJwIXTPn1cDsXF5XZI3fvk_t7gqHiHKDHgG6dnlIHqvGPivJfurM");'></div>
+<span class="text-xs text-gray-300">Alex M.</span>
+</div>
+</td>
+<td class="px-4 py-3 text-right">
+<div class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-[#713f12]/20 border border-[#f59e0b]/20">
+<div class="size-2 rounded-full bg-[#f59e0b]"></div>
+<span class="text-sm font-bold text-[#f59e0b]">54</span>
+</div>
+</td>
+<td class="px-4 py-3 text-right">
+<button class="text-text-secondary hover:text-white p-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="flex items-center justify-between border-t border-border-dark px-4 py-3 sm:px-6">
+<div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+<div>
+<p class="text-sm text-text-secondary">
+                                Showing <span class="font-medium text-white">1</span> to <span class="font-medium text-white">5</span> of <span class="font-medium text-white">150</span> results
+                            </p>
+</div>
+<div>
+<nav aria-label="Pagination" class="isolate inline-flex -space-x-px rounded-md shadow-sm">
+<a class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-700 hover:bg-gray-800 focus:z-20 focus:outline-offset-0" href="#">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</a>
+<a aria-current="page" class="relative z-10 inline-flex items-center bg-primary px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" href="#">1</a>
+<a class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-400 ring-1 ring-inset ring-gray-700 hover:bg-gray-800 focus:z-20 focus:outline-offset-0" href="#">2</a>
+<a class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-400 ring-1 ring-inset ring-gray-700 hover:bg-gray-800 focus:z-20 focus:outline-offset-0" href="#">3</a>
+<a class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-700 hover:bg-gray-800 focus:z-20 focus:outline-offset-0" href="#">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</a>
+</nav>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

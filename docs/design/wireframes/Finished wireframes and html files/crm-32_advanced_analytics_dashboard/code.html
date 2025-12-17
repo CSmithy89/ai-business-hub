@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-32 Advanced Analytics Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#101622",
+              "surface-dark": "#1e2430",
+              "surface-light": "#ffffff",
+              "border-dark": "#282e39",
+              "border-light": "#e2e8f0",
+              "text-secondary-dark": "#9da6b9",
+              "text-secondary-light": "#64748b",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        /* Custom scrollbar for better visuals */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111318; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #282e39; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b4354; 
+        }
+        .chart-bar-bg {
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.03),
+                rgba(255, 255, 255, 0.03) 10px,
+                rgba(255, 255, 255, 0.01) 10px,
+                rgba(255, 255, 255, 0.01) 20px
+            );
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display flex flex-col min-h-screen text-slate-900 dark:text-white overflow-x-hidden">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-solid border-border-light dark:border-border-dark bg-surface-light dark:bg-background-dark px-6 py-3">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-slate-900 dark:text-white">
+<div class="size-8 rounded bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-tight">Growth Advanced CRM</h2>
+</div>
+<label class="hidden md:flex flex-col min-w-40 h-10 w-64">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full border border-border-light dark:border-border-dark bg-background-light dark:bg-surface-dark focus-within:ring-2 focus-within:ring-primary/50 transition-all">
+<div class="text-text-secondary-light dark:text-text-secondary-dark flex items-center justify-center pl-3">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg bg-transparent border-none placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark px-3 text-sm focus:ring-0 focus:outline-0" placeholder="Search data, reports..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<div class="hidden lg:flex items-center gap-6">
+<a class="text-text-secondary-light dark:text-text-secondary-dark hover:text-primary text-sm font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-text-secondary-light dark:text-text-secondary-dark hover:text-primary text-sm font-medium transition-colors" href="#">Contacts</a>
+<a class="text-text-secondary-light dark:text-text-secondary-dark hover:text-primary text-sm font-medium transition-colors" href="#">Deals</a>
+<a class="text-primary text-sm font-bold" href="#">Analytics</a>
+<a class="text-text-secondary-light dark:text-text-secondary-dark hover:text-primary text-sm font-medium transition-colors" href="#">Settings</a>
+</div>
+<div class="flex gap-3 border-l border-border-light dark:border-border-dark pl-6">
+<button class="flex size-10 cursor-pointer items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-slate-900 dark:text-white">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary cursor-pointer relative" data-alt="User profile picture showing a professional headshot" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBRdi5webU61IryotQupk-6uwdDw4gNgnx5Umry6gkgNih9mQIeHLZgOiZk0zqqs8xgnJKwxxaVVh-h7por7i8Wydw5OFsh0qXg7CFZKvWj-pLJP8ZB68Ij0ti4mvJ-lBm5q__nu81jYtJZozMeLM-ZF5_Wdp-HrXUXaPfGwMy4I9jLK50K2faA_NfqXmAUu8DcjarhZ1UbiBt6Oo98cnqaidCMtYFshH-aFLozhkmQOr7e7X3QX0033_lhkQs26M0xrLtstTkueMQ");'>
+<div class="absolute bottom-0 right-0 size-3 bg-green-500 rounded-full border-2 border-white dark:border-background-dark"></div>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Layout -->
+<main class="flex-1 flex flex-col max-w-[1440px] w-full mx-auto px-6 py-8 gap-6">
+<!-- Page Header & Actions -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<div>
+<h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white mb-1">Advanced Analytics Dashboard</h1>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm">Real-time insights into revenue, team performance, and pipeline health.</p>
+</div>
+<div class="flex flex-wrap gap-3">
+<div class="flex items-center bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark p-1">
+<button class="px-3 py-1.5 rounded text-sm font-medium bg-primary text-white shadow-sm">This Month</button>
+<button class="px-3 py-1.5 rounded text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark hover:text-primary hover:bg-background-light dark:hover:bg-background-dark transition-colors">Last Qtr</button>
+<button class="px-3 py-1.5 rounded text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark hover:text-primary hover:bg-background-light dark:hover:bg-background-dark transition-colors">YTD</button>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    Export
+                </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-border-dark text-slate-900 dark:text-white rounded-lg text-sm font-bold transition-colors">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+                    Email
+                </button>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<div class="border-b border-border-light dark:border-border-dark overflow-x-auto">
+<div class="flex gap-8 min-w-max">
+<a class="pb-3 border-b-[3px] border-primary text-primary font-bold text-sm flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span> Overview
+                </a>
+<a class="pb-3 border-b-[3px] border-transparent text-text-secondary-light dark:text-text-secondary-dark hover:text-slate-900 dark:hover:text-white font-medium text-sm flex items-center gap-2 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">thumbs_up_down</span> Win/Loss
+                </a>
+<a class="pb-3 border-b-[3px] border-transparent text-text-secondary-light dark:text-text-secondary-dark hover:text-slate-900 dark:hover:text-white font-medium text-sm flex items-center gap-2 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">filter_alt</span> Funnel
+                </a>
+<a class="pb-3 border-b-[3px] border-transparent text-text-secondary-light dark:text-text-secondary-dark hover:text-slate-900 dark:hover:text-white font-medium text-sm flex items-center gap-2 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">group</span> Reps
+                </a>
+<a class="pb-3 border-b-[3px] border-transparent text-text-secondary-light dark:text-text-secondary-dark hover:text-slate-900 dark:hover:text-white font-medium text-sm flex items-center gap-2 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">tune</span> Custom Report
+                </a>
+</div>
+</div>
+<!-- PRISM AI Insights -->
+<div class="w-full bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-xl p-5 flex flex-col md:flex-row gap-4 items-start md:items-center relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+<div class="size-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 z-10 shadow-lg shadow-indigo-500/20">
+<span class="material-symbols-outlined text-white">auto_awesome</span>
+</div>
+<div class="flex-1 z-10">
+<h3 class="text-white font-bold text-sm uppercase tracking-wider mb-1 flex items-center gap-2">
+                    Prism AI Insights
+                    <span class="bg-indigo-500/20 text-indigo-300 text-[10px] px-2 py-0.5 rounded-full border border-indigo-500/30">New</span>
+</h3>
+<p class="text-indigo-100/90 text-sm md:text-base">
+                    Based on recent activity, deals involving <span class="font-bold text-white">"Executive Sponsor"</span> are closing <span class="font-bold text-green-400">20% faster</span>. Consider adding this stakeholder to stalled opportunities.
+                </p>
+</div>
+<button class="z-10 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm font-medium transition-colors backdrop-blur-sm whitespace-nowrap">
+                View Suggestions
+            </button>
+</div>
+<!-- KPI Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+<!-- Stat 1 -->
+<div class="bg-surface-light dark:bg-surface-dark p-6 rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:border-primary/50 transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined text-[24px]">payments</span>
+</div>
+<span class="flex items-center text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded text-xs font-bold">
+<span class="material-symbols-outlined text-[14px] mr-1">trending_up</span> 12%
+                    </span>
+</div>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium mb-1">Total Pipeline Value</p>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white">$4,250,000</h3>
+<div class="mt-4 h-1.5 w-full bg-background-light dark:bg-background-dark rounded-full overflow-hidden">
+<div class="h-full bg-blue-500 w-[75%] rounded-full"></div>
+</div>
+</div>
+<!-- Stat 2 -->
+<div class="bg-surface-light dark:bg-surface-dark p-6 rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:border-primary/50 transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400">
+<span class="material-symbols-outlined text-[24px]">verified</span>
+</div>
+<span class="flex items-center text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded text-xs font-bold">
+<span class="material-symbols-outlined text-[14px] mr-1">trending_up</span> 5%
+                    </span>
+</div>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium mb-1">Closed Won Revenue</p>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white">$1,120,000</h3>
+<div class="mt-4 h-1.5 w-full bg-background-light dark:bg-background-dark rounded-full overflow-hidden">
+<div class="h-full bg-indigo-500 w-[60%] rounded-full"></div>
+</div>
+</div>
+<!-- Stat 3 -->
+<div class="bg-surface-light dark:bg-surface-dark p-6 rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:border-primary/50 transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-purple-600 dark:text-purple-400">
+<span class="material-symbols-outlined text-[24px]">trophy</span>
+</div>
+<span class="flex items-center text-text-secondary-light dark:text-text-secondary-dark bg-background-light dark:bg-background-dark px-2 py-1 rounded text-xs font-bold">
+<span class="material-symbols-outlined text-[14px] mr-1">remove</span> 0%
+                    </span>
+</div>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium mb-1">Win Rate</p>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white">24.5%</h3>
+<div class="mt-4 h-1.5 w-full bg-background-light dark:bg-background-dark rounded-full overflow-hidden">
+<div class="h-full bg-purple-500 w-[24%] rounded-full"></div>
+</div>
+</div>
+<!-- Stat 4 -->
+<div class="bg-surface-light dark:bg-surface-dark p-6 rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:border-primary/50 transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg text-orange-600 dark:text-orange-400">
+<span class="material-symbols-outlined text-[24px]">speed</span>
+</div>
+<span class="flex items-center text-orange-500 bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded text-xs font-bold">
+<span class="material-symbols-outlined text-[14px] mr-1">trending_down</span> -2 Days
+                    </span>
+</div>
+<p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium mb-1">Avg Sales Cycle</p>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white">42 Days</h3>
+<div class="mt-4 h-1.5 w-full bg-background-light dark:bg-background-dark rounded-full overflow-hidden">
+<div class="h-full bg-orange-500 w-[42%] rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Main Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Revenue Trend Chart -->
+<div class="lg:col-span-2 bg-surface-light dark:bg-surface-dark p-6 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">monitoring</span> Revenue Trend
+                    </h3>
+<div class="flex items-center gap-2 text-xs font-medium">
+<span class="flex items-center gap-1 text-text-secondary-light dark:text-text-secondary-dark">
+<span class="size-2 rounded-full bg-primary"></span> Closed Won
+                        </span>
+<span class="flex items-center gap-1 text-text-secondary-light dark:text-text-secondary-dark ml-3">
+<span class="size-2 rounded-full bg-purple-500/30 border border-purple-500"></span> Pipeline
+                        </span>
+</div>
+</div>
+<!-- Mock Chart Area -->
+<div class="h-72 w-full flex items-end justify-between gap-2 md:gap-4 px-2 chart-bar-bg relative">
+<!-- Y Axis Labels -->
+<div class="absolute -left-0 top-0 bottom-0 flex flex-col justify-between text-xs text-text-secondary-light dark:text-text-secondary-dark">
+<span>$2M</span>
+<span>$1.5M</span>
+<span>$1M</span>
+<span>$500k</span>
+<span>0</span>
+</div>
+<!-- Bars -->
+<div class="flex-1 flex items-end justify-center gap-1 ml-8 h-full">
+<div class="w-full max-w-[40px] h-[30%] bg-purple-500/20 rounded-t-sm border-t border-x border-purple-500/50 relative group">
+<div class="absolute bottom-0 w-full h-[60%] bg-primary/90 rounded-t-sm"></div>
+<div class="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10 transition-opacity">$420k</div>
+</div>
+</div>
+<div class="flex-1 flex items-end justify-center gap-1 h-full">
+<div class="w-full max-w-[40px] h-[45%] bg-purple-500/20 rounded-t-sm border-t border-x border-purple-500/50 relative group">
+<div class="absolute bottom-0 w-full h-[55%] bg-primary/90 rounded-t-sm"></div>
+<div class="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10 transition-opacity">$650k</div>
+</div>
+</div>
+<div class="flex-1 flex items-end justify-center gap-1 h-full">
+<div class="w-full max-w-[40px] h-[40%] bg-purple-500/20 rounded-t-sm border-t border-x border-purple-500/50 relative group">
+<div class="absolute bottom-0 w-full h-[50%] bg-primary/90 rounded-t-sm"></div>
+</div>
+</div>
+<div class="flex-1 flex items-end justify-center gap-1 h-full">
+<div class="w-full max-w-[40px] h-[60%] bg-purple-500/20 rounded-t-sm border-t border-x border-purple-500/50 relative group">
+<div class="absolute bottom-0 w-full h-[70%] bg-primary/90 rounded-t-sm"></div>
+</div>
+</div>
+<div class="flex-1 flex items-end justify-center gap-1 h-full">
+<div class="w-full max-w-[40px] h-[55%] bg-purple-500/20 rounded-t-sm border-t border-x border-purple-500/50 relative group">
+<div class="absolute bottom-0 w-full h-[65%] bg-primary/90 rounded-t-sm"></div>
+</div>
+</div>
+<div class="flex-1 flex items-end justify-center gap-1 h-full">
+<div class="w-full max-w-[40px] h-[75%] bg-purple-500/20 rounded-t-sm border-t border-x border-purple-500/50 relative group">
+<div class="absolute bottom-0 w-full h-[50%] bg-primary/90 rounded-t-sm"></div>
+</div>
+</div>
+<div class="flex-1 flex items-end justify-center gap-1 h-full">
+<div class="w-full max-w-[40px] h-[85%] bg-purple-500/20 rounded-t-sm border-t border-x border-purple-500/50 relative group">
+<div class="absolute bottom-0 w-full h-[60%] bg-primary/90 rounded-t-sm"></div>
+<div class="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10 transition-opacity">$1.8M</div>
+</div>
+</div>
+</div>
+<!-- X Axis Labels -->
+<div class="flex justify-between pl-8 pr-2 mt-2 text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium uppercase">
+<span class="flex-1 text-center">Jan</span>
+<span class="flex-1 text-center">Feb</span>
+<span class="flex-1 text-center">Mar</span>
+<span class="flex-1 text-center">Apr</span>
+<span class="flex-1 text-center">May</span>
+<span class="flex-1 text-center">Jun</span>
+<span class="flex-1 text-center">Jul</span>
+</div>
+</div>
+<!-- Conversion Funnel -->
+<div class="bg-surface-light dark:bg-surface-dark p-6 rounded-xl border border-border-light dark:border-border-dark shadow-sm flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-purple-500">filter_list</span> Conversion Funnel
+                    </h3>
+<button class="text-text-secondary-light dark:text-text-secondary-dark hover:text-white">
+<span class="material-symbols-outlined text-[20px]">more_horiz</span>
+</button>
+</div>
+<div class="flex-1 flex flex-col justify-center gap-2">
+<!-- Stage 1 -->
+<div class="relative group">
+<div class="flex justify-between text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark mb-1 px-1">
+<span>Leads</span>
+<span>1,240</span>
+</div>
+<div class="h-10 w-full bg-background-light dark:bg-background-dark rounded overflow-hidden relative">
+<div class="absolute top-0 left-0 h-full bg-blue-500/90 w-full clip-path-funnel-1 flex items-center pl-3 text-white font-bold text-sm">100%</div>
+</div>
+</div>
+<div class="flex justify-center -my-1 relative z-10">
+<div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark px-2 py-0.5 rounded-full text-[10px] text-text-secondary-light dark:text-text-secondary-dark shadow-sm">
+<span class="text-red-500 font-bold">45%</span> Drop
+                        </div>
+</div>
+<!-- Stage 2 -->
+<div class="relative group">
+<div class="flex justify-between text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark mb-1 px-1">
+<span>Opportunities</span>
+<span>682</span>
+</div>
+<div class="h-10 w-full bg-background-light dark:bg-background-dark rounded overflow-hidden relative">
+<div class="absolute top-0 left-0 h-full bg-indigo-500/90 w-[55%] flex items-center pl-3 text-white font-bold text-sm">55%</div>
+</div>
+</div>
+<div class="flex justify-center -my-1 relative z-10">
+<div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark px-2 py-0.5 rounded-full text-[10px] text-text-secondary-light dark:text-text-secondary-dark shadow-sm">
+<span class="text-red-500 font-bold">60%</span> Drop
+                        </div>
+</div>
+<!-- Stage 3 -->
+<div class="relative group">
+<div class="flex justify-between text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark mb-1 px-1">
+<span>Negotiation</span>
+<span>272</span>
+</div>
+<div class="h-10 w-full bg-background-light dark:bg-background-dark rounded overflow-hidden relative">
+<div class="absolute top-0 left-0 h-full bg-purple-500/90 w-[22%] flex items-center pl-3 text-white font-bold text-sm">22%</div>
+</div>
+</div>
+<div class="flex justify-center -my-1 relative z-10">
+<div class="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark px-2 py-0.5 rounded-full text-[10px] text-text-secondary-light dark:text-text-secondary-dark shadow-sm">
+<span class="text-red-500 font-bold">20%</span> Drop
+                        </div>
+</div>
+<!-- Stage 4 -->
+<div class="relative group">
+<div class="flex justify-between text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark mb-1 px-1">
+<span>Closed Won</span>
+<span>217</span>
+</div>
+<div class="h-10 w-full bg-background-light dark:bg-background-dark rounded overflow-hidden relative">
+<div class="absolute top-0 left-0 h-full bg-emerald-500/90 w-[17.5%] flex items-center pl-3 text-white font-bold text-sm">17.5%</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Secondary Analysis Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Win/Loss Analysis -->
+<div class="bg-surface-light dark:bg-surface-dark p-6 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-orange-500">pie_chart</span> Loss Analysis
+                    </h3>
+</div>
+<div class="space-y-4">
+<!-- Reason 1 -->
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="text-slate-900 dark:text-white font-medium">Pricing</span>
+<span class="text-text-secondary-light dark:text-text-secondary-dark">42%</span>
+</div>
+<div class="h-2 w-full bg-background-light dark:bg-background-dark rounded-full">
+<div class="h-full bg-orange-500 w-[42%] rounded-full"></div>
+</div>
+</div>
+<!-- Reason 2 -->
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="text-slate-900 dark:text-white font-medium">Product Feature Gap</span>
+<span class="text-text-secondary-light dark:text-text-secondary-dark">28%</span>
+</div>
+<div class="h-2 w-full bg-background-light dark:bg-background-dark rounded-full">
+<div class="h-full bg-orange-400 w-[28%] rounded-full"></div>
+</div>
+</div>
+<!-- Reason 3 -->
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="text-slate-900 dark:text-white font-medium">Competitor (TechFlow)</span>
+<span class="text-text-secondary-light dark:text-text-secondary-dark">15%</span>
+</div>
+<div class="h-2 w-full bg-background-light dark:bg-background-dark rounded-full">
+<div class="h-full bg-orange-300 w-[15%] rounded-full"></div>
+</div>
+</div>
+<!-- Reason 4 -->
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="text-slate-900 dark:text-white font-medium">No Decision</span>
+<span class="text-text-secondary-light dark:text-text-secondary-dark">10%</span>
+</div>
+<div class="h-2 w-full bg-background-light dark:bg-background-dark rounded-full">
+<div class="h-full bg-orange-200 w-[10%] rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Rep Leaderboard -->
+<div class="bg-surface-light dark:bg-surface-dark p-6 rounded-xl border border-border-light dark:border-border-dark shadow-sm flex flex-col">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-yellow-500">leaderboard</span> Top Performers
+                    </h3>
+<a class="text-sm text-primary font-medium hover:underline" href="#">View All</a>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-border-light dark:border-border-dark text-xs uppercase text-text-secondary-light dark:text-text-secondary-dark">
+<th class="py-2 font-semibold">Rep</th>
+<th class="py-2 font-semibold text-right">Revenue</th>
+<th class="py-2 font-semibold text-right">Win %</th>
+<th class="py-2 font-semibold text-right hidden sm:table-cell">Pipeline</th>
+</tr>
+</thead>
+<tbody class="text-sm">
+<tr class="group hover:bg-background-light dark:hover:bg-background-dark transition-colors border-b border-border-light dark:border-border-dark last:border-0">
+<td class="py-3 flex items-center gap-3">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-8" data-alt="Avatar of Sarah Miller" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAKTzly2ky5FEr0Sr2ISczU9l4o8Xe2v72zyqe1H0ny4fc-fWYw0S2EQJ6wBtsZMqdXAqdwmJ2u5vDLySnmktNqumovLAOulm_5VICKzSiPwTHyM1mjXgwx8Pp_7ZCfEI0fra_m4zYrRwR_dfCdbEag-R3yYUrkdDTiivYrcjmweXTi6Ew-rFUFYMt1sy1O6fwTiUpRZkK3B1PcJATf4gFOgjLkwBEUlZ5GTbJ0mHN2mP1OQ-FCCCmADs_hDtd8_zRWfw6ktagivYU");'></div>
+<span class="font-medium text-slate-900 dark:text-white">Sarah Miller</span>
+</td>
+<td class="py-3 text-right font-bold">$420,500</td>
+<td class="py-3 text-right text-emerald-500">32%</td>
+<td class="py-3 text-right hidden sm:table-cell">
+<div class="w-24 ml-auto h-1.5 bg-background-light dark:bg-surface-dark rounded-full overflow-hidden border border-border-light dark:border-border-dark">
+<div class="h-full bg-primary w-[85%]"></div>
+</div>
+</td>
+</tr>
+<tr class="group hover:bg-background-light dark:hover:bg-background-dark transition-colors border-b border-border-light dark:border-border-dark last:border-0">
+<td class="py-3 flex items-center gap-3">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-8" data-alt="Avatar of James Chen" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCLFPjWnRE_Kh4_piprfkF6oGThzb4n3xklNEM2PGbx94JsXubYiUlfPtCa-3f_m1_y1Nn3wX6od4JIhExXGMTBUWslsyVeSeK0IgGwZ2RyrNeCZcY2dPe_93V8c2xLN8am0QhHUdNoBXQ7tqD6WZANBpZ8ja0JIo7_qxld42P2D31djz_L3jqNF1x_hjdz8gaQ-_L1MmE1AqVjat_DUS8iHThbzPtq6olMzrHyZtjF9DMk2yx47PpJsBXTr5PZNNzdsn8G2vMnvws");'></div>
+<span class="font-medium text-slate-900 dark:text-white">James Chen</span>
+</td>
+<td class="py-3 text-right font-bold">$385,200</td>
+<td class="py-3 text-right text-emerald-500">28%</td>
+<td class="py-3 text-right hidden sm:table-cell">
+<div class="w-24 ml-auto h-1.5 bg-background-light dark:bg-surface-dark rounded-full overflow-hidden border border-border-light dark:border-border-dark">
+<div class="h-full bg-primary w-[70%]"></div>
+</div>
+</td>
+</tr>
+<tr class="group hover:bg-background-light dark:hover:bg-background-dark transition-colors border-b border-border-light dark:border-border-dark last:border-0">
+<td class="py-3 flex items-center gap-3">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-8" data-alt="Avatar of Elena Rodriguez" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAiKBxLvF-LJSpp2JraPTq_WtLnAv0rQROBbKqWKwPm5uXX_uB52vHC6QQ5y2N9-Up_YsRChlI2W5vJ_opt7jD2qyR-Ei8TFgkkCd0JDcdDx9dX3flvXUvtFB3fc6F2ZvrlTYZx7oJGaTpHnnGJxP2siFeREqRo602LgCvI8TtS3jC2J0RMRxtXHYKlLRUCqzI7d25c0oIJgDgIOB8uMix37NpXJHE63BaBGhTq6RIEoZwduekxyudXYxWdNOzYS67V_Cou_ChJ-oI");'></div>
+<span class="font-medium text-slate-900 dark:text-white">Elena Rodriguez</span>
+</td>
+<td class="py-3 text-right font-bold">$310,000</td>
+<td class="py-3 text-right text-yellow-500">24%</td>
+<td class="py-3 text-right hidden sm:table-cell">
+<div class="w-24 ml-auto h-1.5 bg-background-light dark:bg-surface-dark rounded-full overflow-hidden border border-border-light dark:border-border-dark">
+<div class="h-full bg-primary w-[90%]"></div>
+</div>
+</td>
+</tr>
+<tr class="group hover:bg-background-light dark:hover:bg-background-dark transition-colors border-b border-border-light dark:border-border-dark last:border-0">
+<td class="py-3 flex items-center gap-3">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-8" data-alt="Avatar of Michael Ross" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAuEeinhV-5WmZt8QwuFMvPAErQhMeUZ7hRIkO7T53jSREOWYaEl4z1Lhh0zgxzhfACpQfrKJO2K_gHXCeyB7EVE7Abb15lPdbTwIsfPsfJiYATo2NanMEwPj2SLdgSOiOtyZgsL0Hz2E9WsCo2xmhEdA9klNcmZWacPBjsMZEYX-sOA2VZj51ar_68sV5tgFC4qPvlNkocy7743fO5Z2Tf87LrBBs6XDjy49kDgTm99qYHTRF641f5Ud3DT37KS4D18uPTgzCU4G4");'></div>
+<span class="font-medium text-slate-900 dark:text-white">Michael Ross</span>
+</td>
+<td class="py-3 text-right font-bold">$295,150</td>
+<td class="py-3 text-right text-red-400">18%</td>
+<td class="py-3 text-right hidden sm:table-cell">
+<div class="w-24 ml-auto h-1.5 bg-background-light dark:bg-surface-dark rounded-full overflow-hidden border border-border-light dark:border-border-dark">
+<div class="h-full bg-primary w-[50%]"></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</body></html>

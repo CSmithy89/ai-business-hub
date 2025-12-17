@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html class="light" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
@@ -19,9 +18,13 @@
         extend: {
           colors: {
             "primary": "#135bec",
-            "background-light": "#f6f6f8",
+            "background-light": "#FFFBF5", // Updated to HYVVE Primary Background
             "background-dark": "#101622",
             "destructive": "#D9534F",
+            "hyvve-kb": "#20B2AA", // KB Theme Color / Scribe
+            "hyvve-pm": "#FF9F43", // PM Theme Color
+            "hyvve-text-primary": "#1a1a2e",
+            "hyvve-text-secondary": "#6b7280",
           },
           fontFamily: {
             "display": ["Inter", "sans-serif"]
@@ -34,27 +37,22 @@
 </head>
 <body class="font-display bg-background-light dark:bg-background-dark">
 <div class="relative flex min-h-screen w-full items-center justify-center bg-gray-900/50 p-4" style="--checkbox-tick-svg: url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27rgb(255,255,255)%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e');">
-<!-- Task Detail Modal -->
 <div class="flex h-full max-h-[90vh] w-full max-w-7xl flex-col rounded-xl bg-white dark:bg-gray-900 shadow-2xl">
-<!-- Modal Header -->
 <header class="flex flex-shrink-0 items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6">
 <div class="flex items-center gap-4">
-<div class="text-gray-500 dark:text-gray-400 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0 size-10">
-<span class="material-symbols-outlined text-gray-500 dark:text-gray-400">bookmark</span>
+<div class="text-hyvve-pm dark:text-hyvve-pm flex items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-900/20 shrink-0 size-10">
+<span class="material-symbols-outlined text-hyvve-pm">bookmark</span>
 </div>
-<p class="text-lg font-semibold text-gray-900 dark:text-white">PM-05</p>
+<p class="text-lg font-semibold text-hyvve-pm">PM-05</p>
 <input class="text-xl font-bold text-gray-900 dark:text-white bg-transparent border-0 p-1 focus:ring-2 focus:ring-primary rounded-md -ml-1" type="text" value="Design new user onboarding flow"/>
 </div>
 <button class="flex size-8 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
 <span class="material-symbols-outlined text-gray-500 dark:text-gray-400">close</span>
 </button>
 </header>
-<!-- Modal Body -->
 <main class="flex-grow overflow-y-auto">
 <div class="grid grid-cols-12 gap-8 p-4 sm:p-6">
-<!-- Left Column -->
 <div class="col-span-12 lg:col-span-7 space-y-8">
-<!-- Mark Complete & Description -->
 <div class="flex items-start gap-4">
 <input class="mt-1.5 h-6 w-6 rounded border-gray-300 dark:border-gray-600 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary checked:bg-[image:--checkbox-tick-svg] focus:ring-0 focus:ring-offset-0 focus:border-primary" type="checkbox"/>
 <label class="flex flex-col min-w-40 flex-1">
@@ -62,7 +60,52 @@
 <textarea class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800/50 focus:border-primary min-h-36 placeholder:text-gray-400 dark:placeholder:text-gray-500 p-4 text-base font-normal leading-normal" placeholder="Add a more detailed description...">The new user onboarding flow should guide users through the initial setup process, including connecting their accounts, setting up their first project, and inviting team members. It needs to be intuitive, engaging, and provide clear value from the start.</textarea>
 </label>
 </div>
-<!-- Subtasks -->
+<details class="group rounded-xl border border-hyvve-kb/30 bg-hyvve-kb/5 overflow-hidden" open="">
+<summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-hyvve-kb/10 transition-colors list-none select-none">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-hyvve-kb">auto_awesome</span>
+<h4 class="font-bold text-gray-800 dark:text-white">Scribe Suggestions</h4>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/80 dark:bg-gray-800/80 border border-hyvve-kb/20 shadow-sm" title="Relevent KB Pages found">
+<span class="w-1.5 h-1.5 rounded-full bg-hyvve-kb"></span>
+<span class="text-xs font-semibold text-hyvve-kb">5 KB Contexts</span>
+</div>
+<span class="material-symbols-outlined text-gray-500 transition-transform group-open:rotate-180">expand_more</span>
+</div>
+</summary>
+<div class="px-4 pb-4 space-y-2">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+<button class="flex items-center gap-3 rounded-lg border border-hyvve-kb/20 bg-white dark:bg-gray-800 p-3 hover:border-hyvve-kb hover:shadow-sm transition-all text-left">
+<div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-hyvve-kb/10 text-hyvve-kb">
+<span class="material-symbols-outlined text-lg">description</span>
+</div>
+<div class="flex-1 overflow-hidden">
+<p class="truncate text-sm font-semibold text-gray-900 dark:text-white">Generate Task Documentation</p>
+<p class="truncate text-xs text-gray-500">Draft SOP from description</p>
+</div>
+</button>
+<button class="flex items-center gap-3 rounded-lg border border-hyvve-kb/20 bg-white dark:bg-gray-800 p-3 hover:border-hyvve-kb hover:shadow-sm transition-all text-left">
+<div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-hyvve-kb/10 text-hyvve-kb">
+<span class="material-symbols-outlined text-lg">search</span>
+</div>
+<div class="flex-1 overflow-hidden">
+<p class="truncate text-sm font-semibold text-gray-900 dark:text-white">Find Related KB Content</p>
+<p class="truncate text-xs text-gray-500">Search similar workflows</p>
+</div>
+</button>
+<button class="flex items-center gap-3 rounded-lg border border-hyvve-kb/20 bg-white dark:bg-gray-800 p-3 hover:border-hyvve-kb hover:shadow-sm transition-all text-left col-span-1 sm:col-span-2">
+<div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-hyvve-kb/10 text-hyvve-kb">
+<span class="material-symbols-outlined text-lg">edit_note</span>
+</div>
+<div class="flex-1 overflow-hidden">
+<p class="truncate text-sm font-semibold text-gray-900 dark:text-white">Create Implementation Notes</p>
+<p class="truncate text-xs text-gray-500">Draft technical notes based on subtasks</p>
+</div>
+</button>
+</div>
+</div>
+</details>
 <div>
 <h3 class="text-gray-800 dark:text-gray-200 text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Subtasks</h3>
 <div class="px-4">
@@ -84,7 +127,6 @@
 </div>
 </div>
 </div>
-<!-- Attachments -->
 <div>
 <div class="flex items-center justify-between px-4 pb-2 pt-4">
 <h3 class="text-gray-800 dark:text-gray-200 text-lg font-bold leading-tight tracking-[-0.015em]">Attachments</h3>
@@ -121,9 +163,7 @@
 </div>
 </div>
 </div>
-<!-- Right Column -->
 <div class="col-span-12 lg:col-span-5 space-y-6">
-<!-- Properties -->
 <div class="space-y-4 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
 <div class="grid grid-cols-2 gap-4">
 <div class="flex flex-col gap-1">
@@ -151,6 +191,27 @@
 <span class="text-sm font-medium text-gray-800 dark:text-gray-200">Jane Doe</span>
 </button>
 </div>
+<div class="flex flex-col gap-1 pt-1">
+<label class="text-sm font-medium text-gray-500 dark:text-gray-400">AI Assist Routing</label>
+<div class="flex items-center gap-4 mt-1">
+<label class="flex items-center gap-2 cursor-pointer group">
+<div class="relative flex items-center">
+<input checked="" class="peer sr-only" name="ai_assist" type="radio"/>
+<div class="h-4 w-4 rounded-full border border-gray-300 bg-white peer-checked:border-hyvve-kb peer-checked:bg-hyvve-kb transition-all"></div>
+<div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-white opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+</div>
+<span class="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-hyvve-kb transition-colors">Auto</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer group">
+<div class="relative flex items-center">
+<input class="peer sr-only" name="ai_assist" type="radio"/>
+<div class="h-4 w-4 rounded-full border border-gray-300 bg-white peer-checked:border-hyvve-kb peer-checked:bg-hyvve-kb transition-all"></div>
+<div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-white opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+</div>
+<span class="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-hyvve-kb transition-colors">Manual</span>
+</label>
+</div>
+</div>
 <div class="flex flex-col gap-1">
 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Priority</label>
 <button class="flex items-center gap-2 rounded-md bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-left w-fit">
@@ -175,11 +236,46 @@
 </div>
 </div>
 </div>
-<!-- AI Suggestions -->
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900 shadow-sm">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-hyvve-kb">school</span>
+<h3 class="font-bold text-gray-900 dark:text-white text-sm">KB Integration</h3>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Linked Pages</span>
+<button class="flex items-center gap-1 text-xs font-semibold text-hyvve-kb hover:underline">
+<span class="material-symbols-outlined text-sm">add</span> Link Page
+                  </button>
+</div>
+<div class="space-y-2">
+<div class="flex items-center gap-2 group cursor-pointer p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-gray-400">article</span>
+<span class="flex-1 text-sm font-medium text-gray-800 dark:text-gray-200 group-hover:text-hyvve-kb truncate">User Onboarding V2</span>
+<span class="material-symbols-outlined text-hyvve-kb text-base" title="Verified Page">verified</span>
+</div>
+<div class="flex items-center gap-2 group cursor-pointer p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-gray-400">article</span>
+<span class="flex-1 text-sm font-medium text-gray-800 dark:text-gray-200 group-hover:text-hyvve-kb truncate">SSO Implementation Guide</span>
+<span class="material-symbols-outlined text-hyvve-kb text-base" title="Verified Page">verified</span>
+</div>
+</div>
+</div>
+<div class="space-y-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+<span class="text-xs font-bold text-gray-500 uppercase tracking-wider">References</span>
+<div class="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+<div class="flex items-center gap-2 mb-1.5">
+<span class="material-symbols-outlined text-gray-400 text-sm">tag</span>
+<span class="text-xs font-bold text-gray-700 dark:text-gray-300">Engineering Handbook</span>
+</div>
+<p class="text-xs text-gray-500 leading-relaxed italic">"...protocols must follow the standard <span class="text-hyvve-kb bg-hyvve-kb/10 px-1 rounded font-medium">PM-05</span> security guidelines..."</p>
+</div>
+</div>
+</div>
 <div class="rounded-xl border border-purple-200 dark:border-purple-900 bg-purple-50 dark:bg-purple-900/20 p-4 space-y-3">
 <div class="flex items-center gap-2">
 <span class="material-symbols-outlined text-purple-600 dark:text-purple-400">auto_awesome</span>
-<h4 class="font-bold text-purple-800 dark:text-purple-300">AI Suggestions</h4>
+<h4 class="font-bold text-purple-800 dark:text-purple-300">Next Actions</h4>
 </div>
 <p class="text-sm text-purple-700 dark:text-purple-300">Here are some actions to move this task forward:</p>
 <div class="space-y-2">
@@ -187,7 +283,6 @@
 <button class="w-full text-left text-sm text-primary font-medium p-2 rounded-md hover:bg-primary/10">Break into smaller subtasks</button>
 </div>
 </div>
-<!-- Comments & Activity -->
 <div>
 <div class="border-b border-gray-200 dark:border-gray-700">
 <nav aria-label="Tabs" class="-mb-px flex gap-6">
@@ -196,7 +291,6 @@
 </nav>
 </div>
 <div class="pt-4 space-y-4">
-<!-- Comment Input -->
 <div class="flex items-start gap-3">
 <img class="w-8 h-8 rounded-full mt-1" data-alt="Avatar of Jane Doe" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPwIlG9q_63DzDi2s7tZaAywkIQaHNNBlRpovc-9OGL4LwcPp4KLHht_uxGeN7DOMZgavG1OR6R838GJoGdpNnJomezTgZIbMqpqm2W3M3em13sHw0WdMaMGNwG3oC5RkyNb2-2cZbj94NfLmNYaLons7ZslK05VJVVYOcuAtSKqnlu-Qwk5adt2xlOu8URevujUod7efouUHgN_XNuvsdOQKZP0on8XV7bfYCbhqDWYUVcj74jUBXfHz8zcku2ZqMSKS9H25DhN0"/>
 <div class="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
@@ -210,7 +304,6 @@
 </div>
 </div>
 </div>
-<!-- Comment Thread -->
 <div class="flex items-start gap-3">
 <img class="w-8 h-8 rounded-full" data-alt="Avatar of John Smith" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_4tl8MyiSUk-p_HPwOLlDJGO0KlkFg_EfBDEqhW0ItlgttY2fUSjxtltrz2Nq62coSA7WAA5N9iz0dvRlVbAUufxZAQkivtZzv4jxQqNdNwbDyHhqP9tKKWtRUlpA5kGKBGoHJnBHp50Z92v6MUgNbkHvXHVheSGTYt10xy8PwPU--ry5gtfSWwkzLpLdDs2OOje_g2fkNulVepHvf9NtFYpw8FxZtdlg-P0_BNCfnFXpUWqwZtLDfdqtL1-EDyzK3zqo6QbytGc"/>
 <div class="flex-1">
@@ -228,7 +321,6 @@
 </div>
 </div>
 </main>
-<!-- Modal Footer -->
 <footer class="flex flex-shrink-0 items-center justify-between border-t border-gray-200 dark:border-gray-700 p-4">
 <button class="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10">
 <span class="material-symbols-outlined text-base">delete</span>

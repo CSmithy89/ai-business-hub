@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RT-03 Conflict Resolution</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;family=Noto+Sans:wght@400;500;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2b90d",
+                        "background-light": "#f8f8f5",
+                        "background-dark": "#221e10",
+                        "card-dark": "#181611",
+                        "border-dark": "#393528",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased overflow-hidden h-screen flex flex-col">
+<!-- Sticky Notification Banner -->
+<!-- This sits above the editor content but below the main nav in z-index logic if needed, 
+         here we place it at the top of the main view area -->
+<div class="w-full bg-primary/10 border-l-4 border-primary px-6 py-3 flex items-center justify-between shadow-lg relative z-40 backdrop-blur-sm">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">warning</span>
+<div>
+<p class="text-sm font-bold text-white">Synchronization Conflict Detected</p>
+<p class="text-xs text-white/70">Changes on the server conflict with your local edits. Resolve to continue syncing.</p>
+</div>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-background-dark text-sm font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+<span>Resolve</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+<!-- Main App Container (Background Context) -->
+<div class="flex flex-1 relative overflow-hidden">
+<!-- Sidebar (Visual Context) -->
+<aside class="w-64 bg-card-dark border-r border-border-dark hidden md:flex flex-col">
+<div class="p-4 border-b border-border-dark flex items-center gap-2">
+<span class="material-symbols-outlined text-white/50">folder_open</span>
+<span class="font-bold text-sm">Project Files</span>
+</div>
+<div class="flex-1 overflow-y-auto p-2">
+<div class="flex items-center gap-2 p-2 rounded text-white/60 hover:bg-white/5 cursor-pointer text-sm">
+<span class="material-symbols-outlined text-[18px]">description</span>
+<span>README.md</span>
+</div>
+<div class="flex items-center gap-2 p-2 rounded bg-primary/10 text-primary cursor-pointer text-sm border-l-2 border-primary">
+<span class="material-symbols-outlined text-[18px]">description</span>
+<span>marketing_strategy.json</span>
+<span class="ml-auto text-xs bg-primary text-background-dark px-1.5 rounded font-bold">!</span>
+</div>
+<div class="flex items-center gap-2 p-2 rounded text-white/60 hover:bg-white/5 cursor-pointer text-sm">
+<span class="material-symbols-outlined text-[18px]">description</span>
+<span>budget_Q4.xlsx</span>
+</div>
+</div>
+</aside>
+<!-- Main Editor Area (Visual Context - Blurry background for Modal focus) -->
+<main class="flex-1 bg-background-dark relative flex flex-col">
+<!-- Header -->
+<header class="h-14 border-b border-border-dark flex items-center justify-between px-6 bg-card-dark">
+<div class="flex items-center gap-2 text-sm text-white/50">
+<span>marketing_strategy.json</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-white">Editor</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-8 w-8 rounded-full bg-cover bg-center" data-alt="User Avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB1_NoNijss8I63j0vqumvTHDXHqiOVCfhVJBQllsdsclZSfFDWKw7lsgCeT5TjI6jHcH5CIhUO3T2ysaghjIBO8qA-aZLqNvDBVg4Km_jeLjckgmjAW4Q7x-KB40dlZQsHQ7ZxQqInDU2i03jHUeWOk_eYiNXNVCHOPqR3kM3rc-HwUcu-6eEuP3ZnIq9W9k0B7rKEw6RqLKV5p18mBgaJThASGrVtBRRJGg2T2pQLFsFu2CA94DT71nQJCyqZKuHshFGepJvzy68');"></div>
+</div>
+</header>
+<!-- Code Area (Blurred) -->
+<div class="flex-1 p-8 font-mono text-sm text-white/40 overflow-hidden relative">
+<div class="absolute inset-0 bg-background-dark/50 z-10"></div> <!-- Dimmer -->
+<p>1  {</p>
+<p>2    "project_name": "Q4 Expansion",</p>
+<p>3    "status": "active",</p>
+<p>4    "department": "Marketing",</p>
+<p>5    "budget_allocation": {</p>
+<p>6      "q1": 12000,</p>
+<p>7      "q2": 15000,</p>
+<p class="bg-red-500/10 text-red-400/50">8      "q3": 20000,</p>
+<p class="bg-green-500/10 text-green-400/50">9      "q3": 25000,</p>
+<p>10   },</p>
+<p>11   "team_leads": ["Sarah", "Mike"],</p>
+<p>12   "priority": "High"</p>
+<p>13 }</p>
+</div>
+</main>
+</div>
+<!-- RESOLUTION MODAL OVERLAY -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+<!-- Backdrop -->
+<div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+<!-- Modal Content -->
+<div class="relative w-full max-w-[900px] max-h-[90vh] flex flex-col bg-[#181611] rounded-xl border border-[#393528] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+<!-- Modal Header -->
+<div class="px-6 py-4 border-b border-[#393528] bg-[#1e1c15] flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-xl font-bold text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">merge_type</span>
+                            Conflict Resolution: marketing_strategy.json
+                        </h2>
+<p class="text-white/50 text-sm mt-1">Manual intervention required for sync.</p>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="text-xs font-mono text-primary font-bold uppercase tracking-wider">Conflict 1 of 2</span>
+<div class="flex gap-1">
+<button class="p-1 rounded hover:bg-white/10 text-white/50 hover:text-white disabled:opacity-30" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="p-1 rounded hover:bg-white/10 text-white/50 hover:text-white">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="w-full h-1 bg-[#393528] rounded-full overflow-hidden">
+<div class="h-full bg-primary w-1/2"></div>
+</div>
+</div>
+<!-- Modal Body (Scrollable) -->
+<div class="flex-1 overflow-y-auto custom-scrollbar">
+<div class="p-6 flex flex-col gap-8">
+<!-- Side-by-Side View -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Left: Local -->
+<div class="flex flex-col gap-3 rounded-lg border border-[#393528] bg-[#221e10] p-4 relative group">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary/50 rounded-l-lg"></div>
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-white/70">person</span>
+<span class="text-sm font-bold text-white">Your Version (Local)</span>
+</div>
+<span class="text-xs text-white/40">Edited just now</span>
+</div>
+<div class="font-mono text-sm text-white/80 bg-[#181611] p-3 rounded border border-[#393528] overflow-x-auto">
+<div class="opacity-50">"q2": 15000,</div>
+<div class="bg-primary/20 text-primary -mx-3 px-3 border-l-2 border-primary">"q3": 20000,</div>
+<div class="opacity-50">"q4": 18000</div>
+</div>
+</div>
+<!-- Right: Remote -->
+<div class="flex flex-col gap-3 rounded-lg border border-[#393528] bg-[#221e10] p-4 relative">
+<div class="absolute top-0 left-0 w-1 h-full bg-blue-500/50 rounded-l-lg"></div>
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-white/70">cloud_download</span>
+<span class="text-sm font-bold text-white">Server Version</span>
+</div>
+<div class="flex items-center gap-1.5">
+<div class="w-4 h-4 rounded-full bg-cover" data-alt="Collaborator Avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAgX8VWcpwbpOSR5kpKN5x7sRKPHbsCjL51cgPZMc9O6G4mYyjFFYU2PT-kAEVsM4ZsQszrQc7KR7HDllpIZezNjFW7-uTA2uB0y93gM5_pnAKUDHRn2SynXnENstbR68eNnA729iDXRLVJAUp3JUbtfpomgI9tYwxobJd1xJuquaUCz7z1X3H6oZukHAsjKpqpyvj1ZGszz6RU5ij-IOxaZShW51X_l_Cmmeku9bRTqg4eKhb_hQvLtB7SLkq8tDeLCIGb6-agAII');"></div>
+<span class="text-xs text-white/40">@sarah_marketing • 5m ago</span>
+</div>
+</div>
+<div class="font-mono text-sm text-white/80 bg-[#181611] p-3 rounded border border-[#393528] overflow-x-auto">
+<div class="opacity-50">"q2": 15000,</div>
+<div class="bg-blue-500/20 text-blue-300 -mx-3 px-3 border-l-2 border-blue-500">"q3": 25000,</div>
+<div class="opacity-50">"q4": 18000</div>
+</div>
+</div>
+</div>
+<!-- Diff View & Actions -->
+<div class="flex flex-col gap-4">
+<h3 class="text-sm font-bold text-white/70 uppercase tracking-wider">Resolution Options</h3>
+<!-- Radio Group -->
+<div class="flex flex-col gap-3">
+<!-- Option 1: Keep Server -->
+<label class="flex items-start gap-3 p-4 rounded-lg border border-[#393528] bg-[#221e10] cursor-pointer hover:border-white/20 transition-colors">
+<input checked="" class="mt-1 w-4 h-4 text-primary bg-[#181611] border-[#393528] focus:ring-primary focus:ring-offset-[#181611]" name="resolution" type="radio"/>
+<div class="flex flex-col gap-1">
+<span class="text-white text-sm font-bold">Keep Server Version (Recommended)</span>
+<span class="text-white/50 text-xs">Discards your local changes and accepts Sarah's update.</span>
+<!-- Preview diff inline -->
+<div class="mt-2 text-xs font-mono bg-[#181611] p-2 rounded border border-[#393528] text-blue-300">
+                                        "q3": 25000
+                                    </div>
+</div>
+</label>
+<!-- Option 2: Keep Local -->
+<label class="flex items-start gap-3 p-4 rounded-lg border border-[#393528] bg-[#221e10] cursor-pointer hover:border-white/20 transition-colors">
+<input class="mt-1 w-4 h-4 text-primary bg-[#181611] border-[#393528] focus:ring-primary focus:ring-offset-[#181611]" name="resolution" type="radio"/>
+<div class="flex flex-col gap-1">
+<span class="text-white text-sm font-bold">Keep Your Version</span>
+<span class="text-white/50 text-xs">Overwrites server data with your local edits.</span>
+</div>
+</label>
+<!-- Option 3: Manual Merge -->
+<label class="flex items-start gap-3 p-4 rounded-lg border border-[#393528] bg-[#221e10] cursor-pointer hover:border-white/20 transition-colors group">
+<input class="mt-1 w-4 h-4 text-primary bg-[#181611] border-[#393528] focus:ring-primary focus:ring-offset-[#181611]" name="resolution" type="radio"/>
+<div class="flex flex-col gap-1 w-full">
+<span class="text-white text-sm font-bold">Merge Manually</span>
+<span class="text-white/50 text-xs">Open the merge editor to combine changes line-by-line.</span>
+<!-- Conditional Editor (Visual representation of what it looks like expanded) -->
+<div class="hidden group-has-[:checked]:block mt-3 w-full animate-in slide-in-from-top-2 duration-200">
+<div class="w-full bg-[#110f0b] border border-primary/50 rounded p-2 focus-within:ring-2 ring-primary/50">
+<textarea class="w-full bg-transparent border-0 text-white font-mono text-sm focus:ring-0 p-0 resize-y min-h-[80px]" spellcheck="false">"q3": 25000, // Merged value</textarea>
+</div>
+</div>
+</div>
+</label>
+</div>
+</div>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="p-6 border-t border-[#393528] bg-[#1e1c15] flex justify-between items-center">
+<div class="text-xs text-white/40 font-medium">
+                    Changes will be auto-saved after resolution.
+                </div>
+<div class="flex gap-3">
+<button class="px-5 py-2.5 rounded-lg border border-[#393528] bg-[#221e10] text-white text-sm font-bold hover:bg-[#2a261a] transition-colors">
+                        Cancel
+                    </button>
+<button class="px-6 py-2.5 rounded-lg bg-primary text-background-dark text-sm font-bold hover:bg-primary/90 transition-colors shadow-[0_0_15px_-3px_rgba(242,185,13,0.3)]">
+                        Confirm &amp; Sync
+                    </button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

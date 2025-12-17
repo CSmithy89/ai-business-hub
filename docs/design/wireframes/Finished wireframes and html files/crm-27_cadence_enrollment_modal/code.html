@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Cadence Enrollment Modal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-gray-300 dark:bg-gray-900 font-display flex items-center justify-center min-h-screen p-4 overflow-hidden">
+<!-- Modal Backdrop -->
+<div aria-hidden="true" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"></div>
+<!-- Modal Container -->
+<div class="relative z-50 w-full max-w-[1100px] bg-white dark:bg-background-dark rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden group/design-root">
+<!-- Modal Header -->
+<div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-[#111318] shrink-0">
+<div>
+<h2 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Cadence Enrollment</h2>
+<p class="text-sm text-gray-500 dark:text-[#9da6b9]">Setup outreach sequence for selected contacts</p>
+</div>
+<!-- Tabs Implementation -->
+<div class="flex bg-background-light dark:bg-[#1a1d26] p-1 rounded-lg">
+<button class="px-4 py-1.5 text-sm font-bold text-primary bg-white dark:bg-background-dark shadow-sm rounded-md transition-all">Single Enrollment</button>
+<button class="px-4 py-1.5 text-sm font-medium text-gray-500 dark:text-[#9da6b9] hover:text-gray-700 dark:hover:text-gray-300 transition-all">Bulk View (12)</button>
+</div>
+<button class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Main Content Area -->
+<div class="flex flex-col lg:flex-row h-full overflow-hidden bg-background-light dark:bg-background-dark">
+<!-- Left Column: Configuration (Scrollable) -->
+<div class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
+<!-- Sequence Selector -->
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<label class="text-sm font-bold text-gray-900 dark:text-white">Select Sequence</label>
+<a class="text-xs font-medium text-primary hover:underline" href="#">View all sequences</a>
+</div>
+<div class="relative group">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-outlined text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#1a1d26] border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Search by name or tag..." type="text"/>
+</div>
+<!-- Sequence List -->
+<div class="flex flex-col gap-3 mt-2">
+<!-- Active Item -->
+<div class="p-4 rounded-lg border-2 border-primary bg-primary/5 cursor-pointer flex justify-between items-center relative shadow-sm transition-all">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">rocket_launch</span>
+<p class="font-bold text-gray-900 dark:text-white text-sm">Q3 Outbound C-Suite</p>
+</div>
+<div class="flex gap-2 items-center mt-1">
+<span class="text-[11px] uppercase tracking-wide font-bold text-gray-400">Stats:</span>
+<span class="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded font-medium">42% Open</span>
+<span class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded font-medium">12% Reply</span>
+<span class="text-xs text-gray-500 dark:text-gray-400 border-l border-gray-300 dark:border-gray-700 pl-2 ml-1">14 Days • 8 Steps</span>
+</div>
+</div>
+<div class="h-5 w-5 rounded-full border-[5px] border-primary bg-white dark:bg-background-dark"></div>
+</div>
+<!-- Inactive Item -->
+<div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1d26] hover:border-gray-300 dark:hover:border-gray-600 cursor-pointer flex justify-between items-center shadow-sm transition-all opacity-80 hover:opacity-100">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-gray-400 text-[20px]">mark_email_read</span>
+<p class="font-medium text-gray-700 dark:text-gray-200 text-sm">Webinar Follow-up Warm</p>
+</div>
+<div class="flex gap-2 items-center mt-1">
+<span class="text-[11px] uppercase tracking-wide font-bold text-gray-400">Stats:</span>
+<span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded font-medium">65% Open</span>
+<span class="text-xs text-gray-500 dark:text-gray-400 border-l border-gray-300 dark:border-gray-700 pl-2 ml-1">7 Days • 4 Steps</span>
+</div>
+</div>
+<div class="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600"></div>
+</div>
+</div>
+</div>
+<!-- Conflict Warning Box (EmptyState / RadioList hybrid) -->
+<div class="p-5 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-900/10 dark:border-orange-900/30 flex gap-4 animate-in fade-in slide-in-from-bottom-2">
+<div class="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg h-fit">
+<span class="material-symbols-outlined text-orange-600 dark:text-orange-500">warning</span>
+</div>
+<div class="flex-1 space-y-4">
+<div>
+<p class="text-sm font-bold text-gray-900 dark:text-white">Active Sequence Conflict</p>
+<p class="text-sm text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
+                            John Doe is currently active in <strong class="text-gray-900 dark:text-white">'Q1 Nurture'</strong>. Enrolling will create a conflict.
+                        </p>
+</div>
+<!-- Conflict Resolution Options -->
+<div class="grid gap-2">
+<label class="relative flex items-center p-3 rounded border border-orange-200 dark:border-orange-900/30 bg-white dark:bg-[#1a1d26] cursor-pointer hover:bg-orange-50/50 dark:hover:bg-orange-900/20 transition-colors">
+<input class="peer h-4 w-4 text-primary border-gray-300 focus:ring-primary" name="conflict_resolution" type="radio"/>
+<span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-200">Finish current then start new</span>
+</label>
+<label class="relative flex items-center p-3 rounded border-2 border-primary bg-primary/5 cursor-pointer">
+<input checked="" class="peer h-4 w-4 text-primary border-gray-300 focus:ring-primary" name="conflict_resolution" type="radio"/>
+<span class="ml-3 text-sm font-bold text-gray-900 dark:text-white">Stop current &amp; start new immediately</span>
+<span class="ml-auto text-xs font-bold text-primary uppercase tracking-wider">Recommended</span>
+</label>
+<label class="relative flex items-center p-3 rounded border border-orange-200 dark:border-orange-900/30 bg-white dark:bg-[#1a1d26] cursor-pointer hover:bg-orange-50/50 dark:hover:bg-orange-900/20 transition-colors">
+<input class="peer h-4 w-4 text-primary border-gray-300 focus:ring-primary" name="conflict_resolution" type="radio"/>
+<span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-200">Run both in parallel</span>
+</label>
+</div>
+</div>
+</div>
+<!-- Enrollment Settings Form -->
+<div class="pt-2">
+<h3 class="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-gray-400 text-[18px]">tune</span>
+                    Enrollment Settings
+                </h3>
+<div class="grid grid-cols-2 gap-4 mb-4">
+<div class="space-y-1.5">
+<label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Start Date</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-outlined text-[18px]">calendar_today</span>
+<input class="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#1a1d26] border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow shadow-sm" type="text" value="Today, Oct 24"/>
+</div>
+</div>
+<div class="space-y-1.5">
+<label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Start Time</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-outlined text-[18px]">schedule</span>
+<input class="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#1a1d26] border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow shadow-sm" type="text" value="10:00 AM"/>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-[#1a1d26] rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800">
+<div class="flex items-center justify-between p-3">
+<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Skip Weekends</span>
+<button class="w-10 h-5 bg-primary rounded-full relative transition-colors focus:outline-none cursor-pointer">
+<span class="translate-x-5 inline-block w-3.5 h-3.5 transform bg-white rounded-full transition-transform mt-0.5 ml-0.5 shadow-sm"></span>
+</button>
+</div>
+<div class="flex items-center justify-between p-3">
+<div class="flex flex-col">
+<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Pause on Reply</span>
+<span class="text-xs text-gray-400">Stops sequence if contact responds</span>
+</div>
+<button class="w-10 h-5 bg-primary rounded-full relative transition-colors focus:outline-none cursor-pointer">
+<span class="translate-x-5 inline-block w-3.5 h-3.5 transform bg-white rounded-full transition-transform mt-0.5 ml-0.5 shadow-sm"></span>
+</button>
+</div>
+<div class="flex items-center justify-between p-3">
+<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Daily Touch Limit</span>
+<div class="flex items-center border border-gray-200 dark:border-gray-700 rounded-md bg-background-light dark:bg-background-dark">
+<button class="px-2 text-gray-500 hover:text-primary">-</button>
+<input class="w-8 text-center bg-transparent text-sm border-none focus:ring-0 text-gray-900 dark:text-white p-1" type="text" value="50"/>
+<button class="px-2 text-gray-500 hover:text-primary">+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Context & Preview (Fixed width on desktop) -->
+<div class="w-full lg:w-[400px] bg-white dark:bg-[#151921] flex flex-col border-l border-gray-200 dark:border-gray-800 h-full">
+<!-- Profile Header -->
+<div class="p-6 border-b border-gray-100 dark:border-gray-800 bg-background-light/50 dark:bg-[#151921]">
+<div class="flex gap-4 items-center">
+<div class="h-14 w-14 rounded-full bg-cover bg-center shrink-0 border-2 border-white dark:border-gray-700 shadow-md ring-2 ring-gray-100 dark:ring-gray-800" data-alt="Profile picture of John Doe" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDuvmCL_yzQW2JaUhObLOrdqrAUMptEcGi6pOOz86oy0lbMCL_wYYwyI0aCiDrPbEJ9IKGma5ShY4ggrMF7KhJHg4FBKuJ54zupy7ovM43z5I5Ug9hwZhBUYqS2ch6JBuUTwkQDBt12ocr1D932VfQWPdVn8OGCC4KtpEEa-q3V-cdlaz4cXNzVdSaHpjT7fW4VgGGB4GRHeLOaZCj_dstZfxQEKgemUlCocXeb17IGds00f2hzA4W5NapVwSJ7UMrx7L2tjthxYK8');"></div>
+<div>
+<h3 class="text-lg font-bold text-gray-900 dark:text-white leading-tight">John Doe</h3>
+<div class="flex items-center text-xs text-gray-500 dark:text-[#9da6b9] mt-0.5">
+<span class="material-symbols-outlined text-[14px] mr-1">business</span>
+                            Acme Corp • VP Sales
+                        </div>
+<div class="flex gap-2 mt-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800">Tier 1</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">Score: 85</span>
+</div>
+</div>
+</div>
+</div>
+<!-- AI Insight Card -->
+<div class="p-4">
+<div class="bg-gradient-to-br from-primary/5 via-primary/10 to-transparent p-5 rounded-xl border border-primary/20 relative overflow-hidden shadow-sm group hover:shadow-md transition-shadow">
+<div class="absolute -top-6 -right-6 p-4 bg-primary/10 rounded-full blur-xl w-24 h-24"></div>
+<div class="flex items-center gap-2 mb-3">
+<div class="bg-primary/20 p-1.5 rounded-lg text-primary">
+<span class="material-symbols-outlined text-[18px]">smart_toy</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-widest text-primary">Cadence Agent</span>
+</div>
+<p class="text-sm text-gray-800 dark:text-gray-200 font-medium leading-relaxed">
+                        Suggestion: Start sequence on <span class="text-primary font-bold">Tuesday at 10:00 AM</span>.
+                        <span class="block text-xs text-gray-500 dark:text-gray-400 mt-1 font-normal">Based on 12 prior interactions, this time slot has a 15% higher open rate.</span>
+</p>
+<button class="mt-4 w-full py-1.5 text-xs font-bold text-white bg-primary hover:bg-blue-600 rounded flex items-center justify-center gap-1 transition-colors shadow-sm">
+                        Apply Smart Time <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+</button>
+</div>
+</div>
+<!-- Timeline Preview -->
+<div class="flex-1 overflow-y-auto px-6 pb-6 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
+<div class="flex justify-between items-end mb-4 border-b border-gray-100 dark:border-gray-800 pb-2">
+<h4 class="text-xs font-bold text-gray-500 dark:text-[#9da6b9] uppercase tracking-wider">Sequence Preview</h4>
+<span class="text-[10px] text-gray-400">Est. duration: 14 days</span>
+</div>
+<div class="relative pl-4 border-l-2 border-dashed border-gray-200 dark:border-gray-700 space-y-6">
+<!-- Step 1 -->
+<div class="relative group">
+<div class="absolute -left-[21px] top-1 h-3 w-3 rounded-full bg-primary ring-4 ring-white dark:ring-[#151921] shadow-sm"></div>
+<div class="flex justify-between items-start">
+<div>
+<p class="text-sm font-bold text-gray-900 dark:text-white">Day 1: Manual Email</p>
+<p class="text-xs text-gray-500 mt-0.5">Subject: Introduction to [Company]...</p>
+</div>
+<span class="text-[10px] font-medium text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">Oct 24</span>
+</div>
+</div>
+<!-- Wait Period -->
+<div class="pl-4 py-1">
+<span class="text-[10px] text-gray-400 flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">hourglass_empty</span> Wait 2 days
+                        </span>
+</div>
+<!-- Step 2 -->
+<div class="relative group">
+<div class="absolute -left-[21px] top-1 h-3 w-3 rounded-full bg-gray-300 dark:bg-gray-600 ring-4 ring-white dark:ring-[#151921]"></div>
+<div class="flex justify-between items-start">
+<div>
+<p class="text-sm font-bold text-gray-600 dark:text-gray-300">Day 3: LinkedIn Connect</p>
+<p class="text-xs text-gray-400 mt-0.5">Generic connection request</p>
+</div>
+<span class="text-[10px] font-medium text-gray-400 bg-gray-50 dark:bg-gray-800/50 px-1.5 py-0.5 rounded">Oct 26</span>
+</div>
+</div>
+<!-- Wait Period -->
+<div class="pl-4 py-1">
+<span class="text-[10px] text-gray-400 flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">hourglass_empty</span> Wait 2 days
+                        </span>
+</div>
+<!-- Step 3 -->
+<div class="relative group">
+<div class="absolute -left-[21px] top-1 h-3 w-3 rounded-full bg-gray-300 dark:bg-gray-600 ring-4 ring-white dark:ring-[#151921]"></div>
+<div class="flex justify-between items-start">
+<div>
+<p class="text-sm font-bold text-gray-600 dark:text-gray-300">Day 5: Call Task</p>
+<p class="text-xs text-gray-400 mt-0.5">Priority follow-up call</p>
+</div>
+<span class="text-[10px] font-medium text-gray-400 bg-gray-50 dark:bg-gray-800/50 px-1.5 py-0.5 rounded">Oct 28</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="bg-gray-50 dark:bg-[#111318] px-6 py-4 flex justify-between items-center border-t border-gray-200 dark:border-gray-800 shrink-0">
+<div class="flex items-center gap-2 text-sm text-gray-500">
+<span class="material-symbols-outlined text-[18px]">info</span>
+<span>Sequence ends on <span class="font-bold text-gray-900 dark:text-white">Nov 12, 2023</span></span>
+</div>
+<div class="flex gap-3">
+<button class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-colors focus:ring-2 focus:ring-gray-300">
+                Cancel
+            </button>
+<button class="px-6 py-2.5 text-sm font-bold text-white bg-primary hover:bg-blue-600 rounded-lg shadow-lg shadow-primary/20 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                Enroll Contact
+                <span class="material-symbols-outlined text-[18px]">send</span>
+</button>
+</div>
+</div>
+</div>
+</body></html>

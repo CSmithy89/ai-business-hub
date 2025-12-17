@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LinkedIn Integration Settings</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1c2128",
+                        "border-light": "#e5e7eb",
+                        "border-dark": "#282e39",
+                        "text-primary-dark": "#ffffff",
+                        "text-secondary-dark": "#9da6b9",
+                        "text-primary-light": "#111827",
+                        "text-secondary-light": "#6b7280",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #135bec;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #135bec;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark overflow-x-hidden">
+<div class="flex min-h-screen w-full">
+<!-- Side Navigation -->
+<aside class="hidden w-64 flex-col border-r border-border-light bg-surface-dark dark:border-border-dark dark:bg-background-dark lg:flex">
+<div class="flex h-full flex-col justify-between p-4">
+<div class="flex flex-col gap-4">
+<div class="flex gap-3 items-center mb-6 px-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8" data-alt="Abstract geometric logo in blue and purple" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDNTT1L-BW6wSNC-LuwrU4eU5-Q-en1qjvdDKdxT7oTfqZIN6rK39Occw2d8b6CV3EFF_FF8Qtj1XXXQkAJ1Qs748Upj6fCvIMpXYgnDW4T-EOL9G_5xULnXmBA0xb6wpI0se9tAels2Xw3KRrLdEVEs7152bH1rAlcdPppT4ZVFrd29tdcDjVHy028QfQe5v5JID0MqIq3o1YcejnAsaD8si1hPIQE7vm8e3Rl2W9721aYk3nrhCMGX0nWJngEy2FAp9OFo8FDBiU");'></div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-bold leading-normal">HYVVE CRM</h1>
+<p class="text-[#9da6b9] text-xs font-normal leading-normal">Growth Plan</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary-dark hover:bg-[#282e39] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary-dark hover:bg-[#282e39] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">ads_click</span>
+<span class="text-sm font-medium">Cadence</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary-dark hover:bg-[#282e39] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">inbox</span>
+<span class="text-sm font-medium">Inbox</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary-dark hover:bg-[#282e39] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">group</span>
+<span class="text-sm font-medium">Contacts</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary-dark hover:bg-[#282e39] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">bar_chart</span>
+<span class="text-sm font-medium">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20 text-primary dark:text-white dark:bg-[#282e39]" href="#">
+<span class="material-symbols-outlined text-[24px] fill-1">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+</div>
+<div class="flex items-center gap-3 px-3 py-4 border-t border-border-dark mt-auto">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8" data-alt="User profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB4qyHa7kF1CSTr29ZbZDNhi4HnhG_l01mQCxnXZZsx1bHGq_PcTIP5e0hn-ZdIPzZl6leQBWGlcIB57JcZviFDNucpJLWBOVas_7r3zCIOLPpCPykeY88JYAQ6vG7k0diFk5gd1BYm7b8DmYoEyWRIWuiXmUOejJo6cVglKgWGraD6LyaxSebGVVHJQjWS9DmP5E8VJGYuOZKc0t7KvU0we8FcF_t5c5t296LhrX5GE6bJl0vtZ-PrBqKvAdkUlL9stbR2PsXp-Lo");'></div>
+<div class="flex flex-col">
+<p class="text-sm font-medium text-white">Alex Morgan</p>
+<p class="text-xs text-[#9da6b9]">alex@hyvve.io</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 bg-background-light dark:bg-background-dark">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border-light bg-surface-light px-6 dark:border-border-dark dark:bg-background-dark">
+<div class="flex items-center gap-4 lg:hidden">
+<button class="text-text-secondary-light dark:text-text-secondary-dark">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+<div class="flex items-center gap-4">
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em] hidden sm:block">Integration Settings</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary-light dark:text-text-secondary-dark text-[20px]">search</span>
+<input class="h-10 w-64 rounded-lg border-none bg-background-light pl-10 pr-4 text-sm text-text-primary-light placeholder-text-secondary-light focus:ring-2 focus:ring-primary dark:bg-[#282e39] dark:text-white dark:placeholder-text-secondary-dark" placeholder="Search settings..." type="text"/>
+</div>
+<button class="flex items-center justify-center rounded-full bg-background-light p-2 text-text-secondary-light hover:text-primary dark:bg-[#282e39] dark:text-text-secondary-dark dark:hover:text-white">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex items-center justify-center rounded-full bg-background-light p-2 text-text-secondary-light hover:text-primary dark:bg-[#282e39] dark:text-text-secondary-dark dark:hover:text-white">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+</header>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto">
+<div class="mx-auto max-w-5xl px-6 py-8">
+<!-- Breadcrumbs -->
+<div class="mb-6 flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+<a class="hover:text-primary dark:hover:text-white" href="#">Settings</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<a class="hover:text-primary dark:hover:text-white" href="#">Integrations</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="font-medium text-text-primary-light dark:text-white">LinkedIn</span>
+</div>
+<!-- Page Heading -->
+<div class="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+<div>
+<h1 class="text-3xl font-black tracking-tight text-text-primary-light dark:text-white">LinkedIn Integration</h1>
+<p class="mt-2 text-base text-text-secondary-light dark:text-text-secondary-dark">Manage your LinkedIn connection, sync preferences, and automation limits.</p>
+</div>
+</div>
+<!-- Content Grid -->
+<div class="grid gap-6">
+<!-- Section 1: Connection Status Card -->
+<div class="rounded-xl border border-border-light bg-surface-light p-6 shadow-sm dark:border-border-dark dark:bg-surface-dark">
+<div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+<div class="flex items-center gap-5">
+<div class="relative">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-20 border-2 border-background-light dark:border-[#282e39]" data-alt="Professional headshot of a woman" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDFVRuVeoxIaua5URFe0Zjr1fNc-X6pzYAwMAndoHsH2oOnnYCOPfkkgxyKn35Rlj3KHWW_LBCaI4NO4i7gK74wZG4kT77EO3a3DR4vPARhV0EKi_sfaadLA6h9wPQeYMECVxS8xtOIZnf7GsAuG5ZH13_XXsQP6CHrXVTEF0xRDyyI-zeUGITA3L5HDNscaskUoJeO72B8JHuAGr3uIxXzjOf-q8qnxgT_ixYK3ZsIqOvKjUvJYPrrDBjnITK20IjERHY8Kho1JGA");'></div>
+<div class="absolute bottom-0 right-0 flex size-6 items-center justify-center rounded-full bg-[#22c55e] border-2 border-surface-light dark:border-surface-dark">
+<span class="material-symbols-outlined text-[14px] text-white">link</span>
+</div>
+</div>
+<div>
+<div class="flex items-center gap-3">
+<h3 class="text-xl font-bold text-text-primary-light dark:text-white">Jane Doe</h3>
+<span class="rounded bg-[#22c55e]/10 px-2 py-0.5 text-xs font-bold text-[#22c55e] border border-[#22c55e]/20">CONNECTED</span>
+</div>
+<p class="text-sm text-text-secondary-light dark:text-text-secondary-dark">Sales Navigator Account • Connected since Oct 24, 2023</p>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="flex h-10 items-center justify-center rounded-lg border border-border-light bg-transparent px-4 text-sm font-semibold text-text-primary-light transition-colors hover:bg-background-light dark:border-border-dark dark:text-white dark:hover:bg-[#282e39]">
+                                    Reconnect
+                                </button>
+<button class="flex h-10 items-center justify-center rounded-lg bg-red-500/10 px-4 text-sm font-semibold text-red-500 transition-colors hover:bg-red-500/20">
+                                    Disconnect
+                                </button>
+</div>
+</div>
+<!-- Warning Banner for Basic Account Simulation (Hidden by default but ready) -->
+<!-- 
+                        <div class="mt-6 flex items-start gap-3 rounded-lg bg-yellow-500/10 p-4 border border-yellow-500/20">
+                            <span class="material-symbols-outlined text-yellow-500">warning</span>
+                            <div>
+                                <p class="text-sm font-bold text-yellow-600 dark:text-yellow-500">Basic Account Limitations</p>
+                                <p class="text-sm text-text-secondary-light dark:text-[#9da6b9]">You are using a Basic LinkedIn account. Weekly connection limits are lower. Consider upgrading to Sales Navigator for higher limits.</p>
+                            </div>
+                        </div> 
+                        -->
+</div>
+<!-- Section 2: Profile Sync -->
+<div class="rounded-xl border border-border-light bg-surface-light shadow-sm dark:border-border-dark dark:bg-surface-dark">
+<div class="border-b border-border-light p-6 dark:border-border-dark">
+<div class="flex items-center gap-3">
+<div class="flex size-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+<span class="material-symbols-outlined">sync</span>
+</div>
+<div>
+<h3 class="text-lg font-bold text-text-primary-light dark:text-white">Profile Sync</h3>
+<p class="text-sm text-text-secondary-light dark:text-text-secondary-dark">Control how LinkedIn data syncs with your CRM contacts.</p>
+</div>
+</div>
+</div>
+<div class="p-6">
+<div class="flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<p class="text-sm font-medium text-text-primary-light dark:text-white">Auto-Enrich New Leads</p>
+<p class="text-sm text-text-secondary-light dark:text-text-secondary-dark">Automatically find and link LinkedIn profiles for new CRM contacts.</p>
+</div>
+<label class="relative inline-flex cursor-pointer items-center" for="toggle-enrich">
+<input checked="" class="peer sr-only" id="toggle-enrich" type="checkbox"/>
+<div class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-[#282e39] dark:border-gray-600"></div>
+</label>
+</div>
+<div class="h-px bg-border-light dark:bg-border-dark"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<p class="text-sm font-medium text-text-primary-light dark:text-white">Sync Job Updates</p>
+<p class="text-sm text-text-secondary-light dark:text-text-secondary-dark">Update CRM contact when a lead changes job or company.</p>
+</div>
+<label class="relative inline-flex cursor-pointer items-center" for="toggle-jobs">
+<input checked="" class="peer sr-only" id="toggle-jobs" type="checkbox"/>
+<div class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-[#282e39] dark:border-gray-600"></div>
+</label>
+</div>
+<div class="h-px bg-border-light dark:bg-border-dark"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<p class="text-sm font-medium text-text-primary-light dark:text-white">Sync Profile Photos</p>
+<p class="text-sm text-text-secondary-light dark:text-text-secondary-dark">Overwrite CRM avatars with latest LinkedIn profile picture.</p>
+</div>
+<label class="relative inline-flex cursor-pointer items-center" for="toggle-photos">
+<input class="peer sr-only" id="toggle-photos" type="checkbox"/>
+<div class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-[#282e39] dark:border-gray-600"></div>
+</label>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 3: Sequence Integration -->
+<div class="rounded-xl border border-border-light bg-surface-light shadow-sm dark:border-border-dark dark:bg-surface-dark">
+<div class="border-b border-border-light p-6 dark:border-border-dark">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="flex size-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+<span class="material-symbols-outlined">rocket_launch</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="text-lg font-bold text-text-primary-light dark:text-white">Sequence Integration</h3>
+<span class="rounded bg-background-light px-1.5 py-0.5 text-[10px] font-bold text-text-secondary-light border border-border-light dark:bg-[#282e39] dark:border-border-dark dark:text-text-secondary-dark">SALES NAV REQUIRED</span>
+</div>
+<p class="text-sm text-text-secondary-light dark:text-text-secondary-dark">Automate LinkedIn steps within your outreach cadences.</p>
+</div>
+</div>
+<label class="relative inline-flex cursor-pointer items-center" for="toggle-sequence">
+<input checked="" class="peer sr-only" id="toggle-sequence" type="checkbox"/>
+<div class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-[#282e39] dark:border-gray-600"></div>
+</label>
+</div>
+</div>
+<div class="p-6">
+<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+<div class="rounded-lg border border-border-light bg-background-light p-4 dark:border-border-dark dark:bg-[#151a21]">
+<div class="mb-2 flex items-center gap-2 text-text-primary-light dark:text-white">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+<span class="text-sm font-semibold">Connect Request</span>
+</div>
+<p class="text-xs text-text-secondary-light dark:text-text-secondary-dark">Send automated connection requests with personalized notes.</p>
+</div>
+<div class="rounded-lg border border-border-light bg-background-light p-4 dark:border-border-dark dark:bg-[#151a21]">
+<div class="mb-2 flex items-center gap-2 text-text-primary-light dark:text-white">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+<span class="text-sm font-semibold">Send InMail</span>
+</div>
+<p class="text-xs text-text-secondary-light dark:text-text-secondary-dark">Send direct messages to prospects outside your network.</p>
+</div>
+<div class="rounded-lg border border-border-light bg-background-light p-4 dark:border-border-dark dark:bg-[#151a21]">
+<div class="mb-2 flex items-center gap-2 text-text-primary-light dark:text-white">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+<span class="text-sm font-semibold">View Profile</span>
+</div>
+<p class="text-xs text-text-secondary-light dark:text-text-secondary-dark">Automatically visit profiles to trigger notifications.</p>
+</div>
+</div>
+<div class="rounded-lg bg-orange-500/5 p-4 border border-orange-500/10">
+<h4 class="mb-4 text-sm font-bold text-text-primary-light dark:text-white">Daily Safety Limits</h4>
+<div class="flex flex-col gap-4 sm:flex-row sm:items-end">
+<div class="flex-1">
+<label class="mb-1 block text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">Max Connection Requests / Day</label>
+<input class="w-full rounded-lg border-border-light bg-surface-light px-3 py-2 text-sm text-text-primary-light focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-[#151a21] dark:text-white" type="number" value="25"/>
+</div>
+<div class="flex-1">
+<label class="mb-1 block text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">Max InMails / Day</label>
+<input class="w-full rounded-lg border-border-light bg-surface-light px-3 py-2 text-sm text-text-primary-light focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-[#151a21] dark:text-white" type="number" value="15"/>
+</div>
+<div class="flex-1">
+<label class="mb-1 block text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">Max Profile Views / Day</label>
+<input class="w-full rounded-lg border-border-light bg-surface-light px-3 py-2 text-sm text-text-primary-light focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-[#151a21] dark:text-white" type="number" value="50"/>
+</div>
+</div>
+<p class="mt-3 text-xs text-orange-600 dark:text-orange-400 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">info</span>
+                                    Exceeding these limits increases the risk of account restriction by LinkedIn.
+                                </p>
+</div>
+</div>
+</div>
+<!-- Section 4: Activity Tracking -->
+<div class="mb-24 rounded-xl border border-border-light bg-surface-light shadow-sm dark:border-border-dark dark:bg-surface-dark">
+<div class="border-b border-border-light p-6 dark:border-border-dark">
+<div class="flex items-center gap-3">
+<div class="flex size-10 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
+<span class="material-symbols-outlined">timeline</span>
+</div>
+<div>
+<h3 class="text-lg font-bold text-text-primary-light dark:text-white">Activity Tracking &amp; Scoring</h3>
+<p class="text-sm text-text-secondary-light dark:text-text-secondary-dark">Log LinkedIn activities to CRM timeline and assign engagement scores.</p>
+</div>
+</div>
+</div>
+<div class="p-6">
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm">
+<thead class="bg-background-light text-xs uppercase text-text-secondary-light dark:bg-[#151a21] dark:text-text-secondary-dark">
+<tr>
+<th class="rounded-l-lg px-4 py-3 font-semibold">Activity Type</th>
+<th class="px-4 py-3 font-semibold text-center">Log to CRM</th>
+<th class="rounded-r-lg px-4 py-3 font-semibold w-32">Engagement Points</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-light dark:divide-border-dark">
+<tr>
+<td class="px-4 py-4 font-medium text-text-primary-light dark:text-white">Connection Request Accepted</td>
+<td class="px-4 py-4 text-center">
+<input checked="" class="rounded border-gray-300 text-primary focus:ring-primary dark:border-gray-600 dark:bg-[#282e39]" type="checkbox"/>
+</td>
+<td class="px-4 py-4">
+<input class="w-full rounded-md border-border-light bg-background-light px-2 py-1 text-center text-sm focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-[#151a21] dark:text-white" type="text" value="10"/>
+</td>
+</tr>
+<tr>
+<td class="px-4 py-4 font-medium text-text-primary-light dark:text-white">InMail Replied</td>
+<td class="px-4 py-4 text-center">
+<input checked="" class="rounded border-gray-300 text-primary focus:ring-primary dark:border-gray-600 dark:bg-[#282e39]" type="checkbox"/>
+</td>
+<td class="px-4 py-4">
+<input class="w-full rounded-md border-border-light bg-background-light px-2 py-1 text-center text-sm focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-[#151a21] dark:text-white" type="text" value="25"/>
+</td>
+</tr>
+<tr>
+<td class="px-4 py-4 font-medium text-text-primary-light dark:text-white">Message Sent</td>
+<td class="px-4 py-4 text-center">
+<input checked="" class="rounded border-gray-300 text-primary focus:ring-primary dark:border-gray-600 dark:bg-[#282e39]" type="checkbox"/>
+</td>
+<td class="px-4 py-4">
+<input class="w-full rounded-md border-border-light bg-background-light px-2 py-1 text-center text-sm focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-[#151a21] dark:text-white" type="text" value="2"/>
+</td>
+</tr>
+<tr>
+<td class="px-4 py-4 font-medium text-text-primary-light dark:text-white">Profile Viewed</td>
+<td class="px-4 py-4 text-center">
+<input class="rounded border-gray-300 text-primary focus:ring-primary dark:border-gray-600 dark:bg-[#282e39]" type="checkbox"/>
+</td>
+<td class="px-4 py-4">
+<input class="w-full rounded-md border-border-light bg-background-light px-2 py-1 text-center text-sm focus:border-primary focus:ring-primary dark:border-border-dark dark:bg-[#151a21] dark:text-white" type="text" value="1"/>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Footer -->
+<div class="sticky bottom-0 z-20 flex w-full items-center justify-end gap-3 border-t border-border-light bg-surface-light px-8 py-4 dark:border-border-dark dark:bg-surface-dark shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+<button class="rounded-lg px-6 py-2.5 text-sm font-bold text-text-secondary-light transition-colors hover:bg-background-light hover:text-text-primary-light dark:text-white dark:hover:bg-[#282e39]">
+                Cancel
+            </button>
+<button class="rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary/90 shadow-md shadow-primary/20">
+                Save Changes
+            </button>
+</div>
+</main>
+</div>
+</body></html>

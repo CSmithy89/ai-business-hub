@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-36 OKR &amp; Goals Tracking</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "primary-light": "#e0f2fe", 
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111418",
+                        "card-dark": "#1e2329",
+                        "border-dark": "#283039",
+                        "success": "#22C55E",
+                        "warning": "#F59E0B",
+                        "error": "#EF4444",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "2xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for better look in dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111418;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #283039;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b4754;
+        }
+        
+        /* Hierarchy tree line styles */
+        .tree-line {
+            position: absolute;
+            width: 2px;
+            background-color: #3b4754;
+        }
+        .tree-node-connector {
+            position: absolute;
+            left: -24px;
+            top: 24px;
+            width: 24px;
+            height: 2px;
+            background-color: #3b4754;
+        }
+        .tree-vertical-line {
+            position: absolute;
+            left: -24px;
+            top: -16px;
+            bottom: 24px;
+            width: 2px;
+            background-color: #3b4754;
+        }
+        .last-child .tree-vertical-line {
+            bottom: auto;
+            height: 42px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-x-hidden transition-colors duration-200">
+<div class="flex h-screen w-full flex-col">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#283039] bg-white dark:bg-[#111418] px-8 py-3 sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-slate-900 dark:text-white">
+<div class="size-8 rounded bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-xl">dataset</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight">PM-36 Vision</h2>
+</div>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors" href="#">Roadmaps</a>
+<a class="text-slate-900 dark:text-white text-sm font-medium border-b-2 border-primary pb-4 -mb-4" href="#">Goals</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors" href="#">Feedback</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<label class="hidden lg:flex flex-col min-w-40 h-9 w-64">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full border border-slate-200 dark:border-[#283039] overflow-hidden">
+<div class="text-slate-400 dark:text-[#9dabb9] flex bg-slate-50 dark:bg-[#1e2329] items-center justify-center pl-3">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="flex w-full min-w-0 flex-1 resize-none bg-slate-50 dark:bg-[#1e2329] text-slate-900 dark:text-white focus:outline-0 h-full placeholder:text-slate-400 dark:placeholder:text-[#9dabb9] px-3 text-sm font-normal" placeholder="Search goals, KRs..."/>
+</div>
+</label>
+<div class="flex items-center gap-3">
+<button class="flex size-9 items-center justify-center rounded-full bg-slate-100 dark:bg-[#283039] text-slate-600 dark:text-white hover:bg-slate-200 dark:hover:bg-[#3b4754] transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-9 border border-slate-200 dark:border-[#3b4754]" data-alt="User profile avatar showing a smiling person" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBZdaIBJK-HLQ9EV_Ftp1AbRTpjwzmo4jEXJ9WCEDkr3xdJCF9dpAWH7iPZ6SYcPD_jgZhAsDn7Dk0FZaq8PUKV7w_GQgNLnyIhkVd-6KtFg2Uzif7w8fJhrhcSQ7rDnQX9nIcLmF2zj4v3xsn38DryB1ZHzqmmrSuzN3FjyurF6NuKXd6Bs30TdsDjTjseynuEi-IPTgZLGS-FvmtSNnxE-8syFLp_QmnaGPJJMOoKyNFK9Oi_9Z1WivT2Clpe1QampbqJ7FBfuQw");'></div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark p-6 md:p-8 lg:px-12 xl:px-40">
+<div class="mx-auto max-w-7xl flex flex-col gap-8">
+<!-- Page Heading & Actions -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-1">
+<span>Strategy</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-slate-900 dark:text-white font-medium">Q4 2023 OKRs</span>
+</div>
+<h1 class="text-slate-900 dark:text-white text-3xl md:text-4xl font-black tracking-tight">Goals Dashboard</h1>
+<p class="text-slate-500 dark:text-[#9dabb9] text-base">Track and align your team's objectives for Q4 2023.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-white dark:bg-[#1e2329] border border-slate-200 dark:border-[#3b4754] text-slate-700 dark:text-white text-sm font-semibold hover:bg-slate-50 dark:hover:bg-[#283039] transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">calendar_month</span>
+<span>Q4 2023</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</button>
+<button class="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-primary hover:bg-blue-600 text-white text-sm font-bold shadow-md shadow-blue-500/20 transition-all">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span>Create Goal</span>
+</button>
+</div>
+</div>
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Stat Card 1 -->
+<div class="bg-white dark:bg-[#1e2329] rounded-xl p-5 border border-slate-200 dark:border-[#283039] shadow-sm flex flex-col gap-4 relative overflow-hidden group">
+<div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl text-primary">donut_large</span>
+</div>
+<div class="flex justify-between items-start">
+<p class="text-slate-500 dark:text-[#9dabb9] text-sm font-medium">Overall Progress</p>
+<span class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> 12%
+                            </span>
+</div>
+<div class="flex items-end gap-2 mt-1">
+<p class="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">68%</p>
+</div>
+<div class="w-full bg-slate-100 dark:bg-[#283039] h-1.5 rounded-full overflow-hidden mt-auto">
+<div class="bg-primary h-full rounded-full" style="width: 68%"></div>
+</div>
+</div>
+<!-- Stat Card 2 -->
+<div class="bg-white dark:bg-[#1e2329] rounded-xl p-5 border border-slate-200 dark:border-[#283039] shadow-sm flex flex-col gap-4 relative overflow-hidden group">
+<div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl text-blue-400">check_circle</span>
+</div>
+<div class="flex justify-between items-start">
+<p class="text-slate-500 dark:text-[#9dabb9] text-sm font-medium">Objectives Complete</p>
+<span class="bg-slate-100 dark:bg-[#283039] text-slate-600 dark:text-slate-300 text-xs font-bold px-2 py-0.5 rounded-full">+2 new</span>
+</div>
+<div class="flex items-end gap-2 mt-1">
+<p class="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">12<span class="text-slate-400 dark:text-[#586474] text-xl font-medium">/40</span></p>
+</div>
+<div class="flex items-center gap-2 mt-auto text-xs text-slate-500 dark:text-[#9dabb9]">
+<span class="size-2 rounded-full bg-blue-400"></span> 28 Remaining
+                        </div>
+</div>
+<!-- Stat Card 3 -->
+<div class="bg-white dark:bg-[#1e2329] rounded-xl p-5 border border-slate-200 dark:border-[#283039] shadow-sm flex flex-col gap-4 relative overflow-hidden group">
+<div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl text-success">thumb_up</span>
+</div>
+<div class="flex justify-between items-start">
+<p class="text-slate-500 dark:text-[#9dabb9] text-sm font-medium">On Track</p>
+<span class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold px-2 py-0.5 rounded-full">+5</span>
+</div>
+<div class="flex items-end gap-2 mt-1">
+<p class="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">25</p>
+</div>
+<div class="flex items-center gap-2 mt-auto text-xs text-slate-500 dark:text-[#9dabb9]">
+<span class="size-2 rounded-full bg-success"></span> Healthy pace
+                        </div>
+</div>
+<!-- Stat Card 4 -->
+<div class="bg-white dark:bg-[#1e2329] rounded-xl p-5 border border-slate-200 dark:border-[#283039] shadow-sm flex flex-col gap-4 relative overflow-hidden group">
+<div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl text-warning">warning</span>
+</div>
+<div class="flex justify-between items-start">
+<p class="text-slate-500 dark:text-[#9dabb9] text-sm font-medium">At Risk</p>
+<span class="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-bold px-2 py-0.5 rounded-full">-1 improved</span>
+</div>
+<div class="flex items-end gap-2 mt-1">
+<p class="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">3</p>
+</div>
+<div class="flex items-center gap-2 mt-auto text-xs text-slate-500 dark:text-[#9dabb9]">
+<span class="size-2 rounded-full bg-warning"></span> Needs attention
+                        </div>
+</div>
+</div>
+<!-- Tabs & View Switcher -->
+<div class="flex flex-col sm:flex-row justify-between items-center border-b border-slate-200 dark:border-[#283039]">
+<div class="flex w-full sm:w-auto overflow-x-auto">
+<a class="flex items-center gap-2 border-b-[3px] border-primary text-slate-900 dark:text-white px-6 pb-3 pt-2" href="#">
+<span class="material-symbols-outlined text-[20px]">list_alt</span>
+<span class="text-sm font-bold tracking-wide">Objectives List</span>
+</a>
+<a class="flex items-center gap-2 border-b-[3px] border-transparent text-slate-500 dark:text-[#9dabb9] hover:text-slate-700 dark:hover:text-white px-6 pb-3 pt-2 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">account_tree</span>
+<span class="text-sm font-medium tracking-wide">Hierarchy View</span>
+</a>
+</div>
+<div class="flex gap-2 py-2 sm:py-0">
+<button class="flex items-center gap-1 text-slate-500 dark:text-[#9dabb9] hover:text-primary text-sm font-medium px-3 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-[#283039] transition-colors">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                            Filter
+                         </button>
+<button class="flex items-center gap-1 text-slate-500 dark:text-[#9dabb9] hover:text-primary text-sm font-medium px-3 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-[#283039] transition-colors">
+<span class="material-symbols-outlined text-[18px]">sort</span>
+                            Sort
+                         </button>
+</div>
+</div>
+<!-- Content: Accordion List -->
+<div class="flex flex-col gap-4">
+<!-- Objective Group 1: On Track -->
+<div class="flex flex-col rounded-xl border border-slate-200 dark:border-[#283039] bg-white dark:bg-[#1e2329] overflow-hidden shadow-sm">
+<!-- Accordion Header -->
+<details class="group/accordion" open="">
+<summary class="flex cursor-pointer items-center justify-between p-4 bg-slate-50 dark:bg-[#1e2329] hover:bg-slate-100 dark:hover:bg-[#252b33] transition-colors select-none">
+<div class="flex items-center gap-4 flex-1">
+<div class="p-1 rounded bg-slate-200 dark:bg-[#3b4754] text-slate-500 dark:text-slate-400 group-open/accordion:rotate-180 transition-transform">
+<span class="material-symbols-outlined text-[20px] block">expand_more</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-1">
+<h3 class="text-slate-900 dark:text-white text-base font-bold">Increase Market Share by 15%</h3>
+<div class="flex items-center gap-3">
+<div class="flex -space-x-2">
+<div class="size-6 rounded-full border-2 border-white dark:border-[#1e2329] bg-cover" data-alt="Avatar of Sarah" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBk_R9Grn17EvKSuhfkHdbm9Jczpo1zbMOeYJuNiUf5s5ge6VzCsj23NGj2L-SuV9FZpL-m4yf_7ff7IUCSnJOO2_XxhfjTlzbVnn83XNOAX9RIHbUELzWUq4KeC5okoZvzxdl-bSUAT7BTiP2FneFCAnTlIRFHqPtjJFHMjtkjTgRkGFKBalQljpQ_BjycRVq-rU-2BSo1OY5JH0l668yoCl2RapL3YL1rDISyg8vZE_FtbHHQ72r9apTiiGVPYNOgf8maIlP2BcQ");'></div>
+</div>
+<span class="text-xs text-slate-500 dark:text-[#9dabb9]">Due Dec 31</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden sm:flex flex-col w-32 gap-1">
+<div class="flex justify-between text-xs text-slate-500 dark:text-[#9dabb9]">
+<span>Progress</span>
+<span>60%</span>
+</div>
+<div class="h-1.5 w-full bg-slate-200 dark:bg-[#283039] rounded-full overflow-hidden">
+<div class="h-full bg-success rounded-full" style="width: 60%"></div>
+</div>
+</div>
+<div class="px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-xs font-bold flex items-center gap-1 min-w-[85px] justify-center">
+<span class="size-1.5 rounded-full bg-green-600 dark:bg-green-400"></span> On Track
+                                    </div>
+</div>
+</summary>
+<!-- Accordion Body: Key Results -->
+<div class="border-t border-slate-200 dark:border-[#283039] bg-white dark:bg-[#15191e]">
+<!-- KR 1 -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 pl-14 hover:bg-slate-50 dark:hover:bg-[#1a1f26] border-b border-slate-100 dark:border-[#283039] last:border-0 transition-colors group/kr">
+<div class="flex flex-col gap-1 mb-2 sm:mb-0">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-primary">key</span>
+<p class="text-slate-800 dark:text-slate-200 text-sm font-medium">KR 1: Launch Feature X to 100% of userbase</p>
+</div>
+<div class="flex items-center gap-4 pl-6">
+<p class="text-xs text-slate-500 dark:text-[#9dabb9]">Target: <span class="text-slate-900 dark:text-white font-medium">100%</span></p>
+<p class="text-xs text-slate-500 dark:text-[#9dabb9]">Current: <span class="text-slate-900 dark:text-white font-medium">80%</span></p>
+<div class="flex items-center gap-1 text-xs text-primary bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40">
+<span class="material-symbols-outlined text-[12px]">link</span>
+                                                Project Alpha
+                                            </div>
+</div>
+</div>
+<div class="flex items-center gap-6 pl-6 sm:pl-0">
+<div class="flex flex-col w-32 gap-1">
+<div class="flex justify-between text-xs text-slate-500 dark:text-[#9dabb9]">
+<span>80%</span>
+</div>
+<div class="h-1.5 w-full bg-slate-200 dark:bg-[#283039] rounded-full overflow-hidden">
+<div class="h-full bg-success rounded-full" style="width: 80%"></div>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="size-8 rounded-full hover:bg-slate-100 dark:hover:bg-[#283039] flex items-center justify-center text-slate-400 dark:text-slate-500 transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</div>
+</div>
+</div>
+<!-- KR 2 -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 pl-14 hover:bg-slate-50 dark:hover:bg-[#1a1f26] border-b border-slate-100 dark:border-[#283039] last:border-0 transition-colors group/kr">
+<div class="flex flex-col gap-1 mb-2 sm:mb-0">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-primary">key</span>
+<p class="text-slate-800 dark:text-slate-200 text-sm font-medium">KR 2: Expand to EU Region</p>
+</div>
+<div class="flex items-center gap-4 pl-6">
+<p class="text-xs text-slate-500 dark:text-[#9dabb9]">Target: <span class="text-slate-900 dark:text-white font-medium">5 Countries</span></p>
+<p class="text-xs text-slate-500 dark:text-[#9dabb9]">Current: <span class="text-slate-900 dark:text-white font-medium">2 Countries</span></p>
+</div>
+</div>
+<div class="flex items-center gap-6 pl-6 sm:pl-0">
+<div class="flex flex-col w-32 gap-1">
+<div class="flex justify-between text-xs text-slate-500 dark:text-[#9dabb9]">
+<span>40%</span>
+</div>
+<div class="h-1.5 w-full bg-slate-200 dark:bg-[#283039] rounded-full overflow-hidden">
+<div class="h-full bg-warning rounded-full" style="width: 40%"></div>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="size-8 rounded-full hover:bg-slate-100 dark:hover:bg-[#283039] flex items-center justify-center text-slate-400 dark:text-slate-500 transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</details>
+</div>
+<!-- Objective Group 2: At Risk -->
+<div class="flex flex-col rounded-xl border border-slate-200 dark:border-[#283039] bg-white dark:bg-[#1e2329] overflow-hidden shadow-sm">
+<details class="group/accordion">
+<summary class="flex cursor-pointer items-center justify-between p-4 bg-slate-50 dark:bg-[#1e2329] hover:bg-slate-100 dark:hover:bg-[#252b33] transition-colors select-none">
+<div class="flex items-center gap-4 flex-1">
+<div class="p-1 rounded bg-slate-200 dark:bg-[#3b4754] text-slate-500 dark:text-slate-400 group-open/accordion:rotate-180 transition-transform">
+<span class="material-symbols-outlined text-[20px] block">expand_more</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-1">
+<h3 class="text-slate-900 dark:text-white text-base font-bold">Launch Mobile App v2.0</h3>
+<div class="flex items-center gap-3">
+<div class="flex -space-x-2">
+<div class="size-6 rounded-full border-2 border-white dark:border-[#1e2329] bg-cover" data-alt="Avatar of Mike" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBZ9df_ME2hkmD5dy_kGgf_rQ3YZscNv6z7FKWQw96l9uL0ypvRuy5uA-Qd6_Hf3UXF4bKz8TN7Sot9uN7nx40yTgYl867VDnloMCk4-RmcCGJVgCDuXX4su7-MBClb0gDUXaF0Yq_tD4oH7M5Bg1BUfLUJpEW5Pi_p97cmbKYPwDNtzArD5B572aV1D_Jsbs1QtIzvhI8FmR2x1NE4hBux0ylCau5vsDtZigdpRubdAFDLgC5wXz5cAe_19prmKQ4LyhmWTPaUIns");'></div>
+</div>
+<span class="text-xs text-slate-500 dark:text-[#9dabb9]">Due Nov 15</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden sm:flex flex-col w-32 gap-1">
+<div class="flex justify-between text-xs text-slate-500 dark:text-[#9dabb9]">
+<span>Progress</span>
+<span>35%</span>
+</div>
+<div class="h-1.5 w-full bg-slate-200 dark:bg-[#283039] rounded-full overflow-hidden">
+<div class="h-full bg-warning rounded-full" style="width: 35%"></div>
+</div>
+</div>
+<div class="px-2.5 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400 text-xs font-bold flex items-center gap-1 min-w-[85px] justify-center">
+<span class="size-1.5 rounded-full bg-warning"></span> At Risk
+                                    </div>
+</div>
+</summary>
+<!-- Accordion Body: Key Results (Hidden for now as details is closed) -->
+<div class="border-t border-slate-200 dark:border-[#283039] bg-white dark:bg-[#15191e] p-4 text-sm text-slate-500 dark:text-slate-400">
+                                Expand to see key results...
+                             </div>
+</details>
+</div>
+<!-- Objective Group 3: Complete -->
+<div class="flex flex-col rounded-xl border border-slate-200 dark:border-[#283039] bg-white dark:bg-[#1e2329] overflow-hidden shadow-sm">
+<details class="group/accordion">
+<summary class="flex cursor-pointer items-center justify-between p-4 bg-slate-50 dark:bg-[#1e2329] hover:bg-slate-100 dark:hover:bg-[#252b33] transition-colors select-none">
+<div class="flex items-center gap-4 flex-1">
+<div class="p-1 rounded bg-slate-200 dark:bg-[#3b4754] text-slate-500 dark:text-slate-400 group-open/accordion:rotate-180 transition-transform">
+<span class="material-symbols-outlined text-[20px] block">expand_more</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-1">
+<h3 class="text-slate-900 dark:text-white text-base font-bold line-through opacity-70">Complete Q3 Audit</h3>
+<div class="flex items-center gap-3">
+<div class="flex -space-x-2">
+<div class="size-6 rounded-full border-2 border-white dark:border-[#1e2329] bg-cover" data-alt="Avatar of Jessica" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA4Hkv4Vf1WfzT9pUTzEOH--BlQU9Olot0fhnUK4rddVuYcDtqJZ0p_2pxHk-mIyUOErrGr3NjrjC8NCnU7rkCqC111Ev5S9EmnJoYQXkd9_feR_QE4lerteSLRivSbw1RLkUBsLjHpmYg4LcPGiuzr2V1r_41O3tVN8jHYapRKpC39o-Ozd9FlaW4Ey2PPrNfvR2hPsbT5lehUHUOHNuNnAwerd1YgMJwRIkZbFsB6sm9yTBqDw-meVZnZD1PFYfdFc6fwUN7w6Gg");'></div>
+</div>
+<span class="text-xs text-slate-500 dark:text-[#9dabb9]">Due Oct 01</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden sm:flex flex-col w-32 gap-1">
+<div class="flex justify-between text-xs text-slate-500 dark:text-[#9dabb9]">
+<span>Progress</span>
+<span>100%</span>
+</div>
+<div class="h-1.5 w-full bg-slate-200 dark:bg-[#283039] rounded-full overflow-hidden">
+<div class="h-full bg-success rounded-full" style="width: 100%"></div>
+</div>
+</div>
+<div class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-[#3b4754] border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1 min-w-[85px] justify-center">
+<span class="material-symbols-outlined text-[14px] text-success">check_circle</span> Complete
+                                    </div>
+</div>
+</summary>
+</details>
+</div>
+</div>
+<!-- Hierarchy Visualization (Simulated) -->
+<div class="flex flex-col gap-4 mt-8">
+<div class="flex items-center justify-between">
+<h3 class="text-slate-900 dark:text-white text-lg font-bold">Goal Hierarchy Preview</h3>
+<button class="text-primary text-sm font-medium hover:underline">View Full Map</button>
+</div>
+<div class="bg-white dark:bg-[#1e2329] rounded-xl border border-slate-200 dark:border-[#283039] p-8 overflow-x-auto">
+<div class="min-w-[700px]">
+<!-- Company Goal -->
+<div class="flex items-start mb-6 relative">
+<div class="flex flex-col items-center mr-4 z-10">
+<div class="size-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 border-2 border-indigo-200 dark:border-indigo-700 flex items-center justify-center text-indigo-700 dark:text-indigo-300 shadow-sm">
+<span class="material-symbols-outlined text-[20px]">apartment</span>
+</div>
+<div class="h-full w-0.5 bg-slate-200 dark:bg-[#3b4754] mt-2 absolute top-10 left-[20px] bottom-[-24px]"></div>
+</div>
+<div class="flex-1 bg-slate-50 dark:bg-[#252b33] rounded-lg border border-slate-200 dark:border-[#3b4754] p-3 shadow-sm">
+<div class="flex justify-between items-center mb-1">
+<p class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Company Goal</p>
+<span class="text-xs font-bold text-success">On Track</span>
+</div>
+<h4 class="text-sm font-bold text-slate-900 dark:text-white">Become Market Leader in SaaS Analytics</h4>
+</div>
+</div>
+<!-- Objective Level -->
+<div class="pl-12 mb-6 relative">
+<div class="absolute left-[20px] top-[-24px] bottom-0 w-0.5 bg-slate-200 dark:bg-[#3b4754]"></div>
+<div class="absolute left-[20px] top-5 w-8 h-0.5 bg-slate-200 dark:bg-[#3b4754]"></div>
+<div class="flex items-start">
+<div class="flex flex-col items-center mr-4 z-10">
+<div class="size-8 rounded-full bg-primary/10 border border-primary flex items-center justify-center text-primary shadow-sm bg-white dark:bg-[#1e2329]">
+<span class="material-symbols-outlined text-[16px]">flag</span>
+</div>
+<div class="h-full w-0.5 bg-slate-200 dark:bg-[#3b4754] mt-2 absolute top-8 left-[15px] bottom-[-24px]"></div>
+</div>
+<div class="flex-1 bg-slate-50 dark:bg-[#252b33] rounded-lg border border-primary/30 p-3 shadow-sm relative">
+<div class="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r"></div>
+<div class="flex justify-between items-center mb-1">
+<p class="text-xs font-bold text-primary uppercase tracking-wider">Objective</p>
+<span class="text-xs font-bold text-success">60%</span>
+</div>
+<h4 class="text-sm font-bold text-slate-900 dark:text-white">Increase Market Share by 15%</h4>
+</div>
+</div>
+<!-- Key Results Level -->
+<div class="pl-12 mt-6 relative">
+<!-- Connector lines -->
+<div class="absolute left-[15px] top-[-24px] bottom-6 w-0.5 bg-slate-200 dark:bg-[#3b4754]"></div>
+<!-- KR Item 1 -->
+<div class="flex items-center mb-4 relative">
+<div class="absolute left-[-33px] top-1/2 w-8 h-0.5 bg-slate-200 dark:bg-[#3b4754]"></div>
+<div class="size-6 rounded-full bg-slate-100 dark:bg-[#3b4754] border border-slate-300 dark:border-slate-500 flex items-center justify-center mr-3 shrink-0">
+<span class="material-symbols-outlined text-[14px] text-slate-500 dark:text-slate-300">key</span>
+</div>
+<div class="bg-white dark:bg-[#111418] rounded border border-slate-200 dark:border-[#3b4754] p-2 flex-1 flex justify-between items-center">
+<span class="text-xs font-medium text-slate-700 dark:text-slate-300">Launch Feature X</span>
+<div class="w-16 h-1.5 bg-slate-100 dark:bg-[#283039] rounded-full overflow-hidden ml-4">
+<div class="h-full bg-success w-[80%]"></div>
+</div>
+</div>
+</div>
+<!-- KR Item 2 -->
+<div class="flex items-center relative">
+<div class="absolute left-[-33px] top-1/2 w-8 h-0.5 bg-slate-200 dark:bg-[#3b4754]"></div>
+<div class="size-6 rounded-full bg-slate-100 dark:bg-[#3b4754] border border-slate-300 dark:border-slate-500 flex items-center justify-center mr-3 shrink-0">
+<span class="material-symbols-outlined text-[14px] text-slate-500 dark:text-slate-300">key</span>
+</div>
+<div class="bg-white dark:bg-[#111418] rounded border border-slate-200 dark:border-[#3b4754] p-2 flex-1 flex justify-between items-center">
+<span class="text-xs font-medium text-slate-700 dark:text-slate-300">Expand to EU Region</span>
+<div class="w-16 h-1.5 bg-slate-100 dark:bg-[#283039] rounded-full overflow-hidden ml-4">
+<div class="h-full bg-warning w-[40%]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Create Goal Modal Overlay (Simulated) -->
+<!-- Hidden by default, unhide to show -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+<div class="bg-white dark:bg-[#1e2329] w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 dark:border-[#3b4754] flex flex-col max-h-[90vh]">
+<div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-[#283039]">
+<h2 class="text-xl font-bold text-slate-900 dark:text-white">Create New Goal</h2>
+<button class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-6 overflow-y-auto flex-1 flex flex-col gap-6">
+<!-- Form Fields -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Goal Title</label>
+<input class="w-full bg-slate-50 dark:bg-[#111418] border border-slate-300 dark:border-[#3b4754] rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none" placeholder="e.g. Increase Customer Retention" type="text"/>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Owner</label>
+<div class="relative">
+<select class="w-full bg-slate-50 dark:bg-[#111418] border border-slate-300 dark:border-[#3b4754] rounded-lg px-4 py-2.5 text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-primary outline-none">
+<option>Select owner</option>
+<option>Sarah Johnson</option>
+<option>Mike Chen</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-slate-500 pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Period</label>
+<div class="relative">
+<select class="w-full bg-slate-50 dark:bg-[#111418] border border-slate-300 dark:border-[#3b4754] rounded-lg px-4 py-2.5 text-slate-900 dark:text-white appearance-none focus:ring-2 focus:ring-primary outline-none">
+<option>Q4 2023</option>
+<option>Q1 2024</option>
+<option>Annual 2024</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-slate-500 pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Key Results</label>
+<div class="bg-slate-50 dark:bg-[#111418] border border-slate-300 dark:border-[#3b4754] rounded-lg p-4 flex flex-col gap-4">
+<div class="flex gap-4 items-start">
+<div class="flex-1">
+<input class="w-full bg-white dark:bg-[#1e2329] border border-slate-200 dark:border-[#3b4754] rounded px-3 py-2 text-sm text-slate-900 dark:text-white" placeholder="Metric name" type="text"/>
+</div>
+<div class="w-24">
+<input class="w-full bg-white dark:bg-[#1e2329] border border-slate-200 dark:border-[#3b4754] rounded px-3 py-2 text-sm text-slate-900 dark:text-white" placeholder="Target" type="text"/>
+</div>
+<button class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+<button class="flex items-center gap-2 text-primary text-sm font-bold hover:underline self-start">
+<span class="material-symbols-outlined text-[18px]">add</span> Add Key Result
+                             </button>
+</div>
+</div>
+</div>
+<div class="p-6 border-t border-slate-200 dark:border-[#283039] flex justify-end gap-3 bg-slate-50 dark:bg-[#1e2329] rounded-b-2xl">
+<button class="px-5 py-2.5 rounded-lg border border-slate-300 dark:border-[#3b4754] text-slate-700 dark:text-white font-medium hover:bg-slate-100 dark:hover:bg-[#283039] transition-colors">Cancel</button>
+<button class="px-5 py-2.5 rounded-lg bg-primary text-white font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20">Create Goal</button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

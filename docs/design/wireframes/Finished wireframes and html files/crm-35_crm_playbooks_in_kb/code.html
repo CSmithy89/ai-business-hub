@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM Playbooks in KB</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#135bec",
+              "background-light": "#f6f6f8",
+              "background-dark": "#111318",
+              "card-dark": "#1e232d",
+              "border-dark": "#282e39",
+              "text-secondary": "#9da6b9",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"],
+              "body": ["Inter", "sans-serif"],
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111318; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #282e39; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f4755; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-white overflow-hidden h-screen flex">
+<!-- Left Sidebar -->
+<div class="w-20 lg:w-64 border-r border-border-dark flex-shrink-0 flex flex-col bg-[#111318] hidden md:flex">
+<div class="p-4 flex items-center gap-3 h-16 border-b border-border-dark">
+<div class="size-8 rounded bg-primary flex items-center justify-center text-white font-bold">H</div>
+<span class="font-bold text-lg hidden lg:block">HYVVE CRM</span>
+</div>
+<div class="flex-1 overflow-y-auto py-4 flex flex-col gap-2 px-3">
+<div class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary hover:bg-border-dark cursor-pointer transition-colors">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="hidden lg:block text-sm font-medium">Dashboard</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary hover:bg-border-dark cursor-pointer transition-colors">
+<span class="material-symbols-outlined">handshake</span>
+<span class="hidden lg:block text-sm font-medium">Deals</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary border border-primary/20 cursor-pointer transition-colors">
+<span class="material-symbols-outlined">contacts</span>
+<span class="hidden lg:block text-sm font-medium">Contacts</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary hover:bg-border-dark cursor-pointer transition-colors">
+<span class="material-symbols-outlined">school</span>
+<span class="hidden lg:block text-sm font-medium">Knowledge Base</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-secondary hover:bg-border-dark cursor-pointer transition-colors">
+<span class="material-symbols-outlined">campaign</span>
+<span class="hidden lg:block text-sm font-medium">Campaigns</span>
+</div>
+</div>
+<div class="p-4 border-t border-border-dark">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-8" data-alt="User avatar placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAwTP_6j5558zhrg7Do8rTF_pbXraikjONGF3q3PzAN70MYIopUGcExsGv1BgWFnxljutJfWMMdcOAgw3K2SJcbVwVtf2rr5S49B94GDXtPQ6-BJbZ4StExKU-yHiVWVhXUsTk33nmbCiOZCauiVb8WD8gCKYqicAXrPte8N5atT21WSCIfoFDFwPp2ZRD5LrG6NWqZrIPIdObn72QlbnPLhURjtBH-GJgH5KXG9-xgdFOLm2UIwzn81dZAZB0GngxCgVOhQHJrKDg");'></div>
+<div class="hidden lg:flex flex-col">
+<span class="text-sm font-medium text-white">Alex Morgan</span>
+<span class="text-xs text-text-secondary">Sales Rep</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col h-screen min-w-0 relative">
+<!-- Top Header -->
+<header class="h-16 border-b border-border-dark bg-[#111318] flex items-center justify-between px-6 flex-shrink-0 z-10">
+<!-- Breadcrumbs reused styling -->
+<div class="flex items-center gap-2">
+<a class="text-text-secondary text-sm hover:text-white transition-colors" href="#">Contacts</a>
+<span class="text-text-secondary text-sm">/</span>
+<a class="text-text-secondary text-sm hover:text-white transition-colors" href="#">TechCorp Inc</a>
+<span class="text-text-secondary text-sm">/</span>
+<span class="text-white text-sm font-medium">Jane Doe</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center size-9 rounded-lg bg-border-dark text-white hover:bg-[#323946] transition-colors">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+<button class="flex items-center justify-center size-9 rounded-lg bg-border-dark text-white hover:bg-[#323946] transition-colors relative">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-border-dark"></span>
+</button>
+</div>
+</header>
+<!-- Content Grid -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Center Panel: Contact Details & Activity -->
+<main class="flex-1 overflow-y-auto p-6 md:p-8 bg-background-dark">
+<div class="max-w-4xl mx-auto">
+<!-- Contact Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+<div class="flex items-start gap-4">
+<div class="bg-center bg-no-repeat bg-cover rounded-xl size-16 md:size-20 shadow-lg" data-alt="Contact profile picture of Jane Doe" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDvCRHE3Q2U7Hk2C3gDjn_dXvahr4yn8b1QY9YMTpEgNWL-RGFWXUfAOtXUiQFctmE0Hx292uRic3IEV0W6cVmbxF-qbNTQ9Sr3eWTq2Ps1NTqNjEGV7C4SGLy4QHmlUPOHohYgYxWNRyZXOBy4WGJfO8W9zX2HLyRy1bcGO77MjCdpy3pjvr1FwCMXYww6_JKLz0JKcR03WcftUyOrd59vTzOdJHB3MQ3kG6NMNacfmmXOey5RZ2xCDoFt58PxamwupmKVDgKYrKQ");'></div>
+<div>
+<h1 class="text-white text-2xl md:text-3xl font-bold leading-tight">Jane Doe</h1>
+<h2 class="text-text-secondary text-base md:text-lg font-medium mt-1">VP of Engineering @ TechCorp Inc</h2>
+<div class="flex items-center gap-3 mt-3">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold uppercase tracking-wider">
+<span class="size-2 rounded-full bg-blue-500"></span>
+                                        Negotiation
+                                    </div>
+<span class="text-text-secondary text-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+                                        San Francisco, CA
+                                    </span>
+</div>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 rounded-lg bg-border-dark text-white text-sm font-medium hover:bg-[#323946] transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                                Edit
+                             </button>
+<button class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-600 transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/20">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+                                Email
+                             </button>
+</div>
+</div>
+<!-- Tabs -->
+<div class="flex border-b border-border-dark mb-6">
+<button class="px-4 py-2 border-b-2 border-primary text-primary font-medium text-sm">Activity</button>
+<button class="px-4 py-2 border-b-2 border-transparent text-text-secondary hover:text-white font-medium text-sm transition-colors">Details</button>
+<button class="px-4 py-2 border-b-2 border-transparent text-text-secondary hover:text-white font-medium text-sm transition-colors">Documents</button>
+<button class="px-4 py-2 border-b-2 border-transparent text-text-secondary hover:text-white font-medium text-sm transition-colors">Team</button>
+</div>
+<!-- Activity Feed Mockup -->
+<div class="relative pl-6 border-l border-border-dark space-y-8">
+<!-- Activity Item 1 -->
+<div class="relative group">
+<div class="absolute -left-[29px] top-1 size-7 rounded-full bg-border-dark border-4 border-background-dark flex items-center justify-center text-text-secondary group-hover:text-white group-hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-[14px]">mail</span>
+</div>
+<div class="bg-card-dark rounded-lg p-4 border border-border-dark hover:border-border-dark/80 transition-colors">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-white text-sm">Alex Morgan</span>
+<span class="text-text-secondary text-sm">emailed Jane Doe</span>
+</div>
+<span class="text-xs text-text-secondary">2 hours ago</span>
+</div>
+<p class="text-text-secondary text-sm mb-3">Re: Pricing discussion and next steps</p>
+<div class="bg-background-dark rounded p-3 text-xs text-text-secondary font-mono border border-border-dark/50">
+                                    Hi Jane, following up on our call. I've attached the updated proposal reflecting the enterprise discount...
+                                </div>
+</div>
+</div>
+<!-- Activity Item 2 -->
+<div class="relative group">
+<div class="absolute -left-[29px] top-1 size-7 rounded-full bg-border-dark border-4 border-background-dark flex items-center justify-center text-text-secondary group-hover:text-white group-hover:bg-amber-500 transition-colors">
+<span class="material-symbols-outlined text-[14px]">call</span>
+</div>
+<div class="bg-card-dark rounded-lg p-4 border border-border-dark hover:border-border-dark/80 transition-colors">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-white text-sm">Call Logged</span>
+<span class="text-text-secondary text-sm">by Alex Morgan</span>
+</div>
+<span class="text-xs text-text-secondary">Yesterday</span>
+</div>
+<div class="flex items-center gap-2 mb-2">
+<span class="text-xs font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">Objection Raised</span>
+<span class="text-xs font-semibold px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20">Pricing</span>
+</div>
+<p class="text-text-secondary text-sm">Client mentioned that our seat pricing is approx 15% higher than Competitor X. Need to justify value prop.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Right Panel: Playbooks Sidebar -->
+<aside class="w-96 border-l border-border-dark bg-[#161b22] flex flex-col flex-shrink-0 z-20 shadow-xl">
+<!-- Panel Header -->
+<div class="px-5 py-4 border-b border-border-dark flex items-center justify-between bg-[#161b22]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-500">menu_book</span>
+<h3 class="font-bold text-white text-base">Smart Playbooks</h3>
+</div>
+<button class="text-text-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Context Alert -->
+<div class="px-5 py-3 bg-blue-900/20 border-b border-blue-900/30 flex items-start gap-3">
+<span class="material-symbols-outlined text-blue-400 text-sm mt-0.5">auto_awesome</span>
+<div>
+<p class="text-xs text-blue-100 font-medium">Negotiation Stage Detected</p>
+<p class="text-[11px] text-blue-300/80 leading-snug mt-0.5">Showing playbooks relevant to closing deals and handling objections.</p>
+</div>
+</div>
+<!-- Filters & Search -->
+<div class="p-4 border-b border-border-dark space-y-3">
+<div class="relative">
+<span class="absolute left-3 top-2.5 text-text-secondary material-symbols-outlined text-[18px]">search</span>
+<input class="w-full bg-border-dark border-transparent rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-text-secondary focus:border-primary focus:ring-0 focus:bg-[#323946] transition-all" placeholder="Search playbooks..." type="text"/>
+</div>
+<div class="flex flex-wrap gap-2">
+<button class="px-2.5 py-1 rounded-full bg-primary/20 border border-primary text-xs text-primary font-medium hover:bg-primary/30 transition-colors">Stage: Negotiation</button>
+<button class="px-2.5 py-1 rounded-full bg-border-dark border border-border-dark text-xs text-text-secondary font-medium hover:text-white hover:bg-[#323946] transition-colors">Product: Enterprise</button>
+</div>
+</div>
+<!-- Playbook List -->
+<div class="flex-1 overflow-y-auto p-4 space-y-3">
+<!-- Card 1 -->
+<div class="group bg-card-dark rounded-lg p-3 border border-border-dark hover:border-primary/50 transition-all cursor-pointer shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
+<div class="pl-2">
+<div class="flex justify-between items-start mb-1">
+<h4 class="text-sm font-semibold text-white group-hover:text-primary transition-colors">Handling Price Objections</h4>
+<span class="material-symbols-outlined text-text-secondary hover:text-white text-[18px]">open_in_new</span>
+</div>
+<p class="text-xs text-text-secondary line-clamp-2 mb-3">Key strategies to pivot from cost to value when customers compare us with cheaper alternatives.</p>
+<div class="flex items-center justify-between mt-2">
+<div class="flex items-center gap-2">
+<span class="flex items-center gap-1 text-[10px] uppercase font-bold text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[12px]">verified</span> Verified
+                                    </span>
+<span class="text-[10px] text-text-secondary">2 min read</span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 transition-opacity bg-primary text-white text-xs px-2 py-1 rounded font-medium">
+                                    Quick View
+                                </button>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="group bg-card-dark rounded-lg p-3 border border-border-dark hover:border-primary/50 transition-all cursor-pointer shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+<div class="pl-2">
+<div class="flex justify-between items-start mb-1">
+<h4 class="text-sm font-semibold text-white group-hover:text-primary transition-colors">Competitor X Battlecard</h4>
+<span class="material-symbols-outlined text-text-secondary hover:text-white text-[18px]">open_in_new</span>
+</div>
+<p class="text-xs text-text-secondary line-clamp-2 mb-3">Feature-by-feature comparison highlighting our superior API stability and support SLAs.</p>
+<div class="flex items-center justify-between mt-2">
+<div class="flex items-center gap-2">
+<span class="flex items-center gap-1 text-[10px] uppercase font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                        Strategic
+                                    </span>
+<span class="text-[10px] text-text-secondary">5 min read</span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 transition-opacity bg-primary text-white text-xs px-2 py-1 rounded font-medium">
+                                    Quick View
+                                </button>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="group bg-card-dark rounded-lg p-3 border border-border-dark hover:border-primary/50 transition-all cursor-pointer shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
+<div class="pl-2">
+<div class="flex justify-between items-start mb-1">
+<h4 class="text-sm font-semibold text-white group-hover:text-primary transition-colors">Q3 Closing Discount Policy</h4>
+<span class="material-symbols-outlined text-text-secondary hover:text-white text-[18px]">open_in_new</span>
+</div>
+<p class="text-xs text-text-secondary line-clamp-2 mb-3">Updated approval matrix for discounts &gt; 15% before quarter end.</p>
+<div class="flex items-center justify-between mt-2">
+<div class="flex items-center gap-2">
+<span class="flex items-center gap-1 text-[10px] uppercase font-bold text-purple-500 bg-purple-500/10 px-1.5 py-0.5 rounded">
+                                        Internal
+                                    </span>
+<span class="text-[10px] text-text-secondary">1 min read</span>
+</div>
+<button class="opacity-0 group-hover:opacity-100 transition-opacity bg-primary text-white text-xs px-2 py-1 rounded font-medium">
+                                    Quick View
+                                </button>
+</div>
+</div>
+</div>
+<div class="pt-4 text-center">
+<button class="text-primary text-xs font-medium hover:underline flex items-center justify-center gap-1 w-full">
+                            View all in Knowledge Base
+                            <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</aside>
+</div>
+<!-- Quick View Modal (Overlay) -->
+<!-- This would typically be conditionally rendered or hidden. Showing it here to meet requirement "A Quick View Modal should open..." -->
+<div class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-4">
+<div class="bg-[#1e232d] w-full max-w-2xl rounded-xl shadow-2xl border border-border-dark flex flex-col max-h-[90vh]">
+<!-- Modal Header -->
+<div class="px-6 py-4 border-b border-border-dark flex items-center justify-between bg-[#1e232d] rounded-t-xl">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-green-500/10 rounded-lg text-green-500">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div>
+<h2 class="text-lg font-bold text-white">Handling Price Objections</h2>
+<div class="flex items-center gap-2 text-xs text-text-secondary">
+<span class="flex items-center gap-1 text-green-400 font-medium"><span class="material-symbols-outlined text-[12px] filled">check_circle</span> Verified</span>
+<span>•</span>
+<span>Updated 2 days ago</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-text-secondary hover:text-white hover:bg-border-dark rounded-lg transition-colors" title="Open in Full Page">
+<span class="material-symbols-outlined">open_in_new</span>
+</button>
+<button class="p-2 text-text-secondary hover:text-white hover:bg-border-dark rounded-lg transition-colors" title="Close">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</div>
+<!-- Modal Content -->
+<div class="overflow-y-auto p-6 space-y-6">
+<!-- Talk Track Section -->
+<section>
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-sm font-bold text-white uppercase tracking-wider">Talk Track</h3>
+<button class="text-primary text-xs font-medium hover:text-blue-400 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">content_copy</span> Copy
+                             </button>
+</div>
+<div class="bg-[#111318] p-4 rounded-lg border-l-4 border-primary text-white text-base leading-relaxed italic">
+                            "I completely understand that budget is a major factor in your decision. However, when we looked at the ROI analysis together, we saw that our solution saves your team approx <span class="text-blue-400 bg-blue-400/10 px-1 rounded font-semibold">[X hours]</span> per week. If we focus on the value of that time saved, the cost difference is often recovered within the first 3 months."
+                        </div>
+</section>
+<!-- Steps Section -->
+<section>
+<h3 class="text-sm font-bold text-white uppercase tracking-wider mb-3">Key Steps</h3>
+<div class="space-y-3">
+<div class="flex items-start gap-3">
+<div class="size-6 rounded-full bg-border-dark flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-0.5">1</div>
+<div>
+<p class="text-sm text-white font-medium">Acknowledge and Validate</p>
+<p class="text-sm text-text-secondary">Don't be defensive. Validate their concern about the price to build trust.</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<div class="size-6 rounded-full bg-border-dark flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-0.5">2</div>
+<div>
+<p class="text-sm text-white font-medium">Isolate the Objection</p>
+<p class="text-sm text-text-secondary">Ask: "Is price the only thing holding us back from moving forward?"</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<div class="size-6 rounded-full bg-border-dark flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-0.5">3</div>
+<div>
+<p class="text-sm text-white font-medium">Pivot to Value</p>
+<p class="text-sm text-text-secondary">Re-anchor the conversation on the problems you are solving, not the line item cost.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Related Resources -->
+<section>
+<h3 class="text-sm font-bold text-white uppercase tracking-wider mb-3">Related Resources</h3>
+<div class="grid grid-cols-2 gap-3">
+<a class="flex items-center gap-2 p-2 rounded hover:bg-border-dark transition-colors border border-transparent hover:border-border-dark" href="#">
+<span class="material-symbols-outlined text-red-400">picture_as_pdf</span>
+<span class="text-sm text-blue-400 hover:underline">ROI_Calculator_Template.pdf</span>
+</a>
+<a class="flex items-center gap-2 p-2 rounded hover:bg-border-dark transition-colors border border-transparent hover:border-border-dark" href="#">
+<span class="material-symbols-outlined text-amber-400">slideshow</span>
+<span class="text-sm text-blue-400 hover:underline">Pricing_Deck_v4.pptx</span>
+</a>
+</div>
+</section>
+</div>
+<!-- Modal Footer -->
+<div class="p-4 border-t border-border-dark bg-[#161b22] rounded-b-xl flex justify-end gap-3">
+<button class="px-4 py-2 rounded-lg border border-border-dark text-white text-sm font-medium hover:bg-border-dark transition-colors">Close</button>
+<button class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-600 transition-colors shadow-lg shadow-blue-900/20">Mark as Used</button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

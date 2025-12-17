@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-42 Territory Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111318",
+                        "card-dark": "#1c212c",
+                        "border-dark": "#2d3544",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #2d3544;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+        /* Map specific styles for visualization */
+        .map-region {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .map-region:hover {
+            filter: brightness(1.2);
+            transform: scale(1.01);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-hidden h-screen flex flex-col">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-border-dark px-6 py-3 bg-white dark:bg-[#161b26] shrink-0">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">grid_view</span>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-tight">CRM-42 Territory Management</h2>
+</div>
+<div class="h-6 w-px bg-slate-300 dark:bg-border-dark"></div>
+<nav class="flex items-center gap-1">
+<a class="px-3 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="px-3 py-2 text-sm font-bold text-primary bg-primary/10 rounded-md" href="#">Territories</a>
+<a class="px-3 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary transition-colors" href="#">Accounts</a>
+<a class="px-3 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary transition-colors" href="#">Opportunities</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</span>
+<input class="block w-64 rounded-lg border border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-[#1c212c] py-2 pl-10 pr-3 text-sm placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm" placeholder="Search territories..." type="text"/>
+</div>
+<button class="relative rounded-full p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#161b26]"></span>
+</button>
+<div class="size-8 rounded-full bg-gradient-to-tr from-primary to-purple-500 border-2 border-white dark:border-[#161b26]" data-alt="User avatar gradient"></div>
+</div>
+</header>
+<!-- Toolbar & Filters -->
+<div class="flex items-center justify-between px-6 py-4 bg-white dark:bg-background-dark shrink-0 gap-4 flex-wrap border-b border-slate-200 dark:border-border-dark z-10">
+<div class="flex items-center gap-4 flex-1 min-w-0">
+<!-- View Segmented Control -->
+<div class="flex bg-slate-100 dark:bg-card-dark rounded-lg p-1 border border-slate-200 dark:border-border-dark shrink-0">
+<button class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-primary shadow-sm rounded-md text-xs font-semibold text-slate-900 dark:text-white transition-all">
+<span class="material-symbols-outlined text-[16px]">map</span>
+                    Map View
+                </button>
+<button class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all">
+<span class="material-symbols-outlined text-[16px]">list</span>
+                    List View
+                </button>
+<button class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all">
+<span class="material-symbols-outlined text-[16px]">monitoring</span>
+                    Performance
+                </button>
+</div>
+<div class="h-6 w-px bg-slate-300 dark:bg-border-dark hidden md:block"></div>
+<!-- Filters -->
+<div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-border-dark bg-white dark:bg-transparent text-xs font-medium hover:bg-slate-50 dark:hover:bg-white/5 whitespace-nowrap">
+<span class="material-symbols-outlined text-[16px]">filter_list</span>
+                    Filter
+                </button>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-border-dark text-slate-500 dark:text-slate-400 text-xs hover:border-primary hover:text-primary transition-colors whitespace-nowrap">
+<span class="material-symbols-outlined text-[16px] filled">add</span>
+                    Region: All
+                </button>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-border-dark text-slate-500 dark:text-slate-400 text-xs hover:border-primary hover:text-primary transition-colors whitespace-nowrap">
+<span class="material-symbols-outlined text-[16px] filled">add</span>
+                    Industry: Tech
+                </button>
+</div>
+</div>
+<!-- Primary Actions -->
+<div class="flex items-center gap-3 shrink-0">
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-semibold hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">
+<span class="material-symbols-outlined text-[18px]">auto_fix_high</span>
+                AI Balance Territories
+            </button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-card-dark border border-border-dark text-white text-sm font-semibold hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-[18px]">swap_horiz</span>
+                Reassign
+            </button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-blue-600 transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                Create Territory
+            </button>
+</div>
+</div>
+<!-- Main Content Area -->
+<main class="flex-1 flex overflow-hidden relative">
+<!-- Sidebar / Table Panel (Collapsible) -->
+<div class="w-[420px] bg-white dark:bg-card-dark border-r border-slate-200 dark:border-border-dark flex flex-col z-20 shrink-0 shadow-xl overflow-hidden">
+<div class="p-4 border-b border-slate-200 dark:border-border-dark flex items-center justify-between bg-slate-50 dark:bg-[#1f2633]">
+<h3 class="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Coverage Analysis</h3>
+<span class="text-xs text-slate-500 dark:text-slate-400">Last updated: 2m ago</span>
+</div>
+<!-- Stats Summary -->
+<div class="grid grid-cols-2 gap-px bg-slate-200 dark:bg-border-dark border-b border-slate-200 dark:border-border-dark">
+<div class="bg-white dark:bg-card-dark p-4">
+<p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Total Pipeline</p>
+<p class="text-xl font-bold text-slate-900 dark:text-white">$142.5M</p>
+<div class="flex items-center gap-1 text-xs text-emerald-500 mt-1">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span>+12.5%</span>
+</div>
+</div>
+<div class="bg-white dark:bg-card-dark p-4">
+<p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Coverage Ratio</p>
+<p class="text-xl font-bold text-slate-900 dark:text-white">88.4%</p>
+<div class="flex items-center gap-1 text-xs text-amber-500 mt-1">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+<span>3 areas at risk</span>
+</div>
+</div>
+</div>
+<!-- Table List -->
+<div class="flex-1 overflow-y-auto custom-scrollbar p-0">
+<table class="w-full text-left border-collapse">
+<thead class="bg-slate-50 dark:bg-[#161b26] sticky top-0 z-10">
+<tr>
+<th class="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-border-dark">Territory / Rep</th>
+<th class="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-border-dark text-right">Coverage</th>
+<th class="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-border-dark text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-border-dark/50">
+<!-- Row 1: Healthy -->
+<tr class="group hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors">
+<td class="py-3 px-4">
+<div class="flex flex-col">
+<span class="font-medium text-sm text-slate-900 dark:text-white">North East Enterprise</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<div class="size-4 rounded-full bg-blue-500" data-alt="avatar"></div>
+<span class="text-xs text-slate-500 dark:text-slate-400">Sarah Jenkins</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<div class="text-sm font-medium text-slate-900 dark:text-white">94%</div>
+<div class="text-xs text-slate-500 dark:text-slate-400">SAM: $42M</div>
+</td>
+<td class="py-3 px-4 text-right">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium border border-emerald-500/20">
+                                    On Track
+                                </span>
+</td>
+</tr>
+<!-- Row 2: Warning -->
+<tr class="group hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors bg-amber-500/5">
+<td class="py-3 px-4">
+<div class="flex flex-col">
+<span class="font-medium text-sm text-slate-900 dark:text-white">West Coast SMB</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<div class="size-4 rounded-full bg-purple-500" data-alt="avatar"></div>
+<span class="text-xs text-slate-500 dark:text-slate-400">Marcus Chen</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<div class="text-sm font-medium text-slate-900 dark:text-white">72%</div>
+<div class="text-xs text-slate-500 dark:text-slate-400">SAM: $28M</div>
+</td>
+<td class="py-3 px-4 text-right">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-xs font-medium border border-amber-500/20">
+                                    At Risk
+                                </span>
+</td>
+</tr>
+<!-- Row 3: Error/Behind -->
+<tr class="group hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors">
+<td class="py-3 px-4">
+<div class="flex flex-col">
+<span class="font-medium text-sm text-slate-900 dark:text-white">Central Market</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<div class="size-4 rounded-full bg-orange-500" data-alt="avatar"></div>
+<span class="text-xs text-slate-500 dark:text-slate-400">Unassigned</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<div class="text-sm font-medium text-slate-900 dark:text-white">45%</div>
+<div class="text-xs text-slate-500 dark:text-slate-400">SAM: $55M</div>
+</td>
+<td class="py-3 px-4 text-right">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 text-xs font-medium border border-red-500/20">
+                                    Behind
+                                </span>
+</td>
+</tr>
+<!-- Row 4: Healthy -->
+<tr class="group hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors">
+<td class="py-3 px-4">
+<div class="flex flex-col">
+<span class="font-medium text-sm text-slate-900 dark:text-white">EMEA North</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<div class="size-4 rounded-full bg-green-500" data-alt="avatar"></div>
+<span class="text-xs text-slate-500 dark:text-slate-400">Lara Kline</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-4 text-right">
+<div class="text-sm font-medium text-slate-900 dark:text-white">98%</div>
+<div class="text-xs text-slate-500 dark:text-slate-400">SAM: $102M</div>
+</td>
+<td class="py-3 px-4 text-right">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium border border-emerald-500/20">
+                                    On Track
+                                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-[#1f2633]">
+<button class="w-full py-2 px-4 border border-dashed border-slate-300 dark:border-border-dark rounded-lg text-slate-500 dark:text-slate-400 text-sm font-medium hover:text-primary hover:border-primary transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">download</span>
+                    Export Coverage Report
+                </button>
+</div>
+</div>
+<!-- Interactive Map Container -->
+<div class="flex-1 bg-[#111318] relative overflow-hidden group">
+<!-- Simulated Map Background -->
+<div class="absolute inset-0 bg-cover bg-center opacity-40 grayscale-[20%]" data-alt="Abstract dark map of the United States" data-location="USA" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAXGUj88fBzeAJuSwMGgLlRxfd7ZVt4jB-7w8WLU8mJQvEyuM7IDpQRDPiNHCF9E2bRWO3x58WY3mTEoMhXN7RgRRmJDJYCM6v0W8ACW8tYR__RTK04gRtXZfUXMhj-fdIY8HK87QMI56qqfIn6jFWlAV9WVyT9cE80FVEqgDX83Ho3lIKmcJtmBeZq6A8cL6i-RNXY-BRoJ3UzPgKRnefPtaWbmDUOY-G2t9DPGMfVsqD9xcXOpZKJONF4Hia1ukCGIroE30dhzY0');"></div>
+<!-- Map Overlay Controls -->
+<div class="absolute top-4 right-4 flex flex-col gap-2">
+<button class="size-10 flex items-center justify-center rounded-lg bg-white dark:bg-card-dark shadow-lg text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-white/10">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="size-10 flex items-center justify-center rounded-lg bg-white dark:bg-card-dark shadow-lg text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-white/10">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<div class="h-px w-6 bg-slate-300 dark:bg-border-dark mx-auto my-1"></div>
+<button class="size-10 flex items-center justify-center rounded-lg bg-white dark:bg-card-dark shadow-lg text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-white/10">
+<span class="material-symbols-outlined">my_location</span>
+</button>
+</div>
+<!-- Map Interactive Elements (Simulated SVG Overlay) -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<svg class="w-full h-full" height="100%" preserveaspectratio="xMidYMid slice" viewbox="0 0 800 500" width="100%">
+<!-- West Coast Region -->
+<path class="pointer-events-auto map-region cursor-pointer" d="M 150 150 L 250 120 L 280 250 L 180 300 Z" fill="rgba(245, 158, 11, 0.2)" stroke="#F59E0B" stroke-width="2"></path>
+<foreignobject class="pointer-events-none" height="60" width="120" x="180" y="200">
+<div class="flex flex-col items-center" xmlns="http://www.w3.org/1999/xhtml">
+<div class="bg-amber-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg backdrop-blur-sm">West Coast</div>
+<div class="mt-1 bg-black/80 text-amber-500 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-500/30">⚠ At Risk</div>
+</div>
+</foreignobject>
+<!-- North East Region -->
+<path class="pointer-events-auto map-region cursor-pointer" d="M 500 100 L 650 80 L 680 200 L 550 220 Z" fill="rgba(34, 197, 94, 0.2)" stroke="#22C55E" stroke-width="2"></path>
+<foreignobject class="pointer-events-none" height="60" width="120" x="560" y="140">
+<div class="flex flex-col items-center" xmlns="http://www.w3.org/1999/xhtml">
+<div class="bg-emerald-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg backdrop-blur-sm">North East</div>
+<div class="mt-1 bg-black/80 text-emerald-500 text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-500/30">94% Health</div>
+</div>
+</foreignobject>
+<!-- Central Region (Problem) -->
+<path class="pointer-events-auto map-region cursor-pointer" d="M 300 200 L 480 180 L 450 350 L 320 320 Z" fill="rgba(239, 68, 68, 0.2)" stroke="#EF4444" stroke-width="2"></path>
+<foreignobject class="pointer-events-none" height="60" width="120" x="360" y="250">
+<div class="flex flex-col items-center" xmlns="http://www.w3.org/1999/xhtml">
+<div class="bg-red-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg backdrop-blur-sm">Central</div>
+<div class="mt-1 bg-black/80 text-red-500 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500/30">Unassigned</div>
+</div>
+</foreignobject>
+</svg>
+</div>
+<!-- Map Legend -->
+<div class="absolute bottom-6 right-6 bg-white dark:bg-card-dark p-3 rounded-lg shadow-xl border border-slate-200 dark:border-border-dark/60 backdrop-blur-sm dark:bg-card-dark/90">
+<p class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Health Score</p>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<div class="size-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+<span class="text-xs text-slate-700 dark:text-slate-300">On Track (&gt;90%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></div>
+<span class="text-xs text-slate-700 dark:text-slate-300">At Risk (70-90%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+<span class="text-xs text-slate-700 dark:text-slate-300">Behind (&lt;70%)</span>
+</div>
+</div>
+</div>
+<!-- Territory Assignment Modal (Overlay) -->
+<!-- Positioning it here to show it exists as per prompt, but maybe styled as if it's open or about to open. I'll center it for demo purposes -->
+<div class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+<div class="bg-white dark:bg-[#161b26] rounded-xl shadow-2xl w-full max-w-2xl border border-slate-200 dark:border-border-dark flex flex-col max-h-[90vh]">
+<!-- Modal Header -->
+<div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-border-dark">
+<div>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white">Edit Territory: North East Enterprise</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400">Modify rules, assignments and quotas.</p>
+</div>
+<button class="text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Modal Content -->
+<div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+<div class="grid grid-cols-2 gap-6 mb-6">
+<div class="col-span-2">
+<label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Territory Name</label>
+<input class="w-full rounded-lg bg-slate-50 dark:bg-[#1c212c] border-slate-300 dark:border-border-dark text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-primary focus:border-primary" type="text" value="North East Enterprise"/>
+</div>
+<div>
+<label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Assigned Rep</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<div class="size-4 rounded-full bg-blue-500"></div>
+</div>
+<select class="w-full rounded-lg bg-slate-50 dark:bg-[#1c212c] border-slate-300 dark:border-border-dark text-slate-900 dark:text-white pl-9 pr-3 py-2 text-sm focus:ring-primary focus:border-primary appearance-none">
+<option>Sarah Jenkins</option>
+<option>Marcus Chen</option>
+</select>
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 text-[18px]">expand_more</span>
+</div>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Quota Target</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                                        $
+                                    </div>
+<input class="w-full rounded-lg bg-slate-50 dark:bg-[#1c212c] border-slate-300 dark:border-border-dark text-slate-900 dark:text-white pl-7 pr-3 py-2 text-sm focus:ring-primary focus:border-primary" type="text" value="4,200,000"/>
+</div>
+</div>
+</div>
+<!-- Rules Builder -->
+<div class="mb-6">
+<div class="flex items-center justify-between mb-2">
+<label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Assignment Rules</label>
+<button class="text-primary text-xs font-semibold hover:underline">+ Add Rule</button>
+</div>
+<div class="bg-slate-50 dark:bg-[#1c212c] rounded-lg p-3 border border-slate-200 dark:border-border-dark space-y-3">
+<div class="flex items-center gap-2">
+<span class="bg-slate-200 dark:bg-border-dark text-xs px-2 py-1 rounded text-slate-600 dark:text-slate-300 font-mono">IF</span>
+<select class="bg-white dark:bg-[#111318] border border-slate-300 dark:border-border-dark rounded text-xs py-1 px-2 text-slate-700 dark:text-white">
+<option>State</option>
+</select>
+<span class="text-xs text-slate-400">IS ANY OF</span>
+<div class="flex-1 bg-white dark:bg-[#111318] border border-slate-300 dark:border-border-dark rounded px-2 py-1 text-xs text-slate-700 dark:text-white flex gap-1 flex-wrap">
+<span class="bg-primary/20 text-primary px-1 rounded">NY</span>
+<span class="bg-primary/20 text-primary px-1 rounded">MA</span>
+<span class="bg-primary/20 text-primary px-1 rounded">CT</span>
+</div>
+<button class="text-slate-400 hover:text-red-500"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</div>
+<div class="flex items-center gap-2">
+<span class="bg-slate-200 dark:bg-border-dark text-xs px-2 py-1 rounded text-slate-600 dark:text-slate-300 font-mono">AND</span>
+<select class="bg-white dark:bg-[#111318] border border-slate-300 dark:border-border-dark rounded text-xs py-1 px-2 text-slate-700 dark:text-white">
+<option>Revenue</option>
+</select>
+<span class="text-xs text-slate-400">GREATER THAN</span>
+<input class="w-32 bg-white dark:bg-[#111318] border border-slate-300 dark:border-border-dark rounded px-2 py-1 text-xs text-slate-700 dark:text-white" type="text" value="5000000"/>
+<button class="text-slate-400 hover:text-red-500"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+</div>
+</div>
+</div>
+<!-- Accounts Preview -->
+<div>
+<label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Matched Accounts Preview (142)</label>
+<div class="border border-slate-200 dark:border-border-dark rounded-lg overflow-hidden">
+<table class="w-full text-left text-xs">
+<thead class="bg-slate-50 dark:bg-border-dark/50 text-slate-500 dark:text-slate-400">
+<tr>
+<th class="px-3 py-2 font-medium">Account Name</th>
+<th class="px-3 py-2 font-medium">Location</th>
+<th class="px-3 py-2 font-medium">Revenue</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-border-dark/30 bg-white dark:bg-[#1c212c] text-slate-700 dark:text-slate-300">
+<tr>
+<td class="px-3 py-2">Acme Corp</td>
+<td class="px-3 py-2">New York, NY</td>
+<td class="px-3 py-2">$12.5M</td>
+</tr>
+<tr>
+<td class="px-3 py-2">Stark Industries</td>
+<td class="px-3 py-2">Boston, MA</td>
+<td class="px-3 py-2">$85.0M</td>
+</tr>
+<tr>
+<td class="px-3 py-2">Wayne Ent.</td>
+<td class="px-3 py-2">Stamford, CT</td>
+<td class="px-3 py-2">$42.1M</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="p-5 border-t border-slate-200 dark:border-border-dark flex justify-end gap-3 bg-slate-50 dark:bg-[#1f2633] rounded-b-xl">
+<button class="px-4 py-2 rounded-lg border border-slate-300 dark:border-border-dark text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-white dark:hover:bg-white/5 transition-colors">Cancel</button>
+<button class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-blue-600 transition-colors">Save Changes</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

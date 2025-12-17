@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Enrichment Settings - HYVVE CRM</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#111318] dark:text-white antialiased overflow-x-hidden">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root">
+<!-- Top Navigation -->
+<div class="w-full bg-white dark:bg-[#1a202c] border-b border-[#f0f2f4] dark:border-[#2d3748]">
+<div class="layout-container flex h-full grow flex-col max-w-[1200px] mx-auto">
+<header class="flex items-center justify-between whitespace-nowrap px-6 py-4">
+<div class="flex items-center gap-4 text-[#111318] dark:text-white">
+<div class="size-8 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">hexagon</span>
+</div>
+<h2 class="text-[#111318] dark:text-white text-xl font-bold leading-tight tracking-[-0.015em]">HYVVE CRM</h2>
+</div>
+<div class="flex flex-1 justify-end gap-6">
+<div class="flex gap-3">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-6 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors hover:bg-blue-700">
+<span class="truncate">Save Changes</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-6 bg-[#f0f2f4] dark:bg-[#2d3748] text-[#111318] dark:text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors hover:bg-[#e2e8f0] dark:hover:bg-[#4a5568]">
+<span class="truncate">Cancel</span>
+</button>
+</div>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 ring-2 ring-white dark:ring-gray-700 cursor-pointer" data-alt="User profile avatar image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCot1lIiIc_ApTnKuMK2PiKs56812Fsy1RjpuaYoyQO1KVmp9IXZtHdr3GEqPwRYHeNgXiCL4m9mmEdShcBXYfilfKf0EjqvE210UIlYW47lIEFh1gsagplJ5z3SKRWWNWPZDJC5_DGzO9e30QOAO1cWyoBh_-iYxveISRCDakKlWFbPZoEPvq3hC55yK9QmeYVdi5aj40rdaLodWUyQv0pS5_VlYDLqlz8aJmiEtzXAP3Y-jf60zeUh3tZQYbLWKMBXnJYJ0XJBME");'></div>
+</div>
+</header>
+</div>
+</div>
+<!-- Main Content Area -->
+<main class="flex-1 flex justify-center py-8 px-6">
+<div class="w-full max-w-[1080px] flex flex-col gap-8">
+<!-- Breadcrumbs -->
+<nav class="flex flex-wrap gap-2 items-center">
+<a class="text-[#616f89] dark:text-gray-400 text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Settings</a>
+<span class="material-symbols-outlined text-[#616f89] dark:text-gray-400 text-sm">chevron_right</span>
+<span class="text-[#111318] dark:text-white text-sm font-medium leading-normal">Enrichment</span>
+</nav>
+<!-- Page Header -->
+<div class="flex flex-col gap-2">
+<h1 class="text-[#111318] dark:text-white text-3xl font-black leading-tight tracking-[-0.033em]">Enrichment Settings</h1>
+<p class="text-[#616f89] dark:text-gray-400 text-base font-normal leading-normal max-w-2xl">Configure data providers, manage your enrichment budget, and set automation rules for your CRM agents.</p>
+</div>
+<!-- Main Layout Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- Left Column: Provider Waterfall (Takes up 7 cols) -->
+<div class="lg:col-span-7 flex flex-col gap-6">
+<!-- Waterfall Card -->
+<div class="bg-white dark:bg-[#1a202c] rounded-xl shadow-sm border border-[#e2e8f0] dark:border-[#2d3748] overflow-hidden">
+<div class="px-6 py-5 border-b border-[#e2e8f0] dark:border-[#2d3748] flex justify-between items-center">
+<div>
+<h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight">Provider Waterfall</h2>
+<p class="text-[#616f89] dark:text-gray-400 text-sm mt-1">Drag to reorder priority. Top providers are queried first.</p>
+</div>
+<div class="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 p-2 rounded-lg flex items-center justify-center" title="Managed by Atlas (Enricher)">
+<span class="material-symbols-outlined text-xl">database</span>
+</div>
+</div>
+<div class="p-2 flex flex-col gap-1">
+<!-- Provider Item 1 -->
+<div class="group flex items-center justify-between p-3 rounded-lg hover:bg-background-light dark:hover:bg-[#2d3748] transition-colors cursor-grab active:cursor-grabbing border border-transparent hover:border-gray-200 dark:hover:border-gray-600">
+<div class="flex items-center gap-4">
+<div class="text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300">
+<span class="material-symbols-outlined">drag_indicator</span>
+</div>
+<div class="size-10 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 flex items-center justify-center p-1">
+<img class="w-full h-full object-contain opacity-90" data-alt="Apollo.io logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIvPjwvc3ZnPg=='" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCudOSeyUEtOH9wdNd0gTLkaLRwl_afCzO3EEsbap6em90jVSUCVzYgPm8eLtmmBK16WWrnxHzhculG7LOewDxAR-YLZSMoks9uIhN5h37szCK006vWGX364govOVizAhzvRoLuKcOZb-Crp-xGkLG1dOFzOG3858S3qGlGnFpurF9y5lI8NKBLYLQHBX0XZqHusMfoEfbUsBqNboXOcIp_zKo7gjFc0N-t436N3biAiMtUzHqbfwgx1Zn5pzruzA-FfhhRbCp_x3E"/>
+</div>
+<div>
+<p class="text-[#111318] dark:text-white font-semibold text-sm">Apollo.io</p>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 mt-0.5">
+                                                Active
+                                            </span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 dark:peer-focus:ring-primary/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<!-- Provider Item 2 -->
+<div class="group flex items-center justify-between p-3 rounded-lg hover:bg-background-light dark:hover:bg-[#2d3748] transition-colors cursor-grab active:cursor-grabbing border border-transparent hover:border-gray-200 dark:hover:border-gray-600">
+<div class="flex items-center gap-4">
+<div class="text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300">
+<span class="material-symbols-outlined">drag_indicator</span>
+</div>
+<div class="size-10 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 flex items-center justify-center p-1">
+<img class="w-full h-full object-contain opacity-90" data-alt="Clearbit logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMyAzbDcuMDcgMTYuOTdMMTIuMTIgMjFsMi4xMi03LjA3TDIxIDNsLTcuMDcgMi4xMkwxMiAzbC0yLjEyIDIuMTJ6Ii8+PC9zdmc+'" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF2SUZIfy1Mhtc3_B_db7ufFJX2NeIIPex3zRCgN0CLUiMH_bBm_AbPcxvGE_lHmDS60xyxHbmRkhoBwyVKqHD9ecneQ-7p5cEoe5raUjL-8rzAHI5_Z11VHaTyJ5QQzpWMTmTZjUriHz8TueerceAmsWs_U3XWsfZkNec-Z7i3UoHFQmyih9QStO8vYprnu3hghJe6PmmtlyY_7uS5wEp7pdeg3gb_cWL-9BvLra7p-7rk1fjXZ6nwaJZuOCHYKFDpW185T8Kh7g"/>
+</div>
+<div>
+<p class="text-[#111318] dark:text-white font-semibold text-sm">Clearbit</p>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 mt-0.5">
+                                                Active
+                                            </span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 dark:peer-focus:ring-primary/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<!-- Provider Item 3 -->
+<div class="group flex items-center justify-between p-3 rounded-lg hover:bg-background-light dark:hover:bg-[#2d3748] transition-colors cursor-grab active:cursor-grabbing border border-transparent hover:border-gray-200 dark:hover:border-gray-600">
+<div class="flex items-center gap-4">
+<div class="text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300">
+<span class="material-symbols-outlined">drag_indicator</span>
+</div>
+<div class="size-10 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 flex items-center justify-center p-1">
+<img class="w-full h-full object-contain opacity-90" data-alt="Hunter logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIvPjxwYXRoIGQ9Ik04IDE0czEuNSAyIDQgMiA0LTIgNC0yIi8+PHBhdGggZD0iTTkgOWguMDEiLz48cGF0aCBkPSJNMTUgOWguMDEiLz48L3N2Zz4='" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDP6e4eqWFfuEVLchsieqhXb04ZlaUEHj9LsMO7MCbPm_OXTkD4YeiJDM39dtcpi8FjfKCldeMxdAkVLgh1-e-7uTF1LSiFtZu_MthtWqMG9FKMuGhz3DRUAy1CHnLrK77F88FwdqV5DSfAggMo6JdAS0utqSJP4fvHMsPiv4g0qOb5JBMFhbyrWnRw8ltm4DeN4xFITSV9hsDa1eKnnnfIaopmkyyAIVQpPOngjUUavyA6eWtkBNvlCyrHAng20bV5x1s5bBvzh1M"/>
+</div>
+<div>
+<p class="text-[#111318] dark:text-white font-semibold text-sm">Hunter</p>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mt-0.5">
+                                                Paused
+                                            </span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 dark:peer-focus:ring-primary/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<!-- Provider Item 4 -->
+<div class="group flex items-center justify-between p-3 rounded-lg hover:bg-background-light dark:hover:bg-[#2d3748] transition-colors cursor-grab active:cursor-grabbing border border-transparent hover:border-gray-200 dark:hover:border-gray-600">
+<div class="flex items-center gap-4">
+<div class="text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300">
+<span class="material-symbols-outlined">drag_indicator</span>
+</div>
+<div class="size-10 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 flex items-center justify-center p-1">
+<img class="w-full h-full object-contain opacity-90" data-alt="ZoomInfo logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBIM3oiLz48cGF0aCBkPSJNMjEgNkgzIi8+PHBhdGggZD0iTTIxIDE0SDN6Ii8+PHBhdGggZD0iTTIxIDE4SDN6Ii8+PC9zdmc+'" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCcW2XFPupT0ubkj2HKv3JzlvXuFAIzMlgOXEmGTgXog0sBkArPBap2IyoCTICGko0wVF349VBGx764QlrSuJvCE7bHpyF9NR_i0UY-7j2XAPmhbrUmT1DbIWPpZbonuqDMJyWO3At0nd__5PKWv-6iAOEJ29b2Dj-BPKewFaJwhIzGZIm444Pt1OpCO6Fg7AVdw5S3GqZf5L7m3fhpkZEp3OEHutbLWAqPtgcnet7qWSIk5w_c56LGqnIkZBbw5Hbyn34CEwlocNQ"/>
+</div>
+<div>
+<p class="text-[#111318] dark:text-white font-semibold text-sm">ZoomInfo</p>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mt-0.5">
+                                                Paused
+                                            </span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 dark:peer-focus:ring-primary/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</div>
+</div>
+<!-- Auto-Enrichment Rules Card -->
+<div class="bg-white dark:bg-[#1a202c] rounded-xl shadow-sm border border-[#e2e8f0] dark:border-[#2d3748] overflow-hidden">
+<div class="px-6 py-5 border-b border-[#e2e8f0] dark:border-[#2d3748] flex justify-between items-center">
+<div>
+<h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight">Auto-Enrichment Rules</h2>
+<p class="text-[#616f89] dark:text-gray-400 text-sm mt-1">Configure when enrichment should run automatically.</p>
+</div>
+<div class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 p-2 rounded-lg flex items-center justify-center" title="Managed by Scout (Scorer)">
+<span class="material-symbols-outlined text-xl">bolt</span>
+</div>
+</div>
+<div class="p-6 flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<p class="text-[#111318] dark:text-white font-semibold">Enrich new contacts</p>
+<p class="text-[#616f89] dark:text-gray-400 text-sm">Automatically find data for new contacts added to CRM.</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 dark:peer-focus:ring-primary/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="w-full h-px bg-[#f0f2f4] dark:bg-gray-700"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<p class="text-[#111318] dark:text-white font-semibold">Enrich companies</p>
+<p class="text-[#616f89] dark:text-gray-400 text-sm">Fetch firmographic data when a new company is created.</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 dark:peer-focus:ring-primary/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Budget & Alerts (Takes up 5 cols) -->
+<div class="lg:col-span-5 flex flex-col gap-6">
+<!-- Budget Control Card -->
+<div class="bg-white dark:bg-[#1a202c] rounded-xl shadow-sm border border-[#e2e8f0] dark:border-[#2d3748] overflow-hidden">
+<div class="px-6 py-5 border-b border-[#e2e8f0] dark:border-[#2d3748] flex justify-between items-center">
+<div>
+<h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight">Budget Control</h2>
+<p class="text-[#616f89] dark:text-gray-400 text-sm mt-1">Manage monthly spending limits.</p>
+</div>
+<div class="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 p-2 rounded-lg flex items-center justify-center" title="Managed by Echo (Tracker)">
+<span class="material-symbols-outlined text-xl">payments</span>
+</div>
+</div>
+<div class="p-6 flex flex-col gap-6">
+<!-- Usage Bar -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-end">
+<span class="text-sm font-semibold text-[#616f89] dark:text-gray-400">Current Usage</span>
+<span class="text-sm font-bold text-[#111318] dark:text-white">
+<span class="text-primary text-base">$32.45</span> / $50.00
+                                        </span>
+</div>
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+<div class="bg-primary h-3 rounded-full" style="width: 65%"></div>
+</div>
+<p class="text-xs text-[#616f89] dark:text-gray-500 text-right">Resets on Nov 1, 2023</p>
+</div>
+<!-- Monthly Limit Input -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-[#111318] dark:text-white">Monthly Limit ($)</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="text-gray-500 sm:text-sm">$</span>
+</div>
+<input class="block w-full pl-7 pr-12 sm:text-sm border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary focus:border-primary dark:bg-[#101622] dark:text-white h-10" id="budget" name="budget" placeholder="0.00" type="number" value="50.00"/>
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+<span class="text-gray-500 sm:text-sm">USD</span>
+</div>
+</div>
+</div>
+<!-- Cost Breakdown Table -->
+<div class="border rounded-lg border-[#e2e8f0] dark:border-[#2d3748] overflow-hidden">
+<table class="min-w-full divide-y divide-[#e2e8f0] dark:divide-[#2d3748]">
+<thead class="bg-gray-50 dark:bg-[#2d3748]">
+<tr>
+<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" scope="col">Provider</th>
+<th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" scope="col">Cost</th>
+</tr>
+</thead>
+<tbody class="bg-white dark:bg-[#1a202c] divide-y divide-[#e2e8f0] dark:divide-[#2d3748]">
+<tr>
+<td class="px-4 py-2 whitespace-nowrap text-sm text-[#111318] dark:text-white">Apollo.io</td>
+<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right">$12.00</td>
+</tr>
+<tr>
+<td class="px-4 py-2 whitespace-nowrap text-sm text-[#111318] dark:text-white">Clearbit</td>
+<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right">$20.45</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Alert Thresholds Card -->
+<div class="bg-white dark:bg-[#1a202c] rounded-xl shadow-sm border border-[#e2e8f0] dark:border-[#2d3748] overflow-hidden">
+<div class="px-6 py-5 border-b border-[#e2e8f0] dark:border-[#2d3748]">
+<h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight">Alert Thresholds</h2>
+<p class="text-[#616f89] dark:text-gray-400 text-sm mt-1">Set notifications for budget milestones.</p>
+</div>
+<div class="p-6 flex flex-col gap-5">
+<div class="flex flex-col gap-3">
+<span class="text-sm font-semibold text-[#111318] dark:text-white">Notify me at usage:</span>
+<div class="flex gap-3">
+<label class="inline-flex items-center cursor-pointer">
+<input checked="" class="rounded text-primary focus:ring-primary h-5 w-5 border-gray-300 dark:border-gray-600 dark:bg-gray-800" type="checkbox"/>
+<span class="ml-2 text-sm text-gray-700 dark:text-gray-300">50%</span>
+</label>
+<label class="inline-flex items-center cursor-pointer">
+<input checked="" class="rounded text-primary focus:ring-primary h-5 w-5 border-gray-300 dark:border-gray-600 dark:bg-gray-800" type="checkbox"/>
+<span class="ml-2 text-sm text-gray-700 dark:text-gray-300">75%</span>
+</label>
+<label class="inline-flex items-center cursor-pointer">
+<input class="rounded text-primary focus:ring-primary h-5 w-5 border-gray-300 dark:border-gray-600 dark:bg-gray-800" type="checkbox"/>
+<span class="ml-2 text-sm text-gray-700 dark:text-gray-300">90%</span>
+</label>
+</div>
+</div>
+<div class="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-4 border border-orange-100 dark:border-orange-900/30">
+<div class="flex items-start gap-3">
+<div class="text-orange-600 dark:text-orange-400 mt-0.5">
+<span class="material-symbols-outlined text-xl">warning</span>
+</div>
+<div class="flex flex-col gap-2 w-full">
+<div class="flex justify-between items-center w-full">
+<span class="text-sm font-semibold text-[#111318] dark:text-white">Auto-pause at 100%</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
+</label>
+</div>
+<p class="text-xs text-gray-600 dark:text-gray-400">Stop all enrichment activities immediately when budget limit is reached.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

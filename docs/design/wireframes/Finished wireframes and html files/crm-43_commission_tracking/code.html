@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Commission Tracking - CRM-43</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#20B2AA", // CRM Theme Color
+                        "primary-dark": "#168f88",
+                        "scout": "#4B7BEC", // Scout Color
+                        "success": "#22C55E",
+                        "warning": "#F59E0B",
+                        "error": "#EF4444",
+                        "background-light": "#FFFBF5", // Primary Background
+                        "background-dark": "#111827",
+                        "card-light": "#FFFFFF", // Card Background
+                        "card-dark": "#1F2937",
+                        "border-light": "#f1ebe4", // Border Color
+                        "border-dark": "#374151",
+                        "text-main": "#1a1a2e", // Text Primary
+                        "text-sub": "#6b7280", // Text Secondary
+                        "text-main-dark": "#f9fafb",
+                        "text-sub-dark": "#9ca3af",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-main dark:text-text-main-dark transition-colors duration-200">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Main Layout Container -->
+<div class="layout-container flex h-full grow flex-col">
+<!-- Content Wrapper -->
+<div class="px-6 md:px-12 lg:px-24 flex flex-1 justify-center py-8">
+<div class="layout-content-container flex flex-col max-w-[1280px] flex-1 gap-8">
+<!-- Breadcrumbs -->
+<div class="flex items-center gap-2 text-sm">
+<a class="text-text-sub dark:text-text-sub-dark hover:text-primary transition-colors" href="#">Sales</a>
+<span class="material-symbols-outlined text-text-sub dark:text-text-sub-dark text-[16px]">chevron_right</span>
+<a class="text-text-sub dark:text-text-sub-dark hover:text-primary transition-colors" href="#">Performance</a>
+<span class="material-symbols-outlined text-text-sub dark:text-text-sub-dark text-[16px]">chevron_right</span>
+<span class="text-text-main dark:text-text-main-dark font-medium">Commission Tracking</span>
+</div>
+<!-- Header Section with Controls -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<div class="flex flex-col gap-1">
+<h1 class="text-text-main dark:text-white text-3xl font-bold tracking-tight">Commission Tracking</h1>
+<p class="text-text-sub dark:text-text-sub-dark text-base">Track your earnings, quota attainment, and payout schedules.</p>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<!-- Period Selector -->
+<div class="relative group">
+<div class="flex items-center gap-2 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-lg px-4 py-2 cursor-pointer shadow-sm hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-text-sub dark:text-text-sub-dark">calendar_month</span>
+<span class="text-sm font-medium">Q3 2024</span>
+<span class="material-symbols-outlined text-text-sub dark:text-text-sub-dark">arrow_drop_down</span>
+</div>
+</div>
+<!-- Rep Selector -->
+<div class="relative group">
+<div class="flex items-center gap-2 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-lg px-4 py-2 cursor-pointer shadow-sm hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-text-sub dark:text-text-sub-dark">person</span>
+<span class="text-sm font-medium">John Doe (You)</span>
+<span class="material-symbols-outlined text-text-sub dark:text-text-sub-dark">arrow_drop_down</span>
+</div>
+</div>
+<button class="bg-primary hover:bg-primary-dark text-white text-sm font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">download</span>
+                                Export Report
+                            </button>
+</div>
+</div>
+<!-- KPI Cards Deck -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Card 1 -->
+<div class="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-2">
+<p class="text-text-sub dark:text-text-sub-dark text-sm font-medium">Earned this Quarter</p>
+<span class="material-symbols-outlined text-primary bg-primary/10 p-1 rounded-full text-[20px]">payments</span>
+</div>
+<p class="text-text-main dark:text-white text-2xl font-bold">$42,500</p>
+<div class="flex items-center gap-1 mt-2">
+<span class="material-symbols-outlined text-success text-[16px]">trending_up</span>
+<p class="text-success text-xs font-bold">+12% vs Q2</p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-2">
+<p class="text-text-sub dark:text-text-sub-dark text-sm font-medium">Paid YTD</p>
+<span class="material-symbols-outlined text-text-sub dark:text-text-sub-dark bg-gray-100 dark:bg-gray-800 p-1 rounded-full text-[20px]">account_balance</span>
+</div>
+<p class="text-text-main dark:text-white text-2xl font-bold">$115,000</p>
+<div class="flex items-center gap-1 mt-2">
+<span class="w-2 h-2 rounded-full bg-success"></span>
+<p class="text-text-sub dark:text-text-sub-dark text-xs">On track</p>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-2">
+<p class="text-text-sub dark:text-text-sub-dark text-sm font-medium">Pending Payout</p>
+<span class="material-symbols-outlined text-warning bg-warning/10 p-1 rounded-full text-[20px]">pending</span>
+</div>
+<p class="text-text-main dark:text-white text-2xl font-bold">$8,200</p>
+<div class="flex items-center gap-1 mt-2">
+<p class="text-text-sub dark:text-text-sub-dark text-xs">Processing for next cycle</p>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-2">
+<p class="text-text-sub dark:text-text-sub-dark text-sm font-medium">Next Payout</p>
+<span class="material-symbols-outlined text-scout bg-scout/10 p-1 rounded-full text-[20px]">event</span>
+</div>
+<p class="text-text-main dark:text-white text-2xl font-bold">Oct 15</p>
+<div class="flex items-center gap-1 mt-2">
+<p class="text-text-main dark:text-white text-xs font-semibold">$4,100</p>
+<p class="text-text-sub dark:text-text-sub-dark text-xs">scheduled</p>
+</div>
+</div>
+</div>
+<!-- Quota & Trends Section -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Quota Progress (Left) -->
+<div class="lg:col-span-1 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl p-6 shadow-sm flex flex-col justify-between">
+<div>
+<h3 class="text-lg font-bold text-text-main dark:text-white mb-1">Quota Attainment</h3>
+<p class="text-sm text-text-sub dark:text-text-sub-dark mb-6">Q3 Performance</p>
+<div class="flex justify-between items-end mb-2">
+<span class="text-4xl font-black text-success tracking-tight">115%</span>
+<span class="text-sm font-medium text-text-main dark:text-white bg-green-100 dark:bg-green-900/30 text-success px-2 py-1 rounded">Excellent</span>
+</div>
+<!-- Progress Bar -->
+<div class="relative h-4 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-3">
+<div class="absolute top-0 left-0 h-full bg-success rounded-full" style="width: 100%;"></div>
+<!-- Marker for 100% -->
+<div class="absolute top-0 bottom-0 w-0.5 bg-white z-10" style="left: 87%;"></div>
+</div>
+<div class="flex justify-between text-xs text-text-sub dark:text-text-sub-dark font-medium">
+<span>$0</span>
+<span>Target: $1.0M</span>
+<span>$1.15M</span>
+</div>
+</div>
+<div class="mt-8 pt-6 border-t border-border-light dark:border-border-dark">
+<div class="flex justify-between items-center mb-2">
+<span class="text-sm text-text-sub">Current Base Rate</span>
+<span class="text-sm font-bold text-text-main dark:text-white">10%</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-sm text-text-sub">Accelerator (Active)</span>
+<span class="text-sm font-bold text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">bolt</span>
+                                        15%
+                                    </span>
+</div>
+</div>
+</div>
+<!-- Earnings Trend Chart (Right) -->
+<div class="lg:col-span-2 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl p-6 shadow-sm flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="text-lg font-bold text-text-main dark:text-white">Earnings Trend</h3>
+<p class="text-sm text-text-sub dark:text-text-sub-dark">Historical earnings &amp; future projection</p>
+</div>
+<div class="flex gap-2">
+<span class="flex items-center gap-1 text-xs text-text-sub dark:text-text-sub-dark">
+<span class="w-3 h-3 rounded-full bg-primary"></span> Actual
+                                    </span>
+<span class="flex items-center gap-1 text-xs text-text-sub dark:text-text-sub-dark">
+<span class="w-3 h-3 rounded-full border border-dashed border-primary"></span> Projected
+                                    </span>
+</div>
+</div>
+<!-- Chart Placeholder -->
+<div aria-label="Bar chart showing earnings trend" class="flex-1 flex items-end gap-2 md:gap-4 h-48 w-full mt-2" role="img">
+<!-- Q1 -->
+<div class="flex-1 flex flex-col justify-end group">
+<div class="w-full bg-primary/20 rounded-t-sm h-[40%] group-hover:bg-primary/30 transition-all relative">
+<span class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-text-main opacity-0 group-hover:opacity-100">$20k</span>
+</div>
+<span class="text-xs text-text-sub text-center mt-2">Q1</span>
+</div>
+<!-- Q2 -->
+<div class="flex-1 flex flex-col justify-end group">
+<div class="w-full bg-primary/40 rounded-t-sm h-[65%] group-hover:bg-primary/50 transition-all relative">
+<span class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-text-main opacity-0 group-hover:opacity-100">$38k</span>
+</div>
+<span class="text-xs text-text-sub text-center mt-2">Q2</span>
+</div>
+<!-- Q3 (Current) -->
+<div class="flex-1 flex flex-col justify-end group">
+<div class="w-full bg-primary rounded-t-sm h-[75%] group-hover:bg-primary-dark transition-all relative shadow-lg shadow-primary/20">
+<span class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-text-main opacity-0 group-hover:opacity-100">$42.5k</span>
+</div>
+<span class="text-xs font-bold text-primary text-center mt-2">Q3</span>
+</div>
+<!-- Q4 (Forecast) -->
+<div class="flex-1 flex flex-col justify-end group">
+<div class="w-full border-2 border-dashed border-primary/40 bg-transparent rounded-t-sm h-[90%] relative">
+<span class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-text-sub opacity-100">$55k*</span>
+</div>
+<span class="text-xs text-text-sub text-center mt-2">Q4 (Est)</span>
+</div>
+</div>
+<!-- Scout Insight -->
+<div class="mt-6 flex gap-3 items-start bg-scout/5 border border-scout/20 rounded-lg p-3">
+<span class="material-symbols-outlined text-scout mt-0.5 filled-icon">auto_awesome</span>
+<div>
+<p class="text-sm font-semibold text-text-main dark:text-white">Scout Insight</p>
+<p class="text-sm text-text-sub dark:text-text-sub-dark leading-relaxed">
+                                        Based on current pipeline velocity, you are projected to exceed your annual target by <span class="text-success font-semibold">8%</span>. Focus on the <span class="font-medium">TechCorp Enterprise</span> deal to unlock the Q4 accelerator early.
+                                    </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Data Tables Section -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+<!-- Earnings by Deal Table -->
+<div class="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="p-5 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+<h3 class="text-lg font-bold text-text-main dark:text-white">Earnings by Deal</h3>
+<button class="text-sm text-primary font-medium hover:underline">View All</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="text-xs text-text-sub dark:text-text-sub-dark border-b border-border-light dark:border-border-dark">
+<th class="px-5 py-3 font-medium uppercase tracking-wider">Deal Name</th>
+<th class="px-5 py-3 font-medium uppercase tracking-wider">Value</th>
+<th class="px-5 py-3 font-medium uppercase tracking-wider">Rate</th>
+<th class="px-5 py-3 font-medium uppercase tracking-wider">Earned</th>
+<th class="px-5 py-3 font-medium uppercase tracking-wider text-right">Status</th>
+</tr>
+</thead>
+<tbody class="text-sm">
+<tr class="border-b border-border-light dark:border-border-dark hover:bg-background-light/50 dark:hover:bg-gray-800/30">
+<td class="px-5 py-4 font-medium text-text-main dark:text-white">Acme Corp Expansion</td>
+<td class="px-5 py-4 text-text-sub">$50,000</td>
+<td class="px-5 py-4 text-text-sub">10%</td>
+<td class="px-5 py-4 font-semibold text-text-main dark:text-white">$5,000</td>
+<td class="px-5 py-4 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning border border-warning/20">
+                                                    Pending
+                                                </span>
+</td>
+</tr>
+<tr class="border-b border-border-light dark:border-border-dark hover:bg-background-light/50 dark:hover:bg-gray-800/30">
+<td class="px-5 py-4 font-medium text-text-main dark:text-white">Globex Systems</td>
+<td class="px-5 py-4 text-text-sub">$20,000</td>
+<td class="px-5 py-4 text-text-sub">10%</td>
+<td class="px-5 py-4 font-semibold text-text-main dark:text-white">$2,000</td>
+<td class="px-5 py-4 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success border border-success/20">
+                                                    Paid
+                                                </span>
+</td>
+</tr>
+<tr class="hover:bg-background-light/50 dark:hover:bg-gray-800/30">
+<td class="px-5 py-4 font-medium text-text-main dark:text-white">Stark Industries Pilot</td>
+<td class="px-5 py-4 text-text-sub">$150,000</td>
+<td class="px-5 py-4 text-text-sub">12%</td>
+<td class="px-5 py-4 font-semibold text-text-main dark:text-white">$18,000</td>
+<td class="px-5 py-4 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success border border-success/20">
+                                                    Paid
+                                                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Payout Schedule Table -->
+<div class="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="p-5 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+<h3 class="text-lg font-bold text-text-main dark:text-white">Payout Schedule</h3>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="text-xs text-text-sub dark:text-text-sub-dark border-b border-border-light dark:border-border-dark">
+<th class="px-5 py-3 font-medium uppercase tracking-wider">Payout Date</th>
+<th class="px-5 py-3 font-medium uppercase tracking-wider">Included Deals</th>
+<th class="px-5 py-3 font-medium uppercase tracking-wider">Amount</th>
+<th class="px-5 py-3 font-medium uppercase tracking-wider text-right">Status</th>
+</tr>
+</thead>
+<tbody class="text-sm">
+<tr class="border-b border-border-light dark:border-border-dark hover:bg-background-light/50 dark:hover:bg-gray-800/30">
+<td class="px-5 py-4 font-medium text-text-main dark:text-white">Oct 15, 2024</td>
+<td class="px-5 py-4 text-text-sub">3 Deals</td>
+<td class="px-5 py-4 font-semibold text-text-main dark:text-white">$4,100</td>
+<td class="px-5 py-4 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-text-sub dark:bg-gray-700 dark:text-gray-300 border border-border-light dark:border-border-dark">
+<span class="material-symbols-outlined text-[14px]">hourglass_top</span>
+                                                    Scheduled
+                                                </span>
+</td>
+</tr>
+<tr class="border-b border-border-light dark:border-border-dark hover:bg-background-light/50 dark:hover:bg-gray-800/30">
+<td class="px-5 py-4 font-medium text-text-main dark:text-white">Sep 15, 2024</td>
+<td class="px-5 py-4 text-text-sub">5 Deals</td>
+<td class="px-5 py-4 font-semibold text-text-main dark:text-white">$12,450</td>
+<td class="px-5 py-4 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success border border-success/20">
+<span class="material-symbols-outlined text-[14px]">check</span>
+                                                    Paid
+                                                </span>
+</td>
+</tr>
+<tr class="hover:bg-background-light/50 dark:hover:bg-gray-800/30">
+<td class="px-5 py-4 font-medium text-text-main dark:text-white">Aug 15, 2024</td>
+<td class="px-5 py-4 text-text-sub">2 Deals</td>
+<td class="px-5 py-4 font-semibold text-text-main dark:text-white">$8,200</td>
+<td class="px-5 py-4 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success border border-success/20">
+<span class="material-symbols-outlined text-[14px]">check</span>
+                                                    Paid
+                                                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Admin Config Section -->
+<div class="mt-4">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-text-sub dark:text-text-sub-dark">admin_panel_settings</span>
+<h2 class="text-xl font-bold text-text-main dark:text-white">Commission Rules Configuration</h2>
+</div>
+<div class="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl p-6 shadow-sm">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Plan Details -->
+<div class="space-y-1">
+<p class="text-xs font-medium text-text-sub dark:text-text-sub-dark uppercase tracking-wide">Active Plan</p>
+<p class="text-base font-semibold text-text-main dark:text-white">Enterprise AE 2024</p>
+<p class="text-sm text-text-sub">Assigned to 14 Reps</p>
+</div>
+<!-- Rates -->
+<div class="space-y-1">
+<p class="text-xs font-medium text-text-sub dark:text-text-sub-dark uppercase tracking-wide">Base Rate / Accelerator</p>
+<div class="flex items-center gap-2">
+<span class="text-base font-semibold text-text-main dark:text-white">10%</span>
+<span class="material-symbols-outlined text-xs text-text-sub">arrow_forward</span>
+<span class="text-base font-bold text-primary">15%</span>
+</div>
+<p class="text-sm text-text-sub">Triggered at 100% Quota</p>
+</div>
+<!-- Payout Settings -->
+<div class="space-y-1">
+<p class="text-xs font-medium text-text-sub dark:text-text-sub-dark uppercase tracking-wide">Payout Settings</p>
+<p class="text-base font-semibold text-text-main dark:text-white">Monthly, Net 30</p>
+<p class="text-sm text-text-sub">Min Payout: $500</p>
+</div>
+<!-- Clawback -->
+<div class="space-y-1">
+<p class="text-xs font-medium text-text-sub dark:text-text-sub-dark uppercase tracking-wide">Clawback Period</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-warning text-sm">warning</span>
+<p class="text-base font-semibold text-text-main dark:text-white">90 Days</p>
+</div>
+<p class="text-sm text-text-sub">If contract cancels early</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

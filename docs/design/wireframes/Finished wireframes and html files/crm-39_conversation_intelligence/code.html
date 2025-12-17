@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+
+<html class="" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Conversation Intelligence - HYVVE CRM</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#181b21",
+                        "text-primary": "#1a1a2e",
+                        "text-secondary": "#6b7280",
+                        "crm-teal": "#20B2AA",
+                        "scout-blue": "#4B7BEC",
+                        "success": "#22C55E",
+                        "warning": "#F59E0B",
+                        "error": "#EF4444",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Scrollbar for Transcript */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #334155;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-primary dark:text-white transition-colors duration-200">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#282e39] bg-white dark:bg-[#111318] px-6 py-3 sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-text-primary dark:text-white">
+<div class="size-8 text-primary">
+<svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M24 45.8096C19.6865 45.8096 15.4698 44.5305 11.8832 42.134C8.29667 39.7376 5.50128 36.3314 3.85056 32.3462C2.19985 28.361 1.76794 23.9758 2.60947 19.7452C3.451 15.5145 5.52816 11.6284 8.57829 8.5783C11.6284 5.52817 15.5145 3.45101 19.7452 2.60948C23.9758 1.76795 28.361 2.19986 32.3462 3.85057C36.3314 5.50129 39.7376 8.29668 42.134 11.8833C44.5305 15.4698 45.8096 19.6865 45.8096 24L24 24L24 45.8096Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-xl font-bold leading-tight tracking-tight">HYVVE CRM</h2>
+</div>
+<!-- Search -->
+<div class="hidden md:flex flex-col min-w-[240px] h-10">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full bg-slate-100 dark:bg-[#282e39] border border-transparent focus-within:border-primary transition-colors">
+<div class="text-text-secondary dark:text-[#9da6b9] flex items-center justify-center pl-3">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 bg-transparent border-none focus:ring-0 text-sm text-text-primary dark:text-white placeholder:text-text-secondary dark:placeholder:text-[#9da6b9] h-full px-3" placeholder="Search conversations..."/>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-text-secondary hover:text-primary dark:text-[#9da6b9] dark:hover:text-white text-sm font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-primary dark:text-white text-sm font-medium" href="#">Conversations</a>
+<a class="text-text-secondary hover:text-primary dark:text-[#9da6b9] dark:hover:text-white text-sm font-medium transition-colors" href="#">Deals</a>
+<a class="text-text-secondary hover:text-primary dark:text-[#9da6b9] dark:hover:text-white text-sm font-medium transition-colors" href="#">Coaching</a>
+</nav>
+<div class="h-6 w-px bg-slate-200 dark:bg-[#282e39] hidden lg:block"></div>
+<div class="flex items-center gap-4">
+<button class="bg-primary hover:bg-blue-700 text-white text-sm font-bold h-9 px-4 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">add_call</span>
+<span>New Call</span>
+</button>
+<div class="relative group">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-9 border-2 border-slate-100 dark:border-[#282e39] cursor-pointer" data-alt="User profile avatar showing a smiling person" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC-5PRBA-iAOb3BDBcsrBrDbmtKrLh6LIUPD9HNmeUx2uPaQOvEtm8PkYSDeYFnHJ7Xa904YhAvxdi5pYFku4QeOLueSh6R4fa2zvSpHogryS0_7EJ8kCJO91WiFBc0kiCkFFQt5p17si-J2ngCY1tj5odp7kTi_70TB2p56qWEZZrdEURwq-wog00m0JC8raGKUQ4A8CIrD014OVjthSmoeFq2jTBNVrWAV145sd7GecRS2wdBkFkFsnIuRJ4WQOebu2WgYksrMek");'></div>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 w-full max-w-[1440px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col gap-6">
+<!-- Breadcrumbs & Header Actions -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-center gap-2 text-sm text-text-secondary dark:text-[#9da6b9]">
+<a class="hover:text-primary transition-colors" href="#">Conversations</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<a class="hover:text-primary transition-colors" href="#">Oct 2023</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-text-primary dark:text-white font-medium">Acme Corp Discovery</span>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-text-secondary bg-white dark:bg-[#282e39] dark:text-white rounded-lg border border-slate-200 dark:border-[#3b4354] hover:bg-slate-50 dark:hover:bg-[#323945]">
+<span class="material-symbols-outlined text-[18px]">ios_share</span>
+                    Share
+                </button>
+<button class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-text-secondary bg-white dark:bg-[#282e39] dark:text-white rounded-lg border border-slate-200 dark:border-[#3b4354] hover:bg-slate-50 dark:hover:bg-[#323945]">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    Export
+                </button>
+</div>
+</div>
+<!-- Main Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- LEFT COLUMN: Player, Analysis, Key Moments -->
+<div class="lg:col-span-8 flex flex-col gap-6">
+<!-- Audio Player Card -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-slate-100 dark:border-none p-5 md:p-6">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+<div>
+<h1 class="text-2xl font-bold text-text-primary dark:text-white mb-1">Discovery Call - Acme Corp</h1>
+<div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-secondary dark:text-[#9da6b9]">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">calendar_today</span> Oct 24, 2023</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">schedule</span> 45m 12s</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">group</span> Sarah Jenkins (Rep), Mark Doe (Client)</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-200 text-xs font-semibold uppercase tracking-wide">Discovery</span>
+<span class="px-2.5 py-1 rounded-full bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-200 text-xs font-semibold uppercase tracking-wide">$45k Value</span>
+</div>
+</div>
+<!-- Audio Visualization & Controls -->
+<div class="flex flex-col gap-4">
+<!-- Waveform (Visual only) -->
+<div aria-hidden="true" class="h-16 w-full flex items-center gap-0.5 justify-between px-2 overflow-hidden">
+<!-- Generating random bars for waveform effect -->
+<div class="w-1 bg-primary/20 rounded-full h-4"></div>
+<div class="w-1 bg-primary/30 rounded-full h-8"></div>
+<div class="w-1 bg-primary/60 rounded-full h-12"></div>
+<div class="w-1 bg-primary rounded-full h-8"></div>
+<div class="w-1 bg-primary/80 rounded-full h-5"></div>
+<div class="w-1 bg-primary/40 rounded-full h-10"></div>
+<div class="w-1 bg-primary/20 rounded-full h-4"></div>
+<div class="w-1 bg-primary/30 rounded-full h-6"></div>
+<div class="w-1 bg-primary/70 rounded-full h-14"></div>
+<div class="w-1 bg-primary rounded-full h-10"></div>
+<div class="w-1 bg-primary/50 rounded-full h-6"></div>
+<div class="w-1 bg-primary/30 rounded-full h-3"></div>
+<div class="w-1 bg-primary/80 rounded-full h-9"></div>
+<div class="w-1 bg-primary rounded-full h-16"></div>
+<div class="w-1 bg-primary/60 rounded-full h-10"></div>
+<div class="w-1 bg-primary/20 rounded-full h-5"></div>
+<div class="w-1 bg-primary/40 rounded-full h-8"></div>
+<div class="w-1 bg-primary/90 rounded-full h-12"></div>
+<div class="w-1 bg-primary rounded-full h-6"></div>
+<div class="w-1 bg-primary/30 rounded-full h-4"></div>
+<div class="w-1 bg-primary/60 rounded-full h-10"></div>
+<div class="w-1 bg-primary/90 rounded-full h-14"></div>
+<div class="w-1 bg-primary rounded-full h-8"></div>
+<div class="w-1 bg-primary/30 rounded-full h-4"></div>
+<div class="w-1 bg-primary/60 rounded-full h-12"></div>
+<div class="w-1 bg-primary/80 rounded-full h-6"></div>
+<div class="w-1 bg-primary/20 rounded-full h-3"></div>
+<div class="w-1 bg-primary/40 rounded-full h-8"></div>
+<div class="w-1 bg-primary/70 rounded-full h-10"></div>
+<div class="w-1 bg-primary/90 rounded-full h-5"></div>
+<div class="w-1 bg-primary rounded-full h-12"></div>
+<div class="w-1 bg-primary/50 rounded-full h-8"></div>
+<div class="w-1 bg-primary/20 rounded-full h-4"></div>
+<div class="w-1 bg-primary/80 rounded-full h-10"></div>
+<div class="w-1 bg-primary rounded-full h-14"></div>
+<div class="w-1 bg-primary/60 rounded-full h-8"></div>
+<div class="w-1 bg-primary/30 rounded-full h-5"></div>
+<div class="w-1 bg-primary/20 rounded-full h-4"></div>
+<div class="w-1 bg-primary/70 rounded-full h-12"></div>
+<div class="w-1 bg-primary rounded-full h-8"></div>
+<div class="w-1 bg-primary/40 rounded-full h-6"></div>
+<div class="w-1 bg-primary/20 rounded-full h-3"></div>
+<div class="w-1 bg-primary/80 rounded-full h-10"></div>
+<div class="w-1 bg-primary rounded-full h-6"></div>
+<div class="w-1 bg-primary/50 rounded-full h-12"></div>
+<div class="w-1 bg-primary/30 rounded-full h-4"></div>
+<div class="w-1 bg-primary/70 rounded-full h-8"></div>
+<div class="w-1 bg-primary/90 rounded-full h-14"></div>
+<div class="w-1 bg-primary rounded-full h-5"></div>
+<div class="w-1 bg-primary/40 rounded-full h-8"></div>
+<div class="w-1 bg-primary/20 rounded-full h-3"></div>
+<div class="w-1 bg-primary/60 rounded-full h-10"></div>
+<div class="w-1 bg-primary/80 rounded-full h-6"></div>
+<div class="w-1 bg-primary rounded-full h-12"></div>
+<div class="w-1 bg-primary/30 rounded-full h-4"></div>
+</div>
+<!-- Progress Bar & Time -->
+<div class="flex items-center gap-3 text-xs text-text-secondary dark:text-[#9da6b9] font-medium font-mono">
+<span>12:45</span>
+<div class="flex-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full relative cursor-pointer">
+<div class="absolute left-0 top-0 h-full w-[28%] bg-primary rounded-full"></div>
+<div class="absolute left-[28%] top-1/2 -translate-y-1/2 size-3 bg-white border-2 border-primary rounded-full shadow-sm transform -translate-x-1/2"></div>
+</div>
+<span>45:12</span>
+</div>
+<!-- Controls -->
+<div class="flex items-center justify-between pt-2">
+<div class="flex items-center gap-2">
+<button class="text-text-secondary hover:text-primary transition-colors p-2 rounded-full hover:bg-slate-50 dark:hover:bg-[#282e39]">
+<span class="material-symbols-outlined">speed</span>
+</button>
+<span class="text-xs font-bold text-primary">1.0x</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-text-secondary hover:text-text-primary dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[28px]">replay_10</span>
+</button>
+<button class="size-12 bg-primary hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-500/20 transition-all">
+<span class="material-symbols-outlined text-[32px] fill">play_arrow</span>
+</button>
+<button class="text-text-secondary hover:text-text-primary dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[28px]">forward_10</span>
+</button>
+</div>
+<div class="flex items-center gap-2 w-24">
+<span class="material-symbols-outlined text-text-secondary text-[20px]">volume_up</span>
+<div class="h-1 flex-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full w-[70%] bg-text-secondary"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Metrics Grid -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<!-- Metric 1 -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-4 border border-slate-100 dark:border-none shadow-sm flex flex-col gap-2">
+<p class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Rep Talk Time</p>
+<div class="flex items-end gap-2">
+<span class="text-2xl font-bold text-text-primary dark:text-white">42%</span>
+<span class="text-xs font-medium text-success mb-1 flex items-center">
+<span class="material-symbols-outlined text-[14px]">arrow_downward</span> Good
+                            </span>
+</div>
+<div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-1 overflow-hidden">
+<div class="h-full w-[42%] bg-scout-blue rounded-full"></div>
+</div>
+</div>
+<!-- Metric 2 -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-4 border border-slate-100 dark:border-none shadow-sm flex flex-col gap-2">
+<p class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Sentiment</p>
+<div class="flex items-end gap-2">
+<span class="text-2xl font-bold text-text-primary dark:text-white">Positive</span>
+<span class="text-xs font-medium text-success mb-1 flex items-center">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> 12%
+                            </span>
+</div>
+<div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-1 overflow-hidden">
+<div class="h-full w-[75%] bg-success rounded-full"></div>
+</div>
+</div>
+<!-- Metric 3 -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-4 border border-slate-100 dark:border-none shadow-sm flex flex-col gap-2">
+<p class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Questions</p>
+<div class="flex items-end gap-2">
+<span class="text-2xl font-bold text-text-primary dark:text-white">14</span>
+<span class="text-xs font-medium text-text-secondary mb-1">Asked</span>
+</div>
+<div class="flex gap-0.5 mt-2">
+<div class="h-1.5 w-1 bg-primary rounded-full"></div>
+<div class="h-1.5 w-1 bg-primary rounded-full"></div>
+<div class="h-1.5 w-1 bg-primary rounded-full"></div>
+<div class="h-1.5 w-1 bg-primary rounded-full"></div>
+<div class="h-1.5 w-1 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+</div>
+</div>
+<!-- Metric 4 -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl p-4 border border-slate-100 dark:border-none shadow-sm flex flex-col gap-2">
+<p class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Objections</p>
+<div class="flex items-end gap-2">
+<span class="text-2xl font-bold text-text-primary dark:text-white">3</span>
+<span class="text-xs font-medium text-error mb-1 flex items-center">
+<span class="material-symbols-outlined text-[14px]">warning</span> Detected
+                            </span>
+</div>
+<div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-1 overflow-hidden">
+<div class="h-full w-[30%] bg-error rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Sentiment Timeline -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-slate-100 dark:border-none p-6">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-lg font-bold text-text-primary dark:text-white">Sentiment Timeline</h3>
+<div class="flex items-center gap-3 text-xs font-medium">
+<span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-success"></span>Positive</span>
+<span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-slate-300 dark:bg-slate-600"></span>Neutral</span>
+<span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-error"></span>Negative</span>
+</div>
+</div>
+<!-- Mock Chart Container -->
+<div class="relative h-48 w-full bg-slate-50 dark:bg-[#111318] rounded-lg overflow-hidden flex items-end">
+<!-- Grid lines -->
+<div class="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none opacity-20">
+<div class="w-full h-px bg-slate-400 border-dashed border-b border-slate-400"></div>
+<div class="w-full h-px bg-slate-400 border-dashed border-b border-slate-400"></div>
+<div class="w-full h-px bg-slate-400 border-dashed border-b border-slate-400"></div>
+</div>
+<!-- Abstract Wave Graph -->
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 50">
+<!-- Gradient Defs -->
+<defs>
+<lineargradient id="sentimentGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#22C55E" stop-opacity="0.2"></stop>
+<stop offset="50%" stop-color="#22C55E" stop-opacity="0.05"></stop>
+<stop offset="100%" stop-color="#EF4444" stop-opacity="0.1"></stop>
+</lineargradient>
+</defs>
+<path d="M0,25 Q10,20 20,35 T40,25 T60,10 T80,30 T100,20 V50 H0 Z" fill="url(#sentimentGradient)"></path>
+<path d="M0,25 Q10,20 20,35 T40,25 T60,10 T80,30 T100,20" fill="none" stroke="#22C55E" stroke-width="0.5"></path>
+</svg>
+</div>
+</div>
+<!-- Key Moments -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-slate-100 dark:border-none p-6">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-lg font-bold text-text-primary dark:text-white">Key Moments</h3>
+<button class="text-sm text-primary font-medium hover:underline">View All</button>
+</div>
+<div class="flex flex-col gap-3">
+<!-- Moment 1: Objection -->
+<div class="group flex gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-[#282e39] transition-colors cursor-pointer border-l-4 border-error bg-white dark:bg-[#111318]">
+<div class="mt-1">
+<span class="px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 dark:bg-slate-800 text-text-secondary">12:30</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<h4 class="text-sm font-bold text-text-primary dark:text-white">Price Objection</h4>
+<span class="text-xs font-medium text-error bg-error/10 px-2 py-0.5 rounded">High Risk</span>
+</div>
+<p class="text-sm text-text-secondary mt-1">"The implementation cost seems a bit higher than our budget allows right now."</p>
+<div class="mt-2 flex items-center gap-2 text-xs text-primary">
+<span class="material-symbols-outlined text-[16px]">lightbulb</span>
+<span>Suggestion: Mention ROI calculator &amp; flexible payment terms.</span>
+</div>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity self-center">
+<span class="material-symbols-outlined text-text-secondary">play_circle</span>
+</div>
+</div>
+<!-- Moment 2: Competitor -->
+<div class="group flex gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-[#282e39] transition-colors cursor-pointer border-l-4 border-warning bg-white dark:bg-[#111318]">
+<div class="mt-1">
+<span class="px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 dark:bg-slate-800 text-text-secondary">24:15</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<h4 class="text-sm font-bold text-text-primary dark:text-white">Competitor Mention</h4>
+<span class="text-xs font-medium text-warning bg-warning/10 px-2 py-0.5 rounded">Competitor</span>
+</div>
+<p class="text-sm text-text-secondary mt-1">"We are also evaluating Salesforce for this project."</p>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity self-center">
+<span class="material-symbols-outlined text-text-secondary">play_circle</span>
+</div>
+</div>
+<!-- Moment 3: Buying Signal -->
+<div class="group flex gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-[#282e39] transition-colors cursor-pointer border-l-4 border-success bg-white dark:bg-[#111318]">
+<div class="mt-1">
+<span class="px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 dark:bg-slate-800 text-text-secondary">38:45</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<h4 class="text-sm font-bold text-text-primary dark:text-white">Buying Signal</h4>
+<span class="text-xs font-medium text-success bg-success/10 px-2 py-0.5 rounded">Opportunity</span>
+</div>
+<p class="text-sm text-text-secondary mt-1">"I really like how the reporting module handles our specific use case."</p>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity self-center">
+<span class="material-symbols-outlined text-text-secondary">play_circle</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN: Transcript & Action Items -->
+<div class="lg:col-span-4 flex flex-col gap-6">
+<!-- Action Items -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-slate-100 dark:border-none p-6 flex flex-col h-auto">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-crm-teal">task_alt</span>
+<h3 class="text-lg font-bold text-text-primary dark:text-white">Action Items</h3>
+</div>
+<span class="bg-slate-100 dark:bg-slate-800 text-text-secondary text-xs font-bold px-2 py-1 rounded">3 Found</span>
+</div>
+<div class="flex flex-col gap-3 mb-6">
+<label class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-[#111318] rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-[#282e39] transition-colors">
+<input checked="" class="mt-1 rounded border-slate-300 text-primary focus:ring-primary bg-white dark:bg-[#282e39]" type="checkbox"/>
+<span class="text-sm text-text-primary dark:text-white leading-tight">Send over the updated pricing PDF with volume discounts.</span>
+</label>
+<label class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-[#111318] rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-[#282e39] transition-colors">
+<input class="mt-1 rounded border-slate-300 text-primary focus:ring-primary bg-white dark:bg-[#282e39]" type="checkbox"/>
+<span class="text-sm text-text-primary dark:text-white leading-tight">Schedule follow-up demo with the technical team.</span>
+</label>
+<label class="flex items-start gap-3 p-3 bg-slate-50 dark:bg-[#111318] rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-[#282e39] transition-colors">
+<input class="mt-1 rounded border-slate-300 text-primary focus:ring-primary bg-white dark:bg-[#282e39]" type="checkbox"/>
+<span class="text-sm text-text-primary dark:text-white leading-tight">Check with legal regarding data residency requirements.</span>
+</label>
+</div>
+<button class="w-full py-2.5 bg-primary hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 mt-auto">
+<span>Sync Tasks to CRM</span>
+<span class="material-symbols-outlined text-[18px]">sync</span>
+</button>
+</div>
+<!-- Transcript -->
+<div class="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-slate-100 dark:border-none flex flex-col flex-1 overflow-hidden min-h-[500px]">
+<div class="p-5 border-b border-slate-100 dark:border-[#282e39] flex justify-between items-center bg-white dark:bg-[#181b21]">
+<h3 class="text-lg font-bold text-text-primary dark:text-white">Transcript</h3>
+<div class="flex gap-2">
+<button class="p-1.5 hover:bg-slate-100 dark:hover:bg-[#282e39] rounded text-text-secondary transition-colors" title="Search Transcript">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+<button class="p-1.5 hover:bg-slate-100 dark:hover:bg-[#282e39] rounded text-text-secondary transition-colors" title="Download">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-5 custom-scrollbar bg-white dark:bg-[#181b21]">
+<div class="flex flex-col gap-6">
+<!-- Segment 1 -->
+<div class="flex gap-3">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-8 shrink-0 mt-1" data-alt="Profile picture of Sarah Jenkins" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAPWD4ynTS-G9uds8ad2khzlUSqE1JrSBbe9BmRBUynMmkWS7i52lhKKToQVvyg6LhK7pUiKwxdiiOE3t2l8ZcNJm8xb8wYE8Fn9uiWx4csgcePfj6SgQmdiuJ1u44LXLqRyQfLYmpEXFTdIYMJUtxAxczwD6PoXOW4I62UkY5IbxEnoD8vXLv-82PnRh3hMjAV7zgovlOUppOYm6344Lo08sy9atf8Li2PZqkRp97IRieSLegXvZs8N-2qi0uuwFZSoY4aU-0ZJrU");'></div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold text-primary">Sarah Jenkins</span>
+<span class="text-xs text-text-secondary">12:40</span>
+</div>
+<p class="text-sm text-text-primary dark:text-gray-300 leading-relaxed">
+                                        So, based on what you've told me about your current workflow, it sounds like the manual data entry is the biggest bottleneck. Is that fair to say?
+                                    </p>
+</div>
+</div>
+<!-- Segment 2 (Active) -->
+<div class="flex gap-3 relative">
+<!-- Active Indicator -->
+<div class="absolute -left-5 top-0 bottom-0 w-1 bg-primary rounded-r"></div>
+<div class="flex items-center justify-center size-8 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs shrink-0 mt-1">MD</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold text-text-primary dark:text-white">Mark Doe</span>
+<span class="text-xs text-text-secondary">12:45</span>
+</div>
+<p class="text-sm text-text-primary dark:text-white font-medium leading-relaxed bg-blue-50 dark:bg-blue-900/20 p-2 -ml-2 rounded-lg">
+                                        Exactly. We're spending about 10 hours a week just copying data from emails into our spreadsheet. It's not sustainable.
+                                    </p>
+</div>
+</div>
+<!-- Segment 3 -->
+<div class="flex gap-3">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-8 shrink-0 mt-1" data-alt="Profile picture of Sarah Jenkins" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCiTMWksqW-elZgcOgEY8hzVqx5h-sd2tTyiu97clE3e4-xL7hN-Dlxp4fxllQEzOxKs-tFnA7d22Yf-kr5VJXi6dMQIp6AoRvyxq0npws2M-ZUk1alSkhTD3i__LWhwn4yyAV64p6Qr3_WhAzM55FIJcln370R8VVQdpggL2iZWJguIPZD6uNld7v2NqBlsYrWzMgcfTk0ZIdajPix8g42pyDvMgV5vVNYkcwwT5dbHj8V8jLknAd3GJao0lgPyMfdBS47XuN51bE");'></div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold text-primary">Sarah Jenkins</span>
+<span class="text-xs text-text-secondary">12:52</span>
+</div>
+<p class="text-sm text-text-primary dark:text-gray-300 leading-relaxed">
+                                        I completely understand. That's actually one of the main problems HYVVE solves. Our email integration automates that entire process.
+                                    </p>
+</div>
+</div>
+<!-- Segment 4 -->
+<div class="flex gap-3">
+<div class="flex items-center justify-center size-8 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs shrink-0 mt-1">MD</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold text-text-primary dark:text-white">Mark Doe</span>
+<span class="text-xs text-text-secondary">13:05</span>
+</div>
+<p class="text-sm text-text-primary dark:text-gray-300 leading-relaxed">
+                                        That sounds great, but <span class="bg-error/20 text-error px-1 rounded">I am worried about the cost</span>. It's a bit higher than our budget allows right now.
+                                    </p>
+</div>
+</div>
+<!-- Segment 5 -->
+<div class="flex gap-3">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-8 shrink-0 mt-1" data-alt="Profile picture of Sarah Jenkins" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDXzBj5KFZArPQVjrCntSKEHq2iCIUNfjKGRFEXnbLRIuntFBwQ1PSCLUckau9uMoxZrMiS7kwK7UKp7We2tN-WTKMc1g5hVtp7_ieRRK296xKJrxFqjzZGUU4JcnmyR-Xc-Sf2Uv5EBYVSbf7FJC4FrOGMRVP_Xg8nzuI0Wh21YjF21mjtuLIO7IfW9c_RaWHP1bEIHwKHm2-ToPRu_p3XclzR6vppw7mKnbsqXs_aC_l4vi_mLJiToT4h8THjEGcgCHNJ82W126U");'></div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold text-primary">Sarah Jenkins</span>
+<span class="text-xs text-text-secondary">13:15</span>
+</div>
+<p class="text-sm text-text-primary dark:text-gray-300 leading-relaxed">
+                                        I hear you. Let's look at the ROI calculator. If we save you those 10 hours a week, the system pays for itself in about 3 months.
+                                    </p>
+</div>
+</div>
+</div>
+</div>
+<div class="p-3 border-t border-slate-100 dark:border-[#282e39] bg-slate-50 dark:bg-[#111318] text-center">
+<a class="text-sm text-primary font-medium hover:underline" href="#">Show Full Transcript</a>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

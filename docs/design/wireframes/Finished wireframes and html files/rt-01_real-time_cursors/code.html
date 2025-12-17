@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+
+<html class="" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RT-01 Real-Time Cursors - HYVVE KB</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2b90d",
+                        "brand-bg": "#FFFBF5",
+                        "brand-card": "#FFFFFF",
+                        "brand-border": "#f1ebe4",
+                        "text-primary": "#1a1a2e",
+                        "text-secondary": "#6b7280",
+                        "user-1": "#FF6B6B", // Red/Coral
+                        "user-2": "#10B981", // Emerald
+                        "user-3": "#8B5CF6", // Violet
+                        "user-4": "#F59E0B", // Amber
+                        "user-5": "#06B6D4", // Cyan
+                        "user-6": "#EC4899", // Pink
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                    },
+                    boxShadow: {
+                        "paper": "0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)",
+                        "cursor": "0 2px 4px rgba(0,0,0,0.15)",
+                    },
+                    animation: {
+                        "blink": "blink 1s step-end infinite",
+                        "bounce-slow": "bounce 1.5s infinite",
+                    },
+                    keyframes: {
+                        blink: {
+                            "0%, 100%": { opacity: "1" },
+                            "50%": { opacity: "0" },
+                        }
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Smooth transition for cursor movements if we were using JS */
+        .cursor-marker {
+            transition: top 0.1s ease-out, left 0.1s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-brand-bg text-text-primary font-display antialiased overflow-hidden h-screen w-full flex">
+<!-- Sidebar Navigation -->
+<aside class="w-64 border-r border-brand-border bg-brand-bg flex-shrink-0 flex flex-col h-full hidden md:flex">
+<div class="h-16 flex items-center px-6 border-b border-brand-border">
+<div class="flex items-center gap-2 text-text-primary">
+<div class="bg-primary/20 p-1.5 rounded-lg text-primary">
+<span class="material-symbols-outlined">dataset</span>
+</div>
+<span class="font-bold text-lg tracking-tight">Hyvve</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto py-4 px-3">
+<div class="space-y-1">
+<button class="w-full flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-black/5 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">home</span>
+<span class="text-sm font-medium">Home</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-black/5 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">search</span>
+<span class="text-sm font-medium">Search</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-black/5 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">inbox</span>
+<span class="text-sm font-medium">Inbox</span>
+<span class="ml-auto bg-primary/20 text-text-primary text-xs font-bold px-1.5 py-0.5 rounded">4</span>
+</button>
+</div>
+<div class="mt-8 mb-2 px-3 flex items-center justify-between">
+<span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Workspace</span>
+<span class="material-symbols-outlined text-text-secondary text-[16px] cursor-pointer">add</span>
+</div>
+<div class="space-y-1">
+<div class="flex flex-col gap-1">
+<button class="w-full flex items-center gap-3 px-3 py-2 text-text-primary bg-white shadow-sm ring-1 ring-brand-border rounded-lg">
+<span class="material-symbols-outlined text-[20px] text-primary">folder_open</span>
+<span class="text-sm font-medium">Product Strategy</span>
+</button>
+<div class="pl-9 space-y-1">
+<button class="w-full flex items-center gap-3 px-3 py-1.5 text-text-primary bg-primary/10 rounded-lg">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="text-sm font-medium">Q3 Roadmap</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-1.5 text-text-secondary hover:text-text-primary transition-colors">
+<span class="w-1.5 h-1.5 rounded-full bg-transparent border border-text-secondary"></span>
+<span class="text-sm font-medium">Competitor Analysis</span>
+</button>
+</div>
+</div>
+<button class="w-full flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-black/5 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">folder</span>
+<span class="text-sm font-medium">Design System</span>
+</button>
+<button class="w-full flex items-center gap-3 px-3 py-2 text-text-secondary hover:bg-black/5 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">folder</span>
+<span class="text-sm font-medium">Engineering</span>
+</button>
+</div>
+</div>
+<div class="p-4 border-t border-brand-border">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-9 ring-2 ring-white" data-alt="User profile avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBRkqjT8uHr385b4dwDoTvFbikpbIihZrO5GcXLQ1XDcyUljt-ESuhB3AHrMNoL2QI_3yvQ793vEaOrn0PQztOpjNaqbPm7hs0wogRV5kjetYjM1vad5Xm_AwBOFNX8MtABMQBLHV1j6j91KYh6ZZAjUvCCVeDmMxLzknWSX6nzjSjSbAqHjEd7uwme3mB3KAGxAo0mwZFiPc697Gehpi4PVL0Hj-9HVaFnGcmuwiZRpfXf-mu4ltpZteAqsz6yFWNYNdATHcsZhxw");'></div>
+<div class="flex flex-col">
+<span class="text-sm font-medium text-text-primary">Hannah L.</span>
+<span class="text-xs text-text-secondary">Pro Plan</span>
+</div>
+<button class="ml-auto text-text-secondary hover:text-text-primary">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full overflow-hidden relative">
+<!-- Top Header -->
+<header class="h-16 border-b border-brand-border bg-brand-bg/80 backdrop-blur-sm flex items-center justify-between px-6 shrink-0 z-40">
+<div class="flex items-center gap-4">
+<nav class="flex items-center text-sm text-text-secondary">
+<span class="hover:text-text-primary cursor-pointer">Team Space</span>
+<span class="material-symbols-outlined text-[16px] mx-1">chevron_right</span>
+<span class="hover:text-text-primary cursor-pointer">Product</span>
+<span class="material-symbols-outlined text-[16px] mx-1">chevron_right</span>
+<span class="font-semibold text-text-primary bg-black/5 px-2 py-1 rounded">Q3 Roadmap</span>
+</nav>
+<div class="h-4 w-px bg-brand-border mx-2"></div>
+<span class="text-xs text-text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">cloud_done</span>
+                    Saved just now
+                </span>
+</div>
+<div class="flex items-center gap-3">
+<!-- Avatar Stack (Real-time presence) -->
+<div class="flex -space-x-2 mr-4">
+<div class="relative group cursor-pointer">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-8 ring-2 ring-brand-bg relative z-30" data-alt="Collaborator avatar 1" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDqzbI6iWgWkhMV48dyXeEe0V7UNyIDxRslTZNttiEvD7QRSVbzHmMnfCBmSw46wn6SkYl5SFxZVgSPnuMKcFCGo0vF-ycfxK3i0VLVOzP9Gk3stq7mZ-CWk4RfyIchZr0vO_WJTaPFbQ4u354yzMcKaESgGFDApDOCTqd8Io7ZudHrMR2iqYMIxop8q0fjaBQrD6lsUupd4_q7e4CRbyOgA8nzcnGZqemYFu9BkesKSnrZ6zwTVaTq8ISX-yWfUjIQgYnmQyAaJ1A");'></div>
+<div class="absolute -bottom-1 -right-1 size-3 bg-green-500 border-2 border-brand-bg rounded-full z-40"></div>
+<!-- Tooltip -->
+<div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-text-primary text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">Mike T.</div>
+</div>
+<div class="relative group cursor-pointer">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-8 ring-2 ring-brand-bg relative z-20" data-alt="Collaborator avatar 2" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCPQ_QelDaA4VNJoSeZOI1OjiNNiaA_eb2hyoM8RrCSCVAKMP5VlZfbZhbb9imXLByjyjnMhMAEMcWzQhZi1v7yBaEFJNcTRntKLwwB2dsyrfJlXjdjnyy1gUZVu5jggdRaagRy_OiuHHgSDjVCB5aIujYnCuFPe0qQ29x-vVa9Iw0lXq1gKFyWh00Ah--sVMGr7bgE_f1H4nNCOaveDv9Zk6cvPKmK6ngcm_ElMYk-AJUZT13SXGPemuzi4zU438ZA_lk16cZ2Bdo");'></div>
+<div class="absolute -bottom-1 -right-1 size-3 bg-green-500 border-2 border-brand-bg rounded-full z-30"></div>
+<div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-text-primary text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">Sarah J.</div>
+</div>
+<div class="relative group cursor-pointer">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-8 ring-2 ring-brand-bg relative z-10" data-alt="Collaborator avatar 3" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDZkggOxGt3L0qiQTDlENsG4NdOX8Vmpres7AgI2kT6CBEIdEiN2Pz8nzc40ePNCyisTnOMipzdkFPXwRtO4cbsULp_JUZGENeqsOt9yaadQiSL04mMFAKFWyjhW_Y_C2Amemq_Kw5YkDDyrTYtoQW-7X76HzEbpBxrUQFIzX8Uv3CBqUeX9Mbb-z-ll155D8kxNa414skjhfeemUpiSWpoq24mgKq_iMa17gJjPLEpcO453A7Pfidq-LdLSsxgMlvLNK0p8LvtYG8");'></div>
+<div class="absolute -bottom-1 -right-1 size-3 bg-amber-500 border-2 border-brand-bg rounded-full z-20"></div>
+<div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-text-primary text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">David L.</div>
+</div>
+<div class="flex items-center justify-center size-8 rounded-full ring-2 ring-brand-bg bg-brand-border text-text-secondary text-xs font-medium z-0 relative">
+                        +2
+                    </div>
+</div>
+<button class="flex items-center justify-center size-9 rounded-full text-text-secondary hover:bg-black/5 transition-colors">
+<span class="material-symbols-outlined text-[20px]">history</span>
+</button>
+<button class="flex items-center justify-center size-9 rounded-full text-text-secondary hover:bg-black/5 transition-colors">
+<span class="material-symbols-outlined text-[20px]">comment</span>
+</button>
+<div class="h-6 w-px bg-brand-border mx-1"></div>
+<button class="bg-primary hover:bg-primary/90 text-text-primary px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+                    Share
+                </button>
+</div>
+</header>
+<!-- Editor Canvas Scroll Area -->
+<div class="flex-1 overflow-y-auto bg-brand-bg p-8 flex justify-center cursor-text" id="editor-container">
+<!-- The Paper / Document -->
+<div class="w-full max-w-[850px] bg-brand-card min-h-[1100px] shadow-paper rounded-xl p-16 relative group/editor">
+<!-- Document Cover Image -->
+<div class="w-full h-48 rounded-lg mb-8 relative group/cover overflow-hidden" data-alt="Abstract gradient header image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBtdvITd3xeTL0hSd9X4w5tng37c4IOf_rear45n-HtU3FroRIdtefwf1eIzp2zPqQoqiB7OBaMZDl0NLhqNfUNruIsB8SgnI1xSD0-a2RBEcnHNDUuwmfq188AUbO6nSOrOCtUat7u1Hcf7aCV9WUkLFfXpxthljOxryaDvaShpjGadGlGB3jeJiGoZNFpJCpr5ckAQILVo_wyMyx-Tw5OPk5-UrFAJcTvgIW62T8glhC3L8tW60Z7z78ftMshfz8sPnmoXXNR_AA"); background-size: cover; background-position: center;'>
+<div class="absolute inset-0 bg-black/10 group-hover/cover:bg-black/20 transition-colors"></div>
+<button class="absolute bottom-4 right-4 bg-white/90 hover:bg-white text-xs font-medium px-2 py-1 rounded shadow-sm opacity-0 group-hover/cover:opacity-100 transition-opacity">Change Cover</button>
+</div>
+<!-- Document Title -->
+<h1 class="text-4xl font-bold text-text-primary tracking-tight mb-6 outline-none" contenteditable="true">Q3 Product Roadmap &amp; Strategy</h1>
+<!-- Document Meta -->
+<div class="flex items-center gap-4 text-sm text-text-secondary mb-10 pb-6 border-b border-brand-border">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span>Oct 14, 2023</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">person</span>
+<span>Created by Hannah L.</span>
+</div>
+<div class="flex items-center gap-2 ml-auto">
+<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">In Progress</span>
+</div>
+</div>
+<!-- Content Block 1: Intro with Selection -->
+<div class="mb-6 relative">
+<p class="text-lg text-text-primary leading-relaxed">
+                        The primary goal for Q3 is to consolidate our position in the enterprise market while simultaneously launching the 
+                        <span class="relative bg-user-2/30 rounded-sm py-0.5 mx-0.5 selection-highlight">
+                            beta version of our real-time collaboration engine.
+                            <!-- Cursor for User 2 (Sarah) at end of selection -->
+<span class="absolute -right-[1px] top-1 bottom-1 w-[2px] bg-user-2 animate-blink h-6"></span>
+<!-- Label for User 2 -->
+<span class="absolute -top-7 right-0 bg-user-2 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-lg rounded-bl-none shadow-cursor flex items-center z-20 whitespace-nowrap">
+                                Sarah J.
+                            </span>
+</span>
+                        This initiative will allow us to bridge the gap between async and sync workflows.
+                    </p>
+</div>
+<!-- Content Block 2: Paragraph with Active Typing -->
+<div class="mb-6 relative group/block">
+<div class="absolute -left-12 top-1 opacity-0 group-hover/block:opacity-100 transition-opacity">
+<button class="p-1 hover:bg-black/5 rounded text-text-secondary"><span class="material-symbols-outlined text-[18px]">drag_indicator</span></button>
+</div>
+<h2 class="text-2xl font-bold text-text-primary mb-3">Key Objectives</h2>
+<p class="text-base text-text-primary leading-relaxed mb-4">
+                        We have identified three core pillars for the upcoming quarter. These pillars were derived from customer feedback sessions and data analysis from the Q2 churn report.
+                    </p>
+<ul class="list-disc list-outside pl-5 space-y-2 text-base text-text-primary">
+<li class="pl-1">
+<span class="font-semibold">Performance Optimization:</span> Reduce load times by 20% across all regions.
+                        </li>
+<li class="pl-1 relative">
+<span class="font-semibold">Enterprise Security:</span> Implement SSO and Audit Logs for 
+                             <span class="relative inline-block">
+<!-- Cursor for User 3 (Jessica - Typing) -->
+<span class="absolute -right-[1px] -top-0.5 h-6 w-[2px] bg-user-3 animate-blink"></span>
+<!-- Typing Label for User 3 -->
+<span class="absolute -top-8 left-0 transform -translate-x-1/4 bg-user-3 text-white text-[10px] font-bold px-2 py-1 rounded-lg rounded-bl-none shadow-cursor flex items-center gap-1.5 z-30 whitespace-nowrap">
+                                    Jessica
+                                    <span class="flex items-center gap-0.5 h-2">
+<span class="w-1 h-1 bg-white rounded-full animate-bounce"></span>
+<span class="w-1 h-1 bg-white rounded-full animate-bounce delay-75"></span>
+<span class="w-1 h-1 bg-white rounded-full animate-bounce delay-150"></span>
+</span>
+</span>
+</span>
+</li>
+<li class="pl-1 text-text-secondary italic">
+                            Wait, are we also including the API rate limiting update here?
+                             <span class="relative inline-block align-middle h-5 w-[1px]">
+<!-- Cursor for User 6 (Pink) - Just Hovering/Inactive -->
+<span class="absolute left-0 -top-4 h-6 w-[2px] bg-user-6 opacity-60"></span>
+<!-- Faded Label -->
+<span class="absolute -top-11 left-0 bg-user-6/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-lg rounded-bl-none shadow-sm z-10 opacity-60">
+                                    Alex
+                                </span>
+</span>
+</li>
+</ul>
+</div>
+<!-- Content Block 3: Code Block with Multi-line Selection -->
+<div class="mb-8 relative group/code">
+<div class="bg-gray-50 rounded-lg p-4 border border-brand-border font-mono text-sm text-text-primary overflow-x-auto relative">
+<div class="flex">
+<span class="text-gray-400 select-none mr-4 text-right w-4">1</span>
+<span class="text-purple-600">const</span> <span class="text-blue-600 ml-2">initializeCursor</span> <span class="text-gray-600">=</span> <span class="text-text-primary">(user)</span> <span class="text-purple-600">=&gt;</span> <span class="text-text-primary">{</span>
+</div>
+<div class="flex relative">
+<!-- Selection Background spanning multiple parts -->
+<div class="absolute left-8 right-12 top-0 bottom-0 bg-user-4/20 pointer-events-none mix-blend-multiply rounded-sm"></div>
+<span class="text-gray-400 select-none mr-4 text-right w-4">2</span>
+<span class="ml-4 text-gray-500">// TODO: Add WebSocket connection logic here</span>
+</div>
+<div class="flex">
+<span class="text-gray-400 select-none mr-4 text-right w-4">3</span>
+<span class="ml-4 text-purple-600">return</span> <span class="text-blue-600 ml-2">new</span> <span class="text-yellow-600 ml-2">CursorInstance</span><span class="text-text-primary">(user.id);</span>
+<!-- Cursor for User 4 (Amber) -->
+<span class="relative inline-block ml-0.5">
+<span class="absolute top-0 bottom-0 w-[2px] h-5 bg-user-4 animate-blink"></span>
+<span class="absolute -top-7 left-0 bg-user-4 text-text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-lg rounded-bl-none shadow-cursor z-20 whitespace-nowrap">
+                                    David L.
+                                </span>
+</span>
+</div>
+<div class="flex">
+<span class="text-gray-400 select-none mr-4 text-right w-4">4</span>
+<span class="text-text-primary">}</span>
+</div>
+</div>
+</div>
+<!-- Content Block 4: Image with Annotation -->
+<div class="mb-8 relative">
+<h2 class="text-2xl font-bold text-text-primary mb-3">Visual Concept</h2>
+<div class="relative rounded-xl overflow-hidden border border-brand-border group/image">
+<img alt="Wireframe of the new dashboard UI" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVMOOO5z8OE0xHq0LxxUHLtm4ZhKNrUadbwsocM2cieWbRSRzqpCVgUrBaMVosMiu3ptTFRzRkmtovQXwP6SBugLGuUxka_w5aKqqwmJhDVYghh6phUtR8A3g1nr3Lb9GY4oupchqGzxR_inVSMEUcQlYUihgIaLDy9g4l2agA9sx24CodYJWDmbs8HbCHHSChFBHS6ZY-e_MzTWo6AU9ltIQf2S2cR4GftwUljY8joNOAqlC8JgDkmO6Twew-sFQvPA8B1WccBNA"/>
+<!-- Annotation Cursor User 1 (Red) -->
+<div class="absolute top-1/3 left-1/4">
+<div class="size-4 bg-user-1 rounded-full border-2 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2"></div>
+<div class="absolute top-2 left-2 bg-user-1 text-white text-xs px-2 py-1 rounded-lg rounded-tl-none shadow-md max-w-[200px]">
+<p class="font-medium text-[10px] mb-0.5 opacity-90">Mike T.</p>
+                                 Let's move this chart to the right column.
+                             </div>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Action Button for Comments (Bottom Right of Editor) -->
+<div class="fixed bottom-8 right-8 z-50">
+<button class="bg-text-primary text-white rounded-full size-14 shadow-xl flex items-center justify-center hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[24px]">add_comment</span>
+</button>
+</div>
+</div>
+<!-- Right Sidebar (Context/History) - Hidden on smaller screens -->
+<aside class="w-80 border-l border-brand-border bg-white hidden xl:flex flex-col h-full shadow-[-4px_0_24px_rgba(0,0,0,0.02)] z-30">
+<div class="h-16 flex items-center justify-between px-4 border-b border-brand-border bg-brand-bg/50">
+<span class="font-semibold text-sm text-text-primary">Activity Log</span>
+<button class="text-text-secondary hover:text-text-primary"><span class="material-symbols-outlined text-[20px]">close</span></button>
+</div>
+<div class="flex-1 overflow-y-auto p-4">
+<div class="relative pl-4 border-l-2 border-brand-border space-y-8">
+<!-- Timeline Item 1 -->
+<div class="relative">
+<div class="absolute -left-[21px] top-0 bg-brand-bg p-1 rounded-full border border-brand-border">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-6" data-alt="User avatar 3" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBCmS_OaOsk4MvnHD0tY8f0UyrWJXmYwkeyG2qKvu9OEIL9SZ5lyHJI1CttYNg1d-iyprIOHF75fW98IiS80-seAQjkPwQdZeQuos_vcGspw_QZ73k9BofGxwA4u00Cuz0Z2m2A3ywyxDth1bPUvvFhTU5IabuIUGWEQZ0gjlHFMbb6G-xKyfb3yW5SfHlWX5ydeLYnDoompVDFu4xJH9y9VJ9HM6s2n409stdyX3r5rbdbJdflVEQWNnqmPVGw0q9tIzfHjCuEM20");'></div>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-sm text-text-primary"><span class="font-semibold text-user-4">David L.</span> edited the code block.</p>
+<span class="text-xs text-text-secondary">Just now</span>
+</div>
+</div>
+<!-- Timeline Item 2 -->
+<div class="relative">
+<div class="absolute -left-[21px] top-0 bg-brand-bg p-1 rounded-full border border-brand-border">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-6" data-alt="User avatar 2" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBGhzn6D9YG4fGVHqqOiwsrQDrxHD23lR26qSRazwSZ-2-Xrg4G5CORw5hbS5LdCwGdvpVzhK6WqXQRPBU-1wbIOQdqAvIiPvXhPQF2u0bD13DPpsGQCUlgqs1CWdRWWgQSEUc0xoS78SxqA29HfyH_CTrYBHQHEr_M2GkWJ9j7faY3P1tSsJRAuatojMWVCrpdSC3_L-OAyv_bT88I3Z_syoj5s6xnRO-5FatxjeS5fiC4whyd5YL9kCr-2PqGbIPXgrY1wPKmhI4");'></div>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-sm text-text-primary"><span class="font-semibold text-user-2">Sarah J.</span> highlighted a section in "Intro".</p>
+<div class="p-2 bg-brand-bg border border-brand-border rounded text-xs text-text-secondary italic">
+                                "beta version of our real-time collaboration engine"
+                            </div>
+<span class="text-xs text-text-secondary">2 mins ago</span>
+</div>
+</div>
+<!-- Timeline Item 3 -->
+<div class="relative">
+<div class="absolute -left-[21px] top-0 bg-brand-bg p-1 rounded-full border border-brand-border">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-6" data-alt="User avatar 1" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDRj5NJNhd_QDHgfzAOXzjDa1HWjrPwE6bJ1_I333IUTVRdAw3GCaCdRlNFvesdRovhURn0xMnHV0d5lgyMkwPygVtPCiyaPoNU186-TuNdktOYUxhGfkwU3YlY_-V2xGUO2cFNx0-a3MSOXC0c45JvZjMjVuwyVlPxVCTof9NbYAYV5ZwJKk0IaRV0Zl1VRdp0IBZKBpcJp6_TpNZt8bhVPbr1tjpbNl5MEKsRUaKbRtdKLonA68BZneMqC9EL3nd8LbVvV1H9O3c");'></div>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-sm text-text-primary"><span class="font-semibold text-user-1">Mike T.</span> joined the document.</p>
+<span class="text-xs text-text-secondary">15 mins ago</span>
+</div>
+</div>
+</div>
+</div>
+<div class="p-4 border-t border-brand-border bg-brand-bg/30">
+<div class="bg-primary/10 rounded-lg p-3 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[20px]">lightbulb</span>
+<div class="flex flex-col gap-1">
+<p class="text-xs font-semibold text-text-primary">Suggestion</p>
+<p class="text-xs text-text-secondary">You have 3 unresolved comments in this section.</p>
+<button class="text-xs font-bold text-primary text-left mt-1 hover:underline">Review comments</button>
+</div>
+</div>
+</div>
+</aside>
+</main>
+</body></html>

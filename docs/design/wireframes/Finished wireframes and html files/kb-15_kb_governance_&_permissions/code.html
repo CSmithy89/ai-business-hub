@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KB Governance &amp; Permissions</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111318",
+                        "surface-dark": "#1a1d26",
+                        "surface-border": "#2b303b",
+                        "text-secondary": "#9da6b9",
+                        "warning": "#F1C40F",
+                        "danger": "#E74C3C",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar for tables */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111318;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2b303b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b4354;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-col">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-surface-border bg-surface-dark px-10 py-3 sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-white">
+<div class="size-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl">hive</span>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em]">HYVVE Knowledge Base</h2>
+</div>
+<div class="hidden md:flex items-center gap-9">
+<a class="text-text-secondary hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Dashboard</a>
+<a class="text-text-secondary hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Content</a>
+<a class="text-white text-sm font-medium leading-normal" href="#">Governance</a>
+<a class="text-text-secondary hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Analytics</a>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<label class="hidden lg:flex flex-col min-w-40 !h-10 max-w-64">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full border border-surface-border bg-[#111318]">
+<div class="text-text-secondary flex border-none bg-transparent items-center justify-center pl-4 rounded-l-lg">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-0 border-none bg-transparent h-full placeholder:text-text-secondary px-4 pl-2 text-sm font-normal" placeholder="Search settings"/>
+</div>
+</label>
+<div class="flex items-center gap-4">
+<button class="relative p-2 text-text-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 h-2 w-2 rounded-full bg-danger"></span>
+</button>
+<div class="h-8 w-8 rounded-full bg-cover bg-center border border-surface-border" data-alt="User profile avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCIyp9CUK0jW4IlDdaBf77gAI2BriB9e2styIOR0gdGjCdHVY-NnY-Qds7Vnp7Z7HQFTeBeY6XWnCJqF6GbfLmsqh3RraM4SydOB8kzJJt9l_Eq-poXaeSujAvkQ-jV0v1UWSa-Y9vrm7IllMz9atYa6b-M-TbchKUdM9JDji6JHgTtu66MQCWmcDU2tP99DamORpnrMWwOtT9OOK_9SrWfxkV3LC0KYJMHm5161-52WKJphII2SQ6G8g6hZ_CEkkn_nHkQlD21ZzE");'></div>
+</div>
+</div>
+</header>
+<div class="layout-container flex h-full grow flex-col items-center">
+<div class="w-full max-w-[1200px] px-4 md:px-10 py-8 flex flex-col gap-8">
+<!-- Page Heading -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2 text-text-secondary text-sm mb-1">
+<span>Settings</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span>Knowledge Base</span>
+</div>
+<h1 class="text-white text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">KB Governance &amp; Permissions</h1>
+<p class="text-text-secondary text-base font-normal max-w-2xl">Manage content ownership, enforce security policies, and configure lifecycle automation across your workspace.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg border border-surface-border bg-surface-dark text-white text-sm font-medium hover:bg-surface-border transition-colors">
+<span class="material-symbols-outlined text-[18px]">history</span>
+                            Audit Log
+                        </button>
+</div>
+</div>
+<!-- Tabs -->
+<div class="border-b border-surface-border">
+<div class="flex gap-8 overflow-x-auto">
+<a class="flex items-center gap-2 border-b-[3px] border-primary text-white pb-3 px-1 cursor-pointer" href="#">
+<span class="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+<p class="text-sm font-bold whitespace-nowrap">Ownership</p>
+</a>
+<a class="flex items-center gap-2 border-b-[3px] border-transparent text-text-secondary hover:text-white pb-3 px-1 cursor-pointer transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">lock</span>
+<p class="text-sm font-medium whitespace-nowrap">Permissions</p>
+</a>
+<a class="flex items-center gap-2 border-b-[3px] border-transparent text-text-secondary hover:text-white pb-3 px-1 cursor-pointer transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">approval_delegation</span>
+<p class="text-sm font-medium whitespace-nowrap">Review Workflows</p>
+</a>
+<a class="flex items-center gap-2 border-b-[3px] border-transparent text-text-secondary hover:text-white pb-3 px-1 cursor-pointer transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">inventory_2</span>
+<p class="text-sm font-medium whitespace-nowrap">Archival</p>
+</a>
+</div>
+</div>
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Left Column: Settings -->
+<div class="lg:col-span-2 flex flex-col gap-8">
+<!-- Ownership Defaults -->
+<section class="flex flex-col gap-4">
+<h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                Content Ownership Defaults
+                            </h3>
+<div class="bg-surface-dark border border-surface-border rounded-xl p-6 flex flex-col gap-6">
+<div class="flex flex-col gap-4">
+<label class="flex items-start gap-4 p-4 rounded-lg border border-surface-border bg-[#111318] hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="pt-1">
+<input checked="" class="h-5 w-5 border-2 border-surface-border bg-transparent text-primary focus:ring-0 checked:bg-primary checked:border-primary" name="ownership" type="radio"/>
+</div>
+<div class="flex flex-col">
+<span class="text-white text-sm font-bold mb-1">Assign to Creator</span>
+<span class="text-text-secondary text-sm">The user who creates the page is automatically assigned as the primary owner.</span>
+</div>
+</label>
+<label class="flex items-start gap-4 p-4 rounded-lg border border-surface-border bg-[#111318] hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="pt-1">
+<input class="h-5 w-5 border-2 border-surface-border bg-transparent text-primary focus:ring-0 checked:bg-primary checked:border-primary" name="ownership" type="radio"/>
+</div>
+<div class="flex flex-col">
+<span class="text-white text-sm font-bold mb-1">Inherit from Page Location</span>
+<span class="text-text-secondary text-sm">Ownership defaults to the owner of the parent folder or space.</span>
+</div>
+</label>
+<label class="flex items-start gap-4 p-4 rounded-lg border border-surface-border bg-[#111318] hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="pt-1">
+<input class="h-5 w-5 border-2 border-surface-border bg-transparent text-primary focus:ring-0 checked:bg-primary checked:border-primary" name="ownership" type="radio"/>
+</div>
+<div class="flex flex-col">
+<span class="text-white text-sm font-bold mb-1">Explicit Selection Required</span>
+<span class="text-text-secondary text-sm">Users must manually select a designated owner before publishing content.</span>
+</div>
+</label>
+</div>
+</div>
+</section>
+<!-- Space Ownership Map -->
+<section class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h3 class="text-xl font-bold text-white">Space Ownership Map</h3>
+<button class="text-primary text-sm font-medium hover:text-blue-400">Manage Spaces</button>
+</div>
+<div class="bg-surface-dark border border-surface-border rounded-xl overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-surface-border bg-[#15171e]">
+<th class="p-4 text-xs font-semibold text-text-secondary uppercase tracking-wider">Space / Folder</th>
+<th class="p-4 text-xs font-semibold text-text-secondary uppercase tracking-wider">Primary Owner</th>
+<th class="p-4 text-xs font-semibold text-text-secondary uppercase tracking-wider">Backup Owner</th>
+<th class="p-4 text-xs font-semibold text-text-secondary uppercase tracking-wider text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-border">
+<tr class="group hover:bg-[#1f232e] transition-colors">
+<td class="p-4 text-white text-sm font-medium flex items-center gap-3">
+<span class="material-symbols-outlined text-text-secondary">folder_open</span>
+                                                    Engineering / API Docs
+                                                </td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cover" data-alt="Avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAfw5FshtAivQmgYdHa3uoGh3NFW8GkOfzyE398-_ooMV5BvnWbVOkV5weQkEaFLmsHYyvzpRmJDL0SOUZ4_IipodMS0OcELjq4sM7Cn-L_CWaCN2l4CUlyP7TBryNBC_pBzSnClNcYD9ceGJunRD79BbKAjikmN_jKovICX5__AFa83hKhuDPPtg6R8V5S66xS_msN4Q9IWyhDNCsupoRjBLSER1z8d3Kephz1_MLZ7dqOsWLjxzBuuDsr-fRtHiNW3YAtzbfXrvk');"></div>
+<span class="text-sm text-text-secondary">Alex Chen</span>
+</div>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cover" data-alt="Avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDEq3hYxwuDzDqXV9Tf5yXtTDsEOvry1CKAsNZKO7fAh9-mjdSFKSdoO0o20bFC4_o6-EfaRQArIIK9093VxvaRUTIA3V41ZF8tgAjsC5mrUethDxC2JnUXPnSiFIgS2XFKNZhy5o1JhZhJmtldK4A2ss1mJCkldEZznYVbBqe8pnPhnvaAt9F8vy1rTADsI25S_6Z3Lu1Z76bO9p9BuQyrp7TB08S8yjFKJveYnaaO1SiCu52mancs5ucW9hYbHDhF19P6a5fm53E');"></div>
+<span class="text-sm text-text-secondary">Sarah Miller</span>
+</div>
+</td>
+<td class="p-4 text-right">
+<button class="text-text-secondary hover:text-white p-1 rounded hover:bg-surface-border/50">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="group hover:bg-[#1f232e] transition-colors">
+<td class="p-4 text-white text-sm font-medium flex items-center gap-3">
+<span class="material-symbols-outlined text-text-secondary">folder_open</span>
+                                                    Product / Roadmap
+                                                </td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cover" data-alt="Avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAN1j-h6vL6k9J9DzBr3mlnZvoWga4H69mbGZk_Bm1olZLQBkpBihVP1DrnhafGWKdnzC93JohO-S-aa0v3Rk-h_rhWVnsZmo9YTVKlnIyYYRyPAGi1GJlCahlO1FK1mmnXyjKPmkhF4LvGsRbQStfKRuZCaHUixQcrZnQxAi3lXWET20yRzV1guG4Oj4NEHp5mRlmodI0m3zT4w8zh2JXtOZBdYdUw2PzwK68ZDSWaATNbSMoyTf21PsGXOdleiovR2_utpWwO778');"></div>
+<span class="text-sm text-text-secondary">James Wilson</span>
+</div>
+</td>
+<td class="p-4">
+<span class="text-sm text-text-secondary italic">-- Unassigned --</span>
+</td>
+<td class="p-4 text-right">
+<button class="text-text-secondary hover:text-white p-1 rounded hover:bg-surface-border/50">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="group hover:bg-[#1f232e] transition-colors">
+<td class="p-4 text-white text-sm font-medium flex items-center gap-3">
+<span class="material-symbols-outlined text-text-secondary">folder</span>
+                                                    Legal / Compliance
+                                                </td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cover" data-alt="Avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAm27fcqNPgSQfpWU_DoEm_poO7jETdzu9uMxp0VjDtS7mOqr7KSFz1-kXC_mP4bx6OmFfZo1IjDIjbZv69tJtbdYFcpMtbUDbIyFNx_vDN5kUhEYWkXiBDUkJIi5XaxP6MenMHOft4DbgjZCky81_UAhpPGWq7-Zm3gvwGI3U4668rReSgbfD89FxGg7SxQPFoqqAEAZCcg8wtAybLthNGrdynTX7Ulrk3KsPbM7MelqNQB5vtW1VbYZz7HLiaJp9BaNq-fNeKHgA');"></div>
+<span class="text-sm text-text-secondary">Maria Garcia</span>
+</div>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-white">LG</div>
+<span class="text-sm text-text-secondary">Legal Group</span>
+</div>
+</td>
+<td class="p-4 text-right">
+<button class="text-text-secondary hover:text-white p-1 rounded hover:bg-surface-border/50">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- Review Workflows -->
+<section class="flex flex-col gap-4 mt-4">
+<div class="flex items-center justify-between">
+<h3 class="text-xl font-bold text-white">Review Workflows</h3>
+<button class="flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                                    Create Workflow
+                                </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Workflow Card 1 -->
+<div class="bg-surface-dark border border-surface-border rounded-xl p-5 hover:border-surface-border/80 transition-all group">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="p-2 rounded-lg bg-green-500/10 text-green-500">
+<span class="material-symbols-outlined text-[20px]">verified_user</span>
+</div>
+<div>
+<h4 class="text-white font-semibold text-sm">Security Audit</h4>
+<p class="text-xs text-text-secondary">Applies to: Legal &amp; Security</p>
+</div>
+</div>
+<div class="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wide">Active</div>
+</div>
+<div class="flex items-center justify-between text-sm mb-4">
+<span class="text-text-secondary">Approvers</span>
+<div class="flex -space-x-2">
+<div class="size-6 rounded-full bg-cover border border-surface-dark" data-alt="Approver 1" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDJD7yeOM1JcxmddzJlV53orQEYD6DhDknqiqA4djYtNzFPnFshj-n7V5bC8qiQvh6mibl3zMmCEWdCn-hS8l5i3RI9UyFWPDO1lq1Yw5K78DGphNwjqmGdJjA6uoJpglQOQ8y5doX2Ofk5J79eQp8jauJ9BpYnRCtXbeFH-4EQ_Vg7MaX0aO2C1j-k158RFPcdF5A94D1GAlib94qAMVx4s7fLOC-18owQb2ZwgI6KJf5Gjcf3bQ15qBW3BLq-H9PLZK5SmzQbvFE');"></div>
+<div class="size-6 rounded-full bg-cover border border-surface-dark" data-alt="Approver 2" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjNrIiUXwIdl3TZsaH4c-iYukGjHkJ0vaYNRjitiWMtJndHxn74u2lYNpcta6--WTzlflv2sZmqqf-qgI1ANdKiR7F7-QQlPmOWRuvYRqzFsZHJ9F6H63KlfGjGZjuAKDbHyIXf_3jgzYOtp219wLg0KAvP6Y5jlS_yC6jcHSNL8XeiePhVM9lTRkWE3tKW2aJGP1lxw6hCzyyGB2UVAEV6kfgHgRw52dGQtI_ez086x3ZDd8zty-lVgLG2DSjfvrVgGrkrWP8-Z0');"></div>
+<div class="size-6 rounded-full bg-surface-border flex items-center justify-center text-[10px] text-white border border-surface-dark">+2</div>
+</div>
+</div>
+<div class="flex items-center justify-between text-sm border-t border-surface-border pt-3">
+<span class="text-text-secondary">SLA Target</span>
+<span class="text-white font-medium">48 Hours</span>
+</div>
+</div>
+<!-- Workflow Card 2 -->
+<div class="bg-surface-dark border border-surface-border rounded-xl p-5 hover:border-surface-border/80 transition-all group">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="p-2 rounded-lg bg-primary/10 text-primary">
+<span class="material-symbols-outlined text-[20px]">public</span>
+</div>
+<div>
+<h4 class="text-white font-semibold text-sm">Public Content Review</h4>
+<p class="text-xs text-text-secondary">Applies to: External KB</p>
+</div>
+</div>
+<div class="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wide">Active</div>
+</div>
+<div class="flex items-center justify-between text-sm mb-4">
+<span class="text-text-secondary">Approvers</span>
+<div class="flex -space-x-2">
+<div class="size-6 rounded-full bg-cover border border-surface-dark" data-alt="Approver" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB7fgqCUj4IRSwAuap_wLEfayUG7zOnP4bbHCfhq9EKRCRlcv-I1LHCOK-l0w7LXyFgQqH6rCKS4ekH_CApfRDol--qXrE5LDlnbFeF1UBWeYztaPRdRKDox61uF9kgFe87ChR--GOKXQMr90yUMJ9MLz4ZM4rrKXgfqG9XSk8dN5lVuCvjl7qOMFLxxbCbRmIL7OTPSpJjv6Yn7qDK0f9JxeOtpALw0nSq-SB3h51xXr4JnCbP0k8T-psApFz1Tyx_wlCGkMWfSlQ');"></div>
+</div>
+</div>
+<div class="flex items-center justify-between text-sm border-t border-surface-border pt-3">
+<span class="text-text-secondary">SLA Target</span>
+<span class="text-white font-medium">24 Hours</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Quick Actions & Transfer -->
+<div class="flex flex-col gap-8">
+<!-- Ownership Transfer -->
+<section class="bg-surface-dark border border-surface-border rounded-xl p-6 h-fit">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary">person_off</span>
+<h3 class="text-lg font-bold text-white">Ownership Transfer</h3>
+</div>
+<div class="flex flex-col gap-5">
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wider">When an owner leaves</label>
+<select class="form-select w-full bg-[#111318] border border-surface-border rounded-lg text-white text-sm focus:border-primary focus:ring-0 py-2.5">
+<option>Auto-transfer to Manager</option>
+<option>Mark as Orphaned</option>
+<option>Assign to Admin</option>
+</select>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Orphaned Content Notification</label>
+<div class="flex items-center justify-between p-3 rounded-lg border border-surface-border bg-[#111318]">
+<span class="text-sm text-white">Notify Admins</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-9 h-5 bg-surface-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<div class="pt-4 border-t border-surface-border">
+<button class="w-full py-2 px-4 border border-surface-border rounded-lg text-sm font-medium text-text-secondary hover:text-white hover:bg-surface-border/50 transition-colors">
+                                        View Orphaned Pages (3)
+                                    </button>
+</div>
+</div>
+</section>
+<!-- Sensitive Content Summary (Preview of Perms Tab) -->
+<section class="bg-surface-dark border border-surface-border rounded-xl p-6 h-fit relative overflow-hidden">
+<!-- Decorative background blur -->
+<div class="absolute top-0 right-0 w-32 h-32 bg-danger/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+<div class="flex items-center gap-3 mb-6 relative z-10">
+<span class="material-symbols-outlined text-danger">shield</span>
+<h3 class="text-lg font-bold text-white">Sensitive Content</h3>
+</div>
+<div class="flex flex-col gap-4 relative z-10">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-sm text-white font-medium">PII Auto-Detection</span>
+<span class="text-xs text-text-secondary">Scan for sensitive data</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-9 h-5 bg-surface-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-danger"></div>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-sm text-white font-medium">Keyword Locking</span>
+<span class="text-xs text-text-secondary">Flag project codenames</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-9 h-5 bg-surface-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-danger"></div>
+</label>
+</div>
+<div class="mt-2 p-3 bg-danger/10 border border-danger/20 rounded-lg flex items-start gap-3">
+<span class="material-symbols-outlined text-danger text-sm mt-0.5">warning</span>
+<p class="text-xs text-danger/80 leading-relaxed">
+                                        2 files flagged for sensitive content review in the last 24h.
+                                    </p>
+</div>
+</div>
+</section>
+<!-- Archival Quick Settings -->
+<section class="bg-surface-dark border border-surface-border rounded-xl p-6 h-fit">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-warning">auto_delete</span>
+<h3 class="text-lg font-bold text-white">Archival Logic</h3>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold text-text-secondary">Mark as Stale after (Days)</label>
+<input class="form-input bg-[#111318] border border-surface-border rounded-lg text-white text-sm focus:border-primary focus:ring-0 w-full" type="number" value="180"/>
+</div>
+<div class="flex flex-col gap-2 mt-2">
+<label class="text-xs font-semibold text-text-secondary">Auto-Archive Criteria</label>
+<div class="flex items-center gap-2">
+<input checked="" class="rounded border-surface-border bg-[#111318] text-primary focus:ring-0" type="checkbox"/>
+<span class="text-sm text-white">Low Views (&lt; 10 / year)</span>
+</div>
+<div class="flex items-center gap-2">
+<input class="rounded border-surface-border bg-[#111318] text-primary focus:ring-0" type="checkbox"/>
+<span class="text-sm text-white">Project marked "Completed"</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

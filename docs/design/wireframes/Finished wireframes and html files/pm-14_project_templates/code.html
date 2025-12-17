@@ -1,284 +1,309 @@
 <!DOCTYPE html>
-
 <html lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>PM-14 Project Templates</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
-<style>
-        .material-symbols-outlined {
-            font-variation-settings:
-            'FILL' 0,
-            'wght' 400,
-            'GRAD' 0,
-            'opsz' 24
-        }
-    </style>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script>
-      tailwind.config = {
+    tailwind.config = {
         darkMode: "class",
         theme: {
-          extend: {
-            colors: {
-              "primary": "#135bec",
-              "background-light": "#f6f6f8",
-              "background-dark": "#101622",
+            extend: {
+                colors: {
+                    primary: "#FF9F43", // PM Theme Color (Coral)
+                    "bg-light": "#FFFBF5", // Primary Background
+                    "bg-card": "#FFFFFF", // Card Background
+                    "border-subtle": "#f1ebe4", // Border Color
+                    "text-main": "#1a1a2e", // Text Primary
+                    "text-sub": "#6b7280", // Text Secondary
+                    "kb-teal": "#20B2AA", // KB Theme Color
+                    "build-blue": "#3B82F6", // BUILD Mode
+                    "operate-green": "#22C55E", // OPERATE Mode/Green
+                },
+                fontFamily: {
+                    "display": ["Inter", "sans-serif"]
+                },
+                borderRadius: {
+                    "card": "12px", 
+                },
             },
-            fontFamily: {
-              "display": ["Inter", "sans-serif"]
-            },
-            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
-          },
         },
-      }
-    </script>
+    }
+</script>
+<style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .material-symbols-filled {
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+</style>
 </head>
-<body class="font-display">
-<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden">
-<div class="flex min-h-screen">
-<!-- SideNavBar -->
-<div class="flex flex-col gap-4 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark p-4 w-64">
-<div class="flex flex-col grow">
-<div class="flex gap-3 items-center mb-6">
-<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Eleanor Pena's profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAjcpYWdhM43Ru81HmRn-I1Q-lQbq5oPkhJmJD7y2OSmBHloL6MxREMfZgO8VU5R30REXB3TNeJst-VZ67L-DFMsoDjjtW_0JCkaQzy3xK7v4-75t7igs11-b72EVdPBPA4BD2s1hTEByU64YKk7O93tjlypfSL3iG4GwDxbMzOSdL6yt-nZ2Tr7hQPmLw5zEGeKhzp2TbSJTlrlyMFdrHs2at3wgrLGeeOeW4zd39aepKe08L_SNYL-iMuquTwNZdxTsn8OC_Awdg");'></div>
-<div class="flex flex-col">
-<h1 class="text-slate-900 dark:text-white text-base font-medium leading-normal">Eleanor Pena</h1>
-<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">Project Manager</p>
-</div>
-</div>
-<div class="flex flex-col gap-2">
-<div class="flex items-center gap-3 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
-<span class="material-symbols-outlined text-slate-800 dark:text-slate-200">dashboard</span>
-<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Dashboard</p>
-</div>
-<div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 cursor-pointer">
-<span class="material-symbols-outlined text-slate-900 dark:text-white">folder</span>
-<p class="text-slate-900 dark:text-white text-sm font-medium leading-normal">Projects</p>
-</div>
-<div class="flex items-center gap-3 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
-<span class="material-symbols-outlined text-slate-800 dark:text-slate-200">task_alt</span>
-<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Tasks</p>
-</div>
-<div class="flex items-center gap-3 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
-<span class="material-symbols-outlined text-slate-800 dark:text-slate-200">group</span>
-<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Teams</p>
-</div>
-<div class="flex items-center gap-3 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
-<span class="material-symbols-outlined text-slate-800 dark:text-slate-200">settings</span>
-<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Settings</p>
-</div>
-</div>
-</div>
+<body class="font-display bg-bg-light text-text-main h-screen overflow-hidden">
+<div aria-hidden="true" class="fixed inset-0 flex opacity-30 pointer-events-none blur-[1px]">
+<aside class="flex w-64 flex-col border-r border-border-subtle bg-bg-card p-4">
+<div class="flex h-full flex-col justify-between">
 <div class="flex flex-col gap-4">
-<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
-<span class="truncate">New Project</span>
+<div class="flex items-center gap-3 px-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="HYVVE company logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDKze1FZspZ2GCu6BQXpzADiAH8hCXId0WWUZ-2qZtdLIQ6bJS_4Hv8U-RIcl9A_oa573zuoOjDORVQckpEEb5gYsBToHHYFQp9xplhgzYSbaH1nC1KEZiF6nLNiM91UuGG9rAJHkfXwryiSftr1NA4VxEHYsi4pY4kx_ZmJ1vCQpPu9eccef2hPCysLjieJU3wz6UxAGyvOcnV-8lSOz6gTUNvtH0_7zw70ZRgaSkDjF5zw3tf904kzJ-twwfLZ65Z7TlQnzLExvE");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-main text-base font-medium leading-normal">HYVVE</h1>
+<p class="text-text-sub text-sm font-normal leading-normal">Workspace</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-100 text-text-main">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium leading-normal">General</p>
+</div>
+</nav>
+</div>
+</div>
+</aside>
+<main class="flex-1 p-8 bg-bg-light">
+<div class="mx-auto max-w-4xl bg-bg-card h-full rounded-xl border border-border-subtle"></div>
+</main>
+</div>
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-text-main/20 backdrop-blur-sm p-4">
+<div class="flex flex-col w-full max-w-6xl max-h-[95vh] bg-bg-card rounded-xl shadow-2xl border border-border-subtle animate-fade-in-up">
+<div class="flex items-center justify-between px-8 py-5 border-b border-border-subtle">
+<div>
+<h2 class="text-2xl font-bold text-text-main tracking-tight">Create New Project</h2>
+<p class="text-text-sub text-sm mt-0.5">Select a workflow mode and template to configure your project structure.</p>
+</div>
+<button class="text-text-sub hover:text-text-main transition-colors p-2 hover:bg-gray-100 rounded-full">
+<span class="material-symbols-outlined">close</span>
 </button>
-<div class="flex flex-col gap-1 border-t border-slate-200 dark:border-slate-800 pt-2">
-<div class="flex items-center gap-3 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
-<span class="material-symbols-outlined text-slate-800 dark:text-slate-200">support_agent</span>
-<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Support</p>
 </div>
-<div class="flex items-center gap-3 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
-<span class="material-symbols-outlined text-slate-800 dark:text-slate-200">logout</span>
-<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Logout</p>
+<div class="flex-1 overflow-y-auto px-8 py-6 space-y-8 scrollbar-thin scrollbar-thumb-gray-200">
+<section>
+<div class="flex items-center gap-2 mb-4">
+<span class="flex items-center justify-center w-6 h-6 rounded-full bg-text-main text-white text-xs font-bold">1</span>
+<h3 class="text-sm font-bold text-text-main uppercase tracking-wide">Workflow Mode Selection</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<label class="relative group cursor-pointer">
+<input checked="" class="peer sr-only" name="workflow" type="radio"/>
+<div class="p-5 rounded-card border-2 border-build-blue bg-build-blue/5 flex flex-col h-full transition-all ring-0 peer-focus:ring-2 peer-focus:ring-build-blue/30">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-3">
+<div class="p-2.5 bg-build-blue text-white rounded-lg shadow-sm">
+<span class="material-symbols-outlined">construction</span>
+</div>
+<div>
+<h4 class="font-bold text-text-main text-lg">BUILD Mode</h4>
+<span class="text-xs font-semibold text-build-blue bg-white px-2 py-0.5 rounded border border-build-blue/20">BMAD 7-Phase</span>
 </div>
 </div>
+<div class="w-5 h-5 rounded-full border border-build-blue flex items-center justify-center bg-white">
+<div class="w-2.5 h-2.5 rounded-full bg-build-blue"></div>
 </div>
 </div>
-<!-- Main Content -->
-<main class="flex-1 p-8 overflow-y-auto">
-<div class="max-w-7xl mx-auto">
-<!-- PageHeading -->
-<div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-<div class="flex flex-col gap-2">
-<p class="text-slate-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Project Templates</p>
-<p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">Create, manage, and use project templates to streamline your workflow.</p>
+<p class="text-sm text-text-sub leading-relaxed">Full lifecycle workflow for complex products. Includes Discovery, Design, Development, and Launch phases with strict documentation gates.</p>
 </div>
-<button class="flex min-w-[84px] items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
-<span class="material-symbols-outlined text-lg">add</span>
-<span class="truncate">Create Template</span>
-</button>
+</label>
+<label class="relative group cursor-pointer">
+<input class="peer sr-only" name="workflow" type="radio"/>
+<div class="p-5 rounded-card border border-border-subtle bg-white hover:border-operate-green hover:shadow-md transition-all flex flex-col h-full peer-checked:border-operate-green peer-checked:bg-operate-green/5">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-3">
+<div class="p-2.5 bg-operate-green text-white rounded-lg shadow-sm">
+<span class="material-symbols-outlined">view_kanban</span>
 </div>
-<!-- Search and Filters -->
-<div class="flex flex-col md:flex-row gap-3 mb-8">
-<!-- SearchBar -->
-<div class="flex-grow">
-<label class="flex flex-col min-w-40 h-12 w-full">
-<div class="flex w-full flex-1 items-stretch rounded-lg h-full">
-<div class="text-slate-500 dark:text-slate-400 flex bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center justify-center pl-4 rounded-l-lg border-r-0">
-<span class="material-symbols-outlined">search</span>
+<div>
+<h4 class="font-bold text-text-main text-lg">Quick Kanban</h4>
+<span class="text-xs font-semibold text-operate-green bg-operate-green/10 px-2 py-0.5 rounded">Simple Board</span>
 </div>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:border-primary h-full placeholder:text-slate-500 dark:placeholder:text-slate-400 px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal" placeholder="Search templates by name..." value=""/>
+</div>
+<div class="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center bg-white peer-checked:border-operate-green">
+<div class="w-2.5 h-2.5 rounded-full bg-operate-green opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+</div>
+</div>
+<p class="text-sm text-text-sub leading-relaxed">Streamlined task management for operational loops, maintenance, and ad-hoc requests. Focus on rapid execution and throughput.</p>
 </div>
 </label>
 </div>
-<!-- Chips -->
-<div class="flex items-center gap-3 overflow-x-auto pb-2">
-<div class="flex h-12 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-primary/10 dark:bg-primary/20 px-4">
-<span class="material-symbols-outlined text-primary dark:text-sky-300 text-lg">grid_view</span>
-<p class="text-primary dark:text-sky-300 text-sm font-medium leading-normal">All</p>
-</div>
-<div class="flex h-12 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 hover:bg-slate-50 dark:hover:bg-slate-700">
-<span class="material-symbols-outlined text-slate-600 dark:text-slate-300 text-lg">campaign</span>
-<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Marketing</p>
-</div>
-<div class="flex h-12 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 hover:bg-slate-50 dark:hover:bg-slate-700">
-<span class="material-symbols-outlined text-slate-600 dark:text-slate-300 text-lg">code</span>
-<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Development</p>
-</div>
-<div class="flex h-12 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 hover:bg-slate-50 dark:hover:bg-slate-700">
-<span class="material-symbols-outlined text-slate-600 dark:text-slate-300 text-lg">design_services</span>
-<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">Design</p>
-</div>
-<div class="flex h-12 shrink-0 cursor-pointer items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 hover:bg-slate-50 dark:hover:bg-slate-700">
-<span class="material-symbols-outlined text-slate-600 dark:text-slate-300 text-lg">badge</span>
-<p class="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal">HR</p>
+</section>
+<section>
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="flex items-center justify-center w-6 h-6 rounded-full bg-text-main text-white text-xs font-bold">2</span>
+<h3 class="text-sm font-bold text-text-main uppercase tracking-wide">Select Template</h3>
 </div>
 </div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="group cursor-pointer p-4 rounded-card border border-border-subtle bg-white hover:border-primary/50 hover:shadow-lg transition-all">
+<div class="flex justify-between items-start mb-3">
+<div class="w-10 h-10 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center">
+<span class="material-symbols-outlined">check_box_outline_blank</span>
 </div>
-<!-- Your Templates Section -->
-<div>
-<h2 class="text-slate-900 dark:text-white text-2xl font-bold leading-tight tracking-[-0.015em] mb-4">Your Templates</h2>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-<!-- Template Card -->
-<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 flex flex-col gap-4">
-<div class="flex items-start justify-between">
+</div>
+<h5 class="font-bold text-text-main">Blank Project</h5>
+<p class="text-xs text-text-sub mt-1 mb-3">Start from scratch with no predefined structure.</p>
+</div>
+<div class="relative cursor-pointer p-4 rounded-card border-2 border-primary bg-white shadow-sm ring-1 ring-primary/30">
+<div class="absolute top-[-8px] right-[-8px] bg-primary text-white rounded-full p-0.5 shadow-sm">
+<span class="material-symbols-outlined text-sm font-bold">check</span>
+</div>
+<div class="flex justify-between items-start mb-3">
+<div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined">terminal</span>
+</div>
+</div>
+<h5 class="font-bold text-text-main">Software Dev</h5>
+<p class="text-xs text-text-sub mt-1 mb-3">SaaS structure with frontend, backend, and QA milestones.</p>
+<div class="flex gap-2 text-[10px] font-medium text-text-sub">
+<span class="bg-gray-100 px-1.5 py-0.5 rounded">12 Milestones</span>
+<span class="bg-kb-teal/10 text-kb-teal px-1.5 py-0.5 rounded">5 KB Pages</span>
+</div>
+</div>
+<div class="group cursor-pointer p-4 rounded-card border border-border-subtle bg-white hover:border-primary/50 hover:shadow-lg transition-all">
+<div class="flex justify-between items-start mb-3">
+<div class="w-10 h-10 rounded-lg bg-pink-50 text-pink-500 flex items-center justify-center">
+<span class="material-symbols-outlined">campaign</span>
+</div>
+</div>
+<h5 class="font-bold text-text-main">Marketing</h5>
+<p class="text-xs text-text-sub mt-1 mb-3">Campaign launch plan with content calendar.</p>
+<div class="flex gap-2 text-[10px] font-medium text-text-sub">
+<span class="bg-gray-100 px-1.5 py-0.5 rounded">8 Milestones</span>
+<span class="bg-kb-teal/10 text-kb-teal px-1.5 py-0.5 rounded">3 KB Pages</span>
+</div>
+</div>
+<div class="group cursor-pointer p-4 rounded-card border border-border-subtle bg-white hover:border-primary/50 hover:shadow-lg transition-all">
+<div class="flex justify-between items-start mb-3">
+<div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-500 flex items-center justify-center">
+<span class="material-symbols-outlined">rocket_launch</span>
+</div>
+</div>
+<h5 class="font-bold text-text-main">Product Launch</h5>
+<p class="text-xs text-text-sub mt-1 mb-3">GTM strategy template for new product releases.</p>
+<div class="flex gap-2 text-[10px] font-medium text-text-sub">
+<span class="bg-gray-100 px-1.5 py-0.5 rounded">15 Milestones</span>
+</div>
+</div>
+<div class="group cursor-pointer p-4 rounded-card border border-border-subtle bg-white hover:border-primary/50 hover:shadow-lg transition-all">
+<div class="flex justify-between items-start mb-3">
+<div class="w-10 h-10 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center">
+<span class="material-symbols-outlined">group_add</span>
+</div>
+</div>
+<h5 class="font-bold text-text-main">HR &amp; Onboarding</h5>
+<p class="text-xs text-text-sub mt-1 mb-3">Employee onboarding pipeline and checklists.</p>
+</div>
+<div class="group cursor-pointer p-4 rounded-card border border-border-subtle bg-white hover:border-primary/50 hover:shadow-lg transition-all">
+<div class="flex justify-between items-start mb-3">
+<div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
+<span class="material-symbols-outlined">business_center</span>
+</div>
+</div>
+<h5 class="font-bold text-text-main">Client Project</h5>
+<p class="text-xs text-text-sub mt-1 mb-3">Agency model with approval phases and billing.</p>
+</div>
+<div class="group cursor-pointer p-4 rounded-card border border-border-subtle bg-white hover:border-primary/50 hover:shadow-lg transition-all">
+<div class="flex justify-between items-start mb-3">
+<div class="w-10 h-10 rounded-lg bg-teal-50 text-teal-500 flex items-center justify-center">
+<span class="material-symbols-outlined">palette</span>
+</div>
+</div>
+<h5 class="font-bold text-text-main">Design System</h5>
+<p class="text-xs text-text-sub mt-1 mb-3">UI/UX component library development workflow.</p>
+</div>
+<div class="group cursor-pointer p-4 rounded-card border border-dashed border-gray-300 bg-gray-50/50 hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center text-center h-full min-h-[140px]">
+<div class="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-400 group-hover:text-primary group-hover:border-primary flex items-center justify-center mb-2 shadow-sm transition-colors">
+<span class="material-symbols-outlined">add</span>
+</div>
+<h5 class="font-bold text-text-main text-sm group-hover:text-primary transition-colors">Custom Template</h5>
+</div>
+</div>
+</section>
+<section class="rounded-xl border border-border-subtle overflow-hidden">
+<div class="bg-white p-4 flex items-center justify-between border-b border-border-subtle">
 <div class="flex items-center gap-3">
-<div class="bg-primary/10 dark:bg-primary/20 rounded-lg size-12 flex items-center justify-center">
-<span class="material-symbols-outlined text-primary dark:text-sky-300 text-3xl">rocket_launch</span>
+<div class="p-2 bg-kb-teal/10 rounded-lg text-kb-teal">
+<span class="material-symbols-outlined">library_books</span>
 </div>
 <div>
-<h3 class="text-slate-900 dark:text-white font-bold">Product Launch</h3>
-<p class="text-slate-500 dark:text-slate-400 text-sm">90-day product launch plan</p>
+<h3 class="text-sm font-bold text-text-main">KB Starter Pages</h3>
+<p class="text-xs text-text-sub">Automatically create and link documentation pages.</p>
 </div>
 </div>
-<button class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
-<span class="material-symbols-outlined">more_vert</span>
+<label class="inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-kb-teal"></div>
+</label>
+</div>
+<div class="bg-gray-50/80 p-5 pl-16">
+<div class="flex justify-between items-center mb-3">
+<span class="text-xs font-bold text-text-sub uppercase tracking-wider">Recommended for Software Dev</span>
+<div class="flex gap-3">
+<button class="text-xs font-medium text-kb-teal hover:text-kb-teal/80">Select All</button>
+<button class="text-xs font-medium text-text-sub hover:text-text-main">Deselect All</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+<label class="flex items-start p-3 bg-white border border-border-subtle rounded-lg cursor-pointer hover:border-kb-teal transition-colors">
+<input checked="" class="w-4 h-4 mt-0.5 text-kb-teal border-gray-300 rounded focus:ring-kb-teal" type="checkbox"/>
+<div class="ml-3">
+<span class="block text-sm font-medium text-text-main">Project Charter</span>
+<span class="block text-xs text-text-sub mt-0.5">Define goals, scope, and key stakeholders.</span>
+</div>
+</label>
+<label class="flex items-start p-3 bg-white border border-border-subtle rounded-lg cursor-pointer hover:border-kb-teal transition-colors">
+<input checked="" class="w-4 h-4 mt-0.5 text-kb-teal border-gray-300 rounded focus:ring-kb-teal" type="checkbox"/>
+<div class="ml-3">
+<span class="block text-sm font-medium text-text-main">Technical Specifications</span>
+<span class="block text-xs text-text-sub mt-0.5">Architecture diagrams and API endpoints.</span>
+</div>
+</label>
+<label class="flex items-start p-3 bg-white border border-border-subtle rounded-lg cursor-pointer hover:border-kb-teal transition-colors">
+<input checked="" class="w-4 h-4 mt-0.5 text-kb-teal border-gray-300 rounded focus:ring-kb-teal" type="checkbox"/>
+<div class="ml-3">
+<span class="block text-sm font-medium text-text-main">Release Notes</span>
+<span class="block text-xs text-text-sub mt-0.5">Changelog template for deployments.</span>
+</div>
+</label>
+<label class="flex items-start p-3 bg-white border border-border-subtle rounded-lg cursor-pointer hover:border-kb-teal transition-colors">
+<input class="w-4 h-4 mt-0.5 text-kb-teal border-gray-300 rounded focus:ring-kb-teal" type="checkbox"/>
+<div class="ml-3">
+<span class="block text-sm font-medium text-text-main">Daily Standup Log</span>
+<span class="block text-xs text-text-sub mt-0.5">Tracking daily progress and blockers.</span>
+</div>
+</label>
+<label class="flex items-start p-3 bg-white border border-border-subtle rounded-lg cursor-pointer hover:border-kb-teal transition-colors">
+<input class="w-4 h-4 mt-0.5 text-kb-teal border-gray-300 rounded focus:ring-kb-teal" type="checkbox"/>
+<div class="ml-3">
+<span class="block text-sm font-medium text-text-main">User Research</span>
+<span class="block text-xs text-text-sub mt-0.5">Interview notes and persona templates.</span>
+</div>
+</label>
+<label class="flex items-start p-3 bg-white border border-border-subtle rounded-lg cursor-pointer hover:border-kb-teal transition-colors">
+<input class="w-4 h-4 mt-0.5 text-kb-teal border-gray-300 rounded focus:ring-kb-teal" type="checkbox"/>
+<div class="ml-3">
+<span class="block text-sm font-medium text-text-main">Post-Mortem / Retro</span>
+<span class="block text-xs text-text-sub mt-0.5">Incident analysis and sprint reviews.</span>
+</div>
+</label>
+</div>
+</div>
+</section>
+</div>
+<footer class="px-8 py-5 border-t border-border-subtle bg-gray-50/50 rounded-b-xl flex justify-between items-center">
+<div class="text-sm">
+<span class="text-text-sub">Summary: </span>
+<span class="font-semibold text-text-main">BUILD Mode • Software Dev • 3 KB Pages</span>
+</div>
+<div class="flex gap-3">
+<button class="rounded-lg bg-white border border-border-subtle px-5 py-2.5 text-sm font-medium text-text-main hover:bg-gray-50 transition-colors">Cancel</button>
+<button class="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all flex items-center gap-2">
+                    Create Project
+                    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
 </button>
 </div>
-<div class="flex items-center gap-4 text-slate-500 dark:text-slate-400 text-sm">
-<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">flag</span>5 Milestones</div>
-<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">task_alt</span>42 Tasks</div>
-<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">folder_open</span>8 Folders</div>
-</div>
-<div class="border-t border-slate-200 dark:border-slate-700 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-<p class="text-sm text-slate-500 dark:text-slate-400">Used 15 times</p>
-<div class="flex items-center gap-2 w-full sm:w-auto">
-<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200">Preview</button>
-<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg bg-primary text-white hover:bg-primary/90">Use</button>
+</footer>
 </div>
 </div>
-</div>
-<!-- Add more cards as needed -->
-<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 flex flex-col gap-4">
-<div class="flex items-start justify-between">
-<div class="flex items-center gap-3">
-<div class="bg-primary/10 dark:bg-primary/20 rounded-lg size-12 flex items-center justify-center">
-<span class="material-symbols-outlined text-primary dark:text-sky-300 text-3xl">home_work</span>
-</div>
-<div>
-<h3 class="text-slate-900 dark:text-white font-bold">Construction</h3>
-<p class="text-slate-500 dark:text-slate-400 text-sm">Residential building project</p>
-</div>
-</div>
-<button class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
-<span class="material-symbols-outlined">more_vert</span>
-</button>
-</div>
-<div class="flex items-center gap-4 text-slate-500 dark:text-slate-400 text-sm">
-<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">flag</span>12 Milestones</div>
-<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">task_alt</span>128 Tasks</div>
-<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">folder_open</span>25 Folders</div>
-</div>
-<div class="border-t border-slate-200 dark:border-slate-700 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-<p class="text-sm text-slate-500 dark:text-slate-400">Used 3 times</p>
-<div class="flex items-center gap-2 w-full sm:w-auto">
-<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200">Preview</button>
-<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg bg-primary text-white hover:bg-primary/90">Use</button>
-</div>
-</div>
-</div>
-</div>
-</div>
-<!-- Suggested Templates Section -->
-<div class="mt-12">
-<h2 class="text-slate-900 dark:text-white text-2xl font-bold leading-tight tracking-[-0.015em] mb-4">Suggested Templates</h2>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-<!-- Recommended Template Card -->
-<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 flex flex-col gap-4">
-<div class="flex items-start justify-between">
-<div class="flex items-center gap-3">
-<div class="bg-primary/10 dark:bg-primary/20 rounded-lg size-12 flex items-center justify-center">
-<span class="material-symbols-outlined text-primary dark:text-sky-300 text-3xl">event</span>
-</div>
-<div>
-<h3 class="text-slate-900 dark:text-white font-bold">Event Planning</h3>
-<p class="text-slate-500 dark:text-slate-400 text-sm">Corporate event management</p>
-</div>
-</div>
-<button class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
-<span class="material-symbols-outlined">more_vert</span>
-</button>
-</div>
-<div class="flex items-center gap-1">
-<div class="inline-flex items-center gap-1.5 rounded-full bg-teal-100 dark:bg-teal-900 px-2 py-1 text-xs font-medium text-teal-700 dark:text-teal-200">
-<span class="material-symbols-outlined text-sm">verified</span>
-                                        HYVVE RECOMMENDED
-                                    </div>
-</div>
-<div class="flex items-center gap-4 text-slate-500 dark:text-slate-400 text-sm">
-<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">flag</span>8 Milestones</div>
-<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">task_alt</span>64 Tasks</div>
-<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">folder_open</span>12 Folders</div>
-</div>
-<div class="border-t border-slate-200 dark:border-slate-700 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-<p class="text-sm text-slate-500 dark:text-slate-400">Used 124 times</p>
-<div class="flex items-center gap-2 w-full sm:w-auto">
-<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200">Preview</button>
-<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg bg-primary text-white hover:bg-primary/90">Use</button>
-</div>
-</div>
-</div>
-<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 flex flex-col gap-4">
-<div class="flex items-start justify-between">
-<div class="flex items-center gap-3">
-<div class="bg-primary/10 dark:bg-primary/20 rounded-lg size-12 flex items-center justify-center">
-<span class="material-symbols-outlined text-primary dark:text-sky-300 text-3xl">web</span>
-</div>
-<div>
-<h3 class="text-slate-900 dark:text-white font-bold">Website Redesign</h3>
-<p class="text-slate-500 dark:text-slate-400 text-sm">Full website overhaul process</p>
-</div>
-</div>
-<button class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
-<span class="material-symbols-outlined">more_vert</span>
-</button>
-</div>
-<div class="flex items-center gap-1">
-<div class="inline-flex items-center gap-1.5 rounded-full bg-teal-100 dark:bg-teal-900 px-2 py-1 text-xs font-medium text-teal-700 dark:text-teal-200">
-<span class="material-symbols-outlined text-sm">verified</span>
-                                        HYVVE RECOMMENDED
-                                    </div>
-</div>
-<div class="flex items-center gap-4 text-slate-500 dark:text-slate-400 text-sm">
-<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">flag</span>10 Milestones</div>
-<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">task_alt</span>98 Tasks</div>
-<div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-base">folder_open</span>15 Folders</div>
-</div>
-<div class="border-t border-slate-200 dark:border-slate-700 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-<p class="text-sm text-slate-500 dark:text-slate-400">Used 250+ times</p>
-<div class="flex items-center gap-2 w-full sm:w-auto">
-<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200">Preview</button>
-<button class="flex-1 text-sm font-bold h-9 px-3 rounded-lg bg-primary text-white hover:bg-primary/90">Use</button>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</main>
-</div>
-</div>
+
 </body></html>

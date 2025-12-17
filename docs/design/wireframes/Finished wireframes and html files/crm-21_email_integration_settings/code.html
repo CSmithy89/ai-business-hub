@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CRM-21 Email Integration Settings</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=Noto+Sans:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#1a1a2e] dark:text-white font-display overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-col group/design-root">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 md:px-10 lg:px-40 flex flex-1 justify-center py-5">
+<div class="layout-content-container flex flex-col max-w-[960px] flex-1 pb-20">
+<!-- Page Heading -->
+<div class="flex flex-wrap justify-between gap-3 p-4">
+<div class="flex min-w-72 flex-col gap-3">
+<h1 class="text-[#1a1a2e] dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Email Integration Settings</h1>
+<p class="text-[#6b7280] dark:text-[#9da6b9] text-base font-normal leading-normal">Manage your email providers, sync preferences, and tracking configurations.</p>
+</div>
+</div>
+<!-- Email Provider Connections -->
+<div class="px-4 pb-3 pt-5">
+<h2 class="text-[#1a1a2e] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Email Provider Connections</h2>
+</div>
+<!-- Gmail Card (Connected) -->
+<div class="p-4">
+<div class="flex flex-col md:flex-row items-stretch justify-between gap-4 rounded-lg bg-white dark:bg-[#1c1f27] p-4 shadow-sm dark:shadow-[0_0_4px_rgba(0,0,0,0.1)] border border-[#e5e7eb] dark:border-transparent">
+<div class="flex flex-[2_2_0px] flex-col justify-center gap-4">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<div class="h-2 w-2 rounded-full bg-green-500"></div>
+<p class="text-green-600 dark:text-green-400 text-sm font-medium leading-normal">Connected</p>
+</div>
+<p class="text-[#1a1a2e] dark:text-white text-lg font-bold leading-tight">Gmail Integration</p>
+<p class="text-[#6b7280] dark:text-[#9da6b9] text-sm font-normal leading-normal">user@company.com • Last sync: 2 mins ago</p>
+</div>
+<div class="flex gap-3 mt-2">
+<button class="flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-primary text-white gap-2 text-sm font-medium leading-normal w-fit transition-colors hover:bg-blue-600">
+<span class="material-symbols-outlined text-[18px]">sync</span>
+<span class="truncate">Sync Now</span>
+</button>
+<button class="flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-transparent border border-red-500 text-red-500 hover:bg-red-500/10 gap-2 text-sm font-medium leading-normal w-fit transition-colors">
+<span class="material-symbols-outlined text-[18px]">link_off</span>
+<span class="truncate">Disconnect</span>
+</button>
+</div>
+</div>
+<div class="w-full md:w-48 bg-center bg-no-repeat bg-cover rounded-lg min-h-[120px] md:min-h-auto" data-alt="Abstract colorful gradient mesh representing secure data connection" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA5s68bOzEzrqNNHkIrYyuo0mLM425Zy2RkoScPDyNrBw8BRdZzAfGgkM9g1_143f5Br0Rli0XCyo9ay5SWWQu52OoM3vwlPRgoZuR7cA2V5U4tab6pwzRP4ly1B_OjEcuJhtRXYAemdusftiNbrwiRCn2rID5v4WG-POZOOYju0tjaqYUvWOKCCc-A19XSRXHGdx5HtD-Ykl0XNdno5aWA8mnVfLmeo-I5nHf5Gkny7l58puZj7WMs1vDyprQTlfrbimeiL2qWKJg");'></div>
+</div>
+</div>
+<!-- Outlook Card (Not Connected) -->
+<div class="p-4 pt-0">
+<div class="flex flex-col md:flex-row items-stretch justify-between gap-4 rounded-lg bg-white dark:bg-[#1c1f27] p-4 shadow-sm dark:shadow-[0_0_4px_rgba(0,0,0,0.1)] border border-[#e5e7eb] dark:border-transparent">
+<div class="flex flex-[2_2_0px] flex-col justify-center gap-4">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<div class="h-2 w-2 rounded-full bg-gray-400"></div>
+<p class="text-[#6b7280] dark:text-[#9da6b9] text-sm font-medium leading-normal">Not Connected</p>
+</div>
+<p class="text-[#1a1a2e] dark:text-white text-lg font-bold leading-tight">Outlook Integration</p>
+<p class="text-[#6b7280] dark:text-[#9da6b9] text-sm font-normal leading-normal">Connect your Office 365 account to sync emails and calendar.</p>
+</div>
+<button class="flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-primary text-white gap-2 text-sm font-medium leading-normal w-fit transition-colors hover:bg-blue-600 mt-2">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span class="truncate">Connect</span>
+</button>
+</div>
+<div class="w-full md:w-48 bg-center bg-no-repeat bg-cover rounded-lg min-h-[120px] md:min-h-auto" data-alt="Dark blue abstract geometric pattern representing corporate structure" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCmx7b5nlD15SOZ78hxNIVbj0ERu_ewkvWfHkV98DhIZft58FwgSUuVBvgHcyywZ4UiPShXZE4ycHYQL4-sBeuFHqA9KJcYb2Rx9dKd-yI0Oqz-mK374M2Pc6rOcdwtwmzbCAkMp4Yqgysup2GkhEZshvdm5Dx0aJn5XgtlKURfQBcr8iWUgZjaOeTObC-9jbtd4aeyd1u0QMsyTj5IXIXxIC0IlF9sg37NouMmtOs95M03Or9YWB1mr-MqULksatcFPAr_7ebGYYg");'></div>
+</div>
+</div>
+<!-- Sync Settings -->
+<div class="px-4 pb-3 pt-5">
+<h2 class="text-[#1a1a2e] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Sync Settings</h2>
+</div>
+<div class="p-4">
+<div class="flex flex-col gap-6 rounded-lg bg-white dark:bg-[#1c1f27] p-6 shadow-sm dark:shadow-[0_0_4px_rgba(0,0,0,0.1)] border border-[#e5e7eb] dark:border-transparent">
+<!-- Sync Direction -->
+<div class="flex flex-col gap-3">
+<h3 class="text-[#1a1a2e] dark:text-white text-base font-bold">Sync Direction</h3>
+<div class="flex flex-col gap-2">
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="relative flex items-center">
+<input checked="" class="peer h-5 w-5 cursor-pointer appearance-none rounded-full border border-gray-300 dark:border-gray-600 checked:border-primary checked:bg-primary transition-all" name="sync_direction" type="radio"/>
+<div class="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100">
+<svg class="h-3.5 w-3.5" fill="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="6"></circle></svg>
+</div>
+</div>
+<span class="text-[#1a1a2e] dark:text-white text-sm">Two-way Sync (Recommended)</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="relative flex items-center">
+<input class="peer h-5 w-5 cursor-pointer appearance-none rounded-full border border-gray-300 dark:border-gray-600 checked:border-primary checked:bg-primary transition-all" name="sync_direction" type="radio"/>
+<div class="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100">
+<svg class="h-3.5 w-3.5" fill="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="6"></circle></svg>
+</div>
+</div>
+<span class="text-[#1a1a2e] dark:text-white text-sm">One-way: CRM to Email</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="relative flex items-center">
+<input class="peer h-5 w-5 cursor-pointer appearance-none rounded-full border border-gray-300 dark:border-gray-600 checked:border-primary checked:bg-primary transition-all" name="sync_direction" type="radio"/>
+<div class="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100">
+<svg class="h-3.5 w-3.5" fill="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="6"></circle></svg>
+</div>
+</div>
+<span class="text-[#1a1a2e] dark:text-white text-sm">One-way: Email to CRM</span>
+</label>
+</div>
+</div>
+<hr class="border-gray-200 dark:border-gray-800"/>
+<!-- Sync Scope -->
+<div class="flex flex-col gap-3">
+<h3 class="text-[#1a1a2e] dark:text-white text-base font-bold">Sync Scope</h3>
+<div class="flex flex-wrap gap-6">
+<label class="flex items-center gap-3 cursor-pointer">
+<input checked="" class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 bg-transparent text-primary focus:ring-primary focus:ring-offset-0" type="checkbox"/>
+<span class="text-[#1a1a2e] dark:text-white text-sm">Contacts</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer">
+<input checked="" class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 bg-transparent text-primary focus:ring-primary focus:ring-offset-0" type="checkbox"/>
+<span class="text-[#1a1a2e] dark:text-white text-sm">Calendar Events</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer">
+<input class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 bg-transparent text-primary focus:ring-primary focus:ring-offset-0" type="checkbox"/>
+<span class="text-[#1a1a2e] dark:text-white text-sm">Tasks</span>
+</label>
+</div>
+</div>
+<hr class="border-gray-200 dark:border-gray-800"/>
+<!-- Historical Import -->
+<div class="flex flex-col gap-3">
+<h3 class="text-[#1a1a2e] dark:text-white text-base font-bold">Historical Data Import</h3>
+<p class="text-[#6b7280] dark:text-[#9da6b9] text-sm">Import past emails to populate your CRM timeline.</p>
+<div class="flex flex-wrap items-end gap-4 mt-1">
+<div class="flex flex-col gap-1 w-full max-w-xs">
+<label class="text-xs font-medium text-[#6b7280] dark:text-[#9da6b9]">Start Date</label>
+<div class="relative">
+<input class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#282e39] text-[#1a1a2e] dark:text-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" type="date"/>
+</div>
+</div>
+<button class="flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-[38px] px-4 bg-[#282e39] dark:bg-[#282e39] hover:bg-gray-200 dark:hover:bg-[#343b4a] text-white border border-gray-600 gap-2 text-sm font-medium leading-normal w-fit transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Start Import</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Email Tracking & Echo Agent -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-4">
+<!-- Left Col: Email Tracking -->
+<div class="flex flex-col">
+<div class="px-4 pb-3 pt-5">
+<h2 class="text-[#1a1a2e] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Email Tracking</h2>
+</div>
+<div class="p-4 pt-0 flex-1">
+<div class="flex flex-col gap-6 h-full rounded-lg bg-white dark:bg-[#1c1f27] p-6 shadow-sm dark:shadow-[0_0_4px_rgba(0,0,0,0.1)] border border-[#e5e7eb] dark:border-transparent">
+<!-- Toggles -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<span class="text-[#1a1a2e] dark:text-white text-sm font-medium">Track Opens</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[#1a1a2e] dark:text-white text-sm font-medium">Track Link Clicks</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[#1a1a2e] dark:text-white text-sm font-medium">Track Reply Timing</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<hr class="border-gray-200 dark:border-gray-800"/>
+<!-- Impact Table -->
+<div class="flex flex-col gap-2">
+<p class="text-xs font-semibold uppercase tracking-wider text-[#6b7280] dark:text-[#9da6b9]">Scoring Impact</p>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm text-[#6b7280] dark:text-[#9da6b9]">
+<thead class="text-xs uppercase bg-gray-50 dark:bg-gray-800 text-[#1a1a2e] dark:text-white">
+<tr>
+<th class="px-4 py-2 rounded-l-md" scope="col">Activity</th>
+<th class="px-4 py-2 rounded-r-md text-right" scope="col">Points</th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b border-gray-100 dark:border-gray-800">
+<td class="px-4 py-2 font-medium text-[#1a1a2e] dark:text-white">Email Open</td>
+<td class="px-4 py-2 text-right text-green-600 dark:text-green-400 font-bold">+1</td>
+</tr>
+<tr class="border-b border-gray-100 dark:border-gray-800">
+<td class="px-4 py-2 font-medium text-[#1a1a2e] dark:text-white">Link Click</td>
+<td class="px-4 py-2 text-right text-green-600 dark:text-green-400 font-bold">+3</td>
+</tr>
+<tr>
+<td class="px-4 py-2 font-medium text-[#1a1a2e] dark:text-white">Reply Received</td>
+<td class="px-4 py-2 text-right text-green-600 dark:text-green-400 font-bold">+5</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Col: Echo Agent -->
+<div class="flex flex-col">
+<div class="px-4 pb-3 pt-5">
+<h2 class="text-[#1a1a2e] dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">Agent Intelligence</h2>
+</div>
+<div class="p-4 pt-0">
+<div class="relative flex flex-col gap-4 rounded-lg bg-white dark:bg-[#1c1f27] p-6 shadow-sm dark:shadow-[0_0_4px_rgba(0,0,0,0.1)] border border-[#e5e7eb] dark:border-transparent border-l-[6px] !border-l-purple-500 overflow-hidden">
+<!-- Header with Echo Badge -->
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3">
+<div class="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20 text-purple-500">
+<span class="material-symbols-outlined">psychology</span>
+</div>
+<div>
+<h3 class="text-[#1a1a2e] dark:text-white text-lg font-bold">Echo</h3>
+<p class="text-xs text-[#6b7280] dark:text-[#9da6b9] font-medium uppercase tracking-wide">Sentiment Analysis Agent</p>
+</div>
+</div>
+<div class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+</div>
+<p class="text-[#1a1a2e] dark:text-white text-sm leading-relaxed">
+                                        Echo is currently active and monitoring your connected inboxes. It analyzes reply sentiment to automatically flag at-risk accounts and suggest response tones.
+                                    </p>
+<!-- Mini Stats Grid -->
+<div class="grid grid-cols-2 gap-3 mt-2">
+<div class="bg-gray-50 dark:bg-[#282e39] rounded-md p-3">
+<p class="text-xs text-[#6b7280] dark:text-[#9da6b9]">Emails Analyzed (Today)</p>
+<p class="text-xl font-bold text-[#1a1a2e] dark:text-white mt-1">142</p>
+</div>
+<div class="bg-gray-50 dark:bg-[#282e39] rounded-md p-3">
+<p class="text-xs text-[#6b7280] dark:text-[#9da6b9]">Negative Sentiment</p>
+<p class="text-xl font-bold text-red-500 mt-1">3 <span class="text-xs font-normal text-[#6b7280] dark:text-[#9da6b9]">detected</span></p>
+</div>
+</div>
+<div class="flex justify-end mt-2">
+<button class="text-sm font-medium text-purple-500 hover:text-purple-400 flex items-center gap-1 transition-colors">
+                                            Configure Echo
+                                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<!-- Subtle decorative bg element -->
+<div class="absolute -right-6 -bottom-6 opacity-5 pointer-events-none">
+<span class="material-symbols-outlined text-[150px] text-purple-500">psychology</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Action -->
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-[#111318] border-t border-gray-200 dark:border-gray-800 z-10">
+<div class="max-w-[960px] mx-auto flex justify-end gap-3 px-4 lg:px-40">
+<button class="px-6 py-2.5 rounded-lg text-sm font-medium text-[#6b7280] dark:text-[#9da6b9] hover:bg-gray-100 dark:hover:bg-[#1c1f27] transition-colors">
+                                Cancel
+                            </button>
+<button class="px-6 py-2.5 rounded-lg text-sm font-medium bg-primary text-white hover:bg-blue-600 shadow-lg shadow-blue-500/30 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                                Save Changes
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

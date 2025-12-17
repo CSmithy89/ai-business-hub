@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PM-32 Workflow Builder</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2b90d",
+                        "background-light": "#f8f8f5",
+                        "background-dark": "#221e10",
+                        "surface-dark": "#181611",
+                        "surface-lighter": "#2A261C",
+                        "border-dark": "#393528",
+                        "text-secondary": "#bab29c",
+                        "phase-build": "#3B82F6",
+                        "phase-operate": "#22C55E",
+                        "phase-custom": "#8B5CF6",
+                        "status-success": "#22C55E",
+                        "status-warning": "#F59E0B",
+                        "status-error": "#EF4444",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Dot grid pattern for canvas */
+        .bg-grid-pattern {
+            background-image: radial-gradient(#393528 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display h-screen flex flex-col overflow-hidden text-white">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-border-dark bg-surface-dark px-6 py-3 z-20 shadow-md">
+<div class="flex items-center gap-4 text-white">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-background-dark">
+<span class="material-symbols-outlined">hub</span>
+</div>
+<div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Project Alpha Workflow</h2>
+<div class="flex items-center gap-2 text-xs text-text-secondary">
+<span class="size-2 rounded-full bg-status-warning"></span>
+<span>Draft Mode</span>
+</div>
+</div>
+</div>
+<div class="flex flex-1 justify-center">
+<div class="bg-surface-lighter rounded-lg p-1 flex border border-border-dark">
+<button class="px-4 py-1.5 rounded bg-primary/20 text-primary text-sm font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">construction</span>
+                    Build
+                </button>
+<button class="px-4 py-1.5 rounded hover:bg-white/5 text-text-secondary text-sm font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">play_circle</span>
+                    Simulate
+                </button>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center rounded-xl h-10 px-4 bg-surface-lighter hover:bg-border-dark border border-border-dark text-white text-sm font-bold transition-colors">
+<span class="truncate">Save Draft</span>
+</button>
+<button class="flex items-center justify-center rounded-xl h-10 px-4 bg-primary hover:bg-primary/90 text-background-dark text-sm font-bold shadow-lg shadow-primary/20 transition-colors">
+<span class="truncate">Publish</span>
+</button>
+<div class="w-px h-8 bg-border-dark mx-1"></div>
+<button class="size-10 flex items-center justify-center rounded-full hover:bg-white/5 text-text-secondary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 ring-2 ring-border-dark" data-alt="User profile avatar showing a smiling face" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBf99Mu-ytKsPYOqOX4oG8cYnD_vn9AX37LmS4OrDFo-icrW6jnKWtGGrXSSGU1P5aXMTUi1XZldNCnQxoEy7KVSEYoo8yYjm-w28XF90QsxfOAlFcEjKMA_o5gSzbzChjtl7byLqXzj0lO1IdUgy6VIeklWujT2jKlmQfMoLUAuqrzn_FOOLblJ5VUCUPDKP0Ou8BBm2onL0rOGN9FMq9b__edUMvXfEqGFdjga2gyNVWKdJtqjJxx1K2CAH0i8TA-dOR3NfuzDQ0");'></div>
+</div>
+</header>
+<!-- Main Workspace -->
+<div class="flex flex-1 overflow-hidden relative">
+<!-- Left Sidebar: Phase Library -->
+<aside class="w-[280px] bg-surface-dark border-r border-border-dark flex flex-col z-10 shadow-xl">
+<div class="p-4 border-b border-border-dark">
+<h3 class="text-sm font-bold uppercase tracking-wider text-text-secondary mb-3">Library</h3>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2.5 top-2 text-text-secondary text-[20px]">search</span>
+<input class="w-full bg-surface-lighter border border-border-dark rounded-lg py-2 pl-9 pr-3 text-sm text-white focus:outline-none focus:border-primary placeholder-text-secondary/50" placeholder="Search components..." type="text"/>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+<!-- BMAD Phases Accordion -->
+<details class="group rounded-xl border border-border-dark bg-surface-lighter open" open="">
+<summary class="flex cursor-pointer items-center justify-between px-4 py-3 select-none">
+<span class="text-white text-sm font-semibold">BMAD Phases</span>
+<span class="material-symbols-outlined text-text-secondary group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-3 pb-3 pt-0 flex flex-col gap-2">
+<div class="flex items-center gap-3 p-2 rounded-lg bg-surface-dark border border-border-dark cursor-grab hover:border-phase-build/50 hover:bg-phase-build/10 transition-colors group/item">
+<div class="size-8 rounded flex items-center justify-center bg-phase-build/20 text-phase-build">
+<span class="material-symbols-outlined text-[20px]">explore</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium">Discovery</span>
+<span class="text-[10px] text-text-secondary">Explore &amp; define</span>
+</div>
+<span class="material-symbols-outlined ml-auto text-text-secondary opacity-0 group-hover/item:opacity-100 text-[18px]">drag_indicator</span>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-lg bg-surface-dark border border-border-dark cursor-grab hover:border-phase-build/50 hover:bg-phase-build/10 transition-colors group/item">
+<div class="size-8 rounded flex items-center justify-center bg-phase-build/20 text-phase-build">
+<span class="material-symbols-outlined text-[20px]">design_services</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium">Definition</span>
+<span class="text-[10px] text-text-secondary">Spec &amp; design</span>
+</div>
+<span class="material-symbols-outlined ml-auto text-text-secondary opacity-0 group-hover/item:opacity-100 text-[18px]">drag_indicator</span>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-lg bg-surface-dark border border-border-dark cursor-grab hover:border-phase-build/50 hover:bg-phase-build/10 transition-colors group/item">
+<div class="size-8 rounded flex items-center justify-center bg-phase-build/20 text-phase-build">
+<span class="material-symbols-outlined text-[20px]">rocket_launch</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium">Delivery</span>
+<span class="text-[10px] text-text-secondary">Build &amp; launch</span>
+</div>
+<span class="material-symbols-outlined ml-auto text-text-secondary opacity-0 group-hover/item:opacity-100 text-[18px]">drag_indicator</span>
+</div>
+</div>
+</details>
+<!-- Gates & Logic Accordion -->
+<details class="group rounded-xl border border-border-dark bg-surface-lighter">
+<summary class="flex cursor-pointer items-center justify-between px-4 py-3 select-none">
+<span class="text-white text-sm font-semibold">Gates &amp; Logic</span>
+<span class="material-symbols-outlined text-text-secondary group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-3 pb-3 pt-0 flex flex-col gap-2">
+<div class="flex items-center gap-3 p-2 rounded-lg bg-surface-dark border border-border-dark cursor-grab hover:border-phase-custom/50 hover:bg-phase-custom/10 transition-colors group/item">
+<div class="size-8 rounded flex items-center justify-center bg-phase-custom/20 text-phase-custom rotate-45 transform scale-75">
+<div class="size-full border-2 border-current"></div>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium">Approval Gate</span>
+<span class="text-[10px] text-text-secondary">Decision point</span>
+</div>
+<span class="material-symbols-outlined ml-auto text-text-secondary opacity-0 group-hover/item:opacity-100 text-[18px]">drag_indicator</span>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-lg bg-surface-dark border border-border-dark cursor-grab hover:border-phase-custom/50 hover:bg-phase-custom/10 transition-colors group/item">
+<div class="size-8 rounded flex items-center justify-center bg-phase-custom/20 text-phase-custom">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium">Loop</span>
+<span class="text-[10px] text-text-secondary">Repeat process</span>
+</div>
+<span class="material-symbols-outlined ml-auto text-text-secondary opacity-0 group-hover/item:opacity-100 text-[18px]">drag_indicator</span>
+</div>
+</div>
+</details>
+<!-- Operate Loops Accordion -->
+<details class="group rounded-xl border border-border-dark bg-surface-lighter">
+<summary class="flex cursor-pointer items-center justify-between px-4 py-3 select-none">
+<span class="text-white text-sm font-semibold">Operate Loops</span>
+<span class="material-symbols-outlined text-text-secondary group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-3 pb-3 pt-0 flex flex-col gap-2">
+<div class="flex items-center gap-3 p-2 rounded-lg bg-surface-dark border border-border-dark cursor-grab hover:border-phase-operate/50 hover:bg-phase-operate/10 transition-colors group/item">
+<div class="size-8 rounded flex items-center justify-center bg-phase-operate/20 text-phase-operate">
+<span class="material-symbols-outlined text-[20px]">monitoring</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium">Monitor</span>
+<span class="text-[10px] text-text-secondary">Health check</span>
+</div>
+</div>
+</div>
+</details>
+</div>
+<!-- Marketplace Teaser -->
+<div class="p-4 border-t border-border-dark">
+<div class="bg-gradient-to-br from-primary/20 to-surface-lighter rounded-xl p-4 border border-primary/20">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold text-primary uppercase">Marketplace</span>
+<span class="material-symbols-outlined text-primary text-[16px]">shopping_bag</span>
+</div>
+<p class="text-xs text-text-secondary mb-3">Browse 50+ templates for Agile, Waterfall, and more.</p>
+<button class="w-full py-1.5 text-xs font-bold bg-surface-dark text-white rounded border border-border-dark hover:bg-surface-lighter transition-colors">
+                        Browse Templates
+                    </button>
+</div>
+</div>
+</aside>
+<!-- Canvas Area -->
+<main class="flex-1 bg-background-dark bg-grid-pattern relative overflow-hidden cursor-grab active:cursor-grabbing">
+<!-- Floating Toolbar -->
+<div class="absolute top-4 left-1/2 transform -translate-x-1/2 flex items-center gap-1 p-1.5 bg-surface-dark/90 backdrop-blur-sm border border-border-dark rounded-xl shadow-lg z-20">
+<button class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center text-white" title="Select">
+<span class="material-symbols-outlined text-[20px]">arrow_selector_tool</span>
+</button>
+<button class="size-9 rounded-lg bg-primary text-background-dark flex items-center justify-center" title="Hand Tool">
+<span class="material-symbols-outlined material-symbols-fill text-[20px]">pan_tool</span>
+</button>
+<div class="w-px h-5 bg-border-dark mx-1"></div>
+<button class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center text-white" title="Undo">
+<span class="material-symbols-outlined text-[20px]">undo</span>
+</button>
+<button class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center text-white" title="Redo">
+<span class="material-symbols-outlined text-[20px]">redo</span>
+</button>
+<div class="w-px h-5 bg-border-dark mx-1"></div>
+<button class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center text-white" title="Zoom Out">
+<span class="material-symbols-outlined text-[20px]">remove</span>
+</button>
+<span class="text-xs font-medium w-12 text-center text-text-secondary">100%</span>
+<button class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center text-white" title="Zoom In">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+<!-- Canvas Content (Simulated Workflow) -->
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="relative w-full h-full max-w-4xl max-h-[600px] flex items-center justify-center">
+<!-- Connection Lines (SVG) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
+<!-- Line 1 -->
+<path d="M220 300 L340 300" fill="none" marker-end="url(#arrowhead)" stroke="#544e3b" stroke-width="2"></path>
+<!-- Line 2 -->
+<path d="M500 300 L580 300" fill="none" marker-end="url(#arrowhead)" stroke="#544e3b" stroke-width="2"></path>
+<!-- Line 3 (Approved) -->
+<path d="M620 300 L720 300" fill="none" marker-end="url(#arrowhead)" stroke="#22C55E" stroke-width="2"></path>
+<!-- Line 3 Label -->
+<foreignobject height="20" width="60" x="640" y="275">
+<div class="bg-background-dark text-[10px] text-status-success text-center px-1 rounded border border-status-success/30">Yes</div>
+</foreignobject>
+<!-- Line 4 (Rejected loop) -->
+<path d="M600 280 Q 600 200 420 200 Q 420 200 420 260" fill="none" marker-end="url(#arrowhead)" stroke="#EF4444" stroke-dasharray="4" stroke-width="2"></path>
+<!-- Line 4 Label -->
+<foreignobject height="20" width="60" x="480" y="180">
+<div class="bg-background-dark text-[10px] text-status-error text-center px-1 rounded border border-status-error/30">Rework</div>
+</foreignobject>
+<defs>
+<marker id="arrowhead" markerheight="7" markerwidth="10" orient="auto" refx="9" refy="3.5">
+<polygon fill="#544e3b" points="0 0, 10 3.5, 0 7"></polygon>
+</marker>
+</defs>
+</svg>
+<!-- Start Node -->
+<div class="absolute left-[150px] top-[282px] flex flex-col items-center gap-2">
+<div class="size-9 rounded-full bg-white text-black flex items-center justify-center font-bold shadow-lg ring-4 ring-black/50">
+<span class="material-symbols-outlined text-[20px]">flag</span>
+</div>
+<span class="text-xs text-text-secondary font-medium bg-surface-dark px-2 rounded">Start</span>
+</div>
+<!-- Phase Node 1: Discovery -->
+<div class="absolute left-[340px] top-[260px] w-[160px] bg-surface-lighter rounded-xl border border-phase-build/50 shadow-lg shadow-black/50 flex flex-col z-10 group hover:ring-2 hover:ring-phase-build/50 transition-all">
+<div class="h-1.5 w-full bg-phase-build rounded-t-xl"></div>
+<div class="p-3">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-phase-build text-[18px]">explore</span>
+<span class="text-sm font-bold text-white">Discovery</span>
+</div>
+<span class="material-symbols-outlined text-text-secondary text-[16px]">more_vert</span>
+</div>
+<div class="flex items-center gap-2 text-[10px] text-text-secondary bg-surface-dark p-1.5 rounded">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>2 Weeks</span>
+</div>
+<div class="flex -space-x-1.5 mt-3">
+<img alt="Avatar" class="inline-block size-5 rounded-full ring-2 ring-surface-lighter" data-alt="User avatar 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnVkAfStOKB2QRQAZZx-pNQXHKCjOBgHq7Xu1lOJ5g12Q5tR-iKq6zapdeNGZvQgOf8cFevt1NwVLS0IcIswGeeuwk0aMYjcAYnrfDG4bS8ZjvFxKwjTbcdxtfuWHfaalAVbPxuFQxCW_YN-kho5HIDDa98AvlgYWgq26AhVFuK8Co2FJtrU_79UnxioghkkwQMQm2cuabKYenkenQgXgymtG6jOTM9wsibnWkCqh1bNhw2RQMpMx3VSHse8agfPQG8sfVHAjRXRU"/>
+<img alt="Avatar" class="inline-block size-5 rounded-full ring-2 ring-surface-lighter" data-alt="User avatar 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbFv3nEcsRrzTvvpgODzvriDpbg8TfLStyOm14u7b9tl1Wx-DeAPEX6sGWJOAtCLDgBSt2YlKzJ1AWpMrFNGVFoc9voVrB132nNJuPbuWGEG6srMih0fyigHsLLlmMqKVVJ5w742bBdsfFah4Rh-9-AmLR1iDZgkoTGKW8qNdyQ_yNhfWivgz39YhndX-3QKJKQynBmvabgE1UfsJWqwkbGM11r0LNOGHG4OaNmdh7NQMMf2WllHNHhykuu8KvybQnk-0W0tFobcI"/>
+</div>
+</div>
+</div>
+<!-- Gate Node -->
+<div class="absolute left-[580px] top-[280px] z-10">
+<div class="size-10 bg-surface-lighter border-2 border-phase-custom rotate-45 flex items-center justify-center shadow-lg group hover:scale-110 transition-transform cursor-pointer">
+<span class="material-symbols-outlined text-phase-custom -rotate-45 text-[20px]">gavel</span>
+</div>
+<span class="absolute top-12 left-1/2 -translate-x-1/2 text-[10px] font-bold text-phase-custom uppercase whitespace-nowrap bg-surface-dark px-1 rounded mt-1">Review</span>
+</div>
+<!-- Phase Node 2: Definition (Selected) -->
+<div class="absolute left-[720px] top-[260px] w-[160px] bg-surface-lighter rounded-xl border-2 border-[#FF6B6B] shadow-[0_0_15px_rgba(255,107,107,0.3)] flex flex-col z-10 group">
+<div class="h-1.5 w-full bg-phase-build rounded-t-[10px]"></div>
+<div class="p-3">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-phase-build text-[18px]">design_services</span>
+<span class="text-sm font-bold text-white">Definition</span>
+</div>
+<span class="material-symbols-outlined text-text-secondary text-[16px]">more_vert</span>
+</div>
+<div class="flex items-center gap-2 text-[10px] text-text-secondary bg-surface-dark p-1.5 rounded">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>3 Weeks</span>
+</div>
+<div class="flex items-center justify-between mt-3">
+<div class="flex -space-x-1.5">
+<div class="size-5 rounded-full bg-border-dark flex items-center justify-center text-[8px] text-text-secondary ring-2 ring-surface-lighter">+1</div>
+</div>
+<div class="px-1.5 py-0.5 rounded bg-status-warning/20 text-status-warning text-[10px] font-medium border border-status-warning/30">Blocked</div>
+</div>
+</div>
+<!-- Selection Handles -->
+<div class="absolute -top-1 -left-1 size-2.5 bg-[#FF6B6B] rounded-full border border-white"></div>
+<div class="absolute -top-1 -right-1 size-2.5 bg-[#FF6B6B] rounded-full border border-white"></div>
+<div class="absolute -bottom-1 -left-1 size-2.5 bg-[#FF6B6B] rounded-full border border-white"></div>
+<div class="absolute -bottom-1 -right-1 size-2.5 bg-[#FF6B6B] rounded-full border border-white"></div>
+</div>
+</div>
+</div>
+<!-- Mini Map (Bottom Right) -->
+<div class="absolute bottom-4 left-4 w-40 h-28 bg-surface-dark border border-border-dark rounded-lg overflow-hidden shadow-lg opacity-80 hover:opacity-100 transition-opacity">
+<div class="w-full h-full bg-surface-lighter relative">
+<div class="absolute top-1/2 left-1/3 w-8 h-4 bg-phase-build/30 rounded-sm"></div>
+<div class="absolute top-1/2 left-2/3 w-8 h-4 bg-phase-build/30 rounded-sm border border-[#FF6B6B]"></div>
+<div class="absolute inset-2 border border-primary/50 bg-primary/5 rounded-sm"></div>
+</div>
+</div>
+</main>
+<!-- Right Sidebar: Properties Panel -->
+<aside class="w-[320px] bg-surface-dark border-l border-border-dark flex flex-col z-10 shadow-xl">
+<!-- Header -->
+<div class="p-4 border-b border-border-dark flex items-center justify-between bg-surface-lighter">
+<div>
+<h3 class="text-sm font-bold text-white">Phase Properties</h3>
+<p class="text-xs text-text-secondary">Editing: <span class="text-phase-build font-medium">Definition Phase</span></p>
+</div>
+<button class="text-text-secondary hover:text-white">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+<!-- General Info -->
+<div class="space-y-4">
+<div class="space-y-1.5">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Phase Name</label>
+<input class="w-full bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" type="text" value="Definition"/>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-1.5">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Duration</label>
+<div class="relative">
+<input class="w-full bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary" type="number" value="21"/>
+<span class="absolute right-3 top-2 text-xs text-text-secondary">Days</span>
+</div>
+</div>
+<div class="space-y-1.5">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Owner</label>
+<div class="flex items-center gap-2 p-1.5 bg-background-dark border border-border-dark rounded-lg cursor-pointer hover:border-text-secondary">
+<img alt="Owner" class="size-6 rounded-full" data-alt="User avatar 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxrUnaWtCfJONd3h8qDuVFOL1Udw7jchbPwTAhI4c0fN9oWUFDj7TtYj7kYSZhkX-06lzJ1g4IEkbQ5k1GR4pbP6T4_3kBX7-RhOq2aSDIp9TeaIqJcODe7pIiR13m2at9Rr1jCBNDR29V9cqfJ5dDxou5IpcyllZFEheXsFv6w6ysE6KfRGxPJaL5YscuuAn0V38qqYGmcrH0_zNUhcfpEkeskdtG-l5jGV4MDGxqPDlnBBGLZAzQrHCeY_HE793qJGiSIDXHWW8"/>
+<span class="text-sm text-white truncate">Alex M.</span>
+</div>
+</div>
+</div>
+<div class="space-y-1.5">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Description</label>
+<textarea class="w-full bg-background-dark border border-border-dark rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary h-20 resize-none">Define technical specifications and design the UI/UX for the feature.</textarea>
+</div>
+</div>
+<div class="h-px bg-border-dark w-full"></div>
+<!-- Checklist Config -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Checklist Template</label>
+<button class="text-primary text-xs font-bold hover:underline">Edit Template</button>
+</div>
+<div class="bg-background-dark rounded-lg border border-border-dark p-3 space-y-2">
+<div class="flex items-start gap-2">
+<input checked="" class="mt-1 rounded border-border-dark bg-surface-lighter text-primary focus:ring-primary focus:ring-offset-background-dark" type="checkbox"/>
+<span class="text-sm text-white">Review PRD Requirements</span>
+</div>
+<div class="flex items-start gap-2">
+<input checked="" class="mt-1 rounded border-border-dark bg-surface-lighter text-primary focus:ring-primary focus:ring-offset-background-dark" type="checkbox"/>
+<span class="text-sm text-white">Finalize Figma Mockups</span>
+</div>
+<div class="flex items-start gap-2">
+<input class="mt-1 rounded border-border-dark bg-surface-lighter text-primary focus:ring-primary focus:ring-offset-background-dark" type="checkbox"/>
+<span class="text-sm text-white opacity-70">Technical Feasibility Check</span>
+</div>
+<button class="flex items-center gap-1 text-xs text-text-secondary hover:text-white mt-2">
+<span class="material-symbols-outlined text-[16px]">add</span>
+                            Add Item
+                        </button>
+</div>
+</div>
+<div class="h-px bg-border-dark w-full"></div>
+<!-- Entry Criteria -->
+<div class="space-y-3">
+<label class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Logic Rules</label>
+<div class="p-3 rounded-lg bg-surface-lighter border border-border-dark">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-medium text-text-secondary">Entry Trigger</span>
+<span class="text-[10px] bg-status-success/20 text-status-success px-1.5 py-0.5 rounded border border-status-success/20">Automatic</span>
+</div>
+<p class="text-sm text-white">Starts when <span class="text-primary">Discovery</span> is <span class="italic text-text-secondary">Approved</span></p>
+</div>
+</div>
+</div>
+<!-- Footer Actions -->
+<div class="p-4 border-t border-border-dark bg-surface-lighter flex gap-2">
+<button class="flex-1 py-2 rounded-lg border border-status-error text-status-error text-sm font-bold hover:bg-status-error/10 transition-colors">Delete</button>
+<button class="flex-1 py-2 rounded-lg bg-primary text-background-dark text-sm font-bold hover:bg-primary/90 transition-colors">Apply Changes</button>
+</div>
+</aside>
+</div>
+</body></html>

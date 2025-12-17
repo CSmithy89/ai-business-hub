@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KB-12 Page Templates</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2b90d",
+                        "primary-dark": "#d9a50b",
+                        "background-light": "#f8f8f5",
+                        "scribe": "#14b8a6", // Teal for Scribe agent
+                        "verified": "#2ECC71", // Green for verified
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "2xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>.scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-[#f0f2f5] text-neutral-900 font-display overflow-hidden selection:bg-primary/30 selection:text-black">
+<div class="relative flex h-screen w-full flex-col overflow-hidden">
+<div class="absolute inset-0 z-0 bg-[url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&amp;w=2564&amp;auto=format&amp;fit=crop')] bg-cover bg-center opacity-[0.03]" data-alt="Subtle abstract background"></div>
+<div class="relative z-10 flex h-full w-full items-center justify-center p-4 sm:p-6 lg:p-8">
+<div class="flex h-[92vh] w-full max-w-[1400px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl shadow-neutral-400/20 ring-1 ring-neutral-200 lg:flex-row">
+<div class="flex flex-col border-b border-neutral-200 bg-white lg:w-[640px] lg:shrink-0 lg:border-b-0 lg:border-r z-20">
+<div class="flex flex-col gap-5 p-6 pb-4">
+<div class="flex items-center justify-between">
+<h2 class="text-xl font-bold tracking-tight text-neutral-900">Create New Page</h2>
+<button class="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-900 transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="flex flex-col gap-4">
+<div class="group relative">
+<label class="mb-1.5 block text-xs font-semibold text-neutral-500 uppercase tracking-wide">Page Title</label>
+<input class="w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-base font-medium text-neutral-900 placeholder-neutral-400 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all" placeholder="Untitled Page" type="text" value="Q4 Engineering Roadmap"/>
+</div>
+<div class="group relative">
+<label class="mb-1.5 block text-xs font-semibold text-neutral-500 uppercase tracking-wide">Parent Page Location</label>
+<div class="relative">
+<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-400">
+<span class="material-symbols-outlined text-[20px]">folder_open</span>
+</div>
+<select class="w-full appearance-none rounded-lg border border-neutral-200 bg-white py-2.5 pl-10 pr-10 text-sm font-medium text-neutral-700 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all">
+<option>Engineering / Projects / 2024</option>
+<option>Product / Roadmaps</option>
+<option>General / Meeting Notes</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-neutral-400">
+<span class="material-symbols-outlined text-[20px]">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-1 flex-col overflow-hidden bg-gray-50/50">
+<div class="px-6 py-2">
+<h3 class="text-sm font-bold text-neutral-900">Choose a Template</h3>
+</div>
+<div class="flex flex-col gap-3 border-b border-neutral-200 px-6 pb-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">search</span>
+<input class="h-10 w-full rounded-lg border border-neutral-200 bg-white pl-10 pr-4 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Search templates..." type="text"/>
+</div>
+<div class="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+<button class="whitespace-nowrap rounded-full bg-neutral-900 px-4 py-1.5 text-xs font-medium text-white shadow-sm transition-colors">All</button>
+<button class="whitespace-nowrap rounded-full bg-white border border-neutral-200 px-4 py-1.5 text-xs font-medium text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 transition-colors">Project</button>
+<button class="whitespace-nowrap rounded-full bg-white border border-neutral-200 px-4 py-1.5 text-xs font-medium text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 transition-colors">Meeting</button>
+<button class="whitespace-nowrap rounded-full bg-white border border-neutral-200 px-4 py-1.5 text-xs font-medium text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 transition-colors">Process</button>
+<button class="whitespace-nowrap rounded-full bg-white border border-neutral-200 px-4 py-1.5 text-xs font-medium text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 transition-colors">Dev</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-6">
+<div class="mb-6">
+<div class="flex items-center gap-2 pb-3">
+<span class="material-symbols-outlined text-sm text-scribe fill-1">auto_awesome</span>
+<span class="text-xs font-bold uppercase tracking-wider text-scribe">Scribe Suggested</span>
+</div>
+<div class="relative cursor-pointer rounded-xl border border-scribe/30 bg-teal-50/50 p-4 shadow-sm hover:shadow-md transition-all hover:bg-teal-50 group">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-scribe/10 text-scribe shadow-sm border border-scribe/10">
+<span class="material-symbols-outlined">rocket_launch</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-neutral-900 group-hover:text-scribe transition-colors">Sprint Retrospective</h4>
+<p class="text-xs text-neutral-500">Based on your recent "Sprint 42" ticket activity.</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-scribe opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span>
+</div>
+</div>
+</div>
+<h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">Built-in Templates</h3>
+<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+<button class="group relative flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 text-left shadow-sm transition-all hover:border-primary hover:shadow-md hover:-translate-y-0.5">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 group-hover:bg-primary/10 group-hover:text-primary-dark">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-neutral-900">Blank Page</p>
+<p class="text-[10px] text-neutral-500 leading-tight mt-1">Start from scratch</p>
+</div>
+</button>
+<button class="group relative flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 text-left shadow-sm transition-all hover:border-primary hover:shadow-md hover:-translate-y-0.5">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 group-hover:bg-primary/10 group-hover:text-primary-dark">
+<span class="material-symbols-outlined text-[20px]">calendar_today</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-neutral-900">Meeting Notes</p>
+<p class="text-[10px] text-neutral-500 leading-tight mt-1">Action items &amp; agenda</p>
+</div>
+</button>
+<button class="group relative flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 text-left shadow-sm transition-all hover:border-primary hover:shadow-md hover:-translate-y-0.5">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 group-hover:bg-primary/10 group-hover:text-primary-dark">
+<span class="material-symbols-outlined text-[20px]">flag</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-neutral-900">Project Charter</p>
+<p class="text-[10px] text-neutral-500 leading-tight mt-1">Goals &amp; scope</p>
+</div>
+</button>
+<button class="group relative flex flex-col gap-3 rounded-xl border-2 border-primary bg-primary/5 p-3 text-left shadow-md ring-1 ring-primary/20 transition-all">
+<div class="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary"></div>
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-primary-dark shadow-sm">
+<span class="material-symbols-outlined text-[20px]">code</span>
+</div>
+<div>
+<p class="text-sm font-bold text-neutral-900">Technical Spec</p>
+<p class="text-[10px] text-neutral-600 leading-tight mt-1">RFCs and architecture</p>
+</div>
+</button>
+<button class="group relative flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 text-left shadow-sm transition-all hover:border-primary hover:shadow-md hover:-translate-y-0.5">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 group-hover:bg-primary/10 group-hover:text-primary-dark">
+<span class="material-symbols-outlined text-[20px]">data_object</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-neutral-900">API Reference</p>
+<p class="text-[10px] text-neutral-500 leading-tight mt-1">Endpoints &amp; schemas</p>
+</div>
+</button>
+<button class="group relative flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 text-left shadow-sm transition-all hover:border-primary hover:shadow-md hover:-translate-y-0.5">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 group-hover:bg-primary/10 group-hover:text-primary-dark">
+<span class="material-symbols-outlined text-[20px]">terminal</span>
+</div>
+<div>
+<div class="flex items-center gap-1">
+<p class="text-sm font-semibold text-neutral-900">Runbook</p>
+<span class="material-symbols-outlined text-[14px] text-verified" title="Verified Template">verified</span>
+</div>
+<p class="text-[10px] text-neutral-500 leading-tight mt-1">Incident response</p>
+</div>
+</button>
+<button class="group relative flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 text-left shadow-sm transition-all hover:border-primary hover:shadow-md hover:-translate-y-0.5">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 group-hover:bg-primary/10 group-hover:text-primary-dark">
+<span class="material-symbols-outlined text-[20px]">balance</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-neutral-900">Decision Record</p>
+<p class="text-[10px] text-neutral-500 leading-tight mt-1">ADR documentation</p>
+</div>
+</button>
+<button class="group relative flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 text-left shadow-sm transition-all hover:border-primary hover:shadow-md hover:-translate-y-0.5">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 group-hover:bg-primary/10 group-hover:text-primary-dark">
+<span class="material-symbols-outlined text-[20px]">campaign</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-neutral-900">Release Notes</p>
+<p class="text-[10px] text-neutral-500 leading-tight mt-1">Public changelog</p>
+</div>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between border-t border-neutral-200 bg-white p-4 text-xs">
+<button class="flex items-center gap-1.5 text-neutral-500 hover:text-neutral-900 transition-colors">
+<span class="material-symbols-outlined text-sm">tune</span>
+                                Manage Templates
+                            </button>
+<button class="flex items-center gap-1.5 text-neutral-500 hover:text-neutral-900 transition-colors">
+<span class="material-symbols-outlined text-sm">add_circle</span>
+                                Create Custom Template
+                            </button>
+</div>
+</div>
+</div>
+<div class="relative flex flex-1 flex-col bg-neutral-50/80 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]">
+<div class="flex h-16 items-center justify-between border-b border-neutral-200 bg-white/80 px-8 backdrop-blur-md sticky top-0 z-10">
+<div class="flex items-center gap-3">
+<span class="flex items-center justify-center h-6 w-6 rounded bg-neutral-100 text-neutral-500">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+</span>
+<span class="text-xs font-semibold uppercase tracking-wider text-neutral-400">Previewing:</span>
+<span class="text-sm font-bold text-neutral-900">Technical Specification</span>
+</div>
+<div class="flex items-center gap-2 rounded-lg bg-neutral-100 p-1">
+<button class="rounded-md bg-white p-1.5 text-neutral-900 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">desktop_windows</span>
+</button>
+<button class="rounded-md p-1.5 text-neutral-400 hover:text-neutral-900 transition-colors">
+<span class="material-symbols-outlined text-[18px]">smartphone</span>
+</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-8 lg:p-12 pb-32">
+<div class="mx-auto max-w-[800px] rounded-xl bg-white p-12 shadow-xl ring-1 ring-neutral-200 min-h-[800px]">
+<div class="space-y-8 font-serif sm:font-display">
+<div>
+<div class="mb-6 flex items-center justify-between">
+<div class="inline-flex items-center gap-2 rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-500">
+<span class="material-symbols-outlined text-[14px]">calendar_today</span>
+<span>Last updated: <span class="text-neutral-900 font-bold bg-neutral-200/50 px-1 rounded">[Date]</span></span>
+</div>
+</div>
+<h1 class="text-4xl font-extrabold text-neutral-900 tracking-tight leading-tight">Technical Specification: <span class="text-neutral-400">[Feature Name]</span></h1>
+</div>
+<div class="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-neutral-200 border border-neutral-200">
+<div class="bg-neutral-50 p-4">
+<p class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Author</p>
+<div class="mt-2 flex items-center gap-2">
+<div class="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-bold">JD</div>
+<span class="text-sm font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">@mention</span>
+</div>
+</div>
+<div class="bg-neutral-50 p-4">
+<p class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Status</p>
+<span class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 ring-1 ring-amber-600/20">
+<span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                            Draft
+                                        </span>
+</div>
+</div>
+<div class="space-y-3 group">
+<h2 class="flex items-center gap-2 border-b border-neutral-100 pb-2 text-xl font-bold text-neutral-900">
+                                        1. Overview
+                                    </h2>
+<p class="text-base leading-relaxed text-neutral-600">
+                                        Provide a high-level summary of the proposed changes <span class="font-medium text-neutral-900">[Topic]</span>. Explain the <span class="rounded bg-primary/20 px-1 py-0.5 font-medium text-neutral-900">problem statement</span> and the goals of this technical design.
+                                    </p>
+<div class="flex items-center justify-center rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-50 p-8 text-center text-sm font-medium text-neutral-400 group-hover:border-neutral-300 transition-colors">
+                                        [Insert Diagram / Architecture Overview]
+                                    </div>
+</div>
+<div class="space-y-4">
+<h2 class="border-b border-neutral-100 pb-2 text-xl font-bold text-neutral-900">2. Requirements</h2>
+<ul class="space-y-3">
+<li class="flex items-start gap-3">
+<span class="text-neutral-400 font-mono">- [ ]</span>
+<span class="text-sm text-neutral-600">Must handle concurrent requests &gt; 1000 RPS</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="text-neutral-400 font-mono">- [ ]</span>
+<span class="text-sm text-neutral-600">Latency p99 &lt; 50ms</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="text-neutral-400 font-mono">- [ ]</span>
+<span class="text-sm text-neutral-600">Backward compatibility with <span class="font-mono text-xs text-primary-dark bg-primary/10 px-1 rounded">v1.2</span> API</span>
+</li>
+</ul>
+</div>
+<div class="space-y-3">
+<h2 class="border-b border-neutral-100 pb-2 text-xl font-bold text-neutral-900">3. Data Model</h2>
+<div class="rounded-lg border border-neutral-200 bg-neutral-50 p-5 font-mono text-xs text-neutral-600 shadow-sm">
+<span class="text-purple-600 font-bold">interface</span> <span class="text-amber-600">UserPayload</span> {<br/>
+                                          id: <span class="text-blue-600">string</span>;<br/>
+                                          roles: <span class="text-blue-600">string</span>[];<br/>
+                                          metadata: <span class="text-amber-600">Record</span>&lt;<span class="text-blue-600">string</span>, <span class="text-blue-600">any</span>&gt;;<br/>
+                                        }
+                                    </div>
+</div>
+</div>
+</div>
+</div>
+<div class="absolute bottom-0 left-0 right-0 border-t border-neutral-200 bg-white p-6 lg:bg-transparent lg:bg-gradient-to-t lg:from-white lg:via-white lg:to-transparent lg:backdrop-blur-none z-20">
+<div class="flex items-center justify-end">
+<button class="flex transform items-center gap-2 rounded-xl bg-primary px-8 py-3 text-sm font-bold text-black shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/30 active:translate-y-0 active:scale-95 ring-1 ring-inset ring-black/5">
+                                Use This Template
+                                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</body></html>
