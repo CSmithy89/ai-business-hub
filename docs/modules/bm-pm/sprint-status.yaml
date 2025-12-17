@@ -1,0 +1,302 @@
+# Sprint Status - Core-PM Module (bm-pm)
+# generated: 2025-12-17
+# project: Ai Bussiness Hub
+# module: bm-pm (Project Management + Knowledge Base)
+# tracking_system: file-system
+# story_location: "{project-root}/docs/modules/bm-pm/stories"
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epics.md but not contexted
+#   - contexted: Epic tech context created by *epic-tech-context (required before stories)
+#
+# Story Status:
+#   - backlog: Story only exists in epics.md
+#   - drafted: Story file created in stories folder by *create-story
+#   - ready-for-dev: Draft approved and story context created by *story-ready
+#   - in-progress: Developer actively working on implementation by *dev-story
+#   - review: Implementation complete, ready for review by *code-review
+#   - done: Story completed by *story-done
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done by *retrospective
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - SM typically drafts next story ONLY after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
+# - PRD: docs/modules/bm-pm/PRD.md
+# - Architecture: docs/modules/bm-pm/architecture.md
+# - KB Spec: docs/modules/bm-pm/kb-specification.md
+# - UX Design: docs/modules/bm-pm/ux/
+# - Epics: docs/modules/bm-pm/epics.md
+
+generated: 2025-12-17
+project: Ai Bussiness Hub
+module: bm-pm
+tracking_system: file-system
+story_location: "{project-root}/docs/modules/bm-pm/stories"
+
+development_status:
+  # ===========================================
+  # MVP PHASE - 7 Epics, 61 Stories
+  # ===========================================
+
+  # ===========================================
+  # PM-01: Project & Phase Management
+  # MVP | 9 stories | Project CRUD, phases, templates, teams
+  # FRs: FR-1, FR-2
+  # ===========================================
+  pm-01: backlog
+  pm-01-1-project-data-model-api: backlog
+  pm-01-2-phase-crud-api: backlog
+  pm-01-3-project-list-page: backlog
+  pm-01-4-create-project-modal: backlog
+  pm-01-5-project-detail-page-overview: backlog
+  pm-01-6-project-settings-page: backlog
+  pm-01-7-bmad-phase-templates: backlog
+  pm-01-8-project-team-management: backlog
+  pm-01-9-budget-tracking: backlog
+  pm-01-retrospective: optional
+
+  # ===========================================
+  # PM-02: Task Management System
+  # MVP | 11 stories | Task CRUD, hierarchy, assignment, states
+  # FRs: FR-3
+  # ===========================================
+  pm-02: backlog
+  pm-02-1-task-data-model-api: backlog
+  pm-02-2-task-detail-panel: backlog
+  pm-02-3-quick-task-capture: backlog
+  pm-02-4-task-type-priority: backlog
+  pm-02-5-task-hierarchy: backlog
+  pm-02-6-task-assignment: backlog
+  pm-02-7-task-state-machine: backlog
+  pm-02-8-task-relations: backlog
+  pm-02-9-task-comments: backlog
+  pm-02-10-task-attachments: backlog
+  pm-02-11-task-labels: backlog
+  pm-02-retrospective: optional
+
+  # ===========================================
+  # PM-03: Views & Navigation
+  # MVP | 8 stories | List, Kanban, Calendar, saved views
+  # FRs: FR-4.1, FR-4.2, FR-4.3, FR-4.5
+  # ===========================================
+  pm-03: backlog
+  pm-03-1-task-list-view: backlog
+  pm-03-2-kanban-board-basic: backlog
+  pm-03-3-kanban-drag-drop: backlog
+  pm-03-4-calendar-view: backlog
+  pm-03-5-view-toggle-persistence: backlog
+  pm-03-6-saved-views-crud: backlog
+  pm-03-7-advanced-filters: backlog
+  pm-03-8-bulk-selection-actions: backlog
+  pm-03-retrospective: optional
+
+  # ===========================================
+  # PM-04: AI Team - Navi, Sage, Chrono
+  # MVP | 9 stories | Orchestration, estimation, time tracking
+  # FRs: FR-5.1, FR-5.2, FR-5.3, FR-5.4
+  # ===========================================
+  pm-04: backlog
+  pm-04-1-navi-agent-foundation: backlog
+  pm-04-2-navi-daily-briefing: backlog
+  pm-04-3-navi-suggestion-cards: backlog
+  pm-04-4-navi-chat-interface: backlog
+  pm-04-5-sage-estimation-agent: backlog
+  pm-04-6-sage-story-point-suggestions: backlog
+  pm-04-7-sage-estimation-calibration: backlog
+  pm-04-8-chrono-time-tracking: backlog
+  pm-04-9-chrono-velocity-calculation: backlog
+  pm-04-retrospective: optional
+
+  # ===========================================
+  # PM-05: AI Team - Scope, Pulse, Herald
+  # MVP | 8 stories | Phase mgmt, health, reporting
+  # FRs: FR-5.5, FR-6.1, FR-6.2, FR-6.3, FR-6.4
+  # ===========================================
+  pm-05: backlog
+  pm-05-1-scope-phase-agent: backlog
+  pm-05-2-scope-dependency-analysis: backlog
+  pm-05-3-scope-milestone-tracking: backlog
+  pm-05-4-pulse-health-agent: backlog
+  pm-05-5-pulse-risk-alerts: backlog
+  pm-05-6-herald-report-generation: backlog
+  pm-05-7-herald-stakeholder-reports: backlog
+  pm-05-8-herald-scheduled-reports: backlog
+  pm-05-retrospective: optional
+
+  # ===========================================
+  # PM-06: Real-Time & Notifications
+  # MVP | 6 stories | WebSocket, presence, preferences
+  # FRs: FR-7.1, FR-7.2, FR-7.3, FR-7.4, FR-8.2
+  # ===========================================
+  pm-06: backlog
+  pm-06-1-websocket-task-updates: backlog
+  pm-06-2-presence-indicators: backlog
+  pm-06-3-real-time-kanban: backlog
+  pm-06-4-notification-preferences: backlog
+  pm-06-5-in-app-notifications: backlog
+  pm-06-6-email-digest-notifications: backlog
+  pm-06-retrospective: optional
+
+  # ===========================================
+  # KB-01: Knowledge Base Foundation
+  # MVP | 10 stories | Pages, hierarchy, search, linking
+  # FRs: KB-F1, KB-F2, KB-F3
+  # ===========================================
+  kb-01: backlog
+  kb-01-1-knowledge-page-model-api: backlog
+  kb-01-2-page-editor-tiptap: backlog
+  kb-01-3-page-hierarchy-tree: backlog
+  kb-01-4-page-versioning: backlog
+  kb-01-5-kb-sidebar-navigation: backlog
+  kb-01-6-breadcrumb-navigation: backlog
+  kb-01-7-full-text-search: backlog
+  kb-01-8-project-page-linking: backlog
+  kb-01-9-task-kb-references: backlog
+  kb-01-10-kb-permissions: backlog
+  kb-01-retrospective: optional
+
+  # ===========================================
+  # PHASE 2 - 5 Epics, 34 Stories
+  # ===========================================
+
+  # ===========================================
+  # KB-02: KB Real-Time & RAG
+  # Phase 2 | 8 stories | Yjs collab, embeddings, semantic search
+  # FRs: KB-F4, KB-F6
+  # ===========================================
+  kb-02: backlog
+  kb-02-1-yjs-collaboration-setup: backlog
+  kb-02-2-presence-cursors: backlog
+  kb-02-3-conflict-resolution: backlog
+  kb-02-4-offline-support: backlog
+  kb-02-5-embedding-pipeline: backlog
+  kb-02-6-semantic-search: backlog
+  kb-02-7-agent-kb-queries: backlog
+  kb-02-8-related-pages-suggestions: backlog
+  kb-02-retrospective: optional
+
+  # ===========================================
+  # KB-03: KB Verification & Scribe
+  # Phase 2 | 7 stories | Verified content, AI KB management
+  # FRs: KB-F5, KB-F7
+  # ===========================================
+  kb-03: backlog
+  kb-03-1-verified-badge-system: backlog
+  kb-03-2-verification-workflow: backlog
+  kb-03-3-stale-content-detection: backlog
+  kb-03-4-review-cycle-triggers: backlog
+  kb-03-5-at-mentions: backlog
+  kb-03-6-hash-references: backlog
+  kb-03-7-scribe-agent-foundation: backlog
+  kb-03-retrospective: optional
+
+  # ===========================================
+  # PM-07: Integrations & Bridge Agent
+  # Phase 2 | 7 stories | GitHub, CSV, PM tool import
+  # FRs: FR-8.1, FR-8.3, FR-8.4
+  # ===========================================
+  pm-07: backlog
+  pm-07-1-csv-import-wizard: backlog
+  pm-07-2-csv-export: backlog
+  pm-07-3-github-issues-sync: backlog
+  pm-07-4-github-pr-linking: backlog
+  pm-07-5-bridge-agent-foundation: backlog
+  pm-07-6-jira-import: backlog
+  pm-07-7-asana-trello-import: backlog
+  pm-07-retrospective: optional
+
+  # ===========================================
+  # PM-08: Prism Agent & Analytics
+  # Phase 2 | 6 stories | Predictive insights, trends
+  # FRs: FR-6.3, FR-6.4
+  # ===========================================
+  pm-08: backlog
+  pm-08-1-prism-agent-foundation: backlog
+  pm-08-2-pattern-detection: backlog
+  pm-08-3-predictive-timeline: backlog
+  pm-08-4-analytics-dashboard: backlog
+  pm-08-5-team-performance-metrics: backlog
+  pm-08-6-trend-analysis: backlog
+  pm-08-retrospective: optional
+
+  # ===========================================
+  # PM-09: Advanced Views
+  # Phase 2 | 6 stories | Timeline, portfolio, view sharing
+  # FRs: FR-4.4, FR-4.6
+  # ===========================================
+  pm-09: backlog
+  pm-09-1-timeline-gantt-view: backlog
+  pm-09-2-portfolio-dashboard: backlog
+  pm-09-3-cross-project-dependencies: backlog
+  pm-09-4-custom-view-builder: backlog
+  pm-09-5-view-sharing: backlog
+  pm-09-6-view-templates: backlog
+  pm-09-retrospective: optional
+
+  # ===========================================
+  # PHASE 3 - 3 Epics, 16 Stories
+  # ===========================================
+
+  # ===========================================
+  # KB-04: AI-Native Knowledge Base
+  # Phase 3 | 6 stories | AI drafts, Q&A, gap detection
+  # FRs: KB-F8
+  # ===========================================
+  kb-04: backlog
+  kb-04-1-ai-draft-generation: backlog
+  kb-04-2-natural-language-qa: backlog
+  kb-04-3-gap-detection: backlog
+  kb-04-4-auto-summarization: backlog
+  kb-04-5-content-suggestions: backlog
+  kb-04-6-kb-health-dashboard: backlog
+  kb-04-retrospective: optional
+
+  # ===========================================
+  # PM-10: Workflow Builder
+  # Phase 3 | 5 stories | Custom workflows, automations
+  # ===========================================
+  pm-10: backlog
+  pm-10-1-workflow-canvas: backlog
+  pm-10-2-trigger-conditions: backlog
+  pm-10-3-action-library: backlog
+  pm-10-4-workflow-testing: backlog
+  pm-10-5-workflow-templates: backlog
+  pm-10-retrospective: optional
+
+  # ===========================================
+  # PM-11: External API & Governance
+  # Phase 3 | 5 stories | REST API, webhooks
+  # ===========================================
+  pm-11: backlog
+  pm-11-1-public-api: backlog
+  pm-11-2-api-key-management: backlog
+  pm-11-3-webhook-subscriptions: backlog
+  pm-11-4-rate-limiting: backlog
+  pm-11-5-api-documentation: backlog
+  pm-11-retrospective: optional
+
+# ===========================================
+# Sprint Planning Notes
+# ===========================================
+# Suggested Sprint Order:
+#   Sprint 1: PM-01 (9 stories) - Foundation
+#   Sprint 2: PM-02 (11 stories) - Task Management
+#   Sprint 3: PM-03 (8 stories) + KB-01 start - Views + KB Foundation
+#   Sprint 4: KB-01 complete + PM-04 start - KB + AI Team Part 1
+#   Sprint 5: PM-04 complete + PM-05 - AI Team Complete
+#   Sprint 6: PM-06 + KB-01 polish - Real-Time + Polish
+#
+# Dependencies:
+#   - PM-02 depends on PM-01 (tasks need projects/phases)
+#   - PM-03 depends on PM-02 (views need tasks)
+#   - PM-04/PM-05 can run parallel after PM-02
+#   - KB-01 can run parallel after PM-01
+#   - KB-02/KB-03 depend on KB-01
+#   - PM-07/PM-08/PM-09 depend on MVP completion
