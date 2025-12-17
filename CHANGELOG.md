@@ -8,10 +8,52 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
+## EPIC-KB-01: Knowledge Base Foundation (10 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-17
+**Branch:** `epic/kb-01-knowledge-base-foundation`
+
+### Added
+
+- **KB Data Model & API**: CRUD operations for knowledge pages with full-text search support
+- **Page Version History**: Track changes with restore capability
+- **Rich Text Editor**: Tiptap-based editor with toolbar, auto-save, and formatting
+- **Page Tree Navigation**: Hierarchical page structure with nested pages
+- **Breadcrumb Navigation**: Context-aware navigation path
+- **KB Full-Text Search**: Search pages with content text indexing
+- **Recent Pages & Favorites**: Track recently viewed pages and user favorites
+- **Project-KB Linking**: Link KB pages to projects with primary doc designation
+- **Project Docs Tab**: View and manage linked KB pages from project detail
+
+### Routes
+
+- `/kb` - KB home with recent pages and favorites
+- `/kb/[slug]` - Page editor with info panel
+- `/dashboard/pm/[slug]/docs` - Project docs tab
+
+### API Endpoints
+
+- `GET/POST /api/kb/pages` - List and create pages
+- `GET/PATCH/DELETE /api/kb/pages/:id` - Page CRUD
+- `GET /api/kb/pages/:id/versions` - Page version history
+- `POST /api/kb/pages/:id/restore` - Restore page version
+- `GET /api/kb/pages/me/recent` - Recent pages for current user
+- `GET /api/kb/pages/me/favorites` - Favorited pages
+- `POST/DELETE /api/kb/pages/:id/projects` - Link/unlink project
+- `GET /pm/projects/:id/docs` - Get project docs
+
+### Notes
+
+- DB migration: `packages/db/prisma/migrations/20251217230000_add_knowledge_base/`
+- Uses existing `KnowledgePage`, `PageVersion`, `PageActivity`, `ProjectPage` models
+
+---
+
 ## EPIC-PM-01: Project & Phase Management (9 stories)
 
-**Status:** Complete  
-**Completed:** 2025-12-17  
+**Status:** Complete
+**Completed:** 2025-12-17
 **Branch:** `epic/01-project-phase-management`
 
 ### Added
