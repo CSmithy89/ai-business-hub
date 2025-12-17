@@ -205,25 +205,39 @@ export class ProjectsService {
   async update(workspaceId: string, actorId: string, id: string, dto: UpdateProjectDto) {
     const existing = await this.prisma.project.findFirst({
       where: { id, workspaceId, deletedAt: null },
-      select: { id: true },
+      select: { id: true, budget: true, actualSpend: true },
     })
     if (!existing) throw new NotFoundException('Project not found')
 
+    const data: Prisma.ProjectUpdateInput = {
+      name: dto.name,
+      description: dto.description,
+      type: dto.type,
+      color: dto.color,
+      icon: dto.icon,
+      bmadTemplateId: dto.bmadTemplateId,
+      status: dto.status,
+      startDate: dto.startDate,
+      targetDate: dto.targetDate,
+      autoApprovalThreshold: dto.autoApprovalThreshold,
+      suggestionMode: dto.suggestionMode,
+    }
+
+    if (dto.budget !== undefined) {
+      if (dto.budget === null) {
+        data.budget = null
+        data.actualSpend = null
+      } else {
+        data.budget = dto.budget
+        if (existing.actualSpend === null) {
+          data.actualSpend = 0
+        }
+      }
+    }
+
     const project = await this.prisma.project.update({
       where: { id },
-      data: {
-        name: dto.name,
-        description: dto.description,
-        type: dto.type,
-        color: dto.color,
-        icon: dto.icon,
-        bmadTemplateId: dto.bmadTemplateId,
-        status: dto.status,
-        startDate: dto.startDate,
-        targetDate: dto.targetDate,
-        autoApprovalThreshold: dto.autoApprovalThreshold,
-        suggestionMode: dto.suggestionMode,
-      },
+      data,
       include: {
         phases: {
           orderBy: { phaseNumber: 'asc' },

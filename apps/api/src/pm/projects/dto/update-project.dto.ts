@@ -61,5 +61,9 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsBoolean()
   suggestionMode?: boolean
-}
 
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  budget?: number | null
+}

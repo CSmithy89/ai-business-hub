@@ -76,6 +76,8 @@ export interface ProjectDetailResponse {
     completedTasks: number
     startDate: string | null
     targetDate: string | null
+    budget: string | null
+    actualSpend: string | null
     autoApprovalThreshold: number
     suggestionMode: boolean
     phases: Array<{

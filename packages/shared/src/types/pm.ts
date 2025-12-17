@@ -44,6 +44,7 @@ export const UpdateProjectSchema = z.object({
   targetDate: z.string().datetime().optional(),
   autoApprovalThreshold: z.number().min(0).max(1).optional(),
   suggestionMode: z.boolean().optional(),
+  budget: z.number().min(0).nullable().optional(),
 })
 
 export const ListProjectsQuerySchema = z.object({

@@ -1026,6 +1026,7 @@ model Project {
   business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
   phases   Phase[]
   team     ProjectTeam?
+  expenses ProjectExpense[]
   views    SavedView[]
   pages    ProjectPage[]
   risks    RiskEntry[]
@@ -1036,6 +1037,25 @@ model Project {
   @@index([status])
   @@index([deletedAt])
   @@map("projects")
+}
+
+/// ProjectExpense - Manual expense entry for MVP budget tracking
+model ProjectExpense {
+  id        String   @id @default(cuid())
+  projectId String   @map("project_id")
+
+  amount      Decimal  @db.Decimal(12, 2)
+  description String?  @db.Text
+  spentAt     DateTime @default(now()) @map("spent_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([spentAt])
+  @@map("project_expenses")
 }
 
 /// Phase - Time-boxed work segment within a Project

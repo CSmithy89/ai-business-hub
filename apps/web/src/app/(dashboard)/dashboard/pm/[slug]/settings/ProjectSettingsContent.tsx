@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertTriangle, ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,6 +18,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useSession } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
+import { useCreatePmExpense, usePmExpenses } from '@/hooks/use-pm-expenses'
 import { useCreatePmPhase, useUpdatePmPhase } from '@/hooks/use-pm-phases'
 import { useDeletePmProject, usePmProject, useUpdatePmProject } from '@/hooks/use-pm-projects'
 
@@ -46,6 +48,34 @@ function toDateInputValue(value: string | null | undefined): string {
   return `${year}-${month}-${day}`
 }
 
+function parseMoney(value: string | null | undefined): number | null {
+  if (value === null || value === undefined) return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+function formatMoney(value: number): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
+}
+
+function maybeToastBudgetAlerts(budget: number, spend: number) {
+  if (!Number.isFinite(budget) || budget <= 0) return
+  if (!Number.isFinite(spend) || spend < 0) return
+
+  const percent = (spend / budget) * 100
+  if (percent >= 100) {
+    toast.error('Budget exceeded (100%)')
+    return
+  }
+  if (percent >= 90) {
+    toast.warning('Budget alert: 90% reached', { duration: 5000 })
+    return
+  }
+  if (percent >= 75) {
+    toast.warning('Budget alert: 75% reached', { duration: 5000 })
+  }
+}
+
 export function ProjectSettingsContent() {
   const router = useRouter()
   const params = useParams<{ slug: string }>()
@@ -61,6 +91,8 @@ export function ProjectSettingsContent() {
   const deleteProject = useDeletePmProject()
   const createPhase = useCreatePmPhase()
   const updatePhase = useUpdatePmPhase()
+  const expensesQuery = usePmExpenses(project?.id ?? '')
+  const createExpense = useCreatePmExpense()
 
   const isLead = useMemo(() => {
     if (!project?.team?.leadUserId || !currentUserId) return false
@@ -140,6 +172,20 @@ export function ProjectSettingsContent() {
   }, [nextPhaseNumber])
 
   const canShowGate = Boolean(project?.team?.leadUserId) && Boolean(currentUserId) && !isLead
+  const budgetValue = parseMoney(project?.budget) ?? 0
+  const spendValue = parseMoney(project?.actualSpend) ?? 0
+  const budgetEnabled = project?.budget !== null && project?.budget !== undefined
+
+  const [budgetInput, setBudgetInput] = useState<string>(budgetEnabled ? String(budgetValue) : '')
+  const [expenseAmount, setExpenseAmount] = useState<string>('')
+  const [expenseDescription, setExpenseDescription] = useState<string>('')
+  const [expenseDate, setExpenseDate] = useState<string>('')
+
+  const expenses = expensesQuery.data?.data ?? []
+
+  useEffect(() => {
+    setBudgetInput(budgetEnabled ? String(budgetValue) : '')
+  }, [budgetEnabled, budgetValue])
 
   if (!slug) return null
 
@@ -288,6 +334,160 @@ export function ProjectSettingsContent() {
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Budget</CardTitle>
+        </CardHeader>
+        <CardContent className={cn('flex flex-col gap-4', !canEdit && 'opacity-60')}>
+          <div className="flex items-center justify-between rounded-md border border-[rgb(var(--color-border-default))] px-3 py-2">
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-[rgb(var(--color-text-primary))]">Enable budget tracking</span>
+              <span className="text-xs text-[rgb(var(--color-text-secondary))]">Track spent vs remaining.</span>
+            </div>
+            <Switch
+              disabled={!canEdit || updateProject.isPending}
+              checked={budgetEnabled}
+              onCheckedChange={async (checked) => {
+                if (!project) return
+                if (!checked) {
+                  setBudgetInput('')
+                  await updateProject.mutateAsync({ projectId: project.id, data: { budget: null } })
+                  return
+                }
+                const next = budgetValue > 0 ? budgetValue : 1000
+                setBudgetInput(String(next))
+                await updateProject.mutateAsync({ projectId: project.id, data: { budget: next } })
+                maybeToastBudgetAlerts(next, spendValue)
+              }}
+            />
+          </div>
+
+          {budgetEnabled ? (
+            <div className="grid gap-4 sm:grid-cols-3 sm:items-end">
+              <div>
+                <Label htmlFor="budget">Budget (USD)</Label>
+                <Input
+                  id="budget"
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  disabled={!canEdit || updateProject.isPending}
+                  value={budgetInput}
+                  onChange={(e) => setBudgetInput(e.target.value)}
+                  onBlur={async () => {
+                    if (!project) return
+                    const next = budgetInput.trim() === '' ? null : Number(budgetInput)
+                    await updateProject.mutateAsync({ projectId: project.id, data: { budget: next } })
+                    if (next !== null) maybeToastBudgetAlerts(next, spendValue)
+                  }}
+                />
+              </div>
+
+              <div>
+                <Label>Spent</Label>
+                <Input value={formatMoney(spendValue)} readOnly />
+              </div>
+
+              <div>
+                <Label>Remaining</Label>
+                <Input value={formatMoney(Math.max(0, budgetValue - spendValue))} readOnly />
+              </div>
+            </div>
+          ) : null}
+
+          {budgetEnabled ? (
+            <div className="rounded-md border border-[rgb(var(--color-border-default))] p-4">
+              <div className="grid gap-2 sm:grid-cols-3 sm:items-end">
+                <div>
+                  <Label htmlFor="expenseAmount">Log expense</Label>
+                  <Input
+                    id="expenseAmount"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    disabled={!canEdit || createExpense.isPending}
+                    value={expenseAmount}
+                    onChange={(e) => setExpenseAmount(e.target.value)}
+                    placeholder="Amount"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label htmlFor="expenseDescription">Description</Label>
+                  <Input
+                    id="expenseDescription"
+                    disabled={!canEdit || createExpense.isPending}
+                    value={expenseDescription}
+                    onChange={(e) => setExpenseDescription(e.target.value)}
+                    placeholder="Optional"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label htmlFor="expenseDate">Date</Label>
+                  <Input
+                    id="expenseDate"
+                    type="date"
+                    disabled={!canEdit || createExpense.isPending}
+                    value={expenseDate}
+                    onChange={(e) => setExpenseDate(e.target.value)}
+                  />
+                </div>
+                <div className="sm:col-span-1">
+                  <Button
+                    type="button"
+                    disabled={!canEdit || createExpense.isPending || Number(expenseAmount) <= 0}
+                    onClick={async () => {
+                      if (!project) return
+                      const amount = Number(expenseAmount)
+                      await createExpense.mutateAsync({
+                        projectId: project.id,
+                        data: {
+                          amount,
+                          description: expenseDescription || undefined,
+                          spentAt: expenseDate || undefined,
+                        },
+                      })
+                      setExpenseAmount('')
+                      setExpenseDescription('')
+                      setExpenseDate('')
+                      maybeToastBudgetAlerts(budgetValue, spendValue + amount)
+                    }}
+                  >
+                    Add expense
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="text-sm font-medium text-[rgb(var(--color-text-primary))]">Recent expenses</div>
+                {expensesQuery.isLoading ? (
+                  <p className="mt-2 text-sm text-[rgb(var(--color-text-secondary))]">Loading…</p>
+                ) : expenses.length === 0 ? (
+                  <p className="mt-2 text-sm text-[rgb(var(--color-text-secondary))]">No expenses logged yet.</p>
+                ) : (
+                  <div className="mt-2 flex flex-col gap-2">
+                    {expenses.slice(0, 5).map((e) => (
+                      <div key={e.id} className="flex items-center justify-between rounded-md border border-[rgb(var(--color-border-default))] px-3 py-2">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm text-[rgb(var(--color-text-primary))]">
+                            {e.description || 'Expense'}
+                          </div>
+                          <div className="text-xs text-[rgb(var(--color-text-secondary))]">
+                            {new Date(e.spentAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold text-[rgb(var(--color-text-primary))]">
+                          {formatMoney(parseMoney(e.amount) ?? 0)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

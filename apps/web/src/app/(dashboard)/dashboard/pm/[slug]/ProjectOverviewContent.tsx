@@ -27,6 +27,22 @@ function daysRemaining(targetDate: string | null): number | null {
   return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 }
 
+function parseMoney(value: string | null | undefined): number | null {
+  if (value === null || value === undefined) return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+function formatMoney(value: number): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
+}
+
+function percentSpent(budget: number, spend: number): number {
+  if (!Number.isFinite(budget) || budget <= 0) return 0
+  if (!Number.isFinite(spend) || spend < 0) return 0
+  return clampPercent((spend / budget) * 100)
+}
+
 function StatusBadge({ status }: { status: string }) {
   const normalized = status.toUpperCase()
   const variant =
@@ -160,6 +176,9 @@ export function ProjectOverviewContent() {
   const percent = percentFromTasks(project.totalTasks, project.completedTasks)
   const remaining = daysRemaining(project.targetDate ?? null)
   const teamCount = project.team?.members?.length ?? 0
+  const budget = parseMoney(project.budget)
+  const spend = parseMoney(project.actualSpend) ?? 0
+  const budgetPct = budget !== null ? percentSpent(budget, spend) : null
 
   return (
     <div className="flex flex-col gap-6">
@@ -186,6 +205,34 @@ export function ProjectOverviewContent() {
           </div>
 
           <div className="flex items-center gap-3">
+            {budget !== null ? (
+              <div className="rounded-md border border-[rgb(var(--color-border-default))] bg-[rgb(var(--color-bg-tertiary))] px-3 py-2">
+                <div className="text-xs text-[rgb(var(--color-text-secondary))]">Budget</div>
+                <div className="mt-1 flex items-center gap-2">
+                  <div className="text-sm font-semibold text-[rgb(var(--color-text-primary))]">
+                    {formatMoney(spend)} / {formatMoney(budget)}
+                  </div>
+                  <Badge
+                    variant={budgetPct !== null && budgetPct >= 90 ? 'destructive' : 'secondary'}
+                    className="text-[10px]"
+                  >
+                    {budgetPct ?? 0}%
+                  </Badge>
+                </div>
+                <div className="mt-2 h-2 w-full rounded-full bg-[rgb(var(--color-border-default))]">
+                  <div
+                    className={cn(
+                      'h-2 rounded-full',
+                      budgetPct !== null && budgetPct >= 100 && 'bg-red-500',
+                      budgetPct !== null && budgetPct >= 90 && budgetPct < 100 && 'bg-amber-500',
+                      budgetPct !== null && budgetPct < 90 && 'bg-[rgb(var(--color-primary-500))]',
+                    )}
+                    style={{ width: `${budgetPct ?? 0}%` }}
+                    aria-hidden="true"
+                  />
+                </div>
+              </div>
+            ) : null}
             <ProgressRing percent={percent} label="Project progress" />
           </div>
         </div>
