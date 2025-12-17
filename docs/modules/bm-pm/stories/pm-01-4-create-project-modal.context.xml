@@ -1,0 +1,65 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-01</epicId>
+    <storyId>pm-01-4</storyId>
+    <title>Create Project Modal</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-01-4-create-project-modal.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>workspace user</asA>
+    <iWant>to create a new project with templates</iWant>
+    <soThat>I can start managing work immediately</soThat>
+    <tasks>
+      - Add a 3-step modal wizard from /dashboard/pm
+      - POST to /pm/projects and navigate to /dashboard/pm/[slug]
+      - Require project lead selection (UI-level for now)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    - Clicking New Project opens a multi-step modal wizard (Basics -> Template -> Team).
+    - Successful submit navigates to the new project detail route.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      - docs/modules/bm-pm/epics/epic-pm-01-project-phase-management.md (Story PM-01.4)
+    </docs>
+    <code>
+      - apps/web/src/app/(dashboard)/dashboard/pm/PmProjectsContent.tsx (New Project entry point)
+      - apps/web/src/hooks/use-pm-projects.ts (extend with create mutation)
+      - apps/api/src/pm/projects/projects.controller.ts (POST /pm/projects)
+      - apps/web/src/hooks/use-businesses.ts (business selection options)
+    </code>
+    <dependencies>
+      - react-hook-form + zod resolver (validation)
+      - @radix-ui Dialog (shadcn dialog component)
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Must include businessId in create request.
+    - Must include Authorization bearer token for Nest AuthGuard.
+    - Keep UX responsive and keyboard accessible (dialog focus trap).
+  </constraints>
+
+  <interfaces>
+    - UI: /dashboard/pm (modal wizard)
+    - API: POST /pm/projects
+  </interfaces>
+
+  <tests>
+    <standards>
+      - Prefer lightweight component tests only if patterns already exist.
+    </standards>
+    <locations />
+    <ideas>
+      - Validate step gating: cannot proceed without required fields.
+    </ideas>
+  </tests>
+</story-context>
+

@@ -1,12 +1,13 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
 import { safeJson } from '@/lib/utils/safe-json'
 import { ProjectStatusSchema, ProjectTypeSchema } from '@hyvve/shared'
-import type { ListProjectsQuery } from '@hyvve/shared'
+import type { CreateProjectInput, ListProjectsQuery } from '@hyvve/shared'
 import { z } from 'zod'
+import { toast } from 'sonner'
 
 const ProjectStatus = ProjectStatusSchema
 const ProjectType = ProjectTypeSchema
@@ -46,6 +47,16 @@ export interface ProjectsListResponse {
     page: number
     limit: number
     totalPages: number
+  }
+}
+
+export interface CreateProjectResponse {
+  data: {
+    id: string
+    slug: string
+    name: string
+    businessId: string
+    workspaceId: string
   }
 }
 
@@ -89,6 +100,43 @@ async function fetchProjects(params: {
   return body as ProjectsListResponse
 }
 
+async function createProject(params: {
+  workspaceId: string
+  token?: string
+  input: CreateProjectInput
+}): Promise<CreateProjectResponse> {
+  const base = getBaseUrl()
+
+  const query = new URLSearchParams()
+  query.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(`${base}/pm/projects?${query.toString()}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+    },
+    body: JSON.stringify({ ...params.input, workspaceId: params.workspaceId }),
+    cache: 'no-store',
+  })
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to create project')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to create project')
+  }
+
+  return body as CreateProjectResponse
+}
+
 export function usePmProjects(filters: ListProjectsQuery = {}) {
   const { data: session } = useSession()
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
@@ -100,5 +148,27 @@ export function usePmProjects(filters: ListProjectsQuery = {}) {
     enabled: !!workspaceId,
     staleTime: 30000,
     refetchOnWindowFocus: true,
+  })
+}
+
+export function useCreatePmProject() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: (input: CreateProjectInput) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return createProject({ workspaceId, token, input })
+    },
+    onSuccess: () => {
+      toast.success('Project created')
+      queryClient.invalidateQueries({ queryKey: ['pm-projects', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to create project'
+      toast.error(message)
+    },
   })
 }

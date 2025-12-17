@@ -1,8 +1,8 @@
 'use client'
 
-import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { Plus, FolderOpen } from 'lucide-react'
+import Link from 'next/link'
+import { FolderOpen, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { usePmProjects } from '@/hooks/use-pm-projects'
 import type { ListProjectsQuery } from '@hyvve/shared'
+import { CreateProjectModal } from './CreateProjectModal'
 
 const PROJECT_STATUSES = ['PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'ARCHIVED'] as const
 const PROJECT_TYPES = [
@@ -39,6 +40,7 @@ export function PmProjectsContent() {
   const [status, setStatus] = useState<StatusValue | 'all'>('all')
   const [type, setType] = useState<TypeValue | 'all'>('all')
   const [search, setSearch] = useState<string>('')
+  const [createOpen, setCreateOpen] = useState(false)
 
   const filters: ListProjectsQuery = useMemo(() => {
     return {
@@ -63,13 +65,11 @@ export function PmProjectsContent() {
             Track work across phases and teams.
           </p>
         </div>
-        <Button asChild className="w-full sm:w-auto">
-          <Link href={{ pathname: '/dashboard/pm/new' }}>
-            <span className="inline-flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              New Project
-            </span>
-          </Link>
+        <Button className="w-full sm:w-auto" onClick={() => setCreateOpen(true)}>
+          <span className="inline-flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            New Project
+          </span>
         </Button>
       </div>
 
@@ -145,7 +145,7 @@ export function PmProjectsContent() {
           headline="Create your first project"
           description="Start tracking work with structured phases, templates, and team roles."
           ctaText="New Project"
-          ctaHref="/dashboard/pm/new"
+          onCtaClick={() => setCreateOpen(true)}
         />
       ) : null}
 
@@ -202,6 +202,8 @@ export function PmProjectsContent() {
           })}
         </div>
       ) : null}
+
+      <CreateProjectModal open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   )
 }
