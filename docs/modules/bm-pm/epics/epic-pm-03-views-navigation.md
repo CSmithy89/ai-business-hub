@@ -4,6 +4,16 @@
 
 **FRs Covered:** FR-4.1-4.3, FR-4.5
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| PM-03.1: List View | PM-04 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-04_task_list_view/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-04_task_list_view/screen.png) |
+| PM-03.2: Kanban Board | PM-03 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-03_task_board_(kanban_view)_/screen.png) |
+| PM-03.4: Calendar View | PM-07 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-07_project_calendar_view/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-07_project_calendar_view/screen.png) |
+| PM-03.6: Saved Views | PM-26 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-26_saved_views_manager/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-26_saved_views_manager/screen.png) |
+| PM-03.8: Command Bar | PM-17 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-17_global_search/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-17_global_search/screen.png) |
+
 ---
 
 ### Story PM-03.1: List View

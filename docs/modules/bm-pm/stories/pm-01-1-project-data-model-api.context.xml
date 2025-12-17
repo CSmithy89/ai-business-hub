@@ -1,0 +1,84 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-01</epicId>
+    <storyId>pm-01-1</storyId>
+    <title>Project Data Model &amp; API</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-01-1-project-data-model-api.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>platform developer</asA>
+    <iWant>Project and Phase data models with full CRUD API</iWant>
+    <soThat>the foundation exists for all project management features</soThat>
+    <tasks>
+      - Shared schemas in @hyvve/shared
+      - NestJS Projects API with workspace isolation + soft delete
+      - Unit tests for service behavior
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1) Prisma schema includes Project/Phase and migrations create tables.
+    2) POST /pm/projects creates project (required: name, workspaceId, businessId; optional: description, type, color, icon, bmadTemplateId; auto: slug, status=PLANNING).
+    3) GET /pm/projects supports pagination and filters (status, type, businessId).
+    4) GET /pm/projects/:id returns project including phases.
+    5) PATCH /pm/projects/:id updates allowed fields only.
+    6) DELETE /pm/projects/:id soft deletes (deletedAt set).
+    7) Tenant isolation enforced via guards + workspaceId filtering in Prisma queries.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      - docs/modules/bm-pm/epics/epic-pm-01-project-phase-management.md (Story PM-01.1)
+      - docs/modules/bm-pm/tech-spec-epic-pm-01.md (API shape, constraints)
+      - docs/modules/bm-pm/architecture.md (module context)
+    </docs>
+    <code>
+      - packages/db/prisma/schema.prisma (Project, Phase models exist)
+      - apps/api/src/common/guards/auth.guard.ts (Bearer token auth)
+      - apps/api/src/common/guards/tenant.guard.ts (workspace context extraction + membership)
+      - apps/api/src/events/event-publisher.service.ts (pm.* events)
+      - apps/api/src/app.module.ts (wire new PmModule)
+      - packages/shared/src (add zod schemas + types)
+    </code>
+    <dependencies>
+      - NestJS (controllers, modules, DTO validation via class-validator)
+      - Prisma (@prisma/client via apps/api/src/common/services/prisma.service.ts)
+      - zod (packages/shared)
+      - Redis Streams event bus (apps/api/src/events)
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - All reads/writes must be scoped to CurrentWorkspace (TenantGuard) and filtered by workspaceId in Prisma.
+    - Soft delete must be respected (exclude deletedAt != null from list/read).
+    - Slug must be unique per workspace (Project @@unique([workspaceId, slug])).
+  </constraints>
+
+  <interfaces>
+    - POST /pm/projects
+    - GET /pm/projects
+    - GET /pm/projects/:id
+    - PATCH /pm/projects/:id
+    - DELETE /pm/projects/:id
+  </interfaces>
+
+  <tests>
+    <standards>
+      - Add unit tests for new services (Jest) with PrismaService + EventPublisherService mocked.
+      - Keep tests deterministic; do not require DB/Redis.
+    </standards>
+    <locations>
+      - apps/api/src/pm/projects/projects.service.spec.ts
+    </locations>
+    <ideas>
+      - Verify workspaceId is always included in where filters.
+      - Verify slug collision generates unique slug (e.g., "my-project", "my-project-2").
+      - Verify delete sets deletedAt and list excludes deleted records.
+    </ideas>
+  </tests>
+</story-context>
+

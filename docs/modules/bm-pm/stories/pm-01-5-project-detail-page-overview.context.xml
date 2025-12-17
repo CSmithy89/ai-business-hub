@@ -1,0 +1,69 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-01</epicId>
+    <storyId>pm-01-5</storyId>
+    <title>Project Detail Page - Overview Tab</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-01-5-project-detail-page-overview.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>project user</asA>
+    <iWant>to view a project overview with phases and progress</iWant>
+    <soThat>I understand the current state at a glance</soThat>
+    <tasks>
+      - Add API: GET /pm/projects/by-slug/:slug (workspace-scoped)
+      - Add hook to fetch project by slug
+      - Implement /dashboard/pm/[slug] overview UI (header, timeline, stats, tabs)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    - Header with icon, name, progress ring, status badge.
+    - Horizontal phase timeline for all phases.
+    - Quick stats (tasks, team, days remaining).
+    - Tab navigation (Overview, Tasks, Team, Docs, Settings).
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      - docs/modules/bm-pm/epics/epic-pm-01-project-phase-management.md (Story PM-01.5)
+      - docs/modules/bm-pm/tech-spec-epic-pm-01.md (project/phase model + UI structure)
+    </docs>
+    <code>
+      - apps/api/src/pm/projects/projects.controller.ts (add new route)
+      - apps/api/src/pm/projects/projects.service.ts (add getBySlug)
+      - apps/web/src/hooks/use-pm-projects.ts (extend with usePmProject)
+      - apps/web/src/app/(dashboard)/dashboard/pm/[slug]/page.tsx (replace placeholder)
+    </code>
+    <dependencies>
+      - React Query for data fetching
+      - Tailwind + shadcn/ui (cards, badges, progress)
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Use TenantGuard workspace context; ensure Prisma query filters by workspaceId and excludes deletedAt.
+    - Avoid dynamic Tailwind fragments.
+  </constraints>
+
+  <interfaces>
+    - API: GET /pm/projects/by-slug/:slug
+    - UI: /dashboard/pm/[slug]
+  </interfaces>
+
+  <tests>
+    <standards>
+      - Unit test for getBySlug service method (workspace scoping, not found).
+    </standards>
+    <locations>
+      - apps/api/src/pm/projects/projects.service.spec.ts
+    </locations>
+    <ideas>
+      - Return 404 when slug not found in workspace or deleted.
+    </ideas>
+  </tests>
+</story-context>
+

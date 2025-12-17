@@ -4,6 +4,14 @@
 
 **FRs Covered:** FR-7, FR-8.2
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| PM-06: Notifications Center | PM-16 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-16_notifications_center/screen.png) |
+| PM-06: Presence Bar | RT-02 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/rt-02_presence_bar/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/rt-02_presence_bar/screen.png) |
+| PM-06: Conflict Resolution | RT-03 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/rt-03_conflict_resolution/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/rt-03_conflict_resolution/screen.png) |
+
 ---
 
 ### Story PM-06.1: WebSocket Infrastructure

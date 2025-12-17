@@ -2,6 +2,13 @@
 
 **Goal:** Developers can access PM functionality via REST API with proper governance.
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| PM-11: API & Webhooks Config | PM-34 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-34_api_%26_webhooks_configuration/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-34_api_%26_webhooks_configuration/screen.png) |
+| PM-11: Audit & Compliance | PM-37 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-37_enterprise_audit_%26_compliance/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/pm-37_enterprise_audit_%26_compliance/screen.png) |
+
 ---
 
 ### Story PM-11.1: REST API Design

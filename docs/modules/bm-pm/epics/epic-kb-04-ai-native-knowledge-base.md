@@ -4,6 +4,16 @@
 
 **FRs Covered:** KB-F8
 
+## Wireframe References
+
+| Story | Wireframe | Assets |
+|-------|-----------|--------|
+| KB-04: Page Templates | KB-12 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-12_page_templates/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-12_page_templates/screen.png) |
+| KB-04: Embed Blocks | KB-11 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-11_embed_blocks/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-11_embed_blocks/screen.png) |
+| KB-04: KB Analytics | KB-14 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-14_kb_analytics_dashboard/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-14_kb_analytics_dashboard/screen.png) |
+| KB-04: Governance | KB-15 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-15_kb_governance_%26_permissions/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-15_kb_governance_%26_permissions/screen.png) |
+| KB-04: External Sync | KB-16 | [HTML](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-16_external_kb_sync_settings/code.html) · [PNG](../../design/wireframes/Finished%20wireframes%20and%20html%20files/kb-16_external_kb_sync_settings/screen.png) |
+
 ---
 
 ### Story KB-04.1: AI Page Drafts

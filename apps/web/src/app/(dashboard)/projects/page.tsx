@@ -9,7 +9,7 @@ import { ProjectsContent } from './ProjectsContent'
 
 export const metadata = {
   title: 'Projects',
-  description: 'AI-powered Project Management (Coming Soon)',
+  description: 'AI-powered Project Management',
 }
 
 export default function ProjectsPage() {

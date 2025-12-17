@@ -50,16 +50,16 @@ development_status:
   # MVP | 9 stories | Project CRUD, phases, templates, teams
   # FRs: FR-1, FR-2
   # ===========================================
-  pm-01: backlog
-  pm-01-1-project-data-model-api: backlog
-  pm-01-2-phase-crud-api: backlog
-  pm-01-3-project-list-page: backlog
-  pm-01-4-create-project-modal: backlog
-  pm-01-5-project-detail-page-overview: backlog
-  pm-01-6-project-settings-page: backlog
-  pm-01-7-bmad-phase-templates: backlog
-  pm-01-8-project-team-management: backlog
-  pm-01-9-budget-tracking: backlog
+  pm-01: contexted
+  pm-01-1-project-data-model-api: done
+  pm-01-2-phase-crud-api: done
+  pm-01-3-project-list-page: done
+  pm-01-4-create-project-modal: done
+  pm-01-5-project-detail-page-overview: done
+  pm-01-6-project-settings-page: done
+  pm-01-7-bmad-phase-templates: done
+  pm-01-8-project-team-management: done
+  pm-01-9-budget-tracking: done
   pm-01-retrospective: optional
 
   # ===========================================

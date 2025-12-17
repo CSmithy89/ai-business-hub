@@ -1,0 +1,38 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-01</epicId>
+    <storyId>pm-01-9</storyId>
+    <title>Budget Tracking</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-01-9-budget-tracking.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>project lead</asA>
+    <iWant>to track project budget</iWant>
+    <soThat>I can monitor spending against plan</soThat>
+    <tasks>
+      - Add expense storage + API endpoints
+      - Enable budget updates via project settings
+      - Add overview header budget widget + alert thresholds
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    - Budget enablement in settings, header widget for spent/remaining.
+    - Log expenses with amount/description/date.
+    - Alert thresholds at 75/90/100.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <code>
+      - packages/db/prisma/schema.prisma (ProjectExpense)
+      - apps/api/src/pm/expenses/* (expenses endpoints)
+      - apps/web/src/app/(dashboard)/dashboard/pm/[slug]/settings/ProjectSettingsContent.tsx (budget UI)
+      - apps/web/src/app/(dashboard)/dashboard/pm/[slug]/ProjectOverviewContent.tsx (budget widget)
+    </code>
+  </artifacts>
+</story-context>
+

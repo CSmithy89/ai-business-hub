@@ -122,9 +122,8 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
         <SidebarNavItem
           icon={FolderOpen}
           label="Projects"
-          href="/projects"
+          href="/dashboard/pm"
           statusDot="atlas"
-          comingSoon="Coming Soon · Expected Q1 2026"
           collapsed={collapsed}
         />
       </SidebarSection>

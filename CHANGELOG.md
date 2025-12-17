@@ -8,6 +8,28 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
+## EPIC-PM-01: Project & Phase Management (9 stories)
+
+**Status:** Complete  
+**Completed:** 2025-12-17  
+**Branch:** `epic/01-project-phase-management`
+
+### Added
+
+- Projects CRUD API + dashboard routes (`/dashboard/pm`, `/dashboard/pm/[slug]`)
+- Phase CRUD + state machine (UPCOMING → CURRENT → COMPLETED)
+- BMAD phase templates (course + kanban-only) seeded on project create
+- Project settings (autosave + phases editing + archive/delete)
+- Project team management (add/edit/remove members + capacity + permissions + reassignment)
+- Budget tracking (enable budget, log expenses, threshold alerts, overview widget)
+
+### Notes
+
+- DB migration requires Postgres to apply: `packages/db/prisma/migrations/20251217193000_add_project_expenses/`
+- Epic test report: `docs/modules/bm-pm/epics/epic-pm-01-test-report.md`
+
+---
+
 ## EPIC-16: Premium Polish & Advanced Features (28 stories)
 
 **Status:** Complete

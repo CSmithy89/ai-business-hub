@@ -1,0 +1,45 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-01</epicId>
+    <storyId>pm-01-7</storyId>
+    <title>BMAD Phase Templates</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-01-7-bmad-phase-templates.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>project creator</asA>
+    <iWant>pre-configured phase templates</iWant>
+    <soThat>I get a structured starting point</soThat>
+    <tasks>
+      - Define BMAD phase templates (course + kanban-only)
+      - Seed phases during project creation based on template selection
+      - Add tests validating template seeding
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    - BMAD course template seeds 7 BUILD + 3 OPERATE phases.
+    - Kanban-only seeds a single Backlog phase.
+    - Suggested task templates are stored in phase description (MVP).
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      - docs/modules/bm-pm/epics/epic-pm-01-project-phase-management.md (Story PM-01.7)
+    </docs>
+    <code>
+      - apps/api/src/pm/projects/projects.service.ts (seed phases in create transaction)
+      - apps/api/src/pm/templates/bmad-phase-templates.ts (template definitions)
+      - apps/api/src/pm/projects/projects.service.spec.ts (unit tests)
+    </code>
+  </artifacts>
+
+  <constraints>
+    - Keep seeding transactional with project creation.
+    - No task templates model yet; store suggestions in Phase.description for MVP.
+  </constraints>
+</story-context>
+
