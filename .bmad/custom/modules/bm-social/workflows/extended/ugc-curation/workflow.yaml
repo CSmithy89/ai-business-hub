@@ -1,0 +1,8 @@
+# UGC Curation Workflow
+name: ugc-curation
+description: "Curate and share user-generated content"
+author: "BM-Social"
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+template: false
+instructions: "{installed_path}/instructions.md"
+# TODO: Create full instructions.md

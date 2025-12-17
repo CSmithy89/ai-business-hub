@@ -1,0 +1,10 @@
+# Competitor Analysis Workflow
+name: competitor-analysis
+description: "Monitor and analyze competitor social activity"
+author: "BM-Social"
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+template: true
+template_file: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+default_output_file: "{output_folder}/competitor-analysis-{{date}}.md"
+# TODO: Create full instructions.md and template.md

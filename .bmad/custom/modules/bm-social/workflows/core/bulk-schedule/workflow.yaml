@@ -1,0 +1,12 @@
+# Bulk Schedule Workflow
+name: bulk-schedule
+description: "Schedule multiple posts at once"
+author: "BM-Social"
+
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+
+template: false
+instructions: "{installed_path}/instructions.md"
+
+# TODO: Create full instructions.md
+# Steps: Import content, map fields, set scheduling rules, preview, validate, confirm

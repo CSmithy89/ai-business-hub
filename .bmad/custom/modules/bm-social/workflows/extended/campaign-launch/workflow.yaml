@@ -1,0 +1,8 @@
+# Campaign Launch Workflow
+name: campaign-launch
+description: "Coordinate multi-platform marketing campaign"
+author: "BM-Social"
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+template: false
+instructions: "{installed_path}/instructions.md"
+# TODO: Create full instructions.md

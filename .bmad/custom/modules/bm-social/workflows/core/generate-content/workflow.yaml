@@ -1,0 +1,12 @@
+# Generate Content Workflow
+name: generate-content
+description: "AI-generate social content from input"
+author: "BM-Social"
+
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+
+template: false
+instructions: "{installed_path}/instructions.md"
+
+# TODO: Create full instructions.md
+# Steps: Provide source, select platforms, choose tone, generate variations, approve

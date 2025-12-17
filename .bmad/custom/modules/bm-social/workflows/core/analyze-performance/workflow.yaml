@@ -1,0 +1,14 @@
+# Analyze Performance Workflow
+name: analyze-performance
+description: "Review social media analytics"
+author: "BM-Social"
+
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+
+template: true
+template_file: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+default_output_file: "{output_folder}/social-analytics-{{date}}.md"
+
+# TODO: Create full instructions.md and template.md
+# Steps: Select date range, choose platforms, select report type, view metrics, export

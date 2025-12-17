@@ -1,0 +1,93 @@
+# BM-Social Module Configuration
+# AI-Powered Social Media Management Module
+# This file defines installation questions and module configuration values
+
+code: bm-social
+name: "BM-Social"
+default_selected: false
+
+# Welcome message shown during installation
+prompt:
+  - "Welcome to BM-Social - AI-Powered Social Media Management!"
+  - "This module provides multi-platform scheduling, content creation, analytics, and engagement management."
+
+# Core config values are automatically inherited:
+## user_name
+## communication_language
+## document_output_language
+## output_folder
+
+# ============================================================================
+# CONFIGURATION FIELDS
+# ============================================================================
+
+# Output location for social media content and reports
+social_output_path:
+  prompt: "Where should BM-Social save content and reports?"
+  default: "output/social"
+  result: "{project-root}/{value}"
+
+# Default platforms to enable
+default_platforms:
+  prompt: "Which platforms do you primarily use?"
+  default: "twitter,linkedin,instagram"
+  result: "{value}"
+  multi-select:
+    - value: "twitter"
+      label: "Twitter/X"
+    - value: "linkedin"
+      label: "LinkedIn"
+    - value: "facebook"
+      label: "Facebook"
+    - value: "instagram"
+      label: "Instagram"
+    - value: "tiktok"
+      label: "TikTok"
+    - value: "youtube"
+      label: "YouTube"
+    - value: "pinterest"
+      label: "Pinterest"
+    - value: "threads"
+      label: "Threads"
+    - value: "bluesky"
+      label: "Bluesky"
+
+# Automation level
+automation_level:
+  prompt: "What level of AI automation do you prefer?"
+  default: "assisted"
+  result: "{value}"
+  single-select:
+    - value: "manual"
+      label: "Manual - AI suggests, human approves everything"
+    - value: "assisted"
+      label: "Assisted - AI drafts, human reviews before posting"
+    - value: "autonomous"
+      label: "Autonomous - AI auto-posts with confidence thresholds"
+
+# Approval confidence threshold (for autonomous mode)
+approval_threshold:
+  prompt: "Minimum confidence score for auto-approval (0-100)?"
+  default: "85"
+  result: "{value}"
+
+# Enable social listening
+enable_listening:
+  prompt: "Enable social listening and brand monitoring?"
+  default: "yes"
+  result: "{value}"
+  single-select:
+    - value: "yes"
+      label: "Yes - Monitor mentions, sentiment, and competitors"
+    - value: "no"
+      label: "No - Just scheduling and publishing"
+
+# Static configuration values
+module_version:
+  result: "1.0.0"
+
+data_path:
+  result: "{project-root}/.bmad/bm-social/data"
+
+templates_path:
+  result: "{project-root}/.bmad/bm-social/templates"

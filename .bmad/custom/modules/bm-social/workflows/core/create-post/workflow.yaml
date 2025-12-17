@@ -1,0 +1,21 @@
+# Create Post Workflow
+name: create-post
+description: "Create and publish/schedule a social post"
+author: "BM-Social"
+
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+
+template: false
+instructions: "{installed_path}/instructions.md"
+
+# TODO: Create full instructions.md for this workflow
+# Steps:
+# 1. Select target platforms (multi-select)
+# 2. Choose content source (write, template, repurpose, AI generate)
+# 3. Enter/edit content
+# 4. Add media (images, video, documents)
+# 5. Configure platform-specific settings
+# 6. Preview on each platform
+# 7. Choose publishing method (now, schedule, draft)
+# 8. Submit for approval (if required)
+# 9. Confirmation with sharing options

@@ -1,0 +1,12 @@
+# Content Repurpose Workflow
+name: content-repurpose
+description: "Adapt content across platforms"
+author: "BM-Social"
+
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+
+template: false
+instructions: "{installed_path}/instructions.md"
+
+# TODO: Create full instructions.md
+# Steps: Select source, choose targets, select strategy, generate versions, review, schedule

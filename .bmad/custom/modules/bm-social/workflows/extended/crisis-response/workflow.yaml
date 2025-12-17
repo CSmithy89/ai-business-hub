@@ -1,0 +1,8 @@
+# Crisis Response Workflow
+name: crisis-response
+description: "Handle negative PR or brand crisis"
+author: "BM-Social"
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+template: false
+instructions: "{installed_path}/instructions.md"
+# TODO: Create full instructions.md

@@ -1,0 +1,12 @@
+# Manage Calendar Workflow
+name: manage-calendar
+description: "View and manage content calendar"
+author: "BM-Social"
+
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+
+template: false
+instructions: "{installed_path}/instructions.md"
+
+# TODO: Create full instructions.md
+# Steps: Open calendar view, apply filters, drag-drop reschedule, bulk actions, fill gaps

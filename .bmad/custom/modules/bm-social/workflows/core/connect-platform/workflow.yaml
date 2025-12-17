@@ -1,0 +1,21 @@
+# Connect Platform Workflow
+name: connect-platform
+description: "Connect a new social media account via OAuth"
+author: "BM-Social"
+
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+
+template: false
+instructions: "{installed_path}/instructions.md"
+
+# TODO: Create full instructions.md for this workflow
+# Steps:
+# 1. Select platform (Twitter, LinkedIn, Facebook, etc.)
+# 2. Review required permissions
+# 3. Initiate OAuth flow
+# 4. Complete authorization on platform
+# 5. Return to app with token
+# 6. Configure account settings
+# 7. Set up time slots for auto-scheduling
+# 8. Test connection with preview post
+# 9. Confirmation and next steps

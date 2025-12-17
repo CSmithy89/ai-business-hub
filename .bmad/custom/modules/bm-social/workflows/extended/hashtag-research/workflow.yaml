@@ -1,0 +1,8 @@
+# Hashtag Research Workflow
+name: hashtag-research
+description: "Optimize hashtag strategy per platform"
+author: "BM-Social"
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+template: false
+instructions: "{installed_path}/instructions.md"
+# TODO: Create full instructions.md

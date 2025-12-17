@@ -1,0 +1,10 @@
+# Report Generate Workflow
+name: report-generate
+description: "Create stakeholder analytics reports"
+author: "BM-Social"
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+template: true
+template_file: "{installed_path}/template.md"
+instructions: "{installed_path}/instructions.md"
+default_output_file: "{output_folder}/social-report-{{date}}.md"
+# TODO: Create full instructions.md and template.md

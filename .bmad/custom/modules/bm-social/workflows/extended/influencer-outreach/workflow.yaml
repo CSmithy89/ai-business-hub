@@ -1,0 +1,8 @@
+# Influencer Outreach Workflow
+name: influencer-outreach
+description: "Manage influencer relationships and collaborations"
+author: "BM-Social"
+config_source: "{project-root}/.bmad/bm-social/config.yaml"
+template: false
+instructions: "{installed_path}/instructions.md"
+# TODO: Create full instructions.md
