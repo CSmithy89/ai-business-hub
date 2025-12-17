@@ -6,9 +6,10 @@ import { useSession } from '@/lib/auth-client'
 import { useKBPages, useKBPage, useUpdateKBPage, useDeleteKBPage, useToggleFavorite } from '@/hooks/use-kb-pages'
 import { PageEditor } from '@/components/kb/editor/PageEditor'
 import { PageBreadcrumbs } from '@/components/kb/PageBreadcrumbs'
+import { LinkedProjects } from '@/components/kb/LinkedProjects'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Trash2, Star } from 'lucide-react'
+import { ArrowLeft, Trash2, Star, PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -34,6 +35,7 @@ export default function KBPagePage({ params }: PageProps) {
   const workspaceId = (session as any)?.workspaceId || ''
   const { data: pagesData } = useKBPages(workspaceId, true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [showInfoPanel, setShowInfoPanel] = useState(true)
 
   // Find page by slug
   const page = pagesData?.data.find((p) => p.slug === slug)
@@ -171,6 +173,19 @@ export default function KBPagePage({ params }: PageProps) {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={() => setShowInfoPanel(!showInfoPanel)}
+                  title={showInfoPanel ? 'Hide info panel' : 'Show info panel'}
+                >
+                  {showInfoPanel ? (
+                    <PanelRightClose className="h-4 w-4" />
+                  ) : (
+                    <PanelRightOpen className="h-4 w-4" />
+                  )}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setDeleteDialogOpen(true)}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -180,14 +195,24 @@ export default function KBPagePage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Editor */}
-        <div className="flex-1 overflow-hidden">
-          <PageEditor
-            pageId={pageId}
-            initialContent={pageData.data.content}
-            onSave={handleSaveContent}
-            placeholder="Start writing your page content..."
-          />
+        {/* Editor + Info Panel */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Editor */}
+          <div className="flex-1 overflow-hidden">
+            <PageEditor
+              pageId={pageId}
+              initialContent={pageData.data.content}
+              onSave={handleSaveContent}
+              placeholder="Start writing your page content..."
+            />
+          </div>
+
+          {/* Info Panel */}
+          {showInfoPanel && (
+            <div className="w-64 flex-shrink-0 border-l bg-muted/30 p-4 overflow-y-auto">
+              <LinkedProjects pageId={pageId} workspaceId={workspaceId} />
+            </div>
+          )}
         </div>
       </div>
 

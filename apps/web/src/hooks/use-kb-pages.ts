@@ -510,3 +510,208 @@ export function useToggleFavorite(workspaceId: string) {
     },
   })
 }
+
+// ============================================
+// Project Linking
+// ============================================
+
+export interface ProjectPageLink {
+  id: string
+  projectId: string
+  pageId: string
+  isPrimary: boolean
+  linkedBy: string
+  createdAt: string
+  project?: {
+    id: string
+    name: string
+    slug: string
+    status?: string
+  }
+  page?: {
+    id: string
+    title: string
+    slug: string
+    updatedAt?: string
+    contentText?: string
+  }
+}
+
+async function fetchLinkedProjects(params: {
+  pageId: string
+  workspaceId: string
+  token?: string
+}): Promise<{ data: ProjectPageLink[] }> {
+  const { pageId, workspaceId, token } = params
+
+  const response = await fetch(`${getBaseUrl()}/api/kb/pages/${pageId}/projects`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Failed to fetch linked projects: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as { data: ProjectPageLink[] }
+}
+
+async function linkPageToProject(params: {
+  pageId: string
+  projectId: string
+  isPrimary?: boolean
+  workspaceId: string
+  token?: string
+}): Promise<{ data: ProjectPageLink }> {
+  const { pageId, projectId, isPrimary, workspaceId, token } = params
+
+  const response = await fetch(`${getBaseUrl()}/api/kb/pages/${pageId}/projects`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ projectId, isPrimary }),
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Failed to link page to project: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as { data: ProjectPageLink }
+}
+
+async function unlinkPageFromProject(params: {
+  pageId: string
+  projectId: string
+  workspaceId: string
+  token?: string
+}): Promise<{ data: { success: boolean } }> {
+  const { pageId, projectId, workspaceId, token } = params
+
+  const response = await fetch(`${getBaseUrl()}/api/kb/pages/${pageId}/projects/${projectId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Failed to unlink page from project: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as { data: { success: boolean } }
+}
+
+async function updatePageProjectLink(params: {
+  pageId: string
+  projectId: string
+  isPrimary: boolean
+  workspaceId: string
+  token?: string
+}): Promise<{ data: ProjectPageLink }> {
+  const { pageId, projectId, isPrimary, workspaceId, token } = params
+
+  const response = await fetch(`${getBaseUrl()}/api/kb/pages/${pageId}/projects/${projectId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ isPrimary }),
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Failed to update link: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as { data: ProjectPageLink }
+}
+
+export function useLinkedProjects(pageId: string, workspaceId: string) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+
+  return useQuery({
+    queryKey: ['kb', 'page-projects', pageId, workspaceId],
+    queryFn: () => fetchLinkedProjects({ pageId, workspaceId, token }),
+    enabled: !!pageId && !!workspaceId && !!token,
+  })
+}
+
+export function useLinkPageToProject(workspaceId: string) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ pageId, projectId, isPrimary }: { pageId: string; projectId: string; isPrimary?: boolean }) =>
+      linkPageToProject({ pageId, projectId, isPrimary, workspaceId, token }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['kb', 'page-projects', variables.pageId, workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['kb', 'project-docs'] })
+      toast.success('Page linked to project')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to link page')
+    },
+  })
+}
+
+export function useUnlinkPageFromProject(workspaceId: string) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ pageId, projectId }: { pageId: string; projectId: string }) =>
+      unlinkPageFromProject({ pageId, projectId, workspaceId, token }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['kb', 'page-projects', variables.pageId, workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['kb', 'project-docs'] })
+      toast.success('Page unlinked from project')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to unlink page')
+    },
+  })
+}
+
+export function useUpdatePageProjectLink(workspaceId: string) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ pageId, projectId, isPrimary }: { pageId: string; projectId: string; isPrimary: boolean }) =>
+      updatePageProjectLink({ pageId, projectId, isPrimary, workspaceId, token }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['kb', 'page-projects', variables.pageId, workspaceId] })
+      queryClient.invalidateQueries({ queryKey: ['kb', 'project-docs'] })
+      toast.success('Link updated')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update link')
+    },
+  })
+}
