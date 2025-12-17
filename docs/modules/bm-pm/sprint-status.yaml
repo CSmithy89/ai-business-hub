@@ -173,7 +173,7 @@ development_status:
   # FRs: KB-F4, KB-F6
   # ===========================================
   kb-02: contexted
-  kb-02-1-yjs-collaboration-setup: backlog
+  kb-02-1-yjs-collaboration-setup: done
   kb-02-2-presence-cursors: backlog
   kb-02-3-conflict-resolution: backlog
   kb-02-4-offline-support: backlog

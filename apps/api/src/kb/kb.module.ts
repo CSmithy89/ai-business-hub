@@ -9,9 +9,10 @@ import { SearchController } from './search/search.controller'
 import { SearchService } from './search/search.service'
 import { LinkingController } from './linking/linking.controller'
 import { LinkingService } from './linking/linking.service'
+import { KbCollabModule } from './collab/kb-collab.module'
 
 @Module({
-  imports: [CommonModule, EventsModule],
+  imports: [CommonModule, EventsModule, KbCollabModule],
   controllers: [PagesController, VersionsController, SearchController, LinkingController],
   providers: [
     PagesService,
