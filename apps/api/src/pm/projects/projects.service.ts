@@ -3,6 +3,7 @@ import { Prisma, ProjectStatus, TeamRole } from '@prisma/client'
 import { EventTypes } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
 import { EventPublisherService } from '../../events'
+import { getPhaseTemplates } from '../templates/bmad-phase-templates'
 import { CreateProjectDto } from './dto/create-project.dto'
 import { ListProjectsQueryDto } from './dto/list-projects.query.dto'
 import { UpdateProjectDto } from './dto/update-project.dto'
@@ -43,6 +44,7 @@ export class ProjectsService {
     const slug = await this.generateUniqueSlug(workspaceId, dto.name)
 
     const leadUserId = dto.leadUserId || actorId
+    const phaseTemplates = getPhaseTemplates(dto.bmadTemplateId)
 
     const project = await this.prisma.$transaction(async (tx) => {
       const created = await tx.project.create({
@@ -76,6 +78,19 @@ export class ProjectsService {
           },
         },
       })
+
+      if (phaseTemplates.length > 0) {
+        await tx.phase.createMany({
+          data: phaseTemplates.map((phase) => ({
+            projectId: created.id,
+            name: phase.name,
+            description: phase.description,
+            bmadPhase: phase.bmadPhase ?? null,
+            phaseNumber: phase.phaseNumber,
+            status: phase.status,
+          })),
+        })
+      }
 
       return { ...created, team }
     })

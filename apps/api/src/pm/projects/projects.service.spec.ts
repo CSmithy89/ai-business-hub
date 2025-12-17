@@ -1,5 +1,5 @@
 import { ForbiddenException } from '@nestjs/common'
-import { TeamRole } from '@prisma/client'
+import { BmadPhaseType, PhaseStatus, TeamRole } from '@prisma/client'
 import { Test } from '@nestjs/testing'
 import { EventPublisherService } from '../../events'
 import { PrismaService } from '../../common/services/prisma.service'
@@ -157,6 +157,94 @@ describe('ProjectsService', () => {
       }),
     )
     expect(result.data.slug).toBe('my-project-2')
+  })
+
+  it('creates BMAD phases when a template is selected', async () => {
+    prisma.project.findUnique.mockResolvedValueOnce(null as any)
+    const projectCreate = jest.fn().mockResolvedValueOnce({
+      id: 'proj-3',
+      workspaceId: 'ws-1',
+      businessId: 'biz-1',
+      slug: 'bmad-course',
+    })
+    const teamCreate = jest.fn().mockResolvedValueOnce({
+      id: 'team-3',
+      projectId: 'proj-3',
+      leadUserId: 'user-1',
+    })
+    const phaseCreateMany = jest.fn().mockResolvedValueOnce({ count: 10 })
+
+    prisma.$transaction.mockImplementationOnce(async (fn: any) =>
+      fn({
+        project: { create: projectCreate },
+        projectTeam: { create: teamCreate },
+        phase: { createMany: phaseCreateMany },
+      }),
+    )
+
+    await service.create('ws-1', 'user-1', {
+      businessId: 'biz-1',
+      name: 'BMAD Course',
+      bmadTemplateId: 'bmad-course',
+    })
+
+    expect(phaseCreateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            projectId: 'proj-3',
+            phaseNumber: 1,
+            status: PhaseStatus.CURRENT,
+            bmadPhase: BmadPhaseType.PHASE_1_BRIEF,
+          }),
+        ]),
+      }),
+    )
+    expect(phaseCreateMany.mock.calls[0][0].data).toHaveLength(10)
+  })
+
+  it('creates a single Backlog phase for kanban-only template', async () => {
+    prisma.project.findUnique.mockResolvedValueOnce(null as any)
+    const projectCreate = jest.fn().mockResolvedValueOnce({
+      id: 'proj-4',
+      workspaceId: 'ws-1',
+      businessId: 'biz-1',
+      slug: 'kanban-only',
+    })
+    const teamCreate = jest.fn().mockResolvedValueOnce({
+      id: 'team-4',
+      projectId: 'proj-4',
+      leadUserId: 'user-1',
+    })
+    const phaseCreateMany = jest.fn().mockResolvedValueOnce({ count: 1 })
+
+    prisma.$transaction.mockImplementationOnce(async (fn: any) =>
+      fn({
+        project: { create: projectCreate },
+        projectTeam: { create: teamCreate },
+        phase: { createMany: phaseCreateMany },
+      }),
+    )
+
+    await service.create('ws-1', 'user-1', {
+      businessId: 'biz-1',
+      name: 'Kanban',
+      bmadTemplateId: 'kanban-only',
+    })
+
+    expect(phaseCreateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [
+          expect.objectContaining({
+            projectId: 'proj-4',
+            name: 'Backlog',
+            phaseNumber: 1,
+            status: PhaseStatus.CURRENT,
+            bmadPhase: null,
+          }),
+        ],
+      }),
+    )
   })
 
   it('enforces project lead access for members', async () => {
