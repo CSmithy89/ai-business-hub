@@ -936,3 +936,205 @@
     stroke-dashoffset: 0;
   }
 }
+
+/**
+ * Tiptap Editor Styles - Story KB-01.3
+ *
+ * Rich text editor styling for Knowledge Base pages.
+ * Uses prose classes for beautiful typography.
+ */
+
+/* Tiptap editor base styles */
+.ProseMirror {
+  outline: none;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: rgb(var(--color-text-muted));
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Prose typography for editor content */
+.prose {
+  color: rgb(var(--color-text-primary));
+  max-width: 65ch;
+}
+
+.prose h1 {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  line-height: 1.2;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: rgb(var(--color-text-primary));
+}
+
+.prose h2 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-semibold);
+  line-height: 1.25;
+  margin-top: 1.75rem;
+  margin-bottom: 0.75rem;
+  color: rgb(var(--color-text-primary));
+}
+
+.prose h3 {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  line-height: 1.3;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: rgb(var(--color-text-primary));
+}
+
+.prose h4 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  line-height: 1.4;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: rgb(var(--color-text-primary));
+}
+
+.prose p {
+  margin-bottom: 1rem;
+  line-height: var(--leading-relaxed);
+  color: rgb(var(--color-text-secondary));
+}
+
+.prose ul,
+.prose ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.prose li {
+  margin-bottom: 0.5rem;
+  line-height: var(--leading-relaxed);
+}
+
+.prose ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.prose ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.prose ul[data-type="taskList"] li input[type="checkbox"] {
+  margin-top: 0.25rem;
+  cursor: pointer;
+}
+
+.prose a {
+  color: rgb(var(--color-primary-600));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.prose a:hover {
+  color: rgb(var(--color-primary-700));
+}
+
+.dark .prose a {
+  color: rgb(var(--color-primary-400));
+}
+
+.dark .prose a:hover {
+  color: rgb(var(--color-primary-300));
+}
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  padding: 0.125em 0.375em;
+  background-color: rgb(var(--color-bg-muted));
+  border-radius: var(--radius-sm);
+  color: rgb(var(--color-primary-600));
+}
+
+.dark .prose code {
+  background-color: rgb(var(--color-slate-800));
+  color: rgb(var(--color-primary-400));
+}
+
+.prose pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  padding: 1rem;
+  background-color: rgb(var(--color-slate-900));
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.prose pre code {
+  background: none;
+  padding: 0;
+  color: rgb(var(--color-slate-100));
+  font-size: inherit;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.prose table td,
+.prose table th {
+  border: 1px solid rgb(var(--color-border));
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.prose table th {
+  background-color: rgb(var(--color-bg-muted));
+  font-weight: var(--font-semibold);
+}
+
+.prose blockquote {
+  border-left: 3px solid rgb(var(--color-primary-500));
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: rgb(var(--color-text-secondary));
+  font-style: italic;
+}
+
+.prose hr {
+  border: none;
+  border-top: 1px solid rgb(var(--color-border));
+  margin: 2rem 0;
+}
+
+/* Dark mode prose adjustments */
+.dark .prose {
+  color: rgb(var(--color-text-primary));
+}
+
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4 {
+  color: rgb(var(--color-text-primary));
+}
+
+.dark .prose p {
+  color: rgb(var(--color-text-secondary));
+}
+
+.dark .prose table th {
+  background-color: rgb(var(--color-slate-800));
+}
+
+.dark .prose blockquote {
+  border-left-color: rgb(var(--color-primary-500));
+}

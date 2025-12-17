@@ -13,6 +13,7 @@ import { AIProvidersModule } from './ai-providers/ai-providers.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { PmModule } from './pm/pm.module';
+import { KbModule } from './kb/kb.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -53,6 +54,7 @@ import { validate } from './config/env.validation';
     MetricsModule,
     RealtimeModule,
     PmModule,
+    KbModule,
   ],
   controllers: [AppController],
   providers: [AppService],

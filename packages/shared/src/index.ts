@@ -27,6 +27,9 @@ export * from './types/agent';
 // PM types
 export * from './types/pm';
 
+// KB types
+export * from './types/kb';
+
 // Event schemas (Zod validation)
 export * from './schemas/events';
 

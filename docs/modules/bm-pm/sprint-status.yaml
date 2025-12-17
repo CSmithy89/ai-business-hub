@@ -149,14 +149,15 @@ development_status:
   # MVP | 10 stories | Pages, hierarchy, search, linking
   # FRs: KB-F1, KB-F2, KB-F3
   # ===========================================
-  kb-01: backlog
-  kb-01-1-knowledge-page-model-api: backlog
-  kb-01-2-page-editor-tiptap: backlog
-  kb-01-3-page-hierarchy-tree: backlog
+  kb-01: contexted
+  kb-01-1-knowledge-page-model-api: done
+  kb-01-2-page-editor-tiptap: done
+  kb-01-3-rich-text-editor: done
+  kb-01-4-page-hierarchy-tree: backlog
   kb-01-4-page-versioning: backlog
-  kb-01-5-kb-sidebar-navigation: backlog
-  kb-01-6-breadcrumb-navigation: backlog
-  kb-01-7-full-text-search: backlog
+  kb-01-5-kb-sidebar-navigation: done
+  kb-01-6-breadcrumb-navigation: done
+  kb-01-7-full-text-search: done
   kb-01-8-project-page-linking: backlog
   kb-01-9-task-kb-references: backlog
   kb-01-10-kb-permissions: backlog

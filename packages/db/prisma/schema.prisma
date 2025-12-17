@@ -1573,6 +1573,10 @@ model KnowledgePage {
   viewCount    Int       @default(0) @map("view_count")
   lastViewedAt DateTime? @map("last_viewed_at")
 
+  // Favorites (stored as JSON array of user IDs for MVP)
+  // In Phase 2, move to separate UserFavorite table
+  favoritedBy String[] @default([]) @map("favorited_by")
+
   // Yjs State (for real-time collaboration - Phase 2)
   yjsState Bytes? @map("yjs_state")
 
@@ -1659,6 +1663,7 @@ model ProjectPage {
   projectId String  @map("project_id")
   pageId    String  @map("page_id")
   isPrimary Boolean @default(false) @map("is_primary")
+  linkedBy  String  @map("linked_by") // User who created the link
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -1668,6 +1673,7 @@ model ProjectPage {
   @@unique([projectId, pageId])
   @@index([projectId])
   @@index([pageId])
+  @@index([isPrimary])
   @@map("project_pages")
 }
 
