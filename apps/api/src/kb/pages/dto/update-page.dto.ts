@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsObject } from 'class-validator'
+import { IsOptional, IsString, IsObject, IsBoolean, MaxLength } from 'class-validator'
 
 export class UpdatePageDto {
   @IsOptional()
@@ -12,4 +12,13 @@ export class UpdatePageDto {
   @IsOptional()
   @IsString()
   parentId?: string
+
+  @IsOptional()
+  @IsBoolean()
+  createVersion?: boolean // If true, create a new version snapshot
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  changeNote?: string // Optional note for version history
 }

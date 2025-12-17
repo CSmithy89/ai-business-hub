@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException, forwardRef, Inject } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { EventTypes } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
@@ -6,6 +6,7 @@ import { EventPublisherService } from '../../events'
 import { CreatePageDto } from './dto/create-page.dto'
 import { ListPagesQueryDto } from './dto/list-pages.query.dto'
 import { UpdatePageDto } from './dto/update-page.dto'
+import type { VersionsService } from '../versions/versions.service'
 
 function slugify(input: string): string {
   return input
@@ -36,6 +37,8 @@ export class PagesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventPublisher: EventPublisherService,
+    @Inject(forwardRef(() => 'VersionsService'))
+    private readonly versionsService: VersionsService,
   ) {}
 
   private async generateUniqueSlug(
@@ -255,11 +258,12 @@ export class PagesService {
   ) {
     const existing = await this.prisma.knowledgePage.findFirst({
       where: { id, tenantId, workspaceId, deletedAt: null },
-      select: { id: true, title: true, slug: true },
+      select: { id: true, title: true, slug: true, content: true },
     })
     if (!existing) throw new NotFoundException('Page not found')
 
     const data: Prisma.KnowledgePageUpdateInput = {}
+    let contentChanged = false
 
     // Update title and regenerate slug if title changed
     if (dto.title && dto.title !== existing.title) {
@@ -271,6 +275,8 @@ export class PagesService {
     if (dto.content) {
       data.content = dto.content
       data.contentText = extractPlainText(dto.content)
+      // Check if content actually changed
+      contentChanged = JSON.stringify(existing.content) !== JSON.stringify(dto.content)
     }
 
     // Update parent (use parent relation instead of parentId field)
@@ -319,6 +325,23 @@ export class PagesService {
 
       return updated
     })
+
+    // Create version if requested or if content changed significantly
+    if (dto.createVersion && contentChanged && dto.content) {
+      try {
+        await this.versionsService.createVersion(
+          tenantId,
+          workspaceId,
+          id,
+          actorId,
+          dto.content,
+          dto.changeNote,
+        )
+      } catch (error) {
+        this.logger.error('Failed to create version:', error)
+        // Don't fail the update if version creation fails
+      }
+    }
 
     await this.eventPublisher.publish(
       EventTypes.KB_PAGE_UPDATED,
