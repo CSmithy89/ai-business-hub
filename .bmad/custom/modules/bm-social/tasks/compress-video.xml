@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <name>compress-video</name>
+  <title>Compress Video for Platform</title>
+  <description>Compress and optimize video files to meet platform requirements</description>
+  <version>1.0.0</version>
+
+  <inputs>
+    <input name="video_url" type="string" required="true">
+      <description>URL or path to source video</description>
+    </input>
+    <input name="platform" type="string" required="true">
+      <description>Target platform</description>
+    </input>
+    <input name="format" type="string" required="false">
+      <description>Video format (feed, story, reel, shorts)</description>
+      <default>feed</default>
+    </input>
+    <input name="quality_priority" type="string" required="false">
+      <description>Optimize for quality or file size</description>
+      <enum>quality,balanced,size</enum>
+      <default>balanced</default>
+    </input>
+    <input name="target_size_mb" type="float" required="false">
+      <description>Target file size in MB</description>
+    </input>
+  </inputs>
+
+  <outputs>
+    <output name="compressed_url" type="string">
+      <description>URL to compressed video</description>
+    </output>
+    <output name="original_size_mb" type="float">
+      <description>Original file size in MB</description>
+    </output>
+    <output name="compressed_size_mb" type="float">
+      <description>Compressed file size in MB</description>
+    </output>
+    <output name="compression_ratio" type="float">
+      <description>Compression ratio achieved</description>
+    </output>
+    <output name="duration_seconds" type="float">
+      <description>Video duration</description>
+    </output>
+    <output name="resolution" type="object">
+      <description>Final resolution</description>
+      <schema>
+        <field name="width" type="integer"/>
+        <field name="height" type="integer"/>
+      </schema>
+    </output>
+    <output name="format_info" type="object">
+      <description>Video format details</description>
+      <schema>
+        <field name="codec" type="string"/>
+        <field name="bitrate" type="integer"/>
+        <field name="fps" type="float"/>
+      </schema>
+    </output>
+    <output name="meets_requirements" type="boolean">
+      <description>Whether video meets platform requirements</description>
+    </output>
+    <output name="warnings" type="array">
+      <description>Any quality/compatibility warnings</description>
+    </output>
+  </outputs>
+
+  <platform_specs>
+    <platform name="twitter">
+      <format type="feed">
+        <max_size_mb>512</max_size_mb>
+        <max_duration_seconds>140</max_duration_seconds>
+        <max_resolution>1920x1200</max_resolution>
+        <codec>H.264</codec>
+        <audio_codec>AAC</audio_codec>
+        <max_bitrate_mbps>25</max_bitrate_mbps>
+      </format>
+    </platform>
+
+    <platform name="linkedin">
+      <format type="feed">
+        <max_size_mb>200</max_size_mb>
+        <max_duration_seconds>600</max_duration_seconds>
+        <max_resolution>4096x2304</max_resolution>
+        <codec>H.264</codec>
+        <recommended_bitrate_mbps>8</recommended_bitrate_mbps>
+      </format>
+    </platform>
+
+    <platform name="instagram">
+      <format type="feed">
+        <max_size_mb>650</max_size_mb>
+        <max_duration_seconds>60</max_duration_seconds>
+        <resolution>1080x1350</resolution>
+        <codec>H.264</codec>
+        <fps>30</fps>
+      </format>
+      <format type="reel">
+        <max_size_mb>650</max_size_mb>
+        <max_duration_seconds>900</max_duration_seconds>
+        <resolution>1080x1920</resolution>
+        <codec>H.264</codec>
+        <fps>30</fps>
+      </format>
+      <format type="story">
+        <max_size_mb>250</max_size_mb>
+        <max_duration_seconds>60</max_duration_seconds>
+        <resolution>1080x1920</resolution>
+      </format>
+    </platform>
+
+    <platform name="facebook">
+      <format type="feed">
+        <max_size_mb>4096</max_size_mb>
+        <max_duration_seconds>14400</max_duration_seconds>
+        <max_resolution>4096x2048</max_resolution>
+        <codec>H.264</codec>
+      </format>
+      <format type="story">
+        <max_size_mb>250</max_size_mb>
+        <max_duration_seconds>120</max_duration_seconds>
+        <resolution>1080x1920</resolution>
+      </format>
+    </platform>
+
+    <platform name="tiktok">
+      <format type="video">
+        <max_size_mb>287</max_size_mb>
+        <min_duration_seconds>15</min_duration_seconds>
+        <max_duration_seconds>600</max_duration_seconds>
+        <resolution>1080x1920</resolution>
+        <codec>H.264</codec>
+        <fps>30</fps>
+      </format>
+    </platform>
+
+    <platform name="youtube">
+      <format type="video">
+        <max_size_gb>256</max_size_gb>
+        <max_duration_hours>12</max_duration_hours>
+        <max_resolution>7680x4320</max_resolution>
+        <codec>H.264,H.265</codec>
+      </format>
+      <format type="shorts">
+        <max_duration_seconds>60</max_duration_seconds>
+        <resolution>1080x1920</resolution>
+      </format>
+    </platform>
+  </platform_specs>
+
+  <compression_profiles>
+    <profile id="quality">
+      <crf>18</crf>
+      <preset>slow</preset>
+      <description>Best quality, larger file</description>
+    </profile>
+    <profile id="balanced">
+      <crf>23</crf>
+      <preset>medium</preset>
+      <description>Good quality/size balance</description>
+    </profile>
+    <profile id="size">
+      <crf>28</crf>
+      <preset>fast</preset>
+      <description>Smaller file, acceptable quality</description>
+    </profile>
+  </compression_profiles>
+
+  <processing_steps>
+    <step order="1">
+      <name>Analyze source</name>
+      <description>Get source video metadata</description>
+    </step>
+    <step order="2">
+      <name>Determine target specs</name>
+      <description>Calculate optimal output parameters</description>
+    </step>
+    <step order="3">
+      <name>Resize if needed</name>
+      <description>Resize to platform dimensions</description>
+    </step>
+    <step order="4">
+      <name>Compress</name>
+      <description>Apply compression with selected profile</description>
+    </step>
+    <step order="5">
+      <name>Validate output</name>
+      <description>Verify output meets requirements</description>
+    </step>
+  </processing_steps>
+
+  <used_by>
+    <workflow>create-post</workflow>
+    <workflow>content-repurpose</workflow>
+  </used_by>
+</task>

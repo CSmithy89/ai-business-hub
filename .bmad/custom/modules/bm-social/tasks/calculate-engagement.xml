@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <name>calculate-engagement</name>
+  <title>Calculate Engagement Metrics</title>
+  <description>Calculate standardized engagement rates and performance scores across platforms</description>
+  <version>1.0.0</version>
+
+  <inputs>
+    <input name="metrics" type="object" required="true">
+      <description>Raw engagement metrics from platform</description>
+      <schema>
+        <field name="likes" type="integer"/>
+        <field name="comments" type="integer"/>
+        <field name="shares" type="integer"/>
+        <field name="saves" type="integer"/>
+        <field name="clicks" type="integer"/>
+        <field name="views" type="integer"/>
+        <field name="reach" type="integer"/>
+        <field name="impressions" type="integer"/>
+      </schema>
+    </input>
+    <input name="platform" type="string" required="true">
+      <description>Platform for weighted calculations</description>
+    </input>
+    <input name="follower_count" type="integer" required="true">
+      <description>Account follower count at time of post</description>
+    </input>
+    <input name="benchmark" type="object" required="false">
+      <description>Industry/account benchmarks for comparison</description>
+    </input>
+  </inputs>
+
+  <outputs>
+    <output name="engagement_rate" type="float">
+      <description>Overall engagement rate percentage</description>
+    </output>
+    <output name="engagement_by_reach" type="float">
+      <description>Engagement rate by reach</description>
+    </output>
+    <output name="engagement_by_impressions" type="float">
+      <description>Engagement rate by impressions</description>
+    </output>
+    <output name="engagement_by_followers" type="float">
+      <description>Engagement rate by follower count</description>
+    </output>
+    <output name="weighted_engagement" type="float">
+      <description>Platform-weighted engagement score</description>
+    </output>
+    <output name="performance_score" type="float">
+      <description>Overall performance score 0-100</description>
+    </output>
+    <output name="benchmark_comparison" type="object">
+      <description>Performance vs benchmarks</description>
+      <schema>
+        <field name="vs_account_avg" type="float"/>
+        <field name="vs_industry_avg" type="float"/>
+        <field name="percentile" type="integer"/>
+      </schema>
+    </output>
+    <output name="breakdown" type="object">
+      <description>Individual metric contributions</description>
+    </output>
+  </outputs>
+
+  <formulas>
+    <formula id="basic_engagement_rate">
+      <expression>(likes + comments + shares) / followers * 100</expression>
+      <description>Standard engagement rate by followers</description>
+    </formula>
+    <formula id="reach_engagement_rate">
+      <expression>(likes + comments + shares + saves) / reach * 100</expression>
+      <description>Engagement rate by reach</description>
+    </formula>
+    <formula id="impression_engagement_rate">
+      <expression>(likes + comments + shares) / impressions * 100</expression>
+      <description>Engagement rate by impressions</description>
+    </formula>
+  </formulas>
+
+  <platform_weights>
+    <platform name="twitter">
+      <weight metric="likes" value="1"/>
+      <weight metric="retweets" value="2"/>
+      <weight metric="replies" value="3"/>
+      <weight metric="clicks" value="2"/>
+      <weight metric="quotes" value="3"/>
+    </platform>
+    <platform name="linkedin">
+      <weight metric="likes" value="1"/>
+      <weight metric="comments" value="3"/>
+      <weight metric="shares" value="4"/>
+      <weight metric="clicks" value="2"/>
+    </platform>
+    <platform name="instagram">
+      <weight metric="likes" value="1"/>
+      <weight metric="comments" value="2"/>
+      <weight metric="saves" value="3"/>
+      <weight metric="shares" value="3"/>
+    </platform>
+    <platform name="tiktok">
+      <weight metric="likes" value="1"/>
+      <weight metric="comments" value="2"/>
+      <weight metric="shares" value="3"/>
+      <weight metric="watch_time" value="2"/>
+    </platform>
+    <platform name="youtube">
+      <weight metric="likes" value="1"/>
+      <weight metric="comments" value="2"/>
+      <weight metric="shares" value="2"/>
+      <weight metric="watch_time" value="3"/>
+      <weight metric="subscribers_gained" value="4"/>
+    </platform>
+  </platform_weights>
+
+  <benchmarks>
+    <!-- Industry averages -->
+    <benchmark industry="technology" platform="twitter" avg_rate="2.5"/>
+    <benchmark industry="technology" platform="linkedin" avg_rate="3.2"/>
+    <benchmark industry="technology" platform="instagram" avg_rate="3.8"/>
+    <benchmark industry="technology" platform="tiktok" avg_rate="5.5"/>
+  </benchmarks>
+
+  <performance_scoring>
+    <tier score_min="90" score_max="100" label="Exceptional"/>
+    <tier score_min="75" score_max="89" label="Strong"/>
+    <tier score_min="50" score_max="74" label="Average"/>
+    <tier score_min="25" score_max="49" label="Below Average"/>
+    <tier score_min="0" score_max="24" label="Poor"/>
+  </performance_scoring>
+
+  <used_by>
+    <workflow>analyze-performance</workflow>
+    <workflow>report-generate</workflow>
+    <agent>Pulse</agent>
+  </used_by>
+</task>

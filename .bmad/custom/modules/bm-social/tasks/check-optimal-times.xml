@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <name>check-optimal-times</name>
+  <title>Check Optimal Posting Times</title>
+  <description>Determine the best times to post based on platform, audience, and historical data</description>
+  <version>1.0.0</version>
+
+  <inputs>
+    <input name="platform" type="string" required="true">
+      <description>Target platform</description>
+    </input>
+    <input name="account_id" type="string" required="true">
+      <description>Social account identifier</description>
+    </input>
+    <input name="content_type" type="string" required="false">
+      <description>Type of content (text, image, video, carousel)</description>
+      <default>text</default>
+    </input>
+    <input name="target_date" type="date" required="false">
+      <description>Specific date to check (defaults to next 7 days)</description>
+    </input>
+    <input name="count" type="integer" required="false">
+      <description>Number of optimal slots to return</description>
+      <default>5</default>
+    </input>
+  </inputs>
+
+  <outputs>
+    <output name="optimal_times" type="array">
+      <description>Array of optimal posting times with scores</description>
+      <item_schema>
+        <field name="datetime" type="datetime"/>
+        <field name="score" type="float"/>
+        <field name="expected_reach" type="integer"/>
+        <field name="expected_engagement" type="float"/>
+        <field name="confidence" type="float"/>
+        <field name="reason" type="string"/>
+      </item_schema>
+    </output>
+    <output name="avoid_times" type="array">
+      <description>Times to avoid posting</description>
+    </output>
+    <output name="busy_slots" type="array">
+      <description>Already scheduled slots</description>
+    </output>
+  </outputs>
+
+  <data_sources>
+    <source priority="1">historical_analytics</source>
+    <source priority="2">audience_activity</source>
+    <source priority="3">industry_benchmarks</source>
+    <source priority="4">default_optimal_times</source>
+  </data_sources>
+
+  <algorithm>
+    <step order="1">
+      <name>Fetch historical engagement data</name>
+      <description>Get last 90 days of post performance by time</description>
+    </step>
+    <step order="2">
+      <name>Analyze audience activity</name>
+      <description>When is the audience most active on this platform</description>
+    </step>
+    <step order="3">
+      <name>Check existing schedule</name>
+      <description>Identify already scheduled posts to avoid conflicts</description>
+    </step>
+    <step order="4">
+      <name>Apply content type weighting</name>
+      <description>Video performs better at different times than text</description>
+    </step>
+    <step order="5">
+      <name>Score and rank times</name>
+      <description>Calculate composite score and return top N slots</description>
+    </step>
+  </algorithm>
+
+  <default_times>
+    <!-- Loaded from optimal-posting-times.csv -->
+    <platform name="twitter">
+      <weekday slot="08:00" score="85"/>
+      <weekday slot="12:00" score="90"/>
+      <weekday slot="17:00" score="88"/>
+      <weekend slot="10:00" score="70"/>
+    </platform>
+    <platform name="linkedin">
+      <weekday slot="08:00" score="92"/>
+      <weekday slot="12:00" score="85"/>
+      <weekday slot="17:00" score="78"/>
+    </platform>
+    <platform name="instagram">
+      <weekday slot="09:00" score="80"/>
+      <weekday slot="12:00" score="88"/>
+      <weekday slot="20:00" score="92"/>
+      <weekend slot="11:00" score="85"/>
+    </platform>
+  </default_times>
+
+  <used_by>
+    <workflow>schedule-content</workflow>
+    <workflow>create-post</workflow>
+    <workflow>bulk-schedule</workflow>
+    <agent>Tempo</agent>
+  </used_by>
+</task>

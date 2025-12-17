@@ -1,0 +1,33 @@
+category,hashtag,platform,popularity,competition,industry,description
+branded,#HYVVE,all,low,low,technology,Primary brand hashtag
+branded,#HYVVEApp,all,low,low,technology,App-specific brand tag
+branded,#PoweredByHYVVE,all,low,low,technology,Partner/integration tag
+industry,#SaaS,linkedin,high,high,technology,Software as a Service
+industry,#B2B,linkedin,high,high,technology,Business to Business
+industry,#TechStartup,twitter,high,medium,technology,Tech startup community
+industry,#StartupLife,instagram,high,medium,technology,Startup culture content
+industry,#Entrepreneurship,linkedin,high,high,business,Business ownership
+topic,#Productivity,all,very_high,high,productivity,General productivity
+topic,#AI,all,very_high,very_high,technology,Artificial Intelligence
+topic,#Automation,all,high,medium,technology,Process automation
+topic,#WorkSmarter,linkedin,medium,low,productivity,Efficient work practices
+topic,#FutureOfWork,linkedin,high,medium,business,Workplace evolution
+topic,#RemoteWork,all,high,medium,business,Remote work lifestyle
+topic,#DigitalTransformation,linkedin,high,high,technology,Digital change
+trending,#AITools,twitter,high,medium,technology,AI software tools
+trending,#AIProductivity,twitter,medium,low,technology,AI for productivity
+trending,#TechTrends,twitter,high,high,technology,Technology trends
+trending,#Innovation,linkedin,very_high,high,business,Innovation content
+community,#TechTwitter,twitter,high,medium,technology,Tech Twitter community
+community,#LinkedInNews,linkedin,high,medium,business,LinkedIn engagement
+community,#InstaProductivity,instagram,medium,low,productivity,Instagram productivity
+community,#StartupTwitter,twitter,medium,low,technology,Startup Twitter community
+community,#TechCommunity,all,high,medium,technology,General tech community
+campaign,#HYVVELaunch,all,low,low,technology,Product launch campaigns
+campaign,#HYVVEUpdate,all,low,low,technology,Feature update campaigns
+campaign,#HYVVETips,all,low,low,technology,Tips and education campaigns
+niche,#ProductivityHacks,all,medium,medium,productivity,Practical productivity tips
+niche,#AIForBusiness,linkedin,medium,low,technology,Business AI applications
+niche,#SmartBusiness,linkedin,low,low,business,Intelligent business practices
+niche,#TechLeadership,linkedin,medium,low,technology,Technology leadership
+niche,#SaaSMarketing,twitter,low,low,technology,SaaS marketing specific

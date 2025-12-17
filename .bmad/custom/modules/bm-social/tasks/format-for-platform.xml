@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <name>format-for-platform</name>
+  <title>Format Content for Platform</title>
+  <description>Apply platform-specific formatting, styling, and optimization to content</description>
+  <version>1.0.0</version>
+
+  <inputs>
+    <input name="content" type="string" required="true">
+      <description>Raw content to format</description>
+    </input>
+    <input name="platform" type="string" required="true">
+      <description>Target platform</description>
+    </input>
+    <input name="content_type" type="string" required="false">
+      <description>Type of content (post, thread, story, article)</description>
+      <default>post</default>
+    </input>
+    <input name="options" type="object" required="false">
+      <description>Formatting options</description>
+      <schema>
+        <field name="include_emojis" type="boolean"/>
+        <field name="add_line_breaks" type="boolean"/>
+        <field name="shorten_links" type="boolean"/>
+        <field name="add_hashtags" type="boolean"/>
+        <field name="mention_format" type="string"/>
+      </schema>
+    </input>
+  </inputs>
+
+  <outputs>
+    <output name="formatted_content" type="string">
+      <description>Content formatted for platform</description>
+    </output>
+    <output name="character_count" type="integer">
+      <description>Character count after formatting</description>
+    </output>
+    <output name="truncated" type="boolean">
+      <description>Whether content was truncated</description>
+    </output>
+    <output name="optimizations" type="array">
+      <description>List of optimizations applied</description>
+    </output>
+    <output name="first_comment" type="string">
+      <description>Content for first comment (if applicable)</description>
+    </output>
+  </outputs>
+
+  <platform_rules>
+    <platform name="twitter">
+      <rule type="length">
+        <max_chars>280</max_chars>
+        <truncation_suffix>...</truncation_suffix>
+      </rule>
+      <rule type="links">
+        <chars_per_link>23</chars_per_link>
+        <use_shortener>true</use_shortener>
+      </rule>
+      <rule type="mentions">
+        <format>@username</format>
+      </rule>
+      <rule type="hashtags">
+        <max_recommended>2</max_recommended>
+        <placement>end</placement>
+      </rule>
+      <rule type="threads">
+        <numbering_format>n/N</numbering_format>
+        <continuation_indicator>🧵</continuation_indicator>
+      </rule>
+    </platform>
+
+    <platform name="linkedin">
+      <rule type="length">
+        <max_chars>3000</max_chars>
+        <optimal_chars>1500</optimal_chars>
+      </rule>
+      <rule type="formatting">
+        <add_whitespace>true</add_whitespace>
+        <line_break_after>150</line_break_after>
+        <bullet_style>•</bullet_style>
+      </rule>
+      <rule type="hashtags">
+        <max_recommended>5</max_recommended>
+        <placement>end</placement>
+      </rule>
+      <rule type="hooks">
+        <first_line_max>150</first_line_max>
+        <hook_required>true</hook_required>
+      </rule>
+    </platform>
+
+    <platform name="instagram">
+      <rule type="length">
+        <max_chars>2200</max_chars>
+        <preview_chars>125</preview_chars>
+      </rule>
+      <rule type="hashtags">
+        <max_recommended>15</max_recommended>
+        <move_to_first_comment>true</move_to_first_comment>
+      </rule>
+      <rule type="links">
+        <clickable>false</clickable>
+        <alternative>Link in bio!</alternative>
+      </rule>
+      <rule type="emojis">
+        <encouraged>true</encouraged>
+        <spacing>true</spacing>
+      </rule>
+    </platform>
+
+    <platform name="facebook">
+      <rule type="length">
+        <max_chars>63206</max_chars>
+        <optimal_chars>500</optimal_chars>
+      </rule>
+      <rule type="formatting">
+        <paragraphs>true</paragraphs>
+        <emojis>moderate</emojis>
+      </rule>
+    </platform>
+
+    <platform name="tiktok">
+      <rule type="length">
+        <max_chars>2200</max_chars>
+        <optimal_chars>150</optimal_chars>
+      </rule>
+      <rule type="hashtags">
+        <max_recommended>5</max_recommended>
+        <trending_priority>true</trending_priority>
+      </rule>
+      <rule type="hooks">
+        <video_hook_required>true</video_hook_required>
+        <hook_duration_seconds>3</hook_duration_seconds>
+      </rule>
+    </platform>
+
+    <platform name="threads">
+      <rule type="length">
+        <max_chars>500</max_chars>
+      </rule>
+      <rule type="style">
+        <conversational>true</conversational>
+      </rule>
+    </platform>
+
+    <platform name="bluesky">
+      <rule type="length">
+        <max_chars>300</max_chars>
+      </rule>
+      <rule type="mentions">
+        <format>@handle.bsky.social</format>
+      </rule>
+    </platform>
+  </platform_rules>
+
+  <formatting_operations>
+    <operation id="truncate">
+      <description>Shorten content to fit limit</description>
+    </operation>
+    <operation id="add_line_breaks">
+      <description>Add visual whitespace for readability</description>
+    </operation>
+    <operation id="move_hashtags">
+      <description>Relocate hashtags to appropriate position</description>
+    </operation>
+    <operation id="shorten_links">
+      <description>Use link shortener service</description>
+    </operation>
+    <operation id="convert_emojis">
+      <description>Ensure emoji compatibility</description>
+    </operation>
+    <operation id="format_mentions">
+      <description>Convert mentions to platform format</description>
+    </operation>
+  </formatting_operations>
+
+  <used_by>
+    <workflow>create-post</workflow>
+    <workflow>content-repurpose</workflow>
+    <workflow>generate-content</workflow>
+    <agent>All platform specialists</agent>
+  </used_by>
+</task>

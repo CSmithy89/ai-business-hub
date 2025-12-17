@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <name>generate-response</name>
+  <title>Generate Engagement Response</title>
+  <description>Generate appropriate responses to comments, mentions, and messages</description>
+  <version>1.0.0</version>
+
+  <inputs>
+    <input name="original_content" type="string" required="true">
+      <description>The comment/mention/message to respond to</description>
+    </input>
+    <input name="context" type="object" required="false">
+      <description>Context about the conversation</description>
+      <schema>
+        <field name="original_post" type="string"/>
+        <field name="user_history" type="array"/>
+        <field name="sentiment" type="string"/>
+        <field name="platform" type="string"/>
+      </schema>
+    </input>
+    <input name="response_type" type="string" required="false">
+      <description>Type of response needed</description>
+      <enum>thank,answer,redirect,support,engage,deflect</enum>
+    </input>
+    <input name="tone" type="string" required="false">
+      <description>Desired response tone</description>
+      <default>friendly</default>
+    </input>
+    <input name="max_length" type="integer" required="false">
+      <description>Maximum response length</description>
+      <default>280</default>
+    </input>
+  </inputs>
+
+  <outputs>
+    <output name="response" type="string">
+      <description>Generated response text</description>
+    </output>
+    <output name="alternatives" type="array">
+      <description>Alternative response options</description>
+    </output>
+    <output name="confidence" type="float">
+      <description>Confidence in response appropriateness</description>
+    </output>
+    <output name="requires_review" type="boolean">
+      <description>Whether human review is recommended</description>
+    </output>
+    <output name="escalation_needed" type="boolean">
+      <description>Whether to escalate to support/crisis</description>
+    </output>
+    <output name="suggested_action" type="string">
+      <description>Recommended action beyond response</description>
+    </output>
+  </outputs>
+
+  <response_types>
+    <type id="thank">
+      <description>Thank user for positive engagement</description>
+      <templates>
+        <template>Thanks so much for the kind words! 🙏</template>
+        <template>We really appreciate you sharing this!</template>
+        <template>So glad you're enjoying {{product}}! 💙</template>
+      </templates>
+    </type>
+    <type id="answer">
+      <description>Answer a question</description>
+      <requires>knowledge_base_lookup</requires>
+      <fallback>redirect_to_support</fallback>
+    </type>
+    <type id="redirect">
+      <description>Redirect to appropriate channel</description>
+      <templates>
+        <template>Great question! Our support team can help with this: {{support_link}}</template>
+        <template>For the best help with this, please reach out to {{support_email}}</template>
+      </templates>
+    </type>
+    <type id="support">
+      <description>Provide support/troubleshooting</description>
+      <escalation_threshold>2_exchanges</escalation_threshold>
+    </type>
+    <type id="engage">
+      <description>General engagement/conversation</description>
+      <goal>build_relationship</goal>
+    </type>
+    <type id="deflect">
+      <description>Politely deflect inappropriate/off-topic</description>
+      <templates>
+        <template>Thanks for reaching out! This isn't quite our area of expertise.</template>
+      </templates>
+    </type>
+  </response_types>
+
+  <response_rules>
+    <rule id="always_professional">
+      <description>Maintain professional tone even with negativity</description>
+    </rule>
+    <rule id="never_argue">
+      <description>Never argue with users publicly</description>
+    </rule>
+    <rule id="acknowledge_feelings">
+      <description>Acknowledge user feelings before solving</description>
+    </rule>
+    <rule id="move_to_dm">
+      <description>Move sensitive issues to DM</description>
+      <triggers>personal_info,complaint,billing</triggers>
+    </rule>
+    <rule id="response_time">
+      <description>Target response within time window</description>
+      <positive_mentions>4_hours</positive_mentions>
+      <questions>2_hours</questions>
+      <complaints>1_hour</complaints>
+    </rule>
+  </response_rules>
+
+  <sentiment_handling>
+    <sentiment type="very_positive">
+      <approach>enthusiastic_gratitude</approach>
+      <include>emoji,personalization</include>
+    </sentiment>
+    <sentiment type="positive">
+      <approach>warm_acknowledgment</approach>
+    </sentiment>
+    <sentiment type="neutral">
+      <approach>helpful_informative</approach>
+    </sentiment>
+    <sentiment type="negative">
+      <approach>empathetic_solution</approach>
+      <escalation_check>true</escalation_check>
+    </sentiment>
+    <sentiment type="very_negative">
+      <approach>calm_deescalation</approach>
+      <requires_review>true</requires_review>
+      <offer_dm>true</offer_dm>
+    </sentiment>
+  </sentiment_handling>
+
+  <escalation_triggers>
+    <trigger severity="immediate">
+      <keywords>lawsuit,legal,attorney,lawyer</keywords>
+      <action>alert_legal_team</action>
+    </trigger>
+    <trigger severity="high">
+      <keywords>refund,cancel,scam,fraud</keywords>
+      <action>alert_support_team</action>
+    </trigger>
+    <trigger severity="medium">
+      <keywords>frustrated,disappointed,broken,doesnt_work</keywords>
+      <action>offer_direct_support</action>
+    </trigger>
+  </escalation_triggers>
+
+  <personalization>
+    <element id="use_name">
+      <description>Use user's name when available</description>
+    </element>
+    <element id="reference_history">
+      <description>Reference past interactions when relevant</description>
+    </element>
+    <element id="match_tone">
+      <description>Mirror user's communication style appropriately</description>
+    </element>
+  </personalization>
+
+  <ai_provider>
+    <primary>BYOAI configured model</primary>
+    <prompt_template>
+      Generate a response to this {{platform}} comment:
+
+      Original post: {{original_post}}
+      Comment: {{original_content}}
+      User sentiment: {{sentiment}}
+      Response type needed: {{response_type}}
+      Brand voice: {{brand_voice}}
+
+      Generate a {{tone}} response under {{max_length}} characters.
+    </prompt_template>
+  </ai_provider>
+
+  <used_by>
+    <agent>Echo</agent>
+    <workflow>crisis-response</workflow>
+  </used_by>
+</task>

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <name>check-brand-voice</name>
+  <title>Check Brand Voice Alignment</title>
+  <description>Validate content against brand voice guidelines and style requirements</description>
+  <version>1.0.0</version>
+
+  <inputs>
+    <input name="content" type="string" required="true">
+      <description>Content to validate</description>
+    </input>
+    <input name="brand_profile" type="object" required="false">
+      <description>Brand voice configuration</description>
+    </input>
+    <input name="content_type" type="string" required="false">
+      <description>Type of content for context</description>
+    </input>
+    <input name="platform" type="string" required="false">
+      <description>Target platform for platform-specific rules</description>
+    </input>
+  </inputs>
+
+  <outputs>
+    <output name="alignment_score" type="float">
+      <description>Brand alignment score 0-100</description>
+    </output>
+    <output name="passed" type="boolean">
+      <description>Whether content passes minimum threshold</description>
+    </output>
+    <output name="issues" type="array">
+      <description>List of brand voice issues found</description>
+      <item_schema>
+        <field name="type" type="string"/>
+        <field name="severity" type="string"/>
+        <field name="location" type="string"/>
+        <field name="issue" type="string"/>
+        <field name="suggestion" type="string"/>
+      </item_schema>
+    </output>
+    <output name="tone_analysis" type="object">
+      <description>Detected tone characteristics</description>
+    </output>
+    <output name="vocabulary_check" type="object">
+      <description>Vocabulary alignment results</description>
+    </output>
+    <output name="suggestions" type="array">
+      <description>Improvement suggestions</description>
+    </output>
+  </outputs>
+
+  <brand_voice_dimensions>
+    <dimension id="tone">
+      <description>Overall tone of communication</description>
+      <spectrum>formal,professional,friendly,casual,playful</spectrum>
+    </dimension>
+    <dimension id="personality">
+      <description>Brand personality traits</description>
+      <traits>authoritative,approachable,innovative,trustworthy,empathetic</traits>
+    </dimension>
+    <dimension id="formality">
+      <description>Level of formality</description>
+      <spectrum>very_formal,formal,neutral,informal,very_informal</spectrum>
+    </dimension>
+    <dimension id="energy">
+      <description>Energy level</description>
+      <spectrum>calm,measured,enthusiastic,energetic,exciting</spectrum>
+    </dimension>
+  </brand_voice_dimensions>
+
+  <vocabulary_rules>
+    <rule type="preferred_words">
+      <description>Words to use when possible</description>
+      <examples>empower,transform,streamline,intelligent,seamless</examples>
+    </rule>
+    <rule type="avoided_words">
+      <description>Words to avoid</description>
+      <examples>cheap,guarantee,revolutionary,synergy,leverage</examples>
+    </rule>
+    <rule type="required_terms">
+      <description>Terms that should appear in certain content</description>
+    </rule>
+    <rule type="banned_terms">
+      <description>Terms never to use</description>
+      <examples>competitors_name,profanity,discriminatory</examples>
+    </rule>
+  </vocabulary_rules>
+
+  <style_checks>
+    <check id="sentence_length">
+      <description>Avoid overly long sentences</description>
+      <max_words>25</max_words>
+      <severity>warning</severity>
+    </check>
+    <check id="passive_voice">
+      <description>Prefer active voice</description>
+      <max_passive_percent>20</max_passive_percent>
+      <severity>info</severity>
+    </check>
+    <check id="jargon">
+      <description>Avoid excessive jargon</description>
+      <severity>warning</severity>
+    </check>
+    <check id="readability">
+      <description>Maintain accessible reading level</description>
+      <target_grade>8</target_grade>
+      <severity>info</severity>
+    </check>
+    <check id="cta_presence">
+      <description>Include call to action when appropriate</description>
+      <severity>info</severity>
+    </check>
+  </style_checks>
+
+  <platform_adjustments>
+    <platform name="linkedin">
+      <tone_shift>+professional</tone_shift>
+      <formality_shift>+formal</formality_shift>
+    </platform>
+    <platform name="twitter">
+      <tone_shift>+casual</tone_shift>
+      <energy_shift>+energetic</energy_shift>
+    </platform>
+    <platform name="instagram">
+      <tone_shift>+friendly</tone_shift>
+      <emoji_expected>true</emoji_expected>
+    </platform>
+    <platform name="tiktok">
+      <tone_shift>+playful</tone_shift>
+      <formality_shift>-formal</formality_shift>
+    </platform>
+  </platform_adjustments>
+
+  <scoring>
+    <threshold passing="70"/>
+    <weight dimension="tone" value="30"/>
+    <weight dimension="vocabulary" value="25"/>
+    <weight dimension="style" value="20"/>
+    <weight dimension="platform_fit" value="15"/>
+    <weight dimension="readability" value="10"/>
+  </scoring>
+
+  <ai_provider>
+    <primary>BYOAI configured model</primary>
+    <prompt_template>
+      Analyze the following content for brand voice alignment.
+      Brand voice: {{brand_profile}}
+      Content: {{content}}
+      Platform: {{platform}}
+
+      Evaluate tone, vocabulary, style, and platform appropriateness.
+    </prompt_template>
+  </ai_provider>
+
+  <used_by>
+    <workflow>create-post</workflow>
+    <workflow>generate-content</workflow>
+    <agent>Spark</agent>
+  </used_by>
+</task>

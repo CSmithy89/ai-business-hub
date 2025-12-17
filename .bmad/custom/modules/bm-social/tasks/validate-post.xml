@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <name>validate-post</name>
+  <title>Validate Post Content</title>
+  <description>Validate post content against platform-specific rules and constraints</description>
+  <version>1.0.0</version>
+
+  <inputs>
+    <input name="content" type="string" required="true">
+      <description>Post content text to validate</description>
+    </input>
+    <input name="platform" type="string" required="true">
+      <description>Target platform (twitter, linkedin, instagram, facebook, tiktok, youtube, pinterest, threads, bluesky)</description>
+      <enum>twitter,linkedin,instagram,facebook,tiktok,youtube,pinterest,threads,bluesky</enum>
+    </input>
+    <input name="media" type="array" required="false">
+      <description>Array of media attachments with type and size</description>
+    </input>
+    <input name="hashtags" type="array" required="false">
+      <description>Array of hashtags to include</description>
+    </input>
+  </inputs>
+
+  <outputs>
+    <output name="valid" type="boolean">
+      <description>Whether the post passes all validation rules</description>
+    </output>
+    <output name="errors" type="array">
+      <description>List of validation errors</description>
+    </output>
+    <output name="warnings" type="array">
+      <description>List of non-blocking warnings</description>
+    </output>
+    <output name="character_count" type="integer">
+      <description>Character count of content</description>
+    </output>
+    <output name="character_limit" type="integer">
+      <description>Maximum characters for platform</description>
+    </output>
+  </outputs>
+
+  <rules>
+    <rule platform="twitter">
+      <character_limit>280</character_limit>
+      <max_images>4</max_images>
+      <max_videos>1</max_videos>
+      <max_hashtags>5</max_hashtags>
+      <video_max_seconds>140</video_max_seconds>
+    </rule>
+    <rule platform="linkedin">
+      <character_limit>3000</character_limit>
+      <max_images>9</max_images>
+      <max_videos>1</max_videos>
+      <max_hashtags>10</max_hashtags>
+      <video_max_seconds>600</video_max_seconds>
+    </rule>
+    <rule platform="instagram">
+      <character_limit>2200</character_limit>
+      <max_images>10</max_images>
+      <max_videos>1</max_videos>
+      <max_hashtags>30</max_hashtags>
+      <video_max_seconds>900</video_max_seconds>
+    </rule>
+    <rule platform="facebook">
+      <character_limit>63206</character_limit>
+      <max_images>10</max_images>
+      <max_videos>1</max_videos>
+      <max_hashtags>30</max_hashtags>
+      <video_max_seconds>14400</video_max_seconds>
+    </rule>
+    <rule platform="tiktok">
+      <character_limit>2200</character_limit>
+      <max_images>0</max_images>
+      <max_videos>1</max_videos>
+      <max_hashtags>5</max_hashtags>
+      <video_max_seconds>600</video_max_seconds>
+      <video_min_seconds>15</video_min_seconds>
+    </rule>
+    <rule platform="youtube">
+      <title_limit>100</title_limit>
+      <description_limit>5000</description_limit>
+      <max_hashtags>15</max_hashtags>
+    </rule>
+    <rule platform="pinterest">
+      <title_limit>100</title_limit>
+      <description_limit>500</description_limit>
+      <max_hashtags>20</max_hashtags>
+    </rule>
+    <rule platform="threads">
+      <character_limit>500</character_limit>
+      <max_images>10</max_images>
+      <max_videos>1</max_videos>
+    </rule>
+    <rule platform="bluesky">
+      <character_limit>300</character_limit>
+      <max_images>4</max_images>
+    </rule>
+  </rules>
+
+  <validation_checks>
+    <check id="character_limit">
+      <description>Content length within platform limit</description>
+      <severity>error</severity>
+    </check>
+    <check id="media_count">
+      <description>Number of media attachments within limit</description>
+      <severity>error</severity>
+    </check>
+    <check id="media_format">
+      <description>Media format supported by platform</description>
+      <severity>error</severity>
+    </check>
+    <check id="hashtag_count">
+      <description>Hashtag count within recommended limit</description>
+      <severity>warning</severity>
+    </check>
+    <check id="link_placement">
+      <description>Link placement appropriate for platform</description>
+      <severity>warning</severity>
+    </check>
+    <check id="blocked_words">
+      <description>Content does not contain blocked words</description>
+      <severity>error</severity>
+    </check>
+    <check id="duplicate_content">
+      <description>Content is not duplicate of recent post</description>
+      <severity>warning</severity>
+    </check>
+  </validation_checks>
+
+  <used_by>
+    <workflow>create-post</workflow>
+    <workflow>bulk-schedule</workflow>
+    <workflow>content-repurpose</workflow>
+  </used_by>
+</task>

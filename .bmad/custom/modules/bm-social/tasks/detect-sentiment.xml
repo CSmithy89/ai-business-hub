@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <name>detect-sentiment</name>
+  <title>Detect Content Sentiment</title>
+  <description>Analyze sentiment of text content, mentions, or comments using AI</description>
+  <version>1.0.0</version>
+
+  <inputs>
+    <input name="text" type="string" required="true">
+      <description>Text content to analyze</description>
+    </input>
+    <input name="context" type="string" required="false">
+      <description>Additional context (brand name, topic)</description>
+    </input>
+    <input name="language" type="string" required="false">
+      <description>Content language</description>
+      <default>en</default>
+    </input>
+    <input name="include_entities" type="boolean" required="false">
+      <description>Extract mentioned entities</description>
+      <default>true</default>
+    </input>
+  </inputs>
+
+  <outputs>
+    <output name="sentiment" type="string">
+      <description>Overall sentiment classification</description>
+      <enum>very_positive,positive,neutral,negative,very_negative</enum>
+    </output>
+    <output name="sentiment_score" type="float">
+      <description>Sentiment score from -1.0 (negative) to 1.0 (positive)</description>
+    </output>
+    <output name="confidence" type="float">
+      <description>Confidence in sentiment classification (0-1)</description>
+    </output>
+    <output name="emotions" type="object">
+      <description>Detected emotions with scores</description>
+      <schema>
+        <field name="joy" type="float"/>
+        <field name="anger" type="float"/>
+        <field name="fear" type="float"/>
+        <field name="sadness" type="float"/>
+        <field name="surprise" type="float"/>
+        <field name="disgust" type="float"/>
+      </schema>
+    </output>
+    <output name="entities" type="array">
+      <description>Extracted entities with sentiment</description>
+      <item_schema>
+        <field name="text" type="string"/>
+        <field name="type" type="string"/>
+        <field name="sentiment" type="string"/>
+      </item_schema>
+    </output>
+    <output name="urgency" type="string">
+      <description>Response urgency level</description>
+      <enum>immediate,high,medium,low,none</enum>
+    </output>
+    <output name="crisis_indicators" type="array">
+      <description>Any crisis keywords detected</description>
+    </output>
+  </outputs>
+
+  <sentiment_thresholds>
+    <threshold classification="very_positive" min="0.6" max="1.0"/>
+    <threshold classification="positive" min="0.2" max="0.6"/>
+    <threshold classification="neutral" min="-0.2" max="0.2"/>
+    <threshold classification="negative" min="-0.6" max="-0.2"/>
+    <threshold classification="very_negative" min="-1.0" max="-0.6"/>
+  </sentiment_thresholds>
+
+  <crisis_keywords>
+    <!-- Loaded from crisis-keywords.csv -->
+    <keyword severity="critical">lawsuit</keyword>
+    <keyword severity="critical">scam</keyword>
+    <keyword severity="critical">fraud</keyword>
+    <keyword severity="high">terrible</keyword>
+    <keyword severity="high">worst</keyword>
+    <keyword severity="high">never again</keyword>
+    <keyword severity="medium">disappointed</keyword>
+    <keyword severity="medium">frustrated</keyword>
+    <keyword severity="medium">broken</keyword>
+  </crisis_keywords>
+
+  <urgency_rules>
+    <rule urgency="immediate">
+      <condition>crisis_keywords.severity == critical</condition>
+      <condition>sentiment_score &lt; -0.8</condition>
+    </rule>
+    <rule urgency="high">
+      <condition>crisis_keywords.severity == high</condition>
+      <condition>sentiment_score &lt; -0.6 AND mentions_brand</condition>
+    </rule>
+    <rule urgency="medium">
+      <condition>sentiment_score &lt; -0.4</condition>
+    </rule>
+    <rule urgency="low">
+      <condition>sentiment_score &lt; 0</condition>
+    </rule>
+    <rule urgency="none">
+      <condition>sentiment_score >= 0</condition>
+    </rule>
+  </urgency_rules>
+
+  <ai_provider>
+    <primary>BYOAI configured model</primary>
+    <fallback>rule-based analysis</fallback>
+  </ai_provider>
+
+  <used_by>
+    <agent>Sentinel</agent>
+    <agent>Shield</agent>
+    <workflow>crisis-response</workflow>
+    <workflow>analyze-performance</workflow>
+  </used_by>
+</task>

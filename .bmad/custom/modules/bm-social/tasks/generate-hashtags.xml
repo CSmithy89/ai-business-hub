@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <name>generate-hashtags</name>
+  <title>Generate Relevant Hashtags</title>
+  <description>Generate platform-optimized hashtags based on content and trends</description>
+  <version>1.0.0</version>
+
+  <inputs>
+    <input name="content" type="string" required="true">
+      <description>Post content to analyze for hashtag suggestions</description>
+    </input>
+    <input name="platform" type="string" required="true">
+      <description>Target platform</description>
+    </input>
+    <input name="count" type="integer" required="false">
+      <description>Number of hashtags to generate</description>
+      <default>5</default>
+    </input>
+    <input name="include_branded" type="boolean" required="false">
+      <description>Include branded hashtags</description>
+      <default>true</default>
+    </input>
+    <input name="include_trending" type="boolean" required="false">
+      <description>Include currently trending hashtags</description>
+      <default>true</default>
+    </input>
+    <input name="industry" type="string" required="false">
+      <description>Industry vertical for relevance</description>
+    </input>
+  </inputs>
+
+  <outputs>
+    <output name="hashtags" type="array">
+      <description>Recommended hashtags with metadata</description>
+      <item_schema>
+        <field name="tag" type="string"/>
+        <field name="category" type="string"/>
+        <field name="popularity" type="integer"/>
+        <field name="competition" type="string"/>
+        <field name="relevance_score" type="float"/>
+        <field name="trending" type="boolean"/>
+      </item_schema>
+    </output>
+    <output name="formatted_string" type="string">
+      <description>Hashtags formatted for copy/paste</description>
+    </output>
+    <output name="placement_recommendation" type="string">
+      <description>Where to place hashtags (inline, end, first_comment)</description>
+    </output>
+  </outputs>
+
+  <categories>
+    <category id="branded">
+      <description>Company/product branded tags</description>
+      <priority>1</priority>
+      <examples>#HYVVE #HYVVEApp #PoweredByHYVVE</examples>
+    </category>
+    <category id="industry">
+      <description>Industry-specific tags</description>
+      <priority>2</priority>
+      <examples>#SaaS #B2B #TechStartup</examples>
+    </category>
+    <category id="topic">
+      <description>Content topic tags</description>
+      <priority>3</priority>
+      <examples>#Productivity #AI #Automation</examples>
+    </category>
+    <category id="trending">
+      <description>Currently trending tags</description>
+      <priority>4</priority>
+      <examples>#AITools #FutureOfWork</examples>
+    </category>
+    <category id="community">
+      <description>Community/platform tags</description>
+      <priority>5</priority>
+      <examples>#TechTwitter #LinkedInNews</examples>
+    </category>
+  </categories>
+
+  <platform_recommendations>
+    <platform name="twitter">
+      <max_count>2</max_count>
+      <placement>end</placement>
+      <note>Fewer is better, integrate naturally</note>
+    </platform>
+    <platform name="linkedin">
+      <max_count>5</max_count>
+      <placement>end</placement>
+      <note>Industry and professional tags work best</note>
+    </platform>
+    <platform name="instagram">
+      <max_count>15</max_count>
+      <placement>first_comment</placement>
+      <note>Mix of popular and niche tags</note>
+    </platform>
+    <platform name="tiktok">
+      <max_count>5</max_count>
+      <placement>end</placement>
+      <note>Trending sounds matter more than tags</note>
+    </platform>
+  </platform_recommendations>
+
+  <algorithm>
+    <step order="1">
+      <name>Extract keywords</name>
+      <description>NLP extraction of key topics from content</description>
+    </step>
+    <step order="2">
+      <name>Match to hashtag library</name>
+      <description>Find relevant tags from stored library</description>
+    </step>
+    <step order="3">
+      <name>Check trending</name>
+      <description>Identify currently trending relevant tags</description>
+    </step>
+    <step order="4">
+      <name>Score and rank</name>
+      <description>Balance relevance, popularity, and competition</description>
+    </step>
+    <step order="5">
+      <name>Format for platform</name>
+      <description>Apply platform-specific rules and placement</description>
+    </step>
+  </algorithm>
+
+  <used_by>
+    <workflow>create-post</workflow>
+    <workflow>generate-content</workflow>
+    <workflow>hashtag-research</workflow>
+    <agent>Spark</agent>
+  </used_by>
+</task>

@@ -1,0 +1,102 @@
+template_id,name,platform,content_type,template,variables,tags
+tip_thread,Quick Tip Thread,twitter,thread,"🧵 {{topic}} tip that changed everything:
+
+{{main_tip}}
+
+Here's why this works:
+(Thread 👇)",topic;main_tip,tips;educational
+linkedin_hook,LinkedIn Hook Post,linkedin,post,"{{hook_statement}}
+
+{{blank_line}}
+Here's the truth nobody talks about:
+{{blank_line}}
+{{main_content}}
+{{blank_line}}
+{{cta}}
+{{blank_line}}
+#{{hashtag1}} #{{hashtag2}} #{{hashtag3}}",hook_statement;main_content;cta;hashtag1;hashtag2;hashtag3,engagement;professional
+instagram_carousel_intro,Carousel Introduction,instagram,carousel_caption,"{{attention_grabber}} 👇
+
+Save this for later! 🔖
+
+{{brief_description}}
+
+Double tap if you found this helpful! ❤️
+
+---
+{{hashtags_in_comment}}",attention_grabber;brief_description;hashtags_in_comment,educational;save-worthy
+product_announcement,Product Announcement,all,announcement,"🎉 Exciting news!
+
+{{announcement}}
+
+What this means for you:
+{{benefits}}
+
+{{cta_with_link}}",announcement;benefits;cta_with_link,announcement;product
+customer_story,Customer Success Story,linkedin,story,"Meet {{customer_name}} from {{company}}.
+
+{{challenge}}
+
+After implementing {{solution}}:
+{{results}}
+
+{{customer_quote}}
+
+{{cta}}",customer_name;company;challenge;solution;results;customer_quote;cta,testimonial;social-proof
+question_engagement,Engagement Question,twitter,post,"{{controversial_statement}}
+
+{{question}}
+
+Reply with your take 👇",controversial_statement;question,engagement;discussion
+behind_scenes,Behind the Scenes,instagram,story,"Ever wonder what goes on behind the scenes? 👀
+
+{{behind_scenes_content}}
+
+{{team_member}} working on {{project}}
+
+#BehindTheScenes #TeamLife",behind_scenes_content;team_member;project,authentic;culture
+tutorial_intro,Tutorial Introduction,youtube,description,"In this video, you'll learn:
+
+{{learning_outcomes}}
+
+Timestamps:
+{{timestamps}}
+
+Resources mentioned:
+{{resources}}
+
+Subscribe for more {{topic}} content!",learning_outcomes;timestamps;resources;topic,educational;tutorial
+poll_question,Poll Question,twitter,poll,"Quick poll! 📊
+
+{{poll_question}}",poll_question,engagement;research
+weekly_roundup,Weekly Roundup,linkedin,post,"📌 This week in {{topic}}:
+
+{{item_1}}
+{{item_2}}
+{{item_3}}
+
+What caught your attention this week?
+
+#WeeklyRoundup #{{topic_hashtag}}",topic;item_1;item_2;item_3;topic_hashtag,roundup;curated
+motivational_monday,Monday Motivation,instagram,post,"Start your week right! 💪
+
+{{motivational_quote}}
+
+— {{author}}
+
+What's your goal for this week? Comment below! 👇",motivational_quote;author,motivation;monday
+thread_hook,Thread Hook Tweet,twitter,thread_start,"{{controversial_take}}
+
+But here's what most people get wrong:
+
+🧵👇",controversial_take,thread;hook
+data_insight,Data Insight Post,linkedin,post,"📊 New data just dropped:
+
+{{statistic}}
+
+What this means:
+{{interpretation}}
+
+{{implications}}
+
+{{cta}}",statistic;interpretation;implications;cta,data;insight

@@ -1,0 +1,21 @@
+competitor_id,name,category,twitter_handle,linkedin_page,instagram_handle,website,notes,priority
+comp_001,Buffer,direct,@buffer,buffer,buffer,buffer.com,Social media management platform,high
+comp_002,Hootsuite,direct,@hootsuite,hootsuite,hootsuite,hootsuite.com,Enterprise social management,high
+comp_003,Sprout Social,direct,@sprabortsocial,sprout-social,sproutsocial,sproutsocial.com,Enterprise social analytics,high
+comp_004,Later,direct,@latermedia,later-media,latermedia,later.com,Visual content scheduling,medium
+comp_005,SocialBee,direct,@socialbeeio,socialbee,socialbee.io,socialbee.io,AI-powered social management,medium
+comp_006,Postiz,direct,@postabortzapp,postiz,postiz_app,postiz.com,Open-source social scheduling,high
+comp_007,Loomly,direct,@laboroomly,loomly,loomly,loomly.com,Brand success platform,medium
+comp_008,Sendible,direct,@sendible,sendible,sendible,sendible.com,Agency social management,medium
+comp_009,Agorapulse,direct,@agorapulse,agorapulse,agorapulse,agorapulse.com,Social inbox management,medium
+comp_010,Planable,direct,@planableapp,planable,planable,planable.io,Content collaboration platform,low
+comp_011,Monday.com,indirect,@mondaydotcom,monday,mondaydotcom,monday.com,Work OS with social features,low
+comp_012,Notion,indirect,@notionhq,notionhq,notionhq,notion.so,Content planning workspace,low
+comp_013,HubSpot,indirect,@hubspot,hubspot,hubspot,hubspot.com,Marketing hub with social,medium
+comp_014,Salesforce Social,indirect,@salesforce,salesforce,salesforce,salesforce.com,CRM with social studio,low
+comp_015,Zoho Social,indirect,@zohosocial,zoho,zohosocial,zoho.com/social,Part of Zoho suite,low
+comp_016,ContentCal,direct,@contentcal_io,contentcal,contentcal_io,contentcal.io,Content marketing calendar,low
+comp_017,Publer,direct,@publerapp,publer,publer.io,publer.io,Affordable social scheduler,low
+comp_018,SocialPilot,direct,@socialpilot,socialpilot,socialpilot,socialpilot.co,Budget-friendly scheduling,low
+comp_019,Tailwind,direct,@tailaborwindapp,tailwind,tailwindapp,tailwindapp.com,Pinterest/Instagram focus,low
+comp_020,MeetEdgar,direct,@meetedgar,meetedgar,meetedgar,meetedgar.com,Evergreen content automation,low

@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <name>resize-media</name>
+  <title>Resize Media for Platform</title>
+  <description>Resize and optimize images/videos to meet platform specifications</description>
+  <version>1.0.0</version>
+
+  <inputs>
+    <input name="media_url" type="string" required="true">
+      <description>URL or path to source media</description>
+    </input>
+    <input name="media_type" type="string" required="true">
+      <description>Type of media (image, video, gif)</description>
+      <enum>image,video,gif</enum>
+    </input>
+    <input name="platform" type="string" required="true">
+      <description>Target platform</description>
+    </input>
+    <input name="format" type="string" required="false">
+      <description>Specific format (post, story, reel, carousel)</description>
+      <default>post</default>
+    </input>
+    <input name="maintain_aspect" type="boolean" required="false">
+      <description>Maintain original aspect ratio</description>
+      <default>true</default>
+    </input>
+  </inputs>
+
+  <outputs>
+    <output name="resized_url" type="string">
+      <description>URL to resized media</description>
+    </output>
+    <output name="dimensions" type="object">
+      <description>Final dimensions</description>
+      <schema>
+        <field name="width" type="integer"/>
+        <field name="height" type="integer"/>
+      </schema>
+    </output>
+    <output name="file_size" type="integer">
+      <description>File size in bytes</description>
+    </output>
+    <output name="format" type="string">
+      <description>Output format (jpg, png, mp4, etc)</description>
+    </output>
+    <output name="optimizations_applied" type="array">
+      <description>List of optimizations performed</description>
+    </output>
+  </outputs>
+
+  <platform_specs>
+    <!-- Loaded from social-media-dimensions.csv -->
+    <platform name="twitter">
+      <format type="post">
+        <dimensions width="1200" height="675"/>
+        <aspect_ratio>16:9</aspect_ratio>
+        <max_size_mb>5</max_size_mb>
+      </format>
+      <format type="header">
+        <dimensions width="1500" height="500"/>
+        <aspect_ratio>3:1</aspect_ratio>
+      </format>
+    </platform>
+    <platform name="linkedin">
+      <format type="post">
+        <dimensions width="1200" height="1200"/>
+        <aspect_ratio>1:1</aspect_ratio>
+        <max_size_mb>8</max_size_mb>
+      </format>
+      <format type="article">
+        <dimensions width="1200" height="628"/>
+        <aspect_ratio>1.91:1</aspect_ratio>
+      </format>
+    </platform>
+    <platform name="instagram">
+      <format type="square">
+        <dimensions width="1080" height="1080"/>
+        <aspect_ratio>1:1</aspect_ratio>
+      </format>
+      <format type="portrait">
+        <dimensions width="1080" height="1350"/>
+        <aspect_ratio>4:5</aspect_ratio>
+      </format>
+      <format type="story">
+        <dimensions width="1080" height="1920"/>
+        <aspect_ratio>9:16</aspect_ratio>
+      </format>
+      <format type="reel">
+        <dimensions width="1080" height="1920"/>
+        <aspect_ratio>9:16</aspect_ratio>
+      </format>
+    </platform>
+    <platform name="facebook">
+      <format type="post">
+        <dimensions width="1200" height="630"/>
+        <aspect_ratio>1.91:1</aspect_ratio>
+      </format>
+      <format type="story">
+        <dimensions width="1080" height="1920"/>
+        <aspect_ratio>9:16</aspect_ratio>
+      </format>
+    </platform>
+    <platform name="tiktok">
+      <format type="video">
+        <dimensions width="1080" height="1920"/>
+        <aspect_ratio>9:16</aspect_ratio>
+        <max_size_mb>287</max_size_mb>
+      </format>
+    </platform>
+    <platform name="youtube">
+      <format type="thumbnail">
+        <dimensions width="1280" height="720"/>
+        <aspect_ratio>16:9</aspect_ratio>
+      </format>
+      <format type="shorts">
+        <dimensions width="1080" height="1920"/>
+        <aspect_ratio>9:16</aspect_ratio>
+      </format>
+    </platform>
+    <platform name="pinterest">
+      <format type="pin">
+        <dimensions width="1000" height="1500"/>
+        <aspect_ratio>2:3</aspect_ratio>
+      </format>
+    </platform>
+  </platform_specs>
+
+  <optimizations>
+    <optimization id="compress">
+      <description>Reduce file size while maintaining quality</description>
+      <quality>85</quality>
+    </optimization>
+    <optimization id="strip_metadata">
+      <description>Remove EXIF and other metadata</description>
+    </optimization>
+    <optimization id="convert_format">
+      <description>Convert to platform-preferred format</description>
+    </optimization>
+    <optimization id="smart_crop">
+      <description>Intelligent cropping to fit aspect ratio</description>
+    </optimization>
+  </optimizations>
+
+  <used_by>
+    <workflow>create-post</workflow>
+    <workflow>content-repurpose</workflow>
+    <workflow>bulk-schedule</workflow>
+  </used_by>
+</task>

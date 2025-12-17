@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <name>schedule-to-queue</name>
+  <title>Schedule Post to Queue</title>
+  <description>Add post to BullMQ publishing queue for scheduled delivery</description>
+  <version>1.0.0</version>
+
+  <inputs>
+    <input name="post_id" type="string" required="true">
+      <description>Post identifier in database</description>
+    </input>
+    <input name="platform" type="string" required="true">
+      <description>Target platform</description>
+    </input>
+    <input name="account_id" type="string" required="true">
+      <description>Platform account identifier</description>
+    </input>
+    <input name="scheduled_time" type="datetime" required="true">
+      <description>When to publish (UTC)</description>
+    </input>
+    <input name="priority" type="string" required="false">
+      <description>Queue priority</description>
+      <enum>high,normal,low</enum>
+      <default>normal</default>
+    </input>
+    <input name="retry_policy" type="object" required="false">
+      <description>Retry configuration on failure</description>
+    </input>
+  </inputs>
+
+  <outputs>
+    <output name="job_id" type="string">
+      <description>BullMQ job identifier</description>
+    </output>
+    <output name="queue_position" type="integer">
+      <description>Position in queue</description>
+    </output>
+    <output name="scheduled_time_utc" type="datetime">
+      <description>Confirmed scheduled time in UTC</description>
+    </output>
+    <output name="estimated_delivery" type="datetime">
+      <description>Estimated delivery time accounting for queue</description>
+    </output>
+    <output name="status" type="string">
+      <description>Current job status</description>
+      <enum>waiting,delayed,active,completed,failed</enum>
+    </output>
+  </outputs>
+
+  <queue_config>
+    <queue_name>social-post-publish</queue_name>
+    <connection>
+      <redis_url>{{REDIS_URL}}</redis_url>
+    </connection>
+    <default_options>
+      <attempts>3</attempts>
+      <backoff>
+        <type>exponential</type>
+        <delay>30000</delay>
+      </backoff>
+      <remove_on_complete>true</remove_on_complete>
+      <remove_on_fail>false</remove_on_fail>
+    </default_options>
+  </queue_config>
+
+  <job_data>
+    <field name="post_id" required="true"/>
+    <field name="platform" required="true"/>
+    <field name="account_id" required="true"/>
+    <field name="tenant_id" required="true"/>
+    <field name="content" required="true"/>
+    <field name="media_urls" required="false"/>
+    <field name="platform_options" required="false"/>
+    <field name="scheduled_by" required="true"/>
+    <field name="created_at" required="true"/>
+  </job_data>
+
+  <priority_weights>
+    <priority level="high" weight="1">
+      <description>Campaign launches, time-sensitive</description>
+      <max_delay_seconds>60</max_delay_seconds>
+    </priority>
+    <priority level="normal" weight="5">
+      <description>Regular scheduled posts</description>
+      <max_delay_seconds>300</max_delay_seconds>
+    </priority>
+    <priority level="low" weight="10">
+      <description>Evergreen, flexible timing</description>
+      <max_delay_seconds>900</max_delay_seconds>
+    </priority>
+  </priority_weights>
+
+  <retry_policies>
+    <policy id="default">
+      <max_attempts>3</max_attempts>
+      <backoff_type>exponential</backoff_type>
+      <initial_delay_ms>30000</initial_delay_ms>
+      <max_delay_ms>300000</max_delay_ms>
+    </policy>
+    <policy id="aggressive">
+      <max_attempts>5</max_attempts>
+      <backoff_type>linear</backoff_type>
+      <initial_delay_ms>15000</initial_delay_ms>
+    </policy>
+    <policy id="relaxed">
+      <max_attempts>2</max_attempts>
+      <backoff_type>fixed</backoff_type>
+      <delay_ms>60000</delay_ms>
+    </policy>
+  </retry_policies>
+
+  <error_handling>
+    <error type="rate_limit">
+      <action>retry_with_backoff</action>
+      <backoff_multiplier>2</backoff_multiplier>
+    </error>
+    <error type="auth_expired">
+      <action>notify_and_pause</action>
+      <notification>user_email</notification>
+    </error>
+    <error type="content_rejected">
+      <action>notify_and_fail</action>
+      <save_reason>true</save_reason>
+    </error>
+    <error type="platform_error">
+      <action>retry</action>
+    </error>
+    <error type="network_error">
+      <action>retry</action>
+    </error>
+  </error_handling>
+
+  <notifications>
+    <on event="scheduled">
+      <channel>database</channel>
+      <update_post_status>scheduled</update_post_status>
+    </on>
+    <on event="published">
+      <channel>websocket</channel>
+      <channel>database</channel>
+      <update_post_status>published</update_post_status>
+      <emit_event>social.post.published</emit_event>
+    </on>
+    <on event="failed">
+      <channel>websocket</channel>
+      <channel>email</channel>
+      <channel>database</channel>
+      <update_post_status>failed</update_post_status>
+      <emit_event>social.post.failed</emit_event>
+    </on>
+  </notifications>
+
+  <worker_config>
+    <concurrency>5</concurrency>
+    <limiter>
+      <max>10</max>
+      <duration>1000</duration>
+    </limiter>
+    <platform_rate_limits>
+      <platform name="twitter">
+        <posts_per_hour>50</posts_per_hour>
+      </platform>
+      <platform name="linkedin">
+        <posts_per_day>100</posts_per_day>
+      </platform>
+      <platform name="instagram">
+        <posts_per_hour>25</posts_per_hour>
+      </platform>
+    </platform_rate_limits>
+  </worker_config>
+
+  <monitoring>
+    <metrics>
+      <metric>queue_size</metric>
+      <metric>processing_time</metric>
+      <metric>success_rate</metric>
+      <metric>failure_rate</metric>
+      <metric>retry_count</metric>
+    </metrics>
+    <alerts>
+      <alert condition="queue_size > 1000">
+        <severity>warning</severity>
+        <action>scale_workers</action>
+      </alert>
+      <alert condition="failure_rate > 0.1">
+        <severity>error</severity>
+        <action>notify_team</action>
+      </alert>
+    </alerts>
+  </monitoring>
+
+  <used_by>
+    <workflow>schedule-content</workflow>
+    <workflow>bulk-schedule</workflow>
+    <workflow>campaign-launch</workflow>
+    <agent>Tempo</agent>
+  </used_by>
+</task>

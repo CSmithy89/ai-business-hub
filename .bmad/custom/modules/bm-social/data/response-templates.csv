@@ -1,0 +1,21 @@
+template_id,name,sentiment,response_type,template,variables,use_case
+thank_positive,Thank You - Positive,very_positive,thank,"Thanks so much for the kind words, {{name}}! 🙏 We're thrilled you're enjoying {{product}}!",name;product,Positive feedback response
+thank_share,Thank You - Share,positive,thank,"We really appreciate you sharing this, {{name}}! 💙",name,Content share appreciation
+welcome_new,Welcome New User,positive,engage,"Welcome to the {{product}} family, {{name}}! 🎉 Let us know if you have any questions getting started!",name;product,New user welcome
+answer_simple,Simple Answer,neutral,answer,"Great question! {{answer}} Let us know if you need more details!",answer,Quick question response
+redirect_support,Redirect to Support,neutral,redirect,"Thanks for reaching out! Our support team can help with this. Please contact us at {{support_email}} or visit {{support_link}}",support_email;support_link,Complex issue redirect
+redirect_dm,Move to DM,negative,redirect,"We'd love to help resolve this for you. Could you DM us your details so we can look into it?",none,Private issue handling
+empathy_issue,Empathetic Response,negative,support,"We're sorry to hear about this frustration, {{name}}. That's definitely not the experience we want you to have. Let's fix this together.",name,Complaint acknowledgment
+apologize_sincere,Sincere Apology,very_negative,support,"We sincerely apologize for this experience, {{name}}. We take this seriously and are looking into it right now. Can you DM us your account details?",name,Serious complaint
+clarify_misunderstanding,Clarify Misunderstanding,negative,answer,"Thanks for sharing your concern! I think there might be a misunderstanding here. {{clarification}} Does this help clear things up?",clarification,Misconception correction
+celebrate_success,Celebrate Success,very_positive,engage,"This is amazing, {{name}}! 🎉 Love seeing these results! Would you mind if we shared your story?",name,Success celebration
+engage_conversation,Continue Conversation,positive,engage,"That's a great point, {{name}}! We've been thinking about this too. {{additional_thought}}",name;additional_thought,Discussion continuation
+acknowledge_feedback,Acknowledge Feedback,neutral,thank,"Thanks for the feedback, {{name}}! We're always looking to improve and this is really helpful. 📝",name,General feedback response
+humor_light,Light Humor Response,positive,engage,"Ha! You got us there, {{name}} 😄 {{humorous_response}}",name;humorous_response,Playful engagement
+feature_request,Feature Request Acknowledgment,positive,answer,"Thanks for the suggestion, {{name}}! This is great feedback. We've noted it for our product team! 🗒️",name,Feature request response
+quick_tip,Quick Tip Response,neutral,answer,"Pro tip: {{tip}} Hope this helps! Let us know how it goes.",tip,Helpful tip sharing
+busy_acknowledgment,Busy Acknowledgment,neutral,redirect,"Thanks for your patience! We're seeing higher volume right now but will get back to you ASAP. 🙏",none,High volume response
+thank_loyalty,Thank Loyal Customer,very_positive,thank,"You've been with us since {{date}}! Thank you for being such an amazing part of our community, {{name}}! 💙",name;date,Loyal customer appreciation
+crisis_initial,Crisis Initial Response,very_negative,support,"We've seen the concerns being raised and take them very seriously. We're looking into this now and will share more soon.",none,Crisis initial acknowledgment
+crisis_update,Crisis Update Response,negative,support,"Update: {{update}} We appreciate your patience as we work through this. More details coming soon.",update,Crisis update communication
+out_of_scope,Out of Scope,neutral,deflect,"Thanks for reaching out! This isn't quite our area of expertise, but {{alternative_suggestion}}",alternative_suggestion,Off-topic response

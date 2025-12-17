@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <name>extract-analytics</name>
+  <title>Extract Platform Analytics</title>
+  <description>Pull metrics and analytics data from platform APIs</description>
+  <version>1.0.0</version>
+
+  <inputs>
+    <input name="platform" type="string" required="true">
+      <description>Platform to extract analytics from</description>
+    </input>
+    <input name="account_id" type="string" required="true">
+      <description>Platform account identifier</description>
+    </input>
+    <input name="date_range" type="object" required="true">
+      <description>Date range for analytics</description>
+      <schema>
+        <field name="start" type="date"/>
+        <field name="end" type="date"/>
+      </schema>
+    </input>
+    <input name="metrics" type="array" required="false">
+      <description>Specific metrics to extract</description>
+      <default>all</default>
+    </input>
+    <input name="granularity" type="string" required="false">
+      <description>Data granularity (daily, weekly, monthly)</description>
+      <default>daily</default>
+    </input>
+  </inputs>
+
+  <outputs>
+    <output name="account_metrics" type="object">
+      <description>Account-level metrics</description>
+      <schema>
+        <field name="followers" type="integer"/>
+        <field name="follower_growth" type="integer"/>
+        <field name="following" type="integer"/>
+        <field name="total_posts" type="integer"/>
+      </schema>
+    </output>
+    <output name="engagement_metrics" type="object">
+      <description>Engagement metrics</description>
+      <schema>
+        <field name="total_reach" type="integer"/>
+        <field name="total_impressions" type="integer"/>
+        <field name="total_engagements" type="integer"/>
+        <field name="engagement_rate" type="float"/>
+        <field name="likes" type="integer"/>
+        <field name="comments" type="integer"/>
+        <field name="shares" type="integer"/>
+        <field name="saves" type="integer"/>
+        <field name="clicks" type="integer"/>
+      </schema>
+    </output>
+    <output name="content_metrics" type="array">
+      <description>Per-post metrics</description>
+      <item_schema>
+        <field name="post_id" type="string"/>
+        <field name="published_at" type="datetime"/>
+        <field name="content_type" type="string"/>
+        <field name="reach" type="integer"/>
+        <field name="impressions" type="integer"/>
+        <field name="engagement_rate" type="float"/>
+        <field name="performance_score" type="float"/>
+      </item_schema>
+    </output>
+    <output name="audience_metrics" type="object">
+      <description>Audience demographics</description>
+      <schema>
+        <field name="demographics" type="object"/>
+        <field name="locations" type="array"/>
+        <field name="active_times" type="array"/>
+      </schema>
+    </output>
+    <output name="time_series" type="array">
+      <description>Metrics over time</description>
+    </output>
+  </outputs>
+
+  <platform_apis>
+    <api platform="twitter">
+      <endpoint>Twitter API v2</endpoint>
+      <metrics>impressions,engagements,retweets,replies,likes,url_clicks,profile_clicks</metrics>
+      <rate_limit>300/15min</rate_limit>
+    </api>
+    <api platform="linkedin">
+      <endpoint>LinkedIn Marketing API</endpoint>
+      <metrics>impressions,clicks,engagement,comments,shares,follows</metrics>
+      <rate_limit>100/day</rate_limit>
+    </api>
+    <api platform="instagram">
+      <endpoint>Instagram Graph API</endpoint>
+      <metrics>impressions,reach,engagement,saves,comments,likes,shares</metrics>
+      <rate_limit>200/hour</rate_limit>
+    </api>
+    <api platform="facebook">
+      <endpoint>Facebook Graph API</endpoint>
+      <metrics>impressions,reach,engagement,reactions,comments,shares</metrics>
+      <rate_limit>200/hour</rate_limit>
+    </api>
+    <api platform="tiktok">
+      <endpoint>TikTok for Business API</endpoint>
+      <metrics>video_views,likes,comments,shares,profile_views</metrics>
+      <rate_limit>1000/day</rate_limit>
+    </api>
+    <api platform="youtube">
+      <endpoint>YouTube Data API</endpoint>
+      <metrics>views,likes,dislikes,comments,shares,subscribers_gained</metrics>
+      <rate_limit>10000/day</rate_limit>
+    </api>
+  </platform_apis>
+
+  <aggregations>
+    <aggregation id="daily">
+      <description>Daily summary</description>
+    </aggregation>
+    <aggregation id="weekly">
+      <description>Weekly summary</description>
+    </aggregation>
+    <aggregation id="monthly">
+      <description>Monthly summary</description>
+    </aggregation>
+    <aggregation id="comparison">
+      <description>Period over period comparison</description>
+    </aggregation>
+  </aggregations>
+
+  <caching>
+    <ttl unit="minutes">15</ttl>
+    <strategy>stale-while-revalidate</strategy>
+  </caching>
+
+  <used_by>
+    <workflow>analyze-performance</workflow>
+    <workflow>report-generate</workflow>
+    <agent>Pulse</agent>
+  </used_by>
+</task>
