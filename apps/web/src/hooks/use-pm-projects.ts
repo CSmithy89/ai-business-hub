@@ -60,6 +60,35 @@ export interface CreateProjectResponse {
   }
 }
 
+export interface ProjectDetailResponse {
+  data: {
+    id: string
+    workspaceId: string
+    businessId: string
+    slug: string
+    name: string
+    description: string | null
+    color: string
+    icon: string
+    type: z.infer<typeof ProjectType>
+    status: z.infer<typeof ProjectStatus>
+    totalTasks: number
+    completedTasks: number
+    targetDate: string | null
+    phases: Array<{
+      id: string
+      name: string
+      phaseNumber: number
+      status: string
+    }>
+    team: null | {
+      id: string
+      leadUserId: string
+      members: Array<{ id: string }>
+    }
+  }
+}
+
 async function fetchProjects(params: {
   workspaceId: string
   token?: string
@@ -137,6 +166,38 @@ async function createProject(params: {
   return body as CreateProjectResponse
 }
 
+async function fetchProjectBySlug(params: {
+  workspaceId: string
+  token?: string
+  slug: string
+}): Promise<ProjectDetailResponse> {
+  const base = getBaseUrl()
+
+  const query = new URLSearchParams()
+  query.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(`${base}/pm/projects/by-slug/${encodeURIComponent(params.slug)}?${query.toString()}`, {
+    credentials: 'include',
+    headers: params.token ? { Authorization: `Bearer ${params.token}` } : {},
+    cache: 'no-store',
+  })
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to fetch project')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to fetch project')
+  }
+
+  return body as ProjectDetailResponse
+}
+
 export function usePmProjects(filters: ListProjectsQuery = {}) {
   const { data: session } = useSession()
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
@@ -170,5 +231,19 @@ export function useCreatePmProject() {
       const message = error instanceof Error ? error.message : 'Failed to create project'
       toast.error(message)
     },
+  })
+}
+
+export function usePmProject(slug: string) {
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useQuery({
+    queryKey: ['pm-project', workspaceId, slug],
+    queryFn: () => fetchProjectBySlug({ workspaceId: workspaceId!, token, slug }),
+    enabled: !!workspaceId && !!slug,
+    staleTime: 15000,
+    refetchOnWindowFocus: true,
   })
 }

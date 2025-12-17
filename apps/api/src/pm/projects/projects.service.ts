@@ -131,6 +131,29 @@ export class ProjectsService {
         phases: {
           orderBy: { phaseNumber: 'asc' },
         },
+        team: {
+          include: { members: true },
+        },
+      },
+    })
+
+    if (!project) {
+      throw new NotFoundException('Project not found')
+    }
+
+    return { data: project }
+  }
+
+  async getBySlug(workspaceId: string, slug: string) {
+    const project = await this.prisma.project.findFirst({
+      where: { slug, workspaceId, deletedAt: null },
+      include: {
+        phases: {
+          orderBy: { phaseNumber: 'asc' },
+        },
+        team: {
+          include: { members: true },
+        },
       },
     })
 

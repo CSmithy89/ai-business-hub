@@ -54,6 +54,17 @@ export class ProjectsController {
     return this.projectsService.list(workspaceId, query)
   }
 
+  @Get('by-slug/:slug')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get a project by slug (includes phases)' })
+  @ApiParam({ name: 'slug', description: 'Project slug' })
+  async getProjectBySlug(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('slug') slug: string,
+  ) {
+    return this.projectsService.getBySlug(workspaceId, slug)
+  }
+
   @Get(':id')
   @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'Get a project by ID (includes phases)' })
@@ -87,4 +98,3 @@ export class ProjectsController {
     return this.projectsService.softDelete(workspaceId, actor.id, id)
   }
 }
-

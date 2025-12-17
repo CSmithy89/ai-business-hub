@@ -150,4 +150,22 @@ describe('ProjectsService', () => {
     expect(eventPublisher.publish).toHaveBeenCalled()
     expect(result.data.id).toBe('proj-1')
   })
+
+  it('gets project by slug scoped to workspace', async () => {
+    prisma.project.findFirst.mockResolvedValueOnce({
+      id: 'proj-1',
+      slug: 'my-project',
+      workspaceId: 'ws-1',
+      phases: [],
+    })
+
+    const result = await service.getBySlug('ws-1', 'my-project')
+
+    expect(prisma.project.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { slug: 'my-project', workspaceId: 'ws-1', deletedAt: null },
+      }),
+    )
+    expect(result.data.slug).toBe('my-project')
+  })
 })
