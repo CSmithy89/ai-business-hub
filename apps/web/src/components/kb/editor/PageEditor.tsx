@@ -130,8 +130,7 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
     if (!isEmpty) return
 
     editor.commands.setContent(initialContent)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collaborationEnabled, editor, pageId])
+  }, [collaborationEnabled, editor, pageId, initialContent])
 
   // Debounced auto-save (2 seconds after typing stops)
   const debouncedSave = useCallback(async () => {

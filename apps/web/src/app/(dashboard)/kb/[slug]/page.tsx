@@ -2,7 +2,7 @@
 
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from '@/lib/auth-client'
+import { getCurrentSessionToken, useSession } from '@/lib/auth-client'
 import { useKBPages, useKBPage, useUpdateKBPage, useDeleteKBPage, useToggleFavorite } from '@/hooks/use-kb-pages'
 import { PageEditor } from '@/components/kb/editor/PageEditor'
 import { PageBreadcrumbs } from '@/components/kb/PageBreadcrumbs'
@@ -42,6 +42,7 @@ export default function KBPagePage({ params }: PageProps) {
   const sessionToken =
     sessionData?.token ||
     sessionData?.session?.token ||
+    getCurrentSessionToken() ||
     ''
   const { data: pagesData } = useKBPages(workspaceId, true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)

@@ -1,4 +1,14 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
+  UnauthorizedException,
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Server, type Extension, type onAuthenticatePayload, type onLoadDocumentPayload, type onStoreDocumentPayload } from '@hocuspocus/server'
 import { applyUpdate, encodeStateAsUpdate } from 'yjs'
@@ -11,14 +21,23 @@ type KbCollabContext = {
   pageId: string
 }
 
+type PrismaBytes = Uint8Array<ArrayBuffer>
+
 type PendingPersist = {
   timeout: NodeJS.Timeout
-  state: Buffer
+  state: PrismaBytes
   where: { id: string; tenantId: string; workspaceId: string }
 }
 
 const DOCUMENT_PREFIX = 'kb:page:'
 const PERSIST_DEBOUNCE_MS = 5_000
+
+function toPrismaBytes(input: Uint8Array): PrismaBytes {
+  const buffer = new ArrayBuffer(input.byteLength)
+  const out = new Uint8Array(buffer)
+  out.set(input)
+  return out
+}
 
 @Injectable()
 export class KbCollabServerService implements OnModuleInit, OnModuleDestroy {
@@ -50,10 +69,29 @@ export class KbCollabServerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    for (const pending of this.pendingPersists.values()) {
+    const pendingEntries = Array.from(this.pendingPersists.entries())
+    for (const [, pending] of pendingEntries) {
       clearTimeout(pending.timeout)
     }
-    this.pendingPersists.clear()
+
+    try {
+      await Promise.all(
+        pendingEntries.map(([, pending]) =>
+          this.prisma.knowledgePage.updateMany({
+            where: pending.where,
+            data: { yjsState: pending.state },
+          }),
+        ),
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error(
+        `Failed to persist Yjs state during shutdown: ${message}`,
+        error instanceof Error ? error.stack : undefined,
+      )
+    } finally {
+      this.pendingPersists.clear()
+    }
 
     if (this.server) {
       await this.server.destroy()
@@ -87,49 +125,63 @@ export class KbCollabServerService implements OnModuleInit, OnModuleDestroy {
 
   private parsePageId(documentName: string): string {
     if (!documentName.startsWith(DOCUMENT_PREFIX)) {
-      throw new Error('invalid-document')
+      throw new BadRequestException('invalid-document')
     }
     const pageId = documentName.slice(DOCUMENT_PREFIX.length)
     if (!pageId) {
-      throw new Error('invalid-document')
+      throw new BadRequestException('invalid-document')
     }
     return pageId
   }
 
   private async validateSessionToken(token: string): Promise<{ userId: string; activeWorkspaceId: string | null }> {
-    const session = await this.prisma.session.findUnique({
-      where: { token },
-      select: {
-        id: true,
-        expiresAt: true,
-        activeWorkspaceId: true,
-        user: {
-          select: {
-            id: true,
-          },
-        },
-      },
-    })
+    let session: {
+      expiresAt: Date
+      activeWorkspaceId: string | null
+      user: { id: string } | null
+    } | null = null
 
-    if (!session) throw new Error('invalid-session')
-    if (session.expiresAt < new Date()) throw new Error('session-expired')
-    if (!session.user) throw new Error('invalid-session')
+    try {
+      session = await this.prisma.session.findUnique({
+        where: { token },
+        select: {
+          expiresAt: true,
+          activeWorkspaceId: true,
+          user: { select: { id: true } },
+        },
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error(`Session lookup failed: ${message}`)
+      throw new InternalServerErrorException('collab-db-error')
+    }
+
+    if (!session) throw new UnauthorizedException('invalid-session')
+    if (session.expiresAt <= new Date()) throw new UnauthorizedException('session-expired')
+    if (!session.user) throw new UnauthorizedException('invalid-session')
 
     return { userId: session.user.id, activeWorkspaceId: session.activeWorkspaceId }
   }
 
   private async ensureWorkspaceMembership(userId: string, workspaceId: string): Promise<void> {
-    const membership = await this.prisma.workspaceMember.findUnique({
-      where: {
-        userId_workspaceId: {
-          userId,
-          workspaceId,
+    try {
+      const membership = await this.prisma.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId,
+            workspaceId,
+          },
         },
-      },
-      select: { id: true },
-    })
-    if (!membership) {
-      throw new Error('forbidden')
+        select: { id: true },
+      })
+      if (!membership) {
+        throw new ForbiddenException('forbidden')
+      }
+    } catch (error) {
+      if (error instanceof ForbiddenException) throw error
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error(`Workspace membership check failed: ${message}`)
+      throw new InternalServerErrorException('collab-db-error')
     }
   }
 
@@ -137,17 +189,24 @@ export class KbCollabServerService implements OnModuleInit, OnModuleDestroy {
     const pageId = this.parsePageId(payload.documentName)
     const token = payload.token
     if (!token) {
-      throw new Error('missing-token')
+      throw new UnauthorizedException('missing-token')
     }
 
     const { userId } = await this.validateSessionToken(token)
 
-    const page = await this.prisma.knowledgePage.findFirst({
-      where: { id: pageId, deletedAt: null },
-      select: { id: true, tenantId: true, workspaceId: true },
-    })
+    let page: { tenantId: string; workspaceId: string } | null = null
+    try {
+      page = await this.prisma.knowledgePage.findFirst({
+        where: { id: pageId, deletedAt: null },
+        select: { tenantId: true, workspaceId: true },
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error(`KB page lookup failed: ${message}`)
+      throw new InternalServerErrorException('collab-db-error')
+    }
     if (!page) {
-      throw new Error('not-found')
+      throw new NotFoundException('not-found')
     }
 
     await this.ensureWorkspaceMembership(userId, page.workspaceId)
@@ -163,7 +222,7 @@ export class KbCollabServerService implements OnModuleInit, OnModuleDestroy {
   private getContext(context: unknown): KbCollabContext {
     const maybe = context as Partial<KbCollabContext> | null
     if (!maybe?.userId || !maybe.workspaceId || !maybe.tenantId || !maybe.pageId) {
-      throw new Error('missing-context')
+      throw new UnauthorizedException('missing-context')
     }
     return {
       userId: maybe.userId,
@@ -176,23 +235,43 @@ export class KbCollabServerService implements OnModuleInit, OnModuleDestroy {
   private async onLoadDocument(payload: onLoadDocumentPayload): Promise<void> {
     const ctx = this.getContext(payload.context)
 
-    const page = await this.prisma.knowledgePage.findFirst({
-      where: { id: ctx.pageId, tenantId: ctx.tenantId, workspaceId: ctx.workspaceId, deletedAt: null },
-      select: { yjsState: true },
-    })
+    let page: { yjsState: unknown } | null = null
+    try {
+      page = await this.prisma.knowledgePage.findFirst({
+        where: { id: ctx.pageId, tenantId: ctx.tenantId, workspaceId: ctx.workspaceId, deletedAt: null },
+        select: { yjsState: true },
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error(`Failed to load Yjs state: ${message}`)
+      throw new InternalServerErrorException('collab-db-error')
+    }
 
     if (!page?.yjsState) return
 
-    applyUpdate(payload.document, new Uint8Array(page.yjsState))
+    if (!(page.yjsState instanceof Uint8Array)) {
+      this.logger.warn(
+        `Unexpected Yjs state type for page ${ctx.pageId}; skipping applyUpdate`,
+      )
+      return
+    }
+
+    try {
+      applyUpdate(payload.document, page.yjsState)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      this.logger.warn(`Failed to apply Yjs update for page ${ctx.pageId}: ${message}`)
+    }
   }
 
   private async onStoreDocument(payload: onStoreDocumentPayload): Promise<void> {
     const ctx = this.getContext(payload.context)
 
-    const state = Buffer.from(encodeStateAsUpdate(payload.document))
-    const where = { id: ctx.pageId, tenantId: ctx.tenantId, workspaceId: ctx.workspaceId }
+    const state = toPrismaBytes(encodeStateAsUpdate(payload.document))
+    const where = { id: ctx.pageId, tenantId: ctx.tenantId, workspaceId: ctx.workspaceId, deletedAt: null }
+    const persistKey = `${ctx.tenantId}:${ctx.workspaceId}:${ctx.pageId}`
 
-    const existing = this.pendingPersists.get(payload.documentName)
+    const existing = this.pendingPersists.get(persistKey)
     if (existing) {
       clearTimeout(existing.timeout)
     }
@@ -216,10 +295,10 @@ export class KbCollabServerService implements OnModuleInit, OnModuleDestroy {
           error instanceof Error ? error.stack : undefined,
         )
       } finally {
-        this.pendingPersists.delete(payload.documentName)
+        this.pendingPersists.delete(persistKey)
       }
     }, PERSIST_DEBOUNCE_MS)
 
-    this.pendingPersists.set(payload.documentName, { timeout, state, where })
+    this.pendingPersists.set(persistKey, { timeout, state, where })
   }
 }

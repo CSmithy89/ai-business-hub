@@ -29,7 +29,7 @@ This file tracks actionable follow-ups based on code review for **Epic KB-02: KB
 - **Context:** Defaults are `maxChunks=200`, `batchSize=25`. Vector payload dominates query size.
 - **TODO:**
   - [x] Make chunking and DB batch size configurable via env.
-  - Add safety caps based on total payload size (e.g., reduce batch size as chunk count grows).
+  - [x] Add safety caps based on total payload size (`KB_EMBEDDINGS_DB_BATCH_MAX_BYTES`).
   - Consider metrics/logging for “chunks per doc” and “embedding insert duration”.
 
 ### 4) No cost/rate protection around external embeddings calls
@@ -39,6 +39,7 @@ This file tracks actionable follow-ups based on code review for **Epic KB-02: KB
   - [x] Add BullMQ processor concurrency limits (concurrency=1).
   - [x] Add basic circuit breaker (open on 429/5xx).
   - [x] Coalesce duplicate jobs per page via `jobId` + `updateData()` + delayed debounce on updates.
+  - [x] Add request pacing via `KB_EMBEDDINGS_REQUEST_MIN_INTERVAL_MS` (per baseUrl+model, in-memory).
 
 ### 5) Breadcrumb path building can be optimized
 - **Where:** `apps/api/src/kb/search/search.service.ts` (`buildBreadcrumbPathsBatch`)
@@ -66,5 +67,26 @@ This file tracks actionable follow-ups based on code review for **Epic KB-02: KB
 
 ## Not Actionable / Already Covered
 
-- **“Missing index on `page_embeddings.page_id`”**: already present (`@@index([pageId])` in Prisma schema and `page_embeddings_page_id_idx` migration).
+- **“Missing index on `page_embeddings.page_id`”**: already present (`@@index([pageId])` in Prisma schema) and also created explicitly in the pgvector migration (`CREATE INDEX IF NOT EXISTS page_embeddings_page_id_idx`).
 - **“Debounced persistence race in collab server”**: timeout is cleared before re-scheduling; looks OK as-is.
+
+---
+
+## Additional Review Fixes (Gemini + CodeAnt)
+
+- [x] Replace KB breadcrumbs batching with a recursive CTE and enforce tenant/workspace filters.
+- [x] Clamp semantic search `offset` defensively to avoid negative OFFSET runtime errors.
+- [x] Validate embeddings provider response structure, indices, and per-vector dimensions.
+- [x] Replace magic numbers with constants for embeddings batching/job options and related pages limit.
+- [x] Improve collab module wiring (`KbCollabModule` imports `CommonModule`) and collab server error types.
+- [x] Collab server hardening:
+  - Flush pending debounced persists on shutdown.
+  - Use deterministic debounce keys (`tenantId:workspaceId:pageId`) instead of raw documentName.
+  - Validate `yjsState` type and handle corrupt state safely.
+  - Prevent writes to soft-deleted pages (`deletedAt: null`).
+  - Treat sessions as expired at `expiresAt` (`<=`).
+- [x] Frontend reliability:
+  - Collab token falls back to `getCurrentSessionToken()` (cookie-based).
+  - `PageEditor` initial content effect includes `initialContent` dependency.
+  - `useNetworkStatus` test restores the original `navigator.onLine` descriptor.
+- [x] Migration hardening: ensure `vector` extension exists before creating ivfflat index.

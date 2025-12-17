@@ -129,7 +129,7 @@ export class SearchService {
   ): Promise<{ results: SearchResult[]; total: number }> {
     const { q, limit: rawLimit = 10, offset: rawOffset = 0 } = dto
     const limit = Math.floor(rawLimit)
-    const offset = Math.floor(rawOffset)
+    const offset = Math.max(0, Math.floor(rawOffset))
 
     const embedded = await this.embeddingsService.embedTextsForWorkspace(workspaceId, [q])
     if (!embedded) {

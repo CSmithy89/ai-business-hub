@@ -40,6 +40,8 @@ function extractPlainText(content: any): string {
 }
 
 const MAX_FAVORITED_BY_PER_PAGE = 10_000
+const MAX_RELATED_PAGES_LIMIT = 20
+const DEFAULT_RELATED_PAGES_LIMIT = 8
 
 export type RelatedPageSuggestion = {
   pageId: string
@@ -718,9 +720,9 @@ export class PagesService {
     tenantId: string,
     workspaceId: string,
     pageId: string,
-    limit: number = 8,
+    limit: number = DEFAULT_RELATED_PAGES_LIMIT,
   ): Promise<{ data: RelatedPageSuggestion[] }> {
-    const clampedLimit = Math.min(Math.max(Math.floor(limit), 1), 20)
+    const clampedLimit = Math.min(Math.max(Math.floor(limit), 1), MAX_RELATED_PAGES_LIMIT)
 
     const exists = await this.prisma.knowledgePage.findFirst({
       where: { id: pageId, tenantId, workspaceId, deletedAt: null },

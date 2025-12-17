@@ -31,7 +31,9 @@ export class RagService {
   ) {}
 
   async query(tenantId: string, workspaceId: string, dto: RagQueryDto): Promise<RagQueryResult> {
-    const limit = Math.min(Math.max(Math.floor(dto.limit ?? 8), 1), 20)
+    const rawLimit = Number(dto.limit ?? 8)
+    const safeLimit = Number.isFinite(rawLimit) ? rawLimit : 8
+    const limit = Math.min(Math.max(Math.floor(safeLimit), 1), 20)
     const embedded = await this.embeddingsService.embedTextsForWorkspace(workspaceId, [dto.q])
     if (!embedded) {
       throw new BadRequestException('No valid embeddings provider configured for RAG queries')
