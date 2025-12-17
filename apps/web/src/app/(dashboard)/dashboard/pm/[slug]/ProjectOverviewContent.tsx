@@ -325,24 +325,28 @@ export function ProjectOverviewContent() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Card>
-          <CardContent className="flex items-center justify-between py-5">
-            <div className="flex items-center gap-3">
-              <FileText className="h-5 w-5 text-[rgb(var(--color-text-secondary))]" />
-              <div className="text-sm font-medium text-[rgb(var(--color-text-primary))]">Project Docs</div>
-            </div>
-            <Badge variant="outline">Coming soon</Badge>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between py-5">
-            <div className="flex items-center gap-3">
-              <Settings className="h-5 w-5 text-[rgb(var(--color-text-secondary))]" />
-              <div className="text-sm font-medium text-[rgb(var(--color-text-primary))]">Settings</div>
-            </div>
-            <Badge variant="outline">PM-01.6</Badge>
-          </CardContent>
-        </Card>
+        <Link href={{ pathname: '/dashboard/pm/[slug]/docs', query: { slug } }}>
+          <Card className="transition-colors hover:bg-muted/50">
+            <CardContent className="flex items-center justify-between py-5">
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-[rgb(var(--color-text-secondary))]" />
+                <div className="text-sm font-medium text-[rgb(var(--color-text-primary))]">Project Docs</div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href={{ pathname: '/dashboard/pm/[slug]/settings', query: { slug } }}>
+          <Card className="transition-colors hover:bg-muted/50">
+            <CardContent className="flex items-center justify-between py-5">
+              <div className="flex items-center gap-3">
+                <Settings className="h-5 w-5 text-[rgb(var(--color-text-secondary))]" />
+                <div className="text-sm font-medium text-[rgb(var(--color-text-primary))]">Settings</div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
       </div>
     </div>
   )

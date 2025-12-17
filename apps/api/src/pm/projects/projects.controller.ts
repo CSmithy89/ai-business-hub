@@ -67,6 +67,14 @@ export class ProjectsController {
     return this.projectsService.getBySlug(workspaceId, slug)
   }
 
+  @Get(':id/docs')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get linked KB pages for a project' })
+  @ApiParam({ name: 'id', description: 'Project ID' })
+  async getProjectDocs(@CurrentWorkspace() workspaceId: string, @Param('id') id: string) {
+    return this.projectsService.getLinkedDocs(workspaceId, id)
+  }
+
   @Get(':id')
   @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'Get a project by ID (includes phases)' })

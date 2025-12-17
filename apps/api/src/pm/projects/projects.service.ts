@@ -290,4 +290,30 @@ export class ProjectsService {
 
     return { data: project }
   }
+
+  async getLinkedDocs(workspaceId: string, projectId: string) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, workspaceId, deletedAt: null },
+      select: { id: true },
+    })
+    if (!project) throw new NotFoundException('Project not found')
+
+    const links = await this.prisma.projectPage.findMany({
+      where: { projectId },
+      include: {
+        page: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            updatedAt: true,
+            contentText: true,
+          },
+        },
+      },
+      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'desc' }],
+    })
+
+    return { data: links }
+  }
 }

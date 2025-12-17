@@ -364,3 +364,71 @@ export function useDeletePmProject() {
     },
   })
 }
+
+export interface ProjectDocLink {
+  id: string
+  projectId: string
+  pageId: string
+  isPrimary: boolean
+  createdAt: string
+  page: {
+    id: string
+    title: string
+    slug: string
+    updatedAt: string
+    contentText: string | null
+  }
+}
+
+export interface ProjectDocsResponse {
+  data: ProjectDocLink[]
+}
+
+async function fetchProjectDocs(params: {
+  workspaceId: string
+  token?: string
+  projectId: string
+}): Promise<ProjectDocsResponse> {
+  const base = getBaseUrl()
+
+  const query = new URLSearchParams()
+  query.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(
+    `${base}/pm/projects/${encodeURIComponent(params.projectId)}/docs?${query.toString()}`,
+    {
+      credentials: 'include',
+      headers: params.token ? { Authorization: `Bearer ${params.token}` } : {},
+      cache: 'no-store',
+    }
+  )
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to fetch project docs')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to fetch project docs')
+  }
+
+  return body as ProjectDocsResponse
+}
+
+export function useProjectDocs(projectId: string) {
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useQuery({
+    queryKey: ['pm-project-docs', workspaceId, projectId],
+    queryFn: () => fetchProjectDocs({ workspaceId: workspaceId!, token, projectId }),
+    enabled: !!workspaceId && !!projectId,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+  })
+}
