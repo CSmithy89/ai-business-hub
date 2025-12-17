@@ -55,7 +55,7 @@ export class SearchService {
               'english',
               content_text,
               plainto_tsquery('english', ${q}),
-              'MaxWords=50, MinWords=20, MaxFragments=2, FragmentDelimiter=" ... "'
+              'StartSel=<mark>, StopSel=</mark>, MaxWords=50, MinWords=20, MaxFragments=2, FragmentDelimiter=" ... "'
             ) AS snippet
           FROM knowledge_pages
           WHERE
@@ -161,8 +161,12 @@ export class SearchService {
       const path: string[] = []
       let currentId: string | null = pageId
       let pathDepth = 0
+      const visited = new Set<string>()
 
       while (currentId && pathDepth < maxDepth) {
+        if (visited.has(currentId)) break
+        visited.add(currentId)
+
         const page = pageMap.get(currentId)
         if (!page) break
 

@@ -17,7 +17,7 @@ export class UpdatePageDto {
 
   @IsOptional()
   @IsString()
-  parentId?: string
+  parentId?: string | null
 
   @IsOptional()
   @IsBoolean()

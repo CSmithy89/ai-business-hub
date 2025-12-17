@@ -3,8 +3,20 @@
 import { Clock, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
+import DOMPurify from 'dompurify'
 import type { KBSearchResult } from '@/hooks/use-kb-pages'
 import { cn } from '@/lib/utils'
+
+/**
+ * Sanitize HTML snippets from search results to prevent XSS attacks.
+ * Only allows <mark> tags for highlighting search matches.
+ */
+function sanitizeSnippet(html: string): string {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['mark'],
+    ALLOWED_ATTR: [],
+  })
+}
 
 interface KBSearchResultsProps {
   query: string
@@ -69,7 +81,7 @@ export function KBSearchResults({ query, results, total, isLoading }: KBSearchRe
 
                 <div
                   className="text-sm text-muted-foreground line-clamp-3 [&_mark]:bg-yellow-200 [&_mark]:text-foreground [&_mark]:px-0.5 [&_mark]:rounded dark:[&_mark]:bg-yellow-900/50"
-                  dangerouslySetInnerHTML={{ __html: result.snippet }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeSnippet(result.snippet) }}
                 />
               </div>
 

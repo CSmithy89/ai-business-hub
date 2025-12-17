@@ -5,6 +5,7 @@ import {
   forwardRef,
   Inject,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { EventTypes } from '@hyvve/shared'
@@ -36,6 +37,8 @@ function extractPlainText(content: any): string {
 
   return traverse(content).trim()
 }
+
+const MAX_FAVORITED_BY_PER_PAGE = 10_000
 
 @Injectable()
 export class PagesService {
@@ -74,6 +77,55 @@ export class PagesService {
 
     // Extremely unlikely, but ensures we never loop forever
     return `${base}-${Date.now()}`
+  }
+
+  /**
+   * Validate that setting a new parent doesn't create a circular reference.
+   * Walks up the ancestor chain from the new parent to check if the page
+   * being updated is found (which would create a cycle).
+   *
+   * @param tx - Prisma transaction client
+   * @param pageId - The page being updated
+   * @param newParentId - The proposed new parent ID
+   * @throws BadRequestException if circular reference would be created
+   */
+  private async validateNoCircularReference(
+    tx: Prisma.TransactionClient | PrismaService,
+    pageId: string,
+    newParentId: string,
+  ): Promise<void> {
+    // Cannot set self as parent
+    if (pageId === newParentId) {
+      throw new BadRequestException('A page cannot be its own parent')
+    }
+
+    // Walk up the ancestor chain from the new parent
+    let currentId: string | null = newParentId
+    const visited = new Set<string>()
+
+    while (currentId) {
+      // Check for the page we're updating in the ancestor chain
+      if (currentId === pageId) {
+        throw new BadRequestException(
+          'Cannot set this parent: would create a circular reference',
+        )
+      }
+
+      // Prevent infinite loops from existing bad data
+      if (visited.has(currentId)) {
+        this.logger.error(`Circular reference detected in existing data: ${currentId}`)
+        break
+      }
+      visited.add(currentId)
+
+      // Get the parent of the current ancestor
+      const ancestor: { parentId: string | null } | null = await tx.knowledgePage.findUnique({
+        where: { id: currentId },
+        select: { parentId: true },
+      })
+
+      currentId = ancestor?.parentId ?? null
+    }
   }
 
   async create(
@@ -362,6 +414,8 @@ export class PagesService {
         if (dto.parentId === null) {
           data.parent = { disconnect: true }
         } else {
+          // Validate no circular reference before setting new parent
+          await this.validateNoCircularReference(tx, id, dto.parentId)
           data.parent = { connect: { id: dto.parentId } }
         }
       }
@@ -535,6 +589,9 @@ export class PagesService {
     const isFavorited = favoritedBy.includes(actorId)
 
     if (favorite && !isFavorited) {
+      if (favoritedBy.length >= MAX_FAVORITED_BY_PER_PAGE) {
+        throw new BadRequestException('This page has reached the maximum number of favorites')
+      }
       // Add to favorites
       await this.prisma.knowledgePage.update({
         where: { id },

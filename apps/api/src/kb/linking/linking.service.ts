@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { EventTypes } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
 import { EventPublisherService } from '../../events'
@@ -48,32 +49,45 @@ export class LinkingService {
     }
 
     // Wrap in transaction to prevent race condition with primary flag
-    const link = await this.prisma.$transaction(async (tx) => {
-      // If setting as primary, unset any existing primary for this project
-      if (dto.isPrimary) {
-        await tx.projectPage.updateMany({
-          where: { projectId: dto.projectId, isPrimary: true },
-          data: { isPrimary: false },
-        })
-      }
+    let link: {
+      id: string
+      isPrimary: boolean
+      project: { id: string; name: string; slug: string }
+      page: { id: string; title: string; slug: string }
+    }
+    try {
+      link = await this.prisma.$transaction(async (tx) => {
+        // If setting as primary, unset any existing primary for this project
+        if (dto.isPrimary) {
+          await tx.projectPage.updateMany({
+            where: { projectId: dto.projectId, isPrimary: true },
+            data: { isPrimary: false },
+          })
+        }
 
-      return tx.projectPage.create({
-        data: {
-          projectId: dto.projectId,
-          pageId,
-          isPrimary: dto.isPrimary ?? false,
-          linkedBy: actorId,
-        },
-        include: {
-          project: {
-            select: { id: true, name: true, slug: true },
+        return tx.projectPage.create({
+          data: {
+            projectId: dto.projectId,
+            pageId,
+            isPrimary: dto.isPrimary ?? false,
+            linkedBy: actorId,
           },
-          page: {
-            select: { id: true, title: true, slug: true },
+          include: {
+            project: {
+              select: { id: true, name: true, slug: true },
+            },
+            page: {
+              select: { id: true, title: true, slug: true },
+            },
           },
-        },
+        })
       })
-    })
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('Project already has a primary page')
+      }
+      throw error
+    }
 
     await this.eventPublisher.publish(
       EventTypes.KB_PAGE_LINKED_TO_PROJECT,
@@ -164,32 +178,39 @@ export class LinkingService {
     }
 
     // Wrap in transaction to prevent race condition with primary flag
-    const updated = await this.prisma.$transaction(async (tx) => {
-      // If setting as primary, unset any existing primary for this project
-      if (dto.isPrimary) {
-        await tx.projectPage.updateMany({
-          where: { projectId, isPrimary: true, NOT: { id: link.id } },
-          data: { isPrimary: false },
+    try {
+      const updated = await this.prisma.$transaction(async (tx) => {
+        // If setting as primary, unset any existing primary for this project
+        if (dto.isPrimary) {
+          await tx.projectPage.updateMany({
+            where: { projectId, isPrimary: true, NOT: { id: link.id } },
+            data: { isPrimary: false },
+          })
+        }
+
+        return tx.projectPage.update({
+          where: { id: link.id },
+          data: {
+            isPrimary: dto.isPrimary ?? link.isPrimary,
+          },
+          include: {
+            project: {
+              select: { id: true, name: true, slug: true },
+            },
+            page: {
+              select: { id: true, title: true, slug: true },
+            },
+          },
         })
-      }
-
-      return tx.projectPage.update({
-        where: { id: link.id },
-        data: {
-          isPrimary: dto.isPrimary ?? link.isPrimary,
-        },
-        include: {
-          project: {
-            select: { id: true, name: true, slug: true },
-          },
-          page: {
-            select: { id: true, title: true, slug: true },
-          },
-        },
       })
-    })
 
-    return { data: updated }
+      return { data: updated }
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('Project already has a primary page')
+      }
+      throw error
+    }
   }
 
   async getLinkedProjects(
