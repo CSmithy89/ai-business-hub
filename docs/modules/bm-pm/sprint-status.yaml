@@ -67,18 +67,18 @@ development_status:
   # MVP | 11 stories | Task CRUD, hierarchy, assignment, states
   # FRs: FR-3
   # ===========================================
-  pm-02: backlog
-  pm-02-1-task-data-model-api: backlog
-  pm-02-2-task-detail-panel: backlog
-  pm-02-3-quick-task-capture: backlog
-  pm-02-4-task-type-priority: backlog
-  pm-02-5-task-hierarchy: backlog
-  pm-02-6-task-assignment: backlog
-  pm-02-7-task-state-machine: backlog
-  pm-02-8-task-relations: backlog
-  pm-02-9-task-comments: backlog
-  pm-02-10-task-attachments: backlog
-  pm-02-11-task-labels: backlog
+  pm-02: contexted
+  pm-02-1-task-data-model-api: done
+  pm-02-2-task-detail-panel: done
+  pm-02-3-quick-task-capture: done
+  pm-02-4-task-type-priority: done
+  pm-02-5-task-hierarchy: done
+  pm-02-6-task-assignment: done
+  pm-02-7-task-state-machine: done
+  pm-02-8-task-relations: done
+  pm-02-9-task-comments: done
+  pm-02-10-task-attachments: done
+  pm-02-11-task-labels: done
   pm-02-retrospective: optional
 
   # ===========================================

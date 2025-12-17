@@ -66,7 +66,7 @@ export function KBSearchInput({ className, autoFocus, onSearch }: KBSearchInputP
     if (onSearch) {
       onSearch(trimmed)
     } else {
-      router.push(`/kb/search?q=${encodeURIComponent(trimmed)}`)
+      router.push(`/kb/search?q=${encodeURIComponent(trimmed)}` as any)
     }
   }, [router, saveRecentSearch, onSearch])
 
@@ -79,7 +79,7 @@ export function KBSearchInput({ className, autoFocus, onSearch }: KBSearchInputP
     setQuery('')
     // If on search page, clear the URL query param
     if (pathname?.includes('/kb/search')) {
-      router.push('/kb/search')
+      router.push('/kb/search' as any)
     }
   }
 

@@ -193,9 +193,7 @@ describe('PagesService', () => {
       const activityCreate = jest.fn().mockResolvedValue({ id: 'a-1' })
       const findUnique = jest.fn().mockResolvedValue(null)
 
-      let callCount = 0
       prisma.$transaction.mockImplementation(async (fn: any) => {
-        callCount++
         const result = await fn({
           knowledgePage: {
             findUnique,

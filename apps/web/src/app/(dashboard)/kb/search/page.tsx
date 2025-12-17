@@ -25,7 +25,7 @@ function SearchContent() {
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
       <div className="mb-6">
-        <Link href="/kb">
+        <Link href={'/kb' as any}>
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to KB

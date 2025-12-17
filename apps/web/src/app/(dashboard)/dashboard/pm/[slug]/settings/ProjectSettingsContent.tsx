@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertTriangle, ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
@@ -108,7 +109,7 @@ export function ProjectSettingsContent() {
     watch,
     reset,
   } = useForm<GeneralValues>({
-    resolver: zodResolver(GeneralSchema),
+    resolver: zodResolver(GeneralSchema as unknown as Parameters<typeof zodResolver>[0]) as unknown as Resolver<GeneralValues>,
     defaultValues: {
       name: '',
       description: '',

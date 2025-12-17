@@ -1,0 +1,74 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-02</epicId>
+    <storyId>pm-02-2</storyId>
+    <title>Task Detail Panel</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-02-2-task-detail-panel.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>project user</asA>
+    <iWant>to view and edit task details in a slide-out panel</iWant>
+    <soThat>I can manage tasks without leaving the current view</soThat>
+    <tasks>
+      - Add task detail slide-over panel UI (right side ~480px)
+      - Load task via taskId from URL and render editable fields
+      - Auto-save per-field on blur (PATCH /pm/tasks/:id)
+      - Show activity timeline (from task.activities or a dedicated endpoint)
+      - Deep link behavior: open/close based on URL param
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1) Panel shows editable task fields: title, description, status, priority, assignee, due date, story points.
+    2) Activity timeline renders at bottom.
+    3) Close restores previous view state.
+    4) URL includes taskId for direct linking and restores panel on load.
+    5) Updates auto-save on field blur.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      - docs/modules/bm-pm/epics/epic-pm-02-task-management-system.md (Story PM-02.2)
+      - docs/modules/bm-pm/tech-spec-epic-pm-02.md
+      - docs/modules/bm-pm/PRD.md (FR-3 Task Management)
+    </docs>
+    <wireframes>
+      - docs/design/wireframes/Finished wireframes and html files/pm-05_task_detail_modal/code.html
+      - docs/design/wireframes/Finished wireframes and html files/pm-05_task_detail_modal/screen.png
+    </wireframes>
+    <code>
+      - apps/api/src/pm/tasks/tasks.controller.ts (task endpoints)
+      - apps/api/src/pm/tasks/tasks.service.ts (task detail, update behavior)
+      - apps/web (project routes and UI shell)
+      - packages/ui (sheet/dialog primitives, form controls)
+    </code>
+  </artifacts>
+
+  <constraints>
+    - Must respect workspace isolation by using existing auth/session context.
+    - Auto-save must be debounced by UI interaction (on blur) and must show failure state if request fails.
+    - Panel open state must be derivable from URL (deep link).
+  </constraints>
+
+  <interfaces>
+    - GET /pm/tasks/:id
+    - PATCH /pm/tasks/:id
+  </interfaces>
+
+  <tests>
+    <standards>
+      - Prefer unit tests for URL/state and mocked API calls.
+      - Avoid flaky timing; use fake timers for debounce if added.
+    </standards>
+    <ideas>
+      - Load panel from URL param on initial render.
+      - Closing panel removes taskId param and does not navigate away from the current page.
+      - Blurring title field triggers PATCH with only changed field.
+    </ideas>
+  </tests>
+</story-context>
+

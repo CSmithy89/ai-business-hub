@@ -5,8 +5,9 @@ import { ProjectsModule } from './projects/projects.module'
 import { PhasesModule } from './phases/phases.module'
 import { TeamModule } from './team/team.module'
 import { ExpensesModule } from './expenses/expenses.module'
+import { TasksModule } from './tasks/tasks.module'
 
 @Module({
-  imports: [CommonModule, EventsModule, ProjectsModule, PhasesModule, TeamModule, ExpensesModule],
+  imports: [CommonModule, EventsModule, ProjectsModule, PhasesModule, TeamModule, ExpensesModule, TasksModule],
 })
 export class PmModule {}

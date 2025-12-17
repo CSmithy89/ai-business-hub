@@ -50,6 +50,11 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
+- DB migration: `packages/db/prisma/migrations/20251217230000_add_knowledge_base/`
+- Uses existing `KnowledgePage`, `PageVersion`, `PageActivity`, `ProjectPage` models
+
+---
+
 ## EPIC-KB-02: KB Real-Time & RAG (8 stories)
 
 **Status:** Complete
@@ -98,6 +103,45 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 - DB migration requires Postgres to apply: `packages/db/prisma/migrations/20251217193000_add_project_expenses/`
 - Epic test report: `docs/modules/bm-pm/epics/epic-pm-01-test-report.md`
+
+---
+
+## EPIC-PM-02: Task Management System (11 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-18
+**Branch:** `epic/pm-02-task-management`
+
+### Added
+
+- **Task CRUD + Bulk Update**: create, update, soft delete, list filters, bulk updates, sequential task numbers per project
+- **Task Detail Sheet**: edit title/description/status/priority/assignment/dates with activity timeline in the panel
+- **Quick Task Capture**: keyboard-driven creation flow for rapid entry
+- **Hierarchy**: parent/child subtasks and progress rollups
+- **State Workflow**: status transitions with activity logging and `completedAt` on `DONE`
+- **Relations**: blocks/blocked-by, duplicates/duplicated-by, relates-to with inverse relation handling + blocked indicators
+- **Comments**: author-editable comments with soft delete + activity logging
+- **Attachments**: upload + attach metadata and remove attachments + activity logging
+- **Labels**: per-task labels with upsert behavior, color updates, and list filtering by label
+
+### Routes
+
+- `/dashboard/pm/[slug]/tasks` - Project tasks view with detail sheet
+
+### API Endpoints
+
+- `GET/POST /pm/tasks` - List and create tasks
+- `GET/PATCH/DELETE /pm/tasks/:id` - Task CRUD
+- `PATCH /pm/tasks/bulk` - Bulk update tasks
+- `POST/DELETE /pm/tasks/:id/relations` - Manage task relations
+- `POST/PATCH/DELETE /pm/tasks/:id/comments` - Manage task comments
+- `POST/DELETE /pm/tasks/:id/attachments` - Manage task attachments
+- `POST/DELETE /pm/tasks/:id/labels` - Manage task labels
+
+### Notes
+
+- DB migration: `packages/db/prisma/migrations/20251217194000_align_schema_to_current_prisma/`
+- Tech spec: `docs/modules/bm-pm/tech-spec-epic-pm-02.md`
 
 ---
 

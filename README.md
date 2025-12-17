@@ -336,6 +336,22 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 
 ---
 
+### Core-PM Module (Post-Foundation)
+
+| Epic | Name | Stories | Status |
+|------|------|---------|--------|
+| EPIC-PM-01 | Project & Phase Management | 9/9 | ✅ Complete |
+| EPIC-PM-02 | Task Management System | 11/11 | ✅ Complete |
+| EPIC-KB-01 | Knowledge Base Foundation | 10/10 | ✅ Complete |
+
+**Latest Core-PM Epic: Task Management System (EPIC-PM-02)**
+- Task CRUD + filters + bulk updates with sequential per-project task numbers
+- Task detail sheet for editing status/priority/assignee/dates + activity timeline
+- Hierarchy (subtasks), state workflow, relations, comments, attachments, and labels
+- Docs: `docs/modules/bm-pm/tech-spec-epic-pm-02.md`, `docs/modules/bm-pm/stories/pm-02-*.md`
+
+---
+
 ## Getting Started
 
 > **Foundation Complete:** All 17 epics with 190 stories (541 points) are implemented. The platform foundation is ready for production deployment and module development.

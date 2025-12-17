@@ -44,18 +44,18 @@ export default function KBLayout({ children }: KBLayoutProps) {
   const pages = pagesData?.data || []
 
   const handleNewPage = () => {
-    router.push('/kb/new')
+    router.push('/kb/new' as any)
   }
 
   const handleCreateSubpage = (parentId: string) => {
-    router.push(`/kb/new?parentId=${parentId}`)
+    router.push(`/kb/new?parentId=${parentId}` as any)
   }
 
   const handleRename = (pageId: string) => {
     // For now, navigate to the page where they can edit the title
     const page = pages.find((p) => p.id === pageId)
     if (page) {
-      router.push(`/kb/${page.slug}`)
+      router.push(`/kb/${page.slug}` as any)
       toast.info('Click the title to rename the page')
     }
   }
@@ -74,7 +74,7 @@ export default function KBLayout({ children }: KBLayoutProps) {
       const currentPath = window.location.pathname
       const deletedPage = pages.find((p) => p.id === deletePageId)
       if (deletedPage && currentPath.includes(deletedPage.slug)) {
-        router.push('/kb')
+        router.push('/kb' as any)
       }
     } catch (error) {
       console.error('Failed to delete page:', error)

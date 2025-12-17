@@ -7,6 +7,7 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { authClient } from '@/lib/auth-client'
 import { changePasswordSchema, type ChangePasswordFormData } from '@/lib/validations/auth'
@@ -33,7 +34,8 @@ export function PasswordChangeForm() {
     setValue,
     formState: { errors, isDirty },
   } = useForm<ChangePasswordFormData>({
-    resolver: zodResolver(changePasswordSchema),
+    resolver:
+      zodResolver(changePasswordSchema as unknown as Parameters<typeof zodResolver>[0]) as unknown as Resolver<ChangePasswordFormData>,
     defaultValues: {
       currentPassword: '',
       newPassword: '',

@@ -125,6 +125,11 @@ export const EventTypes = {
   PM_TEAM_MEMBER_UPDATED: 'pm.team.member_updated',
   PM_TEAM_MEMBER_REMOVED: 'pm.team.member_removed',
 
+  PM_TASK_CREATED: 'pm.task.created',
+  PM_TASK_UPDATED: 'pm.task.updated',
+  PM_TASK_STATUS_CHANGED: 'pm.task.status_changed',
+  PM_TASK_DELETED: 'pm.task.deleted',
+
   // KB events (bm-pm Knowledge Base)
   KB_PAGE_CREATED: 'kb.page.created',
   KB_PAGE_UPDATED: 'kb.page.updated',

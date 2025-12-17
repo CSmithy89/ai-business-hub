@@ -1,0 +1,43 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>pm-02</epicId>
+    <storyId>pm-02-6</storyId>
+    <title>Task Assignment</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-17</generatedAt>
+    <generator>BMAD Story Context Workflow (manual)</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/pm-02-6-task-assignment.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>project user</asA>
+    <iWant>to assign tasks to team members or agents</iWant>
+    <soThat>work is distributed and tracked</soThat>
+    <tasks>
+      - Add member selector with avatars and Unassigned
+      - Add agent selector with AI badge and Unassigned
+      - Auto-derive assignmentType based on selection (HUMAN/AGENT/HYBRID)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1) Assignee selector shows team members, agents, and Unassigned.
+    2) Selecting a member sets assigneeId.
+    3) Selecting an agent sets agentId and assignmentType=AGENT.
+    4) Selecting both sets assignmentType=HYBRID.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      - docs/modules/bm-pm/epics/epic-pm-02-task-management-system.md (Story PM-02.6)
+      - docs/modules/bm-pm/tech-spec-epic-pm-02.md
+    </docs>
+    <code>
+      - apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/TaskDetailSheet.tsx
+      - apps/web/src/hooks/use-agents.ts
+      - apps/web/src/hooks/use-pm-team.ts
+      - apps/api/src/pm/tasks/tasks.service.ts
+    </code>
+  </artifacts>
+</story-context>
+

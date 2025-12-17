@@ -27,7 +27,7 @@ export function KBHome({ workspaceId }: KBHomeProps) {
   const handleCreatePage = async () => {
     try {
       const result = await createPage.mutateAsync({ title: 'Untitled' })
-      router.push(`/kb/${result.data.slug}`)
+      router.push(`/kb/${result.data.slug}` as any)
     } catch {
       // Error handled by hook
     }
@@ -83,7 +83,7 @@ export function KBHome({ workspaceId }: KBHomeProps) {
                 {recentPages.map((page) => (
                   <li key={page.id}>
                     <Link
-                      href={`/kb/${page.slug}`}
+                      href={`/kb/${page.slug}` as any}
                       className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-accent"
                     >
                       <FileText className="h-4 w-4 text-muted-foreground" />
@@ -128,7 +128,7 @@ export function KBHome({ workspaceId }: KBHomeProps) {
                 {favorites.map((page) => (
                   <li key={page.id} className="group flex items-center gap-1">
                     <Link
-                      href={`/kb/${page.slug}`}
+                      href={`/kb/${page.slug}` as any}
                       className="flex flex-1 items-center gap-2 rounded-md px-2 py-2 hover:bg-accent"
                     >
                       <FileText className="h-4 w-4 text-muted-foreground" />

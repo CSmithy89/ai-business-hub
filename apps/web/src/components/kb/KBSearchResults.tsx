@@ -61,7 +61,7 @@ export function KBSearchResults({ query, results, total, isLoading }: KBSearchRe
         {results.map((result) => (
           <div
             key={result.pageId}
-            onClick={() => router.push(`/kb/${result.slug}`)}
+            onClick={() => router.push(`/kb/${result.slug}` as any)}
             className={cn(
               "group p-4 border rounded-lg cursor-pointer transition-colors",
               "hover:bg-accent hover:border-accent-foreground/20"
