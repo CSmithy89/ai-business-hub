@@ -50,7 +50,7 @@ development_status:
   # MVP | 9 stories | Project CRUD, phases, templates, teams
   # FRs: FR-1, FR-2
   # ===========================================
-  pm-01: backlog
+  pm-01: contexted  # 2025-12-17: Tech spec created with pre-mortem + first principles analysis
   pm-01-1-project-data-model-api: backlog
   pm-01-2-phase-crud-api: backlog
   pm-01-3-project-list-page: backlog
