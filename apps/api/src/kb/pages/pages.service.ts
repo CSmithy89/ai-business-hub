@@ -15,6 +15,7 @@ import { CreatePageDto } from './dto/create-page.dto'
 import { ListPagesQueryDto } from './dto/list-pages.query.dto'
 import { UpdatePageDto } from './dto/update-page.dto'
 import type { VersionsService } from '../versions/versions.service'
+import { EmbeddingsService } from '../embeddings/embeddings.service'
 
 function slugify(input: string): string {
   return input
@@ -49,6 +50,7 @@ export class PagesService {
     private readonly eventPublisher: EventPublisherService,
     @Inject(forwardRef(() => 'VersionsService'))
     private readonly versionsService: VersionsService,
+    private readonly embeddingsService: EmbeddingsService,
   ) {}
 
   /**
@@ -202,6 +204,17 @@ export class PagesService {
           },
           { tenantId, userId: actorId, source: 'api' },
         )
+
+        this.embeddingsService
+          .enqueuePageEmbeddings({
+            tenantId,
+            workspaceId,
+            pageId: page.id,
+            reason: 'created',
+          })
+          .catch((error) =>
+            this.logger.error('Failed to enqueue KB embeddings job (create):', error),
+          )
 
         return { data: page }
       } catch (error) {
@@ -484,6 +497,19 @@ export class PagesService {
       },
       { tenantId, userId: actorId, source: 'api' },
     )
+
+    if (contentChanged) {
+      this.embeddingsService
+        .enqueuePageEmbeddings({
+          tenantId,
+          workspaceId,
+          pageId: page.id,
+          reason: 'updated',
+        })
+        .catch((error) =>
+          this.logger.error('Failed to enqueue KB embeddings job (update):', error),
+        )
+    }
 
     return { data: page }
   }
