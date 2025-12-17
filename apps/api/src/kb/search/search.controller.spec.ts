@@ -6,6 +6,7 @@ describe('SearchController', () => {
     it('enforces a per-user/workspace rate limit', async () => {
       const searchService = {
         search: jest.fn().mockResolvedValue({ results: [], total: 0 }),
+        semanticSearch: jest.fn().mockResolvedValue({ results: [], total: 0 }),
       }
       const controller = new SearchController(searchService as any)
 
@@ -29,6 +30,7 @@ describe('SearchController', () => {
     it('resets the window after the rate limit window passes', async () => {
       const searchService = {
         search: jest.fn().mockResolvedValue({ results: [], total: 0 }),
+        semanticSearch: jest.fn().mockResolvedValue({ results: [], total: 0 }),
       }
       const controller = new SearchController(searchService as any)
 
@@ -55,6 +57,26 @@ describe('SearchController', () => {
 
       await expect(controller.search(user, workspaceId, query as any)).resolves.toBeDefined()
       nowSpy.mockRestore()
+    })
+
+    it('applies rate limiting to semantic search', async () => {
+      const searchService = {
+        search: jest.fn().mockResolvedValue({ results: [], total: 0 }),
+        semanticSearch: jest.fn().mockResolvedValue({ results: [], total: 0 }),
+      }
+      const controller = new SearchController(searchService as any)
+
+      const user = { tenantId: 'tenant-1', id: 'user-1' }
+      const workspaceId = 'ws-1'
+      const body = { q: 'hello', limit: 10, offset: 0 }
+
+      for (let i = 0; i < 30; i += 1) {
+        await controller.semanticSearch(user, workspaceId, body as any)
+      }
+
+      await expect(
+        controller.semanticSearch(user, workspaceId, body as any),
+      ).rejects.toBeInstanceOf(HttpException)
     })
   })
 })

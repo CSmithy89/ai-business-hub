@@ -46,6 +46,36 @@ export class EmbeddingsService {
     })
   }
 
+  async embedTextsForWorkspace(
+    workspaceId: string,
+    texts: string[],
+  ): Promise<{ embeddings: number[][]; providerType: OpenAiCompatibleProvider } | null> {
+    const enabled = process.env.KB_EMBEDDINGS_ENABLED !== 'false'
+    if (!enabled) return null
+
+    const { providerId, providerType, apiKey } =
+      await this.getEmbeddingsProvider(workspaceId)
+    if (!apiKey || !providerType) {
+      this.logger.warn({
+        message: 'No valid embeddings provider configured',
+        workspaceId,
+        providerType,
+        providerId,
+      })
+      return null
+    }
+
+    const baseUrl = getOpenAiCompatibleBaseUrl(providerType)
+    const embeddings = await this.embedTextsOpenAiCompatible({
+      apiKey,
+      baseUrl,
+      model: this.embeddingModel,
+      texts,
+    })
+
+    return { embeddings, providerType }
+  }
+
   async generateAndStorePageEmbeddings(data: GeneratePageEmbeddingsJobData): Promise<void> {
     const enabled = process.env.KB_EMBEDDINGS_ENABLED !== 'false'
     if (!enabled) return
@@ -73,25 +103,12 @@ export class EmbeddingsService {
       return
     }
 
-    const { providerId, providerType, apiKey } =
-      await this.getEmbeddingsProvider(workspaceId)
-    if (!apiKey || !providerType) {
-      this.logger.warn({
-        message: 'No valid embeddings provider configured; skipping embeddings generation',
-        workspaceId,
-        providerType,
-        providerId,
-      })
+    const embeddingResult = await this.embedTextsForWorkspace(workspaceId, chunks)
+    if (!embeddingResult) {
       return
     }
 
-    const baseUrl = getOpenAiCompatibleBaseUrl(providerType)
-    const embeddings = await this.embedTextsOpenAiCompatible({
-      apiKey,
-      baseUrl,
-      model: this.embeddingModel,
-      texts: chunks,
-    })
+    const { embeddings, providerType } = embeddingResult
 
     if (embeddings.length !== chunks.length) {
       throw new BadRequestException(
@@ -216,4 +233,3 @@ export class EmbeddingsService {
     return results
   }
 }
-
