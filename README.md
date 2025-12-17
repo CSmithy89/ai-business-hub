@@ -107,6 +107,7 @@ Each module works standalone or integrates with others:
 - Buy what you need
 - All modules share data seamlessly
 - Event-driven communication
+- **Project Management (bm-pm):** Projects + phases, BMAD templates, team management, and budget tracking
 
 ---
 
