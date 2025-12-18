@@ -33,11 +33,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { TaskListItem } from '@/hooks/use-pm-tasks'
+import type { TaskListItem, TaskStatus, TaskPriority, AssignmentType } from '@/hooks/use-pm-tasks'
+import { useBulkUpdatePmTasks, useBulkDeletePmTasks, useUpsertPmTaskLabel } from '@/hooks/use-pm-tasks'
 import { getViewPreferences, setViewPreferences } from '@/lib/pm/view-preferences'
 import { cn } from '@/lib/utils'
 import { ColumnVisibilityToggle } from '../table/ColumnVisibilityToggle'
 import { createTaskColumns } from '../table/TaskTableColumns'
+import { BulkActionsBar } from '../bulk/BulkActionsBar'
+import { BulkStatusDialog } from '../bulk/BulkStatusDialog'
+import { BulkPriorityDialog } from '../bulk/BulkPriorityDialog'
+import { BulkAssignDialog } from '../bulk/BulkAssignDialog'
+import { BulkLabelDialog } from '../bulk/BulkLabelDialog'
+import { BulkDeleteDialog } from '../bulk/BulkDeleteDialog'
 
 interface TaskListViewProps {
   /** Task data to display */
@@ -79,6 +86,18 @@ export function TaskListView({
   const [sorting, setSorting] = useState<SortingState>([])
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+
+  // Dialog states
+  const [showStatusDialog, setShowStatusDialog] = useState(false)
+  const [showPriorityDialog, setShowPriorityDialog] = useState(false)
+  const [showAssignDialog, setShowAssignDialog] = useState(false)
+  const [showLabelDialog, setShowLabelDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
+  // Mutations
+  const bulkUpdateMutation = useBulkUpdatePmTasks()
+  const bulkDeleteMutation = useBulkDeletePmTasks()
+  const upsertLabelMutation = useUpsertPmTaskLabel()
 
   // Load preferences from localStorage
   useEffect(() => {
@@ -158,6 +177,107 @@ export function TaskListView({
       .map((key) => rows[parseInt(key)]?.original.id)
       .filter(Boolean)
   }, [rowSelection, rows])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+A / Ctrl+A - Select all
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a' && !e.shiftKey) {
+        e.preventDefault()
+        table.toggleAllRowsSelected(true)
+      }
+
+      // Delete / Backspace - Bulk delete (when tasks selected)
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedTaskIds.length > 0) {
+        // Only trigger if not focused in an input/textarea
+        const target = e.target as HTMLElement
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+          e.preventDefault()
+          setShowDeleteDialog(true)
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [table, selectedTaskIds.length])
+
+  // Bulk action handlers
+  const handleClearSelection = () => {
+    setRowSelection({})
+  }
+
+  const handleBulkStatusChange = async (status: TaskStatus) => {
+    await bulkUpdateMutation.mutateAsync({
+      input: {
+        ids: selectedTaskIds,
+        status,
+      },
+    })
+    setShowStatusDialog(false)
+    handleClearSelection()
+  }
+
+  const handleBulkPriorityChange = async (priority: TaskPriority) => {
+    await bulkUpdateMutation.mutateAsync({
+      input: {
+        ids: selectedTaskIds,
+        priority,
+      },
+    })
+    setShowPriorityDialog(false)
+    handleClearSelection()
+  }
+
+  const handleBulkAssignChange = async (data: {
+    assignmentType: AssignmentType
+    assigneeId: string | null
+  }) => {
+    await bulkUpdateMutation.mutateAsync({
+      input: {
+        ids: selectedTaskIds,
+        assignmentType: data.assignmentType,
+        assigneeId: data.assigneeId,
+      },
+    })
+    setShowAssignDialog(false)
+    handleClearSelection()
+  }
+
+  const handleBulkAddLabels = async (labels: string[]) => {
+    // Add labels to each task individually
+    // This is a workaround until we have a bulk label endpoint
+    for (const taskId of selectedTaskIds) {
+      for (const labelName of labels) {
+        try {
+          await upsertLabelMutation.mutateAsync({
+            taskId,
+            input: { name: labelName },
+          })
+        } catch (error) {
+          // Continue with other labels even if one fails
+          console.error('Failed to add label:', error)
+        }
+      }
+    }
+    setShowLabelDialog(false)
+    handleClearSelection()
+  }
+
+  const handleBulkDelete = async () => {
+    await bulkDeleteMutation.mutateAsync({
+      input: {
+        ids: selectedTaskIds,
+      },
+    })
+    setShowDeleteDialog(false)
+    handleClearSelection()
+  }
+
+  const isProcessing =
+    bulkUpdateMutation.isPending ||
+    bulkDeleteMutation.isPending ||
+    upsertLabelMutation.isPending
 
   // Loading state
   if (isLoading) {
@@ -276,19 +396,60 @@ export function TaskListView({
         )}
       </Card>
 
-      {/* TODO: Bulk Actions Bar (PM-03.8) */}
+      {/* Bulk Actions Bar */}
       {selectedTaskIds.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2">
-          <Card className="p-4 shadow-lg">
-            <p className="text-sm text-[rgb(var(--color-text-primary))]">
-              {selectedTaskIds.length} task{selectedTaskIds.length !== 1 ? 's' : ''} selected
-            </p>
-            <p className="mt-1 text-xs text-[rgb(var(--color-text-secondary))]">
-              Bulk actions will be available in PM-03.8
-            </p>
-          </Card>
-        </div>
+        <BulkActionsBar
+          selectedCount={selectedTaskIds.length}
+          onClearSelection={handleClearSelection}
+          onChangeStatus={() => setShowStatusDialog(true)}
+          onChangePriority={() => setShowPriorityDialog(true)}
+          onChangeAssignee={() => setShowAssignDialog(true)}
+          onAddLabels={() => setShowLabelDialog(true)}
+          onDelete={() => setShowDeleteDialog(true)}
+          isProcessing={isProcessing}
+        />
       )}
+
+      {/* Bulk Action Dialogs */}
+      <BulkStatusDialog
+        open={showStatusDialog}
+        onOpenChange={setShowStatusDialog}
+        selectedCount={selectedTaskIds.length}
+        onConfirm={handleBulkStatusChange}
+        isProcessing={isProcessing}
+      />
+
+      <BulkPriorityDialog
+        open={showPriorityDialog}
+        onOpenChange={setShowPriorityDialog}
+        selectedCount={selectedTaskIds.length}
+        onConfirm={handleBulkPriorityChange}
+        isProcessing={isProcessing}
+      />
+
+      <BulkAssignDialog
+        open={showAssignDialog}
+        onOpenChange={setShowAssignDialog}
+        selectedCount={selectedTaskIds.length}
+        onConfirm={handleBulkAssignChange}
+        isProcessing={isProcessing}
+      />
+
+      <BulkLabelDialog
+        open={showLabelDialog}
+        onOpenChange={setShowLabelDialog}
+        selectedCount={selectedTaskIds.length}
+        onConfirm={handleBulkAddLabels}
+        isProcessing={isProcessing}
+      />
+
+      <BulkDeleteDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        selectedCount={selectedTaskIds.length}
+        onConfirm={handleBulkDelete}
+        isProcessing={isProcessing}
+      />
     </div>
   )
 }

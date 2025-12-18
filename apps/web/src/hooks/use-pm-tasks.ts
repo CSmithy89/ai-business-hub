@@ -263,6 +263,34 @@ export type UpsertTaskLabelInput = {
   color?: string
 }
 
+export type BulkUpdateTasksInput = {
+  ids: string[]
+  status?: TaskStatus
+  priority?: TaskPriority
+  assignmentType?: AssignmentType
+  assigneeId?: string | null
+  agentId?: string | null
+  phaseId?: string
+}
+
+export type BulkUpdateTasksResponse = {
+  data: {
+    updated: number
+    failed: number
+  }
+}
+
+export type BulkDeleteTasksInput = {
+  ids: string[]
+}
+
+export type BulkDeleteTasksResponse = {
+  data: {
+    deleted: number
+    failed: number
+  }
+}
+
 async function fetchTasks(params: {
   workspaceId: string
   token?: string
@@ -764,6 +792,77 @@ async function createTask(params: {
   return body as { data: TaskListItem }
 }
 
+async function bulkUpdateTasks(params: {
+  workspaceId: string
+  token?: string
+  input: BulkUpdateTasksInput
+}): Promise<BulkUpdateTasksResponse> {
+  const base = getBaseUrl()
+
+  const search = new URLSearchParams()
+  search.set('workspaceId', params.workspaceId)
+
+  const response = await fetch(`${base}/pm/tasks/bulk?${search.toString()}`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+    },
+    body: JSON.stringify(params.input),
+    cache: 'no-store',
+  })
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to bulk update tasks')
+  }
+
+  if (!body || typeof body !== 'object' || !('data' in body)) {
+    throw new Error('Failed to bulk update tasks')
+  }
+
+  return body as BulkUpdateTasksResponse
+}
+
+async function bulkDeleteTasks(params: {
+  workspaceId: string
+  token?: string
+  input: BulkDeleteTasksInput
+}): Promise<BulkDeleteTasksResponse> {
+  const base = getBaseUrl()
+
+  const search = new URLSearchParams()
+  search.set('workspaceId', params.workspaceId)
+
+  // For bulk delete, we'll call the individual delete endpoint for each task
+  // until a bulk delete endpoint is available on the backend
+  const deletePromises = params.input.ids.map((id) =>
+    fetch(`${base}/pm/tasks/${encodeURIComponent(id)}?${search.toString()}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: params.token ? { Authorization: `Bearer ${params.token}` } : {},
+      cache: 'no-store',
+    })
+  )
+
+  const results = await Promise.allSettled(deletePromises)
+
+  const deleted = results.filter((r) => r.status === 'fulfilled' && r.value.ok).length
+  const failed = results.length - deleted
+
+  return {
+    data: {
+      deleted,
+      failed,
+    },
+  }
+}
+
 export function usePmTasks(query: ListTasksQuery) {
   const { data: session } = useSession()
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
@@ -1067,6 +1166,60 @@ export function useDeletePmTaskLabel() {
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to remove label'
+      toast.error(message)
+    },
+  })
+}
+
+export function useBulkUpdatePmTasks() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ input }: { input: BulkUpdateTasksInput }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return bulkUpdateTasks({ workspaceId, token, input })
+    },
+    onSuccess: (result) => {
+      const { updated, failed } = result.data
+      if (failed === 0) {
+        toast.success(`Updated ${updated} task${updated !== 1 ? 's' : ''}`)
+      } else {
+        toast.warning(`Updated ${updated}, failed ${failed}`)
+      }
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to bulk update tasks'
+      toast.error(message)
+    },
+  })
+}
+
+export function useBulkDeletePmTasks() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ input }: { input: BulkDeleteTasksInput }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return bulkDeleteTasks({ workspaceId, token, input })
+    },
+    onSuccess: (result) => {
+      const { deleted, failed } = result.data
+      if (failed === 0) {
+        toast.success(`Deleted ${deleted} task${deleted !== 1 ? 's' : ''}`)
+      } else {
+        toast.warning(`Deleted ${deleted}, failed ${failed}`)
+      }
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to bulk delete tasks'
       toast.error(message)
     },
   })
