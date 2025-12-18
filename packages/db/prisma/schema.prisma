@@ -1760,3 +1760,34 @@ enum KBPageActivityType {
   UNLINKED_FROM_PROJECT
   COMMENTED
 }
+
+// ============================================
+// PM AGENTS (PM-04)
+// ============================================
+
+/// AgentConversation - Chat history per agent per project
+model AgentConversation {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  projectId   String   @map("project_id")
+  userId      String   @map("user_id")
+  agentName   String   @map("agent_name") // 'navi', 'sage', 'chrono'
+
+  // Conversation
+  role     ConversationRole // 'USER' | 'AGENT'
+  message  String           @db.Text
+  metadata Json? // Agent response metadata, tool calls, etc.
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([workspaceId, projectId, agentName])
+  @@index([userId, agentName])
+  @@index([createdAt])
+  @@map("agent_conversations")
+}
+
+enum ConversationRole {
+  USER
+  AGENT
+}

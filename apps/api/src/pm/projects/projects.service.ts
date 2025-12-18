@@ -320,4 +320,117 @@ export class ProjectsService {
 
     return { data: links }
   }
+
+  async getProjectStatus(workspaceId: string, projectId: string) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, workspaceId, deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        currentPhase: true,
+        totalTasks: true,
+        completedTasks: true,
+      },
+    })
+
+    if (!project) {
+      throw new NotFoundException('Project not found')
+    }
+
+    // Get phases for current phase name lookup
+    const phases = await this.prisma.phase.findMany({
+      where: { projectId },
+      orderBy: { phaseNumber: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+      },
+    })
+
+    // Get current phase name
+    const currentPhase = phases.find(
+      (p) => p.id === project.currentPhase,
+    )?.name || 'Planning'
+
+    // Get tasks summary
+    const tasksSummary = {
+      total: project.totalTasks,
+      todo: 0,
+      inProgress: 0,
+      done: project.completedTasks,
+    }
+
+    // Get tasks due today and overdue
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    const [tasksDueToday, overdueTasks] = await this.prisma.$transaction([
+      this.prisma.task.count({
+        where: {
+          projectId,
+          deletedAt: null,
+          dueDate: {
+            gte: today,
+            lt: tomorrow,
+          },
+        },
+      }),
+      this.prisma.task.count({
+        where: {
+          projectId,
+          deletedAt: null,
+          dueDate: {
+            lt: today,
+          },
+          status: {
+            notIn: ['DONE', 'CANCELLED'],
+          },
+        },
+      }),
+    ])
+
+    // Get recent activity (last 5 task updates)
+    const recentTasks = await this.prisma.task.findMany({
+      where: {
+        projectId,
+        deletedAt: null,
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+      select: {
+        title: true,
+        status: true,
+        updatedAt: true,
+      },
+    })
+
+    const recentActivity = recentTasks.map((task) => {
+      const timeAgo = this.getTimeAgo(task.updatedAt)
+      return `${task.title} - ${task.status} (${timeAgo})`
+    })
+
+    return {
+      projectId: project.id,
+      projectName: project.name,
+      currentPhase,
+      tasksSummary,
+      tasksDueToday,
+      overdueTasks,
+      recentActivity,
+    }
+  }
+
+  private getTimeAgo(date: Date): string {
+    const now = new Date()
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+    if (seconds < 60) return 'just now'
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`
+    return date.toLocaleDateString()
+  }
 }
