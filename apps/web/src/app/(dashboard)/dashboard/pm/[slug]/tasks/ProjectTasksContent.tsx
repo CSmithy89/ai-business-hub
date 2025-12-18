@@ -13,10 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePmProject } from '@/hooks/use-pm-projects'
 import { usePmTasks, type TaskListItem, type TaskPriority, type TaskStatus, type TaskType } from '@/hooks/use-pm-tasks'
 import { TASK_PRIORITIES, TASK_PRIORITY_META, TASK_TYPES, TASK_TYPE_META } from '@/lib/pm/task-meta'
+import { getViewPreferences, setViewPreferences } from '@/lib/pm/view-preferences'
+import type { GroupByOption } from '@/lib/pm/kanban-grouping'
 import { cn } from '@/lib/utils'
 import { TaskDetailSheet } from './TaskDetailSheet'
 import { TaskListView } from '@/components/pm/views/TaskListView'
 import { KanbanBoardView } from '@/components/pm/views/KanbanBoardView'
+import { GroupBySelector } from '@/components/pm/kanban/GroupBySelector'
 
 const TASK_STATUSES: TaskStatus[] = [
   'BACKLOG',
@@ -74,6 +77,22 @@ export function ProjectTasksContent() {
   const [type, setType] = useState<TaskType | 'all'>('all')
   const [priority, setPriority] = useState<TaskPriority | 'all'>('all')
   const [viewMode, setViewMode] = useState<'simple' | 'table' | 'kanban'>('simple')
+
+  // Grouping preference for kanban view
+  const [groupBy, setGroupBy] = useState<GroupByOption>(() => {
+    if (project?.id) {
+      const prefs = getViewPreferences(project.id)
+      return prefs.kanbanGroupBy || 'status'
+    }
+    return 'status'
+  })
+
+  const handleGroupByChange = (newGroupBy: GroupByOption) => {
+    setGroupBy(newGroupBy)
+    if (project?.id) {
+      setViewPreferences(project.id, { kanbanGroupBy: newGroupBy })
+    }
+  }
 
   const query = useMemo(() => {
     return {
@@ -143,6 +162,9 @@ export function ProjectTasksContent() {
             <KanbanSquare className="h-4 w-4 mr-2" />
             Kanban
           </Button>
+          {viewMode === 'kanban' && (
+            <GroupBySelector value={groupBy} onChange={handleGroupByChange} />
+          )}
         </div>
       </div>
 
@@ -257,6 +279,8 @@ export function ProjectTasksContent() {
           <KanbanBoardView
             tasks={tasks}
             onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
+            groupBy={groupBy}
+            projectId={project.id}
           />
         ) : viewMode === 'table' ? (
           <TaskListView

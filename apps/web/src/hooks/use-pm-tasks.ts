@@ -218,6 +218,7 @@ export type UpdateTaskInput = Partial<{
   agentId: string | null
   dueDate: string | null
   storyPoints: number | null
+  phaseId: string | null
 }>
 
 export type CreateTaskInput = {

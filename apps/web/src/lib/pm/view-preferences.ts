@@ -2,10 +2,13 @@
  * PM View Preferences
  *
  * Story: PM-03.1 - Task List View
+ * Story: PM-03.3 - Kanban Drag & Drop
  *
  * Utilities for managing user view preferences in localStorage.
  * Preferences are stored per project to allow different settings for each project.
  */
+
+import type { GroupByOption } from './kanban-grouping'
 
 export interface ViewPreferences {
   /** Visible column IDs in list view */
@@ -14,6 +17,8 @@ export interface ViewPreferences {
   sortBy?: string
   /** Sort direction */
   sortOrder?: 'asc' | 'desc'
+  /** Kanban board grouping option */
+  kanbanGroupBy?: GroupByOption
 }
 
 /** Default column configuration for list view */
@@ -46,6 +51,7 @@ export function getViewPreferences(projectId: string): ViewPreferences {
         listColumns: parsed.listColumns || DEFAULT_COLUMNS,
         sortBy: parsed.sortBy,
         sortOrder: parsed.sortOrder,
+        kanbanGroupBy: parsed.kanbanGroupBy || 'status',
       }
     } catch {
       return getDefaultPreferences()
@@ -85,6 +91,7 @@ function getDefaultPreferences(): ViewPreferences {
     listColumns: DEFAULT_COLUMNS,
     sortBy: undefined,
     sortOrder: undefined,
+    kanbanGroupBy: 'status',
   }
 }
 
