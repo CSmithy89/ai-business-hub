@@ -142,6 +142,7 @@ export const EventTypes = {
   KB_PAGE_UNFAVORITED: 'kb.page.unfavorited',
   KB_PAGE_VERIFIED: 'kb.page.verified',
   KB_PAGE_UNVERIFIED: 'kb.page.unverified',
+  KB_PAGE_VERIFICATION_EXPIRED: 'kb.page.verification_expired',
 } as const;
 
 /**
@@ -358,6 +359,12 @@ export interface KBPageUnverifiedPayload {
   tenantId: string;
 }
 
+export interface KBPageVerificationExpiredPayload {
+  pageId: string;
+  workspaceId: string;
+  ownerId: string;
+}
+
 /**
  * Event payload type mapping for type-safe event creation
  * Maps event types to their corresponding payload types
@@ -403,6 +410,7 @@ export type EventPayloadMap = {
   [EventTypes.KB_PAGE_UNFAVORITED]: KBPageUnfavoritedPayload;
   [EventTypes.KB_PAGE_VERIFIED]: KBPageVerifiedPayload;
   [EventTypes.KB_PAGE_UNVERIFIED]: KBPageUnverifiedPayload;
+  [EventTypes.KB_PAGE_VERIFICATION_EXPIRED]: KBPageVerificationExpiredPayload;
 
   // Generic fallback for events without specific payloads
   [EventTypes.AUTH_USER_CREATED]: Record<string, unknown>;

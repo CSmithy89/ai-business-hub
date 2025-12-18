@@ -14,6 +14,7 @@ describe('VerificationService', () => {
     const mockPrisma = {
       knowledgePage: {
         findUnique: jest.fn(),
+        findMany: jest.fn(),
         update: jest.fn(),
       },
       pageActivity: {
@@ -218,6 +219,175 @@ describe('VerificationService', () => {
       await expect(service.removeVerification(pageId, userId)).rejects.toThrow(
         NotFoundException,
       )
+    })
+  })
+
+  describe('getStalPages', () => {
+    it('should return pages with expired verification', async () => {
+      const workspaceId = 'ws-123'
+      const now = new Date()
+      const expiredDate = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+
+      const mockPages = [
+        {
+          id: 'page-1',
+          title: 'Expired Page',
+          slug: 'expired-page',
+          isVerified: true,
+          verifyExpires: expiredDate,
+          updatedAt: new Date(),
+          viewCount: 10,
+          workspaceId,
+          ownerId: 'owner-1',
+        },
+      ]
+
+      prisma.knowledgePage.findMany.mockResolvedValue(mockPages as any)
+
+      const result = await service.getStalPages(workspaceId)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].reasons).toContain('Expired verification')
+    })
+
+    it('should return pages not updated in 90+ days', async () => {
+      const workspaceId = 'ws-123'
+      const oldDate = new Date()
+      oldDate.setDate(oldDate.getDate() - 91)
+
+      const mockPages = [
+        {
+          id: 'page-1',
+          title: 'Old Page',
+          slug: 'old-page',
+          isVerified: false,
+          verifyExpires: null,
+          updatedAt: oldDate,
+          viewCount: 10,
+          workspaceId,
+          ownerId: 'owner-1',
+        },
+      ]
+
+      prisma.knowledgePage.findMany.mockResolvedValue(mockPages as any)
+
+      const result = await service.getStalPages(workspaceId)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].reasons).toContain('Not updated in 90+ days')
+    })
+
+    it('should return pages with viewCount < 5', async () => {
+      const workspaceId = 'ws-123'
+
+      const mockPages = [
+        {
+          id: 'page-1',
+          title: 'Low View Page',
+          slug: 'low-view-page',
+          isVerified: false,
+          verifyExpires: null,
+          updatedAt: new Date(),
+          viewCount: 3,
+          workspaceId,
+          ownerId: 'owner-1',
+        },
+      ]
+
+      prisma.knowledgePage.findMany.mockResolvedValue(mockPages as any)
+
+      const result = await service.getStalPages(workspaceId)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].reasons).toContain('Low view count')
+    })
+
+    it('should annotate pages with multiple reasons', async () => {
+      const workspaceId = 'ws-123'
+      const now = new Date()
+      const expiredDate = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+      const oldDate = new Date()
+      oldDate.setDate(oldDate.getDate() - 91)
+
+      const mockPages = [
+        {
+          id: 'page-1',
+          title: 'Multiple Issues Page',
+          slug: 'multiple-issues-page',
+          isVerified: true,
+          verifyExpires: expiredDate,
+          updatedAt: oldDate,
+          viewCount: 2,
+          workspaceId,
+          ownerId: 'owner-1',
+        },
+      ]
+
+      prisma.knowledgePage.findMany.mockResolvedValue(mockPages as any)
+
+      const result = await service.getStalPages(workspaceId)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].reasons).toHaveLength(3)
+      expect(result[0].reasons).toContain('Expired verification')
+      expect(result[0].reasons).toContain('Not updated in 90+ days')
+      expect(result[0].reasons).toContain('Low view count')
+    })
+
+    it('should exclude deleted pages', async () => {
+      const workspaceId = 'ws-123'
+
+      prisma.knowledgePage.findMany.mockResolvedValue([])
+
+      await service.getStalPages(workspaceId)
+
+      expect(prisma.knowledgePage.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            deletedAt: null,
+          }),
+        }),
+      )
+    })
+
+    it('should order by updatedAt ascending', async () => {
+      const workspaceId = 'ws-123'
+
+      prisma.knowledgePage.findMany.mockResolvedValue([])
+
+      await service.getStalPages(workspaceId)
+
+      expect(prisma.knowledgePage.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { updatedAt: 'asc' },
+        }),
+      )
+    })
+
+    it('should include owner ID', async () => {
+      const workspaceId = 'ws-123'
+
+      prisma.knowledgePage.findMany.mockResolvedValue([])
+
+      await service.getStalPages(workspaceId)
+
+      expect(prisma.knowledgePage.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            ownerId: true,
+          }),
+        }),
+      )
+    })
+
+    it('should return empty array when no stale pages', async () => {
+      const workspaceId = 'ws-123'
+
+      prisma.knowledgePage.findMany.mockResolvedValue([])
+
+      const result = await service.getStalPages(workspaceId)
+
+      expect(result).toEqual([])
     })
   })
 })

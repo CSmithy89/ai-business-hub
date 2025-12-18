@@ -190,7 +190,7 @@ development_status:
   # ===========================================
   kb-03: contexted
   kb-03-1-verified-badge-system: done
-  kb-03-2-verification-workflow: backlog
+  kb-03-2-verification-workflow: done
   kb-03-3-stale-content-detection: backlog
   kb-03-4-review-cycle-triggers: backlog
   kb-03-5-at-mentions: backlog
