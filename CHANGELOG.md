@@ -142,6 +142,7 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 - DB migration: `packages/db/prisma/migrations/20251217194000_align_schema_to_current_prisma/`
 - Tech spec: `docs/modules/bm-pm/tech-spec-epic-pm-02.md`
+- Retrospective: `docs/modules/bm-pm/retrospectives/epic-pm-02-retro-2025-12-18.md`
 
 ---
 
