@@ -15,6 +15,7 @@ import TaskItem from '@tiptap/extension-task-item'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { createLowlight, common } from 'lowlight'
 import { createMentionExtension } from './extensions/mention'
+import { createTaskReferenceExtension } from './extensions/task-reference'
 import type * as Y from 'yjs'
 import type { HocuspocusProvider } from '@hocuspocus/provider'
 
@@ -125,6 +126,14 @@ export function createExtensions(
     ...(workspaceId
       ? [
           createMentionExtension({
+            workspaceId,
+          }),
+        ]
+      : []),
+    // Add task reference extension if workspaceId is provided
+    ...(workspaceId
+      ? [
+          createTaskReferenceExtension({
             workspaceId,
           }),
         ]

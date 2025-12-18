@@ -526,10 +526,10 @@ export class PagesService {
         )
     }
 
-    // Extract and update mentions if content changed
+    // Extract and update mentions (user @mentions and task #references) if content changed
     if (dto.content && contentChanged) {
       try {
-        const newlyMentionedUsers = await this.mentionService.updatePageMentions(
+        const newlyMentionedUsers = await this.mentionService.updateAllPageMentions(
           id,
           dto.content,
           workspaceId,

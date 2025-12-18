@@ -180,6 +180,10 @@ export class TasksService {
             OR: [
               { title: { contains: query.search, mode: 'insensitive' } },
               { description: { contains: query.search, mode: 'insensitive' } },
+              // Also search by task number for numeric queries (e.g., #123)
+              ...(/^\d+$/.test(query.search)
+                ? [{ taskNumber: parseInt(query.search, 10) }]
+                : []),
             ],
           }
         : {}),
