@@ -7,7 +7,7 @@
  * Utilities for grouping tasks by various criteria into kanban columns.
  */
 
-import type { TaskListItem, TaskStatus, TaskPriority, TaskType } from '@/hooks/use-pm-tasks'
+import type { TaskListItem, TaskStatus, TaskPriority, TaskType, UpdateTaskInput } from '@/hooks/use-pm-tasks'
 import { TASK_TYPE_META, TASK_PRIORITY_META } from './task-meta'
 
 export type GroupByOption = 'status' | 'priority' | 'assignee' | 'type' | 'phase'
@@ -233,7 +233,7 @@ function groupByPhase(tasks: TaskListItem[], wipLimits?: Record<string, number>)
 export function getUpdatePayloadFromGrouping(
   groupBy: GroupByOption,
   targetColumnId: string
-): Record<string, any> {
+): Partial<UpdateTaskInput> {
   switch (groupBy) {
     case 'status':
       return { status: targetColumnId as TaskStatus }

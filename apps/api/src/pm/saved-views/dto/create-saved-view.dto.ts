@@ -1,12 +1,18 @@
 import { ViewType } from '@prisma/client'
-import { IsBoolean, IsEnum, IsJSON, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator'
+import { IsBoolean, IsEnum, IsIn, IsJSON, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator'
+
+/**
+ * Allowed columns for sorting saved views
+ * Must match actual task table columns to prevent injection
+ */
+const ALLOWED_SORT_COLUMNS = ['title', 'status', 'priority', 'dueDate', 'createdAt', 'updatedAt', 'taskNumber'] as const
 
 export class CreateSavedViewDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
-  @Matches(/^[\w\s\-.,!?()&]+$/, {
-    message: 'View name can only contain letters, numbers, spaces, and basic punctuation',
+  @Matches(/^[\w\s\-.,()]+$/, {
+    message: 'View name can only contain letters, numbers, spaces, hyphens, periods, commas, and parentheses',
   })
   name!: string
 
@@ -23,10 +29,12 @@ export class CreateSavedViewDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(ALLOWED_SORT_COLUMNS, { message: 'sortBy must be a valid column name' })
   sortBy?: string
 
   @IsOptional()
   @IsString()
+  @IsIn(['asc', 'desc'], { message: 'sortOrder must be "asc" or "desc"' })
   sortOrder?: string
 
   @IsOptional()

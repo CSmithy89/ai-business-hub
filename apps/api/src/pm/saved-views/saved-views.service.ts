@@ -107,10 +107,7 @@ export class SavedViewsService {
       dto.filters,
       'filters'
     ) ?? {}) as Prisma.InputJsonValue
-    const columns = this.parseJsonSafe<Prisma.InputJsonObject>(
-      dto.columns,
-      'columns'
-    ) as Prisma.InputJsonValue | null ?? Prisma.JsonNull
+    const columns = this.parseJsonSafe<Prisma.InputJsonObject>(dto.columns, 'columns') ?? Prisma.JsonNull
 
     // Use transaction to prevent race condition when setting default view
     const view = await this.prisma.$transaction(async (tx) => {

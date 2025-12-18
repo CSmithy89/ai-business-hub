@@ -86,7 +86,7 @@ export function KanbanBoardView({
   )
 
   // Group tasks into columns based on groupBy option
-  // TODO: Read WIP limits from project settings when available
+  // TODO: Read WIP limits from project settings when available (requires project settings UI + backend)
   const columns = useMemo(() => {
     return groupTasksIntoColumns(tasks, groupBy)
   }, [tasks, groupBy])
@@ -119,7 +119,7 @@ export function KanbanBoardView({
     try {
       await updateTaskMutation.mutateAsync({
         taskId,
-        input: updatePayload as any
+        input: updatePayload
       })
     } catch (error) {
       // Error handling and rollback handled by React Query onError
