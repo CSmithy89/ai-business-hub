@@ -143,7 +143,7 @@ describe('AIProvidersService', () => {
   describe('create', () => {
     const createDto = {
       provider: 'claude' as const,
-      apiKey: 'sk-ant-test-key',
+      apiKey: 'claude_api_key_example',
       defaultModel: 'claude-3-5-sonnet-20241022',
       maxTokensPerDay: 100000,
     };

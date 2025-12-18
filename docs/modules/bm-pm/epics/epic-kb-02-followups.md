@@ -60,7 +60,8 @@ This file tracks actionable follow-ups based on code review for **Epic KB-02: KB
 
 ### 8) Extract magic numbers into constants
 - **Where:** `apps/api/src/kb/embeddings/embeddings.service.ts` (attempts, backoff, batch sizes, limits)
-- **TODO:** Move to `embeddings.constants.ts` (or similar) for tuning.
+- **TODO:**
+  - [x] Extracted to `apps/api/src/kb/embeddings/embeddings.constants.ts` for easier tuning.
 
 ### 9) Vector conversion caching (optional)
 - **Where:** `vectorToPgvectorText` call sites

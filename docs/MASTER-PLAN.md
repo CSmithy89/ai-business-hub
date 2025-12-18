@@ -51,7 +51,7 @@ Multi-agent AI orchestration with human-in-the-loop approval gates.
 
 ### 2.1 BYOAI (Bring Your Own AI)
 Users provide their own AI subscriptions:
-- **Claude Pro/Max** - Via OAuth token (`sk-ant-oat01-...`)
+- **Claude Pro/Max** - Via OAuth token (`claude-oauth-token-...`)
 - **Claude API** - Via API key (`sk-ant-...`)
 - **Codex** - Via token-based auth
 - **Gemini** - Via API key
@@ -370,7 +370,7 @@ interface AgentSession {
 interface UserModelConfig {
   // API Keys (encrypted at rest)
   apiKeys: {
-    claude_oauth_token?: string;     // sk-ant-oat01-...
+    claude_oauth_token?: string;     // claude-oauth-token-...
     claude_api_key?: string;          // sk-ant-...
     codex_id_token?: string;
     codex_access_token?: string;
@@ -739,7 +739,7 @@ const getWorkspacePath = (userId: string, sessionId: string): string => {
 │  API CREDENTIALS                                                        │
 │  ┌──────────────────────────────────────────────────────────────────┐ │
 │  │ Claude (Anthropic)                                   ✅ Connected │ │
-│  │ ├── OAuth Token: sk-ant-oat01-●●●●●●●●        [Update] [Test]    │ │
+│  │ ├── OAuth Token: claude-oauth-token-●●●●●●●●  [Update] [Test]    │ │
 │  │ └── Using: Claude Pro subscription                                │ │
 │  └──────────────────────────────────────────────────────────────────┘ │
 │                                                                         │

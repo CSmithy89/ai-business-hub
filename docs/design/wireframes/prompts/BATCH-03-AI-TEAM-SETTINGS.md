@@ -1637,7 +1637,7 @@ CONNECT PROVIDER MODAL:
 │                                                                        │
 │  API Key                                                               │
 │  ┌────────────────────────────────────────────────────────────────┐   │
-│  │ sk-ant-api03-                                                  │   │
+│  │ claude-api-key-                                                │   │
 │  └────────────────────────────────────────────────────────────────┘   │
 │  Get your API key from console.anthropic.com                          │
 │                                  [↗ Get API Key]                      │

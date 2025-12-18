@@ -159,7 +159,7 @@ The official SDK from Anthropic that provides the building blocks to create auto
 - **Primary**: `ANTHROPIC_API_KEY` environment variable
 - **Amazon Bedrock**: `CLAUDE_CODE_USE_BEDROCK=1`
 - **Vertex AI**: `CLAUDE_CODE_USE_VERTEX=1`
-- **OAuth Token**: `sk-ant-oat01-...` (for Pro/Max subscriptions)
+- **OAuth Token**: `claude-oauth-token-...` (for Pro/Max subscriptions)
 
 ### Container Deployment
 Community project [claude-agent-sdk-container](https://github.com/receipting/claude-agent-sdk-container) provides:
@@ -219,7 +219,7 @@ Taskosaur's AI doesn't just suggest - it **executes**:
 The user's existing "Remote coding agent" folder contains a **complete reference implementation** for containerized AI agent execution using Claude subscriptions!
 
 ### What It Solves
-- **Claude OAuth tokens** (`sk-ant-oat01-...`) for Pro/Max subscriptions
+- **Claude OAuth tokens** (`claude-oauth-token-...`) for Pro/Max subscriptions
 - **Codex SDK** integration with token-based auth
 - **Docker containerization** with compose profiles
 - **Multi-platform messaging** (Telegram, GitHub webhooks)
@@ -283,7 +283,7 @@ export interface IAssistantClient {
 ### Authentication Patterns
 ```env
 # Claude OAuth (uses Pro/Max subscription)
-CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-xxxxx
+CLAUDE_CODE_OAUTH_TOKEN=claude-oauth-token-xxxxx
 
 # Or Claude API Key (pay-per-use)
 CLAUDE_API_KEY=sk-ant-xxxxx

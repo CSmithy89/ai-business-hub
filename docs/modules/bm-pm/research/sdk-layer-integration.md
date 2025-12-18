@@ -32,7 +32,7 @@ The HYVVE Platform uses a **three-layer architecture** for AI integration:
 
 **Critical Feature: OAuth Token Passthrough**
 
-Users can connect their **Claude Pro/Max subscription** via OAuth token (`sk-ant-oat01-xxxxx`), allowing them to use their existing subscription through the platform **without additional API costs**.
+Users can connect their **Claude Pro/Max subscription** via OAuth token (`claude-oauth-token-xxxxx`), allowing them to use their existing subscription through the platform **without additional API costs**.
 
 ---
 
@@ -348,7 +348,7 @@ export class CodexClient implements IAssistantClient {
 # User runs this locally
 claude setup-token
 
-# Returns: sk-ant-oat01-xxxxx
+# Returns: claude-oauth-token-xxxxx
 ```
 
 **How we store it:**
@@ -356,7 +356,7 @@ claude setup-token
 // Store as oauth_token type (not api_key)
 await credentialManager.store(userId, 'claude', {
   type: 'oauth_token',
-  value: 'sk-ant-oat01-xxxxx',  // Encrypted
+  value: 'claude-oauth-token-xxxxx',  // Encrypted
   provider: 'claude-code',
 });
 ```

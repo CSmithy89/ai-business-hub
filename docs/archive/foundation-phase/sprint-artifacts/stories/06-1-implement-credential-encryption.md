@@ -352,13 +352,13 @@ import { CredentialEncryptionService } from '@hyvve/shared';
 
 // Using the class
 const service = new CredentialEncryptionService();
-const encrypted = service.encrypt('sk-ant-api03-my-secret-key');
-const decrypted = service.decrypt(encrypted); // 'sk-ant-api03-my-secret-key'
+const encrypted = service.encrypt('claude_api_key_example');
+const decrypted = service.decrypt(encrypted); // 'claude_api_key_example'
 
 // Using convenience functions (recommended)
 import { encryptCredential, decryptCredential } from '@hyvve/shared';
 
-const encrypted = encryptCredential('sk-ant-api03-my-secret-key');
+const encrypted = encryptCredential('claude_api_key_example');
 const decrypted = decryptCredential(encrypted);
 ```
 

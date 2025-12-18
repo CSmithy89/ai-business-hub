@@ -346,7 +346,7 @@ describe('CredentialEncryptionService', () => {
     });
 
     it('should handle typical Claude API key format', async () => {
-      const apiKey = 'sk-ant-api03-1234567890abcdefghijklmnopqrstuvwxyz';
+      const apiKey = 'claude_api_key_example_1234567890';
       const encrypted = await service.encrypt(apiKey);
       const decrypted = await service.decrypt(encrypted);
 
@@ -354,7 +354,7 @@ describe('CredentialEncryptionService', () => {
     });
 
     it('should handle typical OpenAI API key format', async () => {
-      const apiKey = 'sk-1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP';
+      const apiKey = 'openai_api_key_example_1234567890';
       const encrypted = await service.encrypt(apiKey);
       const decrypted = await service.decrypt(encrypted);
 
@@ -362,7 +362,7 @@ describe('CredentialEncryptionService', () => {
     });
 
     it('should handle typical Google API key format', async () => {
-      const apiKey = 'AIzaSyD-1234567890abcdefghijklmnopqrstuv';
+      const apiKey = 'google_api_key_example_1234567890';
       const encrypted = await service.encrypt(apiKey);
       const decrypted = await service.decrypt(encrypted);
 
@@ -370,7 +370,7 @@ describe('CredentialEncryptionService', () => {
     });
 
     it('should handle typical OpenRouter API key format', async () => {
-      const apiKey = 'sk-or-v1-1234567890abcdefghijklmnopqrstuvwxyz';
+      const apiKey = 'openrouter_api_key_example_1234567890';
       const encrypted = await service.encrypt(apiKey);
       const decrypted = await service.decrypt(encrypted);
 
@@ -379,10 +379,10 @@ describe('CredentialEncryptionService', () => {
 
     it('should encrypt multiple different API keys independently', async () => {
       const keys = [
-        'sk-ant-api03-claude-key',
-        'sk-openai-key',
-        'AIzaSyD-google-key',
-        'sk-or-v1-openrouter-key',
+        'claude_api_key_example_1',
+        'openai_api_key_example_1',
+        'google_api_key_example_1',
+        'openrouter_api_key_example_1',
       ];
 
       const encrypted = await Promise.all(keys.map((key) => service.encrypt(key)));

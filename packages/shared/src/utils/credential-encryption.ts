@@ -96,7 +96,7 @@ export class CredentialEncryptionService {
    *
    * @example
    * ```typescript
-   * const encrypted = await service.encrypt('sk-ant-1234567890');
+   * const encrypted = await service.encrypt('claude_api_key_example');
    * // Returns: base64 string like "Q2hlY2sgdGhpcyBvdXQh..."
    * ```
    */
@@ -157,7 +157,7 @@ export class CredentialEncryptionService {
    * @example
    * ```typescript
    * const decrypted = await service.decrypt('Q2hlY2sgdGhpcyBvdXQh...');
-   * // Returns: 'sk-ant-1234567890'
+   * // Returns: 'claude_api_key_example'
    * ```
    */
   async decrypt(ciphertext: string): Promise<string> {
