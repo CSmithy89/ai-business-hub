@@ -183,17 +183,26 @@ export class MentionService {
       return
     }
 
-    // Get page details
+    // Get page details and validate workspace ownership
     const page = await this.prisma.knowledgePage.findUnique({
       where: { id: pageId },
       select: {
         title: true,
         slug: true,
+        workspaceId: true,
       },
     })
 
     if (!page) {
       this.logger.warn(`Page ${pageId} not found for mention notifications`)
+      return
+    }
+
+    // Validate page belongs to the specified workspace
+    if (page.workspaceId !== workspaceId) {
+      this.logger.warn(
+        `Page ${pageId} does not belong to workspace ${workspaceId}`
+      )
       return
     }
 

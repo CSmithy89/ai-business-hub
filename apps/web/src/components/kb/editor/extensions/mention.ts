@@ -2,6 +2,7 @@ import Mention from '@tiptap/extension-mention'
 import { ReactRenderer } from '@tiptap/react'
 import { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
 import tippy, { Instance as TippyInstance } from 'tippy.js'
+import { toast } from 'sonner'
 import { MentionList } from '../MentionList'
 
 export interface MentionSuggestionOptions {
@@ -17,6 +18,9 @@ interface WorkspaceMember {
   }
 }
 
+// Configuration constants
+const FETCH_TIMEOUT_MS = 5000
+
 export const createMentionExtension = (options: MentionSuggestionOptions) => {
   return Mention.configure({
     HTMLAttributes: {
@@ -28,13 +32,20 @@ export const createMentionExtension = (options: MentionSuggestionOptions) => {
     suggestion: {
       char: '@',
       items: async ({ query }) => {
-        // Fetch workspace members from API
+        // Fetch workspace members from API with timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+
         try {
           const response = await fetch(
-            `/api/workspaces/${options.workspaceId}/members?q=${encodeURIComponent(query)}`
+            `/api/workspaces/${options.workspaceId}/members?q=${encodeURIComponent(query)}`,
+            { signal: controller.signal }
           )
+          clearTimeout(timeoutId)
+
           if (!response.ok) {
             console.error('Failed to fetch members:', response.statusText)
+            toast.error('Failed to load workspace members')
             return []
           }
           const members = await response.json()
@@ -47,7 +58,14 @@ export const createMentionExtension = (options: MentionSuggestionOptions) => {
             avatarUrl: member.user.image,
           }))
         } catch (error) {
-          console.error('Error fetching members:', error)
+          clearTimeout(timeoutId)
+          if (error instanceof Error && error.name === 'AbortError') {
+            console.error('Fetch members request timed out')
+            toast.error('Request timed out - please try again')
+          } else {
+            console.error('Error fetching members:', error)
+            toast.error('Failed to load workspace members')
+          }
           return []
         }
       },
@@ -95,8 +113,17 @@ export const createMentionExtension = (options: MentionSuggestionOptions) => {
           },
 
           onExit() {
-            popup[0].destroy()
-            component.destroy()
+            // Safe cleanup with error handling to prevent memory leaks
+            try {
+              popup?.[0]?.destroy()
+            } catch (error) {
+              console.warn('Error cleaning up mention popup:', error)
+            }
+            try {
+              component?.destroy()
+            } catch (error) {
+              console.warn('Error cleaning up mention component:', error)
+            }
           },
         }
       },

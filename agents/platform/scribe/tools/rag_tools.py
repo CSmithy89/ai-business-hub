@@ -1,27 +1,15 @@
 """
-RAG Tools for Scribe Agent
+RAG Tools for Scribe Agent.
 Semantic search and natural language Q&A over the knowledge base.
 """
 
 from typing import Optional
 import logging
-import httpx
 from agno import tool
 
+from .http_utils import api_get, api_post, API_BASE_URL
+
 logger = logging.getLogger(__name__)
-
-
-def _build_headers(
-    workspace_id: Optional[str] = None,
-    api_token: Optional[str] = None,
-) -> dict:
-    """Build HTTP headers with authentication and workspace context."""
-    headers = {}
-    if workspace_id:
-        headers["X-Workspace-Id"] = workspace_id
-    if api_token:
-        headers["Authorization"] = f"Bearer {api_token}"
-    return headers
 
 
 @tool
@@ -31,7 +19,7 @@ async def query_rag(
     include_verified_only: bool = False,
     workspace_id: Optional[str] = None,
     api_token: Optional[str] = None,
-    api_base_url: str = "http://localhost:3001",
+    api_base_url: str = API_BASE_URL,
 ) -> dict:
     """
     Perform semantic search over the knowledge base using embeddings.
@@ -52,42 +40,43 @@ async def query_rag(
     """
     logger.info(f"RAG query: {query}")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"{api_base_url}/api/kb/search/semantic",
-            json={
-                "query": query,
-                "limit": limit,
-                "verifiedOnly": include_verified_only,
-            },
-            headers=_build_headers(workspace_id, api_token),
-            timeout=60.0,
-        )
+    result = await api_post(
+        endpoint="/api/kb/search/semantic",
+        json={
+            "query": query,
+            "limit": limit,
+            "verifiedOnly": include_verified_only,
+        },
+        workspace_id=workspace_id,
+        api_token=api_token,
+        api_base_url=api_base_url,
+        timeout=60.0,
+    )
 
-        if response.status_code == 200:
-            data = response.json()
-            results = data.get("data", [])
-            return {
-                "success": True,
-                "results": [
-                    {
-                        "id": r.get("id"),
-                        "title": r.get("title"),
-                        "slug": r.get("slug"),
-                        "snippet": r.get("snippet", ""),
-                        "score": r.get("score", 0),
-                        "isVerified": r.get("isVerified", False),
-                    }
-                    for r in results
-                ],
-                "total": len(results),
-                "query": query,
-            }
-        else:
-            return {
-                "success": False,
-                "error": f"Semantic search failed: {response.text}",
-            }
+    if result["success"]:
+        data = result.get("data", {})
+        results = data.get("data", [])
+        return {
+            "success": True,
+            "results": [
+                {
+                    "id": r.get("id"),
+                    "title": r.get("title"),
+                    "slug": r.get("slug"),
+                    "snippet": r.get("snippet", ""),
+                    "score": r.get("score", 0),
+                    "isVerified": r.get("isVerified", False),
+                }
+                for r in results
+            ],
+            "total": len(results),
+            "query": query,
+        }
+    else:
+        return {
+            "success": False,
+            "error": f"Semantic search failed: {result.get('error', 'Unknown error')}",
+        }
 
 
 @tool
@@ -96,7 +85,7 @@ async def get_related_pages(
     limit: int = 5,
     workspace_id: Optional[str] = None,
     api_token: Optional[str] = None,
-    api_base_url: str = "http://localhost:3001",
+    api_base_url: str = API_BASE_URL,
 ) -> dict:
     """
     Find pages related to a specific page using embedding similarity.
@@ -115,36 +104,36 @@ async def get_related_pages(
     """
     logger.info(f"Finding related pages for: {page_id}")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{api_base_url}/api/kb/pages/{page_id}/related",
-            params={"limit": limit},
-            headers=_build_headers(workspace_id, api_token),
-            timeout=30.0,
-        )
+    result = await api_get(
+        endpoint=f"/api/kb/pages/{page_id}/related",
+        params={"limit": limit},
+        workspace_id=workspace_id,
+        api_token=api_token,
+        api_base_url=api_base_url,
+    )
 
-        if response.status_code == 200:
-            data = response.json()
-            pages = data.get("data", [])
-            return {
-                "success": True,
-                "results": [
-                    {
-                        "id": p.get("id"),
-                        "title": p.get("title"),
-                        "slug": p.get("slug"),
-                        "similarity": p.get("similarity", 0),
-                        "isVerified": p.get("isVerified", False),
-                    }
-                    for p in pages
-                ],
-                "total": len(pages),
-            }
-        else:
-            return {
-                "success": False,
-                "error": f"Failed to get related pages: {response.text}",
-            }
+    if result["success"]:
+        data = result.get("data", {})
+        pages = data.get("data", [])
+        return {
+            "success": True,
+            "results": [
+                {
+                    "id": p.get("id"),
+                    "title": p.get("title"),
+                    "slug": p.get("slug"),
+                    "similarity": p.get("similarity", 0),
+                    "isVerified": p.get("isVerified", False),
+                }
+                for p in pages
+            ],
+            "total": len(pages),
+        }
+    else:
+        return {
+            "success": False,
+            "error": f"Failed to get related pages: {result.get('error', 'Unknown error')}",
+        }
 
 
 @tool
@@ -153,7 +142,7 @@ async def ask_kb_question(
     use_verified_sources: bool = True,
     workspace_id: Optional[str] = None,
     api_token: Optional[str] = None,
-    api_base_url: str = "http://localhost:3001",
+    api_base_url: str = API_BASE_URL,
 ) -> dict:
     """
     Answer a question using the knowledge base as context.
@@ -173,35 +162,36 @@ async def ask_kb_question(
     """
     logger.info(f"Answering KB question: {question}")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"{api_base_url}/api/kb/ask",
-            json={
-                "question": question,
-                "preferVerified": use_verified_sources,
-            },
-            headers=_build_headers(workspace_id, api_token),
-            timeout=90.0,
-        )
+    result = await api_post(
+        endpoint="/api/kb/ask",
+        json={
+            "question": question,
+            "preferVerified": use_verified_sources,
+        },
+        workspace_id=workspace_id,
+        api_token=api_token,
+        api_base_url=api_base_url,
+        timeout=90.0,
+    )
 
-        if response.status_code == 200:
-            data = response.json()
-            return {
-                "success": True,
-                "answer": data.get("answer", ""),
-                "sources": [
-                    {
-                        "id": s.get("id"),
-                        "title": s.get("title"),
-                        "slug": s.get("slug"),
-                        "isVerified": s.get("isVerified", False),
-                    }
-                    for s in data.get("sources", [])
-                ],
-                "confidence": data.get("confidence", "medium"),
-            }
-        else:
-            return {
-                "success": False,
-                "error": f"Failed to answer question: {response.text}",
-            }
+    if result["success"]:
+        data = result.get("data", {})
+        return {
+            "success": True,
+            "answer": data.get("answer", ""),
+            "sources": [
+                {
+                    "id": s.get("id"),
+                    "title": s.get("title"),
+                    "slug": s.get("slug"),
+                    "isVerified": s.get("isVerified", False),
+                }
+                for s in data.get("sources", [])
+            ],
+            "confidence": data.get("confidence", "medium"),
+        }
+    else:
+        return {
+            "success": False,
+            "error": f"Failed to answer question: {result.get('error', 'Unknown error')}",
+        }

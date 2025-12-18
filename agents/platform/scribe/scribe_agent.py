@@ -61,7 +61,7 @@ INSTRUCTIONS = [
     "Communication Style:",
     "- Be helpful and proactive - suggest related pages and improvements",
     "- Use clear, concise language",
-    "- Format responses with proper markdown when appropriate",
+    "- Format responses with proper Markdown when appropriate",
     "- Acknowledge the source of information when answering from KB",
     "",
     "Important Constraints:",

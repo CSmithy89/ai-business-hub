@@ -5,6 +5,10 @@ import { PrismaService } from '../../common/services/prisma.service'
 import { EventPublisherService } from '../../events'
 import { VerifyPageDto } from './dto/verify-page.dto'
 
+// Stale content detection thresholds
+const STALE_DAYS_THRESHOLD = 90
+const LOW_VIEW_THRESHOLD = 5
+
 @Injectable()
 export class VerificationService {
   private readonly logger = new Logger(VerificationService.name)
@@ -171,15 +175,15 @@ export class VerificationService {
    * Get all stale pages needing review
    * Returns pages meeting one or more of these criteria:
    * 1. Expired verification (isVerified=true AND verifyExpires <= now())
-   * 2. Not updated in 90+ days (updatedAt <= now() - 90 days)
-   * 3. Low view count (viewCount < 5)
+   * 2. Not updated in STALE_DAYS_THRESHOLD+ days
+   * 3. Low view count (viewCount < LOW_VIEW_THRESHOLD)
    *
    * Each page is annotated with an array of reasons for staleness
    */
   async getStalPages(workspaceId: string) {
     const now = new Date()
-    const ninetyDaysAgo = new Date()
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+    const staleCutoffDate = new Date()
+    staleCutoffDate.setDate(staleCutoffDate.getDate() - STALE_DAYS_THRESHOLD)
 
     const pages = await this.prisma.knowledgePage.findMany({
       where: {
@@ -191,13 +195,13 @@ export class VerificationService {
             isVerified: true,
             verifyExpires: { lte: now },
           },
-          // Not updated in 90+ days
+          // Not updated in STALE_DAYS_THRESHOLD+ days
           {
-            updatedAt: { lte: ninetyDaysAgo },
+            updatedAt: { lte: staleCutoffDate },
           },
-          // Low view count (< 5 views)
+          // Low view count
           {
-            viewCount: { lt: 5 },
+            viewCount: { lt: LOW_VIEW_THRESHOLD },
           },
         ],
       },
@@ -236,11 +240,11 @@ export class VerificationService {
         reasons.push('Expired verification')
       }
 
-      if (page.updatedAt <= ninetyDaysAgo) {
-        reasons.push('Not updated in 90+ days')
+      if (page.updatedAt <= staleCutoffDate) {
+        reasons.push(`Not updated in ${STALE_DAYS_THRESHOLD}+ days`)
       }
 
-      if (page.viewCount < 5) {
+      if (page.viewCount < LOW_VIEW_THRESHOLD) {
         reasons.push('Low view count')
       }
 
