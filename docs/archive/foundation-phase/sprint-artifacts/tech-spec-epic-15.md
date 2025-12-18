@@ -2219,7 +2219,7 @@ test('complete onboarding wizard', async ({ page }) => {
 
   // Step 2: BYOAI
   await page.click('[data-provider="anthropic"]');
-  await page.fill('[name="apiKey"]', 'sk-ant-test-key');
+  await page.fill('[name="apiKey"]', 'claude_api_key_example');
   await page.click('button:has-text("Test")');
   await expect(page.locator('text=API key verified')).toBeVisible();
   await page.click('button:has-text("Continue")');
