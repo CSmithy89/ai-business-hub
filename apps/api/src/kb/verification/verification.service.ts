@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { KnowledgePage } from '@prisma/client'
 import { EventTypes } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
@@ -24,7 +24,10 @@ export class VerificationService {
   private calculateExpirationDate(expiresIn: string): Date | null {
     if (expiresIn === 'never') return null
 
-    const days = parseInt(expiresIn) // '30d' -> 30
+    const days = parseInt(expiresIn, 10) // '30d' -> 30
+    if (isNaN(days) || days <= 0) {
+      throw new BadRequestException('Invalid expiration period')
+    }
     const expiry = new Date()
     expiry.setDate(expiry.getDate() + days)
     return expiry

@@ -1718,6 +1718,7 @@ model PageMention {
   @@index([pageId])
   @@index([targetId])
   @@index([mentionType])
+  @@index([targetId, mentionType]) // Compound index for getUserMentions/getTaskReferences queries
   @@map("page_mentions")
 }
 

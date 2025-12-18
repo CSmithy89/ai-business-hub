@@ -207,9 +207,14 @@ async def analyze_kb_structure(
     data = result.get("data", {})
     pages = data.get("data", [])
 
+    # Check if we hit the page limit (analysis may be incomplete)
+    page_limit = 500
+    is_truncated = len(pages) >= page_limit
+
     # Analyze structure
     analysis = {
         "total_pages": len(pages),
+        "is_truncated": is_truncated,
         "verified_pages": 0,
         "unverified_pages": 0,
         "orphan_pages": [],
@@ -218,6 +223,13 @@ async def analyze_kb_structure(
         "potential_duplicates": [],
         "recommendations": [],
     }
+
+    # Add truncation warning if applicable
+    if is_truncated:
+        analysis["recommendations"].append(
+            f"⚠️ Analysis limited to first {page_limit} pages. "
+            "Some issues may not be detected in larger workspaces."
+        )
 
     titles_seen = {}
     for page in pages:

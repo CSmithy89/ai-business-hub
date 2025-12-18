@@ -114,8 +114,11 @@ export const createMentionExtension = (options: MentionSuggestionOptions) => {
 
           onExit() {
             // Safe cleanup with error handling to prevent memory leaks
+            // Check isDestroyed to prevent race conditions in rapid operations
             try {
-              popup?.[0]?.destroy()
+              if (popup?.[0] && !popup[0].state.isDestroyed) {
+                popup[0].destroy()
+              }
             } catch (error) {
               console.warn('Error cleaning up mention popup:', error)
             }
