@@ -19,6 +19,8 @@ export interface ViewPreferences {
   sortOrder?: 'asc' | 'desc'
   /** Kanban board grouping option */
   kanbanGroupBy?: GroupByOption
+  /** Active view mode: simple, table, kanban, or calendar */
+  viewMode?: 'simple' | 'table' | 'kanban' | 'calendar'
 }
 
 /** Default column configuration for list view */
@@ -52,6 +54,7 @@ export function getViewPreferences(projectId: string): ViewPreferences {
         sortBy: parsed.sortBy,
         sortOrder: parsed.sortOrder,
         kanbanGroupBy: parsed.kanbanGroupBy || 'status',
+        viewMode: parsed.viewMode || 'simple',
       }
     } catch {
       return getDefaultPreferences()
@@ -92,6 +95,7 @@ function getDefaultPreferences(): ViewPreferences {
     sortBy: undefined,
     sortOrder: undefined,
     kanbanGroupBy: 'status',
+    viewMode: 'simple',
   }
 }
 

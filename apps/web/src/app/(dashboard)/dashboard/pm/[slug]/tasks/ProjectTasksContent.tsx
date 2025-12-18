@@ -77,7 +77,13 @@ export function ProjectTasksContent() {
   const [status, setStatus] = useState<TaskStatus | 'all'>('all')
   const [type, setType] = useState<TaskType | 'all'>('all')
   const [priority, setPriority] = useState<TaskPriority | 'all'>('all')
-  const [viewMode, setViewMode] = useState<'simple' | 'table' | 'kanban' | 'calendar'>('simple')
+  const [viewMode, setViewMode] = useState<'simple' | 'table' | 'kanban' | 'calendar'>(() => {
+    if (project?.id) {
+      const prefs = getViewPreferences(project.id)
+      return prefs.viewMode || 'simple'
+    }
+    return 'simple'
+  })
 
   // Grouping preference for kanban view
   const [groupBy, setGroupBy] = useState<GroupByOption>(() => {
@@ -92,6 +98,13 @@ export function ProjectTasksContent() {
     setGroupBy(newGroupBy)
     if (project?.id) {
       setViewPreferences(project.id, { kanbanGroupBy: newGroupBy })
+    }
+  }
+
+  const handleViewModeChange = (mode: 'simple' | 'table' | 'kanban' | 'calendar') => {
+    setViewMode(mode)
+    if (project?.id) {
+      setViewPreferences(project.id, { viewMode: mode })
     }
   }
 
@@ -143,14 +156,14 @@ export function ProjectTasksContent() {
           <Button
             variant={viewMode === 'simple' ? 'secondary' : 'outline'}
             size="sm"
-            onClick={() => setViewMode('simple')}
+            onClick={() => handleViewModeChange('simple')}
           >
             Simple
           </Button>
           <Button
             variant={viewMode === 'table' ? 'secondary' : 'outline'}
             size="sm"
-            onClick={() => setViewMode('table')}
+            onClick={() => handleViewModeChange('table')}
           >
             <LayoutList className="h-4 w-4 mr-2" />
             Table
@@ -158,7 +171,7 @@ export function ProjectTasksContent() {
           <Button
             variant={viewMode === 'kanban' ? 'secondary' : 'outline'}
             size="sm"
-            onClick={() => setViewMode('kanban')}
+            onClick={() => handleViewModeChange('kanban')}
           >
             <KanbanSquare className="h-4 w-4 mr-2" />
             Kanban
@@ -166,7 +179,7 @@ export function ProjectTasksContent() {
           <Button
             variant={viewMode === 'calendar' ? 'secondary' : 'outline'}
             size="sm"
-            onClick={() => setViewMode('calendar')}
+            onClick={() => handleViewModeChange('calendar')}
           >
             <CalendarDays className="h-4 w-4 mr-2" />
             Calendar
