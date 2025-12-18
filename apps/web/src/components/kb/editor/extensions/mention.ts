@@ -114,19 +114,26 @@ export const createMentionExtension = (options: MentionSuggestionOptions) => {
 
           onExit() {
             // Safe cleanup with error handling to prevent memory leaks
-            // Check isDestroyed to prevent race conditions in rapid operations
+            // Destroy popup first, then component to prevent React unmount warnings
             try {
               if (popup?.[0] && !popup[0].state.isDestroyed) {
                 popup[0].destroy()
               }
+              // Clear reference to allow garbage collection
+              popup = []
             } catch (error) {
               console.warn('Error cleaning up mention popup:', error)
             }
-            try {
-              component?.destroy()
-            } catch (error) {
-              console.warn('Error cleaning up mention component:', error)
-            }
+
+            // Defer component destruction to ensure popup cleanup completes
+            // This prevents React warnings about unmounting with pending updates
+            setTimeout(() => {
+              try {
+                component?.destroy()
+              } catch (error) {
+                console.warn('Error cleaning up mention component:', error)
+              }
+            }, 0)
           },
         }
       },

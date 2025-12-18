@@ -20,14 +20,23 @@ export class VerificationService {
 
   /**
    * Calculate expiration date based on period
+   * Uses explicit mapping for security - prevents bypass via parseInt manipulation
    */
   private calculateExpirationDate(expiresIn: string): Date | null {
     if (expiresIn === 'never') return null
 
-    const days = parseInt(expiresIn, 10) // '30d' -> 30
-    if (isNaN(days) || days <= 0) {
+    // Explicit mapping of allowed values - defensive against input manipulation
+    const daysMap: Record<string, number> = {
+      '30d': 30,
+      '60d': 60,
+      '90d': 90,
+    }
+
+    const days = daysMap[expiresIn]
+    if (!days) {
       throw new BadRequestException('Invalid expiration period')
     }
+
     const expiry = new Date()
     expiry.setDate(expiry.getDate() + days)
     return expiry

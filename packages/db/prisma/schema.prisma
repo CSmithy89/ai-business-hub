@@ -1603,6 +1603,9 @@ model KnowledgePage {
   @@index([isVerified])
   @@index([updatedAt])
   @@index([deletedAt])
+  // Composite indices for verification queries (cron job and stale detection)
+  @@index([isVerified, verifyExpires])
+  @@index([workspaceId, deletedAt, updatedAt])
   @@map("knowledge_pages")
 }
 
