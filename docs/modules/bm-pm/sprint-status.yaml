@@ -151,17 +151,16 @@ development_status:
   # ===========================================
   kb-01: contexted
   kb-01-1-knowledge-page-model-api: done
-  kb-01-2-page-editor-tiptap: done
+  kb-01-2-page-versioning: done
   kb-01-3-rich-text-editor: done
-  kb-01-4-page-hierarchy-tree: backlog
-  kb-01-4-page-versioning: backlog
-  kb-01-5-kb-sidebar-navigation: done
+  kb-01-4-page-auto-save: done
+  kb-01-5-page-tree-navigation: done
   kb-01-6-breadcrumb-navigation: done
   kb-01-7-full-text-search: done
-  kb-01-8-project-page-linking: backlog
-  kb-01-9-task-kb-references: backlog
-  kb-01-10-kb-permissions: backlog
-  kb-01-retrospective: optional
+  kb-01-8-recent-pages-favorites: done
+  kb-01-9-project-kb-linking: done
+  kb-01-10-project-docs-tab: done
+  kb-01-retrospective: completed
 
   # ===========================================
   # PHASE 2 - 5 Epics, 34 Stories
