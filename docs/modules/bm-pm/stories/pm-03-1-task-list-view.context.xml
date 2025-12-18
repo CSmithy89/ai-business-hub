@@ -1,0 +1,683 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-summary>
+    <story-id>PM-03-1</story-id>
+    <title>Task List View</title>
+    <epic>PM-03: Views &amp; Navigation</epic>
+    <priority>High</priority>
+    <story-points>5</story-points>
+    <complexity>Medium</complexity>
+
+    <description>
+      Implement a high-performance, sortable task list view using TanStack Table v8 with virtualization.
+      The view should display tasks in a table format with sortable columns, bulk selection, pagination,
+      and column visibility toggles. Must handle 500+ tasks smoothly with virtualization.
+    </description>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-1">
+      <title>Table Structure</title>
+      <description>
+        Table displays columns: Checkbox, Task number, Title, Status, Priority, Assignee, Due date
+      </description>
+    </criterion>
+
+    <criterion id="AC-2">
+      <title>Sortable Headers</title>
+      <description>
+        Column headers are clickable for sorting (asc/desc toggle with visual indicator)
+      </description>
+    </criterion>
+
+    <criterion id="AC-3">
+      <title>Bulk Selection</title>
+      <description>
+        Header checkbox selects all visible tasks. Individual row checkboxes enable bulk actions bar.
+      </description>
+    </criterion>
+
+    <criterion id="AC-4">
+      <title>Pagination</title>
+      <description>
+        Show 50 tasks per page with "Load More" button. Maintain scroll position when loading more.
+      </description>
+    </criterion>
+
+    <criterion id="AC-5">
+      <title>Column Visibility</title>
+      <description>
+        Popover with checkboxes for each column. Column visibility persists per user per project in localStorage.
+      </description>
+    </criterion>
+  </acceptance-criteria>
+
+  <existing-code>
+    <file path="apps/api/src/pm/tasks/tasks.service.ts">
+      <description>Task service with list method supporting filters and pagination</description>
+      <code><![CDATA[
+// Task list endpoint - GET /api/pm/tasks
+async list(workspaceId: string, query: ListTasksQueryDto) {
+  const page = query.page ?? 1
+  const limit = Math.min(query.limit ?? 20, 100)
+  const skip = (page - 1) * limit
+
+  const where: Prisma.TaskWhereInput = {
+    workspaceId,
+    deletedAt: null,
+    ...(query.projectId ? { projectId: query.projectId } : {}),
+    ...(query.phaseId ? { phaseId: query.phaseId } : {}),
+    ...(query.status ? { status: query.status } : {}),
+    ...(query.type ? { type: query.type } : {}),
+    ...(query.priority ? { priority: query.priority } : {}),
+    ...(query.assignmentType ? { assignmentType: query.assignmentType } : {}),
+    ...(query.assigneeId ? { assigneeId: query.assigneeId } : {}),
+    ...(query.parentId ? { parentId: query.parentId } : {}),
+    // ... additional filters
+  }
+
+  const [total, tasks] = await this.prisma.$transaction([
+    this.prisma.task.count({ where }),
+    this.prisma.task.findMany({
+      where,
+      orderBy: [{ updatedAt: 'desc' }, { taskNumber: 'desc' }],
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        workspaceId: true,
+        projectId: true,
+        phaseId: true,
+        taskNumber: true,
+        title: true,
+        description: true,
+        type: true,
+        priority: true,
+        assignmentType: true,
+        assigneeId: true,
+        agentId: true,
+        storyPoints: true,
+        status: true,
+        dueDate: true,
+        startedAt: true,
+        completedAt: true,
+        parentId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+  ])
+
+  return {
+    data: tasks,
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  }
+}
+      ]]></code>
+    </file>
+
+    <file path="apps/api/src/pm/tasks/tasks.controller.ts">
+      <description>Task controller with list endpoint</description>
+      <code><![CDATA[
+@Get()
+@Roles('owner', 'admin', 'member')
+@ApiOperation({ summary: 'List tasks with filters and pagination' })
+async listTasks(@CurrentWorkspace() workspaceId: string, @Query() query: ListTasksQueryDto) {
+  return this.tasksService.list(workspaceId, query)
+}
+      ]]></code>
+    </file>
+
+    <file path="apps/api/src/pm/tasks/dto/list-tasks.query.dto.ts">
+      <description>Query DTO with filter parameters</description>
+      <code><![CDATA[
+export class ListTasksQueryDto {
+  @IsOptional()
+  @IsString()
+  projectId?: string
+
+  @IsOptional()
+  @IsString()
+  phaseId?: string
+
+  @IsOptional()
+  @IsEnum(TaskStatus)
+  status?: TaskStatus
+
+  @IsOptional()
+  @IsEnum(TaskType)
+  type?: TaskType
+
+  @IsOptional()
+  @IsEnum(TaskPriority)
+  priority?: TaskPriority
+
+  @IsOptional()
+  @IsEnum(AssignmentType)
+  assignmentType?: AssignmentType
+
+  @IsOptional()
+  @IsString()
+  assigneeId?: string
+
+  @IsOptional()
+  @IsString()
+  parentId?: string
+
+  @IsOptional()
+  @IsString()
+  search?: string
+
+  @IsOptional()
+  @IsString()
+  label?: string
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number
+}
+      ]]></code>
+    </file>
+
+    <file path="packages/db/prisma/schema.prisma">
+      <description>Task model schema</description>
+      <code><![CDATA[
+model Task {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  phaseId     String @map("phase_id")
+  projectId   String @map("project_id")
+
+  taskNumber  Int     @map("task_number")
+  title       String
+  description String? @db.Text
+
+  type     TaskType     @default(TASK)
+  priority TaskPriority @default(MEDIUM)
+
+  assignmentType AssignmentType @default(HUMAN) @map("assignment_type")
+  assigneeId     String?        @map("assignee_id")
+  agentId        String?        @map("agent_id")
+
+  storyPoints     Int?   @map("story_points")
+  estimatedHours  Float? @map("estimated_hours")
+  actualHours     Float? @map("actual_hours")
+  confidenceScore Float? @map("confidence_score")
+
+  status  TaskStatus @default(BACKLOG)
+  stateId String?    @map("state_id")
+
+  dueDate     DateTime? @map("due_date")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  parentId String? @map("parent_id")
+
+  approvalRequired Boolean        @default(false) @map("approval_required")
+  approvalStatus   ApprovalStatus @default(NOT_NEEDED) @map("approval_status")
+  approvedBy       String?        @map("approved_by")
+  approvedAt       DateTime?      @map("approved_at")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdBy String    @map("created_by")
+
+  phase       Phase            @relation(fields: [phaseId], references: [id])
+  parent      Task?            @relation("TaskHierarchy", fields: [parentId], references: [id])
+  children    Task[]           @relation("TaskHierarchy")
+  activities  TaskActivity[]
+  relations   TaskRelation[]   @relation("SourceTask")
+  relatedTo   TaskRelation[]   @relation("TargetTask")
+  attachments TaskAttachment[]
+  comments    TaskComment[]
+  labels      TaskLabel[]
+}
+
+enum TaskType {
+  EPIC
+  STORY
+  TASK
+  SUBTASK
+  BUG
+  RESEARCH
+  CONTENT
+  AGENT_REVIEW
+}
+
+enum TaskPriority {
+  URGENT
+  HIGH
+  MEDIUM
+  LOW
+  NONE
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  REVIEW
+  AWAITING_APPROVAL
+  DONE
+  CANCELLED
+}
+
+enum AssignmentType {
+  HUMAN
+  AGENT
+  HYBRID
+}
+      ]]></code>
+    </file>
+  </existing-code>
+
+  <files-to-create>
+    <file path="apps/web/src/components/pm/views/TaskListView.tsx">
+      <description>Main list view component with TanStack Table and virtualization</description>
+      <purpose>Render sortable, virtualized task table with selection and pagination</purpose>
+    </file>
+
+    <file path="apps/web/src/components/pm/table/TaskTableColumns.tsx">
+      <description>Column definitions for TanStack Table</description>
+      <purpose>Define column structure, cell renderers, and sort configuration</purpose>
+    </file>
+
+    <file path="apps/web/src/components/pm/table/ColumnVisibilityToggle.tsx">
+      <description>Popover component for column visibility management</description>
+      <purpose>Allow users to show/hide columns with persistence to localStorage</purpose>
+    </file>
+
+    <file path="apps/web/src/lib/pm/view-preferences.ts">
+      <description>Utility functions for localStorage-based view preferences</description>
+      <purpose>Save/load column visibility and view settings per user per project</purpose>
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/web/src/app/(workspace)/[workspaceSlug]/pm/[projectSlug]/tasks/page.tsx">
+      <description>Tasks page - integrate TaskListView component</description>
+      <changes>
+        - Import and render TaskListView component
+        - Pass tasks data from API
+        - Handle view type state (list/kanban/calendar)
+      </changes>
+    </file>
+
+    <file path="package.json">
+      <description>Add TanStack Table dependencies</description>
+      <changes>
+        - Add @tanstack/react-table
+        - Add @tanstack/react-virtual
+      </changes>
+    </file>
+  </files-to-modify>
+
+  <api-endpoints>
+    <endpoint method="GET" path="/api/pm/tasks">
+      <description>List tasks with filters and pagination</description>
+      <query-params>
+        <param name="projectId" type="string" required="true">Filter by project ID</param>
+        <param name="page" type="number" default="1">Page number (1-based)</param>
+        <param name="limit" type="number" default="20" max="100">Items per page</param>
+        <param name="status" type="TaskStatus">Filter by status</param>
+        <param name="priority" type="TaskPriority">Filter by priority</param>
+        <param name="type" type="TaskType">Filter by type</param>
+        <param name="assigneeId" type="string">Filter by assignee</param>
+        <param name="search" type="string">Search in title/description</param>
+        <param name="label" type="string">Filter by label name</param>
+      </query-params>
+      <response>
+        <field name="data" type="Task[]">Array of task objects</field>
+        <field name="meta.total" type="number">Total count of tasks</field>
+        <field name="meta.page" type="number">Current page number</field>
+        <field name="meta.limit" type="number">Items per page</field>
+        <field name="meta.totalPages" type="number">Total pages</field>
+      </response>
+      <example-usage><![CDATA[
+// Fetch tasks for project with pagination
+const response = await fetch('/api/pm/tasks?projectId=proj_123&page=1&limit=50')
+const { data: tasks, meta } = await response.json()
+      ]]></example-usage>
+    </endpoint>
+  </api-endpoints>
+
+  <dependencies>
+    <package name="@tanstack/react-table" version="^8.10.0">
+      <purpose>Headless table library for React</purpose>
+      <usage>Table state management, sorting, selection, column visibility</usage>
+    </package>
+
+    <package name="@tanstack/react-virtual" version="^3.0.0">
+      <purpose>Virtual scrolling for React</purpose>
+      <usage>Virtualize table rows for performance with 500+ tasks</usage>
+    </package>
+
+    <package name="date-fns" version="^4.1.0" existing="true">
+      <purpose>Date formatting</purpose>
+      <usage>Format due dates in table cells</usage>
+    </package>
+
+    <package name="@tanstack/react-query" version="^5.x" existing="true">
+      <purpose>Data fetching and caching</purpose>
+      <usage>Fetch and cache task list data</usage>
+    </package>
+  </dependencies>
+
+  <technical-patterns>
+    <pattern name="TanStack Table Setup">
+      <description>Initialize table with column definitions and data</description>
+      <code><![CDATA[
+import { useReactTable, getCoreRowModel, getSortedRowModel } from '@tanstack/react-table'
+
+const table = useReactTable({
+  data: tasks,
+  columns,
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
+  enableRowSelection: true,
+  onSortingChange: setSorting,
+  onRowSelectionChange: setRowSelection,
+  state: {
+    sorting,
+    rowSelection,
+    columnVisibility,
+  },
+})
+      ]]></code>
+    </pattern>
+
+    <pattern name="Virtualization Setup">
+      <description>Use useVirtualizer for row virtualization</description>
+      <code><![CDATA[
+import { useVirtualizer } from '@tanstack/react-virtual'
+
+const parentRef = useRef<HTMLDivElement>(null)
+
+const virtualizer = useVirtualizer({
+  count: table.getRowModel().rows.length,
+  getScrollElement: () => parentRef.current,
+  estimateSize: () => 50, // Row height in pixels
+  overscan: 10, // Render 10 rows above/below viewport
+})
+
+// Render only virtual rows
+const virtualRows = virtualizer.getVirtualItems()
+const totalHeight = virtualizer.getTotalSize()
+
+return (
+  <div ref={parentRef} style={{ height: '600px', overflow: 'auto' }}>
+    <div style={{ height: `${totalHeight}px`, position: 'relative' }}>
+      {virtualRows.map((virtualRow) => {
+        const row = table.getRowModel().rows[virtualRow.index]
+        return (
+          <div
+            key={row.id}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: `${virtualRow.size}px`,
+              transform: `translateY(${virtualRow.start}px)`,
+            }}
+          >
+            {/* Row content */}
+          </div>
+        )
+      })}
+    </div>
+  </div>
+)
+      ]]></code>
+    </pattern>
+
+    <pattern name="Column Visibility Persistence">
+      <description>Save/load column visibility to localStorage</description>
+      <code><![CDATA[
+// lib/pm/view-preferences.ts
+export interface ViewPreferences {
+  viewType: 'list' | 'kanban' | 'calendar'
+  listColumns: string[]
+  kanbanGroupBy: 'status' | 'priority' | 'assignee'
+}
+
+export function getViewPreferences(projectId: string): ViewPreferences {
+  const key = `pm-view-prefs-${projectId}`
+  const stored = localStorage.getItem(key)
+  if (stored) {
+    try {
+      return JSON.parse(stored)
+    } catch {
+      return getDefaultPreferences()
+    }
+  }
+  return getDefaultPreferences()
+}
+
+export function setViewPreferences(
+  projectId: string,
+  prefs: Partial<ViewPreferences>
+) {
+  const key = `pm-view-prefs-${projectId}`
+  const current = getViewPreferences(projectId)
+  const updated = { ...current, ...prefs }
+  localStorage.setItem(key, JSON.stringify(updated))
+}
+
+function getDefaultPreferences(): ViewPreferences {
+  return {
+    viewType: 'list',
+    listColumns: ['select', 'taskNumber', 'title', 'status', 'priority', 'assigneeId', 'dueDate'],
+    kanbanGroupBy: 'status',
+  }
+}
+      ]]></code>
+    </pattern>
+
+    <pattern name="Bulk Selection">
+      <description>Handle row selection with header checkbox</description>
+      <code><![CDATA[
+// Column definition for checkbox
+{
+  id: 'select',
+  header: ({ table }) => (
+    <Checkbox
+      checked={table.getIsAllRowsSelected()}
+      indeterminate={table.getIsSomeRowsSelected()}
+      onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
+      aria-label="Select all"
+    />
+  ),
+  cell: ({ row }) => (
+    <Checkbox
+      checked={row.getIsSelected()}
+      onCheckedChange={(value) => row.toggleSelected(!!value)}
+      aria-label="Select row"
+    />
+  ),
+  enableSorting: false,
+  enableHiding: false,
+}
+
+// Get selected rows
+const selectedRows = table.getSelectedRowModel().rows
+const selectedTaskIds = selectedRows.map(row => row.original.id)
+
+// Show bulk actions bar when tasks selected
+{selectedTaskIds.length > 0 && (
+  <BulkActionsBar selectedTaskIds={selectedTaskIds} />
+)}
+      ]]></code>
+    </pattern>
+  </technical-patterns>
+
+  <testing-patterns>
+    <test type="unit" file="TaskListView.test.tsx">
+      <description>Test column definitions render correct cell content</description>
+      <code><![CDATA[
+import { render, screen } from '@testing-library/react'
+import { TaskListView } from './TaskListView'
+
+describe('TaskListView', () => {
+  const mockTasks = [
+    {
+      id: 'task_1',
+      taskNumber: 123,
+      title: 'Test Task',
+      status: 'TODO',
+      priority: 'HIGH',
+      assigneeId: 'user_1',
+      dueDate: new Date('2025-12-25'),
+    },
+  ]
+
+  it('renders task rows with correct data', () => {
+    render(<TaskListView tasks={mockTasks} />)
+
+    expect(screen.getByText('#123')).toBeInTheDocument()
+    expect(screen.getByText('Test Task')).toBeInTheDocument()
+    expect(screen.getByText('TODO')).toBeInTheDocument()
+    expect(screen.getByText('HIGH')).toBeInTheDocument()
+  })
+
+  it('toggles sort order on header click', async () => {
+    const { user } = render(<TaskListView tasks={mockTasks} />)
+
+    const titleHeader = screen.getByText('Title')
+    await user.click(titleHeader)
+
+    // Should show ascending indicator
+    expect(screen.getByLabelText('Sorted ascending')).toBeInTheDocument()
+
+    await user.click(titleHeader)
+    // Should show descending indicator
+    expect(screen.getByLabelText('Sorted descending')).toBeInTheDocument()
+  })
+})
+      ]]></code>
+    </test>
+
+    <test type="integration" file="TaskListView.integration.test.tsx">
+      <description>Test sorting updates URL and refetches data</description>
+      <code><![CDATA[
+import { render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { TaskListView } from './TaskListView'
+
+describe('TaskListView Integration', () => {
+  it('updates URL params when sorting', async () => {
+    const queryClient = new QueryClient()
+    const { user } = render(
+      <QueryClientProvider client={queryClient}>
+        <TaskListView projectId="proj_1" />
+      </QueryClientProvider>
+    )
+
+    const titleHeader = screen.getByText('Title')
+    await user.click(titleHeader)
+
+    await waitFor(() => {
+      const url = new URL(window.location.href)
+      expect(url.searchParams.get('sortBy')).toBe('title')
+      expect(url.searchParams.get('sortOrder')).toBe('asc')
+    })
+  })
+
+  it('persists column visibility to localStorage', async () => {
+    const { user } = render(<TaskListView projectId="proj_1" />)
+
+    const visibilityToggle = screen.getByLabelText('Column visibility')
+    await user.click(visibilityToggle)
+
+    const priorityCheckbox = screen.getByLabelText('Priority')
+    await user.click(priorityCheckbox)
+
+    const stored = localStorage.getItem('pm-view-prefs-proj_1')
+    const prefs = JSON.parse(stored!)
+    expect(prefs.listColumns).not.toContain('priority')
+  })
+})
+      ]]></code>
+    </test>
+  </testing-patterns>
+
+  <wireframe-reference>
+    <location>docs/modules/bm-pm/design/wireframes/Finished wireframes and html files/pm-04_task_list_view/</location>
+    <files>
+      <file>code.html</file>
+      <file>screen.png</file>
+    </files>
+    <key-elements>
+      <element>Clean table layout with clear column headers</element>
+      <element>Checkbox column for bulk selection</element>
+      <element>Status and priority badges with color coding</element>
+      <element>Assignee avatars</element>
+      <element>Sortable column indicators (arrows)</element>
+      <element>Column settings button for visibility toggle</element>
+    </key-elements>
+  </wireframe-reference>
+
+  <performance-targets>
+    <target metric="100 tasks render time" value="&lt;100ms" />
+    <target metric="500 tasks render time" value="&lt;200ms" />
+    <target metric="1000 tasks render time" value="&lt;500ms" />
+    <target metric="Sort operation" value="&lt;100ms" />
+    <target metric="Scroll performance" value="60fps smooth scrolling" />
+  </performance-targets>
+
+  <implementation-notes>
+    <note priority="high">
+      Use TanStack Table's built-in sorting state management. Do NOT implement custom sort logic.
+    </note>
+
+    <note priority="high">
+      Virtualization is REQUIRED for AC-4. Use @tanstack/react-virtual with estimateSize=50px and overscan=10.
+    </note>
+
+    <note priority="medium">
+      Column visibility state should be stored in localStorage with key pattern: `pm-view-prefs-${projectId}`
+    </note>
+
+    <note priority="medium">
+      Bulk selection should trigger BulkActionsBar component (to be created in PM-03.8).
+      For now, just show selected count in console or placeholder bar.
+    </note>
+
+    <note priority="low">
+      Task number should be displayed as "#123" format and be clickable to open detail panel.
+    </note>
+
+    <note priority="low">
+      Use shadcn/ui Table components for consistent styling: Table, TableHeader, TableHead, TableBody, TableRow, TableCell
+    </note>
+  </implementation-notes>
+
+  <definition-of-done>
+    <item>All acceptance criteria met</item>
+    <item>All tasks in checklist completed</item>
+    <item>Unit tests written and passing</item>
+    <item>Integration tests written and passing</item>
+    <item>TypeScript type check passing</item>
+    <item>ESLint passing with no warnings</item>
+    <item>Component documented with JSDoc comments</item>
+    <item>Wireframe design implemented accurately</item>
+    <item>Performance benchmarks met (500 tasks &lt; 200ms)</item>
+    <item>Responsive design tested on mobile/tablet/desktop</item>
+    <item>Accessibility tested (keyboard navigation, screen reader)</item>
+  </definition-of-done>
+</story-context>

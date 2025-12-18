@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
-import { CalendarDays, ChevronRight, Filter, ListChecks, Search } from 'lucide-react'
+import { CalendarDays, ChevronRight, Filter, LayoutList, Search } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +15,7 @@ import { usePmTasks, type TaskListItem, type TaskPriority, type TaskStatus, type
 import { TASK_PRIORITIES, TASK_PRIORITY_META, TASK_TYPES, TASK_TYPE_META } from '@/lib/pm/task-meta'
 import { cn } from '@/lib/utils'
 import { TaskDetailSheet } from './TaskDetailSheet'
+import { TaskListView } from '@/components/pm/views/TaskListView'
 
 const TASK_STATUSES: TaskStatus[] = [
   'BACKLOG',
@@ -71,6 +72,7 @@ export function ProjectTasksContent() {
   const [status, setStatus] = useState<TaskStatus | 'all'>('all')
   const [type, setType] = useState<TaskType | 'all'>('all')
   const [priority, setPriority] = useState<TaskPriority | 'all'>('all')
+  const [viewMode, setViewMode] = useState<'simple' | 'table'>('simple')
 
   const query = useMemo(() => {
     return {
@@ -116,21 +118,23 @@ export function ProjectTasksContent() {
             {project.name} • {tasks.length} tasks
           </p>
         </div>
-        <Button
-          variant="secondary"
-          className="w-full sm:w-auto"
-          onClick={() => {
-            const first = tasks[0]
-            if (!first) return
-            openTask(router, pathname, new URLSearchParams(searchParams.toString()), first.id)
-          }}
-          disabled={!tasks.length}
-        >
-          <span className="inline-flex items-center gap-2">
-            <ListChecks className="h-4 w-4" />
-            Open First Task
-          </span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewMode === 'simple' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('simple')}
+          >
+            Simple
+          </Button>
+          <Button
+            variant={viewMode === 'table' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('table')}
+          >
+            <LayoutList className="h-4 w-4 mr-2" />
+            Table
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -240,20 +244,29 @@ export function ProjectTasksContent() {
       ) : null}
 
       {tasks.length ? (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Task List</CardTitle>
-          </CardHeader>
-          <CardContent className="divide-y divide-[rgb(var(--color-border-default))]">
-            {tasks.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                onClick={() => openTask(router, pathname, new URLSearchParams(searchParams.toString()), task.id)}
-              />
-            ))}
-          </CardContent>
-        </Card>
+        viewMode === 'table' ? (
+          <TaskListView
+            tasks={tasks}
+            projectId={project.id}
+            isLoading={isLoading}
+            onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
+          />
+        ) : (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Task List</CardTitle>
+            </CardHeader>
+            <CardContent className="divide-y divide-[rgb(var(--color-border-default))]">
+              {tasks.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  onClick={() => openTask(router, pathname, new URLSearchParams(searchParams.toString()), task.id)}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        )
       ) : null}
 
       <TaskDetailSheet
