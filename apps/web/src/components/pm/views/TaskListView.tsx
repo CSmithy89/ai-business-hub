@@ -245,21 +245,23 @@ export function TaskListView({
   }
 
   const handleBulkAddLabels = async (labels: string[]) => {
-    // Add labels to each task individually
+    // Add labels to each task in parallel
     // This is a workaround until we have a bulk label endpoint
-    for (const taskId of selectedTaskIds) {
-      for (const labelName of labels) {
-        try {
-          await upsertLabelMutation.mutateAsync({
+    const labelPromises = selectedTaskIds.flatMap((taskId) =>
+      labels.map((labelName) =>
+        upsertLabelMutation
+          .mutateAsync({
             taskId,
             input: { name: labelName },
           })
-        } catch (error) {
-          // Continue with other labels even if one fails
-          console.error('Failed to add label:', error)
-        }
-      }
-    }
+          .catch((error) => {
+            // Continue with other labels even if one fails
+            console.error('Failed to add label:', error)
+            return null
+          })
+      )
+    )
+    await Promise.all(labelPromises)
     setShowLabelDialog(false)
     handleClearSelection()
   }

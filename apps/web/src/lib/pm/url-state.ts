@@ -88,6 +88,7 @@ export function parseFilters(params: URLSearchParams): FilterState {
 
 /**
  * Create a debounced function for URL updates
+ * Returns both update and cancel functions to prevent memory leaks on unmount
  */
 export function createDebouncedUrlUpdate(
   updateUrl: (params: URLSearchParams) => void,
@@ -95,7 +96,7 @@ export function createDebouncedUrlUpdate(
 ) {
   let timeoutId: NodeJS.Timeout | null = null
 
-  return (filters: FilterState) => {
+  const update = (filters: FilterState) => {
     if (timeoutId) {
       clearTimeout(timeoutId)
     }
@@ -103,8 +104,18 @@ export function createDebouncedUrlUpdate(
     timeoutId = setTimeout(() => {
       const params = serializeFilters(filters)
       updateUrl(params)
+      timeoutId = null
     }, delay)
   }
+
+  const cancel = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      timeoutId = null
+    }
+  }
+
+  return { update, cancel }
 }
 
 /**

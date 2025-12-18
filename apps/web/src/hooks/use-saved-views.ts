@@ -213,11 +213,11 @@ async function deleteSavedView(params: {
 export function useSavedViews(projectId: string | undefined) {
   const { data: session } = useSession()
   const token = getSessionToken(session)
-  const workspaceId = (session as any)?.user?.activeWorkspaceId
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
 
   return useQuery({
     queryKey: ['saved-views', projectId],
-    queryFn: () => fetchSavedViews({ workspaceId, token, projectId: projectId! }),
+    queryFn: () => fetchSavedViews({ workspaceId: workspaceId!, token, projectId: projectId! }),
     enabled: !!projectId && !!workspaceId,
   })
 }
@@ -226,11 +226,11 @@ export function useSavedViews(projectId: string | undefined) {
 export function useDefaultView(projectId: string | undefined) {
   const { data: session } = useSession()
   const token = getSessionToken(session)
-  const workspaceId = (session as any)?.user?.activeWorkspaceId
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
 
   return useQuery({
     queryKey: ['default-view', projectId],
-    queryFn: () => fetchDefaultView({ workspaceId, token, projectId: projectId! }),
+    queryFn: () => fetchDefaultView({ workspaceId: workspaceId!, token, projectId: projectId! }),
     enabled: !!projectId && !!workspaceId,
   })
 }
@@ -239,11 +239,11 @@ export function useDefaultView(projectId: string | undefined) {
 export function useCreateSavedView() {
   const { data: session } = useSession()
   const token = getSessionToken(session)
-  const workspaceId = (session as any)?.user?.activeWorkspaceId
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (input: CreateSavedViewInput) => createSavedView({ workspaceId, token, input }),
+    mutationFn: (input: CreateSavedViewInput) => createSavedView({ workspaceId: workspaceId!, token, input }),
     onSuccess: (result: { data: SavedView }) => {
       toast.success('View saved successfully')
       queryClient.invalidateQueries({ queryKey: ['saved-views', result.data.projectId] })
@@ -259,12 +259,12 @@ export function useCreateSavedView() {
 export function useUpdateSavedView() {
   const { data: session } = useSession()
   const token = getSessionToken(session)
-  const workspaceId = (session as any)?.user?.activeWorkspaceId
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateSavedViewInput }) =>
-      updateSavedView({ workspaceId, token, id, input }),
+      updateSavedView({ workspaceId: workspaceId!, token, id, input }),
     onSuccess: (result: { data: SavedView }) => {
       toast.success('View updated successfully')
       queryClient.invalidateQueries({ queryKey: ['saved-views', result.data.projectId] })
@@ -280,12 +280,12 @@ export function useUpdateSavedView() {
 export function useDeleteSavedView() {
   const { data: session } = useSession()
   const token = getSessionToken(session)
-  const workspaceId = (session as any)?.user?.activeWorkspaceId
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: ({ id, projectId }: { id: string; projectId: string }) =>
-      deleteSavedView({ workspaceId, token, id }).then(() => ({ projectId })),
+      deleteSavedView({ workspaceId: workspaceId!, token, id }).then(() => ({ projectId })),
     onSuccess: (result: { projectId: string }) => {
       toast.success('View deleted successfully')
       queryClient.invalidateQueries({ queryKey: ['saved-views', result.projectId] })

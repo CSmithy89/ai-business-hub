@@ -12,13 +12,15 @@
 import { useState, useMemo } from 'react'
 import { addMonths, subMonths, addDays, subDays, format } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { DndContext, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { MonthView } from '../calendar/MonthView'
 import { WeekView } from '../calendar/WeekView'
 import { DayView } from '../calendar/DayView'
 import { CalendarTaskCard } from '../calendar/CalendarTaskCard'
 import type { TaskListItem } from '@/hooks/use-pm-tasks'
+import { useUpdatePmTask } from '@/hooks/use-pm-tasks'
 
 type ViewMode = 'month' | 'week' | 'day'
 
@@ -49,6 +51,9 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<ViewMode>('month')
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
+
+  // Task update mutation for drag-and-drop rescheduling
+  const updateTaskMutation = useUpdatePmTask()
 
   // Configure drag sensors
   const sensors = useSensors(
@@ -111,9 +116,43 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
     setActiveTaskId(event.active.id as string)
   }
 
-  const handleDragEnd = () => {
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
     setActiveTaskId(null)
-    // Drag handling is done in CalendarDay component
+
+    // Check if dropped on a valid target
+    if (!over || !over.data.current) return
+
+    const taskId = active.id as string
+    const dropData = over.data.current as { date: string; type: string }
+
+    // Only handle calendar-day drops
+    if (dropData.type !== 'calendar-day') return
+
+    const newDueDate = dropData.date
+
+    // Find the task to check if date actually changed
+    const task = tasksWithDueDates.find(t => t.id === taskId)
+    if (!task) return
+
+    const currentDueDate = task.dueDate
+      ? format(new Date(task.dueDate), 'yyyy-MM-dd')
+      : null
+
+    // Skip if dropping on same date
+    if (currentDueDate === newDueDate) return
+
+    try {
+      await updateTaskMutation.mutateAsync({
+        taskId,
+        input: {
+          dueDate: newDueDate
+        }
+      })
+      toast.success('Task rescheduled')
+    } catch {
+      toast.error('Failed to reschedule task')
+    }
   }
 
   // Get active task for drag overlay

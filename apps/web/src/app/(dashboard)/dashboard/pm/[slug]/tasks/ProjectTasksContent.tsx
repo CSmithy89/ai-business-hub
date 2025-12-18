@@ -25,6 +25,7 @@ import { GroupBySelector } from '@/components/pm/kanban/GroupBySelector'
 import { SavedViewsDropdown } from '@/components/pm/saved-views/SavedViewsDropdown'
 import { SaveViewModal } from '@/components/pm/saved-views/SaveViewModal'
 import { FilterBar } from '@/components/pm/filters/FilterBar'
+import { ErrorBoundary } from '@/components/error-boundary'
 import type { FilterState } from '@/lib/pm/url-state'
 
 function formatDate(value: string | null): string {
@@ -409,25 +410,31 @@ export function ProjectTasksContent() {
 
       {tasks.length ? (
         viewMode === 'calendar' ? (
-          <CalendarView
-            tasks={tasks}
-            projectId={project.id}
-            onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
-          />
+          <ErrorBoundary errorMessage="Failed to load calendar view">
+            <CalendarView
+              tasks={tasks}
+              projectId={project.id}
+              onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
+            />
+          </ErrorBoundary>
         ) : viewMode === 'kanban' ? (
-          <KanbanBoardView
-            tasks={tasks}
-            onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
-            groupBy={groupBy}
-            projectId={project.id}
-          />
+          <ErrorBoundary errorMessage="Failed to load kanban view">
+            <KanbanBoardView
+              tasks={tasks}
+              onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
+              groupBy={groupBy}
+              projectId={project.id}
+            />
+          </ErrorBoundary>
         ) : viewMode === 'table' ? (
-          <TaskListView
-            tasks={tasks}
-            projectId={project.id}
-            isLoading={isLoading}
-            onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
-          />
+          <ErrorBoundary errorMessage="Failed to load table view">
+            <TaskListView
+              tasks={tasks}
+              projectId={project.id}
+              isLoading={isLoading}
+              onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
+            />
+          </ErrorBoundary>
         ) : (
           <Card>
             <CardHeader className="pb-3">
