@@ -13,9 +13,16 @@ import { KbCollabModule } from './collab/kb-collab.module'
 import { EmbeddingsModule } from './embeddings/embeddings.module'
 import { RagController } from './rag/rag.controller'
 import { RagService } from './rag/rag.service'
+import { VerificationModule } from './verification/verification.module'
 
 @Module({
-  imports: [CommonModule, EventsModule, KbCollabModule, EmbeddingsModule],
+  imports: [
+    CommonModule,
+    EventsModule,
+    KbCollabModule,
+    EmbeddingsModule,
+    VerificationModule,
+  ],
   controllers: [PagesController, VersionsController, SearchController, LinkingController, RagController],
   providers: [
     PagesService,
