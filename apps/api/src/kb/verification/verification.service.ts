@@ -214,7 +214,21 @@ export class VerificationService {
       },
     })
 
-    // Annotate each page with reasons for staleness
+    // Fetch owner details for all pages
+    const ownerIds = [...new Set(pages.map((p) => p.ownerId))]
+    const owners = await this.prisma.user.findMany({
+      where: { id: { in: ownerIds } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+      },
+    })
+
+    const ownersMap = new Map(owners.map((o) => [o.id, o]))
+
+    // Annotate each page with reasons for staleness and owner details
     return pages.map((page) => {
       const reasons: string[] = []
 
@@ -230,8 +244,23 @@ export class VerificationService {
         reasons.push('Low view count')
       }
 
+      const owner = ownersMap.get(page.ownerId)
+
       return {
         ...page,
+        owner: owner
+          ? {
+              id: owner.id,
+              name: owner.name || 'Unknown User',
+              email: owner.email,
+              avatarUrl: owner.image || null,
+            }
+          : {
+              id: page.ownerId,
+              name: 'Unknown User',
+              email: '',
+              avatarUrl: null,
+            },
         reasons,
       }
     })
