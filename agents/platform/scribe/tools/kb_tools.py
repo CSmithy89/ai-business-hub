@@ -11,12 +11,26 @@ from agno import tool
 logger = logging.getLogger(__name__)
 
 
+def _build_headers(
+    workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
+) -> dict:
+    """Build HTTP headers with authentication and workspace context."""
+    headers = {}
+    if workspace_id:
+        headers["X-Workspace-Id"] = workspace_id
+    if api_token:
+        headers["Authorization"] = f"Bearer {api_token}"
+    return headers
+
+
 @tool
 async def create_kb_page(
     title: str,
     content: str,
     parent_id: Optional[str] = None,
     workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
     api_base_url: str = "http://localhost:3001",
 ) -> dict:
     """
@@ -30,6 +44,7 @@ async def create_kb_page(
         content: Content in markdown format
         parent_id: Optional parent page ID for hierarchy
         workspace_id: Workspace ID (from context)
+        api_token: API authentication token (from context)
         api_base_url: API base URL (from context)
 
     Returns:
@@ -45,7 +60,7 @@ async def create_kb_page(
                 "content": {"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": content}]}]},
                 "parentId": parent_id,
             },
-            headers={"X-Workspace-Id": workspace_id} if workspace_id else {},
+            headers=_build_headers(workspace_id, api_token),
             timeout=30.0,
         )
 
@@ -73,6 +88,7 @@ async def update_kb_page(
     title: Optional[str] = None,
     content: Optional[str] = None,
     workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
     api_base_url: str = "http://localhost:3001",
 ) -> dict:
     """
@@ -86,6 +102,7 @@ async def update_kb_page(
         title: New title (optional)
         content: New content in markdown format (optional)
         workspace_id: Workspace ID (from context)
+        api_token: API authentication token (from context)
         api_base_url: API base URL (from context)
 
     Returns:
@@ -106,7 +123,7 @@ async def update_kb_page(
         response = await client.patch(
             f"{api_base_url}/api/kb/pages/{page_id}",
             json=update_data,
-            headers={"X-Workspace-Id": workspace_id} if workspace_id else {},
+            headers=_build_headers(workspace_id, api_token),
             timeout=30.0,
         )
 
@@ -129,6 +146,7 @@ async def search_kb(
     query: str,
     limit: int = 10,
     workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
     api_base_url: str = "http://localhost:3001",
 ) -> dict:
     """
@@ -138,6 +156,7 @@ async def search_kb(
         query: Search query string
         limit: Maximum number of results (default: 10)
         workspace_id: Workspace ID (from context)
+        api_token: API authentication token (from context)
         api_base_url: API base URL (from context)
 
     Returns:
@@ -149,7 +168,7 @@ async def search_kb(
         response = await client.get(
             f"{api_base_url}/api/kb/pages",
             params={"q": query, "limit": limit},
-            headers={"X-Workspace-Id": workspace_id} if workspace_id else {},
+            headers=_build_headers(workspace_id, api_token),
             timeout=30.0,
         )
 
@@ -183,6 +202,7 @@ async def get_kb_page(
     page_id: Optional[str] = None,
     slug: Optional[str] = None,
     workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
     api_base_url: str = "http://localhost:3001",
 ) -> dict:
     """
@@ -192,6 +212,7 @@ async def get_kb_page(
         page_id: Page ID (either this or slug required)
         slug: Page slug (either this or page_id required)
         workspace_id: Workspace ID (from context)
+        api_token: API authentication token (from context)
         api_base_url: API base URL (from context)
 
     Returns:
@@ -206,7 +227,7 @@ async def get_kb_page(
     async with httpx.AsyncClient() as client:
         response = await client.get(
             f"{api_base_url}/api/kb/pages/{identifier}",
-            headers={"X-Workspace-Id": workspace_id} if workspace_id else {},
+            headers=_build_headers(workspace_id, api_token),
             timeout=30.0,
         )
 
@@ -243,6 +264,7 @@ async def mark_page_verified(
     expires_in: str = "90d",
     notes: Optional[str] = None,
     workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
     api_base_url: str = "http://localhost:3001",
 ) -> dict:
     """
@@ -256,6 +278,7 @@ async def mark_page_verified(
         expires_in: How long the verification is valid (30d, 60d, 90d, or never)
         notes: Optional verification notes
         workspace_id: Workspace ID (from context)
+        api_token: API authentication token (from context)
         api_base_url: API base URL (from context)
 
     Returns:
@@ -270,7 +293,7 @@ async def mark_page_verified(
                 "expiresIn": expires_in,
                 "notes": notes,
             },
-            headers={"X-Workspace-Id": workspace_id} if workspace_id else {},
+            headers=_build_headers(workspace_id, api_token),
             timeout=30.0,
         )
 

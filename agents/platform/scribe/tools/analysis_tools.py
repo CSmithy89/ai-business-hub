@@ -11,12 +11,26 @@ from agno import tool
 logger = logging.getLogger(__name__)
 
 
+def _build_headers(
+    workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
+) -> dict:
+    """Build HTTP headers with authentication and workspace context."""
+    headers = {}
+    if workspace_id:
+        headers["X-Workspace-Id"] = workspace_id
+    if api_token:
+        headers["Authorization"] = f"Bearer {api_token}"
+    return headers
+
+
 @tool
 async def detect_stale_pages(
     days_threshold: int = 90,
     include_expired_verification: bool = True,
     limit: int = 20,
     workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
     api_base_url: str = "http://localhost:3001",
 ) -> dict:
     """
@@ -32,6 +46,7 @@ async def detect_stale_pages(
         include_expired_verification: Include pages with expired verification
         limit: Maximum number of results (default: 20)
         workspace_id: Workspace ID (from context)
+        api_token: API authentication token (from context)
         api_base_url: API base URL (from context)
 
     Returns:
@@ -47,7 +62,7 @@ async def detect_stale_pages(
                 "includeExpired": include_expired_verification,
                 "limit": limit,
             },
-            headers={"X-Workspace-Id": workspace_id} if workspace_id else {},
+            headers=_build_headers(workspace_id, api_token),
             timeout=30.0,
         )
 
@@ -84,6 +99,7 @@ async def summarize_page(
     page_id: str,
     max_sentences: int = 3,
     workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
     api_base_url: str = "http://localhost:3001",
 ) -> dict:
     """
@@ -95,6 +111,7 @@ async def summarize_page(
         page_id: ID of the page to summarize
         max_sentences: Maximum sentences in summary (default: 3)
         workspace_id: Workspace ID (from context)
+        api_token: API authentication token (from context)
         api_base_url: API base URL (from context)
 
     Returns:
@@ -106,7 +123,7 @@ async def summarize_page(
     async with httpx.AsyncClient() as client:
         response = await client.get(
             f"{api_base_url}/api/kb/pages/{page_id}",
-            headers={"X-Workspace-Id": workspace_id} if workspace_id else {},
+            headers=_build_headers(workspace_id, api_token),
             timeout=30.0,
         )
 
@@ -160,6 +177,7 @@ async def summarize_page(
 @tool
 async def analyze_kb_structure(
     workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
     api_base_url: str = "http://localhost:3001",
 ) -> dict:
     """
@@ -174,6 +192,7 @@ async def analyze_kb_structure(
 
     Args:
         workspace_id: Workspace ID (from context)
+        api_token: API authentication token (from context)
         api_base_url: API base URL (from context)
 
     Returns:
@@ -186,7 +205,7 @@ async def analyze_kb_structure(
         response = await client.get(
             f"{api_base_url}/api/kb/pages",
             params={"limit": 500},  # Get all pages
-            headers={"X-Workspace-Id": workspace_id} if workspace_id else {},
+            headers=_build_headers(workspace_id, api_token),
             timeout=60.0,
         )
 
@@ -296,17 +315,20 @@ def _extract_text_from_tiptap(content: dict) -> str:
         return ""
 
     text_parts = []
+    max_depth = 50  # Prevent stack overflow from malicious content
 
-    def traverse(node):
+    def traverse(node, depth=0):
+        if depth > max_depth:
+            return
         if isinstance(node, dict):
             if node.get("type") == "text":
                 text_parts.append(node.get("text", ""))
             if "content" in node:
                 for child in node["content"]:
-                    traverse(child)
+                    traverse(child, depth + 1)
         elif isinstance(node, list):
             for item in node:
-                traverse(item)
+                traverse(item, depth + 1)
 
     traverse(content)
     return " ".join(text_parts)

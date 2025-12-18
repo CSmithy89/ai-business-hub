@@ -101,6 +101,7 @@ Would you like me to help prioritize or update any of these?"
 3. **Verification Respect**: Prioritize verified pages as authoritative sources
 4. **Permission Awareness**: Respect page ownership and workspace permissions
 5. **Suggestion Mode**: Present all changes as suggestions, never as fait accompli
+6. **Rate Awareness**: API calls are rate-limited. Batch operations when possible and avoid excessive sequential requests
 
 ## Tools Available
 

@@ -11,12 +11,26 @@ from agno import tool
 logger = logging.getLogger(__name__)
 
 
+def _build_headers(
+    workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
+) -> dict:
+    """Build HTTP headers with authentication and workspace context."""
+    headers = {}
+    if workspace_id:
+        headers["X-Workspace-Id"] = workspace_id
+    if api_token:
+        headers["Authorization"] = f"Bearer {api_token}"
+    return headers
+
+
 @tool
 async def query_rag(
     query: str,
     limit: int = 5,
     include_verified_only: bool = False,
     workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
     api_base_url: str = "http://localhost:3001",
 ) -> dict:
     """
@@ -30,6 +44,7 @@ async def query_rag(
         limit: Maximum number of results (default: 5)
         include_verified_only: Only return verified pages
         workspace_id: Workspace ID (from context)
+        api_token: API authentication token (from context)
         api_base_url: API base URL (from context)
 
     Returns:
@@ -45,7 +60,7 @@ async def query_rag(
                 "limit": limit,
                 "verifiedOnly": include_verified_only,
             },
-            headers={"X-Workspace-Id": workspace_id} if workspace_id else {},
+            headers=_build_headers(workspace_id, api_token),
             timeout=60.0,
         )
 
@@ -80,6 +95,7 @@ async def get_related_pages(
     page_id: str,
     limit: int = 5,
     workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
     api_base_url: str = "http://localhost:3001",
 ) -> dict:
     """
@@ -91,6 +107,7 @@ async def get_related_pages(
         page_id: ID of the source page
         limit: Maximum number of related pages (default: 5)
         workspace_id: Workspace ID (from context)
+        api_token: API authentication token (from context)
         api_base_url: API base URL (from context)
 
     Returns:
@@ -102,7 +119,7 @@ async def get_related_pages(
         response = await client.get(
             f"{api_base_url}/api/kb/pages/{page_id}/related",
             params={"limit": limit},
-            headers={"X-Workspace-Id": workspace_id} if workspace_id else {},
+            headers=_build_headers(workspace_id, api_token),
             timeout=30.0,
         )
 
@@ -135,6 +152,7 @@ async def ask_kb_question(
     question: str,
     use_verified_sources: bool = True,
     workspace_id: Optional[str] = None,
+    api_token: Optional[str] = None,
     api_base_url: str = "http://localhost:3001",
 ) -> dict:
     """
@@ -147,6 +165,7 @@ async def ask_kb_question(
         question: Natural language question
         use_verified_sources: Prioritize verified pages as sources
         workspace_id: Workspace ID (from context)
+        api_token: API authentication token (from context)
         api_base_url: API base URL (from context)
 
     Returns:
@@ -161,7 +180,7 @@ async def ask_kb_question(
                 "question": question,
                 "preferVerified": use_verified_sources,
             },
-            headers={"X-Workspace-Id": workspace_id} if workspace_id else {},
+            headers=_build_headers(workspace_id, api_token),
             timeout=90.0,
         )
 

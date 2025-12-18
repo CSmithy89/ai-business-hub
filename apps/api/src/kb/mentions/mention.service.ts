@@ -52,7 +52,15 @@ export class MentionService {
       text?: string
     }
 
-    const traverse = (node: TiptapNode) => {
+    const MAX_DEPTH = 50 // Prevent stack overflow from malicious deeply nested content
+
+    const traverse = (node: TiptapNode, depth = 0) => {
+      // Prevent stack overflow attacks with deeply nested content
+      if (depth > MAX_DEPTH) {
+        this.logger.warn(`Maximum traversal depth (${MAX_DEPTH}) exceeded in mention extraction`)
+        return
+      }
+
       // User mention (@)
       if (node.type === 'mention' && node.attrs?.id) {
         mentions.users.push({
@@ -73,7 +81,7 @@ export class MentionService {
       }
 
       if (node.content) {
-        node.content.forEach((child: TiptapNode) => traverse(child))
+        node.content.forEach((child: TiptapNode) => traverse(child, depth + 1))
       }
 
       if (node.text) {
