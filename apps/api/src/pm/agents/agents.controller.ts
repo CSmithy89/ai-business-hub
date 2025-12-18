@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -15,12 +16,20 @@ import { CurrentWorkspace } from '@/common/decorators/current-workspace.decorato
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { AgentsService } from './agents.service';
 import { BriefingService } from './briefing.service';
+import { SuggestionService } from './suggestion.service';
 import { ChatAgentDto, GetConversationsDto } from './dto/chat-agent.dto';
 import {
   UpdateBriefingPreferencesDto,
   BriefingPreferencesResponseDto,
   DailyBriefingResponseDto,
 } from './dto/briefing.dto';
+import {
+  GetSuggestionsDto,
+  AcceptSuggestionDto,
+  RejectSuggestionDto,
+  SnoozeSuggestionDto,
+  SuggestionResponseDto,
+} from './dto/suggestion.dto';
 
 @ApiTags('PM Agents')
 @Controller('pm/agents')
@@ -29,6 +38,7 @@ export class AgentsController {
   constructor(
     private readonly agentsService: AgentsService,
     private readonly briefingService: BriefingService,
+    private readonly suggestionService: SuggestionService,
   ) {}
 
   @Post('chat')
@@ -118,5 +128,131 @@ export class AgentsController {
     @Body() body: UpdateBriefingPreferencesDto,
   ) {
     return this.briefingService.updatePreferences(userId, body);
+  }
+
+  // ============================================
+  // Suggestion Endpoints (PM-04-3)
+  // ============================================
+
+  @Get('suggestions')
+  @ApiOperation({ summary: 'Get pending suggestions for user' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of suggestions retrieved',
+    type: [SuggestionResponseDto],
+  })
+  async getSuggestions(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser('id') userId: string,
+    @Query() query: GetSuggestionsDto,
+  ) {
+    return this.suggestionService.getSuggestions({
+      workspaceId,
+      projectId: query.projectId,
+      userId: query.userId || userId,
+      agentName: query.agentName,
+      status: query.status,
+      limit: query.limit,
+    });
+  }
+
+  @Post('suggestions/:id/accept')
+  @ApiOperation({ summary: 'Accept and execute suggestion' })
+  @ApiResponse({
+    status: 200,
+    description: 'Suggestion accepted and executed',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+        result: { type: 'object' },
+      },
+    },
+  })
+  async acceptSuggestion(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser('id') userId: string,
+    @Param('id') suggestionId: string,
+    @Body() body: AcceptSuggestionDto,
+  ) {
+    return this.suggestionService.acceptSuggestion(
+      suggestionId,
+      workspaceId,
+      userId,
+      body.modifications,
+    );
+  }
+
+  @Post('suggestions/:id/reject')
+  @ApiOperation({ summary: 'Reject suggestion with optional reason' })
+  @ApiResponse({
+    status: 200,
+    description: 'Suggestion rejected',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+      },
+    },
+  })
+  async rejectSuggestion(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser('id') userId: string,
+    @Param('id') suggestionId: string,
+    @Body() body: RejectSuggestionDto,
+  ) {
+    return this.suggestionService.rejectSuggestion(
+      suggestionId,
+      workspaceId,
+      userId,
+      body.reason,
+    );
+  }
+
+  @Post('suggestions/:id/snooze')
+  @ApiOperation({ summary: 'Snooze suggestion for specified hours' })
+  @ApiResponse({
+    status: 200,
+    description: 'Suggestion snoozed',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+      },
+    },
+  })
+  async snoozeSuggestion(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser('id') userId: string,
+    @Param('id') suggestionId: string,
+    @Body() body: SnoozeSuggestionDto,
+  ) {
+    return this.suggestionService.snoozeSuggestion(
+      suggestionId,
+      workspaceId,
+      userId,
+      body.hours,
+    );
+  }
+
+  @Delete('suggestions/:id')
+  @ApiOperation({ summary: 'Dismiss suggestion permanently' })
+  @ApiResponse({
+    status: 200,
+    description: 'Suggestion dismissed',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+      },
+    },
+  })
+  async dismissSuggestion(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser('id') userId: string,
+    @Param('id') suggestionId: string,
+  ) {
+    return this.suggestionService.rejectSuggestion(
+      suggestionId,
+      workspaceId,
+      userId,
+      'Dismissed by user',
+    );
   }
 }

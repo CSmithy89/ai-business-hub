@@ -1793,6 +1793,67 @@ enum ConversationRole {
   AGENT
 }
 
+/// AgentSuggestion - AI-generated suggestions from agents (PM-04-3)
+model AgentSuggestion {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  projectId   String @map("project_id")
+  userId      String @map("user_id")
+  agentName   String @map("agent_name") // 'navi', 'sage', 'chrono'
+
+  // Suggestion details
+  suggestionType SuggestionType @map("suggestion_type")
+  status         SuggestionStatus @default(PENDING)
+
+  title       String
+  description String? @db.Text
+  reasoning   String  @db.Text
+  confidence  Float // 0-1
+  priority    String  @default("medium") // 'high', 'medium', 'low'
+
+  // Action payload (JSON with action-specific data)
+  actionPayload Json @map("action_payload")
+
+  // Snooze and expiration
+  snoozedUntil DateTime? @map("snoozed_until")
+  expiresAt    DateTime  @map("expires_at")
+
+  // Acceptance/Rejection
+  acceptedAt DateTime? @map("accepted_at")
+  rejectedAt DateTime? @map("rejected_at")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([workspaceId, projectId])
+  @@index([userId, status])
+  @@index([agentName, status])
+  @@index([status, createdAt])
+  @@index([expiresAt])
+  @@map("agent_suggestions")
+}
+
+enum SuggestionType {
+  CREATE_TASK
+  UPDATE_TASK
+  ASSIGN_TASK
+  MOVE_PHASE
+  SET_PRIORITY
+  SCHEDULE_TASK
+  ADD_DEPENDENCY
+  REMOVE_BLOCKER
+  GENERAL
+}
+
+enum SuggestionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  SNOOZED
+  EXPIRED
+}
+
 // ============================================
 // USER PREFERENCES
 // ============================================
