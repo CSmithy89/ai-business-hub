@@ -16,6 +16,7 @@ import { ListPagesQueryDto } from './dto/list-pages.query.dto'
 import { UpdatePageDto } from './dto/update-page.dto'
 import type { VersionsService } from '../versions/versions.service'
 import { EmbeddingsService } from '../embeddings/embeddings.service'
+import { MentionService } from '../mentions/mention.service'
 import { KB_ERROR } from '../kb.errors'
 
 function slugify(input: string): string {
@@ -64,6 +65,7 @@ export class PagesService {
     @Inject(forwardRef(() => 'VersionsService'))
     private readonly versionsService: VersionsService,
     private readonly embeddingsService: EmbeddingsService,
+    private readonly mentionService: MentionService,
   ) {}
 
   /**
@@ -522,6 +524,31 @@ export class PagesService {
         .catch((error) =>
           this.logger.error('Failed to enqueue KB embeddings job (update):', error),
         )
+    }
+
+    // Extract and update mentions if content changed
+    if (dto.content && contentChanged) {
+      try {
+        const newlyMentionedUsers = await this.mentionService.updatePageMentions(
+          id,
+          dto.content,
+          workspaceId,
+          actorId,
+        )
+
+        // Send notifications to newly mentioned users
+        if (newlyMentionedUsers.length > 0) {
+          await this.mentionService.notifyMentionedUsers(
+            id,
+            newlyMentionedUsers,
+            workspaceId,
+            actorId,
+          )
+        }
+      } catch (error) {
+        this.logger.error('Failed to process mentions:', error)
+        // Don't fail the update if mention processing fails
+      }
     }
 
     return { data: page }

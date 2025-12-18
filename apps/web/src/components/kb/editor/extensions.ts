@@ -14,6 +14,7 @@ import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { createLowlight, common } from 'lowlight'
+import { createMentionExtension } from './extensions/mention'
 import type * as Y from 'yjs'
 import type { HocuspocusProvider } from '@hocuspocus/provider'
 
@@ -31,10 +32,15 @@ export type KbCollaborationCursorConfig = {
 
 export function createExtensions(
   placeholder = 'Start writing...',
-  options?: { collaboration?: KbCollaborationConfig; cursor?: KbCollaborationCursorConfig },
+  options?: {
+    collaboration?: KbCollaborationConfig
+    cursor?: KbCollaborationCursorConfig
+    workspaceId?: string
+  }
 ) {
   const collaboration = options?.collaboration
   const cursor = options?.cursor
+  const workspaceId = options?.workspaceId
 
   return [
     StarterKit.configure({
@@ -115,5 +121,13 @@ export function createExtensions(
         class: 'rounded-md bg-muted p-4 font-mono text-sm',
       },
     }),
+    // Add mention extension if workspaceId is provided
+    ...(workspaceId
+      ? [
+          createMentionExtension({
+            workspaceId,
+          }),
+        ]
+      : []),
   ]
 }

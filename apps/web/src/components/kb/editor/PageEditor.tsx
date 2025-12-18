@@ -1,6 +1,6 @@
 'use client'
 
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, JSONContent } from '@tiptap/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createExtensions } from './extensions'
 import { EditorToolbar } from './EditorToolbar'
@@ -13,8 +13,9 @@ import { useNetworkStatus } from '@/hooks/use-network-status'
 
 interface PageEditorProps {
   pageId?: string
-  initialContent?: any
-  onSave: (content: any) => Promise<void>
+  workspaceId?: string
+  initialContent?: JSONContent
+  onSave: (content: JSONContent) => Promise<void>
   placeholder?: string
   collaboration?: {
     token: string
@@ -25,7 +26,14 @@ interface PageEditorProps {
   }
 }
 
-export function PageEditor({ pageId, initialContent, onSave, placeholder, collaboration }: PageEditorProps) {
+export function PageEditor({
+  pageId,
+  workspaceId,
+  initialContent,
+  onSave,
+  placeholder,
+  collaboration,
+}: PageEditorProps) {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -101,8 +109,9 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
             ...(provider && collaboration?.user
               ? { cursor: { provider, user: collaboration.user } }
               : {}),
+            workspaceId,
           }
-        : undefined,
+        : { workspaceId },
     ),
     content: collaborationEnabled ? undefined : initialContent,
     editorProps: {
