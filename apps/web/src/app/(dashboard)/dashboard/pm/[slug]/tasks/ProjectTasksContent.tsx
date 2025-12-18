@@ -1,9 +1,9 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
-import { CalendarDays, ChevronRight, Filter, KanbanSquare, LayoutList, Search } from 'lucide-react'
+import { BookmarkPlus, CalendarDays, ChevronRight, Filter, KanbanSquare, LayoutList, Search } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,15 +12,19 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { usePmProject } from '@/hooks/use-pm-projects'
 import { usePmTasks, type TaskListItem, type TaskPriority, type TaskStatus, type TaskType } from '@/hooks/use-pm-tasks'
+import { useDefaultView, type SavedView } from '@/hooks/use-saved-views'
 import { TASK_PRIORITIES, TASK_PRIORITY_META, TASK_TYPES, TASK_TYPE_META } from '@/lib/pm/task-meta'
 import { getViewPreferences, setViewPreferences } from '@/lib/pm/view-preferences'
 import type { GroupByOption } from '@/lib/pm/kanban-grouping'
 import { cn } from '@/lib/utils'
+import { useSession } from '@/lib/auth-client'
 import { TaskDetailSheet } from './TaskDetailSheet'
 import { TaskListView } from '@/components/pm/views/TaskListView'
 import { KanbanBoardView } from '@/components/pm/views/KanbanBoardView'
 import { CalendarView } from '@/components/pm/views/CalendarView'
 import { GroupBySelector } from '@/components/pm/kanban/GroupBySelector'
+import { SavedViewsDropdown } from '@/components/pm/saved-views/SavedViewsDropdown'
+import { SaveViewModal } from '@/components/pm/saved-views/SaveViewModal'
 
 const TASK_STATUSES: TaskStatus[] = [
   'BACKLOG',
@@ -66,12 +70,20 @@ export function ProjectTasksContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const params = useParams<{ slug: string }>()
+  const { data: session } = useSession()
+  const currentUserId = (session as any)?.user?.id
 
   const slug = params?.slug
   const taskId = searchParams.get('taskId')
 
   const { data: projectData, isLoading: projectLoading, error: projectError } = usePmProject(slug)
   const project = projectData?.data
+
+  // Saved views state
+  const [activeSavedViewId, setActiveSavedViewId] = useState<string | null>(null)
+  const [saveViewModalOpen, setSaveViewModalOpen] = useState(false)
+  const { data: defaultViewData } = useDefaultView(project?.id)
+  const defaultView = defaultViewData?.data
 
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<TaskStatus | 'all'>('all')
@@ -93,6 +105,48 @@ export function ProjectTasksContent() {
     }
     return 'status'
   })
+
+  // Apply default view on mount
+  useEffect(() => {
+    if (defaultView && !activeSavedViewId) {
+      applyView(defaultView)
+    }
+  }, [defaultView?.id])
+
+  // Apply a saved view
+  const applyView = (view: SavedView | null) => {
+    if (!view) {
+      // Reset to "All Tasks"
+      setSearch('')
+      setStatus('all')
+      setType('all')
+      setPriority('all')
+      setViewMode('simple')
+      setGroupBy('status')
+      setActiveSavedViewId(null)
+      return
+    }
+
+    setActiveSavedViewId(view.id)
+    setViewMode(view.viewType.toLowerCase() as 'simple' | 'table' | 'kanban' | 'calendar')
+    setSearch((view.filters.search as string) || '')
+    setStatus((view.filters.status as TaskStatus) || 'all')
+    setType((view.filters.type as TaskType) || 'all')
+    setPriority((view.filters.priority as TaskPriority) || 'all')
+    if (view.filters.kanbanGroupBy) {
+      setGroupBy(view.filters.kanbanGroupBy as GroupByOption)
+    }
+  }
+
+  // Detect if current state differs from saved view (for "Save View" button visibility)
+  const hasUnsavedChanges = useMemo(() => {
+    // Show save button if filters are applied and we're not viewing a saved view
+    // Or if we are viewing a saved view but the current state differs from it
+    if (!activeSavedViewId) {
+      return search !== '' || status !== 'all' || type !== 'all' || priority !== 'all'
+    }
+    return false
+  }, [search, status, type, priority, activeSavedViewId])
 
   const handleGroupByChange = (newGroupBy: GroupByOption) => {
     setGroupBy(newGroupBy)
@@ -143,6 +197,20 @@ export function ProjectTasksContent() {
     )
   }
 
+  // Current view state for saving
+  const currentViewState = useMemo(() => {
+    return {
+      viewType: viewMode.toUpperCase() as 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE',
+      filters: {
+        search,
+        status: status !== 'all' ? status : undefined,
+        type: type !== 'all' ? type : undefined,
+        priority: priority !== 'all' ? priority : undefined,
+      },
+      groupBy,
+    }
+  }, [viewMode, search, status, type, priority, groupBy])
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -152,7 +220,33 @@ export function ProjectTasksContent() {
             {project.name} • {tasks.length} tasks
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Saved Views Dropdown */}
+          {currentUserId && (
+            <SavedViewsDropdown
+              projectId={project.id}
+              currentUserId={currentUserId}
+              onApplyView={applyView}
+              onSaveCurrentView={() => setSaveViewModalOpen(true)}
+              activeViewId={activeSavedViewId}
+              currentViewState={currentViewState}
+            />
+          )}
+
+          {/* Save View Button */}
+          {hasUnsavedChanges && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSaveViewModalOpen(true)}
+              className="gap-2"
+            >
+              <BookmarkPlus className="h-4 w-4" />
+              Save View
+            </Button>
+          )}
+
+          {/* View Mode Toggles */}
           <Button
             variant={viewMode === 'simple' ? 'secondary' : 'outline'}
             size="sm"
@@ -341,6 +435,15 @@ export function ProjectTasksContent() {
         onOpenChange={(open) => {
           if (!open) closeTask(router, pathname, new URLSearchParams(searchParams.toString()))
         }}
+      />
+
+      {/* Save View Modal */}
+      <SaveViewModal
+        open={saveViewModalOpen}
+        onOpenChange={setSaveViewModalOpen}
+        projectId={project.id}
+        viewState={currentViewState}
+        existingView={null}
       />
     </div>
   )
