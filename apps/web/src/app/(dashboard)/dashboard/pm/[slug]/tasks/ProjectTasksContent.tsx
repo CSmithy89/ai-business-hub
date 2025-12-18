@@ -219,12 +219,9 @@ export function ProjectTasksContent() {
       filtered = filtered.filter((task) => filters.status.includes(task.status))
     }
 
-    // Label filter
-    if (filters.labels.length > 0) {
-      // Note: TaskListItem doesn't include labels in the current implementation
-      // This would need to be enhanced when label data is available
-      // filtered = filtered.filter((task) => task.labels?.some(l => filters.labels.includes(l.name)))
-    }
+    // Label filter - Currently disabled as TaskListItem doesn't include labels
+    // TODO: Enable when backend returns labels with task list (requires API enhancement)
+    // When enabled: filtered = filtered.filter((task) => task.labels?.some(l => filters.labels.includes(l.name)))
 
     // Date range filter
     if (filters.dueDateFrom || filters.dueDateTo) {

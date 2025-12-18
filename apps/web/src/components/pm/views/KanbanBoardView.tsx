@@ -124,7 +124,13 @@ export function KanbanBoardView({
     } catch (error) {
       // Error handling and rollback handled by React Query onError
       // Toast already shown by useUpdatePmTask hook
-      log.error('Failed to update task', { error })
+      log.error('Failed to update task during drag-drop', {
+        error,
+        taskId,
+        groupBy,
+        targetColumn: newColumnId,
+        updatePayload,
+      })
     }
   }
 

@@ -9,6 +9,12 @@ import { PrismaService } from '../../common/services/prisma.service'
 import { CreateSavedViewDto } from './dto/create-saved-view.dto'
 import { UpdateSavedViewDto } from './dto/update-saved-view.dto'
 
+/**
+ * Maximum number of saved views that can be returned in a single query.
+ * Prevents unbounded queries and potential performance issues.
+ */
+const MAX_SAVED_VIEWS_PER_QUERY = 100
+
 @Injectable()
 export class SavedViewsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -59,7 +65,7 @@ export class SavedViewsService {
           { isShared: true }, // Shared views
         ],
       },
-      take: 100, // Pagination limit to prevent unbounded queries
+      take: MAX_SAVED_VIEWS_PER_QUERY,
       orderBy: [
         { isDefault: 'desc' }, // Default views first
         { createdAt: 'desc' },
