@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../common/services/prisma.service'
+import { KB_ERROR } from '../kb.errors'
 
 function extractPlainText(content: any): string {
   if (!content || typeof content !== 'object') return ''
@@ -38,7 +39,7 @@ export class VersionsService {
     })
 
     if (!page) {
-      throw new NotFoundException('Page not found')
+      throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
     }
 
     // Get the current max version number for this page
@@ -82,7 +83,7 @@ export class VersionsService {
     })
 
     if (!page) {
-      throw new NotFoundException('Page not found')
+      throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
     }
 
     const [versions, total] = await Promise.all([
@@ -128,7 +129,7 @@ export class VersionsService {
     })
 
     if (!page) {
-      throw new NotFoundException('Page not found')
+      throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
     }
 
     const version = await this.prisma.pageVersion.findUnique({
@@ -141,7 +142,7 @@ export class VersionsService {
     })
 
     if (!version) {
-      throw new NotFoundException(`Version ${versionNumber} not found`)
+      throw new NotFoundException(`${KB_ERROR.VERSION_NOT_FOUND}:${versionNumber}`)
     }
 
     return { data: version }
@@ -165,7 +166,7 @@ export class VersionsService {
     })
 
     if (!page) {
-      throw new NotFoundException('Page not found')
+      throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
     }
 
     // Get the version to restore
@@ -183,12 +184,12 @@ export class VersionsService {
     })
 
     if (!versionToRestore) {
-      throw new NotFoundException(`Version ${versionNumber} not found`)
+      throw new NotFoundException(`${KB_ERROR.VERSION_NOT_FOUND}:${versionNumber}`)
     }
 
     // Check if the content is different (don't restore if identical)
     if (JSON.stringify(page.content) === JSON.stringify(versionToRestore.content)) {
-      throw new BadRequestException('This version is identical to the current content')
+      throw new BadRequestException(KB_ERROR.VERSION_IDENTICAL)
     }
 
     // Perform restore in a transaction

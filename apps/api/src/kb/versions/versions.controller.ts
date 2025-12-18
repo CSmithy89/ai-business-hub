@@ -19,6 +19,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard'
 import { CreateVersionDto } from './dto/create-version.dto'
 import { ListVersionsQueryDto } from './dto/list-versions.query.dto'
 import { VersionsService } from './versions.service'
+import { KB_ERROR } from '../kb.errors'
 
 /**
  * KB Page Versions Controller
@@ -75,7 +76,7 @@ export class VersionsController {
     })
 
     if (!page) {
-      throw new BadRequestException('Page not found')
+      throw new BadRequestException(KB_ERROR.PAGE_NOT_FOUND)
     }
 
     return this.versionsService.createVersion(

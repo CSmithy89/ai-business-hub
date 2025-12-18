@@ -1,10 +1,27 @@
 import { ApprovalStatus, AssignmentType, TaskPriority, TaskStatus, TaskType } from '@prisma/client'
-import { Type } from 'class-transformer'
-import { IsBoolean, IsDate, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator'
+import { Transform } from 'class-transformer'
+import { IsBoolean, IsDate, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator'
+
+function toOptionalNumber(value: unknown): unknown {
+  if (value === undefined || value === null) return value
+  if (typeof value === 'string' && value.trim() === '') return undefined
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') return Number(value)
+  return value
+}
+
+function toOptionalDate(value: unknown): unknown {
+  if (value === undefined || value === null) return value
+  if (typeof value === 'string' && value.trim() === '') return undefined
+  if (value instanceof Date) return value
+  if (typeof value === 'string' || typeof value === 'number') return new Date(value)
+  return value
+}
 
 export class UpdateTaskDto {
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   title?: string
 
   @IsOptional()
@@ -32,13 +49,13 @@ export class UpdateTaskDto {
   agentId?: string | null
 
   @IsOptional()
-  @Type(() => Number)
+  @Transform(({ value }) => toOptionalNumber(value), { toClassOnly: true })
   @IsInt()
   @Min(0)
   storyPoints?: number | null
 
   @IsOptional()
-  @Type(() => Date)
+  @Transform(({ value }) => toOptionalDate(value), { toClassOnly: true })
   @IsDate()
   dueDate?: Date | null
 
@@ -59,16 +76,16 @@ export class UpdateTaskDto {
   approvedBy?: string | null
 
   @IsOptional()
-  @Type(() => Date)
+  @Transform(({ value }) => toOptionalDate(value), { toClassOnly: true })
   @IsDate()
   approvedAt?: Date | null
 
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   phaseId?: string
 
   @IsOptional()
   @IsString()
   parentId?: string | null
 }
-

@@ -4,6 +4,7 @@ import { EventTypes } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
 import { EventPublisherService } from '../../events'
 import { LinkProjectDto, UpdateLinkDto } from './dto/link-project.dto'
+import { KB_ERROR } from '../kb.errors'
 
 @Injectable()
 export class LinkingService {
@@ -26,14 +27,14 @@ export class LinkingService {
       where: { id: pageId, tenantId, workspaceId, deletedAt: null },
       select: { id: true, title: true, slug: true },
     })
-    if (!page) throw new NotFoundException('Page not found')
+    if (!page) throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
 
     // Verify project exists and belongs to same workspace
     const project = await this.prisma.project.findFirst({
       where: { id: dto.projectId, workspaceId },
       select: { id: true, name: true, slug: true },
     })
-    if (!project) throw new NotFoundException('Project not found')
+    if (!project) throw new NotFoundException(KB_ERROR.PROJECT_NOT_FOUND)
 
     // Check if already linked
     const existing = await this.prisma.projectPage.findUnique({
@@ -45,7 +46,7 @@ export class LinkingService {
       },
     })
     if (existing) {
-      throw new ConflictException('Page is already linked to this project')
+      throw new ConflictException(KB_ERROR.PROJECT_PAGE_ALREADY_LINKED)
     }
 
     // Wrap in transaction to prevent race condition with primary flag
@@ -84,7 +85,7 @@ export class LinkingService {
       })
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException('Project already has a primary page')
+        throw new ConflictException(KB_ERROR.PROJECT_PRIMARY_PAGE_EXISTS)
       }
       throw error
     }
@@ -116,7 +117,7 @@ export class LinkingService {
       where: { id: pageId, tenantId, workspaceId, deletedAt: null },
       select: { id: true },
     })
-    if (!page) throw new NotFoundException('Page not found')
+    if (!page) throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
 
     // Find the link
     const link = await this.prisma.projectPage.findUnique({
@@ -128,7 +129,7 @@ export class LinkingService {
       },
     })
     if (!link) {
-      throw new NotFoundException('Page is not linked to this project')
+      throw new NotFoundException(KB_ERROR.PROJECT_PAGE_NOT_LINKED)
     }
 
     await this.prisma.projectPage.delete({
@@ -162,7 +163,7 @@ export class LinkingService {
       where: { id: pageId, tenantId, workspaceId, deletedAt: null },
       select: { id: true },
     })
-    if (!page) throw new NotFoundException('Page not found')
+    if (!page) throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
 
     // Find the link
     const link = await this.prisma.projectPage.findUnique({
@@ -174,7 +175,7 @@ export class LinkingService {
       },
     })
     if (!link) {
-      throw new NotFoundException('Page is not linked to this project')
+      throw new NotFoundException(KB_ERROR.PROJECT_PAGE_NOT_LINKED)
     }
 
     // Wrap in transaction to prevent race condition with primary flag
@@ -207,7 +208,7 @@ export class LinkingService {
       return { data: updated }
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException('Project already has a primary page')
+        throw new ConflictException(KB_ERROR.PROJECT_PRIMARY_PAGE_EXISTS)
       }
       throw error
     }
@@ -223,7 +224,7 @@ export class LinkingService {
       where: { id: pageId, tenantId, workspaceId, deletedAt: null },
       select: { id: true },
     })
-    if (!page) throw new NotFoundException('Page not found')
+    if (!page) throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
 
     const links = await this.prisma.projectPage.findMany({
       where: { pageId },
@@ -251,7 +252,7 @@ export class LinkingService {
       where: { id: projectId, workspaceId },
       select: { id: true },
     })
-    if (!project) throw new NotFoundException('Project not found')
+    if (!project) throw new NotFoundException(KB_ERROR.PROJECT_NOT_FOUND)
 
     const links = await this.prisma.projectPage.findMany({
       where: { projectId },

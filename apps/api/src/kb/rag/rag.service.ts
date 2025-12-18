@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../common/services/prisma.service'
 import { EmbeddingsService } from '../embeddings/embeddings.service'
 import { vectorToPgvectorText } from '../embeddings/embeddings.utils'
+import { KB_ERROR } from '../kb.errors'
 import { RagQueryDto } from './dto/rag-query.dto'
 
 export type RagChunk = {
@@ -36,7 +37,7 @@ export class RagService {
     const limit = Math.min(Math.max(Math.floor(safeLimit), 1), 20)
     const embedded = await this.embeddingsService.embedTextsForWorkspace(workspaceId, [dto.q])
     if (!embedded) {
-      throw new BadRequestException('No valid embeddings provider configured for RAG queries')
+      throw new BadRequestException(KB_ERROR.RAG_NO_PROVIDER)
     }
 
     const dims = this.embeddingsService.getEmbeddingDims()

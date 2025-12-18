@@ -21,6 +21,7 @@ import { CreatePageDto } from './dto/create-page.dto'
 import { ListPagesQueryDto } from './dto/list-pages.query.dto'
 import { UpdatePageDto } from './dto/update-page.dto'
 import { PagesService } from './pages.service'
+import { KB_ERROR } from '../kb.errors'
 
 /**
  * KB Pages Controller
@@ -47,7 +48,7 @@ export class PagesController {
     @CurrentUser() actor: any,
   ) {
     if (dto.workspaceId && dto.workspaceId !== workspaceId) {
-      throw new BadRequestException('workspaceId mismatch')
+      throw new BadRequestException(KB_ERROR.WORKSPACE_ID_MISMATCH)
     }
     return this.pagesService.create(workspaceId, workspaceId, actor.id, dto)
   }

@@ -5,6 +5,7 @@ import { SearchQueryDto } from './dto/search-query.dto'
 import { SemanticSearchDto } from './dto/semantic-search.dto'
 import { EmbeddingsService } from '../embeddings/embeddings.service'
 import { vectorToPgvectorText } from '../embeddings/embeddings.utils'
+import { KB_ERROR } from '../kb.errors'
 
 export interface SearchResult {
   pageId: string
@@ -133,7 +134,7 @@ export class SearchService {
 
     const embedded = await this.embeddingsService.embedTextsForWorkspace(workspaceId, [q])
     if (!embedded) {
-      throw new BadRequestException('No valid embeddings provider configured for semantic search')
+      throw new BadRequestException(KB_ERROR.SEARCH_NO_PROVIDER)
     }
 
     const dims = this.embeddingsService.getEmbeddingDims()

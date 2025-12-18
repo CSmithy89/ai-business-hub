@@ -12,8 +12,7 @@ This file tracks actionable follow-ups based on code review for **Epic KB-02: KB
   - [x] Add `KB_EMBEDDINGS_DIMS` (default `1536`) and centralize dims in one place.
   - [x] Fail-fast if dims do not match current DB schema (`vector(1536)`).
   - Plan migration strategy to support other dims:
-    - Option A: migrate `page_embeddings.embedding` to `vector(3072)` (breaking for existing 1536 data).
-    - Option B: create a new table keyed by `(model, dims)` or separate columns per model.
+    - [x] Documented migration options and operational considerations in `docs/runbooks/kb-embeddings-vector-dimensions.md`.
 
 ### 2) Embeddings error handling may leak provider details
 - **Where:** `apps/api/src/kb/embeddings/embeddings.service.ts` (`response.text()` included in thrown message)
@@ -31,6 +30,7 @@ This file tracks actionable follow-ups based on code review for **Epic KB-02: KB
   - [x] Make chunking and DB batch size configurable via env.
   - [x] Add safety caps based on total payload size (`KB_EMBEDDINGS_DB_BATCH_MAX_BYTES`).
   - Consider metrics/logging for “chunks per doc” and “embedding insert duration”.
+  - [x] Added duration logging (`chunkingMs`, `embeddingsMs`, `dbMs`, `totalMs`) in embeddings job logs.
 
 ### 4) No cost/rate protection around external embeddings calls
 - **Where:** `apps/api/src/kb/embeddings/embeddings.service.ts` (external `/v1/embeddings` calls)
@@ -55,7 +55,8 @@ This file tracks actionable follow-ups based on code review for **Epic KB-02: KB
 
 ### 7) Standardize error formats
 - **Where:** Various KB API/services
-- **TODO:** Pick consistent error codes/objects (vs mixed strings and sentences).
+- **TODO:**
+  - [x] Introduce `KB_ERROR` codes and use them in core KB exceptions to normalize client-visible error messages.
 
 ### 8) Extract magic numbers into constants
 - **Where:** `apps/api/src/kb/embeddings/embeddings.service.ts` (attempts, backoff, batch sizes, limits)
@@ -63,7 +64,8 @@ This file tracks actionable follow-ups based on code review for **Epic KB-02: KB
 
 ### 9) Vector conversion caching (optional)
 - **Where:** `vectorToPgvectorText` call sites
-- **TODO:** Only worth it if the same vector is reused frequently; likely minimal gain.
+- **TODO:**
+  - [x] Assessed call sites; vectors are not reused frequently enough to justify caching complexity. No caching added.
 
 ## Not Actionable / Already Covered
 

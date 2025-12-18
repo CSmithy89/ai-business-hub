@@ -5,6 +5,7 @@ import type { Queue } from 'bullmq'
 import { createId } from '@paralleldrive/cuid2'
 import { AIProvidersService } from '../../ai-providers/ai-providers.service'
 import { PrismaService } from '../../common/services/prisma.service'
+import { KB_ERROR } from '../kb.errors'
 import {
   KB_EMBEDDINGS_DB_BATCH_SIZE_DEFAULT,
   KB_EMBEDDINGS_DB_BATCH_SIZE_MAX,
@@ -131,6 +132,7 @@ export class EmbeddingsService {
     if (!enabled) return
     assertKbEmbeddingsDimsSupported(this.embeddingDims)
 
+    const startedAt = Date.now()
     const { tenantId, workspaceId, pageId } = data
 
     const page = await this.prisma.knowledgePage.findFirst({
@@ -147,18 +149,27 @@ export class EmbeddingsService {
     const overlapWords = Number.parseInt(process.env.KB_EMBEDDINGS_OVERLAP_WORDS ?? '', 10)
     const maxChunks = Number.parseInt(process.env.KB_EMBEDDINGS_MAX_CHUNKS ?? '', 10)
 
+    const maxWordsUsed = Number.isFinite(maxWords) ? maxWords : 250
+    const overlapWordsUsed = Number.isFinite(overlapWords) ? overlapWords : 30
+    const maxChunksUsed = Number.isFinite(maxChunks) ? maxChunks : 200
+
+    const chunkingStartedAt = Date.now()
     const chunks = chunkTextByWords(page.contentText, {
-      maxWords: Number.isFinite(maxWords) ? maxWords : 250,
-      overlapWords: Number.isFinite(overlapWords) ? overlapWords : 30,
-      maxChunks: Number.isFinite(maxChunks) ? maxChunks : 200,
+      maxWords: maxWordsUsed,
+      overlapWords: overlapWordsUsed,
+      maxChunks: maxChunksUsed,
     })
+    const chunkingMs = Date.now() - chunkingStartedAt
+    const maxChunksHit = chunks.length === maxChunksUsed
 
     if (chunks.length === 0) {
       await this.prisma.pageEmbedding.deleteMany({ where: { pageId } })
       return
     }
 
+    const embeddingsStartedAt = Date.now()
     const embeddingResult = await this.embedTextsForWorkspace(workspaceId, chunks)
+    const embeddingsMs = Date.now() - embeddingsStartedAt
     if (!embeddingResult) {
       return
     }
@@ -167,12 +178,13 @@ export class EmbeddingsService {
 
     if (embeddings.length !== chunks.length) {
       throw new BadRequestException(
-        `Embeddings length mismatch: got ${embeddings.length}, expected ${chunks.length}`,
+        `${KB_ERROR.EMBEDDINGS_LENGTH_MISMATCH}:${embeddings.length}:${chunks.length}`,
       )
     }
 
     const createdAt = new Date()
 
+    const dbStartedAt = Date.now()
     await this.prisma.$transaction(async (tx) => {
       await tx.pageEmbedding.deleteMany({ where: { pageId } })
 
@@ -234,6 +246,7 @@ export class EmbeddingsService {
         start = end
       }
     })
+    const dbMs = Date.now() - dbStartedAt
 
     this.logger.log({
       message: 'Stored KB page embeddings',
@@ -241,6 +254,11 @@ export class EmbeddingsService {
       workspaceId,
       tenantId,
       chunks: chunks.length,
+      maxChunksHit,
+      chunkingMs,
+      embeddingsMs,
+      dbMs,
+      totalMs: Date.now() - startedAt,
       providerType,
     })
   }
@@ -281,7 +299,7 @@ export class EmbeddingsService {
     const breakerKey = `${baseUrl}:${model}`
     const breaker = this.breakers.get(breakerKey) ?? { failures: 0, openUntil: 0 }
     if (breaker.openUntil > Date.now()) {
-      throw new BadRequestException('Embeddings temporarily unavailable. Please retry shortly.')
+      throw new BadRequestException(KB_ERROR.EMBEDDINGS_TEMPORARILY_UNAVAILABLE)
     }
 
     for (let start = 0; start < texts.length; start += batchSize) {
@@ -332,13 +350,13 @@ export class EmbeddingsService {
           })
         }
 
-        throw new BadRequestException('Embeddings provider request failed')
+        throw new BadRequestException(KB_ERROR.EMBEDDINGS_PROVIDER_REQUEST_FAILED)
       }
 
       const json = (await response.json()) as Partial<OpenAiEmbeddingsResponse>
       const data = json?.data
       if (!Array.isArray(data)) {
-        throw new BadRequestException('Embeddings provider response invalid')
+        throw new BadRequestException(KB_ERROR.EMBEDDINGS_PROVIDER_RESPONSE_INVALID)
       }
 
       const batchResults: Array<number[] | undefined> = new Array(input.length).fill(undefined)
@@ -353,17 +371,17 @@ export class EmbeddingsService {
 
         const vector = embedding as number[]
         if (vector.length !== this.embeddingDims) {
-          throw new BadRequestException('Embeddings provider returned wrong vector dimension')
+          throw new BadRequestException(KB_ERROR.EMBEDDINGS_PROVIDER_DIMENSION_MISMATCH)
         }
         if (vector.some((v) => !Number.isFinite(v))) {
-          throw new BadRequestException('Embeddings provider returned invalid vector values')
+          throw new BadRequestException(KB_ERROR.EMBEDDINGS_PROVIDER_VALUES_INVALID)
         }
 
         batchResults[index] = vector
       }
 
       if (batchResults.some((v) => !v)) {
-        throw new BadRequestException('Embeddings provider response incomplete')
+        throw new BadRequestException(KB_ERROR.EMBEDDINGS_PROVIDER_RESPONSE_INCOMPLETE)
       }
 
       results.push(...(batchResults as number[][]))
