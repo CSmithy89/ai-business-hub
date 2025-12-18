@@ -1,0 +1,597 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-03-2-kanban-board-basic</story-id>
+    <epic>PM-03 (Views &amp; Navigation)</epic>
+    <priority>High</priority>
+    <story-points>5</story-points>
+    <complexity>Medium</complexity>
+    <generated-at>2025-12-18</generated-at>
+  </metadata>
+
+  <story-summary>
+    <title>Kanban Board Basic</title>
+    <description>
+      Create a basic kanban board view that displays tasks grouped by status in columns.
+      This story focuses on DISPLAY ONLY - drag-and-drop will be added in PM-03.3.
+      The board should show task cards with type icons, priority badges, assignee indicators,
+      and AI badges for agent-assigned tasks.
+    </description>
+    <prerequisites>
+      <prerequisite>PM-02.8 (Task Relations) - Task status field must exist</prerequisite>
+      <prerequisite>PM-02.6 (Task Assignment) - Assignment types (HUMAN/AGENT) must exist</prerequisite>
+    </prerequisites>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-1">
+      <name>Column Layout</name>
+      <description>Display columns for each status in order: Backlog, Todo, In Progress, Review, Done</description>
+      <details>Columns are laid out horizontally with horizontal scroll</details>
+    </criterion>
+    <criterion id="AC-2">
+      <name>Task Cards Display</name>
+      <description>Each task card shows: type icon, title, priority badge, assignee indicator (emoji), task number</description>
+    </criterion>
+    <criterion id="AC-3">
+      <name>Agent-Assigned Badge</name>
+      <description>Tasks assigned to AI agents show Sparkles icon badge next to assignee</description>
+    </criterion>
+    <criterion id="AC-4">
+      <name>Card Count Display</name>
+      <description>Column header shows status name and count of tasks (e.g., "In Progress (5)")</description>
+    </criterion>
+    <criterion id="AC-5">
+      <name>Empty State</name>
+      <description>Empty columns show header with count (0) and subtle empty state message</description>
+    </criterion>
+    <criterion id="AC-6">
+      <name>Task Card Click</name>
+      <description>Clicking a task card opens the task detail sheet with full information</description>
+    </criterion>
+  </acceptance-criteria>
+
+  <task-enums>
+    <enum name="TaskStatus">
+      <description>Task status values from Prisma schema - these will be column headers</description>
+      <values>
+        <value>BACKLOG</value>
+        <value>TODO</value>
+        <value>IN_PROGRESS</value>
+        <value>REVIEW</value>
+        <value>AWAITING_APPROVAL</value>
+        <value>DONE</value>
+        <value>CANCELLED</value>
+      </values>
+      <note>For this story, we'll display 5 columns: BACKLOG, TODO, IN_PROGRESS, REVIEW, DONE</note>
+      <note>AWAITING_APPROVAL and CANCELLED can be added in future enhancements</note>
+    </enum>
+
+    <enum name="TaskType">
+      <description>Task type values - will determine card icon</description>
+      <values>
+        <value>EPIC</value>
+        <value>STORY</value>
+        <value>TASK</value>
+        <value>SUBTASK</value>
+        <value>BUG</value>
+        <value>RESEARCH</value>
+        <value>CONTENT</value>
+        <value>AGENT_REVIEW</value>
+      </values>
+    </enum>
+
+    <enum name="TaskPriority">
+      <description>Task priority values - will determine badge color</description>
+      <values>
+        <value>URGENT</value>
+        <value>HIGH</value>
+        <value>MEDIUM</value>
+        <value>LOW</value>
+        <value>NONE</value>
+      </values>
+    </enum>
+
+    <enum name="AssignmentType">
+      <description>Assignment type - determines if AI badge should be shown</description>
+      <values>
+        <value>HUMAN</value>
+        <value>AGENT</value>
+        <value>HYBRID</value>
+      </values>
+      <note>Show AI badge when assignmentType === 'AGENT' or 'HYBRID'</note>
+    </enum>
+  </task-enums>
+
+  <task-meta-utilities>
+    <file-path>apps/web/src/lib/pm/task-meta.ts</file-path>
+    <description>Provides icon and styling metadata for task types and priorities</description>
+
+    <task-type-meta>
+      <usage>
+        <example>
+          import { TASK_TYPE_META, getTaskTypeMeta } from '@/lib/pm/task-meta'
+
+          const meta = TASK_TYPE_META[task.type]
+          const Icon = meta.icon
+          // Render: &lt;Icon className={meta.iconClassName} /&gt;
+        </example>
+      </usage>
+      <type-mappings>
+        <type name="EPIC">
+          <icon>Layers</icon>
+          <color>text-violet-600</color>
+        </type>
+        <type name="STORY">
+          <icon>FileText</icon>
+          <color>text-indigo-600</color>
+        </type>
+        <type name="TASK">
+          <icon>CheckSquare</icon>
+          <color>text-slate-600</color>
+        </type>
+        <type name="SUBTASK">
+          <icon>ListTodo</icon>
+          <color>text-slate-500</color>
+        </type>
+        <type name="BUG">
+          <icon>Bug</icon>
+          <color>text-rose-600</color>
+        </type>
+        <type name="RESEARCH">
+          <icon>FlaskConical</icon>
+          <color>text-sky-600</color>
+        </type>
+        <type name="CONTENT">
+          <icon>PenLine</icon>
+          <color>text-emerald-600</color>
+        </type>
+        <type name="AGENT_REVIEW">
+          <icon>Bot</icon>
+          <color>text-amber-600</color>
+        </type>
+      </type-mappings>
+    </task-type-meta>
+
+    <task-priority-meta>
+      <usage>
+        <example>
+          import { TASK_PRIORITY_META, getTaskPriorityMeta } from '@/lib/pm/task-meta'
+
+          const meta = TASK_PRIORITY_META[task.priority]
+          // Render dot: &lt;span className={meta.dotClassName} /&gt;
+        </example>
+      </usage>
+      <priority-mappings>
+        <priority name="URGENT">
+          <label>Urgent</label>
+          <color>bg-red-500</color>
+        </priority>
+        <priority name="HIGH">
+          <label>High</label>
+          <color>bg-orange-500</color>
+        </priority>
+        <priority name="MEDIUM">
+          <label>Medium</label>
+          <color>bg-yellow-500</color>
+        </priority>
+        <priority name="LOW">
+          <label>Low</label>
+          <color>bg-blue-500</color>
+        </priority>
+        <priority name="NONE">
+          <label>None</label>
+          <color>bg-slate-300</color>
+        </priority>
+      </priority-mappings>
+    </task-priority-meta>
+  </task-meta-utilities>
+
+  <task-hooks>
+    <file-path>apps/web/src/hooks/use-pm-tasks.ts</file-path>
+    <description>React Query hooks for fetching and mutating tasks</description>
+
+    <hook name="usePmTasks">
+      <description>Fetches list of tasks with optional filters</description>
+      <signature>
+        usePmTasks(query: ListTasksQuery): UseQueryResult&lt;TasksListResponse&gt;
+      </signature>
+      <query-params>
+        <param name="projectId" type="string" required="true">Filter by project</param>
+        <param name="phaseId" type="string">Filter by phase</param>
+        <param name="status" type="TaskStatus">Filter by status</param>
+        <param name="type" type="TaskType">Filter by type</param>
+        <param name="priority" type="TaskPriority">Filter by priority</param>
+        <param name="assigneeId" type="string">Filter by assignee</param>
+        <param name="search" type="string">Search by title</param>
+        <param name="page" type="number">Page number</param>
+        <param name="limit" type="number">Items per page</param>
+      </query-params>
+      <return-type>
+        <field name="data">TaskListItem[]</field>
+        <field name="meta">{ total, page, limit, totalPages }</field>
+      </return-type>
+    </hook>
+
+    <type name="TaskListItem">
+      <description>Task data structure returned by API</description>
+      <fields>
+        <field name="id" type="string">Task ID</field>
+        <field name="taskNumber" type="number">Sequential task number</field>
+        <field name="title" type="string">Task title</field>
+        <field name="type" type="TaskType">Task type</field>
+        <field name="priority" type="TaskPriority">Priority level</field>
+        <field name="status" type="TaskStatus">Current status</field>
+        <field name="assignmentType" type="AssignmentType">Human/Agent/Hybrid</field>
+        <field name="assigneeId" type="string | null">Assigned user ID</field>
+        <field name="agentId" type="string | null">Assigned agent ID</field>
+        <field name="dueDate" type="string | null">Due date ISO string</field>
+        <field name="description" type="string | null">Task description</field>
+      </fields>
+    </type>
+  </task-hooks>
+
+  <ui-components>
+    <component name="Card">
+      <file-path>apps/web/src/components/ui/card.tsx</file-path>
+      <description>shadcn/ui Card component with premium styling</description>
+      <usage>
+        <example>
+          import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
+          &lt;Card&gt;
+            &lt;CardHeader&gt;
+              &lt;CardTitle&gt;Column Title&lt;/CardTitle&gt;
+            &lt;/CardHeader&gt;
+            &lt;CardContent&gt;
+              {/* Task cards */}
+            &lt;/CardContent&gt;
+          &lt;/Card&gt;
+        </example>
+      </usage>
+      <features>
+        <feature>16px border radius</feature>
+        <feature>Subtle shadow at rest</feature>
+        <feature>Optional interactive prop for hover/focus states</feature>
+        <feature>Smooth 200ms transitions</feature>
+      </features>
+      <note>Use interactive prop for clickable task cards</note>
+    </component>
+
+    <component name="Badge">
+      <file-path>apps/web/src/components/ui/badge.tsx</file-path>
+      <description>Badge component for displaying priority and status</description>
+      <variants>
+        <variant name="default">Primary background</variant>
+        <variant name="secondary">Secondary background</variant>
+        <variant name="destructive">Red/error background</variant>
+        <variant name="outline">Outlined badge</variant>
+        <variant name="success">Green background</variant>
+      </variants>
+      <usage>
+        <example>
+          import { Badge } from '@/components/ui/badge'
+
+          &lt;Badge variant="secondary"&gt;{priority}&lt;/Badge&gt;
+        </example>
+      </usage>
+    </component>
+
+    <component name="Sparkles">
+      <description>Lucide icon for AI badge</description>
+      <usage>
+        <example>
+          import { Sparkles } from 'lucide-react'
+
+          {task.assignmentType === 'AGENT' &amp;&amp; (
+            &lt;Sparkles className="h-4 w-4 text-purple-500" /&gt;
+          )}
+        </example>
+      </usage>
+    </component>
+  </ui-components>
+
+  <integration-points>
+    <file name="ProjectTasksContent.tsx">
+      <path>apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/ProjectTasksContent.tsx</path>
+      <description>Main container for project tasks page - add kanban view here</description>
+
+      <current-view-toggle>
+        <code>
+          const [viewMode, setViewMode] = useState&lt;'simple' | 'table'&gt;('simple')
+
+          &lt;Button
+            variant={viewMode === 'simple' ? 'secondary' : 'outline'}
+            onClick={() =&gt; setViewMode('simple')}
+          &gt;
+            Simple
+          &lt;/Button&gt;
+          &lt;Button
+            variant={viewMode === 'table' ? 'secondary' : 'outline'}
+            onClick={() =&gt; setViewMode('table')}
+          &gt;
+            Table
+          &lt;/Button&gt;
+        </code>
+      </current-view-toggle>
+
+      <modification-needed>
+        <step>1. Add 'kanban' to viewMode type: useState&lt;'simple' | 'table' | 'kanban'&gt;</step>
+        <step>2. Add Kanban button to view toggle</step>
+        <step>3. Import KanbanBoardView component</step>
+        <step>4. Add conditional rendering for kanban view</step>
+      </modification-needed>
+
+      <example>
+        <code>
+          import { KanbanBoardView } from '@/components/pm/views/KanbanBoardView'
+
+          // In view toggle section
+          &lt;Button
+            variant={viewMode === 'kanban' ? 'secondary' : 'outline'}
+            onClick={() =&gt; setViewMode('kanban')}
+          &gt;
+            Kanban
+          &lt;/Button&gt;
+
+          // In render section
+          {viewMode === 'kanban' ? (
+            &lt;KanbanBoardView
+              tasks={tasks}
+              projectId={project.id}
+              onTaskClick={(taskId) =&gt; openTask(router, pathname, searchParams, taskId)}
+            /&gt;
+          ) : ...}
+        </code>
+      </example>
+    </file>
+
+    <file name="TaskDetailSheet">
+      <description>Task detail sheet component - already exists, just trigger on card click</description>
+      <usage>Opens when onTaskClick callback is called with taskId</usage>
+      <note>Sheet is already integrated in ProjectTasksContent.tsx</note>
+    </file>
+  </integration-points>
+
+  <component-architecture>
+    <new-components>
+      <component>
+        <name>KanbanBoardView</name>
+        <path>apps/web/src/components/pm/views/KanbanBoardView.tsx</path>
+        <responsibility>Main kanban board container with horizontal column layout</responsibility>
+        <props>
+          <prop name="tasks" type="TaskListItem[]">Array of tasks to display</prop>
+          <prop name="projectId" type="string">Project ID for context</prop>
+          <prop name="onTaskClick" type="(taskId: string) => void">Callback when task card is clicked</prop>
+        </props>
+        <implementation-notes>
+          <note>Group tasks by status using helper function</note>
+          <note>Render KanbanColumn for each status</note>
+          <note>Use horizontal flex layout with overflow-x-auto</note>
+          <note>Fixed column order: BACKLOG, TODO, IN_PROGRESS, REVIEW, DONE</note>
+        </implementation-notes>
+      </component>
+
+      <component>
+        <name>KanbanColumn</name>
+        <path>apps/web/src/components/pm/kanban/KanbanColumn.tsx</path>
+        <responsibility>Single column containing task cards for one status</responsibility>
+        <props>
+          <prop name="status" type="TaskStatus">Status this column represents</prop>
+          <prop name="tasks" type="TaskListItem[]">Tasks in this column</prop>
+          <prop name="onTaskClick" type="(taskId: string) => void">Callback for card clicks</prop>
+        </props>
+        <implementation-notes>
+          <note>Fixed width: 320px</note>
+          <note>Column header shows status name and count</note>
+          <note>Scrollable content area with 8px gap between cards</note>
+          <note>Show empty state message when tasks.length === 0</note>
+          <note>Use Card component with muted background</note>
+        </implementation-notes>
+      </component>
+
+      <component>
+        <name>TaskCard</name>
+        <path>apps/web/src/components/pm/kanban/TaskCard.tsx</path>
+        <responsibility>Individual task card displaying task information</responsibility>
+        <props>
+          <prop name="task" type="TaskListItem">Task data</prop>
+          <prop name="onClick" type="() => void">Callback when card is clicked</prop>
+        </props>
+        <implementation-notes>
+          <note>Use Card component with interactive prop</note>
+          <note>Top row: Type icon (from TASK_TYPE_META), title, AI badge (if agent)</note>
+          <note>Bottom row: Task number, priority badge, assignee emoji</note>
+          <note>Assignee emoji: 👤 for HUMAN, 🤖 for AGENT</note>
+          <note>AI badge: Sparkles icon with purple color</note>
+          <note>Hover state provided by Card interactive prop</note>
+        </implementation-notes>
+      </component>
+    </new-components>
+
+    <helper-functions>
+      <function>
+        <name>groupTasksByStatus</name>
+        <path>apps/web/src/lib/pm/kanban-grouping.ts</path>
+        <responsibility>Group tasks into columns by status</responsibility>
+        <signature>
+          function groupTasksByStatus(tasks: TaskListItem[]): KanbanColumn[]
+        </signature>
+        <return-type>
+          <code>
+            interface KanbanColumn {
+              id: string          // e.g., "BACKLOG"
+              title: string       // e.g., "Backlog"
+              status: TaskStatus  // Enum value
+              tasks: TaskListItem[]
+            }
+          </code>
+        </return-type>
+        <implementation-notes>
+          <note>Create columns for: BACKLOG, TODO, IN_PROGRESS, REVIEW, DONE</note>
+          <note>Title formatting: Convert underscore to space and capitalize</note>
+          <note>Include empty columns in result</note>
+          <note>Order columns in logical workflow sequence</note>
+        </implementation-notes>
+      </function>
+    </helper-functions>
+  </component-architecture>
+
+  <styling-guidelines>
+    <layout>
+      <horizontal-scroll>
+        <description>Board uses horizontal flex layout with overflow-x-auto</description>
+        <gap>16px between columns (gap-4)</gap>
+        <padding>16px bottom padding for scroll indicator (pb-4)</padding>
+      </horizontal-scroll>
+      <column-dimensions>
+        <width>320px fixed (w-80 or flex-shrink-0 w-80)</width>
+        <padding>16px (p-4)</padding>
+        <background>muted color (bg-muted)</background>
+      </column-dimensions>
+      <card-spacing>
+        <gap>8px vertical gap between cards (space-y-2)</gap>
+      </card-spacing>
+    </layout>
+
+    <task-card>
+      <container>Use Card component with interactive prop</container>
+      <padding>12px (p-3)</padding>
+      <border>Border included from Card component</border>
+      <hover>Shadow lift provided by Card interactive variant</hover>
+      <cursor>cursor-pointer for clickability</cursor>
+    </task-card>
+
+    <icons>
+      <size>h-4 w-4 for all icons</size>
+      <type-icon>Use color from TASK_TYPE_META.iconClassName</type-icon>
+      <ai-badge>text-purple-500 for Sparkles icon</ai-badge>
+    </icons>
+
+    <empty-state>
+      <message>Text: "No tasks in this status"</message>
+      <style>text-sm text-muted-foreground</style>
+      <padding>py-6 for vertical spacing</padding>
+    </empty-state>
+  </styling-guidelines>
+
+  <reference-patterns>
+    <from-task-list-view>
+      <file>apps/web/src/components/pm/views/TaskListView.tsx</file>
+      <patterns>
+        <pattern name="Loading State">
+          <code>
+            if (isLoading) {
+              return (
+                &lt;Card&gt;
+                  &lt;CardContent className="py-6"&gt;
+                    &lt;p className="text-sm text-[rgb(var(--color-text-secondary))]"&gt;
+                      Loading tasks…
+                    &lt;/p&gt;
+                  &lt;/CardContent&gt;
+                &lt;/Card&gt;
+              )
+            }
+          </code>
+        </pattern>
+        <pattern name="Empty State">
+          <code>
+            if (tasks.length === 0) {
+              return (
+                &lt;EmptyState
+                  icon={ChevronRight}
+                  headline="No tasks found"
+                  description="No tasks match the current filters."
+                /&gt;
+              )
+            }
+          </code>
+        </pattern>
+      </patterns>
+    </from-task-list-view>
+
+    <from-project-tasks-content>
+      <file>apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/ProjectTasksContent.tsx</file>
+      <patterns>
+        <pattern name="Task Row Display">
+          <code>
+            // Shows how to render type icon, priority, and status together
+            const typeMeta = TASK_TYPE_META[task.type]
+            const TypeIcon = typeMeta.icon
+            const priorityMeta = TASK_PRIORITY_META[task.priority]
+
+            &lt;TypeIcon className={cn('h-4 w-4', typeMeta.iconClassName)} /&gt;
+            &lt;span className={cn('h-2.5 w-2.5 rounded-full', priorityMeta.dotClassName)} /&gt;
+          </code>
+        </pattern>
+        <pattern name="Status Badge Variant">
+          <code>
+            function statusBadgeVariant(status: TaskStatus) {
+              if (status === 'DONE') return 'success'
+              if (status === 'CANCELLED') return 'destructive'
+              if (status === 'IN_PROGRESS') return 'secondary'
+              return 'outline'
+            }
+          </code>
+        </pattern>
+      </patterns>
+    </from-project-tasks-content>
+  </reference-patterns>
+
+  <testing-requirements>
+    <unit-tests>
+      <test>groupTasksByStatus correctly groups tasks by status</test>
+      <test>groupTasksByStatus returns columns in correct order</test>
+      <test>Empty columns are included in output</test>
+      <test>Card count calculation is correct</test>
+      <test>AI badge shows only for agent-assigned tasks</test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>KanbanBoardView renders all status columns</test>
+      <test>Task cards display in correct columns</test>
+      <test>Click on task card opens detail sheet</test>
+      <test>URL updates with task ID on card click</test>
+      <test>Empty columns display correctly</test>
+    </integration-tests>
+
+    <e2e-tests>
+      <test>User can switch to Kanban view</test>
+      <test>User can see tasks grouped by status</test>
+      <test>User can click task card to open detail</test>
+      <test>User can scroll horizontally to see all columns</test>
+      <test>Empty columns display with empty state</test>
+      <test>Agent-assigned tasks show AI badge</test>
+    </e2e-tests>
+  </testing-requirements>
+
+  <technical-notes>
+    <note type="important">
+      This story is DISPLAY ONLY. Drag-and-drop functionality will be added in PM-03.3.
+      Do not implement any drag-drop logic in this story.
+    </note>
+    <note type="important">
+      TaskStatus enum has 7 values but we only display 5 columns for MVP.
+      AWAITING_APPROVAL and CANCELLED can be added later.
+    </note>
+    <note type="performance">
+      Use React.memo for TaskCard components to prevent unnecessary re-renders.
+      Use useMemo for groupTasksByStatus result.
+    </note>
+    <note type="styling">
+      Follow existing patterns from TaskListView and ProjectTasksContent.
+      Use design tokens like rgb(var(--color-text-primary)) for colors.
+    </note>
+    <note type="accessibility">
+      Task cards should have proper click handlers and keyboard navigation.
+      Use semantic HTML and ARIA labels where appropriate.
+    </note>
+  </technical-notes>
+
+  <related-stories>
+    <story id="PM-03.1">Task List View - Reference for patterns and integration</story>
+    <story id="PM-03.3">Kanban Drag-Drop - Will add drag-drop to this basic board</story>
+    <story id="PM-03.5">View Toggle - Will formalize view switching</story>
+    <story id="PM-03.7">Advanced Filters - Will integrate filtering with kanban</story>
+  </related-stories>
+</story-context>

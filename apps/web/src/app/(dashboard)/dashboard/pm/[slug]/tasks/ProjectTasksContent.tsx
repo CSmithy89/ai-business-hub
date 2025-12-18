@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
-import { CalendarDays, ChevronRight, Filter, LayoutList, Search } from 'lucide-react'
+import { CalendarDays, ChevronRight, Filter, KanbanSquare, LayoutList, Search } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +16,7 @@ import { TASK_PRIORITIES, TASK_PRIORITY_META, TASK_TYPES, TASK_TYPE_META } from 
 import { cn } from '@/lib/utils'
 import { TaskDetailSheet } from './TaskDetailSheet'
 import { TaskListView } from '@/components/pm/views/TaskListView'
+import { KanbanBoardView } from '@/components/pm/views/KanbanBoardView'
 
 const TASK_STATUSES: TaskStatus[] = [
   'BACKLOG',
@@ -72,7 +73,7 @@ export function ProjectTasksContent() {
   const [status, setStatus] = useState<TaskStatus | 'all'>('all')
   const [type, setType] = useState<TaskType | 'all'>('all')
   const [priority, setPriority] = useState<TaskPriority | 'all'>('all')
-  const [viewMode, setViewMode] = useState<'simple' | 'table'>('simple')
+  const [viewMode, setViewMode] = useState<'simple' | 'table' | 'kanban'>('simple')
 
   const query = useMemo(() => {
     return {
@@ -133,6 +134,14 @@ export function ProjectTasksContent() {
           >
             <LayoutList className="h-4 w-4 mr-2" />
             Table
+          </Button>
+          <Button
+            variant={viewMode === 'kanban' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('kanban')}
+          >
+            <KanbanSquare className="h-4 w-4 mr-2" />
+            Kanban
           </Button>
         </div>
       </div>
@@ -244,7 +253,12 @@ export function ProjectTasksContent() {
       ) : null}
 
       {tasks.length ? (
-        viewMode === 'table' ? (
+        viewMode === 'kanban' ? (
+          <KanbanBoardView
+            tasks={tasks}
+            onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
+          />
+        ) : viewMode === 'table' ? (
           <TaskListView
             tasks={tasks}
             projectId={project.id}
