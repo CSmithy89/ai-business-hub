@@ -104,7 +104,7 @@ development_status:
   # ===========================================
   pm-04: contexted
   pm-04-1-navi-agent-foundation: done
-  pm-04-2-navi-daily-briefing: backlog
+  pm-04-2-navi-daily-briefing: done
   pm-04-3-navi-suggestion-cards: backlog
   pm-04-4-navi-chat-interface: backlog
   pm-04-5-sage-estimation-agent: backlog

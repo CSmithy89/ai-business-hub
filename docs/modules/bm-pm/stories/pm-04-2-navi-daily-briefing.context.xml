@@ -1,0 +1,656 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>PM-04-2</story-id>
+    <story-name>Navi Daily Briefing</story-name>
+    <epic>PM-04 - AI Team: Navi, Sage, Chrono</epic>
+    <points>5</points>
+    <status>ready-for-dev</status>
+    <generated>2025-12-18</generated>
+  </metadata>
+
+  <story-summary>
+    <title>Navi Daily Briefing</title>
+    <description>
+      Implement a daily morning summary feature that provides project users with a comprehensive
+      briefing about their project status. The briefing should include tasks due today, overdue
+      tasks, detected blockers, recent team activity, and AI-generated recommendations from Navi.
+
+      Briefings are generated via a scheduled cron job that runs hourly and checks user preferences
+      for timezone-based delivery. Users receive notifications via WebSocket (if online) or email
+      (if enabled in preferences). The briefing UI provides an expandable notification with snooze
+      and dismiss options.
+    </description>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        Daily briefing enabled in preferences - When logged in or at configured time, notification
+        shows with expandable briefing
+      </criterion>
+      <criterion id="AC2">
+        Briefing contains key information: tasks due today, overdue tasks, blockers detected,
+        recent team activity, AI recommendations
+      </criterion>
+      <criterion id="AC3">
+        One-click actions available for common responses to recommendations/tasks
+      </criterion>
+      <criterion id="AC4">
+        Snooze or dismiss options available on the briefing notification
+      </criterion>
+    </acceptance-criteria>
+
+    <user-story>
+      As a project user,
+      I want a morning summary of my project status,
+      So that I start the day informed.
+    </user-story>
+  </story-summary>
+
+  <technical-approach>
+    <architecture>
+      <component name="Backend Service">
+        Location: apps/api/src/pm/agents/briefing.service.ts
+
+        Responsibilities:
+        - Generate daily briefings via Navi agent
+        - Schedule briefing generation via cron (hourly check)
+        - Store briefing history (optional for Phase 2)
+        - Send notifications (WebSocket + email)
+
+        Key Methods:
+        - generateScheduledBriefings(): Cron job handler (runs every hour)
+        - generateUserBriefings(userId, workspaceId): Generate for all user projects
+        - generateProjectBriefing(workspaceId, projectId, userId): Generate for one project
+        - sendBriefingNotification(userId, workspaceId, briefings): Deliver via WS/email
+      </component>
+
+      <component name="Agent Layer">
+        Location: agents/pm/tools/briefing_tools.py
+
+        New tool for Navi agent:
+        - generate_daily_briefing(project_id): Returns recommendations based on project status
+
+        Integration: Add tool to Navi's tools list in agents/pm/navi.py
+      </component>
+
+      <component name="Frontend Component">
+        Location: apps/web/src/components/pm/agents/DailyBriefing.tsx
+
+        Features:
+        - Collapsed/expanded states
+        - Per-project briefing sections
+        - Snooze functionality (localStorage + timeout)
+        - Dismiss functionality
+        - One-click actions (view task, view project)
+      </component>
+
+      <component name="Data Model">
+        Location: packages/db/prisma/schema.prisma
+
+        Extend UserPreference model with:
+        - dailyBriefingEnabled: Boolean (default true)
+        - dailyBriefingHour: Int (default 8) - 8am local time
+        - emailBriefing: Boolean (default false) - Send via email
+      </component>
+    </architecture>
+
+    <data-structures>
+      <interface name="DailyBriefing">
+        projectId: string;
+        projectName: string;
+        tasksDueToday: number;
+        overdueTasks: number;
+        blockers: string[];
+        recommendations: string[];
+        recentActivity: string[];
+        generatedAt: Date;
+      </interface>
+
+      <interface name="BriefingPreferences">
+        dailyBriefingEnabled: boolean;
+        dailyBriefingHour: number; // 0-23 UTC or local
+        emailBriefing: boolean;
+      </interface>
+    </data-structures>
+
+    <api-endpoints>
+      <endpoint method="GET" path="/api/pm/agents/briefings/daily">
+        Description: Get today's daily briefing for all projects
+        Response: { briefings: DailyBriefing[], generatedAt: string }
+      </endpoint>
+
+      <endpoint method="POST" path="/api/pm/agents/briefings/generate">
+        Description: Regenerate briefing on demand
+        Body: { projectId: string }
+        Response: DailyBriefing
+      </endpoint>
+    </api-endpoints>
+  </technical-approach>
+
+  <code-patterns>
+    <pattern name="Cron Job Scheduling (BullMQ)">
+      <description>
+        Pattern for scheduling recurring jobs using BullMQ queues with OnModuleInit.
+        Reference: apps/api/src/approvals/services/escalation-scheduler.service.ts
+      </description>
+      <code-example><![CDATA[
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+
+@Injectable()
+export class BriefingService implements OnModuleInit {
+  private readonly logger = new Logger(BriefingService.name);
+
+  constructor(
+    @InjectQueue('daily-briefing')
+    private readonly briefingQueue: Queue,
+  ) {}
+
+  async onModuleInit() {
+    try {
+      // Add recurring job (every hour)
+      await this.briefingQueue.add(
+        'check-briefing-schedule',
+        {},
+        {
+          repeat: {
+            pattern: '0 * * * *', // Every hour at minute 0
+          },
+          removeOnComplete: {
+            count: 10,
+          },
+          removeOnFail: {
+            count: 50,
+          },
+        },
+      );
+
+      this.logger.log('Briefing cron job registered');
+    } catch (error) {
+      this.logger.error('Failed to register briefing job', error);
+    }
+  }
+}
+      ]]></code-example>
+    </pattern>
+
+    <pattern name="WebSocket Notification">
+      <description>
+        Pattern for sending real-time notifications via Socket.io gateway.
+        Reference: apps/api/src/realtime/realtime.gateway.ts
+      </description>
+      <code-example><![CDATA[
+// In BriefingService
+
+constructor(
+  private realtimeGateway: RealtimeGateway,
+) {}
+
+private async sendBriefingNotification(
+  userId: string,
+  workspaceId: string,
+  briefings: DailyBriefing[]
+) {
+  // WebSocket notification to online users
+  this.realtimeGateway.server
+    .to(`user:${userId}`)
+    .emit('briefing:daily', { briefings });
+
+  // Check if user wants email notifications
+  const userPrefs = await this.prisma.userPreference.findUnique({
+    where: { userId },
+  });
+
+  if (userPrefs?.emailBriefing) {
+    await this.notificationsService.sendEmail({
+      to: userId,
+      template: 'daily-briefing',
+      data: { briefings },
+    });
+  }
+}
+      ]]></code-example>
+    </pattern>
+
+    <pattern name="Navi Agent Integration">
+      <description>
+        Pattern for invoking Navi agent from backend service.
+        Reference: apps/api/src/pm/agents/agents.service.ts
+      </description>
+      <code-example><![CDATA[
+// In BriefingService
+
+constructor(
+  private agentsService: AgentsService,
+) {}
+
+async generateProjectBriefing(
+  workspaceId: string,
+  projectId: string,
+  userId: string
+): Promise<DailyBriefing> {
+  // ... calculate metrics (tasksDueToday, overdueTasks, blockers, etc.) ...
+
+  // Use Navi to generate AI recommendations
+  const naviResponse = await this.agentsService.chat({
+    workspaceId,
+    projectId,
+    userId,
+    agentName: 'navi',
+    message: `Generate daily briefing recommendations for this project. Current status: ${tasksDueToday} tasks due today, ${overdueTasks} overdue, ${blockers.length} blockers detected.`,
+  });
+
+  const recommendations = this.parseRecommendations(naviResponse.message);
+
+  return {
+    projectId,
+    projectName: project.name,
+    tasksDueToday,
+    overdueTasks,
+    blockers,
+    recommendations,
+    recentActivity,
+    generatedAt: new Date(),
+  };
+}
+      ]]></code-example>
+    </pattern>
+
+    <pattern name="React Component State Management">
+      <description>
+        Pattern for expandable/collapsible UI components with local state.
+        Used for briefing notification card with expand/collapse, snooze/dismiss.
+      </description>
+      <code-example><![CDATA[
+'use client';
+
+import { useState } from 'react';
+import { Bell, ChevronDown, ChevronUp, X, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+
+export function DailyBriefing({ briefings, onDismiss, onSnooze }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [expandedProjects, setExpandedProjects] = useState(new Set());
+
+  const toggleProject = (projectId) => {
+    const newExpanded = new Set(expandedProjects);
+    if (newExpanded.has(projectId)) {
+      newExpanded.delete(projectId);
+    } else {
+      newExpanded.add(projectId);
+    }
+    setExpandedProjects(newExpanded);
+  };
+
+  if (!isExpanded) {
+    return (
+      <Card className="fixed top-20 right-4 w-96 p-4">
+        {/* Collapsed view */}
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="fixed top-20 right-4 w-[600px] max-h-[80vh] overflow-y-auto">
+      {/* Expanded view */}
+    </Card>
+  );
+}
+      ]]></code-example>
+    </pattern>
+
+    <pattern name="Prisma Schema Extension">
+      <description>
+        Pattern for extending existing models with new fields.
+        Reference: packages/db/prisma/schema.prisma
+      </description>
+      <code-example><![CDATA[
+// Note: UserPreference model doesn't exist yet in schema
+// Need to create it or extend User model directly
+
+// Option 1: Extend User model
+model User {
+  // ... existing fields ...
+
+  // Daily Briefing Preferences
+  dailyBriefingEnabled Boolean @default(true) @map("daily_briefing_enabled")
+  dailyBriefingHour    Int     @default(8)    @map("daily_briefing_hour")
+  emailBriefing        Boolean @default(false) @map("email_briefing")
+}
+
+// Option 2: Create separate UserPreference model (recommended)
+model UserPreference {
+  id     String @id @default(cuid())
+  userId String @unique @map("user_id")
+
+  // Daily Briefing
+  dailyBriefingEnabled Boolean @default(true) @map("daily_briefing_enabled")
+  dailyBriefingHour    Int     @default(8)    @map("daily_briefing_hour")
+  emailBriefing        Boolean @default(false) @map("email_briefing")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_preferences")
+}
+
+// Add to User model:
+// userPreferences UserPreference?
+      ]]></code-example>
+    </pattern>
+  </code-patterns>
+
+  <existing-code-references>
+    <file path="agents/pm/navi.py">
+      <description>Navi agent foundation - completed in PM-04-1</description>
+      <key-sections>
+        - NAVI_INSTRUCTIONS: Agent behavior instructions
+        - create_navi_agent(): Factory function for creating Navi instance
+        - Current tools: get_project_status, list_tasks, search_kb
+      </key-sections>
+      <integration-point>
+        Add new tool 'generate_daily_briefing' to Navi's tools list
+      </integration-point>
+    </file>
+
+    <file path="agents/pm/tools/pm_tools.py">
+      <description>Existing PM tools for Navi agent</description>
+      <key-sections>
+        - get_project_status(project_id, workspace_id): Returns project overview
+        - list_tasks(): Lists tasks with filters
+        - search_kb(): RAG search in Knowledge Base
+      </key-sections>
+      <integration-point>
+        Create new file: agents/pm/tools/briefing_tools.py
+        Add generate_daily_briefing tool
+      </integration-point>
+    </file>
+
+    <file path="apps/api/src/pm/agents/agents.service.ts">
+      <description>Agent invocation service</description>
+      <key-sections>
+        - chat(params): Invoke agent with message and conversation history
+        - getConversations(): Retrieve conversation history
+        - invokeAgent(): Call AgentOS service
+      </key-sections>
+      <integration-point>
+        Use chat() method from BriefingService to get Navi recommendations
+      </integration-point>
+    </file>
+
+    <file path="apps/api/src/approvals/services/escalation-scheduler.service.ts">
+      <description>Reference implementation for BullMQ cron jobs</description>
+      <key-sections>
+        - OnModuleInit implementation
+        - BullMQ queue setup with repeat pattern
+        - Error handling for job registration
+      </key-sections>
+      <integration-point>
+        Follow same pattern for BriefingService cron job
+      </integration-point>
+    </file>
+
+    <file path="apps/api/src/realtime/realtime.gateway.ts">
+      <description>WebSocket gateway for real-time notifications</description>
+      <key-sections>
+        - Server instance for emitting events
+        - Room-based subscriptions (user:{userId})
+        - Event type definitions in realtime.types.ts
+      </key-sections>
+      <integration-point>
+        Inject RealtimeGateway into BriefingService
+        Emit 'briefing:daily' event to user room
+      </integration-point>
+    </file>
+
+    <file path="packages/db/prisma/schema.prisma">
+      <description>Prisma schema - User model and preferences</description>
+      <key-sections>
+        - User model (lines 20-47)
+        - Currently no UserPreference model exists
+        - Need to add UserPreference model or extend User model
+      </key-sections>
+      <integration-point>
+        Add UserPreference model with briefing settings
+        Run migration after schema update
+      </integration-point>
+    </file>
+  </existing-code-references>
+
+  <dependencies>
+    <prerequisite epic="PM-04" story="PM-04-1" status="done">
+      Navi Agent Foundation - Navi agent must be available and functional
+    </prerequisite>
+    <prerequisite epic="PM-02" story="PM-02-7" status="done">
+      Task State Machine - Task status and due dates required for briefing metrics
+    </prerequisite>
+    <prerequisite epic="PM-06" story="PM-06-5" status="backlog" optional="true">
+      In-App Notifications - Notification delivery infrastructure (can use basic WebSocket)
+    </prerequisite>
+    <prerequisite epic="KB-02" story="KB-02-7" status="done">
+      Agent KB Queries - RAG integration for context-aware recommendations
+    </prerequisite>
+
+    <npm-package name="@nestjs/schedule" version="^6.0.0">
+      For @Cron decorator and cron job scheduling
+    </npm-package>
+    <npm-package name="@nestjs/bullmq" version="^11.0.0">
+      For background job queue (already installed)
+    </npm-package>
+  </dependencies>
+
+  <implementation-checklist>
+    <phase name="Backend - Data Model">
+      <task>Add UserPreference model to schema.prisma with briefing fields</task>
+      <task>Create migration: pnpm --filter @hyvve/db prisma migrate dev --name add-user-preferences</task>
+      <task>Apply migration and verify schema update</task>
+    </phase>
+
+    <phase name="Backend - Briefing Service">
+      <task>Create apps/api/src/pm/agents/briefing.service.ts</task>
+      <task>Implement generateProjectBriefing() - calculate metrics</task>
+      <task>Implement generateUserBriefings() - loop through user projects</task>
+      <task>Implement generateScheduledBriefings() - cron handler</task>
+      <task>Implement sendBriefingNotification() - WebSocket + email</task>
+      <task>Implement parseRecommendations() - extract bullet points from Navi response</task>
+      <task>Set up BullMQ queue for scheduled jobs</task>
+      <task>Register cron job in OnModuleInit</task>
+    </phase>
+
+    <phase name="Backend - API Endpoints">
+      <task>Add briefing endpoints to apps/api/src/pm/agents/agents.controller.ts</task>
+      <task>GET /api/pm/agents/briefings/daily - get today's briefings</task>
+      <task>POST /api/pm/agents/briefings/generate - on-demand generation</task>
+      <task>Add DTO validation for request/response</task>
+    </phase>
+
+    <phase name="Agent Layer">
+      <task>Create agents/pm/tools/briefing_tools.py</task>
+      <task>Implement generate_daily_briefing(project_id) tool</task>
+      <task>Add tool to Navi's tools list in agents/pm/navi.py</task>
+      <task>Test tool with various project states</task>
+    </phase>
+
+    <phase name="Frontend - Component">
+      <task>Create apps/web/src/components/pm/agents/DailyBriefing.tsx</task>
+      <task>Implement collapsed state (notification preview)</task>
+      <task>Implement expanded state (full briefing details)</task>
+      <task>Implement per-project expandable sections</task>
+      <task>Add snooze functionality (localStorage + 1hr timeout)</task>
+      <task>Add dismiss functionality</task>
+      <task>Style with Tailwind CSS following design system</task>
+    </phase>
+
+    <phase name="Frontend - Integration">
+      <task>Add WebSocket listener for 'briefing:daily' event</task>
+      <task>Add briefing state management (show/hide/snooze)</task>
+      <task>Integrate DailyBriefing component into project layout</task>
+      <task>Add user preferences UI to settings page</task>
+      <task>Connect preferences to API endpoints</task>
+    </phase>
+
+    <phase name="Testing">
+      <task>Unit test: BriefingService.generateProjectBriefing()</task>
+      <task>Unit test: BriefingService.parseRecommendations()</task>
+      <task>Unit test: generate_daily_briefing tool</task>
+      <task>Unit test: DailyBriefing component</task>
+      <task>Integration test: GET /api/pm/agents/briefings/daily</task>
+      <task>Integration test: WebSocket notification delivery</task>
+      <task>E2E test: Login → briefing appears → expand → view details</task>
+      <task>E2E test: Snooze → briefing reappears after timeout</task>
+      <task>E2E test: Dismiss → briefing disappears</task>
+    </phase>
+
+    <phase name="Documentation">
+      <task>Update story file with implementation notes</task>
+      <task>Document cron job configuration</task>
+      <task>Document briefing preferences API</task>
+      <task>Add user guide for daily briefing feature</task>
+    </phase>
+  </implementation-checklist>
+
+  <testing-strategy>
+    <unit-tests>
+      <test-file path="apps/api/src/pm/agents/briefing.service.spec.ts">
+        <test-case>generateProjectBriefing calculates tasksDueToday correctly</test-case>
+        <test-case>generateProjectBriefing calculates overdueTasks correctly</test-case>
+        <test-case>generateProjectBriefing detects blockers (no assignee, urgent)</test-case>
+        <test-case>generateUserBriefings handles multiple projects</test-case>
+        <test-case>parseRecommendations extracts bullet points</test-case>
+        <test-case>parseRecommendations limits to 5 recommendations</test-case>
+        <test-case>Workspace isolation enforced</test-case>
+      </test-file>
+
+      <test-file path="agents/pm/tests/test_briefing_tools.py">
+        <test-case>generate_daily_briefing returns valid recommendations</test-case>
+        <test-case>Tool handles projects with no tasks</test-case>
+        <test-case>Tool detects blocked and unassigned tasks</test-case>
+        <test-case>API error handling graceful</test-case>
+      </test-file>
+
+      <test-file path="apps/web/src/components/pm/agents/DailyBriefing.test.tsx">
+        <test-case>Renders in collapsed state by default</test-case>
+        <test-case>Expands when View Briefing clicked</test-case>
+        <test-case>Collapses when minimize clicked</test-case>
+        <test-case>Project sections toggle independently</test-case>
+        <test-case>Snooze button calls onSnooze handler</test-case>
+        <test-case>Dismiss button calls onDismiss handler</test-case>
+        <test-case>Displays correct counts for tasks/blockers</test-case>
+      </test-file>
+    </unit-tests>
+
+    <integration-tests>
+      <test-file path="apps/api/test/pm/agents/briefing.e2e-spec.ts">
+        <test-case>GET /api/pm/agents/briefings/daily returns briefings for all user projects</test-case>
+        <test-case>POST /api/pm/agents/briefings/generate creates on-demand briefing</test-case>
+        <test-case>Briefing includes correct tasksDueToday count</test-case>
+        <test-case>Briefing includes correct overdueTasks count</test-case>
+        <test-case>Briefing detects blockers correctly</test-case>
+        <test-case>WebSocket event sent on briefing generation</test-case>
+        <test-case>Email sent if emailBriefing enabled</test-case>
+        <test-case>Multi-tenant isolation verified</test-case>
+      </test-file>
+    </integration-tests>
+
+    <e2e-tests>
+      <test-file path="apps/web/e2e/pm/agents/daily-briefing.spec.ts">
+        <test-case>Login → briefing notification appears → expand → view details</test-case>
+        <test-case>Briefing shows tasks due today → click task → navigate to task detail</test-case>
+        <test-case>Click "Snooze" → briefing disappears → reappears after 1 hour</test-case>
+        <test-case>Click "Dismiss" → briefing disappears permanently (for that day)</test-case>
+        <test-case>Settings → enable/disable daily briefing → verify preference saved</test-case>
+        <test-case>Settings → change briefing time → verify updated in preferences</test-case>
+      </test-file>
+    </e2e-tests>
+  </testing-strategy>
+
+  <edge-cases>
+    <case>
+      <scenario>User has no active projects</scenario>
+      <expected-behavior>No briefing generated, no notification sent</expected-behavior>
+    </case>
+    <case>
+      <scenario>Project has no tasks</scenario>
+      <expected-behavior>Briefing shows "No tasks" with empty recommendations</expected-behavior>
+    </case>
+    <case>
+      <scenario>All tasks completed (no due/overdue)</scenario>
+      <expected-behavior>Briefing shows positive message: "All caught up!"</expected-behavior>
+    </case>
+    <case>
+      <scenario>Navi agent times out or fails</scenario>
+      <expected-behavior>Generate briefing without AI recommendations, show metrics only</expected-behavior>
+    </case>
+    <case>
+      <scenario>User is offline when briefing generated</scenario>
+      <expected-behavior>Send email if enabled, otherwise briefing available on next login</expected-behavior>
+    </case>
+    <case>
+      <scenario>User has briefing disabled in preferences</scenario>
+      <expected-behavior>Skip briefing generation for that user</expected-behavior>
+    </case>
+    <case>
+      <scenario>Cron job fails to register</scenario>
+      <expected-behavior>Log error but allow app to start, manual trigger still available</expected-behavior>
+    </case>
+  </edge-cases>
+
+  <security-considerations>
+    <item>Multi-tenant isolation: All briefing operations scoped to workspaceId</item>
+    <item>User can only see briefings for projects they are members of</item>
+    <item>WebSocket notifications sent only to authenticated users in correct workspace</item>
+    <item>Email notifications respect user preferences and privacy settings</item>
+    <item>Briefing data does not leak across workspace boundaries</item>
+    <item>Rate limiting on manual briefing generation endpoint (10/hour per user)</item>
+  </security-considerations>
+
+  <performance-considerations>
+    <item>Cron job runs hourly but checks user timezone preferences to determine who gets briefings</item>
+    <item>Limit conversation history to last 50 messages when invoking Navi</item>
+    <item>Use database indexes on task.dueDate and task.status for efficient querying</item>
+    <item>Cache user preferences in Redis to reduce DB queries</item>
+    <item>Batch briefing generation for users in same timezone</item>
+    <item>WebSocket notification is instant, email is async via queue</item>
+    <item>Frontend: Snooze state stored in localStorage to avoid server round-trips</item>
+  </performance-considerations>
+
+  <notes>
+    <note priority="high">
+      For MVP: Run briefing at fixed UTC hour (8am UTC). Add full timezone support in Phase 2.
+    </note>
+    <note priority="medium">
+      Snooze functionality is client-side only. Store timestamp in localStorage and re-check on
+      page load. Default snooze duration: 1 hour.
+    </note>
+    <note priority="medium">
+      Briefing history persistence is optional for MVP. Generate fresh briefing on each request.
+      Add history storage in Phase 2 for viewing past briefings.
+    </note>
+    <note priority="low">
+      One-click actions (AC3) should be simple navigation links for MVP:
+      - View task → navigate to task detail
+      - View project → navigate to project page
+      More complex actions (assign, complete) can be added in PM-04.3
+    </note>
+  </notes>
+
+  <documentation-references>
+    <doc path="docs/modules/bm-pm/epics/epic-pm-04-tech-spec.md">
+      Epic PM-04 Technical Specification - Architecture and agent design
+    </doc>
+    <doc path="docs/modules/bm-pm/stories/pm-04-2-navi-daily-briefing.md">
+      Story definition with full technical notes and code examples
+    </doc>
+    <doc path="docs/modules/bm-pm/PRD.md">
+      Product Requirements Document - FR-5.2 Daily Briefings
+    </doc>
+    <doc path="docs/modules/bm-pm/architecture.md">
+      Module architecture overview
+    </doc>
+  </documentation-references>
+</story-context>

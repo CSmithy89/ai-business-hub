@@ -42,6 +42,7 @@ model User {
   createdApiKeys           ApiKey[]              @relation("CreatedBy")
   backupCodes              BackupCode[]
   trustedDevices           TrustedDevice[]
+  preferences              UserPreference?
 
   @@map("users")
 }
@@ -1790,4 +1791,29 @@ model AgentConversation {
 enum ConversationRole {
   USER
   AGENT
+}
+
+// ============================================
+// USER PREFERENCES
+// ============================================
+
+/// UserPreference - User-specific preferences and settings
+model UserPreference {
+  id     String @id @default(cuid())
+  userId String @unique @map("user_id")
+
+  // Daily Briefing Settings (PM-04-2)
+  dailyBriefingEnabled Boolean @default(true) @map("daily_briefing_enabled")
+  dailyBriefingHour    Int     @default(8) @map("daily_briefing_hour") // 0-23, UTC hour for now
+  emailBriefing        Boolean @default(false) @map("email_briefing") // Send briefing via email
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([dailyBriefingEnabled, dailyBriefingHour]) // For cron job queries
+  @@map("user_preferences")
 }
