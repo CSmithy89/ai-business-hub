@@ -42,6 +42,8 @@ export class VerificationService {
         workspaceId: true,
         tenantId: true,
         deletedAt: true,
+        isVerified: true,
+        verifyExpires: true,
       },
     })
 
@@ -72,6 +74,8 @@ export class VerificationService {
         data: {
           expiresIn: dto.expiresIn,
           verifyExpires: verifyExpires?.toISOString() ?? null,
+          isReVerification: page.isVerified,
+          previousExpiry: page.verifyExpires?.toISOString() ?? null,
         },
       },
     })
