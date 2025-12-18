@@ -1,0 +1,1069 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>kb-03-4-review-cycle-triggers</story-id>
+    <title>Stale Content Dashboard</title>
+    <epic>KB-03 - KB Verification &amp; Scribe Agent</epic>
+    <generated>2025-12-18</generated>
+    <status>ready-for-dev</status>
+  </metadata>
+
+  <!-- ================================================================ -->
+  <!-- STORY OVERVIEW -->
+  <!-- ================================================================ -->
+  <story-overview>
+    <goal>
+      Provide KB admins with a centralized dashboard to view and manage pages needing review,
+      enabling proactive maintenance of knowledge base quality through bulk actions and filtering capabilities.
+    </goal>
+
+    <user-story>
+      As a KB admin, I want to see pages needing review, so that I can maintain KB quality.
+    </user-story>
+
+    <key-features>
+      <feature>Dashboard at /kb/stale showing all stale pages</feature>
+      <feature>Three staleness reasons: expired verification, not updated in 90+ days, low view count</feature>
+      <feature>Bulk actions: verify (with expiration dropdown), delete</feature>
+      <feature>Bulk selection: individual checkboxes and select all</feature>
+      <feature>Filtering by staleness reason</feature>
+      <feature>Sorting by last updated, view count, verification expiry</feature>
+      <feature>Admin-only access via RolesGuard</feature>
+      <feature>Click page title to navigate to edit view</feature>
+    </key-features>
+
+    <dependencies>
+      <dependency status="complete">KB-03.1: Verification System</dependency>
+      <dependency status="complete">KB-03.2: Verification Expiration</dependency>
+      <dependency status="complete">KB-03.3: Re-verification Workflow</dependency>
+      <dependency status="complete">KB-02.5: getStalPages() API exists</dependency>
+      <dependency status="exists">Admin role guard implementation</dependency>
+    </dependencies>
+  </story-overview>
+
+  <!-- ================================================================ -->
+  <!-- EXISTING BACKEND IMPLEMENTATION -->
+  <!-- ================================================================ -->
+  <backend-context>
+    <verification-service>
+      <file>apps/api/src/kb/verification/verification.service.ts</file>
+      <description>
+        The VerificationService already includes a getStalPages() method that returns
+        stale pages with reasons annotated. This story needs to enhance it to include
+        owner details and add bulk action methods.
+      </description>
+
+      <existing-method name="getStalPages">
+        <signature><![CDATA[
+async getStalPages(workspaceId: string)
+]]></signature>
+        <current-behavior>
+          - Queries pages meeting stale criteria:
+            1. Expired verification (isVerified=true AND verifyExpires &lt;= now())
+            2. Not updated in 90+ days (updatedAt &lt;= now() - 90 days)
+            3. Low view count (viewCount &lt; 5)
+          - Returns pages ordered by updatedAt ascending (oldest first)
+          - Annotates each page with reasons array
+        </current-behavior>
+
+        <current-response-shape><![CDATA[
+{
+  id: string
+  title: string
+  slug: string
+  updatedAt: string
+  viewCount: number
+  isVerified: boolean
+  verifyExpires: string | null
+  ownerId: string
+  reasons: string[] // ["Expired verification", "Not updated in 90+ days", "Low view count"]
+}[]
+]]></current-response-shape>
+
+        <enhancement-needed>
+          Add owner details to include:
+          - owner.id
+          - owner.name
+          - owner.email
+          - owner.avatarUrl
+
+          Modify the select clause to include:
+          owner: {
+            select: { id: true, name: true, email: true, avatarUrl: true }
+          }
+        </enhancement-needed>
+      </existing-method>
+
+      <existing-method name="markVerified">
+        <signature><![CDATA[
+async markVerified(
+  pageId: string,
+  userId: string,
+  dto: VerifyPageDto
+): Promise<KnowledgePage>
+]]></signature>
+        <description>
+          Already implemented. Used for single and bulk verification.
+          Sets isVerified=true, verifiedAt, verifiedById, verifyExpires.
+        </description>
+      </existing-method>
+
+      <new-methods-needed>
+        <method name="bulkVerify">
+          <purpose>Verify multiple pages with same expiration period</purpose>
+          <implementation-approach>
+            Use Promise.allSettled() to call markVerified() for each pageId.
+            Return summary with succeeded/failed counts and details.
+          </implementation-approach>
+        </method>
+
+        <method name="bulkDelete">
+          <purpose>Soft-delete multiple pages</purpose>
+          <implementation-approach>
+            Call existing PagesService.softDelete() for each pageId.
+            Use Promise.allSettled() for partial failure handling.
+          </implementation-approach>
+          <note>
+            Assumes PagesService has a softDelete method. If not, update pages
+            directly with deletedAt = now().
+          </note>
+        </method>
+      </new-methods-needed>
+    </verification-service>
+
+    <stale-controller>
+      <file>apps/api/src/kb/verification/stale.controller.ts</file>
+      <description>
+        Already has GET /kb/verification/stale endpoint that calls getStalPages().
+        Needs to add bulk action endpoints.
+      </description>
+
+      <existing-endpoint>
+        <route>GET /kb/verification/stale</route>
+        <guards>AuthGuard, TenantGuard</guards>
+        <description>Returns stale pages with reasons. Already implemented.</description>
+        <enhancement-needed>Add RolesGuard with 'admin' role requirement</enhancement-needed>
+      </existing-endpoint>
+
+      <new-endpoints-needed>
+        <endpoint>
+          <route>POST /kb/verification/bulk-verify</route>
+          <guards>AuthGuard, TenantGuard, RolesGuard('admin')</guards>
+          <dto>BulkVerifyDto</dto>
+          <body-params>
+            - pageIds: string[] (1-100 items)
+            - expiresIn: '30d' | '60d' | '90d' | 'never'
+          </body-params>
+          <response>
+            {
+              success: number,
+              failed: number,
+              results: PromiseSettledResult[]
+            }
+          </response>
+        </endpoint>
+
+        <endpoint>
+          <route>POST /kb/verification/bulk-delete</route>
+          <guards>AuthGuard, TenantGuard, RolesGuard('admin')</guards>
+          <dto>BulkDeleteDto</dto>
+          <body-params>
+            - pageIds: string[] (1-100 items)
+          </body-params>
+          <response>
+            {
+              success: number,
+              failed: number,
+              results: PromiseSettledResult[]
+            }
+          </response>
+        </endpoint>
+      </new-endpoints-needed>
+
+      <dtos-needed>
+        <dto name="BulkVerifyDto">
+          <file>apps/api/src/kb/verification/dto/bulk-verify.dto.ts</file>
+          <validation><![CDATA[
+class BulkVerifyDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  pageIds: string[]
+
+  @IsEnum(['30d', '60d', '90d', 'never'])
+  expiresIn: '30d' | '60d' | '90d' | 'never'
+}
+]]></validation>
+        </dto>
+
+        <dto name="BulkDeleteDto">
+          <file>apps/api/src/kb/verification/dto/bulk-delete.dto.ts</file>
+          <validation><![CDATA[
+class BulkDeleteDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  pageIds: string[]
+}
+]]></validation>
+        </dto>
+      </dtos-needed>
+    </stale-controller>
+
+    <authorization>
+      <admin-guard>
+        <file>apps/api/src/common/guards/roles.guard.ts</file>
+        <status>Should already exist from foundation phase</status>
+        <usage>
+          @UseGuards(RolesGuard)
+          @Roles('admin')
+        </usage>
+        <note>
+          Verify RolesGuard exists and properly checks workspace admin role.
+          If not, use existing AuthGuard and check role manually in controller.
+        </note>
+      </admin-guard>
+
+      <access-control>
+        - Only workspace admins can access /kb/stale
+        - Only workspace admins can perform bulk actions
+        - Non-admins get 403 Forbidden response
+      </access-control>
+    </authorization>
+
+    <redis-caching>
+      <cache-key>stale-pages:{workspaceId}</cache-key>
+      <ttl>300 seconds (5 minutes)</ttl>
+      <invalidation-triggers>
+        - On bulk verify success
+        - On bulk delete success
+        - On individual page verify/unverify
+      </invalidation-triggers>
+      <implementation-note>
+        Add caching decorator or manual Redis get/set in getStalPages method.
+        Pattern: Check cache first, if miss fetch from DB and cache.
+      </implementation-note>
+    </redis-caching>
+  </backend-context>
+
+  <!-- ================================================================ -->
+  <!-- FRONTEND PATTERNS & EXAMPLES -->
+  <!-- ================================================================ -->
+  <frontend-context>
+    <page-pattern>
+      <reference-file>apps/web/src/app/(dashboard)/approvals/page.tsx</reference-file>
+      <pattern-description>
+        Dashboard pages follow a simple wrapper pattern:
+        1. Server component exports metadata (title, description)
+        2. Renders client component for interactive content
+        3. No session/auth logic in page file (handled by layout)
+      </pattern-description>
+
+      <example-for-stale-page>
+        <file>apps/web/src/app/(dashboard)/kb/stale/page.tsx</file>
+        <structure><![CDATA[
+// Server component - metadata only
+import { StaleContentDashboard } from '@/components/kb/StaleContentDashboard'
+
+export const metadata = {
+  title: 'Stale Content',
+  description: 'Review and manage pages needing verification or updates',
+}
+
+export default function StaleContentPage() {
+  return <StaleContentDashboard />
+}
+]]></structure>
+      </example-for-stale-page>
+    </page-pattern>
+
+    <dashboard-component-pattern>
+      <reference-file>apps/web/src/app/(dashboard)/approvals/ApprovalsContent.tsx</reference-file>
+      <key-patterns>
+        <pattern name="State Management">
+          - Filter state (status, type, sort)
+          - Selection state (Set&lt;string&gt; for selected IDs)
+          - Pagination state (currentPage, itemsPerPage)
+          - Action state (bulkAction, notes, dialog visibility)
+        </pattern>
+
+        <pattern name="Data Fetching">
+          - Use custom hooks (useApprovals, useBulkApprovalMutation)
+          - Handle loading, error, empty states
+          - Optimistic updates for better UX
+        </pattern>
+
+        <pattern name="Bulk Selection">
+          - Individual checkbox per row
+          - Select all checkbox in header
+          - Clear selection button
+          - Maintain selection as Set&lt;string&gt;
+        </pattern>
+
+        <pattern name="Bulk Actions">
+          - Fixed position bulk action bar at bottom (only visible when items selected)
+          - Dropdown or dialog for action confirmation
+          - Show success/failure counts in toast notifications
+          - Handle partial failures gracefully
+        </pattern>
+
+        <pattern name="Layout">
+          - Page header with title and description
+          - Stats or summary section (optional)
+          - Filters and sort controls
+          - Table with data
+          - Pagination (if needed)
+          - Floating bulk action bar
+        </pattern>
+      </key-patterns>
+    </dashboard-component-pattern>
+
+    <table-component>
+      <reference-file>apps/web/src/components/ui/table.tsx</reference-file>
+      <description>
+        shadcn/ui table components with responsive styling.
+        Use Table, TableHeader, TableBody, TableHead, TableRow, TableCell.
+      </description>
+
+      <usage-example><![CDATA[
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table'
+
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>Column 1</TableHead>
+      <TableHead>Column 2</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    {items.map(item => (
+      <TableRow key={item.id}>
+        <TableCell>{item.name}</TableCell>
+        <TableCell>{item.value}</TableCell>
+      </TableRow>
+    ))}
+  </TableBody>
+</Table>
+]]></usage-example>
+
+      <styling-notes>
+        - TableHeader has muted background
+        - TableRow has hover state and border-b
+        - TableCell has padding and alignment
+        - Use [&amp;:has([role=checkbox])]:pr-0 for checkbox columns
+      </styling-notes>
+    </table-component>
+
+    <bulk-action-bar-pattern>
+      <reference-file>apps/web/src/components/approval/bulk-action-bar.tsx</reference-file>
+      <key-features>
+        - Fixed positioning at bottom of viewport (z-50)
+        - Slide-in animation from bottom
+        - Selection count badge
+        - Clear selection button
+        - Action buttons (Approve, Reject, etc.)
+        - Optional notes/reason input
+        - Hidden when selectedCount === 0
+      </key-features>
+
+      <implementation-approach>
+        Create KB-specific bulk action bar component:
+        - Show "Bulk Verify" dropdown (30d, 60d, 90d, never)
+        - Show "Delete Selected" button with confirmation
+        - No notes input needed (simpler than approvals)
+      </implementation-approach>
+
+      <example-structure><![CDATA[
+// apps/web/src/components/kb/StaleContentBulkBar.tsx
+export function StaleContentBulkBar({
+  selectedCount,
+  onClearSelection,
+  onBulkVerify, // (expiresIn: string) => void
+  onBulkDelete, // () => void
+}) {
+  if (selectedCount === 0) return null
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white shadow-lg">
+      <div className="mx-auto max-w-7xl px-4 py-4">
+        <div className="flex items-center gap-4">
+          <Badge>{selectedCount} Selected</Badge>
+          <Button variant="ghost" size="sm" onClick={onClearSelection}>
+            <X className="h-4 w-4 mr-1" />
+            Clear
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Bulk Verify
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => onBulkVerify('30d')}>
+                Verify for 30 days
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onBulkVerify('60d')}>
+                Verify for 60 days
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onBulkVerify('90d')}>
+                Verify for 90 days
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onBulkVerify('never')}>
+                Verify permanently
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button variant="destructive" onClick={onBulkDelete}>
+            <Trash className="h-4 w-4 mr-2" />
+            Delete Selected
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+]]></example-structure>
+    </bulk-action-bar-pattern>
+
+    <checkbox-component>
+      <reference-file>apps/web/src/components/ui/checkbox.tsx</reference-file>
+      <usage>
+        import { Checkbox } from '@/components/ui/checkbox'
+
+        &lt;Checkbox
+          checked={selected.has(page.id)}
+          onCheckedChange={() => toggleSelect(page.id)}
+        /&gt;
+      </usage>
+    </checkbox-component>
+
+    <dropdown-menu-component>
+      <reference-file>apps/web/src/components/ui/dropdown-menu.tsx</reference-file>
+      <usage>
+        import {
+          DropdownMenu,
+          DropdownMenuContent,
+          DropdownMenuItem,
+          DropdownMenuTrigger,
+        } from '@/components/ui/dropdown-menu'
+
+        &lt;DropdownMenu&gt;
+          &lt;DropdownMenuTrigger asChild&gt;
+            &lt;Button&gt;Actions&lt;/Button&gt;
+          &lt;/DropdownMenuTrigger&gt;
+          &lt;DropdownMenuContent&gt;
+            &lt;DropdownMenuItem onClick={handler1}&gt;Action 1&lt;/DropdownMenuItem&gt;
+            &lt;DropdownMenuItem onClick={handler2}&gt;Action 2&lt;/DropdownMenuItem&gt;
+          &lt;/DropdownMenuContent&gt;
+        &lt;/DropdownMenu&gt;
+      </usage>
+    </dropdown-menu-component>
+
+    <hooks-pattern>
+      <description>
+        Follow existing KB hooks pattern in apps/web/src/hooks/use-kb-pages.ts
+      </description>
+
+      <new-hooks-needed>
+        <hook name="useStalPages">
+          <purpose>Fetch stale pages list</purpose>
+          <implementation>
+            Use @tanstack/react-query's useQuery with key ['kb', 'stale', workspaceId]
+            Fetch from GET /api/kb/verification/stale
+          </implementation>
+        </hook>
+
+        <hook name="useBulkVerify">
+          <purpose>Bulk verify mutation</purpose>
+          <implementation>
+            Use useMutation with POST /api/kb/verification/bulk-verify
+            Invalidate ['kb', 'stale'] query on success
+          </implementation>
+        </hook>
+
+        <hook name="useBulkDelete">
+          <purpose>Bulk delete mutation</purpose>
+          <implementation>
+            Use useMutation with POST /api/kb/verification/bulk-delete
+            Invalidate ['kb', 'stale'] query on success
+          </implementation>
+        </hook>
+      </new-hooks-needed>
+
+      <example-hook><![CDATA[
+// apps/web/src/hooks/use-stale-pages.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+
+export function useStalPages(workspaceId: string) {
+  return useQuery({
+    queryKey: ['kb', 'stale', workspaceId],
+    queryFn: async () => {
+      const res = await fetch('/api/kb/verification/stale')
+      if (!res.ok) {
+        if (res.status === 403) {
+          throw new Error('Admin access required')
+        }
+        throw new Error('Failed to fetch stale pages')
+      }
+      return res.json()
+    },
+    enabled: !!workspaceId,
+  })
+}
+
+export function useBulkVerify() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ pageIds, expiresIn }: { pageIds: string[]; expiresIn: string }) => {
+      const res = await fetch('/api/kb/verification/bulk-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pageIds, expiresIn }),
+      })
+      if (!res.ok) throw new Error('Bulk verify failed')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kb', 'stale'] })
+    },
+  })
+}
+]]></example-hook>
+    </hooks-pattern>
+
+    <auth-handling>
+      <session-access>
+        Use useSession() from @/lib/auth-client to get workspaceId and check role.
+      </session-access>
+
+      <admin-check>
+        <client-side>
+          Check session?.user?.role === 'admin' to show/hide dashboard link in nav.
+          If non-admin navigates directly to /kb/stale, API returns 403 and component
+          shows error toast and redirects to /kb.
+        </client-side>
+
+        <server-side>
+          RolesGuard on all endpoints ensures only admins can access.
+        </server-side>
+      </admin-check>
+
+      <error-handling>
+        - 403 Forbidden: Show toast "Admin access required" and redirect to /kb
+        - 500 Server Error: Show error state with retry button
+        - Network error: Show error state with retry button
+      </error-handling>
+    </auth-handling>
+
+    <responsive-design>
+      <mobile>
+        - Stack table rows vertically or use card layout
+        - Hide less important columns (view count, verification expiry)
+        - Show essential info: title, owner, reasons, last updated
+        - Bulk action bar takes full width, buttons stack if needed
+      </mobile>
+
+      <tablet>
+        - Show all columns in table
+        - Bulk action bar shows all controls inline
+      </tablet>
+
+      <desktop>
+        - Full table layout with all columns
+        - Bulk action bar centered with max-width
+      </desktop>
+    </responsive-design>
+  </frontend-context>
+
+  <!-- ================================================================ -->
+  <!-- DATA TYPES & INTERFACES -->
+  <!-- ================================================================ -->
+  <type-definitions>
+    <typescript-types>
+      <file>packages/shared/src/types/kb.ts</file>
+      <types-to-add><![CDATA[
+// Stale page response from API
+export interface StalePageDto {
+  id: string
+  title: string
+  slug: string
+  updatedAt: string
+  viewCount: number
+  isVerified: boolean
+  verifyExpires: string | null
+  owner: {
+    id: string
+    name: string
+    email: string
+    avatarUrl?: string
+  }
+  reasons: StaleReason[]
+}
+
+// Staleness reason enum
+export enum StaleReason {
+  EXPIRED_VERIFICATION = 'Expired verification',
+  NOT_UPDATED_90_DAYS = 'Not updated in 90+ days',
+  LOW_VIEW_COUNT = 'Low view count',
+}
+
+// Bulk verify request
+export interface BulkVerifyRequest {
+  pageIds: string[]
+  expiresIn: '30d' | '60d' | '90d' | 'never'
+}
+
+// Bulk delete request
+export interface BulkDeleteRequest {
+  pageIds: string[]
+}
+
+// Bulk action response
+export interface BulkActionResponse {
+  success: number
+  failed: number
+  results: Array<{
+    id: string
+    status: 'fulfilled' | 'rejected'
+    reason?: string
+  }>
+}
+]]></types-to-add>
+    </typescript-types>
+  </type-definitions>
+
+  <!-- ================================================================ -->
+  <!-- IMPLEMENTATION GUIDANCE -->
+  <!-- ================================================================ -->
+  <implementation-guidance>
+    <development-sequence>
+      <step number="1">
+        <title>Enhance Backend - getStalPages</title>
+        <tasks>
+          - Modify VerificationService.getStalPages() to include owner details
+          - Update select clause to include owner: { select: { ... } }
+          - Test that owner details are returned correctly
+        </tasks>
+      </step>
+
+      <step number="2">
+        <title>Add Backend - Bulk Action DTOs</title>
+        <tasks>
+          - Create BulkVerifyDto with validation
+          - Create BulkDeleteDto with validation
+          - Export from dto/index.ts
+        </tasks>
+      </step>
+
+      <step number="3">
+        <title>Add Backend - Bulk Action Methods</title>
+        <tasks>
+          - Implement VerificationService.bulkVerify() using Promise.allSettled
+          - Implement VerificationService.bulkDelete() using Promise.allSettled
+          - Return summary with success/failed counts
+        </tasks>
+      </step>
+
+      <step number="4">
+        <title>Add Backend - Bulk Action Endpoints</title>
+        <tasks>
+          - Add POST /kb/verification/bulk-verify to StaleController
+          - Add POST /kb/verification/bulk-delete to StaleController
+          - Add RolesGuard('admin') to all stale endpoints including GET
+          - Test endpoints with Postman/Insomnia
+        </tasks>
+      </step>
+
+      <step number="5">
+        <title>Add Backend - Redis Caching (Optional)</title>
+        <tasks>
+          - Add caching to getStalPages (5-minute TTL)
+          - Invalidate cache on bulk actions
+          - Test cache behavior
+        </tasks>
+      </step>
+
+      <step number="6">
+        <title>Add Frontend - Types</title>
+        <tasks>
+          - Add StalePageDto, StaleReason, BulkVerifyRequest, etc. to packages/shared/src/types/kb.ts
+          - Export types from index
+        </tasks>
+      </step>
+
+      <step number="7">
+        <title>Add Frontend - Hooks</title>
+        <tasks>
+          - Create apps/web/src/hooks/use-stale-pages.ts
+          - Implement useStalPages query hook
+          - Implement useBulkVerify mutation hook
+          - Implement useBulkDelete mutation hook
+          - Test hooks in isolation
+        </tasks>
+      </step>
+
+      <step number="8">
+        <title>Add Frontend - Bulk Action Bar Component</title>
+        <tasks>
+          - Create apps/web/src/components/kb/StaleContentBulkBar.tsx
+          - Implement fixed positioning, selection display, verify dropdown, delete button
+          - Add slide-in animation
+          - Test component in isolation
+        </tasks>
+      </step>
+
+      <step number="9">
+        <title>Add Frontend - Dashboard Component</title>
+        <tasks>
+          - Create apps/web/src/components/kb/StaleContentDashboard.tsx
+          - Implement table with columns: checkbox, title, owner, reasons, last updated, actions
+          - Add filter buttons (All, Expired, Old, Low Views)
+          - Add sort dropdown (Last Updated, View Count, Verification Expiry)
+          - Implement selection logic (individual + select all)
+          - Connect bulk action bar
+          - Add loading, error, empty states
+          - Test component functionality
+        </tasks>
+      </step>
+
+      <step number="10">
+        <title>Add Frontend - Page Route</title>
+        <tasks>
+          - Create apps/web/src/app/(dashboard)/kb/stale/page.tsx
+          - Add metadata export
+          - Render StaleContentDashboard component
+          - Test route navigation
+        </tasks>
+      </step>
+
+      <step number="11">
+        <title>Add Navigation Link (Optional)</title>
+        <tasks>
+          - Add "Stale Content" link to KB sidebar navigation
+          - Only show to admin users
+          - Test link visibility and navigation
+        </tasks>
+      </step>
+
+      <step number="12">
+        <title>Testing</title>
+        <tasks>
+          - Write unit tests for backend methods
+          - Write integration tests for API endpoints
+          - Write component tests for dashboard
+          - Write E2E test for complete flow
+          - Test admin access control
+          - Test bulk action edge cases (partial failures)
+        </tasks>
+      </step>
+    </development-sequence>
+
+    <testing-strategy>
+      <unit-tests>
+        <backend>
+          - VerificationService.getStalPages() returns correct pages with reasons
+          - VerificationService.bulkVerify() handles partial failures
+          - VerificationService.bulkDelete() handles partial failures
+          - DTOs validate input correctly (min/max array size, enum values)
+        </backend>
+
+        <frontend>
+          - StaleContentDashboard renders table correctly
+          - Selection toggles work (individual + select all)
+          - Filters apply correctly
+          - Sort changes re-order pages
+          - Bulk action bar shows/hides based on selection
+        </frontend>
+      </unit-tests>
+
+      <integration-tests>
+        <api-endpoints>
+          - GET /api/kb/verification/stale returns 200 with stale pages
+          - GET /api/kb/verification/stale returns 403 for non-admins
+          - POST /api/kb/verification/bulk-verify verifies multiple pages
+          - POST /api/kb/verification/bulk-verify returns partial success on failures
+          - POST /api/kb/verification/bulk-delete deletes multiple pages
+          - POST /api/kb/verification/bulk-delete returns 403 for non-admins
+        </api-endpoints>
+      </integration-tests>
+
+      <e2e-tests>
+        <user-flow name="View and Bulk Verify">
+          1. Login as admin
+          2. Navigate to /kb/stale
+          3. Verify dashboard loads with stale pages
+          4. Select 3 pages via checkboxes
+          5. Click "Bulk Verify" dropdown
+          6. Select "90 days"
+          7. Verify success toast shown
+          8. Verify pages removed from stale list
+        </user-flow>
+
+        <user-flow name="Bulk Delete">
+          1. Login as admin
+          2. Navigate to /kb/stale
+          3. Select 2 pages
+          4. Click "Delete Selected"
+          5. Confirm deletion in dialog
+          6. Verify success toast shown
+          7. Verify pages removed from list
+        </user-flow>
+
+        <user-flow name="Access Control">
+          1. Login as non-admin
+          2. Navigate to /kb/stale
+          3. Verify access denied toast shown
+          4. Verify redirected to /kb
+        </user-flow>
+      </e2e-tests>
+    </testing-strategy>
+
+    <performance-considerations>
+      <database>
+        - Ensure indexes exist on isVerified, verifyExpires, updatedAt, viewCount
+        - Use composite index: (workspaceId, deletedAt, isVerified, verifyExpires)
+        - Limit stale pages query to reasonable number (e.g., 500 max)
+      </database>
+
+      <api>
+        - Redis cache stale pages list (5-minute TTL)
+        - Limit bulk actions to 100 pages per request
+        - Use Promise.allSettled for parallel processing
+      </api>
+
+      <frontend>
+        - Use optimistic updates for bulk actions
+        - Debounce filter/sort changes
+        - Consider virtual scrolling for large lists (&gt;100 pages)
+        - Batch state updates to prevent re-renders
+      </frontend>
+    </performance-considerations>
+
+    <security-considerations>
+      <access-control>
+        - Admin-only access enforced at API level with RolesGuard
+        - Frontend checks role but does not rely on it for security
+        - Multi-tenant isolation via workspaceId in all queries
+      </access-control>
+
+      <validation>
+        - Validate pageIds array (max 100 items)
+        - Validate expiresIn enum
+        - Sanitize user inputs
+      </validation>
+
+      <audit-trail>
+        - All bulk actions logged to PageActivity
+        - Activity log tracks admin user performing action
+        - Soft delete only (no hard delete for audit trail)
+      </audit-trail>
+
+      <rate-limiting>
+        - Consider rate limiting bulk endpoints (e.g., 10 requests/minute per admin)
+        - Prevents abuse of bulk operations
+      </rate-limiting>
+    </security-considerations>
+
+    <edge-cases>
+      <case>
+        <scenario>All selected pages fail to verify</scenario>
+        <handling>Show error toast "All X items failed to verify" with details</handling>
+      </case>
+
+      <case>
+        <scenario>Partial success (some succeed, some fail)</scenario>
+        <handling>
+          Show toast "X succeeded, Y failed".
+          Keep failed page IDs selected for retry.
+          Show error details in dropdown or modal.
+        </handling>
+      </case>
+
+      <case>
+        <scenario>User selects all pages then filters</scenario>
+        <handling>
+          Selection should persist across filters (only deselect when clear button clicked).
+          Alternative: Clear selection when filter changes.
+        </handling>
+      </case>
+
+      <case>
+        <scenario>Page is deleted by another admin while selected</scenario>
+        <handling>
+          Bulk action will fail for that page. Show in partial failure result.
+          Refresh page list after bulk action completes.
+        </handling>
+      </case>
+
+      <case>
+        <scenario>No stale pages found</scenario>
+        <handling>
+          Show empty state: "No stale pages found. Your knowledge base is up to date!"
+        </handling>
+      </case>
+
+      <case>
+        <scenario>Non-admin tries to access /kb/stale directly</scenario>
+        <handling>
+          API returns 403. Frontend shows toast "Admin access required" and redirects to /kb.
+        </handling>
+      </case>
+    </edge-cases>
+  </implementation-guidance>
+
+  <!-- ================================================================ -->
+  <!-- FILES TO CREATE/MODIFY -->
+  <!-- ================================================================ -->
+  <file-checklist>
+    <backend>
+      <created>
+        <file>apps/api/src/kb/verification/dto/bulk-verify.dto.ts</file>
+        <file>apps/api/src/kb/verification/dto/bulk-delete.dto.ts</file>
+      </created>
+
+      <modified>
+        <file>apps/api/src/kb/verification/verification.service.ts</file>
+        <changes>
+          - Enhance getStalPages() to include owner details
+          - Add bulkVerify() method
+          - Add bulkDelete() method (or delegate to PagesService)
+        </changes>
+      </modified>
+
+      <modified>
+        <file>apps/api/src/kb/verification/stale.controller.ts</file>
+        <changes>
+          - Add RolesGuard to existing GET endpoint
+          - Add POST /bulk-verify endpoint
+          - Add POST /bulk-delete endpoint
+        </changes>
+      </modified>
+
+      <modified>
+        <file>apps/api/src/kb/verification/verification.module.ts</file>
+        <changes>
+          - Register new endpoints in module
+        </changes>
+      </modified>
+    </backend>
+
+    <shared>
+      <modified>
+        <file>packages/shared/src/types/kb.ts</file>
+        <changes>
+          - Add StalePageDto interface
+          - Add StaleReason enum
+          - Add BulkVerifyRequest interface
+          - Add BulkDeleteRequest interface
+          - Add BulkActionResponse interface
+        </changes>
+      </modified>
+    </shared>
+
+    <frontend>
+      <created>
+        <file>apps/web/src/app/(dashboard)/kb/stale/page.tsx</file>
+        <file>apps/web/src/components/kb/StaleContentDashboard.tsx</file>
+        <file>apps/web/src/components/kb/StaleContentBulkBar.tsx</file>
+        <file>apps/web/src/hooks/use-stale-pages.ts</file>
+      </created>
+
+      <modified>
+        <file>apps/web/src/components/kb/KBSidebar.tsx (optional)</file>
+        <changes>
+          - Add "Stale Content" link for admin users
+        </changes>
+      </modified>
+    </frontend>
+
+    <tests>
+      <created>
+        <file>apps/api/src/kb/verification/verification.service.spec.ts</file>
+        <file>apps/api/src/kb/verification/stale.controller.spec.ts</file>
+        <file>apps/web/src/components/kb/StaleContentDashboard.test.tsx</file>
+        <file>apps/web/src/hooks/use-stale-pages.test.ts</file>
+        <file>e2e/kb/stale-content.spec.ts</file>
+      </created>
+    </tests>
+  </file-checklist>
+
+  <!-- ================================================================ -->
+  <!-- REFERENCE DOCUMENTATION -->
+  <!-- ================================================================ -->
+  <references>
+    <story-file>docs/modules/bm-pm/stories/kb-03-4-review-cycle-triggers.md</story-file>
+    <tech-spec>docs/modules/bm-pm/epics/epic-kb-03-tech-spec.md</tech-spec>
+    <tech-spec-section>Lines 1107-1267 (StaleContentDashboard component)</tech-spec-section>
+    <tech-spec-section>Lines 433-469 (getStalPages method)</tech-spec-section>
+    <tech-spec-section>Lines 942-964 (Verification endpoints)</tech-spec-section>
+
+    <related-stories>
+      <story id="KB-03.1" status="complete">Verification System - markVerified endpoint</story>
+      <story id="KB-03.2" status="complete">Verification Expiration - expiry detection</story>
+      <story id="KB-03.3" status="complete">Re-verification Workflow - re-verify button</story>
+    </related-stories>
+
+    <codebase-references>
+      <reference-pattern type="page">apps/web/src/app/(dashboard)/approvals/page.tsx</reference-pattern>
+      <reference-pattern type="dashboard">apps/web/src/app/(dashboard)/approvals/ApprovalsContent.tsx</reference-pattern>
+      <reference-pattern type="bulk-actions">apps/web/src/components/approval/bulk-action-bar.tsx</reference-pattern>
+      <reference-pattern type="table">apps/web/src/components/ui/table.tsx</reference-pattern>
+      <reference-pattern type="kb-home">apps/web/src/components/kb/KBHome.tsx</reference-pattern>
+    </codebase-references>
+  </references>
+
+  <!-- ================================================================ -->
+  <!-- SUCCESS CRITERIA -->
+  <!-- ================================================================ -->
+  <success-criteria>
+    <functional>
+      <criterion>Dashboard accessible at /kb/stale for admin users</criterion>
+      <criterion>Non-admin users get 403 and are redirected to /kb</criterion>
+      <criterion>Dashboard shows all stale pages with reasons</criterion>
+      <criterion>Can select individual pages via checkbox</criterion>
+      <criterion>Can select all pages via header checkbox</criterion>
+      <criterion>Can filter by staleness reason (All, Expired, Old, Low Views)</criterion>
+      <criterion>Can sort by last updated, view count, verification expiry</criterion>
+      <criterion>Bulk verify sets verification on multiple pages with chosen expiration</criterion>
+      <criterion>Bulk delete soft-deletes multiple pages</criterion>
+      <criterion>Click page title navigates to /kb/edit/{slug}</criterion>
+      <criterion>Toast notifications show success/failure feedback</criterion>
+      <criterion>Partial failures are handled gracefully</criterion>
+    </functional>
+
+    <technical>
+      <criterion>TypeScript type check passes</criterion>
+      <criterion>ESLint passes</criterion>
+      <criterion>All unit tests pass</criterion>
+      <criterion>All integration tests pass</criterion>
+      <criterion>E2E test passes</criterion>
+      <criterion>API endpoints return correct status codes</criterion>
+      <criterion>Redis caching works (if implemented)</criterion>
+      <criterion>Admin authorization enforced on all endpoints</criterion>
+    </technical>
+
+    <ux>
+      <criterion>Dashboard loads within 2 seconds</criterion>
+      <criterion>Bulk actions complete within 5 seconds for 10 pages</criterion>
+      <criterion>Loading states shown during data fetch</criterion>
+      <criterion>Error states shown with retry option</criterion>
+      <criterion>Empty state shown when no stale pages</criterion>
+      <criterion>Responsive design works on mobile, tablet, desktop</criterion>
+      <criterion>Bulk action bar animates smoothly</criterion>
+      <criterion>Selection is visually clear</criterion>
+    </ux>
+  </success-criteria>
+</story-context>

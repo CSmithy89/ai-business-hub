@@ -236,4 +236,105 @@ export class VerificationService {
       }
     })
   }
+
+  /**
+   * Bulk verify multiple pages with same expiration period
+   * Uses Promise.allSettled to handle partial failures gracefully
+   */
+  async bulkVerify(
+    pageIds: string[],
+    userId: string,
+    expiresIn: string,
+  ): Promise<{
+    success: number
+    failed: number
+    results: PromiseSettledResult<KnowledgePage>[]
+  }> {
+    const dto: VerifyPageDto = { expiresIn: expiresIn as '30d' | '60d' | '90d' | 'never' }
+
+    const results = await Promise.allSettled(
+      pageIds.map((pageId) => this.markVerified(pageId, userId, dto)),
+    )
+
+    const success = results.filter((r) => r.status === 'fulfilled').length
+    const failed = results.filter((r) => r.status === 'rejected').length
+
+    this.logger.log(
+      `Bulk verify completed: ${success} succeeded, ${failed} failed out of ${pageIds.length} pages`,
+    )
+
+    return { success, failed, results }
+  }
+
+  /**
+   * Bulk delete multiple pages (soft delete)
+   * Uses Promise.allSettled to handle partial failures gracefully
+   */
+  async bulkDelete(
+    pageIds: string[],
+    tenantId: string,
+    workspaceId: string,
+    userId: string,
+  ): Promise<{
+    success: number
+    failed: number
+    results: PromiseSettledResult<any>[]
+  }> {
+    const results = await Promise.allSettled(
+      pageIds.map(async (pageId) => {
+        // Verify page exists and is not already deleted
+        const page = await this.prisma.knowledgePage.findFirst({
+          where: { id: pageId, tenantId, workspaceId, deletedAt: null },
+          select: { id: true, title: true, slug: true },
+        })
+
+        if (!page) {
+          throw new NotFoundException(`Page ${pageId} not found`)
+        }
+
+        // Soft delete the page
+        const deleted = await this.prisma.$transaction(async (tx) => {
+          const updated = await tx.knowledgePage.update({
+            where: { id: pageId },
+            data: { deletedAt: new Date() },
+            select: { id: true, deletedAt: true },
+          })
+
+          // Log activity
+          await tx.pageActivity.create({
+            data: {
+              pageId,
+              userId,
+              type: 'DELETED',
+            },
+          })
+
+          return updated
+        })
+
+        // Publish event
+        await this.eventPublisher.publish(
+          EventTypes.KB_PAGE_DELETED,
+          {
+            pageId: page.id,
+            workspaceId,
+            title: page.title,
+            slug: page.slug,
+          },
+          { tenantId, userId, source: 'kb-verification' },
+        )
+
+        return deleted
+      }),
+    )
+
+    const success = results.filter((r) => r.status === 'fulfilled').length
+    const failed = results.filter((r) => r.status === 'rejected').length
+
+    this.logger.log(
+      `Bulk delete completed: ${success} succeeded, ${failed} failed out of ${pageIds.length} pages`,
+    )
+
+    return { success, failed, results }
+  }
 }
