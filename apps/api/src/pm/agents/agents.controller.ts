@@ -87,6 +87,29 @@ export class AgentsController {
     });
   }
 
+  @Get('commands')
+  @ApiOperation({ summary: 'Get available slash commands' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of available slash commands',
+    schema: {
+      type: 'object',
+      additionalProperties: {
+        type: 'string',
+      },
+      example: {
+        'create-task': 'Create a new task',
+        'assign': 'Assign a task to a team member',
+        'set-priority': 'Set priority for a task',
+        'move-phase': 'Move task to a different phase',
+        'help': 'Show available commands',
+      },
+    },
+  })
+  async getCommands() {
+    return this.agentsService.getAvailableCommands();
+  }
+
   // ============================================
   // Daily Briefing Endpoints (PM-04-2)
   // ============================================

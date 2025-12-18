@@ -1,0 +1,624 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>PM-04-4</story-id>
+    <story-title>Navi Chat Interface</story-title>
+    <epic-id>PM-04</epic-id>
+    <epic-title>AI Team: Navi, Sage, Chrono</epic-title>
+    <status>drafted</status>
+    <points>8</points>
+    <created>2024-12-19</created>
+    <tech-spec-reference>docs/modules/bm-pm/epics/epic-pm-04-tech-spec.md</tech-spec-reference>
+  </metadata>
+
+  <story-info>
+    <user-story>
+      As a project user, I want to interact with Navi through a conversational chat interface,
+      so that I can manage my project using natural language commands.
+    </user-story>
+
+    <description>
+      This story implements the core chat interface for conversing with Navi, the PM orchestration
+      assistant. Users can send natural language messages, receive contextual responses based on
+      project state, execute slash commands, and maintain persistent chat history per project.
+    </description>
+  </story-info>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <title>Users Can Send Natural Language Messages to Navi</title>
+      <given>I am on a project page with the agent panel open</given>
+      <when>I type a message and send it to Navi</when>
+      <then>Navi receives the message and responds contextually based on project state</then>
+    </criterion>
+
+    <criterion id="AC2">
+      <title>Navi Responds with Contextual Help Based on Project State</title>
+      <given>I ask Navi a question about the project</given>
+      <when>Navi processes the query</when>
+      <then>Navi provides relevant information using project data and KB context</then>
+    </criterion>
+
+    <criterion id="AC3">
+      <title>Navi Can Execute Slash Commands</title>
+      <given>I type a slash command in the chat (e.g., /create-task, /assign)</given>
+      <when>I send the command</when>
+      <then>Navi parses the command and executes the corresponding action or creates a suggestion</then>
+    </criterion>
+
+    <criterion id="AC4">
+      <title>Chat History is Persisted Per Project</title>
+      <given>I have chatted with Navi in a project</given>
+      <when>I navigate away and return to the project</when>
+      <then>the chat history is restored and I can continue the conversation</then>
+    </criterion>
+  </acceptance-criteria>
+
+  <implementation-checklist>
+    <section name="Backend Tasks">
+      <task>Create apps/api/src/pm/agents/chat.service.ts</task>
+      <task>Implement getConversationHistory() method</task>
+      <task>Implement storeMessage() method</task>
+      <task>Implement clearConversationHistory() method</task>
+      <task>Implement parseSlashCommand() method</task>
+      <task>Update AgentsService.chat() to handle slash commands</task>
+      <task>Add chat history endpoint to agents.controller.ts</task>
+      <task>Create DTOs: GetConversationHistoryDto</task>
+    </section>
+
+    <section name="Agent Layer Tasks">
+      <task>Create agents/pm/tools/command_parser.py</task>
+      <task>Implement SlashCommandParser class</task>
+      <task>Implement create_task_from_command tool</task>
+      <task>Implement assign_task_from_command tool</task>
+      <task>Implement set_priority_from_command tool</task>
+      <task>Add command parsing to Navi agent</task>
+      <task>Update Navi instructions to recognize slash commands</task>
+    </section>
+
+    <section name="Frontend Tasks">
+      <task>Create apps/web/src/components/pm/agents/AgentChat.tsx</task>
+      <task>Create apps/web/src/hooks/pm/useAgentChat.ts</task>
+      <task>Implement message history scrolling and persistence</task>
+      <task>Implement typing indicator for agent responses</task>
+      <task>Implement slash command autocomplete</task>
+      <task>Add empty state with sample prompts</task>
+      <task>Integrate AgentChat into AgentPanel component</task>
+    </section>
+
+    <section name="Integration Tasks">
+      <task>Test conversation history persistence across sessions</task>
+      <task>Test slash command parsing and execution</task>
+      <task>Test message sending and receiving</task>
+      <task>Test WebSocket real-time message delivery</task>
+      <task>Test chat with multiple agents in same project</task>
+      <task>Test conversation history limit (50 messages)</task>
+    </section>
+
+    <section name="Testing Tasks">
+      <task>Write unit tests for ChatService methods</task>
+      <task>Write unit tests for SlashCommandParser</task>
+      <task>Write unit tests for AgentChat component</task>
+      <task>Write unit tests for useAgentChat hook</task>
+      <task>Write integration tests for chat endpoints</task>
+      <task>Write E2E tests for chat user flows</task>
+    </section>
+  </implementation-checklist>
+
+  <related-code-patterns>
+    <pattern name="Existing Agent Service (NestJS)">
+      <file-path>apps/api/src/pm/agents/agents.service.ts</file-path>
+      <description>
+        Current agent service provides the foundation for chat functionality with:
+        - chat() method that handles message sending
+        - getConversations() method for retrieving history
+        - loadConversationHistory() private method (last 50 messages)
+        - storeConversation() private method (stores USER + AGENT messages)
+        - invokeAgent() private method for AgentOS integration
+
+        Key patterns:
+        - Workspace isolation enforced on all queries
+        - Conversation history limited to 50 messages
+        - History loaded chronologically (oldest to newest)
+        - Both user and agent messages stored as separate records
+        - Graceful fallback on agent invocation failure
+      </description>
+      <code-snippet><![CDATA[
+async chat(params: ChatParams): Promise<{
+  conversationId: string;
+  response: string;
+  metadata?: Record<string, any>;
+}> {
+  // Load conversation history (last 50 messages)
+  const history = await this.loadConversationHistory(
+    workspaceId,
+    projectId,
+    agentName,
+  );
+
+  // Invoke agent via AgentOS
+  const agentResponse = await this.invokeAgent({
+    sessionId: `${workspaceId}-${projectId}`,
+    userId,
+    workspaceId,
+    projectId,
+    agentName,
+    message,
+    history,
+  });
+
+  // Store conversation (user message + agent response)
+  const conversation = await this.storeConversation(
+    workspaceId,
+    projectId,
+    userId,
+    agentName,
+    message,
+    agentResponse.message,
+    agentResponse.metadata,
+  );
+
+  return {
+    conversationId: conversation.id,
+    response: agentResponse.message,
+    metadata: agentResponse.metadata,
+  };
+}
+      ]]></code-snippet>
+      <notes>
+        EXTEND this service by:
+        1. Adding slash command detection to chat() method
+        2. Creating handleSlashCommand() private method
+        3. Routing slash commands to agent with isCommand flag
+        4. Keeping existing conversation storage logic
+      </notes>
+    </pattern>
+
+    <pattern name="Existing Agent Controller (NestJS)">
+      <file-path>apps/api/src/pm/agents/agents.controller.ts</file-path>
+      <description>
+        Current controller provides chat and conversation endpoints:
+        - POST /pm/agents/chat - Send message to agent
+        - GET /pm/agents/conversations/:projectId - Get history
+
+        Guards applied: AuthGuard, TenantGuard
+        Decorators: @CurrentWorkspace(), @CurrentUser()
+
+        Key patterns:
+        - All endpoints protected by auth + tenant guards
+        - Workspace ID injected via decorator
+        - User ID injected via decorator
+        - DTOs for request validation
+      </description>
+      <code-snippet><![CDATA[
+@Post('chat')
+@ApiOperation({ summary: 'Send message to an agent' })
+async chat(
+  @CurrentWorkspace() workspaceId: string,
+  @CurrentUser('id') userId: string,
+  @Body() body: ChatAgentDto,
+) {
+  return this.agentsService.chat({
+    workspaceId,
+    userId,
+    projectId: body.projectId,
+    agentName: body.agentName,
+    message: body.message,
+  });
+}
+
+@Get('conversations/:projectId')
+@ApiOperation({ summary: 'Get conversation history for a project' })
+async getConversations(
+  @CurrentWorkspace() workspaceId: string,
+  @Param('projectId') projectId: string,
+  @Query() query: GetConversationsDto,
+) {
+  return this.agentsService.getConversations({
+    workspaceId,
+    projectId,
+    agentName: query.agentName,
+    limit: query.limit,
+  });
+}
+      ]]></code-snippet>
+      <notes>
+        NO CHANGES needed to controller - existing endpoints support all requirements.
+        ChatService will be injected into AgentsService, not exposed directly.
+      </notes>
+    </pattern>
+
+    <pattern name="Navi Agent Implementation (Python)">
+      <file-path>agents/pm/navi.py</file-path>
+      <description>
+        Navi agent is built with Agno framework and provides:
+        - PM orchestration assistant role
+        - Natural language conversation
+        - Tool-based capabilities (get_project_status, list_tasks, search_kb)
+        - Memory for context retention
+        - Claude Sonnet 4 as default model
+
+        Key patterns:
+        - Instructions provided as list of strings
+        - Workspace ID and Project ID injected via instructions
+        - Tools registered via tools parameter
+        - Shared memory for team context
+      </description>
+      <code-snippet><![CDATA[
+NAVI_INSTRUCTIONS = [
+    "You are Navi, the PM orchestration assistant for HYVVE projects.",
+    "Help users manage their projects through natural language conversation.",
+    "Always suggest actions, never execute directly.",
+    "Use KB search to provide context-aware answers when appropriate.",
+    "Keep responses concise and actionable.",
+    "When asked about project status, use get_project_status tool.",
+    "When asked about tasks, use list_tasks tool with appropriate filters.",
+    "When you need project-specific context, use search_kb tool.",
+    "Provide helpful, conversational responses that guide users.",
+]
+
+def create_navi_agent(
+    workspace_id: str,
+    project_id: str,
+    shared_memory: Memory,
+    model: Optional[str] = None,
+) -> Agent:
+    return Agent(
+        name="Navi",
+        role="PM Orchestration Assistant",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=NAVI_INSTRUCTIONS + [
+            f"Workspace ID: {workspace_id}",
+            f"Project ID: {project_id}",
+        ],
+        tools=[
+            get_project_status,
+            list_tasks,
+            search_kb,
+        ],
+        memory=shared_memory,
+        add_datetime_to_instructions=True,
+        markdown=True,
+    )
+      ]]></code-snippet>
+      <notes>
+        EXTEND Navi by:
+        1. Adding slash command recognition to instructions
+        2. Adding command parser tools (create_task_from_command, etc.)
+        3. Teaching Navi to recognize / prefix
+        4. Instructing to return structured suggestions for commands
+      </notes>
+    </pattern>
+
+    <pattern name="AgentConversation Database Model">
+      <file-path>packages/db/prisma/schema.prisma</file-path>
+      <description>
+        AgentConversation model stores chat history with:
+        - Multi-tenant isolation (workspaceId)
+        - Project scoping (projectId)
+        - User attribution (userId)
+        - Agent identification (agentName: 'navi', 'sage', 'chrono')
+        - Message role (USER or AGENT)
+        - Message content (text)
+        - Optional metadata (JSON for agent response details)
+
+        Indexes:
+        - [workspaceId, projectId, agentName] - Fast conversation lookup
+        - [userId, agentName] - User-specific history
+        - [createdAt] - Time-based queries
+      </description>
+      <code-snippet><![CDATA[
+model AgentConversation {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  projectId   String   @map("project_id")
+  userId      String   @map("user_id")
+  agentName   String   @map("agent_name") // 'navi', 'sage', 'chrono'
+
+  // Conversation
+  role     ConversationRole // 'USER' | 'AGENT'
+  message  String           @db.Text
+  metadata Json? // Agent response metadata, tool calls, etc.
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([workspaceId, projectId, agentName])
+  @@index([userId, agentName])
+  @@index([createdAt])
+  @@map("agent_conversations")
+}
+      ]]></code-snippet>
+      <notes>
+        NO CHANGES needed to schema - model already supports all requirements.
+        ChatService will use this model for all conversation storage.
+      </notes>
+    </pattern>
+
+    <pattern name="Slash Command Format">
+      <description>
+        Standard pattern for slash commands in chat interface:
+
+        Format: /command [required-arg] --flag [value]
+
+        Supported commands:
+        - /create-task [title] --desc [description] --priority [URGENT|HIGH|MEDIUM|LOW]
+        - /assign [task] to [assignee]
+        - /set-priority [task] [priority]
+        - /move-to [task] [phase]
+        - /estimate [task]
+        - /start-timer [task]
+        - /stop-timer
+
+        Parsing strategy:
+        1. Check if message starts with '/'
+        2. Extract command name (first word after /)
+        3. Parse remaining text for arguments and flags
+        4. Return structured command object
+        5. Route to appropriate handler tool
+
+        Response strategy:
+        - High confidence commands (>0.85) create suggestions
+        - Suggestions routed through approval queue
+        - User approves/rejects via suggestion cards
+        - Feedback used for learning
+      </description>
+      <notes>
+        Implement parser in agents/pm/tools/command_parser.py
+        Add parsing logic to ChatService.parseSlashCommand()
+        Register command tools with Navi agent
+      </notes>
+    </pattern>
+
+    <pattern name="Message Flow Architecture">
+      <description>
+        Standard message flow for chat interface:
+
+        1. User types message in AgentChat component
+        2. Frontend: useAgentChat.sendMessage()
+           - Optimistically add user message to UI
+           - POST /pm/agents/chat
+        3. Backend: AgentsService.chat()
+           - Check if slash command (ChatService.parseSlashCommand)
+           - If command: route to handleSlashCommand()
+           - Else: regular chat flow
+           - Load conversation history (last 50 messages)
+        4. Backend: Invoke agent via AgentOS
+           - Agent processes with project context
+           - Agent uses tools as needed
+           - Agent returns response
+        5. Backend: Store messages in AgentConversation
+           - Store user message (role: USER)
+           - Store agent response (role: AGENT)
+        6. Frontend: Add agent response to UI
+        7. WebSocket: Broadcast to project room (real-time)
+
+        Error handling:
+        - Network error: Remove optimistic message
+        - Agent error: Show graceful fallback
+        - Timeout (30s): Show retry option
+      </description>
+      <notes>
+        Follow this exact flow for consistency with existing agent patterns.
+        WebSocket integration ensures multi-user real-time updates.
+      </notes>
+    </pattern>
+  </related-code-patterns>
+
+  <tech-stack-notes>
+    <frontend>
+      <framework>Next.js 15 (App Router)</framework>
+      <language>TypeScript (strict mode)</language>
+      <styling>Tailwind CSS + shadcn/ui</styling>
+      <state-management>React Query (TanStack Query)</state-management>
+      <form-handling>React Hook Form + Zod</form-handling>
+      <notes>
+        - Use functional components with hooks
+        - Import shadcn components from @/components/ui
+        - Use cn() utility for conditional classes
+        - NEVER construct Tailwind classes dynamically (JIT limitation)
+        - Use LAYOUT constants from @/lib/layout-constants
+      </notes>
+    </frontend>
+
+    <backend>
+      <framework>NestJS 10</framework>
+      <language>TypeScript (strict mode)</language>
+      <database>PostgreSQL 16+ via Prisma 6</database>
+      <auth>JWT + Session + TenantGuard</auth>
+      <websockets>Socket.io 4</websockets>
+      <notes>
+        - All endpoints protected by AuthGuard + TenantGuard
+        - Use @CurrentWorkspace() and @CurrentUser() decorators
+        - Enforce workspace isolation on all queries
+        - Use DTOs with class-validator
+        - Follow dependency injection patterns
+      </notes>
+    </backend>
+
+    <agents>
+      <framework>Agno (Python)</framework>
+      <language>Python 3.12+</language>
+      <model>Claude Sonnet 4 (claude-sonnet-4-20250514)</model>
+      <communication>FastAPI + HTTP</communication>
+      <notes>
+        - Create agents with create_*_agent() factory functions
+        - Register tools via tools parameter
+        - Use shared Memory for team context
+        - Instructions should guide toward suggestions, not direct execution
+        - Add workspace and project context to instructions
+      </notes>
+    </agents>
+
+    <database>
+      <orm>Prisma 6</orm>
+      <database>PostgreSQL 16+</database>
+      <notes>
+        - All tenant-scoped models need workspaceId
+        - Always index workspaceId for RLS
+        - Use cuid() for IDs
+        - JSON fields for flexible metadata
+        - DateTime for temporal queries
+      </notes>
+    </database>
+  </tech-stack-notes>
+
+  <dependencies>
+    <prerequisite story="PM-04-1">
+      Navi Agent Foundation - Navi agent must exist and be functional
+    </prerequisite>
+    <prerequisite story="PM-04-3">
+      Navi Suggestion Cards - Suggestions created from commands must be displayable
+    </prerequisite>
+    <prerequisite story="PM-02">
+      Tasks - Task operations required for command execution
+    </prerequisite>
+  </dependencies>
+
+  <key-implementation-notes>
+    <note priority="critical">
+      Conversation History Limit: Always limit to last 50 messages per project per agent
+      to avoid token overflow. Store in DB with chronological ordering (createdAt ASC).
+    </note>
+
+    <note priority="critical">
+      Multi-Agent Isolation: Each agent (Navi, Sage, Chrono) maintains separate conversation
+      history for focused interactions. Use agentName in all queries.
+    </note>
+
+    <note priority="high">
+      Slash Command Detection: Parse on backend (ChatService.parseSlashCommand) before
+      agent invocation. Route commands through handleSlashCommand() method.
+    </note>
+
+    <note priority="high">
+      Workspace Isolation: ALWAYS include workspaceId in all queries. Use @CurrentWorkspace()
+      decorator for automatic injection. Enforce at database level via indexes.
+    </note>
+
+    <note priority="medium">
+      Typing Indicator: Show immediately after user sends message. Remove when agent
+      response arrives. Timeout after 30 seconds with error message.
+    </note>
+
+    <note priority="medium">
+      Optimistic UI Updates: Add user message to UI immediately on send. Remove if
+      request fails. This provides instant feedback while waiting for agent.
+    </note>
+
+    <note priority="medium">
+      WebSocket Real-Time: Broadcast agent messages to project room for multi-user
+      real-time updates. Subscribe to 'project:{projectId}' channel.
+    </note>
+
+    <note priority="low">
+      Empty State Prompts: Provide helpful suggestions per agent. Navi focuses on PM
+      tasks, Sage on estimation, Chrono on time tracking.
+    </note>
+
+    <note priority="low">
+      Slash Command Autocomplete: Phase 1 shows simple hint text. Consider full
+      dropdown autocomplete in Phase 2.
+    </note>
+  </key-implementation-notes>
+
+  <file-structure>
+    <files-to-create>
+      <file>apps/api/src/pm/agents/chat.service.ts</file>
+      <file>apps/api/src/pm/agents/dto/chat-agent.dto.ts</file>
+      <file>apps/web/src/components/pm/agents/AgentChat.tsx</file>
+      <file>apps/web/src/hooks/pm/useAgentChat.ts</file>
+      <file>agents/pm/tools/command_parser.py</file>
+      <file>agents/pm/tests/test_command_parser.py</file>
+      <file>apps/api/src/pm/agents/chat.service.spec.ts</file>
+      <file>apps/web/src/components/pm/agents/AgentChat.test.tsx</file>
+      <file>apps/api/test/pm/agents/chat.e2e-spec.ts</file>
+      <file>apps/web/e2e/pm/agents/agent-chat.spec.ts</file>
+    </files-to-create>
+
+    <files-to-modify>
+      <file>apps/api/src/pm/agents/agents.service.ts</file>
+      <file>apps/api/src/pm/agents/agents.controller.ts</file>
+      <file>agents/pm/navi.py</file>
+      <file>apps/web/src/components/pm/agents/AgentPanel.tsx</file>
+    </files-to-modify>
+  </file-structure>
+
+  <testing-strategy>
+    <unit-tests>
+      <test-file>apps/api/src/pm/agents/chat.service.spec.ts</test-file>
+      <coverage>
+        - ChatService.getConversationHistory() returns messages chronologically
+        - ChatService.storeMessage() creates conversation record
+        - ChatService.parseSlashCommand() identifies commands correctly
+        - Workspace isolation enforced
+        - Message history limited to 50 messages
+      </coverage>
+    </unit-tests>
+
+    <unit-tests>
+      <test-file>agents/pm/tests/test_command_parser.py</test-file>
+      <coverage>
+        - SlashCommandParser.parse() extracts command and args
+        - create_task_from_command parses flags correctly
+        - assign_task_from_command finds task and assignee
+        - set_priority_from_command validates priority values
+        - Command tools return proper suggestions
+      </coverage>
+    </unit-tests>
+
+    <unit-tests>
+      <test-file>apps/web/src/components/pm/agents/AgentChat.test.tsx</test-file>
+      <coverage>
+        - AgentChat component displays messages correctly
+        - User and agent messages have different styling
+        - Typing indicator shows during agent response
+        - Empty state displays sample prompts
+      </coverage>
+    </unit-tests>
+
+    <unit-tests>
+      <test-file>apps/web/src/hooks/pm/useAgentChat.test.ts</test-file>
+      <coverage>
+        - useAgentChat hook manages state correctly
+        - sendMessage adds optimistic user message
+        - loadHistory fetches and sets messages
+        - clearHistory removes all messages
+      </coverage>
+    </unit-tests>
+
+    <integration-tests>
+      <test-file>apps/api/test/pm/agents/chat.e2e-spec.ts</test-file>
+      <coverage>
+        - POST /pm/agents/chat stores conversation and returns response
+        - GET /pm/agents/conversations/:projectId returns history
+        - DELETE /pm/agents/conversations/:projectId clears history
+        - Slash commands create suggestions correctly
+        - WebSocket events sent on message
+      </coverage>
+    </integration-tests>
+
+    <e2e-tests>
+      <test-file>apps/web/e2e/pm/agents/agent-chat.spec.ts</test-file>
+      <user-flows>
+        1. Open agent panel → type message → send → agent responds → history persisted
+        2. Type "/create-task API Review" → send → suggestion card appears
+        3. Navigate away → return → chat history restored
+        4. Chat with Navi → switch to Sage → separate conversation histories
+        5. Ask "What tasks are due today?" → Navi responds with task list
+      </user-flows>
+    </e2e-tests>
+  </testing-strategy>
+
+  <references>
+    <document>Epic Definition: docs/modules/bm-pm/epics/epic-pm-04-ai-team-navi-sage-chrono.md</document>
+    <document>Epic Tech Spec: docs/modules/bm-pm/epics/epic-pm-04-tech-spec.md</document>
+    <document>Story File: docs/modules/bm-pm/stories/pm-04-4-navi-chat-interface.md</document>
+    <document>Module PRD: docs/modules/bm-pm/PRD.md</document>
+    <document>Module Architecture: docs/modules/bm-pm/architecture.md</document>
+    <document>Sprint Status: docs/modules/bm-pm/sprint-status.yaml</document>
+    <related-story>PM-04-1: Navi Agent Foundation</related-story>
+    <related-story>PM-04-2: Navi Daily Briefing</related-story>
+    <related-story>PM-04-3: Navi Suggestion Cards</related-story>
+  </references>
+</story-context>

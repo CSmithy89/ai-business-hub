@@ -40,6 +40,9 @@ export class AgentsService {
       `Chat request: agent=${agentName}, project=${projectId}, user=${userId}`,
     );
 
+    // Check if message is a slash command
+    const commandInfo = this.parseSlashCommand(message);
+
     // Load conversation history (last 50 messages)
     const history = await this.loadConversationHistory(
       workspaceId,
@@ -48,6 +51,7 @@ export class AgentsService {
     );
 
     // Invoke agent via AgentOS
+    // The agent will detect and handle slash commands via its tools
     const agentResponse = await this.invokeAgent({
       sessionId: `${workspaceId}-${projectId}`,
       userId,
@@ -56,6 +60,7 @@ export class AgentsService {
       agentName,
       message,
       history,
+      isCommand: commandInfo.isCommand,
     });
 
     // Store conversation (user message + agent response)
@@ -72,7 +77,47 @@ export class AgentsService {
     return {
       conversationId: conversation.id,
       response: agentResponse.message,
-      metadata: agentResponse.metadata,
+      metadata: {
+        ...agentResponse.metadata,
+        isCommand: commandInfo.isCommand,
+        command: commandInfo.command,
+      },
+    };
+  }
+
+  /**
+   * Parse slash command from message
+   */
+  private parseSlashCommand(message: string): {
+    isCommand: boolean;
+    command?: string;
+    args?: string;
+  } {
+    if (!message.startsWith('/')) {
+      return { isCommand: false };
+    }
+
+    const parts = message.slice(1).split(' ');
+    const command = parts[0].toLowerCase();
+    const args = parts.slice(1).join(' ');
+
+    return {
+      isCommand: true,
+      command,
+      args,
+    };
+  }
+
+  /**
+   * Get available slash commands
+   */
+  getAvailableCommands(): Record<string, string> {
+    return {
+      'create-task': 'Create a new task',
+      'assign': 'Assign a task to a team member',
+      'set-priority': 'Set priority for a task',
+      'move-phase': 'Move task to a different phase',
+      'help': 'Show available commands',
     };
   }
 
@@ -189,6 +234,7 @@ export class AgentsService {
     agentName: string;
     message: string;
     history: ConversationHistory[];
+    isCommand?: boolean;
   }): Promise<{ message: string; metadata?: Record<string, any> }> {
     try {
       // For now, invoke the pm_team agent with context
@@ -202,6 +248,7 @@ export class AgentsService {
           params: {
             projectId: params.projectId,
             agentName: params.agentName,
+            isCommand: params.isCommand || false,
             history: params.history.map((h) => ({
               role: h.role.toLowerCase(),
               content: h.message,
