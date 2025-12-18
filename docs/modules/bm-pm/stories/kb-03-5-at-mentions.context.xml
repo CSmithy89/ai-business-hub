@@ -1,0 +1,980 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-id>kb-03-5-at-mentions</story-id>
+  <title>@Mention Support in Knowledge Base Editor</title>
+  <epic>KB-03: KB Verification &amp; Scribe Agent</epic>
+  <generated-date>2025-12-18</generated-date>
+
+  <!-- OVERVIEW -->
+  <overview>
+    <goal>
+      Add @mention support in the Tiptap rich text editor to allow users to mention team members
+      in KB pages. When "@" is typed, an autocomplete dropdown shows workspace members. Selected
+      mentions render as styled chips and create notifications for mentioned users.
+    </goal>
+
+    <scope>
+      <in-scope>
+        - Tiptap Mention extension integration
+        - Workspace member autocomplete
+        - Mention chip rendering (edit + view modes)
+        - PageMention database tracking
+        - Notification creation for mentioned users
+        - Keyboard navigation in autocomplete
+      </in-scope>
+
+      <out-of-scope>
+        - Task references (#PM-123) - separate story KB-03.6
+        - Page references ([[Page Title]]) - separate story
+        - @channel or @everyone mentions
+        - Mention permissions/privacy controls - Phase 3
+        - Mention analytics/reporting
+      </out-of-scope>
+    </scope>
+  </overview>
+
+  <!-- CURRENT TIPTAP EDITOR SETUP -->
+  <tiptap-editor>
+    <location>apps/web/src/components/kb/editor/</location>
+
+    <current-extensions>
+      <file>apps/web/src/components/kb/editor/extensions.ts</file>
+      <extensions>
+        - StarterKit (headings, lists, bold, italic, etc.)
+        - Link (with custom styling)
+        - Underline
+        - Placeholder
+        - Collaboration (Yjs-based, for real-time editing)
+        - CollaborationCursor (presence cursors)
+        - Table, TableRow, TableCell, TableHeader
+        - TaskList, TaskItem
+        - CodeBlockLowlight (syntax highlighting)
+      </extensions>
+
+      <configuration>
+        <![CDATA[
+export function createExtensions(
+  placeholder = 'Start writing...',
+  options?: {
+    collaboration?: KbCollaborationConfig;
+    cursor?: KbCollaborationCursorConfig
+  },
+) {
+  return [
+    StarterKit.configure({
+      heading: { levels: [1, 2, 3, 4] },
+      codeBlock: false,
+      ...(collaboration ? { history: false } : {}),
+    }),
+    ...(collaboration ? [Collaboration.configure({ document: collaboration.document })] : []),
+    ...(cursor ? [CollaborationCursor.configure({ provider: cursor.provider, user: cursor.user })] : []),
+    Link.configure({ openOnClick: false }),
+    Underline,
+    Placeholder.configure({ placeholder }),
+    Table.configure({ resizable: true }),
+    TableRow,
+    TableCell,
+    TableHeader,
+    TaskList,
+    TaskItem.configure({ nested: true }),
+    CodeBlockLowlight.configure({ lowlight }),
+  ]
+}
+        ]]>
+      </configuration>
+    </current-extensions>
+
+    <editor-component>
+      <file>apps/web/src/components/kb/editor/PageEditor.tsx</file>
+      <features>
+        - Yjs collaboration with HocuspocusProvider
+        - IndexedDB offline persistence
+        - Auto-save (2-second debounce)
+        - Manual save (Cmd+S / Ctrl+S)
+        - Save status indicator (saved/saving/unsaved)
+        - Unsaved changes warning
+        - Real-time sync status display
+        - Offline support with local caching
+      </features>
+
+      <usage-pattern>
+        <![CDATA[
+const editor = useEditor({
+  extensions: createExtensions(
+    placeholder || 'Start writing...',
+    collaborationEnabled ? {
+      collaboration: { document: collabDoc },
+      cursor: { provider, user: collaboration.user }
+    } : undefined,
+  ),
+  content: collaborationEnabled ? undefined : initialContent,
+  onUpdate: ({ transaction }) => {
+    if (collaborationEnabled && isChangeOrigin(transaction)) return
+    setHasUnsavedChanges(true)
+  },
+})
+        ]]>
+      </usage-pattern>
+    </editor-component>
+
+    <toolbar>
+      <file>apps/web/src/components/kb/editor/EditorToolbar.tsx</file>
+      <buttons>
+        - Bold, Italic, Underline, Strikethrough, Code
+        - Headings (H1, H2, H3, H4)
+        - Lists (Bullet, Numbered, Task)
+        - Link insertion
+        - Code block
+        - Table insertion
+      </buttons>
+    </toolbar>
+
+    <styling>
+      <file>apps/web/src/app/globals.css</file>
+      <classes>
+        - .ProseMirror - base editor styles
+        - .prose - typography styles for content
+        - .collaboration-cursor__caret - cursor styling
+        - .collaboration-cursor__label - cursor label
+        - .collaboration-cursor__selection - selection highlight
+      </classes>
+    </styling>
+  </tiptap-editor>
+
+  <!-- MENTION EXTENSION INTEGRATION -->
+  <mention-extension>
+    <dependencies>
+      <package>@tiptap/extension-mention</package>
+      <package>@tiptap/suggestion</package>
+      <package>tippy.js</package>
+      <version>3.13.0+</version>
+    </dependencies>
+
+    <implementation>
+      <file>apps/web/src/components/kb/editor/extensions/mention.ts</file>
+      <structure>
+        <![CDATA[
+import Mention from '@tiptap/extension-mention'
+import { ReactRenderer } from '@tiptap/react'
+import { SuggestionOptions } from '@tiptap/suggestion'
+import tippy, { Instance } from 'tippy.js'
+import { MentionList } from '../MentionList'
+
+export const createMentionExtension = (workspaceId: string) => {
+  return Mention.configure({
+    HTMLAttributes: {
+      class: 'mention',
+    },
+    renderLabel({ node }) {
+      return `@${node.attrs.label}`
+    },
+    suggestion: {
+      items: async ({ query }) => {
+        // Fetch workspace members
+        const response = await fetch(
+          `/api/workspaces/${workspaceId}/members?q=${query}`
+        )
+        const data = await response.json()
+        return data.data
+      },
+      render: () => {
+        let component: ReactRenderer
+        let popup: Instance[]
+
+        return {
+          onStart: (props) => {
+            component = new ReactRenderer(MentionList, {
+              props,
+              editor: props.editor,
+            })
+
+            popup = tippy('body', {
+              getReferenceClientRect: props.clientRect,
+              appendTo: () => document.body,
+              content: component.element,
+              showOnCreate: true,
+              interactive: true,
+              trigger: 'manual',
+              placement: 'bottom-start',
+            })
+          },
+          onUpdate: (props) => {
+            component.updateProps(props)
+            popup[0].setProps({
+              getReferenceClientRect: props.clientRect,
+            })
+          },
+          onKeyDown: (props) => {
+            if (props.event.key === 'Escape') {
+              popup[0].hide()
+              return true
+            }
+            return component.ref?.onKeyDown(props)
+          },
+          onExit: () => {
+            popup[0].destroy()
+            component.destroy()
+          },
+        }
+      },
+    },
+  })
+}
+        ]]>
+      </structure>
+    </implementation>
+
+    <autocomplete-component>
+      <file>apps/web/src/components/kb/editor/MentionList.tsx</file>
+      <structure>
+        <![CDATA[
+interface MentionListProps {
+  items: WorkspaceMember[]
+  command: (item: { id: string; label: string }) => void
+}
+
+export const MentionList = forwardRef<HTMLDivElement, MentionListProps>(
+  ({ items, command }, ref) => {
+    const [selectedIndex, setSelectedIndex] = useState(0)
+
+    const selectItem = (index: number) => {
+      const item = items[index]
+      if (item) {
+        command({ id: item.userId, label: item.user.name || item.user.email })
+      }
+    }
+
+    const onKeyDown = ({ event }: { event: KeyboardEvent }) => {
+      if (event.key === 'ArrowUp') {
+        setSelectedIndex((prev) => (prev + items.length - 1) % items.length)
+        return true
+      }
+      if (event.key === 'ArrowDown') {
+        setSelectedIndex((prev) => (prev + 1) % items.length)
+        return true
+      }
+      if (event.key === 'Enter') {
+        selectItem(selectedIndex)
+        return true
+      }
+      return false
+    }
+
+    useImperativeHandle(ref, () => ({ onKeyDown }))
+
+    return (
+      <div className="mention-list">
+        {items.map((item, index) => (
+          <button
+            key={item.id}
+            className={cn('mention-item', index === selectedIndex && 'selected')}
+            onClick={() => selectItem(index)}
+          >
+            <Avatar src={item.user.image} name={item.user.name} />
+            <div>
+              <div className="name">{item.user.name}</div>
+              <div className="email">{item.user.email}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    )
+  }
+)
+        ]]>
+      </structure>
+    </autocomplete-component>
+  </mention-extension>
+
+  <!-- WORKSPACE MEMBERS API -->
+  <workspace-members-api>
+    <endpoint>GET /api/workspaces/:workspaceId/members</endpoint>
+    <controller>apps/api/src/members/members.controller.ts</controller>
+    <service>apps/api/src/members/members.service.ts</service>
+
+    <implementation>
+      <![CDATA[
+@Get()
+@ApiOperation({ summary: 'List all workspace members' })
+async listMembers(@CurrentWorkspace() workspaceId: string) {
+  return this.membersService.listMembers(workspaceId)
+}
+      ]]>
+    </implementation>
+
+    <response-format>
+      <![CDATA[
+{
+  "data": [
+    {
+      "id": "member-123",
+      "userId": "user-456",
+      "workspaceId": "workspace-789",
+      "role": "member",
+      "user": {
+        "id": "user-456",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "image": "https://avatar.url/john.jpg"
+      }
+    }
+  ]
+}
+      ]]>
+    </response-format>
+
+    <frontend-hook>
+      <file>apps/web/src/hooks/use-workspace-members.ts</file>
+      <implementation>
+        <![CDATA[
+export function useWorkspaceMembers(workspaceId: string, query?: string) {
+  return useQuery({
+    queryKey: ['workspace-members', workspaceId, query],
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/workspaces/${workspaceId}/members${query ? `?q=${query}` : ''}`,
+        {
+          headers: { Authorization: `Bearer ${getSessionToken()}` },
+        }
+      )
+      if (!response.ok) throw new Error('Failed to fetch members')
+      const data = await response.json()
+      return data.data
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!workspaceId,
+  })
+}
+        ]]>
+      </implementation>
+    </frontend-hook>
+
+    <search-enhancement>
+      <note>
+        Current endpoint returns all members. For large workspaces (100+ members),
+        consider adding server-side search:
+        - Add ?q=query parameter support in controller
+        - Filter by name/email in service using Prisma where clause
+        - Limit to top 10-20 results for performance
+      </note>
+    </search-enhancement>
+  </workspace-members-api>
+
+  <!-- DATABASE SCHEMA -->
+  <database>
+    <model>PageMention</model>
+    <location>packages/db/prisma/schema.prisma</location>
+
+    <schema>
+      <![CDATA[
+model PageMention {
+  id     String @id @default(cuid())
+  pageId String @map("page_id")
+
+  // Mention details
+  mentionType KBMentionType @map("mention_type")
+  targetId    String        @map("target_id") // User ID, Task ID, or Page ID
+
+  // Position (character offset in content)
+  position Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  page KnowledgePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@index([targetId])
+  @@index([mentionType])
+  @@map("page_mentions")
+}
+
+enum KBMentionType {
+  USER // @username
+  TASK // #PM-123
+  PAGE // [[Page Title]]
+}
+      ]]>
+    </schema>
+
+    <notes>
+      - PageMention model already exists in schema
+      - No migration needed for this story
+      - mentionType = 'USER' for @mentions
+      - targetId stores User.id (not WorkspaceMember.id)
+      - position tracks order of mentions in content
+    </notes>
+
+    <related-models>
+      <model>KnowledgePage</model>
+      <relation>One-to-many (page has many mentions)</relation>
+
+      <model>User</model>
+      <relation>No direct relation (targetId is string reference)</relation>
+    </related-models>
+  </database>
+
+  <!-- MENTION EXTRACTION -->
+  <mention-extraction>
+    <service>apps/api/src/kb/pages/pages.service.ts</service>
+
+    <method>
+      <name>extractAndStoreMentions</name>
+      <implementation>
+        <![CDATA[
+async extractAndStoreMentions(pageId: string, content: any): Promise<void> {
+  // Extract mentions from Tiptap JSON content
+  const mentions = this.extractMentionsFromContent(content)
+
+  // Transaction: delete old mentions, create new ones
+  await this.prisma.$transaction([
+    // Delete old USER mentions
+    this.prisma.pageMention.deleteMany({
+      where: { pageId, mentionType: 'USER' },
+    }),
+    // Create new mentions
+    ...(mentions.length > 0
+      ? [
+          this.prisma.pageMention.createMany({
+            data: mentions.map((m, idx) => ({
+              pageId,
+              mentionType: 'USER',
+              targetId: m.userId,
+              position: m.position ?? idx,
+            })),
+          }),
+        ]
+      : []),
+  ])
+
+  // Send notifications (async, non-blocking)
+  if (mentions.length > 0) {
+    const page = await this.prisma.knowledgePage.findUnique({
+      where: { id: pageId },
+      select: { title: true, ownerId: true },
+    })
+
+    for (const mention of mentions) {
+      // Don't notify if user mentions themselves
+      if (mention.userId === page?.ownerId) continue
+
+      await this.notificationsService.createMentionNotification(
+        mention.userId,
+        page.workspaceId,
+        pageId,
+        page.title,
+        page.ownerId,
+      )
+    }
+  }
+}
+
+private extractMentionsFromContent(content: any): Array<{ userId: string; position: number }> {
+  const mentions: Array<{ userId: string; position: number }> = []
+  let position = 0
+
+  const traverse = (node: any) => {
+    if (node.type === 'mention' && node.attrs?.id) {
+      mentions.push({ userId: node.attrs.id, position })
+    }
+    if (node.content) {
+      node.content.forEach(traverse)
+    }
+    position++
+  }
+
+  if (content?.content) {
+    content.content.forEach(traverse)
+  }
+
+  return mentions
+}
+        ]]>
+      </implementation>
+    </method>
+
+    <update-endpoint>
+      <dto>apps/api/src/kb/pages/dto/update-page.dto.ts</dto>
+      <add-field>
+        <![CDATA[
+@IsOptional()
+@IsBoolean()
+processMentions?: boolean
+        ]]>
+      </add-field>
+    </update-endpoint>
+
+    <controller-usage>
+      <![CDATA[
+@Patch(':id')
+async updatePage(
+  @Param('id') id: string,
+  @Body() dto: UpdatePageDto,
+  @CurrentWorkspace() workspaceId: string,
+  @CurrentUser() user: any,
+) {
+  const updated = await this.pagesService.updatePage(id, workspaceId, dto, user.id)
+
+  // Extract mentions if requested
+  if (dto.processMentions && dto.content) {
+    await this.pagesService.extractAndStoreMentions(id, dto.content)
+  }
+
+  return { data: updated }
+}
+      ]]>
+    </controller-usage>
+  </mention-extraction>
+
+  <!-- NOTIFICATIONS -->
+  <notifications>
+    <service>apps/api/src/notifications/notifications.service.ts</service>
+    <model>Notification (in schema.prisma)</model>
+
+    <existing-schema>
+      <![CDATA[
+model Notification {
+  id          String @id @default(uuid())
+  userId      String @map("user_id")
+  workspaceId String @map("workspace_id")
+
+  type    String  // e.g., 'kb_mention'
+  title   String
+  message String?
+  link    String?
+  data    Json?
+
+  readAt DateTime? @map("read_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, readAt])
+  @@index([workspaceId])
+  @@index([createdAt])
+  @@map("notifications")
+}
+      ]]>
+    </existing-schema>
+
+    <notification-method>
+      <![CDATA[
+async createMentionNotification(
+  mentionedUserId: string,
+  workspaceId: string,
+  pageId: string,
+  pageTitle: string,
+  mentionedByUserId: string,
+): Promise<void> {
+  // Get mentioned-by user name
+  const mentionedByUser = await this.prisma.user.findUnique({
+    where: { id: mentionedByUserId },
+    select: { name: true, email: true },
+  })
+
+  const displayName = mentionedByUser?.name || mentionedByUser?.email || 'Someone'
+
+  // Create notification
+  await this.prisma.notification.create({
+    data: {
+      userId: mentionedUserId,
+      workspaceId,
+      type: 'kb_mention',
+      title: 'You were mentioned',
+      message: `${displayName} mentioned you in "${pageTitle}"`,
+      link: `/kb/${pageId}`,
+      data: {
+        pageId,
+        pageTitle,
+        mentionedBy: mentionedByUserId,
+        mentionedByName: displayName,
+      },
+    },
+  })
+
+  // Emit real-time event (if WebSocket enabled)
+  this.eventEmitter.emit('notification.created', {
+    userId: mentionedUserId,
+    workspaceId,
+    notificationType: 'kb_mention',
+  })
+}
+      ]]>
+    </notification-method>
+
+    <notification-display>
+      <location>apps/web/src/components/notifications/</location>
+      <files>
+        - NotificationCenter.tsx (bell icon + dropdown)
+        - NotificationList.tsx (list of notifications)
+        - NotificationItem.tsx (individual notification)
+      </files>
+      <note>
+        Existing notification system handles display. New 'kb_mention' type
+        will automatically appear in notification center with link to page.
+      </note>
+    </notification-display>
+  </notifications>
+
+  <!-- STYLING -->
+  <styling>
+    <file>apps/web/src/app/globals.css</file>
+
+    <mention-styles>
+      <![CDATA[
+/* Mention chip in editor (both edit and view modes) */
+.mention {
+  @apply inline-flex items-center gap-1;
+  @apply rounded-md px-2 py-0.5;
+  @apply bg-primary/10 text-primary;
+  @apply text-sm font-medium;
+  @apply cursor-pointer hover:bg-primary/20;
+  @apply transition-colors duration-150;
+  @apply border border-primary/20;
+}
+
+.mention:hover {
+  @apply bg-primary/20 border-primary/30;
+}
+
+/* Dark mode */
+.dark .mention {
+  @apply bg-primary/20 text-primary-foreground;
+  @apply border-primary/30;
+}
+
+.dark .mention:hover {
+  @apply bg-primary/30 border-primary/40;
+}
+      ]]>
+    </mention-styles>
+
+    <autocomplete-styles>
+      <![CDATA[
+/* Mention autocomplete dropdown */
+.mention-list {
+  @apply flex flex-col gap-0.5;
+  @apply rounded-lg border bg-popover p-1 shadow-md;
+  @apply max-h-64 overflow-y-auto;
+  @apply min-w-[240px] max-w-[320px];
+}
+
+.mention-item {
+  @apply flex w-full items-center gap-2;
+  @apply rounded-md px-2 py-1.5;
+  @apply text-left text-sm;
+  @apply hover:bg-accent;
+  @apply transition-colors duration-100;
+  @apply cursor-pointer;
+}
+
+.mention-item.selected {
+  @apply bg-accent;
+}
+
+.mention-item .name {
+  @apply font-medium text-foreground;
+}
+
+.mention-item .email {
+  @apply text-xs text-muted-foreground;
+}
+
+/* Avatar in mention item */
+.mention-item img {
+  @apply h-6 w-6 rounded-full;
+}
+      ]]>
+    </autocomplete-styles>
+
+    <tippy-styles>
+      <note>
+        Tippy.js requires its CSS to be imported:
+        import 'tippy.js/dist/tippy.css'
+
+        Add to: apps/web/src/app/layout.tsx or globals.css
+      </note>
+    </tippy-styles>
+  </styling>
+
+  <!-- TESTING PATTERNS -->
+  <testing>
+    <unit-tests>
+      <file>apps/api/src/kb/pages/pages.service.spec.ts</file>
+      <tests>
+        - extractMentionsFromContent() with valid mentions
+        - extractMentionsFromContent() with no mentions
+        - extractMentionsFromContent() with nested mentions
+        - extractAndStoreMentions() creates PageMention records
+        - extractAndStoreMentions() deletes old mentions
+        - extractAndStoreMentions() sends notifications
+      </tests>
+    </unit-tests>
+
+    <integration-tests>
+      <file>apps/api/test/kb/mentions.e2e-spec.ts</file>
+      <tests>
+        - POST /kb/pages with mentions creates PageMention records
+        - PATCH /kb/pages with processMentions=true updates mentions
+        - Mentioned user receives notification
+        - Notification contains correct page link
+        - Self-mentions don't create notifications
+        - Duplicate mentions create single notification
+      </tests>
+    </integration-tests>
+
+    <manual-testing>
+      <scenarios>
+        1. Type "@" in editor - autocomplete appears
+        2. Search for member - filtered results
+        3. Select member - mention chip inserted
+        4. Save page - PageMention created, notification sent
+        5. Reload page - mention preserved and rendered
+        6. Click mention chip - (future: show user profile)
+        7. Delete mention - PageMention removed
+        8. Keyboard navigation - arrow keys, Enter, Escape
+      </scenarios>
+    </manual-testing>
+  </testing>
+
+  <!-- EDGE CASES -->
+  <edge-cases>
+    <case>
+      <scenario>Mentioned user deleted from workspace</scenario>
+      <handling>
+        - PageMention record remains (orphaned)
+        - Mention chip renders with fallback text: "@Former Member"
+        - No error thrown
+        - Future enhancement: Clean up orphaned mentions
+      </handling>
+    </case>
+
+    <case>
+      <scenario>User mentions themselves</scenario>
+      <handling>
+        - PageMention created
+        - No notification sent (skip in notification logic)
+      </handling>
+    </case>
+
+    <case>
+      <scenario>Multiple mentions of same user</scenario>
+      <handling>
+        - Multiple PageMention records created
+        - Single notification sent (deduplicate in notification logic)
+      </handling>
+    </case>
+
+    <case>
+      <scenario>Workspace with 500+ members</scenario>
+      <handling>
+        - Server-side search required (add ?q= support)
+        - Limit autocomplete to 20 results
+        - Virtual scrolling in autocomplete (react-window)
+      </handling>
+    </case>
+
+    <case>
+      <scenario>Real-time collaboration with mentions</scenario>
+      <handling>
+        - Yjs syncs mention nodes automatically
+        - PageMention extraction on each user's save
+        - Potential duplicate notifications (acceptable for MVP)
+        - Future: Track who created mention to avoid duplicate notifications
+      </handling>
+    </case>
+
+    <case>
+      <scenario>Mention in offline mode</scenario>
+      <handling>
+        - Mention stored locally in IndexedDB (via Yjs)
+        - PageMention + notification created when back online
+        - Notification may be delayed
+      </handling>
+    </case>
+  </edge-cases>
+
+  <!-- PERFORMANCE CONSIDERATIONS -->
+  <performance>
+    <optimization>
+      <area>Member List Caching</area>
+      <implementation>React Query staleTime: 5 minutes</implementation>
+      <rationale>Workspace members don't change frequently</rationale>
+    </optimization>
+
+    <optimization>
+      <area>Autocomplete Search</area>
+      <implementation>Debounce search queries (200ms)</implementation>
+      <rationale>Avoid excessive API calls while typing</rationale>
+    </optimization>
+
+    <optimization>
+      <area>Notification Batching</area>
+      <implementation>Queue notifications, send in batch every 5 seconds</implementation>
+      <rationale>Reduce database load for pages with many mentions</rationale>
+    </optimization>
+
+    <optimization>
+      <area>Mention Extraction</area>
+      <implementation>Only run on manual save or processMentions=true</implementation>
+      <rationale>Avoid extracting on every auto-save</rationale>
+    </optimization>
+  </performance>
+
+  <!-- ACCESSIBILITY -->
+  <accessibility>
+    <requirement>
+      <standard>WCAG 2.1 AA</standard>
+      <implementation>
+        - Keyboard navigation in autocomplete (arrow keys, Enter, Escape)
+        - ARIA labels: aria-label="Mention autocomplete" on dropdown
+        - ARIA roles: role="listbox" on list, role="option" on items
+        - Focus management: return focus to editor after mention insertion
+        - Screen reader: announce autocomplete state changes
+        - Contrast: mention chips meet 4.5:1 contrast ratio
+      </implementation>
+    </requirement>
+  </accessibility>
+
+  <!-- SECURITY -->
+  <security>
+    <consideration>
+      <threat>XSS via mention display names</threat>
+      <mitigation>Sanitize user names before rendering in mention chips</mitigation>
+    </consideration>
+
+    <consideration>
+      <threat>Unauthorized mentions</threat>
+      <mitigation>Validate mentioned user is workspace member before creating PageMention</mitigation>
+    </consideration>
+
+    <consideration>
+      <threat>Notification spam</threat>
+      <mitigation>Rate limit: max 50 notifications per user per hour</mitigation>
+    </consideration>
+
+    <consideration>
+      <threat>Privacy leak via mentions</threat>
+      <mitigation>Only users with page access can see mentions (enforced by KB permissions)</mitigation>
+    </consideration>
+  </security>
+
+  <!-- FUTURE ENHANCEMENTS -->
+  <future-enhancements>
+    <enhancement>
+      <title>Mention Preview on Hover</title>
+      <description>Show user card with avatar, name, role, email on mention hover</description>
+      <effort>Small (2 points)</effort>
+    </enhancement>
+
+    <enhancement>
+      <title>@channel and @everyone Mentions</title>
+      <description>Mention all workspace members or specific channels</description>
+      <effort>Medium (5 points)</effort>
+    </enhancement>
+
+    <enhancement>
+      <title>Mention Analytics</title>
+      <description>Track most mentioned users, mention trends, response times</description>
+      <effort>Medium (5 points)</effort>
+    </enhancement>
+
+    <enhancement>
+      <title>Mention Permissions</title>
+      <description>Control who can mention whom (privacy settings)</description>
+      <effort>Large (8 points)</effort>
+    </enhancement>
+
+    <enhancement>
+      <title>External User Mentions</title>
+      <description>Mention users outside workspace (send email notification)</description>
+      <effort>Large (8 points)</effort>
+    </enhancement>
+  </future-enhancements>
+
+  <!-- RELATED STORIES -->
+  <related-stories>
+    <story>
+      <id>KB-01.3</id>
+      <title>Rich Text Editor (Tiptap)</title>
+      <relation>Prerequisite - provides editor foundation</relation>
+      <status>Complete</status>
+    </story>
+
+    <story>
+      <id>KB-03.6</id>
+      <title>#Task Reference Support</title>
+      <relation>Follow-up - similar implementation pattern</relation>
+      <status>Backlog</status>
+    </story>
+
+    <story>
+      <id>PM-06.5</id>
+      <title>In-App Notifications</title>
+      <relation>Related - displays mention notifications</relation>
+      <status>Backlog</status>
+    </story>
+
+    <story>
+      <id>KB-02.1</id>
+      <title>Yjs Collaboration Setup</title>
+      <relation>Related - mentions work in real-time collaboration</relation>
+      <status>Complete</status>
+    </story>
+  </related-stories>
+
+  <!-- IMPLEMENTATION CHECKLIST -->
+  <implementation-checklist>
+    <phase name="Backend">
+      <task>Add processMentions field to UpdatePageDto</task>
+      <task>Implement extractMentionsFromContent() method</task>
+      <task>Implement extractAndStoreMentions() method</task>
+      <task>Add createMentionNotification() to NotificationsService</task>
+      <task>Update pages.controller.ts to call mention extraction</task>
+      <task>Add unit tests for mention extraction</task>
+      <task>Add e2e tests for mention flow</task>
+    </phase>
+
+    <phase name="Frontend - Extension">
+      <task>Install @tiptap/extension-mention and dependencies</task>
+      <task>Create mention.ts extension configuration</task>
+      <task>Create MentionList.tsx autocomplete component</task>
+      <task>Add mention extension to extensions.ts</task>
+      <task>Pass workspaceId to createExtensions()</task>
+    </phase>
+
+    <phase name="Frontend - API Integration">
+      <task>Create use-workspace-members.ts hook</task>
+      <task>Add member search/filter logic</task>
+      <task>Update PageEditor to pass workspaceId to extensions</task>
+      <task>Update save handler to set processMentions=true</task>
+    </phase>
+
+    <phase name="Frontend - Styling">
+      <task>Add .mention chip styles to globals.css</task>
+      <task>Add .mention-list autocomplete styles</task>
+      <task>Import tippy.js CSS</task>
+      <task>Test dark mode styling</task>
+      <task>Verify WCAG contrast ratios</task>
+    </phase>
+
+    <phase name="Testing">
+      <task>Manual test: type @ and see autocomplete</task>
+      <task>Manual test: search members</task>
+      <task>Manual test: keyboard navigation</task>
+      <task>Manual test: mention insertion and rendering</task>
+      <task>Manual test: save and reload page</task>
+      <task>Manual test: verify notification received</task>
+      <task>Manual test: click notification link</task>
+      <task>Run unit tests (pnpm test)</task>
+      <task>Run e2e tests (pnpm test:e2e)</task>
+      <task>Run type check (pnpm type-check)</task>
+      <task>Run lint (pnpm lint)</task>
+    </phase>
+
+    <phase name="Documentation">
+      <task>Update story markdown with implementation details</task>
+      <task>Add keyboard shortcuts to story</task>
+      <task>Update sprint-status.yaml</task>
+      <task>Add changeset if using changesets</task>
+    </phase>
+  </implementation-checklist>
+</story-context>
