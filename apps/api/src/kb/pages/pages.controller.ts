@@ -124,7 +124,19 @@ export class PagesController {
     @Body() dto: UpdatePageDto,
     @CurrentUser() actor: any,
   ) {
-    return this.pagesService.update(workspaceId, workspaceId, actor.id, id, dto)
+    const result = await this.pagesService.update(workspaceId, workspaceId, actor.id, id, dto)
+
+    // Extract mentions if requested
+    if (dto.processMentions && dto.content) {
+      await this.pagesService
+        .extractAndStoreMentions(id, dto.content, workspaceId, workspaceId, actor.id)
+        .catch((error) => {
+          // Log but don't fail the update if mention processing fails
+          console.error('Failed to process mentions:', error)
+        })
+    }
+
+    return result
   }
 
   @Delete(':id')

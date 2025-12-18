@@ -1165,3 +1165,62 @@
   border-radius: 0.15rem;
   pointer-events: none;
 }
+
+/* ============================================
+ * MENTION STYLES - Story KB-03.5
+ * @mention support in KB editor
+ * ============================================ */
+
+/* Mention chip in editor (both edit and view modes) */
+.mention {
+  @apply inline-flex items-center gap-1;
+  @apply rounded-md px-2 py-0.5;
+  @apply bg-primary/10 text-primary;
+  @apply text-sm font-medium;
+  @apply cursor-pointer hover:bg-primary/20;
+  @apply transition-colors duration-150;
+  @apply border border-primary/20;
+}
+
+.mention:hover {
+  @apply bg-primary/20 border-primary/30;
+}
+
+/* Dark mode */
+.dark .mention {
+  @apply bg-primary/20 text-primary-foreground;
+  @apply border-primary/30;
+}
+
+.dark .mention:hover {
+  @apply bg-primary/30 border-primary/40;
+}
+
+/* Mention autocomplete dropdown */
+.mention-list {
+  @apply flex flex-col gap-0.5;
+  @apply rounded-lg border bg-popover p-1 shadow-md;
+  @apply max-h-64 overflow-y-auto;
+  @apply min-w-[240px] max-w-[320px];
+}
+
+.mention-item {
+  @apply flex w-full items-center gap-2;
+  @apply rounded-md px-2 py-1.5;
+  @apply text-left text-sm;
+  @apply hover:bg-accent;
+  @apply transition-colors duration-100;
+  @apply cursor-pointer;
+}
+
+.mention-item.selected {
+  @apply bg-accent;
+}
+
+.mention-item .name {
+  @apply font-medium text-foreground;
+}
+
+.mention-item .email {
+  @apply text-xs text-muted-foreground;
+}

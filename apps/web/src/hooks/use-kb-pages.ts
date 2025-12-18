@@ -58,6 +58,7 @@ export interface UpdateKBPageInput {
   parentId?: string
   createVersion?: boolean
   changeNote?: string
+  processMentions?: boolean
 }
 
 async function fetchKBPages(params: {

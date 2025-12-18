@@ -13,6 +13,7 @@ import { useNetworkStatus } from '@/hooks/use-network-status'
 
 interface PageEditorProps {
   pageId?: string
+  workspaceId?: string
   initialContent?: any
   onSave: (content: any) => Promise<void>
   placeholder?: string
@@ -25,7 +26,7 @@ interface PageEditorProps {
   }
 }
 
-export function PageEditor({ pageId, initialContent, onSave, placeholder, collaboration }: PageEditorProps) {
+export function PageEditor({ pageId, workspaceId, initialContent, onSave, placeholder, collaboration }: PageEditorProps) {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -101,8 +102,11 @@ export function PageEditor({ pageId, initialContent, onSave, placeholder, collab
             ...(provider && collaboration?.user
               ? { cursor: { provider, user: collaboration.user } }
               : {}),
+            workspaceId,
           }
-        : undefined,
+        : workspaceId
+          ? { workspaceId }
+          : undefined,
     ),
     content: collaborationEnabled ? undefined : initialContent,
     editorProps: {

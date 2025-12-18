@@ -86,10 +86,24 @@ export class MembersService {
 
   /**
    * List all members in a workspace
+   * @param workspaceId - Workspace ID
+   * @param query - Optional search query to filter by name or email
    */
-  async listMembers(workspaceId: string) {
+  async listMembers(workspaceId: string, query?: string) {
+    const whereClause: any = { workspaceId }
+
+    // Add search filter if query provided
+    if (query && query.trim()) {
+      whereClause.user = {
+        OR: [
+          { name: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } },
+        ],
+      }
+    }
+
     return this.prisma.workspaceMember.findMany({
-      where: { workspaceId },
+      where: whereClause,
       include: {
         user: {
           select: {
@@ -103,6 +117,7 @@ export class MembersService {
       orderBy: {
         invitedAt: 'desc',
       },
+      take: query ? 20 : undefined, // Limit results when searching
     })
   }
 }

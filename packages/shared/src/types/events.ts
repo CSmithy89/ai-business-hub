@@ -140,6 +140,7 @@ export const EventTypes = {
   KB_PAGE_UNLINKED_FROM_PROJECT: 'kb.page.unlinked_from_project',
   KB_PAGE_FAVORITED: 'kb.page.favorited',
   KB_PAGE_UNFAVORITED: 'kb.page.unfavorited',
+  KB_MENTION_CREATED: 'kb.mention.created',
 } as const;
 
 /**

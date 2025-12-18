@@ -102,7 +102,7 @@ development_status:
   # MVP | 9 stories | Orchestration, estimation, time tracking
   # FRs: FR-5.1, FR-5.2, FR-5.3, FR-5.4
   # ===========================================
-  pm-04: backlog
+  pm-04: contexted
   pm-04-1-navi-agent-foundation: backlog
   pm-04-2-navi-daily-briefing: backlog
   pm-04-3-navi-suggestion-cards: backlog
