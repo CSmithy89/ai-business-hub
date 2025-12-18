@@ -200,6 +200,7 @@ export type ListTasksQuery = {
   priority?: TaskPriority
   assignmentType?: AssignmentType
   assigneeId?: string
+  parentId?: string
   label?: string
   search?: string
   page?: number
@@ -279,6 +280,7 @@ async function fetchTasks(params: {
   if (query.priority) search.set('priority', query.priority)
   if (query.assignmentType) search.set('assignmentType', query.assignmentType)
   if (query.assigneeId) search.set('assigneeId', query.assigneeId)
+  if (query.parentId) search.set('parentId', query.parentId)
   if (query.search) search.set('search', query.search)
   if (query.label) search.set('label', query.label)
   if (query.page) search.set('page', String(query.page))
@@ -774,6 +776,7 @@ export function usePmTasks(query: ListTasksQuery) {
     !!query.priority ||
     !!query.assignmentType ||
     !!query.assigneeId ||
+    !!query.parentId ||
     !!query.label ||
     !!query.search
 
@@ -788,6 +791,7 @@ export function usePmTasks(query: ListTasksQuery) {
       query.priority ?? null,
       query.assignmentType ?? null,
       query.assigneeId ?? null,
+      query.parentId ?? null,
       query.label ?? null,
       query.search ?? null,
       query.page ?? null,
