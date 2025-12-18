@@ -1,0 +1,625 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>PM-04.5</story-id>
+    <title>Sage Estimation Agent</title>
+    <epic>PM-04 - AI Team: Navi, Sage, Chrono</epic>
+    <status>drafted</status>
+    <points>8</points>
+    <created>2025-12-19</created>
+  </metadata>
+
+  <story-info>
+    <user-story>
+      As a **project manager**,
+      I want **AI-powered task estimation with confidence levels**,
+      So that **I can plan projects accurately even without historical data**.
+    </user-story>
+
+    <description>
+      Implement Sage, the AI estimation specialist agent that provides intelligent task estimates
+      based on historical data (when available) or industry benchmarks (cold-start). Sage analyzes
+      task complexity, considers similar past tasks, and provides confidence-rated estimates with
+      transparent reasoning.
+    </description>
+
+    <key-capabilities>
+      <capability>Cold-start estimation using industry benchmarks for new projects</capability>
+      <capability>Historical data analysis to improve estimation accuracy</capability>
+      <capability>Task complexity analysis from description text</capability>
+      <capability>Confidence level scoring (low/medium/high) with reasoning</capability>
+      <capability>Similar task search for estimation reference</capability>
+      <capability>Team velocity calculation for sprint planning</capability>
+      <capability>Estimation accuracy metrics and tracking</capability>
+    </key-capabilities>
+  </story-info>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <name>Sage Agent Initialization</name>
+      <given>I am on a project page</given>
+      <when>I request an estimate for a task</when>
+      <then>Sage agent is available and responds with estimation</then>
+    </criterion>
+
+    <criterion id="AC2">
+      <name>Task Complexity Analysis</name>
+      <given>I provide a task description</given>
+      <when>Sage analyzes the task</when>
+      <then>Sage identifies complexity factors (type, scope, dependencies)</then>
+    </criterion>
+
+    <criterion id="AC3">
+      <name>Confidence Levels Provided</name>
+      <given>Sage generates an estimate</given>
+      <when>I view the estimate</when>
+      <then>it includes a confidence level (low, medium, high) with reasoning</then>
+    </criterion>
+
+    <criterion id="AC4">
+      <name>Historical Data Consideration</name>
+      <given>the project has completed tasks</given>
+      <when>Sage estimates a new task</when>
+      <then>Sage uses similar historical tasks to inform the estimate</then>
+    </criterion>
+  </acceptance-criteria>
+
+  <tech-spec-reference>
+    <location>docs/modules/bm-pm/epics/pm-04-tech-spec.md</location>
+    <sections>
+      <section>Sage Agent Architecture</section>
+      <section>Estimation Tools and Services</section>
+      <section>Cold-Start Strategy</section>
+      <section>Confidence Scoring Algorithm</section>
+    </sections>
+  </tech-spec-reference>
+
+  <implementation-checklist>
+    <section name="Agent Layer (Python)">
+      <task>Create agents/pm/sage.py with create_sage_agent() factory function</task>
+      <task>Define Sage agent instructions for estimation specialist role</task>
+      <task>Configure Sage with shared memory for team context</task>
+      <task>Create agents/pm/tools/estimation_tools.py module</task>
+      <task>Implement estimate_task tool with complexity analysis</task>
+      <task>Implement get_similar_tasks tool for historical reference</task>
+      <task>Implement calculate_velocity tool for team metrics</task>
+      <task>Implement get_estimation_metrics tool for accuracy tracking</task>
+      <task>Add helper functions: get_industry_benchmarks()</task>
+      <task>Add helper functions: analyze_complexity()</task>
+      <task>Add helper functions: get_complexity_factors()</task>
+      <task>Update agents/pm/team.py to include Sage in team members</task>
+      <task>Test Sage agent initialization with workspace and project context</task>
+    </section>
+
+    <section name="Backend API (NestJS)">
+      <task>Create apps/api/src/pm/agents/estimation.service.ts</task>
+      <task>Implement estimateTask() method to invoke Sage agent</task>
+      <task>Implement findSimilarTasks() with Prisma full-text search</task>
+      <task>Implement calculateVelocity() for sprint velocity metrics</task>
+      <task>Implement getEstimationMetrics() for accuracy analytics</task>
+      <task>Add estimation endpoints to apps/api/src/pm/agents/agents.controller.ts</task>
+      <task>Create EstimateTaskDto with validation (title, description, type, projectId)</task>
+      <task>Define SageEstimate interface for structured response</task>
+      <task>Add workspace isolation checks on all estimation queries</task>
+      <task>Handle agent invocation errors with graceful fallback</task>
+    </section>
+
+    <section name="Frontend (React)">
+      <task>Create apps/web/src/components/pm/agents/EstimationDisplay.tsx</task>
+      <task>Implement estimate visualization with story points and hours</task>
+      <task>Create ConfidenceBadge component with color coding</task>
+      <task>Add cold-start warning display for projects without history</task>
+      <task>Display complexity factors with explanations</task>
+      <task>Show similar task count when available</task>
+      <task>Add "Override" button to allow manual estimate adjustment</task>
+      <task>Add estimation display to task creation/edit forms</task>
+    </section>
+
+    <section name="Testing">
+      <task>Write unit tests: agents/pm/tests/test_sage.py</task>
+      <task>Write unit tests: apps/api/src/pm/agents/estimation.service.spec.ts</task>
+      <task>Write component tests: apps/web/src/components/pm/agents/EstimationDisplay.test.tsx</task>
+      <task>Write integration tests: apps/api/test/pm/agents/estimation.e2e-spec.ts</task>
+      <task>Write E2E tests: apps/web/e2e/pm/agents/sage-estimation.spec.ts</task>
+      <task>Test cold-start scenario (no historical data)</task>
+      <task>Test historical data scenario (5+ similar tasks)</task>
+      <task>Test complexity multiplier calculations</task>
+      <task>Test workspace isolation enforcement</task>
+    </section>
+
+    <section name="Documentation">
+      <task>Document Sage agent capabilities and instructions</task>
+      <task>Document estimation API endpoints</task>
+      <task>Document industry benchmarks used for cold-start</task>
+      <task>Document complexity analysis algorithm</task>
+      <task>Document confidence scoring thresholds</task>
+      <task>Add code comments for key functions</task>
+    </section>
+  </implementation-checklist>
+
+  <related-code-patterns>
+    <pattern name="Python Agent Factory Pattern">
+      <location>agents/pm/navi.py</location>
+      <description>
+        Agent creation pattern using Agno framework. Key elements:
+        - Factory function: create_AGENT_NAME_agent(workspace_id, project_id, shared_memory)
+        - Instructions list defining agent role and behavior
+        - Tool registration via tools=[] parameter
+        - Shared memory for team context
+        - Model configuration (default: claude-sonnet-4-20250514)
+        - add_datetime_to_instructions=True for temporal context
+      </description>
+      <code-example><![CDATA[
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.memory import Memory
+
+def create_navi_agent(
+    workspace_id: str,
+    project_id: str,
+    shared_memory: Memory,
+    model: Optional[str] = None,
+) -> Agent:
+    return Agent(
+        name="Navi",
+        role="PM Orchestration Assistant",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=NAVI_INSTRUCTIONS + [
+            f"Workspace ID: {workspace_id}",
+            f"Project ID: {project_id}",
+        ],
+        tools=[...],
+        memory=shared_memory,
+        add_datetime_to_instructions=True,
+        markdown=True,
+    )
+      ]]></code-example>
+      <apply-to>
+        Create agents/pm/sage.py following this exact pattern with:
+        - create_sage_agent(workspace_id, project_id, shared_memory)
+        - SAGE_INSTRUCTIONS list defining estimation specialist role
+        - Tools: estimate_task, get_similar_tasks, calculate_velocity, get_estimation_metrics
+      </apply-to>
+    </pattern>
+
+    <pattern name="Agent Tool Implementation Pattern">
+      <location>agents/pm/tools/pm_tools.py</location>
+      <description>
+        Pattern for creating Agno tools that call backend APIs:
+        - Use @tool decorator from agno
+        - Tools make HTTP requests to NestJS API (API_URL from env)
+        - Handle 404 gracefully (return empty/default values)
+        - Return structured data (dict/list)
+        - Document parameters and return types in docstrings
+      </description>
+      <code-example><![CDATA[
+from agno import tool
+import requests
+import os
+
+API_URL = os.getenv('API_BASE_URL', 'http://localhost:3000')
+
+@tool
+def get_project_status(project_id: str) -> dict:
+    """
+    Get current project status and metrics.
+
+    Args:
+        project_id: Project ID
+
+    Returns:
+        Project status including task counts, progress
+    """
+    response = requests.get(f"{API_URL}/api/pm/projects/{project_id}/status")
+
+    if response.status_code == 404:
+        return {"error": "Project not found"}
+
+    response.raise_for_status()
+    return response.json()
+      ]]></code-example>
+      <apply-to>
+        Create agents/pm/tools/estimation_tools.py with 4 tools:
+        - estimate_task(task_title, task_description, task_type, project_id)
+        - get_similar_tasks(project_id, task_type, search_query)
+        - calculate_velocity(project_id, sprint_count)
+        - get_estimation_metrics(project_id, task_type?)
+      </apply-to>
+    </pattern>
+
+    <pattern name="Team Factory Pattern">
+      <location>agents/pm/team.py</location>
+      <description>
+        Pattern for creating Agno Teams with shared memory:
+        - Factory function: create_pm_team(session_id, user_id, workspace_id, project_id)
+        - Shared memory with workspace-scoped table: pm_agent_memory_{workspace_id}
+        - Memory namespace for project isolation: project:{project_id}
+        - Leader agent + members list
+        - Team configuration: mode="coordinate", delegate_task_to_all_members=False
+      </description>
+      <code-example><![CDATA[
+from agno.team import Team
+from agno.memory import Memory
+from agno.storage.postgres import PostgresStorage
+
+def create_pm_team(
+    session_id: str,
+    user_id: str,
+    workspace_id: str,
+    project_id: str,
+) -> Team:
+    shared_memory = Memory(
+        db=PostgresStorage(
+            table_name=f"pm_agent_memory_{workspace_id}",
+            schema="agent_memory",
+            db_url=get_postgres_url(),
+        ),
+        namespace=f"project:{project_id}"
+    )
+
+    navi = create_navi_agent(workspace_id, project_id, shared_memory)
+    # sage = create_sage_agent(...) # Add in PM-04.5
+
+    return Team(
+        name="PM Team",
+        mode="coordinate",
+        leader=navi,
+        members=[],  # Add Sage here
+        memory=shared_memory,
+        session_id=session_id,
+        user_id=user_id,
+        ...
+    )
+      ]]></code-example>
+      <apply-to>
+        Update agents/pm/team.py:
+        - Import create_sage_agent from agents.pm.sage
+        - Create sage agent instance
+        - Add sage to members=[] list
+      </apply-to>
+    </pattern>
+
+    <pattern name="Agent Service Integration Pattern">
+      <location>apps/api/src/pm/agents/agents.service.ts</location>
+      <description>
+        Pattern for NestJS service to invoke agents:
+        - chat() method accepts workspaceId, projectId, userId, agentName, message
+        - Load conversation history from database
+        - Invoke agent via AgentOSService
+        - Store both user message and agent response
+        - Return conversationId, response, metadata
+        - Parse slash commands if message starts with '/'
+      </description>
+      <code-example><![CDATA[
+async chat(params: ChatParams): Promise<{
+  conversationId: string;
+  response: string;
+  metadata?: Record<string, any>;
+}> {
+  const { workspaceId, projectId, userId, agentName, message } = params;
+
+  // Load history
+  const history = await this.loadConversationHistory(workspaceId, projectId, agentName);
+
+  // Invoke agent
+  const agentResponse = await this.invokeAgent({
+    sessionId: `${workspaceId}-${projectId}`,
+    userId,
+    workspaceId,
+    projectId,
+    agentName,
+    message,
+    history,
+  });
+
+  // Store conversation
+  const conversation = await this.storeConversation(...);
+
+  return {
+    conversationId: conversation.id,
+    response: agentResponse.message,
+    metadata: agentResponse.metadata,
+  };
+}
+      ]]></code-example>
+      <apply-to>
+        Create apps/api/src/pm/agents/estimation.service.ts with:
+        - estimateTask() that invokes Sage via AgentsService.chat()
+        - Parse estimation from agent response metadata
+        - Implement supporting methods (findSimilarTasks, calculateVelocity, etc.)
+      </apply-to>
+    </pattern>
+
+    <pattern name="Task Model Schema">
+      <location>packages/db/prisma/schema.prisma</location>
+      <description>
+        Task model with estimation fields that Sage will populate:
+        - storyPoints: Int? (nullable story points estimate)
+        - estimatedHours: Float? (nullable hour estimate)
+        - actualHours: Float? (nullable actual time tracked)
+        - confidenceScore: Float? (0-1 confidence from Sage)
+
+        For learning: compare estimatedHours vs actualHours on completed tasks.
+      </description>
+      <code-example><![CDATA[
+model Task {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+
+  // Estimation fields (populated by Sage)
+  storyPoints     Int?   @map("story_points")
+  estimatedHours  Float? @map("estimated_hours")
+  actualHours     Float? @map("actual_hours")
+  confidenceScore Float? @map("confidence_score") // 0-1, from Sage
+
+  // Status for learning
+  status      TaskStatus @default(BACKLOG)
+  completedAt DateTime?  @map("completed_at")
+
+  // Task type for benchmark matching
+  type TaskType @default(TASK)
+
+  ...
+}
+      ]]></code-example>
+      <apply-to>
+        Use these fields when:
+        - Storing Sage estimates (storyPoints, estimatedHours, confidenceScore)
+        - Finding similar tasks for estimation (filter by type, status=DONE)
+        - Calculating velocity (sum storyPoints/actualHours from completed tasks)
+        - Tracking accuracy (compare estimatedHours vs actualHours)
+      </apply-to>
+    </pattern>
+  </related-code-patterns>
+
+  <tech-stack-notes>
+    <stack-layer name="Agent Layer">
+      <technology>Python 3.12+</technology>
+      <technology>Agno Framework (agent orchestration)</technology>
+      <technology>Claude Sonnet 4 (default model: claude-sonnet-4-20250514)</technology>
+      <technology>PostgreSQL (shared agent memory via PostgresStorage)</technology>
+      <notes>
+        - All agents share memory through PostgreSQL storage
+        - Memory table: pm_agent_memory_{workspace_id} for tenant isolation
+        - Memory namespace: project:{project_id} for project scoping
+        - Tools communicate with NestJS API via HTTP (localhost:3000 in dev)
+        - Environment variable: API_BASE_URL for API endpoint
+      </notes>
+    </stack-layer>
+
+    <stack-layer name="Backend API">
+      <technology>NestJS 10.x</technology>
+      <technology>TypeScript (strict mode)</technology>
+      <technology>Prisma ORM 6.x</technology>
+      <technology>PostgreSQL 16+</technology>
+      <notes>
+        - All queries must include workspaceId for tenant isolation
+        - AgentOSService handles communication with Python agent layer
+        - Use Zod for DTO validation
+        - Error handling: graceful fallback if agent fails
+      </notes>
+    </stack-layer>
+
+    <stack-layer name="Frontend">
+      <technology>Next.js 15.x (App Router)</technology>
+      <technology>React 19.x</technology>
+      <technology>TypeScript (strict mode)</technology>
+      <technology>Tailwind CSS 4.x</technology>
+      <technology>shadcn/ui components</technology>
+      <notes>
+        - Use 'use client' for interactive components
+        - Follow component structure: types → component → hooks → handlers → render
+        - Import UI components from @/components/ui
+        - Use cn() utility for conditional Tailwind classes
+        - Avoid dynamic Tailwind class construction (JIT limitation)
+      </notes>
+    </stack-layer>
+
+    <stack-layer name="Testing">
+      <technology>Vitest (frontend unit tests)</technology>
+      <technology>Jest (backend unit tests)</technology>
+      <technology>Playwright (E2E tests)</technology>
+      <technology>pytest (Python agent tests)</technology>
+      <notes>
+        - Test workspace isolation in all data access
+        - Mock AgentOSService in NestJS tests
+        - Test cold-start vs historical data scenarios
+        - E2E: test full user flow from task creation to estimate display
+      </notes>
+    </stack-layer>
+  </tech-stack-notes>
+
+  <key-algorithms>
+    <algorithm name="Cold-Start Estimation">
+      <description>
+        When no historical data is available, Sage uses industry benchmarks:
+        - FEATURE: 16h, 5 points
+        - BUG: 4h, 2 points
+        - CHORE: 2h, 1 point
+        - RESEARCH: 8h, 3 points
+        - DOCUMENTATION: 4h, 2 points
+        - TESTING: 8h, 3 points
+        - REFACTORING: 12h, 5 points
+        - DESIGN: 12h, 5 points
+
+        Confidence level: 'low' (0.3-0.5)
+        Basis: "Based on industry benchmarks for {task_type} tasks (no historical data available)"
+      </description>
+    </algorithm>
+
+    <algorithm name="Complexity Analysis">
+      <description>
+        Analyzes task title and description for complexity indicators:
+
+        Simple indicators (0.7x multiplier):
+        - Keywords: fix, update, minor, quick, simple, small, typo
+
+        Complex indicators (1.5x multiplier):
+        - Keywords: implement, integrate, migrate, redesign, complex, architecture, system, end-to-end, full, complete, refactor, rewrite, new, multiple, all
+
+        Average (1.0x multiplier):
+        - Default when simple_count == complex_count
+
+        Extracted factors for transparency:
+        - Integration required
+        - Data migration involved
+        - Architectural changes
+        - Multiple components affected
+        - New functionality (higher uncertainty)
+        - Bug fix (potentially simpler)
+        - Marked as simple/minor
+      </description>
+    </algorithm>
+
+    <algorithm name="Confidence Scoring">
+      <description>
+        Confidence level based on available historical data:
+
+        Low (0.3-0.5):
+        - No historical data (cold-start)
+        - Using industry benchmarks
+
+        Medium (0.6-0.75):
+        - 1-4 similar tasks found
+        - Formula: 0.6 + (similar_count * 0.05)
+
+        High (0.8-0.9):
+        - 5+ similar tasks found
+        - Formula: min(0.9, 0.6 + (similar_count * 0.05))
+        - Capped at 0.9 maximum
+
+        Basis includes: number of similar tasks, average hours, task type
+      </description>
+    </algorithm>
+
+    <algorithm name="Similar Tasks Search">
+      <description>
+        Find historical tasks for estimation reference:
+
+        Criteria:
+        1. Same workspaceId (tenant isolation)
+        2. Same projectId (project context)
+        3. Same task type (FEATURE, BUG, etc.)
+        4. Status = DONE (completed tasks only)
+        5. actualHours IS NOT NULL (has tracked time)
+        6. Full-text search on title/description (case-insensitive)
+
+        Sort: completedAt DESC (most recent first)
+        Limit: 10 tasks
+
+        Returns: id, title, type, storyPoints, estimatedHours, actualHours
+      </description>
+    </algorithm>
+
+    <algorithm name="Velocity Calculation">
+      <description>
+        Calculate team velocity for sprint planning (simplified for MVP):
+
+        1. Find last 50 completed tasks with status=DONE
+        2. Sum total story points and actual hours
+        3. Calculate weeks of data from oldest completedAt to now
+        4. Assume 2-week sprints: sprints = weeks / 2
+        5. Average per sprint:
+           - avgPointsPerSprint = totalPoints / sprints
+           - avgHoursPerSprint = totalHours / sprints
+
+        Note: Proper sprint support comes in PM-02 (Phase 2)
+
+        Returns: avgPointsPerSprint, avgHoursPerSprint, sprintCount
+      </description>
+    </algorithm>
+
+    <algorithm name="Estimation Accuracy">
+      <description>
+        Track estimation accuracy for continuous improvement:
+
+        1. Find all completed tasks with both estimatedHours and actualHours
+        2. Calculate error for each: |actualHours - estimatedHours| / estimatedHours
+        3. Average error across all tasks
+        4. Average accuracy = 1 - average_error
+
+        Optional: Filter by task type for type-specific accuracy
+
+        Returns: averageError (0-1), averageAccuracy (%), totalEstimations
+
+        Used by Sage to learn and improve over time (PM-04.6)
+      </description>
+    </algorithm>
+  </key-algorithms>
+
+  <dependencies>
+    <prerequisite>
+      <story-id>PM-04.1</story-id>
+      <title>Navi Agent Foundation</title>
+      <reason>Establishes agent infrastructure, team factory, and AgentOS integration</reason>
+    </prerequisite>
+
+    <prerequisite>
+      <story-id>PM-02.3</story-id>
+      <title>Task CRUD</title>
+      <reason>Task model with estimation fields (storyPoints, estimatedHours, confidenceScore)</reason>
+    </prerequisite>
+
+    <prerequisite>
+      <story-id>PM-02.7</story-id>
+      <title>Task State Machine</title>
+      <reason>Task completion tracking (status=DONE, completedAt) needed for historical learning</reason>
+    </prerequisite>
+
+    <blocks>
+      <story-id>PM-04.6</story-id>
+      <title>Sage Estimation Learning</title>
+      <reason>Builds on Sage foundation to improve accuracy over time</reason>
+    </blocks>
+  </dependencies>
+
+  <workspace-isolation>
+    <rule>All Prisma queries MUST include workspaceId in where clause</rule>
+    <rule>Agent memory tables are workspace-scoped: pm_agent_memory_{workspace_id}</rule>
+    <rule>Similar tasks search is scoped to workspaceId AND projectId</rule>
+    <rule>Velocity calculation is per-workspace and per-project</rule>
+    <rule>Estimation metrics are workspace-scoped</rule>
+    <rule>API endpoints must extract workspaceId from @GetWorkspace() decorator</rule>
+  </workspace-isolation>
+
+  <definition-of-done>
+    <item>All acceptance criteria verified and passing</item>
+    <item>Sage agent responds to estimation requests via chat interface</item>
+    <item>Task complexity analysis identifies and applies appropriate multipliers</item>
+    <item>Confidence levels (low/medium/high) provided with clear reasoning</item>
+    <item>Historical data used when available (5+ tasks = high confidence)</item>
+    <item>Cold-start estimates use industry benchmarks with low confidence</item>
+    <item>Similar tasks search returns relevant completed tasks</item>
+    <item>Velocity calculation provides sprint metrics</item>
+    <item>Estimation accuracy metrics track prediction quality</item>
+    <item>Unit tests passing: Python agents, NestJS services, React components</item>
+    <item>Integration tests passing: API endpoints with workspace isolation</item>
+    <item>E2E tests passing: Full user flow from request to display</item>
+    <item>Code reviewed and approved by senior developer</item>
+    <item>Documentation complete: Sage agent guide, API docs, algorithm explanations</item>
+    <item>Workspace isolation verified in all data access paths</item>
+    <item>Sage added to PM team factory in agents/pm/team.py</item>
+    <item>EstimationDisplay component integrated into task forms</item>
+  </definition-of-done>
+
+  <future-considerations>
+    <consideration>Machine learning model for better accuracy (Phase 2)</consideration>
+    <consideration>Team-specific velocity tracking across multiple projects</consideration>
+    <consideration>Seasonal pattern detection (holidays, sprint cycles)</consideration>
+    <consideration>Integration with external tools (Jira, Linear) for expanded history</consideration>
+    <consideration>Estimation confidence trends over time visualization</consideration>
+    <consideration>Custom benchmark configuration per workspace settings</consideration>
+    <consideration>Override tracking: flag and exclude manually adjusted estimates from learning</consideration>
+    <consideration>Estimation range (optimistic/pessimistic) instead of single value</consideration>
+  </future-considerations>
+
+  <references>
+    <reference type="story" path="docs/modules/bm-pm/stories/pm-04-5-sage-estimation-agent.md">Story Definition</reference>
+    <reference type="epic" path="docs/modules/bm-pm/epics/epic-pm-04-ai-team-navi-sage-chrono.md">Epic Definition</reference>
+    <reference type="tech-spec" path="docs/modules/bm-pm/epics/pm-04-tech-spec.md">Epic Tech Spec</reference>
+    <reference type="story" path="docs/modules/bm-pm/stories/pm-04-1-navi-agent-foundation.md">PM-04.1: Navi Foundation</reference>
+    <reference type="module-prd" path="docs/modules/bm-pm/PRD.md">Module PRD</reference>
+    <reference type="module-arch" path="docs/modules/bm-pm/architecture.md">Module Architecture</reference>
+    <reference type="sprint-status" path="docs/modules/bm-pm/sprint-status.yaml">Sprint Status</reference>
+  </references>
+</story-context>

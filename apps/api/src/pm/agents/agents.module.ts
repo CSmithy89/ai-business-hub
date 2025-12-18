@@ -5,13 +5,24 @@ import { AgentsController } from './agents.controller';
 import { AgentsService } from './agents.service';
 import { BriefingService } from './briefing.service';
 import { SuggestionService } from './suggestion.service';
+import { EstimationService } from './estimation.service';
 import { CommonModule } from '../../common/common.module';
 import { AgentOSModule } from '../../agentos/agentos.module';
 
 @Module({
   imports: [CommonModule, AgentOSModule, HttpModule, ScheduleModule.forRoot()],
   controllers: [AgentsController],
-  providers: [AgentsService, BriefingService, SuggestionService],
-  exports: [AgentsService, BriefingService, SuggestionService],
+  providers: [
+    AgentsService,
+    BriefingService,
+    SuggestionService,
+    EstimationService,
+  ],
+  exports: [
+    AgentsService,
+    BriefingService,
+    SuggestionService,
+    EstimationService,
+  ],
 })
 export class AgentsModule {}

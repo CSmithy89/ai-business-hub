@@ -17,6 +17,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { AgentsService } from './agents.service';
 import { BriefingService } from './briefing.service';
 import { SuggestionService } from './suggestion.service';
+import { EstimationService } from './estimation.service';
 import { ChatAgentDto, GetConversationsDto } from './dto/chat-agent.dto';
 import {
   UpdateBriefingPreferencesDto,
@@ -39,6 +40,7 @@ export class AgentsController {
     private readonly agentsService: AgentsService,
     private readonly briefingService: BriefingService,
     private readonly suggestionService: SuggestionService,
+    private readonly estimationService: EstimationService,
   ) {}
 
   @Post('chat')
@@ -276,6 +278,135 @@ export class AgentsController {
       workspaceId,
       userId,
       'Dismissed by user',
+    );
+  }
+
+  // ============================================
+  // Estimation Endpoints (PM-04-5)
+  // ============================================
+
+  @Post('estimation/estimate')
+  @ApiOperation({ summary: 'Get task estimation from Sage agent' })
+  @ApiResponse({
+    status: 200,
+    description: 'Task estimate generated',
+    schema: {
+      properties: {
+        storyPoints: { type: 'number' },
+        estimatedHours: { type: 'number' },
+        confidenceLevel: { type: 'string', enum: ['low', 'medium', 'high'] },
+        confidenceScore: { type: 'number' },
+        basis: { type: 'string' },
+        coldStart: { type: 'boolean' },
+        similarTasks: { type: 'array', items: { type: 'string' } },
+        complexityFactors: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  })
+  async estimateTask(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser('id') userId: string,
+    @Body()
+    body: {
+      title: string;
+      description?: string;
+      type: string;
+      projectId: string;
+    },
+  ) {
+    return this.estimationService.estimateTask(workspaceId, userId, {
+      title: body.title,
+      description: body.description,
+      type: body.type as any,
+      projectId: body.projectId,
+    });
+  }
+
+  @Post('estimation/similar')
+  @ApiOperation({ summary: 'Find similar completed tasks' })
+  @ApiResponse({
+    status: 200,
+    description: 'Similar tasks retrieved',
+    schema: {
+      type: 'array',
+      items: {
+        properties: {
+          id: { type: 'string' },
+          title: { type: 'string' },
+          type: { type: 'string' },
+          storyPoints: { type: 'number' },
+          estimatedHours: { type: 'number' },
+          actualHours: { type: 'number' },
+        },
+      },
+    },
+  })
+  async findSimilarTasks(
+    @CurrentWorkspace() workspaceId: string,
+    @Body()
+    body: {
+      projectId: string;
+      taskType: string;
+      query: string;
+      limit?: number;
+    },
+  ) {
+    return this.estimationService.findSimilarTasks(
+      workspaceId,
+      body.projectId,
+      body.taskType as any,
+      body.query,
+      body.limit,
+    );
+  }
+
+  @Get('estimation/velocity/:projectId')
+  @ApiOperation({ summary: 'Calculate team velocity' })
+  @ApiResponse({
+    status: 200,
+    description: 'Team velocity calculated',
+    schema: {
+      properties: {
+        avgPointsPerSprint: { type: 'number' },
+        avgHoursPerSprint: { type: 'number' },
+        sprintCount: { type: 'number' },
+      },
+    },
+  })
+  async calculateVelocity(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('projectId') projectId: string,
+    @Query('sprints') sprints?: string,
+  ) {
+    return this.estimationService.calculateVelocity(
+      workspaceId,
+      projectId,
+      sprints ? parseInt(sprints, 10) : 3,
+    );
+  }
+
+  @Get('estimation/metrics')
+  @ApiOperation({ summary: 'Get estimation accuracy metrics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estimation metrics retrieved',
+    schema: {
+      properties: {
+        averageError: { type: 'number' },
+        averageAccuracy: { type: 'number' },
+        totalEstimations: { type: 'number' },
+      },
+    },
+  })
+  async getEstimationMetrics(
+    @CurrentWorkspace() workspaceId: string,
+    @Query('projectId') projectId: string,
+    @Query('taskType') taskType?: string,
+  ) {
+    return this.estimationService.getEstimationMetrics(
+      workspaceId,
+      projectId,
+      taskType as any,
     );
   }
 }
