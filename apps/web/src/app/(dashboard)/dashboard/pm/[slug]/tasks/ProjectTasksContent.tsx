@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils'
 import { TaskDetailSheet } from './TaskDetailSheet'
 import { TaskListView } from '@/components/pm/views/TaskListView'
 import { KanbanBoardView } from '@/components/pm/views/KanbanBoardView'
+import { CalendarView } from '@/components/pm/views/CalendarView'
 import { GroupBySelector } from '@/components/pm/kanban/GroupBySelector'
 
 const TASK_STATUSES: TaskStatus[] = [
@@ -76,7 +77,7 @@ export function ProjectTasksContent() {
   const [status, setStatus] = useState<TaskStatus | 'all'>('all')
   const [type, setType] = useState<TaskType | 'all'>('all')
   const [priority, setPriority] = useState<TaskPriority | 'all'>('all')
-  const [viewMode, setViewMode] = useState<'simple' | 'table' | 'kanban'>('simple')
+  const [viewMode, setViewMode] = useState<'simple' | 'table' | 'kanban' | 'calendar'>('simple')
 
   // Grouping preference for kanban view
   const [groupBy, setGroupBy] = useState<GroupByOption>(() => {
@@ -161,6 +162,14 @@ export function ProjectTasksContent() {
           >
             <KanbanSquare className="h-4 w-4 mr-2" />
             Kanban
+          </Button>
+          <Button
+            variant={viewMode === 'calendar' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('calendar')}
+          >
+            <CalendarDays className="h-4 w-4 mr-2" />
+            Calendar
           </Button>
           {viewMode === 'kanban' && (
             <GroupBySelector value={groupBy} onChange={handleGroupByChange} />
@@ -275,7 +284,13 @@ export function ProjectTasksContent() {
       ) : null}
 
       {tasks.length ? (
-        viewMode === 'kanban' ? (
+        viewMode === 'calendar' ? (
+          <CalendarView
+            tasks={tasks}
+            projectId={project.id}
+            onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
+          />
+        ) : viewMode === 'kanban' ? (
           <KanbanBoardView
             tasks={tasks}
             onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
