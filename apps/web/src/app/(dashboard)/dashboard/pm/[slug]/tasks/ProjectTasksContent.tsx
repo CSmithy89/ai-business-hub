@@ -47,14 +47,14 @@ function statusBadgeVariant(status: TaskStatus): 'secondary' | 'outline' | 'succ
 function openTask(router: ReturnType<typeof useRouter>, pathname: string, searchParams: URLSearchParams, taskId: string) {
   const next = new URLSearchParams(searchParams.toString())
   next.set('taskId', taskId)
-  router.push(`${pathname}?${next.toString()}` as any)
+  router.push(`${pathname}?${next.toString()}` as Parameters<typeof router.push>[0])
 }
 
 function closeTask(router: ReturnType<typeof useRouter>, pathname: string, searchParams: URLSearchParams) {
   const next = new URLSearchParams(searchParams.toString())
   next.delete('taskId')
   const url = next.toString() ? `${pathname}?${next.toString()}` : pathname
-  router.replace(url as any)
+  router.replace(url as Parameters<typeof router.replace>[0])
 }
 
 export function ProjectTasksContent() {
@@ -63,7 +63,7 @@ export function ProjectTasksContent() {
   const searchParams = useSearchParams()
   const params = useParams<{ slug: string }>()
   const { data: session } = useSession()
-  const currentUserId = (session as any)?.user?.id
+  const currentUserId = session?.user?.id ?? null
 
   const slug = params?.slug
   const taskId = searchParams.get('taskId')
@@ -404,7 +404,7 @@ export function ProjectTasksContent() {
           headline="No tasks yet"
           description="Press `c` on any project page to quick capture, or create via API."
           ctaText="Back to overview"
-          onCtaClick={() => router.push(`/dashboard/pm/${slug}` as any)}
+          onCtaClick={() => router.push(`/dashboard/pm/${slug}`)}
         />
       ) : null}
 
@@ -413,7 +413,6 @@ export function ProjectTasksContent() {
           <ErrorBoundary errorMessage="Failed to load calendar view">
             <CalendarView
               tasks={tasks}
-              projectId={project.id}
               onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
             />
           </ErrorBoundary>
@@ -498,7 +497,7 @@ function TaskRow({ task, onClick }: { task: TaskListItem; onClick: () => void })
           </span>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--color-text-secondary))]">
-          <Badge variant={statusBadgeVariant(task.status) as any}>{task.status.replace(/_/g, ' ')}</Badge>
+          <Badge variant={statusBadgeVariant(task.status)}>{task.status.replace(/_/g, ' ')}</Badge>
           <span className="inline-flex items-center gap-1.5">
             <span className={cn('h-2.5 w-2.5 rounded-full', priorityMeta.dotClassName)} aria-hidden="true" />
             {priorityMeta.label}

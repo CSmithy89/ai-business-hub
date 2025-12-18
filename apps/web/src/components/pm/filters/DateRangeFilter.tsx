@@ -9,8 +9,9 @@
 'use client'
 
 import { useState } from 'react'
-import { format, parseISO } from 'date-fns'
+import { parseISO } from 'date-fns'
 import { Calendar as CalendarIcon, ChevronDown } from 'lucide-react'
+import { formatDateRange } from '@/lib/pm/date-utils'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -53,16 +54,7 @@ export function DateRangeFilter({ from, to, onChange }: DateRangeFilterProps) {
   const hasRange = from || to
 
   const displayText = () => {
-    if (from && to) {
-      return `${format(parseISO(from), 'MMM d')} - ${format(parseISO(to), 'MMM d')}`
-    }
-    if (from) {
-      return `From ${format(parseISO(from), 'MMM d')}`
-    }
-    if (to) {
-      return `Until ${format(parseISO(to), 'MMM d')}`
-    }
-    return 'Due date'
+    return formatDateRange(from, to) ?? 'Due date'
   }
 
   return (

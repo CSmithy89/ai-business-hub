@@ -27,8 +27,6 @@ type ViewMode = 'month' | 'week' | 'day'
 interface CalendarViewProps {
   /** Array of tasks to display */
   tasks: TaskListItem[]
-  /** Project ID for context */
-  projectId: string
   /** Callback when task card is clicked */
   onTaskClick: (taskId: string) => void
 }

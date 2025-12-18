@@ -9,6 +9,60 @@
 
 import type { TaskStatus, TaskType, TaskPriority } from '@/hooks/use-pm-tasks'
 
+/**
+ * Valid enum values for runtime validation
+ * These must be kept in sync with the types in use-pm-tasks.ts
+ */
+const VALID_TASK_STATUSES: readonly TaskStatus[] = [
+  'BACKLOG',
+  'TODO',
+  'IN_PROGRESS',
+  'REVIEW',
+  'AWAITING_APPROVAL',
+  'DONE',
+  'CANCELLED',
+] as const
+
+const VALID_TASK_PRIORITIES: readonly TaskPriority[] = [
+  'URGENT',
+  'HIGH',
+  'MEDIUM',
+  'LOW',
+  'NONE',
+] as const
+
+const VALID_TASK_TYPES: readonly TaskType[] = [
+  'EPIC',
+  'STORY',
+  'TASK',
+  'SUBTASK',
+  'BUG',
+  'RESEARCH',
+  'CONTENT',
+  'AGENT_REVIEW',
+] as const
+
+/**
+ * Type guard for TaskStatus
+ */
+function isValidTaskStatus(value: string): value is TaskStatus {
+  return VALID_TASK_STATUSES.includes(value as TaskStatus)
+}
+
+/**
+ * Type guard for TaskPriority
+ */
+function isValidTaskPriority(value: string): value is TaskPriority {
+  return VALID_TASK_PRIORITIES.includes(value as TaskPriority)
+}
+
+/**
+ * Type guard for TaskType
+ */
+function isValidTaskType(value: string): value is TaskType {
+  return VALID_TASK_TYPES.includes(value as TaskType)
+}
+
 export type FilterState = {
   status: TaskStatus[]
   priority: TaskPriority | null
@@ -74,11 +128,24 @@ export function parseFilters(params: URLSearchParams): FilterState {
   const dueDateToParam = params.get('dueDateTo')
   const phaseParam = params.get('phase')
 
+  // Validate status values - filter out any invalid entries
+  const statuses: TaskStatus[] = statusParam
+    ? statusParam.split(',').filter(isValidTaskStatus)
+    : []
+
+  // Validate priority - use null if invalid
+  const priority: TaskPriority | null =
+    priorityParam && isValidTaskPriority(priorityParam) ? priorityParam : null
+
+  // Validate type - use null if invalid
+  const type: TaskType | null =
+    typeParam && isValidTaskType(typeParam) ? typeParam : null
+
   return {
-    status: statusParam ? (statusParam.split(',') as TaskStatus[]) : [],
-    priority: priorityParam as TaskPriority | null,
+    status: statuses,
+    priority,
     assigneeId: assigneeParam || null,
-    type: typeParam as TaskType | null,
+    type,
     labels: labelsParam ? labelsParam.split(',') : [],
     dueDateFrom: dueDateFromParam || null,
     dueDateTo: dueDateToParam || null,

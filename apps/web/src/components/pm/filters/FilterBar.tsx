@@ -34,7 +34,8 @@ import { TASK_PRIORITY_META, TASK_TYPE_META } from '@/lib/pm/task-meta'
 import { usePmTeam } from '@/hooks/use-pm-team'
 import { usePmProject } from '@/hooks/use-pm-projects'
 import { cn } from '@/lib/utils'
-import { format, parseISO } from 'date-fns'
+import { DEBOUNCE } from '@/lib/pm/constants'
+import { formatDateRange } from '@/lib/pm/date-utils'
 
 interface FilterBarProps {
   /** Project ID */
@@ -73,6 +74,15 @@ export function FilterBar({
   const searchParams = useSearchParams()
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Cleanup debounce timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+    }
+  }, [])
+
   // Parse initial filters from URL
   const filters = useMemo(() => parseFilters(searchParams), [searchParams])
 
@@ -108,8 +118,8 @@ export function FilterBar({
 
       const currentPath = window.location.pathname
       const newUrl = params.toString() ? `${currentPath}?${params.toString()}` : currentPath
-      router.replace(newUrl as any, { scroll: false })
-    }, 300)
+      router.replace(newUrl as Parameters<typeof router.replace>[0], { scroll: false })
+    }, DEBOUNCE.URL_UPDATE_MS)
   }
 
   // Filter update handlers
@@ -279,13 +289,7 @@ export function FilterBar({
 
             {(filters.dueDateFrom || filters.dueDateTo) && (
               <FilterChip
-                label={
-                  filters.dueDateFrom && filters.dueDateTo
-                    ? `${format(parseISO(filters.dueDateFrom), 'MMM d')} - ${format(parseISO(filters.dueDateTo), 'MMM d')}`
-                    : filters.dueDateFrom
-                      ? `From ${format(parseISO(filters.dueDateFrom), 'MMM d')}`
-                      : `Until ${format(parseISO(filters.dueDateTo!), 'MMM d')}`
-                }
+                label={formatDateRange(filters.dueDateFrom, filters.dueDateTo)!}
                 onRemove={removeDateRangeFilter}
               />
             )}

@@ -32,6 +32,9 @@ import {
 } from '@/lib/pm/kanban-grouping'
 import type { TaskListItem } from '@/hooks/use-pm-tasks'
 import { useUpdatePmTask } from '@/hooks/use-pm-tasks'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('KanbanBoardView')
 
 interface KanbanBoardViewProps {
   /** Array of tasks to display */
@@ -121,7 +124,7 @@ export function KanbanBoardView({
     } catch (error) {
       // Error handling and rollback handled by React Query onError
       // Toast already shown by useUpdatePmTask hook
-      console.error('Failed to update task:', error)
+      log.error('Failed to update task', { error })
     }
   }
 

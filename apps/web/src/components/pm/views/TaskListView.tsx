@@ -36,7 +36,9 @@ import {
 import type { TaskListItem, TaskStatus, TaskPriority, AssignmentType } from '@/hooks/use-pm-tasks'
 import { useBulkUpdatePmTasks, useBulkDeletePmTasks, useUpsertPmTaskLabel } from '@/hooks/use-pm-tasks'
 import { getViewPreferences, setViewPreferences } from '@/lib/pm/view-preferences'
+import { VIRTUALIZATION } from '@/lib/pm/constants'
 import { cn } from '@/lib/utils'
+import { createLogger } from '@/lib/logger'
 import { ColumnVisibilityToggle } from '../table/ColumnVisibilityToggle'
 import { createTaskColumns } from '../table/TaskTableColumns'
 import { BulkActionsBar } from '../bulk/BulkActionsBar'
@@ -45,6 +47,8 @@ import { BulkPriorityDialog } from '../bulk/BulkPriorityDialog'
 import { BulkAssignDialog } from '../bulk/BulkAssignDialog'
 import { BulkLabelDialog } from '../bulk/BulkLabelDialog'
 import { BulkDeleteDialog } from '../bulk/BulkDeleteDialog'
+
+const log = createLogger('TaskListView')
 
 interface TaskListViewProps {
   /** Task data to display */
@@ -163,8 +167,8 @@ export function TaskListView({
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 50, // Row height in pixels
-    overscan: 10, // Render 10 rows above/below viewport
+    estimateSize: () => VIRTUALIZATION.ROW_HEIGHT,
+    overscan: VIRTUALIZATION.OVERSCAN,
   })
 
   const virtualRows = virtualizer.getVirtualItems()
@@ -256,7 +260,7 @@ export function TaskListView({
           })
           .catch((error) => {
             // Continue with other labels even if one fails
-            console.error('Failed to add label:', error)
+            log.error('Failed to add label', { error })
             return null
           })
       )
@@ -323,7 +327,7 @@ export function TaskListView({
         <div
           ref={parentRef}
           className="relative overflow-auto"
-          style={{ height: '600px' }}
+          style={{ height: VIRTUALIZATION.TABLE_HEIGHT }}
         >
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-[rgb(var(--color-bg-primary))]">
