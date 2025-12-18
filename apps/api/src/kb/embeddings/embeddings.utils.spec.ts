@@ -4,6 +4,7 @@ import {
   normalizeToSingleSpace,
   vectorToPgvectorText,
 } from './embeddings.utils'
+import { KB_ERROR } from '../kb.errors'
 
 describe('kb embeddings utils', () => {
   describe('normalizeToSingleSpace', () => {
@@ -38,12 +39,14 @@ describe('kb embeddings utils', () => {
 
   describe('vectorToPgvectorText', () => {
     it('throws on dimension mismatch', () => {
-      expect(() => vectorToPgvectorText([0, 1], 3)).toThrow('dimension mismatch')
+      expect(() => vectorToPgvectorText([0, 1], 3)).toThrow(KB_ERROR.EMBEDDING_DIMENSION_MISMATCH)
     })
 
     it('throws on non-finite values', () => {
-      expect(() => vectorToPgvectorText([Number.NaN], 1)).toThrow('non-finite')
-      expect(() => vectorToPgvectorText([Number.POSITIVE_INFINITY], 1)).toThrow('non-finite')
+      expect(() => vectorToPgvectorText([Number.NaN], 1)).toThrow(KB_ERROR.EMBEDDING_NON_FINITE)
+      expect(() => vectorToPgvectorText([Number.POSITIVE_INFINITY], 1)).toThrow(
+        KB_ERROR.EMBEDDING_NON_FINITE,
+      )
     })
 
     it('serializes vector into pgvector text format', () => {
@@ -59,8 +62,9 @@ describe('kb embeddings utils', () => {
     })
 
     it('throws for unsupported provider', () => {
-      expect(() => getOpenAiCompatibleBaseUrl('claude')).toThrow('does not support embeddings')
+      expect(() => getOpenAiCompatibleBaseUrl('claude')).toThrow(
+        KB_ERROR.EMBEDDINGS_PROVIDER_UNSUPPORTED,
+      )
     })
   })
 })
-

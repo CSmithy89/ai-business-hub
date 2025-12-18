@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common'
+import { KB_ERROR } from '../kb.errors'
 
 export type ChunkOptions = {
   maxWords: number
@@ -46,13 +47,13 @@ export function chunkTextByWords(
 export function vectorToPgvectorText(vector: number[], expectedDims: number): string {
   if (vector.length !== expectedDims) {
     throw new BadRequestException(
-      `Embedding dimension mismatch: expected ${expectedDims}, got ${vector.length}`,
+      `${KB_ERROR.EMBEDDING_DIMENSION_MISMATCH}:${expectedDims}:${vector.length}`,
     )
   }
 
   const parts = vector.map((value) => {
     if (!Number.isFinite(value)) {
-      throw new BadRequestException('Embedding contains non-finite values')
+      throw new BadRequestException(KB_ERROR.EMBEDDING_NON_FINITE)
     }
     return Number(value).toFixed(8)
   })
@@ -69,9 +70,6 @@ export function getOpenAiCompatibleBaseUrl(provider: string): string {
     case 'openrouter':
       return 'https://openrouter.ai/api/v1'
     default:
-      throw new BadRequestException(
-        `Provider "${provider}" does not support embeddings via OpenAI-compatible API`,
-      )
+      throw new BadRequestException(`${KB_ERROR.EMBEDDINGS_PROVIDER_UNSUPPORTED}:${provider}`)
   }
 }
-

@@ -16,6 +16,7 @@ import { ListPagesQueryDto } from './dto/list-pages.query.dto'
 import { UpdatePageDto } from './dto/update-page.dto'
 import type { VersionsService } from '../versions/versions.service'
 import { EmbeddingsService } from '../embeddings/embeddings.service'
+import { KB_ERROR } from '../kb.errors'
 
 function slugify(input: string): string {
   return input
@@ -110,7 +111,7 @@ export class PagesService {
   ): Promise<void> {
     // Cannot set self as parent
     if (pageId === newParentId) {
-      throw new BadRequestException('A page cannot be its own parent')
+      throw new BadRequestException(KB_ERROR.PAGE_SELF_PARENT)
     }
 
     // Walk up the ancestor chain from the new parent
@@ -121,7 +122,7 @@ export class PagesService {
       // Check for the page we're updating in the ancestor chain
       if (currentId === pageId) {
         throw new BadRequestException(
-          'Cannot set this parent: would create a circular reference',
+          KB_ERROR.PAGE_CIRCULAR_PARENT,
         )
       }
 
@@ -248,7 +249,7 @@ export class PagesService {
 
     // All retries exhausted
     this.logger.error('Failed to create page after max retries', lastError)
-    throw new ConflictException('Failed to generate unique slug, please try again')
+    throw new ConflictException(KB_ERROR.SLUG_GENERATION_FAILED)
   }
 
   async list(tenantId: string, workspaceId: string, query: ListPagesQueryDto) {
@@ -370,7 +371,7 @@ export class PagesService {
     })
 
     if (!page) {
-      throw new NotFoundException('Page not found')
+      throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
     }
 
     // Increment view count asynchronously (fire and forget)
@@ -409,7 +410,7 @@ export class PagesService {
       where: { id, tenantId, workspaceId, deletedAt: null },
       select: { id: true, title: true, slug: true, content: true },
     })
-    if (!existing) throw new NotFoundException('Page not found')
+    if (!existing) throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
 
     let contentChanged = false
 
@@ -531,7 +532,7 @@ export class PagesService {
       where: { id, tenantId, workspaceId, deletedAt: null },
       select: { id: true, title: true, slug: true },
     })
-    if (!existing) throw new NotFoundException('Page not found')
+    if (!existing) throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
 
     const page = await this.prisma.$transaction(async (tx) => {
       const deleted = await tx.knowledgePage.update({
@@ -572,9 +573,9 @@ export class PagesService {
       select: { id: true, title: true, slug: true, deletedAt: true },
     })
 
-    if (!existing) throw new NotFoundException('Page not found')
+    if (!existing) throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
     if (!existing.deletedAt) {
-      throw new NotFoundException('Page is not deleted')
+      throw new NotFoundException(KB_ERROR.PAGE_NOT_DELETED)
     }
 
     const page = await this.prisma.$transaction(async (tx) => {
@@ -621,14 +622,14 @@ export class PagesService {
       select: { id: true, favoritedBy: true },
     })
 
-    if (!page) throw new NotFoundException('Page not found')
+    if (!page) throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
 
     const favoritedBy = page.favoritedBy || []
     const isFavorited = favoritedBy.includes(actorId)
 
     if (favorite && !isFavorited) {
       if (favoritedBy.length >= MAX_FAVORITED_BY_PER_PAGE) {
-        throw new BadRequestException('This page has reached the maximum number of favorites')
+        throw new BadRequestException(KB_ERROR.PAGE_MAX_FAVORITES)
       }
       // Add to favorites
       await this.prisma.knowledgePage.update({
@@ -728,7 +729,7 @@ export class PagesService {
       where: { id: pageId, tenantId, workspaceId, deletedAt: null },
       select: { id: true },
     })
-    if (!exists) throw new NotFoundException('Page not found')
+    if (!exists) throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
 
     const rows = await this.prisma.$queryRaw<
       Array<{
