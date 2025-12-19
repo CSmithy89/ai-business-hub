@@ -8,6 +8,7 @@ import { VerifyPageDto } from './dto/verify-page.dto'
 // Stale content detection thresholds
 const STALE_DAYS_THRESHOLD = 90
 const LOW_VIEW_THRESHOLD = 5
+const MAX_BULK_OPERATION_SIZE = 100
 
 @Injectable()
 export class VerificationService {
@@ -295,6 +296,13 @@ export class VerificationService {
     failed: number
     results: PromiseSettledResult<KnowledgePage>[]
   }> {
+    // Rate limit: prevent excessive bulk operations
+    if (pageIds.length > MAX_BULK_OPERATION_SIZE) {
+      throw new BadRequestException(
+        `Maximum ${MAX_BULK_OPERATION_SIZE} pages per bulk operation`
+      )
+    }
+
     const dto: VerifyPageDto = { expiresIn: expiresIn as '30d' | '60d' | '90d' | 'never' }
 
     const results = await Promise.allSettled(
@@ -325,6 +333,13 @@ export class VerificationService {
     failed: number
     results: PromiseSettledResult<any>[]
   }> {
+    // Rate limit: prevent excessive bulk operations
+    if (pageIds.length > MAX_BULK_OPERATION_SIZE) {
+      throw new BadRequestException(
+        `Maximum ${MAX_BULK_OPERATION_SIZE} pages per bulk operation`
+      )
+    }
+
     const results = await Promise.allSettled(
       pageIds.map(async (pageId) => {
         // Verify page exists and is not already deleted

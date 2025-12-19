@@ -27,7 +27,11 @@ export const createMentionExtension = (options: MentionSuggestionOptions) => {
       class: 'mention',
     },
     renderLabel({ node }) {
-      return `@${node.attrs.label}`
+      // Sanitize label to prevent XSS - strip any HTML-like characters
+      const sanitizedLabel = String(node.attrs.label || '')
+        .replace(/[<>]/g, '')
+        .slice(0, 100) // Limit length
+      return `@${sanitizedLabel}`
     },
     suggestion: {
       char: '@',

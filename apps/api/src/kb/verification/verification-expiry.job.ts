@@ -5,6 +5,13 @@ import { PrismaService } from '../../common/services/prisma.service'
 import { EventPublisherService } from '../../events'
 
 /**
+ * System user ID for automated jobs.
+ * Uses 'SYSTEM' constant to clearly identify automated actions in audit logs.
+ * Note: This is a reserved value, not a real user ID - queries should handle this specially.
+ */
+const SYSTEM_USER_ID = 'SYSTEM'
+
+/**
  * Daily cron job to detect and process expired page verifications
  * Runs at midnight UTC to flag pages whose verification has expired
  */
@@ -59,7 +66,7 @@ export class VerificationExpiryJob {
           await this.prisma.pageActivity.create({
             data: {
               pageId: page.id,
-              userId: 'system',
+              userId: SYSTEM_USER_ID,
               type: 'VERIFICATION_EXPIRED',
               data: {
                 title: page.title,
@@ -80,7 +87,7 @@ export class VerificationExpiryJob {
             },
             {
               tenantId: page.tenantId,
-              userId: 'system',
+              userId: SYSTEM_USER_ID,
               source: 'kb-verification-expiry-job',
             },
           )

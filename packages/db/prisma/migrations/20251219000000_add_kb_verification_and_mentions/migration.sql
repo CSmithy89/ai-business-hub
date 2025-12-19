@@ -27,14 +27,7 @@ CREATE INDEX IF NOT EXISTS "page_mentions_page_id_idx" ON "page_mentions"("page_
 CREATE INDEX IF NOT EXISTS "page_mentions_target_id_mention_type_idx" ON "page_mentions"("target_id", "mention_type");
 CREATE INDEX IF NOT EXISTS "page_mentions_page_id_mention_type_idx" ON "page_mentions"("page_id", "mention_type");
 
--- Add foreign key constraint
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints
-        WHERE constraint_name = 'page_mentions_page_id_fkey'
-    ) THEN
-        ALTER TABLE "page_mentions" ADD CONSTRAINT "page_mentions_page_id_fkey"
-        FOREIGN KEY ("page_id") REFERENCES "knowledge_pages"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-    END IF;
-END $$;
+-- Add foreign key constraint (idempotent - drops if exists then recreates)
+ALTER TABLE "page_mentions" DROP CONSTRAINT IF EXISTS "page_mentions_page_id_fkey";
+ALTER TABLE "page_mentions" ADD CONSTRAINT "page_mentions_page_id_fkey"
+    FOREIGN KEY ("page_id") REFERENCES "knowledge_pages"("id") ON DELETE CASCADE ON UPDATE CASCADE;
