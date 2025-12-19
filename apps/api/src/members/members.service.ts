@@ -87,9 +87,19 @@ export class MembersService {
   /**
    * List all members in a workspace
    */
-  async listMembers(workspaceId: string) {
+  async listMembers(workspaceId: string, search?: string) {
     return this.prisma.workspaceMember.findMany({
-      where: { workspaceId },
+      where: {
+        workspaceId,
+        ...(search && {
+          user: {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { email: { contains: search, mode: 'insensitive' } },
+            ],
+          },
+        }),
+      },
       include: {
         user: {
           select: {
@@ -103,6 +113,7 @@ export class MembersService {
       orderBy: {
         invitedAt: 'desc',
       },
+      take: search ? 20 : undefined, // Limit results when searching
     })
   }
 }

@@ -125,3 +125,61 @@ export interface PageSearchResult {
   updatedAt: string
   path: string[] // Breadcrumb path
 }
+
+/**
+ * Staleness reason enum
+ */
+export enum StaleReason {
+  EXPIRED_VERIFICATION = 'Expired verification',
+  NOT_UPDATED_90_DAYS = 'Not updated in 90+ days',
+  LOW_VIEW_COUNT = 'Low view count',
+}
+
+/**
+ * Stale page response from API
+ */
+export interface StalePageDto {
+  id: string
+  title: string
+  slug: string
+  updatedAt: string
+  viewCount: number
+  isVerified: boolean
+  verifyExpires: string | null
+  ownerId: string
+  owner: {
+    id: string
+    name: string
+    email: string
+    avatarUrl?: string
+  }
+  reasons: string[]
+}
+
+/**
+ * Bulk verify request
+ */
+export interface BulkVerifyRequest {
+  pageIds: string[]
+  expiresIn: '30d' | '60d' | '90d' | 'never'
+}
+
+/**
+ * Bulk delete request
+ */
+export interface BulkDeleteRequest {
+  pageIds: string[]
+}
+
+/**
+ * Bulk action response
+ */
+export interface BulkActionResponse {
+  success: number
+  failed: number
+  results: Array<{
+    status: 'fulfilled' | 'rejected'
+    value?: any
+    reason?: string
+  }>
+}
