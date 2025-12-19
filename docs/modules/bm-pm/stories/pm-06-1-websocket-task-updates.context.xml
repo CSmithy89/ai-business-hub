@@ -1,0 +1,900 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-06-1-websocket-task-updates</story-id>
+    <generated>2025-12-19T00:00:00Z</generated>
+    <epic>PM-06 - Real-Time &amp; Notifications</epic>
+    <description>
+      WebSocket event broadcasting for PM events (task CRUD, status changes, phase transitions, project updates).
+      This story extends the existing WebSocket infrastructure in apps/api/src/realtime/ with PM-specific event types
+      and room scoping (workspace, project, task).
+    </description>
+  </metadata>
+
+  <existing-code>
+    <!-- ============================================ -->
+    <!-- REALTIME GATEWAY (Main WebSocket Gateway) -->
+    <!-- ============================================ -->
+    <file path="apps/api/src/realtime/realtime.gateway.ts">
+      <description>
+        Main WebSocket gateway with JWT authentication, workspace room isolation,
+        connection management, and rate limiting. This file already handles:
+        - JWT token validation against database sessions
+        - Workspace/user room management
+        - Connection tracking and rate limits
+        - Approval/agent event broadcasting
+
+        FOR PM-06.1: Add PM event emission methods similar to broadcastApprovalCreated/broadcastAgentStatusChanged.
+      </description>
+      <key-methods>
+        <method name="handleConnection" line="219-316">
+          Validates JWT token, checks rate limits, joins workspace/user rooms.
+          No changes needed - PM events use same connection flow.
+        </method>
+
+        <method name="emitToWorkspace" line="509-527">
+          Generic method to emit events to workspace room.
+          PM services will call this via gateway.emitToWorkspace(workspaceId, eventName, payload).
+        </method>
+
+        <method name="emitToUser" line="532-550">
+          Generic method to emit events to specific user room.
+          Used for user-specific PM notifications.
+        </method>
+
+        <method name="broadcastApprovalCreated" line="559-561">
+          EXAMPLE PATTERN: Shows how to create typed broadcast helpers.
+          Create similar methods: broadcastPMTaskCreated, broadcastPMTaskUpdated, etc.
+        </method>
+      </key-methods>
+
+      <pattern name="typed-broadcast-helper">
+        <![CDATA[
+/**
+ * Broadcast PM task created event
+ */
+broadcastPMTaskCreated(workspaceId: string, task: PMTaskEventPayload): void {
+  this.emitToWorkspace(workspaceId, WS_EVENTS.PM_TASK_CREATED, task);
+}
+        ]]>
+      </pattern>
+    </file>
+
+    <!-- ============================================ -->
+    <!-- REALTIME TYPES (Event Type Definitions) -->
+    <!-- ============================================ -->
+    <file path="apps/api/src/realtime/realtime.types.ts">
+      <description>
+        Type definitions for WebSocket events. Currently defines approval/agent/notification events.
+
+        FOR PM-06.1: Add PM event types to ServerToClientEvents interface and create payload interfaces.
+      </description>
+      <existing-structure>
+        <![CDATA[
+export interface ServerToClientEvents {
+  // Approval events (lines 15-18)
+  'approval.created': (data: ApprovalEventPayload) => void;
+  'approval.updated': (data: ApprovalUpdatePayload) => void;
+  'approval.deleted': (data: { id: string }) => void;
+
+  // Agent events (lines 20-24)
+  'agent.status.changed': (data: AgentStatusPayload) => void;
+  'agent.run.started': (data: AgentRunPayload) => void;
+  'agent.run.completed': (data: AgentRunPayload) => void;
+  'agent.run.failed': (data: AgentRunFailedPayload) => void;
+
+  // Notification events (line 27)
+  'notification.new': (data: NotificationPayload) => void;
+
+  // Chat events (line 30)
+  'chat.message': (data: ChatMessagePayload) => void;
+
+  // ADD PM EVENTS HERE (after line 36)
+}
+
+export const WS_EVENTS = {
+  // Approval events (lines 214-216)
+  APPROVAL_CREATED: 'approval.created',
+  APPROVAL_UPDATED: 'approval.updated',
+  APPROVAL_DELETED: 'approval.deleted',
+
+  // Agent events (lines 219-222)
+  AGENT_STATUS_CHANGED: 'agent.status.changed',
+  AGENT_RUN_STARTED: 'agent.run.started',
+  AGENT_RUN_COMPLETED: 'agent.run.completed',
+  AGENT_RUN_FAILED: 'agent.run.failed',
+
+  // ADD PM EVENT CONSTANTS HERE (after line 234)
+} as const;
+
+// Room helper functions (lines 246-255)
+export function getWorkspaceRoom(workspaceId: string): string {
+  return `workspace:${workspaceId}`;
+}
+
+export function getUserRoom(userId: string): string {
+  return `user:${userId}`;
+}
+
+// ADD PM ROOM HELPERS HERE: getProjectRoom, getTaskRoom
+        ]]>
+      </existing-structure>
+
+      <pattern name="event-payload-interface">
+        <![CDATA[
+// Example from existing code (lines 84-98)
+export interface ApprovalEventPayload {
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  confidenceScore: number;
+  recommendation: 'approve' | 'review' | 'full_review';
+  status: string;
+  assignedToId?: string;
+  createdAt: string;
+  dueAt?: string;
+  sourceModule?: string;
+  sourceId?: string;
+  correlationId?: string; // IMPORTANT: Always include correlationId
+}
+
+// Create similar interfaces for PM events:
+// - PMTaskEventPayload (task created)
+// - PMTaskUpdatePayload (task updated)
+// - PMTaskStatusPayload (status changed)
+// - PMTaskAssignmentPayload (assignee changed)
+// - PMPhaseEventPayload (phase started/completed/updated)
+// - PMProjectEventPayload (project updated)
+// - PMTeamChangePayload (team member added/removed/role changed)
+        ]]>
+      </pattern>
+    </file>
+
+    <!-- ============================================ -->
+    <!-- REALTIME MODULE (Module Configuration) -->
+    <!-- ============================================ -->
+    <file path="apps/api/src/realtime/realtime.module.ts">
+      <description>
+        NestJS module that provides RealtimeGateway.
+
+        FOR PM-06.1: Configure Redis adapter for multi-instance support.
+        Currently uses in-memory adapter (single instance only).
+      </description>
+      <content>
+        <![CDATA[
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { RealtimeGateway } from './realtime.gateway';
+import { RealtimeEventHandler } from './realtime-event.handler';
+import { EventsModule } from '../events/events.module';
+import { CommonModule } from '../common/common.module';
+
+@Module({
+  imports: [
+    ConfigModule,
+    EventsModule, // Required for Event Bus integration
+    CommonModule, // Required for PrismaService (JWT validation)
+  ],
+  providers: [RealtimeGateway, RealtimeEventHandler],
+  exports: [RealtimeGateway],
+})
+export class RealtimeModule {}
+        ]]>
+      </content>
+
+      <todo>
+        Add Redis adapter configuration:
+        1. Import @socket.io/redis-adapter
+        2. Create Redis pub/sub clients from REDIS_URL env var
+        3. Provide REDIS_ADAPTER token
+        4. Inject into RealtimeGateway and attach to Socket.io server
+      </todo>
+    </file>
+
+    <!-- ============================================ -->
+    <!-- REALTIME EVENT HANDLER (Event Bus Bridge) -->
+    <!-- ============================================ -->
+    <file path="apps/api/src/realtime/realtime-event.handler.ts">
+      <description>
+        Subscribes to Event Bus events and broadcasts to WebSocket clients.
+        Currently handles approval.* and agent.* events.
+
+        FOR PM-06.1: Add @EventSubscriber for pm.* events.
+      </description>
+      <pattern name="event-subscriber">
+        <![CDATA[
+// Example from existing code (lines 42-88)
+@EventSubscriber('approval.*', { priority: 50 })
+async handleApprovalEvents(event: BaseEvent): Promise<void> {
+  const workspaceId = event.tenantId;
+
+  this.logger.debug({
+    message: 'Processing approval event for WebSocket broadcast',
+    eventId: event.id,
+    eventType: event.type,
+    workspaceId,
+    correlationId: event.correlationId,
+  });
+
+  switch (event.type) {
+    case EventTypes.APPROVAL_REQUESTED:
+    case EventTypes.APPROVAL_CREATED: {
+      const payload = this.mapApprovalCreatedPayload(event);
+      this.realtimeGateway.broadcastApprovalCreated(workspaceId, payload);
+      break;
+    }
+    // ... other cases
+  }
+}
+
+// ADD SIMILAR HANDLER FOR pm.* EVENTS:
+@EventSubscriber('pm.*', { priority: 50 })
+async handlePMEvents(event: BaseEvent): Promise<void> {
+  // Extract workspaceId from event.tenantId
+  // Switch on event.type (PM_TASK_CREATED, PM_TASK_UPDATED, etc.)
+  // Map event.data to WebSocket payload
+  // Call gateway.broadcastPMTaskCreated(workspaceId, payload)
+}
+        ]]>
+      </pattern>
+    </file>
+  </existing-code>
+
+  <services-to-modify>
+    <!-- ============================================ -->
+    <!-- TASKS SERVICE (Emit Task Events) -->
+    <!-- ============================================ -->
+    <file path="apps/api/src/pm/tasks/tasks.service.ts">
+      <description>
+        Service for task CRUD operations. Already publishes events to Event Bus.
+
+        FOR PM-06.1: No direct changes needed!
+        Services already emit events to Event Bus (e.g., PM_TASK_CREATED on line 144-148).
+        The RealtimeEventHandler will pick up these events and broadcast to WebSocket.
+
+        However, verify these events are published for:
+        - Task creation (line 144-148: PM_TASK_CREATED) ✓
+        - Task updates (check update method)
+        - Task deletion (check delete method)
+        - Status changes (check updateStatus method)
+      </description>
+
+      <key-method name="create" lines="97-151">
+        <![CDATA[
+async create(workspaceId: string, actorId: string, dto: CreateTaskDto) {
+  // ... database operations ...
+
+  // ALREADY PUBLISHES EVENT (lines 144-148):
+  await this.eventPublisher.publish(
+    EventTypes.PM_TASK_CREATED,
+    { taskId: created.id, projectId: created.projectId, phaseId: created.phaseId, taskNumber: created.taskNumber },
+    { tenantId: workspaceId, userId: actorId, source: 'api' },
+  )
+
+  return { data: created }
+}
+        ]]>
+      </key-method>
+
+      <verification-needed>
+        Check if these events are published:
+        1. PM_TASK_UPDATED on task updates
+        2. PM_TASK_DELETED on task deletion
+        3. PM_TASK_STATUS_CHANGED on status changes
+        4. PM_TASK_ASSIGNED on assignee changes
+
+        If not, add event publishing in update/delete/updateStatus methods.
+      </verification-needed>
+    </file>
+
+    <!-- ============================================ -->
+    <!-- PHASES SERVICE (Emit Phase Events) -->
+    <!-- ============================================ -->
+    <file path="apps/api/src/pm/phases/phases.service.ts">
+      <description>
+        Service for phase operations. Already publishes events to Event Bus.
+
+        FOR PM-06.1: Similar to TasksService, verify event publishing.
+      </description>
+
+      <key-method name="create" lines="50-74">
+        <![CDATA[
+async create(workspaceId: string, actorId: string, projectId: string, dto: CreatePhaseDto) {
+  // ... database operations ...
+
+  // ALREADY PUBLISHES EVENT (lines 67-71):
+  await this.eventPublisher.publish(
+    EventTypes.PM_PHASE_CREATED,
+    { phaseId: phase.id, projectId: phase.projectId, status: phase.status, phaseNumber: phase.phaseNumber },
+    { tenantId: workspaceId, userId: actorId, source: 'api' },
+  )
+
+  return { data: phase }
+}
+        ]]>
+      </key-method>
+
+      <key-method name="update" lines="91-150">
+        <![CDATA[
+async update(workspaceId: string, actorId: string, phaseId: string, dto: UpdatePhaseDto) {
+  // ... handles phase transitions (UPCOMING -> CURRENT -> COMPLETED) ...
+
+  // ALREADY PUBLISHES EVENT when phase transitions (lines 142-150):
+  if (completedCurrentPhaseId) {
+    await this.eventPublisher.publish(
+      EventTypes.PM_PHASE_TRANSITIONED,
+      {
+        phaseId: completedCurrentPhaseId,
+        projectId: existing.projectId,
+        fromStatus: PhaseStatus.CURRENT,
+        toStatus: PhaseStatus.COMPLETED,
+      },
+      { tenantId: workspaceId, userId: actorId, source: 'api' },
+    )
+  }
+}
+        ]]>
+      </key-method>
+
+      <verification-needed>
+        Check if PM_PHASE_UPDATED is published on regular updates (not just transitions).
+      </verification-needed>
+    </file>
+
+    <!-- ============================================ -->
+    <!-- PROJECTS SERVICE (Emit Project Events) -->
+    <!-- ============================================ -->
+    <file path="apps/api/src/pm/projects/projects.service.ts">
+      <description>
+        Service for project operations. Already publishes events to Event Bus.
+
+        FOR PM-06.1: Verify event publishing for project updates and team changes.
+      </description>
+
+      <key-method name="create" lines="43-105">
+        <![CDATA[
+async create(workspaceId: string, actorId: string, dto: CreateProjectDto) {
+  // ... database operations ...
+
+  // ALREADY PUBLISHES EVENT (lines 98-102):
+  await this.eventPublisher.publish(
+    EventTypes.PM_PROJECT_CREATED,
+    { projectId: project.id, businessId: project.businessId, slug: project.slug },
+    { tenantId: workspaceId, userId: actorId, source: 'api' },
+  )
+
+  return { data: project }
+}
+        ]]>
+      </key-method>
+
+      <verification-needed>
+        Check if these events are published:
+        1. PM_PROJECT_UPDATED on project updates
+        2. PM_TEAM_MEMBER_ADDED on team member addition
+        3. PM_TEAM_MEMBER_REMOVED on team member removal
+        4. PM_TEAM_MEMBER_UPDATED on role changes
+      </verification-needed>
+    </file>
+  </services-to-modify>
+
+  <patterns>
+    <!-- ============================================ -->
+    <!-- PATTERN: Event Emission from Services -->
+    <!-- ============================================ -->
+    <pattern name="event-emission-from-service">
+      <description>
+        Services publish events to Event Bus, which are then picked up by RealtimeEventHandler
+        and broadcast to WebSocket clients. This ensures all events go through the Event Bus
+        for consistency and audit trail.
+      </description>
+      <example>
+        <![CDATA[
+// In service (e.g., tasks.service.ts)
+constructor(
+  private prisma: PrismaService,
+  private eventPublisher: EventPublisherService, // Inject event publisher
+) {}
+
+async updateTask(taskId: string, data: UpdateTaskDto, userId: string) {
+  // 1. Update in database
+  const task = await this.prisma.task.update({
+    where: { id: taskId },
+    data: { ...data, updatedAt: new Date() },
+    include: { phase: { select: { projectId: true } } },
+  });
+
+  // 2. Publish event to Event Bus
+  await this.eventPublisher.publish(
+    EventTypes.PM_TASK_UPDATED,
+    {
+      taskId: task.id,
+      projectId: task.phase.projectId,
+      phaseId: task.phaseId,
+      title: task.title,
+      status: task.status,
+      updatedBy: userId,
+      updatedAt: task.updatedAt.toISOString(),
+    },
+    {
+      tenantId: task.workspaceId,
+      userId: userId,
+      source: 'api',
+      correlationId: req.headers['x-correlation-id'], // If available
+    },
+  );
+
+  return task;
+}
+        ]]>
+      </example>
+    </pattern>
+
+    <!-- ============================================ -->
+    <!-- PATTERN: Room Management -->
+    <!-- ============================================ -->
+    <pattern name="room-joining">
+      <description>
+        Clients auto-join workspace and user rooms on connection.
+        For PM events, clients need to join project/task rooms when navigating to those pages.
+        This is handled client-side via room.join/room.leave messages.
+      </description>
+      <example>
+        <![CDATA[
+// Client-side (frontend):
+socket.emit('room.join', { projectId: 'proj-123' });
+socket.on('pm.task.created', (data) => {
+  console.log('Task created in project:', data);
+});
+
+// Server-side (gateway):
+@SubscribeMessage('room.join')
+handleRoomJoin(
+  @ConnectedSocket() client: Socket,
+  @MessageBody() data: { projectId?: string; taskId?: string },
+) {
+  // Validate user has access to project/task
+  // Join appropriate room
+  if (data.projectId) {
+    const room = getProjectRoom(data.projectId);
+    client.join(room);
+  }
+  if (data.taskId) {
+    const room = getTaskRoom(data.taskId);
+    client.join(room);
+  }
+}
+        ]]>
+      </example>
+    </pattern>
+
+    <!-- ============================================ -->
+    <!-- PATTERN: Room-Scoped Event Broadcasting -->
+    <!-- ============================================ -->
+    <pattern name="room-scoped-broadcasting">
+      <description>
+        PM events should be broadcast to appropriate rooms based on scope:
+        - Task events -> project:${projectId} room
+        - Phase events -> project:${projectId} room
+        - Project events -> workspace:${workspaceId} room
+        - User-specific events -> user:${userId} room
+      </description>
+      <example>
+        <![CDATA[
+// In RealtimeEventHandler (handle PM events):
+@EventSubscriber('pm.task.*', { priority: 50 })
+async handlePMTaskEvents(event: BaseEvent): Promise<void> {
+  const data = event.data as Record<string, unknown>;
+  const projectId = data.projectId as string;
+
+  // Broadcast to project room (all project team members)
+  const projectRoom = getProjectRoom(projectId);
+
+  switch (event.type) {
+    case EventTypes.PM_TASK_CREATED: {
+      const payload: PMTaskEventPayload = {
+        id: data.taskId as string,
+        projectId: projectId,
+        phaseId: data.phaseId as string,
+        taskNumber: data.taskNumber as number,
+        title: data.title as string,
+        // ... other fields
+        correlationId: event.correlationId,
+      };
+
+      // Broadcast to project room
+      this.server.to(projectRoom).emit('pm.task.created', payload);
+      break;
+    }
+  }
+}
+        ]]>
+      </example>
+    </pattern>
+
+    <!-- ============================================ -->
+    <!-- PATTERN: Redis Adapter Configuration -->
+    <!-- ============================================ -->
+    <pattern name="redis-adapter-config">
+      <description>
+        Socket.io Redis adapter enables multi-instance WebSocket support.
+        Events emitted on one instance reach clients connected to other instances.
+      </description>
+      <example>
+        <![CDATA[
+// In realtime.module.ts:
+import { createAdapter } from '@socket.io/redis-adapter';
+import { createClient } from 'redis';
+
+@Module({
+  providers: [
+    {
+      provide: 'REDIS_ADAPTER',
+      useFactory: async (configService: ConfigService) => {
+        const redisUrl = configService.get<string>('REDIS_URL');
+        if (!redisUrl) {
+          throw new Error('REDIS_URL is required for WebSocket multi-instance support');
+        }
+
+        const pubClient = createClient({ url: redisUrl });
+        const subClient = pubClient.duplicate();
+
+        await pubClient.connect();
+        await subClient.connect();
+
+        return createAdapter(pubClient, subClient);
+      },
+      inject: [ConfigService],
+    },
+    RealtimeGateway,
+    RealtimeEventHandler,
+  ],
+  exports: [RealtimeGateway],
+})
+export class RealtimeModule {}
+
+// In realtime.gateway.ts:
+@WebSocketGateway(/* ... */)
+export class RealtimeGateway implements OnGatewayInit {
+  constructor(
+    @Inject('REDIS_ADAPTER') private redisAdapter: any,
+    // ... other dependencies
+  ) {}
+
+  afterInit(server: Server) {
+    server.adapter(this.redisAdapter);
+    this.logger.log('WebSocket Gateway initialized with Redis adapter');
+  }
+}
+        ]]>
+      </example>
+    </pattern>
+  </patterns>
+
+  <prisma-models>
+    <!-- ============================================ -->
+    <!-- PRISMA MODELS (Database Schema) -->
+    <!-- ============================================ -->
+    <model name="Task">
+      <description>
+        Task model with all fields needed for WebSocket events.
+        Key fields: id, workspaceId, projectId, phaseId, taskNumber, title, status, assigneeId
+      </description>
+      <schema>
+        <![CDATA[
+model Task {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  phaseId     String @map("phase_id")
+  projectId   String @map("project_id") // Denormalized for queries
+
+  // Basic Info
+  taskNumber  Int     @map("task_number") // Sequential per project: PROJ-001
+  title       String
+  description String? @db.Text
+
+  // Classification
+  type     TaskType     @default(TASK)
+  priority TaskPriority @default(MEDIUM)
+
+  // Assignment
+  assignmentType AssignmentType @default(HUMAN) @map("assignment_type")
+  assigneeId     String?        @map("assignee_id") // Human user ID
+  agentId        String?        @map("agent_id") // Module agent ID
+
+  // Status
+  status  TaskStatus @default(BACKLOG)
+
+  // Timeline
+  dueDate   DateTime? @map("due_date")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // ... relations and indexes
+}
+        ]]>
+      </schema>
+    </model>
+
+    <model name="Phase">
+      <description>
+        Phase model for project phases. Status transitions trigger events.
+      </description>
+      <schema>
+        <![CDATA[
+model Phase {
+  id          String  @id @default(cuid())
+  projectId   String  @map("project_id")
+  name        String
+  description String? @db.Text
+
+  // BMAD Mapping
+  bmadPhase   BmadPhaseType?
+  phaseNumber Int            @map("phase_number")
+
+  // Timeline
+  startDate DateTime? @map("start_date")
+  endDate   DateTime? @map("end_date")
+
+  // Status (UPCOMING -> CURRENT -> COMPLETED)
+  status PhaseStatus @default(UPCOMING)
+
+  // Progress (denormalized)
+  totalTasks      Int @default(0) @map("total_tasks")
+  completedTasks  Int @default(0) @map("completed_tasks")
+
+  // ... relations and indexes
+}
+        ]]>
+      </schema>
+    </model>
+
+    <model name="Project">
+      <description>
+        Project model. Updates and team changes trigger events.
+      </description>
+      <schema>
+        <![CDATA[
+model Project {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  businessId  String @map("business_id")
+
+  // Identity
+  slug        String
+  name        String
+  description String? @db.Text
+
+  // Visual Identity
+  color String @default("#3B82F6")
+  icon  String @default("folder")
+
+  // Type Classification
+  type ProjectType @default(CUSTOM)
+
+  // Status (PLANNING -> ACTIVE -> COMPLETED -> ARCHIVED)
+  status     ProjectStatus @default(PLANNING)
+  startDate  DateTime?     @map("start_date")
+  targetDate DateTime?     @map("target_date")
+
+  // ... relations and indexes
+}
+        ]]>
+      </schema>
+    </model>
+  </prisma-models>
+
+  <shared-types>
+    <!-- ============================================ -->
+    <!-- SHARED EVENT TYPES (Event Bus) -->
+    <!-- ============================================ -->
+    <description>
+      Event types and payloads defined in packages/shared/src/types/events.ts.
+      These are used by EventPublisherService (Event Bus) and RealtimeEventHandler.
+    </description>
+
+    <event-types>
+      <![CDATA[
+// Existing PM event types (lines 115-131):
+export const EventTypes = {
+  // ... other events ...
+
+  // PM events (already defined in shared package)
+  PM_PROJECT_CREATED: 'pm.project.created',
+  PM_PROJECT_UPDATED: 'pm.project.updated',
+  PM_PROJECT_DELETED: 'pm.project.deleted',
+
+  PM_PHASE_CREATED: 'pm.phase.created',
+  PM_PHASE_UPDATED: 'pm.phase.updated',
+  PM_PHASE_TRANSITIONED: 'pm.phase.transitioned',
+
+  PM_TEAM_MEMBER_ADDED: 'pm.team.member_added',
+  PM_TEAM_MEMBER_UPDATED: 'pm.team.member_updated',
+  PM_TEAM_MEMBER_REMOVED: 'pm.team.member_removed',
+
+  PM_TASK_CREATED: 'pm.task.created',
+  PM_TASK_UPDATED: 'pm.task.updated',
+  PM_TASK_STATUS_CHANGED: 'pm.task.status_changed',
+  PM_TASK_DELETED: 'pm.task.deleted',
+} as const;
+      ]]>
+    </event-types>
+
+    <note>
+      These event types are ALREADY DEFINED in the shared package.
+      Services are already publishing these events to the Event Bus.
+
+      FOR PM-06.1:
+      1. Map these Event Bus events to WebSocket events in RealtimeEventHandler
+      2. Define WebSocket payload types in realtime.types.ts
+      3. Add broadcast methods to RealtimeGateway
+    </note>
+  </shared-types>
+
+  <implementation-notes>
+    <architecture-decision id="ADR-PM06-001">
+      <title>Extend Existing WebSocket Gateway</title>
+      <decision>
+        Reuse the existing WebSocket gateway in apps/api/src/realtime/ rather than creating
+        a separate PM WebSocket service.
+      </decision>
+      <rationale>
+        - Single WebSocket connection per client (not one per module)
+        - Reuse battle-tested authentication and rate limiting
+        - Consistent event format across platform
+      </rationale>
+    </architecture-decision>
+
+    <architecture-decision id="ADR-PM06-002">
+      <title>Room Scoping Strategy</title>
+      <decision>
+        Use hierarchical room structure:
+        - workspace:${workspaceId} - All workspace members (auto-join on connect)
+        - user:${userId} - User-specific events (auto-join on connect)
+        - project:${projectId} - Project team members (join on navigation)
+        - task:${taskId} - Users viewing specific task (join on task detail open)
+      </decision>
+      <implementation>
+        - Add getProjectRoom() and getTaskRoom() helper functions
+        - Implement room.join/room.leave handlers in gateway
+        - Validate user has access to project/task before joining room
+      </implementation>
+    </architecture-decision>
+
+    <architecture-decision id="ADR-PM06-003">
+      <title>Redis Pub/Sub for Multi-Instance Support</title>
+      <decision>
+        Use Socket.io Redis adapter to enable horizontal scaling.
+      </decision>
+      <rationale>
+        - Events emitted on instance A reach clients on instance B
+        - Enables horizontal scaling without WebSocket sticky sessions
+        - Redis already available in platform
+      </rationale>
+      <configuration>
+        - Install @socket.io/redis-adapter package
+        - Configure in realtime.module.ts
+        - Use REDIS_URL environment variable
+      </configuration>
+    </architecture-decision>
+
+    <key-implementation-steps>
+      <step order="1">
+        <title>Add PM Event Types to realtime.types.ts</title>
+        <details>
+          1. Add PM events to ServerToClientEvents interface
+          2. Create payload interfaces (PMTaskEventPayload, PMTaskUpdatePayload, etc.)
+          3. Add event constants to WS_EVENTS
+          4. Add room helper functions (getProjectRoom, getTaskRoom)
+        </details>
+      </step>
+
+      <step order="2">
+        <title>Add PM Event Handlers to RealtimeEventHandler</title>
+        <details>
+          1. Create @EventSubscriber('pm.task.*') handler
+          2. Create @EventSubscriber('pm.phase.*') handler
+          3. Create @EventSubscriber('pm.project.*') handler
+          4. Map Event Bus payloads to WebSocket payloads
+          5. Call gateway broadcast methods
+        </details>
+      </step>
+
+      <step order="3">
+        <title>Add Broadcast Methods to RealtimeGateway</title>
+        <details>
+          1. Add broadcastPMTaskCreated()
+          2. Add broadcastPMTaskUpdated()
+          3. Add broadcastPMTaskDeleted()
+          4. Add broadcastPMTaskStatusChanged()
+          5. Add broadcastPMPhaseEvent()
+          6. Add broadcastPMProjectEvent()
+        </details>
+      </step>
+
+      <step order="4">
+        <title>Add Room Join/Leave Handlers</title>
+        <details>
+          1. Add @SubscribeMessage('room.join') handler
+          2. Validate user has access to project/task
+          3. Join appropriate room
+          4. Add @SubscribeMessage('room.leave') handler
+        </details>
+      </step>
+
+      <step order="5">
+        <title>Configure Redis Adapter</title>
+        <details>
+          1. Install @socket.io/redis-adapter package
+          2. Update realtime.module.ts to provide REDIS_ADAPTER
+          3. Inject into RealtimeGateway
+          4. Attach adapter in afterInit()
+          5. Add error handling for Redis connection failures
+        </details>
+      </step>
+
+      <step order="6">
+        <title>Verify Event Publishing in Services</title>
+        <details>
+          Check tasks.service.ts, phases.service.ts, projects.service.ts:
+          1. Verify PM_TASK_UPDATED is published on updates
+          2. Verify PM_TASK_DELETED is published on deletion
+          3. Verify PM_TASK_STATUS_CHANGED is published on status changes
+          4. Verify PM_PHASE_UPDATED is published on updates
+          5. Verify PM_PROJECT_UPDATED is published on updates
+          6. Add missing event publishing if needed
+        </details>
+      </step>
+    </key-implementation-steps>
+
+    <testing-strategy>
+      <unit-tests>
+        <test>RealtimeGateway: PM event emission to project room</test>
+        <test>RealtimeGateway: Room join with valid project access</test>
+        <test>RealtimeGateway: Room join rejected for invalid project access</test>
+        <test>RealtimeEventHandler: PM event mapping to WebSocket payload</test>
+      </unit-tests>
+
+      <integration-tests>
+        <test>Client connects and joins project room</test>
+        <test>Task update on one instance reaches client on another instance (Redis pub/sub)</test>
+        <test>Multiple clients in same room receive same event</test>
+        <test>Client not in room does not receive event</test>
+        <test>Room-scoped events isolated between projects</test>
+      </integration-tests>
+    </testing-strategy>
+
+    <environment-variables>
+      <variable name="REDIS_URL" required="true">
+        Redis connection URL for Socket.io adapter.
+        Example: redis://localhost:6379
+      </variable>
+    </environment-variables>
+
+    <dependencies>
+      <package name="@socket.io/redis-adapter" version="^8.2.1">
+        Socket.io Redis adapter for multi-instance support.
+      </package>
+    </dependencies>
+  </implementation-notes>
+
+  <definition-of-done>
+    <checklist>
+      <item>PM event types defined in realtime.types.ts</item>
+      <item>PM event handlers added to RealtimeEventHandler</item>
+      <item>Broadcast methods added to RealtimeGateway</item>
+      <item>Room join/leave handlers implemented</item>
+      <item>Redis adapter configured for multi-instance support</item>
+      <item>Services verified to publish all required events</item>
+      <item>Unit tests passing</item>
+      <item>Integration tests passing</item>
+      <item>TypeScript type checks pass</item>
+      <item>ESLint passes (no new errors)</item>
+      <item>Manual testing: WebSocket client connects and receives events</item>
+      <item>Manual testing: Room scoping works correctly</item>
+      <item>Documentation: WebSocket event catalog updated</item>
+      <item>Documentation: Room scoping documented</item>
+    </checklist>
+  </definition-of-done>
+</story-context>

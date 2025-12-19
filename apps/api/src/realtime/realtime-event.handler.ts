@@ -9,6 +9,16 @@ import {
   AgentRunPayload,
   AgentRunFailedPayload,
   NotificationPayload,
+  PMTaskEventPayload,
+  PMTaskUpdatePayload,
+  PMTaskDeletedPayload,
+  PMTaskStatusPayload,
+  PMPhaseEventPayload,
+  PMPhaseTransitionPayload,
+  PMProjectEventPayload,
+  PMProjectDeletedPayload,
+  PMTeamChangePayload,
+  getProjectRoom,
 } from './realtime.types';
 
 /**
@@ -225,6 +235,197 @@ export class RealtimeEventHandler {
   }
 
   // ============================================
+  // PM Event Handlers
+  // ============================================
+
+  /**
+   * Handle all PM task events
+   * Maps Event Bus PM task events to WebSocket broadcasts
+   */
+  @EventSubscriber('pm.task.*', { priority: 50 })
+  async handlePMTaskEvents(event: BaseEvent): Promise<void> {
+    const workspaceId = event.tenantId;
+    const data = event.data as Record<string, unknown>;
+    const projectId = data.projectId as string;
+
+    this.logger.debug({
+      message: 'Processing PM task event for WebSocket broadcast',
+      eventId: event.id,
+      eventType: event.type,
+      workspaceId,
+      projectId,
+      correlationId: event.correlationId,
+    });
+
+    switch (event.type) {
+      case EventTypes.PM_TASK_CREATED: {
+        const payload = this.mapPMTaskCreatedPayload(event);
+        this.realtimeGateway.broadcastPMTaskCreated(projectId, payload);
+        break;
+      }
+
+      case EventTypes.PM_TASK_UPDATED: {
+        const payload = this.mapPMTaskUpdatedPayload(event);
+        this.realtimeGateway.broadcastPMTaskUpdated(projectId, payload);
+        break;
+      }
+
+      case EventTypes.PM_TASK_DELETED: {
+        const payload = this.mapPMTaskDeletedPayload(event);
+        this.realtimeGateway.broadcastPMTaskDeleted(projectId, payload);
+        break;
+      }
+
+      case EventTypes.PM_TASK_STATUS_CHANGED: {
+        const payload = this.mapPMTaskStatusPayload(event);
+        this.realtimeGateway.broadcastPMTaskStatusChanged(projectId, payload);
+        break;
+      }
+
+      default:
+        this.logger.debug({
+          message: 'Unhandled PM task event type',
+          eventType: event.type,
+        });
+    }
+  }
+
+  /**
+   * Handle all PM phase events
+   * Maps Event Bus PM phase events to WebSocket broadcasts
+   */
+  @EventSubscriber('pm.phase.*', { priority: 50 })
+  async handlePMPhaseEvents(event: BaseEvent): Promise<void> {
+    const workspaceId = event.tenantId;
+    const data = event.data as Record<string, unknown>;
+    const projectId = data.projectId as string;
+
+    this.logger.debug({
+      message: 'Processing PM phase event for WebSocket broadcast',
+      eventId: event.id,
+      eventType: event.type,
+      workspaceId,
+      projectId,
+      correlationId: event.correlationId,
+    });
+
+    switch (event.type) {
+      case EventTypes.PM_PHASE_CREATED: {
+        const payload = this.mapPMPhaseCreatedPayload(event);
+        this.realtimeGateway.broadcastPMPhaseCreated(projectId, payload);
+        break;
+      }
+
+      case EventTypes.PM_PHASE_UPDATED: {
+        const payload = this.mapPMPhaseUpdatedPayload(event);
+        this.realtimeGateway.broadcastPMPhaseUpdated(projectId, payload);
+        break;
+      }
+
+      case EventTypes.PM_PHASE_TRANSITIONED: {
+        const payload = this.mapPMPhaseTransitionPayload(event);
+        this.realtimeGateway.broadcastPMPhaseTransitioned(projectId, payload);
+        break;
+      }
+
+      default:
+        this.logger.debug({
+          message: 'Unhandled PM phase event type',
+          eventType: event.type,
+        });
+    }
+  }
+
+  /**
+   * Handle all PM project events
+   * Maps Event Bus PM project events to WebSocket broadcasts
+   */
+  @EventSubscriber('pm.project.*', { priority: 50 })
+  async handlePMProjectEvents(event: BaseEvent): Promise<void> {
+    const workspaceId = event.tenantId;
+
+    this.logger.debug({
+      message: 'Processing PM project event for WebSocket broadcast',
+      eventId: event.id,
+      eventType: event.type,
+      workspaceId,
+      correlationId: event.correlationId,
+    });
+
+    switch (event.type) {
+      case EventTypes.PM_PROJECT_CREATED: {
+        const payload = this.mapPMProjectCreatedPayload(event);
+        this.realtimeGateway.broadcastPMProjectCreated(workspaceId, payload);
+        break;
+      }
+
+      case EventTypes.PM_PROJECT_UPDATED: {
+        const payload = this.mapPMProjectUpdatedPayload(event);
+        this.realtimeGateway.broadcastPMProjectUpdated(workspaceId, payload);
+        break;
+      }
+
+      case EventTypes.PM_PROJECT_DELETED: {
+        const payload = this.mapPMProjectDeletedPayload(event);
+        this.realtimeGateway.broadcastPMProjectDeleted(workspaceId, payload);
+        break;
+      }
+
+      default:
+        this.logger.debug({
+          message: 'Unhandled PM project event type',
+          eventType: event.type,
+        });
+    }
+  }
+
+  /**
+   * Handle all PM team events
+   * Maps Event Bus PM team events to WebSocket broadcasts
+   */
+  @EventSubscriber('pm.team.*', { priority: 50 })
+  async handlePMTeamEvents(event: BaseEvent): Promise<void> {
+    const workspaceId = event.tenantId;
+    const data = event.data as Record<string, unknown>;
+    const projectId = data.projectId as string;
+
+    this.logger.debug({
+      message: 'Processing PM team event for WebSocket broadcast',
+      eventId: event.id,
+      eventType: event.type,
+      workspaceId,
+      projectId,
+      correlationId: event.correlationId,
+    });
+
+    switch (event.type) {
+      case EventTypes.PM_TEAM_MEMBER_ADDED: {
+        const payload = this.mapPMTeamChangePayload(event, 'added');
+        this.realtimeGateway.broadcastPMTeamMemberAdded(projectId, payload);
+        break;
+      }
+
+      case EventTypes.PM_TEAM_MEMBER_REMOVED: {
+        const payload = this.mapPMTeamChangePayload(event, 'removed');
+        this.realtimeGateway.broadcastPMTeamMemberRemoved(projectId, payload);
+        break;
+      }
+
+      case EventTypes.PM_TEAM_MEMBER_UPDATED: {
+        const payload = this.mapPMTeamChangePayload(event, 'updated');
+        this.realtimeGateway.broadcastPMTeamMemberUpdated(projectId, payload);
+        break;
+      }
+
+      default:
+        this.logger.debug({
+          message: 'Unhandled PM team event type',
+          eventType: event.type,
+        });
+    }
+  }
+
+  // ============================================
   // Payload Mappers
   // ============================================
 
@@ -339,6 +540,209 @@ export class RealtimeEventHandler {
       actionLabel: 'Review',
       createdAt: event.timestamp,
       read: false,
+      correlationId: event.correlationId,
+    };
+  }
+
+  // ============================================
+  // PM Payload Mappers
+  // ============================================
+
+  private mapPMTaskCreatedPayload(event: BaseEvent): PMTaskEventPayload {
+    const data = event.data as Record<string, unknown>;
+    return {
+      id: data.taskId as string,
+      projectId: data.projectId as string,
+      phaseId: data.phaseId as string,
+      taskNumber: data.taskNumber as number,
+      title: data.title as string,
+      description: data.description as string | undefined,
+      type: data.type as string,
+      priority: data.priority as string,
+      status: data.status as string,
+      assigneeId: data.assigneeId as string | undefined,
+      agentId: data.agentId as string | undefined,
+      assignmentType: data.assignmentType as string,
+      dueDate: data.dueDate as string | undefined,
+      createdAt: event.timestamp,
+      updatedAt: event.timestamp,
+      correlationId: event.correlationId,
+    };
+  }
+
+  private mapPMTaskUpdatedPayload(event: BaseEvent): PMTaskUpdatePayload {
+    const data = event.data as Record<string, unknown>;
+    return {
+      id: data.taskId as string,
+      projectId: data.projectId as string,
+      phaseId: data.phaseId as string,
+      taskNumber: data.taskNumber as number,
+      title: data.title as string | undefined,
+      description: data.description as string | undefined,
+      type: data.type as string | undefined,
+      priority: data.priority as string | undefined,
+      status: data.status as string | undefined,
+      assigneeId: data.assigneeId as string | undefined,
+      agentId: data.agentId as string | undefined,
+      assignmentType: data.assignmentType as string | undefined,
+      dueDate: data.dueDate as string | undefined,
+      updatedAt: event.timestamp,
+      updatedBy: event.userId,
+      correlationId: event.correlationId,
+    };
+  }
+
+  private mapPMTaskDeletedPayload(event: BaseEvent): PMTaskDeletedPayload {
+    const data = event.data as Record<string, unknown>;
+    return {
+      id: data.taskId as string,
+      projectId: data.projectId as string,
+      phaseId: data.phaseId as string,
+      taskNumber: data.taskNumber as number,
+      title: data.title as string,
+      deletedBy: event.userId,
+      deletedAt: event.timestamp,
+      correlationId: event.correlationId,
+    };
+  }
+
+  private mapPMTaskStatusPayload(event: BaseEvent): PMTaskStatusPayload {
+    const data = event.data as Record<string, unknown>;
+    return {
+      id: data.taskId as string,
+      projectId: data.projectId as string,
+      phaseId: data.phaseId as string,
+      taskNumber: data.taskNumber as number,
+      title: data.title as string,
+      fromStatus: data.fromStatus as string,
+      toStatus: data.toStatus as string,
+      changedBy: event.userId,
+      changedAt: event.timestamp,
+      correlationId: event.correlationId,
+    };
+  }
+
+  private mapPMPhaseCreatedPayload(event: BaseEvent): PMPhaseEventPayload {
+    const data = event.data as Record<string, unknown>;
+    return {
+      id: data.phaseId as string,
+      projectId: data.projectId as string,
+      phaseNumber: data.phaseNumber as number,
+      name: data.name as string,
+      description: data.description as string | undefined,
+      status: data.status as string,
+      bmadPhase: data.bmadPhase as string | undefined,
+      startDate: data.startDate as string | undefined,
+      endDate: data.endDate as string | undefined,
+      totalTasks: (data.totalTasks as number) || 0,
+      completedTasks: (data.completedTasks as number) || 0,
+      createdAt: event.timestamp,
+      updatedAt: event.timestamp,
+      correlationId: event.correlationId,
+    };
+  }
+
+  private mapPMPhaseUpdatedPayload(event: BaseEvent): PMPhaseEventPayload {
+    const data = event.data as Record<string, unknown>;
+    return {
+      id: data.phaseId as string,
+      projectId: data.projectId as string,
+      phaseNumber: data.phaseNumber as number,
+      name: data.name as string,
+      description: data.description as string | undefined,
+      status: data.status as string,
+      bmadPhase: data.bmadPhase as string | undefined,
+      startDate: data.startDate as string | undefined,
+      endDate: data.endDate as string | undefined,
+      totalTasks: (data.totalTasks as number) || 0,
+      completedTasks: (data.completedTasks as number) || 0,
+      updatedAt: event.timestamp,
+      correlationId: event.correlationId,
+    };
+  }
+
+  private mapPMPhaseTransitionPayload(event: BaseEvent): PMPhaseTransitionPayload {
+    const data = event.data as Record<string, unknown>;
+    return {
+      id: data.phaseId as string,
+      projectId: data.projectId as string,
+      phaseNumber: data.phaseNumber as number,
+      name: data.name as string,
+      fromStatus: data.fromStatus as string,
+      toStatus: data.toStatus as string,
+      transitionedBy: event.userId,
+      transitionedAt: event.timestamp,
+      correlationId: event.correlationId,
+    };
+  }
+
+  private mapPMProjectCreatedPayload(event: BaseEvent): PMProjectEventPayload {
+    const data = event.data as Record<string, unknown>;
+    return {
+      id: data.projectId as string,
+      workspaceId: event.tenantId,
+      businessId: data.businessId as string,
+      slug: data.slug as string,
+      name: data.name as string,
+      description: data.description as string | undefined,
+      color: (data.color as string) || '#3B82F6',
+      icon: (data.icon as string) || 'folder',
+      type: data.type as string,
+      status: data.status as string,
+      startDate: data.startDate as string | undefined,
+      targetDate: data.targetDate as string | undefined,
+      createdAt: event.timestamp,
+      updatedAt: event.timestamp,
+      correlationId: event.correlationId,
+    };
+  }
+
+  private mapPMProjectUpdatedPayload(event: BaseEvent): PMProjectEventPayload {
+    const data = event.data as Record<string, unknown>;
+    return {
+      id: data.projectId as string,
+      workspaceId: event.tenantId,
+      businessId: data.businessId as string,
+      slug: data.slug as string,
+      name: data.name as string,
+      description: data.description as string | undefined,
+      color: (data.color as string) || '#3B82F6',
+      icon: (data.icon as string) || 'folder',
+      type: data.type as string,
+      status: data.status as string,
+      startDate: data.startDate as string | undefined,
+      targetDate: data.targetDate as string | undefined,
+      updatedAt: event.timestamp,
+      correlationId: event.correlationId,
+    };
+  }
+
+  private mapPMProjectDeletedPayload(event: BaseEvent): PMProjectDeletedPayload {
+    const data = event.data as Record<string, unknown>;
+    return {
+      id: data.projectId as string,
+      workspaceId: event.tenantId,
+      businessId: data.businessId as string,
+      slug: data.slug as string,
+      name: data.name as string,
+      deletedBy: event.userId,
+      deletedAt: event.timestamp,
+      correlationId: event.correlationId,
+    };
+  }
+
+  private mapPMTeamChangePayload(
+    event: BaseEvent,
+    action: 'added' | 'removed' | 'updated',
+  ): PMTeamChangePayload {
+    const data = event.data as Record<string, unknown>;
+    return {
+      projectId: data.projectId as string,
+      userId: data.userId as string,
+      role: data.role as string,
+      action,
+      changedBy: event.userId,
+      changedAt: event.timestamp,
       correlationId: event.correlationId,
     };
   }

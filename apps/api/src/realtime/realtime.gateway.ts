@@ -26,9 +26,19 @@ import {
   NotificationPayload,
   ChatMessagePayload,
   SyncStatePayload,
+  PMTaskEventPayload,
+  PMTaskUpdatePayload,
+  PMTaskDeletedPayload,
+  PMTaskStatusPayload,
+  PMPhaseEventPayload,
+  PMPhaseTransitionPayload,
+  PMProjectEventPayload,
+  PMProjectDeletedPayload,
+  PMTeamChangePayload,
   WS_EVENTS,
   getWorkspaceRoom,
   getUserRoom,
+  getProjectRoom,
 } from './realtime.types';
 
 // ============================================
@@ -624,6 +634,220 @@ export class RealtimeGateway
    */
   broadcastChatMessage(workspaceId: string, message: ChatMessagePayload): void {
     this.emitToWorkspace(workspaceId, WS_EVENTS.CHAT_MESSAGE, message);
+  }
+
+  // ============================================
+  // PM Broadcast Methods
+  // ============================================
+
+  /**
+   * Broadcast PM task created event to project room
+   */
+  broadcastPMTaskCreated(projectId: string, task: PMTaskEventPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TASK_CREATED,
+      task,
+    );
+
+    this.logger.debug({
+      message: 'PM task created event emitted',
+      projectId,
+      taskId: task.id,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM task updated event to project room
+   */
+  broadcastPMTaskUpdated(projectId: string, update: PMTaskUpdatePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TASK_UPDATED,
+      update,
+    );
+
+    this.logger.debug({
+      message: 'PM task updated event emitted',
+      projectId,
+      taskId: update.id,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM task deleted event to project room
+   */
+  broadcastPMTaskDeleted(projectId: string, deleted: PMTaskDeletedPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TASK_DELETED,
+      deleted,
+    );
+
+    this.logger.debug({
+      message: 'PM task deleted event emitted',
+      projectId,
+      taskId: deleted.id,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM task status changed event to project room
+   */
+  broadcastPMTaskStatusChanged(projectId: string, status: PMTaskStatusPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TASK_STATUS_CHANGED,
+      status,
+    );
+
+    this.logger.debug({
+      message: 'PM task status changed event emitted',
+      projectId,
+      taskId: status.id,
+      fromStatus: status.fromStatus,
+      toStatus: status.toStatus,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM phase created event to project room
+   */
+  broadcastPMPhaseCreated(projectId: string, phase: PMPhaseEventPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_PHASE_CREATED,
+      phase,
+    );
+
+    this.logger.debug({
+      message: 'PM phase created event emitted',
+      projectId,
+      phaseId: phase.id,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM phase updated event to project room
+   */
+  broadcastPMPhaseUpdated(projectId: string, phase: PMPhaseEventPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_PHASE_UPDATED,
+      phase,
+    );
+
+    this.logger.debug({
+      message: 'PM phase updated event emitted',
+      projectId,
+      phaseId: phase.id,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM phase transitioned event to project room
+   */
+  broadcastPMPhaseTransitioned(
+    projectId: string,
+    transition: PMPhaseTransitionPayload,
+  ): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_PHASE_TRANSITIONED,
+      transition,
+    );
+
+    this.logger.debug({
+      message: 'PM phase transitioned event emitted',
+      projectId,
+      phaseId: transition.id,
+      fromStatus: transition.fromStatus,
+      toStatus: transition.toStatus,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM project created event to workspace room
+   */
+  broadcastPMProjectCreated(workspaceId: string, project: PMProjectEventPayload): void {
+    this.emitToWorkspace(workspaceId, WS_EVENTS.PM_PROJECT_CREATED, project);
+  }
+
+  /**
+   * Broadcast PM project updated event to workspace room
+   */
+  broadcastPMProjectUpdated(workspaceId: string, project: PMProjectEventPayload): void {
+    this.emitToWorkspace(workspaceId, WS_EVENTS.PM_PROJECT_UPDATED, project);
+  }
+
+  /**
+   * Broadcast PM project deleted event to workspace room
+   */
+  broadcastPMProjectDeleted(workspaceId: string, deleted: PMProjectDeletedPayload): void {
+    this.emitToWorkspace(workspaceId, WS_EVENTS.PM_PROJECT_DELETED, deleted);
+  }
+
+  /**
+   * Broadcast PM team member added event to project room
+   */
+  broadcastPMTeamMemberAdded(projectId: string, change: PMTeamChangePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TEAM_MEMBER_ADDED,
+      change,
+    );
+
+    this.logger.debug({
+      message: 'PM team member added event emitted',
+      projectId,
+      userId: change.userId,
+      role: change.role,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM team member removed event to project room
+   */
+  broadcastPMTeamMemberRemoved(projectId: string, change: PMTeamChangePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TEAM_MEMBER_REMOVED,
+      change,
+    );
+
+    this.logger.debug({
+      message: 'PM team member removed event emitted',
+      projectId,
+      userId: change.userId,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM team member updated event to project room
+   */
+  broadcastPMTeamMemberUpdated(projectId: string, change: PMTeamChangePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TEAM_MEMBER_UPDATED,
+      change,
+    );
+
+    this.logger.debug({
+      message: 'PM team member updated event emitted',
+      projectId,
+      userId: change.userId,
+      role: change.role,
+      room,
+    });
   }
 
   // ============================================

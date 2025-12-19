@@ -136,7 +136,7 @@ development_status:
   # FRs: FR-7.1, FR-7.2, FR-7.3, FR-7.4, FR-8.2
   # ===========================================
   pm-06: contexted
-  pm-06-1-websocket-task-updates: backlog
+  pm-06-1-websocket-task-updates: done
   pm-06-2-presence-indicators: backlog
   pm-06-3-real-time-kanban: backlog
   pm-06-4-notification-preferences: backlog
