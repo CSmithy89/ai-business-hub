@@ -86,3 +86,69 @@ export interface NotificationPreferenceDto {
 export type UpdateNotificationPreferenceDto = Partial<
   Omit<NotificationPreferenceDto, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
 >;
+
+/**
+ * Notification DTO - individual notification response
+ */
+export interface NotificationDto {
+  id: string;
+  userId: string;
+  workspaceId: string;
+  type: string;
+  title: string;
+  message: string | null;
+  link: string | null;
+  data: Record<string, unknown> | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+/**
+ * Pagination metadata for list responses
+ */
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+/**
+ * Notification list response (paginated)
+ */
+export interface NotificationListResponse {
+  data: NotificationDto[];
+  meta: PaginationMeta;
+}
+
+/**
+ * Unread count response
+ */
+export interface UnreadCountResponse {
+  count: number;
+  byType: Record<string, number>;
+}
+
+/**
+ * Mark as read response
+ */
+export interface MarkReadResponse {
+  id: string;
+  readAt: string;
+}
+
+/**
+ * Bulk operation response
+ */
+export interface BulkOperationResponse {
+  updated: number;
+}
+
+/**
+ * Notification filters for list query
+ */
+export interface NotificationFilters {
+  type?: string;
+  read?: boolean;
+  workspaceId?: string;
+}

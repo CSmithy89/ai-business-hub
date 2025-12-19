@@ -2,23 +2,28 @@
  * Notification List Component
  *
  * Groups notifications by time period and renders notification items.
+ * Supports infinite scroll for paginated notifications.
+ *
+ * @see Story PM-06.5: In-App Notifications
  */
 
 'use client';
 
+import { useRef, useCallback } from 'react';
 import {
   isToday,
   isYesterday,
   isThisWeek,
   differenceInMinutes,
 } from 'date-fns';
-import { Bell, Sparkles } from 'lucide-react';
-import type { Notification } from '@/hooks/use-notifications';
+import { Bell, Sparkles, Loader2 } from 'lucide-react';
+import type { NotificationDto } from '@hyvve/shared';
 import { NotificationItem } from './NotificationItem';
+import { useNotificationsInfinite } from '@/hooks/use-notifications-api';
 
 interface NotificationListProps {
-  notifications: Notification[];
-  onMarkAsRead: (id: string) => void;
+  notifications: NotificationDto[];
+  workspaceId?: string;
 }
 
 type TimeGroup = 'Just now' | 'Today' | 'Yesterday' | 'This Week' | 'Earlier';
@@ -46,8 +51,8 @@ function getTimeGroup(timestamp: Date): TimeGroup {
   return 'Earlier';
 }
 
-function groupNotificationsByTime(notifications: Notification[]): Map<TimeGroup, Notification[]> {
-  const groups = new Map<TimeGroup, Notification[]>();
+function groupNotificationsByTime(notifications: NotificationDto[]): Map<TimeGroup, NotificationDto[]> {
+  const groups = new Map<TimeGroup, NotificationDto[]>();
 
   // Initialize groups in order
   const groupOrder: TimeGroup[] = ['Just now', 'Today', 'Yesterday', 'This Week', 'Earlier'];
@@ -55,7 +60,7 @@ function groupNotificationsByTime(notifications: Notification[]): Map<TimeGroup,
 
   // Group notifications
   notifications.forEach((notification) => {
-    const group = getTimeGroup(notification.timestamp);
+    const group = getTimeGroup(new Date(notification.createdAt));
     groups.get(group)?.push(notification);
   });
 
@@ -69,7 +74,40 @@ function groupNotificationsByTime(notifications: Notification[]): Map<TimeGroup,
   return groups;
 }
 
-export function NotificationList({ notifications, onMarkAsRead }: NotificationListProps) {
+export function NotificationList({ notifications, workspaceId }: NotificationListProps) {
+  const { fetchNextPage, hasNextPage, isFetchingNextPage } = useNotificationsInfinite(workspaceId);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  // Infinite scroll callback
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [target] = entries;
+      if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    },
+    [fetchNextPage, hasNextPage, isFetchingNextPage],
+  );
+
+  // Set up intersection observer for infinite scroll
+  const setLoadMoreRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+
+      if (node) {
+        observerRef.current = new IntersectionObserver(handleObserver, {
+          threshold: 0.1,
+        });
+        observerRef.current.observe(node);
+        loadMoreRef.current = node;
+      }
+    },
+    [handleObserver],
+  );
+
   const groupedNotifications = groupNotificationsByTime(notifications);
 
   if (notifications.length === 0) {
@@ -109,12 +147,28 @@ export function NotificationList({ notifications, onMarkAsRead }: NotificationLi
               <NotificationItem
                 key={notification.id}
                 notification={notification}
-                onMarkAsRead={onMarkAsRead}
+                workspaceId={workspaceId}
               />
             ))}
           </div>
         </div>
       ))}
+
+      {/* Infinite scroll loading indicator */}
+      {hasNextPage && (
+        <div ref={setLoadMoreRef} className="flex items-center justify-center py-4">
+          {isFetchingNextPage ? (
+            <div className="flex items-center gap-2 text-sm text-[rgb(var(--color-text-secondary))]">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading more...</span>
+            </div>
+          ) : (
+            <div className="text-xs text-[rgb(var(--color-text-muted))]">
+              Scroll for more
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

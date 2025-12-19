@@ -1,14 +1,29 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/services/prisma.service';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
-import { NotificationChannel, PMNotificationType } from '@hyvve/shared';
+import { ListNotificationsQueryDto } from './dto/list-notifications.dto';
+import {
+  NotificationChannel,
+  PMNotificationType,
+  NotificationListResponse,
+  UnreadCountResponse,
+  MarkReadResponse,
+  BulkOperationResponse,
+  NotificationDto,
+} from '@hyvve/shared';
 import { DateTime } from 'luxon';
+import { RealtimeGateway } from '../../realtime/realtime.gateway';
+import { NotificationPayload } from '../../realtime/realtime.types';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtimeGateway: RealtimeGateway,
+  ) {}
 
   /**
    * Get user's notification preferences
@@ -169,5 +184,280 @@ export class NotificationsService {
     }
 
     return `${channelPrefix}${typeSuffix}`;
+  }
+
+  // ============================================
+  // Notification Center Methods
+  // ============================================
+
+  /**
+   * List notifications with pagination and filters
+   * SECURITY: Only returns notifications for the authenticated user
+   */
+  async listNotifications(
+    userId: string,
+    query: ListNotificationsQueryDto,
+  ): Promise<NotificationListResponse> {
+    const { page = 1, limit = 20, type, read, workspaceId } = query;
+    const skip = (page - 1) * limit;
+
+    // Build where clause for user isolation and filters
+    const where: {
+      userId: string;
+      type?: string;
+      readAt?: { not: null } | null;
+      workspaceId?: string;
+    } = {
+      userId, // SECURITY: Always filter by userId
+    };
+
+    if (type) {
+      where.type = type;
+    }
+
+    if (read !== undefined) {
+      where.readAt = read ? { not: null } : null;
+    }
+
+    if (workspaceId) {
+      where.workspaceId = workspaceId;
+    }
+
+    // Execute query with pagination
+    const [notifications, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.notification.count({ where }),
+    ]);
+
+    // Transform to DTOs
+    const data: NotificationDto[] = notifications.map((n) => ({
+      id: n.id,
+      userId: n.userId,
+      workspaceId: n.workspaceId,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      link: n.link,
+      data: n.data as Record<string, unknown> | null,
+      readAt: n.readAt ? n.readAt.toISOString() : null,
+      createdAt: n.createdAt.toISOString(),
+    }));
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        hasMore: skip + notifications.length < total,
+      },
+    };
+  }
+
+  /**
+   * Get unread notification count
+   * SECURITY: Only counts notifications for the authenticated user
+   */
+  async getUnreadCount(userId: string, workspaceId?: string): Promise<UnreadCountResponse> {
+    const where: {
+      userId: string;
+      readAt: null;
+      workspaceId?: string;
+    } = {
+      userId, // SECURITY: Always filter by userId
+      readAt: null,
+    };
+
+    if (workspaceId) {
+      where.workspaceId = workspaceId;
+    }
+
+    // Get total count and count by type
+    const [totalCount, notifications] = await Promise.all([
+      this.prisma.notification.count({ where }),
+      this.prisma.notification.findMany({
+        where,
+        select: { type: true },
+      }),
+    ]);
+
+    // Count by type
+    const byType: Record<string, number> = {};
+    for (const notification of notifications) {
+      byType[notification.type] = (byType[notification.type] || 0) + 1;
+    }
+
+    return {
+      count: totalCount,
+      byType,
+    };
+  }
+
+  /**
+   * Mark single notification as read
+   * SECURITY: Only allows marking user's own notifications
+   */
+  async markAsRead(notificationId: string, userId: string): Promise<MarkReadResponse> {
+    // Check if notification exists and belongs to user
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+
+    if (!notification) {
+      throw new NotFoundException(`Notification ${notificationId} not found`);
+    }
+
+    if (notification.userId !== userId) {
+      throw new ForbiddenException('You do not have permission to modify this notification');
+    }
+
+    // Update notification
+    const updated = await this.prisma.notification.update({
+      where: { id: notificationId },
+      data: { readAt: new Date() },
+    });
+
+    return {
+      id: updated.id,
+      readAt: updated.readAt!.toISOString(),
+    };
+  }
+
+  /**
+   * Mark multiple notifications as read (bulk operation)
+   * SECURITY: Only updates user's own notifications
+   */
+  async markManyAsRead(notificationIds: string[], userId: string): Promise<BulkOperationResponse> {
+    const result = await this.prisma.notification.updateMany({
+      where: {
+        id: { in: notificationIds },
+        userId, // SECURITY: Only update user's own notifications
+      },
+      data: { readAt: new Date() },
+    });
+
+    return { updated: result.count };
+  }
+
+  /**
+   * Mark all notifications as read
+   * SECURITY: Only updates user's own notifications
+   */
+  async markAllAsRead(userId: string, workspaceId?: string): Promise<BulkOperationResponse> {
+    const where: Parameters<typeof this.prisma.notification.updateMany>[0]['where'] = {
+      userId, // SECURITY: Always filter by userId
+      readAt: null,
+    };
+
+    if (workspaceId) {
+      where.workspaceId = workspaceId;
+    }
+
+    const result = await this.prisma.notification.updateMany({
+      where,
+      data: { readAt: new Date() },
+    });
+
+    return { updated: result.count };
+  }
+
+  /**
+   * Delete notification
+   * SECURITY: Only allows deleting user's own notifications
+   */
+  async deleteNotification(notificationId: string, userId: string): Promise<void> {
+    // Check if notification exists and belongs to user
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+
+    if (!notification) {
+      throw new NotFoundException(`Notification ${notificationId} not found`);
+    }
+
+    if (notification.userId !== userId) {
+      throw new ForbiddenException('You do not have permission to delete this notification');
+    }
+
+    // Delete notification
+    await this.prisma.notification.delete({
+      where: { id: notificationId },
+    });
+
+    this.logger.log(`Deleted notification ${notificationId} for user ${userId}`);
+  }
+
+  /**
+   * Create notification and emit WebSocket event
+   * This method is used by other services to create notifications
+   */
+  async createNotification(data: {
+    userId: string;
+    workspaceId: string;
+    type: string;
+    title: string;
+    message?: string;
+    link?: string;
+    data?: Record<string, unknown>;
+  }): Promise<NotificationDto> {
+    // Save to database
+    const notification = await this.prisma.notification.create({
+      data: {
+        userId: data.userId,
+        workspaceId: data.workspaceId,
+        type: data.type,
+        title: data.title,
+        message: data.message || null,
+        link: data.link || null,
+        data: (data.data as Prisma.InputJsonValue) || undefined,
+      },
+    });
+
+    // Emit WebSocket event to user
+    const payload: NotificationPayload = {
+      id: notification.id,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message || '',
+      severity: this.getNotificationSeverity(notification.type),
+      actionUrl: notification.link || undefined,
+      createdAt: notification.createdAt.toISOString(),
+      read: false,
+    };
+
+    this.realtimeGateway.broadcastNotification(data.workspaceId, payload, data.userId);
+
+    this.logger.log(`Created notification ${notification.id} for user ${data.userId}`);
+
+    // Return DTO
+    return {
+      id: notification.id,
+      userId: notification.userId,
+      workspaceId: notification.workspaceId,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      link: notification.link,
+      data: notification.data as Record<string, unknown> | null,
+      readAt: null,
+      createdAt: notification.createdAt.toISOString(),
+    };
+  }
+
+  /**
+   * Map notification type to severity level for UI
+   */
+  private getNotificationSeverity(
+    type: string,
+  ): 'info' | 'success' | 'warning' | 'error' {
+    if (type.includes('error') || type.includes('alert')) return 'error';
+    if (type.includes('warning')) return 'warning';
+    if (type.includes('success') || type.includes('completed')) return 'success';
+    return 'info';
   }
 }

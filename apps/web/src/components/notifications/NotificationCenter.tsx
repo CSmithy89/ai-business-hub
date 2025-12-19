@@ -2,18 +2,40 @@
  * Notification Center Component
  *
  * Main notification dropdown component with popover.
- * Shows notification bell with badge count and dropdown list.
+ * Shows notification bell with badge count and dropdown list with infinite scroll.
+ *
+ * @see Story PM-06.5: In-App Notifications
  */
 
 'use client';
 
 import { Bell } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useNotifications } from '@/hooks/use-notifications';
+import { useNotificationsInfinite, useUnreadCount, useMarkAllAsRead } from '@/hooks/use-notifications-api';
+import { useRealtimeNotifications } from '@/hooks/use-realtime-notifications';
 import { NotificationList } from './NotificationList';
 
 export function NotificationCenter() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  // Note: workspaceId is optional - when undefined, API returns all user notifications
+  const workspaceId = undefined;
+
+  // Real-time subscription
+  useRealtimeNotifications();
+
+  // Fetch notifications with infinite scroll
+  const { data: notificationsData } = useNotificationsInfinite(workspaceId);
+
+  // Fetch unread count
+  const { data: unreadCountData } = useUnreadCount(workspaceId);
+
+  // Mark all as read mutation
+  const { mutate: markAllAsRead, isPending: isMarkingAllAsRead } = useMarkAllAsRead(workspaceId);
+
+  // Flatten paginated notifications
+  const notifications = notificationsData?.pages.flatMap((page) => page.data) ?? [];
+
+  // Get unread count
+  const unreadCount = unreadCountData?.count ?? 0;
 
   return (
     <Popover>
@@ -51,16 +73,17 @@ export function NotificationCenter() {
           {unreadCount > 0 && (
             <button
               type="button"
-              onClick={markAllAsRead}
-              className="text-xs font-medium text-[rgb(var(--color-primary-500))] transition-colors hover:text-[rgb(var(--color-primary-600))] hover:underline"
+              onClick={() => markAllAsRead()}
+              disabled={isMarkingAllAsRead}
+              className="text-xs font-medium text-[rgb(var(--color-primary-500))] transition-colors hover:text-[rgb(var(--color-primary-600))] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Mark all as read
+              {isMarkingAllAsRead ? 'Marking...' : 'Mark all as read'}
             </button>
           )}
         </div>
 
         {/* Notification List */}
-        <NotificationList notifications={notifications} onMarkAsRead={markAsRead} />
+        <NotificationList notifications={notifications} workspaceId={workspaceId} />
 
         {/* Footer */}
         {notifications.length > 0 && (
