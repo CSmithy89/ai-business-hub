@@ -8,6 +8,7 @@ import { ExpensesModule } from './expenses/expenses.module'
 import { TasksModule } from './tasks/tasks.module'
 import { AgentsModule } from './agents/agents.module'
 import { SavedViewsModule } from './saved-views/saved-views.module'
+import { PresenceModule } from './presence/presence.module'
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { SavedViewsModule } from './saved-views/saved-views.module'
     TasksModule,
     AgentsModule,
     SavedViewsModule,
+    PresenceModule,
   ],
 })
 export class PmModule {}

@@ -7,6 +7,8 @@
  * @see Story 16-15: Implement WebSocket Real-Time Updates
  */
 
+import { PresencePayload } from '@hyvve/shared';
+
 /**
  * Server-to-Client Events
  */
@@ -33,6 +35,11 @@ export interface ServerToClientEvents {
 
   // Sync events for reconnection
   'sync.state': (data: SyncStatePayload) => void;
+
+  // PM Presence events
+  'pm.presence.joined': (data: PresencePayload) => void;
+  'pm.presence.left': (data: PresencePayload) => void;
+  'pm.presence.updated': (data: PresencePayload) => void;
 }
 
 /**
@@ -52,6 +59,13 @@ export interface ClientToServerEvents {
 
   // Request sync after reconnection
   'sync.request': (data: { lastEventId?: string; since?: string }) => void;
+
+  // PM Presence updates
+  'pm.presence.update': (data: {
+    projectId: string;
+    taskId?: string;
+    page: 'overview' | 'tasks' | 'settings' | 'docs';
+  }) => void;
 }
 
 // ============================================
@@ -185,6 +199,9 @@ export const WS_EVENTS = {
   CHAT_MESSAGE: 'chat.message',
   CONNECTION_STATUS: 'connection.status',
   SYNC_STATE: 'sync.state',
+  PM_PRESENCE_JOINED: 'pm.presence.joined',
+  PM_PRESENCE_LEFT: 'pm.presence.left',
+  PM_PRESENCE_UPDATED: 'pm.presence.updated',
 } as const;
 
 export type WsEventName = (typeof WS_EVENTS)[keyof typeof WS_EVENTS];

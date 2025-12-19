@@ -35,11 +35,13 @@ import {
   PMProjectEventPayload,
   PMProjectDeletedPayload,
   PMTeamChangePayload,
+  PresencePayload,
   WS_EVENTS,
   getWorkspaceRoom,
   getUserRoom,
   getProjectRoom,
 } from './realtime.types';
+import { PresenceService } from './presence.service';
 
 // ============================================
 // Input Validation Schemas (Zod)
@@ -56,6 +58,12 @@ const TypingSchema = z.object({
 const SyncRequestSchema = z.object({
   lastEventId: z.string().optional(),
   since: z.string().optional(),
+});
+
+const PMPresenceUpdateSchema = z.object({
+  projectId: z.string().min(1).max(100),
+  taskId: z.string().min(1).max(100).optional(),
+  page: z.enum(['overview', 'tasks', 'settings', 'docs']),
 });
 
 /**
@@ -190,6 +198,7 @@ export class RealtimeGateway
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly presenceService: PresenceService,
   ) {}
 
   /**
@@ -285,6 +294,7 @@ export class RealtimeGateway
         email,
         sessionId,
         connectedAt: new Date(),
+        projectRooms: new Set<string>(), // Initialize empty set for tracking project rooms
       };
 
       // Join workspace room for multi-tenant isolation
@@ -328,8 +338,59 @@ export class RealtimeGateway
   /**
    * Handle WebSocket disconnections
    */
-  handleDisconnect(client: Socket) {
-    const { userId, workspaceId } = client.data || {};
+  async handleDisconnect(client: Socket) {
+    const { userId, workspaceId, projectRooms } = client.data || {};
+
+    // Clean up presence for all projects the user was in
+    if (userId && projectRooms && projectRooms.size > 0) {
+      try {
+        // Get user details for presence payloads
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, name: true, email: true, image: true },
+        });
+
+        if (user) {
+          // Remove presence and broadcast 'left' event for each project
+          for (const projectId of projectRooms) {
+            try {
+              // Remove presence from Redis
+              await this.presenceService.removePresence(userId, projectId);
+
+              // Broadcast presence left event to project room
+              const presencePayload: PresencePayload = {
+                userId: user.id,
+                userName: user.name || user.email,
+                userAvatar: user.image,
+                projectId,
+                page: 'overview', // Default page for left event
+                timestamp: new Date().toISOString(),
+              };
+              this.broadcastPMPresenceLeft(projectId, presencePayload);
+
+              this.logger.debug({
+                message: 'PM presence cleaned up on disconnect',
+                userId,
+                projectId,
+              });
+            } catch (error) {
+              this.logger.error({
+                message: 'Failed to clean up presence for project',
+                userId,
+                projectId,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+          }
+        }
+      } catch (error) {
+        this.logger.error({
+          message: 'Failed to fetch user for presence cleanup',
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
 
     // Untrack connection from both workspace and user tracking
     if (workspaceId) {
@@ -341,6 +402,7 @@ export class RealtimeGateway
       socketId: client.id,
       userId,
       workspaceId,
+      projectRoomsCleanedUp: projectRooms?.size || 0,
     });
   }
 
@@ -505,6 +567,122 @@ export class RealtimeGateway
         pendingApprovals: 0,
         unreadNotifications: 0,
         lastEventTimestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * Handle PM presence updates
+   * Tracks user presence in projects with 30-second heartbeat
+   * SECURITY: Validates input and verifies project access
+   */
+  @SubscribeMessage('pm.presence.update')
+  async handlePMPresenceUpdate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() rawData: unknown,
+  ) {
+    // SECURITY: Validate input
+    const parseResult = PMPresenceUpdateSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid pm.presence.update payload',
+        socketId: client.id,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const data = parseResult.data;
+    const { userId, workspaceId } = client.data || {};
+    if (!userId || !workspaceId) return;
+
+    try {
+      // SECURITY: Verify user has access to project via team membership
+      const teamMember = await this.prisma.teamMember.findFirst({
+        where: {
+          userId,
+          isActive: true,
+          team: {
+            projectId: data.projectId,
+            project: {
+              workspaceId,
+              deletedAt: null,
+            },
+          },
+        },
+      });
+
+      if (!teamMember) {
+        this.logger.warn({
+          message: 'User does not have access to project',
+          socketId: client.id,
+          userId,
+          projectId: data.projectId,
+        });
+        return;
+      }
+
+      // Get user details for broadcast
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, email: true, image: true },
+      });
+
+      if (!user) {
+        this.logger.warn({
+          message: 'User not found',
+          socketId: client.id,
+          userId,
+        });
+        return;
+      }
+
+      // Join project room if not already joined
+      const projectRoom = getProjectRoom(data.projectId);
+      if (!client.rooms.has(projectRoom)) {
+        await client.join(projectRoom);
+      }
+
+      // Track this project room for cleanup on disconnect
+      if (!client.data.projectRooms) {
+        client.data.projectRooms = new Set<string>();
+      }
+      client.data.projectRooms.add(data.projectId);
+
+      // Update presence in Redis
+      await this.presenceService.updatePresence(userId, data.projectId, {
+        page: data.page,
+        taskId: data.taskId,
+      });
+
+      // Build presence payload for broadcast
+      const presencePayload: PresencePayload = {
+        userId: user.id,
+        userName: user.name || user.email,
+        userAvatar: user.image,
+        projectId: data.projectId,
+        taskId: data.taskId,
+        page: data.page,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Broadcast presence update to project room
+      // Note: We broadcast 'updated' for all heartbeats - clients can track join/leave locally
+      this.broadcastPMPresenceUpdated(data.projectId, presencePayload);
+
+      this.logger.debug({
+        message: 'PM presence updated',
+        userId,
+        projectId: data.projectId,
+        page: data.page,
+      });
+    } catch (error) {
+      this.logger.error({
+        message: 'Failed to handle PM presence update',
+        socketId: client.id,
+        userId,
+        projectId: data.projectId,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -846,6 +1024,62 @@ export class RealtimeGateway
       projectId,
       userId: change.userId,
       role: change.role,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM presence joined event to project room
+   */
+  broadcastPMPresenceJoined(projectId: string, presence: PresencePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_PRESENCE_JOINED,
+      presence,
+    );
+
+    this.logger.debug({
+      message: 'PM presence joined event emitted',
+      projectId,
+      userId: presence.userId,
+      page: presence.page,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM presence left event to project room
+   */
+  broadcastPMPresenceLeft(projectId: string, presence: PresencePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_PRESENCE_LEFT,
+      presence,
+    );
+
+    this.logger.debug({
+      message: 'PM presence left event emitted',
+      projectId,
+      userId: presence.userId,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM presence updated event to project room
+   */
+  broadcastPMPresenceUpdated(projectId: string, presence: PresencePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_PRESENCE_UPDATED,
+      presence,
+    );
+
+    this.logger.debug({
+      message: 'PM presence updated event emitted',
+      projectId,
+      userId: presence.userId,
+      page: presence.page,
       room,
     });
   }

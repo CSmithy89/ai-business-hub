@@ -13,6 +13,8 @@ import { usePmProject } from '@/hooks/use-pm-projects'
 import { usePmTasks, type TaskListItem, type TaskPriority, type TaskStatus, type TaskType } from '@/hooks/use-pm-tasks'
 import { usePmTeam } from '@/hooks/use-pm-team'
 import { useDefaultView, type SavedView } from '@/hooks/use-saved-views'
+import { usePresence } from '@/hooks/use-presence'
+import { PresenceBar } from '@/components/pm/presence/PresenceBar'
 import { TASK_PRIORITY_META, TASK_TYPE_META } from '@/lib/pm/task-meta'
 import { getViewPreferences, setViewPreferences } from '@/lib/pm/view-preferences'
 import type { GroupByOption } from '@/lib/pm/kanban-grouping'
@@ -71,6 +73,13 @@ export function ProjectTasksContent() {
 
   const { data: projectData, isLoading: projectLoading, error: projectError } = usePmProject(slug)
   const project = projectData?.data
+
+  // Track user presence on this project page
+  usePresence({
+    projectId: project?.id ?? '',
+    page: 'tasks',
+    enabled: !!project?.id,
+  })
 
   // Fetch team data for assignee name lookups
   const { data: teamData } = usePmTeam(project?.id ?? '')
@@ -312,8 +321,11 @@ export function ProjectTasksContent() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-[rgb(var(--color-text-primary))]">Tasks</h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-[rgb(var(--color-text-primary))]">Tasks</h1>
+            <PresenceBar projectId={project.id} />
+          </div>
           <p className="text-sm text-[rgb(var(--color-text-secondary))]">
             {project.name} • {tasks.length} tasks
           </p>

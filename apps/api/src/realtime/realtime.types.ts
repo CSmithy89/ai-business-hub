@@ -56,6 +56,11 @@ export interface ServerToClientEvents {
   'pm.team.member_added': (data: PMTeamChangePayload) => void;
   'pm.team.member_removed': (data: PMTeamChangePayload) => void;
   'pm.team.member_updated': (data: PMTeamChangePayload) => void;
+
+  // PM Presence events
+  'pm.presence.joined': (data: PresencePayload) => void;
+  'pm.presence.left': (data: PresencePayload) => void;
+  'pm.presence.updated': (data: PresencePayload) => void;
 }
 
 /**
@@ -76,6 +81,13 @@ export interface ClientToServerEvents {
 
   // Request sync after reconnection
   'sync.request': (data: { lastEventId?: string; since?: string }) => void;
+
+  // PM Presence updates
+  'pm.presence.update': (data: {
+    projectId: string;
+    taskId?: string;
+    page: 'overview' | 'tasks' | 'settings' | 'docs';
+  }) => void;
 }
 
 /**
@@ -94,6 +106,7 @@ export interface SocketData {
   email?: string;
   sessionId?: string;
   connectedAt: Date;
+  projectRooms?: Set<string>; // Track which project rooms this socket is in
 }
 
 // ============================================
@@ -404,6 +417,19 @@ export interface PMTeamChangePayload {
   correlationId?: string;
 }
 
+/**
+ * PM Presence payload
+ */
+export interface PresencePayload {
+  userId: string;
+  userName: string;
+  userAvatar: string | null;
+  projectId: string;
+  taskId?: string;
+  page: 'overview' | 'tasks' | 'settings' | 'docs';
+  timestamp: string;
+}
+
 // ============================================
 // WebSocket Event Names
 // ============================================
@@ -456,6 +482,11 @@ export const WS_EVENTS = {
   PM_TEAM_MEMBER_ADDED: 'pm.team.member_added',
   PM_TEAM_MEMBER_REMOVED: 'pm.team.member_removed',
   PM_TEAM_MEMBER_UPDATED: 'pm.team.member_updated',
+
+  // PM Presence events
+  PM_PRESENCE_JOINED: 'pm.presence.joined',
+  PM_PRESENCE_LEFT: 'pm.presence.left',
+  PM_PRESENCE_UPDATED: 'pm.presence.updated',
 } as const;
 
 export type WsEventName = (typeof WS_EVENTS)[keyof typeof WS_EVENTS];
