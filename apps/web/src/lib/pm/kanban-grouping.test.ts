@@ -88,7 +88,7 @@ describe('groupTasksIntoColumns', () => {
       const tasks = [createMockTask({ id: '1', status: 'TODO' })]
       const wipLimits = { TODO: 5, IN_PROGRESS: 3 }
 
-      const columns = groupTasksIntoColumns(tasks, 'status', wipLimits)
+      const columns = groupTasksIntoColumns(tasks, 'status', { wipLimits })
 
       expect(columns.find(c => c.id === 'TODO')?.wipLimit).toBe(5)
       expect(columns.find(c => c.id === 'IN_PROGRESS')?.wipLimit).toBe(3)

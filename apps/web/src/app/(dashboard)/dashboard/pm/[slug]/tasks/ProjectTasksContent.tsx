@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { usePmProject } from '@/hooks/use-pm-projects'
 import { usePmTasks, type TaskListItem, type TaskPriority, type TaskStatus, type TaskType } from '@/hooks/use-pm-tasks'
+import { usePmTeam } from '@/hooks/use-pm-team'
 import { useDefaultView, type SavedView } from '@/hooks/use-saved-views'
 import { TASK_PRIORITY_META, TASK_TYPE_META } from '@/lib/pm/task-meta'
 import { getViewPreferences, setViewPreferences } from '@/lib/pm/view-preferences'
@@ -70,6 +71,31 @@ export function ProjectTasksContent() {
 
   const { data: projectData, isLoading: projectLoading, error: projectError } = usePmProject(slug)
   const project = projectData?.data
+
+  // Fetch team data for assignee name lookups
+  const { data: teamData } = usePmTeam(project?.id ?? '')
+  const team = teamData?.data
+
+  // Build name lookup maps for kanban column titles
+  const assigneeNames = useMemo(() => {
+    if (!team?.members) return undefined
+    const map: Record<string, string> = {}
+    team.members.forEach((member) => {
+      if (member.userId && member.user) {
+        map[member.userId] = member.user.name || member.user.email
+      }
+    })
+    return Object.keys(map).length > 0 ? map : undefined
+  }, [team?.members])
+
+  const phaseNames = useMemo(() => {
+    if (!project?.phases) return undefined
+    const map: Record<string, string> = {}
+    project.phases.forEach((phase) => {
+      map[phase.id] = phase.name
+    })
+    return Object.keys(map).length > 0 ? map : undefined
+  }, [project?.phases])
 
   // Saved views state
   const [activeSavedViewId, setActiveSavedViewId] = useState<string | null>(null)
@@ -420,6 +446,8 @@ export function ProjectTasksContent() {
               onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
               groupBy={groupBy}
               projectId={project.id}
+              assigneeNames={assigneeNames}
+              phaseNames={phaseNames}
             />
           </ErrorBoundary>
         ) : viewMode === 'table' ? (

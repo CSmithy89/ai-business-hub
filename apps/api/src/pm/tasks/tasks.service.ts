@@ -1066,29 +1066,20 @@ export class TasksService {
     })
     if (!project) throw new NotFoundException('Project not found')
 
-    // First get task IDs for the project (optimized single query)
-    const taskIds = await this.prisma.task.findMany({
-      where: {
+    // Build where clause using subquery pattern to avoid N+1
+    // This filters labels by task properties in a single query
+    const whereClause = {
+      task: {
         projectId,
         workspaceId,
         deletedAt: null,
       },
-      select: { id: true },
-    })
-
-    if (taskIds.length === 0) {
-      return { data: [], total: 0, limit, offset }
-    }
-
-    // Build where clause for labels
-    const whereClause = {
-      taskId: { in: taskIds.map((t) => t.id) },
       ...(search && {
         name: { contains: search, mode: 'insensitive' as const },
       }),
     }
 
-    // Get total count for pagination
+    // Get total count for pagination (count distinct label names)
     const totalCount = await this.prisma.taskLabel.groupBy({
       by: ['name'],
       where: whereClause,

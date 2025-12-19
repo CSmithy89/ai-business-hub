@@ -28,7 +28,8 @@ import { TaskCard } from '../kanban/TaskCard'
 import {
   groupTasksIntoColumns,
   getUpdatePayloadFromGrouping,
-  type GroupByOption
+  type GroupByOption,
+  type GroupingOptions
 } from '@/lib/pm/kanban-grouping'
 import type { TaskListItem } from '@/hooks/use-pm-tasks'
 import { useUpdatePmTask } from '@/hooks/use-pm-tasks'
@@ -45,6 +46,10 @@ interface KanbanBoardViewProps {
   groupBy?: GroupByOption
   /** Project ID for WIP limits (optional) */
   projectId?: string
+  /** Assignee ID to display name lookup */
+  assigneeNames?: Record<string, string>
+  /** Phase ID to display name lookup */
+  phaseNames?: Record<string, string>
 }
 
 /**
@@ -69,6 +74,8 @@ export function KanbanBoardView({
   tasks,
   onTaskClick,
   groupBy = 'status',
+  assigneeNames,
+  phaseNames,
 }: KanbanBoardViewProps) {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const updateTaskMutation = useUpdatePmTask()
@@ -88,8 +95,12 @@ export function KanbanBoardView({
   // Group tasks into columns based on groupBy option
   // TODO: Read WIP limits from project settings when available (requires project settings UI + backend)
   const columns = useMemo(() => {
-    return groupTasksIntoColumns(tasks, groupBy)
-  }, [tasks, groupBy])
+    const options: GroupingOptions = {
+      assigneeNames,
+      phaseNames,
+    }
+    return groupTasksIntoColumns(tasks, groupBy, options)
+  }, [tasks, groupBy, assigneeNames, phaseNames])
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveTaskId(event.active.id as string)

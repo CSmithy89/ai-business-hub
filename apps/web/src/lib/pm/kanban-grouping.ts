@@ -39,29 +39,42 @@ const STATUS_CONFIG: Array<{ status: TaskStatus; title: string }> = [
 ]
 
 /**
+ * Options for grouping tasks into columns
+ */
+export interface GroupingOptions {
+  /** WIP limits per column ID */
+  wipLimits?: Record<string, number>
+  /** Assignee ID to display name lookup */
+  assigneeNames?: Record<string, string>
+  /** Phase ID to display name lookup */
+  phaseNames?: Record<string, string>
+}
+
+/**
  * Groups tasks into kanban columns based on the grouping option
  *
  * @param tasks - Array of tasks to group
  * @param groupBy - Grouping option (status, priority, assignee, type, phase)
- * @param wipLimits - Optional WIP limits per column ID
+ * @param options - Optional grouping options (WIP limits, name lookups)
  * @returns Array of kanban columns with tasks grouped by specified criteria
  */
 export function groupTasksIntoColumns(
   tasks: TaskListItem[],
   groupBy: GroupByOption,
-  wipLimits?: Record<string, number>
+  options?: GroupingOptions
 ): KanbanColumn[] {
+  const wipLimits = options?.wipLimits
   switch (groupBy) {
     case 'status':
       return groupByStatus(tasks, wipLimits)
     case 'priority':
       return groupByPriority(tasks, wipLimits)
     case 'assignee':
-      return groupByAssignee(tasks, wipLimits)
+      return groupByAssignee(tasks, wipLimits, options?.assigneeNames)
     case 'type':
       return groupByType(tasks, wipLimits)
     case 'phase':
-      return groupByPhase(tasks, wipLimits)
+      return groupByPhase(tasks, wipLimits, options?.phaseNames)
     default:
       return groupByStatus(tasks, wipLimits)
   }
@@ -126,7 +139,11 @@ function groupByPriority(tasks: TaskListItem[], wipLimits?: Record<string, numbe
   }))
 }
 
-function groupByAssignee(tasks: TaskListItem[], wipLimits?: Record<string, number>): KanbanColumn[] {
+function groupByAssignee(
+  tasks: TaskListItem[],
+  wipLimits?: Record<string, number>,
+  assigneeNames?: Record<string, string>
+): KanbanColumn[] {
   // Get unique assignees
   const assigneeIds = Array.from(new Set(tasks.map(t => t.assigneeId).filter(Boolean)))
 
@@ -142,7 +159,7 @@ function groupByAssignee(tasks: TaskListItem[], wipLimits?: Record<string, numbe
   // Create columns for each assignee
   const assigneeColumns: KanbanColumn[] = assigneeIds.map(assigneeId => ({
     id: assigneeId!,
-    title: getAssigneeDisplayName(assigneeId!),
+    title: getAssigneeDisplayName(assigneeId!, assigneeNames),
     groupType: 'assignee' as const,
     groupValue: assigneeId!,
     tasks: tasksByAssignee.get(assigneeId) ?? [],
@@ -186,7 +203,11 @@ function groupByType(tasks: TaskListItem[], wipLimits?: Record<string, number>):
   }))
 }
 
-function groupByPhase(tasks: TaskListItem[], wipLimits?: Record<string, number>): KanbanColumn[] {
+function groupByPhase(
+  tasks: TaskListItem[],
+  wipLimits?: Record<string, number>,
+  phaseNames?: Record<string, string>
+): KanbanColumn[] {
   // Get unique phases
   const phaseIds = Array.from(new Set(tasks.map(t => t.phaseId).filter(Boolean)))
 
@@ -202,7 +223,7 @@ function groupByPhase(tasks: TaskListItem[], wipLimits?: Record<string, number>)
   // Create columns for each phase
   const phaseColumns: KanbanColumn[] = phaseIds.map(phaseId => ({
     id: phaseId!,
-    title: getPhaseDisplayName(phaseId!),
+    title: getPhaseDisplayName(phaseId!, phaseNames),
     groupType: 'phase' as const,
     groupValue: phaseId!,
     tasks: tasksByPhase.get(phaseId) ?? [],
@@ -256,19 +277,25 @@ export function getUpdatePayloadFromGrouping(
 }
 
 /**
- * Get display name for an assignee (placeholder for now)
- * TODO: Integrate with user/agent registry when available
+ * Get display name for an assignee
+ * Uses lookup map if provided, otherwise falls back to truncated ID
  */
-function getAssigneeDisplayName(assigneeId: string): string {
-  // For now, return ID. In future, fetch from user/agent registry
+function getAssigneeDisplayName(assigneeId: string, nameMap?: Record<string, string>): string {
+  if (nameMap && nameMap[assigneeId]) {
+    return nameMap[assigneeId]
+  }
+  // Fallback to truncated ID if name not available
   return assigneeId.substring(0, 8) + '...'
 }
 
 /**
- * Get display name for a phase (placeholder for now)
- * TODO: Integrate with project phases when available
+ * Get display name for a phase
+ * Uses lookup map if provided, otherwise falls back to truncated ID
  */
-function getPhaseDisplayName(phaseId: string): string {
-  // For now, return ID. In future, fetch from project phases
+function getPhaseDisplayName(phaseId: string, nameMap?: Record<string, string>): string {
+  if (nameMap && nameMap[phaseId]) {
+    return nameMap[phaseId]
+  }
+  // Fallback to truncated ID if name not available
   return phaseId.substring(0, 8) + '...'
 }

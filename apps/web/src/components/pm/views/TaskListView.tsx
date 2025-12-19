@@ -9,7 +9,7 @@
 
 'use client'
 
-import { useMemo, useState, useRef, useEffect } from 'react'
+import { useMemo, useState, useRef, useEffect, useLayoutEffect } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -138,15 +138,25 @@ export function TaskListView({
     }
   }, [sorting, projectId])
 
-  // Clear selection when tasks data changes to prevent stale references
-  // This handles cases where selected tasks are deleted or filtered out
-  useEffect(() => {
+  // Cleanup stale selections when tasks data changes (deleted/filtered out tasks)
+  // Using useLayoutEffect to prevent flash of incorrect selection state before paint
+  useLayoutEffect(() => {
     const currentTaskIds = new Set(tasks.map((t) => t.id))
-    const hasStaleSelection = Object.keys(rowSelection).some(
-      (key) => rowSelection[key] && !currentTaskIds.has(tasks[parseInt(key)]?.id)
-    )
-    if (hasStaleSelection) {
-      setRowSelection({})
+    const validSelection: RowSelectionState = {}
+    let hasStale = false
+
+    Object.entries(rowSelection).forEach(([key, value]) => {
+      const taskId = tasks[parseInt(key)]?.id
+      if (value && taskId && currentTaskIds.has(taskId)) {
+        validSelection[key] = true
+      } else if (value) {
+        hasStale = true
+      }
+    })
+
+    // Only update if there are stale selections to remove
+    if (hasStale) {
+      setRowSelection(validSelection)
     }
   }, [tasks, rowSelection])
 
