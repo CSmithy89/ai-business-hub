@@ -1042,4 +1042,40 @@ export class TasksService {
 
     return { data: task }
   }
+
+  /**
+   * Get unique label names for a project (for autocomplete)
+   * Returns distinct label names used across all tasks in the project
+   */
+  async getProjectLabels(workspaceId: string, projectId: string, search?: string) {
+    // Verify project belongs to workspace
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, workspaceId },
+      select: { id: true },
+    })
+    if (!project) throw new NotFoundException('Project not found')
+
+    // Get distinct labels from all tasks in the project
+    const labels = await this.prisma.taskLabel.findMany({
+      where: {
+        task: {
+          projectId,
+          workspaceId,
+          deletedAt: null,
+        },
+        ...(search && {
+          name: { contains: search, mode: 'insensitive' },
+        }),
+      },
+      select: {
+        name: true,
+        color: true,
+      },
+      distinct: ['name'],
+      orderBy: { name: 'asc' },
+      take: 50, // Limit results for performance
+    })
+
+    return { data: labels }
+  }
 }

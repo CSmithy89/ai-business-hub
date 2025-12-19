@@ -83,16 +83,24 @@ export function CalendarDay({
   const visibleTasks = tasks.slice(0, 3)
   const hasMoreTasks = tasks.length > 3
 
+  const dateFormatted = format(date, 'EEEE, MMMM d, yyyy')
+
   return (
     <div
       ref={setNodeRef}
+      role="gridcell"
+      aria-label={`${dateFormatted}, ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`}
+      aria-describedby={`${dateKey}-drop-hint`}
       className={cn(
         "min-h-[120px] p-2 border-r border-b last:border-r-0",
         !isCurrentMonth && "bg-muted/50 text-muted-foreground",
         isToday && "bg-primary/5 border-primary border-2",
-        isOver && "bg-primary/10"
+        isOver && "bg-primary/10 ring-2 ring-primary"
       )}
     >
+      <span id={`${dateKey}-drop-hint`} className="sr-only">
+        Drop task here to reschedule to {dateFormatted}
+      </span>
       {/* Date number */}
       <div
         className={cn(

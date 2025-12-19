@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -31,11 +32,15 @@ export class SavedViewsController {
   @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'List all saved views for a project' })
   @ApiResponse({ status: 200, description: 'List of saved views' })
+  @ApiResponse({ status: 400, description: 'Missing projectId parameter' })
   async listSavedViews(
     @CurrentWorkspace() workspaceId: string,
     @CurrentUser() user: any,
     @Query('projectId') projectId: string,
   ) {
+    if (!projectId) {
+      throw new BadRequestException('projectId query parameter is required')
+    }
     return this.savedViewsService.list(workspaceId, user.id, projectId)
   }
 
@@ -43,11 +48,15 @@ export class SavedViewsController {
   @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'Get default view for a project' })
   @ApiResponse({ status: 200, description: 'Default saved view or null' })
+  @ApiResponse({ status: 400, description: 'Missing projectId parameter' })
   async getDefaultView(
     @CurrentWorkspace() workspaceId: string,
     @CurrentUser() user: any,
     @Query('projectId') projectId: string,
   ) {
+    if (!projectId) {
+      throw new BadRequestException('projectId query parameter is required')
+    }
     return this.savedViewsService.getDefault(workspaceId, user.id, projectId)
   }
 

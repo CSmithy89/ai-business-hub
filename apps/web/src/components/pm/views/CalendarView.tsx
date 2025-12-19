@@ -9,7 +9,7 @@
 
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { addMonths, subMonths, addDays, subDays, format } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -109,6 +109,63 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
   const handleToday = () => {
     setCurrentDate(new Date())
   }
+
+  // Keyboard navigation for calendar
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Only handle when not in an input/textarea
+    const target = e.target as HTMLElement
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault()
+        if (viewMode === 'month') {
+          setCurrentDate(prev => subMonths(prev, 1))
+        } else if (viewMode === 'week') {
+          setCurrentDate(prev => subDays(prev, 7))
+        } else {
+          setCurrentDate(prev => subDays(prev, 1))
+        }
+        break
+      case 'ArrowRight':
+        e.preventDefault()
+        if (viewMode === 'month') {
+          setCurrentDate(prev => addMonths(prev, 1))
+        } else if (viewMode === 'week') {
+          setCurrentDate(prev => addDays(prev, 7))
+        } else {
+          setCurrentDate(prev => addDays(prev, 1))
+        }
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        // In month view, go up a week; in week/day view, do nothing meaningful
+        if (viewMode === 'month') {
+          setCurrentDate(prev => subDays(prev, 7))
+        }
+        break
+      case 'ArrowDown':
+        e.preventDefault()
+        // In month view, go down a week
+        if (viewMode === 'month') {
+          setCurrentDate(prev => addDays(prev, 7))
+        }
+        break
+      case 't':
+      case 'T':
+        // Press 't' to go to today
+        if (!e.metaKey && !e.ctrlKey) {
+          e.preventDefault()
+          setCurrentDate(new Date())
+        }
+        break
+    }
+  }, [viewMode])
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleKeyDown])
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveTaskId(event.active.id as string)

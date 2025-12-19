@@ -219,4 +219,19 @@ export class TasksController {
   ) {
     return this.tasksService.deleteLabel(workspaceId, actor.id, id, labelId)
   }
+
+  @Get('labels/search')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Search for unique labels in a project (for autocomplete)' })
+  @ApiResponse({ status: 200, description: 'List of unique labels' })
+  async searchLabels(
+    @CurrentWorkspace() workspaceId: string,
+    @Query('projectId') projectId: string,
+    @Query('search') search?: string,
+  ) {
+    if (!projectId) {
+      throw new BadRequestException('projectId query parameter is required')
+    }
+    return this.tasksService.getProjectLabels(workspaceId, projectId, search)
+  }
 }

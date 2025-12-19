@@ -137,6 +137,18 @@ export function TaskListView({
     }
   }, [sorting, projectId])
 
+  // Clear selection when tasks data changes to prevent stale references
+  // This handles cases where selected tasks are deleted or filtered out
+  useEffect(() => {
+    const currentTaskIds = new Set(tasks.map((t) => t.id))
+    const hasStaleSelection = Object.keys(rowSelection).some(
+      (key) => rowSelection[key] && !currentTaskIds.has(tasks[parseInt(key)]?.id)
+    )
+    if (hasStaleSelection) {
+      setRowSelection({})
+    }
+  }, [tasks, rowSelection])
+
   // Create column definitions
   const columns = useMemo<ColumnDef<TaskListItem>[]>(
     () => createTaskColumns(onTaskClick),
