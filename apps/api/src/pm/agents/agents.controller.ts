@@ -10,7 +10,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { AuthGuard } from '@/common/guards/auth.guard';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
+import { AuthOrServiceGuard } from '@/common/guards/auth-or-service.guard';
 import { TenantGuard } from '@/common/guards/tenant.guard';
 import { CurrentWorkspace } from '@/common/decorators/current-workspace.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
@@ -32,10 +33,17 @@ import {
   SnoozeSuggestionDto,
   SuggestionResponseDto,
 } from './dto/suggestion.dto';
+import {
+  StartTimerDto,
+  StopTimerDto,
+  LogTimeDto,
+  SuggestTimeEntriesDto,
+} from './dto/time-tracking.dto';
 
 @ApiTags('PM Agents')
 @Controller('pm/agents')
-@UseGuards(AuthGuard, TenantGuard)
+@UseGuards(ThrottlerGuard, AuthOrServiceGuard, TenantGuard)
+@Throttle({ long: { limit: 100, ttl: 60000 } }) // Default: 100 requests per minute
 export class AgentsController {
   constructor(
     private readonly agentsService: AgentsService,
@@ -46,6 +54,7 @@ export class AgentsController {
   ) {}
 
   @Post('chat')
+  @Throttle({ medium: { limit: 10, ttl: 10000 } }) // 10 requests per 10 seconds for AI chat
   @ApiOperation({ summary: 'Send message to an agent' })
   @ApiResponse({
     status: 200,
@@ -119,6 +128,7 @@ export class AgentsController {
   // ============================================
 
   @Post('briefing/generate')
+  @Throttle({ short: { limit: 2, ttl: 1000 } }) // 2 per second - briefings are expensive
   @ApiOperation({ summary: 'Generate daily briefing manually' })
   @ApiResponse({
     status: 200,
@@ -289,6 +299,7 @@ export class AgentsController {
   // ============================================
 
   @Post('estimation/estimate')
+  @Throttle({ medium: { limit: 10, ttl: 10000 } }) // 10 requests per 10 seconds for AI estimation
   @ApiOperation({ summary: 'Get task estimation from Sage agent' })
   @ApiResponse({
     status: 200,
@@ -576,7 +587,7 @@ export class AgentsController {
   async startTimer(
     @CurrentWorkspace() workspaceId: string,
     @CurrentUser('id') userId: string,
-    @Body() body: { taskId: string; description?: string },
+    @Body() body: StartTimerDto,
   ) {
     return this.timeTrackingService.startTimer(userId, {
       taskId: body.taskId,
@@ -606,7 +617,7 @@ export class AgentsController {
   async stopTimer(
     @CurrentWorkspace() workspaceId: string,
     @CurrentUser('id') userId: string,
-    @Body() body: { taskId: string },
+    @Body() body: StopTimerDto,
   ) {
     return this.timeTrackingService.stopTimer(userId, {
       taskId: body.taskId,
@@ -634,13 +645,7 @@ export class AgentsController {
   async logTime(
     @CurrentWorkspace() workspaceId: string,
     @CurrentUser('id') userId: string,
-    @Body()
-    body: {
-      taskId: string;
-      hours: number;
-      description?: string;
-      date?: string;
-    },
+    @Body() body: LogTimeDto,
   ) {
     return this.timeTrackingService.logTime(userId, {
       taskId: body.taskId,
@@ -735,7 +740,7 @@ export class AgentsController {
   })
   async suggestTimeEntries(
     @CurrentWorkspace() workspaceId: string,
-    @Body() body: { projectId: string; userId: string },
+    @Body() body: SuggestTimeEntriesDto,
   ) {
     return this.timeTrackingService.suggestTimeEntries(
       workspaceId,

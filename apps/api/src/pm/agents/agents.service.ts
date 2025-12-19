@@ -1,7 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../common/services/prisma.service';
 import { AgentOSService } from '../../agentos/agentos.service';
 import { ConversationRole } from '@prisma/client';
+
+// Configuration constants
+const CONVERSATION_LIMITS = {
+  /** Maximum messages to fetch for context */
+  CONTEXT_LIMIT: 50,
+  /** Maximum messages to retain per conversation (project + agent) */
+  RETENTION_LIMIT: 100,
+  /** Days after which old messages are archived/deleted */
+  RETENTION_DAYS: 30,
+} as const;
 
 interface ChatParams {
   workspaceId: string;
@@ -130,7 +141,7 @@ export class AgentsService {
     agentName?: string;
     limit?: number;
   }) {
-    const { workspaceId, projectId, agentName, limit = 50 } = params;
+    const { workspaceId, projectId, agentName, limit = CONVERSATION_LIMITS.CONTEXT_LIMIT } = params;
 
     const where: any = {
       workspaceId,
@@ -157,7 +168,7 @@ export class AgentsService {
   }
 
   /**
-   * Load conversation history (last 50 messages, ordered chronologically)
+   * Load conversation history (limited messages, ordered chronologically)
    */
   private async loadConversationHistory(
     workspaceId: string,
@@ -171,7 +182,7 @@ export class AgentsService {
         agentName,
       },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: CONVERSATION_LIMITS.CONTEXT_LIMIT,
       select: {
         role: true,
         message: true,
@@ -181,6 +192,30 @@ export class AgentsService {
 
     // Reverse to get chronological order (oldest to newest)
     return conversations.reverse();
+  }
+
+  /**
+   * Cleanup old conversation messages to prevent unbounded growth
+   * Runs daily at 3 AM
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async cleanupOldConversations() {
+    this.logger.log('Running conversation history cleanup');
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - CONVERSATION_LIMITS.RETENTION_DAYS);
+
+    const result = await this.prisma.agentConversation.deleteMany({
+      where: {
+        createdAt: { lt: cutoffDate },
+      },
+    });
+
+    if (result.count > 0) {
+      this.logger.log(`Cleaned up ${result.count} old conversation messages`);
+    }
+
+    return result;
   }
 
   /**

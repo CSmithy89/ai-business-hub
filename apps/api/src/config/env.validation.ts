@@ -1,13 +1,13 @@
 import { plainToInstance } from 'class-transformer';
 import { IsEnum, IsNumber, IsOptional, IsString, validateSync } from 'class-validator';
 
-// eslint-disable-next-line no-unused-vars
+ 
 export enum Environment {
-  // eslint-disable-next-line no-unused-vars
+   
   Development = 'development',
-  // eslint-disable-next-line no-unused-vars
+   
   Production = 'production',
-  // eslint-disable-next-line no-unused-vars
+   
   Test = 'test',
 }
 
@@ -22,6 +22,15 @@ export class EnvironmentVariables {
 
   @IsString()
   FRONTEND_URL!: string;
+
+  /**
+   * Service token for agent-to-API authentication.
+   * Required for PM agents (Navi, Sage, Chrono) to call API endpoints.
+   * Generate with: openssl rand -hex 32
+   */
+  @IsOptional()
+  @IsString()
+  AGENT_SERVICE_TOKEN?: string;
 }
 
 export function validate(config: Record<string, unknown>) {

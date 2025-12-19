@@ -22,6 +22,7 @@ Usage:
 """
 
 import os
+import re
 from typing import Optional
 from agno.team import Team
 from agno.models.anthropic import Claude
@@ -31,6 +32,33 @@ from agno.memory import Memory
 from .navi import create_navi_agent
 from .sage import create_sage_agent
 from .chrono import create_chrono_agent
+
+# Validation pattern for workspace IDs (alphanumeric with underscores, max 64 chars)
+WORKSPACE_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_-]{1,64}$')
+
+
+def validate_workspace_id(workspace_id: str) -> str:
+    """Validate and sanitize workspace ID for use in table names.
+
+    Args:
+        workspace_id: Workspace identifier to validate
+
+    Returns:
+        Validated workspace ID
+
+    Raises:
+        ValueError: If workspace_id is invalid or potentially dangerous
+    """
+    if not workspace_id:
+        raise ValueError("workspace_id cannot be empty")
+
+    if not WORKSPACE_ID_PATTERN.match(workspace_id):
+        raise ValueError(
+            f"Invalid workspace_id format: '{workspace_id}'. "
+            "Must be alphanumeric with underscores/hyphens, max 64 characters."
+        )
+
+    return workspace_id
 
 
 def get_postgres_url() -> str:
@@ -81,11 +109,14 @@ def create_pm_team(
         # Ask Navi a question
         response = team.run("What tasks are due today?")
     """
+    # Validate workspace_id before using in table name
+    validated_workspace_id = validate_workspace_id(workspace_id)
+
     # Create shared memory for team context
     # Each workspace gets its own memory table for isolation
     shared_memory = Memory(
         db=PostgresStorage(
-            table_name=f"pm_agent_memory_{workspace_id}",
+            table_name=f"pm_agent_memory_{validated_workspace_id}",
             schema="agent_memory",
             db_url=get_postgres_url(),
         ),

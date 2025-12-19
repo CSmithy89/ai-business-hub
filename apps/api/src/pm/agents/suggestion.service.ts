@@ -8,8 +8,12 @@ import {
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../common/services/prisma.service';
 import { RealtimeGateway } from '../../realtime/realtime.gateway';
-import { SuggestionType, SuggestionStatus } from '@prisma/client';
+import { Prisma, SuggestionType, SuggestionStatus } from '@prisma/client';
 import { CreateSuggestionDto } from './dto/suggestion.dto';
+import { TIME_UNITS, SUGGESTION_SETTINGS } from './constants';
+
+// Type alias for Prisma transaction client
+type TransactionClient = Prisma.TransactionClient;
 
 @Injectable()
 export class SuggestionService {
@@ -37,7 +41,7 @@ export class SuggestionService {
         confidence: params.confidence,
         priority: params.priority || 'medium',
         actionPayload: params.actionPayload,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        expiresAt: new Date(Date.now() + SUGGESTION_SETTINGS.EXPIRY_HOURS * TIME_UNITS.HOUR_MS),
       },
     });
 
@@ -103,39 +107,50 @@ export class SuggestionService {
     userId: string,
     modifications?: Record<string, any>,
   ) {
-    const suggestion = await this.prisma.agentSuggestion.findUnique({
-      where: { id: suggestionId },
+    // Use transaction to ensure atomicity: status update + action execution
+    // If execution fails, the suggestion status won't be changed
+    const result = await this.prisma.$transaction(async (tx) => {
+      const suggestion = await tx.agentSuggestion.findUnique({
+        where: { id: suggestionId },
+      });
+
+      if (!suggestion) {
+        throw new NotFoundException('Suggestion not found');
+      }
+
+      if (suggestion.workspaceId !== workspaceId) {
+        throw new ForbiddenException('Access denied');
+      }
+
+      if (suggestion.status !== SuggestionStatus.PENDING) {
+        throw new BadRequestException('Suggestion already processed');
+      }
+
+      // Apply modifications if provided
+      const basePayload = suggestion.actionPayload as Record<string, any>;
+      const finalPayload = modifications
+        ? { ...basePayload, ...modifications }
+        : basePayload;
+
+      // Execute the suggested action FIRST (within transaction)
+      // This ensures we only mark as accepted if execution succeeds
+      const executionResult = await this.executeSuggestionInTransaction(
+        tx,
+        suggestion,
+        finalPayload,
+      );
+
+      // Update status only after successful execution
+      await tx.agentSuggestion.update({
+        where: { id: suggestionId },
+        data: {
+          status: SuggestionStatus.ACCEPTED,
+          acceptedAt: new Date(),
+        },
+      });
+
+      return executionResult;
     });
-
-    if (!suggestion) {
-      throw new NotFoundException('Suggestion not found');
-    }
-
-    if (suggestion.workspaceId !== workspaceId) {
-      throw new ForbiddenException('Access denied');
-    }
-
-    if (suggestion.status !== SuggestionStatus.PENDING) {
-      throw new BadRequestException('Suggestion already processed');
-    }
-
-    // Update status
-    await this.prisma.agentSuggestion.update({
-      where: { id: suggestionId },
-      data: {
-        status: SuggestionStatus.ACCEPTED,
-        acceptedAt: new Date(),
-      },
-    });
-
-    // Apply modifications if provided
-    const basePayload = suggestion.actionPayload as Record<string, any>;
-    const finalPayload = modifications
-      ? { ...basePayload, ...modifications }
-      : basePayload;
-
-    // Execute the suggested action
-    const result = await this.executeSuggestion(suggestion, finalPayload);
 
     // TODO: Publish event via EventPublisherService
     // await this.eventPublisher.publish(...)
@@ -218,7 +233,7 @@ export class SuggestionService {
       where: { id: suggestionId },
       data: {
         status: SuggestionStatus.SNOOZED,
-        snoozedUntil: new Date(Date.now() + hours * 60 * 60 * 1000),
+        snoozedUntil: new Date(Date.now() + hours * TIME_UNITS.HOUR_MS),
       },
     });
 
@@ -230,7 +245,7 @@ export class SuggestionService {
   }
 
   /**
-   * Execute the suggested action
+   * Execute the suggested action (standalone - used when not in transaction)
    */
   private async executeSuggestion(
     suggestion: any,
@@ -257,6 +272,134 @@ export class SuggestionService {
           `Unknown suggestion type: ${suggestion.suggestionType}`,
         );
     }
+  }
+
+  /**
+   * Execute the suggested action within a transaction
+   * This version accepts a transaction client for atomicity
+   */
+  private async executeSuggestionInTransaction(
+    tx: TransactionClient,
+    suggestion: any,
+    payload: Record<string, any>,
+  ) {
+    switch (suggestion.suggestionType) {
+      case SuggestionType.CREATE_TASK:
+        return this.executeCreateTaskInTx(tx, suggestion, payload);
+
+      case SuggestionType.UPDATE_TASK:
+        return this.executeUpdateTaskInTx(tx, suggestion, payload);
+
+      case SuggestionType.ASSIGN_TASK:
+        return this.executeAssignTaskInTx(tx, suggestion, payload);
+
+      case SuggestionType.MOVE_PHASE:
+        return this.executeMovePhaseInTx(tx, suggestion, payload);
+
+      case SuggestionType.SET_PRIORITY:
+        return this.executeSetPriorityInTx(tx, suggestion, payload);
+
+      default:
+        throw new BadRequestException(
+          `Unknown suggestion type: ${suggestion.suggestionType}`,
+        );
+    }
+  }
+
+  /**
+   * Transaction-aware task creation
+   */
+  private async executeCreateTaskInTx(
+    tx: TransactionClient,
+    suggestion: any,
+    payload: any,
+  ) {
+    const { projectId, workspaceId } = suggestion;
+    const { title, description, phaseId, priority, assigneeId } = payload;
+
+    // Get the next task number atomically within the transaction
+    const last = await tx.task.findFirst({
+      where: { projectId },
+      orderBy: { taskNumber: 'desc' },
+      select: { taskNumber: true },
+    });
+
+    const taskNumber = (last?.taskNumber ?? 0) + 1;
+
+    return tx.task.create({
+      data: {
+        workspaceId,
+        projectId,
+        phaseId,
+        title,
+        description,
+        priority: priority || 'MEDIUM',
+        assigneeId,
+        taskNumber,
+        status: 'TODO',
+        createdBy: suggestion.userId,
+      },
+    });
+  }
+
+  /**
+   * Transaction-aware task update
+   */
+  private async executeUpdateTaskInTx(
+    tx: TransactionClient,
+    _suggestion: any,
+    payload: any,
+  ) {
+    const { taskId, changes } = payload;
+    return tx.task.update({
+      where: { id: taskId },
+      data: changes,
+    });
+  }
+
+  /**
+   * Transaction-aware task assignment
+   */
+  private async executeAssignTaskInTx(
+    tx: TransactionClient,
+    _suggestion: any,
+    payload: any,
+  ) {
+    const { taskId, assigneeId } = payload;
+    return tx.task.update({
+      where: { id: taskId },
+      data: { assigneeId },
+    });
+  }
+
+  /**
+   * Transaction-aware phase move
+   */
+  private async executeMovePhaseInTx(
+    tx: TransactionClient,
+    _suggestion: any,
+    payload: any,
+  ) {
+    const { taskId, phaseId } = payload;
+    return tx.task.update({
+      where: { id: taskId },
+      data: { phaseId },
+    });
+  }
+
+  /**
+   * Transaction-aware priority update
+   */
+  private async executeSetPriorityInTx(
+    tx: TransactionClient,
+    _suggestion: any,
+    payload: any,
+  ) {
+    const { taskId, priority } = payload;
+    return tx.task.update({
+      where: { id: taskId },
+      data: { priority },
+    });
   }
 
   private async executeCreateTask(suggestion: any, payload: any) {

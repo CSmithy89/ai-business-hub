@@ -104,6 +104,11 @@ def stop_timer(
         }
 
 
+# Validation constants
+MIN_HOURS = 0.25  # 15 minutes minimum
+MAX_HOURS = 24.0  # 24 hours maximum per entry
+
+
 @tool
 def log_time(
     task_id: str,
@@ -118,13 +123,25 @@ def log_time(
     Args:
         task_id: Task ID to log time for
         workspace_id: Workspace ID for multi-tenant scoping
-        hours: Hours to log (minimum 0.25h)
+        hours: Hours to log (minimum 0.25h, maximum 24h)
         description: Optional description of work done
         date: Optional date for the entry (ISO format YYYY-MM-DD, defaults to today)
 
     Returns:
         Created time entry
     """
+    # Client-side validation for defense in depth
+    if hours < MIN_HOURS:
+        return {
+            "error": "Invalid hours value",
+            "message": f"Minimum time is {MIN_HOURS} hours (15 minutes).",
+        }
+    if hours > MAX_HOURS:
+        return {
+            "error": "Invalid hours value",
+            "message": f"Maximum time per entry is {MAX_HOURS} hours.",
+        }
+
     try:
         url = f"{API_BASE_URL}/api/pm/agents/time/log"
         headers = get_auth_headers(workspace_id)
