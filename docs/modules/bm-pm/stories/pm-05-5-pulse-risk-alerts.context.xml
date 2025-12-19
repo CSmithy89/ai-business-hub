@@ -1,0 +1,882 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>PM-05.5</story-id>
+    <title>Pulse Risk Alerts</title>
+    <epic>PM-05 - AI Team: Scope, Pulse, Herald</epic>
+    <status>in-progress</status>
+    <points>5</points>
+    <generated-at>2025-12-20</generated-at>
+  </metadata>
+
+  <story-summary>
+    <description>
+      Build risk alert UI components that surface detected risks from the Pulse health monitoring agent.
+      Includes a prominent risk alert banner for critical/high risks, a slide-out panel for viewing all risks,
+      and workflows for acknowledging and resolving risks.
+    </description>
+    <user-value>
+      Project managers can quickly see and respond to project health issues through visual risk alerts
+      and actionable workflows.
+    </user-value>
+  </story-summary>
+
+  <technical-approach>
+    <overview>
+      Create three main React components using shadcn/ui patterns:
+      1. RiskAlertBanner - Top-of-page banner for critical/high risks
+      2. RiskListPanel - Slide-out sheet showing all active and resolved risks
+      3. RiskCard - Individual risk display with action buttons
+
+      Integrate with existing Health API from PM-05.4 for fetching risks and updating status.
+      Use React Query for data fetching and optimistic updates.
+      Support real-time updates via WebSocket when available.
+    </overview>
+
+    <key-components>
+      <component>
+        <name>RiskAlertBanner</name>
+        <path>apps/web/src/components/pm/health/RiskAlertBanner.tsx</path>
+        <purpose>Display prominent alert at top of project page for critical/high risks</purpose>
+        <features>
+          - Severity-based color coding (red for critical, orange for high)
+          - Risk count badge
+          - Primary risk title
+          - "View Details" button to open RiskListPanel
+          - Dismissible (session-based)
+        </features>
+      </component>
+
+      <component>
+        <name>RiskListPanel</name>
+        <path>apps/web/src/components/pm/health/RiskListPanel.tsx</path>
+        <purpose>Slide-out panel showing all project risks</purpose>
+        <features>
+          - Tabbed interface (Active / Resolved)
+          - Lists all risks using RiskCard component
+          - Empty states for no risks
+          - Real-time updates via React Query
+          - Action handlers for acknowledge/resolve
+        </features>
+      </component>
+
+      <component>
+        <name>RiskCard</name>
+        <path>apps/web/src/components/pm/health/RiskCard.tsx</path>
+        <purpose>Display individual risk with details and actions</purpose>
+        <features>
+          - Severity badge with color coding
+          - Risk type label (Deadline Warning, Blocker Chain, etc.)
+          - Expandable details (click chevron to expand/collapse)
+          - Affected tasks count
+          - Acknowledgment status badge
+          - Action buttons (Acknowledge, Mark Resolved)
+          - Read-only mode for resolved risks
+        </features>
+      </component>
+
+      <component>
+        <name>useRiskSubscription</name>
+        <path>apps/web/src/components/pm/health/useRiskSubscription.ts</path>
+        <purpose>React hook for WebSocket real-time risk updates</purpose>
+        <features>
+          - Subscribe to project health events
+          - Invalidate queries on health updates
+          - Show toast notifications for new alerts
+          - Cleanup on unmount
+        </features>
+      </component>
+    </key-components>
+
+    <api-integration>
+      <endpoint>
+        <method>GET</method>
+        <path>/api/pm/agents/health/:projectId/risks</path>
+        <purpose>Fetch all risks for project</purpose>
+        <response>
+          Array of RiskEntry objects with:
+          - id, severity, riskType, title, description
+          - affectedTasks[], affectedUsers[]
+          - status, detectedAt, acknowledgedBy, acknowledgedAt, resolvedAt
+        </response>
+        <implementation-status>Completed in PM-05.4</implementation-status>
+      </endpoint>
+
+      <endpoint>
+        <method>POST</method>
+        <path>/api/pm/agents/health/:projectId/risks/:riskId/acknowledge</path>
+        <purpose>Acknowledge a risk (status: IDENTIFIED → ANALYZING)</purpose>
+        <response>Updated RiskEntry with acknowledgedBy and acknowledgedAt</response>
+        <implementation-status>Completed in PM-05.4</implementation-status>
+      </endpoint>
+
+      <endpoint>
+        <method>POST</method>
+        <path>/api/pm/agents/health/:projectId/risks/:riskId/resolve</path>
+        <purpose>Resolve a risk (status: → RESOLVED)</purpose>
+        <response>Updated RiskEntry with resolvedAt timestamp</response>
+        <implementation-status>Completed in PM-05.4</implementation-status>
+      </endpoint>
+    </api-integration>
+
+    <websocket-events>
+      <event>
+        <name>health:updated</name>
+        <trigger>Pulse completes health check</trigger>
+        <payload>{ projectId, healthScore, riskCount }</payload>
+        <handler>Invalidate health and risk queries to refetch data</handler>
+      </event>
+
+      <event>
+        <name>health:alert</name>
+        <trigger>New critical/high risk detected</trigger>
+        <payload>{ severity, message, risks[] }</payload>
+        <handler>Show toast notification and invalidate risk queries</handler>
+      </event>
+    </websocket-events>
+  </technical-approach>
+
+  <existing-infrastructure>
+    <backend-services>
+      <service>
+        <name>HealthService</name>
+        <path>apps/api/src/pm/agents/health.service.ts</path>
+        <description>
+          Implements health score calculation and risk detection.
+          Methods: runHealthCheck(), getActiveRisks(), acknowledgeRisk(), resolveRisk()
+        </description>
+        <status>Implemented in PM-05.4</status>
+      </service>
+
+      <service>
+        <name>HealthController</name>
+        <path>apps/api/src/pm/agents/health.controller.ts</path>
+        <description>
+          API endpoints for health and risk operations.
+          Endpoints: GET /:projectId/risks, POST /:projectId/risks/:riskId/acknowledge, POST /:projectId/risks/:riskId/resolve
+        </description>
+        <status>Implemented in PM-05.4</status>
+      </service>
+
+      <service>
+        <name>HealthCheckCron</name>
+        <path>apps/api/src/pm/agents/health.cron.ts</path>
+        <description>
+          Scheduled cron job that runs health checks every 15 minutes.
+          Triggers risk detection and creates RiskEntry records.
+        </description>
+        <status>Implemented in PM-05.4</status>
+      </service>
+    </backend-services>
+
+    <database-models>
+      <model>
+        <name>RiskEntry</name>
+        <table>risk_entries</table>
+        <fields>
+          - id: string (cuid)
+          - workspaceId: string
+          - projectId: string
+          - riskType: string (DEADLINE_WARNING, BLOCKER_CHAIN, CAPACITY_OVERLOAD, VELOCITY_DROP)
+          - severity: RiskSeverity (LOW, MEDIUM, HIGH, CRITICAL)
+          - title: string
+          - description: text
+          - affectedTasks: string[] (array of task IDs)
+          - affectedUsers: string[] (array of user IDs)
+          - status: RiskStatus (IDENTIFIED, ANALYZING, RESOLVED, MITIGATED)
+          - detectedAt: timestamp
+          - acknowledgedBy: string (nullable)
+          - acknowledgedAt: timestamp (nullable)
+          - resolvedAt: timestamp (nullable)
+          - createdBy: string
+          - createdAt: timestamp
+          - updatedAt: timestamp
+        </fields>
+        <status>Implemented in PM-05.4</status>
+      </model>
+
+      <model>
+        <name>HealthScore</name>
+        <table>health_scores</table>
+        <fields>
+          - id: string (cuid)
+          - workspaceId: string
+          - projectId: string
+          - score: int (0-100)
+          - level: HealthLevel (EXCELLENT, GOOD, WARNING, CRITICAL)
+          - trend: HealthTrend (IMPROVING, STABLE, DECLINING)
+          - onTimeDelivery: float (0-1)
+          - blockerImpact: float (0-1)
+          - teamCapacity: float (0-1)
+          - velocityTrend: float (0-1)
+          - riskCount: int
+          - explanation: text
+          - calculatedAt: timestamp
+        </fields>
+        <status>Implemented in PM-05.4</status>
+      </model>
+
+      <model>
+        <name>Project</name>
+        <table>projects</table>
+        <extended-fields>
+          - healthScore: int (nullable) - Latest health score
+          - lastHealthCheck: timestamp (nullable) - Last health check time
+        </extended-fields>
+        <status>Extended in PM-05.4</status>
+      </model>
+    </database-models>
+
+    <ui-components>
+      <component>
+        <name>Sheet</name>
+        <library>shadcn/ui</library>
+        <purpose>Slide-out panel for RiskListPanel</purpose>
+        <command>npx shadcn@latest add sheet</command>
+      </component>
+
+      <component>
+        <name>Tabs</name>
+        <library>shadcn/ui</library>
+        <purpose>Active/Resolved risk tabs in RiskListPanel</purpose>
+        <command>npx shadcn@latest add tabs</command>
+      </component>
+
+      <component>
+        <name>Card</name>
+        <library>shadcn/ui</library>
+        <purpose>Risk card container</purpose>
+        <status>Already available</status>
+      </component>
+
+      <component>
+        <name>Badge</name>
+        <library>shadcn/ui</library>
+        <purpose>Severity and status badges</purpose>
+        <status>Already available</status>
+      </component>
+
+      <component>
+        <name>Button</name>
+        <library>shadcn/ui</library>
+        <purpose>Action buttons</purpose>
+        <status>Already available</status>
+      </component>
+    </ui-components>
+  </existing-infrastructure>
+
+  <design-decisions>
+    <decision>
+      <topic>Risk Severity Color Scheme</topic>
+      <choice>
+        Use semantic colors matching health widget:
+        - CRITICAL: Red (bg-red-50, border-red-200, text-red-600)
+        - HIGH: Orange (bg-orange-50, border-orange-200, text-orange-600)
+        - MEDIUM: Yellow (bg-yellow-50, border-yellow-200, text-yellow-600)
+        - LOW: Blue (bg-blue-50, border-blue-200, text-blue-600)
+      </choice>
+      <rationale>
+        Consistent with HealthWidget color coding from PM-05.4.
+        Provides clear visual hierarchy and immediate severity recognition.
+      </rationale>
+    </decision>
+
+    <decision>
+      <topic>Banner Visibility Logic</topic>
+      <choice>Only display banner for CRITICAL or HIGH severity risks</choice>
+      <rationale>
+        Reduces alert fatigue - only shows banner for actionable issues.
+        Medium/low risks still visible in RiskListPanel but don't interrupt workflow.
+      </rationale>
+    </decision>
+
+    <decision>
+      <topic>Banner Dismissal</topic>
+      <choice>Session-based dismissal (not persistent)</choice>
+      <rationale>
+        Allows users to dismiss banner during current session for focus.
+        Banner returns on page refresh if risks still active.
+        Prevents users from permanently hiding critical information.
+      </rationale>
+    </decision>
+
+    <decision>
+      <topic>Risk Status Flow</topic>
+      <choice>IDENTIFIED → ANALYZING (acknowledge) → RESOLVED (resolve)</choice>
+      <rationale>
+        Two-step workflow provides clear tracking:
+        - Acknowledge: "I've seen this and am working on it"
+        - Resolve: "This issue is fixed"
+        Matches existing RiskStatus enum from PM-05.4.
+      </rationale>
+    </decision>
+
+    <decision>
+      <topic>Risk List Organization</topic>
+      <choice>Tabbed interface (Active / Resolved)</choice>
+      <rationale>
+        Separates actionable risks from completed ones.
+        Keeps UI clean while maintaining history.
+        Standard pattern for status-based filtering.
+      </rationale>
+    </decision>
+
+    <decision>
+      <topic>Risk Card Expansion</topic>
+      <choice>Collapsed by default, expand on chevron click</choice>
+      <rationale>
+        Allows scanning many risks quickly in list view.
+        Details available on-demand without cluttering UI.
+        Reduces cognitive load when viewing multiple risks.
+      </rationale>
+    </decision>
+
+    <decision>
+      <topic>Real-Time Updates</topic>
+      <choice>Optional WebSocket integration via useRiskSubscription hook</choice>
+      <rationale>
+        Enables live updates when WebSocket available (PM-06).
+        Gracefully degrades to polling if WebSocket not yet implemented.
+        Hook encapsulates WebSocket logic for reusability.
+      </rationale>
+    </decision>
+  </design-decisions>
+
+  <risk-types>
+    <type>
+      <name>DEADLINE_WARNING</name>
+      <description>Tasks due within 48 hours</description>
+      <severity-logic>
+        - 1-3 tasks: MEDIUM
+        - 4-5 tasks: HIGH
+        - 6+ tasks: CRITICAL
+      </severity-logic>
+      <icon>Clock</icon>
+      <label>Deadline Warning</label>
+    </type>
+
+    <type>
+      <name>CAPACITY_OVERLOAD</name>
+      <description>Team member assigned more than 40 hours</description>
+      <severity-logic>
+        - 40-50 hours: MEDIUM
+        - 50-60 hours: HIGH
+        - 60+ hours: CRITICAL
+      </severity-logic>
+      <icon>Users</icon>
+      <label>Capacity Overload</label>
+    </type>
+
+    <type>
+      <name>BLOCKER_CHAIN</name>
+      <description>3+ tasks blocked by same dependency</description>
+      <severity-logic>
+        - 3-4 tasks: MEDIUM
+        - 5-7 tasks: HIGH
+        - 8+ tasks: CRITICAL
+      </severity-logic>
+      <icon>AlertTriangle</icon>
+      <label>Blocker Chain</label>
+      <note>Detection requires task dependency implementation (not yet available)</note>
+    </type>
+
+    <type>
+      <name>VELOCITY_DROP</name>
+      <description>Velocity 30%+ below baseline</description>
+      <severity-logic>
+        - 30-40% drop: MEDIUM
+        - 40-50% drop: HIGH
+        - 50%+ drop: CRITICAL
+      </severity-logic>
+      <icon>TrendingDown</icon>
+      <label>Velocity Drop</label>
+    </type>
+
+    <type>
+      <name>SCOPE_CREEP</name>
+      <description>Scope increased significantly during phase</description>
+      <severity-logic>
+        - 10-20% increase: MEDIUM
+        - 20-30% increase: HIGH
+        - 30%+ increase: CRITICAL
+      </severity-logic>
+      <icon>AlertCircle</icon>
+      <label>Scope Creep</label>
+      <note>Detection requires PhaseSnapshot data (PM-05.7)</note>
+    </type>
+  </risk-types>
+
+  <user-workflows>
+    <workflow>
+      <name>View Risk Alert</name>
+      <steps>
+        1. User navigates to project page
+        2. System detects critical/high risks from Pulse
+        3. RiskAlertBanner displays at top of page
+        4. User sees:
+           - Severity badge (CRITICAL or HIGH)
+           - Risk count badge
+           - Primary risk title
+           - "View Details" button
+        5. User can click "View Details" to open RiskListPanel
+        6. User can click "X" to dismiss banner (session-based)
+      </steps>
+    </workflow>
+
+    <workflow>
+      <name>Review All Risks</name>
+      <steps>
+        1. User clicks "View Details" on RiskAlertBanner
+        2. RiskListPanel slides out from right
+        3. Active Risks tab shows by default
+        4. User sees all active risks sorted by severity
+        5. User can expand any risk card to see details
+        6. User can switch to Resolved tab to see history
+        7. User can close panel with X button or click outside
+      </steps>
+    </workflow>
+
+    <workflow>
+      <name>Acknowledge Risk</name>
+      <steps>
+        1. User views risk in RiskListPanel (status: IDENTIFIED)
+        2. User clicks "Acknowledge" button
+        3. System calls POST /risks/:id/acknowledge
+        4. Risk status updates to ANALYZING
+        5. "Acknowledged" badge appears on risk card
+        6. Acknowledgment metadata shows (user name, timestamp)
+        7. Risk remains in Active Risks tab
+        8. "Acknowledge" button hidden, "Mark Resolved" still available
+      </steps>
+    </workflow>
+
+    <workflow>
+      <name>Resolve Risk</name>
+      <steps>
+        1. User has addressed the underlying issue
+        2. User clicks "Mark Resolved" button on risk card
+        3. System calls POST /risks/:id/resolve
+        4. Risk status updates to RESOLVED
+        5. Risk moves from Active to Resolved tab
+        6. "Resolved" badge appears with checkmark icon
+        7. Resolution timestamp displayed
+        8. Risk count badge decrements
+        9. Success toast notification shown
+        10. If no more critical/high risks, alert banner disappears
+      </steps>
+    </workflow>
+
+    <workflow>
+      <name>Real-Time Risk Update</name>
+      <steps>
+        1. Pulse cron job runs (every 15 minutes)
+        2. New risk detected (e.g., task now due in 48h)
+        3. HealthService creates RiskEntry record
+        4. WebSocket emits 'health:alert' event
+        5. useRiskSubscription hook receives event
+        6. Hook invalidates React Query cache
+        7. Risk queries refetch automatically
+        8. New risk appears in RiskListPanel
+        9. Toast notification shown: "New Risk Detected"
+        10. If critical/high, RiskAlertBanner appears (if not dismissed)
+      </steps>
+    </workflow>
+  </user-workflows>
+
+  <styling-constants>
+    <severity-colors>
+      <critical>
+        <bg>bg-red-50</bg>
+        <border>border-red-200</border>
+        <text>text-red-900</text>
+        <badge>bg-red-600 text-white</badge>
+        <icon>text-red-600</icon>
+      </critical>
+
+      <high>
+        <bg>bg-orange-50</bg>
+        <border>border-orange-200</border>
+        <text>text-orange-900</text>
+        <badge>bg-orange-600 text-white</badge>
+        <icon>text-orange-600</icon>
+      </high>
+
+      <medium>
+        <bg>bg-yellow-50</bg>
+        <border>border-yellow-200</border>
+        <text>text-yellow-900</text>
+        <badge>bg-yellow-600 text-white</badge>
+        <icon>text-yellow-600</icon>
+      </medium>
+
+      <low>
+        <bg>bg-blue-50</bg>
+        <border>border-blue-200</border>
+        <text>text-blue-900</text>
+        <badge>bg-blue-600 text-white</badge>
+        <icon>text-blue-600</icon>
+      </low>
+    </severity-colors>
+
+    <status-colors>
+      <identified>
+        <badge>variant="outline"</badge>
+        <text>text-muted-foreground</text>
+      </identified>
+
+      <analyzing>
+        <badge>variant="secondary"</badge>
+        <text>text-foreground</text>
+      </analyzing>
+
+      <resolved>
+        <badge>bg-green-600 text-white</badge>
+        <text>text-green-900</text>
+        <bg>bg-green-50</bg>
+      </resolved>
+    </status-colors>
+  </styling-constants>
+
+  <accessibility>
+    <requirement>
+      <name>Semantic HTML</name>
+      <implementation>
+        - Use &lt;button&gt; for all interactive elements
+        - Use &lt;article&gt; for risk cards
+        - Use appropriate heading levels (&lt;h2&gt;, &lt;h3&gt;)
+      </implementation>
+    </requirement>
+
+    <requirement>
+      <name>ARIA Labels</name>
+      <implementation>
+        - aria-label="Close risk alert banner" on dismiss button
+        - aria-label="View risk details" on expand button
+        - aria-label="Acknowledge risk" on acknowledge button
+        - aria-label="Mark risk as resolved" on resolve button
+        - aria-live="polite" on risk count badge for screen reader updates
+      </implementation>
+    </requirement>
+
+    <requirement>
+      <name>Keyboard Navigation</name>
+      <implementation>
+        - All buttons keyboard accessible (Tab, Enter, Space)
+        - Sheet closes on Escape key
+        - Focus trap in RiskListPanel when open
+        - Focus returns to trigger button when panel closes
+      </implementation>
+    </requirement>
+
+    <requirement>
+      <name>Color Contrast</name>
+      <implementation>
+        - Severity badges meet WCAG AAA standards (4.5:1 contrast)
+        - Text on colored backgrounds meets WCAG AA (3:1 minimum)
+        - Don't rely solely on color - use icons and text labels
+      </implementation>
+    </requirement>
+
+    <requirement>
+      <name>Screen Reader Support</name>
+      <implementation>
+        - Severity announced as text, not just color
+        - Risk count announced: "3 critical risks detected"
+        - Status changes announced: "Risk acknowledged by John Doe"
+        - Live updates announced via aria-live regions
+      </implementation>
+    </requirement>
+  </accessibility>
+
+  <responsive-design>
+    <breakpoint>
+      <size>mobile (max-width: 640px)</size>
+      <adjustments>
+        - RiskAlertBanner stacks vertically (title above button)
+        - RiskListPanel full-width overlay (not slide-out)
+        - RiskCard text sizes reduced (text-sm for description)
+        - Action buttons stack vertically
+        - Risk metadata grid becomes single column
+      </adjustments>
+    </breakpoint>
+
+    <breakpoint>
+      <size>tablet (640px - 1024px)</size>
+      <adjustments>
+        - RiskAlertBanner horizontal layout maintained
+        - RiskListPanel max-width 80% of viewport
+        - RiskCard maintains two-column metadata grid
+        - Action buttons side-by-side
+      </adjustments>
+    </breakpoint>
+
+    <breakpoint>
+      <size>desktop (1024px+)</size>
+      <adjustments>
+        - RiskAlertBanner max-width contained to content area
+        - RiskListPanel max-width 40rem (640px)
+        - RiskCard full details visible
+        - Hover states on interactive elements
+      </adjustments>
+    </breakpoint>
+  </responsive-design>
+
+  <testing-strategy>
+    <unit-tests>
+      <test-file>apps/web/src/components/pm/health/RiskAlertBanner.spec.tsx</test-file>
+      <cases>
+        - Displays banner only for CRITICAL/HIGH severity risks
+        - Hides banner when no critical/high risks present
+        - Shows correct risk count badge
+        - Shows primary risk title
+        - Opens RiskListPanel when "View Details" clicked
+        - Hides banner when dismissed
+        - Banner reappears on component remount if risks still present
+        - Applies correct severity styling (red for critical, orange for high)
+      </cases>
+    </unit-tests>
+
+    <unit-tests>
+      <test-file>apps/web/src/components/pm/health/RiskListPanel.spec.tsx</test-file>
+      <cases>
+        - Fetches risks on mount
+        - Shows loading state while fetching
+        - Displays active risks in Active tab
+        - Displays resolved risks in Resolved tab
+        - Shows empty state when no risks
+        - Calls acknowledgeRisk mutation on acknowledge button click
+        - Calls resolveRisk mutation on resolve button click
+        - Invalidates queries after successful mutation
+        - Closes panel when close button clicked
+        - Closes panel when clicking outside (Sheet behavior)
+      </cases>
+    </unit-tests>
+
+    <unit-tests>
+      <test-file>apps/web/src/components/pm/health/RiskCard.spec.tsx</test-file>
+      <cases>
+        - Displays risk title and severity badge
+        - Shows risk type label correctly
+        - Expands/collapses on chevron click
+        - Shows affected tasks count
+        - Displays acknowledgment badge when acknowledged
+        - Shows resolved badge when resolved
+        - Disables action buttons when loading
+        - Hides action buttons in read-only mode
+        - Applies correct severity color scheme
+        - Formats timestamps correctly (date-fns format)
+      </cases>
+    </unit-tests>
+
+    <integration-tests>
+      <test-file>apps/web/e2e/pm/health/risk-alerts.spec.ts</test-file>
+      <scenarios>
+        <scenario>
+          <name>View risk alert banner</name>
+          <steps>
+            1. Create project with critical risk
+            2. Navigate to project page
+            3. Verify banner displays with correct severity
+            4. Verify risk count badge shows "1 risk"
+            5. Verify primary risk title displayed
+          </steps>
+        </scenario>
+
+        <scenario>
+          <name>Open risk list panel</name>
+          <steps>
+            1. Click "View Details" button on banner
+            2. Verify RiskListPanel slides in from right
+            3. Verify Active Risks tab selected by default
+            4. Verify risk cards displayed for all active risks
+            5. Verify risks sorted by severity (critical first)
+          </steps>
+        </scenario>
+
+        <scenario>
+          <name>Acknowledge risk</name>
+          <steps>
+            1. Open RiskListPanel
+            2. Expand first risk card
+            3. Click "Acknowledge" button
+            4. Verify API call to /risks/:id/acknowledge
+            5. Verify "Acknowledged" badge appears
+            6. Verify acknowledgment metadata displayed
+            7. Verify "Acknowledge" button hidden
+          </steps>
+        </scenario>
+
+        <scenario>
+          <name>Resolve risk</name>
+          <steps>
+            1. Open RiskListPanel
+            2. Click "Mark Resolved" on risk card
+            3. Verify API call to /risks/:id/resolve
+            4. Verify risk moves to Resolved tab
+            5. Verify "Resolved" badge with checkmark
+            6. Verify resolution timestamp displayed
+            7. Verify risk count decrements
+            8. Verify success toast notification
+          </steps>
+        </scenario>
+
+        <scenario>
+          <name>Dismiss alert banner</name>
+          <steps>
+            1. Verify banner displayed for critical risk
+            2. Click X button to dismiss
+            3. Verify banner disappears
+            4. Refresh page
+            5. Verify banner reappears (not permanently dismissed)
+          </steps>
+        </scenario>
+
+        <scenario>
+          <name>Real-time risk update</name>
+          <steps>
+            1. Open project page with RiskListPanel open
+            2. Trigger health check (backend creates new risk)
+            3. Verify WebSocket event received
+            4. Verify new risk appears in list without refresh
+            5. Verify toast notification shown
+            6. Verify risk count badge updates
+          </steps>
+        </scenario>
+
+        <scenario>
+          <name>Empty state handling</name>
+          <steps>
+            1. Create project with no risks
+            2. Navigate to project page
+            3. Verify no alert banner displayed
+            4. Open RiskListPanel manually (via health widget)
+            5. Verify empty state message: "No active risks detected"
+            6. Verify subtext: "Your project health looks good!"
+          </steps>
+        </scenario>
+
+        <scenario>
+          <name>Mobile responsive design</name>
+          <steps>
+            1. Set viewport to mobile (375px width)
+            2. Verify banner stacks vertically
+            3. Open RiskListPanel
+            4. Verify panel full-width overlay
+            5. Verify risk cards readable on small screen
+            6. Verify action buttons stack vertically
+          </steps>
+        </scenario>
+      </scenarios>
+    </integration-tests>
+  </testing-strategy>
+
+  <implementation-checklist>
+    <phase name="Component Development">
+      <task>Create RiskAlertBanner.tsx with severity-based display logic</task>
+      <task>Create RiskListPanel.tsx with tabbed interface</task>
+      <task>Create RiskCard.tsx with expandable details</task>
+      <task>Create useRiskSubscription.ts hook for WebSocket</task>
+      <task>Add shadcn Sheet component if not available</task>
+      <task>Add shadcn Tabs component if not available</task>
+    </phase>
+
+    <phase name="Integration">
+      <task>Integrate RiskAlertBanner into project layout</task>
+      <task>Connect components to Health API endpoints</task>
+      <task>Set up React Query for risk data fetching</task>
+      <task>Implement optimistic updates for mutations</task>
+      <task>Add WebSocket event listeners (optional if PM-06 not ready)</task>
+    </phase>
+
+    <phase name="Styling">
+      <task>Apply severity color scheme consistently</task>
+      <task>Implement responsive breakpoints (mobile, tablet, desktop)</task>
+      <task>Add dark mode support for all components</task>
+      <task>Verify color contrast meets WCAG AA standards</task>
+      <task>Test hover and focus states</task>
+    </phase>
+
+    <phase name="Accessibility">
+      <task>Add ARIA labels to all interactive elements</task>
+      <task>Implement keyboard navigation (Tab, Enter, Escape)</task>
+      <task>Add focus trap to RiskListPanel</task>
+      <task>Test with screen reader (NVDA or JAWS)</task>
+      <task>Verify semantic HTML structure</task>
+    </phase>
+
+    <phase name="Testing">
+      <task>Write unit tests for RiskAlertBanner</task>
+      <task>Write unit tests for RiskListPanel</task>
+      <task>Write unit tests for RiskCard</task>
+      <task>Write integration tests for risk workflows</task>
+      <task>Write E2E tests for user scenarios</task>
+      <task>Test real-time updates (if WebSocket available)</task>
+    </phase>
+
+    <phase name="Documentation">
+      <task>Document component props and usage</task>
+      <task>Add Storybook stories for components</task>
+      <task>Document risk workflow for users</task>
+      <task>Update architecture docs with new components</task>
+    </phase>
+  </implementation-checklist>
+
+  <dependencies>
+    <prerequisite>
+      <story>PM-05.4 - Pulse Health Agent</story>
+      <reason>Provides Health API endpoints and risk detection logic</reason>
+      <status>Complete</status>
+    </prerequisite>
+
+    <prerequisite>
+      <story>PM-01 - Project Management</story>
+      <reason>Provides project context and layout</reason>
+      <status>Complete</status>
+    </prerequisite>
+
+    <prerequisite>
+      <story>PM-02 - Task Management</story>
+      <reason>Affected tasks referenced in risk details</reason>
+      <status>Complete</status>
+    </prerequisite>
+
+    <optional>
+      <story>PM-06 - Real-Time & Notifications</story>
+      <reason>WebSocket for real-time risk updates</reason>
+      <status>Not started</status>
+      <fallback>Polling with React Query refetchInterval</fallback>
+    </optional>
+  </dependencies>
+
+  <related-documentation>
+    <document>
+      <name>Epic PM-05 Technical Specification</name>
+      <path>docs/modules/bm-pm/epics/epic-pm-05-tech-spec.md</path>
+      <relevance>Overall architecture for Pulse agent and health monitoring</relevance>
+    </document>
+
+    <document>
+      <name>PM-05.4 Story - Pulse Health Agent</name>
+      <path>docs/modules/bm-pm/stories/pm-05-4-pulse-health-agent.md</path>
+      <relevance>Backend implementation details for health and risk APIs</relevance>
+    </document>
+
+    <document>
+      <name>Module Architecture</name>
+      <path>docs/modules/bm-pm/architecture.md</path>
+      <relevance>Overall module structure and design patterns</relevance>
+    </document>
+
+    <document>
+      <name>Module PRD</name>
+      <path>docs/modules/bm-pm/PRD.md</path>
+      <relevance>Product requirements for health monitoring features</relevance>
+    </document>
+
+    <document>
+      <name>shadcn/ui Components</name>
+      <path>https://ui.shadcn.com/</path>
+      <relevance>Component library documentation for Sheet, Tabs, Badge, etc.</relevance>
+    </document>
+  </related-documentation>
+</story-context>
