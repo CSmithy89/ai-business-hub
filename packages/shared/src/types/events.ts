@@ -130,6 +130,10 @@ export const EventTypes = {
   PM_TASK_STATUS_CHANGED: 'pm.task.status_changed',
   PM_TASK_DELETED: 'pm.task.deleted',
 
+  PM_CHECKPOINT_CREATED: 'pm.checkpoint.created',
+  PM_CHECKPOINT_COMPLETED: 'pm.checkpoint.completed',
+  PM_CHECKPOINT_REMINDER_SENT: 'pm.checkpoint.reminder_sent',
+
   // KB events (bm-pm Knowledge Base)
   KB_PAGE_CREATED: 'kb.page.created',
   KB_PAGE_UPDATED: 'kb.page.updated',

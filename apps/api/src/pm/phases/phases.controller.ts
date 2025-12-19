@@ -21,6 +21,8 @@ import { UpdatePhaseDto } from './dto/update-phase.dto'
 import { PhaseTransitionDto } from './dto/phase-transition.dto'
 import { PhasesService } from './phases.service'
 import { PhaseService } from '../agents/phase.service'
+import { CheckpointService } from '../agents/checkpoint.service'
+import { CreateCheckpointDto, UpdateCheckpointDto } from '../agents/dto/checkpoint.dto'
 import type { Request } from 'express'
 
 @ApiTags('PM Phases')
@@ -31,6 +33,7 @@ export class PhasesController {
   constructor(
     private readonly phasesService: PhasesService,
     private readonly phaseService: PhaseService,
+    private readonly checkpointService: CheckpointService,
   ) {}
 
   @Post('projects/:projectId/phases')
@@ -143,5 +146,68 @@ export class PhasesController {
     }
 
     return checkpoints
+  }
+
+  @Get('phases/:id/checkpoints')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'List checkpoints for a phase' })
+  @ApiParam({ name: 'id', description: 'Phase ID' })
+  async listCheckpoints(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') phaseId: string,
+  ) {
+    return this.checkpointService.listCheckpoints(workspaceId, phaseId)
+  }
+
+  @Post('phases/:id/checkpoints')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Create a checkpoint for a phase' })
+  @ApiParam({ name: 'id', description: 'Phase ID' })
+  async createCheckpoint(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser() user: any,
+    @Param('id') phaseId: string,
+    @Body() dto: CreateCheckpointDto,
+    @Req() req: Request,
+  ) {
+    const memberRole = (req as unknown as { memberRole?: string }).memberRole
+    if (memberRole === 'member') {
+      await this.phasesService.assertPhaseProjectLead(workspaceId, user.id, phaseId)
+    }
+    return this.checkpointService.createCheckpoint(
+      workspaceId,
+      phaseId,
+      user.id,
+      dto,
+    )
+  }
+
+  @Patch('phases/:id/checkpoints/:checkpointId')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Update a checkpoint' })
+  @ApiParam({ name: 'id', description: 'Phase ID' })
+  @ApiParam({ name: 'checkpointId', description: 'Checkpoint ID' })
+  async updateCheckpoint(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser() user: any,
+    @Param('checkpointId') checkpointId: string,
+    @Body() dto: UpdateCheckpointDto,
+    @Req() req: Request,
+  ) {
+    const memberRole = (req as unknown as { memberRole?: string }).memberRole
+    if (memberRole === 'member') {
+      // Verify checkpoint access through phase
+      const checkpoint = await this.checkpointService.listCheckpoints(workspaceId, '');
+      const checkpointData = checkpoint.find(c => c.id === checkpointId);
+      if (checkpointData) {
+        await this.phasesService.assertPhaseProjectLead(workspaceId, user.id, checkpointData.phaseId)
+      }
+    }
+    return this.checkpointService.updateCheckpoint(
+      workspaceId,
+      checkpointId,
+      user.id,
+      dto,
+    )
   }
 }

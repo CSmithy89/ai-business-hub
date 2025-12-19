@@ -1416,6 +1416,11 @@ model PhaseCheckpoint {
   remindAt1Day  Boolean @default(true) @map("remind_at_1_day")
   remindAtDayOf Boolean @default(true) @map("remind_at_day_of")
 
+  // Sent tracking (to avoid duplicate reminders)
+  reminder3DaysSent Boolean @default(false) @map("reminder_3_days_sent")
+  reminder1DaySent  Boolean @default(false) @map("reminder_1_day_sent")
+  reminderDayOfSent Boolean @default(false) @map("reminder_day_of_sent")
+
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
