@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS "page_mentions" (
 -- Add indices for PageMention
 CREATE INDEX IF NOT EXISTS "page_mentions_page_id_idx" ON "page_mentions"("page_id");
 CREATE INDEX IF NOT EXISTS "page_mentions_target_id_mention_type_idx" ON "page_mentions"("target_id", "mention_type");
+CREATE INDEX IF NOT EXISTS "page_mentions_page_id_mention_type_idx" ON "page_mentions"("page_id", "mention_type");
 
 -- Add foreign key constraint
 DO $$

@@ -15,6 +15,7 @@ import {
 import { StaleReason } from '@hyvve/shared'
 import { useStalPages, useBulkVerify, useBulkDelete } from '@/hooks/use-stale-pages'
 import { toast } from 'sonner'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -382,17 +383,15 @@ export function StaleContentDashboard() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {page.owner.avatarUrl ? (
-                        <img
+                      <Avatar className="w-6 h-6">
+                        <AvatarImage
                           src={page.owner.avatarUrl}
                           alt={page.owner.name}
-                          className="w-6 h-6 rounded-full"
                         />
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                        <AvatarFallback className="text-xs bg-primary/10">
                           {page.owner.name[0]?.toUpperCase()}
-                        </div>
-                      )}
+                        </AvatarFallback>
+                      </Avatar>
                       <span className="text-sm">{page.owner.name}</span>
                     </div>
                   </TableCell>

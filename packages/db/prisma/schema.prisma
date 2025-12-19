@@ -1722,6 +1722,7 @@ model PageMention {
   @@index([targetId])
   @@index([mentionType])
   @@index([targetId, mentionType]) // Compound index for getUserMentions/getTaskReferences queries
+  @@index([pageId, mentionType]) // Compound index for filtering mentions by page and type
   @@map("page_mentions")
 }
 
