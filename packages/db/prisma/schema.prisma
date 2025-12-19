@@ -1304,6 +1304,7 @@ model TaskLabel {
 
   @@unique([taskId, name])
   @@index([taskId])
+  @@index([name]) // Index for label autocomplete/search queries
   @@map("task_labels")
 }
 
@@ -1329,6 +1330,8 @@ model SavedView {
 
   @@index([projectId])
   @@index([userId])
+  @@index([projectId, userId]) // Composite index for filtered queries
+  @@index([projectId, isDefault]) // For default view lookups
   @@map("saved_views")
 }
 

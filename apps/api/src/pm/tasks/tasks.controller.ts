@@ -228,10 +228,14 @@ export class TasksController {
     @CurrentWorkspace() workspaceId: string,
     @Query('projectId') projectId: string,
     @Query('search') search?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
   ) {
     if (!projectId) {
       throw new BadRequestException('projectId query parameter is required')
     }
-    return this.tasksService.getProjectLabels(workspaceId, projectId, search)
+    const limitNum = Math.min(parseInt(limit || '50', 10) || 50, 100)
+    const offsetNum = parseInt(offset || '0', 10) || 0
+    return this.tasksService.getProjectLabels(workspaceId, projectId, search, limitNum, offsetNum)
   }
 }

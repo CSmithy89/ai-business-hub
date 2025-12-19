@@ -27,12 +27,12 @@ interface GroupBySelectorProps {
   onChange: (groupBy: GroupByOption) => void
 }
 
-const GROUP_OPTIONS: Array<{ value: GroupByOption; label: string }> = [
+const GROUP_OPTIONS: Array<{ value: GroupByOption; label: string; hint?: string }> = [
   { value: 'status', label: 'Status' },
   { value: 'priority', label: 'Priority' },
   { value: 'assignee', label: 'Assignee' },
   { value: 'type', label: 'Type' },
-  { value: 'phase', label: 'Phase' },
+  { value: 'phase', label: 'Phase', hint: '(view only)' },
 ]
 
 /**
@@ -73,6 +73,9 @@ export function GroupBySelector({ value, onChange }: GroupBySelectorProps) {
               )}
             />
             {option.label}
+            {option.hint && (
+              <span className="ml-1 text-xs text-muted-foreground">{option.hint}</span>
+            )}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

@@ -18,14 +18,8 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { TaskCard } from './TaskCard'
 import type { TaskListItem } from '@/hooks/use-pm-tasks'
 import type { GroupByOption } from '@/lib/pm/kanban-grouping'
+import { VIRTUALIZATION } from '@/lib/pm/constants'
 import { cn } from '@/lib/utils'
-
-/** Threshold for enabling virtualization */
-const VIRTUALIZATION_THRESHOLD = 20
-/** Estimated card height in pixels */
-const CARD_HEIGHT = 100
-/** Extra cards to render outside viewport */
-const OVERSCAN = 5
 
 interface KanbanColumnProps {
   /** Column ID for droppable */
@@ -67,14 +61,14 @@ export function KanbanColumn({
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const isOverLimit = wipLimit !== undefined && tasks.length > wipLimit
-  const shouldVirtualize = tasks.length > VIRTUALIZATION_THRESHOLD
+  const shouldVirtualize = tasks.length > VIRTUALIZATION.KANBAN_COLUMN_THRESHOLD
 
   // Virtualization for columns with many tasks
   const virtualizer = useVirtualizer({
     count: tasks.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => CARD_HEIGHT,
-    overscan: OVERSCAN,
+    estimateSize: () => VIRTUALIZATION.KANBAN_CARD_HEIGHT,
+    overscan: VIRTUALIZATION.OVERSCAN,
     enabled: shouldVirtualize,
   })
 

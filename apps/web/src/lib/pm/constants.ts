@@ -5,15 +5,23 @@
  */
 
 /**
- * Virtualization settings for TanStack Virtual tables
+ * Virtualization settings for TanStack Virtual
  */
 export const VIRTUALIZATION = {
-  /** Row height in pixels for virtualized lists */
-  ROW_HEIGHT: 50,
-  /** Number of rows to render above/below the viewport */
-  OVERSCAN: 10,
+  /** Row height in pixels for table rows */
+  TABLE_ROW_HEIGHT: 50,
+  /** Card height in pixels for kanban cards */
+  KANBAN_CARD_HEIGHT: 100,
+  /** Number of items to render above/below the viewport */
+  OVERSCAN: 5,
+  /** Larger overscan for tables */
+  TABLE_OVERSCAN: 10,
   /** Default table container height */
   TABLE_HEIGHT: '600px',
+  /** Threshold for enabling kanban column virtualization */
+  KANBAN_COLUMN_THRESHOLD: 20,
+  /** Threshold for enabling table virtualization */
+  TABLE_ROW_THRESHOLD: 500,
 } as const
 
 /**

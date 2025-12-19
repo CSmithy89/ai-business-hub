@@ -1050,8 +1050,15 @@ export class TasksService {
   /**
    * Get unique label names for a project (for autocomplete)
    * Returns distinct label names used across all tasks in the project
+   * Optimized query: fetches task IDs first to avoid N+1 on the task relation
    */
-  async getProjectLabels(workspaceId: string, projectId: string, search?: string) {
+  async getProjectLabels(
+    workspaceId: string,
+    projectId: string,
+    search?: string,
+    limit = 50,
+    offset = 0,
+  ) {
     // Verify project belongs to workspace
     const project = await this.prisma.project.findFirst({
       where: { id: projectId, workspaceId },
@@ -1059,27 +1066,52 @@ export class TasksService {
     })
     if (!project) throw new NotFoundException('Project not found')
 
-    // Get distinct labels from all tasks in the project
-    const labels = await this.prisma.taskLabel.findMany({
+    // First get task IDs for the project (optimized single query)
+    const taskIds = await this.prisma.task.findMany({
       where: {
-        task: {
-          projectId,
-          workspaceId,
-          deletedAt: null,
-        },
-        ...(search && {
-          name: { contains: search, mode: 'insensitive' },
-        }),
+        projectId,
+        workspaceId,
+        deletedAt: null,
       },
+      select: { id: true },
+    })
+
+    if (taskIds.length === 0) {
+      return { data: [], total: 0, limit, offset }
+    }
+
+    // Build where clause for labels
+    const whereClause = {
+      taskId: { in: taskIds.map((t) => t.id) },
+      ...(search && {
+        name: { contains: search, mode: 'insensitive' as const },
+      }),
+    }
+
+    // Get total count for pagination
+    const totalCount = await this.prisma.taskLabel.groupBy({
+      by: ['name'],
+      where: whereClause,
+    })
+
+    // Get distinct labels with pagination
+    const labels = await this.prisma.taskLabel.findMany({
+      where: whereClause,
       select: {
         name: true,
         color: true,
       },
       distinct: ['name'],
       orderBy: { name: 'asc' },
-      take: 50, // Limit results for performance
+      take: limit,
+      skip: offset,
     })
 
-    return { data: labels }
+    return {
+      data: labels,
+      total: totalCount.length,
+      limit,
+      offset,
+    }
   }
 }

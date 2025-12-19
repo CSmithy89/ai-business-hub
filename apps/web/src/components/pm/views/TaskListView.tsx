@@ -39,6 +39,7 @@ import { getViewPreferences, setViewPreferences } from '@/lib/pm/view-preference
 import { VIRTUALIZATION } from '@/lib/pm/constants'
 import { cn } from '@/lib/utils'
 import { createLogger } from '@/lib/logger'
+import { toast } from 'sonner'
 import { ColumnVisibilityToggle } from '../table/ColumnVisibilityToggle'
 import { createTaskColumns } from '../table/TaskTableColumns'
 import { BulkActionsBar } from '../bulk/BulkActionsBar'
@@ -179,8 +180,8 @@ export function TaskListView({
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => VIRTUALIZATION.ROW_HEIGHT,
-    overscan: VIRTUALIZATION.OVERSCAN,
+    estimateSize: () => VIRTUALIZATION.TABLE_ROW_HEIGHT,
+    overscan: VIRTUALIZATION.TABLE_OVERSCAN,
   })
 
   const virtualRows = virtualizer.getVirtualItems()
@@ -224,72 +225,113 @@ export function TaskListView({
   }
 
   const handleBulkStatusChange = async (status: TaskStatus) => {
-    await bulkUpdateMutation.mutateAsync({
-      input: {
-        ids: selectedTaskIds,
-        status,
-      },
-    })
-    setShowStatusDialog(false)
-    handleClearSelection()
+    const count = selectedTaskIds.length
+    try {
+      await bulkUpdateMutation.mutateAsync({
+        input: {
+          ids: selectedTaskIds,
+          status,
+        },
+      })
+      toast.success(`Updated ${count} task${count > 1 ? 's' : ''} to ${status.replace(/_/g, ' ')}`)
+      setShowStatusDialog(false)
+      handleClearSelection()
+    } catch (error) {
+      log.error('Bulk status update failed', { error, count })
+      toast.error(`Failed to update ${count} task${count > 1 ? 's' : ''}. Please try again.`)
+    }
   }
 
   const handleBulkPriorityChange = async (priority: TaskPriority) => {
-    await bulkUpdateMutation.mutateAsync({
-      input: {
-        ids: selectedTaskIds,
-        priority,
-      },
-    })
-    setShowPriorityDialog(false)
-    handleClearSelection()
+    const count = selectedTaskIds.length
+    try {
+      await bulkUpdateMutation.mutateAsync({
+        input: {
+          ids: selectedTaskIds,
+          priority,
+        },
+      })
+      toast.success(`Updated ${count} task${count > 1 ? 's' : ''} to ${priority} priority`)
+      setShowPriorityDialog(false)
+      handleClearSelection()
+    } catch (error) {
+      log.error('Bulk priority update failed', { error, count })
+      toast.error(`Failed to update ${count} task${count > 1 ? 's' : ''}. Please try again.`)
+    }
   }
 
   const handleBulkAssignChange = async (data: {
     assignmentType: AssignmentType
     assigneeId: string | null
   }) => {
-    await bulkUpdateMutation.mutateAsync({
-      input: {
-        ids: selectedTaskIds,
-        assignmentType: data.assignmentType,
-        assigneeId: data.assigneeId,
-      },
-    })
-    setShowAssignDialog(false)
-    handleClearSelection()
+    const count = selectedTaskIds.length
+    try {
+      await bulkUpdateMutation.mutateAsync({
+        input: {
+          ids: selectedTaskIds,
+          assignmentType: data.assignmentType,
+          assigneeId: data.assigneeId,
+        },
+      })
+      toast.success(`Updated ${count} task${count > 1 ? 's' : ''} assignment`)
+      setShowAssignDialog(false)
+      handleClearSelection()
+    } catch (error) {
+      log.error('Bulk assign update failed', { error, count })
+      toast.error(`Failed to update ${count} task${count > 1 ? 's' : ''}. Please try again.`)
+    }
   }
 
   const handleBulkAddLabels = async (labels: string[]) => {
+    const taskCount = selectedTaskIds.length
+    const labelCount = labels.length
     // Add labels to each task in parallel
     // This is a workaround until we have a bulk label endpoint
-    const labelPromises = selectedTaskIds.flatMap((taskId) =>
-      labels.map((labelName) =>
-        upsertLabelMutation
-          .mutateAsync({
-            taskId,
-            input: { name: labelName },
-          })
-          .catch((error) => {
-            // Continue with other labels even if one fails
-            log.error('Failed to add label', { error })
-            return null
-          })
+    const results = await Promise.all(
+      selectedTaskIds.flatMap((taskId) =>
+        labels.map((labelName) =>
+          upsertLabelMutation
+            .mutateAsync({
+              taskId,
+              input: { name: labelName },
+            })
+            .then(() => ({ success: true }))
+            .catch((error) => {
+              log.error('Failed to add label', { error, taskId, labelName })
+              return { success: false }
+            })
+        )
       )
     )
-    await Promise.all(labelPromises)
+    const successCount = results.filter((r) => r.success).length
+    const failCount = results.length - successCount
+
+    if (failCount === 0) {
+      toast.success(`Added ${labelCount} label${labelCount > 1 ? 's' : ''} to ${taskCount} task${taskCount > 1 ? 's' : ''}`)
+    } else if (successCount > 0) {
+      toast.warning(`Partially completed: ${successCount} of ${results.length} operations succeeded`)
+    } else {
+      toast.error('Failed to add labels. Please try again.')
+    }
     setShowLabelDialog(false)
     handleClearSelection()
   }
 
   const handleBulkDelete = async () => {
-    await bulkDeleteMutation.mutateAsync({
-      input: {
-        ids: selectedTaskIds,
-      },
-    })
-    setShowDeleteDialog(false)
-    handleClearSelection()
+    const count = selectedTaskIds.length
+    try {
+      await bulkDeleteMutation.mutateAsync({
+        input: {
+          ids: selectedTaskIds,
+        },
+      })
+      toast.success(`Deleted ${count} task${count > 1 ? 's' : ''}`)
+      setShowDeleteDialog(false)
+      handleClearSelection()
+    } catch (error) {
+      log.error('Bulk delete failed', { error, count })
+      toast.error(`Failed to delete ${count} task${count > 1 ? 's' : ''}. Please try again.`)
+    }
   }
 
   const isProcessing =

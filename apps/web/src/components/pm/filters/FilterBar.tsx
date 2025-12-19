@@ -74,6 +74,12 @@ export function FilterBar({
   const searchParams = useSearchParams()
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Store callback in ref to avoid triggering effect on every render
+  const onFiltersChangeRef = useRef(onFiltersChange)
+  useEffect(() => {
+    onFiltersChangeRef.current = onFiltersChange
+  }, [onFiltersChange])
+
   // Cleanup debounce timeout on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
@@ -94,10 +100,10 @@ export function FilterBar({
   const { data: teamData } = usePmTeam(projectId)
   const team = teamData?.data
 
-  // Notify parent of filter changes
+  // Notify parent of filter changes (using ref to avoid re-render loops)
   useEffect(() => {
-    onFiltersChange(filters)
-  }, [filters, onFiltersChange])
+    onFiltersChangeRef.current(filters)
+  }, [filters])
 
   // Update URL with debouncing
   const updateUrl = (newFilters: FilterState) => {
