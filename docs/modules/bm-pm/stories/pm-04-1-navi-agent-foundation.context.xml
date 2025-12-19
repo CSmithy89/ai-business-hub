@@ -1,0 +1,642 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story-id="pm-04-1" generated="2025-12-18T12:00:00Z">
+
+  <story-summary>
+    <title>Navi Agent Foundation</title>
+    <objective>Create Navi agent with basic PM orchestration capabilities including chat interface, KB search integration, and conversation history</objective>
+    <points>8</points>
+    <status>drafted</status>
+  </story-summary>
+
+  <documentation>
+    <doc name="Story Definition" path="docs/modules/bm-pm/stories/pm-04-1-navi-agent-foundation.md">
+      ## User Story
+      As a **project user**, I want **Navi as my PM orchestration assistant**, so that **I get contextual help managing my project**.
+
+      ## Acceptance Criteria
+      - AC1: Navi agent available with PM context when on project page
+      - AC2: Navi can answer project status questions
+      - AC3: Navi can suggest contextual actions based on project state
+      - AC4: Navi uses project KB for context (RAG integration)
+    </doc>
+
+    <doc name="Epic Tech Spec" path="docs/modules/bm-pm/epics/epic-pm-04-tech-spec.md">
+      ## Navi Agent - PM Orchestration Agent
+
+      **Role:** Team leader, orchestrates PM operations, provides contextual help
+
+      **Capabilities:**
+      - Answer questions about project status
+      - Parse natural language commands
+      - Generate task suggestions (not execute)
+      - Generate daily briefings
+      - Search KB for relevant context
+      - Coordinate with Sage and Chrono
+
+      **Tools:**
+      ```python
+      tools = [
+          get_project_status,      # Get project overview
+          list_tasks,              # List tasks with filters
+          search_kb,               # RAG search in KB (KB-02)
+          create_task_suggestion,  # Suggest task creation
+          update_task_suggestion,  # Suggest task update
+          assign_task_suggestion,  # Suggest assignment
+          move_task_suggestion,    # Suggest status change
+          set_priority_suggestion, # Suggest priority change
+          generate_daily_briefing, # Create briefing content
+      ]
+      ```
+
+      **Instructions:**
+      - You are Navi, the PM orchestration assistant for HYVVE projects
+      - Help users manage their projects through natural language conversation
+      - Always suggest actions, never execute directly
+      - Use KB search to provide context-aware answers
+      - Keep responses concise and actionable
+
+      **Suggestion Format:**
+      ```typescript
+      interface NaviSuggestion {
+        action: 'create_task' | 'update_task' | 'assign_task' | 'move_to_phase' | 'set_priority';
+        confidence: number;  // 0-1
+        preview: { title?, description?, assignee?, phase?, priority? };
+        reasoning: string;
+      }
+      ```
+    </doc>
+
+    <doc name="Module Architecture" path="docs/modules/bm-pm/architecture.md">
+      ## Agent Architecture
+
+      Core-PM uses 9-agent team with Navi as leader:
+      - Navi (orchestrator), Sage (estimation), Herald (reporting)
+      - Chrono (tracking), Scope (planning), Pulse (risk)
+      - Scribe (KB manager), Bridge (integrations), Prism (analytics)
+
+      ## Agent Team Factory Pattern
+      ```python
+      def create_core_pm_team(
+          session_id: str,
+          user_id: str,
+          workspace_id: str,
+          business_id: str,
+          project_id: str,
+      ) -> Team:
+          # Shared memory for team context
+          shared_memory = Memory(
+              db=PostgresStorage(
+                  table_name=f"core_pm_memory_{workspace_id}",
+                  schema="agent_memory"
+              ),
+              namespace=f"project:{project_id}"
+          )
+
+          navi = create_navi(workspace_id, project_id, shared_memory)
+          # ... other agents
+
+          return Team(
+              name="Core-PM Team",
+              mode="coordinate",
+              leader=navi,
+              members=[sage, herald, chrono, scope, pulse],
+              memory=shared_memory,
+              instructions=["Always suggest actions, never auto-execute"],
+              settings={"suggestion_mode": True, "kb_rag_enabled": True}
+          )
+      ```
+    </doc>
+
+    <doc name="Module PRD" path="docs/modules/bm-pm/PRD.md">
+      ## Core-PM Agent Team
+
+      **Architectural Position:** Platform Core - provides foundation for all business modules
+
+      **Key Distinction:**
+      - PM Agent Team: Manages the PROJECT MANAGEMENT TOOL (Navi, Sage, Herald, etc.)
+      - Project Team: Actually BUILDS the deliverable (humans + module agents)
+
+      **What Makes Core-PM Special:**
+      1. BMAD-Native Workflows
+      2. 9-Agent PM Team
+      3. Human + AI Teams
+      4. Confidence-Based Routing
+      5. Cross-Module Orchestration
+      6. Integrated Knowledge Base with RAG
+    </doc>
+  </documentation>
+
+  <existing-code>
+    <file path="agents/planning/team.py" relevance="Agent team factory pattern reference">
+      ```python
+      # Example: Planning team factory shows the pattern
+      from agno.agent import Agent
+      from agno.team import Team
+      from agno.models.anthropic import Claude
+      from agno.storage.postgres import PostgresStorage
+      from agno.memory import Memory
+
+      def create_planning_team(
+          session_id: str,
+          user_id: str,
+          business_id: Optional[str] = None,
+          model: Optional[str] = None,
+      ) -> Team:
+          # Create storage with session context
+          storage = PostgresStorage(
+              table_name="bmp_planning_sessions",
+              db_url=get_postgres_url(),
+          )
+
+          # Create agents with shared storage
+          blake = create_blake_agent(model=model, storage=storage)
+          model_agent = create_model_agent(model=model, storage=storage)
+          finance = create_finance_agent(model=model, storage=storage)
+
+          # Create team with Blake as leader
+          team = Team(
+              name="Planning Team",
+              mode="coordinate",
+              leader=blake,
+              members=[model_agent, finance],
+              delegate_task_to_all_members=False,
+              respond_directly=True,
+              share_member_interactions=True,
+              enable_agentic_context=True,
+              session_id=session_id,
+              user_id=user_id,
+              storage=storage,
+          )
+
+          return team
+      ```
+
+      **Key Pattern Elements:**
+      - Use PostgresStorage for agent memory
+      - Shared memory across team members
+      - Leader-member hierarchy with "coordinate" mode
+      - Session and user context for multi-tenant isolation
+      - Instructions array for agent behavior
+    </file>
+
+    <file path="apps/web/src/components/chat/ChatMessage.tsx" relevance="Chat UI component pattern">
+      ```tsx
+      // Chat message rendering with markdown support
+      interface ChatMessageProps {
+        type: 'user' | 'agent' | 'system';
+        content: string;
+        timestamp: Date | string | number;
+        agentName?: string;
+        agentIcon?: string;
+        agentColor?: string;
+        isStreaming?: boolean;
+        onStopStreaming?: () => void;
+      }
+
+      export const ChatMessage = memo(function ChatMessage({
+        type, content, timestamp, agentName, agentColor, isStreaming
+      }: ChatMessageProps) {
+        const safeContent = sanitizeContent(content);
+
+        if (type === 'agent') {
+          return (
+            <div className="flex items-start gap-2.5">
+              {/* Agent Avatar */}
+              <div style={{ backgroundColor: `${agentColor}20`, color: agentColor }}>
+                {agentIcon}
+              </div>
+
+              {/* Message with Markdown */}
+              <div className="prose prose-sm">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {safeContent}
+                </ReactMarkdown>
+                {isStreaming && <StreamingCursor />}
+              </div>
+            </div>
+          );
+        }
+        // ... user/system message variants
+      });
+      ```
+
+      **Key Pattern Elements:**
+      - Support for user/agent/system message types
+      - Markdown rendering for agent responses
+      - Agent visual identity (color, icon)
+      - Streaming support with cursor indicator
+      - Sanitization for security (DOMPurify)
+    </file>
+
+    <file path="apps/api/src/agentos/agentos.service.ts" relevance="Backend agent invocation service">
+      ```typescript
+      @Injectable()
+      export class AgentOSService {
+        private readonly baseUrl: string;
+        private readonly timeoutMs: number;
+        private readonly retryAttempts: number;
+
+        // Circuit breaker for resilience
+        private circuitState: 'closed' | 'open' | 'half-open' = 'closed';
+        private failureCount = 0;
+        private readonly failureThreshold = 5;
+
+        async invokeAgent(
+          agentId: string,
+          params: InvokeAgentDto,
+          workspaceId: string,
+          userId: string,
+          token?: string,
+        ): Promise<AgentRunResponse> {
+          const correlationId = uuidv4();
+
+          // Check circuit breaker before making request
+          this.checkCircuitBreaker();
+
+          const headers = this.buildHeaders(workspaceId, token, correlationId);
+          const url = `${this.baseUrl}/agents/${agentId}/runs`;
+
+          const payload = {
+            ...params,
+            userId,
+            metadata: { workspaceId, correlationId },
+          };
+
+          const response = await firstValueFrom(
+            this.httpService.post<AgentRunResponse>(url, payload, { headers })
+              .pipe(
+                timeout(this.timeoutMs),
+                retry({ count: this.retryAttempts }),
+                catchError((error) => this.handleError(error, correlationId))
+              )
+          );
+
+          this.recordSuccess();
+          return response;
+        }
+      }
+      ```
+
+      **Key Pattern Elements:**
+      - Circuit breaker for resilience
+      - Timeout and retry with exponential backoff
+      - Correlation ID for request tracking
+      - Workspace/user context in payload
+      - Error handling and logging
+    </file>
+  </existing-code>
+
+  <data-models>
+    <model name="AgentConversation" source="prisma-schema">
+      ```prisma
+      /// AgentConversation - Chat history per agent per project
+      model AgentConversation {
+        id          String   @id @default(cuid())
+        workspaceId String   @map("workspace_id")
+        projectId   String   @map("project_id")
+        userId      String   @map("user_id")
+        agentName   String   @map("agent_name")  // 'navi', 'sage', 'chrono'
+
+        // Conversation
+        role        ConversationRole  // 'USER' | 'AGENT'
+        message     String   @db.Text
+        metadata    Json?    // Agent response metadata, tool calls, etc.
+
+        // Timestamps
+        createdAt   DateTime @default(now()) @map("created_at")
+
+        @@index([workspaceId, projectId, agentName])
+        @@index([userId, agentName])
+        @@index([createdAt])
+        @@map("agent_conversations")
+      }
+
+      enum ConversationRole {
+        USER
+        AGENT
+      }
+      ```
+
+      **Purpose:** Store chat history for continuity across sessions
+      **Key Fields:**
+      - workspaceId/projectId: Multi-tenant isolation
+      - agentName: Which agent ('navi', 'sage', 'chrono')
+      - role: USER or AGENT message
+      - metadata: Optional structured data (tool calls, suggestions)
+    </model>
+
+    <model name="Project" source="prisma-schema">
+      ```prisma
+      model Project {
+        id            String        @id @default(cuid())
+        workspaceId   String
+        businessId    String
+        slug          String
+        name          String
+        description   String?
+
+        // Status
+        status        ProjectStatus @default(PLANNING)
+
+        // Progress (denormalized for performance)
+        totalTasks      Int         @default(0)
+        completedTasks  Int         @default(0)
+        lastActivityAt  DateTime?
+
+        // Relations
+        phases        Phase[]
+        team          ProjectTeam?
+
+        @@unique([workspaceId, slug])
+        @@index([workspaceId])
+      }
+      ```
+
+      **Purpose:** Project entity that Navi manages
+      **Key Fields:**
+      - Progress metrics for status queries
+      - Denormalized counts for performance
+      - Relations to phases and team
+    </model>
+  </data-models>
+
+  <api-patterns>
+    <pattern name="Agent Chat Endpoint">
+      ```typescript
+      // Controller: apps/api/src/pm/agents/agents.controller.ts
+      @Controller('pm/agents')
+      @UseGuards(AuthGuard, TenantGuard)
+      export class AgentsController {
+        @Post('chat')
+        async chat(
+          @GetWorkspace() workspaceId: string,
+          @GetUser() user: User,
+          @Body() body: ChatAgentDto
+        ) {
+          return this.agentsService.chat({
+            workspaceId,
+            projectId: body.projectId,
+            userId: user.id,
+            agentName: body.agentName,
+            message: body.message,
+          });
+        }
+      }
+
+      // Service: apps/api/src/pm/agents/agents.service.ts
+      @Injectable()
+      export class AgentsService {
+        async chat(params: {
+          workspaceId: string;
+          projectId: string;
+          userId: string;
+          agentName: 'navi' | 'sage' | 'chrono';
+          message: string;
+        }) {
+          // 1. Load conversation history (last 50 messages)
+          const history = await this.loadConversationHistory(
+            params.workspaceId,
+            params.projectId,
+            params.agentName
+          );
+
+          // 2. Invoke agent via Python API
+          const response = await this.invokeAgent({
+            sessionId: `${params.workspaceId}-${params.projectId}`,
+            userId: params.userId,
+            workspaceId: params.workspaceId,
+            projectId: params.projectId,
+            agentName: params.agentName,
+            message: params.message,
+            history,
+          });
+
+          // 3. Store conversation
+          await this.storeConversation(
+            params.workspaceId,
+            params.projectId,
+            params.userId,
+            params.agentName,
+            params.message,
+            response.message
+          );
+
+          return response;
+        }
+      }
+      ```
+
+      **Pattern Elements:**
+      - Multi-tenant guards (AuthGuard, TenantGuard)
+      - Workspace extraction from request context
+      - Conversation history loading/storing
+      - Agent invocation with context
+    </pattern>
+
+    <pattern name="Python Agent API Integration">
+      ```python
+      # agents/pm/navi.py
+      from agno import Agent
+
+      def create_navi_agent(
+          workspace_id: str,
+          project_id: str,
+          shared_memory: Memory
+      ) -> Agent:
+          return Agent(
+              name="Navi",
+              role="PM Orchestration Assistant",
+              instructions=[
+                  "You are Navi, the PM orchestration assistant for HYVVE projects.",
+                  "Help users manage their projects through natural language conversation.",
+                  "Always suggest actions, never execute directly.",
+                  "Use KB search to provide context-aware answers.",
+                  "Keep responses concise and actionable.",
+              ],
+              tools=[
+                  pm_tools.get_project_status,
+                  pm_tools.list_tasks,
+                  pm_tools.search_kb,
+              ],
+              memory=shared_memory,
+              model="anthropic/claude-3-5-sonnet-20250122",
+          )
+
+      # agents/pm/team.py
+      def create_pm_team(
+          session_id: str,
+          user_id: str,
+          workspace_id: str,
+          project_id: str,
+      ) -> Team:
+          shared_memory = Memory(
+              db=PostgresStorage(
+                  table_name=f"pm_agent_memory_{workspace_id}",
+                  schema="agent_memory"
+              ),
+              namespace=f"project:{project_id}"
+          )
+
+          navi = create_navi_agent(workspace_id, project_id, shared_memory)
+
+          return Team(
+              name="PM Team",
+              mode="coordinate",
+              leader=navi,
+              members=[],  # Sage and Chrono added in later stories
+              memory=shared_memory,
+              session_id=session_id,
+              user_id=user_id,
+              settings={
+                  "suggestion_mode": True,
+                  "confidence_threshold": 0.85,
+                  "kb_rag_enabled": True,
+              }
+          )
+      ```
+
+      **Pattern Elements:**
+      - Agent factory functions
+      - Shared memory with PostgresStorage
+      - Memory namespace per project
+      - Tools registration
+      - Team coordination mode
+    </pattern>
+  </api-patterns>
+
+  <implementation-checklist>
+    <backend-tasks>
+      - [ ] Create Prisma migration for AgentConversation model
+      - [ ] Create apps/api/src/pm/agents/agents.module.ts
+      - [ ] Create apps/api/src/pm/agents/agents.service.ts with chat() method
+      - [ ] Create apps/api/src/pm/agents/agents.controller.ts with POST /chat endpoint
+      - [ ] Create apps/api/src/pm/agents/dto/chat-agent.dto.ts with validation
+      - [ ] Add conversation history loading (last 50 messages, ordered by createdAt DESC)
+      - [ ] Add conversation storage (store both user and agent messages)
+      - [ ] Integrate with existing AgentOSService for agent invocation
+      - [ ] Add project status endpoint: GET /api/pm/projects/:id/status
+    </backend-tasks>
+
+    <agent-tasks>
+      - [ ] Create agents/pm/ directory structure
+      - [ ] Create agents/pm/team.py with create_pm_team() factory
+      - [ ] Create agents/pm/navi.py with create_navi_agent()
+      - [ ] Create agents/pm/tools/pm_tools.py with:
+        - [ ] get_project_status tool
+        - [ ] list_tasks tool
+        - [ ] search_kb tool (calls KB RAG endpoint)
+      - [ ] Configure PostgresStorage for agent memory (table: pm_agent_memory_{workspace_id})
+      - [ ] Integrate workspace BYOAI provider config for model selection
+      - [ ] Add agent invocation FastAPI endpoint (or integrate with existing)
+    </agent-tasks>
+
+    <frontend-tasks>
+      - [ ] Create apps/web/src/components/pm/agents/AgentPanel.tsx (minimizable panel)
+      - [ ] Create apps/web/src/components/pm/agents/AgentChat.tsx (chat interface)
+      - [ ] Add agent panel trigger button to project detail page
+      - [ ] Implement chat message rendering with markdown support
+      - [ ] Add conversation history loading on panel open
+      - [ ] Integrate with POST /api/pm/agents/chat endpoint
+      - [ ] Add typing indicator during agent response
+      - [ ] Persist panel state (open/closed, minimized) to localStorage
+    </frontend-tasks>
+
+    <integration-tasks>
+      - [ ] Verify KB-02.7 (Agent KB Queries) RAG endpoint is available
+      - [ ] Test KB search integration from Navi agent
+      - [ ] Add graceful fallback if KB endpoint unavailable
+      - [ ] Test workspace isolation for conversations
+      - [ ] Test conversation history across page refreshes
+    </integration-tasks>
+
+    <testing-tasks>
+      - [ ] Unit test: AgentsService.chat() stores conversation history
+      - [ ] Unit test: Conversation history returns last 50 messages
+      - [ ] Unit test: Navi agent responds to "What tasks are due today?"
+      - [ ] Unit test: get_project_status tool returns valid data
+      - [ ] Unit test: search_kb tool calls RAG endpoint
+      - [ ] Integration test: POST /api/pm/agents/chat invokes Navi
+      - [ ] Integration test: Conversation history persists across sessions
+      - [ ] E2E test: Open project page → open agent panel → Navi available
+      - [ ] E2E test: Ask "What tasks are due today?" → Navi responds
+      - [ ] E2E test: Conversation history preserved on page reload
+    </testing-tasks>
+  </implementation-checklist>
+
+  <dependencies>
+    <prerequisite story="PM-01.5" reason="Navi panel lives on project pages" />
+    <prerequisite story="KB-02.7" reason="Navi uses RAG endpoint for KB search" />
+
+    <blocks story="PM-04.2" reason="Navi Suggestion Mode builds on this foundation" />
+    <blocks story="PM-04.3" reason="Navi Chat Commands extends with action suggestions" />
+    <blocks story="PM-04.4" reason="Navi Daily Briefing uses Navi for briefing generation" />
+  </dependencies>
+
+  <technical-notes>
+    <note category="Agent Memory Storage">
+      Agno agents use PostgresStorage for memory. The memory is shared across the PM team
+      (Navi, Sage, Chrono) within a project scope.
+
+      Memory tables created in `agent_memory` schema with pattern:
+      ```
+      agent_memory.pm_agent_memory_{workspace_id}
+      ```
+    </note>
+
+    <note category="BYOAI Integration">
+      Agents must use workspace-configured AI providers. The model selection should:
+      1. Check workspace BYOAI config
+      2. Prefer Anthropic (Claude) for Navi
+      3. Fall back to OpenAI if Claude not configured
+      4. Use default model from workspace settings
+    </note>
+
+    <note category="KB Search Integration">
+      The `search_kb` tool depends on KB-02.7 (Agent KB Queries) being complete.
+      If KB-02.7 is not available:
+      - Tool should gracefully handle missing endpoint
+      - Return empty context with message: "KB search not available"
+      - Navi should still answer questions using project data
+    </note>
+
+    <note category="Conversation History">
+      Limit to last 50 messages to avoid token overflow. Order by `createdAt DESC`
+      and reverse for chronological display.
+    </note>
+
+    <note category="Project Status Endpoint">
+      Create new endpoint `GET /api/pm/projects/:id/status` that returns:
+      ```typescript
+      {
+        projectId: string;
+        projectName: string;
+        currentPhase: string;
+        tasksSummary: {
+          total: number;
+          todo: number;
+          inProgress: number;
+          done: number;
+        };
+        tasksDueToday: number;
+        overdueTasks: number;
+        recentActivity: string[];  // Last 5 activities
+      }
+      ```
+    </note>
+  </technical-notes>
+
+  <definition-of-done>
+    - [ ] All acceptance criteria met
+    - [ ] Navi agent responds to project status questions
+    - [ ] KB search integration working (RAG)
+    - [ ] Conversation history persisted and loaded
+    - [ ] Unit tests passing (backend + agents)
+    - [ ] Integration tests passing
+    - [ ] E2E tests passing
+    - [ ] Code reviewed and approved
+    - [ ] Documentation updated (API endpoint docs, agent tool docs, BYOAI integration guide)
+    - [ ] Workspace isolation verified
+    - [ ] Migration applied and tested
+  </definition-of-done>
+
+</story-context>

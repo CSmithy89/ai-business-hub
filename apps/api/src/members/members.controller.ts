@@ -63,7 +63,7 @@ export class MembersController {
   @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
   async listMembers(
     @CurrentWorkspace() workspaceId: string,
-    @Query('q') search?: string
+    @Query('q') search?: string,
   ) {
     return this.membersService.listMembers(workspaceId, search)
   }

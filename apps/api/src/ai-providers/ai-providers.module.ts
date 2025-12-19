@@ -9,7 +9,6 @@
 
 import { Module, Global, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
 import { CommonModule } from '../common/common.module';
 import { AIProvidersController } from './ai-providers.controller';
 import { AIProvidersService } from './ai-providers.service';
@@ -27,7 +26,7 @@ import { EventsModule } from '../events/events.module';
   imports: [
     CommonModule,
     ConfigModule,
-    ScheduleModule.forRoot(),
+    // ScheduleModule is registered globally in AppModule
     forwardRef(() => EventsModule),
   ],
   controllers: [AIProvidersController],

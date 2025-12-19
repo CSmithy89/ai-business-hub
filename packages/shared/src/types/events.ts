@@ -143,6 +143,7 @@ export const EventTypes = {
   KB_PAGE_VERIFIED: 'kb.page.verified',
   KB_PAGE_UNVERIFIED: 'kb.page.unverified',
   KB_PAGE_VERIFICATION_EXPIRED: 'kb.page.verification_expired',
+  KB_MENTION_CREATED: 'kb.mention.created',
 } as const;
 
 /**

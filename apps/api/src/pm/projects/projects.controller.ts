@@ -67,6 +67,37 @@ export class ProjectsController {
     return this.projectsService.getBySlug(workspaceId, slug)
   }
 
+  @Get(':id/status')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get project status overview for agents' })
+  @ApiParam({ name: 'id', description: 'Project ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Project status retrieved',
+    schema: {
+      properties: {
+        projectId: { type: 'string' },
+        projectName: { type: 'string' },
+        currentPhase: { type: 'string' },
+        tasksSummary: {
+          type: 'object',
+          properties: {
+            total: { type: 'number' },
+            todo: { type: 'number' },
+            inProgress: { type: 'number' },
+            done: { type: 'number' },
+          },
+        },
+        tasksDueToday: { type: 'number' },
+        overdueTasks: { type: 'number' },
+        recentActivity: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  })
+  async getProjectStatus(@CurrentWorkspace() workspaceId: string, @Param('id') id: string) {
+    return this.projectsService.getProjectStatus(workspaceId, id)
+  }
+
   @Get(':id/docs')
   @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'Get linked KB pages for a project' })

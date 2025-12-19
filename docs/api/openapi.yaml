@@ -45,6 +45,8 @@ tags:
     description: User notifications
   - name: Agents
     description: Agent team execution and health monitoring
+  - name: Knowledge Base
+    description: Knowledge base pages and verification
 
 paths:
   # ============================================
@@ -973,6 +975,200 @@ paths:
               schema:
                 $ref: '#/components/schemas/TeamHealthResponse'
 
+  # ============================================
+  # KNOWLEDGE BASE VERIFICATION
+  # ============================================
+  /kb/pages/{pageId}/verify:
+    parameters:
+      - name: pageId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Knowledge page ID
+    post:
+      tags: [Knowledge Base]
+      summary: Mark page as verified
+      description: |
+        Mark a knowledge base page as verified with an expiration period.
+        Verified pages are prioritized in AI responses and RAG queries.
+      operationId: verifyPage
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expiresIn]
+              properties:
+                expiresIn:
+                  type: string
+                  enum: ['30d', '60d', '90d', 'never']
+                  description: Verification expiration period
+                  example: '90d'
+      responses:
+        '200':
+          description: Page verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgePage'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Knowledge Base]
+      summary: Remove page verification
+      description: Remove verification status from a page.
+      operationId: removePageVerification
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Verification removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /kb/verification/stale:
+    get:
+      tags: [Knowledge Base]
+      summary: List stale pages
+      description: |
+        Get pages that need attention based on:
+        - Expired verification
+        - Not updated in 90+ days
+        - Low view count (< 5 views)
+      operationId: getStalePages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: filter
+          in: query
+          schema:
+            type: string
+            enum: [all, expired, not_updated, low_views]
+            default: all
+          description: Filter stale pages by reason
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          description: Maximum pages to return
+      responses:
+        '200':
+          description: List of stale pages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StalePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /kb/verification/bulk-verify:
+    post:
+      tags: [Knowledge Base]
+      summary: Bulk verify pages
+      description: Verify multiple pages at once with the same expiration period.
+      operationId: bulkVerifyPages
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pageIds, expiresIn]
+              properties:
+                pageIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  minItems: 1
+                  maxItems: 50
+                  description: Page IDs to verify
+                expiresIn:
+                  type: string
+                  enum: ['30d', '60d', '90d', 'never']
+                  description: Verification expiration period
+      responses:
+        '200':
+          description: Bulk verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkOperationResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /kb/verification/bulk-delete:
+    post:
+      tags: [Knowledge Base]
+      summary: Bulk delete pages
+      description: Soft delete multiple pages at once.
+      operationId: bulkDeletePages
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pageIds]
+              properties:
+                pageIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  minItems: 1
+                  maxItems: 50
+                  description: Page IDs to delete
+      responses:
+        '200':
+          description: Bulk deletion result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkOperationResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1437,3 +1633,117 @@ components:
         error:
           type: string
           description: Error message if status is error
+
+    # ============================================
+    # KNOWLEDGE BASE SCHEMAS
+    # ============================================
+    KnowledgePage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        slug:
+          type: string
+        content:
+          type: object
+          description: Tiptap JSON content
+        workspaceId:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+          format: uuid
+        parentId:
+          type: string
+          format: uuid
+          nullable: true
+        depth:
+          type: integer
+        isVerified:
+          type: boolean
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        verifiedById:
+          type: string
+          format: uuid
+          nullable: true
+        verifyExpires:
+          type: string
+          format: date-time
+          nullable: true
+        viewCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    StalePage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        slug:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        viewCount:
+          type: integer
+        isVerified:
+          type: boolean
+        verifyExpires:
+          type: string
+          format: date-time
+          nullable: true
+        owner:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            email:
+              type: string
+            avatarUrl:
+              type: string
+              nullable: true
+        reasons:
+          type: array
+          items:
+            type: string
+          description: Reasons why page is considered stale
+          example: ["Expired verification", "Not updated in 90+ days"]
+
+    BulkOperationResult:
+      type: object
+      properties:
+        success:
+          type: integer
+          description: Number of successful operations
+        failed:
+          type: integer
+          description: Number of failed operations
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [fulfilled, rejected]
+              value:
+                type: object
+              reason:
+                type: string

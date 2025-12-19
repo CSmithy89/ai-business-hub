@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
@@ -23,6 +25,26 @@ import { validate } from './config/env.validation';
       validate,
       envFilePath: ['../../.env.local', '../../.env', '.env.local', '.env'],
     }),
+    // Scheduler global configuration (must be registered once at root)
+    ScheduleModule.forRoot(),
+    // Rate limiting configuration
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000, // 1 second
+        limit: 3, // 3 requests per second (for critical endpoints)
+      },
+      {
+        name: 'medium',
+        ttl: 10000, // 10 seconds
+        limit: 20, // 20 requests per 10 seconds
+      },
+      {
+        name: 'long',
+        ttl: 60000, // 1 minute
+        limit: 100, // 100 requests per minute (default)
+      },
+    ]),
     // BullMQ global configuration (Story 04-8)
     BullModule.forRootAsync({
       inject: [ConfigService],

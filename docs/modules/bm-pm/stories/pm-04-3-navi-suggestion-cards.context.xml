@@ -1,0 +1,660 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>PM-04.3</story-id>
+    <story-title>Navi Suggestion Cards</story-title>
+    <epic>PM-04 - AI Team: Navi, Sage, Chrono</epic>
+    <status>drafted</status>
+    <points>5</points>
+    <generated-at>2025-12-19</generated-at>
+  </metadata>
+
+  <story-info>
+    <summary>
+      As a project user, I want contextual suggestion cards from Navi,
+      so that I can quickly act on AI recommendations.
+    </summary>
+
+    <description>
+      This story implements the suggestion card system that displays AI-generated
+      recommendations from Navi agent. Cards show actionable suggestions with
+      preview, confidence scores, reasoning, and one-click actions (Accept, Edit, Dismiss).
+
+      Key features:
+      - Display suggestion cards based on project context
+      - Show clear action descriptions with reasoning
+      - Provide confidence indicators
+      - Enable one-click acceptance or dismissal
+      - Support snooze functionality (hide for 4 hours)
+      - Sort cards by priority (confidence + urgency + age)
+    </description>
+
+    <tech-spec-reference>
+      docs/modules/bm-pm/epics/epic-pm-04-tech-spec.md
+    </tech-spec-reference>
+  </story-info>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      <title>Navi Displays Suggestion Cards Based on Project Context</title>
+      <given>I am on a project page</given>
+      <when>Navi analyzes the project state</when>
+      <then>Relevant suggestion cards appear showing actionable recommendations</then>
+    </criterion>
+
+    <criterion id="AC2">
+      <title>Cards Show Actionable Recommendations with One-Click Actions</title>
+      <given>A suggestion card is displayed</given>
+      <when>I review the suggestion</when>
+      <then>I see clear action description, reasoning, confidence score, and action buttons (Accept, Edit, Dismiss)</then>
+    </criterion>
+
+    <criterion id="AC3">
+      <title>Cards Can Be Dismissed or Snoozed</title>
+      <given>I see a suggestion card</given>
+      <when>I don't want to act on it now</when>
+      <then>I can dismiss it permanently or snooze for later review</then>
+    </criterion>
+
+    <criterion id="AC4">
+      <title>Card Priority Determines Visibility Order</title>
+      <given>Multiple suggestion cards exist</given>
+      <when>They are displayed</when>
+      <then>Cards are ordered by priority/confidence score with highest first</then>
+    </criterion>
+  </acceptance-criteria>
+
+  <implementation-checklist>
+    <section name="Backend Implementation">
+      <task>Create apps/api/src/pm/agents/suggestion.service.ts</task>
+      <task>Implement createSuggestion() method with workspace/project/user context</task>
+      <task>Implement getSuggestions() with filtering (status, agentName, projectId) and sorting</task>
+      <task>Implement acceptSuggestion() that executes the suggested action</task>
+      <task>Implement rejectSuggestion() with optional reason logging</task>
+      <task>Implement snoozeSuggestion() that sets 4-hour delay in payload</task>
+      <task>Add executeSuggestion() router for different action types (CREATE_TASK, UPDATE_TASK, ASSIGN_TASK, MOVE_TO_PHASE, SET_PRIORITY)</task>
+      <task>Add suggestion endpoints to apps/api/src/pm/agents/agents.controller.ts</task>
+      <task>Create DTOs: GetSuggestionsDto, RejectSuggestionDto</task>
+      <task>Add cron job for cleaning up expired suggestions (status=PENDING, expiresAt &lt; now)</task>
+      <task>Integrate with EventBusService for agent.suggestion.* events</task>
+      <task>Integrate with RealtimeGateway for WebSocket notifications</task>
+    </section>
+
+    <section name="Agent Layer Implementation">
+      <task>Create agents/pm/tools/suggestion_tools.py</task>
+      <task>Implement create_task_suggestion tool</task>
+      <task>Implement assign_task_suggestion tool</task>
+      <task>Implement set_priority_suggestion tool</task>
+      <task>Implement move_to_phase_suggestion tool</task>
+      <task>Add suggestion tools to Navi's tools list in agents/pm/navi.py</task>
+      <task>Update Navi instructions to always suggest, never execute directly</task>
+    </section>
+
+    <section name="Frontend Implementation">
+      <task>Create apps/web/src/components/pm/agents/SuggestionCard.tsx</task>
+      <task>Create apps/web/src/components/pm/agents/SuggestionsList.tsx</task>
+      <task>Create apps/web/src/components/pm/agents/EditSuggestionModal.tsx (optional)</task>
+      <task>Create apps/web/src/hooks/pm/useSuggestions.ts with React Query</task>
+      <task>Implement ConfidenceIndicator component (3 circles, color-coded)</task>
+      <task>Implement SuggestionPreview component for action-specific previews</task>
+      <task>Implement priority calculation algorithm (confidence + urgency + age decay)</task>
+      <task>Add snooze functionality with client-side filtering</task>
+      <task>Add WebSocket listener for suggestion:created event</task>
+      <task>Integrate SuggestionsList into project pages</task>
+    </section>
+
+    <section name="Testing">
+      <task>Write unit tests for SuggestionService (apps/api/src/pm/agents/suggestion.service.spec.ts)</task>
+      <task>Write unit tests for suggestion tools (agents/pm/tests/test_suggestion_tools.py)</task>
+      <task>Write component tests for SuggestionCard (apps/web/src/components/pm/agents/SuggestionCard.test.tsx)</task>
+      <task>Write integration tests for suggestion API endpoints (apps/api/test/pm/agents/suggestion.e2e-spec.ts)</task>
+      <task>Write E2E tests for suggestion flows (apps/web/e2e/pm/agents/suggestion-cards.spec.ts)</task>
+      <task>Test workspace isolation</task>
+      <task>Test WebSocket real-time updates</task>
+      <task>Test expiration cleanup cron job</task>
+    </section>
+  </implementation-checklist>
+
+  <related-code-patterns>
+    <pattern name="Agent Service Pattern">
+      <file>apps/api/src/pm/agents/agents.service.ts</file>
+      <description>
+        Existing pattern for agent invocation and conversation management.
+        Shows how to:
+        - Load conversation history
+        - Invoke agents via AgentOS
+        - Store conversations with user/agent roles
+        - Handle errors gracefully with fallback messages
+      </description>
+      <key-methods>
+        - chat(): Main entry point for agent interactions
+        - loadConversationHistory(): Loads last 50 messages
+        - storeConversation(): Stores both user and agent messages
+        - invokeAgent(): Calls Python agent via AgentOS service
+      </key-methods>
+    </pattern>
+
+    <pattern name="Briefing Service Pattern">
+      <file>apps/api/src/pm/agents/briefing.service.ts</file>
+      <description>
+        Pattern for generating structured AI content with sections.
+        Shows how to:
+        - Query task data with filters (due today, overdue, priority)
+        - Generate recommendations based on data
+        - Create structured output (BriefingSection interface)
+        - Implement cron jobs for scheduled tasks
+        - Handle multi-tenant context (workspace memberships)
+      </description>
+      <key-methods>
+        - generateBriefing(): Main generation logic
+        - generateRecommendations(): Smart recommendation generation
+        - scheduledBriefingCheck(): Cron job pattern with @Cron decorator
+      </key-methods>
+    </pattern>
+
+    <pattern name="Python Agent Pattern">
+      <file>agents/pm/navi.py</file>
+      <description>
+        Pattern for creating Agno agents with tools and instructions.
+        Shows how to:
+        - Define agent instructions as string array
+        - Create agent with Claude model
+        - Add workspace/project context to instructions
+        - Register tools with agent
+        - Use shared memory for team context
+      </description>
+      <key-elements>
+        - NAVI_INSTRUCTIONS: Agent behavior guidelines
+        - create_navi_agent(): Factory function with context injection
+        - Tools array: get_project_status, list_tasks, search_kb
+      </key-elements>
+    </pattern>
+
+    <pattern name="Python Tools Pattern">
+      <file>agents/pm/tools/pm_tools.py</file>
+      <description>
+        Pattern for creating agent tools that call backend APIs.
+        Shows how to:
+        - Use @tool decorator
+        - Make HTTP requests with httpx
+        - Pass workspace context via headers
+        - Handle errors gracefully
+        - Return structured data or formatted strings
+      </description>
+      <key-patterns>
+        - API_BASE_URL from environment
+        - x-workspace-id header for multi-tenancy
+        - Error handling with try/except and fallback responses
+        - Type hints for parameters and return values
+      </key-patterns>
+    </pattern>
+
+    <pattern name="Data Model Pattern">
+      <file>packages/db/prisma/schema.prisma</file>
+      <description>
+        Key data models for PM agents:
+
+        AgentConversation:
+        - workspaceId, projectId, userId, agentName
+        - role (USER | AGENT), message, metadata
+        - Indexed on (workspaceId, projectId, agentName)
+
+        ConversationRole enum:
+        - USER
+        - AGENT
+
+        Pattern shows:
+        - Multi-tenant isolation with workspaceId
+        - Proper indexing for query performance
+        - JSON metadata field for flexibility
+        - @map() for snake_case DB columns
+      </description>
+    </pattern>
+  </related-code-patterns>
+
+  <tech-stack-notes>
+    <backend>
+      <framework>NestJS 10.x</framework>
+      <database>PostgreSQL 16+ via Prisma 6.x</database>
+      <realtime>Socket.io 4.x via RealtimeGateway</realtime>
+      <events>Custom EventBusService</events>
+      <scheduling>@nestjs/schedule with @Cron decorators</scheduling>
+      <validation>class-validator for DTOs</validation>
+    </backend>
+
+    <agents>
+      <language>Python 3.12+</language>
+      <framework>Agno (agno.agent.Agent)</framework>
+      <models>Claude via agno.models.anthropic</models>
+      <storage>PostgresStorage for agent memory</storage>
+      <http-client>httpx for API calls</http-client>
+      <tools>@tool decorator from agno.tools</tools>
+    </agents>
+
+    <frontend>
+      <framework>Next.js 15 + React + TypeScript</framework>
+      <state>React Query (@tanstack/react-query) for data fetching</state>
+      <ui>shadcn/ui components + Tailwind CSS</ui>
+      <icons>lucide-react</icons>
+      <websocket>socket.io-client for real-time updates</websocket>
+    </frontend>
+
+    <new-models>
+      <model name="AgentSuggestion">
+        Fields:
+        - id: cuid()
+        - workspaceId, projectId, userId, agentName
+        - action: SuggestionAction enum
+        - payload: Json (action-specific data)
+        - confidence: Float (0-1)
+        - reasoning: Text
+        - status: SuggestionStatus (PENDING, ACCEPTED, REJECTED, EXPIRED)
+        - acceptedAt, rejectedAt, createdAt, expiresAt
+
+        Indexes:
+        - [workspaceId, projectId]
+        - [userId, status]
+        - [agentName, status]
+        - [createdAt]
+      </model>
+
+      <enum name="SuggestionAction">
+        Values:
+        - CREATE_TASK
+        - UPDATE_TASK
+        - ASSIGN_TASK
+        - MOVE_TO_PHASE
+        - SET_PRIORITY
+        - ESTIMATE_TASK
+        - START_TIMER
+        - STOP_TIMER
+      </enum>
+
+      <enum name="SuggestionStatus">
+        Values:
+        - PENDING
+        - ACCEPTED
+        - REJECTED
+        - EXPIRED
+      </enum>
+    </new-models>
+  </tech-stack-notes>
+
+  <key-implementation-details>
+    <detail category="Suggestion Lifecycle">
+      <title>Complete Suggestion Flow</title>
+      <description>
+        1. Agent generates suggestion → SuggestionService.createSuggestion()
+        2. Suggestion stored with status=PENDING, expiresAt=24h from now
+        3. WebSocket notification sent to project room: suggestion:created
+        4. Frontend displays SuggestionCard with preview
+        5. User takes action:
+           a. Accept → execute action, status=ACCEPTED
+           b. Reject → status=REJECTED, log reason in payload
+           c. Snooze → hidden for 4 hours via snoozedUntil in payload
+           d. Dismiss → same as Reject with reason "Dismissed by user"
+        6. After 24h → cron job sets status=EXPIRED for unprocessed suggestions
+      </description>
+    </detail>
+
+    <detail category="Priority Algorithm">
+      <title>Suggestion Priority Calculation</title>
+      <formula>
+        priority = confidence * 100
+                 + (urgent_boost = 50 if payload.priority === 'URGENT')
+                 + (overdue_boost = 30 if reasoning includes 'overdue')
+                 + (blocker_boost = 40 if reasoning includes 'blocked' or 'blocker')
+                 - (age_penalty = 2 points per hour since creation)
+      </formula>
+      <description>
+        Ensures:
+        - High confidence suggestions appear first
+        - Urgent/blocking issues prioritized
+        - Older suggestions decay over time
+        - Users see most relevant suggestions at top
+      </description>
+    </detail>
+
+    <detail category="Snooze Implementation">
+      <title>Client-Side Snooze Logic</title>
+      <description>
+        - Server stores snoozedUntil timestamp in payload JSON field
+        - Client filters out suggestions where snoozedUntil > now
+        - After snooze expires, suggestion automatically reappears
+        - User can snooze multiple times
+        - Default snooze duration: 4 hours
+      </description>
+    </detail>
+
+    <detail category="Confidence Display">
+      <title>Confidence Indicators</title>
+      <levels>
+        - High (≥85%): Green border, 3 filled circles (⬤⬤⬤)
+        - Medium (60-84%): Yellow border, 2 filled circles (⬤⬤○)
+        - Low (&lt;60%): Orange border, 1 filled circle (⬤○○)
+      </levels>
+      <description>
+        Visual indicators help users quickly assess suggestion reliability.
+        Consider routing low-confidence suggestions through approval queue (future).
+      </description>
+    </detail>
+
+    <detail category="WebSocket Integration">
+      <title>Real-Time Updates</title>
+      <description>
+        Subscribe to project room:
+        ```typescript
+        socket.emit('project:subscribe', { projectId });
+        socket.on('suggestion:created', handleNewSuggestion);
+        ```
+
+        Ensures users see suggestions immediately without refresh.
+        Server emits to: `project:{projectId}` room
+      </description>
+    </detail>
+
+    <detail category="Multi-Tenancy">
+      <title>Workspace Isolation</title>
+      <description>
+        All operations must enforce workspace isolation:
+        - SuggestionService methods check suggestion.workspaceId === user.workspaceId
+        - Agent tools pass x-workspace-id header
+        - Prisma queries always filter by workspaceId
+        - WebSocket rooms scoped by project (implicit workspace isolation)
+      </description>
+    </detail>
+
+    <detail category="Action Execution">
+      <title>Suggestion Action Router</title>
+      <description>
+        When suggestion is accepted, executeSuggestion() routes to appropriate handler:
+
+        CREATE_TASK → executeCreateTask():
+          - Create Task with prisma.task.create()
+          - Publish task.created event
+
+        UPDATE_TASK → executeUpdateTask():
+          - Update Task with prisma.task.update()
+          - Publish task.updated event
+
+        ASSIGN_TASK → executeAssignTask():
+          - Update Task.assigneeId
+          - Publish task.assigned event
+
+        MOVE_TO_PHASE → executeMoveToPhase():
+          - Update Task.phaseId
+          - Publish task.moved event
+
+        SET_PRIORITY → executeSetPriority():
+          - Update Task.priority
+          - Publish task.updated event
+      </description>
+    </detail>
+
+    <detail category="Edit Suggestion Flow">
+      <title>Edit Suggestion Functionality</title>
+      <description>
+        When user clicks "Edit":
+        1. Open modal with pre-filled values from suggestion.payload
+        2. User modifies fields (title, description, priority, etc.)
+        3. On save:
+           - Reject original suggestion
+           - Create new suggestion with modified payload
+           - New suggestion has same confidence but updated reasoning
+        4. New suggestion appears in list
+
+        Note: Full edit modal implementation is optional for initial story.
+        Can start with simple inline editing or defer to future story.
+      </description>
+    </detail>
+  </key-implementation-details>
+
+  <dependencies>
+    <prerequisite>
+      <story>PM-04.1</story>
+      <title>Navi Agent Foundation</title>
+      <reason>Navi agent must exist to generate suggestions</reason>
+    </prerequisite>
+
+    <prerequisite>
+      <story>PM-04.2</story>
+      <title>Navi Daily Briefing</title>
+      <reason>Uses similar card UI patterns and service structure</reason>
+    </prerequisite>
+
+    <prerequisite>
+      <story>PM-02.1</story>
+      <title>Task Data Model</title>
+      <reason>Task operations needed for suggestion execution</reason>
+    </prerequisite>
+
+    <blocks>
+      <story>PM-04.4</story>
+      <title>Navi Chat Commands</title>
+      <reason>Will use suggestion cards for command responses</reason>
+    </blocks>
+  </dependencies>
+
+  <api-contracts>
+    <endpoint method="GET" path="/api/pm/agents/suggestions">
+      <description>Get pending suggestions for user</description>
+      <query-params>
+        - projectId?: string (filter by project)
+        - agentName?: string (filter by agent: 'navi', 'sage', 'chrono')
+        - status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' (default: PENDING)
+        - limit?: number (default: 50)
+      </query-params>
+      <response>AgentSuggestion[]</response>
+      <notes>
+        - Filters out expired suggestions (expiresAt &lt; now)
+        - Orders by confidence DESC, createdAt DESC
+        - Respects workspace isolation
+      </notes>
+    </endpoint>
+
+    <endpoint method="POST" path="/api/pm/agents/suggestions/:id/accept">
+      <description>Accept and execute suggestion</description>
+      <response>
+        {
+          success: true,
+          result: any  // Result of executed action (e.g., created Task)
+        }
+      </response>
+      <events>
+        - agent.suggestion.accepted
+        - task.created (or other action-specific event)
+      </events>
+      <errors>
+        - 404: Suggestion not found
+        - 403: Access denied (wrong workspace)
+        - 400: Suggestion already processed
+      </errors>
+    </endpoint>
+
+    <endpoint method="POST" path="/api/pm/agents/suggestions/:id/reject">
+      <description>Reject suggestion with optional reason</description>
+      <body>
+        {
+          reason?: string
+        }
+      </body>
+      <response>
+        {
+          success: true
+        }
+      </response>
+      <events>
+        - agent.suggestion.rejected
+      </events>
+      <notes>Reason stored in payload.rejectionReason</notes>
+    </endpoint>
+
+    <endpoint method="POST" path="/api/pm/agents/suggestions/:id/snooze">
+      <description>Snooze suggestion for 4 hours</description>
+      <response>
+        {
+          success: true
+        }
+      </response>
+      <notes>
+        Stores snoozedUntil timestamp in payload.
+        Client filters out snoozed suggestions.
+      </notes>
+    </endpoint>
+
+    <endpoint method="DELETE" path="/api/pm/agents/suggestions/:id">
+      <description>Dismiss suggestion permanently</description>
+      <response>
+        {
+          success: true
+        }
+      </response>
+      <notes>Same as reject with reason "Dismissed by user"</notes>
+    </endpoint>
+  </api-contracts>
+
+  <testing-requirements>
+    <unit-tests>
+      <backend>
+        - SuggestionService.createSuggestion() creates with 24h expiry
+        - SuggestionService.acceptSuggestion() executes correct action
+        - SuggestionService.rejectSuggestion() updates status and logs reason
+        - SuggestionService.snoozeSuggestion() sets 4-hour delay
+        - SuggestionService.executeSuggestion() routes to correct executor
+        - executeCreateTask() creates task and publishes event
+        - Priority calculation includes confidence, urgency, age
+        - Workspace isolation enforced in all methods
+      </backend>
+
+      <agents>
+        - create_task_suggestion returns valid suggestion object
+        - assign_task_suggestion includes assignee details
+        - set_priority_suggestion validates priority values
+        - move_to_phase_suggestion includes phase details
+        - Tools return proper confidence scores
+        - Tools include reasoning strings
+      </agents>
+
+      <frontend>
+        - SuggestionCard displays all required information
+        - Accept button calls onAccept and shows loading state
+        - Reject button shows reason input and confirms
+        - Snooze button calls onSnooze
+        - Confidence indicator shows correct level
+        - Priority sorting works correctly
+        - useSuggestions hook fetches and caches data
+        - SuggestionsList sorts by priority
+      </frontend>
+    </unit-tests>
+
+    <integration-tests>
+      <api>
+        - GET /api/pm/agents/suggestions returns filtered suggestions
+        - POST /api/pm/agents/suggestions/:id/accept creates task
+        - POST /api/pm/agents/suggestions/:id/reject updates status
+        - POST /api/pm/agents/suggestions/:id/snooze sets delay
+        - WebSocket event sent on suggestion creation
+        - Expired suggestions cleaned up by cron
+        - Workspace isolation verified across all endpoints
+      </api>
+    </integration-tests>
+
+    <e2e-tests>
+      <flows>
+        1. Agent creates suggestion → card appears → user accepts → task created
+        2. View suggestion → click "Edit" → modify → accept → task created with changes
+        3. View suggestion → click "Dismiss" → card disappears
+        4. View suggestion → click "Snooze" → card disappears → reappears after time
+        5. Multiple suggestions → sorted by priority → highest confidence first
+        6. Real-time: Another user accepts suggestion → card updates immediately
+      </flows>
+    </e2e-tests>
+  </testing-requirements>
+
+  <definition-of-done>
+    <checklist>
+      <item>All acceptance criteria met</item>
+      <item>Suggestion cards display based on project context</item>
+      <item>Cards show action, reasoning, and confidence score</item>
+      <item>Accept/reject/snooze functionality working</item>
+      <item>Priority sorting implemented and tested</item>
+      <item>WebSocket real-time updates working</item>
+      <item>Expired suggestions auto-cleanup via cron</item>
+      <item>AgentSuggestion model added to Prisma schema</item>
+      <item>Database migration created and tested</item>
+      <item>Unit tests passing (backend + agents + frontend)</item>
+      <item>Integration tests passing</item>
+      <item>E2E tests passing</item>
+      <item>Code reviewed and approved</item>
+      <item>Documentation updated (API endpoints, agent tools)</item>
+      <item>Workspace isolation verified</item>
+      <item>No regressions in existing features</item>
+      <item>Performance acceptable (suggestions load &lt;500ms)</item>
+      <item>Error handling graceful (no uncaught exceptions)</item>
+    </checklist>
+  </definition-of-done>
+
+  <notes>
+    <note category="Future Enhancements">
+      - Full edit modal implementation (currently optional)
+      - User preferences for suggestion types to show/hide
+      - Bulk accept/reject for multiple suggestions
+      - Suggestion history view
+      - Analytics on acceptance rate by agent/action type
+      - Integration with approval queue for low-confidence suggestions
+    </note>
+
+    <note category="Performance">
+      - Consider pagination if user has &gt;20 active suggestions
+      - Cache suggestion queries in React Query (30s stale time)
+      - Use WebSocket for updates, avoid polling
+      - Index optimization: (workspaceId, status, createdAt)
+    </note>
+
+    <note category="UX Considerations">
+      - Empty state: "No suggestions at this time. Navi will suggest actions as needed."
+      - Loading state: Show skeleton cards while fetching
+      - Error state: "Failed to load suggestions. Please try again."
+      - Optimistic updates: Hide card immediately on accept/reject
+      - Toast notifications: "Suggestion accepted ✓" or "Suggestion dismissed"
+    </note>
+
+    <note category="Security">
+      - Validate suggestion.workspaceId matches user's workspace
+      - Sanitize suggestion.reasoning before display (XSS prevention)
+      - Rate limit: Max 100 suggestions per project per day
+      - Audit log: Track all accept/reject actions
+    </note>
+
+    <note category="Multi-Tenancy">
+      - All queries MUST filter by workspaceId
+      - WebSocket rooms scoped by projectId (implicit workspace isolation)
+      - Agent tools MUST pass x-workspace-id header
+      - Test cross-tenant access attempts (should fail)
+    </note>
+  </notes>
+
+  <reference-files>
+    <file path="docs/modules/bm-pm/stories/pm-04-3-navi-suggestion-cards.md">
+      Story definition with technical notes and component code
+    </file>
+    <file path="docs/modules/bm-pm/epics/epic-pm-04-tech-spec.md">
+      Epic technical specification for AI Team
+    </file>
+    <file path="apps/api/src/pm/agents/agents.service.ts">
+      Existing agent service pattern
+    </file>
+    <file path="apps/api/src/pm/agents/briefing.service.ts">
+      Briefing service pattern (similar structure)
+    </file>
+    <file path="agents/pm/navi.py">
+      Navi agent implementation
+    </file>
+    <file path="agents/pm/tools/pm_tools.py">
+      Existing PM tools pattern
+    </file>
+    <file path="packages/db/prisma/schema.prisma">
+      Database schema (add AgentSuggestion model)
+    </file>
+  </reference-files>
+</story-context>

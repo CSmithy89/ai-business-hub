@@ -86,6 +86,8 @@ export class MembersService {
 
   /**
    * List all members in a workspace
+   * @param workspaceId - Workspace ID
+   * @param search - Optional search query to filter by name or email
    */
   async listMembers(workspaceId: string, search?: string) {
     return this.prisma.workspaceMember.findMany({

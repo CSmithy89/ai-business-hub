@@ -819,4 +819,136 @@ export class PagesService {
 
     return { data }
   }
+
+  /**
+   * Extract @mentions from Tiptap JSON content
+   * @private
+   */
+  private extractMentionsFromContent(content: any): Array<{ userId: string; position: number }> {
+    const mentions: Array<{ userId: string; position: number }> = []
+    let position = 0
+
+    const traverse = (node: any) => {
+      if (node.type === 'mention' && node.attrs?.id) {
+        mentions.push({ userId: node.attrs.id, position })
+      }
+      if (node.content && Array.isArray(node.content)) {
+        node.content.forEach(traverse)
+      }
+      position++
+    }
+
+    if (content?.content) {
+      content.content.forEach(traverse)
+    }
+
+    return mentions
+  }
+
+  /**
+   * Extract mentions from page content and store them in database
+   * Creates PageMention records and sends notifications to mentioned users
+   */
+  async extractAndStoreMentions(
+    pageId: string,
+    content: any,
+    tenantId: string,
+    workspaceId: string,
+    actorId: string,
+  ): Promise<void> {
+    // Extract mentions from Tiptap JSON content
+    const mentions = this.extractMentionsFromContent(content)
+
+    // Remove duplicates (same user mentioned multiple times)
+    const uniqueUserIds = Array.from(new Set(mentions.map((m) => m.userId)))
+
+    // Transaction: delete old mentions, create new ones
+    await this.prisma.$transaction([
+      // Delete old USER mentions
+      this.prisma.pageMention.deleteMany({
+        where: { pageId, mentionType: 'USER' },
+      }),
+      // Create new mentions
+      ...(mentions.length > 0
+        ? [
+            this.prisma.pageMention.createMany({
+              data: mentions.map((m, idx) => ({
+                pageId,
+                mentionType: 'USER',
+                targetId: m.userId,
+                position: m.position ?? idx,
+              })),
+            }),
+          ]
+        : []),
+    ])
+
+    // Send notifications (async, non-blocking)
+    if (uniqueUserIds.length > 0) {
+      const page = await this.prisma.knowledgePage.findUnique({
+        where: { id: pageId },
+        select: { title: true, ownerId: true },
+      })
+
+      if (!page) {
+        this.logger.warn(`Page ${pageId} not found when creating mention notifications`)
+        return
+      }
+
+      // Get actor details for notification message
+      const actor = await this.prisma.user.findUnique({
+        where: { id: actorId },
+        select: { name: true, email: true },
+      })
+
+      const actorName = actor?.name || actor?.email || 'Someone'
+
+      // Create notifications for each mentioned user (except self-mentions)
+      for (const userId of uniqueUserIds) {
+        // Skip if user mentions themselves
+        if (userId === actorId) continue
+
+        // Create notification
+        await this.prisma.notification
+          .create({
+            data: {
+              userId,
+              workspaceId,
+              type: 'kb_mention',
+              title: 'You were mentioned',
+              message: `${actorName} mentioned you in "${page.title}"`,
+              link: `/kb/${pageId}`,
+              data: {
+                pageId,
+                pageTitle: page.title,
+                mentionedBy: actorId,
+                mentionedByName: actorName,
+              },
+            },
+          })
+          .catch((error) => {
+            // Log but don't fail the operation if notification creation fails
+            this.logger.error(`Failed to create mention notification for user ${userId}:`, error)
+          })
+
+        // Publish event for real-time notification
+        // Note: Using KB_PAGE_UPDATED as there's no specific mention event type yet
+        await this.eventPublisher
+          .publish(
+            EventTypes.KB_PAGE_UPDATED,
+            {
+              pageId,
+              workspaceId,
+              title: page.title,
+              slug: '',
+            },
+            { tenantId, userId: actorId, source: 'api' },
+          )
+          .catch((error) => {
+            // Log but don't fail
+            this.logger.error(`Failed to publish mention event for user ${userId}:`, error)
+          })
+      }
+    }
+  }
 }

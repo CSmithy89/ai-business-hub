@@ -87,7 +87,7 @@ export default function KBPagePage({ params }: PageProps) {
 
     await updatePage.mutateAsync({
       id: pageId,
-      input: { content },
+      input: { content, processMentions: true },
     })
   }
 
@@ -272,6 +272,7 @@ export default function KBPagePage({ params }: PageProps) {
           <div className="flex-1 overflow-hidden">
             <PageEditor
               pageId={pageId}
+              workspaceId={workspaceId}
               initialContent={pageData.data.content}
               onSave={handleSaveContent}
               placeholder="Start writing your page content..."

@@ -27,4 +27,8 @@ export class UpdatePageDto {
   @IsString()
   @MaxLength(500)
   changeNote?: string // Optional note for version history
+
+  @IsOptional()
+  @IsBoolean()
+  processMentions?: boolean // If true, extract and process @mentions
 }
