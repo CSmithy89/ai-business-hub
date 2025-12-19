@@ -42,6 +42,20 @@ export interface EstimationMetrics {
   totalEstimations: number;
 }
 
+export interface StoryPointSuggestion {
+  suggestionId: string;
+  taskId: string;
+  suggestedPoints: number;
+  estimatedHours: number;
+  confidenceLevel: 'low' | 'medium' | 'high';
+  confidenceScore: number;
+  reasoning: string;
+  complexityFactors: string[];
+  similarTasks: Array<{ id: string; title: string; points: number }>;
+  coldStart: boolean;
+  expiresAt: Date;
+}
+
 @Injectable()
 export class EstimationService {
   private readonly logger = new Logger(EstimationService.name);
@@ -406,5 +420,195 @@ export class EstimationService {
       averageAccuracy: Math.round(avgAccuracy * 100),
       totalEstimations: tasks.length,
     };
+  }
+
+  // ============================================
+  // Story Point Suggestions (PM-04-6)
+  // ============================================
+
+  /**
+   * Suggest story points for a task
+   * Creates an AgentSuggestion that user can accept/reject
+   */
+  async suggestStoryPoints(
+    taskId: string,
+    workspaceId: string,
+    userId: string,
+  ): Promise<StoryPointSuggestion> {
+    this.logger.log(`Generating story point suggestion for task ${taskId}`);
+
+    // Get the task
+    const task = await this.prisma.task.findFirst({
+      where: { id: taskId, workspaceId },
+      include: {
+        phase: {
+          include: { project: true },
+        },
+      },
+    });
+
+    if (!task) {
+      throw new Error(`Task ${taskId} not found in workspace`);
+    }
+
+    // Generate estimate using existing logic
+    const estimate = await this.estimateTask(workspaceId, userId, {
+      title: task.title,
+      description: task.description || undefined,
+      type: task.type,
+      projectId: task.phase.projectId,
+    });
+
+    // Map to Fibonacci story points
+    const fibonacciPoints = this.mapToFibonacci(estimate.storyPoints);
+
+    // Get similar tasks for reference
+    const similarTasks = await this.findSimilarTasks(
+      workspaceId,
+      task.phase.projectId,
+      task.type,
+      task.title,
+      5,
+    );
+
+    // Create suggestion record
+    const suggestion = await this.prisma.agentSuggestion.create({
+      data: {
+        workspaceId,
+        projectId: task.phase.projectId,
+        userId,
+        agentName: 'sage',
+        suggestionType: 'UPDATE_TASK',
+        status: 'PENDING',
+        title: `Set story points to ${fibonacciPoints}`,
+        description: `Sage suggests ${fibonacciPoints} story points for "${task.title}"`,
+        reasoning: estimate.basis,
+        confidence: estimate.confidenceScore,
+        priority: estimate.confidenceLevel === 'high' ? 'high' : estimate.confidenceLevel === 'medium' ? 'medium' : 'low',
+        actionPayload: {
+          taskId,
+          suggestedPoints: fibonacciPoints,
+          estimatedHours: estimate.estimatedHours,
+          complexityFactors: estimate.complexityFactors,
+          coldStart: estimate.coldStart,
+        },
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h expiry
+      },
+    });
+
+    return {
+      suggestionId: suggestion.id,
+      taskId,
+      suggestedPoints: fibonacciPoints,
+      estimatedHours: estimate.estimatedHours,
+      confidenceLevel: estimate.confidenceLevel,
+      confidenceScore: estimate.confidenceScore,
+      reasoning: estimate.basis,
+      complexityFactors: estimate.complexityFactors,
+      similarTasks: similarTasks.map(t => ({
+        id: t.id,
+        title: t.title,
+        points: t.storyPoints || 0,
+      })),
+      coldStart: estimate.coldStart,
+      expiresAt: suggestion.expiresAt!,
+    };
+  }
+
+  /**
+   * Accept a story point suggestion and apply to task
+   */
+  async acceptStoryPointSuggestion(
+    suggestionId: string,
+    workspaceId: string,
+    overridePoints?: number,
+  ): Promise<{ taskId: string; appliedPoints: number }> {
+    const suggestion = await this.prisma.agentSuggestion.findFirst({
+      where: { id: suggestionId, workspaceId, status: 'PENDING' },
+    });
+
+    if (!suggestion) {
+      throw new Error('Suggestion not found or already processed');
+    }
+
+    const payload = suggestion.actionPayload as {
+      taskId: string;
+      suggestedPoints: number;
+    };
+
+    const pointsToApply = overridePoints ?? payload.suggestedPoints;
+
+    // Update the task with story points
+    await this.prisma.task.update({
+      where: { id: payload.taskId },
+      data: { storyPoints: pointsToApply },
+    });
+
+    // Mark suggestion as accepted
+    await this.prisma.agentSuggestion.update({
+      where: { id: suggestionId },
+      data: {
+        status: 'ACCEPTED',
+        acceptedAt: new Date(),
+      },
+    });
+
+    this.logger.log(
+      `Accepted story point suggestion ${suggestionId}: applied ${pointsToApply} points to task ${payload.taskId}`,
+    );
+
+    return {
+      taskId: payload.taskId,
+      appliedPoints: pointsToApply,
+    };
+  }
+
+  /**
+   * Reject a story point suggestion
+   */
+  async rejectStoryPointSuggestion(
+    suggestionId: string,
+    workspaceId: string,
+    reason?: string,
+  ): Promise<void> {
+    const suggestion = await this.prisma.agentSuggestion.findFirst({
+      where: { id: suggestionId, workspaceId, status: 'PENDING' },
+    });
+
+    if (!suggestion) {
+      throw new Error('Suggestion not found or already processed');
+    }
+
+    await this.prisma.agentSuggestion.update({
+      where: { id: suggestionId },
+      data: {
+        status: 'REJECTED',
+        rejectedAt: new Date(),
+        reasoning: reason ? `${suggestion.reasoning}\n\nRejection reason: ${reason}` : suggestion.reasoning,
+      },
+    });
+
+    this.logger.log(`Rejected story point suggestion ${suggestionId}`);
+  }
+
+  /**
+   * Map any point value to nearest Fibonacci number
+   */
+  private mapToFibonacci(points: number): number {
+    const fibonacci = [1, 2, 3, 5, 8, 13, 21];
+
+    // Find nearest Fibonacci number
+    let closest = fibonacci[0];
+    let minDiff = Math.abs(points - closest);
+
+    for (const fib of fibonacci) {
+      const diff = Math.abs(points - fib);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = fib;
+      }
+    }
+
+    return closest;
   }
 }

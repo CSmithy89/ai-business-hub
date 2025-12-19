@@ -409,4 +409,94 @@ export class AgentsController {
       taskType as any,
     );
   }
+
+  // ============================================
+  // Story Point Suggestions (PM-04-6)
+  // ============================================
+
+  @Post('estimation/suggest-points/:taskId')
+  @ApiOperation({ summary: 'Get story point suggestion for a task' })
+  @ApiResponse({
+    status: 200,
+    description: 'Story point suggestion generated',
+    schema: {
+      properties: {
+        suggestionId: { type: 'string' },
+        taskId: { type: 'string' },
+        suggestedPoints: { type: 'number' },
+        estimatedHours: { type: 'number' },
+        confidenceLevel: { type: 'string', enum: ['low', 'medium', 'high'] },
+        confidenceScore: { type: 'number' },
+        reasoning: { type: 'string' },
+        complexityFactors: { type: 'array', items: { type: 'string' } },
+        similarTasks: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'string' },
+              title: { type: 'string' },
+              points: { type: 'number' },
+            },
+          },
+        },
+        coldStart: { type: 'boolean' },
+        expiresAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  async suggestStoryPoints(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser('id') userId: string,
+    @Param('taskId') taskId: string,
+  ) {
+    return this.estimationService.suggestStoryPoints(taskId, workspaceId, userId);
+  }
+
+  @Post('estimation/suggestions/:id/accept')
+  @ApiOperation({ summary: 'Accept story point suggestion' })
+  @ApiResponse({
+    status: 200,
+    description: 'Story points applied to task',
+    schema: {
+      properties: {
+        taskId: { type: 'string' },
+        appliedPoints: { type: 'number' },
+      },
+    },
+  })
+  async acceptStoryPointSuggestion(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') suggestionId: string,
+    @Body() body: { overridePoints?: number },
+  ) {
+    return this.estimationService.acceptStoryPointSuggestion(
+      suggestionId,
+      workspaceId,
+      body.overridePoints,
+    );
+  }
+
+  @Post('estimation/suggestions/:id/reject')
+  @ApiOperation({ summary: 'Reject story point suggestion' })
+  @ApiResponse({
+    status: 200,
+    description: 'Suggestion rejected',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+      },
+    },
+  })
+  async rejectStoryPointSuggestion(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') suggestionId: string,
+    @Body() body: { reason?: string },
+  ) {
+    await this.estimationService.rejectStoryPointSuggestion(
+      suggestionId,
+      workspaceId,
+      body.reason,
+    );
+    return { success: true };
+  }
 }
