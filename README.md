@@ -315,7 +315,10 @@ For ongoing operations:
 - Touch-friendly interactions (44x44px tap targets)
 
 **Real-Time & WebSocket** - Live updates across the platform:
-- WebSocket gateway for approvals, agents, notifications
+- WebSocket gateway for approvals, agents, notifications, and PM tasks
+- Real-time Kanban with task movement animations and conflict detection
+- User presence indicators with Redis-backed tracking
+- In-app notification center with infinite scroll and date grouping
 - Optimistic UI updates with rollback on error
 - Reconnection handling with exponential backoff
 
@@ -342,15 +345,18 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 |------|------|---------|--------|
 | EPIC-PM-01 | Project & Phase Management | 9/9 | ✅ Complete |
 | EPIC-PM-02 | Task Management System | 11/11 | ✅ Complete |
+| EPIC-PM-06 | Real-Time & Notifications | 6/6 | ✅ Complete |
 | EPIC-KB-01 | Knowledge Base Foundation | 10/10 | ✅ Complete |
 | EPIC-KB-02 | KB Real-Time & RAG | 8/8 | ✅ Complete |
 
-**Latest Core-PM Epic: Task Management System (EPIC-PM-02)**
-- Task CRUD + filters + bulk updates with sequential per-project task numbers
-- Task detail sheet for editing status/priority/assignee/dates + activity timeline
-- Hierarchy (subtasks), state workflow, relations, comments, attachments, and labels
-- Docs: `docs/modules/bm-pm/tech-spec-epic-pm-02.md`, `docs/modules/bm-pm/stories/pm-02-*.md`
-- Retrospective: `docs/modules/bm-pm/retrospectives/epic-pm-02-retro-2025-12-18.md`
+**Latest Core-PM Epic: Real-Time & Notifications (EPIC-PM-06)**
+- WebSocket task events for real-time CRUD broadcasting
+- Redis-based presence indicators with user avatars
+- Real-time Kanban with Framer Motion animations and conflict detection
+- Notification preferences with per-type toggles, quiet hours, and timezone support
+- In-app notification center with infinite scroll and date grouping
+- Email digest scheduling with BullMQ and unsubscribe flow
+- Docs: `docs/modules/bm-pm/epics/epic-pm-06-tech-spec.md`, `docs/modules/bm-pm/stories/pm-06-*.md`
 
 ---
 
