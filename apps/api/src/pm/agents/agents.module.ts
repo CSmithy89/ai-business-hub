@@ -6,6 +6,7 @@ import { BriefingService } from './briefing.service';
 import { SuggestionService } from './suggestion.service';
 import { EstimationService } from './estimation.service';
 import { TimeTrackingService } from './time-tracking.service';
+import { PhaseService } from './phase.service';
 import { CommonModule } from '../../common/common.module';
 import { AgentOSModule } from '../../agentos/agentos.module';
 
@@ -19,6 +20,7 @@ import { AgentOSModule } from '../../agentos/agentos.module';
     SuggestionService,
     EstimationService,
     TimeTrackingService,
+    PhaseService,
   ],
   exports: [
     AgentsService,
@@ -26,6 +28,7 @@ import { AgentOSModule } from '../../agentos/agentos.module';
     SuggestionService,
     EstimationService,
     TimeTrackingService,
+    PhaseService,
   ],
 })
 export class AgentsModule {}

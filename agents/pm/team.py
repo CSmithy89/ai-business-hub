@@ -7,7 +7,7 @@ coordinated by Navi as team leader.
 
 Team Structure:
 - Leader: Navi (PM Orchestration Assistant)
-- Members: [] (Sage and Chrono added in later stories)
+- Members: Sage (Estimation), Chrono (Time Tracking), Scope (Phase Management)
 
 Usage:
     from agents.pm.team import create_pm_team
@@ -32,6 +32,7 @@ from agno.memory import Memory
 from .navi import create_navi_agent
 from .sage import create_sage_agent
 from .chrono import create_chrono_agent
+from .scope import create_scope_agent
 
 # Validation pattern for workspace IDs (alphanumeric with underscores, max 64 chars)
 WORKSPACE_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_-]{1,64}$')
@@ -147,13 +148,21 @@ def create_pm_team(
         model=model,
     )
 
+    # Create Scope agent (phase management specialist)
+    scope = create_scope_agent(
+        workspace_id=workspace_id,
+        project_id=project_id,
+        shared_memory=shared_memory,
+        model=model,
+    )
+
     # Create team with Navi as leader
     team = Team(
         name="PM Team",
         mode="coordinate",  # Leader coordinates member agents
         model=Claude(id=model or "claude-sonnet-4-20250514"),
         leader=navi,
-        members=[sage, chrono],  # Full PM team: Sage + Chrono
+        members=[sage, chrono, scope],  # Full PM team: Sage + Chrono + Scope
         # Leader delegates to specific members, not all at once
         delegate_task_to_all_members=False,
         # Leader responds directly after synthesis
@@ -176,6 +185,7 @@ def create_pm_team(
             "Your goal is to help users manage their projects effectively.",
             "Always suggest actions, never auto-execute (suggestion_mode: True).",
             "Use Knowledge Base search for context when appropriate (kb_rag_enabled: True).",
+            "Scope handles phase management, transitions, and checkpoint tracking.",
         ],
         # Expected output format
         expected_output=(

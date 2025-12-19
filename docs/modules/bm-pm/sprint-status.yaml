@@ -120,7 +120,7 @@ development_status:
   # FRs: FR-5.5, FR-6.1, FR-6.2, FR-6.3, FR-6.4
   # ===========================================
   pm-05: contexted
-  pm-05-1-scope-phase-agent: backlog
+  pm-05-1-scope-phase-agent: done
   pm-05-2-scope-dependency-analysis: backlog
   pm-05-3-scope-milestone-tracking: backlog
   pm-05-4-pulse-health-agent: backlog

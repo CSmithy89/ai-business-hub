@@ -1083,14 +1083,22 @@ model Phase {
   totalPoints     Int @default(0) @map("total_points")
   completedPoints Int @default(0) @map("completed_points")
 
+  // Health tracking (PM-05)
+  healthScore     Int?      @map("health_score") // Latest health score (0-100)
+  lastHealthCheck DateTime? @map("last_health_check")
+
+  // Checkpoints (PM-05)
+  checkpointDate DateTime? @map("checkpoint_date")
+
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tasks     Task[]
-  snapshots PhaseSnapshot[]
+  project      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+  snapshots    PhaseSnapshot[]
+  checkpoints  PhaseCheckpoint[]
 
   @@index([projectId])
   @@index([status])
@@ -1387,6 +1395,35 @@ model PhaseSnapshot {
   @@map("phase_snapshots")
 }
 
+/// PhaseCheckpoint - Milestone checkpoints within phases (PM-05)
+model PhaseCheckpoint {
+  id             String   @id @default(cuid())
+  phaseId        String   @map("phase_id")
+  name           String
+  description    String?  @db.Text
+  checkpointDate DateTime @map("checkpoint_date")
+
+  // Status
+  status      CheckpointStatus @default(PENDING)
+  completedAt DateTime?        @map("completed_at")
+
+  // Reminders (used by PM-05.3)
+  remindAt3Days Boolean @default(true) @map("remind_at_3_days")
+  remindAt1Day  Boolean @default(true) @map("remind_at_1_day")
+  remindAtDayOf Boolean @default(true) @map("remind_at_day_of")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  phase Phase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@index([phaseId])
+  @@index([checkpointDate])
+  @@map("phase_checkpoints")
+}
+
 // Core-PM Enums
 enum ProjectType {
   COURSE
@@ -1424,6 +1461,12 @@ enum BmadPhaseType {
 enum PhaseStatus {
   UPCOMING
   CURRENT
+  COMPLETED
+  CANCELLED
+}
+
+enum CheckpointStatus {
+  PENDING
   COMPLETED
   CANCELLED
 }
