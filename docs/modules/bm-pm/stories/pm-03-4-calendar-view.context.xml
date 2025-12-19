@@ -1,0 +1,987 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story>PM-03-4: Calendar View</story>
+    <epic>PM-03: Views &amp; Navigation</epic>
+    <generated>2025-12-18</generated>
+    <workflow>story-context</workflow>
+    <project-root>/home/chris/projects/work/hyvve-pm-03</project-root>
+  </metadata>
+
+  <story-overview>
+    <title>Calendar View for Task Management</title>
+    <description>
+      Implement a calendar view component that displays tasks organized by due dates.
+      Supports month/week/day views with drag-and-drop rescheduling capabilities.
+      Calendar filters tasks to only show those with valid dueDates.
+    </description>
+    <story-points>8</story-points>
+    <complexity>High</complexity>
+    <prerequisites>
+      <prerequisite status="done">PM-02.1: Task CRUD API with dueDate field</prerequisite>
+    </prerequisites>
+  </story-overview>
+
+  <acceptance-criteria>
+    <criterion id="AC-1">
+      <title>Month Calendar Display</title>
+      <description>Display month grid with 7 columns (days of week), showing tasks as colored bars based on priority</description>
+      <priority-colors>
+        <urgent>bg-red-500 / border-l-red-500</urgent>
+        <high>bg-orange-500 / border-l-orange-500</high>
+        <medium>bg-yellow-500 / border-l-yellow-500</medium>
+        <low>bg-blue-500 / border-l-blue-500</low>
+        <none>bg-gray-500 / border-l-gray-500</none>
+      </priority-colors>
+    </criterion>
+
+    <criterion id="AC-2">
+      <title>Calendar Navigation</title>
+      <description>Previous/Next/Today buttons for navigating between time periods</description>
+    </criterion>
+
+    <criterion id="AC-3">
+      <title>Task Interaction</title>
+      <description>Click task bar to open task detail panel</description>
+    </criterion>
+
+    <criterion id="AC-4">
+      <title>Drag to Reschedule</title>
+      <description>Drag task bar to different date with optimistic update and rollback on error</description>
+    </criterion>
+
+    <criterion id="AC-5">
+      <title>Week View</title>
+      <description>Show 7 columns for current week with week navigation</description>
+    </criterion>
+
+    <criterion id="AC-6">
+      <title>Day View</title>
+      <description>Single day view with tasks listed</description>
+    </criterion>
+
+    <criterion id="AC-7">
+      <title>Tasks Without Due Dates</title>
+      <description>Filter out tasks without dueDate - only show tasks with valid dates</description>
+    </criterion>
+
+    <criterion id="AC-8">
+      <title>Multiple Tasks Per Day</title>
+      <description>Show up to 3 tasks per day cell, with "+N more" popover for overflow</description>
+    </criterion>
+
+    <criterion id="AC-9">
+      <title>View Toggle Integration</title>
+      <description>Integrate with view toggle system, persist view preference</description>
+    </criterion>
+
+    <criterion id="AC-10">
+      <title>Filter Integration</title>
+      <description>Calendar respects active filters from task list</description>
+    </criterion>
+
+    <criterion id="AC-11">
+      <title>Empty States</title>
+      <description>Friendly message when no tasks in date range</description>
+    </criterion>
+
+    <criterion id="AC-12">
+      <title>Responsive Layout</title>
+      <description>Desktop: full month grid, Tablet: compact, Mobile: list view or simplified calendar</description>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-implementation>
+    <component-structure>
+      <main-component>
+        <path>apps/web/src/components/pm/views/CalendarView.tsx</path>
+        <description>Main calendar component with view mode state (month/week/day)</description>
+        <responsibilities>
+          - Filter tasks to only include those with dueDates
+          - Group tasks by date using Map&lt;string, Task[]&gt;
+          - Handle date navigation (prev/next/today)
+          - Manage view mode state (month/week/day)
+          - Pass grouped data to sub-views
+        </responsibilities>
+      </main-component>
+
+      <sub-components>
+        <component>
+          <path>apps/web/src/components/pm/calendar/MonthView.tsx</path>
+          <description>Month grid view with 6-week calendar layout</description>
+          <responsibilities>
+            - Calculate calendar grid dates including overflow from prev/next months
+            - Render weekday headers (Sun-Sat)
+            - Render day cells with CalendarDay components
+            - Highlight current month vs overflow dates
+            - Highlight today's date
+          </responsibilities>
+        </component>
+
+        <component>
+          <path>apps/web/src/components/pm/calendar/CalendarDay.tsx</path>
+          <description>Single day cell with tasks and drop target</description>
+          <responsibilities>
+            - Display date number
+            - Render up to 3 task cards
+            - Show "+N more" popover for overflow tasks
+            - Handle drop events for drag-and-drop rescheduling
+            - Show hover state when drag is over
+            - Call updateTaskMutation with new dueDate
+          </responsibilities>
+        </component>
+
+        <component>
+          <path>apps/web/src/components/pm/calendar/CalendarTaskCard.tsx</path>
+          <description>Draggable task bar for calendar</description>
+          <responsibilities>
+            - Display truncated task title
+            - Show priority color via border-l-{color}
+            - Implement useDrag hook for draggability
+            - Show dragging state (opacity-50)
+            - Handle click to open task detail
+          </responsibilities>
+        </component>
+
+        <component>
+          <path>apps/web/src/components/pm/calendar/WeekView.tsx</path>
+          <description>7-column week view</description>
+          <responsibilities>
+            - Calculate week date range
+            - Render day headers with date
+            - Reuse CalendarDay for each column
+          </responsibilities>
+        </component>
+
+        <component>
+          <path>apps/web/src/components/pm/calendar/DayView.tsx</path>
+          <description>Single day view with task list</description>
+          <responsibilities>
+            - Display prominent date header
+            - List all tasks for the day
+            - Handle task clicks
+            - Show empty state if no tasks
+          </responsibilities>
+        </component>
+      </sub-components>
+    </component-structure>
+
+    <drag-drop-implementation>
+      <library>@dnd-kit (already installed, used for kanban)</library>
+      <setup>
+        <provider>DndProvider with HTML5Backend at CalendarView level or parent</provider>
+        <drag-source>CalendarTaskCard uses useDrag hook</drag-source>
+        <drop-target>CalendarDay uses useDrop hook</drop-target>
+      </setup>
+      <workflow>
+        1. User drags CalendarTaskCard
+        2. CalendarDay drop target activates (shows hover state)
+        3. On drop: CalendarDay extracts new date from its own date prop
+        4. Calls useUpdatePmTask mutation with { taskId, input: { dueDate: newDate } }
+        5. Optimistic update (React Query handles this)
+        6. On error: rollback + toast.error (handled by mutation hook)
+      </workflow>
+      <alternative>
+        <note>Story mentions react-dnd but @dnd-kit is already used for kanban board</note>
+        <recommendation>Use @dnd-kit for consistency across project</recommendation>
+      </alternative>
+    </drag-drop-implementation>
+
+    <date-utilities>
+      <library>date-fns v4.1.0 (already installed)</library>
+      <required-functions>
+        - startOfMonth(date): Get first day of month
+        - endOfMonth(date): Get last day of month
+        - startOfWeek(date): Get first day of week
+        - endOfWeek(date): Get last day of week
+        - eachDayOfInterval({ start, end }): Generate array of dates
+        - format(date, 'yyyy-MM-dd'): Format date as key for Map
+        - format(date, 'MMMM yyyy'): Format month header
+        - format(date, 'MMM d, yyyy'): Format day header
+        - isSameDay(date1, date2): Check if today
+        - isSameMonth(date1, date2): Check if current month
+        - addMonths(date, 1): Navigate next month
+        - subMonths(date, 1): Navigate previous month
+        - addDays(date, 7): Navigate next week
+        - subDays(date, 7): Navigate previous week
+      </required-functions>
+    </date-utilities>
+
+    <api-integration>
+      <endpoint>PATCH /api/pm/tasks/:taskId</endpoint>
+      <hook>useUpdatePmTask from @/hooks/use-pm-tasks</hook>
+      <usage>
+        <![CDATA[
+const updateTaskMutation = useUpdatePmTask()
+
+// In CalendarDay drop handler:
+await updateTaskMutation.mutateAsync({
+  taskId: droppedTask.id,
+  input: {
+    dueDate: format(dayDate, 'yyyy-MM-dd')
+  }
+})
+        ]]>
+      </usage>
+      <note>Hook already handles optimistic updates, error handling, and toast notifications</note>
+    </api-integration>
+
+    <integration-points>
+      <parent-component>
+        <path>apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/ProjectTasksContent.tsx</path>
+        <integration>
+          <![CDATA[
+import { CalendarView } from '@/components/pm/views/CalendarView'
+
+// In render:
+{viewMode === 'calendar' && (
+  <CalendarView
+    tasks={tasks}
+    projectId={projectId}
+    onTaskClick={openTask}
+  />
+)}
+          ]]>
+        </integration>
+      </parent-component>
+
+      <view-toggle>
+        <note>PM-03.5 (View Toggle &amp; Persistence) will add 'calendar' option to view switcher</note>
+        <note>For now, CalendarView can be manually integrated for testing</note>
+      </view-toggle>
+    </integration-points>
+  </technical-implementation>
+
+  <existing-patterns>
+    <task-data-types>
+      <source>apps/web/src/hooks/use-pm-tasks.ts</source>
+      <types>
+        <![CDATA[
+export interface TaskListItem {
+  id: string
+  workspaceId: string
+  projectId: string
+  phaseId: string
+  taskNumber: number
+  title: string
+  description: string | null
+  type: TaskType
+  priority: TaskPriority
+  assignmentType: AssignmentType
+  assigneeId: string | null
+  agentId: string | null
+  storyPoints: number | null
+  status: TaskStatus
+  dueDate: string | null  // <-- ISO date string, can be null
+  startedAt: string | null
+  completedAt: string | null
+  parentId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type TaskPriority = 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'
+
+export type UpdateTaskInput = Partial<{
+  title: string
+  description: string | null
+  type: TaskType
+  status: TaskStatus
+  priority: TaskPriority
+  assigneeId: string | null
+  assignmentType: AssignmentType
+  agentId: string | null
+  dueDate: string | null  // <-- Can update dueDate
+  storyPoints: number | null
+  phaseId: string | null
+}>
+        ]]>
+      </types>
+    </task-data-types>
+
+    <priority-colors>
+      <source>apps/web/src/lib/pm/task-meta.ts</source>
+      <metadata>
+        <![CDATA[
+export const TASK_PRIORITY_META: Record<TaskPriority, TaskPriorityMeta> = {
+  URGENT: { label: 'Urgent', dotClassName: 'bg-red-500' },
+  HIGH: { label: 'High', dotClassName: 'bg-orange-500' },
+  MEDIUM: { label: 'Medium', dotClassName: 'bg-yellow-500' },
+  LOW: { label: 'Low', dotClassName: 'bg-blue-500' },
+  NONE: { label: 'None', dotClassName: 'bg-slate-300' },
+}
+        ]]>
+      </metadata>
+      <usage>
+        <![CDATA[
+import { TASK_PRIORITY_META } from '@/lib/pm/task-meta'
+
+const priorityMeta = TASK_PRIORITY_META[task.priority]
+const colorClass = priorityMeta.dotClassName // e.g., 'bg-red-500'
+
+// For calendar task cards, use border-l variant:
+const borderColor = colorClass.replace('bg-', 'border-l-')
+        ]]>
+      </usage>
+    </priority-colors>
+
+    <view-component-pattern>
+      <source>apps/web/src/components/pm/views/TaskListView.tsx</source>
+      <pattern>
+        <![CDATA[
+// Pattern for view components:
+
+interface ViewProps {
+  tasks: TaskListItem[]
+  projectId: string
+  isLoading?: boolean
+  onTaskClick: (taskId: string) => void
+}
+
+export function MyView({ tasks, projectId, isLoading, onTaskClick }: ViewProps) {
+  // 1. Filter/transform tasks
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(t => /* criteria */)
+  }, [tasks])
+
+  // 2. Group/organize data
+  const groupedData = useMemo(() => {
+    // Organize for rendering
+  }, [filteredTasks])
+
+  // 3. Loading state
+  if (isLoading) {
+    return <LoadingState />
+  }
+
+  // 4. Empty state
+  if (tasks.length === 0) {
+    return <EmptyState />
+  }
+
+  // 5. Render view
+  return (
+    <div className="h-full flex flex-col">
+      {/* View content */}
+    </div>
+  )
+}
+        ]]>
+      </pattern>
+    </view-component-pattern>
+
+    <kanban-drag-drop-pattern>
+      <source>apps/web/src/components/pm/kanban/KanbanBoardView.tsx</source>
+      <source>apps/web/src/components/pm/kanban/KanbanColumn.tsx</source>
+      <source>apps/web/src/components/pm/kanban/TaskCard.tsx</source>
+      <pattern>
+        <![CDATA[
+// Kanban uses @dnd-kit with following pattern:
+
+// 1. Top-level DndContext:
+import { DndContext, DragEndEvent, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+
+const sensors = useSensors(
+  useSensor(PointerSensor, {
+    activationConstraint: {
+      distance: 8, // Prevent accidental drags
+    },
+  })
+)
+
+<DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+  {/* Droppable columns */}
+  <DragOverlay>{activeTask && <TaskCard task={activeTask} isDragging />}</DragOverlay>
+</DndContext>
+
+// 2. Droppable column:
+import { useDroppable } from '@dnd-kit/core'
+
+const { setNodeRef } = useDroppable({ id: columnId })
+<div ref={setNodeRef}>...</div>
+
+// 3. Draggable card:
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
+const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: taskId })
+const style = {
+  transform: CSS.Transform.toString(transform),
+  transition,
+}
+<div ref={setNodeRef} style={style} {...attributes} {...listeners}>...</div>
+
+// 4. Update on drop:
+const handleDragEnd = async (event: DragEndEvent) => {
+  const { active, over } = event
+  if (!over) return
+
+  const taskId = active.id as string
+  const targetColumnId = over.id as string
+
+  try {
+    await updateTaskMutation.mutateAsync({
+      taskId,
+      input: { /* field to update */ }
+    })
+  } catch (error) {
+    // Error handled by mutation hook
+  }
+}
+        ]]>
+      </pattern>
+      <adaptation-for-calendar>
+        <note>Calendar needs simpler drag-drop than kanban (no sorting within days)</note>
+        <note>Use useDroppable for CalendarDay (not SortableContext)</note>
+        <note>Use useSortable or useDraggable for CalendarTaskCard</note>
+        <note>DragOverlay shows the task being dragged</note>
+      </adaptation-for-calendar>
+    </kanban-drag-drop-pattern>
+
+    <mutation-hook-pattern>
+      <source>apps/web/src/hooks/use-pm-tasks.ts</source>
+      <pattern>
+        <![CDATA[
+export function useUpdatePmTask() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ taskId, input }: { taskId: string; input: UpdateTaskInput }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return updateTask({ workspaceId, token, taskId, input })
+    },
+    onSuccess: (result) => {
+      toast.success('Saved')
+      queryClient.invalidateQueries({ queryKey: ['pm-task', workspaceId, result.data.id] })
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to update task'
+      toast.error(message)
+    },
+  })
+}
+
+// Usage in component:
+const updateTaskMutation = useUpdatePmTask()
+
+await updateTaskMutation.mutateAsync({
+  taskId: task.id,
+  input: {
+    dueDate: '2025-12-25'
+  }
+})
+        ]]>
+      </pattern>
+      <note>Hook handles optimistic updates, cache invalidation, and error toasts automatically</note>
+    </mutation-hook-pattern>
+  </existing-patterns>
+
+  <code-examples>
+    <example id="filter-tasks-with-due-dates">
+      <description>Filter tasks to only include those with dueDate</description>
+      <code>
+        <![CDATA[
+const tasksWithDueDates = useMemo(() => {
+  return tasks.filter(task => task.dueDate !== null)
+}, [tasks])
+        ]]>
+      </code>
+    </example>
+
+    <example id="group-tasks-by-date">
+      <description>Group tasks into Map by date key</description>
+      <code>
+        <![CDATA[
+const tasksByDate = useMemo(() => {
+  const map = new Map<string, TaskListItem[]>()
+
+  tasksWithDueDates.forEach(task => {
+    if (!task.dueDate) return
+
+    const dateKey = format(new Date(task.dueDate), 'yyyy-MM-dd')
+
+    if (!map.has(dateKey)) {
+      map.set(dateKey, [])
+    }
+
+    map.get(dateKey)!.push(task)
+  })
+
+  return map
+}, [tasksWithDueDates])
+        ]]>
+      </code>
+    </example>
+
+    <example id="calculate-calendar-grid">
+      <description>Calculate 6-week calendar grid including overflow days</description>
+      <code>
+        <![CDATA[
+const days = useMemo(() => {
+  const monthStart = startOfMonth(currentDate)
+  const monthEnd = endOfMonth(currentDate)
+
+  // Include overflow days from prev/next months for full grid
+  const calendarStart = startOfWeek(monthStart)
+  const calendarEnd = endOfWeek(monthEnd)
+
+  return eachDayOfInterval({ start: calendarStart, end: calendarEnd })
+}, [currentDate])
+        ]]>
+      </code>
+    </example>
+
+    <example id="render-calendar-grid">
+      <description>Render calendar grid with proper highlighting</description>
+      <code>
+        <![CDATA[
+<div className="flex-1 grid grid-cols-7 auto-rows-fr">
+  {days.map(day => {
+    const dateKey = format(day, 'yyyy-MM-dd')
+    const dayTasks = tasksByDate.get(dateKey) || []
+    const isCurrentMonth = isSameMonth(day, currentDate)
+    const isToday = isSameDay(day, new Date())
+
+    return (
+      <CalendarDay
+        key={dateKey}
+        date={day}
+        tasks={dayTasks}
+        isCurrentMonth={isCurrentMonth}
+        isToday={isToday}
+        onTaskClick={onTaskClick}
+      />
+    )
+  })}
+</div>
+        ]]>
+      </code>
+    </example>
+
+    <example id="priority-color-mapping">
+      <description>Map priority to color classes for calendar cards</description>
+      <code>
+        <![CDATA[
+function getPriorityBorderColor(priority: TaskPriority): string {
+  const colors = {
+    URGENT: 'border-l-red-500',
+    HIGH: 'border-l-orange-500',
+    MEDIUM: 'border-l-yellow-500',
+    LOW: 'border-l-blue-500',
+    NONE: 'border-l-gray-500',
+  }
+  return colors[priority] || colors.NONE
+}
+
+function getPriorityBgColor(priority: TaskPriority): string {
+  const colors = {
+    URGENT: 'bg-red-50',
+    HIGH: 'bg-orange-50',
+    MEDIUM: 'bg-yellow-50',
+    LOW: 'bg-blue-50',
+    NONE: 'bg-gray-50',
+  }
+  return colors[priority] || colors.NONE
+}
+        ]]>
+      </code>
+    </example>
+
+    <example id="drag-drop-handler">
+      <description>Handle task drop and update dueDate</description>
+      <code>
+        <![CDATA[
+// In CalendarDay component:
+const [{ isOver }, drop] = useDrop({
+  accept: 'CALENDAR_TASK',
+  drop: async (item: { task: TaskListItem }) => {
+    const newDueDate = format(date, 'yyyy-MM-dd')
+
+    try {
+      await updateTaskMutation.mutateAsync({
+        taskId: item.task.id,
+        input: {
+          dueDate: newDueDate
+        }
+      })
+      toast.success('Task rescheduled')
+    } catch (error) {
+      toast.error('Failed to reschedule task')
+    }
+  },
+  collect: monitor => ({
+    isOver: monitor.isOver(),
+  }),
+})
+
+return (
+  <div
+    ref={drop}
+    className={cn(
+      "min-h-[120px] p-2 border",
+      isOver && "bg-primary/10"
+    )}
+  >
+    {/* Day content */}
+  </div>
+)
+        ]]>
+      </code>
+    </example>
+
+    <example id="overflow-popover">
+      <description>Show "+N more" popover for days with many tasks</description>
+      <code>
+        <![CDATA[
+const visibleTasks = tasks.slice(0, 3)
+const hasMoreTasks = tasks.length > 3
+
+{hasMoreTasks && (
+  <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+    <PopoverTrigger asChild>
+      <Button variant="ghost" size="sm" className="w-full h-6 text-xs">
+        +{tasks.length - 3} more
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent className="w-80" align="start">
+      <div className="space-y-2">
+        <div className="font-semibold text-sm mb-2">
+          Tasks for {format(date, 'MMM d, yyyy')}
+        </div>
+        {tasks.map(task => (
+          <div
+            key={task.id}
+            className="p-2 rounded hover:bg-muted cursor-pointer"
+            onClick={() => {
+              onTaskClick(task.id)
+              setIsPopoverOpen(false)
+            }}
+          >
+            {task.title}
+          </div>
+        ))}
+      </div>
+    </PopoverContent>
+  </Popover>
+)}
+        ]]>
+      </code>
+    </example>
+  </code-examples>
+
+  <dependencies>
+    <installed>
+      <dependency name="date-fns" version="4.1.0" status="installed">
+        Date manipulation and formatting library
+      </dependency>
+      <dependency name="@dnd-kit/core" version="6.3.1" status="installed">
+        Core drag-and-drop library (used for kanban)
+      </dependency>
+      <dependency name="@dnd-kit/sortable" version="10.0.0" status="installed">
+        Sortable utilities for @dnd-kit
+      </dependency>
+      <dependency name="@dnd-kit/utilities" version="3.2.2" status="installed">
+        CSS utilities for @dnd-kit
+      </dependency>
+      <dependency name="@radix-ui/react-popover" version="1.1.15" status="installed">
+        Popover component for "+N more" overflow
+      </dependency>
+    </installed>
+
+    <not-needed>
+      <dependency name="react-dnd" status="not-needed">
+        Story mentions this but @dnd-kit is already used and preferred for consistency
+      </dependency>
+      <dependency name="react-dnd-html5-backend" status="not-needed">
+        Not needed if using @dnd-kit
+      </dependency>
+    </not-needed>
+  </dependencies>
+
+  <performance-considerations>
+    <target>Render month view &lt;300ms with 50 tasks</target>
+
+    <optimizations>
+      <optimization>
+        <technique>useMemo for date calculations</technique>
+        <reason>Date calculations are expensive, especially eachDayOfInterval</reason>
+        <code>const days = useMemo(() => calculateCalendarDays(currentDate), [currentDate])</code>
+      </optimization>
+
+      <optimization>
+        <technique>useMemo for task grouping</technique>
+        <reason>Grouping is O(n) operation, avoid on every render</reason>
+        <code>const tasksByDate = useMemo(() => groupTasksByDate(tasks), [tasks])</code>
+      </optimization>
+
+      <optimization>
+        <technique>Limit visible tasks per day</technique>
+        <reason>Rendering many task cards in small cells causes layout thrash</reason>
+        <code>const visibleTasks = tasks.slice(0, 3)</code>
+      </optimization>
+
+      <optimization>
+        <technique>CSS Grid for layout</technique>
+        <reason>GPU-accelerated, better than flexbox for grid layouts</reason>
+        <code>className="grid grid-cols-7 auto-rows-fr"</code>
+      </optimization>
+
+      <optimization>
+        <technique>React.memo on CalendarDay if needed</technique>
+        <reason>Prevent re-rendering days when only one day's tasks change</reason>
+        <note>May not be necessary if useMemo is sufficient</note>
+      </optimization>
+    </optimizations>
+
+    <benchmarks>
+      <benchmark>Month grid calculation: &lt;50ms</benchmark>
+      <benchmark>Task grouping (100 tasks): &lt;100ms</benchmark>
+      <benchmark>Initial render: &lt;300ms total</benchmark>
+      <benchmark>Drag-drop feedback: 60fps</benchmark>
+    </benchmarks>
+  </performance-considerations>
+
+  <accessibility-requirements>
+    <keyboard-navigation>
+      <requirement>Arrow keys to navigate between dates</requirement>
+      <requirement>Enter to open task detail</requirement>
+      <requirement>Escape to close popovers</requirement>
+      <requirement>Tab through interactive elements</requirement>
+    </keyboard-navigation>
+
+    <screen-reader>
+      <requirement>ARIA labels on navigation buttons (Previous/Next/Today)</requirement>
+      <requirement>Date announcements when navigating</requirement>
+      <requirement>Task count announcements</requirement>
+      <requirement>Drag-drop instructions for screen readers</requirement>
+    </screen-reader>
+
+    <color-accessibility>
+      <requirement>Priority colors meet WCAG AA contrast</requirement>
+      <requirement>Not relying solely on color (also using labels in popover)</requirement>
+      <requirement>Focus indicators clearly visible</requirement>
+    </color-accessibility>
+  </accessibility-requirements>
+
+  <mobile-considerations>
+    <breakpoints>
+      <desktop>≥1024px: Full month grid with all details</desktop>
+      <tablet>768-1023px: Full month grid with compact task bars</tablet>
+      <mobile>&lt;768px: Consider list view with date headers or simplified calendar</mobile>
+    </breakpoints>
+
+    <implementation-strategy>
+      Build desktop-first (month grid), then test on tablet and mobile.
+      If calendar is too cramped on mobile, switch to vertical list grouped by date.
+    </implementation-strategy>
+
+    <touch-interactions>
+      <note>@dnd-kit supports touch by default via PointerSensor</note>
+      <note>Test on actual devices during QA</note>
+      <note>May need larger touch targets for task bars</note>
+    </touch-interactions>
+  </mobile-considerations>
+
+  <testing-requirements>
+    <unit-tests>
+      <test>Date calculation functions return correct dates</test>
+      <test>Task grouping by date produces correct Map structure</test>
+      <test>Priority color mapping is correct</test>
+      <test>Empty states render when appropriate</test>
+      <test>View mode toggle updates state correctly</test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>Drag-drop updates task dueDate via API</test>
+      <test>API receives correct ISO date string</test>
+      <test>Optimistic update applies immediately</test>
+      <test>Rollback occurs on API error</test>
+      <test>Toast notification shown on error</test>
+      <test>Month/week/day navigation triggers correct state changes</test>
+    </integration-tests>
+
+    <e2e-tests>
+      <test>User can view month calendar with tasks</test>
+      <test>User can navigate between months</test>
+      <test>User can click task to open detail panel</test>
+      <test>User can drag task to new date</test>
+      <test>User can switch to week view</test>
+      <test>User can switch to day view</test>
+      <test>"+N more" popover shows all tasks</test>
+      <test>Today button jumps to current date</test>
+      <test>Touch drag works on mobile</test>
+    </e2e-tests>
+
+    <visual-tests>
+      <test>Today's date is visually distinct</test>
+      <test>Priority colors are correct and accessible</test>
+      <test>Task bars truncate properly</test>
+      <test>Calendar grid aligns correctly</test>
+      <test>Drag overlay matches task appearance</test>
+      <test>Responsive layout works on all breakpoints</test>
+    </visual-tests>
+  </testing-requirements>
+
+  <open-questions>
+    <question id="Q1">
+      <q>Should we support time-based scheduling (tasks at specific times)?</q>
+      <a>No, not in MVP. Tasks only have date, not time. Can add in Phase 2 if needed.</a>
+    </question>
+
+    <question id="Q2">
+      <q>How do we handle time zones?</q>
+      <a>Store dueDate as ISO string (includes time zone). Display in user's local time. Backend handles conversion.</a>
+    </question>
+
+    <question id="Q3">
+      <q>Should drag-drop work across months?</q>
+      <a>No, only within current view. User must navigate to target month first. Prevents accidental far-future drags.</a>
+    </question>
+
+    <question id="Q4">
+      <q>Can users drag from calendar to other views (like kanban)?</q>
+      <a>No, not in MVP. Drag-drop is calendar-internal only. Cross-view DnD can be added later if valuable.</a>
+    </question>
+
+    <question id="Q5">
+      <q>Should we show recurring tasks?</q>
+      <a>No recurring tasks in MVP. Task model doesn't support recurrence yet. Future enhancement.</a>
+    </question>
+  </open-questions>
+
+  <technical-decisions>
+    <decision id="D1">
+      <title>date-fns vs Moment.js vs Day.js</title>
+      <choice>date-fns (already installed)</choice>
+      <rationale>
+        - Tree-shakeable, functional API
+        - No global timezone issues
+        - Smaller bundle size than Moment
+        - Already installed in project
+      </rationale>
+    </decision>
+
+    <decision id="D2">
+      <title>@dnd-kit vs react-dnd</title>
+      <choice>@dnd-kit</choice>
+      <rationale>
+        - Already used for kanban board
+        - Consistency across project
+        - Better touch support
+        - More modern and actively maintained
+      </rationale>
+    </decision>
+
+    <decision id="D3">
+      <title>Custom Calendar vs FullCalendar</title>
+      <choice>Custom implementation</choice>
+      <rationale>
+        - Lighter weight (no 150KB+ dependency)
+        - Full control over styling and behavior
+        - Better integration with existing design system
+        - Specified in tech spec
+      </rationale>
+    </decision>
+
+    <decision id="D4">
+      <title>Month Grid Layout</title>
+      <choice>Include prev/next month overflow days for full 6-week grid</choice>
+      <rationale>
+        - Standard calendar pattern
+        - Maintains consistent grid height
+        - Visual distinction for overflow dates (muted)
+      </rationale>
+    </decision>
+
+    <decision id="D5">
+      <title>Task Limit Per Day</title>
+      <choice>Show 3 tasks max with "+N more" popover</choice>
+      <rationale>
+        - Prevents visual clutter
+        - Maintains performance
+        - Standard pattern in calendar UIs
+      </rationale>
+    </decision>
+
+    <decision id="D6">
+      <title>View Mode State Persistence</title>
+      <choice>Store in local component state (not localStorage)</choice>
+      <rationale>
+        - Default to month view each time
+        - User can switch freely within session
+        - Future: PM-03.5 will add view preference persistence
+      </rationale>
+    </decision>
+  </technical-decisions>
+
+  <related-documentation>
+    <doc type="story">docs/modules/bm-pm/stories/pm-03-4-calendar-view.md</doc>
+    <doc type="epic">docs/modules/bm-pm/epics/epic-pm-03-views-navigation.md</doc>
+    <doc type="tech-spec">docs/modules/bm-pm/epics/epic-pm-03-tech-spec.md</doc>
+    <doc type="prd">docs/modules/bm-pm/PRD.md (FR-4.3)</doc>
+    <doc type="architecture">docs/modules/bm-pm/architecture.md</doc>
+    <doc type="wireframe-html">docs/modules/bm-pm/design/wireframes/Finished wireframes and html files/pm-07_project_calendar_view/code.html</doc>
+    <doc type="wireframe-png">docs/modules/bm-pm/design/wireframes/Finished wireframes and html files/pm-07_project_calendar_view/screen.png</doc>
+  </related-documentation>
+
+  <implementation-notes>
+    <note priority="high">
+      Ensure all tasks are filtered to only show those with non-null dueDate.
+      This prevents errors when formatting dates and ensures calendar only shows schedulable tasks.
+    </note>
+
+    <note priority="high">
+      Use consistent date formatting: 'yyyy-MM-dd' for Map keys and API payload.
+      This ensures dates are compared correctly and timezone issues are minimized.
+    </note>
+
+    <note priority="medium">
+      Consider implementing CalendarDay with React.memo if performance issues arise.
+      With 42 days in grid (6 weeks × 7 days), unnecessary re-renders can be costly.
+    </note>
+
+    <note priority="medium">
+      Test drag-drop thoroughly on mobile devices. Touch interactions may need adjustment.
+      Consider using TouchBackend for better mobile support if needed.
+    </note>
+
+    <note priority="low">
+      View mode persistence (month/week/day) will be handled by PM-03.5 story.
+      For now, just maintain state within component session.
+    </note>
+
+    <note priority="low">
+      Empty state should be friendly and actionable, suggesting user create tasks or change date range.
+      Don't just say "No tasks" - guide the user to next action.
+    </note>
+  </implementation-notes>
+
+  <definition-of-done>
+    <checklist>
+      <item>All 12 acceptance criteria met</item>
+      <item>Month/Week/Day views all functional</item>
+      <item>Drag-and-drop rescheduling works</item>
+      <item>Tasks without dueDates are filtered out</item>
+      <item>"+N more" popover for overflow tasks</item>
+      <item>Calendar navigation (prev/next/today) works</item>
+      <item>Priority colors display correctly</item>
+      <item>Click task opens detail panel</item>
+      <item>Optimistic updates with error handling</item>
+      <item>Unit tests written and passing</item>
+      <item>Integration tests written and passing</item>
+      <item>E2E tests written and passing</item>
+      <item>TypeScript type check passing</item>
+      <item>ESLint passing with no warnings</item>
+      <item>Components documented with JSDoc comments</item>
+      <item>Wireframe design implemented accurately</item>
+      <item>Responsive design tested on mobile/tablet/desktop</item>
+      <item>Accessibility tested (keyboard navigation, screen reader)</item>
+      <item>Touch drag tested on mobile devices</item>
+      <item>Performance tested with 100+ tasks</item>
+    </checklist>
+  </definition-of-done>
+</story-context>
