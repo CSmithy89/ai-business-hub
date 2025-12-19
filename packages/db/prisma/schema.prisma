@@ -1090,6 +1090,10 @@ model Phase {
   // Checkpoints (PM-05)
   checkpointDate DateTime? @map("checkpoint_date")
 
+  // Completion (PM-05.2)
+  completedAt    DateTime? @map("completed_at")
+  completionNote String?   @db.Text @map("completion_note")
+
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

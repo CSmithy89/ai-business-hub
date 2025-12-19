@@ -18,6 +18,7 @@ import { RolesGuard } from '../../common/guards/roles.guard'
 import { TenantGuard } from '../../common/guards/tenant.guard'
 import { CreatePhaseDto } from './dto/create-phase.dto'
 import { UpdatePhaseDto } from './dto/update-phase.dto'
+import { PhaseTransitionDto } from './dto/phase-transition.dto'
 import { PhasesService } from './phases.service'
 import { PhaseService } from '../agents/phase.service'
 import type { Request } from 'express'
@@ -97,6 +98,29 @@ export class PhasesController {
       workspaceId,
       id,
       actor.id,
+    )
+  }
+
+  @Post('phases/:id/transition')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Execute phase transition with task actions' })
+  @ApiParam({ name: 'id', description: 'Phase ID' })
+  async transitionPhase(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @CurrentUser() actor: any,
+    @Body() dto: PhaseTransitionDto,
+    @Req() req: Request,
+  ) {
+    const memberRole = (req as unknown as { memberRole?: string }).memberRole
+    if (memberRole === 'member') {
+      await this.phasesService.assertPhaseProjectLead(workspaceId, actor.id, id)
+    }
+    return this.phaseService.executePhaseTransition(
+      workspaceId,
+      id,
+      actor.id,
+      dto,
     )
   }
 

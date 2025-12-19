@@ -1,0 +1,1569 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-05-2-scope-phase-transition-flow</story-id>
+    <epic>PM-05</epic>
+    <title>Scope Phase Transition Flow</title>
+    <status>ready-for-dev</status>
+    <points>5</points>
+    <generated-date>2025-12-19</generated-date>
+  </metadata>
+
+  <!-- ========================================
+       STORY SUMMARY
+       ======================================== -->
+  <summary>
+    <user-story>
+      As a **project lead**,
+      I want **a guided phase transition workflow**,
+      So that **nothing falls through the cracks**.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        <description>Complete Phase Button Opens Transition Modal</description>
+        <given>I am viewing a phase detail page</given>
+        <when>I click the "Complete Phase" button</when>
+        <then>The phase transition modal opens and displays a loading state while analyzing the phase</then>
+      </criterion>
+
+      <criterion id="AC2">
+        <description>Modal Shows Incomplete Tasks with Action Options</description>
+        <given>The transition modal has loaded phase analysis</given>
+        <when>The modal displays</when>
+        <then>Shows all incomplete tasks with recommended actions (Complete, Carry Over, Cancel), Scope's recommendation pre-selected, and Scope's reasoning displayed for each</then>
+      </criterion>
+
+      <criterion id="AC3">
+        <description>Modal Shows Completion Summary and Next Phase Preview</description>
+        <given>The transition modal is open</given>
+        <when>I view the summary section</when>
+        <then>Shows total tasks, completed tasks, incomplete task count, blockers, next phase preview, and readiness indicator (80%+ completion threshold)</then>
+      </criterion>
+
+      <criterion id="AC4">
+        <description>User Can Override Scope Recommendations</description>
+        <given>Scope has recommended actions for incomplete tasks</given>
+        <when>I change an action dropdown from "Carry Over" to "Complete"</when>
+        <then>The modal updates to reflect my choice and my override is used instead of Scope's recommendation</then>
+      </criterion>
+
+      <criterion id="AC5">
+        <description>Confirm Transition Executes Bulk Task Operations</description>
+        <given>I have reviewed and adjusted task actions in the modal</given>
+        <when>I click "Confirm Transition"</when>
+        <then>All task actions execute atomically, current phase status changes to COMPLETED, next phase status changes to CURRENT, modal closes, and I navigate to next phase detail page</then>
+      </criterion>
+
+      <criterion id="AC6">
+        <description>Blockers Prevent Transition</description>
+        <given>Scope has detected critical blockers</given>
+        <when>Blockers exist (e.g., BLOCKED tasks that must be resolved)</when>
+        <then>The "Confirm Transition" button is disabled, blocker warnings are prominently displayed, and I must resolve blockers before proceeding</then>
+      </criterion>
+    </acceptance-criteria>
+
+    <goals>
+      - Build PhaseTransitionModal component with Scope integration
+      - Add phase transition API endpoint with bulk task operations
+      - Implement transaction-safe phase status transitions
+      - Add WebSocket events for real-time phase updates
+      - Integrate with PM-05.1 Scope agent analysis
+    </goals>
+  </summary>
+
+  <!-- ========================================
+       ARCHITECTURE PATTERNS
+       ======================================== -->
+  <architecture-patterns>
+    <modal-pattern>
+      <name>shadcn/ui Dialog Component</name>
+      <location>apps/web/src/components/ui/dialog.tsx</location>
+      <reference-implementation>apps/web/src/components/approval/approval-detail-modal.tsx</reference-implementation>
+
+      <pattern-structure>
+        <![CDATA[
+'use client';
+
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+
+interface ModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  // ... other props
+}
+
+export function Modal({ open, onOpenChange }: ModalProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Modal Title</DialogTitle>
+          <DialogDescription>Optional description</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4">
+          {/* Modal Content */}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleAction}>
+            Confirm Action
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Hook for managing modal state
+export function useModal() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const openModal = () => setIsOpen(true);
+  const closeModal = () => setIsOpen(false);
+
+  return { isOpen, openModal, closeModal, setIsOpen };
+}
+        ]]>
+      </pattern-structure>
+
+      <key-conventions>
+        - Use DialogContent with max-w-3xl for desktop modals
+        - Add max-h-[90vh] overflow-y-auto for scrollable content
+        - Use space-y-6 for vertical spacing between sections
+        - DialogFooter for action buttons (Cancel + Primary action)
+        - Primary action button disabled based on validation state
+        - Responsive: Full-screen on mobile (inherent in shadcn Dialog)
+      </key-conventions>
+    </modal-pattern>
+
+    <data-fetching-pattern>
+      <name>TanStack Query (React Query)</name>
+      <location>apps/web/src</location>
+
+      <pattern-structure>
+        <![CDATA[
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+// Fetch data
+const { data, isLoading, error } = useQuery({
+  queryKey: ['entity', id],
+  queryFn: () => fetch(`/api/endpoint/${id}`).then(r => r.json()),
+  refetchInterval: 60000, // Optional auto-refresh
+});
+
+// Mutate data
+const mutation = useMutation({
+  mutationFn: (payload) =>
+    fetch(`/api/endpoint`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).then(r => r.json()),
+  onSuccess: (data) => {
+    // Invalidate and refetch
+    queryClient.invalidateQueries(['entity']);
+    // Show success notification
+    toast.success('Action completed');
+  },
+  onError: (error) => {
+    toast.error('Action failed');
+  },
+});
+        ]]>
+      </pattern-structure>
+
+      <key-conventions>
+        - Use query keys with entities and IDs: ['phase-analysis', phaseId]
+        - Handle loading states with skeleton loaders
+        - Show errors with toast notifications
+        - Invalidate related queries after mutations
+        - Use optimistic updates for better UX
+      </key-conventions>
+    </data-fetching-pattern>
+
+    <backend-service-pattern>
+      <name>NestJS Service with Transactions</name>
+      <location>apps/api/src/pm/agents/phase.service.ts</location>
+
+      <existing-service-structure>
+        <![CDATA[
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '@/common/services/prisma.service';
+import { AgentOSService } from '@/agentos/agentos.service';
+
+@Injectable()
+export class PhaseService {
+  constructor(
+    private prisma: PrismaService,
+    private agentOS: AgentOSService,
+  ) {}
+
+  async analyzePhaseCompletion(
+    workspaceId: string,
+    phaseId: string,
+    userId: string
+  ): Promise<PhaseCompletionAnalysis> {
+    // PM-05.1 implementation - invokes Scope agent
+    // Returns structured analysis with recommendations
+  }
+
+  // NEW METHOD FOR PM-05.2
+  async executePhaseTransition(
+    workspaceId: string,
+    phaseId: string,
+    userId: string,
+    dto: PhaseTransitionDto
+  ): Promise<PhaseTransitionResult> {
+    // Verify phase ownership
+    // Validate transition readiness
+    // Execute bulk operations in transaction
+    // Update phase statuses
+    // Publish events
+  }
+}
+        ]]>
+      </existing-service-structure>
+
+      <transaction-pattern>
+        <![CDATA[
+// Atomic transaction for phase transition
+return this.prisma.$transaction(async (tx) => {
+  // 1. Process all task actions
+  for (const action of dto.taskActions) {
+    await this.executeTaskAction(tx, action, phaseId);
+  }
+
+  // 2. Mark current phase as COMPLETED
+  const completedPhase = await tx.phase.update({
+    where: { id: phaseId },
+    data: {
+      status: 'COMPLETED',
+      completedAt: new Date(),
+      completionNote: dto.completionNote,
+    },
+  });
+
+  // 3. Activate next phase
+  const nextPhase = await tx.phase.findFirst({
+    where: {
+      projectId: phase.projectId,
+      phaseNumber: phase.phaseNumber + 1,
+    },
+  });
+
+  if (nextPhase) {
+    await tx.phase.update({
+      where: { id: nextPhase.id },
+      data: {
+        status: 'CURRENT',
+        startDate: new Date(),
+      },
+    });
+  }
+
+  return { completedPhase, activePhase: nextPhase };
+});
+        ]]>
+      </transaction-pattern>
+
+      <key-conventions>
+        - Use Prisma.$transaction for atomic operations
+        - Always verify workspace ownership before processing
+        - Throw BadRequestException for validation errors
+        - Return structured results with success indicators
+        - Publish events after transaction commits
+      </key-conventions>
+    </backend-service-pattern>
+
+    <event-bus-pattern>
+      <name>Event Publisher Integration</name>
+      <location>apps/api/src/events/</location>
+
+      <pattern-structure>
+        <![CDATA[
+import { EventPublisherService } from '@/events';
+import { EventTypes } from '@hyvve/shared';
+
+// In service constructor
+constructor(
+  private eventPublisher: EventPublisherService,
+) {}
+
+// After successful transition
+await this.eventPublisher.publish(
+  EventTypes.PM_PHASE_COMPLETED,
+  {
+    phaseId: completedPhase.id,
+    projectId: phase.projectId,
+    userId,
+  },
+  { tenantId: workspaceId, userId, source: 'api' }
+);
+
+await this.eventPublisher.publish(
+  EventTypes.PM_PHASE_STARTED,
+  {
+    phaseId: nextPhase.id,
+    projectId: phase.projectId,
+    userId,
+  },
+  { tenantId: workspaceId, userId, source: 'api' }
+);
+        ]]>
+      </pattern-structure>
+
+      <new-event-types-needed>
+        - EventTypes.PM_PHASE_COMPLETED (may already exist)
+        - EventTypes.PM_PHASE_STARTED (may already exist)
+        - EventTypes.PM_PHASE_TRANSITIONED (already exists - see phases.service.ts)
+      </new-event-types-needed>
+    </event-bus-pattern>
+  </architecture-patterns>
+
+  <!-- ========================================
+       DATABASE CONTEXT
+       ======================================== -->
+  <database-schema>
+    <existing-models>
+      <model name="Phase">
+        <location>packages/db/prisma/schema.prisma</location>
+        <relevant-fields>
+          - id: String
+          - projectId: String
+          - name: String
+          - description: String?
+          - phaseNumber: Int
+          - status: PhaseStatus (UPCOMING, CURRENT, COMPLETED, CANCELLED)
+          - startDate: DateTime?
+          - endDate: DateTime?
+          - completedAt: DateTime? (NEW - add if not exists)
+          - completionNote: String? (NEW - add if not exists)
+          - totalTasks: Int
+          - completedTasks: Int
+        </relevant-fields>
+        <relations>
+          - project: Project
+          - tasks: Task[]
+        </relations>
+      </model>
+
+      <model name="Task">
+        <location>packages/db/prisma/schema.prisma</location>
+        <relevant-fields>
+          - id: String
+          - phaseId: String?
+          - status: TaskStatus (BACKLOG, TODO, IN_PROGRESS, REVIEW, AWAITING_APPROVAL, DONE, CANCELLED, BLOCKED)
+          - title: String
+          - completedAt: DateTime?
+          - cancelledAt: DateTime?
+        </relevant-fields>
+      </model>
+
+      <model name="PhaseCheckpoint">
+        <location>packages/db/prisma/schema.prisma</location>
+        <note>Added in PM-05.1 - may be used in future for checkpoint tracking</note>
+      </model>
+    </existing-models>
+
+    <schema-extensions-needed>
+      <extension model="Phase">
+        <![CDATA[
+// Add to Phase model if not already present:
+completedAt   DateTime? @map("completed_at")
+completionNote String?  @db.Text @map("completion_note")
+        ]]>
+      </extension>
+    </schema-extensions-needed>
+
+    <task-action-logic>
+      <action name="complete">
+        - Update task.status to DONE
+        - Set task.completedAt to now
+        - Task remains in current phase (historical record)
+      </action>
+
+      <action name="carry_over">
+        - Update task.phaseId to target phase (usually next phase)
+        - Keep task.status unchanged (TODO, IN_PROGRESS, etc.)
+        - Task appears in target phase's task list
+      </action>
+
+      <action name="cancel">
+        - Update task.status to CANCELLED
+        - Set task.cancelledAt to now
+        - Task hidden from active views (filtered out)
+      </action>
+    </task-action-logic>
+  </database-schema>
+
+  <!-- ========================================
+       API ENDPOINTS CONTEXT
+       ======================================== -->
+  <api-endpoints>
+    <existing-endpoints>
+      <endpoint>
+        <method>POST</method>
+        <path>/api/pm/phases/:id/analyze-completion</path>
+        <source>PM-05.1</source>
+        <implemented>apps/api/src/pm/phases/phases.controller.ts (line 82-101)</implemented>
+        <description>Invokes Scope agent to analyze phase completion readiness</description>
+        <returns>PhaseCompletionAnalysis</returns>
+        <usage>Modal calls this endpoint on open to fetch Scope's recommendations</usage>
+      </endpoint>
+
+      <endpoint>
+        <method>PATCH</method>
+        <path>/api/pm/phases/:id</path>
+        <implemented>apps/api/src/pm/phases/phases.controller.ts (line 64-80)</implemented>
+        <description>Updates phase properties (name, description, status)</description>
+        <note>Handles phase status transitions but not bulk task operations</note>
+      </endpoint>
+    </existing-endpoints>
+
+    <new-endpoints-required>
+      <endpoint>
+        <method>POST</method>
+        <path>/api/pm/phases/:id/transition</path>
+        <controller>apps/api/src/pm/phases/phases.controller.ts</controller>
+        <service>apps/api/src/pm/agents/phase.service.ts</service>
+        <description>Execute phase transition with bulk task actions</description>
+
+        <request-dto>
+          <![CDATA[
+// apps/api/src/pm/phases/dto/phase-transition.dto.ts (NEW FILE)
+
+import { IsArray, IsString, IsOptional, ValidateNested, IsEnum } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class TaskActionDto {
+  @IsString()
+  taskId: string;
+
+  @IsEnum(['complete', 'carry_over', 'cancel'])
+  action: 'complete' | 'carry_over' | 'cancel';
+
+  @IsString()
+  @IsOptional()
+  targetPhaseId?: string;  // Required if action = 'carry_over'
+}
+
+export class PhaseTransitionDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TaskActionDto)
+  taskActions: TaskActionDto[];
+
+  @IsString()
+  @IsOptional()
+  completionNote?: string;
+}
+          ]]>
+        </request-dto>
+
+        <response-interface>
+          <![CDATA[
+interface PhaseTransitionResult {
+  success: true;
+  completedPhase: Phase;
+  activePhase: Phase | null;  // null if no next phase exists
+}
+          ]]>
+        </response-interface>
+
+        <controller-implementation>
+          <![CDATA[
+@Post('phases/:id/transition')
+@Roles('owner', 'admin', 'member')
+@ApiOperation({ summary: 'Execute phase transition with task actions' })
+@ApiParam({ name: 'id', description: 'Phase ID' })
+async transitionPhase(
+  @CurrentWorkspace() workspaceId: string,
+  @CurrentUser() actor: any,
+  @Param('id') phaseId: string,
+  @Body() dto: PhaseTransitionDto,
+  @Req() req: Request,
+) {
+  const memberRole = (req as unknown as { memberRole?: string }).memberRole;
+  if (memberRole === 'member') {
+    await this.phasesService.assertPhaseProjectLead(workspaceId, actor.id, phaseId);
+  }
+
+  return this.phaseService.executePhaseTransition(
+    workspaceId,
+    phaseId,
+    actor.id,
+    dto,
+  );
+}
+          ]]>
+        </controller-implementation>
+
+        <rbac>
+          - Roles: owner, admin, member
+          - Members must be project lead (assertPhaseProjectLead)
+          - Workspace scoping enforced
+        </rbac>
+      </endpoint>
+    </new-endpoints-required>
+  </api-endpoints>
+
+  <!-- ========================================
+       FRONTEND COMPONENTS
+       ======================================== -->
+  <frontend-components>
+    <new-component>
+      <name>PhaseTransitionModal</name>
+      <location>apps/web/src/components/pm/phases/PhaseTransitionModal.tsx (NEW FILE)</location>
+      <dependencies>
+        - @/components/ui/dialog
+        - @/components/ui/button
+        - @/components/ui/select
+        - @/components/ui/textarea
+        - @/components/ui/badge
+        - @/components/ui/alert
+        - @tanstack/react-query
+        - lucide-react icons
+      </dependencies>
+
+      <component-structure>
+        <![CDATA[
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle2, XCircle, ArrowRight, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface TaskAction {
+  taskId: string;
+  action: 'complete' | 'carry_over' | 'cancel';
+  targetPhaseId?: string;
+}
+
+interface PhaseTransitionModalProps {
+  phaseId: string;
+  projectId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onTransition?: () => void;
+}
+
+export function PhaseTransitionModal({
+  phaseId,
+  projectId,
+  open,
+  onOpenChange,
+  onTransition,
+}: PhaseTransitionModalProps) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [taskActions, setTaskActions] = useState<Record<string, TaskAction>>({});
+  const [completionNote, setCompletionNote] = useState('');
+
+  // Fetch Scope analysis
+  const { data: analysis, isLoading } = useQuery({
+    queryKey: ['phase-analysis', phaseId],
+    queryFn: () =>
+      fetch(`/api/pm/phases/${phaseId}/analyze-completion`, {
+        method: 'POST',
+      }).then(r => {
+        if (!r.ok) throw new Error('Failed to analyze phase');
+        return r.json();
+      }),
+    enabled: open,
+  });
+
+  // Execute transition
+  const transitionMutation = useMutation({
+    mutationFn: () =>
+      fetch(`/api/pm/phases/${phaseId}/transition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskActions: Object.values(taskActions),
+          completionNote,
+        }),
+      }).then(r => {
+        if (!r.ok) throw new Error('Transition failed');
+        return r.json();
+      }),
+    onSuccess: (data) => {
+      toast.success(`Phase "${analysis.phaseName}" completed!`);
+      queryClient.invalidateQueries(['phases', projectId]);
+      onTransition?.();
+
+      // Navigate to next phase if it exists
+      if (data.activePhase) {
+        router.push(`/pm/phases/${data.activePhase.id}`);
+      }
+
+      onOpenChange(false);
+    },
+    onError: (error) => {
+      toast.error('Failed to complete phase');
+      console.error(error);
+    },
+  });
+
+  // Initialize task actions from Scope recommendations
+  useEffect(() => {
+    if (analysis?.recommendations) {
+      const initialActions = analysis.recommendations.reduce(
+        (acc, rec) => ({
+          ...acc,
+          [rec.taskId]: {
+            taskId: rec.taskId,
+            action: rec.action,
+            targetPhaseId: rec.suggestedPhase,
+          },
+        }),
+        {}
+      );
+      setTaskActions(initialActions);
+    }
+  }, [analysis]);
+
+  const handleActionChange = (taskId: string, action: string) => {
+    setTaskActions(prev => ({
+      ...prev,
+      [taskId]: {
+        taskId,
+        action: action as 'complete' | 'carry_over' | 'cancel',
+      },
+    }));
+  };
+
+  const handleConfirmTransition = () => {
+    transitionMutation.mutate();
+  };
+
+  if (isLoading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl">
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center space-y-3">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+              <p className="text-muted-foreground">Analyzing phase with Scope...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (!analysis) return null;
+
+  const hasBlockers = analysis.summary.blockers.length > 0;
+  const canTransition = analysis.summary.readyForCompletion && !hasBlockers;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Complete Phase: {analysis.phaseName}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4">
+          {/* Phase Summary Card */}
+          <div className="bg-accent rounded-lg p-4">
+            <h3 className="font-semibold mb-3">Phase Summary</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Total Tasks:</span>
+                <span className="ml-2 font-medium">{analysis.totalTasks}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Completed:</span>
+                <span className="ml-2 font-medium">{analysis.completedTasks}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Incomplete:</span>
+                <span className="ml-2 font-medium">{analysis.incompleteTasks.length}</span>
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <Badge variant={canTransition ? 'default' : 'secondary'}>
+                {canTransition ? 'Ready for Completion' : 'Not Ready'}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Blockers Alert */}
+          {hasBlockers && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="font-semibold mb-2">Blockers Detected</div>
+                <ul className="space-y-1">
+                  {analysis.summary.blockers.map((blocker, i) => (
+                    <li key={i}>• {blocker}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Incomplete Tasks List */}
+          {analysis.incompleteTasks.length > 0 && (
+            <div>
+              <h3 className="font-semibold mb-3">Incomplete Tasks</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Choose an action for each incomplete task:
+              </p>
+
+              <div className="space-y-3">
+                {analysis.recommendations.map(rec => (
+                  <div key={rec.taskId} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{rec.taskTitle}</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          💡 {rec.reasoning}
+                        </p>
+                      </div>
+
+                      <Select
+                        value={taskActions[rec.taskId]?.action || rec.action}
+                        onValueChange={(value) => handleActionChange(rec.taskId, value)}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="complete">Complete Now</SelectItem>
+                          <SelectItem value="carry_over">Carry to Next Phase</SelectItem>
+                          <SelectItem value="cancel">Cancel</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground">
+                      Scope suggests: <span className="font-medium capitalize">{rec.action.replace('_', ' ')}</span>
+                      {taskActions[rec.taskId]?.action !== rec.action && (
+                        <Badge variant="outline" className="ml-2">Overridden</Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Next Phase Preview */}
+          {analysis.summary.nextPhasePreview && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-blue-900">
+                <ArrowRight className="h-5 w-5" />
+                <div>
+                  <h4 className="font-semibold">Next Phase</h4>
+                  <p className="text-sm mt-1">{analysis.summary.nextPhasePreview}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Completion Note */}
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Completion Note (Optional)
+            </label>
+            <Textarea
+              placeholder="Add any notes about this phase completion..."
+              value={completionNote}
+              onChange={(e) => setCompletionNote(e.target.value)}
+              rows={3}
+              maxLength={500}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {completionNote.length}/500 characters
+            </p>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={transitionMutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmTransition}
+            disabled={!canTransition || transitionMutation.isPending}
+          >
+            {transitionMutation.isPending ? (
+              <>
+                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                Completing...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                Confirm Transition
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+        ]]>
+      </component-structure>
+
+      <styling-notes>
+        - Use max-w-3xl for desktop modal width
+        - max-h-[90vh] overflow-y-auto for scrollable content
+        - space-y-6 for consistent vertical spacing
+        - bg-accent for summary card (neutral background)
+        - bg-blue-50 border-blue-200 for next phase preview (info style)
+        - destructive variant for blockers alert
+        - Responsive grid: grid-cols-2 md:grid-cols-3
+      </styling-notes>
+
+      <integration-with-phase-detail-page>
+        <![CDATA[
+// In phase detail page (apps/web/src/app/(dashboard)/pm/phases/[id]/page.tsx)
+// Add "Complete Phase" button:
+
+import { PhaseTransitionModal } from '@/components/pm/phases/PhaseTransitionModal';
+import { useState } from 'react';
+
+function PhaseDetailPage({ params }: { params: { id: string } }) {
+  const [isTransitionModalOpen, setIsTransitionModalOpen] = useState(false);
+
+  return (
+    <div>
+      {/* Existing phase detail content */}
+
+      {/* Complete Phase Button (show only if status is CURRENT) */}
+      {phase?.status === 'CURRENT' && (
+        <Button onClick={() => setIsTransitionModalOpen(true)}>
+          Complete Phase
+        </Button>
+      )}
+
+      {/* Phase Transition Modal */}
+      <PhaseTransitionModal
+        phaseId={params.id}
+        projectId={phase.projectId}
+        open={isTransitionModalOpen}
+        onOpenChange={setIsTransitionModalOpen}
+        onTransition={() => {
+          // Refresh phase data
+          queryClient.invalidateQueries(['phase', params.id]);
+        }}
+      />
+    </div>
+  );
+}
+        ]]>
+      </integration-with-phase-detail-page>
+    </new-component>
+
+    <dto-file>
+      <name>TaskActionDto and PhaseTransitionDto</name>
+      <location>apps/api/src/pm/phases/dto/phase-transition.dto.ts (NEW FILE)</location>
+      <content>See request-dto in API endpoints section</content>
+    </dto-file>
+  </frontend-components>
+
+  <!-- ========================================
+       BACKEND SERVICE IMPLEMENTATION
+       ======================================== -->
+  <backend-implementation>
+    <service-method>
+      <name>executePhaseTransition</name>
+      <location>apps/api/src/pm/agents/phase.service.ts</location>
+      <signature>
+        <![CDATA[
+async executePhaseTransition(
+  workspaceId: string,
+  phaseId: string,
+  userId: string,
+  dto: PhaseTransitionDto
+): Promise<PhaseTransitionResult>
+        ]]>
+      </signature>
+
+      <implementation>
+        <![CDATA[
+async executePhaseTransition(
+  workspaceId: string,
+  phaseId: string,
+  userId: string,
+  dto: PhaseTransitionDto
+): Promise<PhaseTransitionResult> {
+  // 1. Verify phase ownership and permissions
+  const phase = await this.prisma.phase.findFirst({
+    where: {
+      id: phaseId,
+      project: { workspaceId, deletedAt: null },
+    },
+    include: { project: true },
+  });
+
+  if (!phase) {
+    throw new NotFoundException('Phase not found');
+  }
+
+  // 2. Validate transition readiness (check blockers)
+  const analysis = await this.analyzePhaseCompletion(workspaceId, phaseId, userId);
+  if (!analysis.summary.readyForCompletion) {
+    throw new BadRequestException('Phase has unresolved blockers');
+  }
+
+  // 3. Execute task actions in transaction
+  return this.prisma.$transaction(async (tx) => {
+    // 3a. Process each task action
+    for (const taskAction of dto.taskActions) {
+      await this.executeTaskAction(tx, taskAction, phaseId);
+    }
+
+    // 3b. Mark current phase as COMPLETED
+    const completedPhase = await tx.phase.update({
+      where: { id: phaseId },
+      data: {
+        status: PhaseStatus.COMPLETED,
+        completedAt: new Date(),
+        completionNote: dto.completionNote,
+      },
+    });
+
+    // 3c. Activate next phase
+    const nextPhase = await tx.phase.findFirst({
+      where: {
+        projectId: phase.projectId,
+        phaseNumber: phase.phaseNumber + 1,
+      },
+    });
+
+    let activePhase = null;
+    if (nextPhase) {
+      activePhase = await tx.phase.update({
+        where: { id: nextPhase.id },
+        data: {
+          status: PhaseStatus.CURRENT,
+          startDate: new Date(),
+        },
+      });
+    }
+
+    // 3d. Publish events (after transaction commits)
+    await this.eventPublisher.publish(
+      EventTypes.PM_PHASE_COMPLETED,
+      {
+        phaseId: completedPhase.id,
+        projectId: phase.projectId,
+        userId,
+      },
+      { tenantId: workspaceId, userId, source: 'api' }
+    );
+
+    if (activePhase) {
+      await this.eventPublisher.publish(
+        EventTypes.PM_PHASE_STARTED,
+        {
+          phaseId: activePhase.id,
+          projectId: phase.projectId,
+          userId,
+        },
+        { tenantId: workspaceId, userId, source: 'api' }
+      );
+    }
+
+    return {
+      success: true,
+      completedPhase,
+      activePhase,
+    };
+  });
+}
+
+private async executeTaskAction(
+  tx: any, // Prisma transaction client
+  taskAction: TaskActionDto,
+  currentPhaseId: string
+) {
+  switch (taskAction.action) {
+    case 'complete':
+      await tx.task.update({
+        where: { id: taskAction.taskId },
+        data: {
+          status: TaskStatus.DONE,
+          completedAt: new Date()
+        },
+      });
+      break;
+
+    case 'carry_over':
+      if (!taskAction.targetPhaseId) {
+        throw new BadRequestException('Target phase required for carry_over');
+      }
+      await tx.task.update({
+        where: { id: taskAction.taskId },
+        data: { phaseId: taskAction.targetPhaseId },
+      });
+      break;
+
+    case 'cancel':
+      await tx.task.update({
+        where: { id: taskAction.taskId },
+        data: {
+          status: TaskStatus.CANCELLED,
+          cancelledAt: new Date()
+        },
+      });
+      break;
+  }
+}
+        ]]>
+      </implementation>
+
+      <error-handling>
+        - NotFoundException: Phase not found in workspace
+        - BadRequestException: Phase has unresolved blockers
+        - BadRequestException: Missing targetPhaseId for carry_over
+        - Transaction rollback on any database error
+      </error-handling>
+
+      <workspace-isolation>
+        - Verify phase.project.workspaceId === workspaceId
+        - Ensure all operations scoped to workspace
+        - Publish events with tenantId (workspace)
+      </workspace-isolation>
+    </service-method>
+
+    <controller-extension>
+      <location>apps/api/src/pm/phases/phases.controller.ts</location>
+      <changes>
+        <![CDATA[
+// Add to imports
+import { PhaseTransitionDto } from './dto/phase-transition.dto';
+
+// Add endpoint (after analyze-completion endpoint, around line 102)
+@Post('phases/:id/transition')
+@Roles('owner', 'admin', 'member')
+@ApiOperation({ summary: 'Execute phase transition with task actions' })
+@ApiParam({ name: 'id', description: 'Phase ID' })
+async transitionPhase(
+  @CurrentWorkspace() workspaceId: string,
+  @Param('id') id: string,
+  @CurrentUser() actor: any,
+  @Body() dto: PhaseTransitionDto,
+  @Req() req: Request,
+) {
+  const memberRole = (req as unknown as { memberRole?: string }).memberRole;
+  if (memberRole === 'member') {
+    await this.phasesService.assertPhaseProjectLead(workspaceId, actor.id, id);
+  }
+
+  return this.phaseService.executePhaseTransition(
+    workspaceId,
+    id,
+    actor.id,
+    dto,
+  );
+}
+        ]]>
+      </changes>
+    </controller-extension>
+  </backend-implementation>
+
+  <!-- ========================================
+       INTEGRATION WITH PM-05.1
+       ======================================== -->
+  <integration-with-pm-05-1>
+    <reuses-from-pm-05-1>
+      - POST /api/pm/phases/:id/analyze-completion endpoint
+      - Scope agent's PhaseCompletionAnalysis output
+      - PhaseCheckpoint model (for future checkpoint tracking)
+      - PhaseService.analyzePhaseCompletion() method
+    </reuses-from-pm-05-1>
+
+    <new-in-pm-05-2>
+      - PhaseTransitionModal component (frontend)
+      - POST /api/pm/phases/:id/transition endpoint
+      - PhaseService.executePhaseTransition() method
+      - Bulk task operations with transaction safety
+      - Phase status transitions (CURRENT → COMPLETED, UPCOMING → CURRENT)
+      - Event bus integration (phase.completed, phase.started)
+    </new-in-pm-05-2>
+
+    <flow-diagram>
+      <![CDATA[
+User clicks "Complete Phase" button
+         ↓
+Frontend: PhaseTransitionModal opens
+         ↓
+Frontend: Calls POST /api/pm/phases/:id/analyze-completion (PM-05.1)
+         ↓
+Backend: PhaseService.analyzePhaseCompletion() invokes Scope agent
+         ↓
+Scope: Analyzes incomplete tasks, generates recommendations
+         ↓
+Frontend: Displays recommendations in modal
+         ↓
+User: Reviews, optionally overrides recommendations
+         ↓
+User: Clicks "Confirm Transition"
+         ↓
+Frontend: Calls POST /api/pm/phases/:id/transition (PM-05.2)
+         ↓
+Backend: PhaseService.executePhaseTransition()
+  1. Verify phase ownership
+  2. Validate readiness (check blockers)
+  3. Execute task actions in transaction
+     - Complete tasks (status → DONE)
+     - Carry over tasks (phaseId → next phase)
+     - Cancel tasks (status → CANCELLED)
+  4. Update phase status (CURRENT → COMPLETED)
+  5. Activate next phase (UPCOMING → CURRENT)
+  6. Publish events (phase.completed, phase.started)
+         ↓
+Frontend: Navigate to next phase detail page
+         ↓
+Frontend: Show success notification
+      ]]>
+    </flow-diagram>
+  </integration-with-pm-05-1>
+
+  <!-- ========================================
+       WEBSOCKET INTEGRATION
+       ======================================== -->
+  <websocket-integration>
+    <note>WebSocket integration is planned for PM-06 but can be added here</note>
+
+    <events-to-emit>
+      <![CDATA[
+// After successful transition in PhaseService
+this.realtimeGateway.server
+  .to(`project:${projectId}:phases`)
+  .emit('phase:transitioned', {
+    completedPhase: { id, name, status: 'COMPLETED' },
+    activePhase: { id, name, status: 'CURRENT' },
+    userId,
+    timestamp: new Date(),
+  });
+      ]]>
+    </events-to-emit>
+
+    <frontend-listener>
+      <![CDATA[
+// In phase detail page or phase list component
+useEffect(() => {
+  socket.on('phase:transitioned', (data) => {
+    // Refresh phase list
+    queryClient.invalidateQueries(['phases', projectId]);
+
+    // Show notification
+    toast.success(`Phase "${data.completedPhase.name}" completed!`);
+  });
+
+  return () => socket.off('phase:transitioned');
+}, [socket, projectId]);
+      ]]>
+    </frontend-listener>
+
+    <implementation-priority>
+      OPTIONAL for PM-05.2 - Can be added later in PM-06
+    </implementation-priority>
+  </websocket-integration>
+
+  <!-- ========================================
+       IMPLEMENTATION TASKS
+       ======================================== -->
+  <implementation-tasks>
+    <frontend-tasks>
+      <task>
+        <name>Create PhaseTransitionModal component</name>
+        <file>apps/web/src/components/pm/phases/PhaseTransitionModal.tsx</file>
+        <steps>
+          1. Create modal component with shadcn Dialog
+          2. Implement useQuery for phase analysis
+          3. Build task action dropdowns with Select
+          4. Add summary section (tasks, completion %)
+          5. Add blocker warning banner (conditional)
+          6. Add next phase preview card
+          7. Add completion note textarea
+          8. Implement confirm transition with useMutation
+          9. Add loading states (analysis, transition)
+          10. Add navigation to next phase on success
+        </steps>
+      </task>
+
+      <task>
+        <name>Add "Complete Phase" button to phase detail page</name>
+        <file>apps/web/src/app/(dashboard)/pm/phases/[id]/page.tsx</file>
+        <steps>
+          1. Import PhaseTransitionModal
+          2. Add useState for modal open state
+          3. Add "Complete Phase" button (show only if status === 'CURRENT')
+          4. Wire up button to open modal
+          5. Add onTransition callback to refresh phase data
+        </steps>
+      </task>
+    </frontend-tasks>
+
+    <backend-tasks>
+      <task>
+        <name>Create PhaseTransitionDto</name>
+        <file>apps/api/src/pm/phases/dto/phase-transition.dto.ts</file>
+        <steps>
+          1. Create TaskActionDto class with validation
+          2. Create PhaseTransitionDto class with validation
+          3. Export both DTOs
+        </steps>
+      </task>
+
+      <task>
+        <name>Implement PhaseService.executePhaseTransition</name>
+        <file>apps/api/src/pm/agents/phase.service.ts</file>
+        <steps>
+          1. Add executePhaseTransition method
+          2. Verify phase ownership and permissions
+          3. Validate transition readiness (call analyzePhaseCompletion)
+          4. Implement Prisma transaction
+          5. Add executeTaskAction private method
+          6. Update phase statuses (COMPLETED, CURRENT)
+          7. Publish events (phase.completed, phase.started)
+          8. Return PhaseTransitionResult
+        </steps>
+      </task>
+
+      <task>
+        <name>Extend PhasesController</name>
+        <file>apps/api/src/pm/phases/phases.controller.ts</file>
+        <steps>
+          1. Import PhaseTransitionDto
+          2. Add POST /api/pm/phases/:id/transition endpoint
+          3. Add RBAC guards (owner, admin, member + project lead check)
+          4. Call phaseService.executePhaseTransition
+        </steps>
+      </task>
+
+      <task>
+        <name>Add Phase model extensions (if needed)</name>
+        <file>packages/db/prisma/schema.prisma</file>
+        <steps>
+          1. Check if Phase model has completedAt field (add if not exists)
+          2. Check if Phase model has completionNote field (add if not exists)
+          3. Create migration if changes made
+        </steps>
+      </task>
+
+      <task>
+        <name>Add event types (if needed)</name>
+        <file>packages/shared/src/events/event-types.ts</file>
+        <steps>
+          1. Check if PM_PHASE_COMPLETED exists (add if not)
+          2. Check if PM_PHASE_STARTED exists (add if not)
+        </steps>
+      </task>
+    </backend-tasks>
+
+    <testing-tasks>
+      <task>
+        <name>Unit tests - PhaseTransitionModal</name>
+        <file>apps/web/src/components/pm/phases/PhaseTransitionModal.test.tsx</file>
+        <test-cases>
+          - Modal renders with loading state while fetching analysis
+          - Task actions initialize from Scope recommendations
+          - User can override recommendations via dropdowns
+          - Completion note updates state correctly
+          - Confirm button disabled when blockers exist
+          - Modal closes and navigates on successful transition
+        </test-cases>
+      </task>
+
+      <task>
+        <name>Unit tests - PhaseService.executePhaseTransition</name>
+        <file>apps/api/src/pm/agents/phase.service.spec.ts</file>
+        <test-cases>
+          - Validates phase ownership (throws if not in workspace)
+          - Throws error if phase has unresolved blockers
+          - Transaction commits only if all task actions succeed
+          - Phase status updates correctly (COMPLETED, CURRENT)
+          - Events published after successful transition
+          - Workspace isolation enforced
+          - Handles case where no next phase exists
+        </test-cases>
+      </task>
+
+      <task>
+        <name>Integration tests - API endpoint</name>
+        <file>apps/api/test/pm/agents/phase-transition.e2e-spec.ts</file>
+        <test-cases>
+          - POST /api/pm/phases/:id/transition executes successfully
+          - Returns completedPhase and activePhase objects
+          - Unauthorized users cannot execute transition (403)
+          - Phase not in workspace returns 404
+          - Invalid task actions return 400
+          - Blockers prevent transition (400)
+          - Transaction rolls back if any task action fails
+        </test-cases>
+      </task>
+
+      <task>
+        <name>E2E tests - Phase transition flow</name>
+        <file>apps/web/e2e/pm/phases/transition.spec.ts</file>
+        <test-cases>
+          - Navigate to phase detail → click "Complete Phase" → modal opens with analysis
+          - View Scope recommendations → override action for one task → confirm transition
+          - Phase with blockers → modal shows warning → confirm button disabled
+          - Successful transition → navigate to next phase → see updated phase list
+        </test-cases>
+      </task>
+    </testing-tasks>
+  </implementation-tasks>
+
+  <!-- ========================================
+       KEY FILES TO CREATE/MODIFY
+       ======================================== -->
+  <file-changes>
+    <new-files>
+      <file>apps/web/src/components/pm/phases/PhaseTransitionModal.tsx</file>
+      <file>apps/api/src/pm/phases/dto/phase-transition.dto.ts</file>
+      <file>apps/web/src/components/pm/phases/PhaseTransitionModal.test.tsx</file>
+      <file>apps/api/test/pm/agents/phase-transition.e2e-spec.ts</file>
+      <file>apps/web/e2e/pm/phases/transition.spec.ts</file>
+    </new-files>
+
+    <modified-files>
+      <file>apps/api/src/pm/agents/phase.service.ts (add executePhaseTransition method)</file>
+      <file>apps/api/src/pm/phases/phases.controller.ts (add transition endpoint)</file>
+      <file>apps/web/src/app/(dashboard)/pm/phases/[id]/page.tsx (add Complete Phase button + modal)</file>
+      <file>packages/db/prisma/schema.prisma (add completedAt, completionNote to Phase if missing)</file>
+      <file>apps/api/src/pm/agents/phase.service.spec.ts (add transition tests)</file>
+    </modified-files>
+  </file-changes>
+
+  <!-- ========================================
+       CRITICAL NOTES
+       ======================================== -->
+  <critical-notes>
+    <note priority="high">
+      <title>Transaction Safety</title>
+      <description>
+        All task actions MUST execute within a Prisma transaction. If any action
+        fails, the entire transition should rollback to prevent partial completions
+        that corrupt phase state.
+      </description>
+    </note>
+
+    <note priority="high">
+      <title>Blocker Validation</title>
+      <description>
+        Before executing transition, MUST re-validate that phase has no blockers
+        by calling analyzePhaseCompletion(). User may have fixed blockers between
+        opening modal and clicking confirm.
+      </description>
+    </note>
+
+    <note priority="high">
+      <title>Workspace Isolation</title>
+      <description>
+        All database queries MUST enforce workspace scoping. Verify that phase
+        belongs to workspaceId before processing any operations. Same applies to
+        task actions - verify tasks belong to the phase being transitioned.
+      </description>
+    </note>
+
+    <note priority="medium">
+      <title>Next Phase Selection</title>
+      <description>
+        Default behavior: Find phase with phaseNumber = currentPhase.phaseNumber + 1.
+        If no next phase exists, complete current phase only and show success message.
+        Future enhancement (PM-09): Allow user to select target phase in modal.
+      </description>
+    </note>
+
+    <note priority="medium">
+      <title>Event Publishing Timing</title>
+      <description>
+        Events MUST be published AFTER transaction commits, not inside the transaction.
+        This prevents events being published if transaction rolls back. Use await after
+        transaction completes.
+      </description>
+    </note>
+
+    <note priority="low">
+      <title>User Override Tracking</title>
+      <description>
+        OPTIONAL: Track when user overrides Scope recommendations for analytics.
+        Show subtle badge "Overridden" in modal. Future enhancement: Store original
+        recommendations in PhaseTransition audit table to learn from overrides.
+      </description>
+    </note>
+
+    <note priority="low">
+      <title>Responsive Design</title>
+      <description>
+        Modal should be full-screen on mobile with sticky header and footer.
+        Use shadcn Dialog's built-in responsive behavior. Test on mobile, tablet,
+        and desktop viewports.
+      </description>
+    </note>
+  </critical-notes>
+
+  <!-- ========================================
+       REFERENCE DOCUMENTATION
+       ======================================== -->
+  <references>
+    <doc type="story">
+      <path>docs/modules/bm-pm/stories/pm-05-2-scope-phase-transition-flow.md</path>
+      <description>Full story specification with technical requirements</description>
+    </doc>
+
+    <doc type="epic-tech-spec">
+      <path>docs/modules/bm-pm/epics/epic-pm-05-tech-spec.md</path>
+      <description>Technical specification for Epic PM-05 (Scope, Pulse, Herald)</description>
+    </doc>
+
+    <doc type="previous-story-context">
+      <path>docs/modules/bm-pm/stories/pm-05-1-scope-agent-phase-management.context.xml</path>
+      <description>Context from PM-05.1 - provides Scope agent foundation</description>
+    </doc>
+
+    <doc type="existing-pattern">
+      <path>apps/web/src/components/approval/approval-detail-modal.tsx</path>
+      <description>Example: Modal component pattern with shadcn Dialog</description>
+    </doc>
+
+    <doc type="existing-pattern">
+      <path>apps/api/src/pm/phases/phases.controller.ts</path>
+      <description>Example: Phase controller with RBAC and workspace scoping</description>
+    </doc>
+
+    <doc type="existing-pattern">
+      <path>apps/api/src/pm/phases/phases.service.ts</path>
+      <description>Example: Phase service with transaction and event publishing</description>
+    </doc>
+
+    <doc type="database-schema">
+      <path>packages/db/prisma/schema.prisma</path>
+      <description>Current database schema with Phase and Task models</description>
+    </doc>
+  </references>
+
+  <!-- ========================================
+       EXAMPLE SCENARIOS
+       ======================================== -->
+  <example-scenarios>
+    <scenario name="Happy Path - Phase Completion">
+      <description>User completes phase with 3 incomplete tasks</description>
+      <steps>
+        1. User clicks "Complete Phase" button on phase detail page
+        2. PhaseTransitionModal opens, shows loading spinner
+        3. Frontend calls POST /api/pm/phases/phase_abc123/analyze-completion
+        4. Scope analyzes phase, returns recommendations:
+           - task_001: complete (80% done)
+           - task_002: carry_over (not critical)
+           - task_003: cancel (blocked externally)
+        5. Modal displays 3 incomplete tasks with Scope's recommendations
+        6. User reviews, accepts all recommendations
+        7. User adds completion note: "Brief completed successfully"
+        8. User clicks "Confirm Transition"
+        9. Frontend calls POST /api/pm/phases/phase_abc123/transition with:
+           - taskActions: [complete, carry_over, cancel]
+           - completionNote: "Brief completed successfully"
+        10. Backend executes transaction:
+            - task_001 → status: DONE, completedAt: now
+            - task_002 → phaseId: phase_def456 (next phase)
+            - task_003 → status: CANCELLED, cancelledAt: now
+            - Phase ABC → status: COMPLETED, completedAt: now
+            - Phase DEF → status: CURRENT, startDate: now
+        11. Backend publishes events: phase.completed, phase.started
+        12. Frontend navigates to /pm/phases/phase_def456
+        13. Success toast: "Phase 'Phase 1: Brief' completed!"
+      </steps>
+    </scenario>
+
+    <scenario name="User Override">
+      <description>User overrides Scope's recommendation</description>
+      <steps>
+        1. Modal displays task_002 with Scope recommendation: "carry_over"
+        2. User changes dropdown from "Carry to Next Phase" → "Complete Now"
+        3. Modal shows badge "Overridden" next to task_002
+        4. User clicks "Confirm Transition"
+        5. Backend receives action: { taskId: task_002, action: 'complete' }
+        6. Task_002 marked as DONE instead of carried over
+      </steps>
+    </scenario>
+
+    <scenario name="Blockers Prevent Transition">
+      <description>Phase has critical blockers that must be resolved</description>
+      <steps>
+        1. Modal displays analysis with blockers:
+           - "Task 'Budget approval' is blocked by finance review"
+        2. Alert banner shown: "Blockers Detected" (red/destructive variant)
+        3. Confirm button is DISABLED
+        4. User must close modal, resolve blockers, then retry
+        5. After resolving, user reopens modal → no blockers → can proceed
+      </steps>
+    </scenario>
+
+    <scenario name="No Next Phase">
+      <description>Completing final phase of project</description>
+      <steps>
+        1. User completes Phase 5 (final phase)
+        2. Backend finds no phase with phaseNumber = 6
+        3. Transaction completes current phase only
+        4. Returns: { completedPhase: Phase5, activePhase: null }
+        5. Frontend shows success but doesn't navigate (no next phase)
+        6. Optional: Show "Project complete!" message
+      </steps>
+    </scenario>
+
+    <scenario name="Transaction Rollback">
+      <description>One task action fails, entire transition rolls back</description>
+      <steps>
+        1. User confirms transition with 3 task actions
+        2. Backend starts transaction
+        3. task_001 → DONE ✓
+        4. task_002 → carry_over fails (invalid targetPhaseId)
+        5. Transaction throws error, rolls back
+        6. task_001 NOT marked as DONE (rolled back)
+        7. Phase status unchanged (rolled back)
+        8. Frontend receives 400 error
+        9. Toast error: "Failed to complete phase"
+      </steps>
+    </scenario>
+  </example-scenarios>
+</story-context>

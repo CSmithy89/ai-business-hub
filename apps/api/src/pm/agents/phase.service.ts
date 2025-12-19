@@ -1,6 +1,12 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { TaskStatus, CheckpointStatus } from '@prisma/client';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { TaskStatus, CheckpointStatus, PhaseStatus } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
+import { TaskActionDto, PhaseTransitionDto } from '../phases/dto/phase-transition.dto';
 
 export interface PhaseCompletionAnalysis {
   phaseId: string;
@@ -41,6 +47,22 @@ export interface PhaseCheckpointResult {
   remindAtDayOf: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface PhaseTransitionResult {
+  success: true;
+  completedPhase: {
+    id: string;
+    name: string;
+    status: PhaseStatus;
+    completedAt: Date | null;
+  };
+  activePhase: {
+    id: string;
+    name: string;
+    status: PhaseStatus;
+    startDate: Date | null;
+  } | null;
 }
 
 @Injectable()
@@ -241,5 +263,148 @@ export class PhaseService {
           incompleteTasks.length <= 3 ? '1-2 days' : '3-5 days',
       },
     };
+  }
+
+  /**
+   * Execute phase transition with bulk task operations.
+   * Implements the flow from PM-05.2 spec.
+   */
+  async executePhaseTransition(
+    workspaceId: string,
+    phaseId: string,
+    userId: string,
+    dto: PhaseTransitionDto,
+  ): Promise<PhaseTransitionResult> {
+    this.logger.log(
+      `Executing phase transition: ${phaseId} for workspace ${workspaceId}`,
+    );
+
+    // 1. Verify phase ownership and permissions
+    const phase = await this.prisma.phase.findFirst({
+      where: {
+        id: phaseId,
+        project: { workspaceId, deletedAt: null },
+      },
+      include: { project: true },
+    });
+
+    if (!phase) {
+      throw new NotFoundException('Phase not found');
+    }
+
+    // 2. Validate transition readiness (check blockers)
+    const analysis = await this.analyzePhaseCompletion(
+      workspaceId,
+      phaseId,
+      userId,
+    );
+    if (!analysis.summary.readyForCompletion) {
+      throw new BadRequestException('Phase has unresolved blockers');
+    }
+
+    // 3. Execute task actions in transaction
+    return this.prisma.$transaction(async (tx) => {
+      // 3a. Process each task action
+      for (const taskAction of dto.taskActions) {
+        await this.executeTaskAction(tx, taskAction, phaseId);
+      }
+
+      // 3b. Mark current phase as COMPLETED
+      const completedPhase = await tx.phase.update({
+        where: { id: phaseId },
+        data: {
+          status: PhaseStatus.COMPLETED,
+          completedAt: new Date(),
+          completionNote: dto.completionNote,
+        },
+      });
+
+      // 3c. Activate next phase
+      const nextPhase = await tx.phase.findFirst({
+        where: {
+          projectId: phase.projectId,
+          phaseNumber: phase.phaseNumber + 1,
+        },
+      });
+
+      let activePhase = null;
+      if (nextPhase) {
+        activePhase = await tx.phase.update({
+          where: { id: nextPhase.id },
+          data: {
+            status: PhaseStatus.CURRENT,
+            startDate: new Date(),
+          },
+        });
+      }
+
+      this.logger.log(
+        `Phase transition complete: ${phaseId} → ${activePhase?.id || 'none'}`,
+      );
+
+      return {
+        success: true,
+        completedPhase: {
+          id: completedPhase.id,
+          name: completedPhase.name,
+          status: completedPhase.status,
+          completedAt: completedPhase.completedAt,
+        },
+        activePhase: activePhase
+          ? {
+              id: activePhase.id,
+              name: activePhase.name,
+              status: activePhase.status,
+              startDate: activePhase.startDate,
+            }
+          : null,
+      };
+    });
+  }
+
+  /**
+   * Execute a single task action within a transaction.
+   */
+  private async executeTaskAction(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tx: any, // Prisma transaction client
+    taskAction: TaskActionDto,
+    _currentPhaseId: string,
+  ): Promise<void> {
+    switch (taskAction.action) {
+      case 'complete':
+        await tx.task.update({
+          where: { id: taskAction.taskId },
+          data: {
+            status: TaskStatus.DONE,
+            completedAt: new Date(),
+          },
+        });
+        break;
+
+      case 'carry_over':
+        if (!taskAction.targetPhaseId) {
+          throw new BadRequestException(
+            'Target phase required for carry_over action',
+          );
+        }
+        await tx.task.update({
+          where: { id: taskAction.taskId },
+          data: { phaseId: taskAction.targetPhaseId },
+        });
+        break;
+
+      case 'cancel':
+        await tx.task.update({
+          where: { id: taskAction.taskId },
+          data: {
+            status: TaskStatus.CANCELLED,
+            // Note: cancelledAt field doesn't exist in current schema
+            // Using completedAt for now as a timestamp
+            completedAt: new Date(),
+          },
+        });
+        break;
+    }
   }
 }
