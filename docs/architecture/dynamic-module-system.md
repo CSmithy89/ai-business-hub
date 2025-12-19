@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 We are upgrading the HYVVE module system from a static, hardcoded architecture to a dynamic, intelligence-driven one.
-By combining a **React Slot Registry** with the **AG-UI Streaming Protocol**, we enable AI Agents to dictate the User Interface at runtime. This allows modules (like "Brand", "PM", "CRM") to inject rich, interactive components into the application without modifying the core codebase.
+By combining a **React Slot Registry**, the **AG-UI Streaming Protocol**, and the **A2A (Agent-to-Agent) Discovery Protocol**, we enable AI Agents to dictate the User Interface at runtime. This allows modules (like "Brand", "PM", "CRM") to inject rich, interactive components into the application without modifying the core codebase, and allows the Orchestrator to dynamically discover which agents can contribute to the UI.
 
 ## 2. Core Concepts
 
@@ -26,6 +26,13 @@ Agents use the `UI_RENDER_HINT` event in the AG-UI protocol to instruct the fron
   }
 }
 ```
+
+### C. A2A Protocol Integration (Discovery)
+The **Agent-to-Agent (A2A) Protocol** acts as the "Service Mesh" for the UI. Instead of the Dashboard Agent hardcoding which widgets to show, it queries the **Agent Registry** to discover other agents that support the `ui_widgets` capability.
+
+*   **Discovery:** Agents declare their supported UI slots in their `AgentCard`.
+*   **Broadcasting:** A "Coordinator Agent" (e.g., Dashboard Agent) asks: *"Who has widgets for the 'dashboard.widgets' slot?"*
+*   **Aggregation:** The Coordinator calls the identified agents via A2A RPC, aggregates their `RenderHints`, and streams them to the frontend.
 
 ## 3. Implementation Plan
 
@@ -71,6 +78,21 @@ Agents use the `UI_RENDER_HINT` event in the AG-UI protocol to instruct the fron
 
 2.  **Verify Flow**
     *   User loads Dashboard -> Agent Runs -> Agent Yields Hints -> Slot Renders Widgets.
+
+### Phase 4: A2A "Intelligence Grid" (Advanced Discovery)
+
+1.  **Update `AgentCard` Schema (`agents/registry.py`)**
+    *   Add a `ui_slots` field to `AgentCapabilities` or `AgentSkill`.
+    *   *Example:* `ui_slots=["dashboard.widgets", "project.header"]`.
+
+2.  **Implement `DashboardAgent`**
+    *   This agent replaces the direct call to the PM Team.
+    *   **Logic:**
+        1.  Query `registry.list_cards()` for agents with `ui_slots` containing `"dashboard.widgets"`.
+        2.  For each matching agent (e.g., `branding`, `pm`), call their `get_widgets` RPC method via A2A.
+        3.  Aggregate the results and stream `UI_RENDER_HINT` events to the user.
+
+3.  **Benefit:** Installing a new module (e.g., `bm-finance`) automatically adds its widgets to the dashboard without changing the Dashboard Agent code.
 
 ## 4. Technical Specifications
 
