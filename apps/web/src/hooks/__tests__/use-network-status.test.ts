@@ -41,8 +41,8 @@ describe('useNetworkStatus', () => {
     if (originalNavigatorOnLine) {
       Object.defineProperty(navigator, 'onLine', originalNavigatorOnLine)
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (navigator as any).onLine
+       
+      delete (navigator as unknown as { onLine?: boolean }).onLine
     }
   })
 })
