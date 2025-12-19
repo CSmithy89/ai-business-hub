@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -43,11 +44,12 @@ export class TasksController {
     @CurrentWorkspace() workspaceId: string,
     @Body() dto: CreateTaskDto,
     @CurrentUser() actor: any,
+    @Headers('x-correlation-id') correlationId?: string,
   ) {
     if (dto.workspaceId && dto.workspaceId !== workspaceId) {
       throw new BadRequestException('workspaceId mismatch')
     }
-    return this.tasksService.create(workspaceId, actor.id, dto)
+    return this.tasksService.create(workspaceId, actor.id, dto, correlationId)
   }
 
   @Get()
@@ -72,8 +74,9 @@ export class TasksController {
     @CurrentWorkspace() workspaceId: string,
     @Body() dto: BulkUpdateTasksDto,
     @CurrentUser() actor: any,
+    @Headers('x-correlation-id') correlationId?: string,
   ) {
-    return this.tasksService.bulkUpdate(workspaceId, actor.id, dto)
+    return this.tasksService.bulkUpdate(workspaceId, actor.id, dto, correlationId)
   }
 
   @Patch(':id')
@@ -85,16 +88,22 @@ export class TasksController {
     @Param('id') id: string,
     @Body() dto: UpdateTaskDto,
     @CurrentUser() actor: any,
+    @Headers('x-correlation-id') correlationId?: string,
   ) {
-    return this.tasksService.update(workspaceId, actor.id, id, dto)
+    return this.tasksService.update(workspaceId, actor.id, id, dto, correlationId)
   }
 
   @Delete(':id')
   @Roles('owner', 'admin', 'member')
   @ApiOperation({ summary: 'Soft delete a task' })
   @ApiParam({ name: 'id', description: 'Task ID' })
-  async deleteTask(@CurrentWorkspace() workspaceId: string, @Param('id') id: string, @CurrentUser() actor: any) {
-    return this.tasksService.softDelete(workspaceId, actor.id, id)
+  async deleteTask(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @CurrentUser() actor: any,
+    @Headers('x-correlation-id') correlationId?: string,
+  ) {
+    return this.tasksService.softDelete(workspaceId, actor.id, id, correlationId)
   }
 
   @Post(':id/relations')

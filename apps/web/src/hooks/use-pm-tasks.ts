@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { v4 as uuidv4 } from 'uuid'
 import { useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
 import { safeJson } from '@/lib/utils/safe-json'
@@ -722,11 +723,14 @@ async function updateTask(params: {
   token?: string
   taskId: string
   input: UpdateTaskInput
+  correlationId?: string
 }): Promise<TaskDetailResponse> {
   const base = getBaseUrl()
 
   const search = new URLSearchParams()
   search.set('workspaceId', params.workspaceId)
+
+  const correlationId = params.correlationId || uuidv4()
 
   const response = await fetch(`${base}/pm/tasks/${encodeURIComponent(params.taskId)}?${search.toString()}`, {
     method: 'PATCH',
@@ -734,6 +738,7 @@ async function updateTask(params: {
     headers: {
       'Content-Type': 'application/json',
       ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+      'x-correlation-id': correlationId,
     },
     body: JSON.stringify(params.input),
     cache: 'no-store',
@@ -759,11 +764,14 @@ async function createTask(params: {
   workspaceId: string
   token?: string
   input: CreateTaskInput
+  correlationId?: string
 }): Promise<{ data: TaskListItem }> {
   const base = getBaseUrl()
 
   const search = new URLSearchParams()
   search.set('workspaceId', params.workspaceId)
+
+  const correlationId = params.correlationId || uuidv4()
 
   const response = await fetch(`${base}/pm/tasks?${search.toString()}`, {
     method: 'POST',
@@ -771,6 +779,7 @@ async function createTask(params: {
     headers: {
       'Content-Type': 'application/json',
       ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+      'x-correlation-id': correlationId,
     },
     body: JSON.stringify(params.input),
     cache: 'no-store',
@@ -796,11 +805,14 @@ async function bulkUpdateTasks(params: {
   workspaceId: string
   token?: string
   input: BulkUpdateTasksInput
+  correlationId?: string
 }): Promise<BulkUpdateTasksResponse> {
   const base = getBaseUrl()
 
   const search = new URLSearchParams()
   search.set('workspaceId', params.workspaceId)
+
+  const correlationId = params.correlationId || uuidv4()
 
   const response = await fetch(`${base}/pm/tasks/bulk?${search.toString()}`, {
     method: 'PATCH',
@@ -808,6 +820,7 @@ async function bulkUpdateTasks(params: {
     headers: {
       'Content-Type': 'application/json',
       ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+      'x-correlation-id': correlationId,
     },
     body: JSON.stringify(params.input),
     cache: 'no-store',
@@ -927,7 +940,12 @@ export function useUpdatePmTask() {
   return useMutation({
     mutationFn: ({ taskId, input }: { taskId: string; input: UpdateTaskInput }) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      return updateTask({ workspaceId, token, taskId, input })
+      const correlationId = uuidv4()
+      // Store correlationId in session context for filtering
+      if (session?.session && typeof session.session === 'object') {
+        ;(session.session as { correlationId?: string }).correlationId = correlationId
+      }
+      return updateTask({ workspaceId, token, taskId, input, correlationId })
     },
     onSuccess: (result) => {
       toast.success('Saved')
@@ -950,7 +968,12 @@ export function useCreatePmTask() {
   return useMutation({
     mutationFn: ({ input }: { input: CreateTaskInput }) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      return createTask({ workspaceId, token, input })
+      const correlationId = uuidv4()
+      // Store correlationId in session context for filtering
+      if (session?.session && typeof session.session === 'object') {
+        ;(session.session as { correlationId?: string }).correlationId = correlationId
+      }
+      return createTask({ workspaceId, token, input, correlationId })
     },
     onSuccess: (result) => {
       toast.success('Created')
@@ -1180,7 +1203,12 @@ export function useBulkUpdatePmTasks() {
   return useMutation({
     mutationFn: ({ input }: { input: BulkUpdateTasksInput }) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      return bulkUpdateTasks({ workspaceId, token, input })
+      const correlationId = uuidv4()
+      // Store correlationId in session context for filtering
+      if (session?.session && typeof session.session === 'object') {
+        ;(session.session as { correlationId?: string }).correlationId = correlationId
+      }
+      return bulkUpdateTasks({ workspaceId, token, input, correlationId })
     },
     onSuccess: (result) => {
       const { updated, failed } = result.data

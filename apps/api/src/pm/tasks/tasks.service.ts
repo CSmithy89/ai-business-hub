@@ -94,7 +94,7 @@ export class TasksService {
     }
   }
 
-  async create(workspaceId: string, actorId: string, dto: CreateTaskDto) {
+  async create(workspaceId: string, actorId: string, dto: CreateTaskDto, correlationId?: string) {
     await this.assertProjectInWorkspace(workspaceId, dto.projectId)
     await this.assertPhaseInProject(dto.projectId, dto.phaseId)
     await this.assertValidParentId({ workspaceId, projectId: dto.projectId, parentId: dto.parentId })
@@ -143,7 +143,22 @@ export class TasksService {
 
     await this.eventPublisher.publish(
       EventTypes.PM_TASK_CREATED,
-      { taskId: created.id, projectId: created.projectId, phaseId: created.phaseId, taskNumber: created.taskNumber },
+      {
+        id: created.id,
+        taskId: created.id,
+        projectId: created.projectId,
+        phaseId: created.phaseId,
+        taskNumber: created.taskNumber,
+        title: created.title,
+        description: created.description,
+        type: created.type,
+        priority: created.priority,
+        status: created.status,
+        assigneeId: created.assigneeId,
+        createdAt: created.createdAt.toISOString(),
+        updatedAt: created.updatedAt.toISOString(),
+        correlationId,
+      },
       { tenantId: workspaceId, userId: actorId, source: 'api' },
     )
 
@@ -836,10 +851,10 @@ export class TasksService {
     return this.getById(workspaceId, taskId)
   }
 
-  async update(workspaceId: string, actorId: string, id: string, dto: UpdateTaskDto) {
+  async update(workspaceId: string, actorId: string, id: string, dto: UpdateTaskDto, correlationId?: string) {
     const existing = await this.prisma.task.findFirst({
       where: { id, workspaceId, deletedAt: null },
-      select: { id: true, projectId: true, phaseId: true, status: true, startedAt: true, completedAt: true },
+      select: { id: true, projectId: true, phaseId: true, status: true, startedAt: true, completedAt: true, taskNumber: true, title: true },
     })
     if (!existing) throw new NotFoundException('Task not found')
 
@@ -929,21 +944,50 @@ export class TasksService {
     if (statusChanged) {
       await this.eventPublisher.publish(
         EventTypes.PM_TASK_STATUS_CHANGED,
-        { taskId: updated.id, projectId: updated.projectId, from: existing.status, to: nextStatus },
+        {
+          id: updated.id,
+          taskId: updated.id,
+          projectId: updated.projectId,
+          phaseId: updated.phaseId,
+          taskNumber: existing.taskNumber,
+          title: dto.title ?? existing.title,
+          from: existing.status,
+          to: nextStatus,
+          toStatus: nextStatus,
+          status: nextStatus,
+          correlationId,
+        },
         { tenantId: workspaceId, userId: actorId, source: 'api' },
       )
     }
 
     await this.eventPublisher.publish(
       EventTypes.PM_TASK_UPDATED,
-      { taskId: updated.id, projectId: updated.projectId, phaseId: updated.phaseId },
+      {
+        id: updated.id,
+        taskId: updated.id,
+        projectId: updated.projectId,
+        phaseId: updated.phaseId,
+        taskNumber: existing.taskNumber,
+        title: dto.title ?? existing.title,
+        description: dto.description,
+        type: dto.type,
+        priority: dto.priority,
+        status: dto.status,
+        assigneeId: dto.assigneeId,
+        agentId: dto.agentId,
+        assignmentType: dto.assignmentType,
+        dueDate: dto.dueDate,
+        updatedAt: updated.updatedAt.toISOString(),
+        correlationId,
+      },
       { tenantId: workspaceId, userId: actorId, source: 'api' },
     )
 
     return { data: updated }
   }
 
-  async bulkUpdate(workspaceId: string, actorId: string, dto: BulkUpdateTasksDto) {
+  async bulkUpdate(workspaceId: string, actorId: string, dto: BulkUpdateTasksDto, correlationId?: string) {
     const existingTasks = await this.prisma.task.findMany({
       where: { id: { in: dto.ids }, workspaceId, deletedAt: null },
       select: { id: true, status: true, projectId: true },
@@ -1011,13 +1055,13 @@ export class TasksService {
     if (statusProvided) {
       await this.eventPublisher.publish(
         EventTypes.PM_TASK_STATUS_CHANGED,
-        { taskIds: dto.ids, to: dto.status },
+        { taskIds: dto.ids, to: dto.status, correlationId },
         { tenantId: workspaceId, userId: actorId, source: 'api' },
       )
     } else {
       await this.eventPublisher.publish(
         EventTypes.PM_TASK_UPDATED,
-        { taskIds: dto.ids },
+        { taskIds: dto.ids, correlationId },
         { tenantId: workspaceId, userId: actorId, source: 'api' },
       )
     }
@@ -1025,10 +1069,10 @@ export class TasksService {
     return { data: { count: result.count } }
   }
 
-  async softDelete(workspaceId: string, actorId: string, id: string) {
+  async softDelete(workspaceId: string, actorId: string, id: string, correlationId?: string) {
     const existing = await this.prisma.task.findFirst({
       where: { id, workspaceId, deletedAt: null },
-      select: { id: true, projectId: true, phaseId: true },
+      select: { id: true, projectId: true, phaseId: true, taskNumber: true, title: true },
     })
     if (!existing) throw new NotFoundException('Task not found')
 
@@ -1040,7 +1084,7 @@ export class TasksService {
 
     await this.eventPublisher.publish(
       EventTypes.PM_TASK_DELETED,
-      { taskId: existing.id, projectId: existing.projectId, phaseId: existing.phaseId },
+      { taskId: existing.id, projectId: existing.projectId, phaseId: existing.phaseId, taskNumber: existing.taskNumber, title: existing.title, correlationId },
       { tenantId: workspaceId, userId: actorId, source: 'api' },
     )
 
