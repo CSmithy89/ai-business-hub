@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator'
+import { IsBoolean, IsInt, IsOptional, IsString, Max, Min } from 'class-validator'
 
 export class UpdateBriefingPreferencesDto {
   @ApiPropertyOptional({ description: 'Enable daily briefing' })
@@ -8,7 +8,7 @@ export class UpdateBriefingPreferencesDto {
   dailyBriefingEnabled?: boolean
 
   @ApiPropertyOptional({
-    description: 'Hour to send briefing (0-23 UTC)',
+    description: 'Hour to send briefing (0-23 in local time)',
     minimum: 0,
     maximum: 23,
   })
@@ -17,6 +17,14 @@ export class UpdateBriefingPreferencesDto {
   @Min(0)
   @Max(23)
   dailyBriefingHour?: number
+
+  @ApiPropertyOptional({
+    description: 'IANA timezone (e.g., "America/New_York", "Europe/London")',
+    example: 'America/New_York',
+  })
+  @IsOptional()
+  @IsString()
+  timezone?: string
 
   @ApiPropertyOptional({ description: 'Send briefing via email' })
   @IsOptional()
@@ -28,8 +36,11 @@ export class BriefingPreferencesResponseDto {
   @ApiProperty()
   dailyBriefingEnabled!: boolean
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Hour in local time (0-23)' })
   dailyBriefingHour!: number
+
+  @ApiProperty({ description: 'IANA timezone' })
+  timezone!: string
 
   @ApiProperty()
   emailBriefing!: boolean

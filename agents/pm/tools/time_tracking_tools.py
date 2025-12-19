@@ -5,13 +5,14 @@ AI Business Hub - Project Management Module
 Tools for starting/stopping timers, logging time, and getting time entries.
 """
 
-import os
-import requests
-from typing import Optional, List
-from agno import tool
+import logging
+from typing import Optional, List, Dict, Any
+import httpx
+from agno.tools import tool
 
+from .common import API_BASE_URL, get_auth_headers
 
-API_URL = os.getenv('API_BASE_URL', 'http://localhost:3000')
+logger = logging.getLogger(__name__)
 
 
 @tool
@@ -19,7 +20,7 @@ def start_timer(
     task_id: str,
     workspace_id: str,
     description: Optional[str] = None
-) -> dict:
+) -> Dict[str, Any]:
     """
     Start a timer for a task.
 
@@ -32,23 +33,31 @@ def start_timer(
         Active timer details with start time
     """
     try:
-        response = requests.post(
-            f"{API_URL}/api/pm/agents/time/start",
-            json={
-                'taskId': task_id,
-                'workspaceId': workspace_id,
-                'description': description,
-            },
-            headers={'X-Workspace-ID': workspace_id},
-            timeout=10,
-        )
+        url = f"{API_BASE_URL}/api/pm/agents/time/start"
+        headers = get_auth_headers(workspace_id)
+        payload = {
+            "taskId": task_id,
+            "workspaceId": workspace_id,
+            "description": description,
+        }
 
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            return response.json()
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} starting timer: {e}")
         return {
-            'error': str(e),
-            'message': 'Failed to start timer. Please try again.',
+            "error": f"Failed to start timer (HTTP {e.response.status_code})",
+            "message": "Please try again.",
+            "statusCode": e.response.status_code,
+        }
+    except httpx.HTTPError as e:
+        logger.error(f"Network error starting timer: {e}")
+        return {
+            "error": "Network error",
+            "message": "Failed to start timer. Please try again.",
         }
 
 
@@ -56,7 +65,7 @@ def start_timer(
 def stop_timer(
     task_id: str,
     workspace_id: str,
-) -> dict:
+) -> Dict[str, Any]:
     """
     Stop the active timer for a task.
 
@@ -68,22 +77,30 @@ def stop_timer(
         Completed time entry with calculated duration
     """
     try:
-        response = requests.post(
-            f"{API_URL}/api/pm/agents/time/stop",
-            json={
-                'taskId': task_id,
-                'workspaceId': workspace_id,
-            },
-            headers={'X-Workspace-ID': workspace_id},
-            timeout=10,
-        )
+        url = f"{API_BASE_URL}/api/pm/agents/time/stop"
+        headers = get_auth_headers(workspace_id)
+        payload = {
+            "taskId": task_id,
+            "workspaceId": workspace_id,
+        }
 
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            return response.json()
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} stopping timer: {e}")
         return {
-            'error': str(e),
-            'message': 'Failed to stop timer. No active timer found or request failed.',
+            "error": f"Failed to stop timer (HTTP {e.response.status_code})",
+            "message": "No active timer found or request failed.",
+            "statusCode": e.response.status_code,
+        }
+    except httpx.HTTPError as e:
+        logger.error(f"Network error stopping timer: {e}")
+        return {
+            "error": "Network error",
+            "message": "Failed to stop timer. No active timer found or request failed.",
         }
 
 
@@ -94,7 +111,7 @@ def log_time(
     hours: float,
     description: Optional[str] = None,
     date: Optional[str] = None,
-) -> dict:
+) -> Dict[str, Any]:
     """
     Log time manually for a task.
 
@@ -109,25 +126,33 @@ def log_time(
         Created time entry
     """
     try:
-        response = requests.post(
-            f"{API_URL}/api/pm/agents/time/log",
-            json={
-                'taskId': task_id,
-                'workspaceId': workspace_id,
-                'hours': hours,
-                'description': description,
-                'date': date,
-            },
-            headers={'X-Workspace-ID': workspace_id},
-            timeout=10,
-        )
+        url = f"{API_BASE_URL}/api/pm/agents/time/log"
+        headers = get_auth_headers(workspace_id)
+        payload = {
+            "taskId": task_id,
+            "workspaceId": workspace_id,
+            "hours": hours,
+            "description": description,
+            "date": date,
+        }
 
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            return response.json()
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} logging time: {e}")
         return {
-            'error': str(e),
-            'message': 'Failed to log time. Minimum time is 0.25 hours (15 minutes).',
+            "error": f"Failed to log time (HTTP {e.response.status_code})",
+            "message": "Minimum time is 0.25 hours (15 minutes).",
+            "statusCode": e.response.status_code,
+        }
+    except httpx.HTTPError as e:
+        logger.error(f"Network error logging time: {e}")
+        return {
+            "error": "Network error",
+            "message": "Failed to log time. Minimum time is 0.25 hours (15 minutes).",
         }
 
 
@@ -135,7 +160,7 @@ def log_time(
 def get_time_entries(
     task_id: str,
     workspace_id: str,
-) -> List[dict]:
+) -> List[Dict[str, Any]]:
     """
     Get all time entries for a task.
 
@@ -147,16 +172,19 @@ def get_time_entries(
         List of time entries with user, duration, description, and timestamps
     """
     try:
-        response = requests.get(
-            f"{API_URL}/api/pm/agents/time/entries/{task_id}",
-            headers={'X-Workspace-ID': workspace_id},
-            timeout=10,
-        )
+        url = f"{API_BASE_URL}/api/pm/agents/time/entries/{task_id}"
+        headers = get_auth_headers(workspace_id)
 
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching time entries: {e}")
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json()
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} fetching time entries: {e}")
+        return []
+    except httpx.HTTPError as e:
+        logger.error(f"Network error fetching time entries: {e}")
         return []
 
 
@@ -164,7 +192,7 @@ def get_time_entries(
 def get_active_timers(
     workspace_id: str,
     project_id: Optional[str] = None,
-) -> List[dict]:
+) -> List[Dict[str, Any]]:
     """
     Get all active timers for the workspace or project.
 
@@ -176,21 +204,22 @@ def get_active_timers(
         List of active timers with task details and elapsed time
     """
     try:
+        url = f"{API_BASE_URL}/api/pm/agents/time/active"
+        headers = get_auth_headers(workspace_id)
         params = {}
         if project_id:
-            params['projectId'] = project_id
+            params["projectId"] = project_id
 
-        response = requests.get(
-            f"{API_URL}/api/pm/agents/time/active",
-            params=params,
-            headers={'X-Workspace-ID': workspace_id},
-            timeout=10,
-        )
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            return response.json()
 
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching active timers: {e}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} fetching active timers: {e}")
+        return []
+    except httpx.HTTPError as e:
+        logger.error(f"Network error fetching active timers: {e}")
         return []
 
 
@@ -199,7 +228,7 @@ def suggest_time_entries(
     workspace_id: str,
     project_id: str,
     user_id: str,
-) -> List[dict]:
+) -> List[Dict[str, Any]]:
     """
     Get AI suggestions for time entries based on activity.
 
@@ -214,21 +243,24 @@ def suggest_time_entries(
         List of suggested time entries with task info, suggested hours, and reasoning
     """
     try:
-        response = requests.post(
-            f"{API_URL}/api/pm/agents/time/suggest",
-            json={
-                'workspaceId': workspace_id,
-                'projectId': project_id,
-                'userId': user_id,
-            },
-            headers={'X-Workspace-ID': workspace_id},
-            timeout=10,
-        )
+        url = f"{API_BASE_URL}/api/pm/agents/time/suggest"
+        headers = get_auth_headers(workspace_id)
+        payload = {
+            "workspaceId": workspace_id,
+            "projectId": project_id,
+            "userId": user_id,
+        }
 
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching time suggestions: {e}")
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            return response.json()
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} fetching time suggestions: {e}")
+        return []
+    except httpx.HTTPError as e:
+        logger.error(f"Network error fetching time suggestions: {e}")
         return []
 
 
@@ -237,7 +269,7 @@ def get_velocity(
     project_id: str,
     workspace_id: str,
     periods: int = 6,
-) -> dict:
+) -> Dict[str, Any]:
     """
     Get project velocity metrics over sprint periods.
 
@@ -253,22 +285,32 @@ def get_velocity(
         Velocity metrics with current velocity, average, hours per point, and period details
     """
     try:
-        response = requests.get(
-            f"{API_URL}/api/pm/agents/time/velocity/{project_id}",
-            params={'periods': periods},
-            headers={'X-Workspace-ID': workspace_id},
-            timeout=10,
-        )
+        url = f"{API_BASE_URL}/api/pm/agents/time/velocity/{project_id}"
+        headers = get_auth_headers(workspace_id)
+        params = {"periods": periods}
 
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching velocity: {e}")
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            return response.json()
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} fetching velocity: {e}")
         return {
-            'currentVelocity': 0,
-            'avgVelocity': 0,
-            'avgHoursPerPoint': 0,
-            'periods': [],
+            "currentVelocity": 0,
+            "avgVelocity": 0,
+            "avgHoursPerPoint": 0,
+            "periods": [],
+            "error": f"HTTP {e.response.status_code}",
+        }
+    except httpx.HTTPError as e:
+        logger.error(f"Network error fetching velocity: {e}")
+        return {
+            "currentVelocity": 0,
+            "avgVelocity": 0,
+            "avgHoursPerPoint": 0,
+            "periods": [],
+            "error": "Network error",
         }
 
 
@@ -277,7 +319,7 @@ def get_velocity_trend(
     project_id: str,
     workspace_id: str,
     weeks: int = 12,
-) -> List[dict]:
+) -> List[Dict[str, Any]]:
     """
     Get weekly velocity trends for a project.
 
@@ -293,15 +335,18 @@ def get_velocity_trend(
         List of weekly velocity data showing points completed and trend direction
     """
     try:
-        response = requests.get(
-            f"{API_URL}/api/pm/agents/time/velocity/{project_id}/trends",
-            params={'weeks': weeks},
-            headers={'X-Workspace-ID': workspace_id},
-            timeout=10,
-        )
+        url = f"{API_BASE_URL}/api/pm/agents/time/velocity/{project_id}/trends"
+        headers = get_auth_headers(workspace_id)
+        params = {"weeks": weeks}
 
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching velocity trends: {e}")
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            return response.json()
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} fetching velocity trends: {e}")
+        return []
+    except httpx.HTTPError as e:
+        logger.error(f"Network error fetching velocity trends: {e}")
         return []

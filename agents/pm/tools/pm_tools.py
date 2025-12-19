@@ -14,7 +14,32 @@ from agno.tools import tool
 logger = logging.getLogger(__name__)
 
 # Get API base URL from environment
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3000")
+API_BASE_URL = os.getenv("API_BASE_URL")
+if not API_BASE_URL:
+    raise ValueError("API_BASE_URL environment variable must be set")
+
+# Service token for agent-to-API calls (internal service auth)
+AGENT_SERVICE_TOKEN = os.getenv("AGENT_SERVICE_TOKEN")
+
+
+def get_auth_headers(workspace_id: str) -> Dict[str, str]:
+    """Build headers for authenticated API calls.
+
+    Args:
+        workspace_id: Workspace/tenant identifier
+
+    Returns:
+        Dict with required headers including auth if available
+    """
+    headers = {"x-workspace-id": workspace_id}
+
+    # Add service auth token if available (for internal agent calls)
+    if AGENT_SERVICE_TOKEN:
+        headers["Authorization"] = f"Bearer {AGENT_SERVICE_TOKEN}"
+    else:
+        logger.warning("AGENT_SERVICE_TOKEN not set - API calls may fail auth")
+
+    return headers
 
 
 @tool
@@ -32,16 +57,23 @@ def get_project_status(project_id: str, workspace_id: str) -> Dict[str, Any]:
     try:
         # Call API endpoint
         url = f"{API_BASE_URL}/api/pm/projects/{project_id}/status"
-        headers = {"x-workspace-id": workspace_id}
+        headers = get_auth_headers(workspace_id)
 
         with httpx.Client(timeout=10.0) as client:
             response = client.get(url, headers=headers)
             response.raise_for_status()
             return response.json()
-    except httpx.HTTPError as e:
-        logger.error(f"Failed to get project status: {e}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} getting project status: {e}")
         return {
-            "error": "Failed to retrieve project status",
+            "error": f"Failed to retrieve project status (HTTP {e.response.status_code})",
+            "projectId": project_id,
+            "statusCode": e.response.status_code,
+        }
+    except httpx.HTTPError as e:
+        logger.error(f"Network error getting project status: {e}")
+        return {
+            "error": "Network error retrieving project status",
             "projectId": project_id,
         }
 
@@ -73,7 +105,7 @@ def list_tasks(
     """
     try:
         url = f"{API_BASE_URL}/api/pm/tasks"
-        headers = {"x-workspace-id": workspace_id}
+        headers = get_auth_headers(workspace_id)
         params = {
             "projectId": project_id,
             "limit": limit,
@@ -92,9 +124,12 @@ def list_tasks(
             response = client.get(url, headers=headers, params=params)
             response.raise_for_status()
             return response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} listing tasks: {e}")
+        return {"error": f"Failed to list tasks (HTTP {e.response.status_code})"}
     except httpx.HTTPError as e:
-        logger.error(f"Failed to list tasks: {e}")
-        return []
+        logger.error(f"Network error listing tasks: {e}")
+        return {"error": "Network error listing tasks"}
 
 
 @tool
@@ -113,7 +148,7 @@ def search_kb(query: str, project_id: str, workspace_id: str, top_k: int = 3) ->
     """
     try:
         url = f"{API_BASE_URL}/api/kb/rag/query"
-        headers = {"x-workspace-id": workspace_id}
+        headers = get_auth_headers(workspace_id)
         payload = {
             "query": query,
             "projectId": project_id,

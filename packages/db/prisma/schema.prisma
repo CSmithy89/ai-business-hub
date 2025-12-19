@@ -1841,6 +1841,8 @@ model AgentSuggestion {
   @@index([agentName, status])
   @@index([status, createdAt])
   @@index([expiresAt])
+  // Compound index for getSuggestions query (workspaceId + userId + status + expiresAt)
+  @@index([workspaceId, userId, status, expiresAt])
   @@map("agent_suggestions")
 }
 
@@ -1911,7 +1913,8 @@ model UserPreference {
 
   // Daily Briefing Settings (PM-04-2)
   dailyBriefingEnabled Boolean @default(true) @map("daily_briefing_enabled")
-  dailyBriefingHour    Int     @default(8) @map("daily_briefing_hour") // 0-23, UTC hour for now
+  dailyBriefingHour    Int     @default(8) @map("daily_briefing_hour") // 0-23, user's local hour
+  timezone             String  @default("UTC") @map("timezone") // IANA timezone (e.g., "America/New_York")
   emailBriefing        Boolean @default(false) @map("email_briefing") // Send briefing via email
 
   // Timestamps

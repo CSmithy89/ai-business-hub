@@ -5,16 +5,14 @@ AI Business Hub - Project Management Module
 Tools for creating AI-generated suggestions that users can accept/reject.
 """
 
-import os
 import logging
 from typing import Optional, Dict, Any
 import httpx
 from agno.tools import tool
 
-logger = logging.getLogger(__name__)
+from .common import API_BASE_URL, get_auth_headers
 
-# Get API base URL from environment
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3000")
+logger = logging.getLogger(__name__)
 
 
 @tool
@@ -52,10 +50,7 @@ def create_task_suggestion(
     """
     try:
         url = f"{API_BASE_URL}/api/pm/agents/suggestions"
-        headers = {
-            "x-workspace-id": workspace_id,
-            "Content-Type": "application/json",
-        }
+        headers = get_auth_headers(workspace_id)
 
         payload = {
             "workspaceId": workspace_id,
@@ -81,9 +76,13 @@ def create_task_suggestion(
             response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
             return response.json()
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} creating task suggestion: {e}")
+        return {"error": f"Failed to create suggestion (HTTP {e.response.status_code})"}
     except httpx.HTTPError as e:
-        logger.error(f"Failed to create task suggestion: {e}")
-        return {"error": str(e)}
+        logger.error(f"Network error creating task suggestion: {e}")
+        return {"error": "Network error creating suggestion"}
 
 
 @tool
@@ -119,10 +118,7 @@ def assign_task_suggestion(
     """
     try:
         url = f"{API_BASE_URL}/api/pm/agents/suggestions"
-        headers = {
-            "x-workspace-id": workspace_id,
-            "Content-Type": "application/json",
-        }
+        headers = get_auth_headers(workspace_id)
 
         payload = {
             "workspaceId": workspace_id,
@@ -145,9 +141,13 @@ def assign_task_suggestion(
             response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
             return response.json()
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} creating assign suggestion: {e}")
+        return {"error": f"Failed to create suggestion (HTTP {e.response.status_code})"}
     except httpx.HTTPError as e:
-        logger.error(f"Failed to create assign task suggestion: {e}")
-        return {"error": str(e)}
+        logger.error(f"Network error creating assign suggestion: {e}")
+        return {"error": "Network error creating suggestion"}
 
 
 @tool
@@ -183,10 +183,7 @@ def set_priority_suggestion(
     """
     try:
         url = f"{API_BASE_URL}/api/pm/agents/suggestions"
-        headers = {
-            "x-workspace-id": workspace_id,
-            "Content-Type": "application/json",
-        }
+        headers = get_auth_headers(workspace_id)
 
         payload = {
             "workspaceId": workspace_id,
@@ -210,9 +207,13 @@ def set_priority_suggestion(
             response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
             return response.json()
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} creating priority suggestion: {e}")
+        return {"error": f"Failed to create suggestion (HTTP {e.response.status_code})"}
     except httpx.HTTPError as e:
-        logger.error(f"Failed to create set priority suggestion: {e}")
-        return {"error": str(e)}
+        logger.error(f"Network error creating priority suggestion: {e}")
+        return {"error": "Network error creating suggestion"}
 
 
 @tool
@@ -250,10 +251,7 @@ def move_to_phase_suggestion(
     """
     try:
         url = f"{API_BASE_URL}/api/pm/agents/suggestions"
-        headers = {
-            "x-workspace-id": workspace_id,
-            "Content-Type": "application/json",
-        }
+        headers = get_auth_headers(workspace_id)
 
         payload = {
             "workspaceId": workspace_id,
@@ -277,9 +275,13 @@ def move_to_phase_suggestion(
             response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
             return response.json()
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} creating phase suggestion: {e}")
+        return {"error": f"Failed to create suggestion (HTTP {e.response.status_code})"}
     except httpx.HTTPError as e:
-        logger.error(f"Failed to create move to phase suggestion: {e}")
-        return {"error": str(e)}
+        logger.error(f"Network error creating phase suggestion: {e}")
+        return {"error": "Network error creating suggestion"}
 
 
 @tool
@@ -301,7 +303,7 @@ def get_project_context(
     """
     try:
         url = f"{API_BASE_URL}/api/pm/projects/{project_id}"
-        headers = {"x-workspace-id": workspace_id}
+        headers = get_auth_headers(workspace_id)
 
         with httpx.Client(timeout=10.0) as client:
             # Get project details
@@ -332,6 +334,10 @@ def get_project_context(
                 "tasks": tasks,
                 "phases": phases,
             }
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} getting project context: {e}")
+        return {"error": f"Failed to get project context (HTTP {e.response.status_code})"}
     except httpx.HTTPError as e:
-        logger.error(f"Failed to get project context: {e}")
-        return {"error": str(e)}
+        logger.error(f"Network error getting project context: {e}")
+        return {"error": "Network error getting project context"}

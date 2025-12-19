@@ -5,16 +5,14 @@ AI Business Hub - Project Management Module
 Tools for task estimation, historical analysis, and accuracy tracking.
 """
 
-import os
 import logging
 from typing import Optional, Dict, List, Any
 import httpx
 from agno.tools import tool
 
-logger = logging.getLogger(__name__)
+from .common import API_BASE_URL, get_auth_headers
 
-# Get API base URL from environment
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3000")
+logger = logging.getLogger(__name__)
 
 
 @tool
@@ -43,7 +41,7 @@ def estimate_task(
     """
     try:
         url = f"{API_BASE_URL}/api/pm/agents/estimation/estimate"
-        headers = {"x-workspace-id": workspace_id}
+        headers = get_auth_headers(workspace_id)
         payload = {
             "title": task_title,
             "description": task_description or "",
@@ -56,8 +54,20 @@ def estimate_task(
             response.raise_for_status()
             return response.json()
 
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} estimating task: {e}")
+        return {
+            "storyPoints": 3,
+            "estimatedHours": 8.0,
+            "confidenceLevel": "low",
+            "confidenceScore": 0.3,
+            "basis": f"Error occurred (HTTP {e.response.status_code}), using default estimate",
+            "coldStart": True,
+            "complexityFactors": ["Unable to analyze - using defaults"],
+            "statusCode": e.response.status_code,
+        }
     except httpx.HTTPError as e:
-        logger.error(f"Failed to estimate task: {e}")
+        logger.error(f"Network error estimating task: {e}")
         # Return fallback estimate
         return {
             "storyPoints": 3,
@@ -97,7 +107,7 @@ def get_similar_tasks(
     """
     try:
         url = f"{API_BASE_URL}/api/pm/agents/estimation/similar"
-        headers = {"x-workspace-id": workspace_id}
+        headers = get_auth_headers(workspace_id)
         payload = {
             "projectId": project_id,
             "taskType": task_type,
@@ -114,9 +124,12 @@ def get_similar_tasks(
             response.raise_for_status()
             return response.json()
 
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} getting similar tasks: {e}")
+        return {"error": f"Failed to get similar tasks (HTTP {e.response.status_code})"}
     except httpx.HTTPError as e:
-        logger.error(f"Failed to get similar tasks: {e}")
-        return []
+        logger.error(f"Network error getting similar tasks: {e}")
+        return {"error": "Network error getting similar tasks"}
 
 
 @tool
@@ -141,7 +154,7 @@ def calculate_velocity(
     """
     try:
         url = f"{API_BASE_URL}/api/pm/agents/estimation/velocity/{project_id}"
-        headers = {"x-workspace-id": workspace_id}
+        headers = get_auth_headers(workspace_id)
         params = {"sprints": sprint_count}
 
         with httpx.Client(timeout=10.0) as client:
@@ -157,13 +170,21 @@ def calculate_velocity(
             response.raise_for_status()
             return response.json()
 
-    except httpx.HTTPError as e:
-        logger.error(f"Failed to calculate velocity: {e}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} calculating velocity: {e}")
         return {
             "avgPointsPerSprint": None,
             "avgHoursPerSprint": None,
             "sprintCount": 0,
-            "error": str(e),
+            "error": f"HTTP {e.response.status_code}",
+        }
+    except httpx.HTTPError as e:
+        logger.error(f"Network error calculating velocity: {e}")
+        return {
+            "avgPointsPerSprint": None,
+            "avgHoursPerSprint": None,
+            "sprintCount": 0,
+            "error": "Network error",
         }
 
 
@@ -189,7 +210,7 @@ def get_estimation_metrics(
     """
     try:
         url = f"{API_BASE_URL}/api/pm/agents/estimation/metrics"
-        headers = {"x-workspace-id": workspace_id}
+        headers = get_auth_headers(workspace_id)
         params = {"projectId": project_id}
 
         if task_type:
@@ -208,11 +229,19 @@ def get_estimation_metrics(
             response.raise_for_status()
             return response.json()
 
-    except httpx.HTTPError as e:
-        logger.error(f"Failed to get estimation metrics: {e}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} getting estimation metrics: {e}")
         return {
             "averageError": None,
             "averageAccuracy": None,
             "totalEstimations": 0,
-            "error": str(e),
+            "error": f"HTTP {e.response.status_code}",
+        }
+    except httpx.HTTPError as e:
+        logger.error(f"Network error getting estimation metrics: {e}")
+        return {
+            "averageError": None,
+            "averageAccuracy": None,
+            "totalEstimations": 0,
+            "error": "Network error",
         }

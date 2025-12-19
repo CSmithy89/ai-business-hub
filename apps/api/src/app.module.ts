@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
@@ -23,6 +24,8 @@ import { validate } from './config/env.validation';
       validate,
       envFilePath: ['../../.env.local', '../../.env', '.env.local', '.env'],
     }),
+    // Scheduler global configuration (must be registered once at root)
+    ScheduleModule.forRoot(),
     // BullMQ global configuration (Story 04-8)
     BullModule.forRootAsync({
       inject: [ConfigService],

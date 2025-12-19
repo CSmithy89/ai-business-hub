@@ -185,6 +185,7 @@ export class AgentsService {
 
   /**
    * Store conversation (both user and agent messages)
+   * Uses transaction to ensure both messages are saved atomically
    */
   private async storeConversation(
     workspaceId: string,
@@ -195,32 +196,35 @@ export class AgentsService {
     agentResponse: string,
     metadata?: Record<string, any>,
   ) {
-    // Store both user and agent messages as separate records
-    await this.prisma.agentConversation.create({
-      data: {
-        workspaceId,
-        projectId,
-        userId,
-        agentName,
-        role: ConversationRole.USER,
-        message: userMessage,
-      },
-    });
+    // Use transaction to ensure both messages are saved together
+    return this.prisma.$transaction(async (tx) => {
+      // Store user message
+      await tx.agentConversation.create({
+        data: {
+          workspaceId,
+          projectId,
+          userId,
+          agentName,
+          role: ConversationRole.USER,
+          message: userMessage,
+        },
+      });
 
-    // Store agent response
-    const agentConversation = await this.prisma.agentConversation.create({
-      data: {
-        workspaceId,
-        projectId,
-        userId,
-        agentName,
-        role: ConversationRole.AGENT,
-        message: agentResponse,
-        metadata: metadata || undefined,
-      },
-    });
+      // Store agent response
+      const agentConversation = await tx.agentConversation.create({
+        data: {
+          workspaceId,
+          projectId,
+          userId,
+          agentName,
+          role: ConversationRole.AGENT,
+          message: agentResponse,
+          metadata: metadata || undefined,
+        },
+      });
 
-    return agentConversation;
+      return agentConversation;
+    });
   }
 
   /**

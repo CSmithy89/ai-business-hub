@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma, TaskType } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
 import { AgentsService } from './agents.service';
-import { TaskType } from '@prisma/client';
 
 export interface EstimateTaskDto {
   title: string;
@@ -425,7 +425,7 @@ export class EstimationService {
     projectId: string,
     taskType?: TaskType,
   ): Promise<EstimationMetrics> {
-    const where: any = {
+    const where: Prisma.TaskWhereInput = {
       workspaceId,
       projectId,
       estimatedHours: { not: null },
@@ -442,6 +442,8 @@ export class EstimationService {
         estimatedHours: true,
         actualHours: true,
       },
+      take: 1000, // Limit to recent tasks for performance
+      orderBy: { completedAt: 'desc' },
     });
 
     if (tasks.length === 0) {
@@ -452,7 +454,20 @@ export class EstimationService {
       };
     }
 
-    const errors = tasks.map((t) =>
+    // Filter out tasks with zero estimated hours to prevent division by zero
+    const validTasks = tasks.filter(
+      (t) => t.estimatedHours != null && t.estimatedHours > 0,
+    );
+
+    if (validTasks.length === 0) {
+      return {
+        averageError: null,
+        averageAccuracy: null,
+        totalEstimations: tasks.length,
+      };
+    }
+
+    const errors = validTasks.map((t) =>
       Math.abs((t.actualHours! - t.estimatedHours!) / t.estimatedHours!),
     );
     const avgError = errors.reduce((sum, e) => sum + e, 0) / errors.length;
@@ -478,7 +493,7 @@ export class EstimationService {
     projectId: string,
     taskType?: TaskType,
   ): Promise<CalibrationFactor> {
-    const where: any = {
+    const where: Prisma.TaskWhereInput = {
       workspaceId,
       projectId,
       estimatedHours: { not: null, gt: 0 },

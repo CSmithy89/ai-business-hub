@@ -72,10 +72,8 @@ export class GetSuggestionsDto {
   @IsString()
   projectId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by user ID' })
-  @IsOptional()
-  @IsString()
-  userId?: string;
+  // Note: userId is NOT exposed here - it must come from @CurrentUser for security
+  // Users should only see their own suggestions
 
   @ApiPropertyOptional({ description: 'Filter by agent name' })
   @IsOptional()

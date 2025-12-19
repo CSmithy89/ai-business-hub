@@ -173,10 +173,11 @@ export class AgentsController {
     @CurrentUser('id') userId: string,
     @Query() query: GetSuggestionsDto,
   ) {
+    // Always use authenticated user's ID - never allow override from query params
     return this.suggestionService.getSuggestions({
       workspaceId,
       projectId: query.projectId,
-      userId: query.userId || userId,
+      userId,
       agentName: query.agentName,
       status: query.status,
       limit: query.limit,

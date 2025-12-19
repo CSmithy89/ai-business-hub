@@ -5,17 +5,15 @@ AI Business Hub - Project Management Module
 Parses and handles slash commands from Navi chat interface.
 """
 
-import os
 import logging
 import re
 from typing import Dict, Any, Optional
 import httpx
 from agno.tools import tool
 
-logger = logging.getLogger(__name__)
+from .common import API_BASE_URL, get_auth_headers
 
-# Get API base URL from environment
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3000")
+logger = logging.getLogger(__name__)
 
 
 # Available slash commands mapping
@@ -77,14 +75,14 @@ def create_task_from_command(
         Suggestion object for task creation
     """
     # Parse title (everything before first --)
-    title_match = re.match(r"^([^-]+)", args)
+    title_match = re.match(r"^([^-]+|[^-]*-[^-]+)", args)
     title = title_match.group(1).strip() if title_match else args.strip()
 
     # Parse flags
     description = None
     priority = "MEDIUM"
 
-    desc_match = re.search(r"--desc\s+([^-]+)", args)
+    desc_match = re.search(r"--desc\s+(.+?)(?=\s+--|$)", args)
     if desc_match:
         description = desc_match.group(1).strip()
 
@@ -145,13 +143,14 @@ def assign_task_from_command(
     assignee_name = match.group(2).strip()
 
     try:
+        headers = get_auth_headers(workspace_id)
+
         # Search for task by ID or title
-        url = f"{API_BASE_URL}/api/pm/tasks"
-        headers = {"x-workspace-id": workspace_id}
-        params = {"projectId": project_id, "search": task_identifier, "limit": 1}
+        task_url = f"{API_BASE_URL}/api/pm/tasks"
+        task_params = {"projectId": project_id, "search": task_identifier, "limit": 1}
 
         with httpx.Client(timeout=10.0) as client:
-            response = client.get(url, headers=headers, params=params)
+            response = client.get(task_url, headers=headers, params=task_params)
             response.raise_for_status()
             tasks = response.json()
 
@@ -163,22 +162,24 @@ def assign_task_from_command(
 
         task = tasks[0]
 
-        # Search for user by name
-        user_url = f"{API_BASE_URL}/api/users/search"
-        user_params = {"query": assignee_name, "workspaceId": workspace_id}
+        # Search for user by name in workspace members
+        members_url = f"{API_BASE_URL}/api/workspaces/{workspace_id}/members"
+        members_params = {"search": assignee_name}
 
         with httpx.Client(timeout=10.0) as client:
-            user_response = client.get(user_url, headers=headers, params=user_params)
-            user_response.raise_for_status()
-            users = user_response.json()
+            members_response = client.get(members_url, headers=headers, params=members_params)
+            members_response.raise_for_status()
+            members = members_response.json()
 
-        if not users:
+        if not members:
             return {
                 "error": f"User not found: {assignee_name}",
                 "suggestion": "Check the user name spelling",
             }
 
-        assignee = users[0]
+        assignee = members[0]
+        # Handle both direct user object and member wrapper
+        assignee_user = assignee.get("user", assignee)
 
         # Create suggestion for assignment
         suggestion = {
@@ -186,20 +187,24 @@ def assign_task_from_command(
             "payload": {
                 "taskId": task["id"],
                 "taskTitle": task["title"],
-                "assigneeId": assignee["id"],
-                "assigneeName": assignee["name"],
+                "assigneeId": assignee_user.get("id"),
+                "assigneeName": assignee_user.get("name"),
             },
             "confidence": 0.85,
-            "reasoning": f"User requested assignment of {task['title']} to {assignee['name']} via slash command",
+            "reasoning": f"User requested assignment of {task['title']} to {assignee_user.get('name')} via slash command",
         }
 
         return suggestion
 
-    except httpx.HTTPError as e:
-        logger.error(f"Failed to process assign command: {e}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} processing assign command: {e}")
         return {
-            "error": "Failed to process assignment command",
-            "details": str(e),
+            "error": f"Failed to process assignment command (HTTP {e.response.status_code})",
+        }
+    except httpx.HTTPError as e:
+        logger.error(f"Network error processing assign command: {e}")
+        return {
+            "error": "Network error processing assignment command",
         }
 
 
@@ -235,9 +240,10 @@ def set_priority_from_command(
     priority = match.group(2).upper()
 
     try:
+        headers = get_auth_headers(workspace_id)
+
         # Search for task
         url = f"{API_BASE_URL}/api/pm/tasks"
-        headers = {"x-workspace-id": workspace_id}
         params = {"projectId": project_id, "search": task_identifier, "limit": 1}
 
         with httpx.Client(timeout=10.0) as client:
@@ -268,11 +274,15 @@ def set_priority_from_command(
 
         return suggestion
 
-    except httpx.HTTPError as e:
-        logger.error(f"Failed to process set-priority command: {e}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} processing set-priority command: {e}")
         return {
-            "error": "Failed to process priority command",
-            "details": str(e),
+            "error": f"Failed to process priority command (HTTP {e.response.status_code})",
+        }
+    except httpx.HTTPError as e:
+        logger.error(f"Network error processing set-priority command: {e}")
+        return {
+            "error": "Network error processing priority command",
         }
 
 
@@ -308,9 +318,10 @@ def move_task_to_phase_from_command(
     phase_name = match.group(2).strip()
 
     try:
+        headers = get_auth_headers(workspace_id)
+
         # Search for task
         task_url = f"{API_BASE_URL}/api/pm/tasks"
-        headers = {"x-workspace-id": workspace_id}
         task_params = {"projectId": project_id, "search": task_identifier, "limit": 1}
 
         with httpx.Client(timeout=10.0) as client:
@@ -365,11 +376,15 @@ def move_task_to_phase_from_command(
 
         return suggestion
 
-    except httpx.HTTPError as e:
-        logger.error(f"Failed to process move-phase command: {e}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} processing move-phase command: {e}")
         return {
-            "error": "Failed to process phase move command",
-            "details": str(e),
+            "error": f"Failed to process phase move command (HTTP {e.response.status_code})",
+        }
+    except httpx.HTTPError as e:
+        logger.error(f"Network error processing move-phase command: {e}")
+        return {
+            "error": "Network error processing phase move command",
         }
 
 

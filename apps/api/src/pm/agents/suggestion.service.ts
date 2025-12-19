@@ -263,27 +263,31 @@ export class SuggestionService {
     const { projectId, workspaceId } = suggestion;
     const { title, description, phaseId, priority, assigneeId } = payload;
 
-    // Get the task number for this project
-    const lastTask = await this.prisma.task.findFirst({
-      where: { projectId },
-      orderBy: { taskNumber: 'desc' },
-    });
+    // Use transaction to prevent race conditions in task number generation
+    const task = await this.prisma.$transaction(async (tx) => {
+      // Get the next task number atomically within the transaction
+      const last = await tx.task.findFirst({
+        where: { projectId },
+        orderBy: { taskNumber: 'desc' },
+        select: { taskNumber: true },
+      });
 
-    const taskNumber = (lastTask?.taskNumber || 0) + 1;
+      const taskNumber = (last?.taskNumber ?? 0) + 1;
 
-    const task = await this.prisma.task.create({
-      data: {
-        workspaceId,
-        projectId,
-        phaseId,
-        title,
-        description,
-        priority: priority || 'MEDIUM',
-        assigneeId,
-        taskNumber,
-        status: 'TODO',
-        createdBy: suggestion.userId,
-      },
+      return tx.task.create({
+        data: {
+          workspaceId,
+          projectId,
+          phaseId,
+          title,
+          description,
+          priority: priority || 'MEDIUM',
+          assigneeId,
+          taskNumber,
+          status: 'TODO',
+          createdBy: suggestion.userId,
+        },
+      });
     });
 
     // TODO: Publish event via EventPublisherService

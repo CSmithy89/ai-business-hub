@@ -48,7 +48,7 @@ export class BriefingService {
     const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
 
-    // Get tasks assigned to or created by the user
+    // Get tasks assigned to or created by the user (limit to prevent abuse)
     const userTasks = await this.prisma.task.findMany({
       where: {
         phase: {
@@ -66,6 +66,8 @@ export class BriefingService {
           },
         },
       },
+      take: 200, // Limit to prevent excessive data fetching
+      orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }],
     })
 
     // Tasks due today
@@ -243,6 +245,7 @@ export class BriefingService {
       pref || {
         dailyBriefingEnabled: true,
         dailyBriefingHour: 8,
+        timezone: 'UTC',
         emailBriefing: false,
       }
     )
@@ -270,24 +273,63 @@ export class BriefingService {
   }
 
   /**
+   * Convert a local hour to UTC hour for a given timezone
+   */
+  private getUtcHourForTimezone(localHour: number, timezone: string): number {
+    try {
+      // Create a date for today at the specified local hour in the user's timezone
+      const now = new Date()
+      const dateStr = now.toISOString().split('T')[0]
+      const timeStr = `${localHour.toString().padStart(2, '0')}:00:00`
+
+      // Calculate offset by comparing local time to UTC
+      const localDate = new Date(`${dateStr}T${timeStr}`)
+
+      // Get the hour in the specified timezone when UTC is at localHour
+      // This is a simplified approach - for production, use a library like date-fns-tz
+      const tzDate = new Date(localDate.toLocaleString('en-US', { timeZone: timezone }))
+      const utcDate = new Date(localDate.toLocaleString('en-US', { timeZone: 'UTC' }))
+      const offsetHours = Math.round((utcDate.getTime() - tzDate.getTime()) / (60 * 60 * 1000))
+
+      // Convert local hour to UTC
+      let utcHour = (localHour + offsetHours) % 24
+      if (utcHour < 0) utcHour += 24
+
+      return utcHour
+    } catch {
+      // If timezone is invalid, assume UTC
+      this.logger.warn(`Invalid timezone: ${timezone}, using UTC`)
+      return localHour
+    }
+  }
+
+  /**
    * Cron job to check and send briefings
    * Runs every hour at minute 0
    */
   @Cron(CronExpression.EVERY_HOUR)
   async scheduledBriefingCheck() {
-    const currentHour = new Date().getUTCHours()
-    this.logger.log(`Running briefing check for hour ${currentHour} UTC`)
+    const currentUtcHour = new Date().getUTCHours()
+    this.logger.log(`Running briefing check for UTC hour ${currentUtcHour}`)
 
-    // Find users who have briefings enabled for this hour
-    const usersToNotify = await this.prisma.userPreference.findMany({
+    // Get all users with briefings enabled
+    const allPrefs = await this.prisma.userPreference.findMany({
       where: {
         dailyBriefingEnabled: true,
-        dailyBriefingHour: currentHour,
       },
     })
 
+    // Filter users whose local briefing hour matches current UTC hour
+    const usersToNotify = allPrefs.filter((pref) => {
+      const userUtcHour = this.getUtcHourForTimezone(
+        pref.dailyBriefingHour,
+        pref.timezone || 'UTC',
+      )
+      return userUtcHour === currentUtcHour
+    })
+
     this.logger.log(
-      `Found ${usersToNotify.length} users for briefing at hour ${currentHour}`,
+      `Found ${usersToNotify.length} users for briefing at UTC hour ${currentUtcHour}`,
     )
 
     for (const pref of usersToNotify) {

@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
 
 interface StartTimerDto {
@@ -20,82 +21,112 @@ interface LogTimeDto {
   date?: string;
 }
 
+/** Task with _count for activity-based suggestions */
+interface TaskWithActivityCount {
+  id: string;
+  title: string;
+  taskNumber: number;
+  _count: {
+    timeEntries: number;
+    activities: number;
+  };
+}
+
+/** Velocity period data for sprint metrics */
+export interface VelocityPeriod {
+  periodStart: Date;
+  periodEnd: Date;
+  storyPointsCompleted: number;
+  tasksCompleted: number;
+  hoursLogged: number;
+}
+
+/** Task with points and hours for metrics */
+interface TaskWithMetrics {
+  storyPoints: number | null;
+  actualHours: number | null;
+}
+
 @Injectable()
 export class TimeTrackingService {
   constructor(private prisma: PrismaService) {}
 
   /**
    * Start a timer for a task
+   * Uses transaction to prevent race conditions
    */
   async startTimer(userId: string, dto: StartTimerDto) {
-    // Check for existing active timer on this task
-    const existing = await this.prisma.timeEntry.findFirst({
-      where: {
-        workspaceId: dto.workspaceId,
-        taskId: dto.taskId,
-        userId,
-        isTimer: true,
-        endTime: null,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      // Check for existing active timer on this task within transaction
+      const existing = await tx.timeEntry.findFirst({
+        where: {
+          workspaceId: dto.workspaceId,
+          taskId: dto.taskId,
+          userId,
+          isTimer: true,
+          endTime: null,
+        },
+      });
+
+      if (existing) {
+        throw new BadRequestException('Timer already running for this task');
+      }
+
+      // Create timer entry atomically
+      return tx.timeEntry.create({
+        data: {
+          workspaceId: dto.workspaceId,
+          taskId: dto.taskId,
+          userId,
+          description: dto.description,
+          startTime: new Date(),
+          isTimer: true,
+          duration: 0, // Will be calculated on stop
+        },
+      });
     });
-
-    if (existing) {
-      throw new BadRequestException('Timer already running for this task');
-    }
-
-    // Create timer entry
-    const entry = await this.prisma.timeEntry.create({
-      data: {
-        workspaceId: dto.workspaceId,
-        taskId: dto.taskId,
-        userId,
-        description: dto.description,
-        startTime: new Date(),
-        isTimer: true,
-        duration: 0, // Will be calculated on stop
-      },
-    });
-
-    return entry;
   }
 
   /**
    * Stop an active timer
+   * Uses transaction to prevent race conditions
    */
   async stopTimer(userId: string, dto: StopTimerDto) {
-    const entry = await this.prisma.timeEntry.findFirst({
-      where: {
-        workspaceId: dto.workspaceId,
-        taskId: dto.taskId,
-        userId,
-        isTimer: true,
-        endTime: null,
-      },
+    const result = await this.prisma.$transaction(async (tx) => {
+      const entry = await tx.timeEntry.findFirst({
+        where: {
+          workspaceId: dto.workspaceId,
+          taskId: dto.taskId,
+          userId,
+          isTimer: true,
+          endTime: null,
+        },
+      });
+
+      if (!entry) {
+        throw new NotFoundException('No active timer found for this task');
+      }
+
+      const endTime = new Date();
+      const durationMs = endTime.getTime() - entry.startTime!.getTime();
+      const durationHours = durationMs / (1000 * 60 * 60);
+
+      // Round to nearest 0.25h
+      const roundedHours = Math.round(durationHours * 4) / 4;
+
+      return tx.timeEntry.update({
+        where: { id: entry.id },
+        data: {
+          endTime,
+          duration: roundedHours,
+        },
+      });
     });
 
-    if (!entry) {
-      throw new NotFoundException('No active timer found for this task');
-    }
-
-    const endTime = new Date();
-    const durationMs = endTime.getTime() - entry.startTime!.getTime();
-    const durationHours = durationMs / (1000 * 60 * 60);
-
-    // Round to nearest 0.25h
-    const roundedHours = Math.round(durationHours * 4) / 4;
-
-    const updated = await this.prisma.timeEntry.update({
-      where: { id: entry.id },
-      data: {
-        endTime,
-        duration: roundedHours,
-      },
-    });
-
-    // Update task actualHours
+    // Update task actualHours (outside transaction for simplicity)
     await this.updateTaskActualHours(dto.taskId, dto.workspaceId);
 
-    return updated;
+    return result;
   }
 
   /**
@@ -131,21 +162,24 @@ export class TimeTrackingService {
   /**
    * Get time entries for a task
    */
-  async getTimeEntries(workspaceId: string, taskId: string) {
+  async getTimeEntries(workspaceId: string, taskId: string, limit: number = 100) {
+    // Enforce maximum limit to prevent abuse
+    const safeLimit = Math.min(limit, 500);
     return this.prisma.timeEntry.findMany({
       where: {
         workspaceId,
         taskId,
       },
       orderBy: { startTime: 'desc' },
+      take: safeLimit,
     });
   }
 
   /**
    * Get active timers
    */
-  async getActiveTimers(workspaceId: string, projectId?: string) {
-    const where: any = {
+  async getActiveTimers(workspaceId: string, projectId?: string, limit: number = 50) {
+    const where: Prisma.TimeEntryWhereInput = {
       workspaceId,
       isTimer: true,
       endTime: null,
@@ -157,6 +191,8 @@ export class TimeTrackingService {
       };
     }
 
+    // Enforce maximum limit to prevent abuse
+    const safeLimit = Math.min(limit, 200);
     return this.prisma.timeEntry.findMany({
       where,
       include: {
@@ -169,6 +205,7 @@ export class TimeTrackingService {
           },
         },
       },
+      take: safeLimit,
     });
   }
 
@@ -225,9 +262,11 @@ export class TimeTrackingService {
     });
 
     // Filter to tasks with activity but no time logged
-    const suggestions = recentTasks
-      .filter((task: any) => task._count.activities > 0 && task._count.timeEntries === 0)
-      .map((task: any) => ({
+    // Type assertion is safe because we know the shape from our include clause
+    const typedTasks = recentTasks as unknown as TaskWithActivityCount[];
+    const suggestions = typedTasks
+      .filter((task) => task._count.activities > 0 && task._count.timeEntries === 0)
+      .map((task) => ({
         taskId: task.id,
         taskTitle: task.title,
         taskNumber: task.taskNumber,
@@ -249,9 +288,12 @@ export class TimeTrackingService {
         taskId,
         endTime: { not: null },
       },
+      select: {
+        duration: true,
+      },
     });
 
-    const totalHours = entries.reduce((sum: number, entry: any) => sum + entry.duration, 0);
+    const totalHours = entries.reduce((sum, entry) => sum + (entry.duration ?? 0), 0);
 
     await this.prisma.task.update({
       where: { id: taskId },
@@ -287,7 +329,7 @@ export class TimeTrackingService {
 
     // Calculate sprint periods (2 weeks each)
     const sprintDurationMs = 14 * 24 * 60 * 60 * 1000;
-    const velocityPeriods: any[] = [];
+    const velocityPeriods: VelocityPeriod[] = [];
 
     for (let i = 0; i < periods; i++) {
       const periodStart = new Date(now.getTime() - (i + 1) * sprintDurationMs);
@@ -310,13 +352,14 @@ export class TimeTrackingService {
         },
       });
 
-      const storyPoints = tasks.reduce(
-        (sum: number, task: any) => sum + (task.storyPoints || 0),
+      const typedTasks = tasks as TaskWithMetrics[];
+      const storyPoints = typedTasks.reduce(
+        (sum, task) => sum + (task.storyPoints ?? 0),
         0,
       );
 
-      const hours = tasks.reduce(
-        (sum: number, task: any) => sum + (task.actualHours || 0),
+      const hours = typedTasks.reduce(
+        (sum, task) => sum + (task.actualHours ?? 0),
         0,
       );
 
@@ -331,11 +374,11 @@ export class TimeTrackingService {
 
     // Calculate averages
     const totalPoints = velocityPeriods.reduce(
-      (sum: number, p: any) => sum + p.storyPointsCompleted,
+      (sum, p) => sum + p.storyPointsCompleted,
       0,
     );
     const totalHours = velocityPeriods.reduce(
-      (sum: number, p: any) => sum + p.hoursLogged,
+      (sum, p) => sum + p.hoursLogged,
       0,
     );
 
@@ -357,8 +400,14 @@ export class TimeTrackingService {
   ) {
     const now = new Date();
     const weekMs = 7 * 24 * 60 * 60 * 1000;
-    const trends: any[] = [];
-    let previousPoints = 0;
+
+    // First, collect all week data (newest to oldest)
+    const weekData: Array<{
+      week: number;
+      weekStart: Date;
+      weekEnd: Date;
+      pointsCompleted: number;
+    }> = [];
 
     for (let i = 0; i < weeks; i++) {
       const weekStart = new Date(now.getTime() - (i + 1) * weekMs);
@@ -381,33 +430,41 @@ export class TimeTrackingService {
       });
 
       const pointsCompleted = tasks.reduce(
-        (sum: number, task: any) => sum + (task.storyPoints || 0),
+        (sum, task) => sum + (task.storyPoints || 0),
         0,
       );
 
-      // Determine trend
-      let trend: 'up' | 'down' | 'stable' = 'stable';
-      if (i < weeks - 1) {
-        // Not the last (oldest) week
-        if (pointsCompleted > previousPoints) {
-          trend = 'up';
-        } else if (pointsCompleted < previousPoints) {
-          trend = 'down';
-        }
-      }
-
-      trends.push({
+      weekData.push({
         week: weeks - i,
         weekStart,
         weekEnd,
         pointsCompleted,
-        trend,
       });
-
-      previousPoints = pointsCompleted;
     }
 
-    return trends.reverse(); // Oldest first
+    // Reverse to get oldest-first order for trend calculation
+    weekData.reverse();
+
+    // Calculate trends by comparing to previous week (older)
+    const trends = weekData.map((data, index) => {
+      let trend: 'up' | 'down' | 'stable' = 'stable';
+
+      if (index > 0) {
+        const prevPoints = weekData[index - 1].pointsCompleted;
+        if (data.pointsCompleted > prevPoints) {
+          trend = 'up';
+        } else if (data.pointsCompleted < prevPoints) {
+          trend = 'down';
+        }
+      }
+
+      return {
+        ...data,
+        trend,
+      };
+    });
+
+    return trends; // Already in oldest-first order
   }
 
   /**
@@ -431,13 +488,14 @@ export class TimeTrackingService {
       },
     });
 
-    const totalPoints = tasks.reduce(
-      (sum: number, task: any) => sum + (task.storyPoints || 0),
+    const typedTasks = tasks as TaskWithMetrics[];
+    const totalPoints = typedTasks.reduce(
+      (sum, task) => sum + (task.storyPoints ?? 0),
       0,
     );
 
-    const totalHours = tasks.reduce(
-      (sum: number, task: any) => sum + (task.actualHours || 0),
+    const totalHours = typedTasks.reduce(
+      (sum, task) => sum + (task.actualHours ?? 0),
       0,
     );
 

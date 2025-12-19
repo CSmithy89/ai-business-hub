@@ -34,11 +34,18 @@ from .chrono import create_chrono_agent
 
 
 def get_postgres_url() -> str:
-    """Get PostgreSQL connection URL from environment."""
-    return os.getenv(
-        "DATABASE_URL",
-        "postgresql://postgres:postgres@localhost:5432/hyvve"
-    )
+    """Get PostgreSQL connection URL from environment.
+
+    Raises:
+        ValueError: If DATABASE_URL environment variable is not set.
+    """
+    url = os.getenv("DATABASE_URL")
+    if not url:
+        raise ValueError(
+            "DATABASE_URL environment variable must be set. "
+            "Agent memory requires a PostgreSQL connection."
+        )
+    return url
 
 
 def create_pm_team(
