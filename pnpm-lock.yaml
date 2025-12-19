@@ -113,6 +113,9 @@ importers:
       class-validator:
         specifier: ^0.14.1
         version: 0.14.3
+      luxon:
+        specifier: ^3.7.2
+        version: 3.7.2
       openai:
         specifier: ^6.9.1
         version: 6.9.1(ws@8.18.3)(zod@3.25.76)
@@ -153,6 +156,9 @@ importers:
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
+      '@types/luxon':
+        specifier: ^3.7.1
+        version: 3.7.1
       '@types/node':
         specifier: ^20.17.9
         version: 20.19.25

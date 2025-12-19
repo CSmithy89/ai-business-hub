@@ -384,6 +384,7 @@ model NotificationPreference {
   id     String @id @default(uuid())
   userId String @unique @map("user_id")
 
+  // Platform notification preferences
   emailApprovals        Boolean @default(true) @map("email_approvals")
   emailWorkspaceInvites Boolean @default(true) @map("email_workspace_invites")
   emailAgentErrors      Boolean @default(true) @map("email_agent_errors")
@@ -392,6 +393,29 @@ model NotificationPreference {
   inAppApprovals        Boolean @default(true) @map("in_app_approvals")
   inAppWorkspaceInvites Boolean @default(true) @map("in_app_workspace_invites")
   inAppAgentUpdates     Boolean @default(true) @map("in_app_agent_updates")
+
+  // PM-specific email preferences
+  emailTaskAssigned    Boolean @default(true) @map("email_task_assigned")
+  emailTaskMentioned   Boolean @default(true) @map("email_task_mentioned")
+  emailDueDateReminder Boolean @default(true) @map("email_due_date_reminder")
+  emailAgentCompletion Boolean @default(true) @map("email_agent_completion")
+  emailHealthAlert     Boolean @default(true) @map("email_health_alert")
+
+  // PM-specific in-app preferences
+  inAppTaskAssigned    Boolean @default(true) @map("in_app_task_assigned")
+  inAppTaskMentioned   Boolean @default(true) @map("in_app_task_mentioned")
+  inAppDueDateReminder Boolean @default(true) @map("in_app_due_date_reminder")
+  inAppAgentCompletion Boolean @default(true) @map("in_app_agent_completion")
+  inAppHealthAlert     Boolean @default(true) @map("in_app_health_alert")
+
+  // Quiet hours configuration
+  quietHoursStart    String? @map("quiet_hours_start") // HH:MM format
+  quietHoursEnd      String? @map("quiet_hours_end") // HH:MM format
+  quietHoursTimezone String  @default("UTC") @map("quiet_hours_timezone")
+
+  // Digest settings
+  digestEnabled   Boolean @default(false) @map("digest_enabled")
+  digestFrequency String  @default("daily") @map("digest_frequency") // daily, weekly
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
