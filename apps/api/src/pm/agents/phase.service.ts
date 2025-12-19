@@ -1,7 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { TaskStatus } from '@prisma/client';
+import { TaskStatus, CheckpointStatus } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
-import { AgentsService } from './agents.service';
 
 export interface PhaseCompletionAnalysis {
   phaseId: string;
@@ -29,14 +28,14 @@ export interface PhaseCompletionAnalysis {
   };
 }
 
-export interface PhaseCheckpoint {
+export interface PhaseCheckpointResult {
   id: string;
   phaseId: string;
   name: string;
-  description?: string;
+  description: string | null;
   checkpointDate: Date;
-  status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
-  completedAt?: Date;
+  status: CheckpointStatus;
+  completedAt: Date | null;
   remindAt3Days: boolean;
   remindAt1Day: boolean;
   remindAtDayOf: boolean;
@@ -48,19 +47,16 @@ export interface PhaseCheckpoint {
 export class PhaseService {
   private readonly logger = new Logger(PhaseService.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly agentsService: AgentsService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Analyze phase completion readiness and provide task recommendations.
-   * This method invokes the Scope agent to analyze the phase.
+   * This method provides basic analysis - Scope agent integration can be added later.
    */
   async analyzePhaseCompletion(
     workspaceId: string,
     phaseId: string,
-    userId: string,
+    _userId: string,
   ): Promise<PhaseCompletionAnalysis> {
     this.logger.log(
       `Analyzing phase completion: ${phaseId} for workspace ${workspaceId}`,
@@ -70,17 +66,9 @@ export class PhaseService {
     const phase = await this.prisma.phase.findUnique({
       where: { id: phaseId },
       include: {
-        tasks: {
-          where: {
-            status: { not: TaskStatus.DONE },
-            deletedAt: null,
-          },
-          orderBy: { taskNumber: 'asc' },
-        },
         project: {
           include: {
             phases: {
-              where: { deletedAt: null },
               orderBy: { phaseNumber: 'asc' },
             },
           },
@@ -97,8 +85,17 @@ export class PhaseService {
       throw new NotFoundException(`Phase ${phaseId} not found in workspace`);
     }
 
-    // 2. Build context for Scope agent
-    const incompleteTasks = phase.tasks.map((task) => ({
+    // Get incomplete tasks for this phase
+    const tasks = await this.prisma.task.findMany({
+      where: {
+        phaseId,
+        status: { not: TaskStatus.DONE },
+      },
+      orderBy: { taskNumber: 'asc' },
+    });
+
+    // 2. Build context for analysis
+    const incompleteTasks = tasks.map((task) => ({
       id: task.id,
       title: task.title,
       status: task.status,
@@ -107,56 +104,14 @@ export class PhaseService {
       assignmentType: task.assignmentType,
     }));
 
-    const agentMessage = `Analyze phase completion for "${phase.name}".
+    // 3. Generate analysis (basic analysis - Scope agent can enhance this)
+    const analysis = this.generateBasicAnalysis(phase, incompleteTasks);
 
-Phase Status:
-- Total tasks: ${phase.totalTasks}
-- Completed tasks: ${phase.completedTasks}
-- Completion rate: ${phase.totalTasks > 0 ? Math.round((phase.completedTasks / phase.totalTasks) * 100) : 0}%
+    this.logger.log(
+      `Phase analysis complete: ${analysis.recommendations.length} recommendations generated`,
+    );
 
-Incomplete Tasks (${incompleteTasks.length}):
-${incompleteTasks.map((t) => `- [${t.status}] ${t.title} (${t.priority} priority)`).join('\n')}
-
-For each incomplete task, recommend an action:
-- COMPLETE: Task should be finished before phase ends
-- CARRY OVER: Task should move to next phase
-- CANCEL: Task is no longer needed or blocked indefinitely
-
-Provide clear reasoning for each recommendation.
-Also identify any blockers preventing phase completion and provide a phase readiness summary.`;
-
-    // 3. Invoke Scope agent for analysis
-    try {
-      const agentResponse = await this.agentsService.invokeAgent({
-        workspaceId,
-        sessionId: `phase-analysis-${phaseId}`,
-        userId,
-        agentName: 'scope',
-        projectId: phase.projectId,
-        message: agentMessage,
-      });
-
-      // 4. Parse agent response into structured format
-      const analysis = this.parseAnalysis(
-        agentResponse,
-        phase,
-        incompleteTasks,
-      );
-
-      this.logger.log(
-        `Phase analysis complete: ${analysis.recommendations.length} recommendations generated`,
-      );
-
-      return analysis;
-    } catch (error) {
-      this.logger.error(
-        `Failed to analyze phase completion: ${error.message}`,
-        error.stack,
-      );
-
-      // Fallback: return basic analysis without agent recommendations
-      return this.generateBasicAnalysis(phase, incompleteTasks);
-    }
+    return analysis;
   }
 
   /**
@@ -165,7 +120,7 @@ Also identify any blockers preventing phase completion and provide a phase readi
   async getUpcomingCheckpoints(
     workspaceId: string,
     phaseId: string,
-  ): Promise<PhaseCheckpoint[]> {
+  ): Promise<PhaseCheckpointResult[]> {
     // Verify phase exists and belongs to workspace
     const phase = await this.prisma.phase.findUnique({
       where: { id: phaseId },
@@ -200,37 +155,34 @@ Also identify any blockers preventing phase completion and provide a phase readi
   }
 
   /**
-   * Parse agent response into structured analysis.
-   * This is a simplified parser - in production, you'd use more sophisticated
-   * LLM response parsing or structured output.
+   * Generate basic analysis without agent assistance.
    */
-  private parseAnalysis(
-    agentResponse: any,
-    phase: any,
-    incompleteTasks: any[],
+  private generateBasicAnalysis(
+    phase: {
+      id: string;
+      name: string;
+      phaseNumber: number;
+      totalTasks: number;
+      completedTasks: number;
+      project: {
+        phases: Array<{ phaseNumber: number; name: string }>;
+      };
+    },
+    incompleteTasks: Array<{
+      id: string;
+      title: string;
+      status: TaskStatus;
+      taskNumber: number;
+      priority: string;
+      assignmentType: string | null;
+    }>,
   ): PhaseCompletionAnalysis {
-    // Extract agent message content
-    const agentMessage =
-      agentResponse.response?.content || agentResponse.message || '';
-
-    // Default recommendations (carry over)
-    const recommendations = incompleteTasks.map((task) => ({
-      taskId: task.id,
-      taskTitle: task.title,
-      action: 'carry_over' as const,
-      reasoning:
-        'Task not yet completed. Recommend carrying to next phase unless blocked or no longer relevant.',
-    }));
-
-    // Find next phase
     const nextPhase = phase.project.phases.find(
-      (p: any) => p.phaseNumber === phase.phaseNumber + 1,
+      (p) => p.phaseNumber === phase.phaseNumber + 1,
     );
 
-    // Calculate readiness
     const completionRate =
       phase.totalTasks > 0 ? phase.completedTasks / phase.totalTasks : 0;
-    const readyForCompletion = completionRate >= 0.8;
 
     // Identify blockers
     const blockers: string[] = [];
@@ -242,6 +194,30 @@ Also identify any blockers preventing phase completion and provide a phase readi
         `${blockedTasks.length} task(s) awaiting approval must be resolved`,
       );
     }
+
+    // Generate recommendations based on task status and priority
+    const recommendations = incompleteTasks.map((task) => {
+      let action: 'complete' | 'carry_over' | 'cancel' = 'carry_over';
+      let reasoning = 'Recommend carrying to next phase';
+
+      if (task.status === TaskStatus.IN_PROGRESS) {
+        action = 'complete';
+        reasoning = 'Task in progress - recommend completing before phase ends';
+      } else if (task.status === TaskStatus.AWAITING_APPROVAL) {
+        action = 'complete';
+        reasoning = 'Task awaiting approval - blocker that must be resolved';
+      } else if (task.priority === 'HIGH' || task.priority === 'URGENT') {
+        action = 'complete';
+        reasoning = `High priority task - should complete in current phase`;
+      }
+
+      return {
+        taskId: task.id,
+        taskTitle: task.title,
+        action,
+        reasoning,
+      };
+    });
 
     return {
       phaseId: phase.id,
@@ -256,54 +232,13 @@ Also identify any blockers preventing phase completion and provide a phase readi
       })),
       recommendations,
       summary: {
-        readyForCompletion,
+        readyForCompletion: completionRate >= 0.8 && blockers.length === 0,
         blockers,
         nextPhasePreview: nextPhase
-          ? `Next: ${nextPhase.name} (Phase ${nextPhase.phaseNumber})`
+          ? `Next: ${nextPhase.name}`
           : 'No next phase defined',
         estimatedTimeToComplete:
           incompleteTasks.length <= 3 ? '1-2 days' : '3-5 days',
-      },
-    };
-  }
-
-  /**
-   * Generate basic analysis when agent is unavailable.
-   */
-  private generateBasicAnalysis(
-    phase: any,
-    incompleteTasks: any[],
-  ): PhaseCompletionAnalysis {
-    const nextPhase = phase.project.phases.find(
-      (p: any) => p.phaseNumber === phase.phaseNumber + 1,
-    );
-
-    const completionRate =
-      phase.totalTasks > 0 ? phase.completedTasks / phase.totalTasks : 0;
-
-    return {
-      phaseId: phase.id,
-      phaseName: phase.name,
-      totalTasks: phase.totalTasks,
-      completedTasks: phase.completedTasks,
-      incompleteTasks: incompleteTasks.map((t) => ({
-        id: t.id,
-        title: t.title,
-        status: t.status,
-        taskNumber: t.taskNumber,
-      })),
-      recommendations: incompleteTasks.map((task) => ({
-        taskId: task.id,
-        taskTitle: task.title,
-        action: 'carry_over' as const,
-        reasoning: 'Automatic recommendation: carry over to next phase',
-      })),
-      summary: {
-        readyForCompletion: completionRate >= 0.8,
-        blockers: [],
-        nextPhasePreview: nextPhase
-          ? `Next: ${nextPhase.name}`
-          : 'No next phase',
       },
     };
   }
