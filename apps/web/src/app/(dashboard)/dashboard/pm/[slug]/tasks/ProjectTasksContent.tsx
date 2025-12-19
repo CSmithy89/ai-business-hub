@@ -1,30 +1,33 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
-import { CalendarDays, ChevronRight, Filter, ListChecks, Search } from 'lucide-react'
+import { BookmarkPlus, CalendarDays, ChevronRight, KanbanSquare, LayoutList, Search } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { usePmProject } from '@/hooks/use-pm-projects'
 import { usePmTasks, type TaskListItem, type TaskPriority, type TaskStatus, type TaskType } from '@/hooks/use-pm-tasks'
-import { TASK_PRIORITIES, TASK_PRIORITY_META, TASK_TYPES, TASK_TYPE_META } from '@/lib/pm/task-meta'
+import { usePmTeam } from '@/hooks/use-pm-team'
+import { useDefaultView, type SavedView } from '@/hooks/use-saved-views'
+import { TASK_PRIORITY_META, TASK_TYPE_META } from '@/lib/pm/task-meta'
+import { getViewPreferences, setViewPreferences } from '@/lib/pm/view-preferences'
+import type { GroupByOption } from '@/lib/pm/kanban-grouping'
 import { cn } from '@/lib/utils'
+import { useSession } from '@/lib/auth-client'
 import { TaskDetailSheet } from './TaskDetailSheet'
-
-const TASK_STATUSES: TaskStatus[] = [
-  'BACKLOG',
-  'TODO',
-  'IN_PROGRESS',
-  'REVIEW',
-  'AWAITING_APPROVAL',
-  'DONE',
-  'CANCELLED',
-]
+import { TaskListView } from '@/components/pm/views/TaskListView'
+import { KanbanBoardView } from '@/components/pm/views/KanbanBoardView'
+import { CalendarView } from '@/components/pm/views/CalendarView'
+import { GroupBySelector } from '@/components/pm/kanban/GroupBySelector'
+import { SavedViewsDropdown } from '@/components/pm/saved-views/SavedViewsDropdown'
+import { SaveViewModal } from '@/components/pm/saved-views/SaveViewModal'
+import { FilterBar } from '@/components/pm/filters/FilterBar'
+import { ErrorBoundary } from '@/components/error-boundary'
+import type { FilterState } from '@/lib/pm/url-state'
 
 function formatDate(value: string | null): string {
   if (!value) return '—'
@@ -45,14 +48,14 @@ function statusBadgeVariant(status: TaskStatus): 'secondary' | 'outline' | 'succ
 function openTask(router: ReturnType<typeof useRouter>, pathname: string, searchParams: URLSearchParams, taskId: string) {
   const next = new URLSearchParams(searchParams.toString())
   next.set('taskId', taskId)
-  router.push(`${pathname}?${next.toString()}` as any)
+  router.push(`${pathname}?${next.toString()}` as Parameters<typeof router.push>[0])
 }
 
 function closeTask(router: ReturnType<typeof useRouter>, pathname: string, searchParams: URLSearchParams) {
   const next = new URLSearchParams(searchParams.toString())
   next.delete('taskId')
   const url = next.toString() ? `${pathname}?${next.toString()}` : pathname
-  router.replace(url as any)
+  router.replace(url as Parameters<typeof router.replace>[0])
 }
 
 export function ProjectTasksContent() {
@@ -60,6 +63,8 @@ export function ProjectTasksContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const params = useParams<{ slug: string }>()
+  const { data: session } = useSession()
+  const currentUserId = session?.user?.id ?? null
 
   const slug = params?.slug
   const taskId = searchParams.get('taskId')
@@ -67,25 +72,222 @@ export function ProjectTasksContent() {
   const { data: projectData, isLoading: projectLoading, error: projectError } = usePmProject(slug)
   const project = projectData?.data
 
+  // Fetch team data for assignee name lookups
+  const { data: teamData } = usePmTeam(project?.id ?? '')
+  const team = teamData?.data
+
+  // Build name lookup maps for kanban column titles
+  const assigneeNames = useMemo(() => {
+    if (!team?.members) return undefined
+    const map: Record<string, string> = {}
+    team.members.forEach((member) => {
+      if (member.userId && member.user) {
+        map[member.userId] = member.user.name || member.user.email
+      }
+    })
+    return Object.keys(map).length > 0 ? map : undefined
+  }, [team?.members])
+
+  const phaseNames = useMemo(() => {
+    if (!project?.phases) return undefined
+    const map: Record<string, string> = {}
+    project.phases.forEach((phase) => {
+      map[phase.id] = phase.name
+    })
+    return Object.keys(map).length > 0 ? map : undefined
+  }, [project?.phases])
+
+  // Saved views state
+  const [activeSavedViewId, setActiveSavedViewId] = useState<string | null>(null)
+  const [saveViewModalOpen, setSaveViewModalOpen] = useState(false)
+  const { data: defaultViewData } = useDefaultView(project?.id)
+  const defaultView = defaultViewData?.data
+
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<TaskStatus | 'all'>('all')
-  const [type, setType] = useState<TaskType | 'all'>('all')
-  const [priority, setPriority] = useState<TaskPriority | 'all'>('all')
+  const [filters, setFilters] = useState<FilterState>({
+    status: [],
+    priority: null,
+    assigneeId: null,
+    type: null,
+    labels: [],
+    dueDateFrom: null,
+    dueDateTo: null,
+    phaseId: null,
+  })
+  const [viewMode, setViewMode] = useState<'simple' | 'table' | 'kanban' | 'calendar'>(() => {
+    if (project?.id) {
+      const prefs = getViewPreferences(project.id)
+      return prefs.viewMode || 'simple'
+    }
+    return 'simple'
+  })
+
+  // Grouping preference for kanban view
+  const [groupBy, setGroupBy] = useState<GroupByOption>(() => {
+    if (project?.id) {
+      const prefs = getViewPreferences(project.id)
+      return prefs.kanbanGroupBy || 'status'
+    }
+    return 'status'
+  })
+
+  // Apply default view on mount
+  useEffect(() => {
+    if (defaultView && !activeSavedViewId) {
+      applyView(defaultView)
+    }
+  }, [defaultView?.id])
+
+  // Apply a saved view
+  const applyView = (view: SavedView | null) => {
+    if (!view) {
+      // Reset to "All Tasks"
+      setSearch('')
+      setFilters({
+        status: [],
+        priority: null,
+        assigneeId: null,
+        type: null,
+        labels: [],
+        dueDateFrom: null,
+        dueDateTo: null,
+        phaseId: null,
+      })
+      setViewMode('simple')
+      setGroupBy('status')
+      setActiveSavedViewId(null)
+      return
+    }
+
+    setActiveSavedViewId(view.id)
+    setViewMode(view.viewType.toLowerCase() as 'simple' | 'table' | 'kanban' | 'calendar')
+    setSearch((view.filters.search as string) || '')
+
+    // Convert saved view filters to new filter format
+    const status = view.filters.status as TaskStatus | undefined
+    setFilters({
+      status: status ? [status] : [],
+      priority: (view.filters.priority as TaskPriority) || null,
+      assigneeId: null,
+      type: (view.filters.type as TaskType) || null,
+      labels: [],
+      dueDateFrom: null,
+      dueDateTo: null,
+      phaseId: null,
+    })
+
+    if (view.filters.kanbanGroupBy) {
+      setGroupBy(view.filters.kanbanGroupBy as GroupByOption)
+    }
+  }
+
+  // Detect if current state differs from saved view (for "Save View" button visibility)
+  const hasUnsavedChanges = useMemo(() => {
+    // Show save button if filters are applied and we're not viewing a saved view
+    // Or if we are viewing a saved view but the current state differs from it
+    if (!activeSavedViewId) {
+      return (
+        search !== '' ||
+        filters.status.length > 0 ||
+        filters.priority !== null ||
+        filters.assigneeId !== null ||
+        filters.type !== null ||
+        filters.labels.length > 0 ||
+        filters.dueDateFrom !== null ||
+        filters.dueDateTo !== null ||
+        filters.phaseId !== null
+      )
+    }
+    return false
+  }, [search, filters, activeSavedViewId])
+
+  const handleGroupByChange = (newGroupBy: GroupByOption) => {
+    setGroupBy(newGroupBy)
+    if (project?.id) {
+      setViewPreferences(project.id, { kanbanGroupBy: newGroupBy })
+    }
+  }
+
+  const handleViewModeChange = (mode: 'simple' | 'table' | 'kanban' | 'calendar') => {
+    setViewMode(mode)
+    if (project?.id) {
+      setViewPreferences(project.id, { viewMode: mode })
+    }
+  }
 
   const query = useMemo(() => {
+    // Convert multi-select status to single status for API
+    // If multiple statuses selected, we'll filter client-side
+    const singleStatus = filters.status.length === 1 ? filters.status[0] : undefined
+
     return {
       projectId: project?.id,
       search: search.trim() ? search.trim() : undefined,
-      status: status === 'all' ? undefined : status,
-      type: type === 'all' ? undefined : type,
-      priority: priority === 'all' ? undefined : priority,
+      status: singleStatus,
+      type: filters.type || undefined,
+      priority: filters.priority || undefined,
+      assigneeId: filters.assigneeId || undefined,
+      phaseId: filters.phaseId || undefined,
       page: 1,
       limit: 50,
     }
-  }, [priority, project?.id, search, status, type])
+  }, [filters, project?.id, search])
 
   const { data, isLoading, error } = usePmTasks(query)
-  const tasks = data?.data ?? []
+  const allTasks = data?.data ?? []
+
+  // Client-side filtering for multi-select status, labels, and date ranges
+  const tasks = useMemo(() => {
+    let filtered = [...allTasks]
+
+    // Multi-status filter (if more than one status selected)
+    if (filters.status.length > 1) {
+      filtered = filtered.filter((task) => filters.status.includes(task.status))
+    }
+
+    // Label filter - Currently disabled as TaskListItem doesn't include labels
+    // TODO: Enable when backend returns labels with task list (requires API enhancement)
+    // When enabled: filtered = filtered.filter((task) => task.labels?.some(l => filters.labels.includes(l.name)))
+
+    // Date range filter
+    if (filters.dueDateFrom || filters.dueDateTo) {
+      filtered = filtered.filter((task) => {
+        if (!task.dueDate) return false
+
+        const dueDate = new Date(task.dueDate)
+
+        if (filters.dueDateFrom) {
+          const fromDate = parseISO(filters.dueDateFrom)
+          if (dueDate < fromDate) return false
+        }
+
+        if (filters.dueDateTo) {
+          const toDate = parseISO(filters.dueDateTo)
+          if (dueDate > toDate) return false
+        }
+
+        return true
+      })
+    }
+
+    return filtered
+  }, [allTasks, filters])
+
+  // Current view state for saving - must be before early returns to avoid rules-of-hooks violation
+  const currentViewState = useMemo(() => {
+    return {
+      viewType: viewMode.toUpperCase() as 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE',
+      filters: {
+        search,
+        status: filters.status.length === 1 ? filters.status[0] : undefined,
+        type: filters.type || undefined,
+        priority: filters.priority || undefined,
+        assigneeId: filters.assigneeId || undefined,
+        phaseId: filters.phaseId || undefined,
+      },
+      groupBy,
+    }
+  }, [viewMode, search, filters, groupBy])
 
   if (projectError) {
     return (
@@ -116,102 +318,92 @@ export function ProjectTasksContent() {
             {project.name} • {tasks.length} tasks
           </p>
         </div>
-        <Button
-          variant="secondary"
-          className="w-full sm:w-auto"
-          onClick={() => {
-            const first = tasks[0]
-            if (!first) return
-            openTask(router, pathname, new URLSearchParams(searchParams.toString()), first.id)
-          }}
-          disabled={!tasks.length}
-        >
-          <span className="inline-flex items-center gap-2">
-            <ListChecks className="h-4 w-4" />
-            Open First Task
-          </span>
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Saved Views Dropdown */}
+          {currentUserId && (
+            <SavedViewsDropdown
+              projectId={project.id}
+              currentUserId={currentUserId}
+              onApplyView={applyView}
+              onSaveCurrentView={() => setSaveViewModalOpen(true)}
+              activeViewId={activeSavedViewId}
+              currentViewState={currentViewState}
+            />
+          )}
+
+          {/* Save View Button */}
+          {hasUnsavedChanges && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSaveViewModalOpen(true)}
+              className="gap-2"
+            >
+              <BookmarkPlus className="h-4 w-4" />
+              Save View
+            </Button>
+          )}
+
+          {/* View Mode Toggles */}
+          <Button
+            variant={viewMode === 'simple' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => handleViewModeChange('simple')}
+          >
+            Simple
+          </Button>
+          <Button
+            variant={viewMode === 'table' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => handleViewModeChange('table')}
+          >
+            <LayoutList className="h-4 w-4 mr-2" />
+            Table
+          </Button>
+          <Button
+            variant={viewMode === 'kanban' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => handleViewModeChange('kanban')}
+          >
+            <KanbanSquare className="h-4 w-4 mr-2" />
+            Kanban
+          </Button>
+          <Button
+            variant={viewMode === 'calendar' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => handleViewModeChange('calendar')}
+          >
+            <CalendarDays className="h-4 w-4 mr-2" />
+            Calendar
+          </Button>
+          {viewMode === 'kanban' && (
+            <GroupBySelector value={groupBy} onChange={handleGroupByChange} />
+          )}
+        </div>
       </div>
 
+      {/* Search Bar */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Filters</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="p-4">
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4 text-[rgb(var(--color-text-secondary))]" aria-hidden="true" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search tasks..."
+              className="flex-1"
             />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-[rgb(var(--color-text-secondary))]" aria-hidden="true" />
-            <Select value={status} onValueChange={(value) => setStatus(value as TaskStatus | 'all')}>
-              <SelectTrigger>
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {TASK_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s.replace(/_/g, ' ')}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-[rgb(var(--color-text-secondary))]" aria-hidden="true" />
-            <Select value={type} onValueChange={(value) => setType(value as TaskType | 'all')}>
-              <SelectTrigger>
-                <SelectValue placeholder="All types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {TASK_TYPES.map((value) => {
-                  const meta = TASK_TYPE_META[value]
-                  const Icon = meta.icon
-                  return (
-                    <SelectItem key={value} value={value}>
-                      <span className="inline-flex items-center gap-2">
-                        <Icon className={cn('h-4 w-4', meta.iconClassName)} aria-hidden="true" />
-                        {meta.label}
-                      </span>
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-[rgb(var(--color-text-secondary))]" aria-hidden="true" />
-            <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority | 'all')}>
-              <SelectTrigger>
-                <SelectValue placeholder="All priorities" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {TASK_PRIORITIES.map((value) => {
-                  const meta = TASK_PRIORITY_META[value]
-                  return (
-                    <SelectItem key={value} value={value}>
-                      <span className="inline-flex items-center gap-2">
-                        <span className={cn('h-2.5 w-2.5 rounded-full', meta.dotClassName)} aria-hidden="true" />
-                        {meta.label}
-                      </span>
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
+
+      {/* Advanced Filter Bar */}
+      <FilterBar
+        projectId={project.id}
+        projectSlug={slug}
+        tasks={allTasks}
+        onFiltersChange={setFilters}
+      />
 
       {error ? (
         <Card>
@@ -235,25 +427,54 @@ export function ProjectTasksContent() {
           headline="No tasks yet"
           description="Press `c` on any project page to quick capture, or create via API."
           ctaText="Back to overview"
-          onCtaClick={() => router.push(`/dashboard/pm/${slug}` as any)}
+          onCtaClick={() => router.push(`/dashboard/pm/${slug}`)}
         />
       ) : null}
 
       {tasks.length ? (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Task List</CardTitle>
-          </CardHeader>
-          <CardContent className="divide-y divide-[rgb(var(--color-border-default))]">
-            {tasks.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                onClick={() => openTask(router, pathname, new URLSearchParams(searchParams.toString()), task.id)}
-              />
-            ))}
-          </CardContent>
-        </Card>
+        viewMode === 'calendar' ? (
+          <ErrorBoundary errorMessage="Failed to load calendar view">
+            <CalendarView
+              tasks={tasks}
+              onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
+            />
+          </ErrorBoundary>
+        ) : viewMode === 'kanban' ? (
+          <ErrorBoundary errorMessage="Failed to load kanban view">
+            <KanbanBoardView
+              tasks={tasks}
+              onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
+              groupBy={groupBy}
+              projectId={project.id}
+              assigneeNames={assigneeNames}
+              phaseNames={phaseNames}
+            />
+          </ErrorBoundary>
+        ) : viewMode === 'table' ? (
+          <ErrorBoundary errorMessage="Failed to load table view">
+            <TaskListView
+              tasks={tasks}
+              projectId={project.id}
+              isLoading={isLoading}
+              onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
+            />
+          </ErrorBoundary>
+        ) : (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Task List</CardTitle>
+            </CardHeader>
+            <CardContent className="divide-y divide-[rgb(var(--color-border-default))]">
+              {tasks.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  onClick={() => openTask(router, pathname, new URLSearchParams(searchParams.toString()), task.id)}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        )
       ) : null}
 
       <TaskDetailSheet
@@ -262,6 +483,15 @@ export function ProjectTasksContent() {
         onOpenChange={(open) => {
           if (!open) closeTask(router, pathname, new URLSearchParams(searchParams.toString()))
         }}
+      />
+
+      {/* Save View Modal */}
+      <SaveViewModal
+        open={saveViewModalOpen}
+        onOpenChange={setSaveViewModalOpen}
+        projectId={project.id}
+        viewState={currentViewState}
+        existingView={null}
       />
     </div>
   )
@@ -292,7 +522,7 @@ function TaskRow({ task, onClick }: { task: TaskListItem; onClick: () => void })
           </span>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--color-text-secondary))]">
-          <Badge variant={statusBadgeVariant(task.status) as any}>{task.status.replace(/_/g, ' ')}</Badge>
+          <Badge variant={statusBadgeVariant(task.status)}>{task.status.replace(/_/g, ' ')}</Badge>
           <span className="inline-flex items-center gap-1.5">
             <span className={cn('h-2.5 w-2.5 rounded-full', priorityMeta.dotClassName)} aria-hidden="true" />
             {priorityMeta.label}

@@ -180,6 +180,10 @@ export class TasksService {
             OR: [
               { title: { contains: query.search, mode: 'insensitive' } },
               { description: { contains: query.search, mode: 'insensitive' } },
+              // Also search by task number for numeric queries (e.g., #123)
+              ...(/^\d+$/.test(query.search)
+                ? [{ taskNumber: parseInt(query.search, 10) }]
+                : []),
             ],
           }
         : {}),
@@ -1041,5 +1045,64 @@ export class TasksService {
     )
 
     return { data: task }
+  }
+
+  /**
+   * Get unique label names for a project (for autocomplete)
+   * Returns distinct label names used across all tasks in the project
+   * Optimized query: fetches task IDs first to avoid N+1 on the task relation
+   */
+  async getProjectLabels(
+    workspaceId: string,
+    projectId: string,
+    search?: string,
+    limit = 50,
+    offset = 0,
+  ) {
+    // Verify project belongs to workspace
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, workspaceId },
+      select: { id: true },
+    })
+    if (!project) throw new NotFoundException('Project not found')
+
+    // Build where clause using subquery pattern to avoid N+1
+    // This filters labels by task properties in a single query
+    const whereClause = {
+      task: {
+        projectId,
+        workspaceId,
+        deletedAt: null,
+      },
+      ...(search && {
+        name: { contains: search, mode: 'insensitive' as const },
+      }),
+    }
+
+    // Get total count for pagination (count distinct label names)
+    const totalCount = await this.prisma.taskLabel.groupBy({
+      by: ['name'],
+      where: whereClause,
+    })
+
+    // Get distinct labels with pagination
+    const labels = await this.prisma.taskLabel.findMany({
+      where: whereClause,
+      select: {
+        name: true,
+        color: true,
+      },
+      distinct: ['name'],
+      orderBy: { name: 'asc' },
+      take: limit,
+      skip: offset,
+    })
+
+    return {
+      data: labels,
+      total: totalCount.length,
+      limit,
+      offset,
+    }
   }
 }

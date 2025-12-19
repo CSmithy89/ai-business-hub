@@ -86,16 +86,16 @@ development_status:
   # MVP | 8 stories | List, Kanban, Calendar, saved views
   # FRs: FR-4.1, FR-4.2, FR-4.3, FR-4.5
   # ===========================================
-  pm-03: backlog
-  pm-03-1-task-list-view: ready-for-dev
-  pm-03-2-kanban-board-basic: backlog
-  pm-03-3-kanban-drag-drop: backlog
-  pm-03-4-calendar-view: backlog
-  pm-03-5-view-toggle-persistence: backlog
-  pm-03-6-saved-views-crud: backlog
-  pm-03-7-advanced-filters: backlog
-  pm-03-8-bulk-selection-actions: backlog
-  pm-03-retrospective: optional
+  pm-03: contexted
+  pm-03-1-task-list-view: done
+  pm-03-2-kanban-board-basic: done
+  pm-03-3-kanban-drag-drop: done
+  pm-03-4-calendar-view: done
+  pm-03-5-view-toggle-persistence: done
+  pm-03-6-saved-views-crud: done
+  pm-03-7-advanced-filters: done
+  pm-03-8-bulk-selection-actions: done
+  pm-03-retrospective: completed
 
   # ===========================================
   # PM-04: AI Team - Navi, Sage, Chrono

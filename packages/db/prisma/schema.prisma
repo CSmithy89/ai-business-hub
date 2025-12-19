@@ -1306,6 +1306,7 @@ model TaskLabel {
 
   @@unique([taskId, name])
   @@index([taskId])
+  @@index([name]) // Index for label autocomplete/search queries
   @@map("task_labels")
 }
 
@@ -1331,6 +1332,8 @@ model SavedView {
 
   @@index([projectId])
   @@index([userId])
+  @@index([projectId, userId]) // Composite index for filtered queries
+  @@index([projectId, isDefault]) // For default view lookups
   @@map("saved_views")
 }
 
@@ -1605,6 +1608,9 @@ model KnowledgePage {
   @@index([isVerified])
   @@index([updatedAt])
   @@index([deletedAt])
+  // Composite indices for verification queries (cron job and stale detection)
+  @@index([isVerified, verifyExpires])
+  @@index([workspaceId, deletedAt, updatedAt])
   @@map("knowledge_pages")
 }
 
@@ -1720,6 +1726,8 @@ model PageMention {
   @@index([pageId])
   @@index([targetId])
   @@index([mentionType])
+  @@index([targetId, mentionType]) // Compound index for getUserMentions/getTaskReferences queries
+  @@index([pageId, mentionType]) // Compound index for filtering mentions by page and type
   @@map("page_mentions")
 }
 
@@ -1758,6 +1766,7 @@ enum KBPageActivityType {
   VIEWED
   VERIFIED
   UNVERIFIED
+  VERIFICATION_EXPIRED
   LINKED_TO_PROJECT
   UNLINKED_FROM_PROJECT
   COMMENTED

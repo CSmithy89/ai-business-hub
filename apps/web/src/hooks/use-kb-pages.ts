@@ -33,6 +33,11 @@ export interface KBPage {
   createdAt: string
   updatedAt: string
   deletedAt: string | null
+  // Verification fields (KB-03)
+  isVerified?: boolean
+  verifiedAt?: string | null
+  verifiedById?: string | null
+  verifyExpires?: string | null
 }
 
 export interface KBPageListResponse {

@@ -56,6 +56,7 @@ export class RagService {
         title: string
         slug: string
         distance: number
+        score: number
       }>
     >`
       SELECT
@@ -64,7 +65,13 @@ export class RagService {
         pe.chunk_text,
         kp.title,
         kp.slug,
-        (pe.embedding <=> ${queryVectorText}::vector(${dims})) AS distance
+        (pe.embedding <=> ${queryVectorText}::vector(${dims})) AS distance,
+        CASE
+          WHEN kp.is_verified = TRUE
+            AND (kp.verify_expires IS NULL OR kp.verify_expires > NOW())
+          THEN (1 / (1 + (pe.embedding <=> ${queryVectorText}::vector(${dims})))) * 1.5
+          ELSE (1 / (1 + (pe.embedding <=> ${queryVectorText}::vector(${dims}))))
+        END AS score
       FROM page_embeddings pe
       INNER JOIN knowledge_pages kp ON kp.id = pe.page_id
       WHERE
@@ -72,13 +79,13 @@ export class RagService {
         AND kp.workspace_id = ${workspaceId}
         AND kp.deleted_at IS NULL
         ${pageIdFilter}
-      ORDER BY distance ASC
+      ORDER BY score DESC
       LIMIT ${limit}
     `
 
     const chunks: RagChunk[] = rawChunks.map((row) => {
       const distance = Number(row.distance)
-      const score = 1 / (1 + distance)
+      const score = Number(row.score)
       return {
         pageId: row.page_id,
         chunkIndex: Number(row.chunk_index),

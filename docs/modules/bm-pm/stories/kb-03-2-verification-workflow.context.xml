@@ -1,0 +1,1106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>kb-03-2-verification-workflow</story-id>
+    <epic>KB-03 - KB Verification &amp; Scribe Agent</epic>
+    <title>Verification Workflow (Expiration)</title>
+    <generated-at>2025-12-18</generated-at>
+    <prerequisites>
+      <item>KB-03.1: Verified Badge System (DONE)</item>
+      <item>Notification system (existing)</item>
+      <item>NestJS Schedule module (existing)</item>
+      <item>Event bus system (existing)</item>
+    </prerequisites>
+  </metadata>
+
+  <goal>
+    Automatically detect expired verifications via daily cron job and notify page owners, ensuring KB content accuracy is maintained over time.
+  </goal>
+
+  <acceptance-criteria>
+    <criterion>Daily cron job runs at midnight to check for expired verifications</criterion>
+    <criterion>Pages with verifyExpires &lt;= NOW() are flagged as expired</criterion>
+    <criterion>Owner receives notification with link to page</criterion>
+    <criterion>PageActivity entry created with type VERIFICATION_EXPIRED</criterion>
+    <criterion>kb.page.verification_expired event published</criterion>
+    <criterion>Badge shows "Verification Expired" warning state</criterion>
+    <criterion>Expired pages still searchable but with lower RAG priority (no boost)</criterion>
+    <criterion>GET /api/kb/stale endpoint returns pages needing review</criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+
+    <!-- ====================================== -->
+    <!-- EXISTING VERIFICATION IMPLEMENTATION -->
+    <!-- ====================================== -->
+
+    <section name="existing-verification-service">
+      <description>
+        The VerificationService from KB-03.1 provides the foundation for marking pages as verified.
+        KB-03.2 extends this by adding expiration detection and stale page queries.
+      </description>
+      <file path="apps/api/src/kb/verification/verification.service.ts">
+        <![CDATA[
+import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { KnowledgePage } from '@prisma/client'
+import { EventTypes } from '@hyvve/shared'
+import { PrismaService } from '../../common/services/prisma.service'
+import { EventPublisherService } from '../../events'
+import { VerifyPageDto } from './dto/verify-page.dto'
+
+@Injectable()
+export class VerificationService {
+  private readonly logger = new Logger(VerificationService.name)
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventPublisher: EventPublisherService,
+  ) {}
+
+  /**
+   * Calculate expiration date based on period
+   */
+  private calculateExpirationDate(expiresIn: string): Date | null {
+    if (expiresIn === 'never') return null
+
+    const days = parseInt(expiresIn) // '30d' -> 30
+    const expiry = new Date()
+    expiry.setDate(expiry.getDate() + days)
+    return expiry
+  }
+
+  /**
+   * Mark a page as verified with expiration period
+   */
+  async markVerified(
+    pageId: string,
+    userId: string,
+    dto: VerifyPageDto,
+  ): Promise<KnowledgePage> {
+    // Find page and verify it exists
+    const page = await this.prisma.knowledgePage.findUnique({
+      where: { id: pageId },
+      select: {
+        id: true,
+        workspaceId: true,
+        tenantId: true,
+        deletedAt: true,
+      },
+    })
+
+    if (!page || page.deletedAt) {
+      throw new NotFoundException('Page not found')
+    }
+
+    // Calculate expiration date
+    const verifyExpires = this.calculateExpirationDate(dto.expiresIn)
+
+    // Update page with verification fields
+    const updated = await this.prisma.knowledgePage.update({
+      where: { id: pageId },
+      data: {
+        isVerified: true,
+        verifiedAt: new Date(),
+        verifiedById: userId,
+        verifyExpires,
+      },
+    })
+
+    // Log activity
+    await this.prisma.pageActivity.create({
+      data: {
+        pageId,
+        userId,
+        type: 'VERIFIED',
+        data: {
+          expiresIn: dto.expiresIn,
+          verifyExpires: verifyExpires?.toISOString() ?? null,
+        },
+      },
+    })
+
+    // Publish event
+    await this.eventPublisher.publish(
+      EventTypes.KB_PAGE_VERIFIED,
+      {
+        pageId,
+        workspaceId: page.workspaceId,
+        tenantId: page.tenantId,
+        verifiedById: userId,
+        verifiedAt: updated.verifiedAt?.toISOString() ?? new Date().toISOString(),
+        verifyExpires: verifyExpires?.toISOString() ?? null,
+      },
+      {
+        tenantId: page.tenantId,
+        userId,
+        source: 'kb-verification',
+      },
+    )
+
+    this.logger.log(
+      `Page ${pageId} verified by user ${userId} with expiration: ${dto.expiresIn}`,
+    )
+
+    return updated
+  }
+
+  /**
+   * Remove verification status from a page
+   */
+  async removeVerification(
+    pageId: string,
+    userId: string,
+  ): Promise<KnowledgePage> {
+    // Find page and verify it exists
+    const page = await this.prisma.knowledgePage.findUnique({
+      where: { id: pageId },
+      select: {
+        id: true,
+        workspaceId: true,
+        tenantId: true,
+        deletedAt: true,
+      },
+    })
+
+    if (!page || page.deletedAt) {
+      throw new NotFoundException('Page not found')
+    }
+
+    // Clear verification fields
+    const updated = await this.prisma.knowledgePage.update({
+      where: { id: pageId },
+      data: {
+        isVerified: false,
+        verifiedAt: null,
+        verifiedById: null,
+        verifyExpires: null,
+      },
+    })
+
+    // Log activity
+    await this.prisma.pageActivity.create({
+      data: {
+        pageId,
+        userId,
+        type: 'UNVERIFIED',
+      },
+    })
+
+    // Publish event
+    await this.eventPublisher.publish(
+      EventTypes.KB_PAGE_UNVERIFIED,
+      {
+        pageId,
+        workspaceId: page.workspaceId,
+        tenantId: page.tenantId,
+      },
+      {
+        tenantId: page.tenantId,
+        userId,
+        source: 'kb-verification',
+      },
+    )
+
+    this.logger.log(`Page ${pageId} unverified by user ${userId}`)
+
+    return updated
+  }
+
+  // TO BE ADDED IN KB-03.2:
+  // async getStalPages(workspaceId: string) { ... }
+}
+        ]]>
+      </file>
+      <notes>
+        - Service already has PrismaService and EventPublisherService injected
+        - Need to add getStalPages method to query stale pages
+        - Stale criteria: expired verification, not updated in 90+ days, viewCount &lt; 5
+      </notes>
+    </section>
+
+    <!-- ====================================== -->
+    <!-- EXISTING VERIFICATION CONTROLLER -->
+    <!-- ====================================== -->
+
+    <section name="existing-verification-controller">
+      <description>
+        The VerificationController provides REST endpoints for verification actions.
+        KB-03.2 adds GET /api/kb/stale endpoint for querying stale pages.
+      </description>
+      <file path="apps/api/src/kb/verification/verification.controller.ts">
+        <![CDATA[
+import {
+  Body,
+  Controller,
+  Delete,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common'
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger'
+import { CurrentUser } from '../../common/decorators/current-user.decorator'
+import { AuthGuard } from '../../common/guards/auth.guard'
+import { TenantGuard } from '../../common/guards/tenant.guard'
+import { VerifyPageDto } from './dto/verify-page.dto'
+import { VerificationService } from './verification.service'
+import { PageOwnerOrAdminGuard } from './guards/page-owner-or-admin.guard'
+
+@ApiTags('KB Verification')
+@Controller('kb/pages/:id/verify')
+@UseGuards(AuthGuard, TenantGuard)
+@ApiBearerAuth()
+export class VerificationController {
+  constructor(private readonly verificationService: VerificationService) {}
+
+  @Post()
+  @UseGuards(PageOwnerOrAdminGuard)
+  @ApiOperation({ summary: 'Mark page as verified' })
+  @ApiParam({ name: 'id', description: 'Page ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Page verified successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Only page owner or workspace admin can verify pages',
+  })
+  @ApiResponse({ status: 404, description: 'Page not found' })
+  async verifyPage(
+    @Param('id') pageId: string,
+    @CurrentUser() actor: any,
+    @Body() dto: VerifyPageDto,
+  ) {
+    return this.verificationService.markVerified(pageId, actor.id, dto)
+  }
+
+  @Delete()
+  @UseGuards(PageOwnerOrAdminGuard)
+  @ApiOperation({ summary: 'Remove verification status' })
+  @ApiParam({ name: 'id', description: 'Page ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Verification removed successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Only page owner or workspace admin can unverify pages',
+  })
+  @ApiResponse({ status: 404, description: 'Page not found' })
+  async unverifyPage(@Param('id') pageId: string, @CurrentUser() actor: any) {
+    return this.verificationService.removeVerification(pageId, actor.id)
+  }
+
+  // TO BE ADDED IN KB-03.2:
+  // @Get('/stale')
+  // async getStalPages(@Req() req: AuthenticatedRequest) { ... }
+}
+        ]]>
+      </file>
+      <notes>
+        - Controller currently has POST and DELETE endpoints for verification
+        - Need to add GET /stale endpoint (note: different base path)
+        - Should create a separate controller for stale pages endpoint at /api/kb/stale
+      </notes>
+    </section>
+
+    <!-- ====================================== -->
+    <!-- EXISTING VERIFICATION BADGE COMPONENT -->
+    <!-- ====================================== -->
+
+    <section name="existing-verification-badge">
+      <description>
+        The VerificationBadge component from KB-03.1 already handles expired state rendering.
+        No changes needed - it detects expiration by comparing verifyExpires to current date.
+      </description>
+      <file path="apps/web/src/components/kb/VerificationBadge.tsx">
+        <![CDATA[
+'use client'
+
+import { useState } from 'react'
+import { formatDistanceToNow } from 'date-fns'
+import { CheckCircle, AlertTriangle, Shield, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
+
+interface VerificationBadgeProps {
+  page: {
+    isVerified: boolean
+    verifiedAt: string | null
+    verifyExpires: string | null
+    verifiedBy?: { name: string } | null
+  }
+  canVerify: boolean
+  onVerify: (expiresIn: string) => Promise<void>
+  onUnverify: () => Promise<void>
+}
+
+export function VerificationBadge({
+  page,
+  canVerify,
+  onVerify,
+  onUnverify,
+}: VerificationBadgeProps) {
+  const [loading, setLoading] = useState(false)
+
+  const handleVerify = async (expiresIn: string) => {
+    setLoading(true)
+    try {
+      await onVerify(expiresIn)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUnverify = async () => {
+    setLoading(true)
+    try {
+      await onUnverify()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (page.isVerified) {
+    const expiresIn = page.verifyExpires
+      ? formatDistanceToNow(new Date(page.verifyExpires), { addSuffix: false })
+      : null
+
+    // KEY LOGIC: Detect expired state
+    const isExpired =
+      page.verifyExpires && new Date(page.verifyExpires) < new Date()
+
+    return (
+      <div
+        className={cn(
+          'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium',
+          isExpired
+            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+            : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+        )}
+      >
+        {isExpired ? (
+          <AlertTriangle className="w-4 h-4" />
+        ) : (
+          <CheckCircle className="w-4 h-4" />
+        )}
+        <span>
+          {isExpired ? 'Verification Expired' : 'Verified'}
+        </span>
+        {!isExpired && (
+          <span className="text-xs opacity-75">
+            {page.verifyExpires
+              ? `Expires in ${expiresIn}`
+              : 'Never expires'}
+          </span>
+        )}
+        {canVerify && (
+          <button
+            type="button"
+            onClick={handleUnverify}
+            disabled={loading}
+            className="ml-2 opacity-50 hover:opacity-100 transition-opacity disabled:cursor-not-allowed"
+            title="Remove verification"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  if (!canVerify) return null
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" disabled={loading}>
+          <Shield className="w-4 h-4 mr-2" />
+          Mark as Verified
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleVerify('30d')}>
+          Verify for 30 days
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleVerify('60d')}>
+          Verify for 60 days
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleVerify('90d')}>
+          Verify for 90 days
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleVerify('never')}>
+          Verify permanently
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+        ]]>
+      </file>
+      <notes>
+        - Badge already handles expired state (amber background, AlertTriangle icon)
+        - Shows "Verification Expired" text when verifyExpires &lt; now()
+        - No changes needed for KB-03.2
+        - Re-verification uses same onVerify handler (updates timestamps)
+      </notes>
+    </section>
+
+    <!-- ====================================== -->
+    <!-- CRON JOB PATTERNS IN CODEBASE -->
+    <!-- ====================================== -->
+
+    <section name="cron-job-pattern">
+      <description>
+        The codebase uses @nestjs/schedule for cron jobs. Example: TokenResetService.
+      </description>
+      <file path="apps/api/src/ai-providers/token-reset.service.ts">
+        <![CDATA[
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { PrismaService } from '../common/services/prisma.service';
+import { TokenLimitService } from './token-limit.service';
+
+/**
+ * Service to handle daily token reset and cleanup tasks
+ */
+@Injectable()
+export class TokenResetService {
+  private readonly logger = new Logger(TokenResetService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => TokenLimitService))
+    private readonly tokenLimitService: TokenLimitService,
+  ) {}
+
+  /**
+   * Reset daily token counters at midnight UTC
+   * Runs every day at 00:00 UTC
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async resetDailyTokens(): Promise<void> {
+    this.logger.log('Starting daily token reset...');
+
+    try {
+      const result = await this.prisma.aIProviderConfig.updateMany({
+        data: { tokensUsedToday: 0 },
+      });
+
+      // Clear the warning cache so warnings can be emitted again
+      this.tokenLimitService.clearWarningCache();
+
+      this.logger.log(
+        `Daily token reset complete. Reset ${result.count} provider(s).`
+      );
+    } catch (error) {
+      this.logger.error('Failed to reset daily tokens', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clean up old usage records (older than 90 days)
+   * Runs weekly on Sunday at 02:00 UTC
+   */
+  @Cron('0 2 * * 0')
+  async cleanupOldUsageRecords(): Promise<void> {
+    this.logger.log('Starting old usage records cleanup...');
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 90);
+
+    try {
+      const result = await this.prisma.tokenUsage.deleteMany({
+        where: {
+          requestedAt: { lt: cutoffDate },
+        },
+      });
+
+      this.logger.log(
+        `Cleanup complete. Deleted ${result.count} old usage record(s).`
+      );
+    } catch (error) {
+      this.logger.error('Failed to cleanup old usage records', error);
+      throw error;
+    }
+  }
+}
+        ]]>
+      </file>
+      <notes>
+        - Use @Injectable() decorator
+        - Import Cron, CronExpression from '@nestjs/schedule'
+        - Use Logger for execution tracking
+        - Decorate methods with @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+        - Handle errors and log results
+        - Register in module providers
+      </notes>
+    </section>
+
+    <!-- ====================================== -->
+    <!-- MODULE REGISTRATION PATTERN -->
+    <!-- ====================================== -->
+
+    <section name="module-registration">
+      <description>
+        ScheduleModule is imported in ai-providers.module.ts for cron jobs.
+        VerificationModule needs to import ScheduleModule.forRoot() or ensure it's available globally.
+      </description>
+      <file path="apps/api/src/ai-providers/ai-providers.module.ts">
+        <![CDATA[
+import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
+import { CommonModule } from '../common/common.module';
+// ... other imports
+
+@Module({
+  imports: [
+    CommonModule,
+    ScheduleModule.forRoot(), // Required for @Cron decorators
+    // ... other imports
+  ],
+  providers: [
+    // ... services with @Cron decorators
+    TokenResetService,
+    ProviderHealthService,
+  ],
+  exports: [/* ... */],
+})
+export class AIProvidersModule {}
+        ]]>
+      </file>
+      <file path="apps/api/src/kb/verification/verification.module.ts">
+        <![CDATA[
+import { Module } from '@nestjs/common'
+import { CommonModule } from '../../common/common.module'
+import { EventsModule } from '../../events'
+import { VerificationService } from './verification.service'
+import { VerificationController } from './verification.controller'
+import { PageOwnerOrAdminGuard } from './guards/page-owner-or-admin.guard'
+
+@Module({
+  imports: [CommonModule, EventsModule],
+  controllers: [VerificationController],
+  providers: [VerificationService, PageOwnerOrAdminGuard],
+  exports: [VerificationService],
+})
+export class VerificationModule {}
+
+// TO BE ADDED IN KB-03.2:
+// - Import ScheduleModule
+// - Register VerificationExpiryJob as provider
+        ]]>
+      </file>
+      <notes>
+        - ScheduleModule.forRoot() can be imported per-module or globally
+        - Check if ScheduleModule already imported in app.module.ts
+        - If not, add to VerificationModule imports
+        - Register cron job class in providers array
+      </notes>
+    </section>
+
+    <!-- ====================================== -->
+    <!-- EVENT TYPES AND PAYLOADS -->
+    <!-- ====================================== -->
+
+    <section name="event-types">
+      <description>
+        Event types are defined in packages/shared/src/types/events.ts.
+        Need to add KB_PAGE_VERIFICATION_EXPIRED event type and payload.
+      </description>
+      <file path="packages/shared/src/types/events.ts">
+        <![CDATA[
+/**
+ * Common event type patterns
+ * Naming convention: {module}.{entity}.{action}
+ */
+export const EventTypes = {
+  // ... existing events ...
+
+  // KB events (bm-pm Knowledge Base)
+  KB_PAGE_CREATED: 'kb.page.created',
+  KB_PAGE_UPDATED: 'kb.page.updated',
+  KB_PAGE_DELETED: 'kb.page.deleted',
+  KB_PAGE_RESTORED: 'kb.page.restored',
+  KB_PAGE_MOVED: 'kb.page.moved',
+  KB_PAGE_LINKED_TO_PROJECT: 'kb.page.linked_to_project',
+  KB_PAGE_UNLINKED_FROM_PROJECT: 'kb.page.unlinked_from_project',
+  KB_PAGE_FAVORITED: 'kb.page.favorited',
+  KB_PAGE_UNFAVORITED: 'kb.page.unfavorited',
+  KB_PAGE_VERIFIED: 'kb.page.verified',
+  KB_PAGE_UNVERIFIED: 'kb.page.unverified',
+
+  // TO BE ADDED IN KB-03.2:
+  // KB_PAGE_VERIFICATION_EXPIRED: 'kb.page.verification_expired',
+} as const;
+
+/**
+ * KB event payloads
+ */
+export interface KBPageVerifiedPayload {
+  pageId: string;
+  workspaceId: string;
+  tenantId: string;
+  verifiedById: string;
+  verifiedAt: string;
+  verifyExpires: string | null;
+}
+
+export interface KBPageUnverifiedPayload {
+  pageId: string;
+  workspaceId: string;
+  tenantId: string;
+}
+
+// TO BE ADDED IN KB-03.2:
+// export interface KBPageVerificationExpiredPayload {
+//   pageId: string;
+//   workspaceId: string;
+//   ownerId: string;
+// }
+
+/**
+ * Event payload type mapping for type-safe event creation
+ */
+export type EventPayloadMap = {
+  // ... existing mappings ...
+
+  [EventTypes.KB_PAGE_VERIFIED]: KBPageVerifiedPayload;
+  [EventTypes.KB_PAGE_UNVERIFIED]: KBPageUnverifiedPayload;
+
+  // TO BE ADDED IN KB-03.2:
+  // [EventTypes.KB_PAGE_VERIFICATION_EXPIRED]: KBPageVerificationExpiredPayload;
+};
+        ]]>
+      </file>
+      <notes>
+        - Add KB_PAGE_VERIFICATION_EXPIRED constant to EventTypes
+        - Create KBPageVerificationExpiredPayload interface
+        - Add to EventPayloadMap type
+        - Event format: 'kb.page.verification_expired'
+      </notes>
+    </section>
+
+    <!-- ====================================== -->
+    <!-- NOTIFICATION SYSTEM INTEGRATION -->
+    <!-- ====================================== -->
+
+    <section name="notification-system">
+      <description>
+        The story spec references NotificationService for sending notifications.
+        However, notification service is not yet implemented in the codebase.
+        For KB-03.2, we will use event publishing as the notification mechanism.
+        The event can be consumed by a future notification service.
+      </description>
+      <implementation-approach>
+        1. Publish kb.page.verification_expired event with owner info
+        2. Event payload includes pageId, ownerId, pageTitle, pageSlug
+        3. Future notification service can subscribe to this event
+        4. For now, event publishing is sufficient for MVP
+      </implementation-approach>
+      <notes>
+        - NotificationService mentioned in tech spec but not implemented yet
+        - Use event publishing as notification mechanism
+        - Event consumers can be added later (email, in-app, push, etc.)
+        - Event bus infrastructure already exists
+      </notes>
+    </section>
+
+    <!-- ====================================== -->
+    <!-- STALE PAGES QUERY IMPLEMENTATION -->
+    <!-- ====================================== -->
+
+    <section name="stale-pages-query">
+      <description>
+        getStalPages method queries pages meeting stale criteria:
+        1. Expired verification (isVerified=true AND verifyExpires &lt;= now())
+        2. Not updated in 90+ days (updatedAt &lt;= now() - 90 days)
+        3. Low view count (viewCount &lt; 5)
+      </description>
+      <implementation>
+        <![CDATA[
+async getStalPages(workspaceId: string) {
+  const now = new Date();
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  const pages = await this.prisma.knowledgePage.findMany({
+    where: {
+      workspaceId,
+      deletedAt: null,
+      OR: [
+        // Expired verification
+        {
+          isVerified: true,
+          verifyExpires: { lte: now },
+        },
+        // Not updated in 90+ days
+        {
+          updatedAt: { lte: ninetyDaysAgo },
+        },
+        // Low view count (< 5 views)
+        {
+          viewCount: { lt: 5 },
+        },
+      ],
+    },
+    orderBy: { updatedAt: 'asc' },
+    include: {
+      owner: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+
+  // Annotate each page with reasons for staleness
+  return pages.map((page) => {
+    const reasons: string[] = [];
+
+    if (page.isVerified && page.verifyExpires && page.verifyExpires <= now) {
+      reasons.push('Expired verification');
+    }
+
+    if (page.updatedAt <= ninetyDaysAgo) {
+      reasons.push('Not updated in 90+ days');
+    }
+
+    if (page.viewCount < 5) {
+      reasons.push('Low view count');
+    }
+
+    return {
+      ...page,
+      reasons,
+    };
+  });
+}
+        ]]>
+      </implementation>
+      <notes>
+        - Query uses OR condition to find pages meeting any criteria
+        - Pages can have multiple reasons for being stale
+        - Results ordered by updatedAt (oldest first)
+        - Includes owner info for notification/display
+        - Excludes deleted pages
+      </notes>
+    </section>
+
+    <!-- ====================================== -->
+    <!-- APP MODULE CONFIGURATION -->
+    <!-- ====================================== -->
+
+    <section name="app-module">
+      <description>
+        Check if ScheduleModule is already imported globally in app.module.ts.
+        If not, add to VerificationModule imports.
+      </description>
+      <file path="apps/api/src/app.module.ts">
+        <![CDATA[
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
+// ... other imports
+import { KbModule } from './kb/kb.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate,
+      envFilePath: ['../../.env.local', '../../.env', '.env.local', '.env'],
+    }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('REDIS_HOST', 'localhost'),
+          port: configService.get<number>('REDIS_PORT', 6379),
+          password: configService.get<string | undefined>('REDIS_PASSWORD'),
+        },
+      }),
+    }),
+    CommonModule,
+    EventsModule,
+    AuditModule,
+    MembersModule,
+    ApprovalsModule,
+    AgentOSModule,
+    AIProvidersModule,
+    MetricsModule,
+    RealtimeModule,
+    PmModule,
+    KbModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+        ]]>
+      </file>
+      <notes>
+        - ScheduleModule NOT imported globally in app.module.ts
+        - Must import ScheduleModule.forRoot() in VerificationModule
+        - Or import ScheduleModule globally in app.module.ts (preferred)
+      </notes>
+    </section>
+
+  </technical-context>
+
+  <implementation-plan>
+
+    <task id="1">
+      <title>Add KB_PAGE_VERIFICATION_EXPIRED event type</title>
+      <files>
+        <file>packages/shared/src/types/events.ts</file>
+      </files>
+      <changes>
+        - Add KB_PAGE_VERIFICATION_EXPIRED constant to EventTypes
+        - Create KBPageVerificationExpiredPayload interface
+        - Add to EventPayloadMap type
+      </changes>
+    </task>
+
+    <task id="2">
+      <title>Create VerificationExpiryJob class</title>
+      <files>
+        <file>apps/api/src/kb/verification/verification-expiry.job.ts</file>
+      </files>
+      <changes>
+        - Import Injectable, Logger, Cron, CronExpression
+        - Inject PrismaService and EventPublisherService
+        - Implement checkExpirations method with @Cron decorator
+        - Query pages with isVerified=true AND verifyExpires &lt;= now()
+        - For each expired page:
+          * Publish kb.page.verification_expired event
+          * Create PageActivity with type VERIFICATION_EXPIRED
+        - Log execution count
+      </changes>
+    </task>
+
+    <task id="3">
+      <title>Add getStalPages method to VerificationService</title>
+      <files>
+        <file>apps/api/src/kb/verification/verification.service.ts</file>
+      </files>
+      <changes>
+        - Add getStalPages(workspaceId: string) method
+        - Query pages with OR condition (expired, old, low views)
+        - Annotate each page with reasons array
+        - Return pages with owner info
+      </changes>
+    </task>
+
+    <task id="4">
+      <title>Create GET /api/kb/stale endpoint</title>
+      <files>
+        <file>apps/api/src/kb/verification/verification.controller.ts</file>
+      </files>
+      <changes>
+        - Move controller to base path 'kb/verification'
+        - Add GET /stale endpoint
+        - Call verificationService.getStalPages(workspaceId)
+        - Add API documentation decorators
+        - Require authentication (AuthGuard, TenantGuard)
+      </changes>
+    </task>
+
+    <task id="5">
+      <title>Update VerificationModule to register cron job</title>
+      <files>
+        <file>apps/api/src/kb/verification/verification.module.ts</file>
+      </files>
+      <changes>
+        - Import ScheduleModule from '@nestjs/schedule'
+        - Add ScheduleModule.forRoot() to imports array
+        - Register VerificationExpiryJob in providers array
+        - Export VerificationExpiryJob (optional)
+      </changes>
+    </task>
+
+    <task id="6">
+      <title>Create unit tests for VerificationExpiryJob</title>
+      <files>
+        <file>apps/api/src/kb/verification/verification-expiry.job.spec.ts</file>
+      </files>
+      <changes>
+        - Test checkExpirations finds expired pages
+        - Test skips pages with verifyExpires=null
+        - Test skips deleted pages
+        - Test publishes events for expired pages
+        - Test creates PageActivity entries
+        - Test logs execution count
+      </changes>
+    </task>
+
+    <task id="7">
+      <title>Create unit tests for getStalPages</title>
+      <files>
+        <file>apps/api/src/kb/verification/verification.service.spec.ts</file>
+      </files>
+      <changes>
+        - Test returns pages with expired verification
+        - Test returns pages not updated in 90+ days
+        - Test returns pages with viewCount &lt; 5
+        - Test annotates pages with reasons array
+        - Test excludes deleted pages
+        - Test orders by updatedAt ascending
+      </changes>
+    </task>
+
+    <task id="8">
+      <title>Create integration tests for stale endpoint</title>
+      <files>
+        <file>apps/api/test/kb/verification-stale.e2e-spec.ts</file>
+      </files>
+      <changes>
+        - Test GET /api/kb/stale returns 200 with stale pages
+        - Test returns 401 when not authenticated
+        - Test includes pages with expired verification
+        - Test includes pages not updated in 90+ days
+        - Test includes pages with low view count
+        - Test each page has reasons array
+        - Test excludes deleted pages
+      </changes>
+    </task>
+
+    <task id="9">
+      <title>Update story file with implementation notes</title>
+      <files>
+        <file>docs/modules/bm-pm/stories/kb-03-2-verification-workflow.md</file>
+      </files>
+      <changes>
+        - Fill in Development Notes section
+        - Document implementation date
+        - Note key decisions
+        - Update DoD checklist
+      </changes>
+    </task>
+
+  </implementation-plan>
+
+  <database-schema>
+    <table name="knowledge_pages">
+      <description>Existing table from KB-01 with verification fields added in KB-03.1</description>
+      <columns>
+        <column name="id" type="TEXT" primary-key="true" />
+        <column name="title" type="TEXT" />
+        <column name="slug" type="TEXT" />
+        <column name="content" type="JSONB" />
+        <column name="workspace_id" type="TEXT" indexed="true" />
+        <column name="tenant_id" type="TEXT" indexed="true" />
+        <column name="owner_id" type="TEXT" />
+        <column name="parent_id" type="TEXT" nullable="true" />
+        <column name="view_count" type="INTEGER" default="0" />
+        <column name="created_at" type="TIMESTAMP" />
+        <column name="updated_at" type="TIMESTAMP" />
+        <column name="deleted_at" type="TIMESTAMP" nullable="true" />
+        <column name="is_verified" type="BOOLEAN" default="false" indexed="true" />
+        <column name="verified_at" type="TIMESTAMP" nullable="true" />
+        <column name="verified_by_id" type="TEXT" nullable="true" />
+        <column name="verify_expires" type="TIMESTAMP" nullable="true" indexed="true" />
+      </columns>
+      <notes>
+        - verify_expires indexed for fast expiration queries
+        - is_verified indexed for stale page queries
+        - viewCount used for low-engagement detection
+      </notes>
+    </table>
+
+    <table name="page_activities">
+      <description>Activity log for page events</description>
+      <columns>
+        <column name="id" type="TEXT" primary-key="true" />
+        <column name="page_id" type="TEXT" indexed="true" />
+        <column name="user_id" type="TEXT" />
+        <column name="type" type="PageActivityType" />
+        <column name="data" type="JSONB" nullable="true" />
+        <column name="created_at" type="TIMESTAMP" />
+      </columns>
+      <notes>
+        - VERIFICATION_EXPIRED type added to PageActivityType enum
+        - userId = 'system' for automated cron job actions
+      </notes>
+    </table>
+  </database-schema>
+
+  <performance-considerations>
+    <item>
+      <title>Cron job execution time</title>
+      <description>
+        Daily cron job runs at midnight UTC (low-traffic time).
+        Query uses indexes on is_verified and verify_expires.
+        Process expired pages in batches if volume is high.
+      </description>
+    </item>
+    <item>
+      <title>Stale pages query optimization</title>
+      <description>
+        Query uses OR condition which may be slow on large datasets.
+        Consider adding compound index on (is_verified, verify_expires).
+        Cache results for 5 minutes using Redis.
+        Limit result set to prevent slow queries (add pagination if needed).
+      </description>
+    </item>
+    <item>
+      <title>Event publishing</title>
+      <description>
+        Publishing events is non-blocking (async).
+        Handle failures gracefully - don't block entire job.
+        Log errors but continue processing remaining pages.
+      </description>
+    </item>
+  </performance-considerations>
+
+  <security-considerations>
+    <item>Cron job runs with system user context (userId: 'system')</item>
+    <item>Events include tenantId for proper multi-tenant routing</item>
+    <item>Stale pages endpoint filters by workspaceId (multi-tenant isolation)</item>
+    <item>Activity logs track system actions for audit trail</item>
+    <item>Only admins should access stale pages endpoint (add guard)</item>
+  </security-considerations>
+
+  <testing-strategy>
+    <unit-tests>
+      <test>VerificationExpiryJob.checkExpirations - finds pages with verifyExpires &lt;= now()</test>
+      <test>VerificationExpiryJob.checkExpirations - skips pages with verifyExpires = null</test>
+      <test>VerificationExpiryJob.checkExpirations - skips deleted pages</test>
+      <test>VerificationExpiryJob.checkExpirations - publishes kb.page.verification_expired event</test>
+      <test>VerificationExpiryJob.checkExpirations - creates PageActivity entry</test>
+      <test>VerificationExpiryJob.checkExpirations - logs count of processed pages</test>
+      <test>VerificationService.getStalPages - returns pages with expired verification</test>
+      <test>VerificationService.getStalPages - returns pages not updated in 90+ days</test>
+      <test>VerificationService.getStalPages - returns pages with viewCount &lt; 5</test>
+      <test>VerificationService.getStalPages - annotates pages with reasons array</test>
+      <test>VerificationService.getStalPages - excludes deleted pages</test>
+    </unit-tests>
+    <integration-tests>
+      <test>GET /api/kb/stale - returns 200 with stale pages array</test>
+      <test>GET /api/kb/stale - returns 401 when not authenticated</test>
+      <test>GET /api/kb/stale - includes pages with expired verification</test>
+      <test>GET /api/kb/stale - includes pages not updated in 90+ days</test>
+      <test>GET /api/kb/stale - includes pages with low view count</test>
+      <test>GET /api/kb/stale - each page has reasons array</test>
+      <test>GET /api/kb/stale - excludes deleted pages</test>
+    </integration-tests>
+  </testing-strategy>
+
+  <related-files>
+    <file path="docs/modules/bm-pm/epics/epic-kb-03-tech-spec.md">Epic technical specification</file>
+    <file path="docs/modules/bm-pm/stories/kb-03-1-verified-badge-system.md">Prerequisite story (completed)</file>
+    <file path="docs/modules/bm-pm/stories/kb-03-3-stale-content-detection.md">Next story (uses getStalPages)</file>
+    <file path="packages/db/prisma/schema.prisma">Database schema</file>
+  </related-files>
+
+</story-context>

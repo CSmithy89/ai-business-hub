@@ -41,8 +41,8 @@ describe('useNetworkStatus', () => {
     if (originalNavigatorOnLine) {
       Object.defineProperty(navigator, 'onLine', originalNavigatorOnLine)
     } else {
-       
-      delete (navigator as unknown as { onLine?: boolean }).onLine
+      // @ts-expect-error - Deleting navigator property in test cleanup
+      delete navigator.onLine
     }
   })
 })

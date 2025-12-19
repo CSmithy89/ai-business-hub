@@ -1,0 +1,1146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story>
+    <id>PM-03-3</id>
+    <title>Kanban Drag &amp; Drop</title>
+    <description>
+      Implement drag-and-drop functionality for kanban board with multi-dimensional grouping.
+      Users can drag tasks between columns to update fields (status, priority, assignee, type, phase).
+      Supports 5 grouping options with visual feedback and optimistic updates.
+    </description>
+  </story>
+
+  <dependencies>
+    <library name="@dnd-kit/core" version="^6.3.1" status="installed">
+      <description>Core drag-and-drop primitives with accessibility support</description>
+    </library>
+    <library name="@dnd-kit/sortable" version="^10.0.0" status="installed">
+      <description>Sortable context and utilities for vertical list sorting</description>
+    </library>
+    <library name="@dnd-kit/utilities" version="^3.2.2" status="installed">
+      <description>Transform utilities for drag animations</description>
+    </library>
+  </dependencies>
+
+  <api-endpoints>
+    <endpoint>
+      <method>PATCH</method>
+      <path>/pm/tasks/:id</path>
+      <description>Update task fields (status, priority, assigneeId, type, phaseId)</description>
+      <request-body>
+        <type>UpdateTaskDto</type>
+        <fields>
+          <field name="status" type="TaskStatus" nullable="false">BACKLOG | TODO | IN_PROGRESS | REVIEW | AWAITING_APPROVAL | DONE | CANCELLED</field>
+          <field name="priority" type="TaskPriority" nullable="false">URGENT | HIGH | MEDIUM | LOW | NONE</field>
+          <field name="assigneeId" type="string" nullable="true">User or Agent ID</field>
+          <field name="type" type="TaskType" nullable="false">EPIC | STORY | TASK | SUBTASK | BUG | RESEARCH | CONTENT | AGENT_REVIEW</field>
+          <field name="phaseId" type="string" nullable="true">Phase ID from project</field>
+          <field name="assignmentType" type="AssignmentType" nullable="false">HUMAN | AGENT | HYBRID</field>
+        </fields>
+      </request-body>
+      <response>
+        <type>TaskDetailResponse</type>
+        <structure>{ data: TaskListItem &amp; { activities, parent, children, relations, labels, etc. } }</structure>
+      </response>
+    </endpoint>
+  </api-endpoints>
+
+  <existing-code>
+    <file path="apps/web/src/components/pm/views/KanbanBoardView.tsx">
+      <description>Current display-only kanban board - needs DndContext wrapper and handlers</description>
+      <code><![CDATA[
+/**
+ * Kanban Board View
+ *
+ * Story: PM-03.2 - Kanban Board Basic
+ *
+ * Main kanban board view with horizontal column layout.
+ * Groups tasks by status and displays them in columns.
+ * This is DISPLAY ONLY - drag-and-drop will be added in PM-03.3.
+ */
+
+'use client'
+
+import { useMemo } from 'react'
+import { KanbanColumn } from '../kanban/KanbanColumn'
+import { groupTasksByStatus } from '@/lib/pm/kanban-grouping'
+import type { TaskListItem } from '@/hooks/use-pm-tasks'
+
+interface KanbanBoardViewProps {
+  /** Array of tasks to display */
+  tasks: TaskListItem[]
+  /** Callback when task card is clicked */
+  onTaskClick: (taskId: string) => void
+}
+
+/**
+ * Kanban Board View Component
+ *
+ * Renders a horizontal kanban board with columns for each status:
+ * Backlog -> To Do -> In Progress -> Review -> Done
+ *
+ * Features:
+ * - Horizontal scroll layout
+ * - Task cards grouped by status
+ * - Card count in column headers
+ * - Empty state for columns with no tasks
+ * - Click card to open task detail
+ *
+ * Performance:
+ * - Uses useMemo to optimize grouping calculation
+ * - TaskCard components are memoized
+ */
+export function KanbanBoardView({ tasks, onTaskClick }: KanbanBoardViewProps) {
+  // Group tasks by status
+  const columns = useMemo(() => groupTasksByStatus(tasks), [tasks])
+
+  return (
+    <div className="h-[calc(100vh-16rem)] overflow-x-auto overflow-y-hidden">
+      <div className="flex gap-4 pb-4 h-full min-w-min">
+        {columns.map((column) => (
+          <KanbanColumn
+            key={column.id}
+            title={column.title}
+            tasks={column.tasks}
+            onTaskClick={onTaskClick}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+]]></code>
+      <modifications-needed>
+        <item>Add groupBy prop and projectId prop</item>
+        <item>Wrap with DndContext (sensors, collision detection, handlers)</item>
+        <item>Replace groupTasksByStatus with groupTasksIntoColumns(tasks, groupBy)</item>
+        <item>Add DragOverlay for visual feedback</item>
+        <item>Implement onDragStart and onDragEnd handlers</item>
+        <item>Call useUpdatePmTask() mutation on drop</item>
+      </modifications-needed>
+    </file>
+
+    <file path="apps/web/src/components/pm/kanban/KanbanColumn.tsx">
+      <description>Column component - needs droppable hook and SortableContext</description>
+      <code><![CDATA[
+/**
+ * Kanban Column Component
+ *
+ * Story: PM-03.2 - Kanban Board Basic
+ *
+ * Single column containing task cards for one status.
+ * Displays column header with status name and count, scrollable card container,
+ * and empty state when no tasks are present.
+ */
+
+'use client'
+
+import { TaskCard } from './TaskCard'
+import type { TaskListItem } from '@/hooks/use-pm-tasks'
+
+interface KanbanColumnProps {
+  /** Display title for column */
+  title: string
+  /** Tasks in this column */
+  tasks: TaskListItem[]
+  /** Callback when task card is clicked */
+  onTaskClick: (taskId: string) => void
+}
+
+/**
+ * Kanban Column Component
+ *
+ * Renders a single status column in the kanban board with:
+ * - Header showing status name and task count
+ * - Scrollable container with task cards
+ * - Empty state message when no tasks
+ *
+ * Fixed width of 320px (w-80) to maintain consistent column layout.
+ */
+export function KanbanColumn({ title, tasks, onTaskClick }: KanbanColumnProps) {
+  return (
+    <div className="flex flex-col w-80 flex-shrink-0 bg-muted rounded-lg p-4 h-full">
+      {/* Column Header */}
+      <div className="mb-3">
+        <h3 className="text-sm font-semibold text-[rgb(var(--color-text-primary))]">
+          {title}
+          <span className="ml-2 text-[rgb(var(--color-text-secondary))] font-normal">
+            ({tasks.length})
+          </span>
+        </h3>
+      </div>
+
+      {/* Task Cards Container */}
+      <div className="flex-1 overflow-y-auto space-y-2">
+        {tasks.length > 0 ? (
+          tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              onClick={() => onTaskClick(task.id)}
+            />
+          ))
+        ) : (
+          /* Empty State */
+          <div className="py-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              No tasks in this status
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+]]></code>
+      <modifications-needed>
+        <item>Add columnId prop (for droppable ID)</item>
+        <item>Add wipLimit prop (optional number)</item>
+        <item>Add useDroppable hook with columnId</item>
+        <item>Wrap task list with SortableContext</item>
+        <item>Show WIP limit warning when exceeded (red count)</item>
+        <item>Update empty state to reference groupType dynamically</item>
+      </modifications-needed>
+    </file>
+
+    <file path="apps/web/src/components/pm/kanban/TaskCard.tsx">
+      <description>Task card component - needs sortable hook for drag behavior</description>
+      <code><![CDATA[
+/**
+ * Task Card Component
+ *
+ * Story: PM-03.2 - Kanban Board Basic
+ *
+ * Individual task card displaying task information in kanban board.
+ * Shows type icon, title, priority badge, assignee indicator, and AI badge for agent tasks.
+ */
+
+'use client'
+
+import { memo } from 'react'
+import { Sparkles, User, Bot } from 'lucide-react'
+import { Card } from '@/components/ui/card'
+import type { TaskListItem } from '@/hooks/use-pm-tasks'
+import { TASK_TYPE_META, TASK_PRIORITY_META } from '@/lib/pm/task-meta'
+import { cn } from '@/lib/utils'
+
+interface TaskCardProps {
+  /** Task data to display */
+  task: TaskListItem
+  /** Callback when card is clicked */
+  onClick: () => void
+}
+
+/**
+ * Task Card Component
+ *
+ * Displays a task card with:
+ * - Type icon and title
+ * - AI badge for agent-assigned tasks
+ * - Task number, priority badge, and assignee indicator
+ *
+ * Optimized with React.memo to prevent unnecessary re-renders.
+ */
+export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps) {
+  const typeMeta = TASK_TYPE_META[task.type]
+  const TypeIcon = typeMeta.icon
+  const priorityMeta = TASK_PRIORITY_META[task.priority]
+
+  // Determine assignee indicator
+  const isAgentAssigned = task.assignmentType === 'AGENT' || task.assignmentType === 'HYBRID'
+  const AssigneeIcon = isAgentAssigned ? Bot : User
+
+  return (
+    <Card
+      className={cn(
+        'p-3 cursor-pointer transition-all duration-200',
+        'hover:shadow-md hover:-translate-y-0.5',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-primary-500))]'
+      )}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick()
+        }
+      }}
+    >
+      {/* Top Row: Type Icon, Title, AI Badge */}
+      <div className="flex items-start gap-2 mb-2">
+        <TypeIcon
+          className={cn('h-4 w-4 shrink-0 mt-0.5', typeMeta.iconClassName)}
+          aria-hidden="true"
+        />
+        <span className="flex-1 text-sm font-medium text-[rgb(var(--color-text-primary))] line-clamp-2">
+          {task.title}
+        </span>
+        {isAgentAssigned && (
+          <Sparkles
+            className="h-4 w-4 shrink-0 text-purple-500"
+            aria-label="AI-assigned task"
+          />
+        )}
+      </div>
+
+      {/* Bottom Row: Task Number, Priority, Assignee */}
+      <div className="flex items-center gap-2 text-xs text-[rgb(var(--color-text-secondary))]">
+        <span className="font-medium">#{task.taskNumber}</span>
+        <span className="flex items-center gap-1">
+          <span
+            className={cn('h-2 w-2 rounded-full', priorityMeta.dotClassName)}
+            aria-hidden="true"
+          />
+          <span className="sr-only">{priorityMeta.label} priority</span>
+        </span>
+        <AssigneeIcon
+          className="h-3.5 w-3.5"
+          aria-label={isAgentAssigned ? 'Agent assigned' : 'Human assigned'}
+        />
+      </div>
+    </Card>
+  )
+})
+]]></code>
+      <modifications-needed>
+        <item>Add isDragging prop (optional boolean)</item>
+        <item>Add useSortable hook with task.id</item>
+        <item>Apply transform and transition styles</item>
+        <item>Add opacity-50 when dragging</item>
+        <item>Add cursor-grab and active:cursor-grabbing classes</item>
+        <item>Spread sortable attributes and listeners</item>
+      </modifications-needed>
+    </file>
+
+    <file path="apps/web/src/lib/pm/kanban-grouping.ts">
+      <description>Grouping utilities - needs extension for multi-dimensional grouping</description>
+      <code><![CDATA[
+/**
+ * Kanban Board Grouping Utilities
+ *
+ * Story: PM-03.2 - Kanban Board Basic
+ *
+ * Utilities for grouping tasks by status into kanban columns.
+ */
+
+import type { TaskListItem, TaskStatus } from '@/hooks/use-pm-tasks'
+
+export interface KanbanColumn {
+  /** Column ID (matches TaskStatus) */
+  id: string
+  /** Display title for column header */
+  title: string
+  /** Status this column represents */
+  status: TaskStatus
+  /** Tasks in this column */
+  tasks: TaskListItem[]
+}
+
+/**
+ * Status display configuration
+ */
+const STATUS_CONFIG: Array<{ status: TaskStatus; title: string }> = [
+  { status: 'BACKLOG', title: 'Backlog' },
+  { status: 'TODO', title: 'To Do' },
+  { status: 'IN_PROGRESS', title: 'In Progress' },
+  { status: 'REVIEW', title: 'Review' },
+  { status: 'DONE', title: 'Done' },
+]
+
+/**
+ * Groups tasks by status into kanban columns
+ *
+ * Returns an array of columns in logical workflow order:
+ * Backlog -> To Do -> In Progress -> Review -> Done
+ *
+ * Empty columns are included in the result to maintain column layout.
+ *
+ * @param tasks - Array of tasks to group
+ * @returns Array of kanban columns with tasks grouped by status
+ *
+ * @example
+ * const columns = groupTasksByStatus(tasks)
+ * columns.forEach(column => {
+ *   console.log(`${column.title} (${column.tasks.length})`)
+ * })
+ */
+export function groupTasksByStatus(tasks: TaskListItem[]): KanbanColumn[] {
+  // Create a map for quick lookup
+  const tasksByStatus = new Map<TaskStatus, TaskListItem[]>()
+
+  // Group tasks by status
+  tasks.forEach(task => {
+    const statusTasks = tasksByStatus.get(task.status) ?? []
+    statusTasks.push(task)
+    tasksByStatus.set(task.status, statusTasks)
+  })
+
+  // Create columns in order, including empty ones
+  return STATUS_CONFIG.map(({ status, title }) => ({
+    id: status,
+    title,
+    status,
+    tasks: tasksByStatus.get(status) ?? [],
+  }))
+}
+]]></code>
+      <modifications-needed>
+        <item>Add GroupByOption type: 'status' | 'priority' | 'assignee' | 'type' | 'phase'</item>
+        <item>Update KanbanColumn interface to include groupType and groupValue</item>
+        <item>Add wipLimit field to KanbanColumn interface</item>
+        <item>Create groupTasksIntoColumns(tasks, groupBy, wipLimits?) function</item>
+        <item>Implement groupByPriority function</item>
+        <item>Implement groupByAssignee function with "Unassigned" column</item>
+        <item>Implement groupByType function</item>
+        <item>Implement groupByPhase function with "No Phase" column</item>
+        <item>Create getUpdatePayloadFromGrouping function</item>
+      </modifications-needed>
+    </file>
+
+    <file path="apps/web/src/hooks/use-pm-tasks.ts">
+      <description>Task data hooks with update mutation</description>
+      <code><![CDATA[
+// Excerpt showing key types and useUpdatePmTask hook
+
+export type TaskType =
+  | 'EPIC'
+  | 'STORY'
+  | 'TASK'
+  | 'SUBTASK'
+  | 'BUG'
+  | 'RESEARCH'
+  | 'CONTENT'
+  | 'AGENT_REVIEW'
+
+export type TaskPriority = 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'
+
+export type TaskStatus =
+  | 'BACKLOG'
+  | 'TODO'
+  | 'IN_PROGRESS'
+  | 'REVIEW'
+  | 'AWAITING_APPROVAL'
+  | 'DONE'
+  | 'CANCELLED'
+
+export type AssignmentType = 'HUMAN' | 'AGENT' | 'HYBRID'
+
+export interface TaskListItem {
+  id: string
+  workspaceId: string
+  projectId: string
+  phaseId: string
+  taskNumber: number
+  title: string
+  description: string | null
+  type: TaskType
+  priority: TaskPriority
+  assignmentType: AssignmentType
+  assigneeId: string | null
+  agentId: string | null
+  storyPoints: number | null
+  status: TaskStatus
+  dueDate: string | null
+  startedAt: string | null
+  completedAt: string | null
+  parentId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type UpdateTaskInput = Partial<{
+  title: string
+  description: string | null
+  type: TaskType
+  status: TaskStatus
+  priority: TaskPriority
+  assigneeId: string | null
+  assignmentType: AssignmentType
+  agentId: string | null
+  dueDate: string | null
+  storyPoints: number | null
+}>
+
+export function useUpdatePmTask() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: ({ taskId, input }: { taskId: string; input: UpdateTaskInput }) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return updateTask({ workspaceId, token, taskId, input })
+    },
+    onSuccess: (result) => {
+      toast.success('Saved')
+      queryClient.invalidateQueries({ queryKey: ['pm-task', workspaceId, result.data.id] })
+      queryClient.invalidateQueries({ queryKey: ['pm-tasks', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to update task'
+      toast.error(message)
+    },
+  })
+}
+]]></code>
+      <usage>
+        <item>Import and call useUpdatePmTask() in KanbanBoardView</item>
+        <item>On drag end, call mutateAsync with taskId and updated field</item>
+        <item>Optimistic updates handled by React Query</item>
+        <item>Error rollback automatic via React Query</item>
+      </usage>
+    </file>
+
+    <file path="apps/web/src/lib/pm/view-preferences.ts">
+      <description>View preferences localStorage utilities</description>
+      <code><![CDATA[
+export interface ViewPreferences {
+  /** Visible column IDs in list view */
+  listColumns: string[]
+  /** Sort field */
+  sortBy?: string
+  /** Sort direction */
+  sortOrder?: 'asc' | 'desc'
+}
+
+/** Default column configuration for list view */
+const DEFAULT_COLUMNS = [
+  'select',
+  'taskNumber',
+  'title',
+  'status',
+  'priority',
+  'assigneeId',
+  'dueDate',
+]
+
+/**
+ * Get view preferences for a project from localStorage
+ */
+export function getViewPreferences(projectId: string): ViewPreferences {
+  if (typeof window === 'undefined') {
+    return getDefaultPreferences()
+  }
+
+  const key = `pm-view-prefs-${projectId}`
+  const stored = localStorage.getItem(key)
+
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored) as ViewPreferences
+      // Ensure all required fields exist
+      return {
+        listColumns: parsed.listColumns || DEFAULT_COLUMNS,
+        sortBy: parsed.sortBy,
+        sortOrder: parsed.sortOrder,
+      }
+    } catch {
+      return getDefaultPreferences()
+    }
+  }
+
+  return getDefaultPreferences()
+}
+
+/**
+ * Save view preferences for a project to localStorage
+ */
+export function setViewPreferences(
+  projectId: string,
+  prefs: Partial<ViewPreferences>
+): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const key = `pm-view-prefs-${projectId}`
+  const current = getViewPreferences(projectId)
+  const updated = { ...current, ...prefs }
+
+  try {
+    localStorage.setItem(key, JSON.stringify(updated))
+  } catch (error) {
+    console.error('Failed to save view preferences:', error)
+  }
+}
+]]></code>
+      <modifications-needed>
+        <item>Add kanbanGroupBy field to ViewPreferences interface</item>
+        <item>Update getDefaultPreferences to include kanbanGroupBy: 'status'</item>
+        <item>Use getViewPreferences in KanbanBoardView to load groupBy on mount</item>
+        <item>Call setViewPreferences when groupBy changes</item>
+      </modifications-needed>
+    </file>
+
+    <file path="apps/web/src/lib/pm/task-meta.ts">
+      <description>Task type and priority metadata</description>
+      <code><![CDATA[
+import type { LucideIcon } from 'lucide-react'
+import { Bot, Bug, CheckSquare, FileText, FlaskConical, Layers, ListTodo, PenLine } from 'lucide-react'
+import type { TaskPriority, TaskType } from '@/hooks/use-pm-tasks'
+
+export type TaskTypeMeta = {
+  label: string
+  icon: LucideIcon
+  iconClassName: string
+}
+
+export const TASK_TYPES: TaskType[] = [
+  'EPIC',
+  'STORY',
+  'TASK',
+  'SUBTASK',
+  'BUG',
+  'RESEARCH',
+  'CONTENT',
+  'AGENT_REVIEW',
+]
+
+export const TASK_TYPE_META: Record<TaskType, TaskTypeMeta> = {
+  EPIC: { label: 'Epic', icon: Layers, iconClassName: 'text-violet-600' },
+  STORY: { label: 'Story', icon: FileText, iconClassName: 'text-indigo-600' },
+  TASK: { label: 'Task', icon: CheckSquare, iconClassName: 'text-slate-600' },
+  SUBTASK: { label: 'Subtask', icon: ListTodo, iconClassName: 'text-slate-500' },
+  BUG: { label: 'Bug', icon: Bug, iconClassName: 'text-rose-600' },
+  RESEARCH: { label: 'Research', icon: FlaskConical, iconClassName: 'text-sky-600' },
+  CONTENT: { label: 'Content', icon: PenLine, iconClassName: 'text-emerald-600' },
+  AGENT_REVIEW: { label: 'Agent review', icon: Bot, iconClassName: 'text-amber-600' },
+}
+
+export type TaskPriorityMeta = {
+  label: string
+  dotClassName: string
+}
+
+export const TASK_PRIORITIES: TaskPriority[] = ['URGENT', 'HIGH', 'MEDIUM', 'LOW', 'NONE']
+
+export const TASK_PRIORITY_META: Record<TaskPriority, TaskPriorityMeta> = {
+  URGENT: { label: 'Urgent', dotClassName: 'bg-red-500' },
+  HIGH: { label: 'High', dotClassName: 'bg-orange-500' },
+  MEDIUM: { label: 'Medium', dotClassName: 'bg-yellow-500' },
+  LOW: { label: 'Low', dotClassName: 'bg-blue-500' },
+  NONE: { label: 'None', dotClassName: 'bg-slate-300' },
+}
+]]></code>
+      <usage>
+        <item>Use TASK_TYPE_META for type column labels</item>
+        <item>Use TASK_PRIORITY_META for priority column labels</item>
+        <item>Reference in getUpdatePayloadFromGrouping for field mapping</item>
+      </usage>
+    </file>
+  </existing-code>
+
+  <dnd-kit-reference>
+    <example-implementation source="apps/web/src/components/approval/approval-list.tsx">
+      <description>Working example of @dnd-kit in approval queue with drag reordering</description>
+      <key-patterns>
+        <pattern name="Sensors Setup">
+          <code><![CDATA[
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+  DragOverlay,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
+const DRAG_ACTIVATION_DISTANCE_PX = 8
+
+const sensors = useSensors(
+  useSensor(PointerSensor, {
+    activationConstraint: {
+      distance: DRAG_ACTIVATION_DISTANCE_PX,
+    },
+  }),
+  useSensor(KeyboardSensor, {
+    coordinateGetter: sortableKeyboardCoordinates,
+  })
+)
+]]></code>
+        </pattern>
+
+        <pattern name="DndContext Usage">
+          <code><![CDATA[
+<DndContext
+  sensors={sensors}
+  collisionDetection={closestCenter}
+  onDragStart={handleDragStart}
+  onDragEnd={handleDragEnd}
+>
+  <SortableContext
+    items={items.map(i => i.id)}
+    strategy={verticalListSortingStrategy}
+  >
+    {items.map(item => (
+      <SortableItem key={item.id} item={item} />
+    ))}
+  </SortableContext>
+
+  <DragOverlay>
+    {activeItem ? <ItemCard item={activeItem} isDragging /> : null}
+  </DragOverlay>
+</DndContext>
+]]></code>
+        </pattern>
+
+        <pattern name="Sortable Item">
+          <code><![CDATA[
+function SortableItem({ item }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <ItemCard item={item} isDragging={isDragging} />
+    </div>
+  )
+}
+]]></code>
+        </pattern>
+
+        <pattern name="Drag Handlers">
+          <code><![CDATA[
+const [activeId, setActiveId] = useState<string | null>(null)
+
+const handleDragStart = (event: DragStartEvent) => {
+  setActiveId(event.active.id as string)
+}
+
+const handleDragEnd = async (event: DragEndEvent) => {
+  const { active, over } = event
+  setActiveId(null)
+
+  if (!over || active.id === over.id) return
+
+  // Perform update
+  try {
+    await updateMutation.mutateAsync({
+      itemId: active.id,
+      newValue: over.id,
+    })
+  } catch (error) {
+    toast.error('Update failed')
+  }
+}
+]]></code>
+        </pattern>
+      </key-patterns>
+    </example-implementation>
+
+    <core-concepts>
+      <concept name="DndContext">
+        <description>Wrapper component providing drag-and-drop context to children</description>
+        <props>
+          <prop name="sensors" type="SensorDescriptor[]">Array of sensor configurations (pointer, keyboard, touch)</prop>
+          <prop name="collisionDetection" type="CollisionDetection">Algorithm for determining drag targets (closestCenter, closestCorners, etc.)</prop>
+          <prop name="onDragStart" type="(event: DragStartEvent) => void">Callback when drag begins</prop>
+          <prop name="onDragEnd" type="(event: DragEndEvent) => void">Callback when drag completes</prop>
+        </props>
+      </concept>
+
+      <concept name="useSensor">
+        <description>Hook to configure input sensors for drag detection</description>
+        <common-sensors>
+          <sensor name="PointerSensor">Mouse and touch input</sensor>
+          <sensor name="KeyboardSensor">Keyboard-based drag (accessibility)</sensor>
+        </common-sensors>
+        <activation-constraint>
+          <distance>Minimum pixels before drag starts (prevents accidental drags)</distance>
+          <delay>Minimum time before drag starts</delay>
+        </activation-constraint>
+      </concept>
+
+      <concept name="useSortable">
+        <description>Hook for making an item draggable and sortable</description>
+        <returns>
+          <return name="attributes">Accessibility attributes to spread on element</return>
+          <return name="listeners">Event listeners to spread on element</return>
+          <return name="setNodeRef">Ref callback to attach to DOM node</return>
+          <return name="transform">CSS transform for drag animation</return>
+          <return name="transition">CSS transition for smooth movement</return>
+          <return name="isDragging">Boolean indicating if this item is being dragged</return>
+        </returns>
+      </concept>
+
+      <concept name="useDroppable">
+        <description>Hook for making an area a drop target</description>
+        <returns>
+          <return name="setNodeRef">Ref callback to attach to DOM node</return>
+          <return name="isOver">Boolean indicating if dragged item is over this target</return>
+        </returns>
+      </concept>
+
+      <concept name="DragOverlay">
+        <description>Portal component for rendering drag preview</description>
+        <usage>Render the dragged item here for smooth visual feedback without layout shift</usage>
+      </concept>
+
+      <concept name="SortableContext">
+        <description>Context provider for sortable items within a list</description>
+        <props>
+          <prop name="items" type="string[]">Array of item IDs in current order</prop>
+          <prop name="strategy" type="SortingStrategy">Layout strategy (vertical, horizontal, grid)</prop>
+        </props>
+      </concept>
+    </core-concepts>
+
+    <accessibility>
+      <keyboard-navigation>
+        <key name="Space">Pick up / drop item</key>
+        <key name="Enter">Pick up / drop item</key>
+        <key name="ArrowUp/Down">Move item vertically</key>
+        <key name="ArrowLeft/Right">Move item horizontally</key>
+        <key name="Escape">Cancel drag operation</key>
+      </keyboard-navigation>
+      <screen-reader>
+        <item>Use sortableKeyboardCoordinates for keyboard sensor</item>
+        <item>DragOverlay provides live region announcements</item>
+        <item>Sortable items get aria-pressed and role attributes</item>
+      </screen-reader>
+    </accessibility>
+  </dnd-kit-reference>
+
+  <grouping-configuration>
+    <group-by-options>
+      <option value="status" default="true">
+        <label>Status</label>
+        <field>task.status</field>
+        <columns>
+          <column id="BACKLOG" title="Backlog" order="1" />
+          <column id="TODO" title="To Do" order="2" />
+          <column id="IN_PROGRESS" title="In Progress" order="3" />
+          <column id="REVIEW" title="Review" order="4" />
+          <column id="DONE" title="Done" order="5" />
+        </columns>
+        <nullable>false</nullable>
+      </option>
+
+      <option value="priority">
+        <label>Priority</label>
+        <field>task.priority</field>
+        <columns>
+          <column id="URGENT" title="Urgent" order="1" />
+          <column id="HIGH" title="High" order="2" />
+          <column id="MEDIUM" title="Medium" order="3" />
+          <column id="LOW" title="Low" order="4" />
+          <column id="NONE" title="None" order="5" />
+        </columns>
+        <nullable>false</nullable>
+      </option>
+
+      <option value="assignee">
+        <label>Assignee</label>
+        <field>task.assigneeId</field>
+        <columns>
+          <dynamic-columns>One column per unique assigneeId</dynamic-columns>
+          <column id="unassigned" title="Unassigned" order="last" represents="null" />
+        </columns>
+        <nullable>true</nullable>
+        <notes>
+          <note>Column title = user display name or agent name</note>
+          <note>Need to fetch user/agent names for display</note>
+          <note>Dragging to "Unassigned" sets assigneeId to null</note>
+        </notes>
+      </option>
+
+      <option value="type">
+        <label>Type</label>
+        <field>task.type</field>
+        <columns>
+          <column id="EPIC" title="Epic" order="1" />
+          <column id="STORY" title="Story" order="2" />
+          <column id="TASK" title="Task" order="3" />
+          <column id="SUBTASK" title="Subtask" order="4" />
+          <column id="BUG" title="Bug" order="5" />
+          <column id="RESEARCH" title="Research" order="6" />
+          <column id="CONTENT" title="Content" order="7" />
+        </columns>
+        <nullable>false</nullable>
+      </option>
+
+      <option value="phase">
+        <label>Phase</label>
+        <field>task.phaseId</field>
+        <columns>
+          <dynamic-columns>One column per phase in project</dynamic-columns>
+          <column id="no-phase" title="No Phase" order="last" represents="null" />
+        </columns>
+        <nullable>true</nullable>
+        <notes>
+          <note>Column title = phase name from project</note>
+          <note>Need to fetch phase details from project</note>
+          <note>Dragging to "No Phase" sets phaseId to null</note>
+        </notes>
+      </option>
+    </group-by-options>
+
+    <wip-limits>
+      <description>Work In Progress limits for visual warning (soft limit, not blocking)</description>
+      <storage>project.settings.wipLimits JSON field</storage>
+      <structure>
+        <example><![CDATA[
+{
+  "wipLimits": {
+    "status": {
+      "IN_PROGRESS": 5,
+      "REVIEW": 3
+    },
+    "priority": {
+      "URGENT": 2
+    },
+    "assignee": {
+      "user-id-123": 10
+    }
+  }
+}
+]]></example>
+      </structure>
+      <display>
+        <normal>Count in gray (e.g., "7")</normal>
+        <exceeded>Count in red with limit (e.g., "8 / 5" in red)</exceeded>
+      </display>
+    </wip-limits>
+  </grouping-configuration>
+
+  <implementation-approach>
+    <phase number="1" name="Core Drag-Drop">
+      <tasks>
+        <task>Wrap KanbanBoardView with DndContext</task>
+        <task>Configure PointerSensor and KeyboardSensor with 8px activation threshold</task>
+        <task>Add state for activeTaskId</task>
+        <task>Implement onDragStart handler (set activeTaskId)</task>
+        <task>Implement onDragEnd handler with useUpdatePmTask mutation</task>
+        <task>Add DragOverlay with active task card</task>
+        <task>Update KanbanColumn with useDroppable hook</task>
+        <task>Wrap column task list with SortableContext</task>
+        <task>Update TaskCard with useSortable hook</task>
+        <task>Apply CSS transforms and transitions</task>
+        <task>Add opacity-50 and cursor styles for dragging</task>
+      </tasks>
+    </phase>
+
+    <phase number="2" name="Grouping Logic">
+      <tasks>
+        <task>Extend KanbanColumn interface with groupType and groupValue</task>
+        <task>Add GroupByOption type definition</task>
+        <task>Create groupTasksIntoColumns function with switch statement</task>
+        <task>Implement groupByStatus (refactor existing)</task>
+        <task>Implement groupByPriority</task>
+        <task>Implement groupByAssignee with Unassigned column</task>
+        <task>Implement groupByType</task>
+        <task>Implement groupByPhase with No Phase column</task>
+        <task>Create getUpdatePayloadFromGrouping function</task>
+        <task>Handle null value columns (unassigned, no-phase)</task>
+      </tasks>
+    </phase>
+
+    <phase number="3" name="Group By Selector">
+      <tasks>
+        <task>Create GroupBySelector component</task>
+        <task>Add DropdownMenu with 5 grouping options</task>
+        <task>Show checkmark for selected option</task>
+        <task>Integrate selector into parent component</task>
+        <task>Position in top-right, show only when viewMode === 'kanban'</task>
+      </tasks>
+    </phase>
+
+    <phase number="4" name="Preference Persistence">
+      <tasks>
+        <task>Add kanbanGroupBy to ViewPreferences interface</task>
+        <task>Update getDefaultPreferences with kanbanGroupBy: 'status'</task>
+        <task>Load groupBy preference on KanbanBoardView mount</task>
+        <task>Save groupBy preference on change</task>
+        <task>Test persistence across page reloads</task>
+      </tasks>
+    </phase>
+
+    <phase number="5" name="WIP Limits &amp; Polish">
+      <tasks>
+        <task>Add wipLimit prop to KanbanColumn</task>
+        <task>Display count as "current / limit" when limit exists</task>
+        <task>Add red text-destructive class when count exceeds limit</task>
+        <task>Read WIP limits from project settings (placeholder hardcoded values for now)</task>
+        <task>Test visual warning with various counts</task>
+        <task>Test keyboard navigation (Space, arrows, Enter, Escape)</task>
+        <task>Verify ARIA labels and screen reader support</task>
+      </tasks>
+    </phase>
+  </implementation-approach>
+
+  <testing-strategy>
+    <unit-tests>
+      <test>groupByStatus returns correct columns in order</test>
+      <test>groupByPriority returns correct columns in order</test>
+      <test>groupByAssignee creates column for each assignee + Unassigned</test>
+      <test>groupByType returns correct columns in order</test>
+      <test>groupByPhase creates column for each phase + No Phase</test>
+      <test>getUpdatePayloadFromGrouping returns correct field for each groupBy</test>
+      <test>getUpdatePayloadFromGrouping handles null values (unassigned, no-phase)</test>
+      <test>WIP limit calculation is correct</test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>Dragging task calls PATCH /pm/tasks/:id with correct payload</test>
+      <test>Optimistic update applied immediately on drag</test>
+      <test>Rollback occurs on API error</test>
+      <test>Toast notification shown on error</test>
+      <test>Grouping preference saves to localStorage</test>
+      <test>Grouping preference loads on mount</test>
+    </integration-tests>
+
+    <e2e-tests>
+      <test>User can drag task between status columns</test>
+      <test>User can drag task between priority columns</test>
+      <test>User can drag task to "Unassigned" column</test>
+      <test>User can switch grouping via dropdown</test>
+      <test>User can see WIP limit warning (red count)</test>
+      <test>User can use keyboard to drag task (Space, arrows, Enter)</test>
+      <test>Grouping preference persists across page reload</test>
+    </e2e-tests>
+  </testing-strategy>
+
+  <edge-cases>
+    <case name="Empty Columns">
+      <description>Column with no tasks should still be droppable</description>
+      <solution>Always render column with empty state</solution>
+    </case>
+
+    <case name="Null Assignee">
+      <description>Tasks with null assigneeId need "Unassigned" column</description>
+      <solution>Create special column with id="unassigned" that sets assigneeId to null</solution>
+    </case>
+
+    <case name="Null Phase">
+      <description>Tasks with null phaseId need "No Phase" column</description>
+      <solution>Create special column with id="no-phase" that sets phaseId to null</solution>
+    </case>
+
+    <case name="Dynamic Columns">
+      <description>Assignee and Phase grouping create columns dynamically</description>
+      <solution>Extract unique assigneeIds/phaseIds from tasks, create columns, fetch display names</solution>
+    </case>
+
+    <case name="Missing User/Agent Names">
+      <description>Assignee column needs display names for users/agents</description>
+      <solution>Use placeholder "User" or "Agent" if name fetch fails, or show ID as fallback</solution>
+    </case>
+
+    <case name="API Error During Drag">
+      <description>Update fails, need to rollback optimistic update</description>
+      <solution>React Query handles rollback automatically in onError, show toast</solution>
+    </case>
+
+    <case name="Horizontal Scroll During Drag">
+      <description>Dragging near edge should auto-scroll horizontally</description>
+      <solution>@dnd-kit handles edge scrolling automatically</solution>
+    </case>
+
+    <case name="WIP Limit Display">
+      <description>Some columns have limits, some don't</description>
+      <solution>Show "X" when no limit, "X / Y" in red when exceeded</solution>
+    </case>
+  </edge-cases>
+
+  <performance-considerations>
+    <optimization name="Memoization">
+      <description>Use useMemo for groupTasksIntoColumns to prevent recalculation</description>
+    </optimization>
+
+    <optimization name="React.memo">
+      <description>TaskCard already memoized, prevents re-renders during drag</description>
+    </optimization>
+
+    <optimization name="CSS Transforms">
+      <description>Use GPU-accelerated transforms for drag animations</description>
+    </optimization>
+
+    <optimization name="Throttled Events">
+      <description>@dnd-kit throttles drag events to 16ms (60fps)</description>
+    </optimization>
+
+    <optimization name="Optimistic Updates">
+      <description>Update UI immediately without waiting for API response</description>
+    </optimization>
+
+    <target>
+      <metric>Smooth 60fps drag operation with 100 tasks</metric>
+      <metric>Initial render &lt; 500ms for 100 tasks</metric>
+      <metric>Drag start &lt; 50ms</metric>
+      <metric>Drag end + optimistic update &lt; 200ms</metric>
+    </target>
+  </performance-considerations>
+
+  <files-to-create>
+    <file path="apps/web/src/components/pm/kanban/GroupBySelector.tsx">
+      <description>Dropdown component for selecting grouping option</description>
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/web/src/components/pm/views/KanbanBoardView.tsx">
+      <description>Add DndContext, drag handlers, and groupBy support</description>
+    </file>
+    <file path="apps/web/src/components/pm/kanban/KanbanColumn.tsx">
+      <description>Add useDroppable, SortableContext, and WIP limit display</description>
+    </file>
+    <file path="apps/web/src/components/pm/kanban/TaskCard.tsx">
+      <description>Add useSortable for drag behavior</description>
+    </file>
+    <file path="apps/web/src/lib/pm/kanban-grouping.ts">
+      <description>Extend with multi-dimensional grouping functions</description>
+    </file>
+    <file path="apps/web/src/lib/pm/view-preferences.ts">
+      <description>Add kanbanGroupBy field to interface</description>
+    </file>
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/ProjectTasksContent.tsx">
+      <description>Integrate GroupBySelector and pass groupBy to KanbanBoardView</description>
+    </file>
+  </files-to-modify>
+
+  <acceptance-criteria>
+    <criterion id="AC-1">Drag task between columns updates appropriate field based on grouping</criterion>
+    <criterion id="AC-2">Visual drag feedback with semi-transparent card and drag overlay</criterion>
+    <criterion id="AC-3">Group By dropdown with 5 options and checkmark indicator</criterion>
+    <criterion id="AC-4">Status grouping shows Backlog, Todo, In Progress, Review, Done columns</criterion>
+    <criterion id="AC-5">Priority grouping shows Urgent, High, Medium, Low, None columns</criterion>
+    <criterion id="AC-6">Assignee grouping shows column per assignee + Unassigned column</criterion>
+    <criterion id="AC-7">Type grouping shows columns for each task type</criterion>
+    <criterion id="AC-8">Phase grouping shows column per phase + No Phase column</criterion>
+    <criterion id="AC-9">Dragging to Unassigned/No Phase columns clears field</criterion>
+    <criterion id="AC-10">WIP limit warning shows red count when exceeded</criterion>
+    <criterion id="AC-11">Grouping preference persists in localStorage per project</criterion>
+    <criterion id="AC-12">Keyboard accessibility (Space, arrows, Enter, Escape)</criterion>
+  </acceptance-criteria>
+
+  <related-documentation>
+    <doc path="docs/modules/bm-pm/stories/pm-03-3-kanban-drag-drop.md">Story file with full acceptance criteria</doc>
+    <doc path="docs/modules/bm-pm/epics/epic-pm-03-tech-spec.md">Tech spec for PM-03 epic</doc>
+    <doc path="docs/modules/bm-pm/PRD.md">PRD section FR-4.2 (Kanban Board)</doc>
+    <doc path="docs/modules/bm-pm/architecture.md">BM-PM module architecture</doc>
+    <doc url="https://docs.dndkit.com/">@dnd-kit official documentation</doc>
+  </related-documentation>
+</story-context>
