@@ -267,4 +267,180 @@ export class TimeTrackingService {
     const estimated = activityCount * 0.5;
     return Math.min(4, Math.round(estimated * 4) / 4);
   }
+
+  /**
+   * Calculate project velocity over time periods
+   */
+  async calculateProjectVelocity(
+    workspaceId: string,
+    projectId: string,
+    periods: number = 6, // Default last 6 sprints
+  ) {
+    // Get project start date or use first completed task date
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { createdAt: true },
+    });
+
+    const _startDate = project?.createdAt || new Date();
+    const now = new Date();
+
+    // Calculate sprint periods (2 weeks each)
+    const sprintDurationMs = 14 * 24 * 60 * 60 * 1000;
+    const velocityPeriods: any[] = [];
+
+    for (let i = 0; i < periods; i++) {
+      const periodStart = new Date(now.getTime() - (i + 1) * sprintDurationMs);
+      const periodEnd = new Date(now.getTime() - i * sprintDurationMs);
+
+      // Get completed tasks in this period
+      const tasks = await this.prisma.task.findMany({
+        where: {
+          workspaceId,
+          projectId,
+          status: 'DONE',
+          completedAt: {
+            gte: periodStart,
+            lt: periodEnd,
+          },
+        },
+        select: {
+          storyPoints: true,
+          actualHours: true,
+        },
+      });
+
+      const storyPoints = tasks.reduce(
+        (sum: number, task: any) => sum + (task.storyPoints || 0),
+        0,
+      );
+
+      const hours = tasks.reduce(
+        (sum: number, task: any) => sum + (task.actualHours || 0),
+        0,
+      );
+
+      velocityPeriods.push({
+        periodStart,
+        periodEnd,
+        storyPointsCompleted: storyPoints,
+        tasksCompleted: tasks.length,
+        hoursLogged: hours,
+      });
+    }
+
+    // Calculate averages
+    const totalPoints = velocityPeriods.reduce(
+      (sum: number, p: any) => sum + p.storyPointsCompleted,
+      0,
+    );
+    const totalHours = velocityPeriods.reduce(
+      (sum: number, p: any) => sum + p.hoursLogged,
+      0,
+    );
+
+    return {
+      currentVelocity: velocityPeriods[0]?.storyPointsCompleted || 0,
+      avgVelocity: totalPoints / periods,
+      avgHoursPerPoint: totalPoints > 0 ? totalHours / totalPoints : 0,
+      periods: velocityPeriods.reverse(), // Oldest first
+    };
+  }
+
+  /**
+   * Get velocity trends over weeks
+   */
+  async getVelocityTrends(
+    workspaceId: string,
+    projectId: string,
+    weeks: number = 12,
+  ) {
+    const now = new Date();
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    const trends: any[] = [];
+    let previousPoints = 0;
+
+    for (let i = 0; i < weeks; i++) {
+      const weekStart = new Date(now.getTime() - (i + 1) * weekMs);
+      const weekEnd = new Date(now.getTime() - i * weekMs);
+
+      // Get completed tasks in this week
+      const tasks = await this.prisma.task.findMany({
+        where: {
+          workspaceId,
+          projectId,
+          status: 'DONE',
+          completedAt: {
+            gte: weekStart,
+            lt: weekEnd,
+          },
+        },
+        select: {
+          storyPoints: true,
+        },
+      });
+
+      const pointsCompleted = tasks.reduce(
+        (sum: number, task: any) => sum + (task.storyPoints || 0),
+        0,
+      );
+
+      // Determine trend
+      let trend: 'up' | 'down' | 'stable' = 'stable';
+      if (i < weeks - 1) {
+        // Not the last (oldest) week
+        if (pointsCompleted > previousPoints) {
+          trend = 'up';
+        } else if (pointsCompleted < previousPoints) {
+          trend = 'down';
+        }
+      }
+
+      trends.push({
+        week: weeks - i,
+        weekStart,
+        weekEnd,
+        pointsCompleted,
+        trend,
+      });
+
+      previousPoints = pointsCompleted;
+    }
+
+    return trends.reverse(); // Oldest first
+  }
+
+  /**
+   * Get hours per story point average for project
+   */
+  async getHoursPerPointAverage(
+    workspaceId: string,
+    projectId: string,
+  ): Promise<number> {
+    const tasks = await this.prisma.task.findMany({
+      where: {
+        workspaceId,
+        projectId,
+        status: 'DONE',
+        storyPoints: { not: null },
+        actualHours: { gt: 0 },
+      },
+      select: {
+        storyPoints: true,
+        actualHours: true,
+      },
+    });
+
+    const totalPoints = tasks.reduce(
+      (sum: number, task: any) => sum + (task.storyPoints || 0),
+      0,
+    );
+
+    const totalHours = tasks.reduce(
+      (sum: number, task: any) => sum + (task.actualHours || 0),
+      0,
+    );
+
+    return totalPoints > 0 ? totalHours / totalPoints : 0;
+  }
 }

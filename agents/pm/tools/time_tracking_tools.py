@@ -230,3 +230,78 @@ def suggest_time_entries(
     except requests.exceptions.RequestException as e:
         print(f"Error fetching time suggestions: {e}")
         return []
+
+
+@tool
+def get_velocity(
+    project_id: str,
+    workspace_id: str,
+    periods: int = 6,
+) -> dict:
+    """
+    Get project velocity metrics over sprint periods.
+
+    Calculates team velocity based on completed story points over 2-week sprint periods.
+    Provides current velocity, average velocity, and hours per story point metrics.
+
+    Args:
+        project_id: Project ID to calculate velocity for
+        workspace_id: Workspace ID for multi-tenant scoping
+        periods: Number of 2-week sprint periods to analyze (default 6 = 12 weeks)
+
+    Returns:
+        Velocity metrics with current velocity, average, hours per point, and period details
+    """
+    try:
+        response = requests.get(
+            f"{API_URL}/api/pm/agents/time/velocity/{project_id}",
+            params={'periods': periods},
+            headers={'X-Workspace-ID': workspace_id},
+            timeout=10,
+        )
+
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching velocity: {e}")
+        return {
+            'currentVelocity': 0,
+            'avgVelocity': 0,
+            'avgHoursPerPoint': 0,
+            'periods': [],
+        }
+
+
+@tool
+def get_velocity_trend(
+    project_id: str,
+    workspace_id: str,
+    weeks: int = 12,
+) -> List[dict]:
+    """
+    Get weekly velocity trends for a project.
+
+    Analyzes story points completed each week over time to show velocity trends.
+    Trends indicate whether velocity is going up, down, or staying stable.
+
+    Args:
+        project_id: Project ID to get trends for
+        workspace_id: Workspace ID for multi-tenant scoping
+        weeks: Number of weeks to analyze (default 12)
+
+    Returns:
+        List of weekly velocity data showing points completed and trend direction
+    """
+    try:
+        response = requests.get(
+            f"{API_URL}/api/pm/agents/time/velocity/{project_id}/trends",
+            params={'weeks': weeks},
+            headers={'X-Workspace-ID': workspace_id},
+            timeout=10,
+        )
+
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching velocity trends: {e}")
+        return []

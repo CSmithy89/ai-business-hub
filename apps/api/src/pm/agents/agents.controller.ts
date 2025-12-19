@@ -742,4 +742,84 @@ export class AgentsController {
       body.userId,
     );
   }
+
+  // ============================================
+  // Velocity Calculation Endpoints (PM-04-9)
+  // ============================================
+
+  @Get('time/velocity/:projectId')
+  @ApiOperation({ summary: 'Get project velocity metrics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Project velocity calculated',
+    schema: {
+      properties: {
+        currentVelocity: {
+          type: 'number',
+          description: 'Story points in last sprint',
+        },
+        avgVelocity: {
+          type: 'number',
+          description: 'Average story points per sprint',
+        },
+        avgHoursPerPoint: {
+          type: 'number',
+          description: 'Average hours per story point',
+        },
+        periods: {
+          type: 'array',
+          items: {
+            properties: {
+              periodStart: { type: 'string', format: 'date-time' },
+              periodEnd: { type: 'string', format: 'date-time' },
+              storyPointsCompleted: { type: 'number' },
+              tasksCompleted: { type: 'number' },
+              hoursLogged: { type: 'number' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getProjectVelocity(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('projectId') projectId: string,
+    @Query('periods') periods?: string,
+  ) {
+    return this.timeTrackingService.calculateProjectVelocity(
+      workspaceId,
+      projectId,
+      periods ? parseInt(periods, 10) : 6,
+    );
+  }
+
+  @Get('time/velocity/:projectId/trends')
+  @ApiOperation({ summary: 'Get weekly velocity trends' })
+  @ApiResponse({
+    status: 200,
+    description: 'Velocity trends retrieved',
+    schema: {
+      type: 'array',
+      items: {
+        properties: {
+          week: { type: 'number' },
+          weekStart: { type: 'string', format: 'date-time' },
+          weekEnd: { type: 'string', format: 'date-time' },
+          pointsCompleted: { type: 'number' },
+          trend: { type: 'string', enum: ['up', 'down', 'stable'] },
+        },
+      },
+    },
+  })
+  async getVelocityTrends(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('projectId') projectId: string,
+    @Query('weeks') weeks?: string,
+  ) {
+    return this.timeTrackingService.getVelocityTrends(
+      workspaceId,
+      projectId,
+      weeks ? parseInt(weeks, 10) : 12,
+    );
+  }
 }
