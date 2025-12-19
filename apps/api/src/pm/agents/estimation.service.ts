@@ -42,6 +42,19 @@ export interface EstimationMetrics {
   totalEstimations: number;
 }
 
+export interface CalibrationFactor {
+  factor: number;
+  confidence: number;
+  sampleSize: number;
+  averageVariance: number;
+}
+
+export interface CalibrationData {
+  overall: CalibrationFactor;
+  byTaskType: Record<string, CalibrationFactor>;
+  metrics: EstimationMetrics;
+}
+
 export interface StoryPointSuggestion {
   suggestionId: string;
   taskId: string;
@@ -86,19 +99,25 @@ export class EstimationService {
       10,
     );
 
-    // Calculate estimate using historical data or benchmarks
-    const estimate = this.calculateEstimate(dto, similarTasks);
+    // Calculate estimate using historical data or benchmarks (with calibration)
+    const estimate = await this.calculateEstimate(
+      workspaceId,
+      dto,
+      similarTasks,
+    );
 
     return estimate;
   }
 
   /**
    * Calculate estimate using historical data or industry benchmarks
+   * Now includes calibration factor from learning
    */
-  private calculateEstimate(
+  private async calculateEstimate(
+    workspaceId: string,
     dto: EstimateTaskDto,
     similarTasks: SimilarTask[],
-  ): SageEstimate {
+  ): Promise<SageEstimate> {
     let estimate: SageEstimate;
 
     if (similarTasks.length > 0) {
@@ -115,24 +134,48 @@ export class EstimationService {
           validTasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0) /
           validTasks.length;
 
-        const confidence =
-          validTasks.length >= 5 ? 'high' : ('medium' as const);
-        const confidenceScore = Math.min(
-          0.9,
-          0.6 + validTasks.length * 0.05,
-        );
-
         const complexityMultiplier = this.analyzeComplexity(
           dto.title,
           dto.description || '',
         );
 
+        // Get calibration factor for this task type
+        const calibration = await this.getCalibrationFactor(
+          workspaceId,
+          dto.projectId,
+          dto.type,
+        );
+
+        // Apply calibration only if we have enough data (5+ tasks)
+        const baseHours = avgHours * complexityMultiplier;
+        const calibratedHours =
+          calibration.sampleSize >= 5
+            ? baseHours * calibration.factor
+            : baseHours;
+
+        const confidence =
+          validTasks.length >= 5 ? 'high' : ('medium' as const);
+
+        // Adjust confidence based on calibration confidence
+        const baseConfidenceScore = Math.min(0.9, 0.6 + validTasks.length * 0.05);
+        const calibrationBonus =
+          calibration.sampleSize >= 5 ? calibration.confidence * 0.1 : 0;
+        const combinedConfidence = Math.min(
+          0.9,
+          baseConfidenceScore + calibrationBonus,
+        );
+
         estimate = {
           storyPoints: Math.round(avgPoints * complexityMultiplier),
-          estimatedHours: Math.round(avgHours * complexityMultiplier * 10) / 10,
+          estimatedHours: Math.round(calibratedHours * 10) / 10,
           confidenceLevel: confidence,
-          confidenceScore: Math.round(confidenceScore * 100) / 100,
-          basis: `Based on ${validTasks.length} similar ${dto.type} tasks in this project (avg ${avgHours.toFixed(1)}h)`,
+          confidenceScore: Math.round(combinedConfidence * 100) / 100,
+          basis: this.buildCalibrationBasis(
+            validTasks.length,
+            dto.type,
+            avgHours,
+            calibration,
+          ),
           coldStart: false,
           similarTasks: validTasks.map((t) => t.id),
           complexityFactors: this.getComplexityFactors(
@@ -420,6 +463,159 @@ export class EstimationService {
       averageAccuracy: Math.round(avgAccuracy * 100),
       totalEstimations: tasks.length,
     };
+  }
+
+  // ============================================
+  // Estimation Calibration (PM-04-7)
+  // ============================================
+
+  /**
+   * Get calibration factor for a project and task type
+   * Returns the average ratio of actual/estimated hours
+   */
+  async getCalibrationFactor(
+    workspaceId: string,
+    projectId: string,
+    taskType?: TaskType,
+  ): Promise<CalibrationFactor> {
+    const where: any = {
+      workspaceId,
+      projectId,
+      estimatedHours: { not: null, gt: 0 },
+      actualHours: { not: null, gt: 0 },
+      status: 'DONE',
+    };
+
+    if (taskType) {
+      where.type = taskType;
+    }
+
+    const tasks = await this.prisma.task.findMany({
+      where,
+      select: {
+        estimatedHours: true,
+        actualHours: true,
+        completedAt: true,
+      },
+      orderBy: { completedAt: 'desc' },
+      take: 50, // Last 50 completed tasks
+    });
+
+    if (tasks.length === 0) {
+      return {
+        factor: 1.0, // Neutral calibration
+        confidence: 0,
+        sampleSize: 0,
+        averageVariance: 0,
+      };
+    }
+
+    // Calculate weighted average (recent tasks weighted more)
+    let weightedSum = 0;
+    let totalWeight = 0;
+    let varianceSum = 0;
+
+    tasks.forEach((task, index) => {
+      const ratio = task.actualHours! / task.estimatedHours!;
+      const variance = task.actualHours! - task.estimatedHours!;
+
+      // Weight decreases linearly from 1.0 to 0.5 for older tasks
+      const weight = 1.0 - (index / tasks.length) * 0.5;
+
+      weightedSum += ratio * weight;
+      totalWeight += weight;
+      varianceSum += variance;
+    });
+
+    const calibrationFactor = weightedSum / totalWeight;
+    const averageVariance = varianceSum / tasks.length;
+
+    // Confidence increases with sample size (max 0.9)
+    const confidence = Math.min(0.9, 0.4 + (tasks.length / 50) * 0.5);
+
+    // Bound calibration factor to prevent extreme adjustments
+    const boundedFactor = Math.max(0.5, Math.min(2.0, calibrationFactor));
+
+    return {
+      factor: Math.round(boundedFactor * 100) / 100,
+      confidence: Math.round(confidence * 100) / 100,
+      sampleSize: tasks.length,
+      averageVariance: Math.round(averageVariance * 10) / 10,
+    };
+  }
+
+  /**
+   * Get calibration data by task type
+   */
+  async getCalibrationByTaskType(
+    workspaceId: string,
+    projectId: string,
+  ): Promise<Record<string, CalibrationFactor>> {
+    // Get all task types in the project that have completed tasks
+    const taskTypes = await this.prisma.task.findMany({
+      where: {
+        workspaceId,
+        projectId,
+        status: 'DONE',
+        estimatedHours: { not: null, gt: 0 },
+        actualHours: { not: null, gt: 0 },
+      },
+      select: { type: true },
+      distinct: ['type'],
+    });
+
+    const calibrationByType: Record<string, CalibrationFactor> = {};
+
+    for (const { type } of taskTypes) {
+      calibrationByType[type] = await this.getCalibrationFactor(
+        workspaceId,
+        projectId,
+        type,
+      );
+    }
+
+    return calibrationByType;
+  }
+
+  /**
+   * Get complete calibration data for a project
+   */
+  async getCalibrationData(
+    workspaceId: string,
+    projectId: string,
+  ): Promise<CalibrationData> {
+    const overall = await this.getCalibrationFactor(workspaceId, projectId);
+    const byTaskType = await this.getCalibrationByTaskType(
+      workspaceId,
+      projectId,
+    );
+    const metrics = await this.getEstimationMetrics(workspaceId, projectId);
+
+    return {
+      overall,
+      byTaskType,
+      metrics,
+    };
+  }
+
+  /**
+   * Build basis message that includes calibration info
+   */
+  private buildCalibrationBasis(
+    taskCount: number,
+    taskType: TaskType,
+    avgHours: number,
+    calibration: CalibrationFactor,
+  ): string {
+    let basis = `Based on ${taskCount} similar ${taskType} tasks (avg ${avgHours.toFixed(1)}h)`;
+
+    if (calibration.sampleSize >= 5 && Math.abs(calibration.factor - 1.0) > 0.05) {
+      const adjustment = calibration.factor > 1.0 ? 'increased' : 'decreased';
+      const percentage = Math.abs((calibration.factor - 1.0) * 100).toFixed(0);
+      basis += `. Calibrated ${adjustment} by ${percentage}% based on ${calibration.sampleSize} completed tasks`;
+    }
+
+    return basis;
   }
 
   // ============================================

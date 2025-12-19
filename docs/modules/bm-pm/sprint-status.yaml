@@ -109,7 +109,7 @@ development_status:
   pm-04-4-navi-chat-interface: done
   pm-04-5-sage-estimation-agent: done
   pm-04-6-sage-story-point-suggestions: done
-  pm-04-7-sage-estimation-calibration: backlog
+  pm-04-7-sage-estimation-calibration: done
   pm-04-8-chrono-time-tracking: backlog
   pm-04-9-chrono-velocity-calculation: backlog
   pm-04-retrospective: optional

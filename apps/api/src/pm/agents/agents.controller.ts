@@ -499,4 +499,54 @@ export class AgentsController {
     );
     return { success: true };
   }
+
+  // ============================================
+  // Estimation Calibration (PM-04-7)
+  // ============================================
+
+  @Get('estimation/calibration/:projectId')
+  @ApiOperation({ summary: 'Get estimation calibration data for a project' })
+  @ApiResponse({
+    status: 200,
+    description: 'Calibration data retrieved',
+    schema: {
+      properties: {
+        overall: {
+          type: 'object',
+          properties: {
+            factor: { type: 'number' },
+            confidence: { type: 'number' },
+            sampleSize: { type: 'number' },
+            averageVariance: { type: 'number' },
+          },
+        },
+        byTaskType: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            properties: {
+              factor: { type: 'number' },
+              confidence: { type: 'number' },
+              sampleSize: { type: 'number' },
+              averageVariance: { type: 'number' },
+            },
+          },
+        },
+        metrics: {
+          type: 'object',
+          properties: {
+            averageError: { type: 'number' },
+            averageAccuracy: { type: 'number' },
+            totalEstimations: { type: 'number' },
+          },
+        },
+      },
+    },
+  })
+  async getCalibrationData(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('projectId') projectId: string,
+  ) {
+    return this.estimationService.getCalibrationData(workspaceId, projectId);
+  }
 }
