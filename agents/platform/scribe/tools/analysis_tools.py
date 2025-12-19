@@ -317,9 +317,14 @@ def _extract_text_from_tiptap(content: dict) -> str:
 
     text_parts = []
     max_depth = 50  # Prevent stack overflow from malicious content
+    truncated = False
 
     def traverse(node, depth=0):
+        nonlocal truncated
         if depth > max_depth:
+            if not truncated:
+                truncated = True
+                logger.warning(f"Content truncated at depth limit ({max_depth})")
             return
         if isinstance(node, dict):
             if node.get("type") == "text":
@@ -332,4 +337,9 @@ def _extract_text_from_tiptap(content: dict) -> str:
                 traverse(item, depth + 1)
 
     traverse(content)
-    return " ".join(text_parts)
+    result = " ".join(text_parts)
+
+    if truncated:
+        result += " [... content truncated at depth limit]"
+
+    return result

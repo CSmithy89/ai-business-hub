@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../common/services/prisma.service'
 
 interface UserMentionNode {
@@ -109,6 +109,15 @@ export class MentionService {
     workspaceId: string,
     mentionedByUserId: string
   ): Promise<string[]> {
+    // Verify page exists and belongs to workspace to prevent orphaned mentions
+    const page = await this.prisma.knowledgePage.findFirst({
+      where: { id: pageId, workspaceId, deletedAt: null },
+      select: { id: true },
+    })
+    if (!page) {
+      throw new NotFoundException(`Page ${pageId} not found in workspace`)
+    }
+
     // Extract mentions from content
     const mentions = this.extractMentionsFromContent(content)
 
