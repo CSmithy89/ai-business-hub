@@ -1028,13 +1028,14 @@ model Project {
   deletedAt DateTime? @map("deleted_at")
 
   // Relations
-  business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  phases   Phase[]
-  team     ProjectTeam?
-  expenses ProjectExpense[]
-  views    SavedView[]
-  pages    ProjectPage[]
-  risks    RiskEntry[]
+  business        Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  phases          Phase[]
+  team            ProjectTeam?
+  expenses        ProjectExpense[]
+  views           SavedView[]
+  pages           ProjectPage[]
+  risks           RiskEntry[]
+  reportSchedules ReportSchedule[]
 
   @@unique([workspaceId, slug])
   @@index([workspaceId])
@@ -2061,6 +2062,43 @@ enum StakeholderType {
   TEAM_LEAD
   CLIENT
   GENERAL
+}
+
+enum ReportFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+/// ReportSchedule - Automated report generation schedule (PM-05.8)
+model ReportSchedule {
+  id              String @id @default(cuid())
+  workspaceId     String @map("workspace_id")
+  projectId       String @map("project_id")
+
+  // Schedule configuration
+  frequency       ReportFrequency
+  reportType      ReportType
+  stakeholderType StakeholderType? @map("stakeholder_type")
+  enabled         Boolean @default(true)
+
+  // Schedule tracking
+  lastRun         DateTime? @map("last_run")
+  nextRun         DateTime  @map("next_run")
+
+  // Timestamps
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project         Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([enabled, nextRun])
+  @@index([workspaceId, projectId])
+  @@map("report_schedules")
 }
 
 // ============================================
