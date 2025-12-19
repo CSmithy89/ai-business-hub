@@ -94,21 +94,28 @@ export const createMentionExtension = (options: MentionSuggestionOptions) => {
           },
 
           onUpdate(props: SuggestionProps) {
-            component.updateProps(props)
+            component?.updateProps(props)
 
-            popup[0].setProps({
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              getReferenceClientRect: props.clientRect as any,
-            })
+            // Guard against popup not being initialized (if onStart bailed early)
+            if (popup?.[0]) {
+              popup[0].setProps({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                getReferenceClientRect: props.clientRect as any,
+              })
+            }
           },
 
           onKeyDown(props: { event: KeyboardEvent }) {
             if (props.event.key === 'Escape') {
-              popup[0].hide()
-              return true
+              // Guard against popup not being initialized (if onStart bailed early)
+              if (popup?.[0]) {
+                popup[0].hide()
+                return true
+              }
+              return false
             }
 
-            const ref = component.ref as { onKeyDown?: (props: { event: KeyboardEvent }) => boolean }
+            const ref = component?.ref as { onKeyDown?: (props: { event: KeyboardEvent }) => boolean } | undefined
             return ref?.onKeyDown?.(props) ?? false
           },
 
