@@ -414,8 +414,9 @@ model NotificationPreference {
   quietHoursTimezone String  @default("UTC") @map("quiet_hours_timezone")
 
   // Digest settings
-  digestEnabled   Boolean @default(false) @map("digest_enabled")
-  digestFrequency String  @default("daily") @map("digest_frequency") // daily, weekly
+  digestEnabled    Boolean   @default(false) @map("digest_enabled")
+  digestFrequency  String    @default("daily") @map("digest_frequency") // daily, weekly
+  lastDigestSentAt DateTime? @map("last_digest_sent_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

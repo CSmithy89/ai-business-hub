@@ -3,6 +3,7 @@ import { AuthGuard } from './guards/auth.guard'
 import { TenantGuard } from './guards/tenant.guard'
 import { RolesGuard } from './guards/roles.guard'
 import { PrismaService } from './services/prisma.service'
+import { EmailService } from './services/email.service'
 
 /**
  * CommonModule provides shared utilities, guards, interceptors, and filters
@@ -34,6 +35,7 @@ import { PrismaService } from './services/prisma.service'
   providers: [
     // Services
     PrismaService,
+    EmailService,
 
     // Guards
     AuthGuard,
@@ -43,6 +45,7 @@ import { PrismaService } from './services/prisma.service'
   exports: [
     // Services
     PrismaService,
+    EmailService,
 
     // Guards
     AuthGuard,

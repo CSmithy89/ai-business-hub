@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../common/services/prisma.service';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { ListNotificationsQueryDto } from './dto/list-notifications.dto';
@@ -10,11 +10,13 @@ import {
   MarkReadResponse,
   BulkOperationResponse,
   NotificationDto,
+  DigestFrequency,
 } from '@hyvve/shared';
 import { DateTime } from 'luxon';
 import { RealtimeGateway } from '../../realtime/realtime.gateway';
 import { NotificationPayload } from '../../realtime/realtime.types';
 import { Prisma } from '@prisma/client';
+import { DigestSchedulerService } from './digest-scheduler.service';
 
 @Injectable()
 export class NotificationsService {
@@ -23,6 +25,8 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtimeGateway: RealtimeGateway,
+    @Inject(forwardRef(() => DigestSchedulerService))
+    private readonly digestSchedulerService: DigestSchedulerService,
   ) {}
 
   /**
@@ -51,7 +55,7 @@ export class NotificationsService {
    */
   async updateUserPreferences(userId: string, data: UpdatePreferencesDto) {
     // Ensure preferences exist
-    await this.getUserPreferences(userId);
+    const oldPreferences = await this.getUserPreferences(userId);
 
     const updated = await this.prisma.notificationPreference.update({
       where: { userId },
@@ -59,7 +63,56 @@ export class NotificationsService {
     });
 
     this.logger.log(`Updated notification preferences for user ${userId}`);
+
+    // Handle digest preference changes
+    await this.handleDigestPreferenceChanges(userId, oldPreferences, data);
+
     return updated;
+  }
+
+  /**
+   * Handle digest preference changes
+   * Reschedules or removes digest jobs as needed
+   */
+  private async handleDigestPreferenceChanges(
+    userId: string,
+    oldPreferences: any,
+    updates: UpdatePreferencesDto
+  ): Promise<void> {
+    // Check if digest-related preferences changed
+    const digestChanged =
+      updates.digestEnabled !== undefined ||
+      updates.digestFrequency !== undefined ||
+      updates.quietHoursTimezone !== undefined;
+
+    if (!digestChanged) {
+      return; // No digest changes
+    }
+
+    // Get final state after updates
+    const digestEnabled = updates.digestEnabled ?? oldPreferences.digestEnabled;
+    const digestFrequency = (updates.digestFrequency ?? oldPreferences.digestFrequency) as DigestFrequency;
+    const quietHoursTimezone = updates.quietHoursTimezone ?? oldPreferences.quietHoursTimezone;
+
+    try {
+      if (digestEnabled) {
+        // Schedule or reschedule digest job
+        await this.digestSchedulerService.rescheduleUserDigest(
+          userId,
+          quietHoursTimezone,
+          digestFrequency
+        );
+        this.logger.log(`Scheduled digest for user ${userId}`);
+      } else {
+        // Remove digest job
+        await this.digestSchedulerService.removeUserDigest(userId);
+        this.logger.log(`Removed digest for user ${userId}`);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error handling digest preference change for user ${userId}: ${errorMessage}`);
+      // Don't throw - preference update should succeed even if scheduling fails
+    }
   }
 
   /**

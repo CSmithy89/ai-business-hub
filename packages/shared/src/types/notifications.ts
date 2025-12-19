@@ -152,3 +152,37 @@ export interface NotificationFilters {
   read?: boolean;
   workspaceId?: string;
 }
+
+/**
+ * Digest notification group - notifications grouped by type within a project
+ */
+export interface DigestTypeGroup {
+  type: PMNotificationType;
+  count: number;
+  notifications: NotificationDto[];
+}
+
+/**
+ * Digest notification group - grouped notifications by project and type
+ */
+export interface DigestNotificationGroup {
+  projectId: string;
+  projectName: string;
+  groups: DigestTypeGroup[];
+}
+
+/**
+ * Digest email data - data passed to email template
+ */
+export interface DigestEmailData {
+  userName: string;
+  totalCount: number;
+  dateRange: {
+    from: string;
+    to: string;
+  };
+  projectGroups: DigestNotificationGroup[];
+  viewAllUrl: string;
+  managePreferencesUrl: string;
+  unsubscribeUrl: string;
+}

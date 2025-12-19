@@ -141,7 +141,7 @@ development_status:
   pm-06-3-real-time-kanban: done
   pm-06-4-notification-preferences: done
   pm-06-5-in-app-notifications: done
-  pm-06-6-email-digest-notifications: backlog
+  pm-06-6-email-digest-notifications: done
   pm-06-retrospective: optional
 
   # ===========================================

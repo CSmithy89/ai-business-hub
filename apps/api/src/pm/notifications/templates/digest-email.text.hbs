@@ -1,0 +1,37 @@
+==============================================
+Your Digest
+{{dateRange.to}}
+==============================================
+
+Hi {{userName}},
+
+You have {{totalCount}} unread notifications from {{projectGroups.length}} projects.
+
+{{#each projectGroups}}
+----------------------------------------------
+
+PROJECT: {{projectName}}
+
+{{#each groups}}
+  {{formatType type}} ({{count}})
+  {{#each notifications}}
+  - {{title}}
+    {{#if message}}{{message}}{{/if}}
+    {{timeAgo createdAt}}
+    {{#if link}}[View: {{link}}]{{/if}}
+
+  {{/each}}
+{{/each}}
+{{/each}}
+
+----------------------------------------------
+
+[View All Notifications: {{viewAllUrl}}]
+
+[Manage Preferences: {{managePreferencesUrl}}]
+
+To stop receiving these digest emails, visit:
+{{unsubscribeUrl}}
+
+---
+This is an automated email from HYVVE.

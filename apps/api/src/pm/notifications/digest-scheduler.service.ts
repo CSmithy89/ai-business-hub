@@ -1,0 +1,180 @@
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { PrismaService } from '../../common/services/prisma.service';
+import { DigestFrequency } from '@hyvve/shared';
+import { DateTime } from 'luxon';
+
+/**
+ * DigestSchedulerService handles scheduling of digest jobs
+ *
+ * This service:
+ * - Schedules digest jobs for all users with digestEnabled: true
+ * - Groups users by timezone to minimize cron jobs
+ * - Reschedules jobs when user preferences change
+ */
+@Injectable()
+export class DigestSchedulerService implements OnModuleInit {
+  private readonly logger = new Logger(DigestSchedulerService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue('pm:digest') private digestQueue: Queue,
+  ) {}
+
+  /**
+   * Initialize digest scheduling on module startup
+   */
+  async onModuleInit() {
+    this.logger.log('Initializing digest scheduler...');
+    await this.scheduleAllDigests();
+    this.logger.log('Digest scheduler initialized');
+  }
+
+  /**
+   * Schedule digest jobs for all users with digestEnabled: true
+   */
+  async scheduleAllDigests(): Promise<void> {
+    try {
+      // Query all users with digestEnabled: true
+      const preferences = await this.prisma.notificationPreference.findMany({
+        where: { digestEnabled: true },
+      });
+
+      this.logger.log(`Scheduling digests for ${preferences.length} users`);
+
+      // Remove all existing digest jobs (clean slate)
+      await this.digestQueue.obliterate({ force: true });
+
+      // Schedule job for each user
+      for (const pref of preferences) {
+        await this.scheduleUserDigest(
+          pref.userId,
+          pref.quietHoursTimezone,
+          pref.digestFrequency as DigestFrequency
+        );
+      }
+
+      this.logger.log(`Scheduled ${preferences.length} digest jobs`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error scheduling digests: ${errorMessage}`, errorStack);
+      throw error;
+    }
+  }
+
+  /**
+   * Schedule digest job for a single user
+   */
+  async scheduleUserDigest(
+    userId: string,
+    timezone: string,
+    frequency: DigestFrequency
+  ): Promise<void> {
+    try {
+      // Calculate cron expression for user's timezone
+      const cronExpression = this.getCronExpressionForTimezone(timezone, frequency);
+
+      // Add repeatable job
+      await this.digestQueue.add(
+        'process-user-digest',
+        { userId },
+        {
+          repeat: {
+            pattern: cronExpression,
+          },
+          jobId: `digest-${userId}`, // Prevents duplicates
+          removeOnComplete: 100,
+          removeOnFail: 500,
+        }
+      );
+
+      this.logger.debug(
+        `Scheduled ${frequency} digest for user ${userId} at ${cronExpression} (timezone: ${timezone})`
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error scheduling digest for user ${userId}: ${errorMessage}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove digest job for a user (when digest is disabled)
+   */
+  async removeUserDigest(userId: string): Promise<void> {
+    try {
+      // Remove repeatable job
+      await this.digestQueue.removeRepeatableByKey(`digest-${userId}`);
+
+      this.logger.debug(`Removed digest job for user ${userId}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(`Error removing digest for user ${userId}: ${errorMessage}`);
+      // Don't throw - it's okay if job doesn't exist
+    }
+  }
+
+  /**
+   * Reschedule digest job for a user (when preferences change)
+   */
+  async rescheduleUserDigest(
+    userId: string,
+    timezone: string,
+    frequency: DigestFrequency
+  ): Promise<void> {
+    try {
+      // Remove existing job
+      await this.removeUserDigest(userId);
+
+      // Schedule new job
+      await this.scheduleUserDigest(userId, timezone, frequency);
+
+      this.logger.log(
+        `Rescheduled digest for user ${userId} to ${frequency} at timezone ${timezone}`
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error rescheduling digest for user ${userId}: ${errorMessage}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Convert user's timezone to cron expression for 9:00 AM
+   *
+   * @param timezone - IANA timezone (e.g., "America/Los_Angeles")
+   * @param frequency - Daily or weekly
+   * @returns Cron expression (UTC-based)
+   */
+  getCronExpressionForTimezone(timezone: string, frequency: DigestFrequency): string {
+    try {
+      // Calculate UTC offset for 9 AM in user's timezone
+      const userTime = DateTime.now().setZone(timezone).set({ hour: 9, minute: 0, second: 0 });
+      const utcTime = userTime.toUTC();
+      const utcHour = utcTime.hour;
+      const utcMinute = utcTime.minute;
+
+      if (frequency === 'daily') {
+        // Daily at 9 AM user time (converted to UTC)
+        return `${utcMinute} ${utcHour} * * *`;
+      } else {
+        // Weekly on Monday at 9 AM user time (converted to UTC)
+        return `${utcMinute} ${utcHour} * * 1`;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Error calculating cron expression for timezone ${timezone}: ${errorMessage}`
+      );
+
+      // Fallback to UTC 9 AM
+      if (frequency === 'daily') {
+        return '0 9 * * *';
+      } else {
+        return '0 9 * * 1';
+      }
+    }
+  }
+}
