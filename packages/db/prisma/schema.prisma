@@ -2017,28 +2017,30 @@ model TimeEntry {
 
 /// Report - Generated project reports for status, health, and progress
 model Report {
-  id          String @id @default(cuid())
-  workspaceId String @map("workspace_id")
-  projectId   String @map("project_id")
+  id              String @id @default(cuid())
+  workspaceId     String @map("workspace_id")
+  projectId       String @map("project_id")
 
   // Report details
-  type   ReportType
-  title  String
-  content Json // Structured report content
+  type            ReportType
+  stakeholderType StakeholderType? @map("stakeholder_type")
+  title           String
+  content         Json // Structured report content
 
   // Generation metadata
-  generatedBy String   @map("generated_by") // User ID or 'herald_agent'
-  generatedAt DateTime @default(now()) @map("generated_at")
+  generatedBy     String   @map("generated_by") // User ID or 'herald_agent'
+  generatedAt     DateTime @default(now()) @map("generated_at")
 
   // Format
-  format ReportFormat @default(MARKDOWN)
+  format          ReportFormat @default(MARKDOWN)
 
   // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt       DateTime @default(now()) @map("created_at")
 
   @@index([workspaceId, projectId])
   @@index([projectId, generatedAt])
   @@index([type])
+  @@index([stakeholderType])
   @@map("reports")
 }
 
@@ -2052,6 +2054,13 @@ enum ReportType {
 enum ReportFormat {
   MARKDOWN
   JSON
+}
+
+enum StakeholderType {
+  EXECUTIVE
+  TEAM_LEAD
+  CLIENT
+  GENERAL
 }
 
 // ============================================

@@ -343,3 +343,259 @@ def get_report_history(
                 "reports": [],
                 "total": 0
             }
+
+
+@tool
+def generate_executive_report(
+    project_id: str,
+    workspace_id: str,
+    report_type: str = "PROJECT_STATUS",
+    format: str = "MARKDOWN"
+) -> Dict[str, Any]:
+    """
+    Generate an executive summary report with high-level metrics and strategic focus.
+
+    This report is optimized for executives and senior stakeholders:
+    - High-level overview with key metrics (completion %, timeline, health)
+    - Strategic focus on outcomes, ROI, and business impact
+    - Minimal technical jargon
+    - Executive-level recommendations
+    - One-page summary format
+
+    Args:
+        project_id: ID of the project to report on
+        workspace_id: Workspace/tenant identifier
+        report_type: Type of report - "PROJECT_STATUS", "HEALTH_REPORT", or "PROGRESS_REPORT" (default: PROJECT_STATUS)
+        format: Report format - "MARKDOWN" or "JSON" (default: MARKDOWN)
+
+    Returns:
+        Dict containing the generated report:
+        {
+            "report": {
+                "id": string,
+                "projectId": string,
+                "type": string,
+                "stakeholderType": "EXECUTIVE",
+                "title": string,
+                "content": {
+                    "summary": string,
+                    "sections": [
+                        {
+                            "heading": "Executive Summary" | "Key Metrics" | "Strategic Outcomes" | "Business Impact" | "Recommendations",
+                            "content": string (markdown)
+                        }
+                    ],
+                    "metrics": {
+                        "completionPercent": number,
+                        "timelineStatus": string,
+                        "healthScore": number,
+                        "criticalRisks": number
+                    }
+                },
+                "format": string,
+                "generatedAt": string (ISO date),
+                "generatedBy": "herald_agent"
+            }
+        }
+
+    Raises:
+        httpx.HTTPStatusError: If API request fails
+    """
+    with httpx.Client(timeout=30.0) as client:
+        try:
+            response = client.post(
+                f"{API_BASE_URL}/api/pm/agents/reports/{project_id}/generate",
+                json={
+                    "type": report_type,
+                    "stakeholderType": "EXECUTIVE",
+                    "format": format
+                },
+                headers=get_auth_headers(workspace_id)
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Failed to generate executive report: {e.response.text}")
+            return {
+                "error": f"HTTP {e.response.status_code}",
+                "message": str(e),
+                "report": None
+            }
+        except Exception as e:
+            logger.error(f"Error generating executive report: {str(e)}")
+            return {
+                "error": "Request failed",
+                "message": str(e),
+                "report": None
+            }
+
+
+@tool
+def generate_team_lead_report(
+    project_id: str,
+    workspace_id: str,
+    report_type: str = "PROGRESS_REPORT",
+    format: str = "MARKDOWN"
+) -> Dict[str, Any]:
+    """
+    Generate a detailed team lead report with tasks, blockers, and technical information.
+
+    This report is optimized for team leads and project managers:
+    - Detailed task breakdown by team member
+    - Active blockers with context and dependencies
+    - Sprint/phase progress with velocity metrics
+    - Resource allocation and capacity
+    - Technical details preserved
+    - Actionable items highlighted
+
+    Args:
+        project_id: ID of the project to report on
+        workspace_id: Workspace/tenant identifier
+        report_type: Type of report - "PROJECT_STATUS", "HEALTH_REPORT", or "PROGRESS_REPORT" (default: PROGRESS_REPORT)
+        format: Report format - "MARKDOWN" or "JSON" (default: MARKDOWN)
+
+    Returns:
+        Dict containing the generated report:
+        {
+            "report": {
+                "id": string,
+                "projectId": string,
+                "type": string,
+                "stakeholderType": "TEAM_LEAD",
+                "title": string,
+                "content": {
+                    "summary": string,
+                    "sections": [
+                        {
+                            "heading": "Sprint Overview" | "Team Velocity" | "Active Tasks" | "Blockers" | "Capacity Planning" | "Technical Notes",
+                            "content": string (markdown)
+                        }
+                    ],
+                    "metrics": {
+                        "velocity": number,
+                        "inProgressTasks": number,
+                        "blockedTasks": number,
+                        "teamCapacity": number
+                    }
+                },
+                "format": string,
+                "generatedAt": string (ISO date),
+                "generatedBy": "herald_agent"
+            }
+        }
+
+    Raises:
+        httpx.HTTPStatusError: If API request fails
+    """
+    with httpx.Client(timeout=30.0) as client:
+        try:
+            response = client.post(
+                f"{API_BASE_URL}/api/pm/agents/reports/{project_id}/generate",
+                json={
+                    "type": report_type,
+                    "stakeholderType": "TEAM_LEAD",
+                    "format": format
+                },
+                headers=get_auth_headers(workspace_id)
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Failed to generate team lead report: {e.response.text}")
+            return {
+                "error": f"HTTP {e.response.status_code}",
+                "message": str(e),
+                "report": None
+            }
+        except Exception as e:
+            logger.error(f"Error generating team lead report: {str(e)}")
+            return {
+                "error": "Request failed",
+                "message": str(e),
+                "report": None
+            }
+
+
+@tool
+def generate_client_report(
+    project_id: str,
+    workspace_id: str,
+    report_type: str = "PROJECT_STATUS",
+    format: str = "MARKDOWN"
+) -> Dict[str, Any]:
+    """
+    Generate a client-facing report with sanitized content and professional tone.
+
+    This report is optimized for clients and external stakeholders:
+    - Sanitized content (no internal team details)
+    - Focus on deliverables and milestones
+    - Progress against agreed scope
+    - Client-facing language (business outcomes)
+    - Timeline and next steps
+    - Issue resolution status (without internal details)
+
+    Args:
+        project_id: ID of the project to report on
+        workspace_id: Workspace/tenant identifier
+        report_type: Type of report - "PROJECT_STATUS", "HEALTH_REPORT", or "PROGRESS_REPORT" (default: PROJECT_STATUS)
+        format: Report format - "MARKDOWN" or "JSON" (default: MARKDOWN)
+
+    Returns:
+        Dict containing the generated report:
+        {
+            "report": {
+                "id": string,
+                "projectId": string,
+                "type": string,
+                "stakeholderType": "CLIENT",
+                "title": string,
+                "content": {
+                    "summary": string,
+                    "sections": [
+                        {
+                            "heading": "Project Overview" | "Deliverables Status" | "Milestone Progress" | "Timeline Update" | "Next Steps",
+                            "content": string (markdown)
+                        }
+                    ],
+                    "metrics": {
+                        "completionPercent": number,
+                        "milestonesCompleted": number,
+                        "recentDeliverables": number
+                    }
+                },
+                "format": string,
+                "generatedAt": string (ISO date),
+                "generatedBy": "herald_agent"
+            }
+        }
+
+    Raises:
+        httpx.HTTPStatusError: If API request fails
+    """
+    with httpx.Client(timeout=30.0) as client:
+        try:
+            response = client.post(
+                f"{API_BASE_URL}/api/pm/agents/reports/{project_id}/generate",
+                json={
+                    "type": report_type,
+                    "stakeholderType": "CLIENT",
+                    "format": format
+                },
+                headers=get_auth_headers(workspace_id)
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Failed to generate client report: {e.response.text}")
+            return {
+                "error": f"HTTP {e.response.status_code}",
+                "message": str(e),
+                "report": None
+            }
+        except Exception as e:
+            logger.error(f"Error generating client report: {str(e)}")
+            return {
+                "error": "Request failed",
+                "message": str(e),
+                "report": None
+            }
