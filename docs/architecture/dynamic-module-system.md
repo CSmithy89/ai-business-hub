@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 We are upgrading the HYVVE module system from a static, hardcoded architecture to a dynamic, intelligence-driven one.
-By combining a **React Slot Registry**, the **AG-UI Streaming Protocol**, and the **A2A (Agent-to-Agent) Discovery Protocol**, we enable AI Agents to dictate the User Interface at runtime. This allows modules (like "Brand", "PM", "CRM") to inject rich, interactive components into the application without modifying the core codebase, and allows the Orchestrator to dynamically discover which agents can contribute to the UI.
+By combining a **React Slot Registry**, the **AG-UI Streaming Protocol**, the **A2A (Agent-to-Agent) Discovery Protocol**, and the **Model Context Protocol (MCP)**, we enable AI Agents to dictate the User Interface at runtime and seamlessly interoperate with external tools. This allows modules (like "Brand", "PM", "CRM") to inject rich, interactive components into the application without modifying the core codebase, allows the Orchestrator to dynamically discover which agents can contribute to the UI, and enables agents to use external MCP tools securely.
 
 ## 2. Core Concepts
 
@@ -33,6 +33,12 @@ The **Agent-to-Agent (A2A) Protocol** acts as the "Service Mesh" for the UI. Ins
 *   **Discovery:** Agents declare their supported UI slots in their `AgentCard`.
 *   **Broadcasting:** A "Coordinator Agent" (e.g., Dashboard Agent) asks: *"Who has widgets for the 'dashboard.widgets' slot?"*
 *   **Aggregation:** The Coordinator calls the identified agents via A2A RPC, aggregates their `RenderHints`, and streams them to the frontend.
+
+### D. MCP Integration (The Universal Bridge)
+We unify our internal A2A protocol with the external **Model Context Protocol (MCP)** to create a bi-directional bridge.
+
+1.  **Client Mode (Inbound):** Agents can "consume" external MCP servers (e.g., GitHub, Brave Search, Filesystem). The `enhance_agent_with_mcp` utility dynamically injects these tools into Agno agents at runtime based on workspace configuration.
+2.  **Server Mode (Outbound):** The AgentOS exposes an MCP-compliant SSE endpoint (`/mcp/sse`). This allows external MCP clients (like Claude Desktop or IDEs) to discover and use HYVVE agents as tools.
 
 ## 3. Implementation Plan
 
@@ -94,6 +100,20 @@ The **Agent-to-Agent (A2A) Protocol** acts as the "Service Mesh" for the UI. Ins
 
 3.  **Benefit:** Installing a new module (e.g., `bm-finance`) automatically adds its widgets to the dashboard without changing the Dashboard Agent code.
 
+### Phase 5: MCP Activation (The Universal Bridge)
+
+1.  **Activate Client Mode:**
+    *   Modify `agents/main.py` (and team factories) to call `enhance_agent_with_mcp(agent, workspace_id)` during initialization.
+    *   This ensures agents actually get the tools configured in the database.
+
+2.  **Implement Server Mode (`/mcp/sse`):**
+    *   Create a new FastAPI router in `agents/mcp_server.py`.
+    *   Use `agno.tools.mcp.MCPServer` (or equivalent) to wrap the `AgentRegistry`.
+    *   Expose all registered A2A agents as MCP tools (e.g., `call_agent_branding`).
+
+3.  **UI for MCP Management:**
+    *   Update the "Settings" page in the frontend to list available MCP Presets (GitHub, Filesystem) and allow users to enter API keys.
+
 ## 4. Technical Specifications
 
 ### A. Frontend Registry
@@ -141,3 +161,4 @@ class RenderHint(BaseModel):
 1.  **Decoupling:** The Core Dashboard doesn't know about "Project Status" or "Brand Health".
 2.  **Dynamic Intelligence:** The AI decides *what* is important to show. If a project is failing, it shows a "Risk Alert". If it's new, it shows "Onboarding".
 3.  **No Rebuilds:** You can add new widgets to the Registry and Agents can start using them immediately without changing the page layout code.
+4.  **Extensibility:** Users can plug in their own data sources (GitHub, Google Drive) via standard MCP without waiting for us to build custom integrations.
