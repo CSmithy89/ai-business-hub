@@ -187,14 +187,14 @@ development_status:
   # Phase 2 | 7 stories | Verified content, AI KB management
   # FRs: KB-F5, KB-F7
   # ===========================================
-  kb-03: backlog
-  kb-03-1-verified-badge-system: backlog
-  kb-03-2-verification-workflow: backlog
-  kb-03-3-stale-content-detection: backlog
-  kb-03-4-review-cycle-triggers: backlog
-  kb-03-5-at-mentions: backlog
-  kb-03-6-hash-references: backlog
-  kb-03-7-scribe-agent-foundation: backlog
+  kb-03: contexted
+  kb-03-1-verified-badge-system: done
+  kb-03-2-verification-workflow: done
+  kb-03-3-stale-content-detection: done
+  kb-03-4-review-cycle-triggers: done
+  kb-03-5-at-mentions: done
+  kb-03-6-hash-references: done
+  kb-03-7-scribe-agent-foundation: done
   kb-03-retrospective: optional
 
   # ===========================================

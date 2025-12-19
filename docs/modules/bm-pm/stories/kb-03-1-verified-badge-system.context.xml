@@ -1,0 +1,708 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story-id="kb-03-1">
+  <metadata>
+    <title>Verified Badge System</title>
+    <epic>KB-03</epic>
+    <generated>2025-12-18</generated>
+    <story-file>docs/modules/bm-pm/stories/kb-03-1-verified-badge-system.md</story-file>
+    <tech-spec>docs/modules/bm-pm/epics/epic-kb-03-tech-spec.md</tech-spec>
+  </metadata>
+
+  <relevant-code>
+    <file path="packages/db/prisma/schema.prisma" reason="KnowledgePage model already has verification fields defined">
+      <summary>
+        The KnowledgePage model (lines 1549-1612) already includes all required verification fields:
+        - isVerified: Boolean @default(false)
+        - verifiedAt: DateTime?
+        - verifiedById: String?
+        - verifyExpires: DateTime?
+
+        These fields are already indexed and ready to use. No migration needed.
+      </summary>
+    </file>
+
+    <file path="apps/api/src/kb/pages/pages.service.ts" reason="Existing KB page service patterns">
+      <summary>
+        Current PagesService implementation shows:
+        - Uses PrismaService for database access
+        - Implements EventPublisherService for event publishing
+        - Has EmbeddingsService integration for RAG
+        - Follows pattern: validate → update → publish event → return result
+        - Example methods: create(), update(), softDelete()
+        - Event publishing format: this.eventPublisher.publish(EventTypes.KB_PAGE_*, payload)
+      </summary>
+    </file>
+
+    <file path="apps/api/src/kb/rag/rag.service.ts" reason="Current RAG implementation to enhance with verification boost">
+      <summary>
+        Current RAG query implementation:
+        - Uses pgvector for similarity search
+        - Query structure: SELECT with <=> operator for distance
+        - Calculates score as: 1 / (1 + distance)
+        - Already has tenant/workspace filtering
+        - Returns chunks with pageId, title, slug, distance, score
+
+        NEEDS ENHANCEMENT:
+        - Add JOIN to KnowledgePage for verification status
+        - Apply 1.5x boost to score when isVerified=true AND (verifyExpires IS NULL OR verifyExpires > NOW())
+        - Update score calculation to: CASE WHEN verified THEN score * 1.5 ELSE score END
+      </summary>
+    </file>
+
+    <file path="apps/api/src/kb/kb.module.ts" reason="Module structure for adding VerificationService">
+      <summary>
+        Current KB module structure:
+        - Imports: PagesModule, VersionsModule, SearchModule, RagModule, EmbeddingsModule, LinkingModule, CollabModule
+        - Providers: registered in respective modules
+        - Controllers: registered in respective modules
+
+        PATTERN TO FOLLOW:
+        - Create verification/ subdirectory with module, service, controller
+        - Import VerificationModule in kb.module.ts
+        - Follow existing module pattern (see pages/, search/, rag/)
+      </summary>
+    </file>
+
+    <file path="packages/shared/src/types/events.ts" reason="Event types definition for kb.page.verified">
+      <summary>
+        Current KB event types include:
+        - KB_PAGE_CREATED
+        - KB_PAGE_UPDATED
+        - KB_PAGE_DELETED
+
+        NEEDS ADDITION:
+        - KB_PAGE_VERIFIED
+        - KB_PAGE_UNVERIFIED
+
+        Pattern: export const KB_PAGE_VERIFIED = 'kb.page.verified' as const
+      </summary>
+    </file>
+  </relevant-code>
+
+  <database-context>
+    <current-schema>
+      KnowledgePage model (already exists):
+      - id: String @id @default(cuid())
+      - tenantId: String
+      - workspaceId: String
+      - title: String
+      - slug: String
+      - content: Json (Tiptap)
+      - contentText: String (plain text for FTS)
+      - isVerified: Boolean @default(false)
+      - verifiedAt: DateTime?
+      - verifiedById: String?
+      - verifyExpires: DateTime?
+      - ownerId: String
+      - parentId: String?
+      - viewCount: Int @default(0)
+      - createdAt: DateTime
+      - updatedAt: DateTime
+      - deletedAt: DateTime?
+
+      Indexes already exist:
+      - @@index([tenantId])
+      - @@index([workspaceId])
+      - @@index([isVerified])
+    </current-schema>
+
+    <required-changes>
+      NO DATABASE MIGRATION NEEDED - All verification fields already exist in schema.
+
+      Note: PageActivityType enum will need new values added:
+      - VERIFIED
+      - UNVERIFIED
+
+      This can be done via migration:
+      ALTER TYPE "PageActivityType" ADD VALUE 'VERIFIED';
+      ALTER TYPE "PageActivityType" ADD VALUE 'UNVERIFIED';
+    </required-changes>
+
+    <page-activity>
+      Current PageActivity model stores activity log:
+      - id: String
+      - pageId: String
+      - userId: String
+      - type: PageActivityType enum
+      - data: Json?
+      - createdAt: DateTime
+
+      For verification, create activity with:
+      - type: 'VERIFIED' or 'UNVERIFIED'
+      - data: { expiresIn: string, verifyExpires: string | null }
+    </page-activity>
+  </database-context>
+
+  <api-context>
+    <existing-patterns>
+      KB API follows NestJS standard pattern:
+
+      1. DTOs in dto/ folder with class-validator decorators
+      2. Service handles business logic
+      3. Controller handles HTTP/validation
+      4. Guards for authentication/authorization
+
+      Example from PagesService:
+      ```typescript
+      async update(id: string, dto: UpdatePageDto, userId: string) {
+        // 1. Validate input
+        const page = await this.findOne(id)
+        if (!page) throw NotFoundException()
+
+        // 2. Update database
+        const updated = await this.prisma.knowledgePage.update({
+          where: { id },
+          data: { ...dto, updatedAt: new Date() }
+        })
+
+        // 3. Publish event
+        await this.eventPublisher.publish(EventTypes.KB_PAGE_UPDATED, {
+          pageId: id,
+          workspaceId: page.workspaceId,
+          changes: dto
+        })
+
+        // 4. Return result
+        return updated
+      }
+      ```
+    </existing-patterns>
+
+    <new-endpoints>
+      POST /api/kb/pages/:id/verify
+      - DTO: VerifyPageDto { expiresIn: '30d' | '60d' | '90d' | 'never' }
+      - Guard: JwtAuthGuard (authentication)
+      - Guard: PageOwnerOrAdminGuard (authorization - check if user is page owner or workspace admin)
+      - Response: Updated KnowledgePage with verification fields
+
+      DELETE /api/kb/pages/:id/verify
+      - No body required
+      - Guard: JwtAuthGuard
+      - Guard: PageOwnerOrAdminGuard
+      - Response: Updated KnowledgePage with verification cleared
+    </new-endpoints>
+
+    <event-publishing>
+      Events to publish:
+
+      kb.page.verified:
+      {
+        pageId: string
+        workspaceId: string
+        tenantId: string
+        verifiedById: string
+        verifiedAt: string (ISO)
+        verifyExpires: string | null (ISO)
+      }
+
+      kb.page.unverified:
+      {
+        pageId: string
+        workspaceId: string
+        tenantId: string
+      }
+
+      Add to packages/shared/src/types/events.ts:
+      export const KB_PAGE_VERIFIED = 'kb.page.verified' as const
+      export const KB_PAGE_UNVERIFIED = 'kb.page.unverified' as const
+
+      Update EventTypes union type to include new events.
+    </event-publishing>
+  </api-context>
+
+  <frontend-context>
+    <existing-components>
+      KB UI structure (apps/web/src/app/(dashboard)/kb/):
+      - page.tsx - KB home/list
+      - [slug]/page.tsx - Individual page view/edit
+      - new/page.tsx - Create new page
+      - search/page.tsx - Search results
+
+      Component patterns:
+      - Use shadcn/ui components (Button, DropdownMenu, Badge)
+      - Client components marked with 'use client'
+      - Server components fetch data via API
+      - Use react-query for mutations and optimistic updates
+    </existing-components>
+
+    <new-components>
+      1. VerificationBadge.tsx
+      Location: apps/web/src/components/kb/VerificationBadge.tsx
+
+      Props:
+      ```typescript
+      interface VerificationBadgeProps {
+        page: {
+          isVerified: boolean
+          verifiedAt: string | null
+          verifyExpires: string | null
+          verifiedBy: { id: string; name: string } | null
+        }
+        canVerify: boolean // User is owner or admin
+        onVerify: (expiresIn: string) => Promise<void>
+        onUnverify: () => Promise<void>
+      }
+      ```
+
+      States:
+      - Unverified: Show "Mark as Verified" button with dropdown (if canVerify)
+      - Verified (active): Green badge with checkmark, expiry info, X button
+      - Verified (expired): Amber badge with warning, "Verification Expired" text
+
+      Styling:
+      - Use cn() helper for conditional classes
+      - Badge colors: green-100/800 for verified, amber-100/800 for expired
+      - Icons: CheckCircle, AlertTriangle, Shield from lucide-react
+      - Use DropdownMenu from shadcn/ui for expiration options
+
+      2. Integration in [slug]/page.tsx
+      - Add VerificationBadge to page header
+      - Check permissions: user.id === page.ownerId || user.role === 'ADMIN'
+      - Wire up handlers:
+        - onVerify: POST /api/kb/pages/:id/verify
+        - onUnverify: DELETE /api/kb/pages/:id/verify
+      - Use react-query useMutation for optimistic updates
+      - Show toast on success/error
+    </new-components>
+
+    <api-client>
+      Create verification API client (apps/web/src/lib/api/kb.ts):
+
+      ```typescript
+      export async function verifyPage(pageId: string, expiresIn: string) {
+        const res = await fetch(`/api/kb/pages/${pageId}/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ expiresIn }),
+          credentials: 'include'
+        })
+        if (!res.ok) throw new Error('Failed to verify page')
+        return res.json()
+      }
+
+      export async function unverifyPage(pageId: string) {
+        const res = await fetch(`/api/kb/pages/${pageId}/verify`, {
+          method: 'DELETE',
+          credentials: 'include'
+        })
+        if (!res.ok) throw new Error('Failed to unverify page')
+        return res.json()
+      }
+      ```
+    </api-client>
+  </frontend-context>
+
+  <implementation-guidance>
+    <step-by-step>
+      ## Phase 1: Backend Foundation (3-4 hours)
+
+      ### Step 1: Add Event Types
+      File: packages/shared/src/types/events.ts
+      - Add KB_PAGE_VERIFIED constant
+      - Add KB_PAGE_UNVERIFIED constant
+      - Update EventTypes union type
+      - Export new constants
+
+      ### Step 2: Add PageActivityType Enum Values
+      File: packages/db/prisma/migrations/XXX_add_verification_activity_types/migration.sql
+      - ALTER TYPE "PageActivityType" ADD VALUE 'VERIFIED'
+      - ALTER TYPE "PageActivityType" ADD VALUE 'UNVERIFIED'
+      - Run: npx prisma migrate dev --name add_verification_activity_types
+
+      ### Step 3: Create DTO
+      File: apps/api/src/kb/verification/dto/verify-page.dto.ts
+      ```typescript
+      import { IsIn } from 'class-validator'
+
+      export class VerifyPageDto {
+        @IsIn(['30d', '60d', '90d', 'never'])
+        expiresIn: '30d' | '60d' | '90d' | 'never'
+      }
+      ```
+
+      ### Step 4: Create Verification Service
+      File: apps/api/src/kb/verification/verification.service.ts
+
+      Methods:
+      - markVerified(pageId, userId, dto): Promise<KnowledgePage>
+        1. Find page (throw NotFoundException if not found)
+        2. Calculate expiration date:
+           - '30d' -> now + 30 days
+           - '60d' -> now + 60 days
+           - '90d' -> now + 90 days
+           - 'never' -> null
+        3. Update page:
+           - isVerified: true
+           - verifiedAt: new Date()
+           - verifiedById: userId
+           - verifyExpires: calculated date or null
+        4. Create PageActivity entry (type: VERIFIED)
+        5. Publish kb.page.verified event
+        6. Return updated page
+
+      - removeVerification(pageId, userId): Promise<KnowledgePage>
+        1. Find page
+        2. Update page:
+           - isVerified: false
+           - verifiedAt: null
+           - verifiedById: null
+           - verifyExpires: null
+        3. Create PageActivity entry (type: UNVERIFIED)
+        4. Publish kb.page.unverified event
+        5. Return updated page
+
+      ### Step 5: Create Verification Controller
+      File: apps/api/src/kb/verification/verification.controller.ts
+
+      Routes:
+      - POST /verify (on PagesController as sub-route)
+      - DELETE /verify
+
+      Guards:
+      - JwtAuthGuard (reuse from existing)
+      - PageOwnerOrAdminGuard (create new - check page.ownerId === user.id OR user has admin role)
+
+      ### Step 6: Create Verification Module
+      File: apps/api/src/kb/verification/verification.module.ts
+      - Import PrismaModule, EventsModule
+      - Provide VerificationService
+      - Export VerificationService (for use in other modules)
+
+      ### Step 7: Update KB Module
+      File: apps/api/src/kb/kb.module.ts
+      - Add VerificationModule to imports
+
+      ### Step 8: Enhance RAG Service
+      File: apps/api/src/kb/rag/rag.service.ts
+
+      Update query() method:
+      - Add verification boost logic in SQL query
+      - Join to KnowledgePage to get isVerified and verifyExpires
+      - Update score calculation:
+        ```sql
+        CASE
+          WHEN kp.is_verified = TRUE
+            AND (kp.verify_expires IS NULL OR kp.verify_expires > NOW())
+          THEN (1 / (1 + distance)) * 1.5
+          ELSE (1 / (1 + distance))
+        END as score
+        ```
+      - Order by score DESC instead of distance ASC
+
+      ## Phase 2: Frontend Implementation (3-4 hours)
+
+      ### Step 9: Create API Client
+      File: apps/web/src/lib/api/kb.ts
+      - Add verifyPage(pageId, expiresIn) function
+      - Add unverifyPage(pageId) function
+      - Use fetch with credentials: 'include'
+      - Handle errors appropriately
+
+      ### Step 10: Create VerificationBadge Component
+      File: apps/web/src/components/kb/VerificationBadge.tsx
+
+      Implementation:
+      - Import lucide-react icons (CheckCircle, AlertTriangle, Shield, X)
+      - Import shadcn/ui (Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger)
+      - Import date-fns formatDistanceToNow for expiry display
+      - Implement three states (see frontend-context above)
+      - Use Tailwind classes for styling
+      - Add optimistic UI updates with loading states
+
+      ### Step 11: Integrate Badge in Page View
+      File: apps/web/src/app/(dashboard)/kb/[slug]/page.tsx
+
+      Changes:
+      - Import VerificationBadge
+      - Add badge to page header (below title or in header actions)
+      - Check canVerify permission: currentUser.id === page.ownerId || currentUser.role === 'ADMIN'
+      - Create mutation handlers using react-query:
+        ```typescript
+        const verifyMutation = useMutation({
+          mutationFn: (expiresIn: string) => verifyPage(page.id, expiresIn),
+          onSuccess: () => {
+            queryClient.invalidateQueries(['kb-page', page.slug])
+            toast.success('Page verified')
+          },
+          onError: () => toast.error('Failed to verify page')
+        })
+        ```
+      - Wire up onVerify and onUnverify handlers
+
+      ## Phase 3: Testing (2-3 hours)
+
+      ### Step 12: Unit Tests - Backend
+      File: apps/api/src/kb/verification/verification.service.spec.ts
+
+      Test cases:
+      - markVerified sets all fields correctly
+      - markVerified calculates expiration dates for 30d/60d/90d
+      - markVerified sets null for 'never'
+      - markVerified creates PageActivity
+      - markVerified publishes event
+      - removeVerification clears all fields
+      - removeVerification creates PageActivity
+      - removeVerification publishes event
+
+      ### Step 13: Integration Tests - API
+      File: apps/api/src/kb/verification/verification.controller.spec.ts
+
+      Test cases:
+      - POST /verify returns 200 with updated page
+      - POST /verify returns 401 when not authenticated
+      - POST /verify returns 403 when not owner/admin
+      - POST /verify returns 404 when page not found
+      - DELETE /verify returns 200
+      - DELETE /verify clears verification fields
+
+      ### Step 14: Component Tests - Frontend
+      File: apps/web/src/components/kb/VerificationBadge.test.tsx
+
+      Test cases:
+      - Shows "Mark as Verified" when unverified and user has permission
+      - Does not show button when user lacks permission
+      - Shows dropdown with 4 options (30d, 60d, 90d, never)
+      - Shows verified badge with correct expiry text
+      - Shows "Never expires" when verifyExpires is null
+      - Calls onVerify with correct expiresIn
+      - Calls onUnverify when X clicked
+
+      ### Step 15: RAG Boost Tests
+      File: apps/api/src/kb/rag/rag.service.spec.ts
+
+      Test cases:
+      - Verified, non-expired pages get 1.5x boost
+      - Expired pages do NOT get boost
+      - Unverified pages do NOT get boost
+      - Boost calculation is correct (score * 1.5)
+
+      ## Phase 4: Documentation & Polish (1 hour)
+
+      ### Step 16: API Documentation
+      - Add OpenAPI/Swagger decorators to verification controller
+      - Document request/response schemas
+      - Add examples
+
+      ### Step 17: Update Story File
+      - Mark implementation tasks as complete
+      - Update DoD checklist
+      - Note any deviations from plan
+
+      ### Step 18: Final Testing
+      - Manual E2E test:
+        1. Login as page owner
+        2. Navigate to KB page
+        3. Click "Mark as Verified"
+        4. Select 90 days
+        5. Verify badge shows correctly
+        6. Check page activity log
+        7. Remove verification
+        8. Verify badge disappears
+    </step-by-step>
+
+    <code-patterns>
+      Authorization Guard Pattern:
+      ```typescript
+      // apps/api/src/kb/verification/guards/page-owner-or-admin.guard.ts
+      @Injectable()
+      export class PageOwnerOrAdminGuard implements CanActivate {
+        constructor(private prisma: PrismaService) {}
+
+        async canActivate(context: ExecutionContext): boolean {
+          const request = context.switchToHttp().getRequest()
+          const user = request.user
+          const pageId = request.params.id
+
+          const page = await this.prisma.knowledgePage.findUnique({
+            where: { id: pageId },
+            select: { ownerId: true, workspaceId: true }
+          })
+
+          if (!page) return false
+
+          // Check if user is page owner
+          if (page.ownerId === user.id) return true
+
+          // Check if user is workspace admin
+          const member = await this.prisma.workspaceMember.findUnique({
+            where: {
+              workspaceId_userId: {
+                workspaceId: page.workspaceId,
+                userId: user.id
+              }
+            },
+            select: { role: true }
+          })
+
+          return member?.role === 'ADMIN' || member?.role === 'OWNER'
+        }
+      }
+      ```
+
+      Date Calculation Pattern:
+      ```typescript
+      function calculateExpirationDate(expiresIn: string): Date | null {
+        if (expiresIn === 'never') return null
+
+        const days = parseInt(expiresIn) // '30d' -> 30
+        const expiry = new Date()
+        expiry.setDate(expiry.getDate() + days)
+        return expiry
+      }
+      ```
+
+      Event Publishing Pattern:
+      ```typescript
+      await this.eventPublisher.publish(EventTypes.KB_PAGE_VERIFIED, {
+        pageId: page.id,
+        workspaceId: page.workspaceId,
+        tenantId: page.tenantId,
+        verifiedById: userId,
+        verifiedAt: new Date().toISOString(),
+        verifyExpires: verifyExpires?.toISOString() ?? null
+      })
+      ```
+    </code-patterns>
+
+    <testing-patterns>
+      Service Unit Test Pattern:
+      ```typescript
+      describe('VerificationService', () => {
+        let service: VerificationService
+        let prisma: PrismaService
+        let eventPublisher: EventPublisherService
+
+        beforeEach(async () => {
+          const module = await Test.createTestingModule({
+            providers: [
+              VerificationService,
+              { provide: PrismaService, useValue: mockPrisma },
+              { provide: EventPublisherService, useValue: mockEventPublisher }
+            ]
+          }).compile()
+
+          service = module.get(VerificationService)
+        })
+
+        it('should mark page as verified with 90 day expiration', async () => {
+          const pageId = 'page123'
+          const userId = 'user456'
+          const dto = { expiresIn: '90d' as const }
+
+          // Arrange
+          const mockPage = { id: pageId, title: 'Test' }
+          prisma.knowledgePage.findUnique.mockResolvedValue(mockPage)
+          prisma.knowledgePage.update.mockResolvedValue({ ...mockPage, isVerified: true })
+
+          // Act
+          const result = await service.markVerified(pageId, userId, dto)
+
+          // Assert
+          expect(result.isVerified).toBe(true)
+          expect(prisma.pageActivity.create).toHaveBeenCalledWith({
+            data: {
+              pageId,
+              userId,
+              type: 'VERIFIED',
+              data: expect.objectContaining({ expiresIn: '90d' })
+            }
+          })
+          expect(eventPublisher.publish).toHaveBeenCalledWith(
+            EventTypes.KB_PAGE_VERIFIED,
+            expect.objectContaining({ pageId })
+          )
+        })
+      })
+      ```
+    </testing-patterns>
+  </implementation-guidance>
+
+  <dependencies>
+    <completed-stories>
+      - KB-01.1: Knowledge Page CRUD + API (database models, API endpoints)
+      - KB-02.6: Semantic Search + RAG (RAG service, embeddings)
+    </completed-stories>
+
+    <required-for>
+      - KB-03.2: Verification Expiration (cron job will check verifyExpires field)
+      - KB-03.3: Re-verification Workflow (uses same markVerified endpoint)
+      - KB-03.4: Stale Content Dashboard (queries isVerified + verifyExpires fields)
+    </required-for>
+
+    <external-dependencies>
+      - User/workspace RBAC system (for permission checking)
+      - EventPublisherService (for publishing events)
+      - PrismaService (for database access)
+      - shadcn/ui components (Button, DropdownMenu, Badge)
+      - date-fns (for date formatting)
+      - lucide-react (for icons)
+    </external-dependencies>
+  </dependencies>
+
+  <performance-considerations>
+    <database>
+      - Verification fields already indexed (isVerified)
+      - RAG boost calculation happens in single SQL query (no N+1)
+      - Consider adding composite index on (isVerified, verifyExpires) if slow queries detected
+    </database>
+
+    <frontend>
+      - Use optimistic updates for instant feedback
+      - Debounce verify/unverify to prevent double-clicks
+      - Cache verification status in page query (react-query)
+    </frontend>
+
+    <caching>
+      - Consider Redis cache for "verified pages list" (TTL: 10 min, invalidate on verify/unverify)
+      - RAG boost calculation should not be cached (needs real-time verification status)
+    </caching>
+  </performance-considerations>
+
+  <security-considerations>
+    <authorization>
+      - Only page owner or workspace admin can verify/unverify
+      - Implement PageOwnerOrAdminGuard for both endpoints
+      - Check workspace membership and role
+      - Prevent privilege escalation
+    </authorization>
+
+    <audit-trail>
+      - Every verification/unverification creates PageActivity record
+      - Activity log includes userId (who performed action)
+      - Event bus notifies other services of changes
+      - Verification history preserved in PageActivity table
+    </audit-trail>
+
+    <validation>
+      - Validate expiresIn is one of allowed values (30d/60d/90d/never)
+      - Prevent setting past expiration dates
+      - Validate user has permission before allowing action
+      - Return appropriate HTTP status codes (401, 403, 404)
+    </validation>
+  </security-considerations>
+
+  <notes>
+    <key-decisions>
+      - Verification fields already exist in schema (no migration needed for KB-03.1)
+      - PageActivityType enum extension required for VERIFIED/UNVERIFIED activity types
+      - RAG boost factor of 1.5x matches tech spec recommendation
+      - Expiration periods (30/60/90/never) match UX wireframe KB-05
+      - "Never" option allows permanent verification for stable content
+      - Verification state machine kept simple (verified/unverified only, no auto-unverify on expiration)
+      - Expired verification detection deferred to KB-03.2 (cron job story)
+    </key-decisions>
+
+    <deviations-from-spec>
+      None - implementation follows tech spec exactly.
+      All verification fields pre-exist in schema from KB-01/KB-02 work.
+    </deviations-from-spec>
+
+    <future-enhancements>
+      - KB-03.2: Daily cron job to detect expired verifications and notify owners
+      - KB-03.3: Re-verification workflow (reuses same verify endpoint)
+      - KB-03.4: Stale content dashboard for admins (bulk actions)
+      - Consider verification reminders (notify 7 days before expiration)
+      - Consider verification analytics (% of pages verified, avg time to re-verify)
+    </future-enhancements>
+  </notes>
+</story-context>

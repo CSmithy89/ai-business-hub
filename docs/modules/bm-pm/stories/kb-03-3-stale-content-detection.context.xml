@@ -1,0 +1,683 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-id>kb-03-3-stale-content-detection</story-id>
+  <epic>KB-03 - KB Verification & Scribe Agent</epic>
+  <title>Re-verification Workflow</title>
+  <context-date>2025-12-18</context-date>
+
+  <summary>
+    Enable page owners to easily re-verify expired pages by adding a "Re-verify" button that reuses the existing verification endpoint. Update the VerificationBadge component to show expired state with re-verification option, enhance activity logging to track re-verification metadata, and ensure pages are removed from stale list after re-verification.
+  </summary>
+
+  <prerequisites>
+    <completed>
+      <item ref="kb-03-1">Verification Badge System - DONE</item>
+      <item ref="kb-03-2">Verification Expiration - DONE</item>
+      <item>VerificationService.markVerified() endpoint - EXISTING</item>
+      <item>VerificationBadge component - EXISTING</item>
+      <item>Stale pages API endpoint - EXISTING</item>
+    </completed>
+  </prerequisites>
+
+  <technical-context>
+    <backend>
+      <service-implementation>
+        <file>apps/api/src/kb/verification/verification.service.ts</file>
+        <status>Mostly complete - needs minor enhancement for re-verification tracking</status>
+        <notes>
+          The existing markVerified() method (lines 32-102) already handles both initial verification and re-verification:
+          - Updates verifiedAt, verifiedById, verifyExpires fields
+          - Creates PageActivity entry with type 'VERIFIED'
+          - Publishes kb.page.verified event
+
+          ENHANCEMENT NEEDED:
+          - Update PageActivity data field to include isReVerification flag
+          - Add previousExpiry field to track when verification previously expired
+          - This distinguishes re-verifications from initial verifications in activity log
+        </notes>
+        <current-markVerified-logic>
+          <code><![CDATA[
+async markVerified(
+  pageId: string,
+  userId: string,
+  dto: VerifyPageDto,
+): Promise<KnowledgePage> {
+  // Find page (lines 38-50)
+  const page = await this.prisma.knowledgePage.findUnique({
+    where: { id: pageId },
+    select: {
+      id: true,
+      workspaceId: true,
+      tenantId: true,
+      deletedAt: true,
+    },
+  })
+
+  if (!page || page.deletedAt) {
+    throw new NotFoundException('Page not found')
+  }
+
+  // Calculate expiration (lines 53)
+  const verifyExpires = this.calculateExpirationDate(dto.expiresIn)
+
+  // Update page (lines 56-64)
+  const updated = await this.prisma.knowledgePage.update({
+    where: { id: pageId },
+    data: {
+      isVerified: true,
+      verifiedAt: new Date(),
+      verifiedById: userId,
+      verifyExpires,
+    },
+  })
+
+  // Log activity (lines 67-77)
+  await this.prisma.pageActivity.create({
+    data: {
+      pageId,
+      userId,
+      type: 'VERIFIED',
+      data: {
+        expiresIn: dto.expiresIn,
+        verifyExpires: verifyExpires?.toISOString() ?? null,
+        // NEED TO ADD:
+        // isReVerification: page.isVerified,
+        // previousExpiry: page.verifyExpires?.toISOString(),
+      },
+    },
+  })
+
+  // Publish event (lines 80-95)
+  await this.eventPublisher.publish(
+    EventTypes.KB_PAGE_VERIFIED,
+    { pageId, workspaceId, tenantId, verifiedById, verifiedAt, verifyExpires },
+    { tenantId, userId, source: 'kb-verification' }
+  )
+
+  return updated
+}
+          ]]></code>
+        </current-markVerified-logic>
+        <required-changes>
+          <change priority="high">
+            Update markVerified() to fetch page.isVerified and page.verifyExpires BEFORE update
+            This allows tracking if this is a re-verification and what the previous expiry was
+          </change>
+          <change priority="high">
+            Add isReVerification and previousExpiry to PageActivity.data field
+            Format: { expiresIn, verifyExpires, isReVerification: boolean, previousExpiry: string | null }
+          </change>
+        </required-changes>
+      </service-implementation>
+
+      <stale-pages-api>
+        <file>apps/api/src/kb/verification/stale.controller.ts</file>
+        <endpoint>GET /api/kb/verification/stale</endpoint>
+        <status>Complete - no changes needed</status>
+        <notes>
+          Pages are automatically removed from stale list after re-verification because:
+          - getStalPages() queries pages where verifyExpires &lt;= now()
+          - After re-verification, verifyExpires is updated to future date
+          - Page no longer matches stale criteria in next query
+        </notes>
+      </stale-pages-api>
+
+      <activity-logging-pattern>
+        <existing-pattern>
+          All KB operations log PageActivity entries:
+          - type: PageActivityType enum (VERIFIED, UNVERIFIED, etc.)
+          - data: JSON field containing operation-specific metadata
+          - userId: User who performed the action
+          - pageId: Target page reference
+        </existing-pattern>
+        <re-verification-format>
+          <code><![CDATA[
+await this.prisma.pageActivity.create({
+  data: {
+    pageId,
+    userId,
+    type: 'VERIFIED',
+    data: {
+      expiresIn: dto.expiresIn,                      // '30d', '60d', '90d', 'never'
+      verifyExpires: verifyExpires?.toISOString(),   // ISO timestamp or null
+      isReVerification: page.isVerified,             // true if page was already verified
+      previousExpiry: page.verifyExpires?.toISOString(), // Previous expiry timestamp
+    },
+  },
+})
+          ]]></code>
+        </re-verification-format>
+      </activity-logging-pattern>
+    </backend>
+
+    <frontend>
+      <verification-badge-component>
+        <file>apps/web/src/components/kb/VerificationBadge.tsx</file>
+        <status>Needs update to add re-verify button for expired pages</status>
+        <current-implementation>
+          <code><![CDATA[
+export function VerificationBadge({
+  page,
+  canVerify,
+  onVerify,
+  onUnverify,
+}: VerificationBadgeProps) {
+  const [loading, setLoading] = useState(false)
+
+  // Check if verified and expired (lines 53-59)
+  if (page.isVerified) {
+    const expiresIn = page.verifyExpires
+      ? formatDistanceToNow(new Date(page.verifyExpires), { addSuffix: false })
+      : null
+
+    const isExpired =
+      page.verifyExpires && new Date(page.verifyExpires) < new Date()
+
+    // Current rendering (lines 61-97)
+    return (
+      <div className={cn(
+        'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium',
+        isExpired
+          ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+      )}>
+        {isExpired ? <AlertTriangle /> : <CheckCircle />}
+        <span>{isExpired ? 'Verification Expired' : 'Verified'}</span>
+        {!isExpired && (
+          <span className="text-xs opacity-75">
+            {page.verifyExpires ? `Expires in ${expiresIn}` : 'Never expires'}
+          </span>
+        )}
+        {canVerify && (
+          <button onClick={handleUnverify}>
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  // Unverified state (lines 100-125)
+  if (!canVerify) return null
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" disabled={loading}>
+          <Shield className="w-4 h-4 mr-2" />
+          Mark as Verified
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleVerify('30d')}>
+          Verify for 30 days
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleVerify('60d')}>
+          Verify for 60 days
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleVerify('90d')}>
+          Verify for 90 days
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleVerify('never')}>
+          Verify permanently
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+          ]]></code>
+        </current-implementation>
+        <required-changes>
+          <change priority="high">
+            Add RefreshCw icon import from lucide-react
+            Usage: import { RefreshCw } from 'lucide-react'
+          </change>
+          <change priority="high">
+            Update expired state rendering to show "Re-verify" button
+            When: isExpired === true AND canVerify === true
+            Layout: Show expired badge + re-verify dropdown side-by-side
+          </change>
+          <change priority="medium">
+            Re-use existing dropdown menu with same expiration options
+            Same items: 30d, 60d, 90d, never
+            Same onVerify handler (calls POST /api/kb/pages/:id/verify)
+          </change>
+          <change priority="medium">
+            Update button label logic:
+            - Unverified: "Mark as Verified"
+            - Expired: "Re-verify"
+          </change>
+          <change priority="low">
+            Show expired timestamp in badge
+            Format: "Expired {distance} ago" using formatDistanceToNow
+          </change>
+        </required-changes>
+        <new-expired-rendering>
+          <code><![CDATA[
+// When page is verified AND expired AND user can verify
+if (page.isVerified && isExpired && canVerify) {
+  return (
+    <div className="flex items-center gap-2">
+      {/* Expired badge */}
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+        <AlertTriangle className="w-4 h-4" />
+        <span className="font-medium">Verification Expired</span>
+        <span className="text-xs opacity-75">
+          Expired {formatDistanceToNow(new Date(page.verifyExpires))} ago
+        </span>
+      </div>
+
+      {/* Re-verify dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" disabled={loading}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Re-verify
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => handleVerify('30d')}>
+            Verify for 30 days
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleVerify('60d')}>
+            Verify for 60 days
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleVerify('90d')}>
+            Verify for 90 days
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleVerify('never')}>
+            Verify permanently
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+          ]]></code>
+        </new-expired-rendering>
+      </verification-badge-component>
+
+      <page-activity-log-component>
+        <file>apps/web/src/components/kb/PageActivityLog.tsx</file>
+        <status>May need creation or update to display re-verification entries</status>
+        <notes>
+          This component may not exist yet. If it exists, update to show:
+          - VERIFIED activity type with timestamp
+          - Expiration period in activity details
+          - Distinguish re-verifications by showing "Re-verified" vs "Verified"
+          - Show previous expiry date for re-verifications
+        </notes>
+        <rendering-logic>
+          <code><![CDATA[
+case 'VERIFIED':
+  const isReVerification = activity.data?.isReVerification;
+  const expiresIn = activity.data?.expiresIn;
+  const previousExpiry = activity.data?.previousExpiry;
+
+  return (
+    <div className="flex items-center gap-2">
+      <CheckCircle className="w-4 h-4 text-green-600" />
+      <span>
+        {isReVerification ? 'Re-verified' : 'Verified'} by {activity.user.name}
+      </span>
+      <span className="text-xs text-muted-foreground">
+        · Expires in {expiresIn === 'never' ? 'never' : formatDuration(expiresIn)}
+      </span>
+      {isReVerification && previousExpiry && (
+        <span className="text-xs text-muted-foreground">
+          (previously expired {formatDistanceToNow(new Date(previousExpiry))} ago)
+        </span>
+      )}
+    </div>
+  );
+          ]]></code>
+        </rendering-logic>
+      </page-activity-log-component>
+
+      <stale-content-dashboard>
+        <file>apps/web/src/components/kb/StaleContentDashboard.tsx</file>
+        <status>May exist or need creation - needs optimistic update logic</status>
+        <notes>
+          The dashboard should automatically remove pages after re-verification.
+          Implementation approach:
+          - Optimistic UI update: remove from list immediately
+          - Revert if API call fails
+          - Show success toast on completion
+        </notes>
+        <optimistic-update-pattern>
+          <code><![CDATA[
+const handleReVerify = async (pageId: string, expiresIn: string) => {
+  // Store original page for revert
+  const originalPage = stalePages.find(p => p.id === pageId);
+
+  // Optimistic update: remove from stale list
+  setStalePages(prev => prev.filter(p => p.id !== pageId));
+
+  try {
+    await fetch(`/api/kb/pages/${pageId}/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expiresIn }),
+    });
+
+    // Success - show toast
+    toast.success('Page re-verified successfully');
+  } catch (error) {
+    // Revert optimistic update
+    if (originalPage) {
+      setStalePages(prev => [...prev, originalPage]);
+    }
+    toast.error('Failed to re-verify page');
+  }
+};
+          ]]></code>
+        </optimistic-update-pattern>
+      </stale-content-dashboard>
+    </frontend>
+
+    <api-endpoint>
+      <endpoint>POST /api/kb/pages/:pageId/verify</endpoint>
+      <status>EXISTING - no changes needed</status>
+      <request>
+        <body>
+          <field name="expiresIn" type="string" required="true">
+            One of: '30d', '60d', '90d', 'never'
+          </field>
+        </body>
+      </request>
+      <response>
+        <status-code>200</status-code>
+        <body>
+          KnowledgePage with updated verification fields:
+          - isVerified: true
+          - verifiedAt: timestamp
+          - verifiedById: userId
+          - verifyExpires: timestamp or null
+        </body>
+      </response>
+      <events>
+        <event>kb.page.verified - Published on both initial and re-verification</event>
+      </events>
+      <notes>
+        This endpoint handles both initial verification and re-verification.
+        The behavior is identical - it simply updates the verification fields.
+        Frontend can distinguish by checking if page was already verified before the call.
+      </notes>
+    </api-endpoint>
+  </technical-context>
+
+  <implementation-tasks>
+    <backend>
+      <task priority="high">
+        Update VerificationService.markVerified() to fetch isVerified and verifyExpires BEFORE update
+        Location: apps/api/src/kb/verification/verification.service.ts (line 38-50)
+        Change: Add isVerified and verifyExpires to select clause
+      </task>
+      <task priority="high">
+        Add isReVerification flag to PageActivity.data field
+        Location: apps/api/src/kb/verification/verification.service.ts (line 67-77)
+        Change: data.isReVerification = page.isVerified
+      </task>
+      <task priority="high">
+        Add previousExpiry to PageActivity.data field
+        Location: apps/api/src/kb/verification/verification.service.ts (line 67-77)
+        Change: data.previousExpiry = page.verifyExpires?.toISOString()
+      </task>
+      <task priority="medium">
+        Write unit tests for re-verification scenario
+        Location: apps/api/src/kb/verification/verification.service.spec.ts
+        Tests:
+        - markVerified() handles re-verification of expired page
+        - Updates verifiedAt to current timestamp
+        - Updates verifyExpires based on new period
+        - Creates PageActivity with isReVerification=true flag
+        - Tracks previous expiry date in activity data
+      </task>
+    </backend>
+
+    <frontend>
+      <task priority="high">
+        Add RefreshCw icon import to VerificationBadge
+        Location: apps/web/src/components/kb/VerificationBadge.tsx (top imports)
+        Change: import { CheckCircle, AlertTriangle, Shield, X, RefreshCw } from 'lucide-react'
+      </task>
+      <task priority="high">
+        Update VerificationBadge expired state rendering
+        Location: apps/web/src/components/kb/VerificationBadge.tsx (line 61-97)
+        Change: Add conditional rendering for expired + canVerify state
+        Show: Expired badge + Re-verify dropdown side-by-side
+      </task>
+      <task priority="high">
+        Add re-verify dropdown with expiration options
+        Location: apps/web/src/components/kb/VerificationBadge.tsx
+        Change: Create DropdownMenu with same items as initial verification
+        Handler: Re-use existing handleVerify function
+      </task>
+      <task priority="medium">
+        Update PageActivityLog to display re-verification details
+        Location: apps/web/src/components/kb/PageActivityLog.tsx (if exists)
+        Change: Add case for VERIFIED activity type
+        Show: "Re-verified" vs "Verified" based on isReVerification flag
+        Show: Previous expiry date for re-verifications
+      </task>
+      <task priority="medium">
+        Add optimistic update to StaleContentDashboard
+        Location: apps/web/src/components/kb/StaleContentDashboard.tsx (if exists)
+        Change: Implement handleReVerify with optimistic removal
+        Handler: Remove page from list, call API, revert on error
+      </task>
+      <task priority="medium">
+        Add toast notifications for re-verification
+        Location: Component that calls onVerify handler
+        Change: Show success/error toast after re-verification
+      </task>
+      <task priority="low">
+        Write component tests for re-verify button
+        Location: apps/web/src/components/kb/VerificationBadge.test.tsx
+        Tests:
+        - Shows "Re-verify" button when expired and canVerify=true
+        - Shows dropdown with expiration options
+        - Calls onVerify with selected period
+        - Clears expired badge after successful re-verification
+      </task>
+    </frontend>
+
+    <documentation>
+      <task priority="low">
+        Update KB user guide with re-verification workflow
+        Location: docs/modules/bm-pm/kb-user-guide.md (or similar)
+        Content: Document how to re-verify expired pages
+      </task>
+      <task priority="low">
+        Add screenshots of re-verify button to docs
+        Location: docs/modules/bm-pm/screenshots/
+        Content: Screenshot showing expired badge + re-verify button
+      </task>
+    </documentation>
+  </implementation-tasks>
+
+  <testing-requirements>
+    <unit-tests>
+      <backend framework="Jest">
+        <test>VerificationService.markVerified() - Handles re-verification of expired page</test>
+        <test>VerificationService.markVerified() - Updates verifiedAt to current timestamp</test>
+        <test>VerificationService.markVerified() - Updates verifyExpires based on new period</test>
+        <test>VerificationService.markVerified() - Creates PageActivity with isReVerification flag</test>
+        <test>VerificationService.markVerified() - Publishes kb.page.verified event</test>
+        <test>VerificationService.markVerified() - Tracks previous expiry date in activity data</test>
+      </backend>
+      <frontend framework="Vitest + Testing Library">
+        <test>VerificationBadge - Shows "Re-verify" button when page expired and canVerify=true</test>
+        <test>VerificationBadge - Shows dropdown with expiration options when re-verify clicked</test>
+        <test>VerificationBadge - Calls onVerify with selected expiration period</test>
+        <test>VerificationBadge - Clears expired badge after successful re-verification</test>
+        <test>PageActivityLog - Displays re-verification entry with metadata</test>
+        <test>PageActivityLog - Shows previous expiry date for re-verifications</test>
+        <test>StaleContentDashboard - Removes page from list after re-verification</test>
+      </frontend>
+    </unit-tests>
+
+    <integration-tests>
+      <api framework="Supertest">
+        <test>POST /api/kb/pages/:id/verify - Re-verifies expired page successfully</test>
+        <test>POST /api/kb/pages/:id/verify - Updates page verification fields</test>
+        <test>POST /api/kb/pages/:id/verify - Creates activity log entry with re-verification metadata</test>
+        <test>POST /api/kb/pages/:id/verify - Publishes kb.page.verified event</test>
+        <test>GET /api/kb/verification/stale - Excludes re-verified pages from stale list</test>
+      </api>
+      <event-publishing>
+        <test>Verify kb.page.verified event published on re-verification</test>
+        <test>Verify event payload includes correct page and workspace IDs</test>
+      </event-publishing>
+    </integration-tests>
+
+    <e2e-tests framework="Playwright">
+      <flow name="Re-verification Flow">
+        <step>Navigate to page with expired verification</step>
+        <step>Verify "Re-verify" button visible</step>
+        <step>Click "Re-verify" button</step>
+        <step>Select expiration period (60 days)</step>
+        <step>Verify badge updates to "Verified · Expires in 60 days"</step>
+        <step>Verify activity log shows re-verification entry</step>
+        <step>Verify page removed from stale list</step>
+      </flow>
+      <flow name="Permission Check">
+        <step>Navigate to expired page as non-owner</step>
+        <step>Verify "Re-verify" button not visible</step>
+        <step>Navigate to expired page as owner</step>
+        <step>Verify "Re-verify" button visible</step>
+      </flow>
+      <flow name="Expiration Period Update">
+        <step>Re-verify page with 30 days expiration</step>
+        <step>Verify badge shows "Expires in 30 days"</step>
+        <step>Re-verify same page with 90 days expiration</step>
+        <step>Verify badge updates to "Expires in 90 days"</step>
+        <step>Verify activity log shows both re-verifications</step>
+      </flow>
+    </e2e-tests>
+  </testing-requirements>
+
+  <acceptance-criteria>
+    <criterion id="AC-1">
+      Given page verification expired
+      When I review the page
+      Then "Re-verify" button available
+    </criterion>
+    <criterion id="AC-2">
+      And can update expiration period (30/60/90 days, never)
+    </criterion>
+    <criterion id="AC-3">
+      And activity log shows re-verification action with metadata
+    </criterion>
+    <criterion id="AC-4">
+      And badge updates to show new expiry date
+    </criterion>
+    <criterion id="AC-5">
+      And expired warning cleared from page
+    </criterion>
+    <criterion id="AC-6">
+      And page removed from stale content list
+    </criterion>
+  </acceptance-criteria>
+
+  <design-reference>
+    <wireframe>KB-05 - Verified Content Management</wireframe>
+    <assets>
+      <html>docs/modules/bm-pm/design/wireframes/Finished wireframes and html files/kb-05_verified_content_management/code.html</html>
+      <png>docs/modules/bm-pm/design/wireframes/Finished wireframes and html files/kb-05_verified_content_management/screen.png</png>
+    </assets>
+  </design-reference>
+
+  <files-affected>
+    <modified>
+      <file>apps/api/src/kb/verification/verification.service.ts</file>
+      <changes>
+        - Fetch isVerified and verifyExpires before update
+        - Add isReVerification flag to PageActivity.data
+        - Add previousExpiry to PageActivity.data
+      </changes>
+    </modified>
+    <modified>
+      <file>apps/web/src/components/kb/VerificationBadge.tsx</file>
+      <changes>
+        - Add RefreshCw icon import
+        - Add re-verify button for expired pages
+        - Show expired badge + dropdown side-by-side
+        - Re-use existing dropdown with expiration options
+      </changes>
+    </modified>
+    <modified>
+      <file>apps/web/src/components/kb/PageActivityLog.tsx</file>
+      <changes>
+        - Display VERIFIED activity entries
+        - Distinguish re-verifications with "Re-verified" label
+        - Show previous expiry date for re-verifications
+      </changes>
+    </modified>
+    <modified>
+      <file>apps/web/src/components/kb/StaleContentDashboard.tsx</file>
+      <changes>
+        - Add optimistic update on re-verify
+        - Remove page from list immediately
+        - Revert on API error
+        - Show toast notifications
+      </changes>
+    </modified>
+    <modified>
+      <file>apps/api/src/kb/verification/verification.service.spec.ts</file>
+      <changes>
+        - Add re-verification test scenarios
+      </changes>
+    </modified>
+  </files-affected>
+
+  <performance-considerations>
+    <frontend>
+      <optimization>Optimistic UI updates for immediate feedback</optimization>
+      <optimization>Toast notifications for success/failure</optimization>
+      <optimization>No additional API calls (re-uses existing verify endpoint)</optimization>
+    </frontend>
+    <backend>
+      <optimization>Same verification logic as initial verification (no additional complexity)</optimization>
+      <optimization>Activity log includes metadata for audit trail</optimization>
+      <optimization>Event publishing for real-time updates</optimization>
+    </backend>
+  </performance-considerations>
+
+  <security-considerations>
+    <item>Re-verification requires same permissions as initial verification (page owner or admin)</item>
+    <item>AuthGuard and TenantGuard protect endpoint</item>
+    <item>Multi-tenant isolation maintained via workspaceId filtering</item>
+    <item>Activity log tracks user who performed re-verification</item>
+  </security-considerations>
+
+  <related-stories>
+    <completed>
+      <story id="kb-03-1">Verified Badge System</story>
+      <story id="kb-03-2">Verification Expiration</story>
+    </completed>
+    <upcoming>
+      <story id="kb-03-4">Stale Content Dashboard</story>
+      <story id="kb-03-5">@Mention Support</story>
+    </upcoming>
+  </related-stories>
+
+  <notes>
+    <note type="implementation">
+      Re-verification uses the same endpoint as initial verification (POST /api/kb/pages/:id/verify).
+      Backend logic already handles re-verification - no endpoint changes needed.
+    </note>
+    <note type="implementation">
+      Frontend shows "Re-verify" button instead of "Mark as Verified" for expired pages.
+      The dropdown content and handler are identical.
+    </note>
+    <note type="implementation">
+      Activity log distinguishes re-verifications via isReVerification flag in data field.
+      This allows UI to show different labels and include previous expiry information.
+    </note>
+    <note type="implementation">
+      Page automatically removed from stale list after re-verification because verifyExpires
+      is updated to a future date, so it no longer matches the stale criteria.
+    </note>
+  </notes>
+</story-context>

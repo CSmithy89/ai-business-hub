@@ -7,6 +7,7 @@ import { useKBPages, useKBPage, useUpdateKBPage, useDeleteKBPage, useToggleFavor
 import { PageEditor } from '@/components/kb/editor/PageEditor'
 import { PageBreadcrumbs } from '@/components/kb/PageBreadcrumbs'
 import { LinkedProjects } from '@/components/kb/LinkedProjects'
+import { VerificationBadge } from '@/components/kb/VerificationBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ArrowLeft, Trash2, Star, PanelRightClose, PanelRightOpen } from 'lucide-react'
@@ -14,6 +15,9 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { stringToHslColor } from '@/lib/utils/color'
+import { verifyPage, unverifyPage } from '@/lib/kb-api'
+import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +67,11 @@ export default function KBPagePage({ params }: PageProps) {
     'User'
   const userColor = userId ? stringToHslColor(userId) : 'hsl(210 10% 50%)'
   const isFavorited = pageData?.data?.favoritedBy?.includes(userId) ?? false
+  const queryClient = useQueryClient()
+
+  // Check if user can verify (page owner or admin)
+  const canVerify = pageData?.data.ownerId === userId ||
+    (sessionData?.user?.role === 'ADMIN' || sessionData?.user?.role === 'OWNER')
 
   const [title, setTitle] = useState('')
   const [isTitleEditing, setIsTitleEditing] = useState(false)
@@ -102,6 +111,38 @@ export default function KBPagePage({ params }: PageProps) {
     router.push('/kb' as any)
   }
 
+  const handleVerify = async (expiresIn: string) => {
+    try {
+      await verifyPage(pageId, expiresIn as '30d' | '60d' | '90d' | 'never')
+      await queryClient.invalidateQueries({ queryKey: ['kb-page', pageId] })
+      await queryClient.invalidateQueries({ queryKey: ['kb-pages', workspaceId] })
+      toast.success('Page verified', {
+        description: 'This page has been marked as verified.',
+      })
+    } catch (error) {
+      toast.error('Verification failed', {
+        description: error instanceof Error ? error.message : 'Failed to verify page',
+      })
+      throw error
+    }
+  }
+
+  const handleUnverify = async () => {
+    try {
+      await unverifyPage(pageId)
+      await queryClient.invalidateQueries({ queryKey: ['kb-page', pageId] })
+      await queryClient.invalidateQueries({ queryKey: ['kb-pages', workspaceId] })
+      toast.success('Verification removed', {
+        description: 'This page is no longer verified.',
+      })
+    } catch (error) {
+      toast.error('Failed to remove verification', {
+        description: error instanceof Error ? error.message : 'Failed to unverify page',
+      })
+      throw error
+    }
+  }
+
   if (isLoading || !pageData) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -130,10 +171,24 @@ export default function KBPagePage({ params }: PageProps) {
         {/* Header */}
         <div className="border-b bg-background">
           <div className="flex flex-col gap-3 p-4">
-            {/* Breadcrumbs */}
-            {pagesData?.data && (
-              <PageBreadcrumbs currentPage={pageData.data} allPages={pagesData.data} />
-            )}
+            {/* Breadcrumbs and Verification Badge */}
+            <div className="flex items-center justify-between">
+              {pagesData?.data && (
+                <PageBreadcrumbs currentPage={pageData.data} allPages={pagesData.data} />
+              )}
+              {pageData?.data && (
+                <VerificationBadge
+                  page={{
+                    isVerified: pageData.data.isVerified || false,
+                    verifiedAt: pageData.data.verifiedAt || null,
+                    verifyExpires: pageData.data.verifyExpires || null,
+                  }}
+                  canVerify={canVerify}
+                  onVerify={handleVerify}
+                  onUnverify={handleUnverify}
+                />
+              )}
+            </div>
 
             {/* Title and Actions */}
             <div className="flex items-center justify-between">

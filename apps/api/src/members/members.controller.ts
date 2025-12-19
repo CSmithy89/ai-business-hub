@@ -4,6 +4,7 @@ import {
   Patch,
   Param,
   Body,
+  Query,
   UseGuards,
   BadRequestException,
   InternalServerErrorException,
@@ -60,8 +61,11 @@ export class MembersController {
   @ApiResponse({ status: 200, description: 'Members list retrieved' })
   @ApiResponse({ status: 403, description: 'Forbidden - Not a workspace member' })
   @ApiParam({ name: 'workspaceId', description: 'Workspace ID' })
-  async listMembers(@CurrentWorkspace() workspaceId: string) {
-    return this.membersService.listMembers(workspaceId)
+  async listMembers(
+    @CurrentWorkspace() workspaceId: string,
+    @Query('q') search?: string
+  ) {
+    return this.membersService.listMembers(workspaceId, search)
   }
 
   /**
