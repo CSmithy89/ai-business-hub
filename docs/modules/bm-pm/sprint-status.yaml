@@ -123,7 +123,7 @@ development_status:
   pm-05-1-scope-phase-agent: done
   pm-05-2-scope-phase-transition-flow: done
   pm-05-3-scope-milestone-tracking: done
-  pm-05-4-pulse-health-agent: backlog
+  pm-05-4-pulse-health-agent: ready-for-dev
   pm-05-5-pulse-risk-alerts: backlog
   pm-05-6-herald-report-generation: backlog
   pm-05-7-herald-stakeholder-reports: backlog
