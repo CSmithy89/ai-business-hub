@@ -85,8 +85,7 @@ export const createMentionExtension = (options: MentionSuggestionOptions) => {
             })
 
             popup = tippy('body', {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              getReferenceClientRect: props.clientRect as any,
+              getReferenceClientRect: props.clientRect as () => DOMRect,
               appendTo: () => document.body,
               content: component.element,
               showOnCreate: true,
@@ -103,8 +102,7 @@ export const createMentionExtension = (options: MentionSuggestionOptions) => {
             // Guard against popup not being initialized (if onStart bailed early)
             if (popup?.[0]) {
               popup[0].setProps({
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                getReferenceClientRect: props.clientRect as any,
+                getReferenceClientRect: props.clientRect as () => DOMRect,
               })
             }
           },

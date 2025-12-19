@@ -145,7 +145,7 @@ export function LabelFilter({ value, onChange, tasks }: LabelFilterProps) {
             >
               <Tag className="h-4 w-4" />
               <span>
-                Create "<span className="font-medium">{searchQuery}</span>"
+                Create &ldquo;<span className="font-medium">{searchQuery}</span>&rdquo;
               </span>
             </button>
           ) : (

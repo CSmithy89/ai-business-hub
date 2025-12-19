@@ -247,6 +247,22 @@ export function ProjectTasksContent() {
     return filtered
   }, [allTasks, filters])
 
+  // Current view state for saving - must be before early returns to avoid rules-of-hooks violation
+  const currentViewState = useMemo(() => {
+    return {
+      viewType: viewMode.toUpperCase() as 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE',
+      filters: {
+        search,
+        status: filters.status.length === 1 ? filters.status[0] : undefined,
+        type: filters.type || undefined,
+        priority: filters.priority || undefined,
+        assigneeId: filters.assigneeId || undefined,
+        phaseId: filters.phaseId || undefined,
+      },
+      groupBy,
+    }
+  }, [viewMode, search, filters, groupBy])
+
   if (projectError) {
     return (
       <Card>
@@ -266,22 +282,6 @@ export function ProjectTasksContent() {
       </Card>
     )
   }
-
-  // Current view state for saving
-  const currentViewState = useMemo(() => {
-    return {
-      viewType: viewMode.toUpperCase() as 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE',
-      filters: {
-        search,
-        status: filters.status.length === 1 ? filters.status[0] : undefined,
-        type: filters.type || undefined,
-        priority: filters.priority || undefined,
-        assigneeId: filters.assigneeId || undefined,
-        phaseId: filters.phaseId || undefined,
-      },
-      groupBy,
-    }
-  }, [viewMode, search, filters, groupBy])
 
   return (
     <div className="flex flex-col gap-6">

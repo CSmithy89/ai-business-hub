@@ -70,8 +70,7 @@ export const createTaskReferenceExtension = (_options: TaskReferenceOptions) => 
             })
 
             popup = tippy('body', {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              getReferenceClientRect: props.clientRect as any,
+              getReferenceClientRect: props.clientRect as () => DOMRect,
               appendTo: () => document.body,
               content: component.element,
               showOnCreate: true,
@@ -86,8 +85,7 @@ export const createTaskReferenceExtension = (_options: TaskReferenceOptions) => 
             component.updateProps(props)
 
             popup[0].setProps({
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              getReferenceClientRect: props.clientRect as any,
+              getReferenceClientRect: props.clientRect as () => DOMRect,
             })
           },
 
