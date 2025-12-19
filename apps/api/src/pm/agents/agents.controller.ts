@@ -18,6 +18,7 @@ import { AgentsService } from './agents.service';
 import { BriefingService } from './briefing.service';
 import { SuggestionService } from './suggestion.service';
 import { EstimationService } from './estimation.service';
+import { TimeTrackingService } from './time-tracking.service';
 import { ChatAgentDto, GetConversationsDto } from './dto/chat-agent.dto';
 import {
   UpdateBriefingPreferencesDto,
@@ -41,6 +42,7 @@ export class AgentsController {
     private readonly briefingService: BriefingService,
     private readonly suggestionService: SuggestionService,
     private readonly estimationService: EstimationService,
+    private readonly timeTrackingService: TimeTrackingService,
   ) {}
 
   @Post('chat')
@@ -548,5 +550,196 @@ export class AgentsController {
     @Param('projectId') projectId: string,
   ) {
     return this.estimationService.getCalibrationData(workspaceId, projectId);
+  }
+
+  // ============================================
+  // Time Tracking Endpoints (PM-04-8)
+  // ============================================
+
+  @Post('time/start')
+  @ApiOperation({ summary: 'Start a timer for a task' })
+  @ApiResponse({
+    status: 200,
+    description: 'Timer started',
+    schema: {
+      properties: {
+        id: { type: 'string' },
+        taskId: { type: 'string' },
+        userId: { type: 'string' },
+        description: { type: 'string' },
+        startTime: { type: 'string', format: 'date-time' },
+        isTimer: { type: 'boolean' },
+      },
+    },
+  })
+  async startTimer(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser('id') userId: string,
+    @Body() body: { taskId: string; description?: string },
+  ) {
+    return this.timeTrackingService.startTimer(userId, {
+      taskId: body.taskId,
+      workspaceId,
+      description: body.description,
+    });
+  }
+
+  @Post('time/stop')
+  @ApiOperation({ summary: 'Stop an active timer' })
+  @ApiResponse({
+    status: 200,
+    description: 'Timer stopped and duration calculated',
+    schema: {
+      properties: {
+        id: { type: 'string' },
+        taskId: { type: 'string' },
+        userId: { type: 'string' },
+        description: { type: 'string' },
+        startTime: { type: 'string', format: 'date-time' },
+        endTime: { type: 'string', format: 'date-time' },
+        duration: { type: 'number' },
+        isTimer: { type: 'boolean' },
+      },
+    },
+  })
+  async stopTimer(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser('id') userId: string,
+    @Body() body: { taskId: string },
+  ) {
+    return this.timeTrackingService.stopTimer(userId, {
+      taskId: body.taskId,
+      workspaceId,
+    });
+  }
+
+  @Post('time/log')
+  @ApiOperation({ summary: 'Log time manually for a task' })
+  @ApiResponse({
+    status: 200,
+    description: 'Time entry created',
+    schema: {
+      properties: {
+        id: { type: 'string' },
+        taskId: { type: 'string' },
+        userId: { type: 'string' },
+        description: { type: 'string' },
+        startTime: { type: 'string', format: 'date-time' },
+        duration: { type: 'number' },
+        isTimer: { type: 'boolean' },
+      },
+    },
+  })
+  async logTime(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser('id') userId: string,
+    @Body()
+    body: {
+      taskId: string;
+      hours: number;
+      description?: string;
+      date?: string;
+    },
+  ) {
+    return this.timeTrackingService.logTime(userId, {
+      taskId: body.taskId,
+      workspaceId,
+      hours: body.hours,
+      description: body.description,
+      date: body.date,
+    });
+  }
+
+  @Get('time/entries/:taskId')
+  @ApiOperation({ summary: 'Get all time entries for a task' })
+  @ApiResponse({
+    status: 200,
+    description: 'Time entries retrieved',
+    schema: {
+      type: 'array',
+      items: {
+        properties: {
+          id: { type: 'string' },
+          taskId: { type: 'string' },
+          userId: { type: 'string' },
+          description: { type: 'string' },
+          startTime: { type: 'string', format: 'date-time' },
+          endTime: { type: 'string', format: 'date-time' },
+          duration: { type: 'number' },
+          isTimer: { type: 'boolean' },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+    },
+  })
+  async getTimeEntries(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('taskId') taskId: string,
+  ) {
+    return this.timeTrackingService.getTimeEntries(workspaceId, taskId);
+  }
+
+  @Get('time/active')
+  @ApiOperation({ summary: 'Get all active timers' })
+  @ApiResponse({
+    status: 200,
+    description: 'Active timers retrieved',
+    schema: {
+      type: 'array',
+      items: {
+        properties: {
+          id: { type: 'string' },
+          taskId: { type: 'string' },
+          userId: { type: 'string' },
+          description: { type: 'string' },
+          startTime: { type: 'string', format: 'date-time' },
+          task: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              title: { type: 'string' },
+              taskNumber: { type: 'number' },
+              projectId: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getActiveTimers(
+    @CurrentWorkspace() workspaceId: string,
+    @Query('projectId') projectId?: string,
+  ) {
+    return this.timeTrackingService.getActiveTimers(workspaceId, projectId);
+  }
+
+  @Post('time/suggest')
+  @ApiOperation({ summary: 'Get time logging suggestions based on activity' })
+  @ApiResponse({
+    status: 200,
+    description: 'Time entry suggestions generated',
+    schema: {
+      type: 'array',
+      items: {
+        properties: {
+          taskId: { type: 'string' },
+          taskTitle: { type: 'string' },
+          taskNumber: { type: 'number' },
+          suggestedHours: { type: 'number' },
+          reasoning: { type: 'string' },
+          confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
+        },
+      },
+    },
+  })
+  async suggestTimeEntries(
+    @CurrentWorkspace() workspaceId: string,
+    @Body() body: { projectId: string; userId: string },
+  ) {
+    return this.timeTrackingService.suggestTimeEntries(
+      workspaceId,
+      body.projectId,
+      body.userId,
+    );
   }
 }

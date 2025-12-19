@@ -1158,6 +1158,7 @@ model Task {
   attachments TaskAttachment[]
   comments    TaskComment[]
   labels      TaskLabel[]
+  timeEntries TimeEntry[]
 
   @@unique([projectId, taskNumber])
   @@index([workspaceId])
@@ -1852,6 +1853,42 @@ enum SuggestionStatus {
   REJECTED
   SNOOZED
   EXPIRED
+}
+
+// ============================================
+// TIME TRACKING (PM-04-8: Chrono Agent)
+// ============================================
+
+/// TimeEntry - Time tracking for tasks
+model TimeEntry {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  taskId      String    @map("task_id")
+  userId      String    @map("user_id")
+
+  description String?   @db.Text
+
+  // Time tracking
+  startTime   DateTime? @map("start_time")
+  endTime     DateTime? @map("end_time")
+  duration    Float     // Hours (calculated or manual)
+
+  // Manual vs timer
+  isTimer     Boolean   @default(false) @map("is_timer")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([taskId])
+  @@index([userId])
+  @@index([startTime])
+  @@index([workspaceId, taskId])
+  @@index([workspaceId, userId, startTime])
+  @@map("time_entries")
 }
 
 // ============================================

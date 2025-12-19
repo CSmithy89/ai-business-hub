@@ -30,6 +30,7 @@ from agno.memory import Memory
 
 from .navi import create_navi_agent
 from .sage import create_sage_agent
+from .chrono import create_chrono_agent
 
 
 def get_postgres_url() -> str:
@@ -100,14 +101,21 @@ def create_pm_team(
         model=model,
     )
 
+    # Create Chrono agent (time tracking specialist)
+    chrono = create_chrono_agent(
+        workspace_id=workspace_id,
+        project_id=project_id,
+        shared_memory=shared_memory,
+        model=model,
+    )
+
     # Create team with Navi as leader
-    # Chrono will be added in PM-04.7
     team = Team(
         name="PM Team",
         mode="coordinate",  # Leader coordinates member agents
         model=Claude(id=model or "claude-sonnet-4-20250514"),
         leader=navi,
-        members=[sage],  # Sage added in PM-04.5, Chrono pending PM-04.7
+        members=[sage, chrono],  # Full PM team: Sage + Chrono
         # Leader delegates to specific members, not all at once
         delegate_task_to_all_members=False,
         # Leader responds directly after synthesis
