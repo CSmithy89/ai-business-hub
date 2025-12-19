@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>PM-05.6</story-id>
+    <story-title>Herald Report Generation</story-title>
+    <epic>PM-05 - AI Team (Scope, Pulse, Herald)</epic>
+    <created>2025-12-20</created>
+  </metadata>
+
+  <story-overview>
+    <summary>
+      Implement Herald AI agent for automated report generation in the PM module.
+      Herald generates project status, health, and progress reports in JSON and Markdown formats.
+    </summary>
+    <objectives>
+      <objective>Create Herald agent in Python using Agno framework</objective>
+      <objective>Implement report generation tools for different report types</objective>
+      <objective>Build backend service and controller for report management</objective>
+      <objective>Add Report data model to Prisma schema</objective>
+      <objective>Support multi-tenant isolation and permission enforcement</objective>
+    </objectives>
+  </story-overview>
+
+  <technical-context>
+    <architecture>
+      <component name="Herald Agent" type="Python/Agno">
+        <location>agents/pm/herald.py</location>
+        <description>AI agent specialized in generating project reports</description>
+        <dependencies>
+          <dependency>agno framework</dependency>
+          <dependency>agents/pm/tools/report_tools.py</dependency>
+          <dependency>apps/api PM endpoints</dependency>
+        </dependencies>
+      </component>
+
+      <component name="Report Tools" type="Python">
+        <location>agents/pm/tools/report_tools.py</location>
+        <description>Tools for Herald agent to generate different report types</description>
+        <tools>
+          <tool name="generate_project_report">Generate project status report</tool>
+          <tool name="generate_health_report">Generate health analysis report</tool>
+          <tool name="generate_progress_report">Generate progress/timeline report</tool>
+        </tools>
+      </component>
+
+      <component name="ReportService" type="TypeScript/NestJS">
+        <location>apps/api/src/pm/agents/report.service.ts</location>
+        <description>Backend service for report generation and retrieval</description>
+        <methods>
+          <method name="generateReport">Create new report with structured content</method>
+          <method name="getReportHistory">Retrieve list of past reports</method>
+          <method name="getReport">Get single report by ID</method>
+        </methods>
+      </component>
+
+      <component name="ReportController" type="TypeScript/NestJS">
+        <location>apps/api/src/pm/agents/report.controller.ts</location>
+        <description>API controller exposing report endpoints</description>
+        <endpoints>
+          <endpoint method="POST" path="/pm/agents/reports/:projectId/generate">
+            Generate new report
+          </endpoint>
+          <endpoint method="GET" path="/pm/agents/reports/:projectId">
+            List report history
+          </endpoint>
+          <endpoint method="GET" path="/pm/agents/reports/:projectId/:reportId">
+            Get specific report
+          </endpoint>
+        </endpoints>
+      </component>
+    </architecture>
+
+    <data-model>
+      <model name="Report">
+        <description>Stores generated reports with content and metadata</description>
+        <fields>
+          <field name="id" type="String" key="primary">Unique identifier</field>
+          <field name="workspaceId" type="String" indexed="true">Multi-tenant isolation</field>
+          <field name="projectId" type="String" indexed="true">Project reference</field>
+          <field name="type" type="ReportType">Report category</field>
+          <field name="title" type="String">Report title</field>
+          <field name="content" type="Json">Structured report content</field>
+          <field name="format" type="ReportFormat">Output format (MARKDOWN/JSON)</field>
+          <field name="generatedBy" type="String">Creator (herald_agent or user ID)</field>
+          <field name="generatedAt" type="DateTime" indexed="true">Generation timestamp</field>
+        </fields>
+        <enums>
+          <enum name="ReportType">
+            <value>PROJECT_STATUS</value>
+            <value>HEALTH_REPORT</value>
+            <value>PROGRESS_REPORT</value>
+          </enum>
+          <enum name="ReportFormat">
+            <value>MARKDOWN</value>
+            <value>JSON</value>
+          </enum>
+        </enums>
+      </model>
+    </data-model>
+
+    <integration-points>
+      <integration name="PM Team">
+        <description>Herald joins existing PM agent team (Navi, Sage, Chrono, Scope, Pulse)</description>
+        <file>agents/pm/team.py</file>
+        <changes>Add Herald to team members</changes>
+      </integration>
+
+      <integration name="AgentOS">
+        <description>Herald invoked via AgentOS service for report generation</description>
+        <file>apps/api/src/agentos/agentos.service.ts</file>
+        <usage>Call Herald agent through standard agent invocation</usage>
+      </integration>
+
+      <integration name="Health Service">
+        <description>Herald retrieves health data for health reports</description>
+        <file>apps/api/src/pm/agents/health.service.ts</file>
+        <usage>Query latest health scores and active risks</usage>
+      </integration>
+
+      <integration name="Prisma">
+        <description>Store and retrieve reports from database</description>
+        <file>packages/db/prisma/schema.prisma</file>
+        <usage>Report CRUD operations</usage>
+      </integration>
+    </integration-points>
+  </technical-context>
+
+  <implementation-patterns>
+    <pattern name="Agent Structure">
+      <description>Follow existing PM agent patterns (Navi, Sage, Chrono)</description>
+      <example>
+        ```python
+        from agno.agent import Agent
+        from agno.models.anthropic import Claude
+        from agno.memory import Memory
+
+        def create_herald_agent(
+            workspace_id: str,
+            project_id: str,
+            shared_memory: Memory,
+            model: Optional[str] = None,
+        ) -> Agent:
+            return Agent(
+                name="Herald",
+                role="Automated Reporting Specialist",
+                model=Claude(id=model or "claude-sonnet-4-20250514"),
+                instructions=HERALD_INSTRUCTIONS + [
+                    f"Workspace ID: {workspace_id}",
+                    f"Project ID: {project_id}",
+                ],
+                tools=[...],
+                memory=shared_memory,
+                add_datetime_to_instructions=True,
+                markdown=True,
+            )
+        ```
+      </example>
+    </pattern>
+
+    <pattern name="Tool Implementation">
+      <description>Tools make HTTP calls to backend API with authentication</description>
+      <example>
+        ```python
+        @tool
+        def generate_project_report(
+            project_id: str,
+            workspace_id: str
+        ) -> Dict[str, Any]:
+            with httpx.Client(timeout=30.0) as client:
+                response = client.post(
+                    f"{API_BASE_URL}/api/pm/agents/reports/{project_id}/generate",
+                    json={"type": "PROJECT_STATUS"},
+                    headers=get_auth_headers(workspace_id)
+                )
+                response.raise_for_status()
+                return response.json()
+        ```
+      </example>
+    </pattern>
+
+    <pattern name="Service Implementation">
+      <description>NestJS service with Prisma for data access</description>
+      <example>
+        ```typescript
+        @Injectable()
+        export class ReportService {
+          constructor(private prisma: PrismaService) {}
+
+          async generateReport(
+            workspaceId: string,
+            projectId: string,
+            type: ReportType
+          ): Promise<Report> {
+            // Gather project data
+            // Generate report content
+            // Store in database
+            // Return report
+          }
+        }
+        ```
+      </example>
+    </pattern>
+  </implementation-patterns>
+
+  <report-templates>
+    <template type="PROJECT_STATUS">
+      <section>Executive Summary</section>
+      <section>Current Phase Progress</section>
+      <section>Task Breakdown by Status</section>
+      <section>Key Metrics</section>
+      <section>Upcoming Milestones</section>
+      <section>Next Actions</section>
+    </template>
+
+    <template type="HEALTH_REPORT">
+      <section>Health Score Overview</section>
+      <section>Health Factors Analysis</section>
+      <section>Active Risks</section>
+      <section>Team Capacity Status</section>
+      <section>Recommendations</section>
+    </template>
+
+    <template type="PROGRESS_REPORT">
+      <section>Summary</section>
+      <section>Completed Work</section>
+      <section>Work in Progress</section>
+      <section>Upcoming Priorities</section>
+      <section>Blockers and Dependencies</section>
+      <section>Timeline Status</section>
+    </template>
+  </report-templates>
+
+  <security-requirements>
+    <requirement>Enforce workspace/tenant isolation on all report queries</requirement>
+    <requirement>Validate user permissions before generating or viewing reports</requirement>
+    <requirement>Sanitize report content to prevent XSS attacks</requirement>
+    <requirement>Rate limit report generation to prevent abuse</requirement>
+    <requirement>Use service authentication token for agent-to-API communication</requirement>
+  </security-requirements>
+
+  <testing-requirements>
+    <unit-tests>
+      <test>Herald agent initialization and configuration</test>
+      <test>Report tool invocations with mock responses</test>
+      <test>ReportService.generateReport for each report type</test>
+      <test>Report history retrieval with filtering</test>
+      <test>Multi-tenant isolation in queries</test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>End-to-end report generation via API</test>
+      <test>Report storage and retrieval flow</test>
+      <test>Permission enforcement for unauthorized access</test>
+      <test>Concurrent report generation handling</test>
+    </integration-tests>
+
+    <manual-tests>
+      <test>Generate each report type via Herald agent</test>
+      <test>Verify report content accuracy and completeness</test>
+      <test>Verify markdown formatting is correct</test>
+      <test>Test report history display in UI (future)</test>
+    </manual-tests>
+  </testing-requirements>
+
+  <related-files>
+    <file path="agents/pm/navi.py" relationship="sibling">Example PM agent implementation</file>
+    <file path="agents/pm/sage.py" relationship="sibling">Example PM agent implementation</file>
+    <file path="agents/pm/pulse.py" relationship="sibling">Related health monitoring agent</file>
+    <file path="agents/pm/tools/health_tools.py" relationship="reference">Health data retrieval tools</file>
+    <file path="apps/api/src/pm/agents/health.service.ts" relationship="dependency">Health service for reports</file>
+    <file path="apps/api/src/pm/agents/agents.service.ts" relationship="reference">Agent invocation patterns</file>
+    <file path="packages/db/prisma/schema.prisma" relationship="data-model">Database schema</file>
+    <file path="docs/modules/bm-pm/epics/epic-pm-05-tech-spec.md" relationship="specification">Epic technical spec</file>
+  </related-files>
+
+  <deliverables>
+    <deliverable>Herald agent implementation (agents/pm/herald.py)</deliverable>
+    <deliverable>Report tools implementation (agents/pm/tools/report_tools.py)</deliverable>
+    <deliverable>Report service (apps/api/src/pm/agents/report.service.ts)</deliverable>
+    <deliverable>Report controller (apps/api/src/pm/agents/report.controller.ts)</deliverable>
+    <deliverable>Prisma schema updates for Report model</deliverable>
+    <deliverable>Unit and integration tests</deliverable>
+    <deliverable>Updated documentation</deliverable>
+  </deliverables>
+
+  <out-of-scope>
+    <item>PDF export functionality (deferred to Phase 2)</item>
+    <item>Scheduled/recurring reports (deferred to Phase 2)</item>
+    <item>Email delivery of reports (deferred to Phase 2)</item>
+    <item>Report customization/templates UI (deferred to Phase 2)</item>
+    <item>Report sharing/collaboration features (deferred to Phase 2)</item>
+  </out-of-scope>
+</story-context>

@@ -2012,6 +2012,49 @@ model TimeEntry {
 }
 
 // ============================================
+// PM REPORTING (PM-05.6: Herald Agent)
+// ============================================
+
+/// Report - Generated project reports for status, health, and progress
+model Report {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  projectId   String @map("project_id")
+
+  // Report details
+  type   ReportType
+  title  String
+  content Json // Structured report content
+
+  // Generation metadata
+  generatedBy String   @map("generated_by") // User ID or 'herald_agent'
+  generatedAt DateTime @default(now()) @map("generated_at")
+
+  // Format
+  format ReportFormat @default(MARKDOWN)
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([workspaceId, projectId])
+  @@index([projectId, generatedAt])
+  @@index([type])
+  @@map("reports")
+}
+
+// Report Enums
+enum ReportType {
+  PROJECT_STATUS
+  HEALTH_REPORT
+  PROGRESS_REPORT
+}
+
+enum ReportFormat {
+  MARKDOWN
+  JSON
+}
+
+// ============================================
 // USER PREFERENCES
 // ============================================
 

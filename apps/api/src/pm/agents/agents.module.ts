@@ -12,6 +12,8 @@ import { CheckpointReminderCron } from './checkpoint.cron';
 import { HealthService } from './health.service';
 import { HealthController } from './health.controller';
 import { HealthCheckCron } from './health.cron';
+import { ReportService } from './report.service';
+import { ReportController } from './report.controller';
 import { CommonModule } from '../../common/common.module';
 import { AgentOSModule } from '../../agentos/agentos.module';
 import { EventsModule } from '../../events/events.module';
@@ -19,7 +21,7 @@ import { EventsModule } from '../../events/events.module';
 @Module({
   // ScheduleModule is registered globally in AppModule
   imports: [CommonModule, AgentOSModule, EventsModule, HttpModule],
-  controllers: [AgentsController, HealthController],
+  controllers: [AgentsController, HealthController, ReportController],
   providers: [
     AgentsService,
     BriefingService,
@@ -31,6 +33,7 @@ import { EventsModule } from '../../events/events.module';
     CheckpointReminderCron,
     HealthService,
     HealthCheckCron,
+    ReportService,
   ],
   exports: [
     AgentsService,
@@ -41,6 +44,7 @@ import { EventsModule } from '../../events/events.module';
     PhaseService,
     CheckpointService,
     HealthService,
+    ReportService,
   ],
 })
 export class AgentsModule {}
