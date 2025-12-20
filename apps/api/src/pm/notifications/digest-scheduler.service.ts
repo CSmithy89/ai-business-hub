@@ -105,8 +105,18 @@ export class DigestSchedulerService implements OnModuleInit {
    */
   async removeUserDigest(userId: string): Promise<void> {
     try {
-      // Remove repeatable job
-      await this.digestQueue.removeRepeatableByKey(`digest-${userId}`);
+      // Get all repeatable jobs and find the one for this user
+      const repeatableJobs = await this.digestQueue.getRepeatableJobs();
+      const jobId = `digest-${userId}`;
+      const job = repeatableJobs.find((j) => j.id === jobId);
+
+      if (!job) {
+        this.logger.debug(`No digest job found for user ${userId}`);
+        return;
+      }
+
+      // Remove using the actual repeatable job key
+      await this.digestQueue.removeRepeatableByKey(job.key);
 
       this.logger.debug(`Removed digest job for user ${userId}`);
     } catch (error) {
@@ -152,6 +162,12 @@ export class DigestSchedulerService implements OnModuleInit {
     try {
       // Calculate UTC offset for 9 AM in user's timezone
       const userTime = DateTime.now().setZone(timezone).set({ hour: 9, minute: 0, second: 0 });
+
+      // Validate timezone - Luxon returns invalid DateTime for bad timezones
+      if (!userTime.isValid) {
+        throw new Error(`Invalid timezone: ${timezone}`);
+      }
+
       const utcTime = userTime.toUTC();
       const utcHour = utcTime.hour;
       const utcMinute = utcTime.minute;

@@ -352,36 +352,43 @@ export class RealtimeGateway
 
         if (user) {
           // Remove presence and broadcast 'left' event for each project
-          for (const projectId of projectRooms) {
-            try {
-              // Remove presence from Redis
-              await this.presenceService.removePresence(userId, projectId);
+          // Use Promise.allSettled to ensure all cleanups are attempted even if some fail
+          const projectIds = Array.from(projectRooms) as string[];
+          const cleanupPromises = projectIds.map(async (projectId) => {
+            // Remove presence from Redis
+            await this.presenceService.removePresence(userId, projectId);
 
-              // Broadcast presence left event to project room
-              const presencePayload: PresencePayload = {
-                userId: user.id,
-                userName: user.name || user.email,
-                userAvatar: user.image,
-                projectId,
-                page: 'overview', // Default page for left event
-                timestamp: new Date().toISOString(),
-              };
-              this.broadcastPMPresenceLeft(projectId, presencePayload);
+            // Broadcast presence left event to project room
+            const presencePayload: PresencePayload = {
+              userId: user.id,
+              userName: user.name || user.email,
+              userAvatar: user.image,
+              projectId,
+              page: 'overview', // Default page for left event
+              timestamp: new Date().toISOString(),
+            };
+            this.broadcastPMPresenceLeft(projectId, presencePayload);
 
-              this.logger.debug({
-                message: 'PM presence cleaned up on disconnect',
-                userId,
-                projectId,
-              });
-            } catch (error) {
+            this.logger.debug({
+              message: 'PM presence cleaned up on disconnect',
+              userId,
+              projectId,
+            });
+          });
+
+          const results = await Promise.allSettled(cleanupPromises);
+
+          // Log any failures
+          results.forEach((result, index) => {
+            if (result.status === 'rejected') {
               this.logger.error({
                 message: 'Failed to clean up presence for project',
                 userId,
-                projectId,
-                error: error instanceof Error ? error.message : String(error),
+                projectId: projectIds[index],
+                error: result.reason instanceof Error ? result.reason.message : String(result.reason),
               });
             }
-          }
+          });
         }
       } catch (error) {
         this.logger.error({

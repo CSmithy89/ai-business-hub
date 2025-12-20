@@ -439,7 +439,7 @@ model Notification {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@index([userId, readAt])
+  @@index([userId, readAt, createdAt]) // Composite index for digest queries
   @@index([workspaceId])
   @@index([createdAt])
   @@map("notifications")

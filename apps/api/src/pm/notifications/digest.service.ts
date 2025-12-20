@@ -294,9 +294,9 @@ export class DigestService {
   }
 
   /**
-   * Verify unsubscribe token
+   * Verify unsubscribe token and validate userId exists
    */
-  verifyUnsubscribeToken(token: string): { userId: string } {
+  async verifyUnsubscribeToken(token: string): Promise<{ userId: string }> {
     try {
       const decoded = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET,
@@ -306,7 +306,22 @@ export class DigestService {
         throw new Error('Invalid token type');
       }
 
-      return { userId: decoded.userId };
+      const userId = decoded.userId;
+      if (!userId || typeof userId !== 'string') {
+        throw new Error('Invalid userId in token');
+      }
+
+      // Verify user exists in database
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      return { userId };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Invalid unsubscribe token: ${errorMessage}`);
@@ -320,9 +335,9 @@ export class DigestService {
   private extractProjectId(notification: NotificationDto): string {
     // Try to extract from data
     if (notification.data && typeof notification.data === 'object') {
-      const projectId = (notification.data as any).projectId;
-      if (projectId) {
-        return projectId;
+      const data = notification.data as { projectId?: string };
+      if (data.projectId) {
+        return data.projectId;
       }
     }
 
@@ -344,9 +359,9 @@ export class DigestService {
   private extractProjectName(notification: NotificationDto): string {
     // Try to extract from data
     if (notification.data && typeof notification.data === 'object') {
-      const projectName = (notification.data as any).projectName;
-      if (projectName) {
-        return projectName;
+      const data = notification.data as { projectName?: string };
+      if (data.projectName) {
+        return data.projectName;
       }
     }
 

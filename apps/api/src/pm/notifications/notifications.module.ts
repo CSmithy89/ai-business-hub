@@ -30,7 +30,15 @@ import { DigestProcessor } from './queues/digest.processor';
     }),
     // JWT for unsubscribe tokens
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'temporary-secret',
+      secret: (() => {
+        if (!process.env.JWT_SECRET) {
+          if (process.env.NODE_ENV === 'production') {
+            throw new Error('JWT_SECRET environment variable is required in production');
+          }
+          return 'dev-only-secret-not-for-production';
+        }
+        return process.env.JWT_SECRET;
+      })(),
       signOptions: { expiresIn: '7d' },
     }),
   ],

@@ -9,7 +9,7 @@ export const ListNotificationsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   type: z.string().optional(),
   read: z
-    .string()
+    .enum(['true', 'false'])
     .optional()
     .transform((val) => (val === 'true' ? true : val === 'false' ? false : undefined)),
   workspaceId: z.string().optional(),

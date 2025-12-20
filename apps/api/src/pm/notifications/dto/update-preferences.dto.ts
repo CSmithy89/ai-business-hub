@@ -6,9 +6,10 @@ import { z } from 'zod';
 const timeFormatRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 /**
- * IANA timezone validation (basic check for common format)
+ * IANA timezone validation
+ * Allows: UTC, America/New_York, America/Argentina/Buenos_Aires, Etc/GMT+5
  */
-const timezoneRegex = /^[A-Za-z]+\/[A-Za-z_]+$/;
+const timezoneRegex = /^[A-Za-z_]+(?:\/[A-Za-z0-9_\-+]+)*$/;
 
 /**
  * Zod schema for updating notification preferences
@@ -66,18 +67,31 @@ export const updatePreferencesSchema = z.object({
   digestFrequency: z.enum(['daily', 'weekly']).optional(),
 }).refine(
   (data) => {
-    // If quietHoursStart is set, quietHoursEnd must also be set (and vice versa)
-    const hasStart = data.quietHoursStart !== undefined && data.quietHoursStart !== null;
-    const hasEnd = data.quietHoursEnd !== undefined && data.quietHoursEnd !== null;
+    // For partial updates, we only validate when both fields are being changed together
+    // If only one field is provided (the other is undefined), it's a partial update - allow it
+    const startProvided = data.quietHoursStart !== undefined;
+    const endProvided = data.quietHoursEnd !== undefined;
 
-    // Allow both null or both set
-    if (hasStart !== hasEnd) {
-      return false;
+    // If neither is provided, no validation needed (partial update for other fields)
+    if (!startProvided && !endProvided) {
+      return true;
     }
-    return true;
+
+    // If only one is provided, it's a partial update - allow it
+    // The service layer will combine with existing values from the database
+    if (startProvided !== endProvided) {
+      return true;
+    }
+
+    // Both are provided - ensure they're both set or both null
+    const startIsNull = data.quietHoursStart === null;
+    const endIsNull = data.quietHoursEnd === null;
+
+    // Both should be null or both should have values
+    return startIsNull === endIsNull;
   },
   {
-    message: 'Both quietHoursStart and quietHoursEnd must be set together, or both must be null',
+    message: 'When updating both quiet hours, they must both be set or both be null',
   }
 );
 

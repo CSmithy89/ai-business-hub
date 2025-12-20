@@ -119,12 +119,15 @@ export class NotificationsService {
    * Reset user's preferences to defaults
    */
   async resetToDefaults(userId: string) {
+    // Remove any existing digest jobs before resetting
+    await this.digestSchedulerService.removeUserDigest(userId);
+
     // Delete existing preferences
     await this.prisma.notificationPreference.deleteMany({
       where: { userId },
     });
 
-    // Create new with defaults
+    // Create new with defaults (digestEnabled defaults to false)
     const preferences = await this.prisma.notificationPreference.create({
       data: { userId },
     });
@@ -159,10 +162,12 @@ export class NotificationsService {
       return false;
     }
 
-    // Check quiet hours (only applies to non-critical notifications)
-    if (this.isInQuietHours(preferences, new Date())) {
-      this.logger.debug(`User ${userId} is in quiet hours, suppressing notification`);
-      return false;
+    // Check quiet hours (HEALTH_ALERT bypasses quiet hours - it's critical)
+    if (notificationType !== PMNotificationType.HEALTH_ALERT) {
+      if (this.isInQuietHours(preferences, new Date())) {
+        this.logger.debug(`User ${userId} is in quiet hours, suppressing notification`);
+        return false;
+      }
     }
 
     return true;
@@ -229,10 +234,17 @@ export class NotificationsService {
       [PMNotificationType.HEALTH_ALERT]: 'HealthAlert',
     };
 
-    const channelPrefix = channel === NotificationChannel.EMAIL ? 'email' : 'inApp';
+    // Map channel to preference field prefix (PUSH not yet supported)
+    const channelPrefixMap: Record<NotificationChannel, string | null> = {
+      [NotificationChannel.EMAIL]: 'email',
+      [NotificationChannel.IN_APP]: 'inApp',
+      [NotificationChannel.PUSH]: null, // Not supported yet
+    };
+
+    const channelPrefix = channelPrefixMap[channel];
     const typeSuffix = typeMap[notificationType];
 
-    if (!typeSuffix) {
+    if (!channelPrefix || !typeSuffix) {
       return null;
     }
 

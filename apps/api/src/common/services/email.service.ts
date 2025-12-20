@@ -22,13 +22,13 @@ export class EmailService {
     html: string;
     text?: string;
   }): Promise<void> {
-    // STUB: Log email instead of actually sending
+    // STUB: Log email metadata only (not content to avoid leaking tokens)
     this.logger.log(`[EMAIL STUB] Sending email to ${options.to}`);
     this.logger.log(`Subject: ${options.subject}`);
-    this.logger.debug(`HTML: ${options.html.substring(0, 200)}...`);
+    this.logger.debug(`HTML length: ${options.html.length} chars`);
 
     if (options.text) {
-      this.logger.debug(`Text: ${options.text.substring(0, 200)}...`);
+      this.logger.debug(`Text length: ${options.text.length} chars`);
     }
 
     // TODO: Replace with actual email provider implementation

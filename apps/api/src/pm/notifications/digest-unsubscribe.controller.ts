@@ -34,8 +34,8 @@ export class DigestUnsubscribeController {
   @Get('unsubscribe/:token')
   async unsubscribe(@Param('token') token: string, @Res() res: Response): Promise<void> {
     try {
-      // Verify token and extract userId
-      const { userId } = this.digestService.verifyUnsubscribeToken(token);
+      // Verify token, validate userId exists, and extract userId
+      const { userId } = await this.digestService.verifyUnsubscribeToken(token);
 
       // Update user preferences to disable digest
       await this.notificationsService.updateUserPreferences(userId, {
@@ -53,8 +53,11 @@ export class DigestUnsubscribeController {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Unsubscribe failed: ${errorMessage}`);
 
-      // Return error HTML page
-      res.status(400).send(this.getErrorHtml());
+      // Token verification errors return 400, other errors return 500
+      const isTokenError = errorMessage.includes('Invalid or expired unsubscribe token');
+      const statusCode = isTokenError ? 400 : 500;
+
+      res.status(statusCode).send(this.getErrorHtml(isTokenError));
     }
   }
 
@@ -124,7 +127,15 @@ export class DigestUnsubscribeController {
   /**
    * Generate error HTML page
    */
-  private getErrorHtml(): string {
+  private getErrorHtml(isTokenError: boolean = true): string {
+    const title = isTokenError ? 'Invalid or Expired Link' : 'Something Went Wrong';
+    const message = isTokenError
+      ? 'This unsubscribe link is invalid or has expired.'
+      : 'We encountered an error processing your request. Please try again later.';
+    const hint = isTokenError
+      ? 'Please use the unsubscribe link from your most recent digest email, or update your preferences in settings.'
+      : 'If the problem persists, you can update your preferences in settings.';
+
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -174,9 +185,9 @@ export class DigestUnsubscribeController {
       </head>
       <body>
         <div class="container">
-          <h1>Invalid or Expired Link</h1>
-          <p>This unsubscribe link is invalid or has expired.</p>
-          <p>Please use the unsubscribe link from your most recent digest email, or update your preferences in settings.</p>
+          <h1>${title}</h1>
+          <p>${message}</p>
+          <p>${hint}</p>
           <a href="${process.env.APP_URL || 'http://localhost:3000'}/settings/notifications" class="button">Go to Settings</a>
         </div>
       </body>

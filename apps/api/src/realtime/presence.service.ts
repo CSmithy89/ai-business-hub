@@ -94,56 +94,67 @@ export class PresenceService {
         return [];
       }
 
-      // Get location and user details for each user
-      const users = await Promise.all(
+      // Get locations from Redis for all users
+      const locationResults = await Promise.all(
         userIds.map(async (userId) => {
           try {
-            // Get location from Redis
             const locationKey = `presence:user:${userId}:location`;
             const location = await this.redis.hgetall(locationKey);
-
-            // Skip if location data is missing (stale entry)
-            if (!location || !location.page) {
-              return null;
-            }
-
-            // Get user details from database
-            const user = await this.prisma.user.findUnique({
-              where: { id: userId },
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                image: true,
-              },
-            });
-
-            if (!user) {
-              return null;
-            }
-
-            const presenceUser: PresenceUser = {
-              userId: user.id,
-              userName: user.name || user.email,
-              userAvatar: user.image,
-              location: {
-                page: location.page as 'overview' | 'tasks' | 'settings' | 'docs',
-                ...(location.taskId ? { taskId: location.taskId } : {}),
-              },
-              lastSeen: location.timestamp,
-            };
-            return presenceUser;
+            return { userId, location };
           } catch (error) {
-            this.logger.warn(`Failed to get presence for user ${userId}`, {
+            this.logger.warn(`Failed to get location for user ${userId}`, {
               error: error instanceof Error ? error.message : String(error),
             });
-            return null;
+            return { userId, location: null };
           }
         }),
       );
 
-      // Filter out null entries and return
-      return users.filter((user): user is PresenceUser => user !== null);
+      // Filter users with valid location data
+      const validUserLocations = locationResults.filter(
+        (result): result is { userId: string; location: Record<string, string> } =>
+          result.location !== null && typeof result.location.page === 'string'
+      );
+
+      if (validUserLocations.length === 0) {
+        return [];
+      }
+
+      // Batch query: Get all user details in a single database call
+      const userDetails = await this.prisma.user.findMany({
+        where: { id: { in: validUserLocations.map((r) => r.userId) } },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+        },
+      });
+
+      // Create a lookup map for user details
+      const userMap = new Map(userDetails.map((u) => [u.id, u]));
+
+      // Map to presence users
+      const users: PresenceUser[] = [];
+      for (const { userId, location } of validUserLocations) {
+        const user = userMap.get(userId);
+        if (!user) {
+          continue;
+        }
+
+        users.push({
+          userId: user.id,
+          userName: user.name || user.email,
+          userAvatar: user.image,
+          location: {
+            page: location.page as 'overview' | 'tasks' | 'settings' | 'docs',
+            ...(location.taskId ? { taskId: location.taskId } : {}),
+          },
+          lastSeen: location.timestamp,
+        });
+      }
+
+      return users;
     } catch (error) {
       this.logger.error('Failed to get project presence', {
         projectId,

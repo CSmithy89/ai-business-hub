@@ -18,7 +18,6 @@ import {
   PMProjectEventPayload,
   PMProjectDeletedPayload,
   PMTeamChangePayload,
-  getProjectRoom,
 } from './realtime.types';
 
 /**
