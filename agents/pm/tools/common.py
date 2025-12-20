@@ -35,7 +35,9 @@ OPENAI_API_KEY:
 
 import os
 import logging
-from typing import Dict
+from typing import Any, Dict, Optional
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +52,9 @@ if not API_BASE_URL:
 # Service token for agent-to-API calls (internal service auth)
 # This must match the AGENT_SERVICE_TOKEN in the NestJS API environment
 AGENT_SERVICE_TOKEN = os.getenv("AGENT_SERVICE_TOKEN")
+
+# Default timeout for API requests (seconds)
+DEFAULT_TIMEOUT = 30.0
 
 
 def get_auth_headers(workspace_id: str) -> Dict[str, str]:
@@ -73,3 +78,100 @@ def get_auth_headers(workspace_id: str) -> Dict[str, str]:
         logger.warning("AGENT_SERVICE_TOKEN not set - API calls may fail auth")
 
     return headers
+
+
+class ApiError:
+    """Standardized API error response."""
+
+    def __init__(
+        self,
+        status_code: Optional[int],
+        message: str,
+        fallback_data: Optional[Dict[str, Any]] = None,
+    ):
+        self.status_code = status_code
+        self.message = message
+        self.fallback_data = fallback_data or {}
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for tool return value."""
+        result = {
+            "error": f"HTTP {self.status_code}" if self.status_code else "Request failed",
+            "message": self.message,
+        }
+        result.update(self.fallback_data)
+        return result
+
+
+def api_request(
+    method: str,
+    endpoint: str,
+    workspace_id: str,
+    *,
+    json: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
+    timeout: float = DEFAULT_TIMEOUT,
+    fallback_data: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Make an authenticated API request with standardized error handling.
+
+    Args:
+        method: HTTP method (GET, POST, PUT, DELETE, PATCH)
+        endpoint: API endpoint path (will be prefixed with API_BASE_URL)
+        workspace_id: Workspace/tenant identifier for auth
+        json: Optional JSON body for POST/PUT requests
+        params: Optional query parameters
+        timeout: Request timeout in seconds (default: 30)
+        fallback_data: Data to include in error response (e.g., {"risks": []})
+
+    Returns:
+        API response data on success, or error dict with fallback_data on failure:
+        {
+            "error": "HTTP 500" | "Request failed",
+            "message": str,
+            **fallback_data
+        }
+
+    Example:
+        >>> result = api_request(
+        ...     "POST",
+        ...     "/api/pm/agents/health/proj123/detect-risks",
+        ...     "workspace123",
+        ...     fallback_data={"risks": []}
+        ... )
+    """
+    url = f"{API_BASE_URL}{endpoint}"
+    headers = get_auth_headers(workspace_id)
+
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            response = client.request(
+                method=method.upper(),
+                url=url,
+                headers=headers,
+                json=json,
+                params=params,
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"API request failed: {method} {endpoint} - {e.response.status_code}")
+        return ApiError(
+            status_code=e.response.status_code,
+            message=str(e),
+            fallback_data=fallback_data,
+        ).to_dict()
+    except httpx.RequestError as e:
+        logger.error(f"API request error: {method} {endpoint} - {str(e)}")
+        return ApiError(
+            status_code=None,
+            message=str(e),
+            fallback_data=fallback_data,
+        ).to_dict()
+    except Exception as e:
+        logger.error(f"Unexpected error: {method} {endpoint} - {str(e)}")
+        return ApiError(
+            status_code=None,
+            message=str(e),
+            fallback_data=fallback_data,
+        ).to_dict()

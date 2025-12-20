@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
   Dialog,
@@ -22,7 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, ArrowRight, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
+import { usePhaseTransition } from '@/hooks/use-phase-transition';
 
 interface TaskAction {
   taskId: string;
@@ -46,64 +45,23 @@ export function PhaseTransitionModal({
   onTransition,
 }: PhaseTransitionModalProps) {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [taskActions, setTaskActions] = useState<Record<string, TaskAction>>({});
   const [completionNote, setCompletionNote] = useState('');
 
-  // Fetch Scope analysis
-  const { data: analysis, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['phase-analysis', phaseId],
-    queryFn: async () => {
-      const response = await fetch(`/api/pm/phases/${phaseId}/analyze-completion`, {
-        method: 'POST',
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to analyze phase');
-      }
-      return response.json();
-    },
-    enabled: open,
-    retry: 1,
-  });
-
-  // Execute transition
-  const transitionMutation = useMutation({
-    mutationFn: () =>
-      fetch(`/api/pm/phases/${phaseId}/transition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          taskActions: Object.values(taskActions),
-          completionNote,
-        }),
-      }).then((r) => {
-        if (!r.ok) throw new Error('Transition failed');
-        return r.json();
-      }),
-    onSuccess: (data) => {
-      toast.success(`Phase "${analysis.phaseName}" completed!`);
-      queryClient.invalidateQueries({ queryKey: ['phases', projectId] });
-      onTransition?.();
-
-      // Navigate to next phase if it exists
-      if (data.activePhase) {
-        router.push(`/pm/phases/${data.activePhase.id}` as Parameters<typeof router.push>[0]);
-      }
-
-      onOpenChange(false);
-    },
-    onError: (error) => {
-      toast.error('Failed to complete phase');
-      console.error(error);
-    },
-  });
+  const {
+    analysis,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    transitionMutation,
+  } = usePhaseTransition(phaseId, projectId, open);
 
   // Initialize task actions from Scope recommendations
   useEffect(() => {
     if (analysis?.recommendations) {
       const initialActions = analysis.recommendations.reduce(
-        (acc: Record<string, TaskAction>, rec: any) => ({
+        (acc: Record<string, TaskAction>, rec) => ({
           ...acc,
           [rec.taskId]: {
             taskId: rec.taskId,
@@ -128,7 +86,24 @@ export function PhaseTransitionModal({
   };
 
   const handleConfirmTransition = () => {
-    transitionMutation.mutate();
+    transitionMutation.mutate(
+      {
+        taskActions: Object.values(taskActions),
+        completionNote: completionNote || undefined,
+      },
+      {
+        onSuccess: (data) => {
+          onTransition?.();
+
+          // Navigate to next phase if it exists
+          if (data.activePhase) {
+            router.push(`/pm/phases/${data.activePhase.id}` as Parameters<typeof router.push>[0]);
+          }
+
+          onOpenChange(false);
+        },
+      }
+    );
   };
 
   if (isLoading) {
@@ -236,7 +211,7 @@ export function PhaseTransitionModal({
               </p>
 
               <div className="space-y-3">
-                {analysis.recommendations.map((rec: any) => (
+                {analysis.recommendations.map((rec) => (
                   <div key={rec.taskId} className="border rounded-lg p-4">
                     <div className="flex items-start justify-between gap-4 mb-2">
                       <div className="flex-1">

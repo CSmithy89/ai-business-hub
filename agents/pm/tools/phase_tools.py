@@ -5,41 +5,14 @@ AI Business Hub - Project Management Module
 Tools for phase management, transition analysis, and checkpoint tracking.
 """
 
-import os
 import logging
 from typing import Optional, Dict, List, Any
-import httpx
+
 from agno.tools import tool
 
+from .common import api_request
+
 logger = logging.getLogger(__name__)
-
-# Get API base URL from environment
-API_BASE_URL = os.getenv("API_BASE_URL")
-if not API_BASE_URL:
-    raise ValueError("API_BASE_URL environment variable must be set")
-
-# Service token for agent-to-API calls (internal service auth)
-AGENT_SERVICE_TOKEN = os.getenv("AGENT_SERVICE_TOKEN")
-
-
-def get_auth_headers(workspace_id: str) -> Dict[str, str]:
-    """Build headers for authenticated API calls.
-
-    Args:
-        workspace_id: Workspace/tenant identifier
-
-    Returns:
-        Dict with required headers including auth if available
-    """
-    headers = {"x-workspace-id": workspace_id}
-
-    # Add service auth token if available (for internal agent calls)
-    if AGENT_SERVICE_TOKEN:
-        headers["Authorization"] = f"Bearer {AGENT_SERVICE_TOKEN}"
-    else:
-        logger.warning("AGENT_SERVICE_TOKEN not set - API calls may fail auth")
-
-    return headers
 
 
 @tool
@@ -79,27 +52,15 @@ def analyze_phase_completion(
     Raises:
         httpx.HTTPStatusError: If API call fails
     """
-    try:
-        with httpx.Client(timeout=30.0) as client:
-            response = client.post(
-                f"{API_BASE_URL}/api/pm/phases/{phase_id}/analyze-completion",
-                json={"projectId": project_id},
-                headers=get_auth_headers(workspace_id)
-            )
-            response.raise_for_status()
-            return response.json()
-    except httpx.HTTPStatusError as e:
-        logger.error(f"Failed to analyze phase completion: {e.response.text}")
-        return {
-            "error": f"Failed to analyze phase: {e.response.status_code}",
-            "message": e.response.text
-        }
-    except Exception as e:
-        logger.error(f"Error analyzing phase completion: {str(e)}")
-        return {
+    return api_request(
+        "POST",
+        f"/api/pm/phases/{phase_id}/analyze-completion",
+        workspace_id,
+        json={"projectId": project_id},
+        fallback_data={
             "error": "Failed to analyze phase",
-            "message": str(e)
-        }
+        },
+    )
 
 
 @tool
@@ -132,27 +93,15 @@ def check_phase_checkpoint(
     Raises:
         httpx.HTTPStatusError: If API call fails (except 404)
     """
-    try:
-        with httpx.Client(timeout=30.0) as client:
-            response = client.get(
-                f"{API_BASE_URL}/api/pm/phases/{phase_id}/checkpoints/upcoming",
-                headers=get_auth_headers(workspace_id)
-            )
-
-            # Return None if no checkpoints found (404)
-            if response.status_code == 404:
-                return None
-
-            response.raise_for_status()
-            return response.json()
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
-            return None
-        logger.error(f"Failed to check phase checkpoint: {e.response.text}")
+    result = api_request(
+        "GET",
+        f"/api/pm/phases/{phase_id}/checkpoints/upcoming",
+        workspace_id,
+    )
+    # Return None for 404 (no checkpoints found) or errors
+    if "error" in result:
         return None
-    except Exception as e:
-        logger.error(f"Error checking phase checkpoint: {str(e)}")
-        return None
+    return result
 
 
 @tool
@@ -198,27 +147,15 @@ def suggest_phase_transition(
     Raises:
         httpx.HTTPStatusError: If API call fails
     """
-    try:
-        with httpx.Client(timeout=30.0) as client:
-            response = client.post(
-                f"{API_BASE_URL}/api/pm/phases/{phase_id}/transition-preview",
-                json={"taskActions": task_actions},
-                headers=get_auth_headers(workspace_id)
-            )
-            response.raise_for_status()
-            return response.json()
-    except httpx.HTTPStatusError as e:
-        logger.error(f"Failed to suggest phase transition: {e.response.text}")
-        return {
-            "error": f"Failed to preview transition: {e.response.status_code}",
-            "message": e.response.text
-        }
-    except Exception as e:
-        logger.error(f"Error suggesting phase transition: {str(e)}")
-        return {
+    return api_request(
+        "POST",
+        f"/api/pm/phases/{phase_id}/transition-preview",
+        workspace_id,
+        json={"taskActions": task_actions},
+        fallback_data={
             "error": "Failed to preview transition",
-            "message": str(e)
-        }
+        },
+    )
 
 
 @tool
@@ -253,18 +190,13 @@ def recommend_task_actions(
     Raises:
         httpx.HTTPStatusError: If API call fails
     """
-    try:
-        with httpx.Client(timeout=30.0) as client:
-            response = client.post(
-                f"{API_BASE_URL}/api/pm/phases/{phase_id}/recommend-actions",
-                json={"taskIds": task_ids},
-                headers=get_auth_headers(workspace_id)
-            )
-            response.raise_for_status()
-            return response.json()
-    except httpx.HTTPStatusError as e:
-        logger.error(f"Failed to recommend task actions: {e.response.text}")
+    result = api_request(
+        "POST",
+        f"/api/pm/phases/{phase_id}/recommend-actions",
+        workspace_id,
+        json={"taskIds": task_ids},
+    )
+    # Return empty list if error occurred
+    if "error" in result:
         return []
-    except Exception as e:
-        logger.error(f"Error recommending task actions: {str(e)}")
-        return []
+    return result

@@ -6,43 +6,12 @@ Tools for generating project reports: status, health, and progress reports.
 """
 
 from agno import tool
-import httpx
 from typing import Dict, Any, Optional
-import os
 import logging
 
+from .common import api_request
+
 logger = logging.getLogger(__name__)
-
-# Get API base URL from environment
-API_BASE_URL = os.getenv("API_BASE_URL")
-if not API_BASE_URL:
-    raise ValueError("API_BASE_URL environment variable must be set")
-
-# Service token for agent-to-API calls (internal service auth)
-AGENT_SERVICE_TOKEN = os.getenv("AGENT_SERVICE_TOKEN")
-
-
-def get_auth_headers(workspace_id: str) -> Dict[str, str]:
-    """Build headers for authenticated API calls.
-
-    Args:
-        workspace_id: Workspace/tenant identifier
-
-    Returns:
-        Dict with required headers including auth if available
-    """
-    headers = {
-        "x-workspace-id": workspace_id,
-        "Content-Type": "application/json"
-    }
-
-    # Add service auth token if available (for internal agent calls)
-    if AGENT_SERVICE_TOKEN:
-        headers["Authorization"] = f"Bearer {AGENT_SERVICE_TOKEN}"
-    else:
-        logger.warning("AGENT_SERVICE_TOKEN not set - API calls may fail auth")
-
-    return headers
 
 
 @tool
@@ -93,32 +62,16 @@ def generate_project_report(
     Raises:
         httpx.HTTPStatusError: If API request fails
     """
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.post(
-                f"{API_BASE_URL}/api/pm/agents/reports/{project_id}/generate",
-                json={
-                    "type": "PROJECT_STATUS",
-                    "format": format
-                },
-                headers=get_auth_headers(workspace_id)
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to generate project report: {e.response.text}")
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "report": None
-            }
-        except Exception as e:
-            logger.error(f"Error generating project report: {str(e)}")
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "report": None
-            }
+    return api_request(
+        "POST",
+        f"/api/pm/agents/reports/{project_id}/generate",
+        workspace_id,
+        json={
+            "type": "PROJECT_STATUS",
+            "format": format,
+        },
+        fallback_data={"report": None},
+    )
 
 
 @tool
@@ -169,32 +122,16 @@ def generate_health_report(
     Raises:
         httpx.HTTPStatusError: If API request fails
     """
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.post(
-                f"{API_BASE_URL}/api/pm/agents/reports/{project_id}/generate",
-                json={
-                    "type": "HEALTH_REPORT",
-                    "format": format
-                },
-                headers=get_auth_headers(workspace_id)
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to generate health report: {e.response.text}")
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "report": None
-            }
-        except Exception as e:
-            logger.error(f"Error generating health report: {str(e)}")
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "report": None
-            }
+    return api_request(
+        "POST",
+        f"/api/pm/agents/reports/{project_id}/generate",
+        workspace_id,
+        json={
+            "type": "HEALTH_REPORT",
+            "format": format,
+        },
+        fallback_data={"report": None},
+    )
 
 
 @tool
@@ -247,33 +184,17 @@ def generate_progress_report(
     Raises:
         httpx.HTTPStatusError: If API request fails
     """
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.post(
-                f"{API_BASE_URL}/api/pm/agents/reports/{project_id}/generate",
-                json={
-                    "type": "PROGRESS_REPORT",
-                    "format": format,
-                    "days": days
-                },
-                headers=get_auth_headers(workspace_id)
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to generate progress report: {e.response.text}")
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "report": None
-            }
-        except Exception as e:
-            logger.error(f"Error generating progress report: {str(e)}")
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "report": None
-            }
+    return api_request(
+        "POST",
+        f"/api/pm/agents/reports/{project_id}/generate",
+        workspace_id,
+        json={
+            "type": "PROGRESS_REPORT",
+            "format": format,
+            "days": days,
+        },
+        fallback_data={"report": None},
+    )
 
 
 @tool
@@ -314,35 +235,17 @@ def get_report_history(
     # Limit to max 50
     limit = min(limit, 50)
 
-    params = {"limit": limit}
+    params: Dict[str, Any] = {"limit": limit}
     if type:
         params["type"] = type
 
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.get(
-                f"{API_BASE_URL}/api/pm/agents/reports/{project_id}",
-                params=params,
-                headers=get_auth_headers(workspace_id)
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to get report history: {e.response.text}")
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "reports": [],
-                "total": 0
-            }
-        except Exception as e:
-            logger.error(f"Error getting report history: {str(e)}")
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "reports": [],
-                "total": 0
-            }
+    return api_request(
+        "GET",
+        f"/api/pm/agents/reports/{project_id}",
+        workspace_id,
+        params=params,
+        fallback_data={"reports": [], "total": 0},
+    )
 
 
 @tool
@@ -401,33 +304,17 @@ def generate_executive_report(
     Raises:
         httpx.HTTPStatusError: If API request fails
     """
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.post(
-                f"{API_BASE_URL}/api/pm/agents/reports/{project_id}/generate",
-                json={
-                    "type": report_type,
-                    "stakeholderType": "EXECUTIVE",
-                    "format": format
-                },
-                headers=get_auth_headers(workspace_id)
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to generate executive report: {e.response.text}")
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "report": None
-            }
-        except Exception as e:
-            logger.error(f"Error generating executive report: {str(e)}")
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "report": None
-            }
+    return api_request(
+        "POST",
+        f"/api/pm/agents/reports/{project_id}/generate",
+        workspace_id,
+        json={
+            "type": report_type,
+            "stakeholderType": "EXECUTIVE",
+            "format": format,
+        },
+        fallback_data={"report": None},
+    )
 
 
 @tool
@@ -487,33 +374,17 @@ def generate_team_lead_report(
     Raises:
         httpx.HTTPStatusError: If API request fails
     """
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.post(
-                f"{API_BASE_URL}/api/pm/agents/reports/{project_id}/generate",
-                json={
-                    "type": report_type,
-                    "stakeholderType": "TEAM_LEAD",
-                    "format": format
-                },
-                headers=get_auth_headers(workspace_id)
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to generate team lead report: {e.response.text}")
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "report": None
-            }
-        except Exception as e:
-            logger.error(f"Error generating team lead report: {str(e)}")
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "report": None
-            }
+    return api_request(
+        "POST",
+        f"/api/pm/agents/reports/{project_id}/generate",
+        workspace_id,
+        json={
+            "type": report_type,
+            "stakeholderType": "TEAM_LEAD",
+            "format": format,
+        },
+        fallback_data={"report": None},
+    )
 
 
 @tool
@@ -572,30 +443,14 @@ def generate_client_report(
     Raises:
         httpx.HTTPStatusError: If API request fails
     """
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.post(
-                f"{API_BASE_URL}/api/pm/agents/reports/{project_id}/generate",
-                json={
-                    "type": report_type,
-                    "stakeholderType": "CLIENT",
-                    "format": format
-                },
-                headers=get_auth_headers(workspace_id)
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to generate client report: {e.response.text}")
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "report": None
-            }
-        except Exception as e:
-            logger.error(f"Error generating client report: {str(e)}")
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "report": None
-            }
+    return api_request(
+        "POST",
+        f"/api/pm/agents/reports/{project_id}/generate",
+        workspace_id,
+        json={
+            "type": report_type,
+            "stakeholderType": "CLIENT",
+            "format": format,
+        },
+        fallback_data={"report": None},
+    )

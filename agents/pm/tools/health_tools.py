@@ -6,16 +6,9 @@ Tools for detecting risks, calculating health scores, and monitoring project hea
 """
 
 from agno import tool
-import httpx
 from typing import Dict, Any
-import os
-import logging
 
-API_URL = os.getenv("API_URL", "http://localhost:3000")
-AGENT_SERVICE_TOKEN = os.getenv("AGENT_SERVICE_TOKEN", "")
-
-if not AGENT_SERVICE_TOKEN:
-    logging.warning("AGENT_SERVICE_TOKEN not set - agent API calls may fail")
+from .common import api_request
 
 
 @tool
@@ -54,30 +47,12 @@ def detect_risks(
     Raises:
         httpx.HTTPStatusError: If API request fails
     """
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.post(
-                f"{API_URL}/api/pm/agents/health/{project_id}/detect-risks",
-                headers={
-                    "Authorization": f"Bearer {AGENT_SERVICE_TOKEN}",
-                    "x-workspace-id": workspace_id,
-                    "Content-Type": "application/json",
-                },
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "risks": []
-            }
-        except Exception as e:
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "risks": []
-            }
+    return api_request(
+        "POST",
+        f"/api/pm/agents/health/{project_id}/detect-risks",
+        workspace_id,
+        fallback_data={"risks": []},
+    )
 
 
 @tool
@@ -123,34 +98,16 @@ def calculate_health_score(
     Raises:
         httpx.HTTPStatusError: If API request fails
     """
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.post(
-                f"{API_URL}/api/pm/agents/health/{project_id}/calculate-score",
-                headers={
-                    "Authorization": f"Bearer {AGENT_SERVICE_TOKEN}",
-                    "x-workspace-id": workspace_id,
-                    "Content-Type": "application/json",
-                },
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "score": 50,
-                "level": "warning",
-                "trend": "stable"
-            }
-        except Exception as e:
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "score": 50,
-                "level": "warning",
-                "trend": "stable"
-            }
+    return api_request(
+        "POST",
+        f"/api/pm/agents/health/{project_id}/calculate-score",
+        workspace_id,
+        fallback_data={
+            "score": 50,
+            "level": "warning",
+            "trend": "stable",
+        },
+    )
 
 
 @tool
@@ -185,31 +142,15 @@ def check_team_capacity(
     Raises:
         httpx.HTTPStatusError: If API request fails
     """
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.get(
-                f"{API_URL}/api/pm/agents/health/{project_id}/team-capacity",
-                headers={
-                    "Authorization": f"Bearer {AGENT_SERVICE_TOKEN}",
-                    "x-workspace-id": workspace_id,
-                },
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "overloadedMembers": [],
-                "teamHealth": "healthy"
-            }
-        except Exception as e:
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "overloadedMembers": [],
-                "teamHealth": "healthy"
-            }
+    return api_request(
+        "GET",
+        f"/api/pm/agents/health/{project_id}/team-capacity",
+        workspace_id,
+        fallback_data={
+            "overloadedMembers": [],
+            "teamHealth": "healthy",
+        },
+    )
 
 
 @tool
@@ -240,35 +181,17 @@ def analyze_velocity(
     Raises:
         httpx.HTTPStatusError: If API request fails
     """
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.get(
-                f"{API_URL}/api/pm/agents/health/{project_id}/velocity",
-                headers={
-                    "Authorization": f"Bearer {AGENT_SERVICE_TOKEN}",
-                    "x-workspace-id": workspace_id,
-                },
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "currentVelocity": 0,
-                "baselineVelocity": 0,
-                "trend": "stable",
-                "alert": False
-            }
-        except Exception as e:
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "currentVelocity": 0,
-                "baselineVelocity": 0,
-                "trend": "stable",
-                "alert": False
-            }
+    return api_request(
+        "GET",
+        f"/api/pm/agents/health/{project_id}/velocity",
+        workspace_id,
+        fallback_data={
+            "currentVelocity": 0,
+            "baselineVelocity": 0,
+            "trend": "stable",
+            "alert": False,
+        },
+    )
 
 
 @tool
@@ -305,29 +228,12 @@ def detect_blocker_chains(
     Raises:
         httpx.HTTPStatusError: If API request fails
     """
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.get(
-                f"{API_URL}/api/pm/agents/health/{project_id}/blocker-chains",
-                headers={
-                    "Authorization": f"Bearer {AGENT_SERVICE_TOKEN}",
-                    "x-workspace-id": workspace_id,
-                },
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "chains": []
-            }
-        except Exception as e:
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "chains": []
-            }
+    return api_request(
+        "GET",
+        f"/api/pm/agents/health/{project_id}/blocker-chains",
+        workspace_id,
+        fallback_data={"chains": []},
+    )
 
 
 @tool
@@ -368,28 +274,12 @@ def get_overdue_tasks(
     Raises:
         httpx.HTTPStatusError: If API request fails
     """
-    with httpx.Client(timeout=30.0) as client:
-        try:
-            response = client.get(
-                f"{API_URL}/api/pm/agents/health/{project_id}/overdue-tasks",
-                headers={
-                    "Authorization": f"Bearer {AGENT_SERVICE_TOKEN}",
-                    "x-workspace-id": workspace_id,
-                },
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            return {
-                "error": f"HTTP {e.response.status_code}",
-                "message": str(e),
-                "overdue": [],
-                "dueSoon": []
-            }
-        except Exception as e:
-            return {
-                "error": "Request failed",
-                "message": str(e),
-                "overdue": [],
-                "dueSoon": []
-            }
+    return api_request(
+        "GET",
+        f"/api/pm/agents/health/{project_id}/overdue-tasks",
+        workspace_id,
+        fallback_data={
+            "overdue": [],
+            "dueSoon": [],
+        },
+    )
