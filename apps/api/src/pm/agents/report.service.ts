@@ -177,7 +177,7 @@ export class ReportService {
       this.prisma.report.findMany({
         where,
         orderBy: { generatedAt: 'desc' },
-        take: Math.min(limit, 50), // Max 50
+        take: Math.max(1, Math.min(limit, 50)), // Clamp to 1-50
         select: {
           id: true,
           projectId: true,
@@ -439,19 +439,28 @@ export class ReportService {
       },
     });
 
-    // Get blocked tasks
-    const blockedTasks = await this.prisma.task.findMany({
-      where: {
-        projectId: project.id,
-        status: { in: ['BACKLOG', 'TODO'] },
-        deletedAt: null,
-      },
-      take: 10,
-      orderBy: { createdAt: 'desc' },
-    });
+    // Get upcoming tasks with count for accurate totals
+    const [upcomingTasks, upcomingTaskCount] = await Promise.all([
+      this.prisma.task.findMany({
+        where: {
+          projectId: project.id,
+          status: { in: ['BACKLOG', 'TODO'] },
+          deletedAt: null,
+        },
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.task.count({
+        where: {
+          projectId: project.id,
+          status: { in: ['BACKLOG', 'TODO'] },
+          deletedAt: null,
+        },
+      }),
+    ]);
 
     const content: ReportContent = {
-      summary: `In the last ${days} days: ${completedTasks.length} tasks completed, ${inProgressTasks.length} in progress, ${blockedTasks.length} upcoming.`,
+      summary: `In the last ${days} days: ${completedTasks.length} tasks completed, ${inProgressTasks.length} in progress, ${upcomingTaskCount} upcoming.`,
       sections: [
         {
           heading: 'Summary',
@@ -459,7 +468,7 @@ export class ReportService {
             `**Period:** Last ${days} days`,
             `**Completed:** ${completedTasks.length} tasks`,
             `**In Progress:** ${inProgressTasks.length} tasks`,
-            `**Upcoming:** ${blockedTasks.length} tasks`,
+            `**Upcoming:** ${upcomingTaskCount} tasks`,
           ].join('\n'),
         },
         {
@@ -484,8 +493,8 @@ export class ReportService {
         {
           heading: 'Upcoming Priorities',
           content:
-            blockedTasks.length > 0
-              ? blockedTasks
+            upcomingTasks.length > 0
+              ? upcomingTasks
                   .map((t) => `- ${t.title}`)
                   .join('\n')
               : 'No upcoming tasks.',
@@ -508,7 +517,7 @@ export class ReportService {
       metrics: {
         completedTasks: completedTasks.length,
         inProgressTasks: inProgressTasks.length,
-        upcomingTasks: blockedTasks.length,
+        upcomingTasks: upcomingTaskCount,
         days,
       },
     };

@@ -53,7 +53,7 @@ export class ReportController {
       workspaceId,
       projectId,
       type,
-      limit || 10,
+      limit ?? 10,
     );
   }
 

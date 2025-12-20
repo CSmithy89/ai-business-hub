@@ -190,18 +190,20 @@ export class PhasesController {
   async updateCheckpoint(
     @CurrentWorkspace() workspaceId: string,
     @CurrentUser() user: any,
+    @Param('id') phaseId: string,
     @Param('checkpointId') checkpointId: string,
     @Body() dto: UpdateCheckpointDto,
     @Req() req: Request,
   ) {
     const memberRole = (req as unknown as { memberRole?: string }).memberRole
     if (memberRole === 'member') {
-      // Verify checkpoint access through phase
-      const checkpoint = await this.checkpointService.listCheckpoints(workspaceId, '');
-      const checkpointData = checkpoint.find(c => c.id === checkpointId);
-      if (checkpointData) {
-        await this.phasesService.assertPhaseProjectLead(workspaceId, user.id, checkpointData.phaseId)
+      // Verify checkpoint belongs to the phase and user has access
+      const checkpoints = await this.checkpointService.listCheckpoints(workspaceId, phaseId);
+      const checkpointData = checkpoints.find(c => c.id === checkpointId);
+      if (!checkpointData) {
+        throw new NotFoundException('Checkpoint not found in this phase');
       }
+      await this.phasesService.assertPhaseProjectLead(workspaceId, user.id, checkpointData.phaseId)
     }
     return this.checkpointService.updateCheckpoint(
       workspaceId,

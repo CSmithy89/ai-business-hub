@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../common/services/prisma.service';
 import { HealthService } from './health.service';
+import { SYSTEM_USERS } from './constants';
 
 @Injectable()
 export class HealthCheckCron {
@@ -14,6 +15,7 @@ export class HealthCheckCron {
 
   @Cron('*/15 * * * *') // Every 15 minutes
   async runHealthChecks() {
+    const startTime = Date.now();
     this.logger.log('Starting scheduled health checks');
 
     try {
@@ -32,27 +34,36 @@ export class HealthCheckCron {
 
       this.logger.log(`Found ${activeProjects.length} active projects`);
 
+      let successCount = 0;
+      let failCount = 0;
+
       // Run health check for each project
       for (const project of activeProjects) {
         try {
           await this.healthService.runHealthCheck(
             project.workspaceId,
             project.id,
-            'system', // System user for scheduled checks
+            SYSTEM_USERS.HEALTH_CHECK,
           );
           this.logger.log(`Health check completed for project ${project.id}`);
+          successCount++;
         } catch (error) {
           this.logger.error(
             `Health check failed for project ${project.id}:`,
             error,
           );
+          failCount++;
           // Continue with next project even if one fails
         }
       }
 
-      this.logger.log('Scheduled health checks completed');
+      const duration = Date.now() - startTime;
+      this.logger.log(
+        `Scheduled health checks completed: ${successCount} succeeded, ${failCount} failed, duration=${duration}ms`,
+      );
     } catch (error) {
-      this.logger.error('Health check cron job failed:', error);
+      const duration = Date.now() - startTime;
+      this.logger.error(`Health check cron job failed after ${duration}ms:`, error);
     }
   }
 }

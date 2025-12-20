@@ -13,6 +13,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/guards/auth.guard';
+import { TenantGuard } from '../../common/guards/tenant.guard';
 import { CurrentWorkspace } from '../../common/decorators/current-workspace.decorator';
 import {
   ScheduledReportService,
@@ -21,7 +22,7 @@ import {
 } from './scheduled-report.service';
 
 @Controller('pm/agents/reports/schedules')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, TenantGuard)
 export class ScheduledReportController {
   constructor(private scheduledReportService: ScheduledReportService) {}
 
@@ -87,8 +88,8 @@ export class ScheduledReportController {
   async deleteSchedule(
     @CurrentWorkspace() workspaceId: string,
     @Param('id') scheduleId: string,
-  ) {
-    return this.scheduledReportService.deleteSchedule(workspaceId, scheduleId);
+  ): Promise<void> {
+    await this.scheduledReportService.deleteSchedule(workspaceId, scheduleId);
   }
 
   /**

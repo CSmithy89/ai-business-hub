@@ -4,7 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { TaskStatus, CheckpointStatus, PhaseStatus } from '@prisma/client';
+import { Prisma, TaskStatus, CheckpointStatus, PhaseStatus } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
 import { TaskActionDto, PhaseTransitionDto } from '../phases/dto/phase-transition.dto';
 
@@ -107,11 +107,11 @@ export class PhaseService {
       throw new NotFoundException(`Phase ${phaseId} not found in workspace`);
     }
 
-    // Get incomplete tasks for this phase
+    // Get incomplete tasks for this phase (exclude DONE and CANCELLED)
     const tasks = await this.prisma.task.findMany({
       where: {
         phaseId,
-        status: { not: TaskStatus.DONE },
+        status: { notIn: [TaskStatus.DONE, TaskStatus.CANCELLED] },
       },
       orderBy: { taskNumber: 'asc' },
     });
@@ -366,8 +366,7 @@ export class PhaseService {
    * Execute a single task action within a transaction.
    */
   private async executeTaskAction(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tx: any, // Prisma transaction client
+    tx: Prisma.TransactionClient,
     taskAction: TaskActionDto,
     _currentPhaseId: string,
   ): Promise<void> {
@@ -382,10 +381,29 @@ export class PhaseService {
         });
         break;
 
-      case 'carry_over':
+      case 'carry_over': {
         if (!taskAction.targetPhaseId) {
           throw new BadRequestException(
             'Target phase required for carry_over action',
+          );
+        }
+        // Validate target phase belongs to the same project
+        const currentPhase = await tx.phase.findUnique({
+          where: { id: _currentPhaseId },
+          select: { projectId: true },
+        });
+        if (!currentPhase) {
+          throw new BadRequestException('Current phase not found');
+        }
+        const targetPhase = await tx.phase.findFirst({
+          where: {
+            id: taskAction.targetPhaseId,
+            projectId: currentPhase.projectId,
+          },
+        });
+        if (!targetPhase) {
+          throw new BadRequestException(
+            'Target phase must belong to the same project',
           );
         }
         await tx.task.update({
@@ -393,6 +411,7 @@ export class PhaseService {
           data: { phaseId: taskAction.targetPhaseId },
         });
         break;
+      }
 
       case 'cancel':
         await tx.task.update({

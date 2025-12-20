@@ -54,3 +54,13 @@ export const LOOKBACK_PERIODS = {
   /** Days for time tracking suggestions */
   TIME_SUGGESTION_DAYS: 7,
 } as const;
+
+// System user IDs for scheduled/automated tasks
+export const SYSTEM_USERS = {
+  /** System user for health check cron jobs */
+  HEALTH_CHECK: 'system',
+  /** System user for scheduled report generation */
+  HERALD_AGENT: 'herald_agent',
+  /** System user for checkpoint reminders */
+  CHECKPOINT_REMINDER: 'system',
+} as const;

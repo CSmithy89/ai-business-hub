@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { CheckpointStatus } from '@prisma/client';
+import { CheckpointStatus, Prisma, TaskStatus } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
 import { EventPublisherService } from '../../events/event-publisher.service';
 import { EventTypes } from '@hyvve/shared';
@@ -8,8 +8,13 @@ import { CreateCheckpointDto, UpdateCheckpointDto } from './dto/checkpoint.dto';
 interface OutstandingItems {
   summary: string;
   incompleteTasks: number;
-  blockedTasks: number;
+  awaitingApprovalTasks: number;
   overdueTasks: number;
+}
+
+interface PhaseCheckpointProject {
+  id: string;
+  workspaceId: string;
 }
 
 interface PhaseCheckpointWithPhase {
@@ -23,7 +28,7 @@ interface PhaseCheckpointWithPhase {
     id: string;
     name: string;
     projectId: string;
-    project: any; // Using any to handle complex Prisma types
+    project: PhaseCheckpointProject;
   };
 }
 
@@ -90,6 +95,35 @@ export class CheckpointService {
   }
 
   /**
+   * Get a single checkpoint by ID with workspace access validation
+   */
+  async getCheckpointById(workspaceId: string, checkpointId: string) {
+    const checkpoint = await this.prisma.phaseCheckpoint.findFirst({
+      where: {
+        id: checkpointId,
+        phase: {
+          project: { workspaceId },
+        },
+      },
+      include: {
+        phase: {
+          select: {
+            id: true,
+            name: true,
+            projectId: true,
+          },
+        },
+      },
+    });
+
+    if (!checkpoint) {
+      throw new NotFoundException('Checkpoint not found');
+    }
+
+    return checkpoint;
+  }
+
+  /**
    * Update checkpoint status
    */
   async updateCheckpoint(
@@ -103,7 +137,7 @@ export class CheckpointService {
       checkpointId,
     );
 
-    const updateData: any = {};
+    const updateData: Prisma.PhaseCheckpointUpdateInput = {};
     if (dto.name) updateData.name = dto.name;
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.checkpointDate) updateData.checkpointDate = new Date(dto.checkpointDate);
@@ -111,6 +145,9 @@ export class CheckpointService {
       updateData.status = dto.status;
       if (dto.status === CheckpointStatus.COMPLETED) {
         updateData.completedAt = new Date();
+      } else {
+        // Clear completedAt when status changes from COMPLETED
+        updateData.completedAt = null;
       }
     }
 
@@ -170,7 +207,7 @@ export class CheckpointService {
     endOfDay.setHours(23, 59, 59, 999);
 
     // Build where clause based on interval
-    const whereClause: any = {
+    const whereClause: Prisma.PhaseCheckpointWhereInput = {
       checkpointDate: {
         gte: startOfDay,
         lte: endOfDay,
@@ -195,7 +232,12 @@ export class CheckpointService {
       include: {
         phase: {
           include: {
-            project: true,
+            project: {
+              select: {
+                id: true,
+                workspaceId: true,
+              },
+            },
           },
         },
       },
@@ -248,7 +290,6 @@ export class CheckpointService {
       phaseId: phase.id,
       projectId: project.id,
       workspaceId: project.workspaceId,
-      userId: project.ownerId,
       title: `Checkpoint: ${checkpoint.name}`,
       body: message,
       outstandingItems: outstandingItems.summary,
@@ -257,7 +298,7 @@ export class CheckpointService {
     });
 
     // Mark reminder as sent
-    const updateData: any = {};
+    const updateData: Prisma.PhaseCheckpointUpdateInput = {};
     if (interval === '3_days') updateData.reminder3DaysSent = true;
     if (interval === '1_day') updateData.reminder1DaySent = true;
     if (interval === 'day_of') updateData.reminderDayOfSent = true;
@@ -285,20 +326,20 @@ export class CheckpointService {
   }
 
   /**
-   * Get outstanding items for a phase (incomplete tasks, blockers, etc.)
+   * Get outstanding items for a phase (incomplete tasks, awaiting approval, etc.)
    */
   private async getOutstandingItems(phaseId: string): Promise<OutstandingItems> {
     const incompleteTasks = await this.prisma.task.count({
       where: {
         phaseId,
-        status: { notIn: ['DONE', 'CANCELLED'] },
+        status: { notIn: [TaskStatus.DONE, TaskStatus.CANCELLED] },
       },
     });
 
-    const blockedTasks = await this.prisma.task.count({
+    const awaitingApprovalTasks = await this.prisma.task.count({
       where: {
         phaseId,
-        status: 'BLOCKED' as any, // TaskStatus enum
+        status: TaskStatus.AWAITING_APPROVAL,
       },
     });
 
@@ -306,14 +347,14 @@ export class CheckpointService {
       where: {
         phaseId,
         dueDate: { lt: new Date() },
-        status: { notIn: ['DONE', 'CANCELLED'] },
+        status: { notIn: [TaskStatus.DONE, TaskStatus.CANCELLED] },
       },
     });
 
     return {
-      summary: `${incompleteTasks} incomplete tasks, ${blockedTasks} blocked, ${overdueTasks} overdue`,
+      summary: `${incompleteTasks} incomplete tasks, ${awaitingApprovalTasks} awaiting approval, ${overdueTasks} overdue`,
       incompleteTasks,
-      blockedTasks,
+      awaitingApprovalTasks,
       overdueTasks,
     };
   }
@@ -324,8 +365,8 @@ export class CheckpointService {
   private generateSuggestedActions(outstandingItems: OutstandingItems): string[] {
     const actions: string[] = [];
 
-    if (outstandingItems.blockedTasks > 0) {
-      actions.push(`Unblock ${outstandingItems.blockedTasks} blocked tasks`);
+    if (outstandingItems.awaitingApprovalTasks > 0) {
+      actions.push(`Resolve ${outstandingItems.awaitingApprovalTasks} tasks awaiting approval`);
     }
 
     if (outstandingItems.overdueTasks > 0) {

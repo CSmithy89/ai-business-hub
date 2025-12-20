@@ -12,10 +12,13 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { RiskAlertBanner, useRiskSubscription } from '@/components/pm/health';
+import { RiskAlertBanner, RiskListPanel, useRiskSubscription } from '@/components/pm/health';
 import { useSession } from '@/lib/auth-client';
 import { NESTJS_API_URL } from '@/lib/api-config';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 // Helper functions (same as in RiskListPanel)
 function getBaseUrl(): string {
@@ -224,9 +227,3 @@ export function ExampleProjectHeader({ projectId }: { projectId: string }) {
     </div>
   );
 }
-
-// Note: Add these imports at the top for the manual panel example
-import { useState } from 'react';
-import { RiskListPanel } from '@/components/pm/health';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';

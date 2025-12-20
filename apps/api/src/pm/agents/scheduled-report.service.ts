@@ -8,6 +8,11 @@ import {
 import { ReportFrequency, ReportType, StakeholderType } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
 
+// Valid enum values for runtime validation
+const VALID_FREQUENCIES: ReportFrequency[] = ['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY'];
+const VALID_REPORT_TYPES: ReportType[] = ['PROJECT_STATUS', 'HEALTH_REPORT', 'PROGRESS_REPORT'];
+const VALID_STAKEHOLDER_TYPES: StakeholderType[] = ['EXECUTIVE', 'TEAM_LEAD', 'CLIENT', 'GENERAL'];
+
 export interface CreateScheduleDto {
   projectId: string;
   frequency: ReportFrequency;
@@ -29,12 +34,34 @@ export class ScheduledReportService {
   constructor(private prisma: PrismaService) {}
 
   /**
+   * Validate enum values at runtime to prevent invalid data
+   */
+  private validateEnums(dto: {
+    frequency?: ReportFrequency;
+    reportType?: ReportType;
+    stakeholderType?: StakeholderType | null;
+  }): void {
+    if (dto.frequency && !VALID_FREQUENCIES.includes(dto.frequency)) {
+      throw new BadRequestException(`Invalid frequency: ${dto.frequency}`);
+    }
+    if (dto.reportType && !VALID_REPORT_TYPES.includes(dto.reportType)) {
+      throw new BadRequestException(`Invalid report type: ${dto.reportType}`);
+    }
+    if (dto.stakeholderType && !VALID_STAKEHOLDER_TYPES.includes(dto.stakeholderType)) {
+      throw new BadRequestException(`Invalid stakeholder type: ${dto.stakeholderType}`);
+    }
+  }
+
+  /**
    * Create a new report schedule
    */
   async createSchedule(workspaceId: string, dto: CreateScheduleDto) {
     this.logger.log(
       `Creating report schedule for project ${dto.projectId} with frequency ${dto.frequency}`,
     );
+
+    // Validate enum values at runtime
+    this.validateEnums(dto);
 
     // Validate project access
     const project = await this.prisma.project.findUnique({
@@ -72,6 +99,9 @@ export class ScheduledReportService {
     dto: UpdateScheduleDto,
   ) {
     this.logger.log(`Updating report schedule ${scheduleId}`);
+
+    // Validate enum values at runtime
+    this.validateEnums(dto);
 
     // Validate schedule access
     const existingSchedule = await this.prisma.reportSchedule.findUnique({
@@ -291,9 +321,16 @@ export class ScheduledReportService {
       case 'BIWEEKLY':
         nextRun.setDate(nextRun.getDate() + 14);
         break;
-      case 'MONTHLY':
+      case 'MONTHLY': {
+        // Handle month overflow (e.g., Jan 31 -> Feb 28, not Mar 3)
+        const originalDay = nextRun.getDate();
         nextRun.setMonth(nextRun.getMonth() + 1);
+        // If the day changed due to overflow, set to last day of target month
+        if (nextRun.getDate() !== originalDay) {
+          nextRun.setDate(0); // Sets to last day of previous month (our target month)
+        }
         break;
+      }
       default:
         throw new BadRequestException(`Invalid frequency: ${frequency}`);
     }

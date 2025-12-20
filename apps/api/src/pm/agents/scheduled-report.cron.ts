@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ScheduledReportService } from './scheduled-report.service';
 import { ReportService } from './report.service';
+import { SYSTEM_USERS } from './constants';
 
 @Injectable()
 export class ScheduledReportCron {
@@ -17,6 +18,7 @@ export class ScheduledReportCron {
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runScheduledReports(): Promise<void> {
+    const startTime = Date.now();
     this.logger.log('Running scheduled report generation job...');
 
     try {
@@ -27,6 +29,9 @@ export class ScheduledReportCron {
       this.logger.log(
         `Found ${dueSchedules.length} schedule(s) due for report generation`,
       );
+
+      let successCount = 0;
+      let failCount = 0;
 
       // Generate reports for each due schedule
       for (const schedule of dueSchedules) {
@@ -39,7 +44,7 @@ export class ScheduledReportCron {
           await this.reportService.generateReport(
             schedule.workspaceId,
             schedule.projectId,
-            'herald_agent', // System user for scheduled reports
+            SYSTEM_USERS.HERALD_AGENT,
             {
               type: schedule.reportType,
               stakeholderType: schedule.stakeholderType || undefined,
@@ -54,19 +59,25 @@ export class ScheduledReportCron {
           this.logger.log(
             `Successfully generated scheduled report for project ${schedule.projectId}`,
           );
+          successCount++;
         } catch (error) {
           // Log error but continue with other schedules
           this.logger.error(
             `Failed to generate scheduled report for project ${schedule.projectId}:`,
             error,
           );
+          failCount++;
           // Don't throw - continue processing other schedules
         }
       }
 
-      this.logger.log('Scheduled report generation job completed');
+      const duration = Date.now() - startTime;
+      this.logger.log(
+        `Scheduled report generation job completed: ${successCount} succeeded, ${failCount} failed, duration=${duration}ms`,
+      );
     } catch (error) {
-      this.logger.error('Scheduled report cron job failed:', error);
+      const duration = Date.now() - startTime;
+      this.logger.error(`Scheduled report cron job failed after ${duration}ms:`, error);
     }
   }
 }

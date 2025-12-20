@@ -29,7 +29,26 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
+
+/**
+ * Safely formats a date string with error handling.
+ * Returns a fallback string if the date is invalid.
+ */
+function formatDateSafe(
+  dateString: string | undefined | null,
+  formatPattern: string,
+  fallback = 'Unknown date'
+): string {
+  if (!dateString) return fallback;
+  try {
+    const date = new Date(dateString);
+    if (!isValid(date)) return fallback;
+    return format(date, formatPattern);
+  } catch {
+    return fallback;
+  }
+}
 
 type RiskSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 type RiskStatus = 'IDENTIFIED' | 'ANALYZING' | 'RESOLVED' | 'MITIGATED';
@@ -158,7 +177,7 @@ export function RiskCard({
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="text-muted-foreground">
-                Detected {format(new Date(risk.detectedAt), 'MMM d, h:mm a')}
+                Detected {formatDateSafe(risk.detectedAt, 'MMM d, h:mm a')}
               </span>
             </div>
 
@@ -176,7 +195,7 @@ export function RiskCard({
               <p className="text-muted-foreground">
                 Acknowledged by <span className="font-medium">{risk.acknowledgedBy}</span>
                 {' on '}
-                {format(new Date(risk.acknowledgedAt), 'MMM d, h:mm a')}
+                {formatDateSafe(risk.acknowledgedAt, 'MMM d, h:mm a')}
               </p>
             </div>
           )}
@@ -184,7 +203,7 @@ export function RiskCard({
           {risk.resolvedAt && (
             <div className="p-3 bg-green-50 rounded-md text-sm">
               <p className="text-green-900">
-                Resolved on {format(new Date(risk.resolvedAt), 'MMM d, h:mm a')}
+                Resolved on {formatDateSafe(risk.resolvedAt, 'MMM d, h:mm a')}
               </p>
             </div>
           )}

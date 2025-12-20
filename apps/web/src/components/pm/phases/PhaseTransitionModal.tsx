@@ -51,16 +51,20 @@ export function PhaseTransitionModal({
   const [completionNote, setCompletionNote] = useState('');
 
   // Fetch Scope analysis
-  const { data: analysis, isLoading } = useQuery({
+  const { data: analysis, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['phase-analysis', phaseId],
-    queryFn: () =>
-      fetch(`/api/pm/phases/${phaseId}/analyze-completion`, {
+    queryFn: async () => {
+      const response = await fetch(`/api/pm/phases/${phaseId}/analyze-completion`, {
         method: 'POST',
-      }).then((r) => {
-        if (!r.ok) throw new Error('Failed to analyze phase');
-        return r.json();
-      }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to analyze phase');
+      }
+      return response.json();
+    },
     enabled: open,
+    retry: 1,
   });
 
   // Execute transition
@@ -137,6 +141,34 @@ export function PhaseTransitionModal({
               <p className="text-muted-foreground">Analyzing phase with Scope...</p>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Analysis Failed</DialogTitle>
+          </DialogHeader>
+          <div className="py-6">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {error instanceof Error ? error.message : 'Failed to analyze phase. Please try again.'}
+              </AlertDescription>
+            </Alert>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+            <Button onClick={() => refetch()}>
+              Retry
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     );
