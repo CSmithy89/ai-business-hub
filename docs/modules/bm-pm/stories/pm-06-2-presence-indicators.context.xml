@@ -1,0 +1,802 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-06-2-presence-indicators</story-id>
+    <generated>2025-12-19</generated>
+    <epic>PM-06: Real-Time and Notifications</epic>
+    <depends-on>
+      <story id="pm-06-1-websocket-task-updates" status="done" />
+    </depends-on>
+  </metadata>
+
+  <!-- ============================================ -->
+  <!-- STORY SUMMARY -->
+  <!-- ============================================ -->
+  <story-summary>
+    <title>PM-06.2: Presence Indicators</title>
+    <goal>Show who else is viewing the project with real-time presence tracking</goal>
+    <approach>Redis-based presence storage with WebSocket heartbeats (30-second interval)</approach>
+    <acceptance-criteria>
+      <criterion id="AC1">Show avatars of active users (last 5 minutes) in project header</criterion>
+      <criterion id="AC2">Tooltip shows full list of active users on hover</criterion>
+      <criterion id="AC3">Shows which view each user is on (overview, tasks, settings, docs)</criterion>
+    </acceptance-criteria>
+  </story-summary>
+
+  <!-- ============================================ -->
+  <!-- EXISTING WEBSOCKET INFRASTRUCTURE -->
+  <!-- ============================================ -->
+  <existing-websocket-infrastructure>
+    <description>
+      PM-06.1 established the WebSocket infrastructure for PM events.
+      The RealtimeGateway in apps/api/src/realtime/ handles all WebSocket connections
+      with JWT authentication, workspace room isolation, and connection tracking.
+    </description>
+
+    <backend-gateway>
+      <file>apps/api/src/realtime/realtime.gateway.ts</file>
+      <key-features>
+        <feature>JWT authentication via handshake.auth.token</feature>
+        <feature>Workspace and user room isolation (workspace:*, user:*, project:*)</feature>
+        <feature>Connection tracking with rate limits (100 per workspace, 5 per user)</feature>
+        <feature>Broadcast methods for PM events (broadcastPMTaskUpdated, etc.)</feature>
+        <feature>Redis pub/sub support via Socket.io adapter (for multi-instance)</feature>
+      </key-features>
+
+      <room-helpers>
+        <![CDATA[
+// Room helper functions already exist in realtime.types.ts
+export function getWorkspaceRoom(workspaceId: string): string {
+  return `workspace:${workspaceId}`;
+}
+
+export function getUserRoom(userId: string): string {
+  return `user:${userId}`;
+}
+
+export function getProjectRoom(projectId: string): string {
+  return `project:${projectId}`;
+}
+
+export function getTaskRoom(taskId: string): string {
+  return `task:${taskId}`;
+}
+        ]]>
+      </room-helpers>
+
+      <broadcast-pattern>
+        <![CDATA[
+// Pattern for broadcasting to project room
+broadcastPMTaskUpdated(projectId: string, update: PMTaskUpdatePayload): void {
+  const room = getProjectRoom(projectId);
+  (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+    WS_EVENTS.PM_TASK_UPDATED,
+    update,
+  );
+}
+        ]]>
+      </broadcast-pattern>
+    </backend-gateway>
+
+    <backend-types>
+      <file>apps/api/src/realtime/realtime.types.ts</file>
+      <description>
+        Type definitions for WebSocket events. PM-06.2 needs to add presence event types.
+      </description>
+
+      <existing-pm-events>
+        <![CDATA[
+export interface ServerToClientEvents {
+  // PM Task events (PM-06.1)
+  'pm.task.created': (data: PMTaskEventPayload) => void;
+  'pm.task.updated': (data: PMTaskUpdatePayload) => void;
+  'pm.task.deleted': (data: PMTaskDeletedPayload) => void;
+  'pm.task.status_changed': (data: PMTaskStatusPayload) => void;
+  'pm.task.assigned': (data: PMTaskAssignmentPayload) => void;
+
+  // PM Phase events (PM-06.1)
+  'pm.phase.created': (data: PMPhaseEventPayload) => void;
+  'pm.phase.updated': (data: PMPhaseEventPayload) => void;
+  'pm.phase.transitioned': (data: PMPhaseTransitionPayload) => void;
+
+  // PM Project events (PM-06.1)
+  'pm.project.created': (data: PMProjectEventPayload) => void;
+  'pm.project.updated': (data: PMProjectEventPayload) => void;
+  'pm.project.deleted': (data: PMProjectDeletedPayload) => void;
+
+  // PM Team events (PM-06.1)
+  'pm.team.member_added': (data: PMTeamChangePayload) => void;
+  'pm.team.member_removed': (data: PMTeamChangePayload) => void;
+  'pm.team.member_updated': (data: PMTeamChangePayload) => void;
+}
+
+export interface ClientToServerEvents {
+  // Presence updates (platform-wide)
+  'presence.update': (data: { status: 'online' | 'away' | 'busy' }) => void;
+
+  // Typing indicators
+  'typing.start': (data: { chatId: string }) => void;
+  'typing.stop': (data: { chatId: string }) => void;
+
+  // Room management
+  'room.join': (data: { workspaceId: string }) => void;
+  'room.leave': (data: { workspaceId: string }) => void;
+
+  // Sync request
+  'sync.request': (data: { lastEventId?: string; since?: string }) => void;
+}
+
+export const WS_EVENTS = {
+  // PM Events (PM-06.1)
+  PM_TASK_CREATED: 'pm.task.created',
+  PM_TASK_UPDATED: 'pm.task.updated',
+  PM_TASK_DELETED: 'pm.task.deleted',
+  PM_TASK_STATUS_CHANGED: 'pm.task.status_changed',
+  PM_TASK_ASSIGNED: 'pm.task.assigned',
+
+  PM_PHASE_CREATED: 'pm.phase.created',
+  PM_PHASE_UPDATED: 'pm.phase.updated',
+  PM_PHASE_TRANSITIONED: 'pm.phase.transitioned',
+
+  PM_PROJECT_CREATED: 'pm.project.created',
+  PM_PROJECT_UPDATED: 'pm.project.updated',
+  PM_PROJECT_DELETED: 'pm.project.deleted',
+
+  PM_TEAM_MEMBER_ADDED: 'pm.team.member_added',
+  PM_TEAM_MEMBER_REMOVED: 'pm.team.member_removed',
+  PM_TEAM_MEMBER_UPDATED: 'pm.team.member_updated',
+} as const;
+        ]]>
+      </existing-pm-events>
+
+      <events-to-add>
+        <![CDATA[
+// PM-06.2: Add these to ServerToClientEvents
+'pm.presence.joined': (data: PresencePayload) => void;
+'pm.presence.left': (data: PresencePayload) => void;
+'pm.presence.updated': (data: PresencePayload) => void;
+
+// PM-06.2: Add this to ClientToServerEvents
+'pm.presence.update': (data: {
+  projectId: string;
+  taskId?: string;
+  page: 'overview' | 'tasks' | 'settings' | 'docs';
+}) => void;
+
+// PM-06.2: Add these to WS_EVENTS
+PM_PRESENCE_JOINED: 'pm.presence.joined',
+PM_PRESENCE_LEFT: 'pm.presence.left',
+PM_PRESENCE_UPDATED: 'pm.presence.updated',
+
+// PM-06.2: Presence payload interface
+export interface PresencePayload {
+  userId: string;
+  userName: string;
+  userAvatar: string | null;
+  projectId: string;
+  taskId?: string;
+  page: 'overview' | 'tasks' | 'settings' | 'docs';
+  timestamp: string;
+}
+        ]]>
+      </events-to-add>
+    </backend-types>
+
+    <backend-event-handler>
+      <file>apps/api/src/realtime/realtime-event.handler.ts</file>
+      <description>
+        Event Bus to WebSocket bridge. Subscribes to Event Bus events and broadcasts to WebSocket clients.
+        Presence events will be handled directly in gateway (no Event Bus integration needed).
+      </description>
+      <note>
+        Presence tracking is real-time only and does not go through the Event Bus.
+        The gateway will handle pm.presence.update directly and broadcast to project rooms.
+      </note>
+    </backend-event-handler>
+  </existing-websocket-infrastructure>
+
+  <!-- ============================================ -->
+  <!-- REDIS CONFIGURATION -->
+  <!-- ============================================ -->
+  <redis-configuration>
+    <description>
+      Redis is already configured for the platform via BullMQ (event queues).
+      The RedisProvider gives access to the underlying ioredis client for Streams and other operations.
+    </description>
+
+    <redis-provider>
+      <file>apps/api/src/events/redis.provider.ts</file>
+      <usage>
+        <![CDATA[
+// Example of using RedisProvider for presence operations
+@Injectable()
+export class PresenceService {
+  constructor(private readonly redisProvider: RedisProvider) {}
+
+  async updatePresence(userId: string, projectId: string, location: any): Promise<void> {
+    const redis = this.redisProvider.getClient();
+    const now = Date.now();
+    const presenceKey = `presence:project:${projectId}`;
+    const locationKey = `presence:user:${userId}:location`;
+
+    // Add user to project presence (sorted set by timestamp)
+    await redis.zadd(presenceKey, now, userId);
+
+    // Update user location (hash with TTL)
+    await redis.hset(locationKey, {
+      projectId,
+      page: location.page,
+      taskId: location.taskId || '',
+      timestamp: new Date().toISOString(),
+    });
+    await redis.expire(locationKey, 300); // 5-minute TTL
+  }
+
+  async getProjectPresence(projectId: string): Promise<PresenceUser[]> {
+    const redis = this.redisProvider.getClient();
+    const now = Date.now();
+    const fiveMinutesAgo = now - 300000; // 5 minutes in ms
+    const presenceKey = `presence:project:${projectId}`;
+
+    // Get active users from sorted set (last 5 minutes)
+    const userIds = await redis.zrangebyscore(presenceKey, fiveMinutesAgo, now);
+
+    // Get location for each user
+    const users = await Promise.all(
+      userIds.map(async (userId) => {
+        const locationKey = `presence:user:${userId}:location`;
+        const location = await redis.hgetall(locationKey);
+        // Fetch user details from database...
+        return { userId, userName, userAvatar, location, lastSeen };
+      })
+    );
+
+    return users;
+  }
+
+  async removePresence(userId: string, projectId: string): Promise<void> {
+    const redis = this.redisProvider.getClient();
+    const presenceKey = `presence:project:${projectId}`;
+    const locationKey = `presence:user:${userId}:location`;
+
+    await redis.zrem(presenceKey, userId);
+    await redis.del(locationKey);
+  }
+}
+        ]]>
+      </usage>
+    </redis-provider>
+
+    <redis-data-structures>
+      <description>
+        ADR-PM06-004 from tech spec defines Redis data structures for presence tracking.
+      </description>
+
+      <sorted-set-for-active-users>
+        <![CDATA[
+Key: presence:project:${projectId}
+Type: Sorted Set
+Score: Unix timestamp (milliseconds)
+Member: userId
+
+Example commands:
+ZADD presence:project:proj-123 1640000000 user-456
+ZADD presence:project:proj-123 1640000030 user-789
+
+Query active users (last 5 minutes):
+ZRANGEBYSCORE presence:project:proj-123 ${now - 300000} ${now}
+        ]]>
+      </sorted-set-for-active-users>
+
+      <hash-for-user-location>
+        <![CDATA[
+Key: presence:user:${userId}:location
+Type: Hash
+TTL: 5 minutes (300 seconds)
+
+Fields:
+- projectId: string
+- page: 'overview' | 'tasks' | 'settings' | 'docs'
+- taskId: string (optional)
+- timestamp: ISO timestamp
+
+Example commands:
+HSET presence:user:user-456:location projectId "proj-123"
+HSET presence:user:user-456:location page "tasks"
+HSET presence:user:user-456:location timestamp "2025-01-15T10:30:00Z"
+EXPIRE presence:user:user-456:location 300
+        ]]>
+      </hash-for-user-location>
+
+      <performance-notes>
+        <note>Redis sorted set range queries are O(log N + M) where M is result count</note>
+        <note>Hash operations (HSET, HGETALL) are O(1) per field</note>
+        <note>Memory: ~200 bytes per active user per project</note>
+        <note>1,000 active users = ~200KB, 10,000 users = ~2MB (easily handled)</note>
+      </performance-notes>
+    </redis-data-structures>
+  </redis-configuration>
+
+  <!-- ============================================ -->
+  <!-- FRONTEND PATTERNS -->
+  <!-- ============================================ -->
+  <frontend-patterns>
+    <description>
+      Frontend uses React Query for server state management with WebSocket cache invalidation.
+      PM-06.1 established patterns for real-time cache updates.
+    </description>
+
+    <realtime-provider>
+      <file>apps/web/src/lib/realtime/realtime-provider.tsx</file>
+      <description>
+        RealtimeProvider manages Socket.io connection with JWT authentication,
+        exponential backoff reconnection, and connection state management.
+      </description>
+
+      <connection-pattern>
+        <![CDATA[
+// RealtimeProvider is already mounted at the app root
+// It provides:
+// - socket: Socket.io client instance
+// - connectionState: { status, reconnectAttempt, error }
+// - isConnected: boolean
+// - subscribe: <K extends keyof ServerToClientEvents>(event, handler) => unsubscribe
+// - emit: <K extends keyof ClientToServerEvents>(event, data) => void
+
+// Client-side rate limiting is built-in:
+// - presence.update: 3 emits per 10 seconds
+// - typing.start/stop: 5 per 5 seconds
+// - room.join/leave: 5 per minute
+        ]]>
+      </connection-pattern>
+    </realtime-provider>
+
+    <realtime-hook-pattern>
+      <file>apps/web/src/hooks/use-realtime-approvals.ts</file>
+      <description>
+        Example of integrating WebSocket events with React Query cache invalidation.
+      </description>
+
+      <example>
+        <![CDATA[
+'use client';
+
+import { useEffect, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRealtime, WS_EVENTS, ApprovalEventPayload } from '@/lib/realtime';
+
+export function useRealtimeApprovals() {
+  const { subscribe, isConnected } = useRealtime();
+  const queryClient = useQueryClient();
+
+  const handleApprovalCreated = useCallback(
+    (approval: ApprovalEventPayload) => {
+      console.log('[Realtime] Approval created:', approval.id);
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+    },
+    [queryClient]
+  );
+
+  const handleApprovalUpdated = useCallback(
+    (update: ApprovalUpdatePayload) => {
+      console.log('[Realtime] Approval updated:', update.id);
+
+      // Update specific approval in cache
+      queryClient.setQueriesData(
+        { queryKey: ['approvals'] },
+        (old: unknown) => {
+          // ... update logic
+        }
+      );
+    },
+    [queryClient]
+  );
+
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const unsubCreated = subscribe(WS_EVENTS.APPROVAL_CREATED, handleApprovalCreated);
+    const unsubUpdated = subscribe(WS_EVENTS.APPROVAL_UPDATED, handleApprovalUpdated);
+
+    return () => {
+      unsubCreated();
+      unsubUpdated();
+    };
+  }, [isConnected, subscribe, handleApprovalCreated, handleApprovalUpdated]);
+
+  return { isConnected };
+}
+        ]]>
+      </example>
+
+      <pattern-for-pm06-2>
+        <![CDATA[
+// PM-06.2 will follow this pattern for presence tracking:
+
+// 1. usePresence() hook - Sends heartbeat every 30 seconds
+//    - Emits pm.presence.update to server
+//    - Tracks location changes (page navigation)
+//    - Cleanup on unmount
+
+// 2. useProjectPresence() hook - Reads presence data
+//    - Queries for project presence via REST API
+//    - Subscribes to pm.presence.joined/left/updated events
+//    - Updates React Query cache on real-time events
+        ]]>
+      </pattern-for-pm06-2>
+    </realtime-hook-pattern>
+
+    <ui-components>
+      <avatar-component>
+        <file>apps/web/src/components/ui/avatar.tsx</file>
+        <description>shadcn/ui Avatar component (Radix UI primitive)</description>
+        <usage>
+          <![CDATA[
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
+<Avatar className="h-8 w-8">
+  <AvatarImage src={user.avatar} alt={user.name} />
+  <AvatarFallback>{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+</Avatar>
+          ]]>
+        </usage>
+      </avatar-component>
+
+      <tooltip-component>
+        <description>shadcn/ui Tooltip component (Radix UI primitive)</description>
+        <usage>
+          <![CDATA[
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <div>Hover me</div>
+    </TooltipTrigger>
+    <TooltipContent side="bottom" className="max-w-xs">
+      <p>Tooltip content</p>
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
+          ]]>
+        </usage>
+      </tooltip-component>
+    </ui-components>
+
+    <react-query-patterns>
+      <description>
+        React Query is used for all server state management.
+        Patterns for queries with WebSocket integration.
+      </description>
+
+      <query-with-websocket>
+        <![CDATA[
+// Query for presence data with WebSocket updates
+const { data, isLoading } = useQuery({
+  queryKey: ['projects', projectId, 'presence'],
+  queryFn: () => api.get(`/api/pm/projects/${projectId}/presence`),
+  refetchInterval: 60000, // Fallback refresh every minute
+});
+
+// Listen for real-time presence events
+useEffect(() => {
+  if (!socket || !connected) return;
+
+  const handlePresenceJoined = (data: PresencePayload) => {
+    if (data.projectId === projectId) {
+      queryClient.invalidateQueries(['projects', projectId, 'presence']);
+    }
+  };
+
+  socket.on('pm.presence.joined', handlePresenceJoined);
+  return () => socket.off('pm.presence.joined', handlePresenceJoined);
+}, [socket, connected, projectId, queryClient]);
+        ]]>
+      </query-with-websocket>
+    </react-query-patterns>
+  </frontend-patterns>
+
+  <!-- ============================================ -->
+  <!-- IMPLEMENTATION NOTES -->
+  <!-- ============================================ -->
+  <implementation-notes>
+    <adr-reference>
+      <id>ADR-PM06-004</id>
+      <title>Presence Tracking with Redis</title>
+      <decision>Use Redis sorted sets with heartbeat mechanism</decision>
+      <key-points>
+        <point>Sorted set tracks active users per project (score = timestamp, member = userId)</point>
+        <point>Hash stores user location data (projectId, page, taskId, timestamp)</point>
+        <point>5-minute TTL on location hash (auto-expires if client disconnects)</point>
+        <point>Client sends heartbeat every 30 seconds via pm.presence.update</point>
+        <point>Server broadcasts pm.presence.joined/left/updated to project room</point>
+        <point>Query active users: ZRANGEBYSCORE for last 5 minutes</point>
+      </key-points>
+    </adr-reference>
+
+    <heartbeat-mechanism>
+      <frequency>30 seconds</frequency>
+      <rationale>
+        - Too frequent (5-10s): unnecessary WebSocket traffic
+        - Too infrequent (60s+): stale presence data
+        - 30s balances freshness vs. load
+      </rationale>
+      <client-side-rate-limit>3 emits per 10 seconds (built into RealtimeProvider)</client-side-rate-limit>
+      <ttl>5 minutes (300 seconds) - ensures cleanup even if heartbeat fails</ttl>
+    </heartbeat-mechanism>
+
+    <presence-workflow>
+      <![CDATA[
+1. User opens project page:
+   - usePresence() hook mounts
+   - Emits pm.presence.update with { projectId, page: 'overview' }
+   - Sets up 30-second interval for heartbeat
+
+2. Server receives pm.presence.update:
+   - Validates user has access to project
+   - Calls PresenceService.updatePresence()
+   - Updates Redis sorted set (ZADD) and location hash (HSET)
+   - Broadcasts pm.presence.joined to project room (if first presence)
+   - Broadcasts pm.presence.updated (if location changed)
+
+3. Other users in project room:
+   - Receive pm.presence.joined or pm.presence.updated event
+   - useProjectPresence() hook updates React Query cache
+   - PresenceBar component re-renders with new user
+
+4. User navigates to tasks page:
+   - usePresence() hook detects location change
+   - Emits pm.presence.update with { projectId, page: 'tasks' }
+   - Server broadcasts pm.presence.updated to project room
+
+5. User closes tab:
+   - usePresence() cleanup runs
+   - Emits pm.presence.update with special marker (optional)
+   - Server broadcasts pm.presence.left to project room
+   - Redis TTL ensures cleanup even if event fails
+
+6. Stale presence cleanup:
+   - Redis TTL auto-expires location hash after 5 minutes
+   - Query filters to last 5 minutes using ZRANGEBYSCORE
+   - No manual cleanup needed
+      ]]>
+    </presence-workflow>
+
+    <error-handling>
+      <redis-connection-failure>
+        <behavior>Don't block API requests if Redis is unavailable</behavior>
+        <action>Log errors but continue processing</action>
+        <degradation>Presence feature disabled if Redis down (graceful degradation)</degradation>
+      </redis-connection-failure>
+
+      <websocket-disconnect>
+        <behavior>Send pm.presence.left event on disconnect</behavior>
+        <action>Redis TTL ensures cleanup even if event fails</action>
+        <reconnection>Client reconnection sends new pm.presence.joined</reconnection>
+      </websocket-disconnect>
+
+      <stale-presence>
+        <behavior>5-minute TTL handles most disconnect scenarios</behavior>
+        <action>Manual cleanup endpoint available: POST /api/pm/projects/:projectId/presence/cleanup</action>
+        <optional>Cron job for periodic cleanup (optional, not required for MVP)</optional>
+      </stale-presence>
+    </error-handling>
+
+    <security-considerations>
+      <validation>Server validates user has access to project before allowing presence tracking</validation>
+      <isolation>Presence data scoped to project room (multi-tenant isolation via workspace)</isolation>
+      <rate-limiting>Client-side: 3 emits per 10s, Server-side: existing connection limits apply</rate-limiting>
+      <privacy>Only shows presence for users who are team members of the project</privacy>
+    </security-considerations>
+
+    <performance-considerations>
+      <redis-memory>
+        <calculation>~200 bytes per active user per project</calculation>
+        <scale>1,000 users = ~200KB, 10,000 users = ~2MB</scale>
+        <verdict>Redis easily handles this scale</verdict>
+      </redis-memory>
+
+      <query-optimization>
+        <sorted-set>ZRANGEBYSCORE is O(log N + M) - efficient range queries</sorted-set>
+        <hash>HGETALL is O(N) where N = fields, typically 3-4 fields = O(1)</hash>
+        <ttl>TTL auto-expires stale entries (no manual cleanup needed)</ttl>
+      </query-optimization>
+
+      <websocket-load>
+        <heartbeat>30-second interval = 2 emits per minute per user</heartbeat>
+        <broadcast>pm.presence.joined/left/updated only on changes (not every heartbeat)</broadcast>
+        <rooms>Project room scoping limits broadcast to relevant users only</rooms>
+      </websocket-load>
+    </performance-considerations>
+  </implementation-notes>
+
+  <!-- ============================================ -->
+  <!-- WIREFRAME REFERENCE -->
+  <!-- ============================================ -->
+  <wireframe-reference>
+    <location>docs/modules/bm-pm/design/wireframes/Finished wireframes and html files/rt-02_presence_bar/</location>
+    <files>
+      <html>rt-02_presence_bar/code.html</html>
+      <screenshot>rt-02_presence_bar/screen.png</screenshot>
+    </files>
+
+    <key-ui-elements>
+      <element>Avatar stack in project header (top-right)</element>
+      <element>Max 5 avatars visible + overflow indicator (+N more)</element>
+      <element>Tooltip on hover showing full list</element>
+      <element>User location badges (overview/tasks/settings/docs)</element>
+      <element>Online indicator (green dot) on avatars</element>
+    </key-ui-elements>
+  </wireframe-reference>
+
+  <!-- ============================================ -->
+  <!-- FILES TO CREATE/MODIFY -->
+  <!-- ============================================ -->
+  <files-to-create-modify>
+    <backend>
+      <new>
+        <file>apps/api/src/realtime/presence.service.ts</file>
+        <description>Presence service with Redis operations</description>
+      </new>
+      <new>
+        <file>apps/api/src/realtime/presence.service.spec.ts</file>
+        <description>Unit tests for presence service</description>
+      </new>
+      <new>
+        <file>apps/api/src/pm/presence/presence.controller.ts</file>
+        <description>REST API endpoints for presence queries</description>
+      </new>
+      <new>
+        <file>apps/api/src/pm/presence/presence.module.ts</file>
+        <description>Presence module (NestJS)</description>
+      </new>
+
+      <modify>
+        <file>apps/api/src/realtime/realtime.types.ts</file>
+        <change>Add presence event types (pm.presence.joined/left/updated)</change>
+        <change>Add PresencePayload interface</change>
+        <change>Add WS_EVENTS constants for presence</change>
+      </modify>
+      <modify>
+        <file>apps/api/src/realtime/realtime.gateway.ts</file>
+        <change>Add pm.presence.update handler</change>
+        <change>Add broadcast methods for presence events</change>
+        <change>Handle disconnect: broadcast pm.presence.left</change>
+        <change>Inject PresenceService</change>
+      </modify>
+      <modify>
+        <file>apps/api/src/pm/pm.module.ts</file>
+        <change>Import and register PresenceModule</change>
+      </modify>
+    </backend>
+
+    <frontend>
+      <new>
+        <file>apps/web/src/components/pm/presence/PresenceBar.tsx</file>
+        <description>Presence bar component with avatar stack</description>
+      </new>
+      <new>
+        <file>apps/web/src/components/pm/presence/PresenceAvatar.tsx</file>
+        <description>Avatar with online indicator</description>
+      </new>
+      <new>
+        <file>apps/web/src/hooks/use-presence.ts</file>
+        <description>Presence heartbeat hook (sends pm.presence.update every 30s)</description>
+      </new>
+      <new>
+        <file>apps/web/src/hooks/use-project-presence.ts</file>
+        <description>Presence query hook (reads presence data + WebSocket updates)</description>
+      </new>
+
+      <modify>
+        <file>apps/web/src/app/(dashboard)/projects/[projectId]/layout.tsx</file>
+        <change>Add PresenceBar component to project header</change>
+        <change>Add usePresence() hook for presence tracking</change>
+      </modify>
+      <modify>
+        <file>apps/web/src/lib/realtime/types.ts</file>
+        <change>Export presence event types and WS_EVENTS constants</change>
+      </modify>
+    </frontend>
+
+    <shared>
+      <new>
+        <file>packages/shared/src/types/presence.ts</file>
+        <description>Shared presence types (PresenceUser, PresenceLocation, etc.)</description>
+      </new>
+      <modify>
+        <file>packages/shared/src/index.ts</file>
+        <change>Export presence types</change>
+      </modify>
+    </shared>
+  </files-to-create-modify>
+
+  <!-- ============================================ -->
+  <!-- TESTING REQUIREMENTS -->
+  <!-- ============================================ -->
+  <testing-requirements>
+    <unit-tests>
+      <file>apps/api/src/realtime/presence.service.spec.ts</file>
+      <cases>
+        <case>updatePresence() adds user to Redis sorted set</case>
+        <case>updatePresence() updates user location in Redis hash</case>
+        <case>getProjectPresence() returns active users (last 5 minutes)</case>
+        <case>getProjectPresence() filters out stale entries (more than 5 minutes)</case>
+        <case>removePresence() removes user from presence</case>
+        <case>cleanupStalePresence() removes old entries</case>
+      </cases>
+    </unit-tests>
+
+    <integration-tests>
+      <file>apps/api/test/realtime/presence.e2e-spec.ts</file>
+      <cases>
+        <case>Client connects and sends presence update</case>
+        <case>Presence stored in Redis with TTL</case>
+        <case>Other clients in project room receive presence event</case>
+        <case>Client disconnect removes presence</case>
+        <case>REST API returns active users for project</case>
+        <case>Stale presence auto-expires after 5 minutes</case>
+      </cases>
+    </integration-tests>
+
+    <manual-testing>
+      <checklist>
+        <item>Connect to project page</item>
+        <item>Verify presence heartbeat sent every 30 seconds</item>
+        <item>Open project in second browser/user</item>
+        <item>Verify second user's avatar appears in presence bar</item>
+        <item>Hover over presence bar</item>
+        <item>Verify tooltip shows both users with locations</item>
+        <item>Navigate to different project page (e.g., tasks)</item>
+        <item>Verify location updates in presence tooltip</item>
+        <item>Close one browser tab</item>
+        <item>Verify user removed from presence bar (within 5 minutes)</item>
+        <item>Test with 6+ users (verify overflow indicator)</item>
+      </checklist>
+    </manual-testing>
+  </testing-requirements>
+
+  <!-- ============================================ -->
+  <!-- DEFINITION OF DONE -->
+  <!-- ============================================ -->
+  <definition-of-done>
+    <criteria>
+      <criterion>All acceptance criteria met</criterion>
+      <criterion>Presence service implemented with Redis operations</criterion>
+      <criterion>Presence WebSocket handlers added to gateway</criterion>
+      <criterion>REST API endpoints for presence queries</criterion>
+      <criterion>PresenceBar component displays active users</criterion>
+      <criterion>Presence avatars show user location</criterion>
+      <criterion>Heartbeat hook sends updates every 30 seconds</criterion>
+      <criterion>Presence updates on location changes</criterion>
+      <criterion>Presence cleanup on disconnect</criterion>
+      <criterion>Stale presence auto-expires (5-minute TTL)</criterion>
+      <criterion>Unit tests passing</criterion>
+      <criterion>Integration tests passing</criterion>
+      <criterion>TypeScript type checks pass</criterion>
+      <criterion>ESLint passes (no new errors)</criterion>
+      <criterion>Code reviewed and approved</criterion>
+      <criterion>Presence bar integrated in project header</criterion>
+      <criterion>Documentation updated (architecture notes, Redis key schema, API endpoints)</criterion>
+    </criteria>
+  </definition-of-done>
+
+  <!-- ============================================ -->
+  <!-- REFERENCE LINKS -->
+  <!-- ============================================ -->
+  <references>
+    <story-file>docs/modules/bm-pm/stories/pm-06-2-presence-indicators.md</story-file>
+    <epic-file>docs/modules/bm-pm/epics/epic-pm-06-real-time-notifications.md</epic-file>
+    <tech-spec>docs/modules/bm-pm/epics/epic-pm-06-tech-spec.md</tech-spec>
+    <module-prd>docs/modules/bm-pm/PRD.md</module-prd>
+    <module-architecture>docs/modules/bm-pm/architecture.md</module-architecture>
+    <sprint-status>docs/modules/bm-pm/sprint-status.yaml</sprint-status>
+    <pm-06-1-story>docs/modules/bm-pm/stories/pm-06-1-websocket-task-updates.md</pm-06-1-story>
+    <wireframe>docs/modules/bm-pm/design/wireframes/Finished wireframes and html files/rt-02_presence_bar/</wireframe>
+  </references>
+</story-context>

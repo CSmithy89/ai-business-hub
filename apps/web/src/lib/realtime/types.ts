@@ -7,6 +7,8 @@
  * @see Story 16-15: Implement WebSocket Real-Time Updates
  */
 
+import { PresencePayload } from '@hyvve/shared';
+
 /**
  * Server-to-Client Events
  */
@@ -33,6 +35,17 @@ export interface ServerToClientEvents {
 
   // Sync events for reconnection
   'sync.state': (data: SyncStatePayload) => void;
+
+  // PM Presence events
+  'pm.presence.joined': (data: PresencePayload) => void;
+  'pm.presence.left': (data: PresencePayload) => void;
+  'pm.presence.updated': (data: PresencePayload) => void;
+
+  // PM Task events
+  'pm.task.created': (data: PMTaskEventPayload) => void;
+  'pm.task.updated': (data: PMTaskUpdatePayload) => void;
+  'pm.task.deleted': (data: PMTaskDeletedPayload) => void;
+  'pm.task.status_changed': (data: PMTaskStatusPayload) => void;
 }
 
 /**
@@ -52,6 +65,13 @@ export interface ClientToServerEvents {
 
   // Request sync after reconnection
   'sync.request': (data: { lastEventId?: string; since?: string }) => void;
+
+  // PM Presence updates
+  'pm.presence.update': (data: {
+    projectId: string;
+    taskId?: string;
+    page: 'overview' | 'tasks' | 'settings' | 'docs';
+  }) => void;
 }
 
 // ============================================
@@ -156,6 +176,72 @@ export interface SyncStatePayload {
 }
 
 // ============================================
+// PM Task Event Payloads (Story PM-06.3)
+// ============================================
+
+export interface PMTaskEventPayload {
+  id: string;
+  projectId: string;
+  phaseId: string;
+  taskNumber: number;
+  title: string;
+  description?: string;
+  type: string;
+  priority: string;
+  status: string;
+  assigneeId?: string;
+  agentId?: string;
+  assignmentType: string;
+  dueDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  correlationId?: string;
+}
+
+export interface PMTaskUpdatePayload {
+  id: string;
+  projectId: string;
+  phaseId: string;
+  taskNumber: number;
+  title?: string;
+  description?: string;
+  type?: string;
+  priority?: string;
+  status?: string;
+  assigneeId?: string;
+  agentId?: string;
+  assignmentType?: string;
+  dueDate?: string;
+  updatedAt: string;
+  updatedBy: string;
+  correlationId?: string;
+}
+
+export interface PMTaskDeletedPayload {
+  id: string;
+  projectId: string;
+  phaseId: string;
+  taskNumber: number;
+  title: string;
+  deletedBy: string;
+  deletedAt: string;
+  correlationId?: string;
+}
+
+export interface PMTaskStatusPayload {
+  id: string;
+  projectId: string;
+  phaseId: string;
+  taskNumber: number;
+  title: string;
+  fromStatus: string;
+  toStatus: string;
+  changedBy: string;
+  changedAt: string;
+  correlationId?: string;
+}
+
+// ============================================
 // Connection State
 // ============================================
 
@@ -185,6 +271,13 @@ export const WS_EVENTS = {
   CHAT_MESSAGE: 'chat.message',
   CONNECTION_STATUS: 'connection.status',
   SYNC_STATE: 'sync.state',
+  PM_PRESENCE_JOINED: 'pm.presence.joined',
+  PM_PRESENCE_LEFT: 'pm.presence.left',
+  PM_PRESENCE_UPDATED: 'pm.presence.updated',
+  PM_TASK_CREATED: 'pm.task.created',
+  PM_TASK_UPDATED: 'pm.task.updated',
+  PM_TASK_DELETED: 'pm.task.deleted',
+  PM_TASK_STATUS_CHANGED: 'pm.task.status_changed',
 } as const;
 
 export type WsEventName = (typeof WS_EVENTS)[keyof typeof WS_EVENTS];

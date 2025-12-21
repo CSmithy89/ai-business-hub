@@ -40,37 +40,15 @@ export function useRealtimeNotifications() {
 
   /**
    * Handle new notification
+   * Invalidates queries for all workspaces to ensure all notification lists update
    */
   const handleNewNotification = useCallback(
     (notification: NotificationPayload) => {
       console.log('[Realtime] New notification:', notification.id, notification.type);
 
-      // Add to notifications cache
-      queryClient.setQueriesData(
-        { queryKey: ['notifications'] },
-        (old: unknown) => {
-          if (!old || typeof old !== 'object') return old;
-          const data = old as { data?: Array<{ id: string }> };
-          if (!data.data) return old;
-
-          // Add new notification at the beginning
-          return {
-            ...data,
-            data: [notification, ...data.data],
-          };
-        }
-      );
-
-      // Update unread count
-      queryClient.setQueriesData(
-        { queryKey: ['notifications', 'unread-count'] },
-        (old: unknown) => {
-          if (typeof old === 'number') {
-            return old + 1;
-          }
-          return old;
-        }
-      );
+      // Invalidate notification queries to trigger refetch
+      // This works with the infinite query structure from use-notifications-api
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
 
       // Show toast notification based on severity
       // Only show action button if URL is valid (prevents open redirect attacks)
@@ -126,16 +104,23 @@ export function useRealtimeNotifications() {
  * useNotificationBadge - Hook for notification badge count
  *
  * Returns the current unread notification count, updated in real-time.
+ * Note: This hook is deprecated. Use useUnreadCount from use-notifications-api instead.
+ *
+ * @deprecated Use useUnreadCount from use-notifications-api
  */
-export function useNotificationBadge() {
+export function useNotificationBadge(workspaceId?: string) {
   const queryClient = useQueryClient();
   const { isConnected } = useRealtime();
 
   // Get current count from cache (or return 0 if not available)
   const getUnreadCount = useCallback(() => {
-    const data = queryClient.getQueryData<number>(['notifications', 'unread-count']);
-    return data ?? 0;
-  }, [queryClient]);
+    const data = queryClient.getQueryData<{ count: number }>([
+      'notifications',
+      workspaceId,
+      'unread-count',
+    ]);
+    return data?.count ?? 0;
+  }, [queryClient, workspaceId]);
 
   return {
     unreadCount: getUnreadCount(),

@@ -27,6 +27,12 @@ export * from './types/agent';
 // PM types
 export * from './types/pm';
 
+// Notification types
+export * from './types/notifications';
+
+// Presence types
+export * from './types/presence';
+
 // KB types
 export * from './types/kb';
 

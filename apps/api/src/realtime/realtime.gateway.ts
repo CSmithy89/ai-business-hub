@@ -26,10 +26,22 @@ import {
   NotificationPayload,
   ChatMessagePayload,
   SyncStatePayload,
+  PMTaskEventPayload,
+  PMTaskUpdatePayload,
+  PMTaskDeletedPayload,
+  PMTaskStatusPayload,
+  PMPhaseEventPayload,
+  PMPhaseTransitionPayload,
+  PMProjectEventPayload,
+  PMProjectDeletedPayload,
+  PMTeamChangePayload,
+  PresencePayload,
   WS_EVENTS,
   getWorkspaceRoom,
   getUserRoom,
+  getProjectRoom,
 } from './realtime.types';
+import { PresenceService } from './presence.service';
 
 // ============================================
 // Input Validation Schemas (Zod)
@@ -46,6 +58,12 @@ const TypingSchema = z.object({
 const SyncRequestSchema = z.object({
   lastEventId: z.string().optional(),
   since: z.string().optional(),
+});
+
+const PMPresenceUpdateSchema = z.object({
+  projectId: z.string().min(1).max(100),
+  taskId: z.string().min(1).max(100).optional(),
+  page: z.enum(['overview', 'tasks', 'settings', 'docs']),
 });
 
 /**
@@ -180,6 +198,7 @@ export class RealtimeGateway
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly presenceService: PresenceService,
   ) {}
 
   /**
@@ -275,6 +294,7 @@ export class RealtimeGateway
         email,
         sessionId,
         connectedAt: new Date(),
+        projectRooms: new Set<string>(), // Initialize empty set for tracking project rooms
       };
 
       // Join workspace room for multi-tenant isolation
@@ -318,8 +338,66 @@ export class RealtimeGateway
   /**
    * Handle WebSocket disconnections
    */
-  handleDisconnect(client: Socket) {
-    const { userId, workspaceId } = client.data || {};
+  async handleDisconnect(client: Socket) {
+    const { userId, workspaceId, projectRooms } = client.data || {};
+
+    // Clean up presence for all projects the user was in
+    if (userId && projectRooms && projectRooms.size > 0) {
+      try {
+        // Get user details for presence payloads
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, name: true, email: true, image: true },
+        });
+
+        if (user) {
+          // Remove presence and broadcast 'left' event for each project
+          // Use Promise.allSettled to ensure all cleanups are attempted even if some fail
+          const projectIds = Array.from(projectRooms) as string[];
+          const cleanupPromises = projectIds.map(async (projectId) => {
+            // Remove presence from Redis
+            await this.presenceService.removePresence(userId, projectId);
+
+            // Broadcast presence left event to project room
+            const presencePayload: PresencePayload = {
+              userId: user.id,
+              userName: user.name || user.email,
+              userAvatar: user.image,
+              projectId,
+              page: 'overview', // Default page for left event
+              timestamp: new Date().toISOString(),
+            };
+            this.broadcastPMPresenceLeft(projectId, presencePayload);
+
+            this.logger.debug({
+              message: 'PM presence cleaned up on disconnect',
+              userId,
+              projectId,
+            });
+          });
+
+          const results = await Promise.allSettled(cleanupPromises);
+
+          // Log any failures
+          results.forEach((result, index) => {
+            if (result.status === 'rejected') {
+              this.logger.error({
+                message: 'Failed to clean up presence for project',
+                userId,
+                projectId: projectIds[index],
+                error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+              });
+            }
+          });
+        }
+      } catch (error) {
+        this.logger.error({
+          message: 'Failed to fetch user for presence cleanup',
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
 
     // Untrack connection from both workspace and user tracking
     if (workspaceId) {
@@ -331,6 +409,7 @@ export class RealtimeGateway
       socketId: client.id,
       userId,
       workspaceId,
+      projectRoomsCleanedUp: projectRooms?.size || 0,
     });
   }
 
@@ -499,6 +578,122 @@ export class RealtimeGateway
     }
   }
 
+  /**
+   * Handle PM presence updates
+   * Tracks user presence in projects with 30-second heartbeat
+   * SECURITY: Validates input and verifies project access
+   */
+  @SubscribeMessage('pm.presence.update')
+  async handlePMPresenceUpdate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() rawData: unknown,
+  ) {
+    // SECURITY: Validate input
+    const parseResult = PMPresenceUpdateSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid pm.presence.update payload',
+        socketId: client.id,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const data = parseResult.data;
+    const { userId, workspaceId } = client.data || {};
+    if (!userId || !workspaceId) return;
+
+    try {
+      // SECURITY: Verify user has access to project via team membership
+      const teamMember = await this.prisma.teamMember.findFirst({
+        where: {
+          userId,
+          isActive: true,
+          team: {
+            projectId: data.projectId,
+            project: {
+              workspaceId,
+              deletedAt: null,
+            },
+          },
+        },
+      });
+
+      if (!teamMember) {
+        this.logger.warn({
+          message: 'User does not have access to project',
+          socketId: client.id,
+          userId,
+          projectId: data.projectId,
+        });
+        return;
+      }
+
+      // Get user details for broadcast
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, email: true, image: true },
+      });
+
+      if (!user) {
+        this.logger.warn({
+          message: 'User not found',
+          socketId: client.id,
+          userId,
+        });
+        return;
+      }
+
+      // Join project room if not already joined
+      const projectRoom = getProjectRoom(data.projectId);
+      if (!client.rooms.has(projectRoom)) {
+        await client.join(projectRoom);
+      }
+
+      // Track this project room for cleanup on disconnect
+      if (!client.data.projectRooms) {
+        client.data.projectRooms = new Set<string>();
+      }
+      client.data.projectRooms.add(data.projectId);
+
+      // Update presence in Redis
+      await this.presenceService.updatePresence(userId, data.projectId, {
+        page: data.page,
+        taskId: data.taskId,
+      });
+
+      // Build presence payload for broadcast
+      const presencePayload: PresencePayload = {
+        userId: user.id,
+        userName: user.name || user.email,
+        userAvatar: user.image,
+        projectId: data.projectId,
+        taskId: data.taskId,
+        page: data.page,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Broadcast presence update to project room
+      // Note: We broadcast 'updated' for all heartbeats - clients can track join/leave locally
+      this.broadcastPMPresenceUpdated(data.projectId, presencePayload);
+
+      this.logger.debug({
+        message: 'PM presence updated',
+        userId,
+        projectId: data.projectId,
+        page: data.page,
+      });
+    } catch (error) {
+      this.logger.error({
+        message: 'Failed to handle PM presence update',
+        socketId: client.id,
+        userId,
+        projectId: data.projectId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   // ============================================
   // Server-Side Broadcast Methods
   // ============================================
@@ -624,6 +819,276 @@ export class RealtimeGateway
    */
   broadcastChatMessage(workspaceId: string, message: ChatMessagePayload): void {
     this.emitToWorkspace(workspaceId, WS_EVENTS.CHAT_MESSAGE, message);
+  }
+
+  // ============================================
+  // PM Broadcast Methods
+  // ============================================
+
+  /**
+   * Broadcast PM task created event to project room
+   */
+  broadcastPMTaskCreated(projectId: string, task: PMTaskEventPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TASK_CREATED,
+      task,
+    );
+
+    this.logger.debug({
+      message: 'PM task created event emitted',
+      projectId,
+      taskId: task.id,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM task updated event to project room
+   */
+  broadcastPMTaskUpdated(projectId: string, update: PMTaskUpdatePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TASK_UPDATED,
+      update,
+    );
+
+    this.logger.debug({
+      message: 'PM task updated event emitted',
+      projectId,
+      taskId: update.id,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM task deleted event to project room
+   */
+  broadcastPMTaskDeleted(projectId: string, deleted: PMTaskDeletedPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TASK_DELETED,
+      deleted,
+    );
+
+    this.logger.debug({
+      message: 'PM task deleted event emitted',
+      projectId,
+      taskId: deleted.id,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM task status changed event to project room
+   */
+  broadcastPMTaskStatusChanged(projectId: string, status: PMTaskStatusPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TASK_STATUS_CHANGED,
+      status,
+    );
+
+    this.logger.debug({
+      message: 'PM task status changed event emitted',
+      projectId,
+      taskId: status.id,
+      fromStatus: status.fromStatus,
+      toStatus: status.toStatus,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM phase created event to project room
+   */
+  broadcastPMPhaseCreated(projectId: string, phase: PMPhaseEventPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_PHASE_CREATED,
+      phase,
+    );
+
+    this.logger.debug({
+      message: 'PM phase created event emitted',
+      projectId,
+      phaseId: phase.id,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM phase updated event to project room
+   */
+  broadcastPMPhaseUpdated(projectId: string, phase: PMPhaseEventPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_PHASE_UPDATED,
+      phase,
+    );
+
+    this.logger.debug({
+      message: 'PM phase updated event emitted',
+      projectId,
+      phaseId: phase.id,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM phase transitioned event to project room
+   */
+  broadcastPMPhaseTransitioned(
+    projectId: string,
+    transition: PMPhaseTransitionPayload,
+  ): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_PHASE_TRANSITIONED,
+      transition,
+    );
+
+    this.logger.debug({
+      message: 'PM phase transitioned event emitted',
+      projectId,
+      phaseId: transition.id,
+      fromStatus: transition.fromStatus,
+      toStatus: transition.toStatus,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM project created event to workspace room
+   */
+  broadcastPMProjectCreated(workspaceId: string, project: PMProjectEventPayload): void {
+    this.emitToWorkspace(workspaceId, WS_EVENTS.PM_PROJECT_CREATED, project);
+  }
+
+  /**
+   * Broadcast PM project updated event to workspace room
+   */
+  broadcastPMProjectUpdated(workspaceId: string, project: PMProjectEventPayload): void {
+    this.emitToWorkspace(workspaceId, WS_EVENTS.PM_PROJECT_UPDATED, project);
+  }
+
+  /**
+   * Broadcast PM project deleted event to workspace room
+   */
+  broadcastPMProjectDeleted(workspaceId: string, deleted: PMProjectDeletedPayload): void {
+    this.emitToWorkspace(workspaceId, WS_EVENTS.PM_PROJECT_DELETED, deleted);
+  }
+
+  /**
+   * Broadcast PM team member added event to project room
+   */
+  broadcastPMTeamMemberAdded(projectId: string, change: PMTeamChangePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TEAM_MEMBER_ADDED,
+      change,
+    );
+
+    this.logger.debug({
+      message: 'PM team member added event emitted',
+      projectId,
+      userId: change.userId,
+      role: change.role,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM team member removed event to project room
+   */
+  broadcastPMTeamMemberRemoved(projectId: string, change: PMTeamChangePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TEAM_MEMBER_REMOVED,
+      change,
+    );
+
+    this.logger.debug({
+      message: 'PM team member removed event emitted',
+      projectId,
+      userId: change.userId,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM team member updated event to project room
+   */
+  broadcastPMTeamMemberUpdated(projectId: string, change: PMTeamChangePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_TEAM_MEMBER_UPDATED,
+      change,
+    );
+
+    this.logger.debug({
+      message: 'PM team member updated event emitted',
+      projectId,
+      userId: change.userId,
+      role: change.role,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM presence joined event to project room
+   */
+  broadcastPMPresenceJoined(projectId: string, presence: PresencePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_PRESENCE_JOINED,
+      presence,
+    );
+
+    this.logger.debug({
+      message: 'PM presence joined event emitted',
+      projectId,
+      userId: presence.userId,
+      page: presence.page,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM presence left event to project room
+   */
+  broadcastPMPresenceLeft(projectId: string, presence: PresencePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_PRESENCE_LEFT,
+      presence,
+    );
+
+    this.logger.debug({
+      message: 'PM presence left event emitted',
+      projectId,
+      userId: presence.userId,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast PM presence updated event to project room
+   */
+  broadcastPMPresenceUpdated(projectId: string, presence: PresencePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_PRESENCE_UPDATED,
+      presence,
+    );
+
+    this.logger.debug({
+      message: 'PM presence updated event emitted',
+      projectId,
+      userId: presence.userId,
+      page: presence.page,
+      room,
+    });
   }
 
   // ============================================

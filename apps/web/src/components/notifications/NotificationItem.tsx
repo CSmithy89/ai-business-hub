@@ -2,15 +2,27 @@
  * Notification Item Component
  *
  * Individual notification display with type icon, read/unread indicator,
- * and action link.
+ * and action link. Supports PM-specific notification types.
+ *
+ * @see Story PM-06.5: In-App Notifications
  */
 
 'use client';
 
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { CheckCircle, Info, AtSign, RefreshCw, ArrowRight, type LucideIcon } from 'lucide-react';
-import type { Notification, NotificationType } from '@/hooks/use-notifications';
+import {
+  CheckCircle,
+  Info,
+  AtSign,
+  UserPlus,
+  Clock,
+  AlertTriangle,
+  ArrowRight,
+  type LucideIcon,
+} from 'lucide-react';
+import type { NotificationDto } from '@hyvve/shared';
+import { useMarkAsRead } from '@/hooks/use-notifications-api';
 
 /**
  * Validate that a URL is safe for navigation (prevents open redirects)
@@ -32,37 +44,52 @@ function isValidActionUrl(url: string): boolean {
 }
 
 interface NotificationItemProps {
-  notification: Notification;
-  onMarkAsRead: (id: string) => void;
+  notification: NotificationDto;
+  workspaceId?: string;
 }
 
-// Icon mapping for notification types
-const NOTIFICATION_ICONS: Record<NotificationType, LucideIcon> = {
-  approval: CheckCircle,
-  system: Info,
-  mention: AtSign,
-  update: RefreshCw,
-};
+/**
+ * Get icon for notification type
+ * Supports both generic and PM-specific notification types
+ */
+function getNotificationIcon(type: string): LucideIcon {
+  // PM-specific types
+  if (type === 'task.assigned') return UserPlus;
+  if (type === 'task.mentioned') return AtSign;
+  if (type === 'task.due_date_reminder') return Clock;
+  if (type === 'agent.task_completed') return CheckCircle;
+  if (type === 'project.health_alert') return AlertTriangle;
 
-export function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
+  // Generic types
+  if (type.includes('approval')) return CheckCircle;
+  if (type.includes('mention')) return AtSign;
+  if (type.includes('alert') || type.includes('warning')) return AlertTriangle;
+
+  // Default
+  return Info;
+}
+
+export function NotificationItem({ notification, workspaceId }: NotificationItemProps) {
   const router = useRouter();
+  const { mutate: markAsRead } = useMarkAsRead(workspaceId);
 
   // Check if action URL is valid (prevents open redirect attacks)
-  const hasValidAction = notification.actionUrl && isValidActionUrl(notification.actionUrl);
+  const hasValidAction = notification.link && isValidActionUrl(notification.link);
 
   const handleClick = () => {
-    if (!notification.read) {
-      onMarkAsRead(notification.id);
+    // Mark as read if not already read
+    if (!notification.readAt) {
+      markAsRead(notification.id);
     }
 
-    // Navigate to action URL if provided and valid
+    // Navigate to link if provided and valid
     if (hasValidAction) {
-      router.push(notification.actionUrl as never);
+      router.push(notification.link!);
     }
   };
 
-  const Icon = NOTIFICATION_ICONS[notification.type];
-  const relativeTime = formatDistanceToNow(notification.timestamp, { addSuffix: true });
+  const Icon = getNotificationIcon(notification.type);
+  const relativeTime = formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true });
 
   return (
     <button
@@ -71,7 +98,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
       className="group relative flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[rgb(var(--color-bg-tertiary))]"
     >
       {/* Unread indicator - left border */}
-      {!notification.read && (
+      {!notification.readAt && (
         <div
           className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-[rgb(var(--color-primary-500))]"
           aria-hidden="true"
@@ -81,7 +108,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
       {/* Icon */}
       <div
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
-          notification.read
+          notification.readAt
             ? 'bg-[rgb(var(--color-bg-tertiary))] text-[rgb(var(--color-text-muted))]'
             : 'bg-[rgb(var(--color-bg-secondary))] text-[rgb(var(--color-primary-500))]'
         }`}
@@ -93,16 +120,18 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
       <div className="flex-1 space-y-1 overflow-hidden">
         <p
           className={`text-sm font-medium ${
-            notification.read
+            notification.readAt
               ? 'text-[rgb(var(--color-text-secondary))]'
               : 'text-[rgb(var(--color-text-primary))]'
           }`}
         >
           {notification.title}
         </p>
-        <p className="text-xs text-[rgb(var(--color-text-secondary))] line-clamp-2">
-          {notification.message}
-        </p>
+        {notification.message && (
+          <p className="text-xs text-[rgb(var(--color-text-secondary))] line-clamp-2">
+            {notification.message}
+          </p>
+        )}
         <p className="text-xs text-[rgb(var(--color-text-muted))]">
           {relativeTime}
         </p>

@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { User, Lock, Shield, Key, Bot, Palette, Settings, Users, ShieldCheck, Boxes, Plug } from 'lucide-react'
+import { User, Lock, Shield, Key, Bot, Palette, Settings, Users, ShieldCheck, Boxes, Plug, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ErrorBoundary } from '@/components/error-boundary'
 import type { Route } from 'next'
@@ -54,6 +54,11 @@ const settingsNavGroups: NavGroup[] = [
         title: 'Sessions',
         href: '/settings/sessions' as Route,
         icon: Shield,
+      },
+      {
+        title: 'Notifications',
+        href: '/settings/notifications' as Route,
+        icon: Bell,
       },
     ],
   },

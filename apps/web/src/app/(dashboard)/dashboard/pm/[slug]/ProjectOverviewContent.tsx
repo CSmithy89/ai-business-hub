@@ -6,6 +6,8 @@ import { CalendarDays, ChevronRight, FileText, Settings, Users } from 'lucide-re
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePmProject } from '@/hooks/use-pm-projects'
+import { usePresence } from '@/hooks/use-presence'
+import { PresenceBar } from '@/components/pm/presence/PresenceBar'
 import { cn } from '@/lib/utils'
 
 function clampPercent(value: number): number {
@@ -148,6 +150,13 @@ export function ProjectOverviewContent() {
   const { data, isLoading, error } = usePmProject(slug)
   const project = data?.data
 
+  // Track user presence on this project page
+  usePresence({
+    projectId: project?.id ?? '',
+    page: 'overview',
+    enabled: !!project?.id,
+  })
+
   if (!slug) return null
 
   if (isLoading) {
@@ -192,10 +201,13 @@ export function ProjectOverviewContent() {
             >
               <span className="text-sm font-semibold">{(project.icon || 'folder').slice(0, 1).toUpperCase()}</span>
             </div>
-            <div className="min-w-0">
-              <h1 className="truncate text-2xl font-semibold text-[rgb(var(--color-text-primary))]">
-                {project.name}
-              </h1>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-3">
+                <h1 className="truncate text-2xl font-semibold text-[rgb(var(--color-text-primary))]">
+                  {project.name}
+                </h1>
+                <PresenceBar projectId={project.id} />
+              </div>
               <p className="mt-1 text-sm text-[rgb(var(--color-text-secondary))]">{project.description || project.slug}</p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <StatusBadge status={project.status} />
