@@ -15,12 +15,15 @@ import {
 import { DateTime } from 'luxon';
 import { RealtimeGateway } from '../../realtime/realtime.gateway';
 import { NotificationPayload } from '../../realtime/realtime.types';
-import { Prisma } from '@prisma/client';
+import { Prisma, NotificationPreference } from '@prisma/client';
 import { DigestSchedulerService } from './digest-scheduler.service';
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
+
+  // In-memory lock to prevent race conditions during digest preference changes
+  private readonly pendingDigestChanges = new Set<string>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -73,10 +76,13 @@ export class NotificationsService {
   /**
    * Handle digest preference changes
    * Reschedules or removes digest jobs as needed
+   *
+   * Uses in-memory lock to prevent race conditions when preferences
+   * are updated rapidly (e.g., user toggling settings quickly)
    */
   private async handleDigestPreferenceChanges(
     userId: string,
-    oldPreferences: any,
+    oldPreferences: NotificationPreference,
     updates: UpdatePreferencesDto
   ): Promise<void> {
     // Check if digest-related preferences changed
@@ -89,12 +95,21 @@ export class NotificationsService {
       return; // No digest changes
     }
 
-    // Get final state after updates
-    const digestEnabled = updates.digestEnabled ?? oldPreferences.digestEnabled;
-    const digestFrequency = (updates.digestFrequency ?? oldPreferences.digestFrequency) as DigestFrequency;
-    const quietHoursTimezone = updates.quietHoursTimezone ?? oldPreferences.quietHoursTimezone;
+    // Check for concurrent digest changes (race condition protection)
+    if (this.pendingDigestChanges.has(userId)) {
+      this.logger.debug(`Digest change already in progress for user ${userId}, skipping`);
+      return;
+    }
+
+    // Acquire lock
+    this.pendingDigestChanges.add(userId);
 
     try {
+      // Get final state after updates
+      const digestEnabled = updates.digestEnabled ?? oldPreferences.digestEnabled;
+      const digestFrequency = (updates.digestFrequency ?? oldPreferences.digestFrequency) as DigestFrequency;
+      const quietHoursTimezone = updates.quietHoursTimezone ?? oldPreferences.quietHoursTimezone;
+
       if (digestEnabled) {
         // Schedule or reschedule digest job
         await this.digestSchedulerService.rescheduleUserDigest(
@@ -112,6 +127,9 @@ export class NotificationsService {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error handling digest preference change for user ${userId}: ${errorMessage}`);
       // Don't throw - preference update should succeed even if scheduling fails
+    } finally {
+      // Always release lock
+      this.pendingDigestChanges.delete(userId);
     }
   }
 

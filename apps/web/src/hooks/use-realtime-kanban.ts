@@ -11,12 +11,15 @@
  *
  * Skips cache updates for user's own actions (correlationId matching).
  * Shows toast notifications for external updates from teammates.
+ *
+ * Uses precise query key matching via predicate function to avoid
+ * over-invalidation of unrelated queries.
  */
 
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, Query } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useRealtime } from '@/lib/realtime/realtime-provider'
 import { useSession } from '@/lib/auth-client'
@@ -34,6 +37,35 @@ interface UseRealtimeKanbanOptions {
   phaseId?: string
   /** Whether real-time updates are enabled */
   enabled?: boolean
+}
+
+/**
+ * Create a predicate function for precise query invalidation
+ * Only matches pm-tasks queries for the specific workspace and project
+ */
+function createTaskQueryPredicate(
+  workspaceId: string,
+  projectId: string,
+  phaseId?: string
+) {
+  return (query: Query): boolean => {
+    const key = query.queryKey as unknown[]
+
+    // Must be a pm-tasks query
+    if (key[0] !== 'pm-tasks') return false
+
+    // Must match workspace
+    if (key[1] !== workspaceId) return false
+
+    // Must match project
+    if (key[2] !== projectId) return false
+
+    // If phaseId is specified, match queries that include it
+    // (queries without phase filter should still be invalidated)
+    if (phaseId && key.length > 3 && key[3] !== phaseId) return false
+
+    return true
+  }
 }
 
 /**
@@ -72,6 +104,9 @@ export function useRealtimeKanban({
   useEffect(() => {
     if (!socket || !isConnected || !enabled || !workspaceId) return
 
+    // Create predicate for precise query matching
+    const taskQueryPredicate = createTaskQueryPredicate(workspaceId, projectId, phaseId)
+
     // ========================================
     // Handler: pm.task.created
     // ========================================
@@ -84,9 +119,9 @@ export function useRealtimeKanban({
       if (data.correlationId && data.correlationId === sessionCorrelationIdRef.current) return
 
       // Invalidate Kanban query to refetch with new task
+      // Uses predicate for precise matching (avoids over-invalidation)
       queryClient.invalidateQueries({
-        queryKey: ['pm-tasks', workspaceId, projectId],
-        exact: false, // Match all queries starting with these keys
+        predicate: taskQueryPredicate,
       })
 
       // Show toast notification
@@ -106,10 +141,9 @@ export function useRealtimeKanban({
       // Skip if this is user's own action
       if (data.correlationId && data.correlationId === sessionCorrelationIdRef.current) return
 
-      // Invalidate all task queries to refetch
+      // Invalidate task queries with precise matching
       queryClient.invalidateQueries({
-        queryKey: ['pm-tasks', workspaceId, projectId],
-        exact: false, // Match all queries starting with these keys
+        predicate: taskQueryPredicate,
       })
 
       // Show toast notification
@@ -131,8 +165,7 @@ export function useRealtimeKanban({
 
       // Invalidate to refetch (removes deleted task)
       queryClient.invalidateQueries({
-        queryKey: ['pm-tasks', workspaceId, projectId],
-        exact: false, // Match all queries starting with these keys
+        predicate: taskQueryPredicate,
       })
 
       // Show toast notification
@@ -154,8 +187,7 @@ export function useRealtimeKanban({
 
       // Invalidate to refetch (task moved between columns)
       queryClient.invalidateQueries({
-        queryKey: ['pm-tasks', workspaceId, projectId],
-        exact: false, // Match all queries starting with these keys
+        predicate: taskQueryPredicate,
       })
 
       // Show toast notification

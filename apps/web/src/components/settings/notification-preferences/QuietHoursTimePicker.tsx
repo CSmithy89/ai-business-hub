@@ -1,8 +1,23 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+/**
+ * HH:MM time format regex (24-hour format)
+ * Ensures valid hours (00-23) and minutes (00-59)
+ */
+const TIME_FORMAT_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/
+
+/**
+ * Validate time string is in HH:MM 24-hour format
+ */
+function isValidTimeFormat(time: string | null): boolean {
+  if (!time) return true // null/empty is valid (no quiet hours)
+  return TIME_FORMAT_REGEX.test(time)
+}
 
 /**
  * Common IANA timezones for the timezone selector
@@ -43,6 +58,34 @@ export function QuietHoursTimePicker({
   onTimezoneChange,
   disabled = false,
 }: QuietHoursTimePickerProps) {
+  // Track validation errors for manual text input fallback
+  const [startTimeError, setStartTimeError] = useState<string | null>(null)
+  const [endTimeError, setEndTimeError] = useState<string | null>(null)
+
+  // Validate and update start time
+  const handleStartTimeChange = useCallback((value: string) => {
+    const timeValue = value || null
+
+    if (timeValue && !isValidTimeFormat(timeValue)) {
+      setStartTimeError('Must be in HH:MM format (e.g., 22:00)')
+    } else {
+      setStartTimeError(null)
+      onStartTimeChange(timeValue)
+    }
+  }, [onStartTimeChange])
+
+  // Validate and update end time
+  const handleEndTimeChange = useCallback((value: string) => {
+    const timeValue = value || null
+
+    if (timeValue && !isValidTimeFormat(timeValue)) {
+      setEndTimeError('Must be in HH:MM format (e.g., 08:00)')
+    } else {
+      setEndTimeError(null)
+      onEndTimeChange(timeValue)
+    }
+  }, [onEndTimeChange])
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -53,13 +96,22 @@ export function QuietHoursTimePicker({
             id="quiet-hours-start"
             type="time"
             value={startTime || ''}
-            onChange={(e) => onStartTimeChange(e.target.value || null)}
+            onChange={(e) => handleStartTimeChange(e.target.value)}
             disabled={disabled}
-            className="w-full"
+            className={startTimeError ? 'border-destructive' : ''}
+            pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+            aria-invalid={!!startTimeError}
+            aria-describedby={startTimeError ? 'start-time-error' : undefined}
           />
-          <p className="text-xs text-muted-foreground">
-            When do quiet hours begin?
-          </p>
+          {startTimeError ? (
+            <p id="start-time-error" className="text-xs text-destructive">
+              {startTimeError}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              When do quiet hours begin?
+            </p>
+          )}
         </div>
 
         {/* End Time */}
@@ -69,13 +121,22 @@ export function QuietHoursTimePicker({
             id="quiet-hours-end"
             type="time"
             value={endTime || ''}
-            onChange={(e) => onEndTimeChange(e.target.value || null)}
+            onChange={(e) => handleEndTimeChange(e.target.value)}
             disabled={disabled}
-            className="w-full"
+            className={endTimeError ? 'border-destructive' : ''}
+            pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+            aria-invalid={!!endTimeError}
+            aria-describedby={endTimeError ? 'end-time-error' : undefined}
           />
-          <p className="text-xs text-muted-foreground">
-            When do quiet hours end?
-          </p>
+          {endTimeError ? (
+            <p id="end-time-error" className="text-xs text-destructive">
+              {endTimeError}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              When do quiet hours end?
+            </p>
+          )}
         </div>
       </div>
 

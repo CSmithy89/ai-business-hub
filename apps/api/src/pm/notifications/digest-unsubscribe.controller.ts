@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Res, Logger } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { DigestService } from './digest.service';
 import { DigestSchedulerService } from './digest-scheduler.service';
@@ -9,8 +10,11 @@ import { NotificationsService } from './notifications.service';
  *
  * This controller provides a public endpoint (no auth required) for users to
  * unsubscribe from digest emails via a link in the email.
+ *
+ * Rate limited to prevent abuse (3 requests per second using 'short' throttler).
  */
 @Controller('pm/notifications/digest')
+@Throttle({ short: { limit: 3, ttl: 1000 } }) // 3 requests per second
 export class DigestUnsubscribeController {
   private readonly logger = new Logger(DigestUnsubscribeController.name);
 

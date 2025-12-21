@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { RedisProvider, RedisClient } from '../events/redis.provider';
 import { PrismaService } from '../common/services/prisma.service';
 import { PresenceUser, PresenceLocation } from '@hyvve/shared';
@@ -235,7 +236,6 @@ export class PresenceService {
   /**
    * Cleanup stale presence entries for a project
    * Removes entries older than 5 minutes
-   * Optional: Can be called periodically via cron job
    *
    * @param projectId - Project ID
    */
@@ -254,6 +254,60 @@ export class PresenceService {
     } catch (error) {
       this.logger.error('Failed to cleanup stale presence', {
         projectId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Cron job to cleanup stale presence entries across all projects
+   * Runs every 5 minutes to remove inactive users from presence tracking
+   *
+   * Scans Redis for all presence:project:* keys and cleans up each one.
+   */
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async handlePresenceCleanupCron(): Promise<void> {
+    try {
+      this.logger.debug('Running presence cleanup cron job');
+
+      // Scan for all presence:project:* keys
+      const pattern = 'presence:project:*';
+      const keys: string[] = [];
+
+      // Use SCAN to iterate through keys (memory-efficient)
+      let cursor = '0';
+      do {
+        const result = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+        cursor = result[0];
+        keys.push(...result[1]);
+      } while (cursor !== '0');
+
+      if (keys.length === 0) {
+        this.logger.debug('No presence keys found to cleanup');
+        return;
+      }
+
+      // Extract projectIds and cleanup each
+      const now = Date.now();
+      const cutoffTime = now - this.PRESENCE_TTL_MS;
+      let totalRemoved = 0;
+
+      for (const key of keys) {
+        try {
+          const removed = await this.redis.zremrangebyscore(key, 0, cutoffTime);
+          totalRemoved += removed;
+        } catch (error) {
+          this.logger.warn(`Failed to cleanup presence key ${key}`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
+      if (totalRemoved > 0) {
+        this.logger.log(`Presence cleanup: removed ${totalRemoved} stale entries from ${keys.length} projects`);
+      }
+    } catch (error) {
+      this.logger.error('Failed to run presence cleanup cron', {
         error: error instanceof Error ? error.message : String(error),
       });
     }

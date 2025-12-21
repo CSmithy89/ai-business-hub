@@ -33,6 +33,9 @@ export class DigestSchedulerService implements OnModuleInit {
 
   /**
    * Schedule digest jobs for all users with digestEnabled: true
+   *
+   * In development: Obliterates all jobs for clean slate testing
+   * In production: Only removes orphaned jobs to prevent data loss on restart
    */
   async scheduleAllDigests(): Promise<void> {
     try {
@@ -43,10 +46,17 @@ export class DigestSchedulerService implements OnModuleInit {
 
       this.logger.log(`Scheduling digests for ${preferences.length} users`);
 
-      // Remove all existing digest jobs (clean slate)
-      await this.digestQueue.obliterate({ force: true });
+      // Handle existing jobs based on environment
+      if (process.env.NODE_ENV === 'development') {
+        // In development, clean slate for easier testing
+        await this.digestQueue.obliterate({ force: true });
+        this.logger.debug('Development mode: obliterated all existing digest jobs');
+      } else {
+        // In production, only remove orphaned jobs (users who no longer have digest enabled)
+        await this.cleanupOrphanedJobs(preferences.map((p) => p.userId));
+      }
 
-      // Schedule job for each user
+      // Schedule job for each user (skips if already exists)
       for (const pref of preferences) {
         await this.scheduleUserDigest(
           pref.userId,
@@ -61,6 +71,35 @@ export class DigestSchedulerService implements OnModuleInit {
       const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(`Error scheduling digests: ${errorMessage}`, errorStack);
       throw error;
+    }
+  }
+
+  /**
+   * Remove orphaned digest jobs (jobs for users who no longer have digest enabled)
+   * This is safe for production multi-instance deployments
+   */
+  private async cleanupOrphanedJobs(validUserIds: string[]): Promise<void> {
+    try {
+      const existingJobs = await this.digestQueue.getRepeatableJobs();
+      const validUserIdSet = new Set(validUserIds);
+      let removedCount = 0;
+
+      for (const job of existingJobs) {
+        // Extract userId from job id (format: "digest-{userId}")
+        const userId = job.id?.replace('digest-', '');
+        if (userId && !validUserIdSet.has(userId)) {
+          await this.digestQueue.removeRepeatableByKey(job.key);
+          removedCount++;
+        }
+      }
+
+      if (removedCount > 0) {
+        this.logger.log(`Cleaned up ${removedCount} orphaned digest jobs`);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(`Error cleaning up orphaned jobs: ${errorMessage}`);
+      // Don't throw - cleanup failure shouldn't block startup
     }
   }
 

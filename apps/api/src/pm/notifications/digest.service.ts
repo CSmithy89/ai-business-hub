@@ -11,7 +11,7 @@ import {
   PMNotificationType,
 } from '@hyvve/shared';
 import { DateTime } from 'luxon';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import * as Handlebars from 'handlebars';
 
@@ -43,8 +43,13 @@ export class DigestService {
     private readonly notificationsService: NotificationsService,
     private readonly jwtService: JwtService,
   ) {
-    // Load and compile email templates
-    const templatesPath = join(__dirname, 'templates');
+    // Validate JWT_SECRET is configured
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is required for digest unsubscribe tokens');
+    }
+
+    // Load and compile email templates with robust path resolution
+    const templatesPath = this.resolveTemplatesPath();
     const htmlTemplateContent = readFileSync(join(templatesPath, 'digest-email.hbs'), 'utf-8');
     const textTemplateContent = readFileSync(join(templatesPath, 'digest-email.text.hbs'), 'utf-8');
 
@@ -53,6 +58,49 @@ export class DigestService {
 
     // Register Handlebars helpers
     this.registerHandlebarsHelpers();
+  }
+
+  /**
+   * Resolve templates path with fallback for different build environments
+   * Handles: development, webpack/esbuild builds, and custom paths
+   */
+  private resolveTemplatesPath(): string {
+    // 1. Check environment variable (explicit override)
+    if (process.env.EMAIL_TEMPLATES_PATH) {
+      const envPath = process.env.EMAIL_TEMPLATES_PATH;
+      if (existsSync(envPath)) {
+        this.logger.debug(`Using templates path from env: ${envPath}`);
+        return envPath;
+      }
+      this.logger.warn(`EMAIL_TEMPLATES_PATH ${envPath} does not exist, falling back`);
+    }
+
+    // 2. Try __dirname (works in development and some builds)
+    const dirnamePath = join(__dirname, 'templates');
+    if (existsSync(dirnamePath)) {
+      this.logger.debug(`Using templates path from __dirname: ${dirnamePath}`);
+      return dirnamePath;
+    }
+
+    // 3. Try relative to cwd (for bundled builds)
+    const cwdPath = join(process.cwd(), 'apps/api/src/pm/notifications/templates');
+    if (existsSync(cwdPath)) {
+      this.logger.debug(`Using templates path from cwd: ${cwdPath}`);
+      return cwdPath;
+    }
+
+    // 4. Try dist folder (for compiled builds)
+    const distPath = join(process.cwd(), 'dist/apps/api/pm/notifications/templates');
+    if (existsSync(distPath)) {
+      this.logger.debug(`Using templates path from dist: ${distPath}`);
+      return distPath;
+    }
+
+    // 5. Fail with helpful error
+    throw new Error(
+      `Email templates not found. Tried: ${dirnamePath}, ${cwdPath}, ${distPath}. ` +
+      `Set EMAIL_TEMPLATES_PATH environment variable to specify the correct path.`
+    );
   }
 
   /**

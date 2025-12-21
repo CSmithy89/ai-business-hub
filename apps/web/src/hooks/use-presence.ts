@@ -10,6 +10,9 @@ import { useRealtime } from '@/lib/realtime';
  * Updates location when page changes.
  * Cleans up on unmount.
  *
+ * Includes reconnection protection to prevent duplicate updates during
+ * rapid WebSocket reconnects (1-second debounce).
+ *
  * @see Story PM-06.2: Presence Indicators
  */
 
@@ -20,6 +23,9 @@ export interface UsePresenceOptions {
   enabled?: boolean; // Allow disabling presence tracking
 }
 
+// Minimum interval between presence updates (milliseconds)
+const DEBOUNCE_MS = 1000;
+
 export function usePresence({
   projectId,
   page,
@@ -29,20 +35,30 @@ export function usePresence({
   const { emit, isConnected } = useRealtime();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastLocationRef = useRef({ projectId, page, taskId });
+  const lastUpdateTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (!isConnected || !enabled) {
       return;
     }
 
-    // Helper function to send presence update
-    const sendPresence = () => {
+    // Helper function to send presence update with debounce protection
+    const sendPresence = (force = false) => {
+      const now = Date.now();
+      const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
+
+      // Skip if update was sent too recently (unless forced for heartbeat)
+      if (!force && timeSinceLastUpdate < DEBOUNCE_MS) {
+        return;
+      }
+
       try {
         emit('pm.presence.update', {
           projectId,
           taskId,
           page,
         });
+        lastUpdateTimeRef.current = now;
       } catch (error) {
         console.error('[Presence] Failed to send presence update:', error);
       }
@@ -51,8 +67,8 @@ export function usePresence({
     // Send initial presence update
     sendPresence();
 
-    // Set up 30-second heartbeat interval
-    intervalRef.current = setInterval(sendPresence, 30000);
+    // Set up 30-second heartbeat interval (force update)
+    intervalRef.current = setInterval(() => sendPresence(true), 30000);
 
     // Cleanup on unmount
     return () => {
@@ -76,12 +92,21 @@ export function usePresence({
       lastLocation.taskId !== taskId;
 
     if (locationChanged) {
+      const now = Date.now();
+      const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
+
+      // Check debounce (location changes should still respect debounce)
+      if (timeSinceLastUpdate < DEBOUNCE_MS) {
+        return;
+      }
+
       try {
         emit('pm.presence.update', {
           projectId,
           taskId,
           page,
         });
+        lastUpdateTimeRef.current = now;
 
         // Update last location
         lastLocationRef.current = { projectId, page, taskId };

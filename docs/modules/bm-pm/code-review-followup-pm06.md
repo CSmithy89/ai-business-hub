@@ -93,6 +93,42 @@ Framer Motion adds ~60KB to bundle. Consider:
 
 ---
 
+## Production Hardening (Fixed)
+
+These production issues were identified and fixed in a follow-up review:
+
+### CRITICAL Issues (Fixed)
+
+| Issue | Description | Fix |
+|-------|-------------|-----|
+| Job Obliteration | DigestSchedulerService destroyed all jobs on restart | Now only obliterates in dev; prod removes only orphaned jobs |
+| Template Path Resolution | Email templates not found in webpack/esbuild builds | Added fallback path resolution with env override |
+| JWT_SECRET Validation | Runtime crash if JWT_SECRET not set | Throws at constructor initialization |
+
+### HIGH Priority Issues (Fixed)
+
+| Issue | Description | Fix |
+|-------|-------------|-----|
+| Digest Race Condition | Rapid preference updates could race scheduler | Added in-memory lock (Set) with proper typing |
+| Presence Reconnection Race | Rapid WebSocket reconnects sent duplicate updates | Added 1-second debounce with timestamp check |
+| Query Over-Invalidation | React Query invalidated too many queries | Added predicate function for precise matching |
+
+### MEDIUM Priority Issues (Fixed)
+
+| Issue | Description | Fix |
+|-------|-------------|-----|
+| Quiet Hours Validation | No client-side HH:MM format validation | Added regex validation with error display |
+| Unsubscribe Rate Limiting | Public endpoint had no rate limiting | Added @Throttle decorator (3 req/sec) |
+| Stale Presence Cleanup | No automatic cleanup of expired presence | Added cron job (every 5 min) using SCAN |
+
+### LOW Priority Issues (Fixed)
+
+| Issue | Description | Fix |
+|-------|-------------|-----|
+| Conflict Detection False Positives | Timestamp comparison too strict | Added 1-second tolerance for latency/clock skew |
+
+---
+
 ## Already Addressed
 
 These items from code review were already fixed:

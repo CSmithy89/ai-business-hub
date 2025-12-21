@@ -7,10 +7,19 @@
  * Compares local updatedAt timestamp with remote updatedAt to detect conflicts.
  * Shows a warning toast with "Reload" action button when conflict detected.
  *
+ * Uses 1-second tolerance to prevent false positives from:
+ * - Network latency
+ * - Clock skew between client and server
+ * - Database timestamp precision issues
+ *
  * Only active when currentlyEditing is true (user is viewing/editing the task).
  */
 
 'use client'
+
+// Tolerance for timestamp comparison (milliseconds)
+// Prevents false positives from network latency and clock skew
+const TIMESTAMP_TOLERANCE_MS = 1000
 
 import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -78,12 +87,14 @@ export function useTaskConflictDetection({
 
       if (!localTask?.data) return
 
-      // Compare timestamps to detect conflict
-      const localUpdatedAt = new Date(localTask.data.updatedAt)
-      const remoteUpdatedAt = new Date(data.updatedAt)
+      // Compare timestamps to detect conflict (with tolerance for network latency)
+      const localUpdatedAt = new Date(localTask.data.updatedAt).getTime()
+      const remoteUpdatedAt = new Date(data.updatedAt).getTime()
+      const timeDifference = remoteUpdatedAt - localUpdatedAt
 
-      if (remoteUpdatedAt > localUpdatedAt) {
-        // Conflict detected - remote is newer than local
+      // Only trigger conflict if remote is significantly newer (beyond tolerance)
+      if (timeDifference > TIMESTAMP_TOLERANCE_MS) {
+        // Conflict detected - remote is newer than local by more than tolerance
         toast.warning('This task was updated by another user', {
           description: 'Your changes may conflict. Click Reload to see the latest version.',
           action: {

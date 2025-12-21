@@ -1,3 +1,13 @@
+// Mock fs module before any imports that might use it
+jest.mock('fs', () => {
+  const actualFs = jest.requireActual('fs');
+  return {
+    ...actualFs,
+    readFileSync: jest.fn().mockReturnValue('{{userName}} - {{totalCount}} notifications'),
+    existsSync: jest.fn().mockReturnValue(true),
+  };
+});
+
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { DigestService } from './digest.service';
@@ -6,15 +16,18 @@ import { EmailService } from '../../common/services/email.service';
 import { NotificationsService } from './notifications.service';
 import { NotificationDto, PMNotificationType } from '@hyvve/shared';
 
-// Mock fs.readFileSync to avoid reading actual template files
-// Use spyOn instead of jest.mock to preserve other fs functions
-jest.spyOn(require('fs'), 'readFileSync').mockReturnValue(
-  '{{userName}} - {{totalCount}} notifications'
-);
-
 describe('DigestService', () => {
   let service: DigestService;
   let prisma: any;
+
+  // Set JWT_SECRET for tests (required by DigestService constructor)
+  beforeAll(() => {
+    process.env.JWT_SECRET = 'test-jwt-secret';
+  });
+
+  afterAll(() => {
+    delete process.env.JWT_SECRET;
+  });
   let emailService: { sendEmail: jest.Mock };
   let notificationsService: {
     getUserPreferences: jest.Mock;
