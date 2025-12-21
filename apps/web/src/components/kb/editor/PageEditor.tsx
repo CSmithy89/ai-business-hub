@@ -11,8 +11,8 @@ import { IndexeddbPersistence } from 'y-indexeddb'
 import { isChangeOrigin } from '@tiptap/extension-collaboration'
 import { KB_COLLAB_WS_URL } from '@/lib/api-config'
 import { useNetworkStatus } from '@/hooks/use-network-status'
-import { useKBDraft, type KBDraftCitation } from '@/hooks/use-kb-pages'
-import { draftTextToTiptap } from '@/lib/kb-ai'
+import { useKBDraft, useKBSummary, type KBDraftCitation } from '@/hooks/use-kb-pages'
+import { draftTextToTiptap, summaryToTiptapNodes, type KBSummaryContent } from '@/lib/kb-ai'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
@@ -62,6 +62,9 @@ export function PageEditor({
   const [draftDialogOpen, setDraftDialogOpen] = useState(false)
   const [draftPrompt, setDraftPrompt] = useState('')
   const [draftCitations, setDraftCitations] = useState<KBDraftCitation[]>([])
+  const summaryMutation = useKBSummary(workspaceId ?? '')
+  const [summaryDialogOpen, setSummaryDialogOpen] = useState(false)
+  const [summaryResult, setSummaryResult] = useState<KBSummaryContent | null>(null)
 
   const collaborationEnabled = !!pageId && !!collaboration?.token
   const collabDoc = useMemo(() => new Y.Doc(), [pageId])
@@ -219,6 +222,41 @@ export function PageEditor({
     }
   }, [draftMutation, draftPrompt, editor, workspaceId])
 
+  const handleSummarize = useCallback(async () => {
+    if (!editor) return
+    if (!workspaceId) {
+      toast.error('Workspace is required to summarize.')
+      return
+    }
+    if (!pageId) {
+      toast.error('A page is required to summarize.')
+      return
+    }
+
+    try {
+      const result = await summaryMutation.mutateAsync({ pageId })
+      setSummaryResult(result.summary)
+      setSummaryDialogOpen(true)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to summarize page.')
+    }
+  }, [editor, pageId, summaryMutation, workspaceId])
+
+  const handleInsertSummary = useCallback(() => {
+    if (!editor || !summaryResult) return
+
+    const summaryNodes = summaryToTiptapNodes(summaryResult)
+    const current = editor.getJSON()
+    const content = current.content ?? []
+    editor.commands.setContent({
+      type: 'doc',
+      content: [...summaryNodes, ...content],
+    })
+
+    setSummaryDialogOpen(false)
+    toast.success('Summary inserted at the top of the page.')
+  }, [editor, summaryResult])
+
   // Auto-save effect
   useEffect(() => {
     if (!hasUnsavedChanges) {
@@ -297,6 +335,8 @@ export function PageEditor({
     <div className="flex h-full flex-col">
       <EditorToolbar
         editor={editor}
+        onSummarize={handleSummarize}
+        isSummarizeLoading={summaryMutation.isPending}
         onAIDraft={() => setDraftDialogOpen(true)}
         isAIDraftLoading={draftMutation.isPending}
       />
@@ -403,6 +443,56 @@ export function PageEditor({
             </Button>
             <Button onClick={handleGenerateDraft} disabled={draftMutation.isPending}>
               {draftMutation.isPending ? 'Drafting...' : 'Generate Draft'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={summaryDialogOpen}
+        onOpenChange={(open) => {
+          setSummaryDialogOpen(open)
+          if (!open) setSummaryResult(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Summary</DialogTitle>
+            <DialogDescription>
+              Review the TL;DR and key points, then insert at the top of the page.
+            </DialogDescription>
+          </DialogHeader>
+
+          {summaryResult ? (
+            <div className="space-y-4 text-sm">
+              <div className="space-y-2">
+                <p className="text-muted-foreground">TL;DR</p>
+                <p className="text-foreground">{summaryResult.summary}</p>
+              </div>
+              {summaryResult.keyPoints.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-muted-foreground">Key Points</p>
+                  <ul className="list-disc pl-5 text-foreground">
+                    {summaryResult.keyPoints.map((point) => (
+                      <li key={point}>{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No summary available.</p>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSummaryDialogOpen(false)}
+            >
+              Close
+            </Button>
+            <Button onClick={handleInsertSummary} disabled={!summaryResult}>
+              Insert Summary
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -84,6 +84,17 @@ export interface GenerateKBDraftInput {
   prompt: string
 }
 
+export interface KBSummaryResponse {
+  summary: {
+    summary: string
+    keyPoints: string[]
+  }
+}
+
+export interface GenerateKBSummaryInput {
+  pageId: string
+}
+
 async function fetchKBPages(params: {
   workspaceId: string
   token?: string
@@ -247,6 +258,33 @@ async function generateKBDraft(params: {
   return data as KBDraftResponse
 }
 
+async function generateKBSummary(params: {
+  input: GenerateKBSummaryInput
+  workspaceId: string
+  token?: string
+}): Promise<KBSummaryResponse> {
+  const { input, workspaceId, token } = params
+
+  const response = await fetch(`${getBaseUrl()}/api/kb/ai/summary`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Failed to summarize page: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as KBSummaryResponse
+}
+
 // ============================================
 // React Query Hooks
 // ============================================
@@ -337,6 +375,16 @@ export function useKBDraft(workspaceId: string) {
   return useMutation({
     mutationFn: (input: GenerateKBDraftInput) =>
       generateKBDraft({ input, workspaceId, token }),
+  })
+}
+
+export function useKBSummary(workspaceId: string) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: (input: GenerateKBSummaryInput) =>
+      generateKBSummary({ input, workspaceId, token }),
   })
 }
 

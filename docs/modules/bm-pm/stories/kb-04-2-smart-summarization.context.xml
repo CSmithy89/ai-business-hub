@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>kb-04</epicId>
+    <storyId>kb-04-2</storyId>
+    <title>Smart Summarization</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-21</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/kb-04-2-smart-summarization.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>KB user</asA>
+    <iWant>AI summaries of long pages</iWant>
+    <soThat>I can quickly understand content</soThat>
+    <tasks>
+- Add KB AI summary endpoint
+- Add Summarize action in KB editor
+- Insert summary at top of page
+- Add API and UI tests
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Given I view a long page, when I click "Summarize", AI generates a TL;DR summary.
+2. The summary can be inserted at the top of the page.
+3. The summary includes a key points bullet list.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/modules/bm-pm/epics/epic-kb-04-ai-native-knowledge-base.md</path>
+        <title>Epic KB-04: AI-Native Knowledge Base</title>
+        <section>Story KB-04.2: Smart Summarization</section>
+        <snippet>Defines summary generation, insertion at top of page, and key points list.</snippet>
+      </doc>
+      <doc>
+        <path>docs/modules/bm-pm/PRD.md</path>
+        <title>Core-PM PRD</title>
+        <section>Phase 3 - Vision Features / AI-Native KB Features</section>
+        <snippet>Specifies smart summaries and TL;DR generation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/modules/bm-pm/kb-specification.md</path>
+        <title>KB Specification</title>
+        <section>F8: AI-Native KB</section>
+        <snippet>Lists smart summarization as a Phase 3 capability.</snippet>
+      </doc>
+      <doc>
+        <path>docs/modules/bm-pm/architecture.md</path>
+        <title>Core-PM + Knowledge Base Architecture</title>
+        <section>Knowledge Base &amp; RAG Architecture</section>
+        <snippet>KB content stored as contentText and accessible via KB services.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-kb-04.md</path>
+        <title>Epic KB-04 Technical Specification</title>
+        <section>Smart Summarization Workflow</section>
+        <snippet>Summaries are generated on demand and inserted into pages.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>apps/api/src/kb/ai/ai.service.ts</path>
+        <kind>service</kind>
+        <symbol>KbAiService.summarizePage</symbol>
+        <lines>60-160</lines>
+        <reason>Summary generation using AI provider and page content.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/api/src/kb/pages/pages.service.ts</path>
+        <kind>service</kind>
+        <symbol>PagesService.findOne</symbol>
+        <lines>340-420</lines>
+        <reason>Reference for fetching KB page content and workspace scoping.</reason>
+      </artifact>
+      <artifact>
+        <path>agents/platform/scribe/tools/analysis_tools.py</path>
+        <kind>tool</kind>
+        <symbol>summarize_page</symbol>
+        <lines>40-120</lines>
+        <reason>Existing summary logic reference for content extraction.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/web/src/components/kb/editor/PageEditor.tsx</path>
+        <kind>component</kind>
+        <symbol>PageEditor</symbol>
+        <lines>1-360</lines>
+        <reason>UI integration for summary dialog and insertion.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/web/src/lib/kb-ai.ts</path>
+        <kind>helper</kind>
+        <symbol>summaryToTiptapNodes</symbol>
+        <lines>1-120</lines>
+        <reason>Builds summary nodes for Tiptap insertion.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@nestjs/common" />
+        <package name="@tiptap/react" />
+        <package name="sonner" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Enforce workspace isolation (`workspaceId` and `tenantId`).
+- Summaries require explicit user insertion (human approval).
+- Avoid modifying existing page content unless user confirms insertion.
+  </constraints>
+
+  <interfaces>
+- POST /api/kb/ai/summary (summary + key points)
+- PATCH /api/kb/pages/:id (save summary insertion)
+  </interfaces>
+
+  <tests>
+    <standards>Use NestJS unit tests for service logic and Vitest for frontend helpers.</standards>
+    <locations>apps/api/src/**/*.spec.ts | apps/web/src/**/*.test.ts</locations>
+    <ideas>
+- Summary response contains TL;DR and key points.
+- Summary insertion prepends nodes to existing content.
+- Summary endpoint enforces workspace scoping.
+    </ideas>
+  </tests>
+</story-context>

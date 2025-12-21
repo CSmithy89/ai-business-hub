@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { draftTextToTiptap } from './kb-ai'
+import { draftTextToTiptap, summaryToTiptapNodes } from './kb-ai'
 
 describe('draftTextToTiptap', () => {
   it('creates heading and paragraph nodes', () => {
@@ -20,5 +20,16 @@ describe('draftTextToTiptap', () => {
     expect(doc.content[0]).toMatchObject({
       type: 'bulletList',
     })
+  })
+
+  it('creates summary nodes', () => {
+    const nodes = summaryToTiptapNodes({
+      summary: 'Short summary text.',
+      keyPoints: ['Point one', 'Point two'],
+    })
+
+    expect(nodes[0]).toMatchObject({ type: 'heading' })
+    expect(nodes[1]).toMatchObject({ type: 'paragraph' })
+    expect(nodes[2]).toMatchObject({ type: 'bulletList' })
   })
 })

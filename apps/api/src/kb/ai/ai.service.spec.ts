@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing'
 import { KbAiService } from './ai.service'
 import { RagService } from '../rag/rag.service'
 import { AssistantClientFactory } from '../../ai-providers/assistant-client-factory.service'
+import { PrismaService } from '../../common/services/prisma.service'
 
 const mockRagService = {
   query: jest.fn(),
@@ -13,6 +14,12 @@ const mockClient = {
 
 const mockAssistantClientFactory = {
   createClient: jest.fn(),
+}
+
+const mockPrismaService = {
+  knowledgePage: {
+    findFirst: jest.fn(),
+  },
 }
 
 describe('KbAiService', () => {
@@ -39,6 +46,7 @@ describe('KbAiService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         KbAiService,
+        { provide: PrismaService, useValue: mockPrismaService },
         { provide: RagService, useValue: mockRagService },
         { provide: AssistantClientFactory, useValue: mockAssistantClientFactory },
       ],
@@ -60,5 +68,42 @@ describe('KbAiService', () => {
     expect(mockAssistantClientFactory.createClient).toHaveBeenCalledWith({
       workspaceId: 'workspace-1',
     })
+  })
+
+  it('summarizes a page', async () => {
+    mockPrismaService.knowledgePage.findFirst.mockResolvedValue({
+      title: 'Auth Guide',
+      contentText: 'This page explains authentication flow.',
+    })
+    mockClient.chatCompletion.mockResolvedValue({
+      id: 'resp-2',
+      content: JSON.stringify({
+        summary: 'Authentication uses JWT and refresh tokens.',
+        keyPoints: ['Use JWT for API requests', 'Rotate refresh tokens regularly'],
+      }),
+      role: 'assistant',
+      model: 'gpt-4o',
+      provider: 'openai',
+    })
+    mockAssistantClientFactory.createClient.mockResolvedValue(mockClient)
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        KbAiService,
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: RagService, useValue: mockRagService },
+        { provide: AssistantClientFactory, useValue: mockAssistantClientFactory },
+      ],
+    }).compile()
+
+    const service = moduleRef.get(KbAiService)
+
+    const result = await service.summarizePage('tenant-1', 'workspace-1', 'page-1')
+
+    expect(result.summary).toContain('Authentication uses JWT')
+    expect(result.keyPoints).toHaveLength(2)
+    expect(mockPrismaService.knowledgePage.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'page-1', tenantId: 'tenant-1', workspaceId: 'workspace-1', deletedAt: null } }),
+    )
   })
 })

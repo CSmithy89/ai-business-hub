@@ -18,17 +18,26 @@ import {
   Link as LinkIcon,
   Table,
   Code2,
+  ScrollText,
   Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface EditorToolbarProps {
   editor: Editor
+  onSummarize?: () => void
+  isSummarizeLoading?: boolean
   onAIDraft?: () => void
   isAIDraftLoading?: boolean
 }
 
-export function EditorToolbar({ editor, onAIDraft, isAIDraftLoading }: EditorToolbarProps) {
+export function EditorToolbar({
+  editor,
+  onSummarize,
+  isSummarizeLoading,
+  onAIDraft,
+  isAIDraftLoading,
+}: EditorToolbarProps) {
   const setLink = () => {
     const previousUrl = editor.getAttributes('link').href
     const url = window.prompt('URL', previousUrl)
@@ -210,18 +219,31 @@ export function EditorToolbar({ editor, onAIDraft, isAIDraftLoading }: EditorToo
         <Table className="h-4 w-4" />
       </Button>
 
-      {onAIDraft && (
+      {(onSummarize || onAIDraft) && (
         <>
           <div className="mx-1 h-6 w-px bg-border" />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onAIDraft}
-            disabled={isAIDraftLoading}
-            title="AI Draft"
-          >
-            <Sparkles className="h-4 w-4" />
-          </Button>
+          {onSummarize && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSummarize}
+              disabled={isSummarizeLoading}
+              title="Summarize"
+            >
+              <ScrollText className="h-4 w-4" />
+            </Button>
+          )}
+          {onAIDraft && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onAIDraft}
+              disabled={isAIDraftLoading}
+              title="AI Draft"
+            >
+              <Sparkles className="h-4 w-4" />
+            </Button>
+          )}
         </>
       )}
     </div>

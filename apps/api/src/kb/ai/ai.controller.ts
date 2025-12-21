@@ -8,6 +8,7 @@ import { RolesGuard } from '../../common/guards/roles.guard'
 import { TenantGuard } from '../../common/guards/tenant.guard'
 import { KbAiService } from './ai.service'
 import { KbDraftDto } from './dto/kb-draft.dto'
+import { KbSummaryDto } from './dto/kb-summary.dto'
 
 @ApiTags('KB AI')
 @Controller('kb/ai')
@@ -30,6 +31,24 @@ export class KbAiController {
 
     return {
       draft,
+      status: HttpStatus.OK,
+    }
+  }
+
+  @Post('summary')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Summarize a KB page' })
+  @ApiResponse({ status: 200, description: 'Summary generated' })
+  async summarizePage(
+    @CurrentUser() user: { tenantId: string; id: string },
+    @CurrentWorkspace() workspaceId: string,
+    @Body() body: KbSummaryDto,
+  ) {
+    const tenantId = user.tenantId
+    const summary = await this.kbAiService.summarizePage(tenantId, workspaceId, body.pageId)
+
+    return {
+      summary,
       status: HttpStatus.OK,
     }
   }

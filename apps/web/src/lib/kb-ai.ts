@@ -4,6 +4,11 @@ const HEADING_RE = /^(#{1,4})\s+(.*)$/
 const BULLET_RE = /^[-*]\s+/
 const ORDERED_RE = /^\d+\.\s+/
 
+export type KBSummaryContent = {
+  summary: string
+  keyPoints: string[]
+}
+
 function paragraphNode(text: string): TiptapNode {
   if (!text.trim()) {
     return { type: 'paragraph', content: [] }
@@ -66,4 +71,20 @@ export function draftTextToTiptap(text: string): TiptapDocument {
     type: 'doc',
     content: content.length > 0 ? content : [paragraphNode('')],
   }
+}
+
+export function summaryToTiptapNodes(summary: KBSummaryContent): TiptapNode[] {
+  const nodes: TiptapNode[] = []
+  const summaryText = summary.summary?.trim()
+
+  if (summaryText) {
+    nodes.push(headingNode(2, 'Summary'))
+    nodes.push(paragraphNode(summaryText))
+  }
+
+  if (summary.keyPoints?.length) {
+    nodes.push(listNode('bulletList', summary.keyPoints))
+  }
+
+  return nodes
 }
