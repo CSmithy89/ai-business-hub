@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
-import { BookmarkPlus, CalendarDays, ChevronRight, KanbanSquare, LayoutList, Search, Upload, Download } from 'lucide-react'
+import { BookmarkPlus, CalendarDays, ChevronRight, KanbanSquare, LayoutList, Search, Upload, Download, Github } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -32,6 +32,7 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import type { FilterState } from '@/lib/pm/url-state'
 import { CsvImportWizard } from '@/components/pm/imports/CsvImportWizard'
 import { CsvExportModal } from '@/components/pm/exports/CsvExportModal'
+import { GithubIssuesSyncDialog } from '@/components/pm/integrations/GithubIssuesSyncDialog'
 
 function formatDate(value: string | null): string {
   if (!value) return '—'
@@ -143,6 +144,7 @@ export function ProjectTasksContent() {
   })
   const [importWizardOpen, setImportWizardOpen] = useState(false)
   const [exportModalOpen, setExportModalOpen] = useState(false)
+  const [githubSyncOpen, setGithubSyncOpen] = useState(false)
 
   // Apply default view on mount
   useEffect(() => {
@@ -367,6 +369,10 @@ export function ProjectTasksContent() {
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setGithubSyncOpen(true)} className="gap-2">
+            <Github className="h-4 w-4" />
+            Sync Issues
+          </Button>
 
           {/* View Mode Toggles */}
           <Button
@@ -521,6 +527,11 @@ export function ProjectTasksContent() {
         projectId={project.id}
         filters={filters}
         search={search}
+      />
+      <GithubIssuesSyncDialog
+        open={githubSyncOpen}
+        onOpenChange={setGithubSyncOpen}
+        projectId={project.id}
       />
 
       {/* Save View Modal */}
