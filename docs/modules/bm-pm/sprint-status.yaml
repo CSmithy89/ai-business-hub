@@ -256,7 +256,7 @@ development_status:
   kb-04-4-knowledge-extraction: done
   kb-04-5-gap-detection: done
   kb-04-6-kb-templates: done
-  kb-04-retrospective: optional
+  kb-04-retrospective: done
 
   # ===========================================
   # PM-10: Workflow Builder
