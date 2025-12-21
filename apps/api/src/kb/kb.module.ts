@@ -15,6 +15,7 @@ import { RagController } from './rag/rag.controller'
 import { RagService } from './rag/rag.service'
 import { KbAiController } from './ai/ai.controller'
 import { KbAiService } from './ai/ai.service'
+import { KbAskController } from './ai/ask.controller'
 import { VerificationModule } from './verification/verification.module'
 import { MentionModule } from './mentions/mention.module'
 
@@ -34,6 +35,7 @@ import { MentionModule } from './mentions/mention.module'
     LinkingController,
     RagController,
     KbAiController,
+    KbAskController,
   ],
   providers: [
     PagesService,

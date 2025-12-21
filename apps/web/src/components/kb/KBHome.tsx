@@ -1,6 +1,6 @@
 'use client'
 
-import { FileText, Clock, Star, Plus, BookOpen } from 'lucide-react'
+import { FileText, Clock, Star, Plus, BookOpen, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
@@ -46,10 +46,18 @@ export function KBHome({ workspaceId }: KBHomeProps) {
               </p>
             </div>
           </div>
-          <Button onClick={handleCreatePage} disabled={createPage.isPending}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Page
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+              <Link href={'/kb/chat' as any}>
+                <MessageCircle className="mr-2 h-4 w-4" />
+                KB Chat
+              </Link>
+            </Button>
+            <Button onClick={handleCreatePage} disabled={createPage.isPending}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Page
+            </Button>
+          </div>
         </div>
       </div>
 

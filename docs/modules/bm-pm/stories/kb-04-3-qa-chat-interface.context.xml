@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>kb-04</epicId>
+    <storyId>kb-04-3</storyId>
+    <title>Q&A Chat Interface</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-21</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/kb-04-3-qa-chat-interface.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>KB user</asA>
+    <iWant>to chat with the KB</iWant>
+    <soThat>I can ask questions naturally</soThat>
+    <tasks>
+- Add KB ask endpoint with RAG context
+- Add KB chat UI with history
+- Render citations and "Not found" fallback
+- Add API and UI tests
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Given I open KB chat, when I ask a question, AI answers using KB content.
+2. Responses include source citations with links.
+3. Follow-up questions maintain context.
+4. If no relevant content is found, the system responds with "Not found".
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/modules/bm-pm/epics/epic-kb-04-ai-native-knowledge-base.md</path>
+        <title>Epic KB-04: AI-Native Knowledge Base</title>
+        <section>Story KB-04.3: Q&A Chat Interface</section>
+        <snippet>Defines RAG-powered chat with citations and "Not found" fallback.</snippet>
+      </doc>
+      <doc>
+        <path>docs/modules/bm-pm/PRD.md</path>
+        <title>Core-PM PRD</title>
+        <section>Phase 3 - Vision Features / AI-Native KB Features</section>
+        <snippet>Specifies AI Q&amp;A over KB with citations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/modules/bm-pm/kb-specification.md</path>
+        <title>KB Specification</title>
+        <section>F8: AI-Native KB</section>
+        <snippet>Lists Q&amp;A chat as a Phase 3 capability.</snippet>
+      </doc>
+      <doc>
+        <path>docs/modules/bm-pm/architecture.md</path>
+        <title>Core-PM + Knowledge Base Architecture</title>
+        <section>Knowledge Base &amp; RAG Architecture</section>
+        <snippet>RAG pipeline provides context for question answering.</snippet>
+      </doc>
+      <doc>
+        <path>docs/modules/bm-pm/ux/screens-and-contracts.md</path>
+        <title>Core-PM Screens &amp; Data Contracts</title>
+        <section>KB-13 AI Q&amp;A Chat</section>
+        <snippet>Wireframe reference for KB chat interface.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>apps/api/src/kb/rag/rag.service.ts</path>
+        <kind>service</kind>
+        <symbol>RagService.query</symbol>
+        <lines>1-140</lines>
+        <reason>RAG context retrieval and citations for Q&amp;A.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/api/src/kb/ai/ai.service.ts</path>
+        <kind>service</kind>
+        <symbol>KbAiService.generateDraft</symbol>
+        <lines>1-120</lines>
+        <reason>Pattern for AI provider usage with workspace scoping.</reason>
+      </artifact>
+      <artifact>
+        <path>agents/platform/scribe/tools/rag_tools.py</path>
+        <kind>tool</kind>
+        <symbol>ask_kb_question</symbol>
+        <lines>120-200</lines>
+        <reason>Tool expects /api/kb/ask endpoint returning answer + sources.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/web/src/components/kb/KBHome.tsx</path>
+        <kind>component</kind>
+        <symbol>KBHome</symbol>
+        <lines>1-120</lines>
+        <reason>Entry point for KB chat navigation.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@nestjs/common" />
+        <package name="@tanstack/react-query" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Enforce workspace isolation for all KB chat queries.
+- Maintain conversation context client-side and pass to API for follow-ups.
+- Return "Not found" when no relevant sources are retrieved.
+  </constraints>
+
+  <interfaces>
+- POST /api/kb/ask (Q&amp;A endpoint for KB chat and Scribe tool)
+  </interfaces>
+
+  <tests>
+    <standards>Use NestJS unit tests for AI service logic and UI tests for citation rendering.</standards>
+    <locations>apps/api/src/**/*.spec.ts | apps/web/src/**/*.test.tsx</locations>
+    <ideas>
+- Ask endpoint returns "Not found" with empty sources when RAG yields no chunks.
+- Chat UI renders citations as links.
+- Conversation history is included in ask requests.
+    </ideas>
+  </tests>
+</story-context>

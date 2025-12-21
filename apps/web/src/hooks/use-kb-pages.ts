@@ -95,6 +95,30 @@ export interface GenerateKBSummaryInput {
   pageId: string
 }
 
+export type KBChatRole = 'user' | 'assistant'
+
+export interface KBChatMessage {
+  role: KBChatRole
+  content: string
+}
+
+export interface KBAskSource {
+  pageId: string
+  title: string
+  slug: string
+}
+
+export interface KBAskResponse {
+  answer: string
+  sources: KBAskSource[]
+  confidence: 'low' | 'medium' | 'high'
+}
+
+export interface GenerateKBAskInput {
+  question: string
+  history?: KBChatMessage[]
+}
+
 async function fetchKBPages(params: {
   workspaceId: string
   token?: string
@@ -285,6 +309,33 @@ async function generateKBSummary(params: {
   return data as KBSummaryResponse
 }
 
+async function askKBQuestion(params: {
+  input: GenerateKBAskInput
+  workspaceId: string
+  token?: string
+}): Promise<KBAskResponse> {
+  const { input, workspaceId, token } = params
+
+  const response = await fetch(`${getBaseUrl()}/api/kb/ask`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Failed to ask KB question: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as KBAskResponse
+}
+
 // ============================================
 // React Query Hooks
 // ============================================
@@ -385,6 +436,16 @@ export function useKBSummary(workspaceId: string) {
   return useMutation({
     mutationFn: (input: GenerateKBSummaryInput) =>
       generateKBSummary({ input, workspaceId, token }),
+  })
+}
+
+export function useKBAsk(workspaceId: string) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: (input: GenerateKBAskInput) =>
+      askKBQuestion({ input, workspaceId, token }),
   })
 }
 

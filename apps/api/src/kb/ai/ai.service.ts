@@ -9,6 +9,7 @@ import { AssistantClientFactory } from '../../ai-providers/assistant-client-fact
 import { PrismaService } from '../../common/services/prisma.service'
 import { RagService } from '../rag/rag.service'
 import { KB_ERROR } from '../kb.errors'
+import { KbAskDto } from './dto/kb-ask.dto'
 import { KbDraftDto } from './dto/kb-draft.dto'
 
 export type KbDraftCitation = {
@@ -26,6 +27,18 @@ export type KbDraftResult = {
 export type KbSummaryResult = {
   summary: string
   keyPoints: string[]
+}
+
+export type KbAskSource = {
+  pageId: string
+  title: string
+  slug: string
+}
+
+export type KbAskResult = {
+  answer: string
+  sources: KbAskSource[]
+  confidence: 'low' | 'medium' | 'high'
 }
 
 @Injectable()
@@ -150,6 +163,80 @@ export class KbAiService {
     return this.parseSummaryResponse(completion.content || '')
   }
 
+  async askQuestion(
+    tenantId: string,
+    workspaceId: string,
+    dto: KbAskDto,
+  ): Promise<KbAskResult> {
+    const question = dto.question.trim()
+    if (!question) {
+      throw new BadRequestException('Question is required')
+    }
+
+    const ragResult = await this.ragService.query(tenantId, workspaceId, {
+      q: question,
+      limit: 6,
+    })
+
+    const sources = this.uniqueSources(ragResult.citations)
+    if (sources.length === 0) {
+      return {
+        answer: 'Not found',
+        sources: [],
+        confidence: 'low',
+      }
+    }
+
+    let client
+    try {
+      client = await this.assistantClientFactory.createClient({ workspaceId })
+    } catch (error) {
+      this.logger.error(`AI provider unavailable for workspace ${workspaceId}: ${error}`)
+      throw new ServiceUnavailableException(KB_ERROR.AI_NO_PROVIDER)
+    }
+
+    const systemMessage = [
+      'You are Scribe, the Knowledge Base assistant for HYVVE AI Business Hub.',
+      'Answer the user question using only the provided context.',
+      'If the answer is not in the context, respond with \"Not found\".',
+      'Include citations by referencing the numbered context entries when relevant.',
+    ].join('\n')
+
+    const history = Array.isArray(dto.history)
+      ? dto.history.map((message) => ({
+          role: message.role,
+          content: message.content,
+        }))
+      : []
+
+    const userMessage = [
+      'Question:',
+      question,
+      '',
+      'Context:',
+      ragResult.context || 'No relevant KB context found.',
+    ].join('\n')
+
+    const completion = await client.chatCompletion({
+      messages: [
+        { role: 'system', content: systemMessage },
+        ...history,
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0.3,
+      maxTokens: 700,
+    })
+
+    const answer = completion.content?.trim() || 'Not found'
+    const confidence = sources.length >= 3 ? 'high' : 'medium'
+
+    return {
+      answer,
+      sources,
+      confidence,
+    }
+  }
+
   private parseSummaryResponse(raw: string): KbSummaryResult {
     const trimmed = raw.trim()
     if (!trimmed) {
@@ -196,5 +283,19 @@ export class KbAiService {
       summary,
       keyPoints: keyPoints.slice(0, 6),
     }
+  }
+
+  private uniqueSources(citations: KbDraftCitation[]): KbAskSource[] {
+    const map = new Map<string, KbAskSource>()
+    for (const citation of citations) {
+      if (!map.has(citation.pageId)) {
+        map.set(citation.pageId, {
+          pageId: citation.pageId,
+          title: citation.title,
+          slug: citation.slug,
+        })
+      }
+    }
+    return Array.from(map.values())
   }
 }

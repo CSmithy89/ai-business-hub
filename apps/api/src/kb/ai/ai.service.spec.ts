@@ -106,4 +106,68 @@ describe('KbAiService', () => {
       expect.objectContaining({ where: { id: 'page-1', tenantId: 'tenant-1', workspaceId: 'workspace-1', deletedAt: null } }),
     )
   })
+
+  it('answers a question with sources', async () => {
+    mockRagService.query.mockResolvedValue({
+      context: 'Context snippet',
+      citations: [
+        { pageId: 'page-1', title: 'Auth Guide', slug: 'auth-guide', chunkIndex: 0 },
+        { pageId: 'page-2', title: 'Setup', slug: 'setup', chunkIndex: 1 },
+      ],
+    })
+    mockClient.chatCompletion.mockResolvedValue({
+      id: 'resp-3',
+      content: 'Use JWT for auth. [1]',
+      role: 'assistant',
+      model: 'gpt-4o',
+      provider: 'openai',
+    })
+    mockAssistantClientFactory.createClient.mockResolvedValue(mockClient)
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        KbAiService,
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: RagService, useValue: mockRagService },
+        { provide: AssistantClientFactory, useValue: mockAssistantClientFactory },
+      ],
+    }).compile()
+
+    const service = moduleRef.get(KbAiService)
+
+    const result = await service.askQuestion('tenant-1', 'workspace-1', {
+      question: 'How do we authenticate?',
+      history: [{ role: 'user', content: 'Previous question' }],
+    })
+
+    expect(result.answer).toContain('JWT')
+    expect(result.sources).toHaveLength(2)
+    expect(result.confidence).toBe('medium')
+  })
+
+  it('returns Not found when no sources', async () => {
+    mockRagService.query.mockResolvedValue({
+      context: '',
+      citations: [],
+    })
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        KbAiService,
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: RagService, useValue: mockRagService },
+        { provide: AssistantClientFactory, useValue: mockAssistantClientFactory },
+      ],
+    }).compile()
+
+    const service = moduleRef.get(KbAiService)
+
+    const result = await service.askQuestion('tenant-1', 'workspace-1', {
+      question: 'Unknown topic?',
+    })
+
+    expect(result.answer).toBe('Not found')
+    expect(result.sources).toHaveLength(0)
+    expect(result.confidence).toBe('low')
+  })
 })
