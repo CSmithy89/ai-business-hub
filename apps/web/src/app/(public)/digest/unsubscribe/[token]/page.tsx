@@ -65,7 +65,7 @@ export default function DigestUnsubscribePage() {
             <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h1 className="text-2xl font-semibold text-gray-900 mb-2">Unsubscribed</h1>
             <p className="text-gray-600 mb-6">
-              You've been unsubscribed from digest emails.
+              You&apos;ve been unsubscribed from digest emails.
             </p>
             <p className="text-gray-600 mb-6">
               You can re-enable digest notifications anytime in your settings.

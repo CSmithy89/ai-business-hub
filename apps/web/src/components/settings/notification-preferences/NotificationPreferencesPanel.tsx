@@ -175,7 +175,7 @@ export function NotificationPreferencesPanel() {
                 Task Assigned
               </Label>
               <p className="text-sm text-muted-foreground">
-                When you're assigned to a task
+                When you&apos;re assigned to a task
               </p>
             </div>
             <div className="flex items-center gap-4">
