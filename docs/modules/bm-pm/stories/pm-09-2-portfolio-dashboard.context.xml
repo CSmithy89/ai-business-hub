@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-09-2-portfolio-dashboard</story-id>
+    <generated>2025-12-22T00:00:00Z</generated>
+    <epic>PM-09 - Advanced Views</epic>
+    <description>
+      Executive portfolio dashboard with aggregate project health and filters.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/PmProjectsContent.tsx">
+      <description>
+        Existing projects list UI to reuse card styling and filters.
+      </description>
+    </file>
+    <file path="apps/web/src/hooks/use-pm-projects.ts">
+      <description>
+        PM projects data access patterns and shared response typing.
+      </description>
+    </file>
+    <file path="apps/api/src/pm/projects/projects.service.ts">
+      <description>
+        Project list data source and selection fields.
+      </description>
+    </file>
+    <file path="apps/api/src/pm/projects/projects.controller.ts">
+      <description>
+        Existing PM project endpoints and guard setup.
+      </description>
+    </file>
+    <file path="packages/db/prisma/schema.prisma">
+      <description>
+        Project model fields including healthScore, startDate, targetDate, and team relations.
+      </description>
+    </file>
+  </existing-code>
+</story-context>

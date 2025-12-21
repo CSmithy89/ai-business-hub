@@ -13,6 +13,7 @@ import { AgentsModule } from './agents/agents.module'
 import { SavedViewsModule } from './saved-views/saved-views.module'
 import { PresenceModule } from './presence/presence.module'
 import { NotificationsModule } from './notifications/notifications.module'
+import { PortfolioModule } from './portfolio/portfolio.module'
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { NotificationsModule } from './notifications/notifications.module'
     SavedViewsModule,
     PresenceModule,
     NotificationsModule,
+    PortfolioModule,
   ],
 })
 export class PmModule {}
