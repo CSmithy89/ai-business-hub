@@ -22,6 +22,10 @@ export class PresenceService {
   private readonly logger = new Logger(PresenceService.name);
   private redis: RedisClient;
 
+  // Presence TTL configuration
+  private readonly PRESENCE_TTL_SECONDS = 300; // 5 minutes
+  private readonly PRESENCE_TTL_MS = this.PRESENCE_TTL_SECONDS * 1000;
+
   constructor(
     private readonly redisProvider: RedisProvider,
     private readonly prisma: PrismaService,
@@ -58,8 +62,8 @@ export class PresenceService {
         timestamp: new Date().toISOString(),
       });
 
-      // Set 5-minute TTL on location key (auto-expire if user disconnects)
-      await this.redis.expire(locationKey, 300);
+      // Set TTL on location key (auto-expire if user disconnects)
+      await this.redis.expire(locationKey, this.PRESENCE_TTL_SECONDS);
 
       this.logger.debug(
         `Updated presence: user=${userId} project=${projectId} page=${location.page}`,
@@ -84,11 +88,11 @@ export class PresenceService {
   async getProjectPresence(projectId: string): Promise<PresenceUser[]> {
     try {
       const now = Date.now();
-      const fiveMinutesAgo = now - 300000; // 5 minutes in milliseconds
+      const cutoffTime = now - this.PRESENCE_TTL_MS;
       const presenceKey = `presence:project:${projectId}`;
 
-      // Get active users from sorted set (last 5 minutes)
-      const userIds = await this.redis.zrangebyscore(presenceKey, fiveMinutesAgo, now);
+      // Get active users from sorted set (within TTL window)
+      const userIds = await this.redis.zrangebyscore(presenceKey, cutoffTime, now);
 
       if (!userIds || userIds.length === 0) {
         return [];
@@ -236,11 +240,11 @@ export class PresenceService {
   async cleanupStalePresence(projectId: string): Promise<void> {
     try {
       const now = Date.now();
-      const fiveMinutesAgo = now - 300000;
+      const cutoffTime = now - this.PRESENCE_TTL_MS;
       const presenceKey = `presence:project:${projectId}`;
 
-      // Remove entries older than 5 minutes
-      const removed = await this.redis.zremrangebyscore(presenceKey, 0, fiveMinutesAgo);
+      // Remove entries older than TTL
+      const removed = await this.redis.zremrangebyscore(presenceKey, 0, cutoffTime);
 
       if (removed > 0) {
         this.logger.debug(`Cleaned up ${removed} stale presence entries for project ${projectId}`);
