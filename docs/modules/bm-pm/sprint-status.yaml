@@ -210,7 +210,7 @@ development_status:
   pm-07-5-bridge-agent-foundation: done
   pm-07-6-jira-import: done
   pm-07-7-asana-trello-import: done
-  pm-07-retrospective: optional
+  pm-07-retrospective: completed
 
   # ===========================================
   # PM-08: Prism Agent & Analytics
@@ -245,8 +245,7 @@ development_status:
   # ===========================================
 
   # ===========================================
-  #
-  
+  # KB-04: AI-Native Knowledge Base
   # Phase 3 | 6 stories | AI drafts, Q&A, gap detection
   # FRs: KB-F8
   # ===========================================
