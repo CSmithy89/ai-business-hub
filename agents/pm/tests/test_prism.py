@@ -3,8 +3,7 @@ Unit tests for Prism agent
 """
 
 import pytest
-from unittest.mock import Mock, patch
-from datetime import datetime, timedelta
+from unittest.mock import Mock
 from agno.memory import Memory
 
 from agents.pm.prism import create_prism_agent, PRISM_INSTRUCTIONS
@@ -50,7 +49,10 @@ class TestPrismAgent:
 
         # Check for key tools (names may vary based on implementation)
         # The agent should have tools for forecasting, velocity, and anomalies
-        assert len(prism_agent.tools) >= 3  # Minimum expected tools
+        assert len(tool_names) >= 3  # Minimum expected tools
+
+        # Verify tool_names contains strings
+        assert all(isinstance(name, str) for name in tool_names)
 
     def test_agent_uses_correct_model(self):
         """Test that agent uses the specified model"""

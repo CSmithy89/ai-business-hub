@@ -41,8 +41,8 @@ The implementation includes the Prism agent within the Core-PM agent team, a new
 
 This epic aligns with the Core-PM architecture as defined in `docs/modules/bm-pm/architecture.md`.
 
-*   **Agent Layer:** Adds **Prism** to the Core-PM Agent Team (`agents/core-pm/prism.py`), fitting into the existing `Team` structure alongside Navi, Sage, and others.
-*   **Service Layer:** Introduces `AnalyticsService` (`apps/api/src/core-pm/pm/analytics.service.ts`) to handle heavy aggregation queries and interface with the Prism agent.
+*   **Agent Layer:** Adds **Prism** to the Core-PM Agent Team (`agents/pm/prism.py`), fitting into the existing `Team` structure alongside Navi, Sage, and others.
+*   **Service Layer:** Introduces `AnalyticsService` (`apps/api/src/pm/agents/analytics.service.ts`) to handle heavy aggregation queries and interface with the Prism agent.
 *   **Data Layer:** Utilizes existing `Task`, `Phase`, and `Project` models for raw data. Introduces `PmRiskEntry` (or generic `RiskEntry` if shared) and potentially materialized views (`mv_project_metrics`) as suggested in the architecture for performance.
 *   **API Layer:** Exposes endpoints under `/api/pm/analytics/*` and `/api/pm/reports/*`.
 *   **Frontend:** Extends the PM Dashboard and adds dedicated Analytics views using the existing chart component library (Recharts/Visx).
@@ -53,10 +53,10 @@ This epic aligns with the Core-PM architecture as defined in `docs/modules/bm-pm
 
 | Service/Module | Responsibility | Inputs | Outputs | Owner |
 | :--- | :--- | :--- | :--- | :--- |
-| **Prism Agent** (`agents/core-pm/prism.py`) | Specialized AI agent for predictive analytics. forecasts completion dates, analyzes trends, and identifies risks based on historical data. | Project History (Tasks, Phases, Velocity), Team Capacity | forecasts, Risk Alerts, Optimization Suggestions | Core-PM Team |
-| **Analytics Service** (`apps/api/src/core-pm/pm/analytics.service.ts`) | Backend service to aggregate project data, manage materialized views, and interface with the Prism agent. Serves data to the frontend. | Raw DB Data (Tasks, TimeLogs), API Requests | Aggregated Metrics, JSON Responses | Core-PM Team |
+| **Prism Agent** (`agents/pm/prism.py`) | Specialized AI agent for predictive analytics. forecasts completion dates, analyzes trends, and identifies risks based on historical data. | Project History (Tasks, Phases, Velocity), Team Capacity | forecasts, Risk Alerts, Optimization Suggestions | Core-PM Team |
+| **Analytics Service** (`apps/api/src/pm/agents/analytics.service.ts`) | Backend service to aggregate project data, manage materialized views, and interface with the Prism agent. Serves data to the frontend. | Raw DB Data (Tasks, TimeLogs), API Requests | Aggregated Metrics, JSON Responses | Core-PM Team |
 | **Pulse Agent** (Enhancement) | Existing risk agent, enhanced to consume Prism's statistical predictions for broader risk monitoring. | Prism Forecasts, Real-time Task Data | Risk Entries, Alerts | Core-PM Team |
-| **Analytics Controller** (`apps/api/src/core-pm/pm/analytics.controller.ts`) | REST API endpoints for the Analytics dashboard and reports. | HTTP Requests | JSON Responses | Core-PM Team |
+| **Analytics Controller** (`apps/api/src/pm/agents/analytics.controller.ts`) | REST API endpoints for the Analytics dashboard and reports. | HTTP Requests | JSON Responses | Core-PM Team |
 
 ### Data Models and Contracts
 
@@ -209,7 +209,7 @@ sequenceDiagram
 
 ## Dependencies and Integrations
 
-*   **Agno (Phidata)**: Core agent framework for Prism (`agents/core-pm`).
+*   **Agno (Phidata)**: Core agent framework for Prism (`agents/pm`).
 *   **Python Libraries**:
     *   `numpy`, `scikit-learn` (for statistical forecasting and anomaly detection).
 *   **NestJS**: Backend framework (`apps/api`).

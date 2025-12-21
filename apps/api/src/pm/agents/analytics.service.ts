@@ -34,6 +34,29 @@ import {
   ScopeSnapshotDto,
 } from './dto/analytics-dashboard.dto';
 
+// Analytics thresholds and constants
+const ANALYTICS_CONSTANTS = {
+  // Default team size assumption (should be configurable per project)
+  DEFAULT_TEAM_SIZE: 5,
+  // Velocity trend threshold (points per week change)
+  VELOCITY_TREND_THRESHOLD: 0.1,
+  // Scope creep threshold (percentage increase)
+  SCOPE_CREEP_THRESHOLD: 0.10,
+  // Completion deviation threshold (percentage)
+  COMPLETION_DEVIATION_THRESHOLD: 0.05,
+  // Confidence thresholds
+  CONFIDENCE_HIGH_CV_THRESHOLD: 0.2,
+  CONFIDENCE_MED_CV_THRESHOLD: 0.3,
+  // Minimum data points for reliable analysis
+  MIN_DATA_POINTS_FORECAST: 3,
+  MIN_DATA_POINTS_CONFIDENCE: 6,
+  MIN_DATA_POINTS_TREND: 4,
+  // Monte Carlo simulation runs
+  MONTE_CARLO_SIMULATIONS: 1000,
+  // Maximum date range (days)
+  MAX_DATE_RANGE_DAYS: 365,
+} as const;
+
 /**
  * Analytics Service
  *
@@ -47,6 +70,28 @@ export class AnalyticsService {
   constructor(
     private readonly prisma: PrismaService,
   ) {}
+
+  /**
+   * Get team size for a project
+   *
+   * Uses ProjectTeam → TeamMember relation to count team members.
+   * Falls back to default if no team is assigned.
+   */
+  private async getTeamSize(projectId: string, _workspaceId: string): Promise<number> {
+    // Try to count project team members via ProjectTeam → TeamMember
+    const projectTeam = await this.prisma.projectTeam.findUnique({
+      where: { projectId },
+      include: {
+        _count: {
+          select: { members: true },
+        },
+      },
+    });
+
+    // Return actual count or default
+    const memberCount = projectTeam?._count?.members ?? 0;
+    return memberCount > 0 ? memberCount : ANALYTICS_CONSTANTS.DEFAULT_TEAM_SIZE;
+  }
 
   /**
    * Get project completion forecast from Prism agent
@@ -70,11 +115,11 @@ export class AnalyticsService {
       }
 
       // Check minimum data threshold
-      if (history.length < 3) {
+      if (history.length < ANALYTICS_CONSTANTS.MIN_DATA_POINTS_FORECAST) {
         this.logger.warn(
           `Insufficient data for forecast: project=${projectId}, dataPoints=${history.length}`,
         );
-        return this.fallbackLinearProjection(history, remainingPoints, scenario);
+        return this.fallbackLinearProjection(projectId, workspaceId, history, remainingPoints, scenario);
       }
 
       // Extract velocity values for Monte Carlo simulation
@@ -83,7 +128,8 @@ export class AnalyticsService {
       // Adjust velocity for team size changes
       if (scenario?.teamSizeChange) {
         const avgVelocity = velocityValues.reduce((sum, v) => sum + v, 0) / velocityValues.length;
-        const velocityPerPerson = avgVelocity / Math.max(1, 5); // assume 5-person team
+        const teamSize = await this.getTeamSize(projectId, workspaceId);
+        const velocityPerPerson = avgVelocity / Math.max(1, teamSize);
         const velocityAdjustment = velocityPerPerson * scenario.teamSizeChange;
         velocityValues = velocityValues.map(v => Math.max(1, v + velocityAdjustment));
       }
@@ -94,10 +140,18 @@ export class AnalyticsService {
       }
 
       // Run Monte Carlo simulation
-      const monteCarlo = this.runMonteCarloSimulation(velocityValues, remainingPoints, 1000);
+      const monteCarlo = this.runMonteCarloSimulation(
+        velocityValues,
+        remainingPoints,
+        ANALYTICS_CONSTANTS.MONTE_CARLO_SIMULATIONS,
+      );
 
-      // Calculate confidence level
-      const confidence = this.calculateConfidence(history.length, monteCarlo.velocityStd * monteCarlo.velocityStd);
+      // Calculate confidence level (pass mean for proper CV calculation)
+      const confidence = this.calculateConfidence(
+        history.length,
+        monteCarlo.velocityStd * monteCarlo.velocityStd,
+        monteCarlo.velocityMean,
+      );
 
       // Analyze prediction factors
       const factors = this.analyzePredictionFactors(history, monteCarlo.trendSlope, confidence, scenario);
@@ -139,7 +193,7 @@ export class AnalyticsService {
       // Graceful degradation to linear projection
       const history = await this.getVelocityHistory(projectId, workspaceId, 12);
       const remainingPoints = await this.getRemainingPoints(projectId, workspaceId);
-      return this.fallbackLinearProjection(history, remainingPoints, scenario);
+      return this.fallbackLinearProjection(projectId, workspaceId, history, remainingPoints, scenario);
     }
   }
 
@@ -189,10 +243,11 @@ export class AnalyticsService {
       if (changePercent > 0.15) trend = VelocityTrend.UP;
       else if (changePercent < -0.15) trend = VelocityTrend.DOWN;
 
-      // Calculate confidence based on data points and variance
+      // Calculate confidence based on data points, variance, and mean
       const confidence = this.calculateConfidence(
         history.length,
         this.calculateVariance(history.map(h => h.completedPoints)),
+        velocity, // pass mean for proper CV calculation
       );
 
       return {
@@ -216,6 +271,9 @@ export class AnalyticsService {
 
   /**
    * Get historical velocity data for a project
+   *
+   * Optimized to fetch all tasks in a single query and group in memory
+   * to avoid N+1 query pattern.
    */
   async getVelocityHistory(
     projectId: string,
@@ -223,8 +281,31 @@ export class AnalyticsService {
     periods: number = 12,
   ): Promise<VelocityHistoryDto[]> {
     try {
-      // Calculate period boundaries (weekly periods going back)
       const now = new Date();
+
+      // Calculate the full date range
+      const rangeEnd = now;
+      const rangeStart = new Date(now);
+      rangeStart.setDate(rangeStart.getDate() - (periods * 7));
+
+      // Fetch all completed tasks in the entire range in a single query
+      const allTasks = await this.prisma.task.findMany({
+        where: {
+          projectId,
+          workspaceId,
+          status: 'DONE',
+          completedAt: {
+            gte: rangeStart,
+            lt: rangeEnd,
+          },
+        },
+        select: {
+          storyPoints: true,
+          completedAt: true,
+        },
+      });
+
+      // Group tasks by week period in memory
       const history: VelocityHistoryDto[] = [];
 
       for (let i = 0; i < periods; i++) {
@@ -233,23 +314,13 @@ export class AnalyticsService {
         const periodStart = new Date(periodEnd);
         periodStart.setDate(periodStart.getDate() - 7);
 
-        // Get completed tasks in this period
-        const tasks = await this.prisma.task.findMany({
-          where: {
-            projectId,
-            workspaceId,
-            status: 'DONE',
-            completedAt: {
-              gte: periodStart,
-              lt: periodEnd,
-            },
-          },
-          select: {
-            storyPoints: true,
-          },
+        // Filter tasks for this period in memory
+        const periodTasks = allTasks.filter(task => {
+          const completedAt = new Date(task.completedAt!);
+          return completedAt >= periodStart && completedAt < periodEnd;
         });
 
-        const completedPoints = tasks.reduce(
+        const completedPoints = periodTasks.reduce(
           (sum, task) => sum + (task.storyPoints || 0),
           0,
         );
@@ -261,8 +332,8 @@ export class AnalyticsService {
         history.push({
           period,
           completedPoints,
-          totalTasks: tasks.length,
-          completedTasks: tasks.length,
+          totalTasks: periodTasks.length,
+          completedTasks: periodTasks.length,
           startDate: periodStart.toISOString().split('T')[0],
           endDate: periodEnd.toISOString().split('T')[0],
         });
@@ -660,16 +731,16 @@ export class AnalyticsService {
   /**
    * Fallback linear projection when Prism is unavailable
    */
-  private fallbackLinearProjection(
+  private async fallbackLinearProjection(
+    projectId: string,
+    workspaceId: string,
     history: VelocityHistoryDto[],
     remainingPoints: number,
     scenario?: ForecastScenarioDto,
-  ): PrismForecastDto {
-    // Apply scenario adjustments
-    let adjustedPoints = remainingPoints;
-    if (scenario?.addedScope) {
-      adjustedPoints += scenario.addedScope;
-    }
+  ): Promise<PrismForecastDto> {
+    // Note: remainingPoints already has scenario.addedScope applied in the caller
+    // Do NOT add it again here to avoid double counting
+    const adjustedPoints = remainingPoints;
 
     // Simple linear calculation
     const avgVelocity = history.length > 0
@@ -679,7 +750,8 @@ export class AnalyticsService {
     // Adjust velocity for team size changes
     let adjustedVelocity = avgVelocity;
     if (scenario?.teamSizeChange) {
-      const velocityPerPerson = avgVelocity / Math.max(1, 5); // assume 5-person team
+      const teamSize = await this.getTeamSize(projectId, workspaceId);
+      const velocityPerPerson = avgVelocity / Math.max(1, teamSize);
       adjustedVelocity += velocityPerPerson * scenario.teamSizeChange;
     }
 
@@ -746,17 +818,31 @@ export class AnalyticsService {
 
   /**
    * Calculate confidence level based on data points and variance
+   *
+   * Uses Coefficient of Variation (CV = stdDev / mean) as a measure of
+   * data consistency. Lower CV = more consistent data = higher confidence.
+   *
+   * @param dataPoints - Number of historical data points
+   * @param variance - Variance of the data
+   * @param mean - Mean of the data (for CV calculation)
    */
-  private calculateConfidence(dataPoints: number, variance: number): ConfidenceLevel {
-    if (dataPoints < 3) return ConfidenceLevel.LOW;
+  private calculateConfidence(dataPoints: number, variance: number, mean?: number): ConfidenceLevel {
+    if (dataPoints < ANALYTICS_CONSTANTS.MIN_DATA_POINTS_FORECAST) return ConfidenceLevel.LOW;
 
-    const coefficientOfVariation = variance > 0 ? Math.sqrt(variance) / dataPoints : 0;
+    // Coefficient of Variation = stdDev / mean
+    // This normalizes variance relative to the mean, giving a percentage measure of variability
+    const stdDev = Math.sqrt(variance);
+    const coefficientOfVariation = mean && mean > 0 ? stdDev / mean : 0;
 
-    if (dataPoints < 6) {
-      return coefficientOfVariation < 0.3 ? ConfidenceLevel.MED : ConfidenceLevel.LOW;
+    if (dataPoints < ANALYTICS_CONSTANTS.MIN_DATA_POINTS_CONFIDENCE) {
+      return coefficientOfVariation < ANALYTICS_CONSTANTS.CONFIDENCE_MED_CV_THRESHOLD
+        ? ConfidenceLevel.MED
+        : ConfidenceLevel.LOW;
     }
 
-    return coefficientOfVariation < 0.2 ? ConfidenceLevel.HIGH : ConfidenceLevel.MED;
+    return coefficientOfVariation < ANALYTICS_CONSTANTS.CONFIDENCE_HIGH_CV_THRESHOLD
+      ? ConfidenceLevel.HIGH
+      : ConfidenceLevel.MED;
   }
 
   /**
@@ -1629,6 +1715,8 @@ export class AnalyticsService {
    * Calculates total and completed scope at different time periods
    * based on task creation and completion timestamps.
    *
+   * Optimized to fetch all tasks in a single query and compute snapshots in memory.
+   *
    * @param projectId - Project ID
    * @param workspaceId - Workspace ID
    * @param dateRange - Date range for snapshots
@@ -1645,35 +1733,41 @@ export class AnalyticsService {
         (dateRange.end.getTime() - dateRange.start.getTime()) / (7 * 24 * 60 * 60 * 1000),
       );
 
+      // Fetch all tasks created before the latest snapshot date in a single query
+      const allTasks = await this.prisma.task.findMany({
+        where: {
+          projectId,
+          workspaceId,
+          createdAt: {
+            lte: dateRange.end,
+          },
+        },
+        select: {
+          storyPoints: true,
+          createdAt: true,
+          completedAt: true,
+        },
+      });
+
       const snapshots: ScopeSnapshotDto[] = [];
 
       for (let i = 0; i < periods; i++) {
         const snapshotDate = new Date(dateRange.end);
         snapshotDate.setDate(snapshotDate.getDate() - (i * 7));
 
-        // Get all tasks created before this snapshot date
-        const allTasks = await this.prisma.task.findMany({
-          where: {
-            projectId,
-            workspaceId,
-            createdAt: {
-              lte: snapshotDate,
-            },
-          },
-          select: {
-            storyPoints: true,
-            completedAt: true,
-          },
-        });
+        // Filter tasks that existed at this snapshot date (created before snapshot)
+        const tasksAtSnapshot = allTasks.filter(
+          task => new Date(task.createdAt) <= snapshotDate
+        );
 
         // Calculate total scope
-        const totalPoints = allTasks.reduce(
+        const totalPoints = tasksAtSnapshot.reduce(
           (sum, task) => sum + (task.storyPoints || 0),
           0,
         );
 
         // Calculate completed scope (tasks completed before snapshot date)
-        const completedPoints = allTasks
+        const completedPoints = tasksAtSnapshot
           .filter(task => task.completedAt && new Date(task.completedAt) <= snapshotDate)
           .reduce((sum, task) => sum + (task.storyPoints || 0), 0);
 
@@ -1934,9 +2028,9 @@ export class AnalyticsService {
 
       // Calculate team weeks based on scenario
       const weeksToCompletion = deltaDays / 7;
-      const teamSize = 5; // Default team size assumption
+      const teamSize = await this.getTeamSize(projectId, workspaceId);
       const adjustedTeamSize = teamSize + (scenario.teamSizeChange || 0);
-      const teamWeeks = weeksToCompletion * adjustedTeamSize;
+      const teamWeeks = weeksToCompletion * Math.max(1, adjustedTeamSize);
 
       // Calculate velocity change
       let velocityChange = 0;
@@ -2301,10 +2395,11 @@ export class AnalyticsService {
       },
     });
 
-    // Get team size (stub - would need proper implementation)
-    const teamSize = 5; // Default assumption
+    // Get team size from project members
+    const teamSize = await this.getTeamSize(projectId, workspaceId);
 
-    return activeTasks / teamSize;
+    // Prevent division by zero
+    return teamSize > 0 ? activeTasks / teamSize : 0;
   }
 
   /**

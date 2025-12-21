@@ -2329,5 +2329,6 @@ model PmRiskEntry {
   @@index([status])
   @@index([category])
   @@index([detectedAt])
+  @@index([projectId, category, status])  // Composite index for risk queries
   @@map("pm_risk_entries")
 }

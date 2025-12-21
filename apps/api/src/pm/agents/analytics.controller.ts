@@ -12,9 +12,11 @@ import {
   Res,
   Header,
   StreamableFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -41,18 +43,19 @@ import { DashboardDataDto } from './dto/analytics-dashboard.dto';
 /**
  * Analytics Controller
  *
- * TODO: Add rate limiting with @Throttle() decorator to prevent abuse.
- * See: https://docs.nestjs.com/security/rate-limiting
- * Recommended: 10 requests per minute for analytics endpoints
+ * Provides predictive analytics, forecasting, and risk assessment endpoints.
+ * Rate limiting applied to prevent abuse of computationally expensive operations.
  */
 @ApiTags('PM Analytics')
 @Controller('pm/projects/:projectId/analytics')
-@UseGuards(AuthGuard, TenantGuard, RolesGuard)
+@UseGuards(ThrottlerGuard, AuthGuard, TenantGuard, RolesGuard)
+@Throttle({ long: { limit: 60, ttl: 60000 } }) // Default: 60 requests per minute
 @ApiBearerAuth()
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Post('forecast')
+  @Throttle({ medium: { limit: 10, ttl: 60000 } }) // 10 requests per minute - Monte Carlo is expensive
   @Roles('owner', 'admin', 'member')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -83,15 +86,29 @@ export class AnalyticsController {
     summary: 'Get current velocity',
     description: 'Calculate current team velocity with trend analysis',
   })
+  @ApiQuery({
+    name: 'window',
+    required: false,
+    enum: ['1w', '2w', '4w', 'sprint'],
+    description: 'Time window for velocity calculation (1w, 2w, 4w, or sprint)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Velocity calculated successfully',
   })
+  @ApiResponse({ status: 400, description: 'Bad Request - invalid window parameter' })
   async getVelocity(
     @Param('projectId') projectId: string,
     @CurrentWorkspace() workspaceId: string,
     @Query('window') window: string = '4w',
   ): Promise<VelocityMetadataDto> {
+    // Validate window parameter
+    const validWindows = ['1w', '2w', '4w', 'sprint'];
+    if (!validWindows.includes(window)) {
+      throw new BadRequestException(
+        `Invalid window parameter. Valid values: ${validWindows.join(', ')}`,
+      );
+    }
     return this.analyticsService.getVelocity(projectId, workspaceId, window);
   }
 
@@ -279,18 +296,18 @@ export class AnalyticsController {
 
     // Validate date range
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      throw new Error('Invalid date format. Use ISO 8601 format (YYYY-MM-DD).');
+      throw new BadRequestException('Invalid date format. Use ISO 8601 format (YYYY-MM-DD).');
     }
 
     if (start >= end) {
-      throw new Error('Start date must be before end date.');
+      throw new BadRequestException('Start date must be before end date.');
     }
 
     // Enforce max 1 year range (prevent DoS)
     const maxRangeDays = 365;
     const rangeDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
     if (rangeDays > maxRangeDays) {
-      throw new Error(`Date range cannot exceed ${maxRangeDays} days.`);
+      throw new BadRequestException(`Date range cannot exceed ${maxRangeDays} days.`);
     }
 
     return this.analyticsService.getDashboardData(projectId, workspaceId, { start, end });
@@ -301,6 +318,7 @@ export class AnalyticsController {
   // ============================================
 
   @Post('scenario-forecast')
+  @Throttle({ medium: { limit: 10, ttl: 60000 } }) // 10 requests per minute - Monte Carlo is expensive
   @Roles('owner', 'admin', 'member')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -484,7 +502,7 @@ export class AnalyticsController {
   }
 
   /**
-   * Helper to parse date range from query params
+   * Helper to parse date range from query params with validation
    */
   private parseDateRange(
     startDate?: string,
@@ -496,6 +514,15 @@ export class AnalyticsController {
     const start = startDate
       ? new Date(startDate)
       : new Date(end.getTime() - 28 * 24 * 60 * 60 * 1000);
+
+    // Validate parsed dates
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new BadRequestException('Invalid date format. Use ISO 8601 format (YYYY-MM-DD).');
+    }
+
+    if (start >= end) {
+      throw new BadRequestException('Start date must be before end date.');
+    }
 
     return { start, end };
   }

@@ -7,12 +7,10 @@ Tools for completion forecasting, velocity calculation, and anomaly detection.
 
 import logging
 from typing import Dict, List, Any, Optional
-from datetime import datetime, timedelta
-import statistics
-import httpx
+
 from agno.tools import tool
 
-from .common import API_BASE_URL, get_auth_headers, api_request
+from .common import api_request
 
 logger = logging.getLogger(__name__)
 
