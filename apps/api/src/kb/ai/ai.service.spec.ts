@@ -170,4 +170,37 @@ describe('KbAiService', () => {
     expect(result.sources).toHaveLength(0)
     expect(result.confidence).toBe('low')
   })
+
+  it('generates a draft from task content', async () => {
+    mockClient.chatCompletion.mockResolvedValue({
+      id: 'resp-4',
+      content: '# Task Draft\n\nSummary',
+      role: 'assistant',
+      model: 'gpt-4o',
+      provider: 'openai',
+    })
+    mockAssistantClientFactory.createClient.mockResolvedValue(mockClient)
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        KbAiService,
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: RagService, useValue: mockRagService },
+        { provide: AssistantClientFactory, useValue: mockAssistantClientFactory },
+      ],
+    }).compile()
+
+    const service = moduleRef.get(KbAiService)
+
+    const result = await service.generateDraftFromTask('tenant-1', 'workspace-1', {
+      title: 'Ship knowledge extraction',
+      description: 'Captured implementation details and key decisions.',
+      comments: ['Great work on the draft', 'Remember to add follow-ups'],
+    })
+
+    expect(result.content).toContain('Task Draft')
+    expect(mockAssistantClientFactory.createClient).toHaveBeenCalledWith({
+      workspaceId: 'workspace-1',
+    })
+  })
 })

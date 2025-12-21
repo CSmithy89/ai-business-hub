@@ -61,6 +61,13 @@ export const PLATFORM_AGENTS: Record<string, AgentConfig> = {
     icon: '📊',
     description: 'Analyzes data and provides business intelligence',
   },
+  scribe: {
+    name: 'Scribe',
+    role: 'Knowledge Base',
+    color: '#3B82F6',
+    icon: '📝',
+    description: 'Captures and curates knowledge base documentation',
+  },
 };
 
 /**
@@ -146,6 +153,7 @@ export const AGENT_COLOR_CSS_VARS = `
   --agent-sage: #2ECC71;
   --agent-nova: #FF6B9D;
   --agent-echo: #4B7BEC;
+  --agent-scribe: #3B82F6;
   --agent-vera: #FF6B6B;
   --agent-marco: #4B7BEC;
   --agent-cipher: #20B2AA;

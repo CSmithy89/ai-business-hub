@@ -41,6 +41,12 @@ export type KbAskResult = {
   confidence: 'low' | 'medium' | 'high'
 }
 
+export type KbTaskDraftInput = {
+  title: string
+  description?: string | null
+  comments?: string[]
+}
+
 @Injectable()
 export class KbAiService {
   private readonly logger = new Logger(KbAiService.name)
@@ -161,6 +167,64 @@ export class KbAiService {
     })
 
     return this.parseSummaryResponse(completion.content || '')
+  }
+
+  async generateDraftFromTask(
+    _tenantId: string,
+    workspaceId: string,
+    input: KbTaskDraftInput,
+  ): Promise<KbDraftResult> {
+    const title = input.title?.trim()
+    if (!title) {
+      throw new BadRequestException('Task title is required')
+    }
+
+    const description = input.description?.trim() ?? ''
+    const comments = Array.isArray(input.comments)
+      ? input.comments.map((comment) => comment.trim()).filter(Boolean)
+      : []
+
+    if (!description && comments.length === 0) {
+      throw new BadRequestException('Task content is empty')
+    }
+
+    let client
+    try {
+      client = await this.assistantClientFactory.createClient({ workspaceId })
+    } catch (error) {
+      this.logger.error(`AI provider unavailable for workspace ${workspaceId}: ${error}`)
+      throw new ServiceUnavailableException(KB_ERROR.AI_NO_PROVIDER)
+    }
+
+    const systemMessage = [
+      'You are Scribe, the Knowledge Base assistant for HYVVE AI Business Hub.',
+      'Create a KB page draft from the completed task details.',
+      'Use clear headings, concise paragraphs, and bullet lists.',
+      'Include sections for Summary, Context, Key Decisions, and Follow-ups.',
+      'If details are missing, add TODO placeholders instead of guessing.',
+      'Return only the draft content in Markdown.',
+    ].join('\n')
+
+    const userMessage = this.buildTaskContext(title, description, comments)
+
+    const completion = await client.chatCompletion({
+      messages: [
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0.3,
+      maxTokens: 900,
+    })
+
+    const content = completion.content?.trim()
+    if (!content) {
+      throw new ServiceUnavailableException('AI draft generation failed')
+    }
+
+    return {
+      content,
+      citations: [],
+    }
   }
 
   async askQuestion(
@@ -297,5 +361,32 @@ export class KbAiService {
       }
     }
     return Array.from(map.values())
+  }
+
+  private buildTaskContext(title: string, description: string, comments: string[]): string {
+    const normalizedDescription = this.normalizeText(description)
+    const normalizedComments = comments.map((comment) => this.normalizeText(comment)).filter(Boolean)
+    const limitedComments = normalizedComments.slice(0, 8).map((comment) => `- ${this.truncateText(comment, 400)}`)
+
+    const sections = [
+      `Task Title: ${title}`,
+      normalizedDescription
+        ? `Task Description:\n${normalizedDescription}`
+        : 'Task Description: (none)',
+      normalizedComments.length > 0
+        ? `Task Comments:\n${limitedComments.join('\n')}`
+        : 'Task Comments: (none)',
+    ]
+
+    return this.truncateText(sections.join('\n\n'), 6000)
+  }
+
+  private normalizeText(text: string): string {
+    return text.replace(/\s+/g, ' ').trim()
+  }
+
+  private truncateText(text: string, limit: number): string {
+    if (text.length <= limit) return text
+    return `${text.slice(0, Math.max(0, limit - 3))}...`
   }
 }

@@ -286,7 +286,9 @@ export class ApprovalRouterService {
       title: approval.title,
       description: approval.description,
       previewData: approval.previewData,
+      data: approval.previewData,
       confidenceScore: approval.confidenceScore,
+      confidenceLevel: this.getConfidenceLevel(approval.confidenceScore),
       factors: approval.confidenceFactors || [],
       aiReasoning: approval.aiReasoning,
       status: approval.status,
@@ -298,9 +300,16 @@ export class ApprovalRouterService {
       sourceModule: approval.sourceModule,
       sourceId: approval.sourceId,
       requestedBy: approval.requestedBy,
+      createdBy: approval.requestedBy,
       createdAt: approval.createdAt,
       updatedAt: approval.updatedAt,
       assignedTo: approval.assignedTo,
     };
+  }
+
+  private getConfidenceLevel(score: number): 'high' | 'medium' | 'low' {
+    if (score >= 85) return 'high';
+    if (score >= 60) return 'medium';
+    return 'low';
   }
 }

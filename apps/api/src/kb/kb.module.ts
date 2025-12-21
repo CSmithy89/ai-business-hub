@@ -16,13 +16,16 @@ import { RagService } from './rag/rag.service'
 import { KbAiController } from './ai/ai.controller'
 import { KbAiService } from './ai/ai.service'
 import { KbAskController } from './ai/ask.controller'
+import { KnowledgeExtractionHandler } from './ai/knowledge-extraction.handler'
 import { VerificationModule } from './verification/verification.module'
 import { MentionModule } from './mentions/mention.module'
+import { ApprovalsModule } from '../approvals/approvals.module'
 
 @Module({
   imports: [
     CommonModule,
     EventsModule,
+    ApprovalsModule,
     KbCollabModule,
     EmbeddingsModule,
     VerificationModule,
@@ -44,6 +47,7 @@ import { MentionModule } from './mentions/mention.module'
     RagService,
     KbAiService,
     LinkingService,
+    KnowledgeExtractionHandler,
     {
       provide: 'VersionsService',
       useExisting: forwardRef(() => VersionsService),

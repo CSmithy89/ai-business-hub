@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>kb-04</epicId>
+    <storyId>kb-04-4</storyId>
+    <title>Knowledge Extraction</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-21</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/kb-04-4-knowledge-extraction.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Scribe agent</asA>
+    <iWant>to extract docs from completed tasks</iWant>
+    <soThat>knowledge is captured automatically</soThat>
+    <tasks>
+- Detect task completion and assess content significance
+- Generate draft KB page suggestion from task content
+- Route approval request for human review
+- Add event handler tests
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Given task with significant description/comments completed, when Scribe detects knowledge opportunity, then suggests creating KB page from task content.
+2. Draft page is pre-filled with task details for review.
+3. Knowledge extraction requires human approval before creation.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/modules/bm-pm/epics/epic-kb-04-ai-native-knowledge-base.md</path>
+        <title>Epic KB-04: AI-Native Knowledge Base</title>
+        <section>Story KB-04.4: Knowledge Extraction</section>
+        <snippet>Triggered on task completion with meaningful content; draft requires approval.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-kb-04.md</path>
+        <title>KB-04 Epic Tech Spec</title>
+        <section>Workflows: Knowledge Extraction</section>
+        <snippet>On task completion, propose draft KB page with approval gate.</snippet>
+      </doc>
+      <doc>
+        <path>docs/modules/bm-pm/kb-specification.md</path>
+        <title>KB Specification</title>
+        <section>F8: AI-Native KB</section>
+        <snippet>Auto-capture knowledge from tasks with human approval.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>apps/api/src/pm/tasks/tasks.service.ts</path>
+        <kind>service</kind>
+        <symbol>TasksService.update</symbol>
+        <lines>860-980</lines>
+        <reason>Emits PM_TASK_STATUS_CHANGED event on task completion.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/api/src/events/decorators/event-subscriber.decorator.ts</path>
+        <kind>decorator</kind>
+        <symbol>EventSubscriber</symbol>
+        <lines>1-140</lines>
+        <reason>Event subscription pattern for task completion handler.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/api/src/approvals/services/approval-router.service.ts</path>
+        <kind>service</kind>
+        <symbol>ApprovalRouterService.routeApproval</symbol>
+        <lines>60-210</lines>
+        <reason>Creates approval items with confidence routing.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/api/src/kb/ai/ai.service.ts</path>
+        <kind>service</kind>
+        <symbol>KbAiService.generateDraft</symbol>
+        <lines>30-120</lines>
+        <reason>AI draft generation pattern for KB content.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@nestjs/common" />
+        <package name="@prisma/client" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Only handle tasks that transition to DONE.
+- Require significant content (description/comments) before suggesting.
+- Always route through approvals (no auto-creation).
+  </constraints>
+
+  <interfaces>
+- Event: pm.task.status_changed (EventTypes.PM_TASK_STATUS_CHANGED)
+  </interfaces>
+
+  <tests>
+    <standards>Unit tests for handler logic and approval routing.</standards>
+    <locations>apps/api/src/**/*.spec.ts</locations>
+    <ideas>
+- DONE task with rich content triggers approval routing.
+- DONE task with minimal content is ignored.
+- Non-DONE status changes are ignored.
+    </ideas>
+  </tests>
+</story-context>
