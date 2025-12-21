@@ -16,6 +16,20 @@ import {
   RiskSource,
   RiskStatus,
 } from './dto/prism-forecast.dto';
+import {
+  DashboardDataDto,
+  DashboardOverviewDto,
+  VelocityTrendDto,
+  VelocityTrendDataPointDto,
+  ScopeTrendDto,
+  ScopeTrendDataPointDto,
+  CompletionTrendDto,
+  CompletionTrendDataPointDto,
+  ProductivityTrendDto,
+  ProductivityTrendDataPointDto,
+  InsightDto,
+  ScopeSnapshotDto,
+} from './dto/analytics-dashboard.dto';
 
 /**
  * Analytics Service
@@ -1223,5 +1237,650 @@ export class AnalyticsService {
       detectedAt: risk.detectedAt.toISOString(),
       updatedAt: risk.updatedAt.toISOString(),
     };
+  }
+
+  // ============================================
+  // DASHBOARD ANALYTICS (PM-08-4)
+  // ============================================
+
+  /**
+   * Get comprehensive dashboard data for a project
+   *
+   * Returns all trend data, overview metrics, anomalies, risks, and insights
+   * in a single aggregated call for optimal performance.
+   *
+   * @param projectId - Project ID
+   * @param workspaceId - Workspace ID (for RLS)
+   * @param dateRange - Date range for trend analysis
+   * @returns Complete dashboard data
+   */
+  async getDashboardData(
+    projectId: string,
+    workspaceId: string,
+    dateRange: { start: Date; end: Date },
+  ): Promise<DashboardDataDto> {
+    try {
+      // Fetch data in parallel for performance
+      const [
+        velocityTrend,
+        scopeTrend,
+        completionTrend,
+        productivityTrend,
+        forecast,
+        risks,
+        insights,
+      ] = await Promise.all([
+        this.getVelocityTrend(projectId, workspaceId, dateRange),
+        this.getScopeTrend(projectId, workspaceId, dateRange),
+        this.getCompletionTrend(projectId, workspaceId, dateRange),
+        this.getProductivityTrend(projectId, workspaceId, dateRange),
+        this.getForecast(projectId, workspaceId),
+        this.getRiskEntries(projectId, workspaceId, RiskStatus.ACTIVE),
+        this.getInsights(projectId, workspaceId),
+      ]);
+
+      // Calculate anomalies across all trends
+      const anomalies = this.detectAnomaliesInTrends({
+        velocityTrend,
+        scopeTrend,
+        completionTrend,
+        productivityTrend,
+      });
+
+      // Calculate health score
+      const healthScore = this.calculateHealthScore(velocityTrend, scopeTrend, completionTrend, risks);
+
+      // Build overview
+      const overview: DashboardOverviewDto = {
+        currentVelocity: velocityTrend.current,
+        completionPercentage: completionTrend.current,
+        healthScore,
+        predictedCompletion: forecast.predictedDate,
+      };
+
+      return {
+        overview,
+        trends: {
+          velocity: velocityTrend,
+          scope: scopeTrend,
+          completion: completionTrend,
+          productivity: productivityTrend,
+        },
+        anomalies,
+        risks,
+        insights,
+      };
+    } catch (error: any) {
+      this.logger.error(
+        `Dashboard data fetch failed: ${error?.message}`,
+        error?.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get velocity trend data for charting
+   *
+   * @param projectId - Project ID
+   * @param workspaceId - Workspace ID
+   * @param dateRange - Date range for analysis
+   * @returns Velocity trend with data points, trend line, and anomalies
+   */
+  async getVelocityTrend(
+    projectId: string,
+    workspaceId: string,
+    dateRange: { start: Date; end: Date },
+  ): Promise<VelocityTrendDto> {
+    try {
+      // Calculate periods from date range (weekly periods)
+      const periods = Math.ceil(
+        (dateRange.end.getTime() - dateRange.start.getTime()) / (7 * 24 * 60 * 60 * 1000),
+      );
+
+      // Fetch historical velocity
+      const history = await this.getVelocityHistory(projectId, workspaceId, periods);
+
+      if (history.length === 0) {
+        return {
+          current: 0,
+          average: 0,
+          trend: 'STABLE',
+          dataPoints: [],
+          trendLine: { slope: 0, intercept: 0 },
+        };
+      }
+
+      // Calculate trend line (linear regression)
+      const velocityValues = history.map(h => h.completedPoints);
+      const trendLine = this.calculateTrendLine(velocityValues);
+
+      // Calculate average velocity
+      const average = velocityValues.reduce((sum, v) => sum + v, 0) / velocityValues.length;
+
+      // Detect anomalies
+      const anomalies = await this.detectAnomalies(projectId, workspaceId, 'velocity', 2.0);
+      const anomalyMap = new Map(anomalies.map(a => [a.index, a]));
+
+      // Determine trend direction
+      const trend: 'INCREASING' | 'DECREASING' | 'STABLE' =
+        trendLine.slope > 0.1 ? 'INCREASING' :
+        trendLine.slope < -0.1 ? 'DECREASING' :
+        'STABLE';
+
+      // Build data points
+      const dataPoints: VelocityTrendDataPointDto[] = history.map((h, index) => {
+        const anomaly = anomalyMap.get(index);
+        return {
+          period: h.period,
+          value: h.completedPoints,
+          trendValue: trendLine.values[index],
+          isAnomaly: !!anomaly,
+          anomalySeverity: anomaly?.severity,
+        };
+      });
+
+      return {
+        current: history[history.length - 1]?.completedPoints || 0,
+        average,
+        trend,
+        dataPoints,
+        trendLine: {
+          slope: trendLine.slope,
+          intercept: trendLine.intercept,
+        },
+      };
+    } catch (error: any) {
+      this.logger.error(`Velocity trend calculation failed: ${error?.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get scope trend data for charting
+   *
+   * @param projectId - Project ID
+   * @param workspaceId - Workspace ID
+   * @param dateRange - Date range for analysis
+   * @returns Scope trend with total/completed/remaining points over time
+   */
+  async getScopeTrend(
+    projectId: string,
+    workspaceId: string,
+    dateRange: { start: Date; end: Date },
+  ): Promise<ScopeTrendDto> {
+    try {
+      // Get historical scope snapshots
+      const snapshots = await this.getScopeSnapshots(projectId, workspaceId, dateRange);
+
+      if (snapshots.length === 0) {
+        return {
+          current: 0,
+          baseline: 0,
+          scopeIncrease: 0,
+          dataPoints: [],
+        };
+      }
+
+      // Calculate baseline scope (first snapshot)
+      const baselineScope = snapshots[0].totalPoints;
+
+      // Build data points with scope creep detection
+      const dataPoints: ScopeTrendDataPointDto[] = snapshots.map((snapshot, _index) => {
+        const scopeChange = baselineScope > 0
+          ? (snapshot.totalPoints - baselineScope) / baselineScope
+          : 0;
+        const isScopeCreep = scopeChange > 0.10; // >10% increase
+
+        return {
+          period: snapshot.period,
+          totalPoints: snapshot.totalPoints,
+          completedPoints: snapshot.completedPoints,
+          remainingPoints: snapshot.totalPoints - snapshot.completedPoints,
+          baselinePoints: baselineScope,
+          scopeChange,
+          isScopeCreep,
+        };
+      });
+
+      const currentSnapshot = snapshots[snapshots.length - 1];
+      const scopeIncrease = baselineScope > 0
+        ? (currentSnapshot.totalPoints - baselineScope) / baselineScope
+        : 0;
+
+      return {
+        current: currentSnapshot.totalPoints,
+        baseline: baselineScope,
+        scopeIncrease,
+        dataPoints,
+      };
+    } catch (error: any) {
+      this.logger.error(`Scope trend calculation failed: ${error?.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get completion rate trend data for charting
+   *
+   * @param projectId - Project ID
+   * @param workspaceId - Workspace ID
+   * @param dateRange - Date range for analysis
+   * @returns Completion trend with actual vs expected completion
+   */
+  async getCompletionTrend(
+    projectId: string,
+    workspaceId: string,
+    dateRange: { start: Date; end: Date },
+  ): Promise<CompletionTrendDto> {
+    try {
+      const snapshots = await this.getScopeSnapshots(projectId, workspaceId, dateRange);
+
+      if (snapshots.length === 0) {
+        return {
+          current: 0,
+          expected: 0,
+          status: 'ON_TRACK',
+          dataPoints: [],
+        };
+      }
+
+      // Calculate expected completion (linear projection from start)
+      const dataPoints: CompletionTrendDataPointDto[] = snapshots.map((snapshot, index) => {
+        // Linear expected completion
+        const expectedRate = 1.0 / snapshots.length;
+        const expected = Math.min(1.0, (index + 1) * expectedRate);
+        const actual = snapshot.completionPercentage;
+        const aheadBehind = actual - expected;
+
+        return {
+          period: snapshot.period,
+          actual,
+          expected,
+          aheadBehind,
+        };
+      });
+
+      const currentDataPoint = dataPoints[dataPoints.length - 1];
+      const status = this.calculateCompletionStatus(
+        currentDataPoint.actual,
+        currentDataPoint.expected,
+      );
+
+      return {
+        current: currentDataPoint.actual,
+        expected: currentDataPoint.expected,
+        status,
+        dataPoints,
+      };
+    } catch (error: any) {
+      this.logger.error(`Completion trend calculation failed: ${error?.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get team productivity trend data
+   *
+   * @param projectId - Project ID
+   * @param workspaceId - Workspace ID
+   * @param dateRange - Date range for analysis
+   * @returns Productivity metrics over time
+   */
+  async getProductivityTrend(
+    projectId: string,
+    workspaceId: string,
+    dateRange: { start: Date; end: Date },
+  ): Promise<ProductivityTrendDto> {
+    try {
+      // Calculate periods from date range (weekly periods)
+      const periods = Math.ceil(
+        (dateRange.end.getTime() - dateRange.start.getTime()) / (7 * 24 * 60 * 60 * 1000),
+      );
+
+      const dataPoints: ProductivityTrendDataPointDto[] = [];
+
+      // Calculate productivity metrics for each period
+      for (let i = 0; i < periods; i++) {
+        const periodEnd = new Date(dateRange.end);
+        periodEnd.setDate(periodEnd.getDate() - (i * 7));
+        const periodStart = new Date(periodEnd);
+        periodStart.setDate(periodStart.getDate() - 7);
+
+        // Get completed tasks in this period
+        const tasks = await this.prisma.task.findMany({
+          where: {
+            projectId,
+            workspaceId,
+            status: 'DONE',
+            completedAt: {
+              gte: periodStart,
+              lt: periodEnd,
+            },
+          },
+          select: {
+            storyPoints: true,
+            startedAt: true,
+            completedAt: true,
+          },
+        });
+
+        // Calculate metrics
+        const pointsPerWeek = tasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
+        const throughput = tasks.length;
+
+        // Calculate average cycle time
+        const cycleTimes = tasks
+          .filter(t => t.startedAt && t.completedAt)
+          .map(t => {
+            const start = new Date(t.startedAt!);
+            const end = new Date(t.completedAt!);
+            return (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24); // days
+          });
+
+        const cycleTime = cycleTimes.length > 0
+          ? cycleTimes.reduce((sum, ct) => sum + ct, 0) / cycleTimes.length
+          : 0;
+
+        const year = periodStart.getFullYear();
+        const week = this.getWeekNumber(periodStart);
+        const period = `${year}-W${week.toString().padStart(2, '0')}`;
+
+        dataPoints.push({
+          period,
+          pointsPerWeek,
+          cycleTime,
+          throughput,
+        });
+      }
+
+      // Reverse to chronological order
+      dataPoints.reverse();
+
+      // Calculate averages
+      const average = dataPoints.length > 0
+        ? dataPoints.reduce((sum, dp) => sum + dp.pointsPerWeek, 0) / dataPoints.length
+        : 0;
+
+      const current = dataPoints[dataPoints.length - 1]?.pointsPerWeek || 0;
+
+      return {
+        current,
+        average,
+        dataPoints,
+      };
+    } catch (error: any) {
+      this.logger.error(`Productivity trend calculation failed: ${error?.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get scope snapshots for historical scope tracking
+   *
+   * Calculates total and completed scope at different time periods
+   * based on task creation and completion timestamps.
+   *
+   * @param projectId - Project ID
+   * @param workspaceId - Workspace ID
+   * @param dateRange - Date range for snapshots
+   * @returns Array of scope snapshots
+   */
+  private async getScopeSnapshots(
+    projectId: string,
+    workspaceId: string,
+    dateRange: { start: Date; end: Date },
+  ): Promise<ScopeSnapshotDto[]> {
+    try {
+      // Calculate periods from date range (weekly periods)
+      const periods = Math.ceil(
+        (dateRange.end.getTime() - dateRange.start.getTime()) / (7 * 24 * 60 * 60 * 1000),
+      );
+
+      const snapshots: ScopeSnapshotDto[] = [];
+
+      for (let i = 0; i < periods; i++) {
+        const snapshotDate = new Date(dateRange.end);
+        snapshotDate.setDate(snapshotDate.getDate() - (i * 7));
+
+        // Get all tasks created before this snapshot date
+        const allTasks = await this.prisma.task.findMany({
+          where: {
+            projectId,
+            workspaceId,
+            createdAt: {
+              lte: snapshotDate,
+            },
+          },
+          select: {
+            storyPoints: true,
+            completedAt: true,
+          },
+        });
+
+        // Calculate total scope
+        const totalPoints = allTasks.reduce(
+          (sum, task) => sum + (task.storyPoints || 0),
+          0,
+        );
+
+        // Calculate completed scope (tasks completed before snapshot date)
+        const completedPoints = allTasks
+          .filter(task => task.completedAt && new Date(task.completedAt) <= snapshotDate)
+          .reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+
+        const completionPercentage = totalPoints > 0
+          ? completedPoints / totalPoints
+          : 0;
+
+        const year = snapshotDate.getFullYear();
+        const week = this.getWeekNumber(snapshotDate);
+        const period = `${year}-W${week.toString().padStart(2, '0')}`;
+
+        snapshots.push({
+          period,
+          totalPoints,
+          completedPoints,
+          completionPercentage,
+        });
+      }
+
+      return snapshots.reverse(); // Return chronological order
+    } catch (error: any) {
+      this.logger.error(`Scope snapshots calculation failed: ${error?.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Detect anomalies across all trend data
+   *
+   * Consolidates anomaly detection from velocity, scope, and completion trends.
+   *
+   * @param trends - All trend data
+   * @returns Array of detected anomalies
+   */
+  private detectAnomaliesInTrends(trends: {
+    velocityTrend: VelocityTrendDto;
+    scopeTrend: ScopeTrendDto;
+    completionTrend: CompletionTrendDto;
+    productivityTrend: ProductivityTrendDto;
+  }): AnomalyDto[] {
+    const anomalies: AnomalyDto[] = [];
+    let anomalyIndex = 0;
+
+    // Velocity anomalies
+    trends.velocityTrend.dataPoints.forEach((dp) => {
+      if (dp.isAnomaly) {
+        anomalies.push({
+          index: anomalyIndex++,
+          period: dp.period,
+          value: dp.value,
+          expectedRange: [dp.trendValue - 5, dp.trendValue + 5],
+          severity: dp.anomalySeverity || 'MEDIUM',
+          description: `Velocity ${dp.value > dp.trendValue ? 'spiked' : 'dropped'} ${Math.abs(dp.value - dp.trendValue).toFixed(1)} points from trend`,
+        });
+      }
+    });
+
+    // Scope creep anomalies
+    trends.scopeTrend.dataPoints.forEach(dp => {
+      if (dp.isScopeCreep) {
+        const severity: 'LOW' | 'MEDIUM' | 'HIGH' = dp.scopeChange > 0.20 ? 'HIGH' : 'MEDIUM';
+        anomalies.push({
+          index: anomalyIndex++,
+          period: dp.period,
+          value: dp.totalPoints,
+          expectedRange: [dp.baselinePoints, dp.baselinePoints * 1.1],
+          severity,
+          description: `Scope increased ${(dp.scopeChange * 100).toFixed(0)}% from baseline`,
+        });
+      }
+    });
+
+    // Completion delay anomalies
+    trends.completionTrend.dataPoints.forEach(dp => {
+      if (dp.aheadBehind < -0.10) {
+        // >10% behind
+        const severity: 'LOW' | 'MEDIUM' | 'HIGH' = dp.aheadBehind < -0.20 ? 'HIGH' : 'MEDIUM';
+        anomalies.push({
+          index: anomalyIndex++,
+          period: dp.period,
+          value: dp.actual,
+          expectedRange: [dp.expected - 0.05, dp.expected + 0.05],
+          severity,
+          description: `Completion ${Math.abs(dp.aheadBehind * 100).toFixed(0)}% behind schedule`,
+        });
+      }
+    });
+
+    return anomalies;
+  }
+
+  /**
+   * Calculate overall project health score (0-10 scale)
+   *
+   * Formula: (velocityTrendScore * 0.3 + completionRateScore * 0.3 + scopeStabilityScore * 0.2 + riskScore * 0.2) * 10
+   *
+   * @param velocityTrend - Velocity trend data
+   * @param scopeTrend - Scope trend data
+   * @param completionTrend - Completion trend data
+   * @param risks - Active risks
+   * @returns Health score (0-10)
+   */
+  private calculateHealthScore(
+    velocityTrend: VelocityTrendDto,
+    scopeTrend: ScopeTrendDto,
+    completionTrend: CompletionTrendDto,
+    risks: PmRiskEntryDto[],
+  ): number {
+    // Velocity trend score
+    const velocityTrendScore =
+      velocityTrend.trend === 'INCREASING' ? 1.0 :
+      velocityTrend.trend === 'STABLE' ? 0.5 :
+      0.2;
+
+    // Completion rate score
+    const completionRateScore =
+      completionTrend.status === 'AHEAD' ? 1.0 :
+      completionTrend.status === 'ON_TRACK' ? 0.5 :
+      0.2;
+
+    // Scope stability score (penalize scope creep)
+    const scopeStabilityScore = Math.max(0, 1.0 - Math.abs(scopeTrend.scopeIncrease));
+
+    // Risk score (penalize high-severity active risks)
+    const highSeverityRisks = risks.filter(r => r.probability * r.impact > 0.5).length;
+    const riskScore = Math.max(0, 1.0 - (highSeverityRisks * 0.2));
+
+    // Calculate weighted health score
+    const healthScore = (
+      velocityTrendScore * 0.3 +
+      completionRateScore * 0.3 +
+      scopeStabilityScore * 0.2 +
+      riskScore * 0.2
+    ) * 10;
+
+    return Math.round(healthScore * 10) / 10; // Round to 1 decimal place
+  }
+
+  /**
+   * Get AI insights and recommendations
+   *
+   * Placeholder for Prism agent insights.
+   * Future enhancement: Call Prism agent for AI-generated recommendations.
+   *
+   * @param projectId - Project ID
+   * @param workspaceId - Workspace ID
+   * @returns Array of insights
+   */
+  private async getInsights(
+    _projectId: string,
+    _workspaceId: string,
+  ): Promise<InsightDto[]> {
+    // TODO: Implement Prism agent insights generation
+    return [];
+  }
+
+  /**
+   * Calculate linear regression trend line
+   *
+   * Uses least squares method to fit a line: y = mx + b
+   *
+   * @param values - Array of values
+   * @returns Trend line parameters and fitted values
+   */
+  private calculateTrendLine(values: number[]): {
+    slope: number;
+    intercept: number;
+    values: number[];
+  } {
+    if (values.length < 2) {
+      return {
+        slope: 0,
+        intercept: values[0] || 0,
+        values: values.slice(),
+      };
+    }
+
+    const n = values.length;
+    const x = Array.from({ length: n }, (_, i) => i);
+
+    // Calculate sums for linear regression
+    const sumX = x.reduce((sum, val) => sum + val, 0);
+    const sumY = values.reduce((sum, val) => sum + val, 0);
+    const sumXY = x.reduce((sum, val, i) => sum + val * values[i], 0);
+    const sumX2 = x.reduce((sum, val) => sum + val * val, 0);
+
+    // Calculate slope and intercept
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    // Generate fitted values
+    const fittedValues = x.map(xi => slope * xi + intercept);
+
+    return {
+      slope,
+      intercept,
+      values: fittedValues,
+    };
+  }
+
+  /**
+   * Calculate completion status based on actual vs expected completion
+   *
+   * @param actual - Actual completion percentage (0-1)
+   * @param expected - Expected completion percentage (0-1)
+   * @returns Status: AHEAD, ON_TRACK, or BEHIND
+   */
+  private calculateCompletionStatus(
+    actual: number,
+    expected: number,
+  ): 'AHEAD' | 'ON_TRACK' | 'BEHIND' {
+    const diff = actual - expected;
+
+    if (diff > 0.05) return 'AHEAD'; // >5% ahead
+    if (diff < -0.05) return 'BEHIND'; // >5% behind
+    return 'ON_TRACK';
   }
 }

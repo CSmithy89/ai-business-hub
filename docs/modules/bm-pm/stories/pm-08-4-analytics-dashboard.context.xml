@@ -1,0 +1,1496 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-08-4-analytics-dashboard</story-id>
+    <story-title>Analytics Dashboard / Trend Dashboards</story-title>
+    <epic>PM-08 - Prism Agent &amp; Predictive Analytics</epic>
+    <generated-date>2025-12-21</generated-date>
+    <dependencies>
+      <dependency>PM-08.1 - Prism Agent Foundation (DONE)</dependency>
+      <dependency>PM-08.2 - Pattern Detection (DONE)</dependency>
+      <dependency>PM-08.3 - Predictive Timeline (DONE)</dependency>
+      <dependency>PM-02 - Task Management (Task data for trends)</dependency>
+      <dependency>PM-01 - Project Management (Project metadata)</dependency>
+    </dependencies>
+  </metadata>
+
+  <story-summary>
+    <objective>
+      Create a comprehensive analytics dashboard that visualizes project trends and provides drill-down capabilities.
+      The dashboard must load in &lt;800ms (P95 latency) and display velocity, scope, completion rate, and productivity trends
+      with anomaly highlighting based on statistical analysis.
+    </objective>
+
+    <key-requirements>
+      <requirement id="AC-4.1" priority="critical">
+        Velocity Trend Chart showing last 4 weeks/sprints with trend line, average marker, and anomaly highlighting
+      </requirement>
+      <requirement id="AC-4.2" priority="critical">
+        Scope Trend Chart showing total/completed/remaining points with baseline comparison and scope creep warnings (&gt;10% increase)
+      </requirement>
+      <requirement id="AC-4.3" priority="critical">
+        Dashboard Performance: &lt;800ms load time (P95), single aggregated API call, materialized views for heavy aggregations
+      </requirement>
+      <requirement id="AC-4.4" priority="high">
+        Completion Rate Trend showing actual vs predicted completion with ahead/behind indicators
+      </requirement>
+      <requirement id="AC-4.5" priority="high">
+        Team Productivity Trend with points/week, cycle time, throughput metrics
+      </requirement>
+      <requirement id="AC-4.6" priority="high">
+        Anomaly Highlighting using z-score (2.0σ moderate, 3.0σ severe) with explanatory tooltips
+      </requirement>
+      <requirement id="AC-4.7" priority="medium">
+        Drill-Down to Details - clicking data points navigates to period details with tasks, blockers, retrospective notes
+      </requirement>
+      <requirement id="AC-4.8" priority="medium">
+        Dashboard Layout with Overview, Trends, Risks, Insights sections, responsive design
+      </requirement>
+      <requirement id="AC-4.9" priority="medium">
+        Date Range Selection with predefined ranges (4w, 8w, 12w, all time) and custom picker
+      </requirement>
+      <requirement id="AC-4.10" priority="low">
+        Export and Sharing - PDF reports, PNG/SVG charts, CSV data with proper styling
+      </requirement>
+    </key-requirements>
+  </story-summary>
+
+  <existing-code-context>
+
+    <!-- Backend: Analytics Service -->
+    <file path="apps/api/src/pm/agents/analytics.service.ts" purpose="Core analytics service with velocity calculation, Monte Carlo forecasting, anomaly detection, and risk analysis">
+      <existing-methods>
+        <method name="getForecast" status="implemented">
+          Generates completion forecast using Monte Carlo simulation with 1000 iterations.
+          Returns: predictedDate, confidence, optimistic/pessimistic dates, reasoning, factors, velocityAvg.
+          Handles scenarios (addedScope, teamSizeChange) for what-if analysis.
+        </method>
+
+        <method name="getVelocity" status="implemented">
+          Calculates current velocity with trend analysis (UP/DOWN/STABLE).
+          Compares first half vs second half of history window.
+          Returns: velocity, trend, confidence, sampleSize, timeRange.
+        </method>
+
+        <method name="getVelocityHistory" status="implemented">
+          Fetches historical velocity data for specified number of periods (default 12).
+          Queries completed tasks per weekly period.
+          Returns array of: period, completedPoints, totalTasks, startDate, endDate.
+        </method>
+
+        <method name="detectAnomalies" status="implemented">
+          Identifies statistical anomalies using z-score threshold (default 2.0).
+          Returns: index, period, value, expectedRange, severity (LOW/MEDIUM/HIGH), description.
+        </method>
+
+        <method name="analyzeCompletionProbability" status="implemented">
+          Calculates probability of hitting target date based on current velocity vs required velocity.
+          Returns: targetDate, probability, weeksRemaining, pointsRemaining, requiredVelocity, currentVelocity, assessment.
+        </method>
+
+        <method name="detectRisks" status="implemented">
+          Detects schedule, scope, and resource risks.
+          Creates/updates PmRiskEntry records.
+          Returns array of PmRiskEntryDto.
+        </method>
+
+        <method name="getRiskEntries" status="implemented">
+          Retrieves existing risk entries with optional status filter (ACTIVE/MITIGATED/ACCEPTED/DISMISSED).
+        </method>
+
+        <method name="runMonteCarloSimulation" status="implemented">
+          Private method running 1000 simulation iterations with normal distribution sampling.
+          Returns: dates (p10/p25/p50/p75/p90), velocityMean, velocityStd, trendSlope, simulationRuns.
+        </method>
+
+        <method name="calculateVariance" status="implemented">
+          Statistical variance calculation for confidence and anomaly detection.
+        </method>
+
+        <method name="calculateConfidence" status="implemented">
+          Determines ConfidenceLevel (LOW/MED/HIGH) based on data points and variance.
+        </method>
+
+        <method name="getWeekNumber" status="implemented">
+          ISO week number calculation for period labels.
+        </method>
+
+        <method name="getRemainingPoints" status="implemented">
+          Aggregates story points for tasks not in DONE/CANCELLED status.
+        </method>
+      </existing-methods>
+
+      <methods-to-add>
+        <method name="getDashboardData" priority="critical">
+          Single aggregated endpoint returning all dashboard data.
+          Should call: getVelocityTrend, getScopeTrend, getCompletionTrend, getProductivityTrend, getForecast, getRiskEntries, getInsights in parallel.
+          Returns: DashboardDataDto with overview, trends, anomalies, risks, insights.
+          Target latency: &lt;800ms (P95).
+        </method>
+
+        <method name="getVelocityTrend" priority="critical">
+          Wrapper around getVelocityHistory with trend line calculation.
+          Returns: VelocityTrendDto with current, average, trend direction, dataPoints[], trendLine{slope, intercept}.
+          Should include anomaly detection results in dataPoints.
+        </method>
+
+        <method name="getScopeTrend" priority="critical">
+          Calculates scope over time from task creation/completion timestamps.
+          Returns: ScopeTrendDto with current, baseline, scopeIncrease, dataPoints[].
+          Each dataPoint includes: totalPoints, completedPoints, remainingPoints, baselinePoints, scopeChange, isScopeCreep.
+        </method>
+
+        <method name="getCompletionTrend" priority="critical">
+          Calculates completion percentage over time with linear projection baseline.
+          Returns: CompletionTrendDto with current, expected, status (AHEAD/ON_TRACK/BEHIND), dataPoints[].
+          Each dataPoint: actual, expected, aheadBehind.
+        </method>
+
+        <method name="getProductivityTrend" priority="high">
+          Calculates team productivity metrics over time.
+          Returns: ProductivityTrendDto with current, average, dataPoints[].
+          Metrics: pointsPerWeek, cycleTime (days), throughput (tasks/week).
+        </method>
+
+        <method name="getScopeSnapshots" priority="critical">
+          Helper method to calculate historical scope at different time periods.
+          Option 1: Query PmPredictionLog if available (has scope at prediction time).
+          Option 2: Calculate from task creation/completion timestamps.
+          Returns array of snapshots: period, totalPoints, completedPoints, completionPercentage.
+        </method>
+
+        <method name="detectAnomaliesInTrends" priority="high">
+          Cross-trend anomaly detection consolidating velocity, scope, and completion anomalies.
+          Returns: AnomalyDto[] with type (VELOCITY/SCOPE_CREEP/COMPLETION_DELAY/PRODUCTIVITY_DROP), period, severity, description.
+        </method>
+
+        <method name="calculateHealthScore" priority="medium">
+          Formula: (velocityTrendScore * 0.3 + completionRateScore * 0.3 + scopeStabilityScore * 0.2 + riskScore * 0.2) * 10.
+          Returns: number (0-10 scale).
+        </method>
+
+        <method name="getInsights" priority="medium">
+          Placeholder for Prism agent insights/recommendations.
+          Returns: InsightDto[] with type (RECOMMENDATION/WARNING/CELEBRATION), title, description, actionable flag.
+        </method>
+
+        <method name="calculateTrendLine" priority="high">
+          Linear regression calculation for velocity trend.
+          Returns: { slope: number, intercept: number, values: number[] }.
+        </method>
+      </methods-to-add>
+    </file>
+
+    <!-- Backend: Analytics Controller -->
+    <file path="apps/api/src/pm/agents/analytics.controller.ts" purpose="REST API endpoints for analytics">
+      <existing-endpoints>
+        <endpoint method="POST" path="/pm/projects/:projectId/analytics/forecast" status="implemented">
+          Generates completion forecast with optional scenario (addedScope, teamSizeChange).
+        </endpoint>
+
+        <endpoint method="GET" path="/pm/projects/:projectId/analytics/velocity" status="implemented">
+          Returns current velocity metadata with window parameter (default 4w).
+        </endpoint>
+
+        <endpoint method="GET" path="/pm/projects/:projectId/analytics/velocity-history" status="implemented">
+          Returns velocity history array with periods parameter (default 12).
+        </endpoint>
+
+        <endpoint method="GET" path="/pm/projects/:projectId/analytics/anomalies" status="implemented">
+          Detects anomalies with metricType and threshold parameters.
+        </endpoint>
+
+        <endpoint method="GET" path="/pm/projects/:projectId/analytics/completion-probability" status="implemented">
+          Analyzes completion probability for targetDate query parameter.
+        </endpoint>
+
+        <endpoint method="GET" path="/pm/projects/:projectId/analytics/risks" status="implemented">
+          Detects and returns project risks.
+        </endpoint>
+
+        <endpoint method="GET" path="/pm/projects/:projectId/analytics/risks/entries" status="implemented">
+          Retrieves risk entries with optional status filter.
+        </endpoint>
+
+        <endpoint method="PATCH" path="/pm/projects/:projectId/analytics/risks/:riskId/status" status="implemented">
+          Updates risk status.
+        </endpoint>
+      </existing-endpoints>
+
+      <endpoints-to-add>
+        <endpoint method="GET" path="/pm/projects/:projectId/analytics/dashboard" priority="critical">
+          Returns comprehensive dashboard data via getDashboardData service method.
+          Query params: start (ISO date), end (ISO date) for date range.
+          Response: DashboardDataDto.
+          Guards: AuthGuard, TenantGuard, RolesGuard.
+          Roles: owner, admin, member.
+        </endpoint>
+      </endpoints-to-add>
+    </file>
+
+    <!-- Backend: DTOs -->
+    <file path="apps/api/src/pm/agents/dto/prism-forecast.dto.ts" purpose="Data transfer objects for analytics">
+      <existing-dtos>
+        <dto name="PrismForecastDto">
+          predictedDate, confidence, optimistic/pessimistic dates, reasoning, factors, velocityAvg, dataPoints, probabilityDistribution.
+        </dto>
+
+        <dto name="VelocityMetadataDto">
+          velocity, trend (UP/DOWN/STABLE), confidence (LOW/MED/HIGH), sampleSize, timeRange.
+        </dto>
+
+        <dto name="VelocityHistoryDto">
+          period, completedPoints, totalTasks, completedTasks, startDate, endDate.
+        </dto>
+
+        <dto name="AnomalyDto">
+          index, period, value, expectedRange, severity (LOW/MEDIUM/HIGH), description.
+        </dto>
+
+        <dto name="CompletionProbabilityDto">
+          targetDate, probability, probabilityLabel, weeksRemaining, pointsRemaining, requiredVelocity, currentVelocity, assessment.
+        </dto>
+
+        <dto name="PmRiskEntryDto">
+          id, projectId, source, category, probability, impact, description, mitigation, status, detectedAt, updatedAt, + optional category-specific fields.
+        </dto>
+
+        <enum name="ConfidenceLevel">LOW, MED, HIGH</enum>
+        <enum name="VelocityTrend">UP, DOWN, STABLE</enum>
+        <enum name="RiskCategory">SCHEDULE, SCOPE, RESOURCE, BUDGET</enum>
+        <enum name="RiskSource">PRISM, PULSE, MANUAL</enum>
+        <enum name="RiskStatus">ACTIVE, MITIGATED, ACCEPTED, DISMISSED</enum>
+      </existing-dtos>
+
+      <dtos-to-add>
+        <dto name="DashboardDataDto" priority="critical">
+          overview: { currentVelocity, completionPercentage, healthScore, predictedCompletion }
+          trends: { velocity: VelocityTrendDto, scope: ScopeTrendDto, completion: CompletionTrendDto, productivity: ProductivityTrendDto }
+          anomalies: AnomalyDto[]
+          risks: PmRiskEntryDto[]
+          insights: InsightDto[]
+        </dto>
+
+        <dto name="VelocityTrendDto" priority="critical">
+          current: number
+          average: number
+          trend: 'INCREASING' | 'DECREASING' | 'STABLE'
+          dataPoints: Array&lt;{ period, value, trendValue, isAnomaly, anomalySeverity? }&gt;
+          trendLine: { slope, intercept }
+        </dto>
+
+        <dto name="ScopeTrendDto" priority="critical">
+          current: number
+          baseline: number
+          scopeIncrease: number
+          dataPoints: Array&lt;{ period, totalPoints, completedPoints, remainingPoints, baselinePoints, scopeChange, isScopeCreep }&gt;
+        </dto>
+
+        <dto name="CompletionTrendDto" priority="critical">
+          current: number
+          expected: number
+          status: 'AHEAD' | 'ON_TRACK' | 'BEHIND'
+          dataPoints: Array&lt;{ period, actual, expected, aheadBehind }&gt;
+        </dto>
+
+        <dto name="ProductivityTrendDto" priority="high">
+          current: number
+          average: number
+          dataPoints: Array&lt;{ period, pointsPerWeek, cycleTime, throughput }&gt;
+        </dto>
+
+        <dto name="InsightDto" priority="medium">
+          id: string
+          type: 'RECOMMENDATION' | 'WARNING' | 'CELEBRATION'
+          title: string
+          description: string
+          actionable: boolean
+          action?: { label, url }
+        </dto>
+      </dtos-to-add>
+    </file>
+
+    <!-- Database: Prisma Schema -->
+    <file path="packages/db/prisma/schema.prisma" purpose="Database schema">
+      <existing-models>
+        <model name="Project">
+          Primary model with workspaceId, businessId, name, description, targetDate, status.
+          Relations: phases, tasks, expenses, team, linkedPages.
+        </model>
+
+        <model name="Task">
+          workspaceId, phaseId, projectId, taskNumber, title, description, type, priority, status.
+          storyPoints, estimatedHours, actualHours.
+          assignedTo, createdBy, dueDate, startedAt, completedAt.
+          Relations: phase, activities, relations, attachments, comments, labels.
+        </model>
+
+        <model name="PmRiskEntry">
+          id, projectId, tenantId (maps to workspaceId), source, category.
+          probability, impact, description, mitigation, status.
+          Optional fields: targetDate, predictedDate, delayDays, baselineScope, currentScope, scopeIncrease, velocityTrend, velocityChange.
+          Timestamps: detectedAt, updatedAt.
+        </model>
+      </existing-models>
+
+      <models-to-add>
+        <model name="PmPredictionLog" priority="medium" status="future-enhancement">
+          Optional model to track prediction history for accuracy analysis.
+          Fields: id, projectId, tenantId, predictionDate, predictedCompletionDate, actualCompletionDate, confidence, velocityAtTime, remainingPointsAtTime, accuracy.
+          Would enable scope snapshots without timestamp calculation.
+          Not required for MVP - can calculate scope from task timestamps.
+        </model>
+      </models-to-add>
+
+      <materialized-views-to-add>
+        <view name="mv_project_metrics_timeline" priority="high">
+          Pre-aggregated metrics for fast dashboard loading.
+          Fields: project_id, period (week), velocity, total_scope, completed_scope, completion_rate, cycle_time, throughput.
+          Refresh strategy: Hourly or on-demand after significant task changes.
+          Enables &lt;800ms dashboard load time.
+        </view>
+      </materialized-views-to-add>
+    </file>
+
+  </existing-code-context>
+
+  <frontend-context>
+
+    <!-- Chart Library -->
+    <library name="recharts" version="^3.5.1" status="installed">
+      React charting library with ComposedChart, BarChart, LineChart, CartesianGrid, Tooltip, Legend components.
+      Supports responsive design with ResponsiveContainer.
+      Used for Velocity, Scope, Completion, and Productivity charts.
+    </library>
+
+    <!-- UI Components (shadcn/ui) -->
+    <ui-components path="apps/web/src/components/ui/" status="available">
+      <component name="card">Card, CardHeader, CardTitle, CardDescription, CardContent for dashboard sections</component>
+      <component name="tabs">Tabs, TabsList, TabsTrigger, TabsContent for chart navigation</component>
+      <component name="button">Button for export and actions</component>
+      <component name="select">Select, SelectTrigger, SelectValue, SelectContent, SelectItem for filters</component>
+      <component name="badge">Badge for severity indicators</component>
+      <component name="skeleton">Skeleton for loading states</component>
+      <component name="tooltip">Tooltip for chart hover states</component>
+    </ui-components>
+
+    <!-- Frontend Patterns -->
+    <pattern name="Next.js 15 App Router" status="standard">
+      Use app/(dashboard)/pm/projects/[projectId]/analytics/page.tsx structure.
+      'use client' directive for interactive components.
+      Server components for initial data loading (optional).
+    </pattern>
+
+    <pattern name="React Query" status="standard">
+      Use @tanstack/react-query for data fetching with queryKey, queryFn.
+      Enables caching, refetching, loading/error states.
+      Example: useQuery({ queryKey: ['analytics-dashboard', projectId, dateRange], queryFn: ... })
+    </pattern>
+
+    <pattern name="API Client" status="to-create">
+      Need to create or locate API client wrapper for analytics endpoints.
+      Expected pattern: api.pm.analytics.getDashboard(projectId, { start, end })
+      Should handle auth tokens, workspace context, error handling.
+    </pattern>
+
+    <pattern name="Responsive Design" status="standard">
+      Use Tailwind CSS breakpoints: sm:640px, md:768px, lg:1024px, xl:1280px.
+      Grid layouts: grid-cols-1 md:grid-cols-2 lg:grid-cols-4 for overview cards.
+      Avoid dynamic class construction (Tailwind JIT limitation).
+    </pattern>
+
+    <pattern name="Date Range Picker" status="to-implement">
+      Custom component or library (e.g., date-fns + Popover + Calendar).
+      Predefined ranges: Last 4 weeks, Last 8 weeks, Last 12 weeks, All time.
+      Custom range selection with start/end dates.
+      Persist selection in URL query params for bookmarking.
+    </pattern>
+
+  </frontend-context>
+
+  <technical-implementation-guide>
+
+    <!-- Phase 1: Backend API Development (Priority: Critical) -->
+    <phase name="Backend API Development" priority="1">
+
+      <task id="1.1" priority="critical">
+        Create new DTO file: apps/api/src/pm/agents/dto/analytics-dashboard.dto.ts
+        Define: DashboardDataDto, VelocityTrendDto, ScopeTrendDto, CompletionTrendDto, ProductivityTrendDto, InsightDto.
+        Export from dto/index.ts for easy importing.
+      </task>
+
+      <task id="1.2" priority="critical">
+        Implement getDashboardData method in analytics.service.ts:
+        - Accept: projectId, workspaceId, dateRange: { start: Date, end: Date }
+        - Use Promise.all to fetch data in parallel:
+          * getVelocityTrend(projectId, workspaceId, dateRange)
+          * getScopeTrend(projectId, workspaceId, dateRange)
+          * getCompletionTrend(projectId, workspaceId, dateRange)
+          * getProductivityTrend(projectId, workspaceId, dateRange)
+          * getForecast(projectId, workspaceId) [already exists]
+          * getRiskEntries(projectId, workspaceId, 'ACTIVE') [already exists]
+          * getInsights(projectId, workspaceId) [stub for now]
+        - Call detectAnomaliesInTrends with all trend data
+        - Calculate healthScore using calculateHealthScore
+        - Return DashboardDataDto with overview + trends + anomalies + risks + insights
+        - Add error handling with logger
+        - Target execution time: &lt;800ms total
+      </task>
+
+      <task id="1.3" priority="critical">
+        Implement getVelocityTrend method:
+        - Call existing getVelocityHistory with date range filtering
+        - Calculate trend line using linear regression (calculateTrendLine helper)
+        - Calculate average velocity
+        - Call existing detectAnomalies on velocity values
+        - Map history + anomalies to VelocityTrendDto.dataPoints
+        - Return VelocityTrendDto with current, average, trend, dataPoints, trendLine
+      </task>
+
+      <task id="1.4" priority="critical">
+        Implement calculateTrendLine helper method:
+        - Input: values: number[]
+        - Use linear regression: y = mx + b
+        - Calculate slope (m) and intercept (b)
+        - Generate trend values for each data point
+        - Return: { slope: number, intercept: number, values: number[] }
+      </task>
+
+      <task id="1.5" priority="critical">
+        Implement getScopeTrend method:
+        - Call getScopeSnapshots helper to get historical scope data
+        - Calculate baseline scope (first snapshot)
+        - For each snapshot, calculate scopeChange and isScopeCreep (&gt;10% increase)
+        - Return ScopeTrendDto with current, baseline, scopeIncrease, dataPoints
+      </task>
+
+      <task id="1.6" priority="critical">
+        Implement getScopeSnapshots helper method:
+        - Option A (MVP): Calculate from task creation/completion timestamps
+          * For each period in dateRange, query:
+            - Total scope: sum of storyPoints for all tasks created before period end
+            - Completed scope: sum of storyPoints for tasks with completedAt before period end
+        - Option B (Future): Query PmPredictionLog if available
+        - Return array of: { period, totalPoints, completedPoints, completionPercentage }
+      </task>
+
+      <task id="1.7" priority="critical">
+        Implement getCompletionTrend method:
+        - Call getScopeSnapshots for historical completion data
+        - Calculate expected linear completion rate (1.0 / total periods)
+        - For each snapshot, calculate actual completion % and compare to expected
+        - Determine status: AHEAD (&gt;5% ahead), ON_TRACK (within ±5%), BEHIND (&lt;-5% behind)
+        - Return CompletionTrendDto with current, expected, status, dataPoints
+      </task>
+
+      <task id="1.8" priority="high">
+        Implement getProductivityTrend method:
+        - For each period in dateRange:
+          * pointsPerWeek: completed story points / 1 week
+          * cycleTime: average days from startedAt to completedAt for completed tasks
+          * throughput: count of completed tasks / 1 week
+        - Calculate current and average for each metric
+        - Return ProductivityTrendDto with current, average, dataPoints
+      </task>
+
+      <task id="1.9" priority="high">
+        Implement detectAnomaliesInTrends method:
+        - Input: { velocityTrend, scopeTrend, completionTrend, productivityTrend }
+        - Extract velocity anomalies from velocityTrend.dataPoints
+        - Detect scope creep anomalies (isScopeCreep = true)
+        - Detect completion delay anomalies (aheadBehind &lt; -10%)
+        - Detect productivity drop anomalies (if applicable)
+        - Return consolidated AnomalyDto[] with type, period, severity, description, value, expectedValue
+      </task>
+
+      <task id="1.10" priority="medium">
+        Implement calculateHealthScore method:
+        - velocityTrendScore: 1.0 if INCREASING, 0.5 if STABLE, 0.2 if DECREASING
+        - completionRateScore: 1.0 if AHEAD, 0.5 if ON_TRACK, 0.2 if BEHIND
+        - scopeStabilityScore: 1.0 - min(1.0, scopeIncrease) [0% increase = 1.0, 100% increase = 0.0]
+        - riskScore: 1.0 - (count of ACTIVE high-severity risks * 0.2)
+        - Formula: (velocityTrendScore * 0.3 + completionRateScore * 0.3 + scopeStabilityScore * 0.2 + riskScore * 0.2) * 10
+        - Return: number (0-10)
+      </task>
+
+      <task id="1.11" priority="medium">
+        Implement getInsights stub method:
+        - For MVP, return empty array: InsightDto[]
+        - Future: Call Prism agent for AI-generated insights
+        - Return array of: { id, type, title, description, actionable, action? }
+      </task>
+
+      <task id="1.12" priority="critical">
+        Add dashboard endpoint to analytics.controller.ts:
+        - @Get('dashboard')
+        - Query params: start (ISO date string), end (ISO date string)
+        - Parse dates and call analyticsService.getDashboardData(projectId, workspaceId, { start, end })
+        - Return DashboardDataDto
+        - Add @ApiOperation and @ApiResponse decorators
+        - Guards: AuthGuard, TenantGuard, RolesGuard
+        - Roles: owner, admin, member
+      </task>
+
+      <task id="1.13" priority="high">
+        Add date range filtering to getVelocityHistory:
+        - Current implementation uses fixed periods count
+        - Modify to accept optional dateRange parameter: { start: Date, end: Date }
+        - Calculate periods dynamically from date range
+        - Filter results to only include periods within range
+        - Maintain backward compatibility with existing periods parameter
+      </task>
+
+      <task id="1.14" priority="critical">
+        Test backend API with various scenarios:
+        - Project with 4 weeks of history (minimum data)
+        - Project with 12 weeks of history (full data)
+        - Project with no history (empty charts)
+        - Project with scope creep (&gt;10% increase)
+        - Project with anomalies (velocity spikes/drops)
+        - Measure response time - ensure &lt;800ms
+      </task>
+
+    </phase>
+
+    <!-- Phase 2: Database Optimization (Priority: High) -->
+    <phase name="Database Optimization" priority="2">
+
+      <task id="2.1" priority="high">
+        Create materialized view migration:
+        - File: packages/db/prisma/migrations/YYYYMMDDHHMMSS_create_mv_project_metrics/migration.sql
+        - CREATE MATERIALIZED VIEW mv_project_metrics_timeline AS SELECT ...
+        - Aggregate: project_id, period (weekly), velocity, total_scope, completed_scope, completion_rate, cycle_time, throughput
+        - Add indexes: (project_id, period), (project_id)
+        - Note: Materialized views not natively supported by Prisma - use raw SQL
+      </task>
+
+      <task id="2.2" priority="high">
+        Add refresh strategy for materialized view:
+        - Option A: Scheduled refresh (hourly cron job)
+        - Option B: On-demand refresh after task completion (event listener)
+        - Option C: Hybrid (hourly + after major changes)
+        - Command: REFRESH MATERIALIZED VIEW mv_project_metrics_timeline;
+        - For MVP, use Option A (hourly refresh)
+      </task>
+
+      <task id="2.3" priority="medium">
+        Add database indexes for date range queries:
+        - Task.completedAt (for velocity history)
+        - Task.createdAt (for scope snapshots)
+        - Task.projectId + Task.completedAt (composite for faster filtering)
+        - Prisma migration: @@index([projectId, completedAt])
+      </task>
+
+      <task id="2.4" priority="medium">
+        Consider Redis caching layer (optional for MVP):
+        - Cache key: `dashboard:${projectId}:${dateRange.start}:${dateRange.end}`
+        - TTL: 5 minutes (balance freshness vs performance)
+        - Invalidate on task completion or scope changes
+        - Only implement if &lt;800ms target not met without caching
+      </task>
+
+      <task id="2.5" priority="high">
+        Performance testing with large datasets:
+        - Create test project with 1000+ tasks over 1 year
+        - Measure query execution time for each trend method
+        - Profile slow queries using EXPLAIN ANALYZE
+        - Optimize query patterns (avoid N+1, use aggregations)
+        - Validate &lt;800ms P95 latency target
+      </task>
+
+    </phase>
+
+    <!-- Phase 3: Frontend Dashboard UI (Priority: Critical) -->
+    <phase name="Frontend Dashboard UI" priority="3">
+
+      <task id="3.1" priority="critical">
+        Create dashboard page route:
+        - File: apps/web/src/app/(dashboard)/pm/projects/[projectId]/analytics/page.tsx
+        - 'use client' directive for interactivity
+        - Extract projectId from params
+        - Set up state: dateRange (default: last 4 weeks)
+        - Use useQuery for data fetching
+      </task>
+
+      <task id="3.2" priority="critical">
+        Implement API client for analytics:
+        - File: apps/web/src/lib/api/pm/analytics.ts (or integrate into existing API client)
+        - Method: getDashboard(projectId: string, params: { start: string, end: string })
+        - Fetch: GET /api/pm/projects/:projectId/analytics/dashboard?start=...&amp;end=...
+        - Handle auth headers (Bearer token)
+        - Handle errors and throw for React Query to catch
+        - Return typed DashboardDataDto
+      </task>
+
+      <task id="3.3" priority="critical">
+        Implement overview cards section:
+        - Grid layout: grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4
+        - Card 1: Current Velocity (data.overview.currentVelocity pts/wk)
+        - Card 2: Completion (data.overview.completionPercentage %)
+        - Card 3: Health Score (data.overview.healthScore / 10) with color indicator
+        - Card 4: Predicted Completion (formatted date from data.overview.predictedCompletion)
+        - Use shadcn Card, CardHeader, CardTitle, CardDescription components
+      </task>
+
+      <task id="3.4" priority="critical">
+        Implement trends section with tabs:
+        - Use shadcn Tabs, TabsList, TabsTrigger, TabsContent
+        - Tabs: Velocity, Scope, Completion, Productivity
+        - Each tab contains a Card with chart component
+        - Card structure: CardHeader (title + description) + CardContent (chart)
+      </task>
+
+      <task id="3.5" priority="high">
+        Implement date range picker component:
+        - File: apps/web/src/components/ui/date-range-picker.tsx
+        - Props: value: { start: Date, end: Date }, onChange: (range) =&gt; void
+        - UI: Popover + Button (trigger) + Calendar (content)
+        - Predefined ranges: Last 4 weeks, Last 8 weeks, Last 12 weeks, All time
+        - Custom range selection with start/end date pickers
+        - Use date-fns for date manipulation
+        - Update URL query params on change (useRouter, useSearchParams)
+      </task>
+
+      <task id="3.6" priority="medium">
+        Implement export functionality:
+        - Export PDF: Use library like jsPDF or Puppeteer server-side
+        - Export PNG/SVG: Use Recharts export capabilities or html2canvas
+        - Export CSV: Generate CSV from trend data and trigger download
+        - Button in header: "Export PDF" dropdown menu
+        - For MVP, implement CSV export only (simpler)
+      </task>
+
+      <task id="3.7" priority="critical">
+        Implement loading and error states:
+        - Loading: DashboardSkeleton component with skeleton cards and placeholder charts
+        - Error: DashboardError component with error message and retry button
+        - Use React Query's isLoading and error states
+        - Ensure skeleton maintains layout (no layout shift)
+      </task>
+
+      <task id="3.8" priority="high">
+        Implement responsive layout:
+        - Desktop: Full 4-column overview, side-by-side risks/insights
+        - Tablet: 2-column overview, stacked risks/insights
+        - Mobile: Single column layout
+        - Test on breakpoints: 640px, 768px, 1024px, 1280px
+        - Ensure charts are readable on mobile (consider horizontal scroll for charts)
+      </task>
+
+      <task id="3.9" priority="medium">
+        Implement anomalies section (if anomalies exist):
+        - Conditional render: {data.anomalies.length &gt; 0 &amp;&amp; ...}
+        - Card with list of anomalies
+        - Each anomaly: Icon (severity color) + period + description
+        - Link to relevant chart tab on click
+      </task>
+
+      <task id="3.10" priority="medium">
+        Implement risks and insights grid:
+        - Grid layout: grid grid-cols-1 gap-4 md:grid-cols-2
+        - Left card: Active Risks (RiskList component)
+        - Right card: AI Insights (InsightCards component)
+        - Each risk: Severity badge + description + mitigation
+        - Each insight: Type icon + title + description + action button (if actionable)
+      </task>
+
+    </phase>
+
+    <!-- Phase 4: Chart Components (Priority: Critical) -->
+    <phase name="Chart Components" priority="4">
+
+      <task id="4.1" priority="critical">
+        Create VelocityChart component:
+        - File: apps/web/src/components/pm/analytics/VelocityChart.tsx
+        - Props: data: VelocityTrendDto
+        - Use Recharts ComposedChart (Bar + Line combination)
+        - Bar: dataKey="value", fill="#3b82f6", name="Velocity"
+        - Line 1: dataKey="trendValue", stroke="#10b981", strokeWidth={2}, name="Trend"
+        - Line 2: constant line at data.average, stroke="#6b7280", strokeDasharray="5 5", name="Average"
+        - Highlight anomalies: different bar opacity or color when isAnomaly=true
+        - Custom tooltip showing: period, value, trend, anomaly status
+        - ResponsiveContainer width="100%" height={400}
+        - XAxis: dataKey="period"
+        - YAxis: label="Story Points"
+        - CartesianGrid: strokeDasharray="3 3"
+        - Legend
+      </task>
+
+      <task id="4.2" priority="critical">
+        Create ScopeChart component:
+        - File: apps/web/src/components/pm/analytics/ScopeChart.tsx
+        - Props: data: ScopeTrendDto
+        - Use Recharts LineChart with 3 lines
+        - Line 1: dataKey="totalPoints", stroke="#3b82f6", name="Total Scope"
+        - Line 2: dataKey="completedPoints", stroke="#10b981", name="Completed"
+        - Line 3: dataKey="remainingPoints", stroke="#f59e0b", name="Remaining"
+        - Reference line at baseline: y={data.baseline}, stroke="#6b7280", strokeDasharray="5 5"
+        - Highlight scope creep: different marker or color when isScopeCreep=true
+        - Custom tooltip showing: period, all three values, baseline, % increase
+        - Warning indicator overlay for scope creep periods
+      </task>
+
+      <task id="4.3" priority="critical">
+        Create CompletionChart component:
+        - File: apps/web/src/components/pm/analytics/CompletionChart.tsx
+        - Props: data: CompletionTrendDto
+        - Use Recharts AreaChart or LineChart
+        - Area/Line 1: dataKey="actual", stroke="#3b82f6", fill="#93c5fd30", name="Actual"
+        - Area/Line 2: dataKey="expected", stroke="#6b7280", strokeDasharray="5 5", name="Expected"
+        - Color actual line green when ahead, red when behind
+        - Custom tooltip: period, actual %, expected %, ahead/behind %
+        - Status badge in header: AHEAD (green), ON_TRACK (yellow), BEHIND (red)
+      </task>
+
+      <task id="4.4" priority="high">
+        Create ProductivityChart component:
+        - File: apps/web/src/components/pm/analytics/ProductivityChart.tsx
+        - Props: data: ProductivityTrendDto
+        - Use Recharts ComposedChart with multiple Y-axes
+        - Bar: dataKey="pointsPerWeek", yAxisId="left", fill="#3b82f6", name="Points/Week"
+        - Line 1: dataKey="cycleTime", yAxisId="right", stroke="#10b981", name="Cycle Time (days)"
+        - Line 2: dataKey="throughput", yAxisId="left", stroke="#f59e0b", name="Throughput"
+        - Two Y-axes: left (points/throughput), right (cycle time)
+        - Custom tooltip with all metrics
+        - Legend
+      </task>
+
+      <task id="4.5" priority="high">
+        Implement custom chart tooltips:
+        - Create CustomTooltip component for each chart type
+        - Accept: active, payload props from Recharts
+        - Render: white background, border, shadow, padding
+        - Show: period label, all relevant metrics, anomaly indicator (if applicable)
+        - Format numbers: toFixed(1) for decimals, toLocaleString() for large numbers
+        - Conditional rendering based on active state
+      </task>
+
+      <task id="4.6" priority="medium">
+        Implement drill-down click handlers:
+        - Add onClick handler to chart elements (bars, lines, areas)
+        - Extract period from clicked data point
+        - Navigate to: /pm/projects/:projectId/analytics/period/:period
+        - Use Next.js router.push for navigation
+        - Alternative: Open modal/sheet with period details
+        - For MVP, implement navigation (period detail page in future story)
+      </task>
+
+      <task id="4.7" priority="high">
+        Implement chart accessibility:
+        - Ensure sufficient color contrast (WCAG AA)
+        - Add aria-label to charts
+        - Keyboard navigation support (if Recharts provides)
+        - Screen reader support (describe chart in text above/below)
+        - Consider alternative data table view for accessibility
+      </task>
+
+      <task id="4.8" priority="medium">
+        Create supporting components:
+        - File: apps/web/src/components/pm/analytics/RiskList.tsx
+          * Props: risks: PmRiskEntryDto[]
+          * Map risks to list items
+          * Each item: severity badge, description, mitigation, timestamp
+          * Click to view details or update status
+        - File: apps/web/src/components/pm/analytics/InsightCards.tsx
+          * Props: insights: InsightDto[]
+          * Map insights to card grid
+          * Each card: type icon, title, description, action button
+        - File: apps/web/src/components/pm/analytics/AnomalyList.tsx
+          * Props: anomalies: AnomalyDto[]
+          * List of anomalies with severity indicators
+        - File: apps/web/src/components/pm/analytics/DashboardSkeleton.tsx
+          * Loading state placeholder matching dashboard layout
+        - File: apps/web/src/components/pm/analytics/DashboardError.tsx
+          * Error state with retry button
+      </task>
+
+    </phase>
+
+    <!-- Phase 5: Testing and Optimization (Priority: High) -->
+    <phase name="Testing and Optimization" priority="5">
+
+      <task id="5.1" priority="high">
+        Unit test backend trend calculation methods:
+        - Test: getVelocityTrend with various history patterns (increasing, decreasing, stable)
+        - Test: getScopeTrend with scope increases and decreases
+        - Test: getCompletionTrend with ahead, on-track, behind scenarios
+        - Test: detectAnomaliesInTrends with various anomaly types
+        - Test: calculateHealthScore with different input combinations
+        - Test: calculateTrendLine with linear data
+        - Use Jest, mock Prisma service
+        - Coverage target: &gt;80% for new methods
+      </task>
+
+      <task id="5.2" priority="high">
+        Integration test dashboard API endpoint:
+        - Test: GET /analytics/dashboard with valid projectId and date range
+        - Test: Response structure matches DashboardDataDto
+        - Test: Error handling (invalid projectId, missing auth, invalid date range)
+        - Test: Workspace isolation (can't access other workspace projects)
+        - Test: Performance (response time &lt;800ms)
+        - Use Supertest, test database
+      </task>
+
+      <task id="5.3" priority="high">
+        E2E test dashboard page rendering:
+        - Test: Navigate to analytics dashboard
+        - Test: Verify overview cards display correct data
+        - Test: Verify all 4 charts render
+        - Test: Change date range and verify charts update
+        - Test: Click chart data point (verify navigation or modal)
+        - Test: Export CSV functionality
+        - Test: Loading state displays before data loads
+        - Test: Error state displays on API failure
+        - Use Playwright or Cypress
+      </task>
+
+      <task id="5.4" priority="high">
+        Performance test with large projects:
+        - Create test project with 1000+ tasks spanning 1 year
+        - Measure dashboard load time (API + frontend)
+        - Profile slow areas (database queries, data processing, chart rendering)
+        - Optimize bottlenecks
+        - Validate &lt;800ms load time (P95)
+        - Test with 10 concurrent users
+      </task>
+
+      <task id="5.5" priority="medium">
+        Test concurrent user access:
+        - Simulate 10-20 concurrent dashboard loads
+        - Measure response time degradation
+        - Verify no race conditions or data corruption
+        - Test caching behavior (if implemented)
+        - Ensure no performance degradation under load
+      </task>
+
+      <task id="5.6" priority="high">
+        Test chart rendering performance:
+        - Measure time to render each chart component
+        - Test with varying data sizes (4 weeks vs 1 year)
+        - Monitor frame rate during interactions (hover, zoom)
+        - Target: 60fps smooth interactions
+        - Optimize if rendering is slow (use React.memo, useMemo)
+      </task>
+
+      <task id="5.7" priority="medium">
+        Test responsive design on multiple viewports:
+        - Desktop: 1920x1080, 1366x768
+        - Tablet: 768x1024, 834x1194
+        - Mobile: 375x667, 390x844
+        - Verify layout doesn't break
+        - Verify charts are readable
+        - Test horizontal scroll for charts on mobile
+      </task>
+
+      <task id="5.8" priority="medium">
+        Accessibility testing:
+        - Run axe-core or Lighthouse accessibility audit
+        - Fix color contrast issues
+        - Verify keyboard navigation
+        - Test with screen reader (NVDA or VoiceOver)
+        - Ensure all interactive elements have labels
+        - Fix any WCAG AA violations
+      </task>
+
+      <task id="5.9" priority="low">
+        Test export functionality:
+        - Test CSV export contains correct data
+        - Test CSV format is valid (opens in Excel/Sheets)
+        - Test PDF export (if implemented) matches visual layout
+        - Test PNG/SVG export (if implemented) has sufficient resolution
+        - Test filename includes project name and date range
+      </task>
+
+    </phase>
+
+  </technical-implementation-guide>
+
+  <architecture-decisions>
+
+    <decision id="AD-1" status="approved">
+      <title>Single Aggregated API Endpoint</title>
+      <context>Dashboard needs data from multiple sources: velocity, scope, completion, productivity, risks, insights.</context>
+      <decision>Create single /analytics/dashboard endpoint returning all data in one request.</decision>
+      <rationale>
+        - Reduces network overhead (1 request vs 6+)
+        - Enables parallel data fetching on backend
+        - Simplifies frontend data fetching
+        - Easier to optimize for &lt;800ms target
+      </rationale>
+      <consequences>
+        - Larger response payload
+        - All-or-nothing data loading (no progressive loading)
+        - Backend must handle parallel processing efficiently
+      </consequences>
+    </decision>
+
+    <decision id="AD-2" status="approved">
+      <title>Recharts for Chart Library</title>
+      <context>Need React-compatible charting library for visualizations.</context>
+      <decision>Use Recharts (already installed: ^3.5.1).</decision>
+      <rationale>
+        - Already in project dependencies
+        - Good TypeScript support
+        - Declarative API (React-friendly)
+        - Supports ComposedChart (bars + lines)
+        - Responsive and accessible
+      </rationale>
+      <alternatives>
+        - Visx: More customizable but steeper learning curve
+        - Chart.js: Good but not as React-native
+        - D3: Very powerful but overkill for this use case
+      </alternatives>
+    </decision>
+
+    <decision id="AD-3" status="proposed">
+      <title>Materialized Views for Performance</title>
+      <context>Need to achieve &lt;800ms dashboard load time with potentially large datasets.</context>
+      <decision>Create materialized view for pre-aggregated project metrics.</decision>
+      <rationale>
+        - Shifts computation from query time to refresh time
+        - Significantly faster queries (index scan vs full table scan + aggregation)
+        - Acceptable staleness (hourly refresh)
+      </rationale>
+      <consequences>
+        - Data may be up to 1 hour stale
+        - Additional database storage
+        - Need refresh mechanism (cron job or event-driven)
+        - Prisma doesn't natively support materialized views (use raw SQL)
+      </consequences>
+      <alternatives>
+        - Redis caching: Faster but more complex invalidation logic
+        - Query optimization alone: May not meet &lt;800ms target for large projects
+      </alternatives>
+    </decision>
+
+    <decision id="AD-4" status="approved">
+      <title>Scope Snapshots Calculation Strategy</title>
+      <context>Need historical scope data for trend visualization.</context>
+      <decision>For MVP, calculate scope snapshots from task creation/completion timestamps.</decision>
+      <rationale>
+        - No schema changes required
+        - Leverages existing Task data
+        - Sufficient accuracy for trend visualization
+      </rationale>
+      <future-enhancement>
+        - Create PmPredictionLog table to store scope at prediction time
+        - Provides exact historical snapshots
+        - Enables prediction accuracy tracking
+      </future-enhancement>
+    </decision>
+
+    <decision id="AD-5" status="approved">
+      <title>Anomaly Detection Threshold</title>
+      <context>Need consistent anomaly detection across all trends.</context>
+      <decision>Use z-score threshold: 2.0σ for moderate, 3.0σ for severe anomalies.</decision>
+      <rationale>
+        - Consistent with PM-08.1 implementation
+        - Statistically sound (2σ ≈ 95% of data, 3σ ≈ 99.7%)
+        - Reduces false positives while catching significant deviations
+      </rationale>
+    </decision>
+
+    <decision id="AD-6" status="approved">
+      <title>Health Score Formula</title>
+      <context>Need single numeric indicator of overall project health.</context>
+      <decision>
+        healthScore = (velocityTrendScore * 0.3 + completionRateScore * 0.3 + scopeStabilityScore * 0.2 + riskScore * 0.2) * 10
+      </decision>
+      <rationale>
+        - Balances multiple factors with appropriate weights
+        - Velocity and completion most important (30% each)
+        - Scope and risk important but secondary (20% each)
+        - 0-10 scale is intuitive (like NPS)
+      </rationale>
+      <future-enhancement>
+        - Make weights configurable per workspace/project
+        - ML-based health scoring
+      </future-enhancement>
+    </decision>
+
+    <decision id="AD-7" status="approved">
+      <title>Date Range Default and Limits</title>
+      <context>Need sensible defaults and limits for date range selection.</context>
+      <decision>Default: Last 4 weeks. Max: 1 year.</decision>
+      <rationale>
+        - 4 weeks provides enough data for trend analysis without overwhelming
+        - 1 year limit prevents performance issues and DoS attacks
+        - Aligns with AC-4.1 requirement
+      </rationale>
+    </decision>
+
+    <decision id="AD-8" status="proposed">
+      <title>Drill-Down Implementation</title>
+      <context>AC-4.7 requires drill-down to period details.</context>
+      <decision>For MVP, navigate to /pm/projects/:projectId/analytics/period/:period route.</decision>
+      <rationale>
+        - Clean URL structure (bookmarkable, shareable)
+        - Separate page for detailed view
+        - Can implement period detail page in future story
+      </rationale>
+      <alternatives>
+        - Modal/sheet overlay: Quicker to implement but less shareable
+        - Inline expansion: Simpler but clutters dashboard
+      </alternatives>
+      <note>Period detail page implementation is out of scope for PM-08-4. Create stub route that shows "Coming soon" message.</note>
+    </decision>
+
+  </architecture-decisions>
+
+  <performance-considerations>
+
+    <metric name="Dashboard Load Time" target="&lt;800ms P95">
+      <measurement>Total time from API request to dashboard rendered with all charts</measurement>
+      <breakdown>
+        - API request/response: ~400ms (includes database queries + processing)
+        - Frontend rendering: ~200ms (React + Recharts)
+        - Network latency: ~200ms buffer
+      </breakdown>
+      <optimization-strategies>
+        - Use materialized view to pre-aggregate metrics
+        - Parallel data fetching with Promise.all
+        - Database query optimization (indexes, query patterns)
+        - Consider Redis caching if target not met
+        - Frontend: React.memo, useMemo for expensive calculations
+        - Code splitting for chart components (dynamic imports)
+      </optimization-strategies>
+    </metric>
+
+    <metric name="Chart Rendering Performance" target="60fps interactions">
+      <measurement>Frame rate during hover, zoom, pan interactions</measurement>
+      <optimization-strategies>
+        - Limit data points displayed (max 52 weeks for weekly view)
+        - Use Recharts optimization props (isAnimationActive={false} for large datasets)
+        - Debounce tooltip updates
+        - Memoize chart components with React.memo
+        - Virtualize data if displaying very long time series
+      </optimization-strategies>
+    </metric>
+
+    <metric name="Concurrent User Scalability" target="No degradation with 10 concurrent users">
+      <measurement>Response time stability under concurrent load</measurement>
+      <optimization-strategies>
+        - Database connection pooling
+        - Materialized view eliminates compute bottleneck
+        - Stateless API (no session locking)
+        - Consider CDN for static assets
+        - Monitor database query locks
+      </optimization-strategies>
+    </metric>
+
+  </performance-considerations>
+
+  <security-considerations>
+
+    <consideration id="SEC-1" priority="critical">
+      <title>Multi-Tenant Isolation</title>
+      <requirement>All dashboard queries must include workspaceId filter (RLS enforcement)</requirement>
+      <implementation>
+        - Every Prisma query includes: where: { projectId, workspaceId }
+        - TenantGuard validates workspaceId from JWT token
+        - Project ownership verification before returning data
+        - Never trust client-provided workspaceId
+      </implementation>
+    </consideration>
+
+    <consideration id="SEC-2" priority="high">
+      <title>Date Range Validation</title>
+      <requirement>Prevent DoS attacks via excessive date ranges</requirement>
+      <implementation>
+        - Validate start &lt; end
+        - Validate range ≤ 1 year (365 days)
+        - Validate dates are not in future
+        - Return 400 Bad Request for invalid ranges
+        - Log suspicious patterns (very large ranges)
+      </implementation>
+    </consideration>
+
+    <consideration id="SEC-3" priority="high">
+      <title>Rate Limiting</title>
+      <requirement>Prevent abuse of analytics endpoint</requirement>
+      <implementation>
+        - Add @Throttle() decorator to dashboard endpoint
+        - Limit: 10 requests per minute per user
+        - Use NestJS rate limiting module
+        - Return 429 Too Many Requests when exceeded
+        - Consider IP-based limiting for anonymous access
+      </implementation>
+    </consideration>
+
+    <consideration id="SEC-4" priority="medium">
+      <title>XSS Prevention in Chart Data</title>
+      <requirement>Sanitize all user-provided data displayed in charts</requirement>
+      <implementation>
+        - Escape task titles, descriptions in tooltips
+        - Validate period labels (should be predictable format: YYYY-Wnn)
+        - Use React's built-in XSS protection (don't use dangerouslySetInnerHTML)
+        - Sanitize insight descriptions if user-generated
+      </implementation>
+    </consideration>
+
+    <consideration id="SEC-5" priority="medium">
+      <title>Export Data Privacy</title>
+      <requirement>Ensure exported reports don't leak data across workspaces</requirement>
+      <implementation>
+        - Include workspaceId in export filename validation
+        - Watermark PDFs with workspace name
+        - Don't include sensitive data in CSV (e.g., individual user performance)
+        - Audit log all export actions
+        - Respect user permissions (only export data user can view)
+      </implementation>
+    </consideration>
+
+  </security-considerations>
+
+  <testing-strategy>
+
+    <test-category name="Unit Tests" coverage-target="&gt;80%">
+      <test-file path="apps/api/src/pm/agents/analytics.service.spec.ts">
+        - Test getVelocityTrend with increasing, decreasing, stable patterns
+        - Test getScopeTrend with 0%, 10%, 20% scope increases
+        - Test getCompletionTrend with ahead, on-track, behind scenarios
+        - Test getProductivityTrend calculation
+        - Test detectAnomaliesInTrends with various anomaly types
+        - Test calculateHealthScore edge cases (no data, all zeros, perfect scores)
+        - Test calculateTrendLine with linear, flat, missing data
+        - Test getScopeSnapshots with various task creation patterns
+        - Mock PrismaService for database isolation
+      </test-file>
+
+      <test-file path="apps/web/src/components/pm/analytics/VelocityChart.test.tsx">
+        - Test chart renders with valid data
+        - Test chart handles empty data gracefully
+        - Test anomaly highlighting displays correctly
+        - Test tooltip shows correct values
+        - Test trend line and average line render
+      </test-file>
+
+      <test-file path="apps/web/src/components/pm/analytics/ScopeChart.test.tsx">
+        - Test chart renders three lines (total, completed, remaining)
+        - Test baseline reference line displays
+        - Test scope creep indicators show when isScopeCreep=true
+        - Test tooltip formatting
+      </test-file>
+    </test-category>
+
+    <test-category name="Integration Tests">
+      <test-file path="apps/api/test/analytics-dashboard.e2e-spec.ts">
+        - Test GET /pm/projects/:projectId/analytics/dashboard returns 200 with valid auth
+        - Test response structure matches DashboardDataDto schema
+        - Test date range filtering (start/end params)
+        - Test workspace isolation (401 for other workspace projects)
+        - Test performance (&lt;800ms response time)
+        - Test with empty project (no tasks)
+        - Test with project with anomalies
+        - Test concurrent requests (10 simultaneous)
+      </test-file>
+    </test-category>
+
+    <test-category name="E2E Tests">
+      <test-file path="apps/web/e2e/analytics-dashboard.spec.ts">
+        - Test: User navigates to /pm/projects/:projectId/analytics
+        - Test: Dashboard loads and displays overview cards
+        - Test: All 4 trend charts render
+        - Test: User changes date range to "Last 8 weeks"
+        - Test: Charts update with new data
+        - Test: User clicks Velocity tab, sees velocity chart
+        - Test: User clicks scope chart data point (navigation occurs)
+        - Test: User exports CSV, file downloads
+        - Test: Loading skeleton displays during data fetch
+        - Test: Error state displays when API fails (simulate 500 error)
+      </test-file>
+    </test-category>
+
+    <test-category name="Performance Tests">
+      <test-script name="Load Test">
+        - Create project with 1000 tasks over 52 weeks
+        - Call dashboard API 100 times
+        - Measure: P50, P95, P99 response times
+        - Assert: P95 &lt; 800ms
+        - Profile slow queries with EXPLAIN ANALYZE
+      </test-script>
+
+      <test-script name="Concurrent User Test">
+        - Simulate 10 concurrent dashboard loads
+        - Measure response time for each user
+        - Assert: No degradation &gt; 20%
+        - Monitor database connection pool usage
+      </test-script>
+
+      <test-script name="Chart Rendering Test">
+        - Render VelocityChart with 52 data points
+        - Measure time to first paint
+        - Simulate 100 tooltip hovers (measure frame rate)
+        - Assert: 60fps maintained
+      </test-script>
+    </test-category>
+
+  </testing-strategy>
+
+  <observability>
+
+    <logging>
+      <event name="dashboard_load">
+        - Level: INFO
+        - Fields: projectId, workspaceId, userId, dateRange (start/end), loadTimeMs, dataPoints
+        - Trigger: Every dashboard API request completion
+        - Purpose: Performance monitoring, usage analytics
+      </event>
+
+      <event name="anomaly_detected">
+        - Level: WARN
+        - Fields: projectId, anomalyType, period, severity, value, expectedValue
+        - Trigger: When detectAnomaliesInTrends finds anomalies
+        - Purpose: Track frequency of anomalies, validate detection logic
+      </event>
+
+      <event name="dashboard_error">
+        - Level: ERROR
+        - Fields: projectId, workspaceId, errorType, errorMessage, stackTrace
+        - Trigger: Any exception in getDashboardData
+        - Purpose: Error tracking, debugging
+      </event>
+
+      <event name="slow_dashboard_query">
+        - Level: WARN
+        - Fields: projectId, queryType, executionTimeMs, threshold
+        - Trigger: Any query &gt; 500ms
+        - Purpose: Identify performance bottlenecks
+      </event>
+    </logging>
+
+    <metrics>
+      <metric name="dashboard_load_time_ms">
+        - Type: Histogram
+        - Labels: projectId, dateRange (4w/8w/12w/custom)
+        - Percentiles: P50, P95, P99
+        - Alert: P95 &gt; 1000ms
+      </metric>
+
+      <metric name="dashboard_requests_total">
+        - Type: Counter
+        - Labels: projectId, workspaceId, status (success/error)
+        - Alert: Error rate &gt; 1%
+      </metric>
+
+      <metric name="chart_render_time_ms">
+        - Type: Histogram
+        - Labels: chartType (velocity/scope/completion/productivity)
+        - Purpose: Frontend performance monitoring
+      </metric>
+
+      <metric name="anomaly_detections_total">
+        - Type: Counter
+        - Labels: anomalyType, severity
+        - Purpose: Track anomaly frequency
+      </metric>
+    </metrics>
+
+    <alerts>
+      <alert name="DashboardLoadTimeSlow" severity="warning">
+        - Condition: dashboard_load_time_ms P95 &gt; 1000ms for 5 minutes
+        - Action: Notify on-call engineer
+        - Runbook: Check database query performance, materialized view refresh status
+      </alert>
+
+      <alert name="DashboardErrorRate" severity="critical">
+        - Condition: dashboard_requests_total{status="error"} rate &gt; 1% for 5 minutes
+        - Action: Page on-call engineer
+        - Runbook: Check API logs, database connectivity, auth service
+      </alert>
+
+      <alert name="DatabaseQueryTimeout" severity="critical">
+        - Condition: Any dashboard query &gt; 5 seconds
+        - Action: Page on-call engineer
+        - Runbook: Check database load, connection pool, long-running queries
+      </alert>
+    </alerts>
+
+  </observability>
+
+  <wireframe-reference>
+    <wireframe id="PM-33" title="Predictive Analytics Dashboard (Prism)">
+      <file-path>docs/modules/bm-pm/design/wireframes/Finished wireframes and html files/pm-33_predictive_analytics_(prism)/</file-path>
+      <files>
+        <file>code.html - Interactive HTML prototype</file>
+        <file>screen.png - Visual reference</file>
+      </files>
+      <key-elements>
+        - Overview cards at top (4 metrics)
+        - Tabbed chart section (Velocity, Scope, Completion, Productivity)
+        - Risk list on left side
+        - Insights/recommendations on right side
+        - Date range picker in header
+        - Export button in header
+      </key-elements>
+    </wireframe>
+
+    <wireframe id="PM-15" title="Project Reports">
+      <file-path>docs/modules/bm-pm/design/wireframes/Finished wireframes and html files/pm-15_project_reports/</file-path>
+      <files>
+        <file>code.html - Interactive HTML prototype</file>
+        <file>screen.png - Visual reference</file>
+      </files>
+      <key-elements>
+        - Report header with project name and date range
+        - Summary metrics section
+        - Chart visualizations
+        - Data tables
+        - Export options (PDF, CSV)
+      </key-elements>
+    </wireframe>
+  </wireframe-reference>
+
+  <future-enhancements>
+    <enhancement priority="low">
+      <title>Period Detail Page</title>
+      <description>
+        Implement /pm/projects/:projectId/analytics/period/:period route showing:
+        - Tasks completed in period
+        - Team member contributions
+        - Blockers encountered
+        - Sprint/phase retrospective notes (if available)
+        - Previous/Next period navigation
+        - Export period data
+      </description>
+    </enhancement>
+
+    <enhancement priority="low">
+      <title>Machine Learning Trend Forecasting</title>
+      <description>
+        Use ML models (ARIMA, Prophet) for more accurate trend predictions.
+        Integrate with Prism agent for automated insight generation.
+      </description>
+    </enhancement>
+
+    <enhancement priority="low">
+      <title>Custom Chart Builder</title>
+      <description>
+        Allow users to create custom charts with selected metrics.
+        Drag-and-drop interface for metric selection.
+        Save custom chart configurations.
+      </description>
+    </enhancement>
+
+    <enhancement priority="low">
+      <title>Dashboard Templates</title>
+      <description>
+        Pre-configured dashboard layouts for different focus areas:
+        - Velocity-focused (for Scrum teams)
+        - Scope-focused (for stakeholders)
+        - Risk-focused (for project managers)
+        Save and share dashboard configurations.
+      </description>
+    </enhancement>
+
+    <enhancement priority="low">
+      <title>Team Comparison Charts</title>
+      <description>
+        Compare multiple projects across workspace:
+        - Portfolio-level velocity trends
+        - Cross-project health scores
+        - Team productivity benchmarking
+      </description>
+    </enhancement>
+
+    <enhancement priority="low">
+      <title>Real-Time Dashboard Updates</title>
+      <description>
+        Use WebSocket to push live updates when tasks are completed.
+        Update charts in real-time without page refresh.
+        Show "new data available" notification.
+      </description>
+    </enhancement>
+
+    <enhancement priority="low">
+      <title>Advanced Export Options</title>
+      <description>
+        Export to PowerPoint (chart slides).
+        Export to Google Sheets (live data sync).
+        Scheduled email reports (daily/weekly digests).
+      </description>
+    </enhancement>
+
+    <enhancement priority="medium">
+      <title>PmPredictionLog Table</title>
+      <description>
+        Create table to store prediction history:
+        - Enables accuracy tracking (predicted vs actual)
+        - Provides exact historical scope snapshots
+        - Supports prediction calibration over time
+        - Schema: id, projectId, tenantId, predictionDate, predictedCompletionDate, actualCompletionDate, confidence, velocityAtTime, scopeAtTime, accuracy
+      </description>
+    </enhancement>
+  </future-enhancements>
+
+  <dependencies-and-prerequisites>
+    <prerequisite status="done">PM-08.1 - Prism Agent Foundation</prerequisite>
+    <prerequisite status="done">PM-08.2 - Pattern Detection</prerequisite>
+    <prerequisite status="done">PM-08.3 - Predictive Timeline</prerequisite>
+    <prerequisite status="done">PM-02 - Task Management (Task model with storyPoints, completedAt)</prerequisite>
+    <prerequisite status="done">PM-01 - Project Management (Project model with targetDate)</prerequisite>
+
+    <external-dependency status="installed">recharts ^3.5.1 - Chart library</external-dependency>
+    <external-dependency status="installed">@tanstack/react-query - Data fetching</external-dependency>
+    <external-dependency status="to-install">date-fns - Date manipulation for date range picker</external-dependency>
+
+    <optional-dependency status="future">jsPDF or Puppeteer - PDF export</optional-dependency>
+    <optional-dependency status="future">html2canvas - PNG chart export</optional-dependency>
+    <optional-dependency status="future">Redis - Caching layer (if performance requires)</optional-dependency>
+  </dependencies-and-prerequisites>
+
+  <notes-and-gotchas>
+    <note type="important">
+      Materialized views are not natively supported by Prisma. Use raw SQL in migration files.
+      Query materialized view using $queryRaw or $queryRawUnsafe in Prisma Client.
+    </note>
+
+    <note type="important">
+      Tailwind CSS JIT compiler requires full class strings in source code.
+      Avoid dynamic class construction like `ml-${collapsed ? '16' : '64'}`.
+      Use ternary with full strings: `collapsed ? 'ml-16' : 'ml-64'` or inline styles for truly dynamic values.
+    </note>
+
+    <note type="performance">
+      For large projects (&gt;1000 tasks), consider limiting date range to 1 year or implementing pagination for chart data.
+      Monitor database query performance and add indexes as needed.
+    </note>
+
+    <note type="ux">
+      Default date range to "Last 4 weeks" per AC-4.1.
+      Remember user's last selected date range in localStorage for better UX.
+      Persist date range in URL query params for bookmarking/sharing.
+    </note>
+
+    <note type="security">
+      Always validate workspaceId from JWT token, never from client input.
+      Rate limit analytics endpoint to prevent abuse (10 req/min per user).
+      Validate date range to prevent DoS (max 1 year range).
+    </note>
+
+    <note type="accessibility">
+      Ensure charts have sufficient color contrast (WCAG AA).
+      Provide alternative data table view for screen readers.
+      Add aria-labels to all interactive elements.
+      Test keyboard navigation.
+    </note>
+
+    <gotcha type="data-accuracy">
+      Scope snapshots calculated from task creation timestamps may not be 100% accurate if tasks are bulk-imported or backdated.
+      For production, consider implementing PmPredictionLog table to store exact historical snapshots.
+    </gotcha>
+
+    <gotcha type="chart-library">
+      Recharts has some performance issues with large datasets (&gt;500 points).
+      Limit data points displayed (e.g., max 52 weeks for weekly view).
+      Use isAnimationActive={false} for better performance with large datasets.
+    </gotcha>
+
+    <gotcha type="date-handling">
+      Week number calculation can be tricky across year boundaries.
+      Use ISO week date standard (ISO 8601) for consistency.
+      getWeekNumber method already implemented in analytics.service.ts - reuse it.
+    </gotcha>
+  </notes-and-gotchas>
+
+</story-context>

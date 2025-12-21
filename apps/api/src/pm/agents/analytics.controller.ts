@@ -28,6 +28,7 @@ import {
   UpdateRiskStatusDto,
   RiskStatus,
 } from './dto/prism-forecast.dto';
+import { DashboardDataDto } from './dto/analytics-dashboard.dto';
 
 /**
  * Analytics Controller
@@ -222,5 +223,68 @@ export class AnalyticsController {
     @Body() dto: UpdateRiskStatusDto,
   ): Promise<PmRiskEntryDto> {
     return this.analyticsService.updateRiskStatus(riskId, projectId, workspaceId, dto.status);
+  }
+
+  // ============================================
+  // DASHBOARD ENDPOINT (PM-08-4)
+  // ============================================
+
+  @Get('dashboard')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({
+    summary: 'Get analytics dashboard data',
+    description: 'Retrieve comprehensive dashboard data including trends, overview metrics, anomalies, risks, and insights',
+  })
+  @ApiQuery({
+    name: 'start',
+    required: false,
+    type: String,
+    description: 'Start date for trend analysis (ISO 8601 format, defaults to 4 weeks ago)',
+    example: '2025-11-21',
+  })
+  @ApiQuery({
+    name: 'end',
+    required: false,
+    type: String,
+    description: 'End date for trend analysis (ISO 8601 format, defaults to today)',
+    example: '2025-12-21',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard data retrieved successfully',
+    type: Object,
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request - invalid date range' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  async getDashboard(
+    @Param('projectId') projectId: string,
+    @CurrentWorkspace() workspaceId: string,
+    @Query('start') startParam?: string,
+    @Query('end') endParam?: string,
+  ): Promise<DashboardDataDto> {
+    // Parse and validate date range
+    const end = endParam ? new Date(endParam) : new Date();
+    const start = startParam
+      ? new Date(startParam)
+      : new Date(end.getTime() - 28 * 24 * 60 * 60 * 1000); // Default: 4 weeks ago
+
+    // Validate date range
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new Error('Invalid date format. Use ISO 8601 format (YYYY-MM-DD).');
+    }
+
+    if (start >= end) {
+      throw new Error('Start date must be before end date.');
+    }
+
+    // Enforce max 1 year range (prevent DoS)
+    const maxRangeDays = 365;
+    const rangeDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+    if (rangeDays > maxRangeDays) {
+      throw new Error(`Date range cannot exceed ${maxRangeDays} days.`);
+    }
+
+    return this.analyticsService.getDashboardData(projectId, workspaceId, { start, end });
   }
 }

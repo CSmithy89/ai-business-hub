@@ -743,4 +743,282 @@ describe('AnalyticsService', () => {
       expect(result).toContain('Investigate');
     });
   });
+
+  // ============================================
+  // DASHBOARD ANALYTICS TESTS (PM-08-4)
+  // ============================================
+
+  describe('calculateTrendLine', () => {
+    it('should calculate trend line for increasing values', () => {
+      const values = [1, 2, 3, 4, 5];
+      const result = (service as any).calculateTrendLine(values);
+
+      expect(result.slope).toBeCloseTo(1.0, 1);
+      expect(result.intercept).toBeCloseTo(1.0, 1);
+      expect(result.values).toHaveLength(5);
+    });
+
+    it('should handle flat values', () => {
+      const values = [5, 5, 5, 5, 5];
+      const result = (service as any).calculateTrendLine(values);
+
+      expect(result.slope).toBeCloseTo(0, 1);
+      expect(result.intercept).toBeCloseTo(5, 1);
+    });
+
+    it('should handle single value', () => {
+      const values = [10];
+      const result = (service as any).calculateTrendLine(values);
+
+      expect(result.slope).toBe(0);
+      expect(result.intercept).toBe(10);
+      expect(result.values).toEqual([10]);
+    });
+
+    it('should handle empty array', () => {
+      const values: number[] = [];
+      const result = (service as any).calculateTrendLine(values);
+
+      expect(result.slope).toBe(0);
+      expect(result.intercept).toBe(0);
+    });
+  });
+
+  describe('calculateHealthScore', () => {
+    it('should return perfect score for healthy project', () => {
+      const velocityTrend = { trend: 'INCREASING' as const };
+      const scopeTrend = { scopeIncrease: 0 };
+      const completionTrend = { status: 'AHEAD' as const };
+      const risks: any[] = [];
+
+      const score = (service as any).calculateHealthScore(
+        velocityTrend,
+        scopeTrend,
+        completionTrend,
+        risks,
+      );
+
+      expect(score).toBeGreaterThan(8); // Should be ~10
+    });
+
+    it('should penalize declining velocity', () => {
+      const velocityTrend = { trend: 'DECREASING' as const };
+      const scopeTrend = { scopeIncrease: 0 };
+      const completionTrend = { status: 'ON_TRACK' as const };
+      const risks: any[] = [];
+
+      const score = (service as any).calculateHealthScore(
+        velocityTrend,
+        scopeTrend,
+        completionTrend,
+        risks,
+      );
+
+      expect(score).toBeLessThan(6); // Should be penalized
+    });
+
+    it('should penalize scope creep', () => {
+      const velocityTrend = { trend: 'STABLE' as const };
+      const scopeTrend = { scopeIncrease: 0.5 }; // 50% increase
+      const completionTrend = { status: 'ON_TRACK' as const };
+      const risks: any[] = [];
+
+      const score = (service as any).calculateHealthScore(
+        velocityTrend,
+        scopeTrend,
+        completionTrend,
+        risks,
+      );
+
+      expect(score).toBeLessThan(7); // Should be penalized
+    });
+
+    it('should penalize high-severity risks', () => {
+      const velocityTrend = { trend: 'STABLE' as const };
+      const scopeTrend = { scopeIncrease: 0 };
+      const completionTrend = { status: 'ON_TRACK' as const };
+      const risks = [
+        { probability: 0.8, impact: 0.8 }, // High severity
+        { probability: 0.7, impact: 0.7 }, // High severity
+      ];
+
+      const score = (service as any).calculateHealthScore(
+        velocityTrend,
+        scopeTrend,
+        completionTrend,
+        risks,
+      );
+
+      expect(score).toBeLessThan(6); // Should be heavily penalized
+    });
+  });
+
+  describe('calculateCompletionStatus', () => {
+    it('should return AHEAD when >5% ahead', () => {
+      const status = (service as any).calculateCompletionStatus(0.6, 0.5);
+      expect(status).toBe('AHEAD');
+    });
+
+    it('should return BEHIND when >5% behind', () => {
+      const status = (service as any).calculateCompletionStatus(0.4, 0.5);
+      expect(status).toBe('BEHIND');
+    });
+
+    it('should return ON_TRACK when within ±5%', () => {
+      const status = (service as any).calculateCompletionStatus(0.52, 0.5);
+      expect(status).toBe('ON_TRACK');
+    });
+  });
+
+  describe('detectAnomaliesInTrends', () => {
+    it('should detect velocity anomalies', () => {
+      const trends = {
+        velocityTrend: {
+          dataPoints: [
+            { period: '2024-W01', value: 10, trendValue: 10, isAnomaly: true, anomalySeverity: 'HIGH' as const },
+          ],
+        },
+        scopeTrend: { dataPoints: [] },
+        completionTrend: { dataPoints: [] },
+        productivityTrend: { dataPoints: [] },
+      };
+
+      const anomalies = (service as any).detectAnomaliesInTrends(trends);
+
+      expect(anomalies).toHaveLength(1);
+      expect(anomalies[0].description).toContain('Velocity');
+    });
+
+    it('should detect scope creep anomalies', () => {
+      const trends = {
+        velocityTrend: { dataPoints: [] },
+        scopeTrend: {
+          dataPoints: [
+            {
+              period: '2024-W01',
+              totalPoints: 120,
+              baselinePoints: 100,
+              scopeChange: 0.20,
+              isScopeCreep: true,
+            },
+          ],
+        },
+        completionTrend: { dataPoints: [] },
+        productivityTrend: { dataPoints: [] },
+      };
+
+      const anomalies = (service as any).detectAnomaliesInTrends(trends);
+
+      expect(anomalies).toHaveLength(1);
+      expect(anomalies[0].description).toContain('Scope increased');
+      expect(anomalies[0].severity).toBe('HIGH');
+    });
+
+    it('should detect completion delay anomalies', () => {
+      const trends = {
+        velocityTrend: { dataPoints: [] },
+        scopeTrend: { dataPoints: [] },
+        completionTrend: {
+          dataPoints: [
+            {
+              period: '2024-W01',
+              actual: 0.3,
+              expected: 0.5,
+              aheadBehind: -0.2, // 20% behind
+            },
+          ],
+        },
+        productivityTrend: { dataPoints: [] },
+      };
+
+      const anomalies = (service as any).detectAnomaliesInTrends(trends);
+
+      expect(anomalies).toHaveLength(1);
+      expect(anomalies[0].description).toContain('Completion');
+      expect(anomalies[0].description).toContain('behind');
+    });
+  });
+
+  describe('getInsights', () => {
+    it('should return empty array (stub)', async () => {
+      const insights = await (service as any).getInsights('proj1', 'ws1');
+      expect(insights).toEqual([]);
+    });
+  });
+
+  describe('getDashboardData', () => {
+    it('should aggregate all dashboard data in parallel', async () => {
+      // Mock all dependent methods
+      const mockVelocityTrend = {
+        current: 10,
+        average: 10,
+        trend: 'STABLE' as const,
+        dataPoints: [],
+        trendLine: { slope: 0, intercept: 10 },
+      };
+
+      const mockScopeTrend = {
+        current: 100,
+        baseline: 100,
+        scopeIncrease: 0,
+        dataPoints: [],
+      };
+
+      const mockCompletionTrend = {
+        current: 0.5,
+        expected: 0.5,
+        status: 'ON_TRACK' as const,
+        dataPoints: [],
+      };
+
+      const mockProductivityTrend = {
+        current: 10,
+        average: 10,
+        dataPoints: [],
+      };
+
+      const mockForecast = {
+        predictedDate: '2025-12-31',
+        confidence: ConfidenceLevel.HIGH,
+        optimisticDate: '2025-12-25',
+        pessimisticDate: '2026-01-07',
+        reasoning: 'Test',
+        factors: [],
+        velocityAvg: 10,
+        dataPoints: 6,
+      };
+
+      jest.spyOn(service, 'getVelocityTrend').mockResolvedValue(mockVelocityTrend as any);
+      jest.spyOn(service, 'getScopeTrend').mockResolvedValue(mockScopeTrend as any);
+      jest.spyOn(service, 'getCompletionTrend').mockResolvedValue(mockCompletionTrend as any);
+      jest.spyOn(service, 'getProductivityTrend').mockResolvedValue(mockProductivityTrend as any);
+      jest.spyOn(service, 'getForecast').mockResolvedValue(mockForecast);
+      jest.spyOn(service, 'getRiskEntries').mockResolvedValue([]);
+      jest.spyOn(service as any, 'getInsights').mockResolvedValue([]);
+
+      const dateRange = {
+        start: new Date('2025-11-21'),
+        end: new Date('2025-12-21'),
+      };
+
+      const result = await service.getDashboardData('proj1', 'ws1', dateRange);
+
+      expect(result).toBeDefined();
+      expect(result.overview).toBeDefined();
+      expect(result.overview.currentVelocity).toBe(10);
+      expect(result.overview.completionPercentage).toBe(0.5);
+      expect(result.overview.healthScore).toBeGreaterThan(0);
+      expect(result.overview.predictedCompletion).toBe('2025-12-31');
+
+      expect(result.trends).toBeDefined();
+      expect(result.trends.velocity).toEqual(mockVelocityTrend);
+      expect(result.trends.scope).toEqual(mockScopeTrend);
+      expect(result.trends.completion).toEqual(mockCompletionTrend);
+      expect(result.trends.productivity).toEqual(mockProductivityTrend);
+
+      expect(result.anomalies).toBeDefined();
+      expect(result.risks).toBeDefined();
+      expect(result.insights).toBeDefined();
+    });
+  });
 });
