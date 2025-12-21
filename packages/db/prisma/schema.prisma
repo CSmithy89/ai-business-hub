@@ -1705,6 +1705,8 @@ model KnowledgePage {
   slug        String  @db.VarChar(255)
   content     Json    // Tiptap/ProseMirror JSON
   contentText String  @map("content_text") @db.Text // Plain text for FTS
+  isTemplate  Boolean @default(false) @map("is_template")
+  templateCategory String? @map("template_category") @db.VarChar(100)
 
   // Verification
   isVerified    Boolean   @default(false) @map("is_verified")
@@ -1747,6 +1749,7 @@ model KnowledgePage {
   @@index([parentId])
   @@index([ownerId])
   @@index([isVerified])
+  @@index([isTemplate])
   @@index([updatedAt])
   @@index([deletedAt])
   // Composite indices for verification queries (cron job and stale detection)

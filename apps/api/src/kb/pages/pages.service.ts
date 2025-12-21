@@ -178,6 +178,8 @@ export class PagesService {
               parentId: dto.parentId || null,
               content,
               contentText,
+              isTemplate: dto.isTemplate ?? false,
+              templateCategory: dto.templateCategory ?? null,
               ownerId: actorId,
             },
           })
@@ -263,6 +265,7 @@ export class PagesService {
       tenantId,
       workspaceId,
       ...(query.includeDeleted ? {} : { deletedAt: null }),
+      ...(query.includeTemplates ? {} : { isTemplate: false }),
       ...(query.parentId !== undefined ? { parentId: query.parentId } : {}),
     }
 
@@ -349,7 +352,7 @@ export class PagesService {
 
   async findOne(tenantId: string, workspaceId: string, id: string, actorId: string) {
     const page = await this.prisma.knowledgePage.findFirst({
-      where: { id, tenantId, workspaceId, deletedAt: null },
+      where: { id, tenantId, workspaceId, deletedAt: null, isTemplate: false },
       include: {
         children: {
           select: {
@@ -409,7 +412,7 @@ export class PagesService {
     dto: UpdatePageDto,
   ) {
     const existing = await this.prisma.knowledgePage.findFirst({
-      where: { id, tenantId, workspaceId, deletedAt: null },
+      where: { id, tenantId, workspaceId, deletedAt: null, isTemplate: false },
       select: { id: true, title: true, slug: true, content: true },
     })
     if (!existing) throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
@@ -556,7 +559,7 @@ export class PagesService {
 
   async remove(tenantId: string, workspaceId: string, actorId: string, id: string) {
     const existing = await this.prisma.knowledgePage.findFirst({
-      where: { id, tenantId, workspaceId, deletedAt: null },
+      where: { id, tenantId, workspaceId, deletedAt: null, isTemplate: false },
       select: { id: true, title: true, slug: true },
     })
     if (!existing) throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
@@ -596,7 +599,7 @@ export class PagesService {
 
   async restore(tenantId: string, workspaceId: string, actorId: string, id: string) {
     const existing = await this.prisma.knowledgePage.findFirst({
-      where: { id, tenantId, workspaceId },
+      where: { id, tenantId, workspaceId, isTemplate: false },
       select: { id: true, title: true, slug: true, deletedAt: true },
     })
 
@@ -645,7 +648,7 @@ export class PagesService {
     favorite: boolean,
   ) {
     const page = await this.prisma.knowledgePage.findFirst({
-      where: { id, tenantId, workspaceId, deletedAt: null },
+      where: { id, tenantId, workspaceId, deletedAt: null, isTemplate: false },
       select: { id: true, favoritedBy: true },
     })
 
@@ -688,6 +691,7 @@ export class PagesService {
           tenantId,
           workspaceId,
           deletedAt: null,
+          isTemplate: false,
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -722,6 +726,7 @@ export class PagesService {
         tenantId,
         workspaceId,
         deletedAt: null,
+        isTemplate: false,
         favoritedBy: { has: actorId },
       },
       orderBy: { title: 'asc' },
@@ -753,7 +758,7 @@ export class PagesService {
     const clampedLimit = Math.min(Math.max(Math.floor(limit), 1), MAX_RELATED_PAGES_LIMIT)
 
     const exists = await this.prisma.knowledgePage.findFirst({
-      where: { id: pageId, tenantId, workspaceId, deletedAt: null },
+      where: { id: pageId, tenantId, workspaceId, deletedAt: null, isTemplate: false },
       select: { id: true },
     })
     if (!exists) throw new NotFoundException(KB_ERROR.PAGE_NOT_FOUND)
@@ -794,6 +799,7 @@ export class PagesService {
           kp.tenant_id = ${tenantId}
           AND kp.workspace_id = ${workspaceId}
           AND kp.deleted_at IS NULL
+          AND kp.is_template = FALSE
           AND pe.page_id <> ${pageId}
       )
       SELECT page_id, title, slug, snippet, distance, updated_at

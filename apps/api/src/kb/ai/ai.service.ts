@@ -122,7 +122,7 @@ export class KbAiService {
     pageId: string,
   ): Promise<KbSummaryResult> {
     const page = await this.prisma.knowledgePage.findFirst({
-      where: { id: pageId, tenantId, workspaceId, deletedAt: null },
+      where: { id: pageId, tenantId, workspaceId, deletedAt: null, isTemplate: false },
       select: { title: true, contentText: true },
     })
 

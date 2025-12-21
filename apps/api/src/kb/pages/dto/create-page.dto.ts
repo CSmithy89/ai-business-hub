@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength, Validate } from 'class-validator'
+import { IsBoolean, IsOptional, IsString, MaxLength, Validate } from 'class-validator'
 import { TiptapContentValidator } from '../validators/tiptap-content.validator'
 
 // Type for Tiptap JSON content - compatible with Prisma's JSON type
@@ -25,4 +25,13 @@ export class CreatePageDto {
   @IsOptional()
   @Validate(TiptapContentValidator)
   content?: TiptapContent // Tiptap JSON document - validated by custom validator
+
+  @IsOptional()
+  @IsBoolean()
+  isTemplate?: boolean
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100, { message: 'Template category must not exceed 100 characters' })
+  templateCategory?: string
 }

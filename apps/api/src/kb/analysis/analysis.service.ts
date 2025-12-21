@@ -99,7 +99,7 @@ export class GapAnalysisService {
         take: 500,
       }),
       this.prisma.knowledgePage.findMany({
-        where: { workspaceId, deletedAt: null },
+        where: { workspaceId, deletedAt: null, isTemplate: false },
         select: { id: true, title: true, slug: true },
       }),
       this.verificationService.getStalPages(workspaceId),

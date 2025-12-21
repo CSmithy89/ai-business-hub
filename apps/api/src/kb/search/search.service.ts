@@ -70,6 +70,7 @@ export class SearchService {
             tenant_id = ${tenantId}
             AND workspace_id = ${workspaceId}
             AND deleted_at IS NULL
+            AND is_template = FALSE
             AND to_tsvector('english', content_text) @@ plainto_tsquery('english', ${q})
           ORDER BY rank DESC, updated_at DESC
           LIMIT ${limit}
@@ -86,6 +87,7 @@ export class SearchService {
           tenant_id = ${tenantId}
           AND workspace_id = ${workspaceId}
           AND deleted_at IS NULL
+          AND is_template = FALSE
           AND to_tsvector('english', content_text) @@ plainto_tsquery('english', ${q})
       `
 
@@ -168,6 +170,7 @@ export class SearchService {
           kp.tenant_id = ${tenantId}
           AND kp.workspace_id = ${workspaceId}
           AND kp.deleted_at IS NULL
+          AND kp.is_template = FALSE
       )
       SELECT page_id, title, slug, snippet, distance, updated_at
       FROM best_chunk_per_page
@@ -185,6 +188,7 @@ export class SearchService {
         kp.tenant_id = ${tenantId}
         AND kp.workspace_id = ${workspaceId}
         AND kp.deleted_at IS NULL
+        AND kp.is_template = FALSE
     `
 
       const total = Number(countResult[0]?.count || 0)

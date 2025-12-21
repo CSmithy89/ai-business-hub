@@ -51,10 +51,33 @@ export interface KBPageResponse {
   data: KBPage
 }
 
+export interface KBTemplate {
+  id: string
+  title: string
+  category: string
+  description?: string
+  content: TiptapDocument
+  isBuiltIn: boolean
+}
+
+export interface KBTemplateListResponse {
+  data: KBTemplate[]
+}
+
+export interface KBTemplateResponse {
+  data: KBTemplate
+}
+
 export interface CreateKBPageInput {
   title: string
   parentId?: string
   content?: TiptapDocument
+}
+
+export interface CreateKBTemplateInput {
+  title: string
+  category?: string
+  content: TiptapDocument
 }
 
 export interface UpdateKBPageInput {
@@ -199,6 +222,58 @@ async function createKBPage(params: {
 
   const data = await safeJson(response)
   return data as KBPageResponse
+}
+
+async function fetchKBTemplates(params: {
+  workspaceId: string
+  token?: string
+}): Promise<KBTemplateListResponse> {
+  const { workspaceId, token } = params
+
+  const response = await fetch(`${getBaseUrl()}/api/kb/templates`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Failed to fetch KB templates: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as KBTemplateListResponse
+}
+
+async function createKBTemplate(params: {
+  input: CreateKBTemplateInput
+  workspaceId: string
+  token?: string
+}): Promise<KBTemplateResponse> {
+  const { input, workspaceId, token } = params
+
+  const response = await fetch(`${getBaseUrl()}/api/kb/templates`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Failed to create KB template: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as KBTemplateResponse
 }
 
 async function updateKBPage(params: {
@@ -376,6 +451,35 @@ export function useCreateKBPage(workspaceId: string) {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to create page')
+    },
+  })
+}
+
+export function useKBTemplates(workspaceId: string) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+
+  return useQuery({
+    queryKey: ['kb', 'templates', workspaceId],
+    queryFn: () => fetchKBTemplates({ workspaceId, token }),
+    enabled: !!workspaceId && !!token,
+  })
+}
+
+export function useCreateKBTemplate(workspaceId: string) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: CreateKBTemplateInput) =>
+      createKBTemplate({ input, workspaceId, token }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kb', 'templates', workspaceId] })
+      toast.success('Template created')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create template')
     },
   })
 }

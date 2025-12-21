@@ -22,6 +22,8 @@ import { MentionModule } from './mentions/mention.module'
 import { ApprovalsModule } from '../approvals/approvals.module'
 import { GapAnalysisController } from './analysis/analysis.controller'
 import { GapAnalysisService } from './analysis/analysis.service'
+import { TemplatesController } from './templates/templates.controller'
+import { TemplatesService } from './templates/templates.service'
 
 @Module({
   imports: [
@@ -42,6 +44,7 @@ import { GapAnalysisService } from './analysis/analysis.service'
     KbAiController,
     KbAskController,
     GapAnalysisController,
+    TemplatesController,
   ],
   providers: [
     PagesService,
@@ -50,6 +53,7 @@ import { GapAnalysisService } from './analysis/analysis.service'
     RagService,
     KbAiService,
     GapAnalysisService,
+    TemplatesService,
     LinkingService,
     KnowledgeExtractionHandler,
     {

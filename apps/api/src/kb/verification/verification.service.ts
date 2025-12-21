@@ -202,6 +202,7 @@ export class VerificationService {
       where: {
         workspaceId,
         deletedAt: null,
+        isTemplate: false,
         OR: [
           // Expired verification
           {
