@@ -1,0 +1,462 @@
+'use client'
+
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import {
+  addDays,
+  addMonths,
+  differenceInDays,
+  endOfDay,
+  endOfMonth,
+  format,
+  isValid,
+  parseISO,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+} from 'date-fns'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { useUpdatePmTask, type TaskListItem } from '@/hooks/use-pm-tasks'
+import { cn } from '@/lib/utils'
+
+type ZoomLevel = 'day' | 'week' | 'month'
+
+type TaskDates = {
+  start: Date
+  end: Date
+}
+
+type DragMode = 'move' | 'start' | 'end'
+
+type DragState = {
+  taskId: string
+  mode: DragMode
+  startX: number
+  start: Date
+  end: Date
+}
+
+const ZOOM_LABELS: Record<ZoomLevel, string> = {
+  day: 'Day',
+  week: 'Week',
+  month: 'Month',
+}
+
+const ZOOM_DAY_WIDTH: Record<ZoomLevel, number> = {
+  day: 36,
+  week: 18,
+  month: 10,
+}
+
+const DEFAULT_DURATION_DAYS = 5
+const ROW_HEIGHT = 52
+
+function parseDate(value: string | null, fallback: Date): Date {
+  if (!value) return fallback
+  const parsed = parseISO(value)
+  return isValid(parsed) ? parsed : fallback
+}
+
+function buildTaskDates(task: TaskListItem, overrides?: TaskDates): TaskDates {
+  if (overrides) return overrides
+  const baseStart = parseDate(task.startedAt, parseDate(task.createdAt, new Date()))
+  const endCandidate = parseDate(task.dueDate, addDays(baseStart, DEFAULT_DURATION_DAYS))
+  const normalizedStart = startOfDay(baseStart)
+  const normalizedEnd = endOfDay(endCandidate)
+  if (normalizedEnd < normalizedStart) {
+    return { start: normalizedStart, end: endOfDay(addDays(normalizedStart, 1)) }
+  }
+  return { start: normalizedStart, end: normalizedEnd }
+}
+
+function buildSegments(start: Date, end: Date, zoom: ZoomLevel) {
+  const segments: Array<{ label: string; start: Date; days: number }> = []
+
+  if (zoom === 'day') {
+    let cursor = startOfDay(start)
+    while (cursor <= end) {
+      segments.push({ label: format(cursor, 'MMM d'), start: cursor, days: 1 })
+      cursor = addDays(cursor, 1)
+    }
+    return segments
+  }
+
+  if (zoom === 'week') {
+    let cursor = startOfWeek(start, { weekStartsOn: 1 })
+    while (cursor <= end) {
+      segments.push({ label: `Wk ${format(cursor, 'MMM d')}`, start: cursor, days: 7 })
+      cursor = addDays(cursor, 7)
+    }
+    return segments
+  }
+
+  let cursor = startOfMonth(start)
+  while (cursor <= end) {
+    const monthEnd = endOfMonth(cursor)
+    const days = differenceInDays(monthEnd, cursor) + 1
+    segments.push({ label: format(cursor, 'MMM yyyy'), start: cursor, days })
+    cursor = addMonths(cursor, 1)
+  }
+  return segments
+}
+
+function buildCriticalPath(items: Array<{ id: string; parentId: string | null; duration: number }>) {
+  const childrenMap = new Map<string, string[]>()
+  const durationMap = new Map<string, number>()
+
+  items.forEach((item) => {
+    durationMap.set(item.id, item.duration)
+    if (item.parentId) {
+      const list = childrenMap.get(item.parentId) ?? []
+      list.push(item.id)
+      childrenMap.set(item.parentId, list)
+    }
+  })
+
+  const memo = new Map<string, { length: number; path: string[] }>()
+  const visiting = new Set<string>()
+
+  const dfs = (id: string): { length: number; path: string[] } => {
+    if (memo.has(id)) return memo.get(id)!
+    if (visiting.has(id)) return { length: 0, path: [] }
+    visiting.add(id)
+    const duration = durationMap.get(id) ?? 0
+    const children = childrenMap.get(id) ?? []
+    if (children.length === 0) {
+      const result = { length: duration, path: [id] }
+      memo.set(id, result)
+      visiting.delete(id)
+      return result
+    }
+
+    let best = { length: 0, path: [] as string[] }
+    for (const child of children) {
+      const childResult = dfs(child)
+      if (childResult.length > best.length) {
+        best = childResult
+      }
+    }
+
+    const result = { length: duration + best.length, path: [id, ...best.path] }
+    memo.set(id, result)
+    visiting.delete(id)
+    return result
+  }
+
+  let bestPath: string[] = []
+  let bestLength = 0
+  items.forEach((item) => {
+    const result = dfs(item.id)
+    if (result.length > bestLength) {
+      bestLength = result.length
+      bestPath = result.path
+    }
+  })
+
+  return new Set(bestPath)
+}
+
+export function TimelineView({ tasks }: { tasks: TaskListItem[] }) {
+  const [zoom, setZoom] = useState<ZoomLevel>('week')
+  const [draftDates, setDraftDates] = useState<Record<string, TaskDates>>({})
+  const [dragState, setDragState] = useState<DragState | null>(null)
+  const updateTask = useUpdatePmTask()
+  const latestDraftDates = useRef(draftDates)
+  const projectId = tasks[0]?.projectId ?? null
+
+  useEffect(() => {
+    latestDraftDates.current = draftDates
+  }, [draftDates])
+
+  useEffect(() => {
+    if (!projectId || typeof window === 'undefined') return
+    const stored = window.localStorage.getItem(`pm-timeline-zoom-${projectId}`)
+    if (stored === 'day' || stored === 'week' || stored === 'month') {
+      setZoom(stored)
+    }
+  }, [projectId])
+
+  const schedule = useMemo(() => {
+    return tasks.map((task) => {
+      const overrides = draftDates[task.id]
+      const dates = buildTaskDates(task, overrides)
+      return { task, dates }
+    })
+  }, [tasks, draftDates])
+
+  const timelineBounds = useMemo(() => {
+    if (schedule.length === 0) {
+      const today = startOfDay(new Date())
+      return { start: today, end: addDays(today, 14) }
+    }
+
+    let min = schedule[0].dates.start
+    let max = schedule[0].dates.end
+    schedule.forEach(({ dates }) => {
+      if (dates.start < min) min = dates.start
+      if (dates.end > max) max = dates.end
+    })
+
+    return {
+      start: startOfDay(addDays(min, -5)),
+      end: endOfDay(addDays(max, 5)),
+    }
+  }, [schedule])
+
+  const totalDays = Math.max(1, differenceInDays(timelineBounds.end, timelineBounds.start) + 1)
+  const dayWidth = ZOOM_DAY_WIDTH[zoom]
+  const timelineWidth = totalDays * dayWidth
+  const segments = useMemo(() => buildSegments(timelineBounds.start, timelineBounds.end, zoom), [timelineBounds, zoom])
+
+  const criticalPath = useMemo(() => {
+    const items = schedule.map(({ task, dates }) => ({
+      id: task.id,
+      parentId: task.parentId,
+      duration: Math.max(1, differenceInDays(dates.end, dates.start) + 1),
+    }))
+    return buildCriticalPath(items)
+  }, [schedule])
+
+  useEffect(() => {
+    if (!dragState) return
+
+    const handleMove = (event: globalThis.MouseEvent) => {
+      const deltaDays = Math.round((event.clientX - dragState.startX) / dayWidth)
+      let nextStart = dragState.start
+      let nextEnd = dragState.end
+
+      if (dragState.mode === 'move') {
+        nextStart = addDays(dragState.start, deltaDays)
+        nextEnd = addDays(dragState.end, deltaDays)
+      } else if (dragState.mode === 'start') {
+        nextStart = addDays(dragState.start, deltaDays)
+        if (nextStart >= dragState.end) {
+          nextStart = addDays(dragState.end, -1)
+        }
+      } else {
+        nextEnd = addDays(dragState.end, deltaDays)
+        if (nextEnd <= dragState.start) {
+          nextEnd = addDays(dragState.start, 1)
+        }
+      }
+
+      setDraftDates((prev) => ({
+        ...prev,
+        [dragState.taskId]: { start: startOfDay(nextStart), end: endOfDay(nextEnd) },
+      }))
+    }
+
+    const handleUp = () => {
+      const updated = latestDraftDates.current[dragState.taskId]
+      if (updated) {
+        updateTask.mutate({
+          taskId: dragState.taskId,
+          input: {
+            startedAt: startOfDay(updated.start).toISOString(),
+            dueDate: endOfDay(updated.end).toISOString(),
+          },
+        })
+      }
+      setDragState(null)
+    }
+
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+
+    return () => {
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+  }, [dayWidth, dragState, updateTask])
+
+  const dependencyLines = useMemo(() => {
+    const idToIndex = new Map<string, number>()
+    schedule.forEach(({ task }, index) => {
+      idToIndex.set(task.id, index)
+    })
+
+    return schedule.flatMap(({ task, dates }) => {
+      if (!task.parentId) return []
+      const parentIndex = idToIndex.get(task.parentId)
+      if (parentIndex === undefined) return []
+      const parent = schedule[parentIndex]
+      const parentLeft = differenceInDays(parent.dates.end, timelineBounds.start) * dayWidth + dayWidth
+      const childLeft = differenceInDays(dates.start, timelineBounds.start) * dayWidth
+      const parentY = parentIndex * ROW_HEIGHT + ROW_HEIGHT / 2
+      const childY = idToIndex.get(task.id)! * ROW_HEIGHT + ROW_HEIGHT / 2
+
+      return [
+        {
+          id: `${task.parentId}-${task.id}`,
+          path: `M ${parentLeft} ${parentY} L ${parentLeft + 12} ${parentY} L ${parentLeft + 12} ${childY} L ${childLeft} ${childY}`,
+        },
+      ]
+    })
+  }, [schedule, timelineBounds, dayWidth])
+
+  if (tasks.length === 0) {
+    return (
+      <div className="rounded-lg border border-[rgb(var(--color-border-default))] bg-[rgb(var(--color-bg-primary))] p-6">
+        <h3 className="text-sm font-semibold text-[rgb(var(--color-text-primary))]">Timeline</h3>
+        <p className="mt-2 text-sm text-[rgb(var(--color-text-secondary))]">No tasks to plot yet.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-lg border border-[rgb(var(--color-border-default))] bg-[rgb(var(--color-bg-primary))]">
+      <div className="flex flex-col gap-3 border-b border-[rgb(var(--color-border-default))] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-base font-semibold text-[rgb(var(--color-text-primary))]">Timeline</h3>
+          <p className="text-xs text-[rgb(var(--color-text-secondary))]">
+            Drag to adjust start/end dates. Critical path is highlighted.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {(Object.keys(ZOOM_LABELS) as ZoomLevel[]).map((level) => (
+            <Button
+              key={level}
+              size="sm"
+              variant={zoom === level ? 'secondary' : 'outline'}
+              onClick={() => {
+                setZoom(level)
+                if (projectId && typeof window !== 'undefined') {
+                  window.localStorage.setItem(`pm-timeline-zoom-${projectId}`, level)
+                }
+              }}
+            >
+              {ZOOM_LABELS[level]}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[240px_minmax(0,1fr)]">
+        <div className="border-r border-[rgb(var(--color-border-default))]">
+          <div className="flex h-10 items-center border-b border-[rgb(var(--color-border-default))] px-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--color-text-secondary))]">
+            Task
+          </div>
+          <div className="divide-y divide-[rgb(var(--color-border-default))]">
+            {schedule.map(({ task, dates }) => {
+              const isCritical = criticalPath.has(task.id)
+              return (
+                <div key={task.id} className="flex h-[52px] items-center gap-2 px-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[rgb(var(--color-text-secondary))]">#{task.taskNumber}</span>
+                      <span className="truncate text-sm font-medium text-[rgb(var(--color-text-primary))]">
+                        {task.title}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[11px] text-[rgb(var(--color-text-secondary))]">
+                      {format(dates.start, 'MMM d')} → {format(dates.end, 'MMM d')}
+                    </div>
+                  </div>
+                  {isCritical ? (
+                    <Badge variant="destructive" className="ml-auto text-[10px]">
+                      Critical
+                    </Badge>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <div style={{ width: `${timelineWidth}px` }}>
+            <div className="flex h-10 border-b border-[rgb(var(--color-border-default))]">
+              {segments.map((segment) => (
+                <div
+                  key={`${segment.label}-${segment.start.toISOString()}`}
+                  className="flex items-center justify-center border-r border-[rgb(var(--color-border-default))] text-[11px] font-medium text-[rgb(var(--color-text-secondary))]"
+                  style={{ width: `${segment.days * dayWidth}px` }}
+                >
+                  {segment.label}
+                </div>
+              ))}
+            </div>
+            <div className="relative">
+              <svg
+                className="absolute left-0 top-0 pointer-events-none"
+                width={timelineWidth}
+                height={schedule.length * ROW_HEIGHT}
+              >
+                <defs>
+                  <marker
+                    id="dependency-arrow"
+                    markerWidth="6"
+                    markerHeight="6"
+                    refX="5"
+                    refY="3"
+                    orient="auto"
+                  >
+                    <path d="M0,0 L6,3 L0,6 Z" fill="rgba(79, 70, 229, 0.5)" />
+                  </marker>
+                </defs>
+                {dependencyLines.map((line) => (
+                  <path
+                    key={line.id}
+                    d={line.path}
+                    stroke="rgba(79, 70, 229, 0.5)"
+                    strokeWidth="1.5"
+                    fill="none"
+                    markerEnd="url(#dependency-arrow)"
+                  />
+                ))}
+              </svg>
+              <div className="divide-y divide-[rgb(var(--color-border-default))]">
+                {schedule.map(({ task, dates }) => {
+                  const isCritical = criticalPath.has(task.id)
+                  const startOffset = differenceInDays(dates.start, timelineBounds.start) * dayWidth
+                  const durationDays = Math.max(1, differenceInDays(dates.end, dates.start) + 1)
+                  const barWidth = Math.max(dayWidth, durationDays * dayWidth)
+                  const handleDown = (mode: DragMode) => (event: ReactMouseEvent<HTMLDivElement>) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setDragState({
+                      taskId: task.id,
+                      mode,
+                      startX: event.clientX,
+                      start: dates.start,
+                      end: dates.end,
+                    })
+                  }
+
+                  return (
+                    <div key={task.id} className="relative h-[52px]">
+                      <div
+                        className={cn(
+                          'absolute top-3 h-6 rounded-md border px-2 text-xs font-semibold text-white shadow-sm',
+                          isCritical
+                            ? 'border-red-400 bg-red-500'
+                            : 'border-[rgb(var(--color-primary-500))] bg-[rgb(var(--color-primary-500))]',
+                        )}
+                        style={{ left: `${startOffset}px`, width: `${barWidth}px` }}
+                        onMouseDown={handleDown('move')}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <span className="truncate">{task.title}</span>
+                        <span
+                          className="absolute left-0 top-0 h-full w-2 cursor-ew-resize"
+                          onMouseDown={handleDown('start')}
+                          aria-hidden="true"
+                        />
+                        <span
+                          className="absolute right-0 top-0 h-full w-2 cursor-ew-resize"
+                          onMouseDown={handleDown('end')}
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

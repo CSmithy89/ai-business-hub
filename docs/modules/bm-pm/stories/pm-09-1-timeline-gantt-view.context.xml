@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-09-1-timeline-gantt-view</story-id>
+    <generated>2025-12-22T00:00:00Z</generated>
+    <epic>PM-09 - Advanced Views</epic>
+    <description>
+      Timeline/Gantt view for PM tasks with drag/resize and zoom.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/ProjectTasksContent.tsx">
+      <description>
+        Task view toggles and view rendering; add Timeline view toggle.
+      </description>
+    </file>
+    <file path="apps/web/src/lib/pm/view-preferences.ts">
+      <description>
+        View mode preferences persisted per project.
+      </description>
+    </file>
+    <file path="apps/web/src/hooks/use-pm-tasks.ts">
+      <description>
+        Task list data includes startedAt and dueDate; update mutation used for drag/resize.
+      </description>
+    </file>
+    <file path="apps/api/src/pm/tasks/dto/update-task.dto.ts">
+      <description>
+        Update DTO controls which task fields can be updated.
+      </description>
+    </file>
+    <file path="apps/api/src/pm/tasks/tasks.service.ts">
+      <description>
+        Task update logic and activity/event publishing.
+      </description>
+    </file>
+  </existing-code>
+</story-context>

@@ -60,6 +60,11 @@ export class UpdateTaskDto {
   dueDate?: Date | null
 
   @IsOptional()
+  @Transform(({ value }) => toOptionalDate(value), { toClassOnly: true })
+  @IsDate()
+  startedAt?: Date | null
+
+  @IsOptional()
   @IsEnum(TaskStatus)
   status?: TaskStatus
 

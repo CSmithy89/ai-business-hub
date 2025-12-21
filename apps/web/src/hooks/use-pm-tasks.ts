@@ -236,6 +236,7 @@ export type UpdateTaskInput = Partial<{
   assignmentType: AssignmentType
   agentId: string | null
   dueDate: string | null
+  startedAt: string | null
   storyPoints: number | null
   phaseId: string | null
 }>

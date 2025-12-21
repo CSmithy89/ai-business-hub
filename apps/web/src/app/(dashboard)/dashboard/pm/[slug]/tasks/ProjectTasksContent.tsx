@@ -24,6 +24,7 @@ import { TaskDetailSheet } from './TaskDetailSheet'
 import { TaskListView } from '@/components/pm/views/TaskListView'
 import { KanbanBoardView } from '@/components/pm/views/KanbanBoardView'
 import { CalendarView } from '@/components/pm/views/CalendarView'
+import { TimelineView } from '@/components/pm/views/TimelineView'
 import { GroupBySelector } from '@/components/pm/kanban/GroupBySelector'
 import { SavedViewsDropdown } from '@/components/pm/saved-views/SavedViewsDropdown'
 import { SaveViewModal } from '@/components/pm/saved-views/SaveViewModal'
@@ -128,7 +129,7 @@ export function ProjectTasksContent() {
     dueDateTo: null,
     phaseId: null,
   })
-  const [viewMode, setViewMode] = useState<'simple' | 'table' | 'kanban' | 'calendar'>(() => {
+  const [viewMode, setViewMode] = useState<'simple' | 'table' | 'kanban' | 'calendar' | 'timeline'>(() => {
     if (project?.id) {
       const prefs = getViewPreferences(project.id)
       return prefs.viewMode || 'simple'
@@ -179,7 +180,15 @@ export function ProjectTasksContent() {
     }
 
     setActiveSavedViewId(view.id)
-    setViewMode(view.viewType.toLowerCase() as 'simple' | 'table' | 'kanban' | 'calendar')
+    const nextMode =
+      view.viewType === 'KANBAN'
+        ? 'kanban'
+        : view.viewType === 'CALENDAR'
+          ? 'calendar'
+          : view.viewType === 'TABLE'
+            ? 'table'
+            : 'simple'
+    setViewMode(nextMode)
     setSearch((view.filters.search as string) || '')
 
     // Convert saved view filters to new filter format
@@ -227,7 +236,7 @@ export function ProjectTasksContent() {
     }
   }
 
-  const handleViewModeChange = (mode: 'simple' | 'table' | 'kanban' | 'calendar') => {
+  const handleViewModeChange = (mode: 'simple' | 'table' | 'kanban' | 'calendar' | 'timeline') => {
     setViewMode(mode)
     if (project?.id) {
       setViewPreferences(project.id, { viewMode: mode })
@@ -294,8 +303,17 @@ export function ProjectTasksContent() {
 
   // Current view state for saving - must be before early returns to avoid rules-of-hooks violation
   const currentViewState = useMemo(() => {
+    const viewType: 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE' =
+      viewMode === 'kanban'
+        ? 'KANBAN'
+        : viewMode === 'calendar'
+          ? 'CALENDAR'
+          : viewMode === 'table'
+            ? 'TABLE'
+            : 'LIST'
+
     return {
-      viewType: viewMode.toUpperCase() as 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE',
+      viewType,
       filters: {
         search,
         status: filters.status.length === 1 ? filters.status[0] : undefined,
@@ -418,6 +436,13 @@ export function ProjectTasksContent() {
             <CalendarDays className="h-4 w-4 mr-2" />
             Calendar
           </Button>
+          <Button
+            variant={viewMode === 'timeline' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => handleViewModeChange('timeline')}
+          >
+            Timeline
+          </Button>
           {viewMode === 'kanban' && (
             <GroupBySelector value={groupBy} onChange={handleGroupByChange} />
           )}
@@ -480,6 +505,10 @@ export function ProjectTasksContent() {
               tasks={tasks}
               onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
             />
+          </ErrorBoundary>
+        ) : viewMode === 'timeline' ? (
+          <ErrorBoundary errorMessage="Failed to load timeline view">
+            <TimelineView tasks={tasks} />
           </ErrorBoundary>
         ) : viewMode === 'kanban' ? (
           <ErrorBoundary errorMessage="Failed to load kanban view">

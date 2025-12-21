@@ -19,8 +19,8 @@ export interface ViewPreferences {
   sortOrder?: 'asc' | 'desc'
   /** Kanban board grouping option */
   kanbanGroupBy?: GroupByOption
-  /** Active view mode: simple, table, kanban, or calendar */
-  viewMode?: 'simple' | 'table' | 'kanban' | 'calendar'
+  /** Active view mode: simple, table, kanban, calendar, or timeline */
+  viewMode?: 'simple' | 'table' | 'kanban' | 'calendar' | 'timeline'
 }
 
 /** Default column configuration for list view */
