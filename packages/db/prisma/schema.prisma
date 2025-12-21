@@ -1149,6 +1149,7 @@ model Task {
   dueDate     DateTime? @map("due_date")
   startedAt   DateTime? @map("started_at")
   completedAt DateTime? @map("completed_at")
+  cancelledAt DateTime? @map("cancelled_at")
 
   // Hierarchy
   parentId String? @map("parent_id")

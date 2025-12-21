@@ -639,16 +639,19 @@ enum RiskType {
 }
 
 enum RiskSeverity {
-  INFO
-  WARNING
   CRITICAL
+  HIGH
+  MEDIUM
+  LOW
 }
 
 enum RiskStatus {
-  ACTIVE
-  ACKNOWLEDGED
+  IDENTIFIED
+  ANALYZING
+  MITIGATING
+  MONITORING
   RESOLVED
-  DISMISSED
+  ACCEPTED
 }
 
 enum HealthLevel {
