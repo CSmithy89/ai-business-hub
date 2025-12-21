@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import type { TiptapDocument } from '@hyvve/shared'
 
 export default function NewKBPagePage() {
   const router = useRouter()
@@ -27,15 +28,17 @@ export default function NewKBPagePage() {
   const [title, setTitle] = useState('')
   const [selectedTemplateId, setSelectedTemplateId] = useState('blank')
 
+  const emptyTemplateContent: TiptapDocument = {
+    type: 'doc',
+    content: [],
+  }
+
   const emptyTemplate = {
     id: 'blank',
     title: 'Blank Page',
     description: 'Start from scratch with an empty page.',
     category: 'Blank',
-    content: {
-      type: 'doc',
-      content: [],
-    },
+    content: emptyTemplateContent,
     isBuiltIn: true,
   }
 

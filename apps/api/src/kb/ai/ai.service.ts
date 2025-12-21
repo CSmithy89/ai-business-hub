@@ -262,7 +262,7 @@ export class KbAiService {
     const systemMessage = [
       'You are Scribe, the Knowledge Base assistant for HYVVE AI Business Hub.',
       'Answer the user question using only the provided context.',
-      'If the answer is not in the context, respond with \"Not found\".',
+      'If the answer is not in the context, respond with "Not found".',
       'Include citations by referencing the numbered context entries when relevant.',
     ].join('\n')
 
