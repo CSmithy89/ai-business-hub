@@ -18,6 +18,7 @@ export class CreateSavedViewDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(100)
   projectId!: string
 
   @IsEnum(ViewType)

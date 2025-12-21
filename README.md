@@ -419,6 +419,15 @@ pnpm lint
 pnpm type-check
 ```
 
+### Environment Configuration
+
+Create `.env.local` from `.env.example` and set required values (database, Redis, auth).
+
+Optional CSRF protection (cookie-based sessions):
+- Set `CSRF_ENABLED=true` in `.env.local`
+- Fetch a token from `GET /csrf` (sets CSRF cookie + returns token)
+- Send `x-csrf-token: <token>` on POST/PUT/PATCH/DELETE requests
+
 ### Monorepo Commands
 
 | Command | Description |

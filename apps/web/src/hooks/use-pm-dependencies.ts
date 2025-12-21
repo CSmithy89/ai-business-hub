@@ -1,19 +1,13 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { useSession } from '@/lib/auth-client'
+import { getActiveWorkspaceId, getSessionToken, useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
 import { safeJson } from '@/lib/utils/safe-json'
 
 function getBaseUrl(): string {
   if (!NESTJS_API_URL) throw new Error('NESTJS_API_URL is not configured')
   return NESTJS_API_URL.replace(/\/$/, '')
-}
-
-function getSessionToken(session: unknown): string | undefined {
-  const direct = (session as { token?: string } | null)?.token
-  const nested = (session as { session?: { token?: string } } | null)?.session?.token
-  return direct || nested || undefined
 }
 
 export type DependencyRelation = {
@@ -103,7 +97,7 @@ async function fetchDependencies(params: {
 
 export function usePmDependencies(filters: DependenciesFilters, options?: { enabled?: boolean }) {
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
   const enabled = !!workspaceId && (options?.enabled ?? true)
 

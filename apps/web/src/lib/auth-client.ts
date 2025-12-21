@@ -70,6 +70,48 @@ export async function signOut() {
  */
 export const useSession = authClient.useSession
 
+type SessionLike =
+  | {
+      token?: string
+      accessToken?: string
+      activeWorkspaceId?: string | null
+      session?: {
+        token?: string
+        accessToken?: string
+        activeWorkspaceId?: string | null
+        session?: {
+          token?: string
+          accessToken?: string
+          activeWorkspaceId?: string | null
+        }
+      }
+    }
+  | null
+  | undefined
+
+export function getSessionToken(session: unknown): string | undefined {
+  const typed = session as SessionLike
+  return (
+    typed?.token ??
+    typed?.accessToken ??
+    typed?.session?.token ??
+    typed?.session?.accessToken ??
+    typed?.session?.session?.token ??
+    typed?.session?.session?.accessToken ??
+    undefined
+  )
+}
+
+export function getActiveWorkspaceId(session: unknown): string | undefined {
+  const typed = session as SessionLike
+  return (
+    typed?.session?.activeWorkspaceId ??
+    typed?.activeWorkspaceId ??
+    typed?.session?.session?.activeWorkspaceId ??
+    undefined
+  )
+}
+
 /**
  * Session interface from better-auth
  */

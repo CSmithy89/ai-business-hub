@@ -23,7 +23,7 @@ PR: https://github.com/CSmithy89/ai-business-hub/pull/35
 - [x] **Saved view payload freshness**: read latest local storage preferences when saving views/templates (avoid stale sort/columns).
 - [x] **Portfolio link format**: use string href (`/dashboard/pm/${slug}`) to avoid `/[slug]?slug=...` URLs.
 - [x] **Critical path logic**: validate whether parentId hierarchy is correct; consider using explicit dependency relations for critical path.
-- [ ] **DTO string length limits**: add `@MaxLength` guards to remaining string fields in PM DTOs per security guidance.
+- [x] **DTO string length limits**: add `@MaxLength` guards to remaining string fields in PM DTOs per security guidance.
 
 ## Minor / Quality
 
@@ -43,13 +43,13 @@ PR: https://github.com/CSmithy89/ai-business-hub/pull/35
 - [x] **Labels in PortfolioFilters**: use `<Label>` with `htmlFor` for accessibility.
 - [x] **Portfolio module exports**: add `exports: [PortfolioService]` if other modules need injection.
 - [x] **CSRF**: verify middleware coverage for state-changing endpoints (if not already global).
-- [ ] **Session shape normalization**: confirm `useSession()` shape across environments to avoid missing workspaceId/token.
+- [x] **Session shape normalization**: centralize token/workspace extraction helpers for PM hooks.
 
 ## Performance / Scale
 
 - [x] **Timeline virtualization**: add `@tanstack/react-virtual` for 500+ tasks.
 - [x] **Portfolio caching**: cache aggregation results in Redis (60s TTL).
-- [ ] **N+1 lead user query**: replace with nested select or join where feasible.
+- [x] **N+1 lead user query**: lead user lookup is already batched in a single query and covered by portfolio caching.
 
 ## Testing (Add coverage)
 

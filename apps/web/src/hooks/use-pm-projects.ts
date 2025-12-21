@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useSession } from '@/lib/auth-client'
+import { getActiveWorkspaceId, getSessionToken, useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
 import { safeJson } from '@/lib/utils/safe-json'
 import { ProjectStatusSchema, ProjectTypeSchema } from '@hyvve/shared'
@@ -15,12 +15,6 @@ const ProjectType = ProjectTypeSchema
 function getBaseUrl(): string {
   if (!NESTJS_API_URL) throw new Error('NESTJS_API_URL is not configured')
   return NESTJS_API_URL.replace(/\/$/, '')
-}
-
-function getSessionToken(session: unknown): string | undefined {
-  const direct = (session as { token?: string } | null)?.token
-  const nested = (session as { session?: { token?: string } } | null)?.session?.token
-  return direct || nested || undefined
 }
 
 export interface ProjectListItem {
@@ -205,7 +199,7 @@ async function fetchProjectBySlug(params: {
 
 export function usePmProjects(filters: ListProjectsQuery = {}) {
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useQuery({
@@ -220,7 +214,7 @@ export function usePmProjects(filters: ListProjectsQuery = {}) {
 export function useCreatePmProject() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -241,7 +235,7 @@ export function useCreatePmProject() {
 
 export function usePmProject(slug: string) {
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useQuery({
@@ -323,7 +317,7 @@ async function deleteProject(params: {
 export function useUpdatePmProject() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -346,7 +340,7 @@ export function useUpdatePmProject() {
 export function useDeletePmProject() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -421,7 +415,7 @@ async function fetchProjectDocs(params: {
 
 export function useProjectDocs(projectId: string) {
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useQuery({

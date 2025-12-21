@@ -2,19 +2,13 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useSession } from '@/lib/auth-client'
+import { getActiveWorkspaceId, getSessionToken, useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
 import { safeJson } from '@/lib/utils/safe-json'
 
 function getBaseUrl(): string {
   if (!NESTJS_API_URL) throw new Error('NESTJS_API_URL is not configured')
   return NESTJS_API_URL.replace(/\/$/, '')
-}
-
-function getSessionToken(session: unknown): string | undefined {
-  const direct = (session as { token?: string } | null)?.token
-  const nested = (session as { session?: { token?: string } } | null)?.session?.token
-  return direct || nested || undefined
 }
 
 export type ViewType = 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE' | 'TIMELINE'
@@ -213,7 +207,7 @@ async function deleteSavedView(params: {
 export function useSavedViews(projectId: string | undefined) {
   const { data: session } = useSession()
   const token = getSessionToken(session)
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
 
   return useQuery({
     queryKey: ['saved-views', projectId],
@@ -226,7 +220,7 @@ export function useSavedViews(projectId: string | undefined) {
 export function useDefaultView(projectId: string | undefined) {
   const { data: session } = useSession()
   const token = getSessionToken(session)
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
 
   return useQuery({
     queryKey: ['default-view', projectId],
@@ -239,7 +233,7 @@ export function useDefaultView(projectId: string | undefined) {
 export function useCreateSavedView() {
   const { data: session } = useSession()
   const token = getSessionToken(session)
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -259,7 +253,7 @@ export function useCreateSavedView() {
 export function useUpdateSavedView() {
   const { data: session } = useSession()
   const token = getSessionToken(session)
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -280,7 +274,7 @@ export function useUpdateSavedView() {
 export function useDeleteSavedView() {
   const { data: session } = useSession()
   const token = getSessionToken(session)
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const queryClient = useQueryClient()
 
   return useMutation({
