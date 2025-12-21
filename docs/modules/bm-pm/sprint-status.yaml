@@ -234,7 +234,7 @@ development_status:
   pm-09: contexted
   pm-09-1-timeline-gantt-view: done
   pm-09-2-portfolio-dashboard: done
-  pm-09-3-cross-project-dependencies: backlog
+  pm-09-3-cross-project-dependencies: done
   pm-09-4-custom-view-builder: backlog
   pm-09-5-view-sharing: backlog
   pm-09-6-view-templates: backlog

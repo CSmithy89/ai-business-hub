@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-09-3-cross-project-dependencies</story-id>
+    <generated>2025-12-22T00:00:00Z</generated>
+    <epic>PM-09 - Advanced Views</epic>
+    <description>
+      Cross-project dependency dashboard powered by task relations.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="apps/api/src/pm/tasks/tasks.controller.ts">
+      <description>
+        Existing per-task relation endpoints for reference.
+      </description>
+    </file>
+    <file path="apps/api/src/pm/tasks/tasks.service.ts">
+      <description>
+        Task relation data model usage and Prisma patterns.
+      </description>
+    </file>
+    <file path="packages/db/prisma/schema.prisma">
+      <description>
+        TaskRelation model schema and fields.
+      </description>
+    </file>
+    <file path="apps/web/src/hooks/use-pm-projects.ts">
+      <description>
+        Project list data used for filter options and navigation.
+      </description>
+    </file>
+  </existing-code>
+</story-context>

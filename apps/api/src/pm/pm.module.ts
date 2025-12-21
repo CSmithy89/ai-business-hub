@@ -14,6 +14,7 @@ import { SavedViewsModule } from './saved-views/saved-views.module'
 import { PresenceModule } from './presence/presence.module'
 import { NotificationsModule } from './notifications/notifications.module'
 import { PortfolioModule } from './portfolio/portfolio.module'
+import { DependenciesModule } from './dependencies/dependencies.module'
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { PortfolioModule } from './portfolio/portfolio.module'
     PresenceModule,
     NotificationsModule,
     PortfolioModule,
+    DependenciesModule,
   ],
 })
 export class PmModule {}
