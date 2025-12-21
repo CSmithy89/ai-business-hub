@@ -88,6 +88,38 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
+## EPIC-PM-09: Advanced Views (6 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-22
+**Branch:** `epic/pm-09-advanced-views`
+
+### Added
+
+- **Timeline/Gantt View**: Zoomable timeline with drag/resize, dependencies, and critical path highlighting
+- **Portfolio Dashboard**: Workspace-level project health overview with filters and drill-down
+- **Dependencies Dashboard**: Cross-project task relations with relation filters
+- **Custom View Builder**: Column visibility and sorting controls for saved views
+- **View Sharing Links**: Shareable saved views via `viewId` query parameter
+- **View Templates**: Local templates per workspace for reusing view configurations
+
+### Routes
+
+- `/dashboard/pm/portfolio` - Executive portfolio dashboard
+- `/dashboard/pm/dependencies` - Cross-project dependencies
+- `/dashboard/pm/[slug]/tasks?viewId=...` - Shared view deep link
+
+### API Endpoints
+
+- `GET /pm/portfolio` - Portfolio dashboard aggregates
+- `GET /pm/dependencies` - Task dependency list
+
+### Notes
+
+- Tech spec: `docs/sprint-artifacts/tech-spec-epic-pm-09.md`
+
+---
+
 ## EPIC-PM-07: Integrations & Bridge Agent (7 stories)
 
 **Status:** Complete
