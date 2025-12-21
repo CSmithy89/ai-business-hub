@@ -8,6 +8,51 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
+## EPIC-PM-08: Prism Agent & Predictive Analytics (6 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-21
+**Branch:** `feat/PM-08-prism-agent-analytics`
+**PR:** #33
+
+### Added
+
+- **Prism Agent Foundation**: Python Agno agent for predictive analytics in `agents/pm/prism.py`
+- **Monte Carlo Simulation**: 1000-iteration completion forecasting with Box-Muller transform
+- **Percentile Predictions**: P10, P25, P50, P75, P90 completion date bands
+- **Risk Detection System**: Automatic schedule, scope, and resource risk identification
+- **Risk Persistence**: PmRiskEntry Prisma model with probability/impact scoring
+- **Analytics Dashboard**: Velocity, scope, completion, and productivity trends with health score
+- **What-If Scenarios**: Interactive scenario planning with scope, team, and velocity adjustments
+- **Team Performance Metrics**: Velocity, cycle time, throughput, completion rate, capacity utilization
+- **Analytics Export**: CSV downloads and structured PDF data for report generation
+
+### API Endpoints
+
+- `POST /pm/projects/:projectId/analytics/forecast` - Generate completion forecast
+- `GET /pm/projects/:projectId/analytics/velocity` - Current velocity with trend
+- `GET /pm/projects/:projectId/analytics/velocity-history` - Historical velocity data
+- `GET /pm/projects/:projectId/analytics/anomalies` - Detect statistical anomalies
+- `GET /pm/projects/:projectId/analytics/completion-probability` - Target date probability
+- `GET /pm/projects/:projectId/analytics/risks` - Detect project risks
+- `GET /pm/projects/:projectId/analytics/risks/entries` - Get risk entries
+- `PATCH /pm/projects/:projectId/analytics/risks/:riskId/status` - Update risk status
+- `GET /pm/projects/:projectId/analytics/dashboard` - Dashboard data aggregation
+- `POST /pm/projects/:projectId/analytics/scenario-forecast` - What-if analysis
+- `GET /pm/projects/:projectId/analytics/team-performance` - Team metrics
+- `GET /pm/projects/:projectId/analytics/export/csv` - CSV export
+- `GET /pm/projects/:projectId/analytics/export/pdf-data` - PDF data export
+- `GET /pm/projects/:projectId/analytics/export/trend-data` - Raw trend data
+
+### Notes
+
+- Tech spec: `docs/sprint-artifacts/tech-spec-epic-pm-08.md`
+- Monte Carlo uses Box-Muller transform for normal distribution sampling
+- Health score formula: velocity (30%) + completion (30%) + scope (20%) + risk (20%)
+- Risk detection covers schedule delays, scope creep, and resource constraints
+
+---
+
 ## EPIC-PM-07: Integrations & Bridge Agent (7 stories)
 
 **Status:** Complete

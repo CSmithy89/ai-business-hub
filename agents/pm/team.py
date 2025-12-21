@@ -7,7 +7,7 @@ coordinated by Navi as team leader.
 
 Team Structure:
 - Leader: Navi (PM Orchestration Assistant)
-- Members: Sage (Estimation), Chrono (Time Tracking), Scope (Phase Management), Pulse (Health Monitoring), Herald (Reporting)
+- Members: Sage (Estimation), Chrono (Time Tracking), Scope (Phase Management), Pulse (Health Monitoring), Herald (Reporting), Prism (Predictive Analytics)
 
 Usage:
     from agents.pm.team import create_pm_team
@@ -35,6 +35,7 @@ from .chrono import create_chrono_agent
 from .scope import create_scope_agent
 from .pulse import create_pulse_agent
 from .herald import create_herald_agent
+from .prism import create_prism_agent
 
 # Validation pattern for workspace IDs (alphanumeric with underscores, max 64 chars)
 WORKSPACE_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_-]{1,64}$')
@@ -174,13 +175,21 @@ def create_pm_team(
         model=model,
     )
 
+    # Create Prism agent (predictive analytics specialist)
+    prism = create_prism_agent(
+        workspace_id=workspace_id,
+        project_id=project_id,
+        shared_memory=shared_memory,
+        model=model,
+    )
+
     # Create team with Navi as leader
     team = Team(
         name="PM Team",
         mode="coordinate",  # Leader coordinates member agents
         model=Claude(id=model or "claude-sonnet-4-20250514"),
         leader=navi,
-        members=[sage, chrono, scope, pulse, herald],  # Full PM team: Sage + Chrono + Scope + Pulse + Herald
+        members=[sage, chrono, scope, pulse, herald, prism],  # Full PM team: Sage + Chrono + Scope + Pulse + Herald + Prism
         # Leader delegates to specific members, not all at once
         delegate_task_to_all_members=False,
         # Leader responds directly after synthesis
@@ -206,6 +215,7 @@ def create_pm_team(
             "Scope handles phase management, transitions, and checkpoint tracking.",
             "Pulse monitors project health and detects risks proactively.",
             "Herald generates automated reports for project status, health, and progress.",
+            "Prism provides predictive analytics and completion forecasts based on velocity trends.",
         ],
         # Expected output format
         expected_output=(

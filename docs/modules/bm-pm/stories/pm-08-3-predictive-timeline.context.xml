@@ -1,0 +1,1154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>PM-08-3</story-id>
+    <story-name>Predictive Timeline / Risk Forecasting</story-name>
+    <epic>PM-08 - Prism Agent &amp; Predictive Analytics</epic>
+    <generated-date>2025-12-21</generated-date>
+    <module>bm-pm (Core-PM)</module>
+    <prerequisites>
+      <prerequisite status="done">PM-08-1 - Prism Agent Foundation</prerequisite>
+      <prerequisite status="done">PM-08-2 - Completion Predictions (Monte Carlo)</prerequisite>
+      <prerequisite status="done">PM-02 - Task Management (Task/scope data)</prerequisite>
+      <prerequisite status="done">PM-01 - Project Management (Project targets/deadlines)</prerequisite>
+    </prerequisites>
+  </metadata>
+
+  <story-summary>
+    <description>
+      Implement risk detection and forecasting for projects using predictive analytics.
+      Detect schedule, scope, and resource risks based on Prism agent's forecasts and historical data.
+      Auto-create risk entries with probability/impact assessments and route to approval queue
+      based on confidence thresholds. Provide actionable mitigation suggestions for each risk type.
+    </description>
+    <key-deliverables>
+      <deliverable>PmRiskEntry Prisma model for risk tracking</deliverable>
+      <deliverable>Enhanced Prism agent with detect_risks tool</deliverable>
+      <deliverable>Schedule risk detection (predicted date > target date)</deliverable>
+      <deliverable>Scope risk detection (scope increase >10% mid-phase)</deliverable>
+      <deliverable>Resource risk detection (velocity declining >15%)</deliverable>
+      <deliverable>Risk probability calculation from Monte Carlo distribution</deliverable>
+      <deliverable>Risk impact assessment (days of delay, scope increase %)</deliverable>
+      <deliverable>Mitigation suggestion generation for each risk category</deliverable>
+      <deliverable>Approval queue integration with confidence-based routing</deliverable>
+      <deliverable>Analytics Service risk methods (detectRisks, getRiskEntries, updateRiskStatus)</deliverable>
+    </key-deliverables>
+    <acceptance-criteria-summary>
+      10 major criteria groups covering:
+      - Schedule risk detection (AC-3.1)
+      - Scope risk detection (AC-3.2)
+      - Risk entry persistence (AC-3.3)
+      - Resource risk detection
+      - Risk probability calculation from Monte Carlo
+      - Risk impact assessment
+      - Mitigation suggestion generation
+      - Auto-create risk entries with approval queue routing
+      - Cross-project learning (deferred to Phase 3)
+      - Risk dashboard integration
+    </acceptance-criteria-summary>
+  </story-summary>
+
+  <architecture-context>
+    <component-overview>
+      <component name="Prism Agent" language="Python" framework="Agno">
+        <location>agents/pm/prism.py</location>
+        <purpose>Predictive analytics specialist for PM operations</purpose>
+        <current-state>
+          Foundation complete with forecast_completion tool using Monte Carlo simulation (PM-08-2).
+          Calculates probability distributions (P10-P90) and trend analysis.
+          Ready for enhancement with detect_risks tool.
+        </current-state>
+        <enhancement-needed>
+          Add detect_risks tool to analyze forecast data and identify schedule, scope, and resource risks.
+        </enhancement-needed>
+      </component>
+
+      <component name="Prism Tools" language="Python" framework="Agno">
+        <location>agents/pm/tools/prism_tools.py</location>
+        <purpose>Tool functions for Prism agent</purpose>
+        <current-state>
+          Existing tools:
+          - forecast_completion: Monte Carlo simulation for completion dates
+          - calculate_velocity: Velocity calculation with trend analysis
+          - detect_anomalies: Statistical anomaly detection
+          - get_velocity_history: Fetch historical velocity data
+          - analyze_completion_probability: Calculate P(completion > target)
+        </current-state>
+        <new-tool-needed>
+          detect_risks(project_id, workspace_id, forecast, target_date, historical_scope):
+          - Analyzes forecast data to identify risks
+          - Returns structured risk entries with probability, impact, mitigation
+          - Uses helper functions: detect_schedule_risk, detect_scope_risk, detect_resource_risk
+        </new-tool-needed>
+      </component>
+
+      <component name="Analytics Service" language="TypeScript" framework="NestJS">
+        <location>apps/api/src/pm/agents/analytics.service.ts</location>
+        <purpose>Backend service orchestrating predictive analytics</purpose>
+        <current-state>
+          Service complete with:
+          - getForecast: Monte Carlo simulation with probabilityDistribution
+          - getVelocityHistory: Historical velocity calculation (PM-08-1)
+          - getRemainingPoints: Backlog calculation
+          - runMonteCarloSimulation: 1000 iterations with percentiles (PM-08-2)
+          - analyzePredictionFactors: Factor analysis for predictions
+        </current-state>
+        <new-methods-needed>
+          - detectRisks(projectId, workspaceId): Invoke Prism detect_risks and persist results
+          - createRiskEntry(projectId, workspaceId, risk): Create or update PmRiskEntry
+          - getRiskEntries(projectId, workspaceId, status?): Query risk entries
+          - updateRiskStatus(riskId, workspaceId, status): Update risk status (ACTIVE/MITIGATED/DISMISSED)
+          - getBaselineScope(projectId, workspaceId): Get initial project scope for comparison
+          - routeRiskToApproval(risk, workspaceId): Send risk to approval queue based on probability
+        </new-methods-needed>
+      </component>
+
+      <component name="Analytics Controller" language="TypeScript" framework="NestJS">
+        <location>apps/api/src/pm/agents/analytics.controller.ts</location>
+        <purpose>REST API endpoints for analytics operations</purpose>
+        <current-endpoints>
+          - POST /api/pm/projects/:projectId/analytics/forecast
+          - GET /api/pm/projects/:projectId/analytics/velocity
+          - GET /api/pm/projects/:projectId/analytics/velocity-history
+          - GET /api/pm/projects/:projectId/analytics/anomalies
+          - GET /api/pm/projects/:projectId/analytics/completion-probability
+        </current-endpoints>
+        <new-endpoints-needed>
+          - GET /api/pm/projects/:projectId/analytics/risks - Detect project risks
+          - GET /api/pm/projects/:projectId/analytics/risks/entries?status=ACTIVE - Get risk entries
+          - PATCH /api/pm/projects/:projectId/analytics/risks/:riskId/status - Update risk status
+        </new-endpoints-needed>
+      </component>
+
+      <component name="Approvals Service" language="TypeScript" framework="NestJS">
+        <location>apps/api/src/approvals/approvals.service.ts</location>
+        <purpose>Approval queue management for platform-wide approvals</purpose>
+        <interface>
+          create(data: CreateApprovalDto): Promise&lt;Approval&gt;
+          - data.tenantId: Workspace ID for RLS
+          - data.itemType: "RISK_ENTRY" (new type)
+          - data.itemId: Risk entry ID
+          - data.title: Risk title
+          - data.description: Risk description
+          - data.requestedBy: "SYSTEM" (for auto-created risks)
+          - data.confidence: HIGH/MEDIUM/LOW (maps to approval routing)
+          - data.metadata: Risk details (category, probability, impact, mitigation)
+        </interface>
+        <usage-pattern>
+          HIGH probability (>70%): Quick approval required
+          MED probability (30-70%): Standard review
+          LOW probability (&lt;30%): Informational only (no approval needed)
+        </usage-pattern>
+      </component>
+    </component-overview>
+
+    <data-models>
+      <model name="PmRiskEntry" type="prisma" status="new">
+        <file>packages/db/prisma/schema.prisma</file>
+        <description>
+          Tracks project risks identified by Prism agent (or Pulse agent).
+          Includes probability, impact, mitigation suggestions, and risk details.
+        </description>
+        <schema>
+          <![CDATA[
+model PmRiskEntry {
+  id          String   @id @default(cuid())
+  projectId   String   @map("project_id")
+  tenantId    String   @map("tenant_id")  // RLS - maps to workspaceId
+
+  source      String   // "PRISM", "PULSE", "MANUAL"
+  category    String   // "SCHEDULE", "RESOURCE", "SCOPE", "BUDGET"
+
+  probability Float    // 0.0 - 1.0 (from Monte Carlo distribution)
+  impact      Float    // 0.0 - 1.0 (normalized severity)
+
+  description String   @db.Text // Natural language risk description
+  mitigation  String?  @db.Text // Suggested mitigation steps
+
+  status      String   // "ACTIVE", "MITIGATED", "ACCEPTED", "DISMISSED"
+
+  // Risk details (category-specific)
+  targetDate      DateTime?  @map("target_date")       // Expected completion date
+  predictedDate   DateTime?  @map("predicted_date")    // Forecast completion date
+  delayDays       Int?       @map("delay_days")        // Days of delay (predictedDate - targetDate)
+
+  baselineScope   Int?       @map("baseline_scope")    // Original scope (story points)
+  currentScope    Int?       @map("current_scope")     // Current scope (story points)
+  scopeIncrease   Float?     @map("scope_increase")    // Percentage increase
+
+  velocityTrend   String?    @map("velocity_trend")    // "UP", "DOWN", "STABLE"
+  velocityChange  Float?     @map("velocity_change")   // Percentage change
+
+  // Metadata
+  detectedAt  DateTime @default(now()) @map("detected_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([category])
+  @@index([detectedAt])
+  @@map("pm_risk_entries")
+}
+          ]]>
+        </schema>
+        <migration-command>
+          npx prisma migrate dev --name add-pm-risk-entry
+        </migration-command>
+        <notes>
+          - tenantId maps to workspaceId for multi-tenant isolation
+          - probability extracted from Monte Carlo P(completion > target)
+          - impact normalized: delay/56 days + 0.3 (1 week = 0.3, 8+ weeks = 1.0)
+          - Optional fields allow category-specific data (schedule vs scope vs resource)
+        </notes>
+      </model>
+
+      <model name="PmRiskEntryDto" type="dto" status="new">
+        <file>apps/api/src/pm/agents/dto/risk-entry.dto.ts</file>
+        <description>TypeScript DTO for PmRiskEntry API responses</description>
+        <interface>
+          <![CDATA[
+export interface PmRiskEntryDto {
+  id: string;
+  projectId: string;
+  source: 'PRISM' | 'PULSE' | 'MANUAL';
+  category: 'SCHEDULE' | 'RESOURCE' | 'SCOPE' | 'BUDGET';
+  probability: number;  // 0.0 - 1.0
+  impact: number;       // 0.0 - 1.0
+  description: string;
+  mitigation?: string;
+  status: 'ACTIVE' | 'MITIGATED' | 'ACCEPTED' | 'DISMISSED';
+
+  // Risk details (optional, category-specific)
+  targetDate?: string;       // ISO 8601
+  predictedDate?: string;    // ISO 8601
+  delayDays?: number;
+  baselineScope?: number;
+  currentScope?: number;
+  scopeIncrease?: number;
+  velocityTrend?: 'UP' | 'DOWN' | 'STABLE';
+  velocityChange?: number;
+
+  detectedAt: string;        // ISO 8601
+  updatedAt: string;         // ISO 8601
+}
+          ]]>
+        </interface>
+      </model>
+
+      <model name="Project" type="prisma" status="existing">
+        <file>packages/db/prisma/schema.prisma</file>
+        <relevant-fields>
+          - id: String @id
+          - workspaceId: String (RLS)
+          - targetDate: DateTime? (used for schedule risk detection)
+          - status: ProjectStatus
+          - phases: Phase[] (relation)
+        </relevant-fields>
+        <relation-to-add>
+          risks  PmRiskEntry[]
+        </relation-to-add>
+      </model>
+
+      <model name="Task" type="prisma" status="existing">
+        <file>packages/db/prisma/schema.prisma</file>
+        <relevant-fields>
+          - id: String @id
+          - projectId: String (for scope calculation)
+          - phaseId: String
+          - storyPoints: Int?
+          - status: TaskStatus (DONE, BACKLOG, etc.)
+        </relevant-fields>
+        <usage>
+          Used by Analytics Service to calculate:
+          - Remaining scope (sum of non-DONE/CANCELLED tasks)
+          - Current scope (sum of all tasks)
+          - Baseline scope (initial total points - future enhancement)
+        </usage>
+      </model>
+    </data-models>
+
+    <patterns-and-conventions>
+      <pattern name="Risk Detection Flow">
+        <description>
+          End-to-end flow for detecting and persisting project risks.
+          Triggered by forecast generation or scheduled scan.
+        </description>
+        <sequence>
+          <![CDATA[
+1. Analytics Service calls detectRisks(projectId, workspaceId)
+2. Service fetches forecast (getForecast) and project data (target date, baseline scope)
+3. Service invokes Prism agent: detect_risks(project_id, forecast, target_date, historical_scope)
+4. Prism agent runs 3 detection helpers:
+   - detect_schedule_risk: Compares predicted date to target date
+   - detect_scope_risk: Compares current scope to baseline
+   - detect_resource_risk: Analyzes velocity trend
+5. Each helper returns risk object with probability, impact, description, mitigation
+6. Service receives array of risks from agent
+7. For each risk:
+   - Service calls createRiskEntry to persist to DB
+   - Service calls routeRiskToApproval to send to approval queue (if probability >= 0.30)
+8. Service returns array of PmRiskEntry objects
+          ]]>
+        </sequence>
+      </pattern>
+
+      <pattern name="Probability Calculation from Monte Carlo">
+        <description>
+          Extract risk probability from Monte Carlo simulation results (PM-08-2).
+          Uses percentile distribution to calculate P(completion > target).
+        </description>
+        <algorithm>
+          <![CDATA[
+# Python (detect_schedule_risk helper)
+from datetime import datetime
+
+target = datetime.fromisoformat(target_date)
+predicted = datetime.fromisoformat(forecast["predictedDate"])
+
+delay_days = (predicted - target).days
+if delay_days <= 0:
+    return None  # No risk if predicted is before target
+
+# Extract percentiles from Monte Carlo distribution
+prob_dist = forecast.get("probabilityDistribution", {})
+p75_date = datetime.fromisoformat(prob_dist.get("p75", forecast["predictedDate"]))
+p50_date = datetime.fromisoformat(prob_dist.get("p50", forecast["predictedDate"]))
+p25_date = datetime.fromisoformat(prob_dist.get("p25", forecast["predictedDate"]))
+
+# Calculate probability based on percentile thresholds
+if p25_date > target:
+    probability = 0.85  # Even optimistic scenario misses deadline
+elif p50_date > target:
+    probability = 0.65  # Median scenario misses deadline
+elif p75_date > target:
+    probability = 0.40  # Pessimistic scenario misses deadline
+else:
+    probability = 0.20  # Only extreme scenarios miss deadline
+          ]]>
+        </algorithm>
+        <notes>
+          - Uses P25/P50/P75 as thresholds (not P10/P90 which are too extreme)
+          - Probability reflects % of Monte Carlo simulations where completion > target
+          - HIGH probability (>70%): Quick approval required
+          - MED probability (30-70%): Standard review
+          - LOW probability (&lt;30%): Informational only
+        </notes>
+      </pattern>
+
+      <pattern name="Impact Normalization">
+        <description>
+          Normalize risk impact to 0.0-1.0 scale for consistent severity assessment.
+        </description>
+        <formulas>
+          <![CDATA[
+// Schedule Risk Impact (TypeScript)
+// 1 week = 0.3, 2 weeks = 0.5, 4 weeks = 0.7, 8+ weeks = 1.0
+const impact = Math.min(1.0, delay_days / 56.0 + 0.3);
+
+// Scope Risk Impact (TypeScript)
+// 10% = 0.4, 20% = 0.6, 40%+ = 1.0
+const impact = Math.min(1.0, 0.2 + scope_increase * 2.0);
+
+// Resource Risk Impact (TypeScript)
+// Velocity decline: -15% = 0.45, -20% = 0.6, -30%+ = 0.9
+const impact = Math.min(1.0, Math.abs(velocity_change) * 2.5);
+          ]]>
+        </formulas>
+        <severity-mapping>
+          - LOW impact: &lt;0.4 (&lt;7 days delay, &lt;10% scope increase)
+          - MEDIUM impact: 0.4-0.7 (7-28 days delay, 10-20% scope increase)
+          - HIGH impact: >0.7 (>28 days delay, >20% scope increase)
+        </severity-mapping>
+      </pattern>
+
+      <pattern name="Mitigation Generation">
+        <description>
+          Generate actionable mitigation suggestions based on risk category and severity.
+        </description>
+        <examples>
+          <![CDATA[
+# Schedule Risk Mitigation (Python)
+def generate_schedule_mitigation(delay_days: int, forecast: Dict) -> str:
+    weeks_delayed = delay_days // 7
+
+    if weeks_delayed <= 1:
+        return "Minor delay expected. Monitor velocity closely and adjust sprint planning."
+    elif weeks_delayed <= 4:
+        return f"Consider reducing scope by ~{weeks_delayed * 10}% or adding 1 team member to maintain timeline."
+    else:
+        return f"Significant delay ({weeks_delayed} weeks). Options: (1) Extend deadline, (2) Reduce scope by ~30%, (3) Expand team by 2+ members."
+
+# Scope Risk Mitigation (Python)
+def generate_scope_mitigation(increase: float, current: int, baseline: int) -> str:
+    increase_pct = int(increase * 100)
+    added_points = current - baseline
+
+    return f"Scope has grown {increase_pct}% (+{added_points} points). Review backlog and defer low-priority items. Consider moving {added_points // 2} points to Phase 2."
+
+# Resource Risk Mitigation (Python)
+def generate_resource_mitigation(velocity_change: float) -> str:
+    decline_pct = int(abs(velocity_change) * 100)
+
+    return f"Velocity declining {decline_pct}%. Investigate: (1) Team capacity issues, (2) Technical blockers, (3) Scope complexity. Consider capacity adjustments or backlog refinement."
+          ]]>
+        </examples>
+      </pattern>
+
+      <pattern name="Approval Queue Routing">
+        <description>
+          Route risks to approval queue based on probability threshold.
+          Uses existing ApprovalService from Epic-04.
+        </description>
+        <routing-logic>
+          <![CDATA[
+// TypeScript (Analytics Service)
+private async routeRiskToApproval(
+  risk: PmRiskEntry,
+  workspaceId: string,
+): Promise<void> {
+  // Determine routing based on probability
+  let requiresApproval = false;
+  let approvalType = 'INFORMATIONAL';
+
+  if (risk.probability >= 0.70) {
+    // HIGH probability - quick approval required
+    requiresApproval = true;
+    approvalType = 'QUICK_APPROVAL';
+  } else if (risk.probability >= 0.30) {
+    // MED probability - standard review
+    requiresApproval = true;
+    approvalType = 'STANDARD_REVIEW';
+  } else {
+    // LOW probability - informational only (no approval needed)
+    requiresApproval = false;
+    approvalType = 'INFORMATIONAL';
+  }
+
+  if (requiresApproval) {
+    // Create approval item
+    await this.approvalService.create({
+      tenantId: workspaceId,
+      itemType: 'RISK_ENTRY',
+      itemId: risk.id,
+      title: `Risk Detected: ${risk.category}`,
+      description: risk.description,
+      requestedBy: 'SYSTEM',
+      confidence: risk.probability >= 0.70 ? 'HIGH' : 'MEDIUM',
+      metadata: {
+        riskId: risk.id,
+        category: risk.category,
+        probability: risk.probability,
+        impact: risk.impact,
+        mitigation: risk.mitigation,
+      },
+    });
+
+    this.logger.log(
+      `Risk sent to approval queue: ${risk.id}, type=${approvalType}`,
+    );
+  } else {
+    // No approval needed - just log
+    this.logger.log(
+      `Informational risk created: ${risk.id}, probability=${risk.probability}`,
+    );
+  }
+}
+          ]]>
+        </routing-logic>
+      </pattern>
+
+      <pattern name="Risk Entry Deduplication">
+        <description>
+          Prevent duplicate risk entries for the same project and category.
+          Update existing ACTIVE risks instead of creating new ones.
+        </description>
+        <implementation>
+          <![CDATA[
+// TypeScript (Analytics Service)
+private async createRiskEntry(
+  projectId: string,
+  workspaceId: string,
+  risk: any,
+): Promise<PmRiskEntry> {
+  // Check if risk already exists (same category + active)
+  const existing = await this.prisma.pmRiskEntry.findFirst({
+    where: {
+      projectId,
+      tenantId: workspaceId,
+      category: risk.category,
+      status: 'ACTIVE',
+    },
+  });
+
+  if (existing) {
+    // Update existing risk
+    return this.prisma.pmRiskEntry.update({
+      where: { id: existing.id },
+      data: {
+        probability: risk.probability,
+        impact: risk.impact,
+        description: risk.description,
+        mitigation: risk.mitigation,
+        // Update category-specific fields...
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  // Create new risk entry
+  return this.prisma.pmRiskEntry.create({
+    data: {
+      projectId,
+      tenantId: workspaceId,
+      source: 'PRISM',
+      category: risk.category,
+      probability: risk.probability,
+      impact: risk.impact,
+      description: risk.description,
+      mitigation: risk.mitigation,
+      status: 'ACTIVE',
+      // Category-specific fields...
+    },
+  });
+}
+          ]]>
+        </implementation>
+      </pattern>
+    </patterns-and-conventions>
+
+    <integration-points>
+      <integration name="Prism Agent to Analytics Service">
+        <trigger>Analytics Service calls detectRisks()</trigger>
+        <agent-tool>detect_risks</agent-tool>
+        <request-payload>
+          <![CDATA[
+{
+  "project_id": "proj_123",
+  "workspace_id": "ws_456",
+  "forecast": {
+    "predictedDate": "2025-03-15",
+    "probabilityDistribution": {
+      "p10": "2025-02-15",
+      "p25": "2025-03-01",
+      "p50": "2025-03-15",
+      "p75": "2025-04-01",
+      "p90": "2025-04-20"
+    },
+    "confidence": "MED",
+    "factors": [...]
+  },
+  "target_date": "2025-03-01",
+  "historical_scope": 200
+}
+          ]]>
+        </request-payload>
+        <response-payload>
+          <![CDATA[
+[
+  {
+    "category": "SCHEDULE",
+    "probability": 0.75,
+    "impact": 0.8,
+    "description": "Project is at risk of missing deadline by ~2 weeks",
+    "mitigation": "Consider reducing scope by 20% or adding 1 team member",
+    "details": {
+      "targetDate": "2025-03-01",
+      "predictedDate": "2025-03-15",
+      "delayDays": 14,
+      "confidence": "HIGH"
+    }
+  },
+  {
+    "category": "SCOPE",
+    "probability": 0.65,
+    "impact": 0.6,
+    "description": "Scope has increased 15% mid-project",
+    "mitigation": "Review backlog priorities and defer low-value items",
+    "details": {
+      "baselineScope": 200,
+      "currentScope": 230,
+      "scopeIncrease": 0.15
+    }
+  }
+]
+          ]]>
+        </response-payload>
+        <error-handling>
+          If Prism agent fails, Analytics Service logs error and returns empty array.
+          No risks are created, but failure is tracked for observability.
+        </error-handling>
+      </integration>
+
+      <integration name="Analytics Service to Approvals Service">
+        <trigger>Risk entry created with probability >= 0.30</trigger>
+        <service-method>approvalService.create()</service-method>
+        <approval-payload>
+          <![CDATA[
+{
+  "tenantId": "ws_456",
+  "itemType": "RISK_ENTRY",
+  "itemId": "risk_789",
+  "title": "Risk Detected: SCHEDULE",
+  "description": "Project is at risk of missing deadline by ~2 weeks",
+  "requestedBy": "SYSTEM",
+  "confidence": "HIGH",  // Maps to probability: >70% = HIGH, 30-70% = MEDIUM
+  "metadata": {
+    "riskId": "risk_789",
+    "category": "SCHEDULE",
+    "probability": 0.75,
+    "impact": 0.8,
+    "mitigation": "Consider reducing scope by 20% or adding 1 team member"
+  }
+}
+          ]]>
+        </approval-payload>
+        <approval-routing>
+          - HIGH confidence (probability >70%): Quick approval queue
+          - MEDIUM confidence (probability 30-70%): Standard review queue
+          - No approval needed for probability &lt;30% (informational only)
+        </approval-routing>
+      </integration>
+
+      <integration name="Analytics Service to Prisma">
+        <database-operations>
+          - CREATE: pmRiskEntry (via createRiskEntry)
+          - READ: pmRiskEntry (via getRiskEntries)
+          - UPDATE: pmRiskEntry status (via updateRiskStatus)
+          - QUERY: Task (aggregate story points for scope calculation)
+          - QUERY: Project (fetch target date)
+        </database-operations>
+        <rls-enforcement>
+          All queries must filter by tenantId (workspaceId) for multi-tenant isolation.
+          No cross-workspace access allowed.
+        </rls-enforcement>
+      </integration>
+    </integration-points>
+
+    <existing-code-references>
+      <file path="apps/api/src/pm/agents/analytics.service.ts">
+        <relevant-methods>
+          - getForecast(projectId, workspaceId, scenario?): Get Monte Carlo forecast with probability distribution (PM-08-2)
+          - runMonteCarloSimulation(velocityValues, remainingPoints, numSimulations): Run 1000 iterations (PM-08-2)
+          - analyzePredictionFactors(history, trendSlope, confidence, scenario): Analyze 5 factors (PM-08-2)
+          - getVelocityHistory(projectId, workspaceId, periods): Fetch historical velocity (PM-08-1)
+          - getRemainingPoints(projectId, workspaceId): Calculate backlog (PM-08-1)
+          - calculateConfidence(dataPoints, variance): Calculate LOW/MED/HIGH (PM-08-1)
+        </relevant-methods>
+        <new-methods-to-add>
+          - detectRisks(projectId, workspaceId): Main risk detection method
+          - createRiskEntry(projectId, workspaceId, risk): Create/update risk entry
+          - getRiskEntries(projectId, workspaceId, status?): Query risk entries
+          - updateRiskStatus(riskId, workspaceId, status): Update risk status
+          - getBaselineScope(projectId, workspaceId): Get initial scope (for scope risk detection)
+          - routeRiskToApproval(risk, workspaceId): Send risk to approval queue
+        </new-methods-to-add>
+      </file>
+
+      <file path="agents/pm/tools/prism_tools.py">
+        <relevant-tools>
+          - forecast_completion: Returns forecast with probabilityDistribution (used by detect_schedule_risk)
+          - calculate_velocity: Returns velocity with trend (UP/DOWN/STABLE) (used by detect_resource_risk)
+          - api_request: Helper for authenticated API calls with fallback data
+        </relevant-tools>
+        <new-tool-to-add>
+          detect_risks(project_id, workspace_id, forecast, target_date, historical_scope):
+          - Calls 3 helper functions: detect_schedule_risk, detect_scope_risk, detect_resource_risk
+          - Returns array of risk objects
+        </new-tool-to-add>
+        <helper-functions-to-add>
+          - detect_schedule_risk(forecast, target_date): Schedule risk detection
+          - detect_scope_risk(project_id, baseline_scope): Scope risk detection
+          - detect_resource_risk(forecast): Resource risk detection
+          - generate_schedule_mitigation(delay_days, forecast): Schedule mitigation suggestions
+          - generate_scope_mitigation(increase, current, baseline): Scope mitigation suggestions
+          - generate_resource_mitigation(velocity_change): Resource mitigation suggestions
+        </helper-functions-to-add>
+      </file>
+
+      <file path="apps/api/src/pm/agents/analytics.controller.ts">
+        <current-endpoints>
+          - POST /api/pm/projects/:projectId/analytics/forecast
+          - GET /api/pm/projects/:projectId/analytics/velocity
+          - GET /api/pm/projects/:projectId/analytics/velocity-history
+          - GET /api/pm/projects/:projectId/analytics/anomalies
+          - GET /api/pm/projects/:projectId/analytics/completion-probability
+        </current-endpoints>
+        <new-endpoints-to-add>
+          - GET /api/pm/projects/:projectId/analytics/risks
+          - GET /api/pm/projects/:projectId/analytics/risks/entries?status=ACTIVE
+          - PATCH /api/pm/projects/:projectId/analytics/risks/:riskId/status
+        </new-endpoints-to-add>
+      </file>
+
+      <file path="apps/api/src/approvals/approvals.service.ts">
+        <interface-reference>
+          create(data: CreateApprovalDto): Promise&lt;Approval&gt;
+          - Used by routeRiskToApproval to create approval items
+          - Supports itemType: "RISK_ENTRY" (new type)
+          - Confidence-based routing: HIGH/MEDIUM/LOW
+        </interface-reference>
+      </file>
+
+      <file path="packages/db/prisma/schema.prisma">
+        <models-to-reference>
+          - Project: Get target date for schedule risk detection
+          - Task: Aggregate story points for scope calculation
+          - Phase: (optional) Phase-level scope tracking
+        </models-to-reference>
+        <model-to-add>
+          PmRiskEntry: New model for risk tracking (see data-models section)
+        </model-to-add>
+        <relation-to-add>
+          Project.risks: PmRiskEntry[] (one-to-many relation)
+        </relation-to-add>
+      </file>
+    </existing-code-references>
+  </architecture-context>
+
+  <implementation-guide>
+    <phase name="Phase 1: Prisma Schema &amp; Migration">
+      <step order="1">
+        Add PmRiskEntry model to packages/db/prisma/schema.prisma (see data-models section)
+      </step>
+      <step order="2">
+        Add risks relation to Project model: risks PmRiskEntry[]
+      </step>
+      <step order="3">
+        Run migration: npx prisma migrate dev --name add-pm-risk-entry
+      </step>
+      <step order="4">
+        Verify migration applied successfully in database
+      </step>
+      <step order="5">
+        Run prisma generate to update Prisma client types
+      </step>
+    </phase>
+
+    <phase name="Phase 2: Python Agent Risk Detection">
+      <step order="1">
+        Create helper function detect_schedule_risk in agents/pm/tools/prism_tools.py
+        - Extract P25/P50/P75 from forecast.probabilityDistribution
+        - Calculate probability based on percentile thresholds
+        - Normalize impact: min(1.0, delay_days / 56.0 + 0.3)
+        - Generate mitigation using generate_schedule_mitigation
+      </step>
+      <step order="2">
+        Create helper function detect_scope_risk in agents/pm/tools/prism_tools.py
+        - Fetch current scope via API: GET /api/pm/projects/{project_id}/analytics/scope
+        - Compare current scope to baseline (historical_scope parameter)
+        - Only trigger if increase >10%
+        - Calculate probability: min(0.8, 0.3 + scope_increase * 2.0)
+        - Normalize impact: min(1.0, 0.2 + scope_increase * 2.0)
+        - Generate mitigation using generate_scope_mitigation
+      </step>
+      <step order="3">
+        Create helper function detect_resource_risk in agents/pm/tools/prism_tools.py
+        - Extract velocity trend from forecast.factors
+        - Only trigger for "DECREASING" trend
+        - Assume ~20% velocity decline for DECREASING trend
+        - Calculate probability: min(0.9, abs(velocity_change) * 3.0)
+        - Calculate impact: min(1.0, abs(velocity_change) * 2.5)
+        - Generate mitigation using generate_resource_mitigation
+      </step>
+      <step order="4">
+        Create mitigation generators: generate_schedule_mitigation, generate_scope_mitigation, generate_resource_mitigation
+        - Return business-friendly, actionable suggestions
+        - Tailor to risk severity (minor vs significant delays)
+      </step>
+      <step order="5">
+        Create main detect_risks tool in agents/pm/tools/prism_tools.py
+        - Call 3 helper functions: detect_schedule_risk, detect_scope_risk, detect_resource_risk
+        - Collect non-None results into risks array
+        - Return array of risk objects with category, probability, impact, description, mitigation, details
+      </step>
+      <step order="6">
+        Register detect_risks tool in agents/pm/prism.py agent initialization
+      </step>
+    </phase>
+
+    <phase name="Phase 3: Analytics Service Risk Methods">
+      <step order="1">
+        Create getBaselineScope method in analytics.service.ts
+        - Aggregate all tasks for project: sum(storyPoints)
+        - For MVP, use current total as baseline (TODO: track baseline in metadata)
+        - Add comment for future enhancement: store baseline in project metadata or prediction log
+      </step>
+      <step order="2">
+        Create createRiskEntry private method in analytics.service.ts
+        - Check for existing ACTIVE risk with same category (deduplication)
+        - If exists: update probability, impact, description, mitigation, updatedAt
+        - If not: create new PmRiskEntry with source="PRISM", status="ACTIVE"
+        - Include category-specific fields based on risk.details
+      </step>
+      <step order="3">
+        Create routeRiskToApproval private method in analytics.service.ts
+        - Determine approval routing based on probability thresholds
+        - If probability >= 0.70: requiresApproval=true, confidence=HIGH
+        - If probability >= 0.30: requiresApproval=true, confidence=MEDIUM
+        - If probability &lt; 0.30: requiresApproval=false (informational only)
+        - Call approvalService.create with itemType="RISK_ENTRY", metadata=risk details
+        - Log approval creation or informational risk
+      </step>
+      <step order="4">
+        Create detectRisks public method in analytics.service.ts
+        - Fetch latest forecast via getForecast
+        - Fetch project details (targetDate) from Prisma
+        - Get baseline scope via getBaselineScope
+        - Invoke Prism agent: detect_risks(project_id, forecast, target_date, historical_scope)
+        - TODO: Add agent invocation via AgentService (for now, return empty array or mock data)
+        - For each risk returned by agent: createRiskEntry, then routeRiskToApproval
+        - Return array of PmRiskEntry objects
+      </step>
+      <step order="5">
+        Create getRiskEntries public method in analytics.service.ts
+        - Query PmRiskEntry with filters: projectId, tenantId (RLS), optional status
+        - Order by detectedAt DESC
+        - Return array of PmRiskEntry objects
+      </step>
+      <step order="6">
+        Create updateRiskStatus public method in analytics.service.ts
+        - Find risk by id and tenantId (RLS)
+        - Update status to ACTIVE/MITIGATED/ACCEPTED/DISMISSED
+        - Return updated PmRiskEntry
+      </step>
+    </phase>
+
+    <phase name="Phase 4: Controller Endpoints">
+      <step order="1">
+        Add GET /api/pm/projects/:projectId/analytics/risks endpoint
+        - Calls analyticsService.detectRisks(projectId, workspaceId)
+        - Returns array of PmRiskEntryDto
+        - OpenAPI documentation with @ApiOperation, @ApiResponse
+      </step>
+      <step order="2">
+        Add GET /api/pm/projects/:projectId/analytics/risks/entries endpoint
+        - Query parameter: status (optional, enum ACTIVE/MITIGATED/ACCEPTED/DISMISSED)
+        - Calls analyticsService.getRiskEntries(projectId, workspaceId, status)
+        - Returns array of PmRiskEntryDto
+        - OpenAPI documentation
+      </step>
+      <step order="3">
+        Add PATCH /api/pm/projects/:projectId/analytics/risks/:riskId/status endpoint
+        - Body: { status: "ACTIVE" | "MITIGATED" | "ACCEPTED" | "DISMISSED" }
+        - Calls analyticsService.updateRiskStatus(riskId, workspaceId, status)
+        - Returns updated PmRiskEntryDto
+        - OpenAPI documentation
+      </step>
+    </phase>
+
+    <phase name="Phase 5: Testing">
+      <step order="1">
+        Unit test detect_schedule_risk helper (Python)
+        - Test with delay scenarios: 0 days, 7 days, 14 days, 28 days, 56 days
+        - Verify probability thresholds: P25>target (0.85), P50>target (0.65), P75>target (0.40)
+        - Verify impact normalization formula
+      </step>
+      <step order="2">
+        Unit test detect_scope_risk helper (Python)
+        - Test with scope increases: 5%, 15%, 30%
+        - Verify only triggers for >10% increase
+        - Verify probability and impact calculations
+      </step>
+      <step order="3">
+        Unit test detect_resource_risk helper (Python)
+        - Test with velocity trends: UP, STABLE, DECREASING
+        - Verify only triggers for DECREASING trend
+        - Verify probability and impact calculations
+      </step>
+      <step order="4">
+        Unit test Analytics Service createRiskEntry method (TypeScript)
+        - Test new risk creation
+        - Test existing risk update (deduplication)
+        - Verify RLS enforcement (workspaceId filter)
+      </step>
+      <step order="5">
+        Unit test Analytics Service routeRiskToApproval method (TypeScript)
+        - Mock approvalService.create
+        - Test HIGH probability (>70%): verify create called with confidence=HIGH
+        - Test MED probability (30-70%): verify create called with confidence=MEDIUM
+        - Test LOW probability (&lt;30%): verify create NOT called (informational)
+      </step>
+      <step order="6">
+        Integration test end-to-end risk detection flow
+        - Seed project with target date in past (schedule risk)
+        - Add 20% scope mid-project (scope risk)
+        - Generate forecast and call detectRisks
+        - Verify risks created and routed to approval queue
+        - Verify risk entries persisted to database
+      </step>
+    </phase>
+  </implementation-guide>
+
+  <testing-strategy>
+    <unit-tests>
+      <test-suite name="Python Agent (Prism Tools)">
+        <test name="test_detect_schedule_risk_with_delay">
+          Mock forecast with predictedDate > targetDate.
+          Verify probability calculated from P25/P50/P75 thresholds.
+          Verify impact normalized correctly.
+          Verify mitigation suggestions are actionable.
+        </test>
+        <test name="test_detect_schedule_risk_no_delay">
+          Mock forecast with predictedDate &lt;= targetDate.
+          Verify None returned (no risk detected).
+        </test>
+        <test name="test_detect_scope_risk_with_increase">
+          Mock API response with current scope 15% higher than baseline.
+          Verify probability and impact calculations.
+          Verify mitigation includes scope reduction suggestions.
+        </test>
+        <test name="test_detect_scope_risk_no_increase">
+          Mock API response with current scope &lt;= baseline + 10%.
+          Verify None returned (no risk detected).
+        </test>
+        <test name="test_detect_resource_risk_declining_velocity">
+          Mock forecast with "DECREASING" velocity trend.
+          Verify probability and impact calculations.
+          Verify mitigation includes capacity investigation suggestions.
+        </test>
+        <test name="test_detect_resource_risk_stable_velocity">
+          Mock forecast with "STABLE" velocity trend.
+          Verify None returned (no risk detected).
+        </test>
+        <test name="test_mitigation_generators">
+          Test generate_schedule_mitigation with 1 week, 4 weeks, 8 weeks delay.
+          Verify suggestions scale with severity.
+        </test>
+      </test-suite>
+
+      <test-suite name="TypeScript Backend (Analytics Service)">
+        <test name="test_createRiskEntry_new_risk">
+          Mock Prisma findFirst returns null.
+          Call createRiskEntry with risk data.
+          Verify Prisma create called with correct data.
+          Verify tenantId set to workspaceId (RLS).
+        </test>
+        <test name="test_createRiskEntry_existing_risk">
+          Mock Prisma findFirst returns existing ACTIVE risk.
+          Call createRiskEntry with updated risk data.
+          Verify Prisma update called (not create).
+          Verify probability, impact, description updated.
+        </test>
+        <test name="test_routeRiskToApproval_high_probability">
+          Mock risk with probability = 0.75.
+          Mock approvalService.create.
+          Call routeRiskToApproval.
+          Verify approvalService.create called with confidence=HIGH.
+        </test>
+        <test name="test_routeRiskToApproval_med_probability">
+          Mock risk with probability = 0.50.
+          Call routeRiskToApproval.
+          Verify approvalService.create called with confidence=MEDIUM.
+        </test>
+        <test name="test_routeRiskToApproval_low_probability">
+          Mock risk with probability = 0.20.
+          Call routeRiskToApproval.
+          Verify approvalService.create NOT called (informational only).
+        </test>
+        <test name="test_getBaselineScope">
+          Mock Prisma task.aggregate returns { _sum: { storyPoints: 200 } }.
+          Call getBaselineScope.
+          Verify returns 200.
+        </test>
+        <test name="test_updateRiskStatus">
+          Mock Prisma pmRiskEntry.update.
+          Call updateRiskStatus with status=MITIGATED.
+          Verify status updated correctly.
+          Verify RLS enforced (tenantId in where clause).
+        </test>
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <test name="test_detectRisks_end_to_end">
+        Seed project with target date = 2025-03-01.
+        Seed tasks with total 200 points, 50 points remaining.
+        Seed velocity history: [10, 12, 11, 10, 9, 8] (declining trend).
+        Call POST /api/pm/projects/:projectId/analytics/risks.
+        Verify response includes schedule risk (predicted date > target).
+        Verify response includes resource risk (declining velocity).
+        Verify risks persisted to PmRiskEntry table.
+        Verify approval items created for HIGH/MED risks.
+      </test>
+      <test name="test_getRiskEntries_filtering">
+        Seed multiple risks: 2 ACTIVE, 1 MITIGATED, 1 DISMISSED.
+        Call GET /api/pm/projects/:projectId/analytics/risks/entries?status=ACTIVE.
+        Verify response includes only 2 ACTIVE risks.
+        Verify RLS enforced (only current workspace risks).
+      </test>
+      <test name="test_updateRiskStatus_workflow">
+        Seed ACTIVE risk.
+        Call PATCH /api/pm/projects/:projectId/analytics/risks/:riskId/status { status: "MITIGATED" }.
+        Verify risk status updated to MITIGATED.
+        Verify updatedAt timestamp changed.
+      </test>
+    </integration-tests>
+
+    <e2e-tests>
+      <test name="test_schedule_risk_detection">
+        Create project with target date = today + 30 days.
+        Add 100 points of tasks.
+        Set velocity history to 5 points/week (requires 20 weeks = 140 days).
+        Call detectRisks endpoint.
+        Verify schedule risk created with HIGH probability.
+        Verify mitigation suggests scope reduction or team expansion.
+      </test>
+      <test name="test_scope_risk_detection">
+        Create project with baseline 100 points.
+        Add 25 more points (25% increase).
+        Call detectRisks endpoint.
+        Verify scope risk created with MED-HIGH probability.
+        Verify mitigation suggests backlog review and deferrals.
+      </test>
+      <test name="test_resource_risk_detection">
+        Create project with declining velocity: [20, 18, 16, 14, 12] (40% decline).
+        Call detectRisks endpoint.
+        Verify resource risk created with HIGH probability.
+        Verify mitigation suggests capacity investigation.
+      </test>
+    </e2e-tests>
+  </testing-strategy>
+
+  <observability>
+    <metrics-to-track>
+      <metric name="Risk Detection Rate">
+        Count of risks detected per project per week.
+        Breakdown by category (SCHEDULE, SCOPE, RESOURCE).
+      </metric>
+      <metric name="Risk Accuracy">
+        % of predicted risks that materialized.
+        Track false positives (risks that didn't occur).
+      </metric>
+      <metric name="False Positive Rate">
+        % of risks dismissed as false alarms.
+        Use to tune probability thresholds.
+      </metric>
+      <metric name="Mitigation Effectiveness">
+        % of mitigated risks that avoided issues.
+        Compare projects with/without mitigation.
+      </metric>
+      <metric name="Approval Rate">
+        % of risks approved vs dismissed.
+        Breakdown by probability level (HIGH/MED/LOW).
+      </metric>
+    </metrics-to-track>
+
+    <logging-requirements>
+      <log event="risk_detected">
+        projectId, category, probability, impact, mitigation.
+        Approval routing decision (requiresApproval, approvalType).
+      </log>
+      <log event="risk_status_changed">
+        riskId, oldStatus, newStatus, userId.
+        Timestamp of status change.
+      </log>
+      <log event="risk_accuracy_check">
+        riskId, predicted (yes/no), actual (yes/no), accuracy.
+        Log when project completes to measure forecast accuracy.
+      </log>
+      <log event="approval_created">
+        riskId, approvalId, confidence, itemType=RISK_ENTRY.
+      </log>
+    </logging-requirements>
+
+    <alerts>
+      <alert name="high_risk_count">
+        Trigger if >5 HIGH probability risks in single project.
+        Indicates significant project health issues.
+      </alert>
+      <alert name="risk_detection_failure">
+        Trigger if detectRisks failure rate >5%.
+        Indicates Prism agent or API issues.
+      </alert>
+      <alert name="approval_queue_backlog">
+        Trigger if >10 pending risk approvals in workspace.
+        Indicates approval bottleneck.
+      </alert>
+    </alerts>
+  </observability>
+
+  <security-considerations>
+    <rls-enforcement>
+      All PmRiskEntry queries MUST filter by tenantId (workspaceId).
+      No cross-workspace access allowed.
+      Verify in Prisma queries: where: { projectId, tenantId: workspaceId }
+    </rls-enforcement>
+
+    <input-validation>
+      Validate risk status transitions: only allow valid states (ACTIVE/MITIGATED/ACCEPTED/DISMISSED).
+      Prevent direct ACTIVE → DISMISSED without approval.
+    </input-validation>
+
+    <rate-limiting>
+      Apply rate limiting to detectRisks endpoint (compute-intensive).
+      Prevent abuse via repeated risk detection requests.
+    </rate-limiting>
+
+    <data-sanitization>
+      Sanitize risk descriptions before display (prevent XSS in dashboard).
+      Use text sanitization library for user-facing risk descriptions.
+    </data-sanitization>
+  </security-considerations>
+
+  <future-enhancements>
+    <enhancement name="Cross-Project Learning">
+      Prism learns from historical risks across workspace to improve prediction accuracy.
+      Requires tracking risk actuals (did the risk materialize?).
+      Compare predictions to outcomes over time.
+    </enhancement>
+
+    <enhancement name="Baseline Scope Tracking">
+      Store baseline scope in project metadata or PmPredictionLog.
+      Currently uses current total as baseline (less accurate).
+      Track scope changes over time for better scope risk detection.
+    </enhancement>
+
+    <enhancement name="Advanced Monte Carlo">
+      Multi-variable simulation (velocity + scope + team changes).
+      Seasonal adjustments (holidays, sprint cadence).
+      Machine learning model training for improved accuracy.
+    </enhancement>
+
+    <enhancement name="Risk Trend Visualization">
+      Dashboard showing risk severity over time.
+      Risk heat maps across projects in workspace.
+      Risk distribution by category and probability.
+    </enhancement>
+
+    <enhancement name="Automated Mitigation Application">
+      Auto-adjust timeline/scope based on approved mitigations.
+      Apply mitigation suggestions directly to project plan.
+      Track mitigation effectiveness over time.
+    </enhancement>
+
+    <enhancement name="Risk Escalation Workflows">
+      Auto-escalate HIGH risks after 24 hours without action.
+      Notify stakeholders of critical risks.
+      Escalation policies configurable per workspace.
+    </enhancement>
+  </future-enhancements>
+
+  <documentation-requirements>
+    <api-documentation>
+      Document risk detection methodology in OpenAPI specs.
+      Explain probability calculation from Monte Carlo distribution.
+      Provide examples of risk objects for each category.
+    </api-documentation>
+
+    <user-documentation>
+      Create guide for interpreting risk probabilities.
+      Document mitigation strategy best practices.
+      Add examples of common risk scenarios (schedule, scope, resource).
+    </user-documentation>
+
+    <developer-documentation>
+      Document risk detection algorithm in code comments.
+      Explain impact normalization formulas.
+      Provide examples of extending risk detection (new categories).
+    </developer-documentation>
+  </documentation-requirements>
+</story-context>

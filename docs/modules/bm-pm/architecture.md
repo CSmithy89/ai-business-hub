@@ -800,7 +800,7 @@ enum PageActivityType {
 ### Agent Team Factory Pattern
 
 ```python
-# (proposed) agents/core-pm/team.py
+# agents/pm/team.py
 
 from agno import Agent, Team
 from agno.storage.postgres import PostgresStorage
@@ -866,7 +866,7 @@ from agno.memory import Memory
 ### Scribe Agent Implementation
 
 ```python
-# (proposed) agents/core-pm/scribe.py
+# agents/platform/scribe/scribe_agent.py
 
 from agno import Agent
 from agno.tools import tool
