@@ -65,3 +65,27 @@ Core-PM includes three specialized AI agents built on the Agno framework:
 1. **Phase 1 (MVP):** PM CRUD + KB CRUD + full-text search + HITL integration + Socket.io updates + AI Team (Navi, Sage, Chrono)
 2. **Phase 2:** Yjs/Hocuspocus collaboration + pgvector embeddings + verified content governance
 3. **Phase 3:** workflow builder + public API + AI-native KB features (all gated by approvals)
+
+## PM-09 Advanced Views (Implemented)
+
+**Capabilities**
+- **Timeline/Gantt View**: Drag/resize task schedules, dependency arrows, critical path highlighting
+- **Portfolio Dashboard**: Workspace-level health metrics, filters, project drill-down
+- **Dependencies Dashboard**: Cross-project dependency visibility and relation filters
+- **Custom View Builder**: Column visibility + sorting for saved views
+- **View Sharing**: Shareable saved view links via `viewId`
+- **View Templates**: Workspace-local templates for reuse
+
+**Routes**
+- `/dashboard/pm/portfolio` - Portfolio dashboard
+- `/dashboard/pm/dependencies` - Dependencies dashboard
+- `/dashboard/pm/[slug]/tasks?viewId=...` - Shared view deep link
+
+**Performance Notes**
+- Timeline rows virtualize for large lists (threshold: 500+ tasks).
+- Portfolio responses are cached in Redis for 60s (best-effort if Redis is unavailable).
+- Dependencies endpoint supports pagination (`limit`, `offset`) to avoid truncation.
+
+**Limitations**
+- Critical path calculation uses dependency relations (`BLOCKS`, `BLOCKED_BY`, `DEPENDS_ON`, `DEPENDENCY_OF`).
+- Dependencies list defaults to the first page (use pagination for large datasets).

@@ -2,8 +2,28 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { MetricsService } from './metrics/metrics-service';
+
+const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+const parseCookies = (cookieHeader?: string): Record<string, string> => {
+  if (!cookieHeader) return {};
+  return cookieHeader.split(';').reduce<Record<string, string>>((acc, part) => {
+    const [rawKey, ...rawValue] = part.trim().split('=');
+    if (!rawKey) return acc;
+    acc[rawKey] = decodeURIComponent(rawValue.join('='));
+    return acc;
+  }, {});
+};
+
+const normalizeHeaderValue = (
+  value: string | string[] | undefined,
+): string | undefined => {
+  if (!value) return undefined;
+  return Array.isArray(value) ? value[0] : value;
+};
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -17,6 +37,35 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
+
+  if (process.env.CSRF_ENABLED === 'true') {
+    const csrfCookieName = process.env.CSRF_COOKIE_NAME || 'hyvve.csrf_token';
+    const csrfHeaderName = (
+      process.env.CSRF_HEADER_NAME || 'x-csrf-token'
+    ).toLowerCase();
+    const sessionCookieName =
+      process.env.CSRF_SESSION_COOKIE_NAME || 'hyvve.session_token';
+
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      if (CSRF_SAFE_METHODS.has(req.method)) {
+        return next();
+      }
+
+      const cookies = parseCookies(req.headers.cookie);
+      if (!cookies[sessionCookieName]) {
+        return next();
+      }
+
+      const headerToken = normalizeHeaderValue(req.headers[csrfHeaderName]);
+      const cookieToken = cookies[csrfCookieName];
+
+      if (!headerToken || !cookieToken || headerToken !== cookieToken) {
+        return res.status(403).json({ message: 'CSRF token mismatch' });
+      }
+
+      return next();
+    });
+  }
 
   // Global validation pipe for request validation
   app.useGlobalPipes(

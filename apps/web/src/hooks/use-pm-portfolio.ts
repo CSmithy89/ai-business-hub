@@ -70,7 +70,6 @@ async function fetchPortfolio(params: {
 }): Promise<PortfolioResponse> {
   const base = getBaseUrl()
   const search = new URLSearchParams()
-  search.set('workspaceId', params.workspaceId)
 
   if (params.filters.status) search.set('status', params.filters.status)
   if (params.filters.teamLeadId) search.set('teamLeadId', params.filters.teamLeadId)

@@ -37,7 +37,7 @@ interface SavedViewsDropdownProps {
   onSaveCurrentView: () => void
   activeViewId?: string | null
   currentViewState: {
-    viewType: 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE'
+    viewType: 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE' | 'TIMELINE'
     filters: Record<string, any>
     sortBy?: string
     sortOrder?: string
@@ -195,7 +195,6 @@ export function SavedViewsDropdown({
                   isActive={view.id === activeViewId}
                   isOwner={false}
                   onApply={() => onApplyView(view)}
-                  onCopyLink={view.isShared ? () => copyShareLink(view) : undefined}
                 />
               ))}
               <DropdownMenuSeparator />

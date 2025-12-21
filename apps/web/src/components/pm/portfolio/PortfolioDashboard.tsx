@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { AlertTriangle, BarChart3, FolderOpen, Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,7 +20,9 @@ function progressPercent(totalTasks: number, completedTasks: number): number {
 function formatDate(value: string | null): string {
   if (!value) return '—'
   try {
-    return format(new Date(value), 'MMM d, yyyy')
+    const parsed = parseISO(value)
+    if (Number.isNaN(parsed.getTime())) return '—'
+    return format(parsed, 'MMM d, yyyy')
   } catch {
     return '—'
   }
@@ -102,7 +104,7 @@ export function PortfolioDashboard() {
             <div>
               <div className="text-xs text-[rgb(var(--color-text-secondary))]">Avg health</div>
               <div className="text-sm font-semibold text-[rgb(var(--color-text-primary))]">
-                {health?.averageScore ?? 0}%
+                {health?.averageScore != null ? `${health.averageScore}%` : '—'}
               </div>
             </div>
           </CardContent>
@@ -157,7 +159,7 @@ export function PortfolioDashboard() {
         </Card>
       ) : null}
 
-      {!isLoading && projects.length === 0 ? (
+      {!isLoading && !error && projects.length === 0 ? (
         <EmptyState
           icon={FolderOpen}
           headline="No projects match the filters"
@@ -180,7 +182,7 @@ export function PortfolioDashboard() {
             return (
               <Link
                 key={project.id}
-                href={{ pathname: '/dashboard/pm/[slug]', query: { slug: project.slug } }}
+                href={`/dashboard/pm/${project.slug}`}
                 className="block"
               >
                 <Card className="h-full transition-colors hover:bg-[rgb(var(--color-bg-secondary))]">

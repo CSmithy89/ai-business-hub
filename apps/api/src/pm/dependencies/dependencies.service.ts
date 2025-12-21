@@ -27,10 +27,12 @@ export class DependenciesService {
       AND: andFilters,
     }
 
+    const limit = query.limit ?? 50
+    const offset = query.offset ?? 0
+
     const relations = await this.prisma.taskRelation.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: 250,
       include: {
         sourceTask: {
           select: {
@@ -53,32 +55,44 @@ export class DependenciesService {
 
     const crossProjectOnly = query.crossProjectOnly !== false
 
+    const filtered = crossProjectOnly
+      ? relations.filter((relation) => {
+          if (!relation.sourceTask.projectId || !relation.targetTask.projectId) return false
+          return relation.sourceTask.projectId !== relation.targetTask.projectId
+        })
+      : relations
+
+    const paged = filtered.slice(offset, offset + limit)
+
     const projectIds = Array.from(
       new Set(
-        relations.flatMap((relation) => [
-          relation.sourceTask.projectId,
-          relation.targetTask.projectId,
-        ])
+        paged
+          .flatMap((relation) => [relation.sourceTask.projectId, relation.targetTask.projectId])
+          .filter((id): id is string => Boolean(id))
       )
     )
 
     const projects = projectIds.length
       ? await this.prisma.project.findMany({
-          where: { id: { in: projectIds } },
+          where: { id: { in: projectIds }, workspaceId },
           select: { id: true, slug: true, name: true },
         })
       : []
 
     const projectMap = new Map(projects.map((project) => [project.id, project]))
 
-    const filtered = crossProjectOnly
-      ? relations.filter((relation) => relation.sourceTask.projectId !== relation.targetTask.projectId)
-      : relations
+    const hasMore = offset + paged.length < filtered.length
 
     return {
       data: {
         total: filtered.length,
-        relations: filtered.map((relation) => ({
+        meta: {
+          total: filtered.length,
+          limit,
+          offset,
+          hasMore,
+        },
+        relations: paged.map((relation) => ({
           id: relation.id,
           relationType: relation.relationType,
           createdAt: relation.createdAt,

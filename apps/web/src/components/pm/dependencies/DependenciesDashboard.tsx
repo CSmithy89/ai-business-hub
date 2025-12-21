@@ -28,6 +28,8 @@ export function DependenciesDashboard() {
       projectId: projectId === 'all' ? undefined : projectId,
       relationType: relationType === 'all' ? undefined : relationType,
       crossProjectOnly,
+      limit: 100,
+      offset: 0,
     }
   }, [crossProjectOnly, projectId, relationType])
 
@@ -69,7 +71,7 @@ export function DependenciesDashboard() {
       {error ? (
         <Card>
           <CardContent className="py-6">
-            <p className="text-sm text-red-600">{error.message}</p>
+            <p className="text-sm text-red-600">Failed to load dependencies. Please try again.</p>
           </CardContent>
         </Card>
       ) : null}
@@ -82,7 +84,7 @@ export function DependenciesDashboard() {
         </Card>
       ) : null}
 
-      {!isLoading && dependencies.length === 0 ? (
+      {!isLoading && !error && data && dependencies.length === 0 ? (
         <EmptyState
           icon={ListTree}
           headline="No dependencies found"

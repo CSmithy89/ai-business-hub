@@ -351,6 +351,9 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 |------|------|---------|--------|
 | EPIC-PM-01 | Project & Phase Management | 9/9 | ✅ Complete |
 | EPIC-PM-02 | Task Management System | 11/11 | ✅ Complete |
+| EPIC-PM-03 | Views & Navigation | 8/8 | ✅ Complete |
+| EPIC-PM-04 | AI Team - Navi, Sage, Chrono | 9/9 | ✅ Complete |
+| EPIC-PM-05 | AI Team - Scope, Pulse, Herald | 8/8 | ✅ Complete |
 | EPIC-PM-06 | Real-Time & Notifications | 6/6 | ✅ Complete |
 | EPIC-PM-07 | Integrations & Bridge Agent | 7/7 | ✅ Complete |
 | EPIC-PM-08 | Prism Agent & Analytics | 6/6 | ✅ Complete |

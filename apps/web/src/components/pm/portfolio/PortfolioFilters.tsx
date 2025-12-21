@@ -1,6 +1,7 @@
 'use client'
 
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 type PortfolioFiltersProps = {
@@ -35,9 +36,11 @@ export function PortfolioFilters({
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Status</span>
+        <Label htmlFor="portfolio-status" className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">
+          Status
+        </Label>
         <Select value={status} onValueChange={onStatusChange}>
-          <SelectTrigger>
+          <SelectTrigger id="portfolio-status">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -52,9 +55,11 @@ export function PortfolioFilters({
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Team lead</span>
+        <Label htmlFor="portfolio-team-lead" className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">
+          Team lead
+        </Label>
         <Select value={teamLeadId} onValueChange={onTeamLeadChange}>
-          <SelectTrigger>
+          <SelectTrigger id="portfolio-team-lead">
             <SelectValue placeholder="All teams" />
           </SelectTrigger>
           <SelectContent>
@@ -69,8 +74,11 @@ export function PortfolioFilters({
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Search</span>
+        <Label htmlFor="portfolio-search" className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">
+          Search
+        </Label>
         <Input
+          id="portfolio-search"
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Search projects..."
@@ -78,8 +86,11 @@ export function PortfolioFilters({
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">From</span>
+        <Label htmlFor="portfolio-from" className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">
+          From
+        </Label>
         <Input
+          id="portfolio-from"
           type="date"
           value={from}
           onChange={(event) => onFromChange(event.target.value)}
@@ -87,8 +98,11 @@ export function PortfolioFilters({
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">To</span>
+        <Label htmlFor="portfolio-to" className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">
+          To
+        </Label>
         <Input
+          id="portfolio-to"
           type="date"
           value={to}
           onChange={(event) => onToChange(event.target.value)}

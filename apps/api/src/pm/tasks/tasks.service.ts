@@ -982,7 +982,7 @@ export class TasksService {
         agentId: dto.agentId,
         assignmentType: dto.assignmentType,
         dueDate: dto.dueDate,
-        startedAt: dto.startedAt,
+        startedAt: updated.startedAt,
         updatedAt: updated.updatedAt.toISOString(),
         correlationId,
       },

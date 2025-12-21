@@ -775,6 +775,35 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
+## EPIC-10: Platform Hardening (8 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-06
+**PR:** #11
+
+### Security Hardening
+
+- **CSRF Protection**: HMAC-SHA256 based tokens, middleware validation, and constant-time comparison.
+- **XSS Sanitization**: DOMPurify-based sanitization for user content with comprehensive test coverage.
+- **Encryption Validation**: Startup validation for encryption keys ensuring >128-bit entropy.
+- **Backup Code Safety**: Fixed race condition in backup code verification with pessimistic locking strategy.
+
+### Infrastructure & Reliability
+
+- **Redis Rate Limiting**: Migrated to `@upstash/ratelimit` for distributed rate limiting with in-memory fallback.
+- **Database Migrations**: Validated and executed migrations for AgentChatMessage and AgentSession models.
+- **Global Validation**: Verified NestJS `ValidationPipe` configuration for strict input validation.
+- **Trusted Devices**: Validated and fixed trusted device implementation.
+
+### Key Files
+
+- `apps/web/src/lib/csrf.ts` - CSRF token generation/verification
+- `apps/web/src/middleware.ts` - CSRF middleware
+- `apps/web/src/lib/utils/rate-limit.ts` - Unified Redis rate limiter
+- `apps/web/src/lib/utils/sanitize.ts` - XSS sanitization utility
+
+---
+
 ## EPIC-09: UI & Authentication Enhancements (15 stories)
 
 **Status:** Complete

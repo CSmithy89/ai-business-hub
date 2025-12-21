@@ -18,7 +18,7 @@ type ViewTemplate = {
   id: string
   name: string
   viewState: {
-    viewType: 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE'
+    viewType: 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE' | 'TIMELINE'
     filters: Record<string, any>
     sortBy?: string
     sortOrder?: string
@@ -44,9 +44,9 @@ export function ViewTemplatesMenu({ workspaceId, currentViewState, onApplyTempla
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const stored = window.localStorage.getItem(getStorageKey(workspaceId))
-    if (!stored) return
     try {
+      const stored = window.localStorage.getItem(getStorageKey(workspaceId))
+      if (!stored) return
       const parsed = JSON.parse(stored) as ViewTemplate[]
       setTemplates(parsed)
     } catch {
@@ -57,7 +57,11 @@ export function ViewTemplatesMenu({ workspaceId, currentViewState, onApplyTempla
   const saveTemplates = (next: ViewTemplate[]) => {
     setTemplates(next)
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(getStorageKey(workspaceId), JSON.stringify(next))
+      try {
+        window.localStorage.setItem(getStorageKey(workspaceId), JSON.stringify(next))
+      } catch {
+        // Ignore storage errors (private browsing, disabled storage)
+      }
     }
   }
 

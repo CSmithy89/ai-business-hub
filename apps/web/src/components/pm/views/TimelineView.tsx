@@ -14,9 +14,12 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { usePmDependencies } from '@/hooks/use-pm-dependencies'
 import { useUpdatePmTask, type TaskListItem } from '@/hooks/use-pm-tasks'
+import { VIRTUALIZATION } from '@/lib/pm/constants'
 import { cn } from '@/lib/utils'
 
 type ZoomLevel = 'day' | 'week' | 'month'
@@ -50,6 +53,7 @@ const ZOOM_DAY_WIDTH: Record<ZoomLevel, number> = {
 
 const DEFAULT_DURATION_DAYS = 5
 const ROW_HEIGHT = 52
+const TIMELINE_PADDING_DAYS = 5
 
 function parseDate(value: string | null, fallback: Date): Date {
   if (!value) return fallback
@@ -100,17 +104,27 @@ function buildSegments(start: Date, end: Date, zoom: ZoomLevel) {
   return segments
 }
 
-function buildCriticalPath(items: Array<{ id: string; parentId: string | null; duration: number }>) {
+/**
+ * Compute the longest dependency chain to highlight critical tasks.
+ * Uses directed edges of predecessor -> successor and ignores cyclic branches.
+ */
+function buildCriticalPath(
+  items: Array<{ id: string; duration: number }>,
+  edges: Array<{ from: string; to: string }>,
+) {
+  if (edges.length === 0) return new Set<string>()
   const childrenMap = new Map<string, string[]>()
   const durationMap = new Map<string, number>()
 
   items.forEach((item) => {
     durationMap.set(item.id, item.duration)
-    if (item.parentId) {
-      const list = childrenMap.get(item.parentId) ?? []
-      list.push(item.id)
-      childrenMap.set(item.parentId, list)
-    }
+    childrenMap.set(item.id, [])
+  })
+
+  edges.forEach((edge) => {
+    const list = childrenMap.get(edge.from)
+    if (!list) return
+    list.push(edge.to)
   })
 
   const memo = new Map<string, { length: number; path: string[] }>()
@@ -156,13 +170,25 @@ function buildCriticalPath(items: Array<{ id: string; parentId: string | null; d
   return new Set(bestPath)
 }
 
-export function TimelineView({ tasks }: { tasks: TaskListItem[] }) {
+export function TimelineView({
+  tasks,
+  onSelectTask,
+}: {
+  tasks: TaskListItem[]
+  onSelectTask?: (taskId: string) => void
+}) {
   const [zoom, setZoom] = useState<ZoomLevel>('week')
   const [draftDates, setDraftDates] = useState<Record<string, TaskDates>>({})
   const [dragState, setDragState] = useState<DragState | null>(null)
-  const updateTask = useUpdatePmTask()
+  const { mutate: updateTask } = useUpdatePmTask()
   const latestDraftDates = useRef(draftDates)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const projectId = tasks[0]?.projectId ?? null
+  const { data: dependenciesData } = usePmDependencies(
+    { projectId: projectId ?? undefined, crossProjectOnly: false, limit: 100 },
+    { enabled: !!projectId },
+  )
+  const dependencyRelations = dependenciesData?.data.relations ?? []
 
   useEffect(() => {
     latestDraftDates.current = draftDates
@@ -170,9 +196,13 @@ export function TimelineView({ tasks }: { tasks: TaskListItem[] }) {
 
   useEffect(() => {
     if (!projectId || typeof window === 'undefined') return
-    const stored = window.localStorage.getItem(`pm-timeline-zoom-${projectId}`)
-    if (stored === 'day' || stored === 'week' || stored === 'month') {
-      setZoom(stored)
+    try {
+      const stored = window.localStorage.getItem(`pm-timeline-zoom-${projectId}`)
+      if (stored === 'day' || stored === 'week' || stored === 'month') {
+        setZoom(stored)
+      }
+    } catch {
+      // Ignore storage errors (private browsing, disabled storage)
     }
   }, [projectId])
 
@@ -198,8 +228,8 @@ export function TimelineView({ tasks }: { tasks: TaskListItem[] }) {
     })
 
     return {
-      start: startOfDay(addDays(min, -5)),
-      end: endOfDay(addDays(max, 5)),
+      start: startOfDay(addDays(min, -TIMELINE_PADDING_DAYS)),
+      end: endOfDay(addDays(max, TIMELINE_PADDING_DAYS)),
     }
   }, [schedule])
 
@@ -208,14 +238,45 @@ export function TimelineView({ tasks }: { tasks: TaskListItem[] }) {
   const timelineWidth = totalDays * dayWidth
   const segments = useMemo(() => buildSegments(timelineBounds.start, timelineBounds.end, zoom), [timelineBounds, zoom])
 
+  const dependencyEdges = useMemo(() => {
+    if (dependencyRelations.length === 0) return []
+    const taskIds = new Set(tasks.map((task) => task.id))
+    const edges: Array<{ from: string; to: string }> = []
+    const seen = new Set<string>()
+
+    dependencyRelations.forEach((relation) => {
+      const sourceId = relation.source.taskId
+      const targetId = relation.target.taskId
+      if (!taskIds.has(sourceId) || !taskIds.has(targetId)) return
+
+      let from: string | null = null
+      let to: string | null = null
+
+      if (relation.relationType === 'BLOCKS' || relation.relationType === 'DEPENDENCY_OF') {
+        from = sourceId
+        to = targetId
+      } else if (relation.relationType === 'BLOCKED_BY' || relation.relationType === 'DEPENDS_ON') {
+        from = targetId
+        to = sourceId
+      }
+
+      if (!from || !to || from === to) return
+      const key = `${from}:${to}`
+      if (seen.has(key)) return
+      seen.add(key)
+      edges.push({ from, to })
+    })
+
+    return edges
+  }, [dependencyRelations, tasks])
+
   const criticalPath = useMemo(() => {
     const items = schedule.map(({ task, dates }) => ({
       id: task.id,
-      parentId: task.parentId,
       duration: Math.max(1, differenceInDays(dates.end, dates.start) + 1),
     }))
-    return buildCriticalPath(items)
-  }, [schedule])
+    return buildCriticalPath(items, dependencyEdges)
+  }, [schedule, dependencyEdges])
 
   useEffect(() => {
     if (!dragState) return
@@ -249,7 +310,7 @@ export function TimelineView({ tasks }: { tasks: TaskListItem[] }) {
     const handleUp = () => {
       const updated = latestDraftDates.current[dragState.taskId]
       if (updated) {
-        updateTask.mutate({
+        updateTask({
           taskId: dragState.taskId,
           input: {
             startedAt: startOfDay(updated.start).toISOString(),
@@ -275,24 +336,47 @@ export function TimelineView({ tasks }: { tasks: TaskListItem[] }) {
       idToIndex.set(task.id, index)
     })
 
-    return schedule.flatMap(({ task, dates }) => {
-      if (!task.parentId) return []
-      const parentIndex = idToIndex.get(task.parentId)
+    return dependencyEdges.flatMap((edge) => {
+      const parentIndex = idToIndex.get(edge.from)
       if (parentIndex === undefined) return []
+      const childIndex = idToIndex.get(edge.to)
+      if (childIndex === undefined) return []
       const parent = schedule[parentIndex]
+      const child = schedule[childIndex]
       const parentLeft = differenceInDays(parent.dates.end, timelineBounds.start) * dayWidth + dayWidth
-      const childLeft = differenceInDays(dates.start, timelineBounds.start) * dayWidth
+      const childLeft = differenceInDays(child.dates.start, timelineBounds.start) * dayWidth
       const parentY = parentIndex * ROW_HEIGHT + ROW_HEIGHT / 2
-      const childY = idToIndex.get(task.id)! * ROW_HEIGHT + ROW_HEIGHT / 2
+      const childY = childIndex * ROW_HEIGHT + ROW_HEIGHT / 2
 
       return [
         {
-          id: `${task.parentId}-${task.id}`,
+          id: `${edge.from}-${edge.to}`,
           path: `M ${parentLeft} ${parentY} L ${parentLeft + 12} ${parentY} L ${parentLeft + 12} ${childY} L ${childLeft} ${childY}`,
         },
       ]
     })
-  }, [schedule, timelineBounds, dayWidth])
+  }, [schedule, timelineBounds, dayWidth, dependencyEdges])
+
+  const shouldVirtualize = schedule.length > VIRTUALIZATION.TABLE_ROW_THRESHOLD
+  const rowVirtualizer = useVirtualizer({
+    count: schedule.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: VIRTUALIZATION.OVERSCAN,
+    enabled: shouldVirtualize,
+  })
+
+  const virtualRows = shouldVirtualize
+    ? rowVirtualizer.getVirtualItems()
+    : schedule.map((_, index) => ({
+        index,
+        start: index * ROW_HEIGHT,
+        size: ROW_HEIGHT,
+      }))
+
+  const totalHeight = shouldVirtualize
+    ? rowVirtualizer.getTotalSize()
+    : schedule.length * ROW_HEIGHT
 
   if (tasks.length === 0) {
     return (
@@ -321,7 +405,11 @@ export function TimelineView({ tasks }: { tasks: TaskListItem[] }) {
               onClick={() => {
                 setZoom(level)
                 if (projectId && typeof window !== 'undefined') {
-                  window.localStorage.setItem(`pm-timeline-zoom-${projectId}`, level)
+                  try {
+                    window.localStorage.setItem(`pm-timeline-zoom-${projectId}`, level)
+                  } catch {
+                    // Ignore storage errors (private browsing, disabled storage)
+                  }
                 }
               }}
             >
@@ -331,16 +419,32 @@ export function TimelineView({ tasks }: { tasks: TaskListItem[] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-[240px_minmax(0,1fr)]">
+      <div
+        ref={scrollRef}
+        className="grid grid-cols-[240px_minmax(0,1fr)] overflow-y-auto"
+        style={{ maxHeight: VIRTUALIZATION.TABLE_HEIGHT }}
+      >
         <div className="border-r border-[rgb(var(--color-border-default))]">
-          <div className="flex h-10 items-center border-b border-[rgb(var(--color-border-default))] px-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--color-text-secondary))]">
+          <div className="sticky top-0 z-10 flex h-10 items-center border-b border-[rgb(var(--color-border-default))] bg-[rgb(var(--color-bg-primary))] px-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--color-text-secondary))]">
             Task
           </div>
-          <div className="divide-y divide-[rgb(var(--color-border-default))]">
-            {schedule.map(({ task, dates }) => {
+          <div style={{ height: `${totalHeight}px`, position: 'relative' }}>
+            {virtualRows.map((virtualRow) => {
+              const { task, dates } = schedule[virtualRow.index]
               const isCritical = criticalPath.has(task.id)
               return (
-                <div key={task.id} className="flex h-[52px] items-center gap-2 px-3">
+                <div
+                  key={task.id}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: `${virtualRow.size}px`,
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                  className="flex items-center gap-2 border-b border-[rgb(var(--color-border-default))] px-3"
+                >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-[rgb(var(--color-text-secondary))]">#{task.taskNumber}</span>
@@ -365,7 +469,7 @@ export function TimelineView({ tasks }: { tasks: TaskListItem[] }) {
 
         <div className="overflow-x-auto">
           <div style={{ width: `${timelineWidth}px` }}>
-            <div className="flex h-10 border-b border-[rgb(var(--color-border-default))]">
+            <div className="sticky top-0 z-10 flex h-10 border-b border-[rgb(var(--color-border-default))] bg-[rgb(var(--color-bg-primary))]">
               {segments.map((segment) => (
                 <div
                   key={`${segment.label}-${segment.start.toISOString()}`}
@@ -376,11 +480,11 @@ export function TimelineView({ tasks }: { tasks: TaskListItem[] }) {
                 </div>
               ))}
             </div>
-            <div className="relative">
+            <div className="relative" style={{ height: `${totalHeight}px` }}>
               <svg
                 className="absolute left-0 top-0 pointer-events-none"
                 width={timelineWidth}
-                height={schedule.length * ROW_HEIGHT}
+                height={totalHeight}
               >
                 <defs>
                   <marker
@@ -405,54 +509,71 @@ export function TimelineView({ tasks }: { tasks: TaskListItem[] }) {
                   />
                 ))}
               </svg>
-              <div className="divide-y divide-[rgb(var(--color-border-default))]">
-                {schedule.map(({ task, dates }) => {
-                  const isCritical = criticalPath.has(task.id)
-                  const startOffset = differenceInDays(dates.start, timelineBounds.start) * dayWidth
-                  const durationDays = Math.max(1, differenceInDays(dates.end, dates.start) + 1)
-                  const barWidth = Math.max(dayWidth, durationDays * dayWidth)
-                  const handleDown = (mode: DragMode) => (event: ReactMouseEvent<HTMLDivElement>) => {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    setDragState({
-                      taskId: task.id,
-                      mode,
-                      startX: event.clientX,
-                      start: dates.start,
-                      end: dates.end,
-                    })
-                  }
+              {virtualRows.map((virtualRow) => {
+                const { task, dates } = schedule[virtualRow.index]
+                const isCritical = criticalPath.has(task.id)
+                const startOffset = differenceInDays(dates.start, timelineBounds.start) * dayWidth
+                const durationDays = Math.max(1, differenceInDays(dates.end, dates.start) + 1)
+                const barWidth = Math.max(dayWidth, durationDays * dayWidth)
+                const handleDown = (mode: DragMode) => (event: ReactMouseEvent<HTMLDivElement>) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setDragState({
+                    taskId: task.id,
+                    mode,
+                    startX: event.clientX,
+                    start: dates.start,
+                    end: dates.end,
+                  })
+                }
 
-                  return (
-                    <div key={task.id} className="relative h-[52px]">
-                      <div
-                        className={cn(
-                          'absolute top-3 h-6 rounded-md border px-2 text-xs font-semibold text-white shadow-sm',
-                          isCritical
-                            ? 'border-red-400 bg-red-500'
-                            : 'border-[rgb(var(--color-primary-500))] bg-[rgb(var(--color-primary-500))]',
-                        )}
-                        style={{ left: `${startOffset}px`, width: `${barWidth}px` }}
-                        onMouseDown={handleDown('move')}
-                        role="button"
-                        tabIndex={0}
-                      >
-                        <span className="truncate">{task.title}</span>
-                        <span
-                          className="absolute left-0 top-0 h-full w-2 cursor-ew-resize"
-                          onMouseDown={handleDown('start')}
-                          aria-hidden="true"
-                        />
-                        <span
-                          className="absolute right-0 top-0 h-full w-2 cursor-ew-resize"
-                          onMouseDown={handleDown('end')}
-                          aria-hidden="true"
-                        />
-                      </div>
+                return (
+                  <div
+                    key={task.id}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: `${virtualRow.size}px`,
+                      transform: `translateY(${virtualRow.start}px)`,
+                      borderBottom: '1px solid rgb(var(--color-border-default))',
+                    }}
+                  >
+                    <div
+                      className={cn(
+                        'absolute top-3 h-6 rounded-md border px-2 text-xs font-semibold text-white shadow-sm',
+                        isCritical
+                          ? 'border-red-400 bg-red-500'
+                          : 'border-[rgb(var(--color-primary-500))] bg-[rgb(var(--color-primary-500))]',
+                      )}
+                      style={{ left: `${startOffset}px`, width: `${barWidth}px` }}
+                      onMouseDown={handleDown('move')}
+                      onClick={() => onSelectTask?.(task.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          onSelectTask?.(task.id)
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <span className="truncate">{task.title}</span>
+                      <span
+                        className="absolute left-0 top-0 h-full w-2 cursor-ew-resize"
+                        onMouseDown={handleDown('start')}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className="absolute right-0 top-0 h-full w-2 cursor-ew-resize"
+                        onMouseDown={handleDown('end')}
+                        aria-hidden="true"
+                      />
                     </div>
-                  )
-                })}
-              </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>

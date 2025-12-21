@@ -21,7 +21,7 @@ interface SaveViewModalProps {
   onOpenChange: (open: boolean) => void
   projectId: string
   viewState: {
-    viewType: 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE'
+    viewType: 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE' | 'TIMELINE'
     filters: Record<string, any>
     sortBy?: string
     sortOrder?: string
@@ -75,7 +75,7 @@ export function SaveViewModal({ open, onOpenChange, projectId, viewState, existi
       setSortBy(viewState.sortBy ?? '')
       setSortOrder((viewState.sortOrder as 'asc' | 'desc') ?? 'asc')
     }
-  }, [existingView, open, viewState])
+  }, [existingView, open])
 
   const handleSave = async () => {
     if (!name.trim()) return
@@ -162,7 +162,11 @@ export function SaveViewModal({ open, onOpenChange, projectId, viewState, existi
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label>Sort by</Label>
-                  <Select value={sortBy || 'none'} onValueChange={(value) => setSortBy(value === 'none' ? '' : value)}>
+                  <Select
+                    value={sortBy || 'none'}
+                    onValueChange={(value) => setSortBy(value === 'none' ? '' : value)}
+                    disabled={isLoading}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="No sorting" />
                     </SelectTrigger>
@@ -179,7 +183,11 @@ export function SaveViewModal({ open, onOpenChange, projectId, viewState, existi
 
                 <div className="grid gap-2">
                   <Label>Sort order</Label>
-                  <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'asc' | 'desc')}>
+                  <Select
+                    value={sortOrder}
+                    onValueChange={(value) => setSortOrder(value as 'asc' | 'desc')}
+                    disabled={isLoading}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Ascending" />
                     </SelectTrigger>

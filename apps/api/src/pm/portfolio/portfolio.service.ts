@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../common/services/prisma.service'
+import { RedisProvider } from '../../events/redis.provider'
 import { PortfolioQueryDto } from './dto/portfolio-query.dto'
+
+const PORTFOLIO_CACHE_TTL_SECONDS = 60
 
 type PortfolioProject = {
   id: string
@@ -13,8 +16,8 @@ type PortfolioProject = {
   icon: string
   totalTasks: number
   completedTasks: number
-  startDate: Date | null
-  targetDate: Date | null
+  startDate: string | null
+  targetDate: string | null
   healthScore: number
   team: {
     leadUserId: string | null
@@ -25,9 +28,28 @@ type PortfolioProject = {
 
 @Injectable()
 export class PortfolioService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisProvider: RedisProvider,
+  ) {}
 
   async getPortfolio(workspaceId: string, query: PortfolioQueryDto) {
+    const from = query.from && !Number.isNaN(query.from.getTime()) ? query.from : undefined
+    const to = query.to && !Number.isNaN(query.to.getTime()) ? query.to : undefined
+
+    const cacheKey = `pm:portfolio:${workspaceId}:${JSON.stringify({
+      status: query.status ?? null,
+      teamLeadId: query.teamLeadId ?? null,
+      search: query.search ?? null,
+      from: from ? from.toISOString() : null,
+      to: to ? to.toISOString() : null,
+    })}`
+
+    const cached = await this.getCachedPortfolio(cacheKey)
+    if (cached) {
+      return cached
+    }
+
     const where: Prisma.ProjectWhereInput = {
       workspaceId,
       deletedAt: null,
@@ -46,10 +68,10 @@ export class PortfolioService {
       })
     }
 
-    if (query.from || query.to) {
+    if (from || to) {
       const range: Prisma.DateTimeFilter = {}
-      if (query.from) range.gte = query.from
-      if (query.to) range.lte = query.to
+      if (from) range.gte = from
+      if (to) range.lte = to
       andFilters.push({
         OR: [{ targetDate: range }, { startDate: range }],
       })
@@ -97,7 +119,7 @@ export class PortfolioService {
 
     const leadUsers = leadIds.length
       ? await this.prisma.user.findMany({
-          where: { id: { in: leadIds } },
+          where: { id: { in: leadIds }, workspaces: { some: { workspaceId } } },
           select: { id: true, name: true, email: true },
         })
       : []
@@ -124,8 +146,8 @@ export class PortfolioService {
         icon: project.icon,
         totalTasks,
         completedTasks,
-        startDate: project.startDate,
-        targetDate: project.targetDate,
+        startDate: project.startDate ? project.startDate.toISOString() : null,
+        targetDate: project.targetDate ? project.targetDate.toISOString() : null,
         healthScore,
         team: {
           leadUserId,
@@ -163,13 +185,36 @@ export class PortfolioService {
       name: user.name ?? user.email ?? 'Team lead',
     }))
 
-    return {
+    const response = {
       data: {
         totals,
         health: healthSummary,
         teamLeads,
         projects: portfolioProjects,
       },
+    }
+
+    await this.setCachedPortfolio(cacheKey, response)
+    return response
+  }
+
+  private async getCachedPortfolio(cacheKey: string): Promise<{ data: unknown } | null> {
+    try {
+      const redis = this.redisProvider.getClient()
+      const cached = await redis.get(cacheKey)
+      if (!cached) return null
+      return JSON.parse(cached) as { data: unknown }
+    } catch {
+      return null
+    }
+  }
+
+  private async setCachedPortfolio(cacheKey: string, value: { data: unknown }): Promise<void> {
+    try {
+      const redis = this.redisProvider.getClient()
+      await redis.set(cacheKey, JSON.stringify(value), 'EX', PORTFOLIO_CACHE_TTL_SECONDS)
+    } catch {
+      // Best-effort cache only
     }
   }
 }

@@ -41,6 +41,12 @@ export type DependencyRelation = {
 export type DependenciesResponse = {
   data: {
     total: number
+    meta?: {
+      total: number
+      limit: number
+      offset: number
+      hasMore: boolean
+    }
     relations: DependencyRelation[]
   }
 }
@@ -49,6 +55,8 @@ export type DependenciesFilters = {
   projectId?: string
   relationType?: string
   crossProjectOnly?: boolean
+  limit?: number
+  offset?: number
 }
 
 async function fetchDependencies(params: {
@@ -58,12 +66,17 @@ async function fetchDependencies(params: {
 }): Promise<DependenciesResponse> {
   const base = getBaseUrl()
   const search = new URLSearchParams()
-  search.set('workspaceId', params.workspaceId)
 
   if (params.filters.projectId) search.set('projectId', params.filters.projectId)
   if (params.filters.relationType) search.set('relationType', params.filters.relationType)
   if (params.filters.crossProjectOnly !== undefined) {
     search.set('crossProjectOnly', String(params.filters.crossProjectOnly))
+  }
+  if (params.filters.limit !== undefined) {
+    search.set('limit', String(params.filters.limit))
+  }
+  if (params.filters.offset !== undefined) {
+    search.set('offset', String(params.filters.offset))
   }
 
   const response = await fetch(`${base}/pm/dependencies?${search.toString()}`, {
@@ -88,10 +101,11 @@ async function fetchDependencies(params: {
   return body as DependenciesResponse
 }
 
-export function usePmDependencies(filters: DependenciesFilters) {
+export function usePmDependencies(filters: DependenciesFilters, options?: { enabled?: boolean }) {
   const { data: session } = useSession()
   const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
   const token = getSessionToken(session)
+  const enabled = !!workspaceId && (options?.enabled ?? true)
 
   return useQuery({
     queryKey: [
@@ -100,9 +114,11 @@ export function usePmDependencies(filters: DependenciesFilters) {
       filters.projectId ?? null,
       filters.relationType ?? null,
       filters.crossProjectOnly ?? null,
+      filters.limit ?? null,
+      filters.offset ?? null,
     ],
     queryFn: () => fetchDependencies({ workspaceId: workspaceId!, token, filters }),
-    enabled: !!workspaceId,
+    enabled,
     staleTime: 30000,
     refetchOnWindowFocus: true,
   })

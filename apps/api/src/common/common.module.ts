@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common'
+import { CsrfController } from './controllers/csrf.controller'
 import { AuthGuard } from './guards/auth.guard'
 import { TenantGuard } from './guards/tenant.guard'
 import { RolesGuard } from './guards/roles.guard'
@@ -32,6 +33,7 @@ import { EmailService } from './services/email.service'
  */
 @Module({
   imports: [],
+  controllers: [CsrfController],
   providers: [
     // Services
     PrismaService,

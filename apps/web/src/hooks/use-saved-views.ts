@@ -17,7 +17,7 @@ function getSessionToken(session: unknown): string | undefined {
   return direct || nested || undefined
 }
 
-export type ViewType = 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE'
+export type ViewType = 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE' | 'TIMELINE'
 
 export interface SavedView {
   id: string
