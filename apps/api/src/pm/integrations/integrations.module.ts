@@ -5,11 +5,13 @@ import { IntegrationsController } from './integrations.controller'
 import { IntegrationsService } from './integrations.service'
 import { GithubIntegrationsController } from './github.controller'
 import { GithubIssuesService } from './github-issues.service'
+import { GithubPullRequestsService } from './github-pull-requests.service'
+import { GithubWebhookController } from './github-webhook.controller'
 
 @Module({
   imports: [CommonModule, TasksModule],
-  controllers: [IntegrationsController, GithubIntegrationsController],
-  providers: [IntegrationsService, GithubIssuesService],
+  controllers: [IntegrationsController, GithubIntegrationsController, GithubWebhookController],
+  providers: [IntegrationsService, GithubIssuesService, GithubPullRequestsService],
   exports: [IntegrationsService],
 })
 export class IntegrationsModule {}

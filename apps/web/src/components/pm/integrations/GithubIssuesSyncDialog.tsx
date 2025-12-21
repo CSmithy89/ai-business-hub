@@ -56,7 +56,7 @@ export function GithubIssuesSyncDialog({ open, onOpenChange, projectId }: Github
         await connectIntegration.mutateAsync({
           provider: 'github',
           token,
-          metadata: { defaultRepo: `${owner}/${repo}` },
+          metadata: { defaultRepo: `${owner}/${repo}`, defaultProjectId: projectId },
         })
       }
 

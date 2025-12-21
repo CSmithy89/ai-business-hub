@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { format, parseISO } from 'date-fns'
-import { CalendarIcon, Check, Loader2, Pencil, Trash2, X } from 'lucide-react'
+import { CalendarIcon, Check, Loader2, Pencil, Trash2, X, Link } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -906,6 +906,37 @@ export function TaskDetailSheet({
                 </div>
               ) : (
                 <div className="text-sm text-[rgb(var(--color-text-secondary))]">No labels yet.</div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-[rgb(var(--color-text-secondary))]">Linked PRs</span>
+              </div>
+
+              {task.externalLinks?.filter((link) => link.linkType === 'PR').length ? (
+                <div className="flex flex-col gap-2 rounded-md border border-[rgb(var(--color-border-default))] p-3">
+                  {task.externalLinks
+                    .filter((link) => link.linkType === 'PR')
+                    .map((link) => (
+                      <div key={link.id} className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Link className="h-4 w-4 text-[rgb(var(--color-text-secondary))]" aria-hidden="true" />
+                          <a
+                            href={link.externalUrl || '#'}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="truncate text-sm text-[rgb(var(--color-text-primary))] hover:underline"
+                          >
+                            {link.externalId}
+                          </a>
+                        </div>
+                        <Badge variant="outline">{(link.metadata?.state as string) || 'linked'}</Badge>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-sm text-[rgb(var(--color-text-secondary))]">No linked pull requests.</div>
               )}
             </div>
 

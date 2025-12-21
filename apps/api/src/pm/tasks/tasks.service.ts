@@ -301,6 +301,9 @@ export class TasksService {
         activities: {
           orderBy: { createdAt: 'desc' },
         },
+        externalLinks: {
+          orderBy: { createdAt: 'desc' },
+        },
       },
     })
     if (!task) throw new NotFoundException('Task not found')

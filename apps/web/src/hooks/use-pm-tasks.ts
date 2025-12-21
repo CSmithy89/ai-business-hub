@@ -152,6 +152,16 @@ export type TaskLabel = {
   color: string
 }
 
+export type ExternalLink = {
+  id: string
+  provider: string
+  linkType: string
+  externalId: string
+  externalUrl: string | null
+  metadata: Record<string, unknown> | null
+  createdAt: string
+}
+
 export type TaskParentSummary = {
   id: string
   parentId: string | null
@@ -188,6 +198,7 @@ export interface TaskDetailResponse {
     relatedTo: TaskRelationIncoming[]
     isBlocked?: boolean
     labels: TaskLabel[]
+    externalLinks: ExternalLink[]
     attachments: TaskAttachment[]
     comments: TaskComment[]
   }

@@ -206,7 +206,7 @@ development_status:
   pm-07-1-csv-import-wizard: done
   pm-07-2-csv-export: done
   pm-07-3-github-issues-sync: done
-  pm-07-4-github-pr-linking: backlog
+  pm-07-4-github-pr-linking: done
   pm-07-5-bridge-agent-foundation: backlog
   pm-07-6-jira-import: backlog
   pm-07-7-asana-trello-import: backlog
