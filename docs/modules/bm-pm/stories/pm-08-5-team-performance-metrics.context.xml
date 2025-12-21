@@ -1,0 +1,1024 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>PM-08-5</story-id>
+    <story-name>What-If Scenarios / Team Performance Metrics</story-name>
+    <epic>PM-08</epic>
+    <epic-name>Prism Agent &amp; Predictive Analytics</epic-name>
+    <module>bm-pm</module>
+    <type>Feature</type>
+    <points>5</points>
+    <generated-date>2025-12-21</generated-date>
+  </metadata>
+
+  <summary>
+    This story implements scenario planning capabilities and team performance metrics for project analytics.
+    Users can model what-if scenarios by adjusting scope, team size, and velocity to predict project outcomes.
+    Team performance metrics provide insights into velocity trends, cycle time, throughput, and completion rates.
+  </summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-5.1" category="Scenario Planner UI">
+      <description>Interactive scenario planner allows adjusting project variables and viewing real-time forecast updates</description>
+      <details>
+        - Modal/drawer from analytics dashboard with baseline display (velocity, scope, team size, predicted date)
+        - Interactive controls for scope (-1000 to +10000 points), team size (-10 to +10), velocity (50% to 200%)
+        - Scenarios are temporary (not saved to DB) with reset capability
+        - Side-by-side comparison of up to 3 scenarios
+        - Real-time updates with clear baseline vs scenario distinction
+        - Risk indicators for significant changes (scope &gt;10% warning, &gt;25% alert)
+      </details>
+    </criterion>
+
+    <criterion id="AC-5.2" category="Real-Time Recalculation">
+      <description>Forecast updates within 3 seconds with debounced API calls</description>
+      <details>
+        - 300ms debounce to avoid excessive requests
+        - Loading indicator during recalculation
+        - Client-side caching to avoid duplicate API calls
+        - Fallback to client-side linear projection if API fails
+        - No page refresh required
+      </details>
+    </criterion>
+
+    <criterion id="AC-5.3" category="Scenario Forecast Results">
+      <description>Display updated predictions with confidence levels and risk assessment</description>
+      <details>
+        - Updated completion date with delta from baseline (e.g., "2 weeks earlier")
+        - Confidence level (LOW, MED, HIGH) based on scenario realism
+        - Optimistic/pessimistic date bands
+        - Updated resource needs (team-weeks, budget if applicable)
+        - Updated risk levels with severity indicators
+        - Natural language summary of scenario impact
+      </details>
+    </criterion>
+
+    <criterion id="AC-5.4" category="Team Performance Metrics">
+      <description>Dashboard section displays comprehensive team performance metrics</description>
+      <details>
+        - Current velocity, average velocity (4 weeks), velocity trend (UP/DOWN/STABLE)
+        - Cycle time (average days from start to done)
+        - Throughput (tasks/week)
+        - Completion rate (% of estimated tasks completed on time)
+        - Team capacity utilization (active tasks / team size)
+        - Each metric includes: current value, trend indicator, sparkline chart
+        - Comparison to workspace average (if available)
+        - Historical trend chart for each metric (last 12 weeks)
+      </details>
+    </criterion>
+
+    <criterion id="AC-5.5" category="Performance Insights">
+      <description>AI-generated insights based on team performance metrics</description>
+      <details>
+        - Insight types: Performance improvements, Bottleneck detection, Optimization suggestions
+        - Each insight includes: title, description, actionable recommendation
+        - Prioritized by impact (high, medium, low)
+        - User can dismiss or mark insights as "addressed"
+        - Insights refresh daily or on-demand
+      </details>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+    <architecture>
+      <component name="Backend API" type="NestJS Service">
+        <location>apps/api/src/pm/agents/analytics.service.ts</location>
+        <description>
+          Core analytics service implementing scenario forecasting and team performance calculations.
+          Already contains getForecast() method with ForecastScenarioDto support for addedScope and teamSizeChange.
+          Monte Carlo simulation already implemented for forecast calculations.
+        </description>
+      </component>
+
+      <component name="Analytics Controller" type="NestJS Controller">
+        <location>apps/api/src/pm/agents/analytics.controller.ts</location>
+        <description>
+          REST API controller exposing analytics endpoints.
+          Has existing routes for /forecast, /velocity, /velocity-history, /dashboard.
+          Need to add /scenario-forecast and /team-performance routes.
+        </description>
+      </component>
+
+      <component name="Frontend Components" type="React/TypeScript">
+        <location>apps/web/src/components/pm/analytics/</location>
+        <description>
+          Need to create: ScenarioPlanner.tsx, TeamPerformanceMetrics.tsx
+          Will use shadcn/ui components: Dialog, Slider, Input, Card, Badge
+        </description>
+      </component>
+
+      <component name="DTOs" type="TypeScript Interfaces">
+        <location>apps/api/src/pm/agents/dto/</location>
+        <description>
+          Existing: prism-forecast.dto.ts, analytics-dashboard.dto.ts
+          Need to enhance ForecastScenarioDto with velocityMultiplier field
+          Need to create TeamPerformanceMetricsDto
+        </description>
+      </component>
+    </architecture>
+
+    <existing-implementations>
+      <implementation name="ForecastScenarioDto">
+        <location>apps/api/src/pm/agents/dto/prism-forecast.dto.ts</location>
+        <current-state>
+          Currently supports:
+          - addedScope?: number (Min: 0, Max: 10000)
+          - teamSizeChange?: number (Min: -10, Max: 10)
+          - params?: Record&lt;string, any&gt;
+        </current-state>
+        <enhancement-needed>
+          Add velocityMultiplier?: number (Min: 0.5, Max: 2.0)
+          Update validation decorators
+        </enhancement-needed>
+      </implementation>
+
+      <implementation name="getForecast Method">
+        <location>apps/api/src/pm/agents/analytics.service.ts (lines 54-136)</location>
+        <current-capabilities>
+          - Accepts optional ForecastScenarioDto parameter
+          - Fetches velocity history (12 weeks)
+          - Calculates remaining points with scenario.addedScope adjustment
+          - Adjusts velocity for scenario.teamSizeChange
+          - Runs Monte Carlo simulation (1000 iterations)
+          - Returns PrismForecastDto with predicted dates and confidence
+        </current-capabilities>
+        <enhancement-needed>
+          Add support for scenario.velocityMultiplier in velocity calculation
+        </enhancement-needed>
+      </implementation>
+
+      <implementation name="Monte Carlo Simulation">
+        <location>apps/api/src/pm/agents/analytics.service.ts (lines 391-497)</location>
+        <description>
+          Fully implemented Box-Muller transform for normal distribution sampling.
+          Calculates trend slope using linear regression.
+          Generates percentiles (p10, p25, p50, p75, p90).
+          Returns ProbabilityDistribution with dates.
+        </description>
+      </implementation>
+
+      <implementation name="getVelocityHistory">
+        <location>apps/api/src/pm/agents/analytics.service.ts (lines 212-268)</location>
+        <description>
+          Fetches historical velocity data for specified number of periods (default 12).
+          Calculates weekly periods going back from current date.
+          Queries tasks with status=DONE and aggregates storyPoints.
+          Returns VelocityHistoryDto[] with period, completedPoints, totalTasks.
+        </description>
+      </implementation>
+
+      <implementation name="Dashboard Data">
+        <location>apps/api/src/pm/agents/analytics.service.ts (lines 1257-1320)</location>
+        <current-state>
+          getDashboardData() fetches:
+          - velocityTrend, scopeTrend, completionTrend, productivityTrend
+          - forecast, risks, insights
+          - Calculates anomalies and health score
+          Returns DashboardDataDto with overview and trends
+        </current-state>
+        <enhancement-needed>
+          Add team performance metrics to dashboard response
+        </enhancement-needed>
+      </implementation>
+    </existing-implementations>
+
+    <database-schema>
+      <model name="Task">
+        <location>packages/db/prisma/schema.prisma (line 1150)</location>
+        <relevant-fields>
+          - storyPoints: Int? (for velocity calculation)
+          - status: TaskStatus (for filtering DONE tasks)
+          - completedAt: DateTime? (for completion date filtering)
+          - startedAt: DateTime? (for cycle time calculation)
+          - dueDate: DateTime? (for completion rate calculation)
+          - assigneeId: String? (for team assignment)
+          - projectId: String (for project scoping)
+          - workspaceId: String (for RLS)
+        </relevant-fields>
+      </model>
+
+      <model name="Project">
+        <location>packages/db/prisma/schema.prisma (line 1009)</location>
+        <relevant-fields>
+          - id: String
+          - workspaceId: String
+          - targetDate: DateTime? (for schedule risk detection)
+          - members: TeamMember[] (via ProjectTeam relation)
+        </relevant-fields>
+      </model>
+
+      <model name="TeamMember">
+        <location>packages/db/prisma/schema.prisma (line 1243)</location>
+        <relevant-fields>
+          - teamId: String
+          - userId: String
+          - hoursPerWeek: Float (default 40)
+          - productivity: Float (default 0.8)
+        </relevant-fields>
+      </model>
+
+      <notes>
+        No new database models needed for PM-08-5.
+        All scenario calculations are done in-memory.
+        Team performance metrics query existing Task data.
+      </notes>
+    </database-schema>
+
+    <api-routes>
+      <existing-route method="POST" path="/pm/projects/:projectId/analytics/forecast">
+        <description>Generate forecast with optional scenario parameter</description>
+        <request-body>GenerateForecastDto (contains optional scenario: ForecastScenarioDto)</request-body>
+        <response>PrismForecastDto</response>
+        <usage>Can be reused for scenario forecasting after enhancing ForecastScenarioDto</usage>
+      </existing-route>
+
+      <new-route method="GET" path="/pm/projects/:projectId/analytics/team-performance">
+        <description>Get team performance metrics</description>
+        <query-params>
+          - window?: string (default: "4w") - Time window for calculations
+        </query-params>
+        <response>TeamPerformanceMetricsDto</response>
+        <implementation-needed>true</implementation-needed>
+      </new-route>
+
+      <new-route method="POST" path="/pm/projects/:projectId/analytics/scenario-forecast">
+        <description>Get scenario forecast with risk assessment</description>
+        <request-body>
+          {
+            scenario: ForecastScenarioDto
+          }
+        </request-body>
+        <response>ScenarioForecastDto</response>
+        <implementation-needed>true</implementation-needed>
+        <notes>
+          Alternative approach: Enhance existing /forecast endpoint to return full ScenarioForecastDto
+          when scenario is provided, including baseline comparison and risk assessment.
+        </notes>
+      </new-route>
+    </api-routes>
+
+    <dependencies>
+      <frontend-libraries>
+        <library name="React Query">
+          <usage>Data fetching, caching, debounced mutations</usage>
+          <version>Already integrated</version>
+        </library>
+
+        <library name="lodash">
+          <usage>debounce utility for scenario recalculation</usage>
+          <version>Already available</version>
+        </library>
+
+        <library name="shadcn/ui">
+          <components>
+            - Dialog (scenario planner modal)
+            - Slider (variable adjustments)
+            - Input (direct number entry)
+            - Card (metric cards)
+            - Badge (status indicators)
+            - Button (actions)
+          </components>
+          <version>Already integrated</version>
+        </library>
+
+        <library name="react-sparklines">
+          <usage>Sparkline charts for trend visualization</usage>
+          <installation-needed>true</installation-needed>
+          <command>pnpm add react-sparklines</command>
+          <note>Lightweight library for inline trend charts</note>
+        </library>
+
+        <library name="lucide-react">
+          <usage>Icons (TrendingUp, TrendingDown, Minus, AlertCircle)</usage>
+          <version>Already integrated</version>
+        </library>
+      </frontend-libraries>
+
+      <backend-libraries>
+        <library name="class-validator">
+          <usage>DTO validation decorators</usage>
+          <version>Already integrated</version>
+        </library>
+
+        <library name="@nestjs/swagger">
+          <usage>API documentation</usage>
+          <version>Already integrated</version>
+        </library>
+      </backend-libraries>
+    </dependencies>
+  </technical-context>
+
+  <implementation-guidance>
+    <phase number="1" name="Backend - Scenario Enhancement">
+      <tasks>
+        <task priority="1">
+          Enhance ForecastScenarioDto in prism-forecast.dto.ts:
+          - Add velocityMultiplier?: number with @Min(0.5) @Max(2.0) validation
+          - Update API documentation with examples
+        </task>
+
+        <task priority="2">
+          Create ScenarioForecastDto interface in prism-forecast.dto.ts:
+          - baseline: { predictedDate, confidence }
+          - scenario: { predictedDate, confidence, optimisticDate, pessimisticDate }
+          - delta: { days, weeks, direction }
+          - risks: ScenarioRiskDto[]
+          - summary: string
+          - resourceImpact: { teamWeeks, velocityChange }
+        </task>
+
+        <task priority="3">
+          Create ScenarioRiskDto interface:
+          - type: 'SCOPE_CREEP' | 'TEAM_SCALING' | 'SCHEDULE_DELAY' | 'UNREALISTIC_VELOCITY'
+          - severity: 'LOW' | 'MEDIUM' | 'HIGH'
+          - description: string
+          - mitigation: string
+        </task>
+
+        <task priority="4">
+          Implement getScenarioForecast() method in analytics.service.ts:
+          - Get baseline forecast (no scenario)
+          - Get scenario forecast (with scenario params)
+          - Calculate delta (days/weeks difference)
+          - Assess risks using assessScenarioRisks()
+          - Calculate confidence adjustment using calculateScenarioConfidence()
+          - Generate summary using generateScenarioSummary()
+          - Return ScenarioForecastDto
+        </task>
+
+        <task priority="5">
+          Implement private helper methods:
+          - assessScenarioRisks(scenario, deltaDays): Detect scope creep, team scaling, schedule delay, unrealistic velocity risks
+          - calculateScenarioConfidence(scenario): Reduce confidence for large/unrealistic changes
+          - generateScenarioSummary(scenario, deltaDays, risks): Natural language summary
+          - calculateTeamWeeks(forecast, teamSizeChange): Resource impact calculation
+          - calculateVelocityChange(scenario): Velocity impact calculation
+        </task>
+
+        <task priority="6">
+          Modify getForecast() to support velocityMultiplier:
+          - Apply multiplier to sampled velocity in Monte Carlo simulation
+          - Update velocity values before simulation if scenario.velocityMultiplier provided
+        </task>
+      </tasks>
+    </phase>
+
+    <phase number="2" name="Backend - Team Performance Metrics">
+      <tasks>
+        <task priority="1">
+          Create TeamPerformanceMetricsDto in analytics-dashboard.dto.ts:
+          - velocity: { current, average, trend, sparkline, comparisonToWorkspace }
+          - cycleTime: { current, trend, sparkline, comparisonToWorkspace }
+          - throughput: { current, trend, sparkline, comparisonToWorkspace }
+          - completionRate: { current, trend, sparkline, comparisonToWorkspace }
+          - capacityUtilization: { current, status }
+        </task>
+
+        <task priority="2">
+          Implement getTeamPerformanceMetrics() method in analytics.service.ts:
+          - Fetch velocity data (current + 12-week history)
+          - Calculate average velocity (last 4 weeks)
+          - Determine velocity trend (UP/DOWN/STABLE)
+          - Calculate cycle time using calculateCycleTime()
+          - Calculate throughput using calculateThroughput()
+          - Calculate completion rate using calculateCompletionRate()
+          - Calculate capacity utilization using calculateCapacityUtilization()
+          - Get workspace average for comparison
+          - Return TeamPerformanceMetricsDto
+        </task>
+
+        <task priority="3">
+          Implement calculateCycleTime():
+          - Query tasks with status=DONE, startedAt and completedAt not null
+          - Calculate days between startedAt and completedAt for each task
+          - Return average cycle time in days
+        </task>
+
+        <task priority="4">
+          Implement calculateThroughput():
+          - Query tasks completed in last 4 weeks (status=DONE)
+          - Count total tasks
+          - Return tasks per week (count / 4)
+        </task>
+
+        <task priority="5">
+          Implement calculateCompletionRate():
+          - Query tasks with dueDate and completedAt not null
+          - Filter tasks where completedAt &lt;= dueDate (on time)
+          - Return percentage: (onTimeTasks / totalTasks) * 100
+        </task>
+
+        <task priority="6">
+          Implement calculateCapacityUtilization():
+          - Count tasks with status=IN_PROGRESS
+          - Get team size from project.members count
+          - Return active tasks / team size
+        </task>
+
+        <task priority="7">
+          Implement getWorkspaceAverageMetrics():
+          - Calculate average metrics across all projects in workspace
+          - Cache results (refresh daily)
+          - Return { velocity, cycleTime, throughput, completionRate } or null
+        </task>
+      </tasks>
+    </phase>
+
+    <phase number="3" name="Frontend - Scenario Planner UI">
+      <tasks>
+        <task priority="1">
+          Create ScenarioPlanner.tsx component:
+          - Dialog/Drawer wrapper using shadcn/ui Dialog
+          - Props: projectId, baseline (velocity, scope, teamSize, predictedDate), open, onClose
+          - State: addedScope (default 0), teamSizeChange (default 0), velocityMultiplier (default 1.0)
+        </task>
+
+        <task priority="2">
+          Implement baseline display section:
+          - Card showing current baseline values
+          - Grid layout: Velocity, Scope, Team Size, Predicted Date
+          - Clear visual distinction (e.g., muted background)
+        </task>
+
+        <task priority="3">
+          Implement scope adjustment control:
+          - Slider (-1000 to +10000, step 10)
+          - Input (direct number entry)
+          - Percentage change indicator
+          - Warning icon if change &gt;10%, alert if &gt;25%
+          - Sync slider and input (two-way binding)
+        </task>
+
+        <task priority="4">
+          Implement team size adjustment control:
+          - Slider (-10 to +10, step 1)
+          - Input (direct number entry)
+          - Total team size display
+          - Warning icon if |change| &gt; 2
+        </task>
+
+        <task priority="5">
+          Implement velocity multiplier control:
+          - Slider (50 to 200, step 10, represents percentage)
+          - Input (percentage display)
+          - Adjusted velocity display (baseline * multiplier)
+          - Warning icon if multiplier &gt; 1.5
+        </task>
+
+        <task priority="6">
+          Implement debounced API calls:
+          - useMutation from React Query
+          - lodash debounce (300ms)
+          - Call api.pm.analytics.getScenarioForecast(projectId, scenario)
+          - Show loading indicator during fetch
+        </task>
+
+        <task priority="7">
+          Implement scenario results display:
+          - Card with predicted date, confidence badge, delta from baseline
+          - Optimistic/pessimistic date range
+          - Natural language summary
+          - Resource impact (team-weeks, velocity change)
+        </task>
+
+        <task priority="8">
+          Implement risk indicators section:
+          - Card list of detected risks
+          - Each risk: icon, severity badge, description, mitigation
+          - Color-coded by severity (green/yellow/red)
+        </task>
+
+        <task priority="9">
+          Implement reset functionality:
+          - Reset button (outline variant)
+          - Clears all variables to defaults
+          - Resets mutation state
+        </task>
+      </tasks>
+    </phase>
+
+    <phase number="4" name="Frontend - Team Performance Metrics">
+      <tasks>
+        <task priority="1">
+          Create TeamPerformanceMetrics.tsx component:
+          - Props: projectId
+          - useQuery hook to fetch data from /team-performance
+          - Grid layout for metric cards (responsive: 1 col mobile, 2 col tablet, 3 col desktop)
+        </task>
+
+        <task priority="2">
+          Implement velocity metric card:
+          - Large number display (current velocity)
+          - Trend icon (TrendingUp/Down/Minus)
+          - Average velocity display
+          - Sparkline chart using react-sparklines
+          - Workspace comparison (if available)
+        </task>
+
+        <task priority="3">
+          Implement cycle time metric card:
+          - Current cycle time (days) with 1 decimal
+          - Trend icon
+          - Sparkline chart
+          - Workspace comparison
+        </task>
+
+        <task priority="4">
+          Implement throughput metric card:
+          - Current throughput (tasks/week) with 1 decimal
+          - Trend icon
+          - Sparkline chart
+          - Workspace comparison
+        </task>
+
+        <task priority="5">
+          Implement completion rate metric card:
+          - Percentage display (0 decimals)
+          - Trend icon
+          - Sparkline chart
+          - Workspace comparison
+        </task>
+
+        <task priority="6">
+          Implement capacity utilization metric card:
+          - Current utilization (tasks/person) with 1 decimal
+          - Status badge (UNDER_UTILIZED/OPTIMAL/OVER_UTILIZED)
+          - Color-coded: secondary/default/destructive
+        </task>
+
+        <task priority="7">
+          Implement sparkline charts:
+          - Install react-sparklines: pnpm add react-sparklines
+          - Use Sparklines and SparklinesLine components
+          - Width: 200px, Height: 40px
+          - Different colors per metric (blue, green, orange, purple)
+        </task>
+      </tasks>
+    </phase>
+
+    <phase number="5" name="Integration &amp; Testing">
+      <tasks>
+        <task priority="1">
+          Integrate ScenarioPlanner into analytics dashboard:
+          - Add "What-If Scenarios" button/section
+          - Open modal on click
+          - Pass baseline data from dashboard state
+        </task>
+
+        <task priority="2">
+          Integrate TeamPerformanceMetrics into analytics dashboard:
+          - Add section below trends or in separate tab
+          - Ensure responsive layout
+        </task>
+
+        <task priority="3">
+          Unit test backend scenario methods:
+          - Test getScenarioForecast with various scenarios
+          - Test assessScenarioRisks detects all risk types
+          - Test calculateScenarioConfidence reduces confidence appropriately
+          - Test generateScenarioSummary produces accurate descriptions
+        </task>
+
+        <task priority="4">
+          Unit test backend team performance methods:
+          - Test calculateCycleTime with tasks of varying durations
+          - Test calculateThroughput with different completion rates
+          - Test calculateCompletionRate with on-time and late tasks
+          - Test calculateCapacityUtilization with varying team sizes
+        </task>
+
+        <task priority="5">
+          E2E test scenario planner flow:
+          - Open scenario planner
+          - Adjust scope, team size, velocity
+          - Verify forecast updates within 3 seconds
+          - Verify risks display for significant changes
+          - Reset scenario and verify baseline restored
+        </task>
+
+        <task priority="6">
+          E2E test team performance metrics:
+          - Navigate to analytics dashboard
+          - Verify all metrics display correctly
+          - Verify sparklines render
+          - Verify trend indicators show correct icons
+        </task>
+
+        <task priority="7">
+          Performance test scenario recalculation:
+          - Measure API latency (target: &lt;3s)
+          - Test debounce prevents excessive API calls
+          - Profile database queries for team metrics
+        </task>
+      </tasks>
+    </phase>
+  </implementation-guidance>
+
+  <code-examples>
+    <example name="Enhanced ForecastScenarioDto">
+      <file>apps/api/src/pm/agents/dto/prism-forecast.dto.ts</file>
+      <code><![CDATA[
+export class ForecastScenarioDto {
+  @ApiProperty({
+    description: 'Story points to add (positive) or remove (negative)',
+    required: false,
+    example: 50,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(-1000)
+  @Max(10000)
+  addedScope?: number;
+
+  @ApiProperty({
+    description: 'Team members to add (positive) or remove (negative)',
+    required: false,
+    example: 2,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(-10)
+  @Max(10)
+  teamSizeChange?: number;
+
+  @ApiProperty({
+    description: 'Velocity multiplier (0.5 = 50%, 2.0 = 200%)',
+    required: false,
+    example: 1.2,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0.5)
+  @Max(2.0)
+  velocityMultiplier?: number;
+}
+]]></code>
+    </example>
+
+    <example name="ScenarioForecastDto Interface">
+      <file>apps/api/src/pm/agents/dto/prism-forecast.dto.ts</file>
+      <code><![CDATA[
+export interface ScenarioForecastDto {
+  baseline: {
+    predictedDate: string;
+    confidence: string;
+  };
+  scenario: {
+    predictedDate: string;
+    confidence: string;
+    optimisticDate: string;
+    pessimisticDate: string;
+  };
+  delta: {
+    days: number;
+    weeks: number;
+    direction: 'EARLIER' | 'LATER' | 'SAME';
+  };
+  risks: ScenarioRiskDto[];
+  summary: string;
+  resourceImpact: {
+    teamWeeks: number;
+    velocityChange: number;
+  };
+}
+
+export interface ScenarioRiskDto {
+  type: 'SCOPE_CREEP' | 'TEAM_SCALING' | 'SCHEDULE_DELAY' | 'UNREALISTIC_VELOCITY';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  description: string;
+  mitigation: string;
+}
+]]></code>
+    </example>
+
+    <example name="TeamPerformanceMetricsDto Interface">
+      <file>apps/api/src/pm/agents/dto/analytics-dashboard.dto.ts</file>
+      <code><![CDATA[
+export interface TeamPerformanceMetricsDto {
+  velocity: {
+    current: number;
+    average: number;
+    trend: 'UP' | 'DOWN' | 'STABLE';
+    sparkline: number[];
+    comparisonToWorkspace: number | null; // % difference
+  };
+  cycleTime: {
+    current: number; // days
+    trend: 'UP' | 'DOWN' | 'STABLE';
+    sparkline: number[];
+    comparisonToWorkspace: number | null;
+  };
+  throughput: {
+    current: number; // tasks/week
+    trend: 'UP' | 'DOWN' | 'STABLE';
+    sparkline: number[];
+    comparisonToWorkspace: number | null;
+  };
+  completionRate: {
+    current: number; // percentage
+    trend: 'UP' | 'DOWN' | 'STABLE';
+    sparkline: number[];
+    comparisonToWorkspace: number | null;
+  };
+  capacityUtilization: {
+    current: number; // tasks per person
+    status: 'UNDER_UTILIZED' | 'OPTIMAL' | 'OVER_UTILIZED';
+  };
+}
+]]></code>
+    </example>
+
+    <example name="Scenario Planner Component Structure">
+      <file>apps/web/src/components/pm/analytics/ScenarioPlanner.tsx</file>
+      <code><![CDATA[
+'use client';
+
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { debounce } from 'lodash';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+
+interface ScenarioPlannerProps {
+  projectId: string;
+  baseline: {
+    velocity: number;
+    scope: number;
+    teamSize: number;
+    predictedDate: string;
+  };
+  open: boolean;
+  onClose: () => void;
+}
+
+export function ScenarioPlanner({ projectId, baseline, open, onClose }: ScenarioPlannerProps) {
+  const [addedScope, setAddedScope] = useState(0);
+  const [teamSizeChange, setTeamSizeChange] = useState(0);
+  const [velocityMultiplier, setVelocityMultiplier] = useState(1.0);
+
+  const forecastMutation = useMutation({
+    mutationFn: (scenario: any) => api.pm.analytics.getScenarioForecast(projectId, scenario),
+  });
+
+  const updateForecast = debounce(() => {
+    forecastMutation.mutate({ addedScope, teamSizeChange, velocityMultiplier });
+  }, 300);
+
+  // ... rest of component
+}
+]]></code>
+    </example>
+
+    <example name="Team Performance Metrics Component Structure">
+      <file>apps/web/src/components/pm/analytics/TeamPerformanceMetrics.tsx</file>
+      <code><![CDATA[
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Sparklines, SparklinesLine } from 'react-sparklines';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+
+export function TeamPerformanceMetrics({ projectId }: { projectId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['team-performance', projectId],
+    queryFn: () => api.pm.analytics.getTeamPerformance(projectId),
+  });
+
+  const getTrendIcon = (trend: string) => {
+    if (trend === 'UP') return <TrendingUp className="h-4 w-4 text-green-600" />;
+    if (trend === 'DOWN') return <TrendingDown className="h-4 w-4 text-red-600" />;
+    return <Minus className="h-4 w-4 text-gray-600" />;
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Metric cards */}
+    </div>
+  );
+}
+]]></code>
+    </example>
+  </code-examples>
+
+  <testing-strategy>
+    <unit-tests>
+      <backend>
+        <test name="getScenarioForecast - various scenarios">
+          Test scenario forecast with different combinations of addedScope, teamSizeChange, velocityMultiplier.
+          Verify baseline vs scenario delta calculation.
+          Verify risk detection triggers appropriately.
+        </test>
+
+        <test name="assessScenarioRisks - scope creep detection">
+          Test scope increase of 10%, 15%, 25%, 30%.
+          Verify MEDIUM severity for 10-25%, HIGH for &gt;25%.
+          Verify mitigation suggestions are relevant.
+        </test>
+
+        <test name="calculateScenarioConfidence - realistic vs unrealistic">
+          Test confidence reduction for large scope, team, velocity changes.
+          Verify HIGH confidence for small changes, LOW for unrealistic.
+        </test>
+
+        <test name="calculateCycleTime - varying durations">
+          Create tasks with cycle times: 1 day, 3 days, 7 days.
+          Verify average calculation is correct.
+        </test>
+
+        <test name="calculateThroughput - different completion rates">
+          Test with 0, 5, 10, 20 tasks completed in last 4 weeks.
+          Verify tasks/week calculation.
+        </test>
+
+        <test name="calculateCompletionRate - on-time vs late">
+          Create mix of on-time and late tasks.
+          Verify percentage calculation.
+        </test>
+      </backend>
+
+      <frontend>
+        <test name="ScenarioPlanner - renders with baseline">
+          Mount component with baseline props.
+          Verify baseline values display correctly.
+        </test>
+
+        <test name="ScenarioPlanner - variable sliders update state">
+          Interact with sliders.
+          Verify state updates and input fields sync.
+        </test>
+
+        <test name="ScenarioPlanner - debounced API calls">
+          Adjust slider rapidly.
+          Verify API called only after 300ms debounce.
+        </test>
+
+        <test name="TeamPerformanceMetrics - renders all cards">
+          Mount component with mock data.
+          Verify 5 metric cards render.
+        </test>
+      </frontend>
+    </unit-tests>
+
+    <integration-tests>
+      <test name="Scenario forecast API - complete flow">
+        POST /pm/projects/:projectId/analytics/forecast with scenario payload.
+        Verify response contains baseline, scenario, delta, risks, summary.
+      </test>
+
+      <test name="Team performance API - returns all metrics">
+        GET /pm/projects/:projectId/analytics/team-performance.
+        Verify response contains velocity, cycleTime, throughput, completionRate, capacityUtilization.
+      </test>
+
+      <test name="Workspace isolation - RLS enforcement">
+        Attempt to access project from different workspace.
+        Verify 403 Forbidden.
+      </test>
+    </integration-tests>
+
+    <e2e-tests>
+      <test name="Scenario planner flow">
+        1. Navigate to analytics dashboard
+        2. Click "What-If Scenarios" button
+        3. Adjust scope to +100 points
+        4. Adjust team size to +2 members
+        5. Adjust velocity to 120%
+        6. Verify forecast updates within 3 seconds
+        7. Verify risk indicators display
+        8. Click reset and verify baseline restored
+      </test>
+
+      <test name="Team performance metrics display">
+        1. Navigate to analytics dashboard
+        2. Scroll to team performance section
+        3. Verify all 5 metric cards display
+        4. Verify sparklines render correctly
+        5. Verify trend icons show correct direction
+      </test>
+    </e2e-tests>
+
+    <performance-tests>
+      <test name="Scenario forecast latency">
+        Measure API response time for scenario forecast.
+        Target: &lt;3 seconds (P95).
+      </test>
+
+      <test name="Debounce efficiency">
+        Simulate rapid slider adjustments.
+        Verify API call count is reduced by debouncing.
+      </test>
+
+      <test name="Team metrics query performance">
+        Profile database queries for team performance calculations.
+        Ensure queries use indexes and complete within 1 second.
+      </test>
+    </performance-tests>
+  </testing-strategy>
+
+  <security-considerations>
+    <consideration name="Input validation">
+      All scenario inputs validated on backend with DTOs.
+      Range limits enforced: scope (-1000 to 10000), teamSize (-10 to 10), velocity (0.5 to 2.0).
+    </consideration>
+
+    <consideration name="Workspace isolation">
+      All team metrics queries enforce workspaceId filter (RLS).
+      Verify user has access to project before returning data.
+    </consideration>
+
+    <consideration name="Rate limiting">
+      Consider rate limiting scenario forecast endpoint (10 requests/min per user).
+      Prevent DoS via excessive scenario calculations.
+    </consideration>
+
+    <consideration name="XSS prevention">
+      Sanitize scenario summaries (plain text only, no HTML).
+      Use React's built-in XSS protection for rendering.
+    </consideration>
+  </security-considerations>
+
+  <observability>
+    <metrics>
+      <metric name="Scenario Forecast Latency">P50, P95, P99 response times</metric>
+      <metric name="Scenario Request Volume"># of scenario forecasts per day</metric>
+      <metric name="Scenario Variables Distribution">Most common variable changes</metric>
+      <metric name="Team Metrics Query Performance">Time to calculate metrics</metric>
+      <metric name="Debounce Efficiency">Reduction in API calls due to debouncing</metric>
+    </metrics>
+
+    <logging>
+      <log-event>Scenario forecast request (projectId, scenario variables, result, calculation time)</log-event>
+      <log-event>Team performance metric calculations</log-event>
+      <log-event>Workspace average calculations</log-event>
+      <log-event>Performance degradation (&gt;3s scenario latency)</log-event>
+    </logging>
+
+    <alerts>
+      <alert>Scenario forecast latency &gt;3s (P95)</alert>
+      <alert>Team metrics calculation errors &gt;1%</alert>
+      <alert>High risk scenario patterns (&gt;50% velocity increase)</alert>
+      <alert>Database query timeouts</alert>
+    </alerts>
+  </observability>
+
+  <notes>
+    <note category="Scenario Realism">
+      Confidence level calculation penalizes unrealistic scenarios (e.g., &gt;50% velocity increase, &gt;5 team member changes).
+      Guide users toward realistic planning with warnings and reduced confidence.
+    </note>
+
+    <note category="Debouncing">
+      300ms debounce balances responsiveness with API efficiency.
+      Users expect near-instant feedback (&lt;500ms), but we want to avoid API spam during slider adjustments.
+    </note>
+
+    <note category="Workspace Comparison">
+      Comparing project metrics to workspace averages provides context.
+      Workspace averages may be computationally expensive - consider caching with daily refresh.
+    </note>
+
+    <note category="Velocity Scaling">
+      When team size changes, velocity doesn't scale linearly due to coordination overhead.
+      Use scaling factor based on Brooks' Law: 2x team = ~1.6x velocity.
+    </note>
+
+    <note category="Capacity Thresholds">
+      - Under-utilized: &lt;1.5 tasks per person (team may be idle or overstaffed)
+      - Optimal: 1.5-3 tasks per person (healthy workload)
+      - Over-utilized: &gt;3 tasks per person (risk of burnout, delays)
+    </note>
+
+    <note category="Performance Optimization">
+      If scenario forecasting exceeds 3s, consider:
+      - Pre-calculating common scenarios (+/- 10%, +/- 20% scope)
+      - Caching results with short TTL (5 minutes)
+      - Parallel execution of risk detection and forecast calculation
+    </note>
+  </notes>
+
+  <related-stories>
+    <story id="PM-08-1" status="done">Prism Agent Foundation</story>
+    <story id="PM-08-2" status="done">Completion Predictions (Monte Carlo simulation)</story>
+    <story id="PM-08-3" status="done">Risk Forecasting</story>
+    <story id="PM-08-4" status="done">Analytics Dashboard</story>
+    <story id="PM-02" status="done">Task Management (task data for metrics)</story>
+    <story id="PM-01" status="done">Project Management (team member data)</story>
+  </related-stories>
+
+  <wireframe-references>
+    <wireframe id="PM-33" name="Predictive Analytics Dashboard">
+      <path>docs/modules/bm-pm/design/wireframes/Finished wireframes and html files/pm-33_predictive_analytics_(prism)/</path>
+      <files>
+        <file>code.html</file>
+        <file>screen.png</file>
+      </files>
+    </wireframe>
+  </wireframe-references>
+</story-context>

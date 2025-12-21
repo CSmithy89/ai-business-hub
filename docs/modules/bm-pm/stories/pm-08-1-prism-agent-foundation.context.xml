@@ -1,0 +1,988 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>PM-08.1</story-id>
+    <story-name>Prism Agent Foundation</story-name>
+    <epic>PM-08 - Prism Agent &amp; Predictive Analytics</epic>
+    <type>Feature</type>
+    <points>8</points>
+    <status>ready-for-dev</status>
+    <generated-date>2025-12-21</generated-date>
+  </metadata>
+
+  <summary>
+    Implement the Prism agent for predictive analytics in Core-PM. Prism provides forward-looking insights based on historical project data, including velocity calculation, completion forecasting with confidence levels, and structured predictions with reasoning. The agent uses statistical methods (Monte Carlo, moving averages) for calculations and LLMs for natural language explanations.
+  </summary>
+
+  <architectural-context>
+    <section title="Core-PM Architecture">
+      <description>
+        Core-PM is the platform's foundational infrastructure providing:
+        - Project Management with 9-agent team (Navi, Sage, Herald, Chrono, Scope, Pulse, Bridge, Scribe, Prism)
+        - AI-powered PM with human oversight
+        - Multi-tenant workspace isolation
+        - BYOAI (Bring Your Own AI) support
+      </description>
+
+      <agent-team>
+        <leader>
+          <name>Navi</name>
+          <role>PM Orchestration Assistant</role>
+          <location>agents/pm/navi.py</location>
+        </leader>
+        <members>
+          <member>
+            <name>Sage</name>
+            <role>Task Estimation Specialist</role>
+            <location>agents/pm/sage.py</location>
+            <tools>
+              <tool>estimate_task</tool>
+              <tool>get_similar_tasks</tool>
+              <tool>calculate_velocity</tool>
+              <tool>get_estimation_metrics</tool>
+            </tools>
+          </member>
+          <member>
+            <name>Chrono</name>
+            <role>Time Tracking Specialist</role>
+            <location>agents/pm/chrono.py</location>
+            <tools>
+              <tool>start_timer</tool>
+              <tool>stop_timer</tool>
+              <tool>log_time</tool>
+              <tool>get_velocity</tool>
+              <tool>get_velocity_trend</tool>
+            </tools>
+          </member>
+          <member>
+            <name>Herald</name>
+            <role>Automated Reporting Specialist</role>
+            <location>agents/pm/herald.py</location>
+            <tools>
+              <tool>generate_project_report</tool>
+              <tool>generate_health_report</tool>
+              <tool>generate_progress_report</tool>
+            </tools>
+          </member>
+          <member>
+            <name>Pulse</name>
+            <role>Project Health Monitoring Specialist</role>
+            <location>agents/pm/pulse.py</location>
+            <tools>
+              <tool>detect_risks</tool>
+              <tool>calculate_health_score</tool>
+              <tool>check_team_capacity</tool>
+              <tool>analyze_velocity</tool>
+              <tool>detect_blocker_chains</tool>
+            </tools>
+          </member>
+          <member>
+            <name>Prism</name>
+            <role>Predictive Analytics Specialist</role>
+            <location>agents/core-pm/prism.py</location>
+            <status>NEW - To be implemented in this story</status>
+          </member>
+        </members>
+      </agent-team>
+
+      <technology-stack>
+        <agents>
+          <framework>Agno (phidata fork)</framework>
+          <language>Python 3.12+</language>
+          <location>agents/pm/</location>
+        </agents>
+        <backend>
+          <framework>NestJS 10</framework>
+          <language>TypeScript</language>
+          <location>apps/api/src/pm/</location>
+        </backend>
+        <database>
+          <orm>Prisma 6</orm>
+          <database>PostgreSQL 16</database>
+          <schema-location>packages/db/prisma/schema.prisma</schema-location>
+        </database>
+      </technology-stack>
+    </section>
+
+    <section title="Agent Patterns">
+      <pattern name="Agno Agent Structure">
+        <description>All PM agents follow this structure from the Agno framework</description>
+        <example language="python">
+<![CDATA[
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.memory import Memory
+
+def create_agent(
+    workspace_id: str,
+    project_id: str,
+    shared_memory: Memory,
+    model: Optional[str] = None,
+) -> Agent:
+    return Agent(
+        name="AgentName",
+        role="Agent Role Description",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=AGENT_INSTRUCTIONS + [
+            f"Workspace ID: {workspace_id}",
+            f"Project ID: {project_id}",
+        ],
+        tools=[tool1, tool2, tool3],
+        memory=shared_memory,
+        add_datetime_to_instructions=True,
+        markdown=True,
+    )
+]]>
+        </example>
+      </pattern>
+
+      <pattern name="Agent Tool Pattern">
+        <description>Tools are defined using the @tool decorator from Agno</description>
+        <example language="python">
+<![CDATA[
+from agno.tools import tool
+from typing import Dict, Any
+import httpx
+
+@tool
+def tool_name(
+    param1: str,
+    param2: int,
+    workspace_id: str,
+) -> Dict[str, Any]:
+    """
+    Tool description for LLM.
+
+    Args:
+        param1: Description
+        param2: Description
+        workspace_id: Workspace ID for multi-tenant scoping
+
+    Returns:
+        Dict with result data
+    """
+    # Implementation
+    pass
+]]>
+        </example>
+      </pattern>
+
+      <pattern name="Team Structure">
+        <description>PM Team is coordinated by Navi as leader</description>
+        <example language="python">
+<![CDATA[
+from agno.team import Team
+from agno.memory import Memory
+from agno.storage.postgres import PostgresStorage
+
+# Shared memory for team context
+shared_memory = Memory(
+    db=PostgresStorage(
+        table_name=f"pm_agent_memory_{workspace_id}",
+        schema="agent_memory",
+        db_url=get_postgres_url(),
+    ),
+    namespace=f"project:{project_id}"
+)
+
+# Create team with Navi as leader
+team = Team(
+    name="PM Team",
+    mode="coordinate",  # Leader coordinates member agents
+    leader=navi,
+    members=[sage, chrono, scope, pulse, herald, prism],  # Prism to be added
+    delegate_task_to_all_members=False,
+    respond_directly=True,
+    share_member_interactions=True,
+    enable_agentic_context=True,
+)
+]]>
+        </example>
+      </pattern>
+    </section>
+
+    <section title="Backend Integration Patterns">
+      <pattern name="AgentOS Service">
+        <description>NestJS service for communicating with Python agent layer</description>
+        <location>apps/api/src/agentos/agentos.service.ts</location>
+        <example language="typescript">
+<![CDATA[
+// Invoke agent via AgentOS (Python FastAPI)
+const response = await this.agentOS.invokeAgent(
+  agentId,
+  {
+    message: params.message,
+    params: {
+      projectId: params.projectId,
+      agentName: params.agentName,
+      history: params.history,
+    },
+  },
+  params.workspaceId,
+  params.userId,
+);
+]]>
+        </example>
+        <features>
+          <feature>Automatic retry with exponential backoff</feature>
+          <feature>Circuit breaker pattern</feature>
+          <feature>Timeout handling (60s default)</feature>
+          <feature>JWT passthrough for authentication</feature>
+          <feature>Correlation ID tracking</feature>
+        </features>
+      </pattern>
+
+      <pattern name="Analytics Service Pattern">
+        <description>Expected pattern for AnalyticsService integration</description>
+        <location>apps/api/src/core-pm/pm/analytics.service.ts (to be created)</location>
+        <example language="typescript">
+<![CDATA[
+@Injectable()
+export class AnalyticsService {
+  private readonly logger = new Logger(AnalyticsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private agentService: AgentService,
+  ) {}
+
+  async getForecast(
+    projectId: string,
+    workspaceId: string,
+    scenario?: any,
+  ): Promise<PrismForecast> {
+    try {
+      // Fetch historical velocity data
+      const history = await this.getVelocityHistory(projectId, workspaceId);
+
+      // Calculate remaining points
+      const remainingPoints = await this.getRemainingPoints(projectId, workspaceId);
+
+      // Check minimum data threshold
+      if (history.length < 3) {
+        return this.fallbackLinearProjection(history, remainingPoints);
+      }
+
+      // Invoke Prism agent
+      const forecast = await this.agentService.invokePrism(
+        'forecast_completion',
+        { project_id: projectId, history, remaining_points: remainingPoints, scenario },
+      );
+
+      return forecast;
+    } catch (error) {
+      // Graceful degradation to linear projection
+      return this.fallbackLinearProjection(history, remainingPoints);
+    }
+  }
+}
+]]>
+        </example>
+      </pattern>
+    </section>
+  </architectural-context>
+
+  <data-models>
+    <section title="Prisma Schema - Project, Phase, Task">
+      <model name="Project">
+        <location>packages/db/prisma/schema.prisma:1009-1077</location>
+        <fields>
+          <field name="id" type="String" key="primary" />
+          <field name="workspaceId" type="String" description="Multi-tenant isolation" />
+          <field name="businessId" type="String" />
+          <field name="name" type="String" />
+          <field name="status" type="ProjectStatus" default="PLANNING" />
+          <field name="totalTasks" type="Int" default="0" description="Denormalized for performance" />
+          <field name="completedTasks" type="Int" default="0" />
+          <field name="healthScore" type="Int?" description="Latest health score" />
+          <field name="lastHealthCheck" type="DateTime?" />
+          <field name="startDate" type="DateTime?" />
+          <field name="targetDate" type="DateTime?" />
+        </fields>
+        <relations>
+          <relation name="phases" type="Phase[]" cardinality="1:N" />
+          <relation name="team" type="ProjectTeam?" cardinality="1:1" />
+        </relations>
+      </model>
+
+      <model name="Phase">
+        <location>packages/db/prisma/schema.prisma:1099-1146</location>
+        <fields>
+          <field name="id" type="String" key="primary" />
+          <field name="projectId" type="String" />
+          <field name="name" type="String" />
+          <field name="bmadPhase" type="BmadPhaseType?" />
+          <field name="phaseNumber" type="Int" />
+          <field name="status" type="PhaseStatus" default="UPCOMING" />
+          <field name="totalTasks" type="Int" default="0" />
+          <field name="completedTasks" type="Int" default="0" />
+          <field name="totalPoints" type="Int" default="0" />
+          <field name="completedPoints" type="Int" default="0" />
+          <field name="healthScore" type="Int?" />
+          <field name="startDate" type="DateTime?" />
+          <field name="endDate" type="DateTime?" />
+          <field name="completedAt" type="DateTime?" />
+        </fields>
+        <relations>
+          <relation name="project" type="Project" />
+          <relation name="tasks" type="Task[]" cardinality="1:N" />
+          <relation name="snapshots" type="PhaseSnapshot[]" />
+        </relations>
+      </model>
+
+      <model name="Task">
+        <location>packages/db/prisma/schema.prisma:1149-1223</location>
+        <fields>
+          <field name="id" type="String" key="primary" />
+          <field name="workspaceId" type="String" />
+          <field name="phaseId" type="String" />
+          <field name="projectId" type="String" description="Denormalized for queries" />
+          <field name="taskNumber" type="Int" description="Sequential per project" />
+          <field name="title" type="String" />
+          <field name="description" type="String?" />
+          <field name="type" type="TaskType" default="TASK" />
+          <field name="priority" type="TaskPriority" default="MEDIUM" />
+          <field name="status" type="TaskStatus" default="BACKLOG" />
+          <field name="storyPoints" type="Int?" />
+          <field name="estimatedHours" type="Float?" />
+          <field name="actualHours" type="Float?" />
+          <field name="confidenceScore" type="Float?" description="0-1, from Sage" />
+          <field name="dueDate" type="DateTime?" />
+          <field name="startedAt" type="DateTime?" />
+          <field name="completedAt" type="DateTime?" />
+        </fields>
+        <relations>
+          <relation name="phase" type="Phase" />
+          <relation name="timeEntries" type="TimeEntry[]" />
+        </relations>
+        <indexes>
+          <index fields="[projectId, deletedAt, updatedAt]" description="Health check task queries" />
+          <index fields="[status]" />
+          <index fields="[dueDate]" />
+        </indexes>
+      </model>
+
+      <model name="TimeEntry">
+        <description>Time tracking entries linked to tasks</description>
+        <note>Referenced by Chrono agent for velocity calculations</note>
+        <relations>
+          <relation name="task" type="Task" />
+        </relations>
+      </model>
+    </section>
+
+    <section title="Response Data Structures">
+      <interface name="PrismForecast">
+        <description>TypeScript interface for forecast response</description>
+        <fields>
+          <field name="predictedDate" type="string" description="ISO date string" />
+          <field name="confidence" type="ConfidenceLevel" values="LOW|MED|HIGH" />
+          <field name="optimisticDate" type="string" />
+          <field name="pessimisticDate" type="string" />
+          <field name="reasoning" type="string" description="Natural language explanation" />
+          <field name="factors" type="string[]" description="List of factors affecting prediction" />
+          <field name="velocityAvg" type="number" />
+          <field name="dataPoints" type="number" description="Number of historical sprints used" />
+        </fields>
+      </interface>
+
+      <interface name="VelocityMetadata">
+        <fields>
+          <field name="velocity" type="number" />
+          <field name="trend" type="'UP' | 'DOWN' | 'STABLE'" />
+          <field name="confidence" type="ConfidenceLevel" />
+          <field name="sampleSize" type="number" />
+          <field name="timeRange" type="string" description="e.g., '4w'" />
+        </fields>
+      </interface>
+
+      <interface name="VelocityHistory">
+        <description>Historical data format for agent input</description>
+        <fields>
+          <field name="period" type="string" description="e.g., '2024-W01' or 'sprint-12'" />
+          <field name="completed_points" type="number" />
+          <field name="total_tasks" type="number" />
+          <field name="completed_tasks" type="number" />
+          <field name="start_date" type="string" />
+          <field name="end_date" type="string" />
+        </fields>
+      </interface>
+    </section>
+  </data-models>
+
+  <existing-agent-implementations>
+    <section title="Chrono Agent - Velocity Calculation Reference">
+      <location>agents/pm/chrono.py</location>
+      <instructions>
+<![CDATA[
+CHRONO_INSTRUCTIONS = [
+    "You are Chrono, the time tracking specialist for HYVVE projects.",
+    "Calculate team velocity based on completed story points per sprint (2 weeks).",
+    "Track hours per story point to help calibrate estimates.",
+    "Provide velocity trends to show team performance over time.",
+
+    "# Velocity Metrics",
+    "When users ask about velocity or team performance:",
+    "1. Use get_velocity to calculate velocity over 2-week sprint periods",
+    "2. Use get_velocity_trend to show weekly velocity trends",
+    "3. Explain metrics clearly: current velocity, average velocity, hours per point",
+    "4. Identify trends (up/down/stable) and their implications",
+]
+]]>
+      </instructions>
+
+      <tool name="get_velocity">
+        <location>agents/pm/tools/time_tracking_tools.py:285-332</location>
+        <signature>
+<![CDATA[
+@tool
+def get_velocity(
+    project_id: str,
+    workspace_id: str,
+    periods: int = 6,
+) -> Dict[str, Any]:
+    """
+    Get project velocity metrics over sprint periods.
+
+    Calculates team velocity based on completed story points over 2-week sprint periods.
+    Provides current velocity, average velocity, and hours per story point metrics.
+
+    Args:
+        project_id: Project ID to calculate velocity for
+        workspace_id: Workspace ID for multi-tenant scoping
+        periods: Number of 2-week sprint periods to analyze (default 6 = 12 weeks)
+
+    Returns:
+        Velocity metrics with current velocity, average, hours per point, and period details
+    """
+    url = f"{API_BASE_URL}/api/pm/agents/time/velocity/{project_id}"
+    # Makes HTTP GET request to backend
+]]>
+        </signature>
+      </tool>
+
+      <tool name="get_velocity_trend">
+        <location>agents/pm/tools/time_tracking_tools.py:335-370</location>
+        <signature>
+<![CDATA[
+@tool
+def get_velocity_trend(
+    project_id: str,
+    workspace_id: str,
+    weeks: int = 12,
+) -> List[Dict[str, Any]]:
+    """
+    Get weekly velocity trends for a project.
+
+    Analyzes story points completed each week over time to show velocity trends.
+    Trends indicate whether velocity is going up, down, or staying stable.
+
+    Args:
+        project_id: Project ID to get trends for
+        workspace_id: Workspace ID for multi-tenant scoping
+        weeks: Number of weeks to analyze (default 12)
+
+    Returns:
+        List of weekly velocity data showing points completed and trend direction
+    """
+]]>
+        </signature>
+      </tool>
+    </section>
+
+    <section title="Pulse Agent - Health Monitoring Reference">
+      <location>agents/pm/pulse.py</location>
+      <instructions>
+<![CDATA[
+PULSE_INSTRUCTIONS = [
+    "You are Pulse, the project health monitoring specialist for HYVVE projects.",
+    "Continuously monitor project health and detect risks early.",
+
+    "# Health Score Calculation (0-100)",
+    "Score levels:",
+    "- 85-100: Excellent (green)",
+    "- 70-84: Good (blue)",
+    "- 50-69: Warning (yellow)",
+    "- 0-49: Critical (red)",
+
+    "Health factors (weighted):",
+    "- On-time delivery (30%): % tasks completed by due date",
+    "- Blocker impact (25%): Severity of blocking issues",
+    "- Team capacity (25%): Utilization health",
+    "- Velocity trend (20%): Current vs 4-week baseline",
+]
+]]>
+      </instructions>
+
+      <tool name="analyze_velocity">
+        <location>agents/pm/tools/health_tools.py:157-194</location>
+        <signature>
+<![CDATA[
+@tool
+def analyze_velocity(
+    workspace_id: str,
+    project_id: str
+) -> Dict[str, Any]:
+    """
+    Analyze project velocity vs baseline.
+
+    Compares current velocity (last week) to 4-week baseline.
+    Velocity drop alert: >30% below baseline
+
+    Returns:
+        {
+            "currentVelocity": float,
+            "baselineVelocity": float,
+            "changePercent": float,
+            "trend": "up" | "stable" | "down",
+            "alert": bool (true if >30% drop)
+        }
+    """
+]]>
+        </signature>
+      </tool>
+    </section>
+
+    <section title="Sage Agent - Estimation Reference">
+      <location>agents/pm/sage.py</location>
+      <instructions>
+<![CDATA[
+SAGE_INSTRUCTIONS = [
+    "You are Sage, the task estimation specialist for HYVVE projects.",
+    "Provide story point and hour estimates based on task description and type.",
+    "Use historical data when available to inform your estimates.",
+    "For new projects with no history, use industry benchmarks with 'low' confidence.",
+    "Provide three confidence levels: low (cold-start), medium (some data), high (strong pattern).",
+]
+]]>
+      </instructions>
+
+      <tool name="calculate_velocity">
+        <location>agents/pm/tools/estimation_tools.py:136-189</location>
+        <signature>
+<![CDATA[
+@tool
+def calculate_velocity(
+    project_id: str,
+    workspace_id: str,
+    sprint_count: int = 3,
+) -> Dict[str, Any]:
+    """
+    Calculate team velocity for the project.
+
+    Use this to understand the team's capacity and pace.
+    Helps determine if estimates are realistic for sprint planning.
+
+    Args:
+        project_id: Project ID
+        workspace_id: Workspace/tenant ID
+        sprint_count: Number of recent sprints to analyze (default 3)
+
+    Returns:
+        Velocity metrics (points per sprint, hours per sprint)
+    """
+]]>
+        </signature>
+      </tool>
+    </section>
+  </existing-agent-implementations>
+
+  <http-api-patterns>
+    <section title="Agent Tool HTTP Pattern">
+      <description>Common pattern for agent tools making HTTP requests to NestJS backend</description>
+      <example language="python">
+<![CDATA[
+import httpx
+from agno.tools import tool
+from typing import Dict, Any
+
+# Common pattern from existing tools
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3000")
+
+def get_auth_headers(workspace_id: str) -> Dict[str, str]:
+    """Build headers for API requests"""
+    return {
+        "Content-Type": "application/json",
+        "x-workspace-id": workspace_id,
+    }
+
+@tool
+def example_tool(
+    project_id: str,
+    workspace_id: str,
+    param: str,
+) -> Dict[str, Any]:
+    """Tool description for LLM."""
+    try:
+        url = f"{API_BASE_URL}/api/pm/agents/endpoint/{project_id}"
+        headers = get_auth_headers(workspace_id)
+        payload = {"param": param}
+
+        with httpx.Client(timeout=15.0) as client:
+            response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            return response.json()
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP {e.response.status_code} error: {e}")
+        # Return fallback data or error dict
+        return {"error": f"HTTP {e.response.status_code}", "message": "..."}
+    except httpx.HTTPError as e:
+        logger.error(f"Network error: {e}")
+        return {"error": "Network error", "message": "..."}
+]]>
+      </example>
+    </section>
+  </http-api-patterns>
+
+  <implementation-guidance>
+    <section title="Prism Agent Structure">
+      <location>agents/core-pm/prism.py (NEW FILE)</location>
+      <description>
+        Create Prism agent following the established pattern used by Sage, Chrono, Herald, and Pulse.
+        The agent should specialize in predictive analytics using statistical methods.
+      </description>
+
+      <key-principles>
+        <principle>Statistical Over AI: Use deterministic statistical methods (Monte Carlo, moving averages) for the numbers. Use LLM only for explaining the reasoning in natural language.</principle>
+        <principle>Cold Start Problem: Projects with &lt;3 sprints should show "Insufficient Data" state or use workspace-wide averages with LOW confidence.</principle>
+        <principle>Graceful Degradation: If Prism agent fails, fall back to simple linear projection with warning badge in UI.</principle>
+        <principle>Transparency: Always explain confidence level, data points used, and reasoning behind predictions.</principle>
+      </key-principles>
+
+      <tools-to-implement>
+        <tool name="forecast_completion">
+          <description>Predict project completion date based on velocity trend</description>
+          <inputs>
+            <input>project_id: str</input>
+            <input>history: List[Dict[str, Any]]</input>
+            <input>remaining_points: int</input>
+            <input>scenario: Dict[str, Any] = None (optional what-if adjustments)</input>
+          </inputs>
+          <outputs>
+            <output>predicted_date: str (ISO format)</output>
+            <output>confidence: ConfidenceLevel</output>
+            <output>optimistic_date: str</output>
+            <output>pessimistic_date: str</output>
+            <output>reasoning: str (business-friendly explanation)</output>
+            <output>factors: List[str]</output>
+            <output>velocity_avg: float</output>
+            <output>data_points: int</output>
+          </outputs>
+          <algorithm>
+            <step>1. Validate minimum data threshold (3+ sprints required)</step>
+            <step>2. Calculate velocity using moving average or weighted average</step>
+            <step>3. Apply Monte Carlo simulation or statistical projection</step>
+            <step>4. Calculate optimistic (P25), predicted (P50), pessimistic (P75) dates</step>
+            <step>5. Determine confidence level based on data points and trend stability</step>
+            <step>6. Generate natural language reasoning</step>
+          </algorithm>
+        </tool>
+
+        <tool name="calculate_velocity">
+          <description>Calculate current velocity from historical data</description>
+          <inputs>
+            <input>history: List[Dict[str, Any]]</input>
+            <input>window: str = "4w" (time window: "1w", "2w", "4w", "sprint")</input>
+          </inputs>
+          <outputs>
+            <output>velocity: float</output>
+            <output>trend: "UP" | "DOWN" | "STABLE"</output>
+            <output>confidence: ConfidenceLevel</output>
+            <output>sample_size: int</output>
+            <output>time_range: str</output>
+          </outputs>
+        </tool>
+
+        <tool name="detect_anomalies">
+          <description>Identify statistical anomalies in project metrics</description>
+          <inputs>
+            <input>data_points: List[float]</input>
+            <input>threshold: float = 2.0 (standard deviations)</input>
+          </inputs>
+          <outputs>
+            <output>anomalies: List[Dict] with index, value, expected_range, severity, description</output>
+          </outputs>
+        </tool>
+      </tools-to-implement>
+
+      <confidence-calculation>
+        <logic>
+<![CDATA[
+def calculate_confidence(data_points: int, trend_stability: float) -> str:
+    """
+    Determine confidence level based on available data and trend stability.
+
+    Args:
+        data_points: Number of historical sprint data points
+        trend_stability: Coefficient of variation (std/mean) - lower is more stable
+
+    Returns:
+        "LOW" | "MED" | "HIGH"
+    """
+    if data_points < 3:
+        return "LOW"
+    if data_points < 6:
+        return "MED" if trend_stability < 0.3 else "LOW"
+    return "HIGH" if trend_stability < 0.2 else "MED"
+]]>
+        </logic>
+      </confidence-calculation>
+    </section>
+
+    <section title="Backend Analytics Service">
+      <location>apps/api/src/core-pm/pm/analytics.service.ts (NEW FILE)</location>
+      <description>
+        Create AnalyticsService to handle forecast requests and orchestrate Prism agent calls.
+        Must implement graceful degradation to linear projection if agent fails.
+      </description>
+
+      <methods-to-implement>
+        <method name="getForecast">
+          <signature>async getForecast(projectId: string, workspaceId: string, scenario?: any): Promise&lt;PrismForecast&gt;</signature>
+          <steps>
+            <step>1. Fetch historical velocity data using getVelocityHistory()</step>
+            <step>2. Calculate remaining points using getRemainingPoints()</step>
+            <step>3. Check minimum data threshold (3+ data points)</step>
+            <step>4. If sufficient data, invoke Prism agent via AgentService</step>
+            <step>5. If insufficient data or agent fails, use fallbackLinearProjection()</step>
+            <step>6. Log prediction for accuracy tracking</step>
+          </steps>
+        </method>
+
+        <method name="getVelocityHistory">
+          <signature>private async getVelocityHistory(projectId: string, workspaceId: string): Promise&lt;VelocityHistory[]&gt;</signature>
+          <description>Query completed tasks grouped by time period to calculate velocity</description>
+          <note>Consider using materialized views for performance with large datasets</note>
+        </method>
+
+        <method name="getRemainingPoints">
+          <signature>private async getRemainingPoints(projectId: string, workspaceId: string): Promise&lt;number&gt;</signature>
+          <query>
+<![CDATA[
+const result = await this.prisma.task.aggregate({
+  where: {
+    project: { id: projectId, workspaceId: workspaceId },
+    status: { notIn: ['DONE', 'CANCELLED'] },
+  },
+  _sum: { storyPoints: true },
+});
+return result._sum.storyPoints || 0;
+]]>
+          </query>
+        </method>
+
+        <method name="fallbackLinearProjection">
+          <signature>private fallbackLinearProjection(history: any[], remainingPoints: number): PrismForecast</signature>
+          <description>Simple linear calculation when Prism is unavailable or data insufficient</description>
+          <algorithm>
+            <step>1. Calculate average velocity from history (or use default 10)</step>
+            <step>2. Divide remainingPoints by avgVelocity to get weeksNeeded</step>
+            <step>3. Add weeksNeeded to current date</step>
+            <step>4. Return forecast with LOW confidence and "Fallback mode" in factors</step>
+          </algorithm>
+        </method>
+      </methods-to-implement>
+    </section>
+
+    <section title="API Endpoint">
+      <location>apps/api/src/core-pm/pm/analytics.controller.ts (NEW FILE or add to existing)</location>
+      <endpoint>
+        <method>POST</method>
+        <path>/api/pm/projects/:projectId/analytics/forecast</path>
+        <description>Generate completion forecast for a project</description>
+        <request-body>
+<![CDATA[
+{
+  "scenario": {
+    "addedScope": 20,      // optional: additional story points
+    "teamSizeChange": 1    // optional: team member delta
+  }
+}
+]]>
+        </request-body>
+        <response>
+<![CDATA[
+{
+  "predictedDate": "2025-03-15",
+  "confidence": "MED",
+  "optimisticDate": "2025-03-01",
+  "pessimisticDate": "2025-04-01",
+  "reasoning": "Based on 8-week average velocity of 12 points/week with stable trend...",
+  "factors": [
+    "Stable velocity trend",
+    "Sufficient historical data (8 sprints)",
+    "No major scope changes detected"
+  ],
+  "velocityAvg": 12.5,
+  "dataPoints": 8
+}
+]]>
+        </response>
+      </endpoint>
+    </section>
+
+    <section title="Testing Strategy">
+      <unit-tests>
+        <python-tests location="agents/core-pm/tests/test_prism.py">
+          <test>Test calculate_velocity with deterministic history</test>
+          <test>Test forecast_completion with known patterns</test>
+          <test>Test confidence level calculation logic</test>
+          <test>Test anomaly detection thresholds</test>
+          <test>Test minimum data threshold handling</test>
+        </python-tests>
+
+        <typescript-tests location="apps/api/src/core-pm/pm/__tests__/analytics.service.spec.ts">
+          <test>Test AnalyticsService.getForecast with mock agent</test>
+          <test>Test fallbackLinearProjection calculation</test>
+          <test>Test getVelocityHistory query</test>
+          <test>Test getRemainingPoints aggregation</test>
+          <test>Test error handling and graceful degradation</test>
+        </typescript-tests>
+      </unit-tests>
+
+      <integration-tests>
+        <test>Test API -&gt; Service -&gt; Agent flow end-to-end</test>
+        <test>Test forecast with 3, 6, 12 historical data points</test>
+        <test>Test workspace isolation (RLS enforcement)</test>
+        <test>Test agent timeout handling</test>
+      </integration-tests>
+
+      <performance-tests>
+        <test>Measure forecast generation time with 1 year of history (&lt;3s target)</test>
+        <test>Test with 10k+ tasks in backlog</test>
+        <test>Profile database query performance</test>
+      </performance-tests>
+    </section>
+
+    <section title="Observability">
+      <logging>
+        <log-event>Log every forecast generation with: projectId, predicted_date, confidence, data_points, response_time</log-event>
+        <log-event>Log accuracy when projects complete (predicted vs actual)</log-event>
+        <log-event>Log fallback usage with reason</log-event>
+      </logging>
+
+      <metrics>
+        <metric>Forecast Latency: P50, P95, P99 response times</metric>
+        <metric>Forecast Accuracy: Compare predicted vs actual completion dates over time</metric>
+        <metric>Agent Health: Success rate, timeout rate, error rate</metric>
+        <metric>Confidence Distribution: % of LOW, MED, HIGH confidence forecasts</metric>
+        <metric>Fallback Rate: % of requests using linear projection</metric>
+      </metrics>
+
+      <alerts>
+        <alert condition="agent_timeout_rate &gt; 10%">Alert on high timeout rate</alert>
+        <alert condition="forecast_failure_rate &gt; 1%">Alert on forecast generation failures</alert>
+        <alert condition="avg_response_time &gt; 3s">Alert on slow response times</alert>
+      </alerts>
+    </section>
+  </implementation-guidance>
+
+  <file-structure>
+    <new-files>
+      <file path="agents/core-pm/prism.py" description="Prism agent implementation" />
+      <file path="agents/core-pm/tools/prism_tools.py" description="Prism agent tools (forecast, velocity, anomalies)" />
+      <file path="agents/core-pm/tests/test_prism.py" description="Prism agent unit tests" />
+      <file path="apps/api/src/core-pm/pm/analytics.service.ts" description="Analytics service orchestration" />
+      <file path="apps/api/src/core-pm/pm/analytics.controller.ts" description="Forecast API endpoint" />
+      <file path="apps/api/src/core-pm/pm/dto/prism-forecast.dto.ts" description="TypeScript DTOs for forecast data" />
+      <file path="apps/api/src/core-pm/pm/__tests__/analytics.service.spec.ts" description="Analytics service tests" />
+    </new-files>
+
+    <modified-files>
+      <file path="agents/pm/team.py" description="Add Prism to team members list" />
+      <file path="apps/api/src/pm/agents/agents.module.ts" description="Register AnalyticsService" />
+    </modified-files>
+  </file-structure>
+
+  <dependencies>
+    <prerequisite story="PM-04.9" description="Chrono Velocity Calculation - provides velocity data source" />
+    <prerequisite story="PM-05.7" description="Herald Stakeholder Reports - existing agent infrastructure patterns" />
+    <prerequisite story="PM-02" epic="true" description="Task Management - task data for analysis" />
+
+    <external-dependencies>
+      <dependency name="agno" description="Agent framework (phidata fork)" />
+      <dependency name="numpy" description="Statistical calculations" />
+      <dependency name="scipy" description="Monte Carlo simulation (optional)" />
+      <dependency name="httpx" description="HTTP client for agent tools" />
+    </external-dependencies>
+  </dependencies>
+
+  <security-considerations>
+    <consideration>Validate workspaceId in all data queries to enforce RLS</consideration>
+    <consideration>Sanitize scenario inputs to prevent injection or DoS</consideration>
+    <consideration>Limit scenario parameters (e.g., max 1000 added points)</consideration>
+    <consideration>Ensure agent cannot access cross-workspace data</consideration>
+    <consideration>Rate limit forecast requests per workspace</consideration>
+  </security-considerations>
+
+  <performance-requirements>
+    <requirement>Forecast generation must complete in &lt;3 seconds</requirement>
+    <requirement>Support historical data spanning 1+ years</requirement>
+    <requirement>Handle 10,000+ tasks in backlog efficiently</requirement>
+    <requirement>Use materialized views for velocity calculations if needed</requirement>
+  </performance-requirements>
+
+  <acceptance-criteria-reference>
+    <criteria group="Agent Initialization">
+      <item>Prism agent can be initialized using the Agno framework</item>
+      <item>Agent responds to health check requests</item>
+      <item>Agent properly connects to platform's agent orchestration system</item>
+      <item>Agent registration includes capabilities metadata</item>
+    </criteria>
+
+    <criteria group="Historical Data Ingestion">
+      <item>Prism can fetch historical project data (tasks, phases, time logs)</item>
+      <item>Data ingestion respects workspace isolation (RLS)</item>
+      <item>Minimum data threshold detection implemented (3 sprints)</item>
+      <item>Agent handles missing or incomplete historical data gracefully</item>
+    </criteria>
+
+    <criteria group="Velocity Calculation">
+      <item>Current velocity calculated as: completed story points / time period</item>
+      <item>Supports multiple time windows: sprint, week, 4-week average</item>
+      <item>Handles projects without story points (time-based velocity)</item>
+      <item>Velocity metadata includes: sample size, confidence level, time range</item>
+    </criteria>
+
+    <criteria group="Forecast Generation">
+      <item>Agent returns structured forecast with predicted date, confidence, optimistic/pessimistic bands</item>
+      <item>Forecast uses statistical methods (Monte Carlo or moving average)</item>
+      <item>Forecast considers remaining backlog/scope</item>
+      <item>Agent explains factors affecting prediction in natural language</item>
+      <item>Low confidence returned when historical data is insufficient</item>
+    </criteria>
+
+    <criteria group="Backend Integration">
+      <item>Analytics Service can invoke Prism agent</item>
+      <item>Request/response contract defined between API and agent</item>
+      <item>Error handling for agent timeouts or failures</item>
+      <item>Fallback to basic linear projection if Prism is unavailable</item>
+      <item>Response time tracked for observability</item>
+    </criteria>
+
+    <criteria group="Testing">
+      <item>Unit tests passing (&gt;80% coverage for agent and service)</item>
+      <item>Integration tests passing (API -&gt; Agent flow)</item>
+      <item>Performance test validates &lt;3s response time</item>
+      <item>Error handling and graceful degradation tested</item>
+    </criteria>
+  </acceptance-criteria-reference>
+
+  <related-documentation>
+    <doc path="docs/modules/bm-pm/stories/pm-08-1-prism-agent-foundation.md" type="story" />
+    <doc path="docs/modules/bm-pm/epics/epic-pm-08-prism-agent-predictive-analytics.md" type="epic" />
+    <doc path="docs/modules/bm-pm/architecture.md" type="architecture" />
+    <doc path="docs/modules/bm-pm/PRD.md" type="requirements" />
+    <doc path="agents/pm/README.md" type="implementation-guide" />
+  </related-documentation>
+
+  <notes>
+    <note>This is a foundational story - focus on basic forecast capabilities first</note>
+    <note>Machine learning enhancements are deferred to future iterations</note>
+    <note>Prism will be added to the PM Team alongside existing 5 agents (Navi, Sage, Chrono, Pulse, Herald)</note>
+    <note>Bridge and Scribe agents are Phase 2 (PM-07, KB-03) and already implemented</note>
+    <note>The agent should prioritize accuracy and transparency over complexity</note>
+    <note>Always provide clear explanations of confidence levels and limitations</note>
+  </notes>
+</story-context>

@@ -17,6 +17,8 @@ import { ReportController } from './report.controller';
 import { ScheduledReportService } from './scheduled-report.service';
 import { ScheduledReportController } from './scheduled-report.controller';
 import { ScheduledReportCron } from './scheduled-report.cron';
+import { AnalyticsService } from './analytics.service';
+import { AnalyticsController } from './analytics.controller';
 import { CommonModule } from '../../common/common.module';
 import { AgentOSModule } from '../../agentos/agentos.module';
 import { EventsModule } from '../../events/events.module';
@@ -29,6 +31,7 @@ import { EventsModule } from '../../events/events.module';
     HealthController,
     ReportController,
     ScheduledReportController,
+    AnalyticsController,
   ],
   providers: [
     AgentsService,
@@ -44,6 +47,7 @@ import { EventsModule } from '../../events/events.module';
     ReportService,
     ScheduledReportService,
     ScheduledReportCron,
+    AnalyticsService,
   ],
   exports: [
     AgentsService,
@@ -56,6 +60,7 @@ import { EventsModule } from '../../events/events.module';
     HealthService,
     ReportService,
     ScheduledReportService,
+    AnalyticsService,
   ],
 })
 export class AgentsModule {}

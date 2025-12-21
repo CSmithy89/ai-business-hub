@@ -39,56 +39,52 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ### Notes
 
-- Added template metadata fields (`isTemplate`, `templateCategory`) to KB pages in Prisma schema (migration pending).
+- Added template metadata fields (`isTemplate`, `templateCategory`) to KB pages with migration `packages/db/prisma/migrations/20251221200509_add_kb_templates_and_gap_indexes/`.
 
 ---
 
-## EPIC-PM-06: Real-Time & Notifications (6 stories)
+## EPIC-PM-08: Prism Agent & Predictive Analytics (6 stories)
 
 **Status:** Complete
-**Completed:** 2025-12-20
-**Branch:** `epic/pm-06-real-time-notifications`
+**Completed:** 2025-12-21
+**Branch:** `feat/PM-08-prism-agent-analytics`
+**PR:** #33
 
 ### Added
 
-- **WebSocket Task Events**: Real-time broadcasting of task CRUD operations via Socket.io
-- **Presence Indicators**: Redis-based user presence with 5-minute TTL and avatar display
-- **Real-Time Kanban**: Live task updates with Framer Motion animations, optimistic updates, and conflict detection
-- **Notification Preferences**: Per-type/per-channel toggles, quiet hours with timezone support, email digest settings
-- **In-App Notification Center**: Bell icon with unread count, dropdown with infinite scroll, date grouping, mark as read
-- **Email Digest Notifications**: BullMQ-scheduled daily/weekly digests with Handlebars templates and unsubscribe flow
-
-### Routes
-
-- `/settings/notifications` - Notification preferences settings page
-- `/digest/unsubscribe/[token]` - Public unsubscribe confirmation page
+- **Prism Agent Foundation**: Python Agno agent for predictive analytics in `agents/pm/prism.py`
+- **Monte Carlo Simulation**: 1000-iteration completion forecasting with Box-Muller transform
+- **Percentile Predictions**: P10, P25, P50, P75, P90 completion date bands
+- **Risk Detection System**: Automatic schedule, scope, and resource risk identification
+- **Risk Persistence**: PmRiskEntry Prisma model with probability/impact scoring
+- **Analytics Dashboard**: Velocity, scope, completion, and productivity trends with health score
+- **What-If Scenarios**: Interactive scenario planning with scope, team, and velocity adjustments
+- **Team Performance Metrics**: Velocity, cycle time, throughput, completion rate, capacity utilization
+- **Analytics Export**: CSV downloads and structured PDF data for report generation
 
 ### API Endpoints
 
-- `GET/PATCH /pm/notifications/preferences` - User notification preferences
-- `POST /pm/notifications/preferences/reset` - Reset to defaults
-- `GET /pm/notifications` - List notifications (paginated)
-- `GET /pm/notifications/unread-count` - Unread notification count
-- `POST /pm/notifications/:id/read` - Mark notification as read
-- `POST /pm/notifications/read-all` - Mark all as read
-- `DELETE /pm/notifications/:id` - Delete notification
-- `GET /pm/presence/projects/:projectId` - Get project presence
-- `GET /pm/presence/tasks/:taskId` - Get task presence
-
-### WebSocket Events
-
-- `pm.task.created` / `pm.task.updated` / `pm.task.deleted` / `pm.task.status_changed`
-- `pm.presence.joined` / `pm.presence.left` / `pm.presence.updated`
-- `notification.new` - Real-time notification delivery
+- `POST /pm/projects/:projectId/analytics/forecast` - Generate completion forecast
+- `GET /pm/projects/:projectId/analytics/velocity` - Current velocity with trend
+- `GET /pm/projects/:projectId/analytics/velocity-history` - Historical velocity data
+- `GET /pm/projects/:projectId/analytics/anomalies` - Detect statistical anomalies
+- `GET /pm/projects/:projectId/analytics/completion-probability` - Target date probability
+- `GET /pm/projects/:projectId/analytics/risks` - Detect project risks
+- `GET /pm/projects/:projectId/analytics/risks/entries` - Get risk entries
+- `PATCH /pm/projects/:projectId/analytics/risks/:riskId/status` - Update risk status
+- `GET /pm/projects/:projectId/analytics/dashboard` - Dashboard data aggregation
+- `POST /pm/projects/:projectId/analytics/scenario-forecast` - What-if analysis
+- `GET /pm/projects/:projectId/analytics/team-performance` - Team metrics
+- `GET /pm/projects/:projectId/analytics/export/csv` - CSV export
+- `GET /pm/projects/:projectId/analytics/export/pdf-data` - PDF data export
+- `GET /pm/projects/:projectId/analytics/export/trend-data` - Raw trend data
 
 ### Notes
 
-- DB migration: `packages/db/prisma/migrations/20251220064644_add_pm_notification_preferences/`
-- Tech spec: `docs/modules/bm-pm/epics/epic-pm-06-tech-spec.md`
-- Uses Redis sorted sets for presence tracking with automatic 5-minute expiry
-- Email service is a stub for MVP (logs instead of sending)
-## EPIC-PM-05: AI Team - Scope, Pulse, Herald (8 stories)
-**Foundation Complete:** 17 Epics | 190 Stories | 541 Points | 100% Complete
+- Tech spec: `docs/sprint-artifacts/tech-spec-epic-pm-08.md`
+- Monte Carlo uses Box-Muller transform for normal distribution sampling
+- Health score formula: velocity (30%) + completion (30%) + scope (20%) + risk (20%)
+- Risk detection covers schedule delays, scope creep, and resource constraints
 
 ---
 
