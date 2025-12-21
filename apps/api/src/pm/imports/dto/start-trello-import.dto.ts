@@ -4,17 +4,17 @@ import { IsString } from 'class-validator'
 export class StartTrelloImportDto {
   @ApiProperty({ description: 'Project ID to import into' })
   @IsString()
-  projectId: string
+  projectId!: string
 
   @ApiProperty({ description: 'Trello API key' })
   @IsString()
-  apiKey: string
+  apiKey!: string
 
   @ApiProperty({ description: 'Trello API token' })
   @IsString()
-  token: string
+  token!: string
 
   @ApiProperty({ description: 'Trello board ID' })
   @IsString()
-  boardId: string
+  boardId!: string
 }

@@ -214,7 +214,7 @@ function groupByPhase(
   // Group tasks by phase
   const tasksByPhase = new Map<string | null, TaskListItem[]>()
   tasks.forEach(task => {
-    const key = task.phaseId
+    const key = task.phaseId ? task.phaseId : null
     const phaseTasks = tasksByPhase.get(key) ?? []
     phaseTasks.push(task)
     tasksByPhase.set(key, phaseTasks)

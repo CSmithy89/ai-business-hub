@@ -1,8 +1,8 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { nanoid } from 'nanoid'
 import { toast } from 'sonner'
-import { v4 as uuidv4 } from 'uuid'
 import { useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
 import { safeJson } from '@/lib/utils/safe-json'
@@ -16,6 +16,13 @@ function getSessionToken(session: unknown): string | undefined {
   const direct = (session as { token?: string } | null)?.token
   const nested = (session as { session?: { token?: string } } | null)?.session?.token
   return direct || nested || undefined
+}
+
+function createCorrelationId(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID()
+  }
+  return nanoid()
 }
 
 export type TaskType =
@@ -741,7 +748,7 @@ async function updateTask(params: {
   const search = new URLSearchParams()
   search.set('workspaceId', params.workspaceId)
 
-  const correlationId = params.correlationId || uuidv4()
+  const correlationId = params.correlationId || createCorrelationId()
 
   const response = await fetch(`${base}/pm/tasks/${encodeURIComponent(params.taskId)}?${search.toString()}`, {
     method: 'PATCH',
@@ -782,7 +789,7 @@ async function createTask(params: {
   const search = new URLSearchParams()
   search.set('workspaceId', params.workspaceId)
 
-  const correlationId = params.correlationId || uuidv4()
+  const correlationId = params.correlationId || createCorrelationId()
 
   const response = await fetch(`${base}/pm/tasks?${search.toString()}`, {
     method: 'POST',
@@ -823,7 +830,7 @@ async function bulkUpdateTasks(params: {
   const search = new URLSearchParams()
   search.set('workspaceId', params.workspaceId)
 
-  const correlationId = params.correlationId || uuidv4()
+  const correlationId = params.correlationId || createCorrelationId()
 
   const response = await fetch(`${base}/pm/tasks/bulk?${search.toString()}`, {
     method: 'PATCH',
@@ -951,7 +958,7 @@ export function useUpdatePmTask() {
   return useMutation({
     mutationFn: ({ taskId, input }: { taskId: string; input: UpdateTaskInput }) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      const correlationId = uuidv4()
+      const correlationId = createCorrelationId()
       // Store correlationId in session context for filtering
       if (session?.session && typeof session.session === 'object') {
         ;(session.session as { correlationId?: string }).correlationId = correlationId
@@ -979,7 +986,7 @@ export function useCreatePmTask() {
   return useMutation({
     mutationFn: ({ input }: { input: CreateTaskInput }) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      const correlationId = uuidv4()
+      const correlationId = createCorrelationId()
       // Store correlationId in session context for filtering
       if (session?.session && typeof session.session === 'object') {
         ;(session.session as { correlationId?: string }).correlationId = correlationId
@@ -1214,7 +1221,7 @@ export function useBulkUpdatePmTasks() {
   return useMutation({
     mutationFn: ({ input }: { input: BulkUpdateTasksInput }) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      const correlationId = uuidv4()
+      const correlationId = createCorrelationId()
       // Store correlationId in session context for filtering
       if (session?.session && typeof session.session === 'object') {
         ;(session.session as { correlationId?: string }).correlationId = correlationId

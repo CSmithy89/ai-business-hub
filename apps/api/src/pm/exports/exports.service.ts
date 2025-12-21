@@ -31,6 +31,24 @@ const ALLOWED_FIELDS = new Set([
 
 const PAGE_SIZE = 500
 
+type ExportTaskRow = Prisma.TaskGetPayload<{
+  select: {
+    id: true
+    taskNumber: true
+    title: true
+    description: true
+    status: true
+    priority: true
+    type: true
+    assigneeId: true
+    dueDate: true
+    phaseId: true
+    projectId: true
+    createdAt: true
+    updatedAt: true
+  }
+}>
+
 @Injectable()
 export class ExportsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -52,7 +70,7 @@ export class ExportsService {
 
     let cursor: string | null = null
     while (true) {
-      const batch = await this.prisma.task.findMany({
+      const batch: ExportTaskRow[] = await this.prisma.task.findMany({
         where,
         orderBy: { id: 'asc' },
         take: PAGE_SIZE,
@@ -195,8 +213,7 @@ function selectField(task: any, field: string): string | number | null {
 function formatCsvValue(value: string | number | null): string {
   if (value === null || value === undefined) return ''
   const raw = String(value)
-  if (/[
-",]/.test(raw)) {
+  if (/[\r\n",]/.test(raw)) {
     return `"${raw.replace(/"/g, '""')}"`
   }
   return raw

@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { CredentialEncryptionService } from '@hyvve/shared/server'
-import { IntegrationProvider, IntegrationStatus } from '@prisma/client'
+import { IntegrationProvider, IntegrationStatus, Prisma } from '@prisma/client'
 import { PrismaService } from '../../common/services/prisma.service'
 import { ConnectIntegrationDto } from './dto/connect-integration.dto'
 
@@ -50,7 +50,7 @@ export class IntegrationsService {
       update: {
         encryptedCredentials: encrypted,
         status: IntegrationStatus.CONNECTED,
-        metadata: dto.metadata ?? undefined,
+        metadata: dto.metadata ? (dto.metadata as Prisma.InputJsonValue) : undefined,
         lastCheckedAt: new Date(),
       },
       create: {
@@ -58,7 +58,7 @@ export class IntegrationsService {
         provider,
         encryptedCredentials: encrypted,
         status: IntegrationStatus.CONNECTED,
-        metadata: dto.metadata ?? undefined,
+        metadata: dto.metadata ? (dto.metadata as Prisma.InputJsonValue) : undefined,
         lastCheckedAt: new Date(),
       },
       select: {

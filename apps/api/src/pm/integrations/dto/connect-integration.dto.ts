@@ -4,7 +4,7 @@ import { IsObject, IsOptional, IsString } from 'class-validator'
 export class ConnectIntegrationDto {
   @ApiProperty({ description: 'Provider access token' })
   @IsString()
-  token: string
+  token!: string
 
   @ApiProperty({ description: 'Optional metadata (e.g., default repo)', required: false })
   @IsOptional()

@@ -4,7 +4,7 @@ import { IsBoolean, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-val
 export class StartCsvImportDto {
   @ApiProperty({ description: 'Project ID to import tasks into' })
   @IsString()
-  projectId: string
+  projectId!: string
 
   @ApiProperty({ description: 'Default phase ID for imported tasks', required: false })
   @IsOptional()
@@ -14,14 +14,14 @@ export class StartCsvImportDto {
   @ApiProperty({ description: 'Raw CSV text including header row' })
   @IsString()
   @IsNotEmpty()
-  csvText: string
+  csvText!: string
 
   @ApiProperty({
     description: 'Mapping of task fields to CSV column headers',
     example: { title: 'Title', description: 'Description', status: 'Status' },
   })
   @IsObject()
-  mapping: Record<string, string>
+  mapping!: Record<string, string>
 
   @ApiProperty({ description: 'Skip invalid rows instead of failing', required: false, default: true })
   @IsOptional()

@@ -5,19 +5,19 @@ import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator'
 export class StartJiraImportDto {
   @ApiProperty({ description: 'Project ID to import into' })
   @IsString()
-  projectId: string
+  projectId!: string
 
   @ApiProperty({ description: 'Jira base URL (e.g., https://your-domain.atlassian.net)' })
   @IsString()
-  baseUrl: string
+  baseUrl!: string
 
   @ApiProperty({ description: 'Jira user email for API token' })
   @IsString()
-  email: string
+  email!: string
 
   @ApiProperty({ description: 'Jira API token' })
   @IsString()
-  apiToken: string
+  apiToken!: string
 
   @ApiProperty({ description: 'Optional JQL filter', required: false })
   @IsOptional()
