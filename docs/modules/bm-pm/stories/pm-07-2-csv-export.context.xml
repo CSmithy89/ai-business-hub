@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-07-2-csv-export</story-id>
+    <generated>2025-12-19T00:00:00Z</generated>
+    <epic>PM-07 - Integrations &amp; Bridge Agent</epic>
+    <description>
+      CSV export for tasks with field selection and filter-aware streaming response.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="apps/api/src/pm/tasks/tasks.service.ts">
+      <description>
+        Task list filtering logic can be mirrored to build export filters.
+      </description>
+    </file>
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/ProjectTasksContent.tsx">
+      <description>
+        Task list header and filter state; add Export CSV modal entry point here.
+      </description>
+    </file>
+    <file path="apps/web/src/lib/pm/url-state.ts">
+      <description>
+        FilterState definitions and serialized filters used for UI state.
+      </description>
+    </file>
+  </existing-code>
+</story-context>

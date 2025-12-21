@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
-import { BookmarkPlus, CalendarDays, ChevronRight, KanbanSquare, LayoutList, Search, Upload } from 'lucide-react'
+import { BookmarkPlus, CalendarDays, ChevronRight, KanbanSquare, LayoutList, Search, Upload, Download } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,6 +31,7 @@ import { FilterBar } from '@/components/pm/filters/FilterBar'
 import { ErrorBoundary } from '@/components/error-boundary'
 import type { FilterState } from '@/lib/pm/url-state'
 import { CsvImportWizard } from '@/components/pm/imports/CsvImportWizard'
+import { CsvExportModal } from '@/components/pm/exports/CsvExportModal'
 
 function formatDate(value: string | null): string {
   if (!value) return '—'
@@ -141,6 +142,7 @@ export function ProjectTasksContent() {
     return 'status'
   })
   const [importWizardOpen, setImportWizardOpen] = useState(false)
+  const [exportModalOpen, setExportModalOpen] = useState(false)
 
   // Apply default view on mount
   useEffect(() => {
@@ -361,6 +363,10 @@ export function ProjectTasksContent() {
             <Upload className="h-4 w-4" />
             Import CSV
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setExportModalOpen(true)} className="gap-2">
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
 
           {/* View Mode Toggles */}
           <Button
@@ -508,6 +514,13 @@ export function ProjectTasksContent() {
         onOpenChange={setImportWizardOpen}
         projectId={project.id}
         phases={project.phases ?? []}
+      />
+      <CsvExportModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        projectId={project.id}
+        filters={filters}
+        search={search}
       />
 
       {/* Save View Modal */}
