@@ -247,7 +247,18 @@ export class ImportsService {
     })
 
     const jiraBaseUrl = dto.baseUrl.replace(/\/$/, '')
-    const issues = await fetchJiraIssues({ ...dto, baseUrl: jiraBaseUrl })
+    let issues: Awaited<ReturnType<typeof fetchJiraIssues>> = []
+
+    try {
+      issues = await fetchJiraIssues({ ...dto, baseUrl: jiraBaseUrl })
+    } catch (error) {
+      await this.prisma.importJob.update({
+        where: { id: job.id },
+        data: { status: ImportStatus.FAILED, errorCount: 1 },
+      })
+      throw error
+    }
+
     const errors: RowError[] = []
     let processedRows = 0
     let errorsPersisted = false

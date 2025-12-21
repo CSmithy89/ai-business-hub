@@ -18,7 +18,7 @@ export class GithubIssuesSyncDto {
   @ApiProperty({ description: 'GitHub repository name' })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[a-zA-Z0-9._-]+$/, {
+  @Matches(/^[a-zA-Z0-9_-][a-zA-Z0-9._-]*$/, {
     message: 'repo must be a valid GitHub repository name',
   })
   repo!: string

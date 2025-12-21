@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Download } from 'lucide-react'
+import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
-import { toast } from 'sonner'
 import type { FilterState } from '@/lib/pm/url-state'
 
 type ExportFieldKey =
@@ -129,7 +129,16 @@ export function CsvExportModal({ open, onOpenChange, projectId, filters, search 
       })
 
       if (!response.ok) {
-        throw new Error('Failed to export CSV')
+        let errorMessage = 'Failed to export CSV'
+        try {
+          const errorData = await response.json()
+          if (errorData && errorData.message) {
+            errorMessage = errorData.message
+          }
+        } catch {
+          // ignore json parse error
+        }
+        throw new Error(errorMessage)
       }
 
       const blob = await response.blob()
@@ -139,7 +148,7 @@ export function CsvExportModal({ open, onOpenChange, projectId, filters, search 
       link.download = `tasks-export-${new Date().toISOString().slice(0, 10)}.csv`
       link.click()
       window.URL.revokeObjectURL(url)
-      toast.success('Export started')
+      toast.success('Export completed')
       onOpenChange(false)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to export CSV'
