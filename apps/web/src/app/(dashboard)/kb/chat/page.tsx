@@ -18,9 +18,16 @@ interface ChatEntry {
   sources?: KBAskSource[]
 }
 
+interface SessionWithWorkspace {
+  workspaceId?: string
+  session?: {
+    activeWorkspaceId?: string
+  }
+}
+
 export default function KBChatPage() {
   const { data: session } = useSession()
-  const sessionData = session as any
+  const sessionData = session as SessionWithWorkspace | null
   const workspaceId =
     sessionData?.workspaceId ||
     sessionData?.session?.activeWorkspaceId ||
@@ -113,8 +120,8 @@ export default function KBChatPage() {
                 </p>
                 {message.sources && message.sources.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {message.sources.map((source) => (
-                      <Badge key={source.pageId} variant="outline">
+                    {message.sources.map((source, index) => (
+                      <Badge key={`${source.pageId}-${index}`} variant="outline">
                         <Link href={`/kb/${source.slug}` as any} className="hover:underline">
                           {source.title}
                         </Link>

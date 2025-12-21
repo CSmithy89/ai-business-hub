@@ -5,16 +5,20 @@ import { PrismaService } from '../../common/services/prisma.service'
 import { EventSubscriber } from '../../events'
 import { BaseEvent, ConfidenceFactor, EventTypes } from '@hyvve/shared'
 import { KbAiService } from './ai.service'
+import {
+  KB_KNOWLEDGE_EXTRACTION_FALLBACK_COMMENT_CHAR_LIMIT,
+  KB_KNOWLEDGE_EXTRACTION_MAX_PREVIEW_COMMENTS,
+  KB_KNOWLEDGE_EXTRACTION_MIN_CONTENT_CHARS,
+  KB_KNOWLEDGE_EXTRACTION_MIN_CONTENT_WORDS,
+  KB_KNOWLEDGE_EXTRACTION_PREVIEW_COMMENT_CHAR_LIMIT,
+  KB_KNOWLEDGE_EXTRACTION_PREVIEW_CONTENT_CHAR_LIMIT,
+} from '../kb.constants'
 
 type TaskCommentSummary = {
-  content: string
+  content: string | null
   createdAt: Date
   userId: string
 }
-
-const MIN_CONTENT_CHARS = 200
-const MIN_CONTENT_WORDS = 40
-const MAX_PREVIEW_COMMENTS = 8
 
 @Injectable()
 export class KnowledgeExtractionHandler {
@@ -29,7 +33,7 @@ export class KnowledgeExtractionHandler {
   @EventSubscriber(EventTypes.PM_TASK_STATUS_CHANGED, { priority: 80 })
   async handleTaskStatusChanged(event: BaseEvent): Promise<void> {
     const data = event.data as Record<string, unknown>
-    const nextStatus = this.getNextStatus(data)
+    const nextStatus = this.normalizeStatus(this.getNextStatus(data))
 
     if (nextStatus !== TaskStatus.DONE) {
       return
@@ -104,6 +108,7 @@ export class KnowledgeExtractionHandler {
     }
 
     let draftContent = ''
+    let isAIGenerated = false
     try {
       const draft = await this.kbAiService.generateDraftFromTask(
         event.tenantId,
@@ -111,10 +116,13 @@ export class KnowledgeExtractionHandler {
         {
           title: task.title,
           description: task.description,
-          comments: comments.map((comment) => comment.content),
+          comments: comments
+            .map((comment) => comment.content ?? '')
+            .filter((comment) => comment.trim().length > 0),
         },
       )
       draftContent = draft.content
+      isAIGenerated = true
     } catch (error) {
       this.logger.warn({
         message: 'AI draft failed, using fallback template',
@@ -124,9 +132,21 @@ export class KnowledgeExtractionHandler {
       draftContent = this.buildFallbackDraft(task, comments)
     }
 
+    const previewContent = this.truncateText(
+      draftContent,
+      KB_KNOWLEDGE_EXTRACTION_PREVIEW_CONTENT_CHAR_LIMIT,
+    )
+    const contentTruncated = draftContent.length > KB_KNOWLEDGE_EXTRACTION_PREVIEW_CONTENT_CHAR_LIMIT
+    const previewComments = comments
+      .filter((comment) => comment.content?.trim())
+      .slice(0, KB_KNOWLEDGE_EXTRACTION_MAX_PREVIEW_COMMENTS)
+
     const previewData = {
       title: task.title,
-      content: draftContent,
+      content: previewContent,
+      contentLength: draftContent.length,
+      contentTruncated,
+      isAIGenerated,
       task: {
         id: task.id,
         title: task.title,
@@ -134,8 +154,11 @@ export class KnowledgeExtractionHandler {
         taskNumber: task.taskNumber,
         completedAt: task.completedAt?.toISOString() ?? null,
       },
-      comments: comments.slice(0, MAX_PREVIEW_COMMENTS).map((comment) => ({
-        content: this.truncateText(comment.content, 300),
+      comments: previewComments.map((comment) => ({
+        content: this.truncateText(
+          comment.content ?? '',
+          KB_KNOWLEDGE_EXTRACTION_PREVIEW_COMMENT_CHAR_LIMIT,
+        ),
         createdAt: comment.createdAt.toISOString(),
         userId: comment.userId,
       })),
@@ -166,6 +189,11 @@ export class KnowledgeExtractionHandler {
     return typeof value === 'string' ? value : undefined
   }
 
+  private normalizeStatus(status: string | undefined): string | undefined {
+    if (!status) return undefined
+    return status.toUpperCase()
+  }
+
   private getTaskId(data: Record<string, unknown>): string | undefined {
     const value = data.taskId ?? data.id
     return typeof value === 'string' ? value : undefined
@@ -187,7 +215,10 @@ export class KnowledgeExtractionHandler {
   private isSignificantContent(text: string): boolean {
     if (!text) return false
     const wordCount = text.split(/\s+/).filter(Boolean).length
-    return text.length >= MIN_CONTENT_CHARS || wordCount >= MIN_CONTENT_WORDS
+    return (
+      text.length >= KB_KNOWLEDGE_EXTRACTION_MIN_CONTENT_CHARS ||
+      wordCount >= KB_KNOWLEDGE_EXTRACTION_MIN_CONTENT_WORDS
+    )
   }
 
   private buildFallbackDraft(
@@ -216,8 +247,11 @@ export class KnowledgeExtractionHandler {
     ]
 
     const commentLines = comments
-      .slice(0, MAX_PREVIEW_COMMENTS)
-      .map((comment) => `- ${this.truncateText(comment.content, 240)}`)
+      .filter((comment) => comment.content?.trim())
+      .slice(0, KB_KNOWLEDGE_EXTRACTION_MAX_PREVIEW_COMMENTS)
+      .map((comment) =>
+        `- ${this.truncateText(comment.content ?? '', KB_KNOWLEDGE_EXTRACTION_FALLBACK_COMMENT_CHAR_LIMIT)}`,
+      )
 
     if (commentLines.length > 0) {
       lines.push('', '## Discussion Highlights', ...commentLines)

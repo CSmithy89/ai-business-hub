@@ -51,7 +51,7 @@ export class TemplatesService {
     const customs: TemplateResponse[] = customTemplates.map((template) => ({
       id: template.id,
       title: template.title,
-      category: template.templateCategory || 'Custom',
+      category: template.templateCategory?.trim() || 'Custom',
       content: template.content as Record<string, unknown>,
       isBuiltIn: false,
     }))
@@ -65,11 +65,13 @@ export class TemplatesService {
     actorId: string,
     dto: CreateTemplateDto,
   ): Promise<{ data: TemplateResponse }> {
+    const category = dto.category?.trim() || 'Custom'
+
     const result = await this.pagesService.create(tenantId, workspaceId, actorId, {
       title: dto.title,
       content: dto.content,
       isTemplate: true,
-      templateCategory: dto.category ?? 'Custom',
+      templateCategory: category,
     })
 
     const template = result.data
@@ -84,7 +86,7 @@ export class TemplatesService {
       data: {
         id: template.id,
         title: template.title,
-        category: dto.category ?? 'Custom',
+        category,
         content: template.content as Record<string, unknown>,
         isBuiltIn: false,
       },

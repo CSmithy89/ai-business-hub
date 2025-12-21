@@ -1,6 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../../common/services/prisma.service'
 import { VerificationService } from '../verification/verification.service'
+import {
+  KB_GAP_DEFAULT_LIMIT,
+  KB_GAP_DEFAULT_MIN_FREQUENCY,
+  KB_GAP_DEFAULT_TASK_WINDOW_DAYS,
+  KB_GAP_MIN_QUESTION_FREQUENCY,
+  getKbGapTaskLimit,
+} from '../kb.constants'
 import { GapAnalysisQueryDto } from './dto/gap-analysis.query.dto'
 
 type GapTopic = {
@@ -79,10 +86,11 @@ export class GapAnalysisService {
   ) {}
 
   async getGapAnalysis(workspaceId: string, query: GapAnalysisQueryDto) {
-    const limit = query.limit ?? 10
-    const taskWindowDays = query.taskWindowDays ?? 90
-    const minFrequency = query.minFrequency ?? 1
-    const questionMinFrequency = Math.max(2, minFrequency)
+    const limit = query.limit ?? KB_GAP_DEFAULT_LIMIT
+    const taskWindowDays = query.taskWindowDays ?? KB_GAP_DEFAULT_TASK_WINDOW_DAYS
+    const minFrequency = query.minFrequency ?? KB_GAP_DEFAULT_MIN_FREQUENCY
+    const questionMinFrequency = Math.max(KB_GAP_MIN_QUESTION_FREQUENCY, minFrequency)
+    const taskLimit = getKbGapTaskLimit()
 
     const windowStart = new Date()
     windowStart.setDate(windowStart.getDate() - taskWindowDays)
@@ -96,12 +104,13 @@ export class GapAnalysisService {
         },
         select: { id: true, title: true, description: true },
         orderBy: { updatedAt: 'desc' },
-        take: 500,
+        take: taskLimit,
       }),
       this.prisma.knowledgePage.findMany({
         where: { workspaceId, deletedAt: null, isTemplate: false },
         select: { id: true, title: true, slug: true },
       }),
+      // Stale pages are defined by verification expiry, age, or low views (see VerificationService.getStalPages).
       this.verificationService.getStalPages(workspaceId),
     ])
 

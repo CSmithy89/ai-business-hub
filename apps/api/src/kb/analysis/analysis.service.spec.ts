@@ -65,4 +65,22 @@ describe('GapAnalysisService', () => {
     expect(result.outdatedPages).toHaveLength(1)
     expect(result.suggestions.length).toBeGreaterThan(0)
   })
+
+  it('handles workspaces with no recent tasks', async () => {
+    mockPrismaService.task.findMany.mockResolvedValue([])
+    mockPrismaService.knowledgePage.findMany.mockResolvedValue([])
+    mockVerificationService.getStalPages.mockResolvedValue([])
+
+    const service = new GapAnalysisService(
+      mockPrismaService as any,
+      mockVerificationService as any,
+    )
+
+    const result = await service.getGapAnalysis('workspace-1', {})
+
+    expect(result.missingTopics).toHaveLength(0)
+    expect(result.frequentQuestions).toHaveLength(0)
+    expect(result.outdatedPages).toHaveLength(0)
+    expect(result.suggestions).toHaveLength(0)
+  })
 })

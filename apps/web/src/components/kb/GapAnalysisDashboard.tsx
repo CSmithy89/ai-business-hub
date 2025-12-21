@@ -17,7 +17,12 @@ export function GapAnalysisDashboard() {
   const handleRun = async () => {
     setHasRun(true)
     try {
-      await refetch()
+      const result = await refetch()
+      if (result.error) {
+        toast.error(
+          result.error instanceof Error ? result.error.message : 'Failed to run analysis',
+        )
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to run analysis')
     }
@@ -72,6 +77,19 @@ export function GapAnalysisDashboard() {
 
       {data && (
         <div className="grid gap-6">
+          {data.missingTopics.length === 0 &&
+            data.frequentQuestions.length === 0 &&
+            data.outdatedPages.length === 0 &&
+            data.suggestions.length === 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>No gaps detected</CardTitle>
+                  <CardDescription>
+                    Recent tasks and KB pages look well covered. Check back after new work lands.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            )}
           <Card>
             <CardHeader>
               <CardTitle>Summary</CardTitle>

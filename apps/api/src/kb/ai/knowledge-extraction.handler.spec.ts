@@ -79,6 +79,24 @@ describe('KnowledgeExtractionHandler', () => {
     expect(mockApprovalRouter.routeApproval).not.toHaveBeenCalled()
   })
 
+  it('skips when approval already exists', async () => {
+    mockPrismaService.approvalItem.findFirst.mockResolvedValue({
+      id: 'approval-1',
+      status: 'PENDING',
+    })
+
+    const handler = new KnowledgeExtractionHandler(
+      mockPrismaService as any,
+      mockApprovalRouter as any,
+      mockKbAiService as any,
+    )
+
+    await handler.handleTaskStatusChanged(baseEvent as any)
+
+    expect(mockPrismaService.task.findFirst).not.toHaveBeenCalled()
+    expect(mockApprovalRouter.routeApproval).not.toHaveBeenCalled()
+  })
+
   it('creates approval when content is significant', async () => {
     mockPrismaService.approvalItem.findFirst.mockResolvedValue(null)
     mockPrismaService.task.findFirst.mockResolvedValue({
@@ -118,8 +136,40 @@ describe('KnowledgeExtractionHandler', () => {
         previewData: expect.objectContaining({
           title: 'Document onboarding workflow',
           content: '# Draft',
+          isAIGenerated: true,
+          contentTruncated: false,
         }),
       }),
     )
+  })
+
+  it('treats lowercase DONE as complete', async () => {
+    mockPrismaService.approvalItem.findFirst.mockResolvedValue(null)
+    mockPrismaService.task.findFirst.mockResolvedValue({
+      id: 'task-1',
+      title: 'Document onboarding workflow',
+      description: 'A'.repeat(320),
+      projectId: 'project-1',
+      taskNumber: 45,
+      completedAt: new Date('2025-01-01T10:00:00.000Z'),
+    })
+    mockPrismaService.taskComment.findMany.mockResolvedValue([])
+    mockKbAiService.generateDraftFromTask.mockResolvedValue({
+      content: '# Draft',
+      citations: [],
+    })
+
+    const handler = new KnowledgeExtractionHandler(
+      mockPrismaService as any,
+      mockApprovalRouter as any,
+      mockKbAiService as any,
+    )
+
+    await handler.handleTaskStatusChanged({
+      ...baseEvent,
+      data: { taskId: 'task-1', toStatus: 'done' },
+    } as any)
+
+    expect(mockApprovalRouter.routeApproval).toHaveBeenCalled()
   })
 })

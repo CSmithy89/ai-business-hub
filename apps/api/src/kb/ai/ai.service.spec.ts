@@ -3,6 +3,7 @@ import { KbAiService } from './ai.service'
 import { RagService } from '../rag/rag.service'
 import { AssistantClientFactory } from '../../ai-providers/assistant-client-factory.service'
 import { PrismaService } from '../../common/services/prisma.service'
+import { KB_AI_PROMPT_CHAR_LIMIT } from '../kb.constants'
 
 const mockRagService = {
   query: jest.fn(),
@@ -103,8 +104,74 @@ describe('KbAiService', () => {
     expect(result.summary).toContain('Authentication uses JWT')
     expect(result.keyPoints).toHaveLength(2)
     expect(mockPrismaService.knowledgePage.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'page-1', tenantId: 'tenant-1', workspaceId: 'workspace-1', deletedAt: null } }),
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'page-1',
+          tenantId: 'tenant-1',
+          workspaceId: 'workspace-1',
+          deletedAt: null,
+        }),
+      }),
     )
+  })
+
+  it('truncates overly long draft prompts', async () => {
+    const longPrompt = 'A'.repeat(KB_AI_PROMPT_CHAR_LIMIT + 50)
+    mockRagService.query.mockResolvedValue({ context: 'Context snippet', citations: [] })
+    mockClient.chatCompletion.mockResolvedValue({
+      id: 'resp-long',
+      content: '# Draft',
+      role: 'assistant',
+      model: 'gpt-4o',
+      provider: 'openai',
+    })
+    mockAssistantClientFactory.createClient.mockResolvedValue(mockClient)
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        KbAiService,
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: RagService, useValue: mockRagService },
+        { provide: AssistantClientFactory, useValue: mockAssistantClientFactory },
+      ],
+    }).compile()
+
+    const service = moduleRef.get(KbAiService)
+
+    await service.generateDraft('tenant-1', 'workspace-1', { prompt: longPrompt })
+
+    const queryArgs = mockRagService.query.mock.calls[0]?.[2] as { q: string }
+    expect(queryArgs.q.length).toBeLessThanOrEqual(KB_AI_PROMPT_CHAR_LIMIT)
+  })
+
+  it('parses JSON summaries with extra text', async () => {
+    mockPrismaService.knowledgePage.findFirst.mockResolvedValue({
+      title: 'Auth Guide',
+      contentText: 'This page explains authentication flow.',
+    })
+    mockClient.chatCompletion.mockResolvedValue({
+      id: 'resp-4',
+      content: 'Sure thing! {"summary":"JWT auth overview.","keyPoints":["Use JWT","Rotate tokens"]} Thanks.',
+      role: 'assistant',
+      model: 'gpt-4o',
+      provider: 'openai',
+    })
+    mockAssistantClientFactory.createClient.mockResolvedValue(mockClient)
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        KbAiService,
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: RagService, useValue: mockRagService },
+        { provide: AssistantClientFactory, useValue: mockAssistantClientFactory },
+      ],
+    }).compile()
+
+    const service = moduleRef.get(KbAiService)
+    const result = await service.summarizePage('tenant-1', 'workspace-1', 'page-1')
+
+    expect(result.summary).toContain('JWT auth overview.')
+    expect(result.keyPoints).toHaveLength(2)
   })
 
   it('answers a question with sources', async () => {

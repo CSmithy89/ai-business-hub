@@ -9,6 +9,20 @@ import { AssistantClientFactory } from '../../ai-providers/assistant-client-fact
 import { PrismaService } from '../../common/services/prisma.service'
 import { RagService } from '../rag/rag.service'
 import { KB_ERROR } from '../kb.errors'
+import {
+  KB_AI_ASK_MAX_TOKENS,
+  KB_AI_CONTEXT_CHAR_LIMIT,
+  KB_AI_DRAFT_MAX_TOKENS,
+  KB_AI_OUTPUT_CHAR_LIMIT,
+  KB_AI_PROMPT_CHAR_LIMIT,
+  KB_AI_QUESTION_CHAR_LIMIT,
+  KB_AI_SUMMARY_CONTENT_CHAR_LIMIT,
+  KB_AI_SUMMARY_MAX_KEY_POINTS,
+  KB_AI_SUMMARY_MAX_TOKENS,
+  KB_TASK_DRAFT_COMMENT_CHAR_LIMIT,
+  KB_TASK_DRAFT_COMMENT_LIMIT,
+  KB_TASK_DRAFT_CONTEXT_CHAR_LIMIT,
+} from '../kb.constants'
 import { KbAskDto } from './dto/kb-ask.dto'
 import { KbDraftDto } from './dto/kb-draft.dto'
 
@@ -62,7 +76,7 @@ export class KbAiService {
     workspaceId: string,
     dto: KbDraftDto,
   ): Promise<KbDraftResult> {
-    const prompt = dto.prompt.trim()
+    const prompt = this.truncateText(dto.prompt.trim(), KB_AI_PROMPT_CHAR_LIMIT)
     if (!prompt) {
       throw new BadRequestException('Prompt is required')
     }
@@ -88,12 +102,16 @@ export class KbAiService {
       'Return only the draft content in Markdown with clear headings and bullet lists.',
     ].join('\n')
 
+    const context = ragResult.context
+      ? this.truncateText(ragResult.context, KB_AI_CONTEXT_CHAR_LIMIT)
+      : 'No relevant KB context found.'
+
     const userMessage = [
       'User request:',
       prompt,
       '',
       'Context:',
-      ragResult.context || 'No relevant KB context found.',
+      context,
     ].join('\n')
 
     const completion = await client.chatCompletion({
@@ -102,10 +120,10 @@ export class KbAiService {
         { role: 'user', content: userMessage },
       ],
       temperature: 0.4,
-      maxTokens: 900,
+      maxTokens: KB_AI_DRAFT_MAX_TOKENS,
     })
 
-    const content = completion.content?.trim()
+    const content = this.sanitizeAiText(completion.content)
     if (!content) {
       throw new ServiceUnavailableException('AI draft generation failed')
     }
@@ -135,6 +153,11 @@ export class KbAiService {
       throw new BadRequestException('Page content is empty')
     }
 
+    const truncatedContentText = this.truncateText(
+      contentText,
+      KB_AI_SUMMARY_CONTENT_CHAR_LIMIT,
+    )
+
     let client
     try {
       client = await this.assistantClientFactory.createClient({ workspaceId })
@@ -154,7 +177,7 @@ export class KbAiService {
       `Page title: ${page.title}`,
       '',
       'Page content:',
-      contentText,
+      truncatedContentText,
     ].join('\n')
 
     const completion = await client.chatCompletion({
@@ -163,7 +186,7 @@ export class KbAiService {
         { role: 'user', content: userMessage },
       ],
       temperature: 0.3,
-      maxTokens: 600,
+      maxTokens: KB_AI_SUMMARY_MAX_TOKENS,
     })
 
     return this.parseSummaryResponse(completion.content || '')
@@ -213,10 +236,10 @@ export class KbAiService {
         { role: 'user', content: userMessage },
       ],
       temperature: 0.3,
-      maxTokens: 900,
+      maxTokens: KB_AI_DRAFT_MAX_TOKENS,
     })
 
-    const content = completion.content?.trim()
+    const content = this.sanitizeAiText(completion.content)
     if (!content) {
       throw new ServiceUnavailableException('AI draft generation failed')
     }
@@ -232,7 +255,7 @@ export class KbAiService {
     workspaceId: string,
     dto: KbAskDto,
   ): Promise<KbAskResult> {
-    const question = dto.question.trim()
+    const question = this.truncateText(dto.question.trim(), KB_AI_QUESTION_CHAR_LIMIT)
     if (!question) {
       throw new BadRequestException('Question is required')
     }
@@ -273,12 +296,16 @@ export class KbAiService {
         }))
       : []
 
+    const context = ragResult.context
+      ? this.truncateText(ragResult.context, KB_AI_CONTEXT_CHAR_LIMIT)
+      : 'No relevant KB context found.'
+
     const userMessage = [
       'Question:',
       question,
       '',
       'Context:',
-      ragResult.context || 'No relevant KB context found.',
+      context,
     ].join('\n')
 
     const completion = await client.chatCompletion({
@@ -288,10 +315,10 @@ export class KbAiService {
         { role: 'user', content: userMessage },
       ],
       temperature: 0.3,
-      maxTokens: 700,
+      maxTokens: KB_AI_ASK_MAX_TOKENS,
     })
 
-    const answer = completion.content?.trim() || 'Not found'
+    const answer = this.sanitizeAiText(completion.content?.trim() || 'Not found') || 'Not found'
     const confidence = sources.length >= 3 ? 'high' : 'medium'
 
     return {
@@ -308,11 +335,15 @@ export class KbAiService {
     }
 
     try {
-      const parsed = JSON.parse(trimmed) as { summary?: string; keyPoints?: string[] }
+      const payload = this.extractJsonPayload(trimmed) ?? trimmed
+      const parsed = JSON.parse(payload) as { summary?: string; keyPoints?: string[] }
       if (parsed.summary) {
+        const summary = this.sanitizeAiText(parsed.summary)
         return {
-          summary: parsed.summary,
-          keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints : [],
+          summary,
+          keyPoints: Array.isArray(parsed.keyPoints)
+            ? parsed.keyPoints.map((point) => this.sanitizeAiText(point)).filter(Boolean)
+            : [],
         }
       }
     } catch {
@@ -325,27 +356,33 @@ export class KbAiService {
 
     for (const line of lines) {
       if (!summary && /^summary:/i.test(line)) {
-        summary = line.replace(/^summary:/i, '').trim()
+        summary = this.sanitizeAiText(line.replace(/^summary:/i, '').trim())
         continue
       }
 
       if (/^[-*]\s+/.test(line)) {
-        keyPoints.push(line.replace(/^[-*]\s+/, '').trim())
+        const point = this.sanitizeAiText(line.replace(/^[-*]\s+/, '').trim())
+        if (point) {
+          keyPoints.push(point)
+        }
         continue
       }
 
       if (/^\d+\.\s+/.test(line)) {
-        keyPoints.push(line.replace(/^\d+\.\s+/, '').trim())
+        const point = this.sanitizeAiText(line.replace(/^\d+\.\s+/, '').trim())
+        if (point) {
+          keyPoints.push(point)
+        }
       }
     }
 
     if (!summary) {
-      summary = lines[0] || ''
+      summary = this.sanitizeAiText(lines[0] || '')
     }
 
     return {
       summary,
-      keyPoints: keyPoints.slice(0, 6),
+      keyPoints: keyPoints.slice(0, KB_AI_SUMMARY_MAX_KEY_POINTS),
     }
   }
 
@@ -366,7 +403,9 @@ export class KbAiService {
   private buildTaskContext(title: string, description: string, comments: string[]): string {
     const normalizedDescription = this.normalizeText(description)
     const normalizedComments = comments.map((comment) => this.normalizeText(comment)).filter(Boolean)
-    const limitedComments = normalizedComments.slice(0, 8).map((comment) => `- ${this.truncateText(comment, 400)}`)
+    const limitedComments = normalizedComments
+      .slice(0, KB_TASK_DRAFT_COMMENT_LIMIT)
+      .map((comment) => `- ${this.truncateText(comment, KB_TASK_DRAFT_COMMENT_CHAR_LIMIT)}`)
 
     const sections = [
       `Task Title: ${title}`,
@@ -378,7 +417,7 @@ export class KbAiService {
         : 'Task Comments: (none)',
     ]
 
-    return this.truncateText(sections.join('\n\n'), 6000)
+    return this.truncateText(sections.join('\n\n'), KB_TASK_DRAFT_CONTEXT_CHAR_LIMIT)
   }
 
   private normalizeText(text: string): string {
@@ -388,5 +427,32 @@ export class KbAiService {
   private truncateText(text: string, limit: number): string {
     if (text.length <= limit) return text
     return `${text.slice(0, Math.max(0, limit - 3))}...`
+  }
+
+  private sanitizeAiText(value: string | null | undefined): string {
+    if (!value) return ''
+    const withoutControls = this.stripControlChars(value)
+    const withoutTags = withoutControls.replace(/<[^>]*>/g, '')
+    return this.truncateText(withoutTags.trim(), KB_AI_OUTPUT_CHAR_LIMIT)
+  }
+
+  private stripControlChars(value: string): string {
+    let result = ''
+    for (const char of value) {
+      const code = char.charCodeAt(0)
+      if (code === 9 || code === 10 || code === 13 || code >= 32) {
+        result += char
+      }
+    }
+    return result
+  }
+
+  private extractJsonPayload(value: string): string | null {
+    const firstBrace = value.indexOf('{')
+    const lastBrace = value.lastIndexOf('}')
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+      return null
+    }
+    return value.slice(firstBrace, lastBrace + 1)
   }
 }

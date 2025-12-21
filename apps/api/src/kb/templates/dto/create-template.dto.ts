@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength, Validate } from 'class-validator'
+import { IsDefined, IsOptional, IsString, MaxLength, Validate } from 'class-validator'
 import { TiptapContentValidator } from '../../pages/validators/tiptap-content.validator'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -14,6 +14,7 @@ export class CreateTemplateDto {
   @MaxLength(100, { message: 'Category must not exceed 100 characters' })
   category?: string
 
+  @IsDefined()
   @Validate(TiptapContentValidator)
   content!: TiptapContent
 }

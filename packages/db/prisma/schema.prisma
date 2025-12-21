@@ -1218,6 +1218,7 @@ model Task {
   @@index([assigneeId])
   @@index([dueDate])
   @@index([deletedAt])
+  @@index([workspaceId, deletedAt, updatedAt])
   @@index([projectId, deletedAt, updatedAt]) // Health check task queries
   @@map("tasks")
 }
