@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>kb-04</epicId>
+    <storyId>kb-04-5</storyId>
+    <title>Gap Detection</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-21</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/kb-04-5-gap-detection.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>KB admin</asA>
+    <iWant>AI to identify documentation gaps</iWant>
+    <soThat>I know what is missing</soThat>
+    <tasks>
+- Add gap analysis API returning missing topics, questions, and stale pages
+- Add UI to run gap analysis and render results
+- Add unit tests for analysis service
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Given I run gap analysis, when Scribe analyzes, then shows: topics mentioned but not documented, frequently asked but no page, outdated pages (based on product changes).
+2. Gap analysis output includes suggestions for new pages.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/modules/bm-pm/epics/epic-kb-04-ai-native-knowledge-base.md</path>
+        <title>Epic KB-04: AI-Native Knowledge Base</title>
+        <section>Story KB-04.5: Gap Detection</section>
+        <snippet>Run gap analysis to surface missing topics, unanswered questions, and outdated pages.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-kb-04.md</path>
+        <title>KB-04 Epic Tech Spec</title>
+        <section>Workflows: Gap Detection</section>
+        <snippet>Cross-reference tasks, search logs, and stale pages for gaps.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>apps/api/src/kb/verification/verification.service.ts</path>
+        <kind>service</kind>
+        <symbol>VerificationService.getStalPages</symbol>
+        <lines>180-260</lines>
+        <reason>Reuse stale page detection for outdated content.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/web/src/components/kb/StaleContentDashboard.tsx</path>
+        <kind>component</kind>
+        <symbol>StaleContentDashboard</symbol>
+        <lines>1-220</lines>
+        <reason>UI pattern for listing stale KB pages.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/web/src/components/kb/KBHome.tsx</path>
+        <kind>component</kind>
+        <symbol>KBHome</symbol>
+        <lines>1-120</lines>
+        <reason>Entry point for KB admin actions.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@tanstack/react-query" />
+        <package name="@nestjs/common" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Admin-only access for gap analysis.
+- Keep heuristics lightweight and deterministic.
+- Ensure workspace scoping for tasks and KB pages.
+  </constraints>
+
+  <interfaces>
+- GET /api/kb/analysis/gaps
+  </interfaces>
+
+  <tests>
+    <standards>Unit tests for gap analysis service output.</standards>
+    <locations>apps/api/src/**/*.spec.ts</locations>
+    <ideas>
+- Missing topics derived from task titles not covered by KB page titles.
+- Frequent questions grouped by repeated task questions.
+- Outdated pages list included from stale detection.
+    </ideas>
+  </tests>
+</story-context>

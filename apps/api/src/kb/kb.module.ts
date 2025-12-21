@@ -20,6 +20,8 @@ import { KnowledgeExtractionHandler } from './ai/knowledge-extraction.handler'
 import { VerificationModule } from './verification/verification.module'
 import { MentionModule } from './mentions/mention.module'
 import { ApprovalsModule } from '../approvals/approvals.module'
+import { GapAnalysisController } from './analysis/analysis.controller'
+import { GapAnalysisService } from './analysis/analysis.service'
 
 @Module({
   imports: [
@@ -39,6 +41,7 @@ import { ApprovalsModule } from '../approvals/approvals.module'
     RagController,
     KbAiController,
     KbAskController,
+    GapAnalysisController,
   ],
   providers: [
     PagesService,
@@ -46,6 +49,7 @@ import { ApprovalsModule } from '../approvals/approvals.module'
     SearchService,
     RagService,
     KbAiService,
+    GapAnalysisService,
     LinkingService,
     KnowledgeExtractionHandler,
     {

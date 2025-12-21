@@ -1,6 +1,6 @@
 'use client'
 
-import { FileText, Clock, Star, Plus, BookOpen, MessageCircle } from 'lucide-react'
+import { FileText, Clock, Star, Plus, BookOpen, MessageCircle, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
@@ -47,6 +47,12 @@ export function KBHome({ workspaceId }: KBHomeProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+              <Link href={'/kb/gaps' as any}>
+                <Search className="mr-2 h-4 w-4" />
+                Gap Analysis
+              </Link>
+            </Button>
             <Button variant="outline" asChild>
               <Link href={'/kb/chat' as any}>
                 <MessageCircle className="mr-2 h-4 w-4" />
