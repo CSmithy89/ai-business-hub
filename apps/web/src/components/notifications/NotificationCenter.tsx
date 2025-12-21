@@ -47,9 +47,19 @@ export function NotificationCenter() {
         >
           <Bell className="h-5 w-5" />
 
-          {/* Badge count */}
+          {/* Badge count - aria-live announces changes to screen readers */}
+          <span
+            aria-live="polite"
+            aria-atomic="true"
+            className="sr-only"
+          >
+            {unreadCount > 0 ? `${unreadCount} unread notifications` : 'No unread notifications'}
+          </span>
           {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[rgb(var(--color-primary-500))] px-1 text-[10px] font-bold text-white">
+            <span
+              aria-hidden="true"
+              className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[rgb(var(--color-primary-500))] px-1 text-[10px] font-bold text-white"
+            >
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}

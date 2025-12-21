@@ -59,6 +59,8 @@ export function PresenceBar({
               'flex items-center',
               className
             )}
+            role="group"
+            aria-label={`${users.length} user${users.length === 1 ? '' : 's'} currently online`}
           >
             {/* Avatar stack */}
             <div className="flex -space-x-2">

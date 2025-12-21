@@ -44,22 +44,29 @@ export function PresenceAvatar({
     .toUpperCase()
     .slice(0, 2);
 
+  const pageLabel = PAGE_LABELS[user.location.page] || user.location.page;
+
   const avatar = (
-    <div className={cn('relative', className)}>
+    <div
+      className={cn('relative', className)}
+      role="img"
+      aria-label={`${user.userName} is online, viewing ${pageLabel}`}
+    >
       <Avatar className="h-8 w-8 border-2 border-background">
         <AvatarImage src={user.userAvatar || undefined} alt={user.userName} />
         <AvatarFallback className="text-xs">{initials}</AvatarFallback>
       </Avatar>
       {/* Online indicator */}
-      <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500" />
+      <div
+        className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500"
+        aria-hidden="true"
+      />
     </div>
   );
 
   if (!showTooltip) {
     return avatar;
   }
-
-  const pageLabel = PAGE_LABELS[user.location.page] || user.location.page;
 
   return (
     <TooltipProvider delayDuration={300}>

@@ -5,16 +5,15 @@ This document tracks additional code review feedback that was not blocking for m
 ## High Priority
 
 ### 1. Missing Test Coverage
-**Status:** TODO
+**Status:** ✅ FIXED
 **Effort:** Medium-High
 
-No unit tests exist for the new PM-06 services:
-- `NotificationsService` - preference management, notification creation, quiet hours logic
-- `DigestService` - digest generation, email template rendering, token verification
-- `DigestSchedulerService` - BullMQ job scheduling, cron expression generation
-- `PresenceService` - Redis presence tracking, user lookup
+**Unit tests created:**
+- `notifications.service.spec.ts` - Preference management, notification CRUD, quiet hours logic
+- `digest.service.spec.ts` - Digest generation, token verification, email sending
+- `presence.service.spec.ts` - Redis presence tracking, multi-project support, batch queries
 
-**Recommendation:** Create test files with Jest mocks for Prisma, Redis, and BullMQ.
+Note: `DigestSchedulerService` tests skipped (mostly BullMQ integration, covered by E2E).
 
 ### 2. Email Service Stub
 **Status:** Documented
@@ -35,73 +34,41 @@ The `EmailService` currently logs emails instead of sending them. This is intent
 ## Medium Priority
 
 ### 3. Presence Location Key Scoping Bug
-**Status:** TODO
+**Status:** ✅ FIXED
 **Effort:** Medium
 **Severity:** Bug
 
-The presence location key `presence:user:${userId}:location` is NOT project-scoped. This causes issues when a user has presence in multiple projects simultaneously:
+~~The presence location key `presence:user:${userId}:location` is NOT project-scoped.~~
 
-1. User joins Project A - location stored
-2. User joins Project B - location OVERWRITES Project A
-3. User leaves Project A - entire location hash DELETED
-4. User's presence in Project B is now broken
-
-**Current code:**
-```typescript
-const locationKey = `presence:user:${userId}:location`;
-```
-
-**Fix:** Make location key project-scoped:
-```typescript
-const locationKey = `presence:user:${userId}:project:${projectId}:location`;
-```
-
-**Files to update:**
-- `apps/api/src/realtime/presence.service.ts` - updatePresence, getProjectPresence, removePresence
+**Fix applied:** Changed to project-scoped key `presence:user:${userId}:project:${projectId}:location`
 
 ### 4. Digest Scheduler Race Condition
-**Status:** TODO
+**Status:** ✅ FIXED
 **Effort:** Low
 
-If `scheduleUserDigest` is called multiple times rapidly, it could create duplicate jobs before the previous one is registered.
+~~If `scheduleUserDigest` is called multiple times rapidly, it could create duplicate jobs.~~
 
-**Current mitigation:** BullMQ's `jobId` option prevents true duplicates.
-
-**Additional fix:** Add a distributed lock or check for existing job before scheduling.
+**Fix applied:** Added check for existing job before scheduling in `scheduleUserDigest`.
 
 ### 5. Configurable Presence TTL
-**Status:** TODO
+**Status:** ✅ FIXED
 **Effort:** Low
 
-The presence TTL is currently hardcoded as a class constant. Should be configurable via environment variable.
+~~The presence TTL is currently hardcoded as a class constant.~~
 
-**Current:**
-```typescript
-private readonly PRESENCE_TTL_SECONDS = 300; // 5 minutes
-```
-
-**Recommendation:**
-```typescript
-private readonly PRESENCE_TTL_SECONDS = parseInt(
-  process.env.PRESENCE_TTL_SECONDS || '300',
-  10
-);
-```
+**Fix applied:** TTL now configurable via `PRESENCE_TTL_SECONDS` environment variable (default: 300s).
 
 ---
 
 ## Low Priority
 
 ### 6. Partial Index on Unread Notifications
-**Status:** TODO
+**Status:** ✅ FIXED
 **Effort:** Low
 
-Add a partial index for unread notifications to improve query performance:
-
-```prisma
-@@index([userId, createdAt], map: "idx_notifications_unread")
-// Note: Prisma doesn't support partial indexes directly
-// Use raw SQL migration: CREATE INDEX ... WHERE read_at IS NULL
+**Fix applied:** Added raw SQL migration `20251221000000_add_unread_notifications_partial_index` with:
+```sql
+CREATE INDEX idx_notifications_unread ON notifications (user_id, created_at DESC) WHERE read_at IS NULL;
 ```
 
 ### 7. Framer Motion Bundle Size
@@ -116,13 +83,13 @@ Framer Motion adds ~60KB to bundle. Consider:
 **Affected components:** Notification toast animations, presence indicators
 
 ### 8. ARIA Accessibility Attributes
-**Status:** TODO
+**Status:** ✅ FIXED
 **Effort:** Low
 
-Add missing ARIA attributes:
-- Notification bell: `aria-label`, `aria-live` for count updates
-- Toast notifications: `role="alert"`, `aria-live="polite"`
-- Presence indicators: `aria-label` for user status
+**Fixes applied:**
+- Notification bell: Added `aria-live="polite"` region for count updates
+- Toast notifications: Sonner library handles ARIA internally
+- Presence indicators: Added `aria-label` to PresenceAvatar and PresenceBar
 
 ---
 

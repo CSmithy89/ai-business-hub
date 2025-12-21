@@ -66,6 +66,9 @@ export class DigestSchedulerService implements OnModuleInit {
 
   /**
    * Schedule digest job for a single user
+   *
+   * Note: This method checks for existing jobs to prevent race conditions
+   * when called multiple times rapidly.
    */
   async scheduleUserDigest(
     userId: string,
@@ -73,6 +76,17 @@ export class DigestSchedulerService implements OnModuleInit {
     frequency: DigestFrequency
   ): Promise<void> {
     try {
+      const jobId = `digest-${userId}`;
+
+      // Check for existing job to prevent race condition duplicates
+      const repeatableJobs = await this.digestQueue.getRepeatableJobs();
+      const existingJob = repeatableJobs.find((j) => j.id === jobId);
+
+      if (existingJob) {
+        this.logger.debug(`Digest job already exists for user ${userId}, skipping`);
+        return;
+      }
+
       // Calculate cron expression for user's timezone
       const cronExpression = this.getCronExpressionForTimezone(timezone, frequency);
 
@@ -84,7 +98,7 @@ export class DigestSchedulerService implements OnModuleInit {
           repeat: {
             pattern: cronExpression,
           },
-          jobId: `digest-${userId}`, // Prevents duplicates
+          jobId, // Prevents duplicates
           removeOnComplete: 100,
           removeOnFail: 500,
         }

@@ -7,12 +7,12 @@ import { PresenceUser, PresenceLocation } from '@hyvve/shared';
  * PresenceService - Real-time presence tracking with Redis
  *
  * Manages user presence across projects using Redis sorted sets and hashes.
- * Presence data auto-expires after 5 minutes of inactivity.
+ * Presence data auto-expires after configurable TTL (default 5 minutes).
  *
  * Architecture:
  * - Sorted set: presence:project:${projectId} (score = timestamp, member = userId)
- * - Hash: presence:user:${userId}:location (projectId, page, taskId, timestamp)
- * - TTL: 5 minutes on location hash (auto-cleanup on disconnect)
+ * - Hash: presence:user:${userId}:project:${projectId}:location (page, taskId, timestamp)
+ * - TTL: Configurable via PRESENCE_TTL_SECONDS env var (default 300s)
  *
  * @see Story PM-06.2: Presence Indicators
  * @see ADR-PM06-004: Presence Tracking with Redis
@@ -22,15 +22,18 @@ export class PresenceService {
   private readonly logger = new Logger(PresenceService.name);
   private redis: RedisClient;
 
-  // Presence TTL configuration
-  private readonly PRESENCE_TTL_SECONDS = 300; // 5 minutes
-  private readonly PRESENCE_TTL_MS = this.PRESENCE_TTL_SECONDS * 1000;
+  // Presence TTL configuration (configurable via environment)
+  private readonly PRESENCE_TTL_SECONDS: number;
+  private readonly PRESENCE_TTL_MS: number;
 
   constructor(
     private readonly redisProvider: RedisProvider,
     private readonly prisma: PrismaService,
   ) {
     this.redis = this.redisProvider.getClient();
+    // Initialize TTL from environment (default: 5 minutes)
+    this.PRESENCE_TTL_SECONDS = parseInt(process.env.PRESENCE_TTL_SECONDS || '300', 10);
+    this.PRESENCE_TTL_MS = this.PRESENCE_TTL_SECONDS * 1000;
   }
 
   /**
@@ -49,14 +52,13 @@ export class PresenceService {
     try {
       const now = Date.now();
       const presenceKey = `presence:project:${projectId}`;
-      const locationKey = `presence:user:${userId}:location`;
+      const locationKey = `presence:user:${userId}:project:${projectId}:location`;
 
       // Add user to project presence sorted set (score = timestamp)
       await this.redis.zadd(presenceKey, now, userId);
 
-      // Update user location in hash
+      // Update user location in hash (project-scoped to support multi-project presence)
       await this.redis.hset(locationKey, {
-        projectId,
         page: location.page,
         taskId: location.taskId || '',
         timestamp: new Date().toISOString(),
@@ -98,11 +100,11 @@ export class PresenceService {
         return [];
       }
 
-      // Get locations from Redis for all users
+      // Get locations from Redis for all users (project-scoped keys)
       const locationResults = await Promise.all(
         userIds.map(async (userId) => {
           try {
-            const locationKey = `presence:user:${userId}:location`;
+            const locationKey = `presence:user:${userId}:project:${projectId}:location`;
             const location = await this.redis.hgetall(locationKey);
             return { userId, location };
           } catch (error) {
@@ -211,12 +213,12 @@ export class PresenceService {
   async removePresence(userId: string, projectId: string): Promise<void> {
     try {
       const presenceKey = `presence:project:${projectId}`;
-      const locationKey = `presence:user:${userId}:location`;
+      const locationKey = `presence:user:${userId}:project:${projectId}:location`;
 
       // Remove from sorted set
       await this.redis.zrem(presenceKey, userId);
 
-      // Delete location key
+      // Delete location key (only for this project, preserves other project presence)
       await this.redis.del(locationKey);
 
       this.logger.debug(`Removed presence: user=${userId} project=${projectId}`);
