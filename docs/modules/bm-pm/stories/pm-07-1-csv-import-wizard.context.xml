@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-07-1-csv-import-wizard</story-id>
+    <generated>2025-12-19T00:00:00Z</generated>
+    <epic>PM-07 - Integrations &amp; Bridge Agent</epic>
+    <description>
+      CSV import wizard for tasks with mapping, preview, validation, and progress.
+      Backend adds a new pm/imports module to parse CSV content and create tasks.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="apps/api/src/pm/tasks/tasks.service.ts">
+      <description>
+        Task creation logic and validations. Import flow should reuse create logic
+        or a shared validation helper for required fields.
+      </description>
+    </file>
+
+    <file path="apps/api/src/pm/tasks/tasks.controller.ts">
+      <description>
+        PM tasks REST endpoints; CSV import should live in a new imports controller
+        to keep task endpoints focused.
+      </description>
+    </file>
+
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/ProjectTasksContent.tsx">
+      <description>
+        Task list page header and actions. Add Import CSV button that opens wizard.
+      </description>
+    </file>
+
+    <file path="apps/web/src/hooks/use-pm-tasks.ts">
+      <description>
+        Existing PM API hooks. Add a new hook file for imports to keep concerns separate.
+      </description>
+    </file>
+
+    <file path="packages/db/prisma/schema.prisma">
+      <description>
+        Add ImportJob and ImportError models to track CSV imports.
+      </description>
+    </file>
+  </existing-code>
+</story-context>

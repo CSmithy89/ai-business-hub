@@ -202,15 +202,15 @@ development_status:
   # Phase 2 | 7 stories | GitHub, CSV, PM tool import
   # FRs: FR-8.1, FR-8.3, FR-8.4
   # ===========================================
-  pm-07: backlog
-  pm-07-1-csv-import-wizard: backlog
-  pm-07-2-csv-export: backlog
-  pm-07-3-github-issues-sync: backlog
-  pm-07-4-github-pr-linking: backlog
-  pm-07-5-bridge-agent-foundation: backlog
-  pm-07-6-jira-import: backlog
-  pm-07-7-asana-trello-import: backlog
-  pm-07-retrospective: optional
+  pm-07: contexted
+  pm-07-1-csv-import-wizard: done
+  pm-07-2-csv-export: done
+  pm-07-3-github-issues-sync: done
+  pm-07-4-github-pr-linking: done
+  pm-07-5-bridge-agent-foundation: done
+  pm-07-6-jira-import: done
+  pm-07-7-asana-trello-import: done
+  pm-07-retrospective: completed
 
   # ===========================================
   # PM-08: Prism Agent & Analytics

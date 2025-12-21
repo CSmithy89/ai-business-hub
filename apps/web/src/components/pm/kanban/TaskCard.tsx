@@ -138,7 +138,7 @@ export const TaskCard = memo(function TaskCard({
       onClick={onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
+      onKeyDown={(e: React.KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onClick()

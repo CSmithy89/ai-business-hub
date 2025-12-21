@@ -8,6 +8,42 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
+## EPIC-PM-07: Integrations & Bridge Agent (7 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-21
+**Branch:** `epic/07-integrations-bridge-agent`
+
+### Added
+
+- **CSV Import Wizard**: Mapping + preview flow with import jobs and error tracking
+- **CSV Export**: Filter-aware task exports with CSV streaming
+- **GitHub Issues Sync**: Connect GitHub, import issues into tasks with external links
+- **GitHub PR Linking**: Webhook-driven PR links surfaced on task detail
+- **Jira Import**: Basic auth import with optional JQL filtering
+- **Asana/Trello Imports**: Task ingestion with provider-specific metadata
+- **Bridge Agent Foundation**: AgentOS bridge agent skeleton with output schema
+
+### API Endpoints
+
+- `POST /pm/imports/csv/start`
+- `POST /pm/imports/jira/start`
+- `POST /pm/imports/asana/start`
+- `POST /pm/imports/trello/start`
+- `GET /pm/imports/:id/status`
+- `GET /pm/imports/:id/errors`
+- `GET /pm/exports/tasks`
+- `GET /pm/integrations`
+- `POST /pm/integrations/:provider/connect`
+- `POST /pm/integrations/:provider/disconnect`
+- `POST /pm/integrations/github/issues/sync`
+- `POST /pm/integrations/github/webhook/:workspaceId`
+
+### Notes
+
+- Tech spec: `docs/modules/bm-pm/epics/epic-pm-07-tech-spec.md`
+---
+
 ## EPIC-PM-06: Real-Time & Notifications (6 stories)
 
 **Status:** Complete
@@ -52,6 +88,8 @@ This changelog is organized by Epic, following the BMAD Method development proce
 - Tech spec: `docs/modules/bm-pm/epics/epic-pm-06-tech-spec.md`
 - Uses Redis sorted sets for presence tracking with automatic 5-minute expiry
 - Email service is a stub for MVP (logs instead of sending)
+---
+
 ## EPIC-PM-05: AI Team - Scope, Pulse, Herald (8 stories)
 
 **Status:** Complete
