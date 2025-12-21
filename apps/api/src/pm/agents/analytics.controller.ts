@@ -9,7 +9,11 @@ import {
   HttpCode,
   HttpStatus,
   Patch,
+  Res,
+  Header,
+  StreamableFile,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
@@ -30,6 +34,7 @@ import {
   ScenarioForecastDto,
   TeamPerformanceMetricsDto,
   ForecastScenarioDto,
+  ExportQueryDto,
 } from './dto/prism-forecast.dto';
 import { DashboardDataDto } from './dto/analytics-dashboard.dto';
 
@@ -336,5 +341,162 @@ export class AnalyticsController {
     @CurrentWorkspace() workspaceId: string,
   ): Promise<TeamPerformanceMetricsDto> {
     return this.analyticsService.getTeamPerformanceMetrics(projectId, workspaceId);
+  }
+
+  // ============================================
+  // PM-08-6: ANALYTICS EXPORT ENDPOINTS
+  // ============================================
+
+  @Get('export/csv')
+  @Roles('owner', 'admin', 'member')
+  @Header('Content-Type', 'text/csv')
+  @ApiOperation({
+    summary: 'Export analytics data as CSV',
+    description: 'Download analytics metrics, trends, and risk data in CSV format',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: String,
+    description: 'Start date for export range (ISO 8601 format)',
+    example: '2025-11-21',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: String,
+    description: 'End date for export range (ISO 8601 format)',
+    example: '2025-12-21',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'CSV file download',
+    content: { 'text/csv': {} },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  async exportCsv(
+    @Param('projectId') projectId: string,
+    @CurrentWorkspace() workspaceId: string,
+    @Query() query: ExportQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    // Parse date range
+    const dateRange = this.parseDateRange(query.startDate, query.endDate);
+
+    // Generate CSV content
+    const csvContent = await this.analyticsService.exportCsv(
+      projectId,
+      workspaceId,
+      dateRange,
+    );
+
+    // Get project name for filename
+    const project = await this.analyticsService.getTrendDataForExport(
+      projectId,
+      workspaceId,
+      dateRange,
+    );
+    const safeName = project.projectName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `${safeName}-analytics-${dateStr}.csv`;
+
+    res.set({
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
+
+    const buffer = Buffer.from(csvContent, 'utf-8');
+    return new StreamableFile(buffer);
+  }
+
+  @Get('export/pdf-data')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({
+    summary: 'Get structured data for PDF report generation',
+    description: 'Returns structured analytics data suitable for PDF rendering. Client-side or separate service handles actual PDF generation.',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: String,
+    description: 'Start date for export range (ISO 8601 format)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: String,
+    description: 'End date for export range (ISO 8601 format)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Structured report data for PDF generation',
+    type: Object,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  async exportPdfData(
+    @Param('projectId') projectId: string,
+    @CurrentWorkspace() workspaceId: string,
+    @Query() query: ExportQueryDto,
+  ): Promise<{
+    title: string;
+    subtitle: string;
+    generatedAt: string;
+    sections: Array<{
+      title: string;
+      content: string | Record<string, unknown>;
+    }>;
+  }> {
+    const dateRange = this.parseDateRange(query.startDate, query.endDate);
+    return this.analyticsService.exportPdfData(projectId, workspaceId, dateRange);
+  }
+
+  @Get('export/trend-data')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({
+    summary: 'Get raw trend data for export',
+    description: 'Retrieve aggregated trend data including velocity, scope, completion, and risk metrics',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: String,
+    description: 'Start date for trend range (ISO 8601 format)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: String,
+    description: 'End date for trend range (ISO 8601 format)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Trend data retrieved successfully',
+    type: Object,
+  })
+  async getTrendData(
+    @Param('projectId') projectId: string,
+    @CurrentWorkspace() workspaceId: string,
+    @Query() query: ExportQueryDto,
+  ) {
+    const dateRange = this.parseDateRange(query.startDate, query.endDate);
+    return this.analyticsService.getTrendDataForExport(projectId, workspaceId, dateRange);
+  }
+
+  /**
+   * Helper to parse date range from query params
+   */
+  private parseDateRange(
+    startDate?: string,
+    endDate?: string,
+  ): { start: Date; end: Date } | undefined {
+    if (!startDate && !endDate) return undefined;
+
+    const end = endDate ? new Date(endDate) : new Date();
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(end.getTime() - 28 * 24 * 60 * 60 * 1000);
+
+    return { start, end };
   }
 }

@@ -314,3 +314,72 @@ export interface TeamPerformanceMetricsDto {
     status: 'UNDER_UTILIZED' | 'OPTIMAL' | 'OVER_UTILIZED';
   };
 }
+
+// ============================================
+// PM-08-6: ANALYTICS EXPORT DTOS
+// ============================================
+
+/**
+ * Export date range query parameters
+ */
+export class ExportQueryDto {
+  @IsOptional()
+  startDate?: string;
+
+  @IsOptional()
+  endDate?: string;
+
+  @IsOptional()
+  metrics?: string[];
+}
+
+/**
+ * Trend data point for export
+ */
+export interface TrendDataPoint {
+  date: string;
+  velocity: number | null;
+  scope: number | null;
+  completedPoints: number | null;
+  completionRate: number | null;
+  teamSize: number | null;
+}
+
+/**
+ * Aggregated trend data for export
+ */
+export interface TrendDataExport {
+  projectId: string;
+  projectName: string;
+  exportedAt: string;
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  summary: {
+    averageVelocity: number;
+    totalScope: number;
+    totalCompleted: number;
+    overallCompletionRate: number;
+    healthScore: number;
+  };
+  trends: TrendDataPoint[];
+  risks: {
+    id: string;
+    category: string;
+    severity: string;
+    description: string;
+    status: string;
+    detectedAt: string;
+  }[];
+}
+
+/**
+ * CSV export row structure
+ */
+export interface CsvExportRow {
+  date: string;
+  metric: string;
+  value: number | string;
+  unit: string;
+}

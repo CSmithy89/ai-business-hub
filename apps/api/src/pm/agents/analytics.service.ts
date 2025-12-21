@@ -2337,4 +2337,236 @@ export class AnalyticsService {
     if (changePercent < -0.15) return 'DOWN';
     return 'STABLE';
   }
+
+  // ============================================
+  // PM-08-6: ANALYTICS EXPORT METHODS
+  // ============================================
+
+  /**
+   * Get aggregated trend data for export
+   */
+  async getTrendDataForExport(
+    projectId: string,
+    workspaceId: string,
+    dateRange?: { start: Date; end: Date },
+  ): Promise<{
+    projectId: string;
+    projectName: string;
+    exportedAt: string;
+    dateRange: { start: string; end: string };
+    summary: {
+      averageVelocity: number;
+      totalScope: number;
+      totalCompleted: number;
+      overallCompletionRate: number;
+      healthScore: number;
+    };
+    trends: Array<{
+      date: string;
+      velocity: number | null;
+      scope: number | null;
+      completedPoints: number | null;
+      completionRate: number | null;
+    }>;
+    risks: Array<{
+      id: string;
+      category: string;
+      impact: number;
+      description: string;
+      status: string;
+      detectedAt: string;
+    }>;
+  }> {
+    const end = dateRange?.end || new Date();
+    const start = dateRange?.start || new Date(end.getTime() - 28 * 24 * 60 * 60 * 1000);
+
+    // Get project info
+    const projectData = await this.prisma.project.findUnique({
+      where: { id: projectId, workspaceId },
+      select: { name: true },
+    });
+
+    // Get dashboard data for summary and trends
+    const dashboardData = await this.getDashboardData(projectId, workspaceId, { start, end });
+
+    // Get risk entries
+    const risks = await this.getRiskEntries(projectId, workspaceId);
+
+    // Aggregate trend data points from velocity data points
+    const velocityTrend = dashboardData.trends.velocity;
+    const scopeTrend = dashboardData.trends.scope;
+    const completionTrend = dashboardData.trends.completion;
+
+    // Combine trends into unified time series using velocity data points as timeline
+    const trendPoints: Array<{
+      date: string;
+      velocity: number | null;
+      scope: number | null;
+      completedPoints: number | null;
+      completionRate: number | null;
+    }> = [];
+
+    // Use velocity dataPoints as the primary timeline
+    for (let i = 0; i < velocityTrend.dataPoints.length; i++) {
+      const velocityPoint = velocityTrend.dataPoints[i];
+      const scopePoint = scopeTrend.dataPoints[i];
+      const completionPoint = completionTrend.dataPoints[i];
+
+      trendPoints.push({
+        date: velocityPoint?.period || '',
+        velocity: velocityPoint?.value ?? null,
+        scope: scopePoint?.totalPoints ?? null,
+        completedPoints: scopePoint?.completedPoints ?? null,
+        completionRate: completionPoint?.actual ?? null,
+      });
+    }
+
+    return {
+      projectId,
+      projectName: projectData?.name || 'Unknown Project',
+      exportedAt: new Date().toISOString(),
+      dateRange: {
+        start: start.toISOString().split('T')[0],
+        end: end.toISOString().split('T')[0],
+      },
+      summary: {
+        averageVelocity: velocityTrend.average,
+        totalScope: scopeTrend.current,
+        totalCompleted: scopeTrend.current - (scopeTrend.dataPoints[0]?.remainingPoints ?? 0),
+        overallCompletionRate: dashboardData.overview.completionPercentage,
+        healthScore: dashboardData.overview.healthScore,
+      },
+      trends: trendPoints,
+      risks: risks.map((r) => ({
+        id: r.id,
+        category: r.category,
+        impact: r.impact,
+        description: r.description,
+        status: r.status,
+        detectedAt: r.detectedAt,
+      })),
+    };
+  }
+
+  /**
+   * Export analytics data as CSV
+   */
+  async exportCsv(
+    projectId: string,
+    workspaceId: string,
+    dateRange?: { start: Date; end: Date },
+  ): Promise<string> {
+    const data = await this.getTrendDataForExport(projectId, workspaceId, dateRange);
+
+    const rows: string[] = [];
+
+    // Header
+    rows.push('Date,Metric,Value,Unit');
+
+    // Summary metrics
+    rows.push(`${data.exportedAt.split('T')[0]},Average Velocity,${data.summary.averageVelocity.toFixed(2)},points/week`);
+    rows.push(`${data.exportedAt.split('T')[0]},Total Scope,${data.summary.totalScope},points`);
+    rows.push(`${data.exportedAt.split('T')[0]},Total Completed,${data.summary.totalCompleted},points`);
+    rows.push(`${data.exportedAt.split('T')[0]},Completion Rate,${data.summary.overallCompletionRate.toFixed(1)},%`);
+    rows.push(`${data.exportedAt.split('T')[0]},Health Score,${data.summary.healthScore.toFixed(1)},score`);
+
+    // Empty row separator
+    rows.push('');
+    rows.push('Date,Velocity,Scope,Completed Points,Completion Rate');
+
+    // Trend data
+    for (const point of data.trends) {
+      const completionRate = point.scope && point.completedPoints
+        ? ((point.completedPoints / point.scope) * 100).toFixed(1)
+        : '';
+      rows.push(
+        `${point.date},${point.velocity ?? ''},${point.scope ?? ''},${point.completedPoints ?? ''},${completionRate}`,
+      );
+    }
+
+    // Risks section
+    if (data.risks.length > 0) {
+      rows.push('');
+      rows.push('Risk ID,Category,Impact,Status,Description,Detected At');
+      for (const risk of data.risks) {
+        // Escape description for CSV
+        const escapedDesc = `"${risk.description.replace(/"/g, '""')}"`;
+        rows.push(
+          `${risk.id},${risk.category},${risk.impact},${risk.status},${escapedDesc},${risk.detectedAt.split('T')[0]}`,
+        );
+      }
+    }
+
+    return rows.join('\n');
+  }
+
+  /**
+   * Export analytics data as PDF (returns structured data for PDF generation)
+   * Note: Actual PDF rendering should be handled by a dedicated PDF library
+   */
+  async exportPdfData(
+    projectId: string,
+    workspaceId: string,
+    dateRange?: { start: Date; end: Date },
+  ): Promise<{
+    title: string;
+    subtitle: string;
+    generatedAt: string;
+    sections: Array<{
+      title: string;
+      content: Record<string, unknown>;
+    }>;
+  }> {
+    const data = await this.getTrendDataForExport(projectId, workspaceId, dateRange);
+    const teamMetrics = await this.getTeamPerformanceMetrics(projectId, workspaceId);
+
+    return {
+      title: `Analytics Report: ${data.projectName}`,
+      subtitle: `Period: ${data.dateRange.start} to ${data.dateRange.end}`,
+      generatedAt: data.exportedAt,
+      sections: [
+        {
+          title: 'Executive Summary',
+          content: {
+            healthScore: data.summary.healthScore,
+            velocity: data.summary.averageVelocity,
+            completionRate: data.summary.overallCompletionRate,
+            totalScope: data.summary.totalScope,
+            totalCompleted: data.summary.totalCompleted,
+          },
+        },
+        {
+          title: 'Team Performance',
+          content: {
+            velocity: teamMetrics.velocity.current,
+            velocityTrend: teamMetrics.velocity.trend,
+            cycleTime: teamMetrics.cycleTime.current,
+            throughput: teamMetrics.throughput.current,
+            completionRate: teamMetrics.completionRate.current,
+            capacityUtilization: teamMetrics.capacityUtilization.current,
+            capacityStatus: teamMetrics.capacityUtilization.status,
+          },
+        },
+        {
+          title: 'Active Risks',
+          content: {
+            risks: data.risks.filter((r) => r.status === 'ACTIVE').map((r) => ({
+              category: r.category,
+              impact: r.impact,
+              description: r.description,
+            })),
+          },
+        },
+        {
+          title: 'Trend Analysis',
+          content: {
+            velocityPoints: data.trends.map((t) => t.velocity).filter((v) => v !== null),
+            scopePoints: data.trends.map((t) => t.scope).filter((v) => v !== null),
+            completionPoints: data.trends.map((t) => t.completedPoints).filter((v) => v !== null),
+            labels: data.trends.map((t) => t.date),
+          },
+        },
+      ],
+    };
+  }
 }
