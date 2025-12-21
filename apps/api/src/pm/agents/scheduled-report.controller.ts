@@ -20,6 +20,7 @@ import {
   CreateScheduleDto,
   UpdateScheduleDto,
 } from './scheduled-report.service';
+import { ScheduleIdParamsDto } from './dto/params.dto';
 
 @Controller('pm/agents/reports/schedules')
 @UseGuards(AuthGuard, TenantGuard)
@@ -57,9 +58,9 @@ export class ScheduledReportController {
   @Get(':id')
   async getSchedule(
     @CurrentWorkspace() workspaceId: string,
-    @Param('id') scheduleId: string,
+    @Param() params: ScheduleIdParamsDto,
   ) {
-    return this.scheduledReportService.getSchedule(workspaceId, scheduleId);
+    return this.scheduledReportService.getSchedule(workspaceId, params.id);
   }
 
   /**
@@ -69,12 +70,12 @@ export class ScheduledReportController {
   @Put(':id')
   async updateSchedule(
     @CurrentWorkspace() workspaceId: string,
-    @Param('id') scheduleId: string,
+    @Param() params: ScheduleIdParamsDto,
     @Body() dto: UpdateScheduleDto,
   ) {
     return this.scheduledReportService.updateSchedule(
       workspaceId,
-      scheduleId,
+      params.id,
       dto,
     );
   }
@@ -87,9 +88,9 @@ export class ScheduledReportController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteSchedule(
     @CurrentWorkspace() workspaceId: string,
-    @Param('id') scheduleId: string,
+    @Param() params: ScheduleIdParamsDto,
   ): Promise<void> {
-    await this.scheduledReportService.deleteSchedule(workspaceId, scheduleId);
+    await this.scheduledReportService.deleteSchedule(workspaceId, params.id);
   }
 
   /**
@@ -99,12 +100,12 @@ export class ScheduledReportController {
   @Patch(':id/toggle')
   async toggleSchedule(
     @CurrentWorkspace() workspaceId: string,
-    @Param('id') scheduleId: string,
+    @Param() params: ScheduleIdParamsDto,
     @Body('enabled') enabled: boolean,
   ) {
     return this.scheduledReportService.toggleSchedule(
       workspaceId,
-      scheduleId,
+      params.id,
       enabled,
     );
   }

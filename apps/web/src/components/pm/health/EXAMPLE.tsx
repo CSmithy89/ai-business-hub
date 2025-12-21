@@ -14,7 +14,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { RiskAlertBanner, RiskListPanel, useRiskSubscription } from '@/components/pm/health';
+import { RiskAlertBanner, RiskListPanel, useRiskSubscription, HealthErrorBoundary } from '@/components/pm/health';
 import { useSession } from '@/lib/auth-client';
 import { NESTJS_API_URL } from '@/lib/api-config';
 import { Button } from '@/components/ui/button';
@@ -85,9 +85,11 @@ export function ExampleProjectPage({ projectId }: { projectId: string }) {
 
   return (
     <div className="container mx-auto p-6">
-      {/* Risk Alert Banner - automatically shows for CRITICAL/HIGH risks */}
+      {/* Risk Alert Banner - wrapped with error boundary for graceful error handling */}
       {risks && risks.length > 0 && (
-        <RiskAlertBanner projectId={projectId} risks={risks} />
+        <HealthErrorBoundary>
+          <RiskAlertBanner projectId={projectId} risks={risks} />
+        </HealthErrorBoundary>
       )}
 
       {/* Rest of your project page content */}
@@ -176,9 +178,11 @@ export function ExampleProjectPageWithHook({ projectId }: { projectId: string })
 
   return (
     <div className="container mx-auto p-6">
-      {/* Risk Alert Banner */}
+      {/* Risk Alert Banner - wrapped with error boundary */}
       {risks && risks.length > 0 && (
-        <RiskAlertBanner projectId={projectId} risks={risks} />
+        <HealthErrorBoundary>
+          <RiskAlertBanner projectId={projectId} risks={risks} />
+        </HealthErrorBoundary>
       )}
 
       {/* Project content */}

@@ -3,7 +3,41 @@ import { Cron } from '@nestjs/schedule';
 import pLimit from 'p-limit';
 import { PrismaService } from '../../common/services/prisma.service';
 import { HealthService } from './health.service';
-import { SYSTEM_USERS, CRON_SETTINGS } from './constants';
+import { SYSTEM_USERS, CRON_SETTINGS, RETRY_SETTINGS } from './constants';
+
+/**
+ * Retry a function with exponential backoff
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  logger: Logger,
+  context: string,
+): Promise<T> {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt <= RETRY_SETTINGS.MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      if (attempt < RETRY_SETTINGS.MAX_RETRIES) {
+        const delay = Math.min(
+          RETRY_SETTINGS.BASE_DELAY_MS *
+            Math.pow(RETRY_SETTINGS.BACKOFF_MULTIPLIER, attempt),
+          RETRY_SETTINGS.MAX_DELAY_MS,
+        );
+        logger.warn(
+          `${context}: Attempt ${attempt + 1} failed, retrying in ${delay}ms...`,
+          lastError.message,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError;
+}
 
 @Injectable()
 export class HealthCheckCron {
@@ -60,16 +94,22 @@ export class HealthCheckCron {
         activeProjects.map((project) =>
           limit(async () => {
             try {
-              await this.healthService.runHealthCheck(
-                project.workspaceId,
-                project.id,
-                SYSTEM_USERS.HEALTH_CHECK,
+              // Use retry logic with exponential backoff for transient failures
+              await withRetry(
+                () =>
+                  this.healthService.runHealthCheck(
+                    project.workspaceId,
+                    project.id,
+                    SYSTEM_USERS.HEALTH_CHECK,
+                  ),
+                this.logger,
+                `Health check for project ${project.id}`,
               );
               this.logger.log(`Health check completed for project ${project.id}`);
               return { success: true, projectId: project.id };
             } catch (error) {
               this.logger.error(
-                `Health check failed for project ${project.id}:`,
+                `Health check failed for project ${project.id} after ${RETRY_SETTINGS.MAX_RETRIES + 1} attempts:`,
                 error,
               );
               return { success: false, projectId: project.id, error };

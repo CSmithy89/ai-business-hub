@@ -80,6 +80,18 @@ export const CRON_SETTINGS = {
   REPORT_GENERATION_BATCH_SIZE: 50,
 } as const;
 
+// Retry settings for cron job failure recovery
+export const RETRY_SETTINGS = {
+  /** Maximum retry attempts for failed cron tasks */
+  MAX_RETRIES: 3,
+  /** Base delay between retries in milliseconds */
+  BASE_DELAY_MS: 1000,
+  /** Maximum delay between retries in milliseconds (caps exponential backoff) */
+  MAX_DELAY_MS: 30000,
+  /** Multiplier for exponential backoff */
+  BACKOFF_MULTIPLIER: 2,
+} as const;
+
 // Health check limits
 export const HEALTH_CHECK_LIMITS = {
   /** Maximum tasks to analyze per health check */

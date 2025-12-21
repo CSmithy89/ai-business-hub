@@ -221,3 +221,31 @@ export function MainContentErrorFallback() {
     </div>
   );
 }
+
+/**
+ * Health component error boundary
+ * Shows health-specific error message for risk alerts and health widgets
+ */
+export function HealthErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div
+          role="alert"
+          aria-live="polite"
+          className="flex items-center gap-2 p-3 rounded-lg bg-[rgb(var(--color-bg-secondary))] text-[rgb(var(--color-text-secondary))]"
+        >
+          <span className="material-symbols-rounded text-xl text-[rgb(var(--color-warning))]" aria-hidden="true">
+            warning
+          </span>
+          <span className="text-sm">Unable to load health information</span>
+        </div>
+      }
+      onError={(error) => {
+        console.error('Health component error:', error);
+      }}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}

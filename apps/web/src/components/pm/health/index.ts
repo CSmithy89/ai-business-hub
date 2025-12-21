@@ -10,3 +10,6 @@ export { RiskAlertBanner } from './RiskAlertBanner';
 export { RiskListPanel } from './RiskListPanel';
 export { RiskCard } from './RiskCard';
 export { useRiskSubscription } from './useRiskSubscription';
+
+// Re-export error boundary for health components
+export { HealthErrorBoundary } from '@/components/ui/error-boundary';

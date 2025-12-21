@@ -9,13 +9,16 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ReportType } from '@prisma/client';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CurrentWorkspace } from '../../common/decorators/current-workspace.decorator';
 import { ReportService, GenerateReportDto } from './report.service';
+import { ProjectIdParamsDto, ProjectReportParamsDto } from './dto/params.dto';
 
 @Controller('pm/agents/reports')
-@UseGuards(AuthGuard)
+@UseGuards(ThrottlerGuard, AuthGuard)
+@Throttle({ long: { limit: 30, ttl: 60000 } }) // Default: 30 requests per minute
 export class ReportController {
   constructor(private reportService: ReportService) {}
 
@@ -24,15 +27,16 @@ export class ReportController {
    * POST /pm/agents/reports/:projectId/generate
    */
   @Post(':projectId/generate')
+  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 reports per minute (expensive operation)
   async generateReport(
     @CurrentWorkspace() workspaceId: string,
-    @Param('projectId') projectId: string,
+    @Param() params: ProjectIdParamsDto,
     @CurrentUser('sub') userId: string,
     @Body() dto: GenerateReportDto,
   ) {
     return this.reportService.generateReport(
       workspaceId,
-      projectId,
+      params.projectId,
       userId,
       dto,
     );
@@ -45,13 +49,13 @@ export class ReportController {
   @Get(':projectId')
   async getReportHistory(
     @CurrentWorkspace() workspaceId: string,
-    @Param('projectId') projectId: string,
+    @Param() params: ProjectIdParamsDto,
     @Query('type') type?: ReportType,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ) {
     return this.reportService.getReportHistory(
       workspaceId,
-      projectId,
+      params.projectId,
       type,
       limit ?? 10,
     );
@@ -64,9 +68,8 @@ export class ReportController {
   @Get(':projectId/:reportId')
   async getReport(
     @CurrentWorkspace() workspaceId: string,
-    @Param('projectId') projectId: string,
-    @Param('reportId') reportId: string,
+    @Param() params: ProjectReportParamsDto,
   ) {
-    return this.reportService.getReport(workspaceId, projectId, reportId);
+    return this.reportService.getReport(workspaceId, params.projectId, params.reportId);
   }
 }

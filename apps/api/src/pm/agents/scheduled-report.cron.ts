@@ -3,7 +3,41 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import pLimit from 'p-limit';
 import { ScheduledReportService } from './scheduled-report.service';
 import { ReportService } from './report.service';
-import { SYSTEM_USERS, CRON_SETTINGS } from './constants';
+import { SYSTEM_USERS, CRON_SETTINGS, RETRY_SETTINGS } from './constants';
+
+/**
+ * Retry a function with exponential backoff
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  logger: Logger,
+  context: string,
+): Promise<T> {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt <= RETRY_SETTINGS.MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      if (attempt < RETRY_SETTINGS.MAX_RETRIES) {
+        const delay = Math.min(
+          RETRY_SETTINGS.BASE_DELAY_MS *
+            Math.pow(RETRY_SETTINGS.BACKOFF_MULTIPLIER, attempt),
+          RETRY_SETTINGS.MAX_DELAY_MS,
+        );
+        logger.warn(
+          `${context}: Attempt ${attempt + 1} failed, retrying in ${delay}ms...`,
+          lastError.message,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError;
+}
 
 @Injectable()
 export class ScheduledReportCron {
@@ -50,20 +84,27 @@ export class ScheduledReportCron {
                 `Generating ${schedule.reportType} report for project ${schedule.project.name} (${schedule.projectId})`,
               );
 
-              // Generate report using existing ReportService
-              await this.reportService.generateReport(
-                schedule.workspaceId,
-                schedule.projectId,
-                SYSTEM_USERS.HERALD_AGENT,
-                {
-                  type: schedule.reportType,
-                  stakeholderType: schedule.stakeholderType || undefined,
-                },
-              );
+              // Use retry logic with exponential backoff for transient failures
+              await withRetry(
+                async () => {
+                  // Generate report using existing ReportService
+                  await this.reportService.generateReport(
+                    schedule.workspaceId,
+                    schedule.projectId,
+                    SYSTEM_USERS.HERALD_AGENT,
+                    {
+                      type: schedule.reportType,
+                      stakeholderType: schedule.stakeholderType || undefined,
+                    },
+                  );
 
-              // Update schedule after successful generation
-              await this.scheduledReportService.updateScheduleAfterRun(
-                schedule.id,
+                  // Update schedule after successful generation
+                  await this.scheduledReportService.updateScheduleAfterRun(
+                    schedule.id,
+                  );
+                },
+                this.logger,
+                `Report generation for schedule ${schedule.id}`,
               );
 
               this.logger.log(
@@ -72,7 +113,7 @@ export class ScheduledReportCron {
               return { success: true, scheduleId: schedule.id };
             } catch (error) {
               this.logger.error(
-                `Failed to generate scheduled report for project ${schedule.projectId}:`,
+                `Failed to generate scheduled report for project ${schedule.projectId} after ${RETRY_SETTINGS.MAX_RETRIES + 1} attempts:`,
                 error,
               );
               return { success: false, scheduleId: schedule.id, error };

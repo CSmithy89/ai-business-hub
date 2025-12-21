@@ -17,6 +17,29 @@ export interface ReportContent {
   metrics?: Record<string, any>;
 }
 
+/**
+ * Strips HTML tags from a string to prevent XSS
+ * This is a defense-in-depth measure - frontend should also escape content
+ */
+function stripHtmlTags(str: string): string {
+  if (typeof str !== 'string') return '';
+  return str.replace(/<[^>]*>/g, '');
+}
+
+/**
+ * Sanitizes report content by stripping HTML tags from text fields
+ */
+function sanitizeReportContent(content: ReportContent): ReportContent {
+  return {
+    summary: stripHtmlTags(content.summary),
+    sections: content.sections.map((section) => ({
+      heading: stripHtmlTags(section.heading),
+      content: stripHtmlTags(section.content),
+    })),
+    metrics: content.metrics,
+  };
+}
+
 export interface GenerateReportDto {
   type: ReportType;
   stakeholderType?: StakeholderType;
@@ -128,15 +151,15 @@ export class ReportService {
       }
     }
 
-    // Store report
+    // Store report with sanitized content (defense-in-depth against XSS)
     const report = await this.prisma.report.create({
       data: {
         workspaceId,
         projectId: project.id,
         type: dto.type,
         stakeholderType: dto.stakeholderType || null,
-        title,
-        content: content as any,
+        title: stripHtmlTags(title),
+        content: sanitizeReportContent(content) as any,
         format: dto.format || ReportFormat.MARKDOWN,
         generatedBy: 'herald_agent',
       },

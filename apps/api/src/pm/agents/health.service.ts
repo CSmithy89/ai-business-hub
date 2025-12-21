@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   RiskSeverity,
   RiskStatus,
@@ -11,6 +7,12 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
 import { HEALTH_CHECK_LIMITS } from './constants';
+import {
+  ProjectNotFoundException,
+  RiskNotFoundException,
+  ProjectAccessDeniedException,
+  HealthCheckFailedException,
+} from './exceptions';
 
 export interface HealthScore {
   score: number; // 0-100
@@ -89,8 +91,11 @@ export class HealthService {
         },
       });
 
-      if (!project || project.workspaceId !== workspaceId) {
-        throw new ForbiddenException('Project not found or access denied');
+      if (!project) {
+        throw new ProjectNotFoundException(projectId);
+      }
+      if (project.workspaceId !== workspaceId) {
+        throw new ProjectAccessDeniedException(projectId);
       }
 
       // 2. Get tasks for analysis (with limit for performance)
@@ -212,7 +217,17 @@ export class HealthService {
         `Health check failed for project ${projectId}:`,
         error,
       );
-      throw error;
+      // Re-throw specific exceptions as-is, wrap others
+      if (
+        error instanceof ProjectNotFoundException ||
+        error instanceof ProjectAccessDeniedException
+      ) {
+        throw error;
+      }
+      throw new HealthCheckFailedException(
+        projectId,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
     }
   }
 
@@ -247,12 +262,18 @@ export class HealthService {
         task.estimatedHours &&
         task.status !== 'DONE'
       ) {
-        const current = teamWorkload.get(task.assigneeId) || 0;
-        teamWorkload.set(task.assigneeId, current + task.estimatedHours);
+        // Validate estimatedHours: must be positive and finite
+        const hours = task.estimatedHours;
+        if (typeof hours === 'number' && isFinite(hours) && hours > 0) {
+          const current = teamWorkload.get(task.assigneeId) || 0;
+          teamWorkload.set(task.assigneeId, current + hours);
+        }
       }
     });
 
     const capacityScores = Array.from(teamWorkload.values()).map((hours) => {
+      // Extra safety: validate hours is a valid positive number
+      if (!isFinite(hours) || hours < 0) return 0.8; // Default for invalid data
       if (hours >= 32 && hours <= 40) return 1.0; // Ideal
       if (hours > 40) return Math.max(0, 1 - (hours - 40) / 40); // Overload penalty
       if (hours < 32) return hours / 32; // Underutilization
@@ -296,12 +317,16 @@ export class HealthService {
 
     // Calculate overall score (0-100)
     // Weights sum to 100 (30+25+25+20), factors are 0-1, so result is already 0-100
-    const score = Math.round(
+    const rawScore =
       onTimeDelivery * 30 + // 30% weight
-        blockerImpact * 25 + // 25% weight
-        teamCapacity * 25 + // 25% weight
-        velocityTrend * 20, // 20% weight
-    );
+      blockerImpact * 25 + // 25% weight
+      teamCapacity * 25 + // 25% weight
+      velocityTrend * 20; // 20% weight
+
+    // Clamp score to valid range and handle NaN
+    const score = isFinite(rawScore)
+      ? Math.round(Math.max(0, Math.min(100, rawScore)))
+      : 50; // Default to 50 if calculation fails
 
     // Determine level
     const level: HealthLevel =
@@ -442,8 +467,11 @@ export class HealthService {
       where: { id: projectId },
     });
 
-    if (!project || project.workspaceId !== workspaceId) {
-      throw new ForbiddenException('Project not found or access denied');
+    if (!project) {
+      throw new ProjectNotFoundException(projectId);
+    }
+    if (project.workspaceId !== workspaceId) {
+      throw new ProjectAccessDeniedException(projectId);
     }
 
     return this.prisma.healthScore.findFirst({
@@ -457,8 +485,11 @@ export class HealthService {
       where: { id: projectId },
     });
 
-    if (!project || project.workspaceId !== workspaceId) {
-      throw new ForbiddenException('Project not found or access denied');
+    if (!project) {
+      throw new ProjectNotFoundException(projectId);
+    }
+    if (project.workspaceId !== workspaceId) {
+      throw new ProjectAccessDeniedException(projectId);
     }
 
     return this.prisma.riskEntry.findMany({
@@ -481,8 +512,11 @@ export class HealthService {
       include: { project: true },
     });
 
-    if (!risk || risk.workspaceId !== workspaceId) {
-      throw new ForbiddenException('Risk not found or access denied');
+    if (!risk) {
+      throw new RiskNotFoundException(riskId);
+    }
+    if (risk.workspaceId !== workspaceId) {
+      throw new ProjectAccessDeniedException(risk.projectId);
     }
 
     return this.prisma.riskEntry.update({
@@ -506,13 +540,16 @@ export class HealthService {
       include: { project: true },
     });
 
-    if (!risk || risk.workspaceId !== workspaceId) {
-      throw new ForbiddenException('Risk not found or access denied');
+    if (!risk) {
+      throw new RiskNotFoundException(riskId);
+    }
+    if (risk.workspaceId !== workspaceId) {
+      throw new ProjectAccessDeniedException(projectId);
     }
 
     // Validate risk belongs to the specified project
     if (risk.projectId !== projectId) {
-      throw new ForbiddenException('Risk does not belong to this project');
+      throw new ProjectAccessDeniedException(projectId);
     }
 
     return this.prisma.riskEntry.update({
@@ -535,13 +572,16 @@ export class HealthService {
       include: { project: true },
     });
 
-    if (!risk || risk.workspaceId !== workspaceId) {
-      throw new ForbiddenException('Risk not found or access denied');
+    if (!risk) {
+      throw new RiskNotFoundException(riskId);
+    }
+    if (risk.workspaceId !== workspaceId) {
+      throw new ProjectAccessDeniedException(projectId);
     }
 
     // Validate risk belongs to the specified project
     if (risk.projectId !== projectId) {
-      throw new ForbiddenException('Risk does not belong to this project');
+      throw new ProjectAccessDeniedException(projectId);
     }
 
     return this.prisma.riskEntry.update({
@@ -560,8 +600,11 @@ export class HealthService {
       where: { id: projectId },
     });
 
-    if (!project || project.workspaceId !== workspaceId) {
-      throw new ForbiddenException('Project not found or access denied');
+    if (!project) {
+      throw new ProjectNotFoundException(projectId);
+    }
+    if (project.workspaceId !== workspaceId) {
+      throw new ProjectAccessDeniedException(projectId);
     }
 
     // Get all tasks for the project with workspace filter
@@ -621,8 +664,11 @@ export class HealthService {
       where: { id: projectId },
     });
 
-    if (!project || project.workspaceId !== workspaceId) {
-      throw new ForbiddenException('Project not found or access denied');
+    if (!project) {
+      throw new ProjectNotFoundException(projectId);
+    }
+    if (project.workspaceId !== workspaceId) {
+      throw new ProjectAccessDeniedException(projectId);
     }
 
     const tasks = await this.prisma.task.findMany({
@@ -680,8 +726,11 @@ export class HealthService {
       where: { id: projectId },
     });
 
-    if (!project || project.workspaceId !== workspaceId) {
-      throw new ForbiddenException('Project not found or access denied');
+    if (!project) {
+      throw new ProjectNotFoundException(projectId);
+    }
+    if (project.workspaceId !== workspaceId) {
+      throw new ProjectAccessDeniedException(projectId);
     }
 
     const now = new Date();
