@@ -85,6 +85,22 @@ A significant portion of the retrospective focused on the learnings from **PR #3
 **Issue:** The success toast "Export started" appeared *after* the download had already begun, which was confusing. Also, generic error messages hid server-side failures.
 **Fix:** Updated toast to "Export completed" and implemented JSON error parsing to show specific failure reasons (e.g., "Invalid date range") to the user.
 
+## Post-Retro Code Review Findings
+
+A subsequent AI code review identified reliability concerns in `apps/api/src/pm/imports/imports.service.ts` that need to be addressed:
+
+### 1. Inconsistent Error Handling
+**Issue:** Unlike CSV imports, task creation in external imports (Jira/Asana/Trello) is not wrapped in `try/catch`.
+**Risk:** If `tasksService.create()` throws (e.g., validation error), the entire import job fails and remaining items are skipped.
+**Mitigation:** Wrap processing of each item in a try/catch block to allow graceful degradation (skip invalid items, continue job).
+
+### 2. Lack of Transaction Safety
+**Issue:** Tasks and their ExternalLinks are created in separate operations.
+**Risk:** If link creation fails after task creation, tasks become "orphaned" without their external reference.
+**Mitigation:** Wrap `tasksService.create` and `externalLink.create` in `prisma.$transaction`.
+
+**Action:** Added to backlog for immediate remediation.
+
 ---
 
 ## What Went Well
@@ -126,6 +142,11 @@ During load testing of the Jira import, we hit API rate limits.
     *   **Owner:** Amelia (Lead Developer)
     *   **Action:** Replace EmailService stub with SendGrid/Resend implementation.
     *   **Priority:** High (Blocking PM-06 digests and PM-07 import summaries)
+
+3.  **Import Service Hardening**
+    *   **Owner:** Amelia (Lead Developer)
+    *   **Action:** Implement try/catch blocks and transactions for Jira/Asana/Trello imports to prevent job crashes and orphaned data.
+    *   **Priority:** High (Reliability)
 
 ### Process Improvements
 
