@@ -118,10 +118,13 @@ export function usePhaseTransition(phaseId: string, projectId: string, enabled: 
 
       return response.json()
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success(`Phase "${analysis?.phaseName}" completed!`)
-      queryClient.invalidateQueries({ queryKey: ['phases', projectId] })
-      queryClient.invalidateQueries({ queryKey: ['phase-analysis', phaseId] })
+      // Await invalidation to prevent race condition with navigation
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['phases', projectId] }),
+        queryClient.invalidateQueries({ queryKey: ['phase-analysis', phaseId] }),
+      ])
     },
     onError: (err) => {
       toast.error('Failed to complete phase', {

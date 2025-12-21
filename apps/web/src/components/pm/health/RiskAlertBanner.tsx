@@ -17,8 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { RiskListPanel } from './RiskListPanel';
-
-type RiskSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+import { type RiskSeverity, getSeverityConfig } from './constants';
 
 interface RiskAlertBannerProps {
   projectId: string;
@@ -28,21 +27,6 @@ interface RiskAlertBannerProps {
     title: string;
   }>;
 }
-
-const severityConfig = {
-  CRITICAL: {
-    bg: 'bg-red-50 border-red-200',
-    text: 'text-red-900',
-    badge: 'bg-red-600 text-white',
-    icon: 'text-red-600',
-  },
-  HIGH: {
-    bg: 'bg-orange-50 border-orange-200',
-    text: 'text-orange-900',
-    badge: 'bg-orange-600 text-white',
-    icon: 'text-orange-600',
-  },
-} as const;
 
 /**
  * Risk Alert Banner Component
@@ -71,9 +55,7 @@ export function RiskAlertBanner({ projectId, risks }: RiskAlertBannerProps) {
   }
 
   const primaryRisk = criticalRisks[0];
-  const config =
-    severityConfig[primaryRisk.severity as 'CRITICAL' | 'HIGH'] ||
-    severityConfig.HIGH;
+  const config = getSeverityConfig(primaryRisk.severity);
 
   return (
     <>

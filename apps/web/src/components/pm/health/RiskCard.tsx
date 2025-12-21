@@ -30,6 +30,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isValid } from 'date-fns';
+import {
+  type RiskSeverity,
+  type RiskStatus,
+  getSeverityConfig,
+  riskTypeLabels,
+} from './constants';
 
 /**
  * Safely formats a date string with error handling.
@@ -49,9 +55,6 @@ function formatDateSafe(
     return fallback;
   }
 }
-
-type RiskSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-type RiskStatus = 'IDENTIFIED' | 'ANALYZING' | 'RESOLVED' | 'MITIGATED';
 
 interface RiskCardProps {
   risk: {
@@ -74,37 +77,6 @@ interface RiskCardProps {
   readOnly?: boolean;
 }
 
-const severityConfig = {
-  CRITICAL: {
-    bg: 'bg-red-50 border-red-200',
-    badge: 'bg-red-600 text-white',
-    icon: 'text-red-600',
-  },
-  HIGH: {
-    bg: 'bg-orange-50 border-orange-200',
-    badge: 'bg-orange-600 text-white',
-    icon: 'text-orange-600',
-  },
-  MEDIUM: {
-    bg: 'bg-yellow-50 border-yellow-200',
-    badge: 'bg-yellow-600 text-white',
-    icon: 'text-yellow-600',
-  },
-  LOW: {
-    bg: 'bg-blue-50 border-blue-200',
-    badge: 'bg-blue-600 text-white',
-    icon: 'text-blue-600',
-  },
-} as const;
-
-const riskTypeLabels: Record<string, string> = {
-  DEADLINE_WARNING: 'Deadline Warning',
-  BLOCKER_CHAIN: 'Blocker Chain',
-  CAPACITY_OVERLOAD: 'Capacity Overload',
-  VELOCITY_DROP: 'Velocity Drop',
-  SCOPE_CREEP: 'Scope Creep',
-};
-
 /**
  * Risk Card Component
  *
@@ -126,7 +98,7 @@ export function RiskCard({
 }: RiskCardProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const config = severityConfig[risk.severity] || severityConfig.MEDIUM;
+  const config = getSeverityConfig(risk.severity);
 
   return (
     <Card className={cn(config.bg, readOnly && 'opacity-60')}>

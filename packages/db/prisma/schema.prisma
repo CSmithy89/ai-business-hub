@@ -1042,6 +1042,8 @@ model Project {
   @@index([businessId])
   @@index([status])
   @@index([deletedAt])
+  @@index([status, lastHealthCheck]) // Health dashboard: projects needing checks
+  @@index([healthScore]) // Health dashboard: sort by score
   @@map("projects")
 }
 
