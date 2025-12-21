@@ -132,6 +132,7 @@ model Workspace {
   businesses  Business[]
   modules     WorkspaceModule[]
   mcpServers  MCPServerConfig[]
+  importJobs  ImportJob[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -1061,6 +1062,7 @@ model Project {
   pages           ProjectPage[]
   risks           RiskEntry[]
   reportSchedules ReportSchedule[]
+  importJobs      ImportJob[]
 
   @@unique([workspaceId, slug])
   @@index([workspaceId])
@@ -1356,6 +1358,49 @@ model TaskLabel {
   @@map("task_labels")
 }
 
+/// ImportJob - Tracks CSV/PM tool imports into projects
+model ImportJob {
+  id          String       @id @default(cuid())
+  workspaceId String       @map("workspace_id")
+  projectId   String       @map("project_id")
+  source      ImportSource
+  status      ImportStatus @default(QUEUED)
+
+  totalRows     Int @default(0) @map("total_rows")
+  processedRows Int @default(0) @map("processed_rows")
+  errorCount    Int @default(0) @map("error_count")
+  mappingConfig Json? @map("mapping_config")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  errors    ImportError[]
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([status])
+  @@map("import_jobs")
+}
+
+/// ImportError - Row-level errors for imports
+model ImportError {
+  id          String @id @default(cuid())
+  importJobId String @map("import_job_id")
+  rowNumber   Int    @map("row_number")
+  field       String?
+  message     String
+  rawRow      Json?  @map("raw_row")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  importJob ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+
+  @@index([importJobId])
+  @@map("import_errors")
+}
+
 /// SavedView - Saved filter/view configurations
 model SavedView {
   id        String @id @default(cuid())
@@ -1583,6 +1628,20 @@ enum TaskStatus {
   AWAITING_APPROVAL
   DONE
   CANCELLED
+}
+
+enum ImportSource {
+  CSV
+  JIRA
+  ASANA
+  TRELLO
+}
+
+enum ImportStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
 }
 
 enum AssignmentType {

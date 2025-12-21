@@ -1,0 +1,428 @@
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { ImportSource, ImportStatus, TaskPriority, TaskStatus, TaskType } from '@prisma/client'
+import { parseCsv } from '@hyvve/shared'
+import { PrismaService } from '../../common/services/prisma.service'
+import { TasksService } from '../tasks/tasks.service'
+import { StartCsvImportDto } from './dto/start-csv-import.dto'
+import type { CreateTaskDto } from '../tasks/dto/create-task.dto'
+
+const CSV_FIELDS = [
+  'title',
+  'description',
+  'status',
+  'priority',
+  'type',
+  'dueDate',
+  'assigneeEmail',
+  'phaseName',
+  'phaseId',
+] as const
+
+type CsvField = (typeof CSV_FIELDS)[number]
+
+type RowError = {
+  rowNumber: number
+  field?: string
+  message: string
+  rawRow?: Record<string, string | null>
+}
+
+@Injectable()
+export class ImportsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tasksService: TasksService,
+  ) {}
+
+  async startCsvImport(workspaceId: string, actorId: string, dto: StartCsvImportDto) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: dto.projectId, workspaceId, deletedAt: null },
+      select: {
+        id: true,
+        phases: { select: { id: true, name: true, status: true } },
+      },
+    })
+
+    if (!project) throw new NotFoundException('Project not found')
+
+    const defaultPhaseId = this.resolveDefaultPhaseId(project.phases, dto.phaseId)
+    if (!defaultPhaseId) {
+      throw new BadRequestException('No valid phase found for import')
+    }
+
+    const parsed = parseCsv(dto.csvText)
+    if (parsed.length < 2) {
+      throw new BadRequestException('CSV must include a header row and at least one data row')
+    }
+
+    const [rawHeaderRow, ...rows] = parsed
+    const headerRow = rawHeaderRow.map((header, index) =>
+      index === 0 ? stripBom(header) : header
+    )
+
+    const headerIndex = buildHeaderIndex(headerRow)
+    const mapping = normalizeMapping(dto.mapping)
+
+    validateMapping(mapping, headerIndex)
+
+    const job = await this.prisma.importJob.create({
+      data: {
+        workspaceId,
+        projectId: dto.projectId,
+        source: ImportSource.CSV,
+        status: ImportStatus.RUNNING,
+        totalRows: rows.length,
+        mappingConfig: {
+          mapping,
+          defaultPhaseId,
+        },
+      },
+      select: { id: true },
+    })
+
+    const errors: RowError[] = []
+    let processedRows = 0
+    let errorsPersisted = false
+
+    const persistErrors = async () => {
+      if (errorsPersisted || errors.length === 0) return
+      await this.prisma.importError.createMany({
+        data: errors.map((err) => ({
+          importJobId: job.id,
+          rowNumber: err.rowNumber,
+          field: err.field,
+          message: err.message,
+          rawRow: err.rawRow,
+        })),
+      })
+      errorsPersisted = true
+    }
+
+    try {
+      for (let index = 0; index < rows.length; index += 1) {
+        const row = rows[index]
+        const rowNumber = index + 2
+        const rowContext = buildRowContext(headerRow, row)
+        const rowErrors: RowError[] = []
+
+        const title = getMappedValue(row, headerIndex, mapping, 'title')
+        if (!title) {
+          rowErrors.push({ rowNumber, field: 'title', message: 'Title is required', rawRow: rowContext })
+        }
+
+        const description = getMappedValue(row, headerIndex, mapping, 'description')
+        const statusValue = getMappedValue(row, headerIndex, mapping, 'status')
+        const priorityValue = getMappedValue(row, headerIndex, mapping, 'priority')
+        const typeValue = getMappedValue(row, headerIndex, mapping, 'type')
+        const dueDateValue = getMappedValue(row, headerIndex, mapping, 'dueDate')
+        const assigneeEmail = getMappedValue(row, headerIndex, mapping, 'assigneeEmail')
+        const phaseName = getMappedValue(row, headerIndex, mapping, 'phaseName')
+        const phaseIdValue = getMappedValue(row, headerIndex, mapping, 'phaseId')
+
+        const status = mapEnumValue(TaskStatus, statusValue, 'status', rowErrors, rowNumber, rowContext)
+        const priority = mapEnumValue(TaskPriority, priorityValue, 'priority', rowErrors, rowNumber, rowContext)
+        const type = mapEnumValue(TaskType, typeValue, 'type', rowErrors, rowNumber, rowContext)
+
+        const dueDate = parseOptionalDate(dueDateValue, rowErrors, rowNumber, rowContext)
+
+        const phaseId = resolvePhaseId({
+          phaseIdValue,
+          phaseName,
+          phases: project.phases,
+          defaultPhaseId,
+          rowNumber,
+          rowContext,
+          errors: rowErrors,
+        })
+
+        const assigneeId = await resolveAssigneeId({
+          prisma: this.prisma,
+          workspaceId,
+          email: assigneeEmail,
+          rowNumber,
+          rowContext,
+          errors: rowErrors,
+        })
+
+        if (rowErrors.length > 0) {
+          errors.push(...rowErrors)
+          if (!dto.skipInvalidRows) {
+            throw new BadRequestException({
+              message: 'CSV validation failed',
+              errors: rowErrors,
+            })
+          }
+          processedRows += 1
+          continue
+        }
+
+        const taskInput: CreateTaskDto = {
+          projectId: dto.projectId,
+          phaseId,
+          title: title ?? '',
+          description: description || undefined,
+          status: status ?? undefined,
+          priority: priority ?? undefined,
+          type: type ?? undefined,
+          dueDate: dueDate ?? undefined,
+          assigneeId: assigneeId ?? undefined,
+        }
+
+        try {
+          await this.tasksService.create(workspaceId, actorId, taskInput)
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to create task'
+          errors.push({ rowNumber, message, rawRow: rowContext })
+        }
+
+        processedRows += 1
+      }
+    } catch (error) {
+      await persistErrors()
+      await this.prisma.importJob.update({
+        where: { id: job.id },
+        data: {
+          status: ImportStatus.FAILED,
+          processedRows,
+          errorCount: errors.length,
+        },
+      })
+      throw error
+    }
+
+    await persistErrors()
+
+    const updated = await this.prisma.importJob.update({
+      where: { id: job.id },
+      data: {
+        status: ImportStatus.COMPLETED,
+        processedRows,
+        errorCount: errors.length,
+      },
+      select: {
+        id: true,
+        status: true,
+        totalRows: true,
+        processedRows: true,
+        errorCount: true,
+        createdAt: true,
+      },
+    })
+
+    return { data: updated }
+  }
+
+  async getImportStatus(workspaceId: string, importJobId: string) {
+    const job = await this.prisma.importJob.findFirst({
+      where: { id: importJobId, workspaceId },
+      select: {
+        id: true,
+        status: true,
+        totalRows: true,
+        processedRows: true,
+        errorCount: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+
+    if (!job) throw new NotFoundException('Import job not found')
+
+    return { data: job }
+  }
+
+  async getImportErrors(workspaceId: string, importJobId: string) {
+    const job = await this.prisma.importJob.findFirst({
+      where: { id: importJobId, workspaceId },
+      select: { id: true },
+    })
+
+    if (!job) throw new NotFoundException('Import job not found')
+
+    const errors = await this.prisma.importError.findMany({
+      where: { importJobId },
+      orderBy: { rowNumber: 'asc' },
+    })
+
+    return { data: errors }
+  }
+
+  private resolveDefaultPhaseId(phases: Array<{ id: string; status: string }>, fallback?: string) {
+    if (fallback && phases.some((phase) => phase.id === fallback)) return fallback
+    const current = phases.find((phase) => phase.status === 'CURRENT')
+    return current?.id ?? phases[0]?.id
+  }
+}
+
+function stripBom(value: string): string {
+  return value.replace(/^\uFEFF/, '')
+}
+
+function buildHeaderIndex(headers: string[]): Map<string, number> {
+  const map = new Map<string, number>()
+  headers.forEach((header, index) => {
+    map.set(normalizeHeader(header), index)
+  })
+  return map
+}
+
+function normalizeHeader(header: string): string {
+  return header.trim().toLowerCase()
+}
+
+function normalizeMapping(mapping: Record<string, string>): Record<CsvField, string> {
+  const normalized: Record<CsvField, string> = {} as Record<CsvField, string>
+  CSV_FIELDS.forEach((field) => {
+    const value = mapping[field] ?? ''
+    normalized[field] = value
+  })
+  return normalized
+}
+
+function validateMapping(mapping: Record<CsvField, string>, headerIndex: Map<string, number>) {
+  if (!mapping.title) {
+    throw new BadRequestException('CSV mapping must include a title column')
+  }
+
+  CSV_FIELDS.forEach((field) => {
+    const mappedHeader = mapping[field]
+    if (!mappedHeader) return
+    const normalized = normalizeHeader(mappedHeader)
+    if (!headerIndex.has(normalized)) {
+      throw new BadRequestException(`CSV mapping references unknown header: ${mappedHeader}`)
+    }
+  })
+}
+
+function getMappedValue(
+  row: string[],
+  headerIndex: Map<string, number>,
+  mapping: Record<CsvField, string>,
+  field: CsvField,
+): string | null {
+  const headerName = mapping[field]
+  if (!headerName) return null
+  const index = headerIndex.get(normalizeHeader(headerName))
+  if (index === undefined) return null
+  return row[index] ?? null
+}
+
+function mapEnumValue<T extends string>(
+  enumValues: Record<string, T>,
+  rawValue: string | null,
+  field: string,
+  errors: RowError[],
+  rowNumber: number,
+  rowContext: Record<string, string | null>,
+): T | null {
+  if (!rawValue) return null
+  const normalized = rawValue.trim().toUpperCase().replace(/\s+/g, '_').replace(/-/g, '_')
+  const allowed = Object.values(enumValues)
+  const match = allowed.find((value) => value === normalized)
+  if (!match) {
+    errors.push({
+      rowNumber,
+      field,
+      message: `Invalid ${field} value: ${rawValue}`,
+      rawRow: rowContext,
+    })
+    return null
+  }
+  return match
+}
+
+function parseOptionalDate(
+  value: string | null,
+  errors: RowError[],
+  rowNumber: number,
+  rowContext: Record<string, string | null>,
+): Date | null {
+  if (!value) return null
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    errors.push({
+      rowNumber,
+      field: 'dueDate',
+      message: `Invalid due date: ${value}`,
+      rawRow: rowContext,
+    })
+    return null
+  }
+  return parsed
+}
+
+function resolvePhaseId(params: {
+  phaseIdValue: string | null
+  phaseName: string | null
+  phases: Array<{ id: string; name: string }>
+  defaultPhaseId: string
+  rowNumber: number
+  rowContext: Record<string, string | null>
+  errors: RowError[]
+}): string {
+  if (params.phaseIdValue) {
+    const match = params.phases.find((phase) => phase.id === params.phaseIdValue)
+    if (match) return match.id
+    params.errors.push({
+      rowNumber: params.rowNumber,
+      field: 'phaseId',
+      message: `Unknown phase ID: ${params.phaseIdValue}`,
+      rawRow: params.rowContext,
+    })
+    return params.defaultPhaseId
+  }
+
+  if (params.phaseName) {
+    const normalized = params.phaseName.trim().toLowerCase()
+    const match = params.phases.find((phase) => phase.name.trim().toLowerCase() === normalized)
+    if (match) return match.id
+    params.errors.push({
+      rowNumber: params.rowNumber,
+      field: 'phaseName',
+      message: `Unknown phase name: ${params.phaseName}`,
+      rawRow: params.rowContext,
+    })
+    return params.defaultPhaseId
+  }
+
+  return params.defaultPhaseId
+}
+
+async function resolveAssigneeId(params: {
+  prisma: PrismaService
+  workspaceId: string
+  email: string | null
+  rowNumber: number
+  rowContext: Record<string, string | null>
+  errors: RowError[]
+}): Promise<string | null> {
+  if (!params.email) return null
+
+  const member = await params.prisma.workspaceMember.findFirst({
+    where: {
+      workspaceId: params.workspaceId,
+      user: { email: { equals: params.email.trim(), mode: 'insensitive' } },
+    },
+    select: { userId: true },
+  })
+
+  if (!member) {
+    params.errors.push({
+      rowNumber: params.rowNumber,
+      field: 'assigneeEmail',
+      message: `Assignee not found: ${params.email}`,
+      rawRow: params.rowContext,
+    })
+    return null
+  }
+
+  return member.userId
+}
+
+function buildRowContext(headers: string[], row: string[]): Record<string, string | null> {
+  const context: Record<string, string | null> = {}
+  headers.forEach((header, index) => {
+    context[header] = row[index] ?? null
+  })
+  return context
+}

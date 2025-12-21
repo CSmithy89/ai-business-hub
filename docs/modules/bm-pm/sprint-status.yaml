@@ -203,7 +203,7 @@ development_status:
   # FRs: FR-8.1, FR-8.3, FR-8.4
   # ===========================================
   pm-07: contexted
-  pm-07-1-csv-import-wizard: backlog
+  pm-07-1-csv-import-wizard: done
   pm-07-2-csv-export: backlog
   pm-07-3-github-issues-sync: backlog
   pm-07-4-github-pr-linking: backlog

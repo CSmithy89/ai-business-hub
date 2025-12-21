@@ -45,6 +45,9 @@ export * from './permissions';
 // Module permission overrides
 export * from './module-permissions';
 
+// CSV utilities (safe for client and server)
+export * from './utils/csv';
+
 // NOTE: Encryption utilities are NOT exported from the main entry point
 // because they use node:crypto which breaks client-side bundling.
 // Import from '@hyvve/shared/server' for server-side utilities.

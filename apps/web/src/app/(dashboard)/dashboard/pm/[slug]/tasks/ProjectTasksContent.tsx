@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
-import { BookmarkPlus, CalendarDays, ChevronRight, KanbanSquare, LayoutList, Search } from 'lucide-react'
+import { BookmarkPlus, CalendarDays, ChevronRight, KanbanSquare, LayoutList, Search, Upload } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,6 +30,7 @@ import { SaveViewModal } from '@/components/pm/saved-views/SaveViewModal'
 import { FilterBar } from '@/components/pm/filters/FilterBar'
 import { ErrorBoundary } from '@/components/error-boundary'
 import type { FilterState } from '@/lib/pm/url-state'
+import { CsvImportWizard } from '@/components/pm/imports/CsvImportWizard'
 
 function formatDate(value: string | null): string {
   if (!value) return '—'
@@ -139,6 +140,7 @@ export function ProjectTasksContent() {
     }
     return 'status'
   })
+  const [importWizardOpen, setImportWizardOpen] = useState(false)
 
   // Apply default view on mount
   useEffect(() => {
@@ -355,6 +357,10 @@ export function ProjectTasksContent() {
               Save View
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={() => setImportWizardOpen(true)} className="gap-2">
+            <Upload className="h-4 w-4" />
+            Import CSV
+          </Button>
 
           {/* View Mode Toggles */}
           <Button
@@ -495,6 +501,13 @@ export function ProjectTasksContent() {
         onOpenChange={(open) => {
           if (!open) closeTask(router, pathname, new URLSearchParams(searchParams.toString()))
         }}
+      />
+
+      <CsvImportWizard
+        open={importWizardOpen}
+        onOpenChange={setImportWizardOpen}
+        projectId={project.id}
+        phases={project.phases ?? []}
       />
 
       {/* Save View Modal */}

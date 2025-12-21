@@ -6,6 +6,7 @@ import { PhasesModule } from './phases/phases.module'
 import { TeamModule } from './team/team.module'
 import { ExpensesModule } from './expenses/expenses.module'
 import { TasksModule } from './tasks/tasks.module'
+import { ImportsModule } from './imports/imports.module'
 import { AgentsModule } from './agents/agents.module'
 import { SavedViewsModule } from './saved-views/saved-views.module'
 import { PresenceModule } from './presence/presence.module'
@@ -20,6 +21,7 @@ import { NotificationsModule } from './notifications/notifications.module'
     TeamModule,
     ExpensesModule,
     TasksModule,
+    ImportsModule,
     AgentsModule,
     SavedViewsModule,
     PresenceModule,
