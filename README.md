@@ -305,6 +305,8 @@ For ongoing operations:
 - Sprint tracking: `docs/modules/bm-pm/sprint-status.yaml`
 - KB-01: Knowledge Base Foundation ✅ Complete
 - KB-02: KB Real-Time & RAG ✅ Complete (collab editing + embeddings + semantic search + RAG)
+- KB-03: KB Verification & Scribe ✅ Complete (verified content + review workflows)
+- KB-04: AI-Native Knowledge Base ✅ Complete (AI drafts + summarization + Q&A + gap detection + templates)
 
 ### Latest Epic: Premium Polish & Advanced Features (EPIC-16)
 
@@ -348,15 +350,17 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 | EPIC-PM-06 | Real-Time & Notifications | 6/6 | ✅ Complete |
 | EPIC-KB-01 | Knowledge Base Foundation | 10/10 | ✅ Complete |
 | EPIC-KB-02 | KB Real-Time & RAG | 8/8 | ✅ Complete |
+| EPIC-KB-03 | KB Verification & Scribe | 7/7 | ✅ Complete |
+| EPIC-KB-04 | AI-Native Knowledge Base | 6/6 | ✅ Complete |
 
-**Latest Core-PM Epic: Real-Time & Notifications (EPIC-PM-06)**
-- WebSocket task events for real-time CRUD broadcasting
-- Redis-based presence indicators with user avatars
-- Real-time Kanban with Framer Motion animations and conflict detection
-- Notification preferences with per-type toggles, quiet hours, and timezone support
-- In-app notification center with infinite scroll and date grouping
-- Email digest scheduling with BullMQ and unsubscribe flow
-- Docs: `docs/modules/bm-pm/epics/epic-pm-06-tech-spec.md`, `docs/modules/bm-pm/stories/pm-06-*.md`
+**Latest Core-PM Epic: AI-Native Knowledge Base (EPIC-KB-04)**
+- AI-generated page drafts from PM tasks with approval routing
+- Smart summarization for KB pages
+- Q&A chat interface for instant KB answers
+- Knowledge extraction from completed tasks
+- Gap detection dashboard for missing topics
+- Reusable KB templates for faster authoring
+- Docs: `docs/modules/bm-pm/epics/epic-kb-04-ai-native-knowledge-base.md`, `docs/modules/bm-pm/stories/kb-04-*.md`
 
 ---
 
