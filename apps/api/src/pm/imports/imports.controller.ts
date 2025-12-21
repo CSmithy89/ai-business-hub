@@ -8,6 +8,7 @@ import { RolesGuard } from '../../common/guards/roles.guard'
 import { TenantGuard } from '../../common/guards/tenant.guard'
 import { ImportsService } from './imports.service'
 import { StartCsvImportDto } from './dto/start-csv-import.dto'
+import { StartJiraImportDto } from './dto/start-jira-import.dto'
 
 @ApiTags('PM Imports')
 @Controller('pm/imports')
@@ -26,6 +27,18 @@ export class ImportsController {
     @Body() dto: StartCsvImportDto,
   ) {
     return this.importsService.startCsvImport(workspaceId, actor.id, dto)
+  }
+
+  @Post('jira/start')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Start a Jira import' })
+  @ApiResponse({ status: 201, description: 'Jira import job created' })
+  async startJiraImport(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser() actor: any,
+    @Body() dto: StartJiraImportDto,
+  ) {
+    return this.importsService.startJiraImport(workspaceId, actor.id, dto)
   }
 
   @Get(':id/status')

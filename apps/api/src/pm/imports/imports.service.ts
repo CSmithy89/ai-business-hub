@@ -1,9 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
-import { ImportSource, ImportStatus, TaskPriority, TaskStatus, TaskType } from '@prisma/client'
+import { ExternalLinkType, ImportSource, ImportStatus, IntegrationProvider, TaskPriority, TaskStatus, TaskType } from '@prisma/client'
 import { parseCsv } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
 import { TasksService } from '../tasks/tasks.service'
 import { StartCsvImportDto } from './dto/start-csv-import.dto'
+import { StartJiraImportDto } from './dto/start-jira-import.dto'
 import type { CreateTaskDto } from '../tasks/dto/create-task.dto'
 
 const CSV_FIELDS = [
@@ -197,6 +198,130 @@ export class ImportsService {
       data: {
         status: ImportStatus.COMPLETED,
         processedRows,
+        errorCount: errors.length,
+      },
+      select: {
+        id: true,
+        status: true,
+        totalRows: true,
+        processedRows: true,
+        errorCount: true,
+        createdAt: true,
+      },
+    })
+
+    return { data: updated }
+  }
+
+  async startJiraImport(workspaceId: string, actorId: string, dto: StartJiraImportDto) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: dto.projectId, workspaceId, deletedAt: null },
+      select: {
+        id: true,
+        phases: { select: { id: true, status: true } },
+      },
+    })
+
+    if (!project) throw new NotFoundException('Project not found')
+
+    const defaultPhaseId = this.resolveDefaultPhaseId(project.phases, undefined)
+    if (!defaultPhaseId) {
+      throw new BadRequestException('No valid phase found for import')
+    }
+
+    const job = await this.prisma.importJob.create({
+      data: {
+        workspaceId,
+        projectId: dto.projectId,
+        source: ImportSource.JIRA,
+        status: ImportStatus.RUNNING,
+      },
+      select: { id: true },
+    })
+
+    const jiraBaseUrl = dto.baseUrl.replace(/\/$/, '')
+    const issues = await fetchJiraIssues({ ...dto, baseUrl: jiraBaseUrl })
+    const errors: RowError[] = []
+    let processedRows = 0
+    let errorsPersisted = false
+
+    const persistErrors = async () => {
+      if (errorsPersisted || errors.length === 0) return
+      await this.prisma.importError.createMany({
+        data: errors.map((err) => ({
+          importJobId: job.id,
+          rowNumber: err.rowNumber,
+          field: err.field,
+          message: err.message,
+          rawRow: err.rawRow,
+        })),
+      })
+      errorsPersisted = true
+    }
+
+    try {
+      for (let index = 0; index < issues.length; index += 1) {
+        const issue = issues[index]
+        const rowNumber = index + 1
+        const summary = issue.fields.summary?.trim()
+        if (!summary) {
+          errors.push({ rowNumber, field: 'summary', message: 'Missing summary' })
+          processedRows += 1
+          continue
+        }
+
+        const status = mapJiraStatus(issue)
+        const description = buildJiraDescription(issue, jiraBaseUrl)
+
+        const task = await this.tasksService.create(workspaceId, actorId, {
+          projectId: dto.projectId,
+          phaseId: defaultPhaseId,
+          title: summary,
+          description,
+          status,
+          priority: TaskPriority.MEDIUM,
+          type: TaskType.TASK,
+        })
+
+        await this.prisma.externalLink.create({
+          data: {
+            workspaceId,
+            taskId: task.data.id,
+            provider: IntegrationProvider.JIRA,
+            linkType: ExternalLinkType.TICKET,
+            externalId: issue.key,
+            externalUrl: `${jiraBaseUrl}/browse/${issue.key}`,
+            metadata: {
+              status: issue.fields.status?.name,
+              issueType: issue.fields.issuetype?.name,
+            },
+          },
+        })
+
+        processedRows += 1
+      }
+    } catch (error) {
+      await persistErrors()
+      await this.prisma.importJob.update({
+        where: { id: job.id },
+        data: {
+          status: ImportStatus.FAILED,
+          processedRows,
+          errorCount: errors.length,
+          totalRows: issues.length,
+        },
+      })
+      throw error
+    }
+
+    await persistErrors()
+
+    const updated = await this.prisma.importJob.update({
+      where: { id: job.id },
+      data: {
+        status: ImportStatus.COMPLETED,
+        processedRows,
+        totalRows: issues.length,
         errorCount: errors.length,
       },
       select: {
@@ -425,4 +550,55 @@ function buildRowContext(headers: string[], row: string[]): Record<string, strin
     context[header] = row[index] ?? null
   })
   return context
+}
+
+async function fetchJiraIssues(dto: StartJiraImportDto) {
+  const jql = dto.jql?.trim() || 'ORDER BY created DESC'
+  const maxResults = dto.maxResults ?? 50
+  const auth = Buffer.from(`${dto.email}:${dto.apiToken}`).toString('base64')
+
+  const response = await fetch(
+    `${dto.baseUrl}/rest/api/3/search?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}`,
+    {
+      headers: {
+        Authorization: `Basic ${auth}`,
+        Accept: 'application/json',
+      },
+    },
+  )
+
+  if (!response.ok) {
+    throw new BadRequestException('Failed to fetch Jira issues')
+  }
+
+  const data = (await response.json()) as {
+    issues: Array<{
+      key: string
+      fields: {
+        summary?: string
+        description?: { content?: unknown } | string | null
+        status?: { name?: string; statusCategory?: { key?: string } }
+        issuetype?: { name?: string }
+      }
+    }>
+  }
+
+  return data.issues ?? []
+}
+
+function mapJiraStatus(issue: { fields: { status?: { statusCategory?: { key?: string } } } }): TaskStatus {
+  const key = issue.fields.status?.statusCategory?.key
+  if (key === 'done') return TaskStatus.DONE
+  if (key === 'indeterminate') return TaskStatus.IN_PROGRESS
+  return TaskStatus.TODO
+}
+
+function buildJiraDescription(
+  issue: { fields: { description?: { content?: unknown } | string | null } },
+  baseUrl: string,
+) {
+  if (typeof issue.fields.description === 'string') return issue.fields.description
+
+  const link = `Imported from Jira (${baseUrl}).`
+  return link
 }

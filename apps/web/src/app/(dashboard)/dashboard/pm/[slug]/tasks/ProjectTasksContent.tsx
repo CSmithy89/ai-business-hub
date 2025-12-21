@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
-import { BookmarkPlus, CalendarDays, ChevronRight, KanbanSquare, LayoutList, Search, Upload, Download, Github } from 'lucide-react'
+import { BookmarkPlus, CalendarDays, ChevronRight, KanbanSquare, LayoutList, Search, Upload, Download, Github, DownloadCloud } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,6 +33,7 @@ import type { FilterState } from '@/lib/pm/url-state'
 import { CsvImportWizard } from '@/components/pm/imports/CsvImportWizard'
 import { CsvExportModal } from '@/components/pm/exports/CsvExportModal'
 import { GithubIssuesSyncDialog } from '@/components/pm/integrations/GithubIssuesSyncDialog'
+import { JiraImportDialog } from '@/components/pm/imports/JiraImportDialog'
 
 function formatDate(value: string | null): string {
   if (!value) return '—'
@@ -145,6 +146,7 @@ export function ProjectTasksContent() {
   const [importWizardOpen, setImportWizardOpen] = useState(false)
   const [exportModalOpen, setExportModalOpen] = useState(false)
   const [githubSyncOpen, setGithubSyncOpen] = useState(false)
+  const [jiraImportOpen, setJiraImportOpen] = useState(false)
 
   // Apply default view on mount
   useEffect(() => {
@@ -373,6 +375,10 @@ export function ProjectTasksContent() {
             <Github className="h-4 w-4" />
             Sync Issues
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setJiraImportOpen(true)} className="gap-2">
+            <DownloadCloud className="h-4 w-4" />
+            Import Jira
+          </Button>
 
           {/* View Mode Toggles */}
           <Button
@@ -531,6 +537,11 @@ export function ProjectTasksContent() {
       <GithubIssuesSyncDialog
         open={githubSyncOpen}
         onOpenChange={setGithubSyncOpen}
+        projectId={project.id}
+      />
+      <JiraImportDialog
+        open={jiraImportOpen}
+        onOpenChange={setJiraImportOpen}
         projectId={project.id}
       />
 

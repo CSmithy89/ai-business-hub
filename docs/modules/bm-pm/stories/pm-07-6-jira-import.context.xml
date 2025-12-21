@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-07-6-jira-import</story-id>
+    <generated>2025-12-19T00:00:00Z</generated>
+    <epic>PM-07 - Integrations &amp; Bridge Agent</epic>
+    <description>
+      Jira import endpoint and UI dialog for migrating issues into tasks.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="apps/api/src/pm/imports/imports.service.ts">
+      <description>
+        CSV import logic extended for Jira import.
+      </description>
+    </file>
+    <file path="apps/web/src/components/pm/imports/CsvImportWizard.tsx">
+      <description>
+        Import UI patterns for file-based imports.
+      </description>
+    </file>
+  </existing-code>
+</story-context>

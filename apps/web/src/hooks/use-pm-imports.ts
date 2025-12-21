@@ -26,6 +26,15 @@ export type StartCsvImportPayload = {
   skipInvalidRows?: boolean
 }
 
+export type StartJiraImportPayload = {
+  projectId: string
+  baseUrl: string
+  email: string
+  apiToken: string
+  jql?: string
+  maxResults?: number
+}
+
 export type ImportJobSummary = {
   id: string
   status: string
@@ -65,6 +74,42 @@ export function useStartCsvImport() {
 
       if (!body || typeof body !== 'object' || !('data' in body)) {
         throw new Error('Failed to start CSV import')
+      }
+
+      return body as { data: ImportJobSummary }
+    },
+  })
+}
+
+export function useStartJiraImport() {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: async (payload: StartJiraImportPayload) => {
+      const base = getBaseUrl()
+      const response = await fetch(`${base}/pm/imports/jira/start`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+        cache: 'no-store',
+      })
+
+      const body = await safeJson<unknown>(response)
+      if (!response.ok) {
+        const message =
+          body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+            ? body.message
+            : undefined
+        throw new Error(message || 'Failed to start Jira import')
+      }
+
+      if (!body || typeof body !== 'object' || !('data' in body)) {
+        throw new Error('Failed to start Jira import')
       }
 
       return body as { data: ImportJobSummary }
