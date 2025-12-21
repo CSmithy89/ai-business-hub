@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { usePmProject } from '@/hooks/use-pm-projects'
 import { usePmTasks, type TaskListItem, type TaskPriority, type TaskStatus, type TaskType } from '@/hooks/use-pm-tasks'
 import { usePmTeam } from '@/hooks/use-pm-team'
-import { useDefaultView, type SavedView } from '@/hooks/use-saved-views'
+import { useDefaultView, useSavedViews, type SavedView } from '@/hooks/use-saved-views'
 import { usePresence } from '@/hooks/use-presence'
 import { PresenceBar } from '@/components/pm/presence/PresenceBar'
 import { TASK_PRIORITY_META, TASK_TYPE_META } from '@/lib/pm/task-meta'
@@ -76,6 +76,7 @@ export function ProjectTasksContent() {
 
   const slug = params?.slug
   const taskId = searchParams.get('taskId')
+  const viewId = searchParams.get('viewId')
 
   const { data: projectData, isLoading: projectLoading, error: projectError } = usePmProject(slug)
   const project = projectData?.data
@@ -117,6 +118,8 @@ export function ProjectTasksContent() {
   const [saveViewModalOpen, setSaveViewModalOpen] = useState(false)
   const { data: defaultViewData } = useDefaultView(project?.id)
   const defaultView = defaultViewData?.data
+  const { data: savedViewsData } = useSavedViews(project?.id)
+  const savedViews = savedViewsData?.data ?? []
 
   const [search, setSearch] = useState('')
   const viewPreferences = useMemo(() => {
@@ -157,10 +160,18 @@ export function ProjectTasksContent() {
 
   // Apply default view on mount
   useEffect(() => {
-    if (defaultView && !activeSavedViewId) {
+    if (defaultView && !activeSavedViewId && !viewId) {
       applyView(defaultView)
     }
-  }, [defaultView?.id])
+  }, [defaultView?.id, viewId])
+
+  useEffect(() => {
+    if (!viewId || !savedViews.length) return
+    const sharedView = savedViews.find((view) => view.id === viewId)
+    if (sharedView) {
+      applyView(sharedView)
+    }
+  }, [savedViews, viewId])
 
   // Apply a saved view
   const applyView = (view: SavedView | null) => {
@@ -386,6 +397,7 @@ export function ProjectTasksContent() {
           {currentUserId && (
             <SavedViewsDropdown
               projectId={project.id}
+              projectSlug={slug}
               currentUserId={currentUserId}
               onApplyView={applyView}
               onSaveCurrentView={() => setSaveViewModalOpen(true)}

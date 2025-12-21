@@ -27,9 +27,11 @@ import {
 import { useSavedViews, useDeleteSavedView, useUpdateSavedView, type SavedView } from '@/hooks/use-saved-views'
 import { SaveViewModal } from './SaveViewModal'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface SavedViewsDropdownProps {
   projectId: string
+  projectSlug?: string
   currentUserId: string
   onApplyView: (view: SavedView | null) => void
   onSaveCurrentView: () => void
@@ -46,6 +48,7 @@ interface SavedViewsDropdownProps {
 
 export function SavedViewsDropdown({
   projectId,
+  projectSlug,
   currentUserId,
   onApplyView,
   onSaveCurrentView,
@@ -101,6 +104,20 @@ export function SavedViewsDropdown({
     setEditModalOpen(true)
   }
 
+  const copyShareLink = async (view: SavedView) => {
+    if (!projectSlug) {
+      toast.error('Project slug missing for share link')
+      return
+    }
+    const url = `${window.location.origin}/dashboard/pm/${projectSlug}/tasks?viewId=${view.id}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success('Share link copied')
+    } catch {
+      toast.error('Failed to copy share link')
+    }
+  }
+
   const activeView = views.find((v) => v.id === activeViewId)
 
   return (
@@ -134,6 +151,7 @@ export function SavedViewsDropdown({
                   onDelete={() => openDeleteDialog(view)}
                   onToggleDefault={() => handleToggleDefault(view)}
                   onToggleShared={() => handleToggleShared(view)}
+                  onCopyLink={() => copyShareLink(view)}
                 />
               ))}
               <DropdownMenuSeparator />
@@ -157,6 +175,7 @@ export function SavedViewsDropdown({
                   onDelete={() => openDeleteDialog(view)}
                   onToggleDefault={() => handleToggleDefault(view)}
                   onToggleShared={() => handleToggleShared(view)}
+                  onCopyLink={() => copyShareLink(view)}
                 />
               ))}
               <DropdownMenuSeparator />
@@ -176,6 +195,7 @@ export function SavedViewsDropdown({
                   isActive={view.id === activeViewId}
                   isOwner={false}
                   onApply={() => onApplyView(view)}
+                  onCopyLink={view.isShared ? () => copyShareLink(view) : undefined}
                 />
               ))}
               <DropdownMenuSeparator />
@@ -233,9 +253,10 @@ interface ViewMenuItemProps {
   onDelete?: () => void
   onToggleDefault?: () => void
   onToggleShared?: () => void
+  onCopyLink?: () => void
 }
 
-function ViewMenuItem({ view, isActive, isOwner, onApply, onEdit, onDelete, onToggleDefault, onToggleShared }: ViewMenuItemProps) {
+function ViewMenuItem({ view, isActive, isOwner, onApply, onEdit, onDelete, onToggleDefault, onToggleShared, onCopyLink }: ViewMenuItemProps) {
   if (!isOwner) {
     // Simple view item for team shared views
     return (
@@ -298,6 +319,12 @@ function ViewMenuItem({ view, isActive, isOwner, onApply, onEdit, onDelete, onTo
             </>
           )}
         </DropdownMenuItem>
+        {view.isShared && onCopyLink ? (
+          <DropdownMenuItem onClick={onCopyLink}>
+            <Share2 className="mr-2 h-4 w-4" />
+            Copy Share Link
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onDelete} className="text-red-600">
           <Trash2 className="mr-2 h-4 w-4" />

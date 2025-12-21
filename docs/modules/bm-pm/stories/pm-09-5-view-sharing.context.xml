@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-09-5-view-sharing</story-id>
+    <generated>2025-12-22T00:00:00Z</generated>
+    <epic>PM-09 - Advanced Views</epic>
+    <description>
+      Share saved views with team access and share links.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="apps/web/src/components/pm/saved-views/SavedViewsDropdown.tsx">
+      <description>
+        Saved views menu with ownership checks and shared view sections.
+      </description>
+    </file>
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/ProjectTasksContent.tsx">
+      <description>
+        Applies saved views and manages URL search params.
+      </description>
+    </file>
+    <file path="apps/web/src/hooks/use-saved-views.ts">
+      <description>
+        Saved view API access including by project and by ID.
+      </description>
+    </file>
+  </existing-code>
+</story-context>
