@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/services/prisma.service';
 import {
   PrismForecastDto,
@@ -55,6 +55,14 @@ const ANALYTICS_CONSTANTS = {
   MONTE_CARLO_SIMULATIONS: 1000,
   // Maximum date range (days)
   MAX_DATE_RANGE_DAYS: 365,
+  // Completion probability scaling (velocity ratio to probability)
+  COMPLETION_PROBABILITY_SCALING: 0.7,
+  COMPLETION_PROBABILITY_MIN: 0.05,
+  COMPLETION_PROBABILITY_MAX: 0.95,
+  // Baseline scope window (days from start date)
+  BASELINE_SCOPE_WINDOW_DAYS: 14,
+  // Cache TTL for team size lookups
+  TEAM_SIZE_CACHE_TTL_MS: 5 * 60 * 1000,
 } as const;
 
 /**
@@ -66,6 +74,7 @@ const ANALYTICS_CONSTANTS = {
 @Injectable()
 export class AnalyticsService {
   private readonly logger = new Logger(AnalyticsService.name);
+  private readonly teamSizeCache = new Map<string, { value: number; expiresAt: number }>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -77,7 +86,16 @@ export class AnalyticsService {
    * Uses ProjectTeam → TeamMember relation to count team members.
    * Falls back to default if no team is assigned.
    */
-  private async getTeamSize(projectId: string, _workspaceId: string): Promise<number> {
+  private async getTeamSize(projectId: string, workspaceId: string): Promise<number> {
+    const cacheKey = `${workspaceId}:${projectId}`;
+    const cached = this.teamSizeCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+    if (cached) {
+      this.teamSizeCache.delete(cacheKey);
+    }
+
     // Try to count project team members via ProjectTeam → TeamMember
     const projectTeam = await this.prisma.projectTeam.findUnique({
       where: { projectId },
@@ -90,7 +108,12 @@ export class AnalyticsService {
 
     // Return actual count or default
     const memberCount = projectTeam?._count?.members ?? 0;
-    return memberCount > 0 ? memberCount : ANALYTICS_CONSTANTS.DEFAULT_TEAM_SIZE;
+    const teamSize = memberCount > 0 ? memberCount : ANALYTICS_CONSTANTS.DEFAULT_TEAM_SIZE;
+    this.teamSizeCache.set(cacheKey, {
+      value: teamSize,
+      expiresAt: Date.now() + ANALYTICS_CONSTANTS.TEAM_SIZE_CACHE_TTL_MS,
+    });
+    return teamSize;
   }
 
   /**
@@ -98,6 +121,13 @@ export class AnalyticsService {
    *
    * Generates a statistical forecast using historical velocity data.
    * Falls back to linear projection if agent is unavailable or data is insufficient.
+   *
+   * @example
+   * const forecast = await analyticsService.getForecast(
+   *   projectId,
+   *   workspaceId,
+   *   { addedScope: 20, teamSizeChange: 1 },
+   * );
    */
   async getForecast(
     projectId: string,
@@ -405,30 +435,55 @@ export class AnalyticsService {
     targetDate: string,
   ): Promise<CompletionProbabilityDto> {
     try {
+      if (!targetDate) {
+        throw new BadRequestException('targetDate is required (YYYY-MM-DD).');
+      }
+
       const target = new Date(targetDate);
+      if (Number.isNaN(target.getTime())) {
+        throw new BadRequestException('Invalid targetDate. Use ISO 8601 format (YYYY-MM-DD).');
+      }
+
       const now = new Date();
-      const weeksRemaining = Math.max(0, (target.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      const weeksRemaining = Math.max(
+        0,
+        (target.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000),
+      );
 
       const remainingPoints = await this.getRemainingPoints(projectId, workspaceId);
       const velocity = await this.getVelocity(projectId, workspaceId, '4w');
 
-      const requiredVelocity = weeksRemaining > 0 ? remainingPoints / weeksRemaining : Infinity;
+      const requiredVelocity = weeksRemaining > 0 ? remainingPoints / weeksRemaining : 0;
 
       // Simple probability estimate based on velocity comparison
       let probability = 0.5;
-      if (velocity.velocity > 0 && requiredVelocity < Infinity) {
+      if (remainingPoints <= 0) {
+        probability = ANALYTICS_CONSTANTS.COMPLETION_PROBABILITY_MAX;
+      } else if (target.getTime() <= now.getTime()) {
+        probability = ANALYTICS_CONSTANTS.COMPLETION_PROBABILITY_MIN;
+      } else if (velocity.velocity > 0 && requiredVelocity > 0) {
         const ratio = velocity.velocity / requiredVelocity;
-        probability = Math.min(0.95, Math.max(0.05, ratio * 0.7));
+        probability = Math.min(
+          ANALYTICS_CONSTANTS.COMPLETION_PROBABILITY_MAX,
+          Math.max(
+            ANALYTICS_CONSTANTS.COMPLETION_PROBABILITY_MIN,
+            ratio * ANALYTICS_CONSTANTS.COMPLETION_PROBABILITY_SCALING,
+          ),
+        );
       }
 
       const probabilityLabel: 'LOW' | 'MEDIUM' | 'HIGH' =
         probability > 0.7 ? 'HIGH' : probability > 0.4 ? 'MEDIUM' : 'LOW';
 
       let assessment = 'Insufficient data for accurate probability estimate';
-      if (velocity.velocity > 0) {
+      if (remainingPoints <= 0) {
+        assessment = 'Already complete - no remaining points';
+      } else if (target.getTime() <= now.getTime()) {
+        assessment = 'Target date has already passed';
+      } else if (velocity.velocity > 0) {
         if (velocity.velocity >= requiredVelocity) {
           assessment = 'On track - current velocity meets or exceeds requirement';
-        } else {
+        } else if (requiredVelocity > 0) {
           const deficit = ((requiredVelocity - velocity.velocity) / requiredVelocity) * 100;
           assessment = `At risk - velocity is ${deficit.toFixed(0)}% below requirement`;
         }
@@ -445,11 +500,14 @@ export class AnalyticsService {
         assessment,
       };
     } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       this.logger.error(`Completion probability analysis failed: ${error?.message || 'Unknown error'}`);
       return {
         targetDate,
-        probability: 0.5,
-        probabilityLabel: 'MEDIUM',
+        probability: ANALYTICS_CONSTANTS.COMPLETION_PROBABILITY_MIN,
+        probabilityLabel: 'LOW',
         weeksRemaining: 0,
         pointsRemaining: 0,
         requiredVelocity: 0,
@@ -1291,19 +1349,76 @@ export class AnalyticsService {
     projectId: string,
     workspaceId: string,
   ): Promise<number> {
-    // For MVP, use current total as baseline
-    // TODO: Track baseline scope in project metadata or prediction log
-    const allTasks = await this.prisma.task.aggregate({
+    const project = await this.prisma.project.findFirst({
+      where: {
+        id: projectId,
+        workspaceId,
+      },
+      select: {
+        startDate: true,
+        createdAt: true,
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const baselineStart = project.startDate ?? project.createdAt;
+    const baselineEnd = new Date(baselineStart);
+    baselineEnd.setDate(baselineEnd.getDate() + ANALYTICS_CONSTANTS.BASELINE_SCOPE_WINDOW_DAYS);
+
+    // Baseline scope: sum tasks created in the initial sprint window
+    const baselineAggregate = await this.prisma.task.aggregate({
       where: {
         projectId,
         workspaceId,
+        createdAt: {
+          lte: baselineEnd,
+        },
       },
       _sum: {
         storyPoints: true,
       },
     });
 
-    return allTasks._sum.storyPoints || 0;
+    const baselineScope = baselineAggregate._sum.storyPoints || 0;
+    if (baselineScope > 0) {
+      return baselineScope;
+    }
+
+    // Fallback: use earliest recorded task creation as baseline
+    const firstTask = await this.prisma.task.findFirst({
+      where: {
+        projectId,
+        workspaceId,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+      select: {
+        createdAt: true,
+      },
+    });
+
+    if (!firstTask) {
+      return 0;
+    }
+
+    const firstAggregate = await this.prisma.task.aggregate({
+      where: {
+        projectId,
+        workspaceId,
+        createdAt: {
+          lte: firstTask.createdAt,
+        },
+      },
+      _sum: {
+        storyPoints: true,
+      },
+    });
+
+    return firstAggregate._sum.storyPoints || 0;
   }
 
   /**
@@ -1342,6 +1457,12 @@ export class AnalyticsService {
    *
    * Returns all trend data, overview metrics, anomalies, risks, and insights
    * in a single aggregated call for optimal performance.
+   *
+   * @example
+   * const dashboard = await analyticsService.getDashboardData(projectId, workspaceId, {
+   *   start: new Date('2025-01-01'),
+   *   end: new Date('2025-02-01'),
+   * });
    *
    * @param projectId - Project ID
    * @param workspaceId - Workspace ID (for RLS)
@@ -2480,6 +2601,9 @@ export class AnalyticsService {
       where: { id: projectId, workspaceId },
       select: { name: true },
     });
+    if (!projectData) {
+      throw new NotFoundException('Project not found');
+    }
 
     // Get dashboard data for summary and trends
     const dashboardData = await this.getDashboardData(projectId, workspaceId, { start, end });
@@ -2518,7 +2642,7 @@ export class AnalyticsService {
 
     return {
       projectId,
-      projectName: projectData?.name || 'Unknown Project',
+      projectName: projectData.name,
       exportedAt: new Date().toISOString(),
       dateRange: {
         start: start.toISOString().split('T')[0],
@@ -2544,7 +2668,27 @@ export class AnalyticsService {
   }
 
   /**
+   * Sanitize CSV values to prevent formula injection.
+   */
+  private sanitizeCsvValue(value: string): string {
+    return /^[=+\-@]/.test(value) ? `'${value}` : value;
+  }
+
+  private formatCsvCell(value: string | number | null | undefined): string {
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    const text = this.sanitizeCsvValue(String(value));
+    const escaped = text.replace(/"/g, '""');
+    return /[",\n]/.test(escaped) ? `"${escaped}"` : escaped;
+  }
+
+  /**
    * Export analytics data as CSV
+   *
+   * @example
+   * const csv = await analyticsService.exportCsv(projectId, workspaceId);
    */
   async exportCsv(
     projectId: string,
@@ -2559,11 +2703,37 @@ export class AnalyticsService {
     rows.push('Date,Metric,Value,Unit');
 
     // Summary metrics
-    rows.push(`${data.exportedAt.split('T')[0]},Average Velocity,${data.summary.averageVelocity.toFixed(2)},points/week`);
-    rows.push(`${data.exportedAt.split('T')[0]},Total Scope,${data.summary.totalScope},points`);
-    rows.push(`${data.exportedAt.split('T')[0]},Total Completed,${data.summary.totalCompleted},points`);
-    rows.push(`${data.exportedAt.split('T')[0]},Completion Rate,${data.summary.overallCompletionRate.toFixed(1)},%`);
-    rows.push(`${data.exportedAt.split('T')[0]},Health Score,${data.summary.healthScore.toFixed(1)},score`);
+    const exportedDate = data.exportedAt.split('T')[0];
+    rows.push([
+      exportedDate,
+      'Average Velocity',
+      data.summary.averageVelocity.toFixed(2),
+      'points/week',
+    ].map((cell) => this.formatCsvCell(cell)).join(','));
+    rows.push([
+      exportedDate,
+      'Total Scope',
+      data.summary.totalScope,
+      'points',
+    ].map((cell) => this.formatCsvCell(cell)).join(','));
+    rows.push([
+      exportedDate,
+      'Total Completed',
+      data.summary.totalCompleted,
+      'points',
+    ].map((cell) => this.formatCsvCell(cell)).join(','));
+    rows.push([
+      exportedDate,
+      'Completion Rate',
+      data.summary.overallCompletionRate.toFixed(1),
+      '%',
+    ].map((cell) => this.formatCsvCell(cell)).join(','));
+    rows.push([
+      exportedDate,
+      'Health Score',
+      data.summary.healthScore.toFixed(1),
+      'score',
+    ].map((cell) => this.formatCsvCell(cell)).join(','));
 
     // Empty row separator
     rows.push('');
@@ -2574,9 +2744,13 @@ export class AnalyticsService {
       const completionRate = point.scope && point.completedPoints
         ? ((point.completedPoints / point.scope) * 100).toFixed(1)
         : '';
-      rows.push(
-        `${point.date},${point.velocity ?? ''},${point.scope ?? ''},${point.completedPoints ?? ''},${completionRate}`,
-      );
+      rows.push([
+        point.date,
+        point.velocity ?? '',
+        point.scope ?? '',
+        point.completedPoints ?? '',
+        completionRate,
+      ].map((cell) => this.formatCsvCell(cell)).join(','));
     }
 
     // Risks section
@@ -2584,11 +2758,14 @@ export class AnalyticsService {
       rows.push('');
       rows.push('Risk ID,Category,Impact,Status,Description,Detected At');
       for (const risk of data.risks) {
-        // Escape description for CSV
-        const escapedDesc = `"${risk.description.replace(/"/g, '""')}"`;
-        rows.push(
-          `${risk.id},${risk.category},${risk.impact},${risk.status},${escapedDesc},${risk.detectedAt.split('T')[0]}`,
-        );
+        rows.push([
+          risk.id,
+          risk.category,
+          risk.impact,
+          risk.status,
+          risk.description,
+          risk.detectedAt.split('T')[0],
+        ].map((cell) => this.formatCsvCell(cell)).join(','));
       }
     }
 

@@ -130,7 +130,7 @@ Epic PM-08 successfully delivered the Prism Agent and comprehensive Analytics Da
 
 ---
 
-## Post-Merge Code Review Findings (TODO)
+## Post-Merge Code Review Findings (Resolved)
 
 Additional issues identified in extended code review analysis. These should be addressed in a follow-up commit.
 
@@ -138,30 +138,30 @@ Additional issues identified in extended code review analysis. These should be a
 
 | # | Issue | Location | Status |
 |---|-------|----------|--------|
-| 1 | **Target date validation missing** - No validation if date is valid in `analyzeCompletionProbability` | `analytics.service.ts:408` | TODO |
-| 2 | **Query param validation** - `parseInt(periods)` and `parseFloat(threshold)` lack NaN checks | `analytics.controller.ts:133,158` | TODO |
-| 3 | **Baseline scope is broken** - `getBaselineScope()` returns current scope, not baseline; scope risk detection never triggers | `analytics.service.ts:1290` | TODO |
-| 4 | **CSV injection vulnerability** - Need to prefix `=`, `+`, `@`, `-` with single quote in CSV export | `exportCsv` method | TODO |
-| 5 | **Controller tests missing** - No tests for authentication, authorization, rate limiting | N/A | TODO |
+| 1 | **Target date validation missing** - No validation if date is valid in `analyzeCompletionProbability` | `analytics.service.ts:408` | Done |
+| 2 | **Query param validation** - `parseInt(periods)` and `parseFloat(threshold)` lack NaN checks | `analytics.controller.ts:133,158` | Done |
+| 3 | **Baseline scope is broken** - `getBaselineScope()` returns current scope, not baseline; scope risk detection never triggers | `analytics.service.ts:1290` | Done |
+| 4 | **CSV injection vulnerability** - Need to prefix `=`, `+`, `@`, `-` with single quote in CSV export | `exportCsv` method | Done |
+| 5 | **Controller tests missing** - No tests for authentication, authorization, rate limiting | N/A | Done |
 
 ### MEDIUM Priority (Robustness/Performance)
 
 | # | Issue | Location | Status |
 |---|-------|----------|--------|
-| 6 | **Target date in past** - Returns 0 weeks remaining, causing Infinity for requiredVelocity | `analytics.service.ts:410` | TODO |
-| 7 | **Arbitrary probability formula** - `ratio * 0.7` is undocumented magic number | `analytics.service.ts:421` | TODO |
-| 8 | **Project existence check** - `exportCsv` may throw if project doesn't exist before filename generation | `analytics.controller.ts:413` | TODO |
-| 9 | **Python None vs date string** - Fallback returns `predictedDate: None` but TypeScript expects string | `prism_tools.py:59,75` | TODO |
-| 10 | **Team size caching** - `getTeamSize()` called multiple times per forecast; add TTL cache | `analytics.service.ts:82` | TODO |
+| 6 | **Target date in past** - Returns 0 weeks remaining, causing Infinity for requiredVelocity | `analytics.service.ts:410` | Done |
+| 7 | **Arbitrary probability formula** - `ratio * 0.7` is undocumented magic number | `analytics.service.ts:421` | Done |
+| 8 | **Project existence check** - `exportCsv` may throw if project doesn't exist before filename generation | `analytics.controller.ts:413` | Done |
+| 9 | **Python None vs date string** - Fallback returns `predictedDate: None` but TypeScript expects string | `prism_tools.py:59,75` | Done |
+| 10 | **Team size caching** - `getTeamSize()` called multiple times per forecast; add TTL cache | `analytics.service.ts:82` | Done |
 
 ### LOW Priority (Quality/Future)
 
 | # | Issue | Location | Status |
 |---|-------|----------|--------|
-| 11 | **Inconsistent response wrapping** - Some endpoints wrap in objects, others return raw | Various | TODO |
-| 12 | **Monte Carlo edge case tests** - Zero variance, negative velocity scenarios untested | Test files | TODO |
-| 13 | **Integration tests for risk detection** - E2E workflow for risk scan untested | Test files | TODO |
-| 14 | **Usage examples in docs** - Complex methods lack usage examples in JSDoc | Service methods | TODO |
+| 11 | **Inconsistent response wrapping** - Some endpoints wrap in objects, others return raw | Various | Done |
+| 12 | **Monte Carlo edge case tests** - Zero variance, negative velocity scenarios untested | Test files | Done |
+| 13 | **Integration tests for risk detection** - E2E workflow for risk scan untested | Test files | Done |
+| 14 | **Usage examples in docs** - Complex methods lack usage examples in JSDoc | Service methods | Done |
 
 ---
 

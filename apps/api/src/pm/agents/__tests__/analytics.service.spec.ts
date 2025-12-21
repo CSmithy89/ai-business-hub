@@ -17,6 +17,19 @@ describe('AnalyticsService', () => {
             task: {
               findMany: jest.fn(),
               aggregate: jest.fn(),
+              findFirst: jest.fn(),
+            },
+            project: {
+              findUnique: jest.fn(),
+              findFirst: jest.fn(),
+            },
+            projectTeam: {
+              findUnique: jest.fn(),
+            },
+            pmRiskEntry: {
+              findFirst: jest.fn(),
+              create: jest.fn(),
+              update: jest.fn(),
             },
           },
         },
@@ -246,6 +259,38 @@ describe('AnalyticsService', () => {
 
       expect(result.assessment).toContain('On track');
     });
+
+    it('should throw for invalid target date', async () => {
+      await expect(
+        service.analyzeCompletionProbability('proj1', 'ws1', 'not-a-date'),
+      ).rejects.toThrow('Invalid targetDate');
+    });
+
+    it('should handle past target date without infinite velocity', async () => {
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() - 7);
+
+      const mockVelocity = {
+        velocity: 10,
+        trend: VelocityTrend.STABLE,
+        confidence: ConfidenceLevel.MED,
+        sampleSize: 4,
+        timeRange: '4w',
+      };
+
+      jest.spyOn(service as any, 'getRemainingPoints').mockResolvedValue(100);
+      jest.spyOn(service, 'getVelocity').mockResolvedValue(mockVelocity);
+
+      const result = await service.analyzeCompletionProbability(
+        'proj1',
+        'ws1',
+        targetDate.toISOString().split('T')[0],
+      );
+
+      expect(result.requiredVelocity).toBe(0);
+      expect(result.assessment).toContain('Target date has already passed');
+      expect(result.probabilityLabel).toBe('LOW');
+    });
   });
 
   describe('runMonteCarloSimulation', () => {
@@ -307,6 +352,26 @@ describe('AnalyticsService', () => {
       expect(p25Date).toBeLessThanOrEqual(p50Date);
       expect(p50Date).toBeLessThanOrEqual(p75Date);
       expect(p75Date).toBeLessThanOrEqual(p90Date);
+    });
+
+    it('should handle zero variance velocity history', () => {
+      const velocityHistory = [10, 10, 10, 10];
+      const remainingPoints = 40;
+
+      const result = (service as any).runMonteCarloSimulation(velocityHistory, remainingPoints, 200);
+
+      expect(result.velocityStd).toBe(0);
+      expect(result.dates.p10).toBe(result.dates.p90);
+    });
+
+    it('should clamp negative velocities to a safe minimum', () => {
+      const velocityHistory = [-5, -4, -6];
+      const remainingPoints = 20;
+
+      const result = (service as any).runMonteCarloSimulation(velocityHistory, remainingPoints, 200);
+
+      expect(result.velocityMean).toBeLessThan(0);
+      expect(Number.isNaN(new Date(result.dates.p50).getTime())).toBe(false);
     });
   });
 
@@ -706,6 +771,76 @@ describe('AnalyticsService', () => {
       const result = (service as any).detectResourceRisk(mockForecast);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('detectRisks', () => {
+    it('should return schedule, scope, and resource risks when conditions are met', async () => {
+      const mockForecast = {
+        predictedDate: '2025-03-15',
+        confidence: ConfidenceLevel.MED,
+        optimisticDate: '2025-03-01',
+        pessimisticDate: '2025-03-30',
+        reasoning: 'Test',
+        factors: [
+          {
+            name: 'Velocity Trend',
+            value: 'DECREASING',
+            impact: 'NEGATIVE',
+            description: 'Velocity is declining',
+          },
+        ],
+        velocityAvg: 10,
+        dataPoints: 6,
+        probabilityDistribution: {
+          p10: '2025-02-15',
+          p25: '2025-03-01',
+          p50: '2025-03-15',
+          p75: '2025-04-01',
+          p90: '2025-04-15',
+        },
+      };
+
+      prismaService.project.findUnique.mockResolvedValue({
+        targetDate: new Date('2025-03-01'),
+      } as unknown as any);
+      jest.spyOn(service, 'getForecast').mockResolvedValue(mockForecast as any);
+      jest.spyOn(service as any, 'getBaselineScope').mockResolvedValue(100);
+      prismaService.task.aggregate.mockResolvedValue({
+        _sum: { storyPoints: 125 },
+      } as unknown as any);
+
+      const createRiskEntrySpy = jest
+        .spyOn(service as any, 'createRiskEntry')
+        .mockImplementation(async (projectId: string, workspaceId: string, risk: any) => ({
+          id: `risk-${risk.category}`,
+          projectId,
+          tenantId: workspaceId,
+          source: 'PRISM',
+          category: risk.category,
+          probability: risk.probability,
+          impact: risk.impact,
+          description: risk.description,
+          mitigation: risk.mitigation,
+          status: 'ACTIVE',
+          targetDate: risk.details?.targetDate ? new Date(risk.details.targetDate) : null,
+          predictedDate: risk.details?.predictedDate ? new Date(risk.details.predictedDate) : null,
+          delayDays: risk.details?.delayDays ?? null,
+          baselineScope: risk.details?.baselineScope ?? null,
+          currentScope: risk.details?.currentScope ?? null,
+          scopeIncrease: risk.details?.scopeIncrease ?? null,
+          velocityTrend: risk.details?.velocityTrend ?? null,
+          velocityChange: risk.details?.velocityChange ?? null,
+          detectedAt: new Date('2025-01-01'),
+          updatedAt: new Date('2025-01-01'),
+        }));
+
+      const result = await service.detectRisks('proj1', 'ws1');
+
+      expect(result).toHaveLength(3);
+      expect(createRiskEntrySpy).toHaveBeenCalledTimes(3);
+      const categories = result.map((risk) => risk.category).sort();
+      expect(categories).toEqual(['RESOURCE', 'SCHEDULE', 'SCOPE']);
     });
   });
 

@@ -6,6 +6,7 @@ Tools for completion forecasting, velocity calculation, and anomaly detection.
 """
 
 import logging
+from datetime import date, timedelta
 from typing import Dict, List, Any, Optional
 
 from agno.tools import tool
@@ -48,6 +49,7 @@ def forecast_completion(
     try:
         endpoint = f"/api/pm/projects/{project_id}/analytics/forecast"
         payload = {"scenario": scenario} if scenario else {}
+        fallback_date = (date.today() + timedelta(days=365)).isoformat()
 
         result = api_request(
             method="POST",
@@ -56,7 +58,9 @@ def forecast_completion(
             json=payload,
             timeout=30.0,
             fallback_data={
-                "predictedDate": None,
+                "predictedDate": fallback_date,
+                "optimisticDate": fallback_date,
+                "pessimisticDate": fallback_date,
                 "confidence": "LOW",
                 "reasoning": "Unable to generate forecast - service unavailable",
                 "factors": ["Forecast service error"],
@@ -69,10 +73,13 @@ def forecast_completion(
 
     except Exception as e:
         logger.error(f"Error forecasting completion: {e}")
+        fallback_date = (date.today() + timedelta(days=365)).isoformat()
         return {
             "error": "Forecast generation failed",
             "message": str(e),
-            "predictedDate": None,
+            "predictedDate": fallback_date,
+            "optimisticDate": fallback_date,
+            "pessimisticDate": fallback_date,
             "confidence": "LOW",
             "reasoning": "Error occurred during forecast generation",
             "factors": ["System error"],

@@ -127,10 +127,15 @@ export class AnalyticsController {
     @CurrentWorkspace() workspaceId: string,
     @Query('periods') periods: string = '12',
   ): Promise<{ history: VelocityHistoryDto[] }> {
+    const parsedPeriods = Number.parseInt(periods, 10);
+    if (Number.isNaN(parsedPeriods) || parsedPeriods <= 0) {
+      throw new BadRequestException('periods must be a positive integer.');
+    }
+
     const history = await this.analyticsService.getVelocityHistory(
       projectId,
       workspaceId,
-      parseInt(periods, 10),
+      parsedPeriods,
     );
     return { history };
   }
@@ -151,11 +156,16 @@ export class AnalyticsController {
     @Query('metricType') metricType: string = 'velocity',
     @Query('threshold') threshold: string = '2.0',
   ): Promise<{ anomalies: AnomalyDto[] }> {
+    const parsedThreshold = Number.parseFloat(threshold);
+    if (!Number.isFinite(parsedThreshold) || parsedThreshold <= 0) {
+      throw new BadRequestException('threshold must be a positive number.');
+    }
+
     const anomalies = await this.analyticsService.detectAnomalies(
       projectId,
       workspaceId,
       metricType,
-      parseFloat(threshold),
+      parsedThreshold,
     );
     return { anomalies };
   }
@@ -175,6 +185,15 @@ export class AnalyticsController {
     @CurrentWorkspace() workspaceId: string,
     @Query('targetDate') targetDate: string,
   ): Promise<CompletionProbabilityDto> {
+    if (!targetDate) {
+      throw new BadRequestException('targetDate is required (YYYY-MM-DD).');
+    }
+
+    const parsedTargetDate = new Date(targetDate);
+    if (Number.isNaN(parsedTargetDate.getTime())) {
+      throw new BadRequestException('Invalid targetDate. Use ISO 8601 format (YYYY-MM-DD).');
+    }
+
     return this.analyticsService.analyzeCompletionProbability(
       projectId,
       workspaceId,
@@ -195,15 +214,16 @@ export class AnalyticsController {
   @ApiResponse({
     status: 200,
     description: 'Risk entries returned',
-    type: [Object],
+    type: Object,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
   async detectRisks(
     @Param('projectId') projectId: string,
     @CurrentWorkspace() workspaceId: string,
-  ): Promise<PmRiskEntryDto[]> {
-    return this.analyticsService.detectRisks(projectId, workspaceId);
+  ): Promise<{ risks: PmRiskEntryDto[] }> {
+    const risks = await this.analyticsService.detectRisks(projectId, workspaceId);
+    return { risks };
   }
 
   @Get('risks/entries')
@@ -221,14 +241,15 @@ export class AnalyticsController {
   @ApiResponse({
     status: 200,
     description: 'Risk entries retrieved',
-    type: [Object],
+    type: Object,
   })
   async getRiskEntries(
     @Param('projectId') projectId: string,
     @CurrentWorkspace() workspaceId: string,
     @Query('status') status?: RiskStatus,
-  ): Promise<PmRiskEntryDto[]> {
-    return this.analyticsService.getRiskEntries(projectId, workspaceId, status);
+  ): Promise<{ risks: PmRiskEntryDto[] }> {
+    const risks = await this.analyticsService.getRiskEntries(projectId, workspaceId, status);
+    return { risks };
   }
 
   @Patch('risks/:riskId/status')
