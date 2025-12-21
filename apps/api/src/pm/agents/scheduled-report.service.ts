@@ -254,8 +254,9 @@ export class ScheduledReportService {
   /**
    * Find schedules that are due to run
    * Internal method used by cron job
+   * @param limit Maximum number of schedules to return (for batching)
    */
-  async findDueSchedules() {
+  async findDueSchedules(limit?: number) {
     const now = new Date();
 
     const schedules = await this.prisma.reportSchedule.findMany({
@@ -274,6 +275,8 @@ export class ScheduledReportService {
           },
         },
       },
+      orderBy: { nextRun: 'asc' }, // Oldest first
+      ...(limit && { take: limit }),
     });
 
     return schedules;

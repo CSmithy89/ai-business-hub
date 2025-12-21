@@ -381,7 +381,38 @@ Epic PM-06 (Real-Time & Notifications) builds on PM-05:
 | TD-PM05-1 | Agent response parsing uses defaults | phase.service.ts, health.service.ts | Medium | Pending |
 | TD-PM05-2 | Notification sending not implemented | health.service.ts | Medium | Pending |
 | TD-PM05-3 | Trend calculation hardcoded as STABLE | health.service.ts | Low | Pending |
-| TD-PM05-4 | Investigate reverted code improvements | health.cron.ts, scheduled-report.cron.ts | Low | Pending |
+| TD-PM05-4 | Cron parallel processing with concurrency limits | health.cron.ts, scheduled-report.cron.ts | Medium | Pending |
+| TD-PM05-5 | Task query has no limit (could fetch thousands) | health.service.ts:95-100 | Medium | Pending |
+| TD-PM05-6 | Sequential DB writes without transaction | health.service.ts:107-140 | Medium | Pending |
+| TD-PM05-7 | Missing input validation for task_actions | phase_tools.py:108-158 | Low | Pending |
+| TD-PM05-8 | Distributed locking for multi-instance cron | health.cron.ts, checkpoint.cron.ts | High | Pending |
+| TD-PM05-9 | Configurable health check frequency per project | health.cron.ts | Medium | Pending |
+| TD-PM05-10 | SYSTEM_USERS could conflict with real user IDs | constants.ts | Low | Pending |
+
+### Performance Considerations
+
+| ID | Issue | Recommendation | Priority |
+|----|-------|----------------|----------|
+| PERF-01 | Health checks every 15 min for ALL projects | Add per-project frequency config, feature flags | Medium |
+| PERF-02 | Sequential project processing in crons | Use p-limit for parallel with concurrency limit | Medium |
+| PERF-03 | Unbounded task query in health checks | Add pagination or lookback period limit | Medium |
+| PERF-04 | N+1 potential when fetching team members | Profile with large number of projects | Low |
+
+### Security Considerations
+
+| ID | Issue | Recommendation | Priority |
+|----|-------|----------------|----------|
+| SEC-01 | SYSTEM_USERS hardcoded IDs | Use reserved prefix (e.g., '__system__') | Low |
+| SEC-02 | AGENT_SERVICE_TOKEN rotation | Add to key-rotation.md runbook | Medium |
+| SEC-03 | No distributed locking for cron jobs | Add Redis-based locking for multi-instance | High |
+
+### Documentation Gaps
+
+| ID | Issue | Recommendation |
+|----|-------|----------------|
+| DOC-01 | Health score weighting algorithm | Add ADR documenting the algorithm |
+| DOC-02 | Cron job scheduling strategy | Document in architecture.md |
+| DOC-03 | Health check troubleshooting | Add runbook for failures |
 
 ---
 

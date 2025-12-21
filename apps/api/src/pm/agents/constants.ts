@@ -56,11 +56,36 @@ export const LOOKBACK_PERIODS = {
 } as const;
 
 // System user IDs for scheduled/automated tasks
+// Use reserved prefix (__system__) to avoid conflicts with real user IDs
 export const SYSTEM_USERS = {
   /** System user for health check cron jobs */
-  HEALTH_CHECK: 'system',
+  HEALTH_CHECK: '__system__health_check',
   /** System user for scheduled report generation */
-  HERALD_AGENT: 'herald_agent',
+  HERALD_AGENT: '__system__herald_agent',
   /** System user for checkpoint reminders */
-  CHECKPOINT_REMINDER: 'system',
+  CHECKPOINT_REMINDER: '__system__checkpoint',
+} as const;
+
+// Cron job settings for scalability
+export const CRON_SETTINGS = {
+  /** Number of concurrent health checks (limits DB load) */
+  HEALTH_CHECK_CONCURRENCY: 5,
+  /** Maximum projects to process per cron run */
+  HEALTH_CHECK_BATCH_SIZE: 100,
+  /** Minutes before a project's health check is considered stale */
+  HEALTH_CHECK_STALE_MINUTES: 14, // Slightly less than 15 to ensure overlap
+  /** Number of concurrent report generations */
+  REPORT_GENERATION_CONCURRENCY: 3,
+  /** Maximum reports to generate per cron run */
+  REPORT_GENERATION_BATCH_SIZE: 50,
+} as const;
+
+// Health check limits
+export const HEALTH_CHECK_LIMITS = {
+  /** Maximum tasks to analyze per health check */
+  MAX_TASKS: 500,
+  /** Days of task history to consider for velocity */
+  VELOCITY_LOOKBACK_DAYS: 30,
+  /** Maximum risks to create per health check */
+  MAX_RISKS_PER_CHECK: 20,
 } as const;

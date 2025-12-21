@@ -10,6 +10,7 @@ import {
   HealthTrend,
 } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
+import { HEALTH_CHECK_LIMITS } from './constants';
 
 export interface HealthScore {
   score: number; // 0-100
@@ -91,61 +92,69 @@ export class HealthService {
         throw new ForbiddenException('Project not found or access denied');
       }
 
-      // 2. Get all tasks for analysis
+      // 2. Get tasks for analysis (with limit for performance)
       const tasks = await this.prisma.task.findMany({
         where: {
           projectId,
           deletedAt: null,
         },
+        take: HEALTH_CHECK_LIMITS.MAX_TASKS,
+        orderBy: { updatedAt: 'desc' }, // Most recently updated first
       });
 
       // 3. Calculate health score
       const healthScore = this.calculateHealthScore(tasks, project);
       const risks = this.detectRisks(tasks, project);
 
-      // 4. Store health score
-      await this.prisma.healthScore.create({
-        data: {
-          workspaceId,
-          projectId: project.id,
-          score: healthScore.score,
-          level: healthScore.level,
-          trend: healthScore.trend,
-          onTimeDelivery: healthScore.factors.onTimeDelivery,
-          blockerImpact: healthScore.factors.blockerImpact,
-          teamCapacity: healthScore.factors.teamCapacity,
-          velocityTrend: healthScore.factors.velocityTrend,
-          riskCount: risks.length,
-          explanation: healthScore.explanation,
-        },
-      });
+      // Limit risks per check to prevent excessive DB writes
+      const limitedRisks = risks.slice(0, HEALTH_CHECK_LIMITS.MAX_RISKS_PER_CHECK);
 
-      // 5. Store risks
-      for (const risk of risks) {
-        await this.prisma.riskEntry.create({
+      // 4. Store health score and risks in a transaction
+      await this.prisma.$transaction(async (tx) => {
+        // Create health score record
+        await tx.healthScore.create({
           data: {
             workspaceId,
             projectId: project.id,
-            title: risk.title,
-            description: risk.description,
-            severity: risk.severity,
-            riskType: risk.type,
-            affectedTasks: risk.affectedTasks,
-            affectedUsers: risk.affectedUsers,
-            status: RiskStatus.IDENTIFIED,
-            detectedAt: new Date(),
-            createdBy: userId,
+            score: healthScore.score,
+            level: healthScore.level,
+            trend: healthScore.trend,
+            onTimeDelivery: healthScore.factors.onTimeDelivery,
+            blockerImpact: healthScore.factors.blockerImpact,
+            teamCapacity: healthScore.factors.teamCapacity,
+            velocityTrend: healthScore.factors.velocityTrend,
+            riskCount: limitedRisks.length,
+            explanation: healthScore.explanation,
           },
         });
-      }
 
-      // 6. Update project health score
-      await this.prisma.project.update({
-        where: { id: project.id },
-        data: {
-          healthScore: healthScore.score,
-          lastHealthCheck: new Date(),
-        },
+        // Create risk entries (batched)
+        if (limitedRisks.length > 0) {
+          await tx.riskEntry.createMany({
+            data: limitedRisks.map((risk) => ({
+              workspaceId,
+              projectId: project.id,
+              title: risk.title,
+              description: risk.description,
+              severity: risk.severity,
+              riskType: risk.type,
+              affectedTasks: risk.affectedTasks,
+              affectedUsers: risk.affectedUsers,
+              status: RiskStatus.IDENTIFIED,
+              detectedAt: new Date(),
+              createdBy: userId,
+            })),
+          });
+        }
+
+        // Update project health score
+        await tx.project.update({
+          where: { id: project.id },
+          data: {
+            healthScore: healthScore.score,
+            lastHealthCheck: new Date(),
+          },
+        });
       });
 
       return {
