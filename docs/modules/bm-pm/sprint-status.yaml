@@ -249,14 +249,14 @@ development_status:
   # Phase 3 | 6 stories | AI drafts, Q&A, gap detection
   # FRs: KB-F8
   # ===========================================
-  kb-04: backlog
-  kb-04-1-ai-draft-generation: backlog
-  kb-04-2-natural-language-qa: backlog
-  kb-04-3-gap-detection: backlog
-  kb-04-4-auto-summarization: backlog
-  kb-04-5-content-suggestions: backlog
-  kb-04-6-kb-health-dashboard: backlog
-  kb-04-retrospective: optional
+  kb-04: contexted
+  kb-04-1-ai-page-drafts: done
+  kb-04-2-smart-summarization: done
+  kb-04-3-qa-chat-interface: done
+  kb-04-4-knowledge-extraction: done
+  kb-04-5-gap-detection: done
+  kb-04-6-kb-templates: done
+  kb-04-retrospective: done
 
   # ===========================================
   # PM-10: Workflow Builder

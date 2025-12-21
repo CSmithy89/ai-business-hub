@@ -78,6 +78,7 @@ export class RagService {
         kp.tenant_id = ${tenantId}
         AND kp.workspace_id = ${workspaceId}
         AND kp.deleted_at IS NULL
+        AND kp.is_template = FALSE
         ${pageIdFilter}
       ORDER BY score DESC
       LIMIT ${limit}

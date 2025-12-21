@@ -3,14 +3,14 @@
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import { getCurrentSessionToken, useSession } from '@/lib/auth-client'
-import { useKBPages, useKBPage, useUpdateKBPage, useDeleteKBPage, useToggleFavorite } from '@/hooks/use-kb-pages'
+import { useKBPages, useKBPage, useUpdateKBPage, useDeleteKBPage, useToggleFavorite, useCreateKBTemplate } from '@/hooks/use-kb-pages'
 import { PageEditor } from '@/components/kb/editor/PageEditor'
 import { PageBreadcrumbs } from '@/components/kb/PageBreadcrumbs'
 import { LinkedProjects } from '@/components/kb/LinkedProjects'
 import { VerificationBadge } from '@/components/kb/VerificationBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Trash2, Star, PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { ArrowLeft, Trash2, Star, PanelRightClose, PanelRightOpen, Bookmark } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -60,6 +60,7 @@ export default function KBPagePage({ params }: PageProps) {
   const updatePage = useUpdateKBPage(workspaceId)
   const deletePage = useDeleteKBPage(workspaceId)
   const toggleFavorite = useToggleFavorite(workspaceId)
+  const createTemplate = useCreateKBTemplate(workspaceId)
   const userId = (session as any)?.user?.id || ''
   const userName =
     sessionData?.user?.name ||
@@ -140,6 +141,24 @@ export default function KBPagePage({ params }: PageProps) {
         description: error instanceof Error ? error.message : 'Failed to unverify page',
       })
       throw error
+    }
+  }
+
+  const handleSaveTemplate = async () => {
+    if (!pageData?.data?.content) return
+
+    const defaultTitle = `${pageData.data.title} Template`
+    const templateTitle = window.prompt('Template name', defaultTitle)
+    if (!templateTitle || !templateTitle.trim()) return
+
+    try {
+      await createTemplate.mutateAsync({
+        title: templateTitle.trim(),
+        category: 'Custom',
+        content: pageData.data.content,
+      })
+    } catch {
+      // Errors handled in hook
     }
   }
 
@@ -239,6 +258,16 @@ export default function KBPagePage({ params }: PageProps) {
                       isFavorited && 'fill-yellow-500 text-yellow-500'
                     )}
                   />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSaveTemplate}
+                  disabled={createTemplate.isPending}
+                  title="Save as template"
+                >
+                  <Bookmark className="h-4 w-4" />
                 </Button>
 
                 <Button

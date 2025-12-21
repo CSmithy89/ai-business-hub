@@ -308,6 +308,8 @@ For ongoing operations:
 - PM-08: Prism Agent & Predictive Analytics ✅ Complete (Monte Carlo forecasting, risk detection, analytics dashboard, what-if scenarios, team metrics, CSV/PDF export)
 - KB-01: Knowledge Base Foundation ✅ Complete
 - KB-02: KB Real-Time & RAG ✅ Complete (collab editing + embeddings + semantic search + RAG)
+- KB-03: KB Verification & Scribe ✅ Complete (verified content + review workflows)
+- KB-04: AI-Native Knowledge Base ✅ Complete (AI drafts + summarization + Q&A + gap detection + templates)
 
 ### Latest Epic: Premium Polish & Advanced Features (EPIC-16)
 
@@ -353,6 +355,8 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 | EPIC-PM-08 | Prism Agent & Analytics | 6/6 | ✅ Complete |
 | EPIC-KB-01 | Knowledge Base Foundation | 10/10 | ✅ Complete |
 | EPIC-KB-02 | KB Real-Time & RAG | 8/8 | ✅ Complete |
+| EPIC-KB-03 | KB Verification & Scribe | 7/7 | ✅ Complete |
+| EPIC-KB-04 | AI-Native Knowledge Base | 6/6 | ✅ Complete |
 
 **Latest Core-PM Epic: Prism Agent & Predictive Analytics (EPIC-PM-08)**
 - Monte Carlo simulation for completion forecasting (1000 iterations, Box-Muller transform)
@@ -363,6 +367,15 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 - Team performance metrics (velocity, cycle time, throughput, capacity utilization)
 - CSV and PDF data export for stakeholder reporting
 - Docs: `docs/sprint-artifacts/tech-spec-epic-pm-08.md`, `docs/modules/bm-pm/stories/pm-08-*.md`
+
+**Latest KB Epic: AI-Native Knowledge Base (EPIC-KB-04)**
+- AI-generated page drafts from PM tasks with approval routing
+- Smart summarization for KB pages
+- Q&A chat interface for instant KB answers
+- Knowledge extraction from completed tasks
+- Gap detection dashboard for missing topics
+- Reusable KB templates for faster authoring
+- Docs: `docs/modules/bm-pm/epics/epic-kb-04-ai-native-knowledge-base.md`, `docs/modules/bm-pm/stories/kb-04-*.md`
 
 ---
 

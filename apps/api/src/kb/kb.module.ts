@@ -13,25 +13,49 @@ import { KbCollabModule } from './collab/kb-collab.module'
 import { EmbeddingsModule } from './embeddings/embeddings.module'
 import { RagController } from './rag/rag.controller'
 import { RagService } from './rag/rag.service'
+import { KbAiController } from './ai/ai.controller'
+import { KbAiService } from './ai/ai.service'
+import { KbAskController } from './ai/ask.controller'
+import { KnowledgeExtractionHandler } from './ai/knowledge-extraction.handler'
 import { VerificationModule } from './verification/verification.module'
 import { MentionModule } from './mentions/mention.module'
+import { ApprovalsModule } from '../approvals/approvals.module'
+import { GapAnalysisController } from './analysis/analysis.controller'
+import { GapAnalysisService } from './analysis/analysis.service'
+import { TemplatesController } from './templates/templates.controller'
+import { TemplatesService } from './templates/templates.service'
 
 @Module({
   imports: [
     CommonModule,
     EventsModule,
+    ApprovalsModule,
     KbCollabModule,
     EmbeddingsModule,
     VerificationModule,
     MentionModule,
   ],
-  controllers: [PagesController, VersionsController, SearchController, LinkingController, RagController],
+  controllers: [
+    PagesController,
+    VersionsController,
+    SearchController,
+    LinkingController,
+    RagController,
+    KbAiController,
+    KbAskController,
+    GapAnalysisController,
+    TemplatesController,
+  ],
   providers: [
     PagesService,
     VersionsService,
     SearchService,
     RagService,
+    KbAiService,
+    GapAnalysisService,
+    TemplatesService,
     LinkingService,
+    KnowledgeExtractionHandler,
     {
       provide: 'VersionsService',
       useExisting: forwardRef(() => VersionsService),

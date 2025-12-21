@@ -514,7 +514,9 @@ export class ApprovalsService {
       title: approval.title,
       description: approval.description,
       previewData: approval.previewData,
+      data: approval.previewData,
       confidenceScore: approval.confidenceScore,
+      confidenceLevel: this.getConfidenceLevel(approval.confidenceScore),
       factors: approval.confidenceFactors || [],
       aiReasoning: approval.aiReasoning,
       status: approval.status,
@@ -530,12 +532,19 @@ export class ApprovalsService {
       decisionNotes: approval.resolution?.notes || approval.resolution?.reason,
       sourceModule: approval.sourceModule,
       sourceId: approval.sourceId,
+      createdBy: approval.requestedBy,
       createdAt: approval.createdAt,
       updatedAt: approval.updatedAt,
       // Related entities
       assignedTo: approval.assignedTo,
       decidedBy: approval.resolvedBy, // Map resolvedBy to decidedBy
     };
+  }
+
+  private getConfidenceLevel(score: number): 'high' | 'medium' | 'low' {
+    if (score >= 85) return 'high';
+    if (score >= 60) return 'medium';
+    return 'low';
   }
 
   /**

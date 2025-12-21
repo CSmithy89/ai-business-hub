@@ -31,7 +31,7 @@ export const KB_ERROR = {
 
   SEARCH_NO_PROVIDER: 'kb.search-no-embeddings-provider',
   RAG_NO_PROVIDER: 'kb.rag-no-embeddings-provider',
+  AI_NO_PROVIDER: 'kb.ai-no-provider',
 } as const
 
 export type KbErrorCode = (typeof KB_ERROR)[keyof typeof KB_ERROR]
-

@@ -24,6 +24,11 @@ export class ListPagesQueryDto {
   includeDeleted?: boolean
 
   @IsOptional()
+  @IsBoolean()
+  @Transform(transformBoolean)
+  includeTemplates?: boolean
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)

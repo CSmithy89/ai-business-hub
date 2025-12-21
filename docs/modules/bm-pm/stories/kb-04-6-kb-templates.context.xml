@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>kb-04</epicId>
+    <storyId>kb-04-6</storyId>
+    <title>KB Templates</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-21</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/modules/bm-pm/stories/kb-04-6-kb-templates.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>KB user</asA>
+    <iWant>page templates</iWant>
+    <soThat>I create consistent documentation</soThat>
+    <tasks>
+- Add template storage and API endpoints
+- Add template selection to KB create flow
+- Add save-as-template action
+- Add tests for template behavior
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Given I create new page, when I select template, then page pre-filled with structure, headings, placeholder content.
+2. Templates include Meeting Notes, Decision Record, Process Doc, and Technical Spec.
+3. Users can create custom templates.
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/modules/bm-pm/epics/epic-kb-04-ai-native-knowledge-base.md</path>
+        <title>Epic KB-04: AI-Native Knowledge Base</title>
+        <section>Story KB-04.6: KB Templates</section>
+        <snippet>Provide default templates and allow custom templates for KB pages.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-kb-04.md</path>
+        <title>KB-04 Epic Tech Spec</title>
+        <section>Workflows: KB Templates</section>
+        <snippet>Template selection on create and custom templates.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>apps/api/src/kb/pages/pages.service.ts</path>
+        <kind>service</kind>
+        <symbol>PagesService.create</symbol>
+        <lines>160-260</lines>
+        <reason>Page creation flow to seed template content.</reason>
+      </artifact>
+      <artifact>
+        <path>apps/web/src/app/(dashboard)/kb/new/page.tsx</path>
+        <kind>page</kind>
+        <symbol>NewKBPagePage</symbol>
+        <lines>1-120</lines>
+        <reason>KB create page flow for template selection.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@tanstack/react-query" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Default templates must be available without external setup.
+- Templates should not appear in normal KB navigation.
+- Ensure workspace scoping for custom templates.
+  </constraints>
+
+  <interfaces>
+- GET /api/kb/templates
+- POST /api/kb/templates
+  </interfaces>
+
+  <tests>
+    <standards>Service tests for template listing and creation.</standards>
+    <locations>apps/api/src/**/*.spec.ts</locations>
+    <ideas>
+- Listing returns built-in templates and custom templates.
+- Template-created pages are excluded from page navigation.
+    </ideas>
+  </tests>
+</story-context>

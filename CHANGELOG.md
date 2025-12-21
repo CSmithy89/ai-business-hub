@@ -8,6 +8,41 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
+## EPIC-KB-04: AI-Native Knowledge Base (6 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-21
+**Branch:** `epic/04-ai-native-knowledge-base`
+
+### Added
+
+- **AI Page Drafts**: Generate KB draft content with citations and guardrails
+- **Smart Summarization**: AI summaries and key points for KB pages
+- **KB Q&A Chat**: Ask questions across the KB with cited answers
+- **Knowledge Extraction**: Task completion extraction with approval routing
+- **Gap Detection**: Admin dashboard + API to flag missing topics and stale coverage
+- **KB Templates**: Built-in and custom templates, plus save-as-template flow
+
+### Routes
+
+- `/kb/gaps` - Gap analysis dashboard
+- `/kb/new` - Template-based KB page creation
+
+### API Endpoints
+
+- `POST /api/kb/ai/draft` - Generate AI draft content
+- `POST /api/kb/ai/summary` - Summarize KB page content
+- `POST /api/kb/ask` - Ask the KB a question with citations
+- `GET /api/kb/analysis/gaps` - Run gap analysis (admin only)
+- `GET /api/kb/templates` - List templates (built-in + custom)
+- `POST /api/kb/templates` - Create a custom template
+
+### Notes
+
+- Added template metadata fields (`isTemplate`, `templateCategory`) to KB pages with migration `packages/db/prisma/migrations/20251221200509_add_kb_templates_and_gap_indexes/`.
+
+---
+
 ## EPIC-PM-08: Prism Agent & Predictive Analytics (6 stories)
 
 **Status:** Complete
