@@ -29,7 +29,7 @@ export function GapAnalysisDashboard() {
   }
 
   useEffect(() => {
-    if (error && error.message.includes('Admin access')) {
+    if (error instanceof Error && error.message.includes('Admin access')) {
       toast.error('You need admin permissions to access this page.')
     }
   }, [error])

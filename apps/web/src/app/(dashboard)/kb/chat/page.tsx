@@ -79,7 +79,7 @@ export default function KBChatPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
-              <Link href={'/kb' as any}>
+              <Link href="/kb">
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
@@ -122,7 +122,7 @@ export default function KBChatPage() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     {message.sources.map((source, index) => (
                       <Badge key={`${source.pageId}-${index}`} variant="outline">
-                        <Link href={`/kb/${source.slug}` as any} className="hover:underline">
+                        <Link href={`/kb/${source.slug}`} className="hover:underline">
                           {source.title}
                         </Link>
                       </Badge>

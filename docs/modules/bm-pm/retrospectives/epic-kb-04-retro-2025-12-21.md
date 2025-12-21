@@ -71,6 +71,11 @@
 - Edge‑case tests.
 - Explicit documentation for stale criteria.
 
+## Tech Debt (Non-blocking)
+- Evaluate a shared utility for Tiptap node builders used in both API and web.
+- Replace hardcoded model names in story docs with the actual model used or a generic "configured via BYOAI settings" note.
+- Revisit agent color differentiation only if UX feedback indicates confusion; keep consistency by default.
+
 ## Next Epic Preview
 - No KB‑05 epic file found. Next‑epic planning not yet defined in docs.
 

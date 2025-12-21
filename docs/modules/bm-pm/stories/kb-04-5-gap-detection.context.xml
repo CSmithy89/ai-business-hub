@@ -46,7 +46,7 @@
       <artifact>
         <path>apps/api/src/kb/verification/verification.service.ts</path>
         <kind>service</kind>
-        <symbol>VerificationService.getStalPages</symbol>
+        <symbol>VerificationService.getStalePages</symbol>
         <lines>180-260</lines>
         <reason>Reuse stale page detection for outdated content.</reason>
       </artifact>

@@ -473,8 +473,8 @@ export function PageEditor({
                 <div className="space-y-2">
                   <p className="text-muted-foreground">Key Points</p>
                   <ul className="list-disc pl-5 text-foreground">
-                    {summaryResult.keyPoints.map((point) => (
-                      <li key={point}>{point}</li>
+                    {summaryResult.keyPoints.map((point, index) => (
+                      <li key={`${point}-${index}`}>{point}</li>
                     ))}
                   </ul>
                 </div>

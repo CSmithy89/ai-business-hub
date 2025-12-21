@@ -21,7 +21,9 @@ describe('draftTextToTiptap', () => {
       type: 'bulletList',
     })
   })
+})
 
+describe('summaryToTiptapNodes', () => {
   it('creates summary nodes', () => {
     const nodes = summaryToTiptapNodes({
       summary: 'Short summary text.',
