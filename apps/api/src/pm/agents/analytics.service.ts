@@ -9,6 +9,8 @@ import {
   ForecastScenarioDto,
   AnomalyDto,
   CompletionProbabilityDto,
+  PredictionFactor,
+  ProbabilityDistribution,
 } from './dto/prism-forecast.dto';
 
 /**
@@ -40,32 +42,68 @@ export class AnalyticsService {
       // Fetch historical velocity data
       const history = await this.getVelocityHistory(projectId, workspaceId, 12);
 
-      // Calculate remaining points
-      const remainingPoints = await this.getRemainingPoints(projectId, workspaceId);
+      // Calculate remaining points (with scenario adjustments)
+      let remainingPoints = await this.getRemainingPoints(projectId, workspaceId);
+      if (scenario?.addedScope) {
+        remainingPoints += scenario.addedScope;
+      }
 
       // Check minimum data threshold
       if (history.length < 3) {
         this.logger.warn(
           `Insufficient data for forecast: project=${projectId}, dataPoints=${history.length}`,
         );
-        return this.fallbackLinearProjection(history, remainingPoints);
+        return this.fallbackLinearProjection(history, remainingPoints, scenario);
       }
 
-      // TODO: Invoke Prism agent when agent integration is available
-      // For now, use fallback linear projection
-      // const forecast = await this.agentService.invokePrism('forecast_completion', {
-      //   project_id: projectId,
-      //   history,
-      //   remaining_points: remainingPoints,
-      //   scenario,
-      // });
+      // Extract velocity values for Monte Carlo simulation
+      let velocityValues = history.map(h => h.completedPoints);
+
+      // Adjust velocity for team size changes
+      if (scenario?.teamSizeChange) {
+        const avgVelocity = velocityValues.reduce((sum, v) => sum + v, 0) / velocityValues.length;
+        const velocityPerPerson = avgVelocity / Math.max(1, 5); // assume 5-person team
+        const velocityAdjustment = velocityPerPerson * scenario.teamSizeChange;
+        velocityValues = velocityValues.map(v => Math.max(1, v + velocityAdjustment));
+      }
+
+      // Run Monte Carlo simulation
+      const monteCarlo = this.runMonteCarloSimulation(velocityValues, remainingPoints, 1000);
+
+      // Calculate confidence level
+      const confidence = this.calculateConfidence(history.length, monteCarlo.velocityStd * monteCarlo.velocityStd);
+
+      // Analyze prediction factors
+      const factors = this.analyzePredictionFactors(history, monteCarlo.trendSlope, confidence, scenario);
+
+      // Generate reasoning
+      const reasoning = this.generateMonteCarloReasoning(
+        monteCarlo,
+        remainingPoints,
+        history.length,
+        confidence,
+      );
 
       // Log prediction for accuracy tracking
       this.logger.log(
-        `Forecast generated: project=${projectId}, remainingPoints=${remainingPoints}, dataPoints=${history.length}`,
+        `Monte Carlo forecast generated: project=${projectId}, remainingPoints=${remainingPoints}, ` +
+        `dataPoints=${history.length}, confidence=${confidence}, predictedDate=${monteCarlo.dates.p50}`,
       );
 
-      return this.fallbackLinearProjection(history, remainingPoints, scenario);
+      // TODO: Store prediction in database for accuracy tracking
+      // await this.logPrediction(projectId, { ... });
+
+      return {
+        predictedDate: monteCarlo.dates.p50,
+        confidence,
+        optimisticDate: monteCarlo.dates.p25,
+        pessimisticDate: monteCarlo.dates.p75,
+        reasoning,
+        factors,
+        velocityAvg: monteCarlo.velocityMean,
+        dataPoints: history.length,
+        probabilityDistribution: monteCarlo.dates,
+      };
     } catch (error: any) {
       this.logger.error(
         `Forecast generation failed: ${error?.message || 'Unknown error'}`,
@@ -75,7 +113,7 @@ export class AnalyticsService {
       // Graceful degradation to linear projection
       const history = await this.getVelocityHistory(projectId, workspaceId, 12);
       const remainingPoints = await this.getRemainingPoints(projectId, workspaceId);
-      return this.fallbackLinearProjection(history, remainingPoints);
+      return this.fallbackLinearProjection(history, remainingPoints, scenario);
     }
   }
 
@@ -322,6 +360,275 @@ export class AnalyticsService {
         assessment: 'Unable to calculate probability',
       };
     }
+  }
+
+  /**
+   * Run Monte Carlo simulation to predict completion date range
+   *
+   * @param velocityHistory - Array of historical velocity values (story points)
+   * @param remainingPoints - Story points remaining
+   * @param numSimulations - Number of Monte Carlo iterations (default 1000)
+   * @returns Monte Carlo simulation results with percentiles
+   */
+  private runMonteCarloSimulation(
+    velocityHistory: number[],
+    remainingPoints: number,
+    numSimulations: number = 1000,
+  ): {
+    dates: ProbabilityDistribution;
+    velocityMean: number;
+    velocityStd: number;
+    trendSlope: number;
+    simulationRuns: number;
+  } {
+    if (velocityHistory.length === 0) {
+      // No data - return default values
+      const now = new Date();
+      const defaultDate = new Date(now);
+      defaultDate.setDate(defaultDate.getDate() + 365);
+      const defaultDateStr = defaultDate.toISOString().split('T')[0];
+
+      return {
+        dates: {
+          p10: defaultDateStr,
+          p25: defaultDateStr,
+          p50: defaultDateStr,
+          p75: defaultDateStr,
+          p90: defaultDateStr,
+        },
+        velocityMean: 0,
+        velocityStd: 0,
+        trendSlope: 0,
+        simulationRuns: 0,
+      };
+    }
+
+    // Calculate base statistics
+    const velocityMean = velocityHistory.reduce((sum, v) => sum + v, 0) / velocityHistory.length;
+    const variance = this.calculateVariance(velocityHistory);
+    const velocityStd = Math.sqrt(variance);
+
+    // Detect trend using linear regression (only with 4+ data points)
+    let trendSlope = 0;
+    if (velocityHistory.length >= 4) {
+      // Simple linear regression: y = mx + b
+      const n = velocityHistory.length;
+      const x = Array.from({ length: n }, (_, i) => i);
+      const sumX = x.reduce((sum, val) => sum + val, 0);
+      const sumY = velocityHistory.reduce((sum, val) => sum + val, 0);
+      const sumXY = x.reduce((sum, val, i) => sum + val * velocityHistory[i], 0);
+      const sumX2 = x.reduce((sum, val) => sum + val * val, 0);
+
+      trendSlope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    }
+
+    // Run Monte Carlo simulation
+    const completionWeeks: number[] = [];
+
+    for (let i = 0; i < numSimulations; i++) {
+      // Use Box-Muller transform for normal distribution
+      const u1 = Math.random();
+      const u2 = Math.random();
+      const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+
+      // Sample velocity from normal distribution
+      let sampledVelocity = velocityMean + z * velocityStd;
+
+      // Apply trend adjustment (assumes trend continues)
+      const projectedVelocity = Math.max(1, sampledVelocity + trendSlope);
+
+      // Calculate weeks to completion
+      const weeksNeeded = remainingPoints / projectedVelocity;
+      completionWeeks.push(weeksNeeded);
+    }
+
+    // Sort for percentile calculation
+    completionWeeks.sort((a, b) => a - b);
+
+    // Calculate percentiles
+    const getPercentile = (arr: number[], p: number): number => {
+      const index = Math.ceil(arr.length * (p / 100)) - 1;
+      return arr[Math.max(0, Math.min(index, arr.length - 1))];
+    };
+
+    const today = new Date();
+    const percentiles = {
+      p10: getPercentile(completionWeeks, 10),
+      p25: getPercentile(completionWeeks, 25),
+      p50: getPercentile(completionWeeks, 50),
+      p75: getPercentile(completionWeeks, 75),
+      p90: getPercentile(completionWeeks, 90),
+    };
+
+    // Convert weeks to dates
+    const dates: ProbabilityDistribution = {
+      p10: this.addWeeksToDate(today, percentiles.p10),
+      p25: this.addWeeksToDate(today, percentiles.p25),
+      p50: this.addWeeksToDate(today, percentiles.p50),
+      p75: this.addWeeksToDate(today, percentiles.p75),
+      p90: this.addWeeksToDate(today, percentiles.p90),
+    };
+
+    return {
+      dates,
+      velocityMean,
+      velocityStd,
+      trendSlope,
+      simulationRuns: numSimulations,
+    };
+  }
+
+  /**
+   * Analyze factors affecting prediction accuracy
+   *
+   * @param history - Historical velocity data
+   * @param trendSlope - Trend slope from linear regression
+   * @param confidence - Calculated confidence level
+   * @param scenario - Optional scenario adjustments
+   * @returns Array of prediction factors
+   */
+  private analyzePredictionFactors(
+    history: VelocityHistoryDto[],
+    trendSlope: number,
+    confidence: ConfidenceLevel,
+    scenario?: ForecastScenarioDto,
+  ): PredictionFactor[] {
+    const factors: PredictionFactor[] = [];
+
+    // Factor 1: Historical Data Quality
+    if (history.length < 3) {
+      factors.push({
+        name: 'Historical Data',
+        value: `${history.length} periods`,
+        impact: 'NEGATIVE',
+        description: 'Insufficient historical data for reliable prediction',
+      });
+    } else if (history.length < 6) {
+      factors.push({
+        name: 'Historical Data',
+        value: `${history.length} periods`,
+        impact: 'NEUTRAL',
+        description: 'Limited historical data - use prediction with caution',
+      });
+    } else {
+      factors.push({
+        name: 'Historical Data',
+        value: `${history.length} periods`,
+        impact: 'POSITIVE',
+        description: 'Sufficient historical data for reliable prediction',
+      });
+    }
+
+    // Factor 2: Velocity Trend
+    const trendThreshold = 0.1; // 0.1 points per week
+    if (trendSlope > trendThreshold) {
+      factors.push({
+        name: 'Velocity Trend',
+        value: 'INCREASING',
+        impact: 'POSITIVE',
+        description: 'Team velocity is improving over time',
+      });
+    } else if (trendSlope < -trendThreshold) {
+      factors.push({
+        name: 'Velocity Trend',
+        value: 'DECREASING',
+        impact: 'NEGATIVE',
+        description: 'Team velocity is declining - completion may be delayed',
+      });
+    } else {
+      factors.push({
+        name: 'Velocity Trend',
+        value: 'STABLE',
+        impact: 'NEUTRAL',
+        description: 'Team velocity is consistent',
+      });
+    }
+
+    // Factor 3: Prediction Confidence
+    const confidenceImpact =
+      confidence === ConfidenceLevel.HIGH ? 'POSITIVE' :
+      confidence === ConfidenceLevel.LOW ? 'NEGATIVE' :
+      'NEUTRAL';
+
+    factors.push({
+      name: 'Prediction Confidence',
+      value: confidence,
+      impact: confidenceImpact,
+      description: `Based on data quality and variance, confidence is ${confidence.toLowerCase()}`,
+    });
+
+    // Factor 4: Scope Changes (if scenario provided)
+    if (scenario?.addedScope) {
+      const impact = scenario.addedScope > 0 ? 'NEGATIVE' : 'POSITIVE';
+      factors.push({
+        name: 'Scope Change',
+        value: `${scenario.addedScope > 0 ? '+' : ''}${scenario.addedScope} points`,
+        impact,
+        description: scenario.addedScope > 0
+          ? 'Additional scope will delay completion'
+          : 'Reduced scope will accelerate completion',
+      });
+    }
+
+    // Factor 5: Team Capacity Changes (if scenario provided)
+    if (scenario?.teamSizeChange) {
+      const impact = scenario.teamSizeChange > 0 ? 'POSITIVE' : 'NEGATIVE';
+      factors.push({
+        name: 'Team Capacity',
+        value: `${scenario.teamSizeChange > 0 ? '+' : ''}${scenario.teamSizeChange} members`,
+        impact,
+        description: scenario.teamSizeChange > 0
+          ? 'Additional team members will accelerate completion'
+          : 'Reduced team size will delay completion',
+      });
+    }
+
+    return factors;
+  }
+
+  /**
+   * Generate natural language reasoning for Monte Carlo forecast
+   */
+  private generateMonteCarloReasoning(
+    monteCarlo: {
+      dates: ProbabilityDistribution;
+      velocityMean: number;
+      velocityStd: number;
+      trendSlope: number;
+      simulationRuns: number;
+    },
+    remainingPoints: number,
+    dataPoints: number,
+    confidence: ConfidenceLevel,
+  ): string {
+    const weeksToCompletion = remainingPoints / monteCarlo.velocityMean;
+    const trendDirection =
+      monteCarlo.trendSlope > 0.1 ? 'improving' :
+      monteCarlo.trendSlope < -0.1 ? 'declining' :
+      'stable';
+
+    let reasoning = `Based on Monte Carlo simulation of ${monteCarlo.simulationRuns} scenarios using ${dataPoints} weeks of velocity history. `;
+    reasoning += `Current average velocity is ${monteCarlo.velocityMean.toFixed(1)} points/week with ${trendDirection} trend. `;
+    reasoning += `Remaining backlog of ${remainingPoints} points suggests approximately ${Math.round(weeksToCompletion)} weeks to completion. `;
+
+    if (confidence === ConfidenceLevel.HIGH) {
+      reasoning += `High confidence prediction based on consistent velocity data.`;
+    } else if (confidence === ConfidenceLevel.MED) {
+      reasoning += `Medium confidence - velocity shows some variance, use prediction with caution.`;
+    } else {
+      reasoning += `Low confidence - limited historical data or high variance, treat as rough estimate.`;
+    }
+
+    return reasoning;
+  }
+
+  /**
+   * Add weeks to a date and return ISO 8601 date string
+   */
+  private addWeeksToDate(date: Date, weeks: number): string {
+    const result = new Date(date);
+    result.setDate(result.getDate() + Math.round(weeks * 7));
+    return result.toISOString().split('T')[0];
   }
 
   /**

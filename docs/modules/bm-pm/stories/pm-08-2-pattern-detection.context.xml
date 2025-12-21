@@ -1,0 +1,961 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>PM-08-2</story-id>
+    <story-name>Completion Predictions (Pattern Detection)</story-name>
+    <epic>PM-08 - Prism Agent &amp; Predictive Analytics</epic>
+    <generated-date>2025-12-21</generated-date>
+    <module>bm-pm (Core-PM)</module>
+    <prerequisites>
+      <prerequisite status="done">PM-08-1 - Prism Agent Foundation</prerequisite>
+      <prerequisite status="done">PM-04-9 - Chrono Velocity Calculation</prerequisite>
+      <prerequisite status="done">PM-02 - Task Management</prerequisite>
+    </prerequisites>
+  </metadata>
+
+  <story-summary>
+    <description>
+      Enhance the Prism agent with Monte Carlo simulation for completion predictions.
+      Generate predicted completion dates with confidence ranges (optimistic/pessimistic bands),
+      analyze factors affecting predictions, and support what-if scenario analysis.
+    </description>
+    <key-deliverables>
+      <deliverable>Monte Carlo simulation implementation in Python agent</deliverable>
+      <deliverable>Enhanced forecast_completion tool with statistical forecasting</deliverable>
+      <deliverable>Factor analysis for prediction accuracy (velocity trend, data quality, etc.)</deliverable>
+      <deliverable>Enhanced Analytics Service with Monte Carlo integration</deliverable>
+      <deliverable>Probability distribution calculation (P10, P25, P50, P75, P90)</deliverable>
+      <deliverable>What-if scenario support (scope changes, team size adjustments)</deliverable>
+    </key-deliverables>
+    <acceptance-criteria-summary>
+      6 major criteria groups covering:
+      - Prediction generation with confidence ranges
+      - Monte Carlo simulation (1000+ iterations)
+      - Factor analysis (velocity trend, data quality, team changes)
+      - Automatic prediction updates
+      - API integration with &lt;3s response time
+      - Data visualization readiness
+    </acceptance-criteria-summary>
+  </story-summary>
+
+  <architecture-context>
+    <component-overview>
+      <component name="Prism Agent" language="Python" framework="Agno">
+        <location>agents/pm/prism.py</location>
+        <purpose>Predictive analytics specialist for PM operations</purpose>
+        <dependencies>
+          <dependency>agno.agent.Agent</dependency>
+          <dependency>agno.models.anthropic.Claude</dependency>
+          <dependency>agno.memory.Memory</dependency>
+          <dependency>numpy (for Monte Carlo simulation)</dependency>
+        </dependencies>
+        <current-state>
+          Foundation complete with basic forecast_completion, calculate_velocity, and detect_anomalies tools.
+          Uses linear projection fallback. Monte Carlo simulation not yet implemented.
+        </current-state>
+      </component>
+
+      <component name="Prism Tools" language="Python" framework="Agno">
+        <location>agents/pm/tools/prism_tools.py</location>
+        <purpose>Tool functions for Prism agent (forecast, velocity, anomaly detection)</purpose>
+        <current-state>
+          Basic tools implemented with API request patterns. All tools use api_request() helper
+          from common.py for authenticated calls to NestJS backend.
+        </current-state>
+      </component>
+
+      <component name="Analytics Service" language="TypeScript" framework="NestJS">
+        <location>apps/api/src/pm/agents/analytics.service.ts</location>
+        <purpose>Backend service orchestrating predictive analytics</purpose>
+        <dependencies>
+          <dependency>PrismaService (database access)</dependency>
+          <dependency>AgentService (future - for invoking Python Prism agent)</dependency>
+        </dependencies>
+        <current-state>
+          Service complete with velocity calculation, forecast generation, anomaly detection.
+          Currently uses fallback linear projection. Agent integration pending (TODO at line 54-61).
+        </current-state>
+      </component>
+
+      <component name="Analytics Controller" language="TypeScript" framework="NestJS">
+        <location>apps/api/src/pm/agents/analytics.controller.ts</location>
+        <purpose>REST API endpoints for analytics operations</purpose>
+        <endpoints>
+          <endpoint method="POST" path="/api/pm/projects/:projectId/analytics/forecast">Generate forecast</endpoint>
+          <endpoint method="GET" path="/api/pm/projects/:projectId/analytics/velocity">Get current velocity</endpoint>
+          <endpoint method="GET" path="/api/pm/projects/:projectId/analytics/velocity-history">Get historical data</endpoint>
+          <endpoint method="GET" path="/api/pm/projects/:projectId/analytics/anomalies">Detect anomalies</endpoint>
+          <endpoint method="GET" path="/api/pm/projects/:projectId/analytics/completion-probability">Analyze target date</endpoint>
+        </endpoints>
+      </component>
+    </component-overview>
+
+    <data-models>
+      <model name="PrismForecastDto" type="interface">
+        <file>apps/api/src/pm/agents/dto/prism-forecast.dto.ts</file>
+        <fields>
+          <field name="predictedDate" type="string">P50 (median) completion date</field>
+          <field name="confidence" type="ConfidenceLevel">LOW/MED/HIGH based on data quality</field>
+          <field name="optimisticDate" type="string">P25 (optimistic) completion date</field>
+          <field name="pessimisticDate" type="string">P75 (pessimistic) completion date</field>
+          <field name="reasoning" type="string">Natural language explanation</field>
+          <field name="factors" type="string[]">Array of factors affecting prediction</field>
+          <field name="velocityAvg" type="number">Average velocity from history</field>
+          <field name="dataPoints" type="number">Number of historical data points used</field>
+        </fields>
+        <enhancement-needed>
+          Add probabilityDistribution field for full Monte Carlo results:
+          {
+            "p10": "2025-02-15",
+            "p25": "2025-03-01",
+            "p50": "2025-03-15",
+            "p75": "2025-04-01",
+            "p90": "2025-04-20"
+          }
+        </enhancement-needed>
+      </model>
+
+      <model name="VelocityHistoryDto" type="interface">
+        <file>apps/api/src/pm/agents/dto/prism-forecast.dto.ts</file>
+        <fields>
+          <field name="period" type="string">ISO week format: "2024-W01"</field>
+          <field name="completedPoints" type="number">Story points completed in period</field>
+          <field name="totalTasks" type="number">Total tasks in period</field>
+          <field name="completedTasks" type="number">Tasks completed in period</field>
+          <field name="startDate" type="string">Period start date (ISO 8601)</field>
+          <field name="endDate" type="string">Period end date (ISO 8601)</field>
+        </fields>
+      </model>
+
+      <model name="ForecastScenarioDto" type="class">
+        <file>apps/api/src/pm/agents/dto/prism-forecast.dto.ts</file>
+        <fields>
+          <field name="addedScope" type="number" optional="true" validation="@Min(0) @Max(10000)">Additional story points</field>
+          <field name="teamSizeChange" type="number" optional="true" validation="@Min(-10) @Max(10)">Team size adjustment</field>
+          <field name="params" type="Record&lt;string, any&gt;" optional="true">Additional parameters</field>
+        </fields>
+      </model>
+
+      <model name="ConfidenceLevel" type="enum">
+        <values>
+          <value>LOW - &lt;3 data points or high variance</value>
+          <value>MED - 3-5 data points or moderate variance</value>
+          <value>HIGH - 6+ data points with stable trends</value>
+        </values>
+      </model>
+    </data-models>
+
+    <patterns-and-conventions>
+      <pattern name="API Request Pattern">
+        <description>
+          All Python agent tools use api_request() helper from common.py for authenticated API calls.
+          Pattern includes fallback data, timeout configuration, and standardized error handling.
+        </description>
+        <example file="agents/pm/tools/prism_tools.py" lines="50-83">
+          <![CDATA[
+result = api_request(
+    method="POST",
+    endpoint=f"/api/pm/projects/{project_id}/analytics/forecast",
+    workspace_id=workspace_id,
+    json=payload,
+    timeout=30.0,
+    fallback_data={
+        "predictedDate": None,
+        "confidence": "LOW",
+        "reasoning": "Unable to generate forecast - service unavailable",
+        ...
+    },
+)
+          ]]>
+        </example>
+      </pattern>
+
+      <pattern name="Graceful Degradation">
+        <description>
+          Analytics Service includes fallback linear projection when Prism agent is unavailable
+          or data is insufficient. Returns LOW confidence with clear reasoning.
+        </description>
+        <example file="apps/api/src/pm/agents/analytics.service.ts" lines="330-389">
+          <![CDATA[
+private fallbackLinearProjection(
+    history: VelocityHistoryDto[],
+    remainingPoints: number,
+    scenario?: ForecastScenarioDto,
+): PrismForecastDto {
+    // Simple linear calculation
+    const avgVelocity = history.length > 0
+        ? history.reduce((sum, h) => sum + h.completedPoints, 0) / history.length
+        : 10; // default assumption
+
+    const weeksNeeded = adjustedVelocity > 0
+        ? Math.ceil(adjustedPoints / adjustedVelocity)
+        : 52;
+
+    return {
+        predictedDate: predictedDate.toISOString().split('T')[0],
+        confidence: history.length >= 6 ? ConfidenceLevel.MED : ConfidenceLevel.LOW,
+        ...
+        factors: ['Fallback mode', 'Linear calculation'],
+        reasoning: 'Linear projection based on average velocity...',
+    };
+}
+          ]]>
+        </example>
+      </pattern>
+
+      <pattern name="Velocity Calculation">
+        <description>
+          Existing velocity calculation with trend detection comparing first half vs second half.
+          Uses 15% threshold for UP/DOWN trend classification.
+        </description>
+        <example file="apps/api/src/pm/agents/analytics.service.ts" lines="87-151">
+          <![CDATA[
+// Calculate average velocity
+const totalPoints = history.reduce((sum, h) => sum + h.completedPoints, 0);
+const velocity = totalPoints / history.length;
+
+// Determine trend (compare first half vs second half)
+const midpoint = Math.floor(history.length / 2);
+const firstHalf = history.slice(0, midpoint);
+const secondHalf = history.slice(midpoint);
+
+const changePercent = firstHalfAvg > 0
+    ? (secondHalfAvg - firstHalfAvg) / firstHalfAvg
+    : 0;
+
+if (changePercent > 0.15) trend = VelocityTrend.UP;
+else if (changePercent < -0.15) trend = VelocityTrend.DOWN;
+          ]]>
+        </example>
+      </pattern>
+
+      <pattern name="Confidence Calculation">
+        <description>
+          Confidence level based on data points and coefficient of variation.
+          Uses variance calculation to assess data quality.
+        </description>
+        <example file="apps/api/src/pm/agents/analytics.service.ts" lines="417-427">
+          <![CDATA[
+private calculateConfidence(dataPoints: number, variance: number): ConfidenceLevel {
+    if (dataPoints < 3) return ConfidenceLevel.LOW;
+
+    const coefficientOfVariation = variance > 0
+        ? Math.sqrt(variance) / dataPoints
+        : 0;
+
+    if (dataPoints < 6) {
+        return coefficientOfVariation < 0.3
+            ? ConfidenceLevel.MED
+            : ConfidenceLevel.LOW;
+    }
+
+    return coefficientOfVariation < 0.2
+        ? ConfidenceLevel.HIGH
+        : ConfidenceLevel.MED;
+}
+          ]]>
+        </example>
+      </pattern>
+
+      <pattern name="Variance Calculation">
+        <description>
+          Standard variance calculation: Σ(x - μ)² / n
+          Used for confidence assessment and anomaly detection.
+        </description>
+        <example file="apps/api/src/pm/agents/analytics.service.ts" lines="432-438">
+          <![CDATA[
+private calculateVariance(values: number[]): number {
+    if (values.length === 0) return 0;
+
+    const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
+    const squaredDiffs = values.map(v => Math.pow(v - mean, 2));
+    return squaredDiffs.reduce((sum, v) => sum + v, 0) / values.length;
+}
+          ]]>
+        </example>
+      </pattern>
+
+      <pattern name="Workspace Isolation (RLS)">
+        <description>
+          All Prisma queries filter by workspaceId to enforce tenant isolation.
+          This is critical for multi-tenant security.
+        </description>
+        <example file="apps/api/src/pm/agents/analytics.service.ts" lines="173-186">
+          <![CDATA[
+const tasks = await this.prisma.task.findMany({
+    where: {
+        projectId,
+        workspaceId,  // RLS enforcement
+        status: 'DONE',
+        completedAt: {
+            gte: periodStart,
+            lt: periodEnd,
+        },
+    },
+    select: {
+        storyPoints: true,
+    },
+});
+          ]]>
+        </example>
+      </pattern>
+    </patterns-and-conventions>
+  </architecture-context>
+
+  <implementation-guidance>
+    <phase name="Phase 1: Monte Carlo Simulation">
+      <tasks>
+        <task>Add numpy dependency to Python agent requirements.txt</task>
+        <task>Implement run_monte_carlo_simulation() function in prism_tools.py</task>
+        <task>Use np.random.normal() for velocity sampling based on mean and std dev</task>
+        <task>Implement linear regression (np.polyfit) for trend detection</task>
+        <task>Calculate percentiles (P10, P25, P50, P75, P90) using np.percentile()</task>
+        <task>Convert weeks to dates using datetime + timedelta</task>
+        <task>Test simulation with deterministic seed (np.random.seed) for reproducibility</task>
+      </tasks>
+      <code-example>
+        <![CDATA[
+import numpy as np
+from datetime import datetime, timedelta
+
+def run_monte_carlo_simulation(
+    velocity_history: List[float],
+    remaining_points: int,
+    num_simulations: int = 1000
+) -> Dict[str, Any]:
+    """
+    Run Monte Carlo simulation to predict completion date range.
+
+    Returns:
+        {
+            'dates': { 'p10': '2025-02-15', 'p25': '2025-03-01', ... },
+            'velocity_mean': 12.5,
+            'velocity_std': 2.3,
+            'trend_slope': 0.15,
+            'simulation_runs': 1000
+        }
+    """
+    # Calculate base statistics
+    velocity_mean = np.mean(velocity_history)
+    velocity_std = np.std(velocity_history)
+
+    # Detect trend using linear regression
+    if len(velocity_history) >= 4:
+        x = np.arange(len(velocity_history))
+        z = np.polyfit(x, velocity_history, 1)
+        trend_slope = z[0]
+    else:
+        trend_slope = 0
+
+    # Run simulation
+    completion_weeks = []
+    for _ in range(num_simulations):
+        # Sample velocity from normal distribution
+        sampled_velocity = np.random.normal(velocity_mean, velocity_std)
+
+        # Apply trend adjustment
+        projected_velocity = max(1, sampled_velocity + trend_slope)
+
+        # Calculate weeks to completion
+        weeks_needed = remaining_points / projected_velocity
+        completion_weeks.append(weeks_needed)
+
+    # Calculate percentiles
+    today = datetime.now()
+    percentiles = {
+        'p10': np.percentile(completion_weeks, 10),
+        'p25': np.percentile(completion_weeks, 25),
+        'p50': np.percentile(completion_weeks, 50),
+        'p75': np.percentile(completion_weeks, 75),
+        'p90': np.percentile(completion_weeks, 90),
+    }
+
+    # Convert weeks to dates
+    dates = {
+        key: (today + timedelta(weeks=value)).strftime('%Y-%m-%d')
+        for key, value in percentiles.items()
+    }
+
+    return {
+        'dates': dates,
+        'velocity_mean': velocity_mean,
+        'velocity_std': velocity_std,
+        'trend_slope': trend_slope,
+        'simulation_runs': num_simulations
+    }
+        ]]>
+      </code-example>
+    </phase>
+
+    <phase name="Phase 2: Enhanced Prism Agent">
+      <tasks>
+        <task>Update forecast_completion tool to call run_monte_carlo_simulation()</task>
+        <task>Extract velocity history from API response</task>
+        <task>Pass velocity values (not full objects) to Monte Carlo function</task>
+        <task>Map Monte Carlo results to PrismForecastDto structure</task>
+        <task>Add trend detection logic (UP/DOWN/STABLE based on trend_slope)</task>
+        <task>Generate natural language reasoning explaining Monte Carlo results</task>
+        <task>Include simulation statistics in response (runs, mean, std dev)</task>
+      </tasks>
+      <integration-point>
+        The forecast_completion tool in prism_tools.py currently makes an API request.
+        For Monte Carlo, it should:
+        1. Call GET /api/pm/projects/{id}/analytics/velocity-history
+        2. Extract completedPoints values into array
+        3. Run Monte Carlo simulation locally in Python
+        4. Format results and return
+
+        OR (simpler for this story):
+        Keep API-first approach and implement Monte Carlo in AnalyticsService.getForecast()
+      </integration-point>
+    </phase>
+
+    <phase name="Phase 3: Factors Analysis">
+      <tasks>
+        <task>Implement analyzePredictionFactors() function</task>
+        <task>Factor 1: Historical data quality (based on data points)</task>
+        <task>Factor 2: Velocity trend (UP/DOWN/STABLE)</task>
+        <task>Factor 3: Confidence level explanation</task>
+        <task>Factor 4: Scope changes (if scenario provided)</task>
+        <task>Factor 5: Team capacity changes (if scenario provided)</task>
+        <task>Return structured PredictionFactor[] array</task>
+      </tasks>
+      <data-structure>
+        <![CDATA[
+interface PredictionFactor {
+    name: string;
+    value: string;
+    impact: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE';
+    description: string;
+}
+
+// Example factors:
+[
+    {
+        name: "Historical Data",
+        value: "8 periods",
+        impact: "POSITIVE",
+        description: "Sufficient historical data for reliable prediction"
+    },
+    {
+        name: "Velocity Trend",
+        value: "STABLE",
+        impact: "NEUTRAL",
+        description: "Team velocity is consistent"
+    }
+]
+        ]]>
+      </data-structure>
+    </phase>
+
+    <phase name="Phase 4: Backend Integration">
+      <tasks>
+        <task>Enhance AnalyticsService.getForecast() to use Monte Carlo</task>
+        <task>Add probabilityDistribution field to PrismForecastDto</task>
+        <task>Call analyzePredictionFactors() and include in response</task>
+        <task>Update fallbackLinearProjection() to match new response format</task>
+        <task>Add logging for prediction generation (for accuracy tracking)</task>
+        <task>Test scenario parameter application (addedScope, teamSizeChange)</task>
+        <task>Verify &lt;3s response time with 1000 Monte Carlo iterations</task>
+      </tasks>
+      <current-implementation-note>
+        AnalyticsService.getForecast() currently uses fallbackLinearProjection() for all requests.
+        The TODO at line 54-61 indicates where Prism agent invocation should happen.
+        For this story, implement Monte Carlo directly in the service, not via agent call.
+        Agent integration can be completed in a follow-up story.
+      </current-implementation-note>
+    </phase>
+
+    <phase name="Phase 5: Testing and Validation">
+      <test-coverage>
+        <unit-tests>
+          <test>Monte Carlo simulation with deterministic seed (np.random.seed)</test>
+          <test>Percentile calculation accuracy</test>
+          <test>Trend detection with UP/DOWN/STABLE patterns</test>
+          <test>Factor analysis with various data scenarios</test>
+          <test>Scenario adjustments (scope, team size)</test>
+          <test>Confidence level calculation</test>
+        </unit-tests>
+        <integration-tests>
+          <test>API -> Service flow with Monte Carlo</test>
+          <test>Forecast with 3, 6, 12 historical data points</test>
+          <test>Scenario modifications (add scope, change team size)</test>
+          <test>Workspace isolation (RLS enforcement)</test>
+          <test>Response time &lt;3s validation</test>
+          <test>Error handling and graceful degradation</test>
+        </integration-tests>
+        <performance-tests>
+          <test>Monte Carlo simulation time (&lt;2s for 1000 runs)</test>
+          <test>API response time with 52 data points (1 year)</test>
+          <test>Concurrent forecast requests</test>
+        </performance-tests>
+      </test-coverage>
+      <test-file-location>
+        apps/api/src/pm/agents/__tests__/analytics.service.spec.ts
+      </test-file-location>
+    </phase>
+  </implementation-guidance>
+
+  <existing-code-snippets>
+    <snippet name="Current Velocity History Fetching">
+      <file>apps/api/src/pm/agents/analytics.service.ts</file>
+      <lines>156-212</lines>
+      <description>
+        Existing getVelocityHistory() method that calculates weekly velocity
+        by querying completed tasks. This is the data source for Monte Carlo.
+      </description>
+      <code>
+        <![CDATA[
+async getVelocityHistory(
+    projectId: string,
+    workspaceId: string,
+    periods: number = 12,
+): Promise<VelocityHistoryDto[]> {
+    try {
+        const now = new Date();
+        const history: VelocityHistoryDto[] = [];
+
+        for (let i = 0; i < periods; i++) {
+            const periodEnd = new Date(now);
+            periodEnd.setDate(periodEnd.getDate() - (i * 7));
+            const periodStart = new Date(periodEnd);
+            periodStart.setDate(periodStart.getDate() - 7);
+
+            const tasks = await this.prisma.task.findMany({
+                where: {
+                    projectId,
+                    workspaceId,
+                    status: 'DONE',
+                    completedAt: {
+                        gte: periodStart,
+                        lt: periodEnd,
+                    },
+                },
+                select: {
+                    storyPoints: true,
+                },
+            });
+
+            const completedPoints = tasks.reduce(
+                (sum, task) => sum + (task.storyPoints || 0),
+                0,
+            );
+
+            const year = periodStart.getFullYear();
+            const week = this.getWeekNumber(periodStart);
+            const period = `${year}-W${week.toString().padStart(2, '0')}`;
+
+            history.push({
+                period,
+                completedPoints,
+                totalTasks: tasks.length,
+                completedTasks: tasks.length,
+                startDate: periodStart.toISOString().split('T')[0],
+                endDate: periodEnd.toISOString().split('T')[0],
+            });
+        }
+
+        return history.reverse(); // Return chronological order
+    } catch (error: any) {
+        this.logger.error(`Failed to get velocity history: ${error?.message || 'Unknown error'}`);
+        return [];
+    }
+}
+        ]]>
+      </code>
+    </snippet>
+
+    <snippet name="Current Fallback Linear Projection">
+      <file>apps/api/src/pm/agents/analytics.service.ts</file>
+      <lines>330-389</lines>
+      <description>
+        Existing fallback projection logic. This provides the baseline
+        for comparison and the pattern to follow for Monte Carlo implementation.
+      </description>
+      <code>
+        <![CDATA[
+private fallbackLinearProjection(
+    history: VelocityHistoryDto[],
+    remainingPoints: number,
+    scenario?: ForecastScenarioDto,
+): PrismForecastDto {
+    // Apply scenario adjustments
+    let adjustedPoints = remainingPoints;
+    if (scenario?.addedScope) {
+        adjustedPoints += scenario.addedScope;
+    }
+
+    // Simple linear calculation
+    const avgVelocity = history.length > 0
+        ? history.reduce((sum, h) => sum + h.completedPoints, 0) / history.length
+        : 10; // default assumption
+
+    // Adjust velocity for team size changes
+    let adjustedVelocity = avgVelocity;
+    if (scenario?.teamSizeChange) {
+        const velocityPerPerson = avgVelocity / Math.max(1, 5); // assume 5-person team
+        adjustedVelocity += velocityPerPerson * scenario.teamSizeChange;
+    }
+
+    const weeksNeeded = adjustedVelocity > 0
+        ? Math.ceil(adjustedPoints / adjustedVelocity)
+        : 52; // default to 1 year if no velocity
+
+    const predictedDate = new Date();
+    predictedDate.setDate(predictedDate.getDate() + weeksNeeded * 7);
+
+    const optimisticDate = new Date(predictedDate);
+    optimisticDate.setDate(optimisticDate.getDate() - 7);
+
+    const pessimisticDate = new Date(predictedDate);
+    pessimisticDate.setDate(pessimisticDate.getDate() + 14);
+
+    const factors = ['Fallback mode', 'Linear calculation'];
+    if (history.length < 3) {
+        factors.push('Insufficient historical data');
+    }
+    if (scenario?.addedScope) {
+        factors.push(`Added scope: ${scenario.addedScope} points`);
+    }
+    if (scenario?.teamSizeChange) {
+        factors.push(`Team size change: ${scenario.teamSizeChange > 0 ? '+' : ''}${scenario.teamSizeChange}`);
+    }
+
+    return {
+        predictedDate: predictedDate.toISOString().split('T')[0],
+        confidence: history.length >= 6 ? ConfidenceLevel.MED : ConfidenceLevel.LOW,
+        optimisticDate: optimisticDate.toISOString().split('T')[0],
+        pessimisticDate: pessimisticDate.toISOString().split('T')[0],
+        reasoning: history.length > 0
+            ? `Linear projection based on ${history.length}-week average velocity of ${avgVelocity.toFixed(1)} points/week. ${adjustedPoints} points remaining suggests ${weeksNeeded} weeks.`
+            : 'Linear projection using default velocity assumption (insufficient historical data).',
+        factors,
+        velocityAvg: avgVelocity,
+        dataPoints: history.length,
+    };
+}
+        ]]>
+      </code>
+    </snippet>
+
+    <snippet name="Prism Agent Instructions">
+      <file>agents/pm/prism.py</file>
+      <lines>24-93</lines>
+      <description>
+        Prism agent instructions guide LLM behavior. These explain how to
+        use Monte Carlo simulation and communicate predictions clearly.
+      </description>
+      <key-sections>
+        <section>Statistical Methods - explains Monte Carlo usage</section>
+        <section>Confidence Levels - LOW/MED/HIGH thresholds</section>
+        <section>Data Requirements - minimum 3 data points</section>
+        <section>Communication Style - business-friendly explanations</section>
+        <section>What-If Scenarios - scope and team size adjustments</section>
+      </key-sections>
+    </snippet>
+
+    <snippet name="API Request Helper">
+      <file>agents/pm/tools/common.py</file>
+      <lines>106-177</lines>
+      <description>
+        Standardized API request function used by all agent tools.
+        Includes auth headers, timeout, fallback data, and error handling.
+      </description>
+      <usage-pattern>
+        <![CDATA[
+result = api_request(
+    method="POST",
+    endpoint=f"/api/pm/projects/{project_id}/analytics/forecast",
+    workspace_id=workspace_id,
+    json={"scenario": scenario},
+    timeout=30.0,
+    fallback_data={
+        "predictedDate": None,
+        "confidence": "LOW",
+        ...
+    },
+)
+        ]]>
+      </usage-pattern>
+    </snippet>
+
+    <snippet name="Test Pattern - Analytics Service">
+      <file>apps/api/src/pm/agents/__tests__/analytics.service.spec.ts</file>
+      <description>
+        Existing test file for Analytics Service. Tests use Jest with
+        Prisma mocking pattern. All tests pass after code review fixes.
+      </description>
+      <mock-pattern>
+        <![CDATA[
+// Mock Prisma task queries
+(prismaService.task.findMany as jest.Mock).mockResolvedValue(mockTasks as unknown as any);
+
+// Mock aggregate queries
+(prismaService.task.aggregate as jest.Mock).mockResolvedValue({
+    _sum: { storyPoints: 150 },
+} as unknown as any);
+        ]]>
+      </mock-pattern>
+    </snippet>
+  </existing-code-snippets>
+
+  <key-decisions>
+    <decision id="MONTE-CARLO-LOCATION">
+      <question>Implement Monte Carlo in Python agent or TypeScript service?</question>
+      <chosen-approach>TypeScript service (analytics.service.ts)</chosen-approach>
+      <rationale>
+        - Simpler for this story (no agent integration overhead)
+        - Python agent already has tool framework, but numpy in TS via @stdlib/stats is viable
+        - Service owns the data (velocity history) and can optimize
+        - Agent integration can be added later without rewriting Monte Carlo logic
+        - Performance is adequate with TypeScript for 1000 iterations
+      </rationale>
+      <alternatives-considered>
+        <alternative>Python agent with numpy - more "pure" but adds integration complexity</alternative>
+        <alternative>Split approach - simulation in Python, called from TS - adds network overhead</alternative>
+      </alternatives-considered>
+    </decision>
+
+    <decision id="PERCENTILE-SELECTION">
+      <question>Which percentiles to use for optimistic/pessimistic dates?</question>
+      <chosen-approach>P25 (optimistic), P50 (predicted), P75 (pessimistic)</chosen-approach>
+      <rationale>
+        - P25/P75 provide reasonable confidence bands without being extreme
+        - Stakeholders understand "25% chance of finishing earlier, 75% chance of finishing by this date"
+        - Story requirements specify P25/P75 explicitly
+        - Can include P10/P90 in probabilityDistribution for advanced users
+      </rationale>
+    </decision>
+
+    <decision id="FACTOR-STRUCTURE">
+      <question>How to structure prediction factors?</question>
+      <chosen-approach>Array of PredictionFactor objects with name, value, impact, description</chosen-approach>
+      <rationale>
+        - Structured format enables UI visualization (badges, icons, tooltips)
+        - Impact field (POSITIVE/NEUTRAL/NEGATIVE) allows color coding
+        - Description provides business-friendly explanation
+        - Extensible - can add new factors without breaking schema
+      </rationale>
+    </decision>
+
+    <decision id="MINIMUM-DATA-THRESHOLD">
+      <question>How many data points required for Monte Carlo?</question>
+      <chosen-approach>Minimum 3 data points (same as current implementation)</chosen-approach>
+      <rationale>
+        - Consistent with PM-08-1 foundation story
+        - 3 points allow basic mean/std dev calculation
+        - Monte Carlo with &lt;3 points would be unreliable
+        - Fallback to linear projection with clear LOW confidence flag
+      </rationale>
+    </decision>
+  </key-decisions>
+
+  <technical-constraints>
+    <constraint>
+      <name>Response Time</name>
+      <requirement>&lt;3 seconds for forecast generation</requirement>
+      <current-state>Linear projection completes in &lt;500ms</current-state>
+      <monte-carlo-impact>Expect 1-2s for 1000 iterations with pure TypeScript math</monte-carlo-impact>
+      <mitigation>Profile and optimize; consider reducing to 500 iterations if needed</mitigation>
+    </constraint>
+
+    <constraint>
+      <name>Workspace Isolation (RLS)</name>
+      <requirement>All database queries must filter by workspaceId</requirement>
+      <current-state>Properly enforced in all existing queries</current-state>
+      <implementation-note>No additional work needed; maintain existing pattern</implementation-note>
+    </constraint>
+
+    <constraint>
+      <name>Multi-Provider BYOAI</name>
+      <requirement>Support Claude, OpenAI, Gemini, DeepSeek, OpenRouter</requirement>
+      <current-state>Prism agent accepts model override parameter</current-state>
+      <monte-carlo-impact>No impact; statistical calculations are model-agnostic</monte-carlo-impact>
+    </constraint>
+
+    <constraint>
+      <name>Type Safety</name>
+      <requirement>TypeScript strict mode, no `any` in public APIs</requirement>
+      <current-state>All DTOs properly typed, tests pass type check</current-state>
+      <implementation-note>Add types for Monte Carlo result structures</implementation-note>
+    </constraint>
+  </technical-constraints>
+
+  <testing-strategy>
+    <unit-tests>
+      <test-suite name="Monte Carlo Simulation">
+        <test>Test with deterministic random seed for reproducibility</test>
+        <test>Verify percentile calculations (P10, P25, P50, P75, P90)</test>
+        <test>Test with stable velocity (low variance)</test>
+        <test>Test with increasing velocity trend (positive slope)</test>
+        <test>Test with decreasing velocity trend (negative slope)</test>
+        <test>Test with high variance (ensure wide date bands)</test>
+        <test>Edge case: 1000 simulations with very low velocity</test>
+        <test>Edge case: 0 remaining points (immediate completion)</test>
+      </test-suite>
+
+      <test-suite name="Factor Analysis">
+        <test>Test with 2 data points (insufficient data factor)</test>
+        <test>Test with 8 data points (sufficient data factor)</test>
+        <test>Test with UP trend (positive impact)</test>
+        <test>Test with DOWN trend (negative impact)</test>
+        <test>Test with scenario addedScope (scope change factor)</test>
+        <test>Test with scenario teamSizeChange (team factor)</test>
+        <test>Verify factor descriptions are business-friendly</test>
+      </test-suite>
+
+      <test-suite name="Scenario Adjustments">
+        <test>Test addedScope increases predicted date</test>
+        <test>Test teamSizeChange +1 decreases predicted date</test>
+        <test>Test teamSizeChange -1 increases predicted date</test>
+        <test>Test combined scenario (scope + team)</test>
+        <test>Verify scenario factors appear in response</test>
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <test>API -> Service flow with Monte Carlo (full stack)</test>
+      <test>Forecast with 3 historical data points (minimum threshold)</test>
+      <test>Forecast with 12 historical data points (high confidence)</test>
+      <test>Workspace isolation (verify RLS with different workspaceIds)</test>
+      <test>Error handling: invalid projectId returns graceful error</test>
+      <test>Error handling: database timeout falls back to linear projection</test>
+    </integration-tests>
+
+    <performance-tests>
+      <test>Monte Carlo simulation time measurement (target &lt;2s)</test>
+      <test>API response time with 52 data points (1 year history)</test>
+      <test>Concurrent forecast requests (5 simultaneous requests)</test>
+      <test>Memory usage during simulation (verify no leaks)</test>
+    </performance-tests>
+  </testing-strategy>
+
+  <related-documentation>
+    <document type="story" path="docs/modules/bm-pm/stories/pm-08-1-prism-agent-foundation.md">
+      Foundation story for Prism agent. Contains agent architecture, service setup,
+      and basic forecasting logic. Review for context and consistency.
+    </document>
+
+    <document type="architecture" path="docs/modules/bm-pm/architecture.md">
+      Overall architecture document for Core-PM module. Sections on agent architecture,
+      data models, and API patterns are relevant.
+    </document>
+
+    <document type="tech-spec" path="docs/sprint-artifacts/tech-spec-epic-08.md">
+      Technical specification for Epic PM-08 (if available). Contains detailed
+      acceptance criteria and technical decisions for all stories in epic.
+    </document>
+
+    <document type="api-spec" path="apps/api/src/pm/agents/analytics.controller.ts">
+      REST API endpoints for analytics. Review for understanding request/response contracts.
+    </document>
+  </related-documentation>
+
+  <implementation-notes>
+    <note priority="high">
+      Monte Carlo simulation should use a consistent random seed for testing,
+      but use current timestamp for production predictions (np.random.seed(int(time.time()))).
+    </note>
+
+    <note priority="high">
+      Trend detection using linear regression (np.polyfit) should only activate
+      with 4+ data points. With &lt;4 points, assume trend_slope = 0 (no trend).
+    </note>
+
+    <note priority="medium">
+      The probabilityDistribution field should be optional in PrismForecastDto
+      to maintain backward compatibility with simple linear projection.
+    </note>
+
+    <note priority="medium">
+      Factor descriptions should be written in business language, avoiding
+      technical terms like "z-score" or "coefficient of variation".
+    </note>
+
+    <note priority="low">
+      Consider adding a "simulation_quality" metric that indicates how reliable
+      the Monte Carlo results are (based on sample size and variance).
+    </note>
+
+    <note priority="low">
+      Future enhancement: Log predictions to database for accuracy tracking.
+      Not required for this story, but add TODO comment for future work.
+    </note>
+  </implementation-notes>
+
+  <dependencies>
+    <external-dependency name="numpy" version=">=1.24.0">
+      <purpose>Statistical calculations and Monte Carlo simulation</purpose>
+      <installation>pip install numpy</installation>
+      <usage>np.mean(), np.std(), np.polyfit(), np.percentile(), np.random.normal()</usage>
+    </external-dependency>
+
+    <external-dependency name="scipy" version=">=1.10.0" optional="true">
+      <purpose>Advanced statistical functions (optional for future enhancements)</purpose>
+      <usage>Not required for this story, but useful for future ML model training</usage>
+    </external-dependency>
+
+    <internal-dependency name="PrismaService">
+      <location>apps/api/src/common/services/prisma.service.ts</location>
+      <purpose>Database access for velocity history and task queries</purpose>
+    </internal-dependency>
+
+    <internal-dependency name="AgentService">
+      <location>apps/api/src/agents/agent.service.ts (future)</location>
+      <purpose>Invoke Python Prism agent from NestJS (not required for this story)</purpose>
+      <status>Pending - agent integration deferred to future story</status>
+    </internal-dependency>
+  </dependencies>
+
+  <acceptance-criteria-checklist>
+    <category name="1. Prediction Generation">
+      <criterion>Analytics API returns predicted completion date for project</criterion>
+      <criterion>Prediction includes optimistic and pessimistic date bands</criterion>
+      <criterion>Confidence level (LOW/MED/HIGH) calculated based on data quality</criterion>
+      <criterion>Prediction considers velocity history AND remaining backlog</criterion>
+      <criterion>Multiple scenarios supported (baseline, optimistic, pessimistic)</criterion>
+    </category>
+
+    <category name="2. Monte Carlo Simulation">
+      <criterion>Forecast uses Monte Carlo simulation for date range calculation</criterion>
+      <criterion>Simulation runs 1000+ iterations</criterion>
+      <criterion>Optimistic date represents P25 (25th percentile)</criterion>
+      <criterion>Pessimistic date represents P75 (75th percentile)</criterion>
+      <criterion>Median date represents P50 (most likely completion)</criterion>
+      <criterion>Simulation accounts for velocity variance and trend</criterion>
+    </category>
+
+    <category name="3. Factors Affecting Prediction">
+      <criterion>System identifies and displays prediction factors</criterion>
+      <criterion>Velocity trend (UP/DOWN/STABLE) analyzed and reported</criterion>
+      <criterion>Scope changes and impact detected</criterion>
+      <criterion>Team capacity changes considered</criterion>
+      <criterion>Historical data quality assessed</criterion>
+      <criterion>Each factor includes explanation and impact level</criterion>
+    </category>
+
+    <category name="4. Prediction Updates">
+      <criterion>Predictions auto-update when velocity changes</criterion>
+      <criterion>Predictions update when backlog/scope changes</criterion>
+      <criterion>Predictions update when tasks completed</criterion>
+      <criterion>Update frequency configurable (real-time, daily, manual)</criterion>
+      <criterion>Historical predictions logged for accuracy tracking</criterion>
+    </category>
+
+    <category name="5. API Integration">
+      <criterion>POST /api/pm/projects/:id/analytics/forecast endpoint works</criterion>
+      <criterion>Endpoint accepts scenario parameters (scope, team size)</criterion>
+      <criterion>Response includes all required prediction fields</criterion>
+      <criterion>Endpoint enforces workspace isolation (RLS)</criterion>
+      <criterion>Response time &lt;3 seconds for projects with &lt;1 year history</criterion>
+    </category>
+
+    <category name="6. Data Visualization Readiness">
+      <criterion>Prediction data formatted for frontend visualization</criterion>
+      <criterion>Date bands provided in ISO 8601 format</criterion>
+      <criterion>Confidence intervals provided as percentages</criterion>
+      <criterion>Factors provided as structured array</criterion>
+      <criterion>Prediction reasoning in business-friendly language</criterion>
+    </category>
+  </acceptance-criteria-checklist>
+</story-context>

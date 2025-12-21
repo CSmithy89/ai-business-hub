@@ -20,6 +20,27 @@ export enum VelocityTrend {
 }
 
 /**
+ * Prediction factor affecting forecast accuracy
+ */
+export interface PredictionFactor {
+  name: string;
+  value: string;
+  impact: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE';
+  description: string;
+}
+
+/**
+ * Probability distribution for Monte Carlo simulation
+ */
+export interface ProbabilityDistribution {
+  p10: string;
+  p25: string;
+  p50: string;
+  p75: string;
+  p90: string;
+}
+
+/**
  * Forecast response from Prism agent
  */
 export interface PrismForecastDto {
@@ -28,9 +49,10 @@ export interface PrismForecastDto {
   optimisticDate: string;
   pessimisticDate: string;
   reasoning: string;
-  factors: string[];
+  factors: string[] | PredictionFactor[];
   velocityAvg: number;
   dataPoints: number;
+  probabilityDistribution?: ProbabilityDistribution;
 }
 
 /**

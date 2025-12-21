@@ -248,6 +248,223 @@ describe('AnalyticsService', () => {
     });
   });
 
+  describe('runMonteCarloSimulation', () => {
+    it('should run simulation with stable velocity', () => {
+      const velocityHistory = [10, 12, 11, 13, 12, 11];
+      const remainingPoints = 100;
+
+      const result = (service as any).runMonteCarloSimulation(velocityHistory, remainingPoints, 1000);
+
+      expect(result.dates).toBeDefined();
+      expect(result.dates.p50).toBeDefined();
+      expect(result.dates.p25).toBeDefined();
+      expect(result.dates.p75).toBeDefined();
+      expect(result.velocityMean).toBeCloseTo(11.5, 1);
+      expect(result.simulationRuns).toBe(1000);
+    });
+
+    it('should detect upward trend with increasing velocity', () => {
+      const velocityHistory = [8, 10, 12, 14, 16, 18];
+      const remainingPoints = 100;
+
+      const result = (service as any).runMonteCarloSimulation(velocityHistory, remainingPoints, 1000);
+
+      expect(result.trendSlope).toBeGreaterThan(0);
+      // Optimistic date should be earlier than pessimistic
+      expect(new Date(result.dates.p25).getTime()).toBeLessThan(new Date(result.dates.p75).getTime());
+    });
+
+    it('should detect downward trend with decreasing velocity', () => {
+      const velocityHistory = [18, 16, 14, 12, 10, 8];
+      const remainingPoints = 100;
+
+      const result = (service as any).runMonteCarloSimulation(velocityHistory, remainingPoints, 1000);
+
+      expect(result.trendSlope).toBeLessThan(0);
+    });
+
+    it('should handle empty velocity history', () => {
+      const result = (service as any).runMonteCarloSimulation([], 100, 1000);
+
+      expect(result.velocityMean).toBe(0);
+      expect(result.simulationRuns).toBe(0);
+      expect(result.dates.p50).toBeDefined();
+    });
+
+    it('should generate percentiles in correct order', () => {
+      const velocityHistory = [10, 12, 11, 13];
+      const remainingPoints = 50;
+
+      const result = (service as any).runMonteCarloSimulation(velocityHistory, remainingPoints, 1000);
+
+      const p10Date = new Date(result.dates.p10).getTime();
+      const p25Date = new Date(result.dates.p25).getTime();
+      const p50Date = new Date(result.dates.p50).getTime();
+      const p75Date = new Date(result.dates.p75).getTime();
+      const p90Date = new Date(result.dates.p90).getTime();
+
+      expect(p10Date).toBeLessThanOrEqual(p25Date);
+      expect(p25Date).toBeLessThanOrEqual(p50Date);
+      expect(p50Date).toBeLessThanOrEqual(p75Date);
+      expect(p75Date).toBeLessThanOrEqual(p90Date);
+    });
+  });
+
+  describe('analyzePredictionFactors', () => {
+    it('should identify insufficient data factor', () => {
+      const mockHistory = [
+        { period: '2024-W01', completedPoints: 10, totalTasks: 5, completedTasks: 5, startDate: '2024-01-01', endDate: '2024-01-07' },
+      ];
+
+      const factors = (service as any).analyzePredictionFactors(mockHistory, 0, ConfidenceLevel.LOW);
+
+      const dataFactor = factors.find((f: any) => f.name === 'Historical Data');
+      expect(dataFactor).toBeDefined();
+      expect(dataFactor.impact).toBe('NEGATIVE');
+      expect(dataFactor.description).toContain('Insufficient');
+    });
+
+    it('should identify sufficient data factor', () => {
+      const mockHistory = Array.from({ length: 8 }, (_, i) => ({
+        period: `2024-W${i + 1}`,
+        completedPoints: 10,
+        totalTasks: 5,
+        completedTasks: 5,
+        startDate: '2024-01-01',
+        endDate: '2024-01-07',
+      }));
+
+      const factors = (service as any).analyzePredictionFactors(mockHistory, 0, ConfidenceLevel.HIGH);
+
+      const dataFactor = factors.find((f: any) => f.name === 'Historical Data');
+      expect(dataFactor).toBeDefined();
+      expect(dataFactor.impact).toBe('POSITIVE');
+      expect(dataFactor.description).toContain('Sufficient');
+    });
+
+    it('should identify increasing velocity trend', () => {
+      const mockHistory = Array.from({ length: 6 }, () => ({
+        period: '2024-W01',
+        completedPoints: 10,
+        totalTasks: 5,
+        completedTasks: 5,
+        startDate: '2024-01-01',
+        endDate: '2024-01-07',
+      }));
+
+      const factors = (service as any).analyzePredictionFactors(mockHistory, 0.5, ConfidenceLevel.MED);
+
+      const trendFactor = factors.find((f: any) => f.name === 'Velocity Trend');
+      expect(trendFactor).toBeDefined();
+      expect(trendFactor.value).toBe('INCREASING');
+      expect(trendFactor.impact).toBe('POSITIVE');
+    });
+
+    it('should identify decreasing velocity trend', () => {
+      const mockHistory = Array.from({ length: 6 }, () => ({
+        period: '2024-W01',
+        completedPoints: 10,
+        totalTasks: 5,
+        completedTasks: 5,
+        startDate: '2024-01-01',
+        endDate: '2024-01-07',
+      }));
+
+      const factors = (service as any).analyzePredictionFactors(mockHistory, -0.5, ConfidenceLevel.MED);
+
+      const trendFactor = factors.find((f: any) => f.name === 'Velocity Trend');
+      expect(trendFactor).toBeDefined();
+      expect(trendFactor.value).toBe('DECREASING');
+      expect(trendFactor.impact).toBe('NEGATIVE');
+    });
+
+    it('should include scope change factor when scenario provided', () => {
+      const mockHistory = Array.from({ length: 6 }, () => ({
+        period: '2024-W01',
+        completedPoints: 10,
+        totalTasks: 5,
+        completedTasks: 5,
+        startDate: '2024-01-01',
+        endDate: '2024-01-07',
+      }));
+
+      const scenario = { addedScope: 50 };
+      const factors = (service as any).analyzePredictionFactors(mockHistory, 0, ConfidenceLevel.MED, scenario);
+
+      const scopeFactor = factors.find((f: any) => f.name === 'Scope Change');
+      expect(scopeFactor).toBeDefined();
+      expect(scopeFactor.value).toBe('+50 points');
+      expect(scopeFactor.impact).toBe('NEGATIVE');
+    });
+
+    it('should include team capacity factor when scenario provided', () => {
+      const mockHistory = Array.from({ length: 6 }, () => ({
+        period: '2024-W01',
+        completedPoints: 10,
+        totalTasks: 5,
+        completedTasks: 5,
+        startDate: '2024-01-01',
+        endDate: '2024-01-07',
+      }));
+
+      const scenario = { teamSizeChange: 2 };
+      const factors = (service as any).analyzePredictionFactors(mockHistory, 0, ConfidenceLevel.MED, scenario);
+
+      const teamFactor = factors.find((f: any) => f.name === 'Team Capacity');
+      expect(teamFactor).toBeDefined();
+      expect(teamFactor.value).toBe('+2 members');
+      expect(teamFactor.impact).toBe('POSITIVE');
+    });
+  });
+
+  describe('getForecast with Monte Carlo', () => {
+    it('should use Monte Carlo simulation with sufficient data', async () => {
+      const mockHistory = Array.from({ length: 8 }, (_, i) => ({
+        period: `2024-W${i + 1}`,
+        completedPoints: 10 + i,
+        totalTasks: 5,
+        completedTasks: 5,
+        startDate: '2024-01-01',
+        endDate: '2024-01-07',
+      }));
+
+      jest.spyOn(service as any, 'getVelocityHistory').mockResolvedValue(mockHistory);
+      jest.spyOn(service as any, 'getRemainingPoints').mockResolvedValue(100);
+
+      const result = await service.getForecast('proj1', 'ws1');
+
+      expect(result.probabilityDistribution).toBeDefined();
+      expect(result.probabilityDistribution?.p50).toBeDefined();
+      expect(result.probabilityDistribution?.p25).toBeDefined();
+      expect(result.probabilityDistribution?.p75).toBeDefined();
+      expect(result.factors).toBeInstanceOf(Array);
+      expect((result.factors as any[]).length).toBeGreaterThan(0);
+      expect((result.factors as any[])[0]).toHaveProperty('name');
+      expect((result.factors as any[])[0]).toHaveProperty('impact');
+    });
+
+    it('should apply scenario adjustments to Monte Carlo', async () => {
+      const mockHistory = Array.from({ length: 8 }, (_, i) => ({
+        period: `2024-W${i + 1}`,
+        completedPoints: 10,
+        totalTasks: 5,
+        completedTasks: 5,
+        startDate: '2024-01-01',
+        endDate: '2024-01-07',
+      }));
+
+      jest.spyOn(service as any, 'getVelocityHistory').mockResolvedValue(mockHistory);
+      jest.spyOn(service as any, 'getRemainingPoints').mockResolvedValue(100);
+
+      const scenario = { addedScope: 50, teamSizeChange: 1 };
+      const result = await service.getForecast('proj1', 'ws1', scenario);
+
+      const factors = result.factors as any[];
+      expect(factors.find(f => f.name === 'Scope Change')).toBeDefined();
+      expect(factors.find(f => f.name === 'Team Capacity')).toBeDefined();
+    });
+  });
+
   describe('fallbackLinearProjection', () => {
     it('should calculate linear projection with default velocity', () => {
       const result = (service as any).fallbackLinearProjection([], 100);
