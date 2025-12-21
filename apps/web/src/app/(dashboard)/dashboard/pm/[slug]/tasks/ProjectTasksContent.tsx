@@ -119,6 +119,10 @@ export function ProjectTasksContent() {
   const defaultView = defaultViewData?.data
 
   const [search, setSearch] = useState('')
+  const viewPreferences = useMemo(() => {
+    if (!project?.id) return null
+    return getViewPreferences(project.id)
+  }, [project?.id])
   const [filters, setFilters] = useState<FilterState>({
     status: [],
     priority: null,
@@ -206,6 +210,22 @@ export function ProjectTasksContent() {
 
     if (view.filters.kanbanGroupBy) {
       setGroupBy(view.filters.kanbanGroupBy as GroupByOption)
+    }
+
+    if (project?.id) {
+      const nextPrefs: Partial<ReturnType<typeof getViewPreferences>> = {}
+      if (view.columns && view.columns.length > 0) {
+        nextPrefs.listColumns = view.columns
+      }
+      if (view.sortBy) {
+        nextPrefs.sortBy = view.sortBy
+      }
+      if (view.sortOrder) {
+        nextPrefs.sortOrder = view.sortOrder as 'asc' | 'desc'
+      }
+      if (Object.keys(nextPrefs).length > 0) {
+        setViewPreferences(project.id, nextPrefs)
+      }
     }
   }
 
@@ -322,9 +342,12 @@ export function ProjectTasksContent() {
         assigneeId: filters.assigneeId || undefined,
         phaseId: filters.phaseId || undefined,
       },
+      sortBy: viewPreferences?.sortBy,
+      sortOrder: viewPreferences?.sortOrder,
+      columns: viewPreferences?.listColumns,
       groupBy,
     }
-  }, [viewMode, search, filters, groupBy])
+  }, [viewMode, search, filters, groupBy, viewPreferences?.listColumns, viewPreferences?.sortBy, viewPreferences?.sortOrder])
 
   if (projectError) {
     return (

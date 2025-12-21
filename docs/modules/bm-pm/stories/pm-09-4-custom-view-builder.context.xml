@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-09-4-custom-view-builder</story-id>
+    <generated>2025-12-22T00:00:00Z</generated>
+    <epic>PM-09 - Advanced Views</epic>
+    <description>
+      Saved view builder for columns and sorting preferences.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="apps/web/src/components/pm/saved-views/SaveViewModal.tsx">
+      <description>
+        Current saved view modal; extend with columns and sort options.
+      </description>
+    </file>
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/ProjectTasksContent.tsx">
+      <description>
+        Applies saved views and controls view preferences per project.
+      </description>
+    </file>
+    <file path="apps/web/src/lib/pm/view-preferences.ts">
+      <description>
+        Stores list columns and sorting preferences per project.
+      </description>
+    </file>
+    <file path="apps/web/src/hooks/use-saved-views.ts">
+      <description>
+        Saved view API includes columns and sorting fields.
+      </description>
+    </file>
+  </existing-code>
+</story-context>

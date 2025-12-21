@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCreateSavedView, useUpdateSavedView, type SavedView, type CreateSavedViewInput } from '@/hooks/use-saved-views'
 
 interface SaveViewModalProps {
@@ -25,30 +26,56 @@ interface SaveViewModalProps {
     sortBy?: string
     sortOrder?: string
     groupBy?: string
+    columns?: string[]
   }
   existingView?: SavedView | null
 }
+
+const COLUMN_LABELS: Record<string, string> = {
+  select: 'Selection',
+  taskNumber: 'ID',
+  title: 'Title',
+  status: 'Status',
+  priority: 'Priority',
+  assigneeId: 'Assignee',
+  dueDate: 'Due Date',
+}
+
+const SORT_FIELDS = ['taskNumber', 'title', 'status', 'priority', 'assigneeId', 'dueDate'] as const
 
 export function SaveViewModal({ open, onOpenChange, projectId, viewState, existingView }: SaveViewModalProps) {
   const [name, setName] = useState('')
   const [isDefault, setIsDefault] = useState(false)
   const [isShared, setIsShared] = useState(false)
+  const [columns, setColumns] = useState<string[]>([])
+  const [sortBy, setSortBy] = useState<string>('')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
   const createMutation = useCreateSavedView()
   const updateMutation = useUpdateSavedView()
 
   // Pre-fill form if editing existing view
   useEffect(() => {
+    const defaultColumns = viewState.columns && viewState.columns.length > 0
+      ? viewState.columns
+      : Object.keys(COLUMN_LABELS)
+
     if (existingView) {
       setName(existingView.name)
       setIsDefault(existingView.isDefault)
       setIsShared(existingView.isShared)
+      setColumns(existingView.columns ?? defaultColumns)
+      setSortBy(existingView.sortBy ?? '')
+      setSortOrder((existingView.sortOrder as 'asc' | 'desc') ?? 'asc')
     } else {
       setName('')
       setIsDefault(false)
       setIsShared(false)
+      setColumns(defaultColumns)
+      setSortBy(viewState.sortBy ?? '')
+      setSortOrder((viewState.sortOrder as 'asc' | 'desc') ?? 'asc')
     }
-  }, [existingView, open])
+  }, [existingView, open, viewState])
 
   const handleSave = async () => {
     if (!name.trim()) return
@@ -59,13 +86,15 @@ export function SaveViewModal({ open, onOpenChange, projectId, viewState, existi
       filters.kanbanGroupBy = viewState.groupBy
     }
 
+    const resolvedColumns = columns.length > 0 ? columns : viewState.columns
     const input: CreateSavedViewInput = {
       name: name.trim(),
       projectId,
       viewType: viewState.viewType,
       filters,
-      sortBy: viewState.sortBy,
-      sortOrder: viewState.sortOrder,
+      sortBy: sortBy || undefined,
+      sortOrder: sortBy ? sortOrder : undefined,
+      columns: resolvedColumns,
       isDefault,
       isShared,
     }
@@ -80,6 +109,7 @@ export function SaveViewModal({ open, onOpenChange, projectId, viewState, existi
   }
 
   const isLoading = createMutation.isPending || updateMutation.isPending
+  const showColumns = viewState.viewType === 'LIST' || viewState.viewType === 'TABLE'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,6 +135,63 @@ export function SaveViewModal({ open, onOpenChange, projectId, viewState, existi
               disabled={isLoading}
             />
           </div>
+
+          {showColumns ? (
+            <>
+              <div className="grid gap-2">
+                <Label>Visible columns</Label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {Object.entries(COLUMN_LABELS).map(([columnId, label]) => (
+                    <label key={columnId} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={columns.includes(columnId)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setColumns((prev) => Array.from(new Set([...prev, columnId])))
+                          } else {
+                            setColumns((prev) => prev.filter((id) => id !== columnId))
+                          }
+                        }}
+                      />
+                      <span className="text-[rgb(var(--color-text-primary))]">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label>Sort by</Label>
+                  <Select value={sortBy || 'none'} onValueChange={(value) => setSortBy(value === 'none' ? '' : value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="No sorting" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {SORT_FIELDS.map((field) => (
+                        <SelectItem key={field} value={field}>
+                          {COLUMN_LABELS[field] || field}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Sort order</Label>
+                  <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'asc' | 'desc')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Ascending" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">Ascending</SelectItem>
+                      <SelectItem value="desc">Descending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </>
+          ) : null}
 
           <div className="flex items-center space-x-2">
             <Checkbox

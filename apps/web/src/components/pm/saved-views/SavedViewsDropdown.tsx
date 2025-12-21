@@ -40,6 +40,7 @@ interface SavedViewsDropdownProps {
     sortBy?: string
     sortOrder?: string
     groupBy?: string
+    columns?: string[]
   }
 }
 
