@@ -1188,6 +1188,7 @@ model Task {
   @@index([assigneeId])
   @@index([dueDate])
   @@index([deletedAt])
+  @@index([projectId, deletedAt, updatedAt]) // Health check task queries
   @@map("tasks")
 }
 
@@ -1394,6 +1395,7 @@ model RiskEntry {
   @@index([status])
   @@index([status, severity])
   @@index([detectedAt])
+  @@index([projectId, status, detectedAt]) // Risk queries with status filter
   @@map("risk_entries")
 }
 
@@ -1478,6 +1480,7 @@ model HealthScore {
   calculatedAt DateTime @default(now()) @map("calculated_at")
 
   @@index([workspaceId, projectId, calculatedAt])
+  @@index([projectId, calculatedAt]) // Health score history queries
   @@map("health_scores")
 }
 
@@ -2081,8 +2084,8 @@ model ReportSchedule {
   projectId       String @map("project_id")
 
   // Schedule configuration
-  frequency       ReportFrequency
-  reportType      ReportType
+  frequency       ReportFrequency  @map("frequency")
+  reportType      ReportType       @map("report_type")
   stakeholderType StakeholderType? @map("stakeholder_type")
   enabled         Boolean @default(true)
 

@@ -45,6 +45,7 @@ interface HealthCheckTask {
   completedAt: Date | null;
   estimatedHours: number | null;
   assigneeId: string | null;
+  isBlocked: boolean; // Computed from BLOCKED_BY relations
 }
 
 interface TeamMemberWithUser {
@@ -93,14 +94,33 @@ export class HealthService {
       }
 
       // 2. Get tasks for analysis (with limit for performance)
-      const tasks = await this.prisma.task.findMany({
+      // Include relations to determine blocked status
+      const rawTasks = await this.prisma.task.findMany({
         where: {
           projectId,
           deletedAt: null,
         },
+        include: {
+          relations: {
+            where: { relationType: 'BLOCKED_BY' },
+            select: { id: true },
+          },
+        },
         take: HEALTH_CHECK_LIMITS.MAX_TASKS,
         orderBy: { updatedAt: 'desc' }, // Most recently updated first
       });
+
+      // Map tasks with computed isBlocked field
+      const tasks: HealthCheckTask[] = rawTasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        dueDate: t.dueDate,
+        completedAt: t.completedAt,
+        estimatedHours: t.estimatedHours,
+        assigneeId: t.assigneeId,
+        isBlocked: t.relations.length > 0,
+      }));
 
       // 3. Calculate health score
       const healthScore = this.calculateHealthScore(tasks, project);
@@ -128,23 +148,49 @@ export class HealthService {
           },
         });
 
-        // Create risk entries (batched)
+        // Only create risk entries that don't already exist as active risks
         if (limitedRisks.length > 0) {
-          await tx.riskEntry.createMany({
-            data: limitedRisks.map((risk) => ({
-              workspaceId,
+          // Find existing active risks of the same types for this project
+          const existingRisks = await tx.riskEntry.findMany({
+            where: {
               projectId: project.id,
-              title: risk.title,
-              description: risk.description,
-              severity: risk.severity,
-              riskType: risk.type,
-              affectedTasks: risk.affectedTasks,
-              affectedUsers: risk.affectedUsers,
-              status: RiskStatus.IDENTIFIED,
-              detectedAt: new Date(),
-              createdBy: userId,
-            })),
+              riskType: { in: limitedRisks.map((r) => r.type) },
+              status: {
+                in: [
+                  RiskStatus.IDENTIFIED,
+                  RiskStatus.ANALYZING,
+                  RiskStatus.MITIGATING,
+                  RiskStatus.MONITORING,
+                ],
+              },
+            },
+            select: { riskType: true },
           });
+
+          const existingTypes = new Set(existingRisks.map((r) => r.riskType));
+
+          // Filter to only new risks (avoid duplicates)
+          const newRisks = limitedRisks.filter(
+            (risk) => !existingTypes.has(risk.type),
+          );
+
+          if (newRisks.length > 0) {
+            await tx.riskEntry.createMany({
+              data: newRisks.map((risk) => ({
+                workspaceId,
+                projectId: project.id,
+                title: risk.title,
+                description: risk.description,
+                severity: risk.severity,
+                riskType: risk.type,
+                affectedTasks: risk.affectedTasks,
+                affectedUsers: risk.affectedUsers,
+                status: RiskStatus.IDENTIFIED,
+                detectedAt: new Date(),
+                createdBy: userId,
+              })),
+            });
+          }
         }
 
         // Update project health score
@@ -182,8 +228,8 @@ export class HealthService {
         t.status !== 'DONE',
     ).length;
 
-    // Calculate blocked tasks
-    const blockedTasks = tasks.filter((t) => t.status === 'BLOCKED').length;
+    // Calculate blocked tasks (using BLOCKED_BY relations, not status)
+    const blockedTasks = tasks.filter((t) => t.isBlocked).length;
 
     // On-time delivery factor (0-1)
     const onTimeDelivery =
