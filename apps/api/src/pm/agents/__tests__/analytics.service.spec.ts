@@ -509,4 +509,238 @@ describe('AnalyticsService', () => {
       expect(result).toBe(0);
     });
   });
+
+  // ============================================
+  // RISK DETECTION TESTS (PM-08-3)
+  // ============================================
+
+  describe('detectScheduleRisk', () => {
+    it('should detect schedule risk when predicted date exceeds target', () => {
+      const mockForecast = {
+        predictedDate: '2025-03-15',
+        confidence: ConfidenceLevel.MED,
+        optimisticDate: '2025-03-01',
+        pessimisticDate: '2025-03-30',
+        reasoning: 'Test',
+        factors: [],
+        velocityAvg: 10,
+        dataPoints: 6,
+        probabilityDistribution: {
+          p10: '2025-02-15',
+          p25: '2025-03-01',
+          p50: '2025-03-15',
+          p75: '2025-04-01',
+          p90: '2025-04-15',
+        },
+      };
+
+      const targetDate = new Date('2025-03-01');
+
+      const result = (service as any).detectScheduleRisk(mockForecast, targetDate);
+
+      expect(result).toBeDefined();
+      expect(result.category).toBe('SCHEDULE');
+      expect(result.probability).toBe(0.65); // P50 > target
+      expect(result.impact).toBeGreaterThan(0);
+      expect(result.description).toContain('missing deadline');
+      expect(result.mitigation).toBeDefined();
+    });
+
+    it('should return null when no schedule risk', () => {
+      const mockForecast = {
+        predictedDate: '2025-02-15',
+        confidence: ConfidenceLevel.HIGH,
+        optimisticDate: '2025-02-01',
+        pessimisticDate: '2025-02-28',
+        reasoning: 'Test',
+        factors: [],
+        velocityAvg: 10,
+        dataPoints: 6,
+        probabilityDistribution: {
+          p10: '2025-02-01',
+          p25: '2025-02-10',
+          p50: '2025-02-15',
+          p75: '2025-02-20',
+          p90: '2025-02-25',
+        },
+      };
+
+      const targetDate = new Date('2025-03-01');
+
+      const result = (service as any).detectScheduleRisk(mockForecast, targetDate);
+
+      expect(result).toBeNull();
+    });
+
+    it('should calculate high probability when P25 > target', () => {
+      const mockForecast = {
+        predictedDate: '2025-04-01',
+        confidence: ConfidenceLevel.MED,
+        optimisticDate: '2025-03-15',
+        pessimisticDate: '2025-04-15',
+        reasoning: 'Test',
+        factors: [],
+        velocityAvg: 10,
+        dataPoints: 6,
+        probabilityDistribution: {
+          p10: '2025-03-01',
+          p25: '2025-03-10',
+          p50: '2025-04-01',
+          p75: '2025-04-15',
+          p90: '2025-05-01',
+        },
+      };
+
+      const targetDate = new Date('2025-03-01');
+
+      const result = (service as any).detectScheduleRisk(mockForecast, targetDate);
+
+      expect(result.probability).toBe(0.85); // P25 > target = high probability
+    });
+  });
+
+  describe('detectScopeRisk', () => {
+    it('should detect scope risk when increase >10%', async () => {
+      const baselineScope = 100;
+      prismaService.task.aggregate.mockResolvedValue({
+        _sum: { storyPoints: 125 },
+      } as unknown as any);
+
+      const result = await (service as any).detectScopeRisk('proj1', 'ws1', baselineScope);
+
+      expect(result).toBeDefined();
+      expect(result.category).toBe('SCOPE');
+      expect(result.probability).toBeGreaterThan(0.4);
+      expect(result.description).toContain('25%');
+      expect(result.mitigation).toBeDefined();
+    });
+
+    it('should return null when scope increase <=10%', async () => {
+      const baselineScope = 100;
+      prismaService.task.aggregate.mockResolvedValue({
+        _sum: { storyPoints: 105 },
+      } as unknown as any);
+
+      const result = await (service as any).detectScopeRisk('proj1', 'ws1', baselineScope);
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle zero baseline scope', async () => {
+      const baselineScope = 0;
+      prismaService.task.aggregate.mockResolvedValue({
+        _sum: { storyPoints: 50 },
+      } as unknown as any);
+
+      const result = await (service as any).detectScopeRisk('proj1', 'ws1', baselineScope);
+
+      expect(result).toBeNull(); // Can't calculate increase from 0 baseline
+    });
+  });
+
+  describe('detectResourceRisk', () => {
+    it('should detect resource risk with decreasing velocity trend', () => {
+      const mockForecast = {
+        predictedDate: '2025-03-15',
+        confidence: ConfidenceLevel.MED,
+        optimisticDate: '2025-03-01',
+        pessimisticDate: '2025-03-30',
+        reasoning: 'Test',
+        factors: [
+          {
+            name: 'Velocity Trend',
+            value: 'DECREASING',
+            impact: 'NEGATIVE',
+            description: 'Velocity is declining',
+          },
+        ],
+        velocityAvg: 10,
+        dataPoints: 6,
+      };
+
+      const result = (service as any).detectResourceRisk(mockForecast);
+
+      expect(result).toBeDefined();
+      expect(result.category).toBe('RESOURCE');
+      expect(result.probability).toBeGreaterThan(0);
+      expect(result.description).toContain('declining');
+      expect(result.mitigation).toBeDefined();
+    });
+
+    it('should return null with stable velocity trend', () => {
+      const mockForecast = {
+        predictedDate: '2025-03-15',
+        confidence: ConfidenceLevel.HIGH,
+        optimisticDate: '2025-03-01',
+        pessimisticDate: '2025-03-30',
+        reasoning: 'Test',
+        factors: [
+          {
+            name: 'Velocity Trend',
+            value: 'STABLE',
+            impact: 'NEUTRAL',
+            description: 'Velocity is consistent',
+          },
+        ],
+        velocityAvg: 10,
+        dataPoints: 6,
+      };
+
+      const result = (service as any).detectResourceRisk(mockForecast);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when no velocity factor present', () => {
+      const mockForecast = {
+        predictedDate: '2025-03-15',
+        confidence: ConfidenceLevel.HIGH,
+        optimisticDate: '2025-03-01',
+        pessimisticDate: '2025-03-30',
+        reasoning: 'Test',
+        factors: [],
+        velocityAvg: 10,
+        dataPoints: 6,
+      };
+
+      const result = (service as any).detectResourceRisk(mockForecast);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('generateScheduleMitigation', () => {
+    it('should generate minor delay mitigation', () => {
+      const result = (service as any).generateScheduleMitigation(5, {} as any);
+      expect(result).toContain('Minor delay');
+    });
+
+    it('should generate moderate delay mitigation', () => {
+      const result = (service as any).generateScheduleMitigation(21, {} as any);
+      expect(result).toContain('reducing scope');
+    });
+
+    it('should generate significant delay mitigation', () => {
+      const result = (service as any).generateScheduleMitigation(56, {} as any);
+      expect(result).toContain('Significant delay');
+      expect(result).toContain('8 weeks');
+    });
+  });
+
+  describe('generateScopeMitigation', () => {
+    it('should generate scope mitigation with details', () => {
+      const result = (service as any).generateScopeMitigation(0.25, 125, 100);
+      expect(result).toContain('25%');
+      expect(result).toContain('25 points');
+      expect(result).toContain('Phase 2');
+    });
+  });
+
+  describe('generateResourceMitigation', () => {
+    it('should generate resource mitigation with details', () => {
+      const result = (service as any).generateResourceMitigation(-0.20);
+      expect(result).toContain('20%');
+      expect(result).toContain('Investigate');
+    });
+  });
 });

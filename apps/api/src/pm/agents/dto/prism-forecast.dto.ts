@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsNumber, IsObject, Min, Max } from 'class-validator';
+import { IsOptional, IsNumber, IsObject, Min, Max, IsEnum } from 'class-validator';
 
 /**
  * Confidence level for predictions
@@ -151,4 +151,74 @@ export interface CompletionProbabilityDto {
   requiredVelocity: number;
   currentVelocity: number;
   assessment: string;
+}
+
+/**
+ * Risk category types
+ */
+export enum RiskCategory {
+  SCHEDULE = 'SCHEDULE',
+  SCOPE = 'SCOPE',
+  RESOURCE = 'RESOURCE',
+  BUDGET = 'BUDGET',
+}
+
+/**
+ * Risk source types
+ */
+export enum RiskSource {
+  PRISM = 'PRISM',
+  PULSE = 'PULSE',
+  MANUAL = 'MANUAL',
+}
+
+/**
+ * Risk status types
+ */
+export enum RiskStatus {
+  ACTIVE = 'ACTIVE',
+  MITIGATED = 'MITIGATED',
+  ACCEPTED = 'ACCEPTED',
+  DISMISSED = 'DISMISSED',
+}
+
+/**
+ * Risk entry DTO (PM-08-3)
+ */
+export interface PmRiskEntryDto {
+  id: string;
+  projectId: string;
+  source: RiskSource;
+  category: RiskCategory;
+  probability: number; // 0.0 - 1.0
+  impact: number; // 0.0 - 1.0
+  description: string;
+  mitigation?: string;
+  status: RiskStatus;
+
+  // Risk details (optional, category-specific)
+  targetDate?: string; // ISO 8601
+  predictedDate?: string; // ISO 8601
+  delayDays?: number;
+  baselineScope?: number;
+  currentScope?: number;
+  scopeIncrease?: number;
+  velocityTrend?: VelocityTrend;
+  velocityChange?: number;
+
+  detectedAt: string; // ISO 8601
+  updatedAt: string; // ISO 8601
+}
+
+/**
+ * Update risk status request
+ */
+export class UpdateRiskStatusDto {
+  @ApiProperty({
+    description: 'New risk status',
+    enum: RiskStatus,
+    example: RiskStatus.MITIGATED,
+  })
+  @IsEnum(RiskStatus)
+  status!: RiskStatus;
 }

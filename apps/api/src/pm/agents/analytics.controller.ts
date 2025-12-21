@@ -8,8 +8,9 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Patch,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -23,6 +24,9 @@ import {
   GenerateForecastDto,
   AnomalyDto,
   CompletionProbabilityDto,
+  PmRiskEntryDto,
+  UpdateRiskStatusDto,
+  RiskStatus,
 } from './dto/prism-forecast.dto';
 
 /**
@@ -150,5 +154,73 @@ export class AnalyticsController {
       workspaceId,
       targetDate,
     );
+  }
+
+  // ============================================
+  // RISK DETECTION ENDPOINTS (PM-08-3)
+  // ============================================
+
+  @Get('risks')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({
+    summary: 'Detect project risks',
+    description: 'Analyze project and detect schedule, scope, and resource risks using Prism agent',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Risk entries returned',
+    type: [Object],
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  async detectRisks(
+    @Param('projectId') projectId: string,
+    @CurrentWorkspace() workspaceId: string,
+  ): Promise<PmRiskEntryDto[]> {
+    return this.analyticsService.detectRisks(projectId, workspaceId);
+  }
+
+  @Get('risks/entries')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({
+    summary: 'Get risk entries',
+    description: 'Retrieve existing risk entries for a project with optional status filter',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: RiskStatus,
+    description: 'Filter by risk status (ACTIVE, MITIGATED, ACCEPTED, DISMISSED)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Risk entries retrieved',
+    type: [Object],
+  })
+  async getRiskEntries(
+    @Param('projectId') projectId: string,
+    @CurrentWorkspace() workspaceId: string,
+    @Query('status') status?: RiskStatus,
+  ): Promise<PmRiskEntryDto[]> {
+    return this.analyticsService.getRiskEntries(projectId, workspaceId, status);
+  }
+
+  @Patch('risks/:riskId/status')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({
+    summary: 'Update risk status',
+    description: 'Update the status of a risk entry (ACTIVE, MITIGATED, ACCEPTED, DISMISSED)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Risk status updated',
+  })
+  async updateRiskStatus(
+    @Param('projectId') projectId: string,
+    @Param('riskId') riskId: string,
+    @CurrentWorkspace() workspaceId: string,
+    @Body() dto: UpdateRiskStatusDto,
+  ): Promise<PmRiskEntryDto> {
+    return this.analyticsService.updateRiskStatus(riskId, projectId, workspaceId, dto.status);
   }
 }

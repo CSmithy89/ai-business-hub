@@ -1063,6 +1063,7 @@ model Project {
   views           SavedView[]
   pages           ProjectPage[]
   risks           RiskEntry[]
+  pmRisks         PmRiskEntry[]
   reportSchedules ReportSchedule[]
   importJobs      ImportJob[]
 
@@ -2281,4 +2282,52 @@ model UserPreference {
   @@index([userId])
   @@index([dailyBriefingEnabled, dailyBriefingHour]) // For cron job queries
   @@map("user_preferences")
+}
+
+// ============================================
+// PM ANALYTICS - PRISM AGENT (PM-08)
+// ============================================
+
+/// PmRiskEntry - Risk entries detected by Prism agent (PM-08-3)
+model PmRiskEntry {
+  id          String   @id @default(cuid())
+  projectId   String   @map("project_id")
+  tenantId    String   @map("tenant_id")  // RLS - maps to workspaceId
+
+  source      String   // "PRISM", "PULSE", "MANUAL"
+  category    String   // "SCHEDULE", "RESOURCE", "SCOPE", "BUDGET"
+
+  probability Float    // 0.0 - 1.0 (from Monte Carlo distribution)
+  impact      Float    // 0.0 - 1.0 (normalized severity)
+
+  description String   @db.Text // Natural language risk description
+  mitigation  String?  @db.Text // Suggested mitigation steps
+
+  status      String   // "ACTIVE", "MITIGATED", "ACCEPTED", "DISMISSED"
+
+  // Risk details (category-specific)
+  targetDate      DateTime?  @map("target_date")       // Expected completion date
+  predictedDate   DateTime?  @map("predicted_date")    // Forecast completion date
+  delayDays       Int?       @map("delay_days")        // Days of delay (predictedDate - targetDate)
+
+  baselineScope   Int?       @map("baseline_scope")    // Original scope (story points)
+  currentScope    Int?       @map("current_scope")     // Current scope (story points)
+  scopeIncrease   Float?     @map("scope_increase")    // Percentage increase
+
+  velocityTrend   String?    @map("velocity_trend")    // "UP", "DOWN", "STABLE"
+  velocityChange  Float?     @map("velocity_change")   // Percentage change
+
+  // Metadata
+  detectedAt  DateTime @default(now()) @map("detected_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([category])
+  @@index([detectedAt])
+  @@map("pm_risk_entries")
 }

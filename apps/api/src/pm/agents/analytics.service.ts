@@ -11,6 +11,10 @@ import {
   CompletionProbabilityDto,
   PredictionFactor,
   ProbabilityDistribution,
+  PmRiskEntryDto,
+  RiskCategory,
+  RiskSource,
+  RiskStatus,
 } from './dto/prism-forecast.dto';
 
 /**
@@ -766,5 +770,458 @@ export class AnalyticsService {
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
     return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  }
+
+  // ============================================
+  // RISK DETECTION (PM-08-3)
+  // ============================================
+
+  /**
+   * Detect project risks based on forecast and historical data
+   */
+  async detectRisks(
+    projectId: string,
+    workspaceId: string,
+  ): Promise<PmRiskEntryDto[]> {
+    try {
+      // Get latest forecast
+      const forecast = await this.getForecast(projectId, workspaceId);
+
+      // Get project details
+      const project = await this.prisma.project.findUnique({
+        where: {
+          id: projectId,
+          workspaceId
+        },
+        select: {
+          targetDate: true,
+        },
+      });
+
+      if (!project) {
+        throw new Error('Project not found');
+      }
+
+      // Get baseline scope for scope risk detection
+      const baselineScope = await this.getBaselineScope(projectId, workspaceId);
+
+      // Detect different risk types
+      const risks: any[] = [];
+
+      // 1. Schedule Risk Detection
+      if (project.targetDate) {
+        const scheduleRisk = this.detectScheduleRisk(
+          forecast,
+          project.targetDate,
+        );
+        if (scheduleRisk) {
+          risks.push(scheduleRisk);
+        }
+      }
+
+      // 2. Scope Risk Detection
+      const scopeRisk = await this.detectScopeRisk(
+        projectId,
+        workspaceId,
+        baselineScope,
+      );
+      if (scopeRisk) {
+        risks.push(scopeRisk);
+      }
+
+      // 3. Resource Risk Detection
+      const resourceRisk = this.detectResourceRisk(forecast);
+      if (resourceRisk) {
+        risks.push(resourceRisk);
+      }
+
+      // Persist risks to database
+      const riskEntries: PmRiskEntryDto[] = [];
+      for (const risk of risks) {
+        const entry = await this.createRiskEntry(
+          projectId,
+          workspaceId,
+          risk,
+        );
+        riskEntries.push(this.mapRiskToDto(entry));
+      }
+
+      return riskEntries;
+    } catch (error: any) {
+      this.logger.error(
+        `Risk detection failed: ${error?.message}`,
+        error?.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get risk entries for a project
+   */
+  async getRiskEntries(
+    projectId: string,
+    workspaceId: string,
+    status?: RiskStatus,
+  ): Promise<PmRiskEntryDto[]> {
+    const where: any = {
+      projectId,
+      tenantId: workspaceId,
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    const risks = await this.prisma.pmRiskEntry.findMany({
+      where,
+      orderBy: {
+        detectedAt: 'desc',
+      },
+    });
+
+    return risks.map(risk => this.mapRiskToDto(risk));
+  }
+
+  /**
+   * Update risk status
+   */
+  async updateRiskStatus(
+    riskId: string,
+    projectId: string,
+    workspaceId: string,
+    status: RiskStatus,
+  ): Promise<PmRiskEntryDto> {
+    const risk = await this.prisma.pmRiskEntry.update({
+      where: {
+        id: riskId,
+        tenantId: workspaceId,
+        projectId: projectId,
+      },
+      data: {
+        status,
+      },
+    });
+
+    return this.mapRiskToDto(risk);
+  }
+
+  /**
+   * Detect schedule risk (predicted date > target date)
+   */
+  private detectScheduleRisk(
+    forecast: PrismForecastDto,
+    targetDate: Date,
+  ): any | null {
+    const target = new Date(targetDate);
+    const predicted = new Date(forecast.predictedDate);
+
+    // Calculate delay
+    const delayDays = Math.ceil(
+      (predicted.getTime() - target.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    // No risk if predicted date is before target
+    if (delayDays <= 0) {
+      return null;
+    }
+
+    // Calculate probability from distribution
+    let probability = 0.5;
+    if (forecast.probabilityDistribution) {
+      const p25Date = new Date(forecast.probabilityDistribution.p25);
+      const p50Date = new Date(forecast.probabilityDistribution.p50);
+      const p75Date = new Date(forecast.probabilityDistribution.p75);
+
+      if (p25Date > target) {
+        probability = 0.85; // Even optimistic scenario misses deadline
+      } else if (p50Date > target) {
+        probability = 0.65; // Median scenario misses deadline
+      } else if (p75Date > target) {
+        probability = 0.40; // Pessimistic scenario misses deadline
+      } else {
+        probability = 0.20; // Only extreme scenarios miss deadline
+      }
+    }
+
+    // Calculate impact (normalize delay to 0-1 scale)
+    // 1 week = 0.3, 2 weeks = 0.5, 4 weeks = 0.7, 8+ weeks = 1.0
+    const impact = Math.min(1.0, delayDays / 56.0 + 0.3);
+
+    // Generate mitigation suggestions
+    const mitigation = this.generateScheduleMitigation(delayDays, forecast);
+
+    return {
+      category: RiskCategory.SCHEDULE,
+      probability,
+      impact,
+      description: `Project is at risk of missing deadline by ~${Math.floor(delayDays / 7)} weeks (${delayDays} days)`,
+      mitigation,
+      details: {
+        targetDate: targetDate.toISOString(),
+        predictedDate: forecast.predictedDate,
+        delayDays,
+      },
+    };
+  }
+
+  /**
+   * Detect scope risk (scope increase >10% mid-phase)
+   */
+  private async detectScopeRisk(
+    projectId: string,
+    workspaceId: string,
+    baselineScope: number,
+  ): Promise<any | null> {
+    // Get current scope
+    const currentScopeResult = await this.prisma.task.aggregate({
+      where: {
+        projectId,
+        workspaceId,
+      },
+      _sum: {
+        storyPoints: true,
+      },
+    });
+
+    const currentScope = currentScopeResult._sum.storyPoints || 0;
+
+    // Calculate scope increase
+    const scopeIncrease = baselineScope > 0
+      ? (currentScope - baselineScope) / baselineScope
+      : 0;
+
+    // Only trigger risk if increase >10%
+    if (scopeIncrease <= 0.10) {
+      return null;
+    }
+
+    // Calculate probability (higher increase = higher probability)
+    // 10% = 0.4, 20% = 0.6, 30%+ = 0.8
+    const probability = Math.min(0.8, 0.3 + scopeIncrease * 2.0);
+
+    // Calculate impact (normalize to 0-1 scale)
+    // 10% = 0.4, 20% = 0.6, 40%+ = 1.0
+    const impact = Math.min(1.0, 0.2 + scopeIncrease * 2.0);
+
+    // Generate mitigation
+    const mitigation = this.generateScopeMitigation(
+      scopeIncrease,
+      currentScope,
+      baselineScope,
+    );
+
+    return {
+      category: RiskCategory.SCOPE,
+      probability,
+      impact,
+      description: `Scope has increased ${Math.round(scopeIncrease * 100)}% from baseline (${baselineScope} → ${currentScope} points)`,
+      mitigation,
+      details: {
+        baselineScope,
+        currentScope,
+        scopeIncrease,
+      },
+    };
+  }
+
+  /**
+   * Detect resource risk (declining velocity >15%)
+   */
+  private detectResourceRisk(forecast: PrismForecastDto): any | null {
+    // Extract velocity trend from factors
+    const velocityFactor = forecast.factors.find(
+      (f: any) => f.name === 'Velocity Trend',
+    );
+
+    if (!velocityFactor || (velocityFactor as any).value !== 'DECREASING') {
+      return null;
+    }
+
+    // Approximate velocity change (from factor or assume -20% for DECREASING)
+    const velocityChange = -0.20; // Negative indicates decline
+
+    // Calculate probability (steeper decline = higher probability)
+    const probability = Math.min(0.9, Math.abs(velocityChange) * 3.0);
+
+    // Calculate impact
+    const impact = Math.min(1.0, Math.abs(velocityChange) * 2.5);
+
+    // Generate mitigation
+    const mitigation = this.generateResourceMitigation(velocityChange);
+
+    return {
+      category: RiskCategory.RESOURCE,
+      probability,
+      impact,
+      description: 'Team velocity is declining, indicating potential resource constraints',
+      mitigation,
+      details: {
+        velocityTrend: 'DOWN',
+        velocityChange,
+      },
+    };
+  }
+
+  /**
+   * Generate schedule mitigation suggestions
+   */
+  private generateScheduleMitigation(
+    delayDays: number,
+    _forecast: PrismForecastDto,
+  ): string {
+    const weeksDelayed = Math.floor(delayDays / 7);
+
+    if (weeksDelayed <= 1) {
+      return 'Minor delay expected. Monitor velocity closely and adjust sprint planning.';
+    } else if (weeksDelayed <= 4) {
+      return `Consider reducing scope by ~${weeksDelayed * 10}% or adding 1 team member to maintain timeline.`;
+    } else {
+      return `Significant delay (${weeksDelayed} weeks). Options: (1) Extend deadline, (2) Reduce scope by ~30%, (3) Expand team by 2+ members.`;
+    }
+  }
+
+  /**
+   * Generate scope mitigation suggestions
+   */
+  private generateScopeMitigation(
+    increase: number,
+    current: number,
+    baseline: number,
+  ): string {
+    const increasePct = Math.round(increase * 100);
+    const addedPoints = current - baseline;
+
+    return `Scope has grown ${increasePct}% (+${addedPoints} points). Review backlog and defer low-priority items. Consider moving ${Math.floor(addedPoints / 2)} points to Phase 2.`;
+  }
+
+  /**
+   * Generate resource mitigation suggestions
+   */
+  private generateResourceMitigation(velocityChange: number): string {
+    const declinePct = Math.round(Math.abs(velocityChange) * 100);
+
+    return `Velocity declining ${declinePct}%. Investigate: (1) Team capacity issues, (2) Technical blockers, (3) Scope complexity. Consider capacity adjustments or backlog refinement.`;
+  }
+
+  /**
+   * Create or update risk entry in database
+   */
+  private async createRiskEntry(
+    projectId: string,
+    workspaceId: string,
+    risk: any,
+  ): Promise<any> {
+    // Check if risk already exists (same category + active)
+    const existing = await this.prisma.pmRiskEntry.findFirst({
+      where: {
+        projectId,
+        tenantId: workspaceId,
+        category: risk.category,
+        status: RiskStatus.ACTIVE,
+      },
+    });
+
+    if (existing) {
+      // Update existing risk
+      return this.prisma.pmRiskEntry.update({
+        where: { id: existing.id },
+        data: {
+          probability: risk.probability,
+          impact: risk.impact,
+          description: risk.description,
+          mitigation: risk.mitigation,
+          targetDate: risk.details?.targetDate
+            ? new Date(risk.details.targetDate)
+            : null,
+          predictedDate: risk.details?.predictedDate
+            ? new Date(risk.details.predictedDate)
+            : null,
+          delayDays: risk.details?.delayDays,
+          baselineScope: risk.details?.baselineScope,
+          currentScope: risk.details?.currentScope,
+          scopeIncrease: risk.details?.scopeIncrease,
+          velocityTrend: risk.details?.velocityTrend,
+          velocityChange: risk.details?.velocityChange,
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    // Create new risk entry
+    return this.prisma.pmRiskEntry.create({
+      data: {
+        projectId,
+        tenantId: workspaceId,
+        source: RiskSource.PRISM,
+        category: risk.category,
+        probability: risk.probability,
+        impact: risk.impact,
+        description: risk.description,
+        mitigation: risk.mitigation,
+        status: RiskStatus.ACTIVE,
+        targetDate: risk.details?.targetDate
+          ? new Date(risk.details.targetDate)
+          : null,
+        predictedDate: risk.details?.predictedDate
+          ? new Date(risk.details.predictedDate)
+          : null,
+        delayDays: risk.details?.delayDays,
+        baselineScope: risk.details?.baselineScope,
+        currentScope: risk.details?.currentScope,
+        scopeIncrease: risk.details?.scopeIncrease,
+        velocityTrend: risk.details?.velocityTrend,
+        velocityChange: risk.details?.velocityChange,
+      },
+    });
+  }
+
+  /**
+   * Get baseline scope for scope risk calculation
+   */
+  private async getBaselineScope(
+    projectId: string,
+    workspaceId: string,
+  ): Promise<number> {
+    // For MVP, use current total as baseline
+    // TODO: Track baseline scope in project metadata or prediction log
+    const allTasks = await this.prisma.task.aggregate({
+      where: {
+        projectId,
+        workspaceId,
+      },
+      _sum: {
+        storyPoints: true,
+      },
+    });
+
+    return allTasks._sum.storyPoints || 0;
+  }
+
+  /**
+   * Map Prisma risk entry to DTO
+   */
+  private mapRiskToDto(risk: any): PmRiskEntryDto {
+    return {
+      id: risk.id,
+      projectId: risk.projectId,
+      source: risk.source as RiskSource,
+      category: risk.category as RiskCategory,
+      probability: risk.probability,
+      impact: risk.impact,
+      description: risk.description,
+      mitigation: risk.mitigation,
+      status: risk.status as RiskStatus,
+      targetDate: risk.targetDate?.toISOString(),
+      predictedDate: risk.predictedDate?.toISOString(),
+      delayDays: risk.delayDays,
+      baselineScope: risk.baselineScope,
+      currentScope: risk.currentScope,
+      scopeIncrease: risk.scopeIncrease,
+      velocityTrend: risk.velocityTrend as VelocityTrend,
+      velocityChange: risk.velocityChange,
+      detectedAt: risk.detectedAt.toISOString(),
+      updatedAt: risk.updatedAt.toISOString(),
+    };
   }
 }
