@@ -25,6 +25,7 @@ import { TaskListView } from '@/components/pm/views/TaskListView'
 import { KanbanBoardView } from '@/components/pm/views/KanbanBoardView'
 import { CalendarView } from '@/components/pm/views/CalendarView'
 import { TimelineView } from '@/components/pm/views/TimelineView'
+import { ViewTemplatesMenu } from '@/components/pm/views/ViewTemplatesMenu'
 import { GroupBySelector } from '@/components/pm/kanban/GroupBySelector'
 import { SavedViewsDropdown } from '@/components/pm/saved-views/SavedViewsDropdown'
 import { SaveViewModal } from '@/components/pm/saved-views/SaveViewModal'
@@ -72,6 +73,7 @@ export function ProjectTasksContent() {
   const searchParams = useSearchParams()
   const params = useParams<{ slug: string }>()
   const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
   const currentUserId = session?.user?.id ?? null
 
   const slug = params?.slug
@@ -233,6 +235,58 @@ export function ProjectTasksContent() {
       }
       if (view.sortOrder) {
         nextPrefs.sortOrder = view.sortOrder as 'asc' | 'desc'
+      }
+      if (Object.keys(nextPrefs).length > 0) {
+        setViewPreferences(project.id, nextPrefs)
+      }
+    }
+  }
+
+  const applyTemplateState = (viewState: {
+    viewType: 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE'
+    filters: Record<string, any>
+    sortBy?: string
+    sortOrder?: string
+    groupBy?: string
+    columns?: string[]
+  }) => {
+    const nextMode =
+      viewState.viewType === 'KANBAN'
+        ? 'kanban'
+        : viewState.viewType === 'CALENDAR'
+          ? 'calendar'
+          : viewState.viewType === 'TABLE'
+            ? 'table'
+            : 'simple'
+    setViewMode(nextMode)
+    setSearch((viewState.filters.search as string) || '')
+
+    const status = viewState.filters.status as TaskStatus | undefined
+    setFilters({
+      status: status ? [status] : [],
+      priority: (viewState.filters.priority as TaskPriority) || null,
+      assigneeId: null,
+      type: (viewState.filters.type as TaskType) || null,
+      labels: [],
+      dueDateFrom: null,
+      dueDateTo: null,
+      phaseId: null,
+    })
+
+    if (viewState.groupBy) {
+      setGroupBy(viewState.groupBy as GroupByOption)
+    }
+
+    if (project?.id) {
+      const nextPrefs: Partial<ReturnType<typeof getViewPreferences>> = {}
+      if (viewState.columns && viewState.columns.length > 0) {
+        nextPrefs.listColumns = viewState.columns
+      }
+      if (viewState.sortBy) {
+        nextPrefs.sortBy = viewState.sortBy
+      }
+      if (viewState.sortOrder) {
+        nextPrefs.sortOrder = viewState.sortOrder as 'asc' | 'desc'
       }
       if (Object.keys(nextPrefs).length > 0) {
         setViewPreferences(project.id, nextPrefs)
@@ -405,6 +459,13 @@ export function ProjectTasksContent() {
               currentViewState={currentViewState}
             />
           )}
+          {workspaceId ? (
+            <ViewTemplatesMenu
+              workspaceId={workspaceId}
+              currentViewState={currentViewState}
+              onApplyTemplate={applyTemplateState}
+            />
+          ) : null}
 
           {/* Save View Button */}
           {hasUnsavedChanges && (
