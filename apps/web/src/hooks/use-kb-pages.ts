@@ -66,6 +66,24 @@ export interface UpdateKBPageInput {
   processMentions?: boolean
 }
 
+export interface KBDraftCitation {
+  pageId: string
+  title: string
+  slug: string
+  chunkIndex: number
+}
+
+export interface KBDraftResponse {
+  draft: {
+    content: string
+    citations: KBDraftCitation[]
+  }
+}
+
+export interface GenerateKBDraftInput {
+  prompt: string
+}
+
 async function fetchKBPages(params: {
   workspaceId: string
   token?: string
@@ -202,6 +220,33 @@ async function deleteKBPage(params: {
   return data as { success: boolean }
 }
 
+async function generateKBDraft(params: {
+  input: GenerateKBDraftInput
+  workspaceId: string
+  token?: string
+}): Promise<KBDraftResponse> {
+  const { input, workspaceId, token } = params
+
+  const response = await fetch(`${getBaseUrl()}/api/kb/ai/draft`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      'x-workspace-id': workspaceId,
+    },
+    credentials: 'include',
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    const error: any = await safeJson(response)
+    throw new Error(error?.message || `Failed to generate AI draft: ${response.statusText}`)
+  }
+
+  const data = await safeJson(response)
+  return data as KBDraftResponse
+}
+
 // ============================================
 // React Query Hooks
 // ============================================
@@ -282,6 +327,16 @@ export function useDeleteKBPage(workspaceId: string) {
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete page')
     },
+  })
+}
+
+export function useKBDraft(workspaceId: string) {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: (input: GenerateKBDraftInput) =>
+      generateKBDraft({ input, workspaceId, token }),
   })
 }
 

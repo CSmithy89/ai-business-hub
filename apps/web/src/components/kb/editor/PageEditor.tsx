@@ -2,6 +2,7 @@
 
 import { useEditor, EditorContent, JSONContent } from '@tiptap/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { createExtensions } from './extensions'
 import { EditorToolbar } from './EditorToolbar'
 import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
@@ -10,6 +11,20 @@ import { IndexeddbPersistence } from 'y-indexeddb'
 import { isChangeOrigin } from '@tiptap/extension-collaboration'
 import { KB_COLLAB_WS_URL } from '@/lib/api-config'
 import { useNetworkStatus } from '@/hooks/use-network-status'
+import { useKBDraft, type KBDraftCitation } from '@/hooks/use-kb-pages'
+import { draftTextToTiptap } from '@/lib/kb-ai'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { toast } from 'sonner'
 
 interface PageEditorProps {
   pageId?: string
@@ -43,6 +58,10 @@ export function PageEditor({
   const [unsyncedChanges, setUnsyncedChanges] = useState(0)
   const [isIdbSynced, setIsIdbSynced] = useState(false)
   const isOnline = useNetworkStatus()
+  const draftMutation = useKBDraft(workspaceId ?? '')
+  const [draftDialogOpen, setDraftDialogOpen] = useState(false)
+  const [draftPrompt, setDraftPrompt] = useState('')
+  const [draftCitations, setDraftCitations] = useState<KBDraftCitation[]>([])
 
   const collaborationEnabled = !!pageId && !!collaboration?.token
   const collabDoc = useMemo(() => new Y.Doc(), [pageId])
@@ -158,6 +177,48 @@ export function PageEditor({
     }
   }, [editor, hasUnsavedChanges, onSave])
 
+  const handleGenerateDraft = useCallback(async () => {
+    if (!editor) return
+    if (!workspaceId) {
+      toast.error('Workspace is required to generate a draft.')
+      return
+    }
+
+    const prompt = draftPrompt.trim()
+    if (!prompt) {
+      toast.error('Add a prompt to generate a draft.')
+      return
+    }
+
+    try {
+      const result = await draftMutation.mutateAsync({ prompt })
+      const draftDoc = draftTextToTiptap(result.draft.content)
+      const insertNodes = draftDoc.content ?? []
+      const hasContent = editor.getText().trim().length > 0
+
+      if (!hasContent) {
+        editor.commands.setContent(draftDoc)
+      } else {
+        editor.chain().focus().insertContent([
+          { type: 'paragraph', content: [] },
+          {
+            type: 'heading',
+            attrs: { level: 2 },
+            content: [{ type: 'text', text: 'AI Draft' }],
+          },
+          ...insertNodes,
+        ]).run()
+      }
+
+      setDraftCitations(result.draft.citations || [])
+      setDraftPrompt('')
+      setDraftDialogOpen(false)
+      toast.success('AI draft inserted into the editor.')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to generate draft.')
+    }
+  }, [draftMutation, draftPrompt, editor, workspaceId])
+
   // Auto-save effect
   useEffect(() => {
     if (!hasUnsavedChanges) {
@@ -234,7 +295,26 @@ export function PageEditor({
 
   return (
     <div className="flex h-full flex-col">
-      <EditorToolbar editor={editor} />
+      <EditorToolbar
+        editor={editor}
+        onAIDraft={() => setDraftDialogOpen(true)}
+        isAIDraftLoading={draftMutation.isPending}
+      />
+
+      {draftCitations.length > 0 && (
+        <div className="border-b bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-foreground font-medium">Sources:</span>
+            {draftCitations.map((citation) => (
+              <Badge key={`${citation.pageId}-${citation.chunkIndex}`} variant="outline">
+                <Link href={`/kb/${citation.slug}` as any} className="hover:underline">
+                  {citation.title}
+                </Link>
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-4xl p-8">
@@ -297,6 +377,36 @@ export function PageEditor({
           )}
         </div>
       </div>
+
+      <Dialog open={draftDialogOpen} onOpenChange={setDraftDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>AI Draft</DialogTitle>
+            <DialogDescription>
+              Describe what you need. Scribe will draft a KB page for your review.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={draftPrompt}
+            onChange={(event) => setDraftPrompt(event.target.value)}
+            placeholder="Explain what this page should cover..."
+            className="min-h-[140px]"
+            disabled={draftMutation.isPending}
+          />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDraftDialogOpen(false)}
+              disabled={draftMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleGenerateDraft} disabled={draftMutation.isPending}>
+              {draftMutation.isPending ? 'Drafting...' : 'Generate Draft'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

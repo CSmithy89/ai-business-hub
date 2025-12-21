@@ -250,12 +250,12 @@ development_status:
   # FRs: KB-F8
   # ===========================================
   kb-04: contexted
-  kb-04-1-ai-draft-generation: backlog
-  kb-04-2-natural-language-qa: backlog
-  kb-04-3-gap-detection: backlog
-  kb-04-4-auto-summarization: backlog
-  kb-04-5-content-suggestions: backlog
-  kb-04-6-kb-health-dashboard: backlog
+  kb-04-1-ai-page-drafts: done
+  kb-04-2-smart-summarization: backlog
+  kb-04-3-qa-chat-interface: backlog
+  kb-04-4-knowledge-extraction: backlog
+  kb-04-5-gap-detection: backlog
+  kb-04-6-kb-templates: backlog
   kb-04-retrospective: optional
 
   # ===========================================

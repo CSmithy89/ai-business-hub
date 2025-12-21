@@ -13,6 +13,8 @@ import { KbCollabModule } from './collab/kb-collab.module'
 import { EmbeddingsModule } from './embeddings/embeddings.module'
 import { RagController } from './rag/rag.controller'
 import { RagService } from './rag/rag.service'
+import { KbAiController } from './ai/ai.controller'
+import { KbAiService } from './ai/ai.service'
 import { VerificationModule } from './verification/verification.module'
 import { MentionModule } from './mentions/mention.module'
 
@@ -25,12 +27,20 @@ import { MentionModule } from './mentions/mention.module'
     VerificationModule,
     MentionModule,
   ],
-  controllers: [PagesController, VersionsController, SearchController, LinkingController, RagController],
+  controllers: [
+    PagesController,
+    VersionsController,
+    SearchController,
+    LinkingController,
+    RagController,
+    KbAiController,
+  ],
   providers: [
     PagesService,
     VersionsService,
     SearchService,
     RagService,
+    KbAiService,
     LinkingService,
     {
       provide: 'VersionsService',
