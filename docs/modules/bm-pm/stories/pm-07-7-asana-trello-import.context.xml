@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-07-7-asana-trello-import</story-id>
+    <generated>2025-12-19T00:00:00Z</generated>
+    <epic>PM-07 - Integrations &amp; Bridge Agent</epic>
+    <description>
+      Asana and Trello import endpoints plus shared import dialog.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="apps/api/src/pm/imports/imports.service.ts">
+      <description>
+        Jira import pattern to extend for Asana/Trello.
+      </description>
+    </file>
+  </existing-code>
+</story-context>

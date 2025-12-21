@@ -35,6 +35,19 @@ export type StartJiraImportPayload = {
   maxResults?: number
 }
 
+export type StartAsanaImportPayload = {
+  projectId: string
+  accessToken: string
+  projectGid: string
+}
+
+export type StartTrelloImportPayload = {
+  projectId: string
+  apiKey: string
+  token: string
+  boardId: string
+}
+
 export type ImportJobSummary = {
   id: string
   status: string
@@ -110,6 +123,78 @@ export function useStartJiraImport() {
 
       if (!body || typeof body !== 'object' || !('data' in body)) {
         throw new Error('Failed to start Jira import')
+      }
+
+      return body as { data: ImportJobSummary }
+    },
+  })
+}
+
+export function useStartAsanaImport() {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: async (payload: StartAsanaImportPayload) => {
+      const base = getBaseUrl()
+      const response = await fetch(`${base}/pm/imports/asana/start`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+        cache: 'no-store',
+      })
+
+      const body = await safeJson<unknown>(response)
+      if (!response.ok) {
+        const message =
+          body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+            ? body.message
+            : undefined
+        throw new Error(message || 'Failed to start Asana import')
+      }
+
+      if (!body || typeof body !== 'object' || !('data' in body)) {
+        throw new Error('Failed to start Asana import')
+      }
+
+      return body as { data: ImportJobSummary }
+    },
+  })
+}
+
+export function useStartTrelloImport() {
+  const { data: session } = useSession()
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: async (payload: StartTrelloImportPayload) => {
+      const base = getBaseUrl()
+      const response = await fetch(`${base}/pm/imports/trello/start`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+        cache: 'no-store',
+      })
+
+      const body = await safeJson<unknown>(response)
+      if (!response.ok) {
+        const message =
+          body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+            ? body.message
+            : undefined
+        throw new Error(message || 'Failed to start Trello import')
+      }
+
+      if (!body || typeof body !== 'object' || !('data' in body)) {
+        throw new Error('Failed to start Trello import')
       }
 
       return body as { data: ImportJobSummary }

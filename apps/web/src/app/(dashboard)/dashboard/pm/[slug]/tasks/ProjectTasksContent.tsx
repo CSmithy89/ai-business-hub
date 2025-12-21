@@ -34,6 +34,7 @@ import { CsvImportWizard } from '@/components/pm/imports/CsvImportWizard'
 import { CsvExportModal } from '@/components/pm/exports/CsvExportModal'
 import { GithubIssuesSyncDialog } from '@/components/pm/integrations/GithubIssuesSyncDialog'
 import { JiraImportDialog } from '@/components/pm/imports/JiraImportDialog'
+import { AsanaTrelloImportDialog } from '@/components/pm/imports/AsanaTrelloImportDialog'
 
 function formatDate(value: string | null): string {
   if (!value) return '—'
@@ -147,6 +148,7 @@ export function ProjectTasksContent() {
   const [exportModalOpen, setExportModalOpen] = useState(false)
   const [githubSyncOpen, setGithubSyncOpen] = useState(false)
   const [jiraImportOpen, setJiraImportOpen] = useState(false)
+  const [asanaTrelloImportOpen, setAsanaTrelloImportOpen] = useState(false)
 
   // Apply default view on mount
   useEffect(() => {
@@ -379,6 +381,10 @@ export function ProjectTasksContent() {
             <DownloadCloud className="h-4 w-4" />
             Import Jira
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setAsanaTrelloImportOpen(true)} className="gap-2">
+            <DownloadCloud className="h-4 w-4" />
+            Import Asana/Trello
+          </Button>
 
           {/* View Mode Toggles */}
           <Button
@@ -542,6 +548,11 @@ export function ProjectTasksContent() {
       <JiraImportDialog
         open={jiraImportOpen}
         onOpenChange={setJiraImportOpen}
+        projectId={project.id}
+      />
+      <AsanaTrelloImportDialog
+        open={asanaTrelloImportOpen}
+        onOpenChange={setAsanaTrelloImportOpen}
         projectId={project.id}
       />
 

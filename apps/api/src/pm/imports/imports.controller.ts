@@ -9,6 +9,8 @@ import { TenantGuard } from '../../common/guards/tenant.guard'
 import { ImportsService } from './imports.service'
 import { StartCsvImportDto } from './dto/start-csv-import.dto'
 import { StartJiraImportDto } from './dto/start-jira-import.dto'
+import { StartAsanaImportDto } from './dto/start-asana-import.dto'
+import { StartTrelloImportDto } from './dto/start-trello-import.dto'
 
 @ApiTags('PM Imports')
 @Controller('pm/imports')
@@ -39,6 +41,30 @@ export class ImportsController {
     @Body() dto: StartJiraImportDto,
   ) {
     return this.importsService.startJiraImport(workspaceId, actor.id, dto)
+  }
+
+  @Post('asana/start')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Start an Asana import' })
+  @ApiResponse({ status: 201, description: 'Asana import job created' })
+  async startAsanaImport(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser() actor: any,
+    @Body() dto: StartAsanaImportDto,
+  ) {
+    return this.importsService.startAsanaImport(workspaceId, actor.id, dto)
+  }
+
+  @Post('trello/start')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Start a Trello import' })
+  @ApiResponse({ status: 201, description: 'Trello import job created' })
+  async startTrelloImport(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser() actor: any,
+    @Body() dto: StartTrelloImportDto,
+  ) {
+    return this.importsService.startTrelloImport(workspaceId, actor.id, dto)
   }
 
   @Get(':id/status')

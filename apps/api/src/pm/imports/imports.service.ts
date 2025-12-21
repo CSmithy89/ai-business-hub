@@ -5,6 +5,8 @@ import { PrismaService } from '../../common/services/prisma.service'
 import { TasksService } from '../tasks/tasks.service'
 import { StartCsvImportDto } from './dto/start-csv-import.dto'
 import { StartJiraImportDto } from './dto/start-jira-import.dto'
+import { StartAsanaImportDto } from './dto/start-asana-import.dto'
+import { StartTrelloImportDto } from './dto/start-trello-import.dto'
 import type { CreateTaskDto } from '../tasks/dto/create-task.dto'
 
 const CSV_FIELDS = [
@@ -337,6 +339,241 @@ export class ImportsService {
     return { data: updated }
   }
 
+  async startAsanaImport(workspaceId: string, actorId: string, dto: StartAsanaImportDto) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: dto.projectId, workspaceId, deletedAt: null },
+      select: { id: true, phases: { select: { id: true, status: true } } },
+    })
+
+    if (!project) throw new NotFoundException('Project not found')
+
+    const defaultPhaseId = this.resolveDefaultPhaseId(project.phases, undefined)
+    if (!defaultPhaseId) throw new BadRequestException('No valid phase found for import')
+
+    const job = await this.prisma.importJob.create({
+      data: {
+        workspaceId,
+        projectId: dto.projectId,
+        source: ImportSource.ASANA,
+        status: ImportStatus.RUNNING,
+      },
+      select: { id: true },
+    })
+
+    const tasks = await fetchAsanaTasks(dto)
+    const errors: RowError[] = []
+    let processedRows = 0
+    let errorsPersisted = false
+
+    const persistErrors = async () => {
+      if (errorsPersisted || errors.length === 0) return
+      await this.prisma.importError.createMany({
+        data: errors.map((err) => ({
+          importJobId: job.id,
+          rowNumber: err.rowNumber,
+          field: err.field,
+          message: err.message,
+          rawRow: err.rawRow,
+        })),
+      })
+      errorsPersisted = true
+    }
+
+    try {
+      for (let index = 0; index < tasks.length; index += 1) {
+        const item = tasks[index]
+        const rowNumber = index + 1
+        const title = item.name?.trim()
+        if (!title) {
+          errors.push({ rowNumber, field: 'name', message: 'Missing task name' })
+          processedRows += 1
+          continue
+        }
+
+        const status = item.completed ? TaskStatus.DONE : TaskStatus.TODO
+        const description = item.notes || 'Imported from Asana.'
+
+        const task = await this.tasksService.create(workspaceId, actorId, {
+          projectId: dto.projectId,
+          phaseId: defaultPhaseId,
+          title,
+          description,
+          status,
+          priority: TaskPriority.MEDIUM,
+          type: TaskType.TASK,
+        })
+
+        await this.prisma.externalLink.create({
+          data: {
+            workspaceId,
+            taskId: task.data.id,
+            provider: IntegrationProvider.ASANA,
+            linkType: ExternalLinkType.TICKET,
+            externalId: item.gid,
+            externalUrl: `https://app.asana.com/0/${dto.projectGid}/${item.gid}`,
+            metadata: {
+              completed: item.completed,
+            },
+          },
+        })
+
+        processedRows += 1
+      }
+    } catch (error) {
+      await persistErrors()
+      await this.prisma.importJob.update({
+        where: { id: job.id },
+        data: {
+          status: ImportStatus.FAILED,
+          processedRows,
+          errorCount: errors.length,
+          totalRows: tasks.length,
+        },
+      })
+      throw error
+    }
+
+    await persistErrors()
+
+    const updated = await this.prisma.importJob.update({
+      where: { id: job.id },
+      data: {
+        status: ImportStatus.COMPLETED,
+        processedRows,
+        totalRows: tasks.length,
+        errorCount: errors.length,
+      },
+      select: {
+        id: true,
+        status: true,
+        totalRows: true,
+        processedRows: true,
+        errorCount: true,
+        createdAt: true,
+      },
+    })
+
+    return { data: updated }
+  }
+
+  async startTrelloImport(workspaceId: string, actorId: string, dto: StartTrelloImportDto) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: dto.projectId, workspaceId, deletedAt: null },
+      select: { id: true, phases: { select: { id: true, status: true } } },
+    })
+
+    if (!project) throw new NotFoundException('Project not found')
+
+    const defaultPhaseId = this.resolveDefaultPhaseId(project.phases, undefined)
+    if (!defaultPhaseId) throw new BadRequestException('No valid phase found for import')
+
+    const job = await this.prisma.importJob.create({
+      data: {
+        workspaceId,
+        projectId: dto.projectId,
+        source: ImportSource.TRELLO,
+        status: ImportStatus.RUNNING,
+      },
+      select: { id: true },
+    })
+
+    const cards = await fetchTrelloCards(dto)
+    const errors: RowError[] = []
+    let processedRows = 0
+    let errorsPersisted = false
+
+    const persistErrors = async () => {
+      if (errorsPersisted || errors.length === 0) return
+      await this.prisma.importError.createMany({
+        data: errors.map((err) => ({
+          importJobId: job.id,
+          rowNumber: err.rowNumber,
+          field: err.field,
+          message: err.message,
+          rawRow: err.rawRow,
+        })),
+      })
+      errorsPersisted = true
+    }
+
+    try {
+      for (let index = 0; index < cards.length; index += 1) {
+        const card = cards[index]
+        const rowNumber = index + 1
+        const title = card.name?.trim()
+        if (!title) {
+          errors.push({ rowNumber, field: 'name', message: 'Missing card name' })
+          processedRows += 1
+          continue
+        }
+
+        const status = card.closed ? TaskStatus.DONE : TaskStatus.TODO
+        const description = card.desc || 'Imported from Trello.'
+
+        const task = await this.tasksService.create(workspaceId, actorId, {
+          projectId: dto.projectId,
+          phaseId: defaultPhaseId,
+          title,
+          description,
+          status,
+          priority: TaskPriority.MEDIUM,
+          type: TaskType.TASK,
+        })
+
+        await this.prisma.externalLink.create({
+          data: {
+            workspaceId,
+            taskId: task.data.id,
+            provider: IntegrationProvider.TRELLO,
+            linkType: ExternalLinkType.TICKET,
+            externalId: card.id,
+            externalUrl: card.url,
+            metadata: {
+              closed: card.closed,
+              listId: card.idList,
+            },
+          },
+        })
+
+        processedRows += 1
+      }
+    } catch (error) {
+      await persistErrors()
+      await this.prisma.importJob.update({
+        where: { id: job.id },
+        data: {
+          status: ImportStatus.FAILED,
+          processedRows,
+          errorCount: errors.length,
+          totalRows: cards.length,
+        },
+      })
+      throw error
+    }
+
+    await persistErrors()
+
+    const updated = await this.prisma.importJob.update({
+      where: { id: job.id },
+      data: {
+        status: ImportStatus.COMPLETED,
+        processedRows,
+        totalRows: cards.length,
+        errorCount: errors.length,
+      },
+      select: {
+        id: true,
+        status: true,
+        totalRows: true,
+        processedRows: true,
+        errorCount: true,
+        createdAt: true,
+      },
+    })
+
+    return { data: updated }
+  }
+
   async getImportStatus(workspaceId: string, importJobId: string) {
     const job = await this.prisma.importJob.findFirst({
       where: { id: importJobId, workspaceId },
@@ -601,4 +838,47 @@ function buildJiraDescription(
 
   const link = `Imported from Jira (${baseUrl}).`
   return link
+}
+
+async function fetchAsanaTasks(dto: StartAsanaImportDto) {
+  const response = await fetch(
+    `https://app.asana.com/api/1.0/projects/${dto.projectGid}/tasks?opt_fields=name,notes,completed`,
+    {
+      headers: {
+        Authorization: `Bearer ${dto.accessToken}`,
+        Accept: 'application/json',
+      },
+    },
+  )
+
+  if (!response.ok) {
+    throw new BadRequestException('Failed to fetch Asana tasks')
+  }
+
+  const data = (await response.json()) as {
+    data: Array<{ gid: string; name: string; notes?: string; completed: boolean }>
+  }
+
+  return data.data ?? []
+}
+
+async function fetchTrelloCards(dto: StartTrelloImportDto) {
+  const response = await fetch(
+    `https://api.trello.com/1/boards/${dto.boardId}/cards?fields=name,desc,closed,idList,url&key=${dto.apiKey}&token=${dto.token}`,
+  )
+
+  if (!response.ok) {
+    throw new BadRequestException('Failed to fetch Trello cards')
+  }
+
+  const data = (await response.json()) as Array<{
+    id: string
+    name: string
+    desc?: string
+    closed: boolean
+    idList: string
+    url: string
+  }>
+
+  return data
 }
