@@ -71,7 +71,7 @@ export default function DigestUnsubscribePage() {
               You can re-enable digest notifications anytime in your settings.
             </p>
             <Button
-              onClick={() => router.push('/settings/notifications')}
+              onClick={() => router.push('/settings/notifications' as Parameters<typeof router.push>[0])}
               className="w-full"
             >
               Go to Settings
@@ -91,7 +91,7 @@ export default function DigestUnsubscribePage() {
               preferences in settings.
             </p>
             <Button
-              onClick={() => router.push('/settings/notifications')}
+              onClick={() => router.push('/settings/notifications' as Parameters<typeof router.push>[0])}
               variant="outline"
               className="w-full"
             >

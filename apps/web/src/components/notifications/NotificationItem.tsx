@@ -84,7 +84,7 @@ export function NotificationItem({ notification, workspaceId }: NotificationItem
 
     // Navigate to link if provided and valid
     if (hasValidAction) {
-      router.push(notification.link!);
+      router.push(notification.link! as Parameters<typeof router.push>[0]);
     }
   };
 

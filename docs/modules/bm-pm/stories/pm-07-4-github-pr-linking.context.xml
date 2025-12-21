@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-07-4-github-pr-linking</story-id>
+    <generated>2025-12-19T00:00:00Z</generated>
+    <epic>PM-07 - Integrations &amp; Bridge Agent</epic>
+    <description>
+      GitHub PR linking via webhook and task detail UI for external links.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="apps/api/src/pm/integrations/github.controller.ts">
+      <description>
+        GitHub integration endpoints; webhook handler added alongside.
+      </description>
+    </file>
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/TaskDetailSheet.tsx">
+      <description>
+        Task detail UI; show linked PRs in the side panel.
+      </description>
+    </file>
+  </existing-code>
+</story-context>

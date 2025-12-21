@@ -24,6 +24,13 @@ from .scribe import (
     SCRIBE_INSTRUCTIONS,
 )
 
+from .bridge import (
+    BridgeAgent,
+    create_bridge_agent,
+    AGENT_NAME as BRIDGE_AGENT_NAME,
+    INSTRUCTIONS as BRIDGE_INSTRUCTIONS,
+)
+
 __all__ = [
     # Approval Agent
     "ApprovalAgent",
@@ -35,4 +42,9 @@ __all__ = [
     "create_scribe_agent",
     "SCRIBE_AGENT_NAME",
     "SCRIBE_INSTRUCTIONS",
+    # Bridge Agent
+    "BridgeAgent",
+    "create_bridge_agent",
+    "BRIDGE_AGENT_NAME",
+    "BRIDGE_INSTRUCTIONS",
 ]

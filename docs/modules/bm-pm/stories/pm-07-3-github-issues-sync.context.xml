@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-07-3-github-issues-sync</story-id>
+    <generated>2025-12-19T00:00:00Z</generated>
+    <epic>PM-07 - Integrations &amp; Bridge Agent</epic>
+    <description>
+      GitHub issues sync uses IntegrationConnection credentials and ExternalLink mapping.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="apps/api/src/pm/tasks/tasks.service.ts">
+      <description>
+        Task creation logic reused when importing GitHub issues.
+      </description>
+    </file>
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/ProjectTasksContent.tsx">
+      <description>
+        Add Sync Issues entry point in task list header.
+      </description>
+    </file>
+  </existing-code>
+</story-context>

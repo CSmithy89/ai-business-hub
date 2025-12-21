@@ -132,6 +132,9 @@ model Workspace {
   businesses  Business[]
   modules     WorkspaceModule[]
   mcpServers  MCPServerConfig[]
+  importJobs  ImportJob[]
+  integrationConnections IntegrationConnection[]
+  externalLinks ExternalLink[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -1061,6 +1064,7 @@ model Project {
   pages           ProjectPage[]
   risks           RiskEntry[]
   reportSchedules ReportSchedule[]
+  importJobs      ImportJob[]
 
   @@unique([workspaceId, slug])
   @@index([workspaceId])
@@ -1203,6 +1207,7 @@ model Task {
   attachments TaskAttachment[]
   comments    TaskComment[]
   labels      TaskLabel[]
+  externalLinks ExternalLink[]
   timeEntries TimeEntry[]
 
   @@unique([projectId, taskNumber])
@@ -1354,6 +1359,93 @@ model TaskLabel {
   @@index([taskId])
   @@index([name]) // Index for label autocomplete/search queries
   @@map("task_labels")
+}
+
+/// ImportJob - Tracks CSV/PM tool imports into projects
+model ImportJob {
+  id          String       @id @default(cuid())
+  workspaceId String       @map("workspace_id")
+  projectId   String       @map("project_id")
+  source      ImportSource
+  status      ImportStatus @default(QUEUED)
+
+  totalRows     Int @default(0) @map("total_rows")
+  processedRows Int @default(0) @map("processed_rows")
+  errorCount    Int @default(0) @map("error_count")
+  mappingConfig Json? @map("mapping_config")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  errors    ImportError[]
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([status])
+  @@map("import_jobs")
+}
+
+/// ImportError - Row-level errors for imports
+model ImportError {
+  id          String @id @default(cuid())
+  importJobId String @map("import_job_id")
+  rowNumber   Int    @map("row_number")
+  field       String?
+  message     String
+  rawRow      Json?  @map("raw_row")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  importJob ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+
+  @@index([importJobId])
+  @@map("import_errors")
+}
+
+/// IntegrationConnection - Stores provider credentials and status
+model IntegrationConnection {
+  id          String            @id @default(cuid())
+  workspaceId String            @map("workspace_id")
+  provider    IntegrationProvider
+  status      IntegrationStatus @default(CONNECTED)
+
+  encryptedCredentials String @map("encrypted_credentials") @db.Text
+  metadata             Json?  @map("metadata")
+  lastCheckedAt        DateTime? @map("last_checked_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, provider])
+  @@index([workspaceId])
+  @@index([status])
+  @@map("integration_connections")
+}
+
+/// ExternalLink - Links tasks to external items (issues, PRs, tickets)
+model ExternalLink {
+  id          String            @id @default(cuid())
+  workspaceId String            @map("workspace_id")
+  taskId      String            @map("task_id")
+  provider    IntegrationProvider
+  linkType    ExternalLinkType  @map("link_type")
+  externalId  String            @map("external_id")
+  externalUrl String?           @map("external_url")
+  metadata    Json?             @map("metadata")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, provider, externalId, linkType])
+  @@index([workspaceId])
+  @@index([taskId])
+  @@map("external_links")
 }
 
 /// SavedView - Saved filter/view configurations
@@ -1583,6 +1675,39 @@ enum TaskStatus {
   AWAITING_APPROVAL
   DONE
   CANCELLED
+}
+
+enum ImportSource {
+  CSV
+  JIRA
+  ASANA
+  TRELLO
+}
+
+enum ImportStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum IntegrationProvider {
+  GITHUB
+  JIRA
+  ASANA
+  TRELLO
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+enum ExternalLinkType {
+  ISSUE
+  PR
+  TICKET
 }
 
 enum AssignmentType {

@@ -307,6 +307,13 @@ For ongoing operations:
 - KB-02: KB Real-Time & RAG ✅ Complete (collab editing + embeddings + semantic search + RAG)
 - KB-03: KB Verification & Scribe ✅ Complete (verified content + review workflows)
 - KB-04: AI-Native Knowledge Base ✅ Complete (AI drafts + summarization + Q&A + gap detection + templates)
+### Core-PM (Projects + Knowledge Base)
+
+- Sprint tracking: `docs/modules/bm-pm/sprint-status.yaml`
+- PM-01 through PM-07 ✅ Complete (projects, tasks, AI agents, real-time, integrations)
+- PM-07: Integrations & Bridge Agent ✅ Complete (CSV import/export, GitHub issues/PR linking, Jira/Asana/Trello imports, bridge agent foundation). Tech spec: `docs/modules/bm-pm/epics/epic-pm-07-tech-spec.md`
+- KB-01: Knowledge Base Foundation ✅ Complete
+- KB-02: KB Real-Time & RAG ✅ Complete (collab editing + embeddings + semantic search + RAG)
 
 ### Latest Epic: Premium Polish & Advanced Features (EPIC-16)
 

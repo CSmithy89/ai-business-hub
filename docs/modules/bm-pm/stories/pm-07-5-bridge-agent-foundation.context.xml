@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-07-5-bridge-agent-foundation</story-id>
+    <generated>2025-12-19T00:00:00Z</generated>
+    <epic>PM-07 - Integrations &amp; Bridge Agent</epic>
+    <description>
+      Bridge agent foundation under agents/platform/bridge.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="agents/platform/scribe/scribe_agent.py">
+      <description>
+        Reference pattern for agent setup and Postgres storage.
+      </description>
+    </file>
+  </existing-code>
+</story-context>
