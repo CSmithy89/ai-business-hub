@@ -128,11 +128,15 @@ function buildWhere(workspaceId: string, query: ExportTasksQueryDto): Prisma.Tas
   const types = parseEnumList(TaskType, query.type)
   if (types.length === 1) {
     where.type = types[0]
+  } else if (types.length > 1) {
+    where.type = { in: types }
   }
 
   const priorities = parseEnumList(TaskPriority, query.priority)
   if (priorities.length === 1) {
     where.priority = priorities[0]
+  } else if (priorities.length > 1) {
+    where.priority = { in: priorities }
   }
 
   if (query.assigneeId) where.assigneeId = query.assigneeId
@@ -203,8 +207,8 @@ function buildDateRange(from?: string, to?: string): Prisma.DateTimeNullableFilt
   return Object.keys(filter).length > 0 ? filter : null
 }
 
-function selectField(task: any, field: string): string | number | null {
-  const value = task[field as keyof typeof task]
+function selectField(task: ExportTaskRow, field: string): string | number | null {
+  const value = task[field as keyof ExportTaskRow]
   if (value === undefined || value === null) return ''
   if (value instanceof Date) return value.toISOString()
   return value
@@ -212,7 +216,14 @@ function selectField(task: any, field: string): string | number | null {
 
 function formatCsvValue(value: string | number | null): string {
   if (value === null || value === undefined) return ''
-  const raw = String(value)
+  let raw = String(value)
+
+  // CSV injection protection: prefix formula-like values with single quote
+  // This prevents Excel/Sheets from executing formulas like =cmd, @SUM, +1, -1
+  if (/^[-=@+]/.test(raw)) {
+    raw = `'${raw}`
+  }
+
   if (/[\r\n",]/.test(raw)) {
     return `"${raw.replace(/"/g, '""')}"`
   }

@@ -110,9 +110,17 @@ export class IntegrationsService {
       throw new BadRequestException('Integration is not connected')
     }
 
-    const decrypted = await this.getEncryptionService().decrypt(connection.encryptedCredentials)
-    const parsed = JSON.parse(decrypted) as { token?: string }
-    if (!parsed.token) throw new BadRequestException('Integration token missing')
-    return parsed.token
+    try {
+      const decrypted = await this.getEncryptionService().decrypt(connection.encryptedCredentials)
+      const parsed = JSON.parse(decrypted) as { token?: string }
+      if (!parsed.token) {
+        throw new BadRequestException('Integration token missing')
+      }
+      return parsed.token
+    } catch (error) {
+      // Handle decryption/parsing failures gracefully
+      if (error instanceof BadRequestException) throw error
+      throw new BadRequestException('Failed to decrypt integration credentials. The encryption key may have changed.')
+    }
   }
 }

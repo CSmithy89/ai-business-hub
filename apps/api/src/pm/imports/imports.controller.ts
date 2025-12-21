@@ -6,6 +6,7 @@ import { CurrentWorkspace } from '../../common/decorators/current-workspace.deco
 import { AuthGuard } from '../../common/guards/auth.guard'
 import { RolesGuard } from '../../common/guards/roles.guard'
 import { TenantGuard } from '../../common/guards/tenant.guard'
+import type { RequestUser } from '../../common/types/request-user'
 import { ImportsService } from './imports.service'
 import { StartCsvImportDto } from './dto/start-csv-import.dto'
 import { StartJiraImportDto } from './dto/start-jira-import.dto'
@@ -25,7 +26,7 @@ export class ImportsController {
   @ApiResponse({ status: 201, description: 'Import job created' })
   async startCsvImport(
     @CurrentWorkspace() workspaceId: string,
-    @CurrentUser() actor: any,
+    @CurrentUser() actor: RequestUser,
     @Body() dto: StartCsvImportDto,
   ) {
     return this.importsService.startCsvImport(workspaceId, actor.id, dto)
@@ -37,7 +38,7 @@ export class ImportsController {
   @ApiResponse({ status: 201, description: 'Jira import job created' })
   async startJiraImport(
     @CurrentWorkspace() workspaceId: string,
-    @CurrentUser() actor: any,
+    @CurrentUser() actor: RequestUser,
     @Body() dto: StartJiraImportDto,
   ) {
     return this.importsService.startJiraImport(workspaceId, actor.id, dto)
@@ -49,7 +50,7 @@ export class ImportsController {
   @ApiResponse({ status: 201, description: 'Asana import job created' })
   async startAsanaImport(
     @CurrentWorkspace() workspaceId: string,
-    @CurrentUser() actor: any,
+    @CurrentUser() actor: RequestUser,
     @Body() dto: StartAsanaImportDto,
   ) {
     return this.importsService.startAsanaImport(workspaceId, actor.id, dto)
@@ -61,7 +62,7 @@ export class ImportsController {
   @ApiResponse({ status: 201, description: 'Trello import job created' })
   async startTrelloImport(
     @CurrentWorkspace() workspaceId: string,
-    @CurrentUser() actor: any,
+    @CurrentUser() actor: RequestUser,
     @Body() dto: StartTrelloImportDto,
   ) {
     return this.importsService.startTrelloImport(workspaceId, actor.id, dto)

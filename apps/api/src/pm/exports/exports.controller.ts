@@ -1,7 +1,5 @@
-import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common'
+import { Controller, Get, Query, StreamableFile, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { Response } from 'express'
-import { StreamableFile } from '@nestjs/common'
 import { Roles } from '../../common/decorators/roles.decorator'
 import { CurrentWorkspace } from '../../common/decorators/current-workspace.decorator'
 import { AuthGuard } from '../../common/guards/auth.guard'
@@ -24,14 +22,15 @@ export class ExportsController {
   async exportTasks(
     @CurrentWorkspace() workspaceId: string,
     @Query() query: ExportTasksQueryDto,
-    @Res({ passthrough: true }) res: Response,
   ) {
     const { stream } = await this.exportsService.exportTasks(workspaceId, query)
 
     const filename = `tasks-export-${new Date().toISOString().slice(0, 10)}.csv`
-    res.setHeader('Content-Type', 'text/csv')
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
 
-    return new StreamableFile(stream)
+    // Use platform-agnostic StreamableFile options instead of Express Response headers
+    return new StreamableFile(stream, {
+      type: 'text/csv',
+      disposition: `attachment; filename="${filename}"`,
+    })
   }
 }

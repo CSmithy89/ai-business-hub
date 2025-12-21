@@ -102,37 +102,72 @@ function resolveDefaultPhaseId(phases: Array<{ id: string; status: string }>): s
   return current?.id ?? phases[0]?.id ?? null
 }
 
+// Fetch timeout for external API calls (30 seconds)
+const FETCH_TIMEOUT_MS = 30_000
+// Maximum pages to fetch (100 issues per page = 500 issues max)
+const MAX_PAGES = 5
+
+type GitHubIssue = {
+  number: number
+  title: string
+  body: string | null
+  state: 'open' | 'closed'
+  html_url: string
+  pull_request?: unknown
+  labels: Array<{ name: string }>
+}
+
 async function fetchIssues(
   token: string,
   owner: string,
   repo: string,
   state: 'open' | 'closed' | 'all',
-) {
-  const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/issues?state=${state}&per_page=100`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-      },
-    },
-  )
+): Promise<GitHubIssue[]> {
+  const allIssues: GitHubIssue[] = []
+  let page = 1
 
-  if (!response.ok) {
-    throw new BadRequestException('Failed to fetch GitHub issues')
+  while (page <= MAX_PAGES) {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+
+    try {
+      const response = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/issues?state=${state}&per_page=100&page=${page}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+          },
+          signal: controller.signal,
+        },
+      )
+
+      if (!response.ok) {
+        throw new BadRequestException(`Failed to fetch GitHub issues: ${response.status} ${response.statusText}`)
+      }
+
+      const data = (await response.json()) as GitHubIssue[]
+
+      // Filter out pull requests and add to results
+      const issues = data.filter((issue) => !issue.pull_request)
+      allIssues.push(...issues)
+
+      // Stop if we got fewer than 100 results (no more pages)
+      if (data.length < 100) break
+
+      page += 1
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new BadRequestException('GitHub API request timed out')
+      }
+      throw new BadRequestException('Failed to connect to GitHub API')
+    } finally {
+      clearTimeout(timeoutId)
+    }
   }
 
-  const data = (await response.json()) as Array<{
-    number: number
-    title: string
-    body: string | null
-    state: 'open' | 'closed'
-    html_url: string
-    pull_request?: unknown
-    labels: Array<{ name: string }>
-  }>
-
-  return data.filter((issue) => !issue.pull_request)
+  return allIssues
 }
 
 function buildIssueDescription(issue: {

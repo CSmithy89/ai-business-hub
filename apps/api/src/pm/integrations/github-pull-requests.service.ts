@@ -2,11 +2,27 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import { ExternalLinkType, IntegrationProvider, TaskStatus } from '@prisma/client'
 import { PrismaService } from '../../common/services/prisma.service'
 
+// GitHub webhook payload types (subset of full types)
+interface GitHubPullRequestPayload {
+  action?: string
+  pull_request?: {
+    number: number
+    title?: string
+    body?: string
+    state?: string
+    merged?: boolean
+    html_url?: string
+    head?: { ref?: string }
+    base?: { repo?: { full_name?: string } }
+  }
+  repository?: { full_name?: string }
+}
+
 @Injectable()
 export class GithubPullRequestsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async handleWebhook(workspaceId: string, payload: any) {
+  async handleWebhook(workspaceId: string, payload: GitHubPullRequestPayload) {
     const event = payload?.pull_request
     if (!event) {
       return { data: { linked: 0, skipped: 0 } }

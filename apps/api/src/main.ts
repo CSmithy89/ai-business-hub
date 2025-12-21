@@ -6,7 +6,9 @@ import { AppModule } from './app.module';
 import { MetricsService } from './metrics/metrics-service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true, // Required for webhook signature verification
+  });
 
   // CORS configuration - allow requests from Next.js frontend
   app.enableCors({

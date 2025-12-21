@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadGatewayException, BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { ExternalLinkType, ImportSource, ImportStatus, IntegrationProvider, TaskPriority, TaskStatus, TaskType } from '@prisma/client'
 import { parseCsv } from '@hyvve/shared'
 import { PrismaService } from '../../common/services/prisma.service'
@@ -8,6 +8,9 @@ import { StartJiraImportDto } from './dto/start-jira-import.dto'
 import { StartAsanaImportDto } from './dto/start-asana-import.dto'
 import { StartTrelloImportDto } from './dto/start-trello-import.dto'
 import type { CreateTaskDto } from '../tasks/dto/create-task.dto'
+
+// Fetch timeout for external API calls (30 seconds)
+const FETCH_TIMEOUT_MS = 30_000
 
 const CSV_FIELDS = [
   'title',
@@ -53,20 +56,23 @@ export class ImportsService {
       throw new BadRequestException('No valid phase found for import')
     }
 
-    const parsed = parseCsv(dto.csvText)
+    // Strip BOM from entire CSV text before parsing
+    const cleanedCsvText = stripBom(dto.csvText)
+    const parsed = parseCsv(cleanedCsvText)
     if (parsed.length < 2) {
       throw new BadRequestException('CSV must include a header row and at least one data row')
     }
 
-    const [rawHeaderRow, ...rows] = parsed
-    const headerRow = rawHeaderRow.map((header, index) =>
-      index === 0 ? stripBom(header) : header
-    )
+    const [headerRow, ...rows] = parsed
 
     const headerIndex = buildHeaderIndex(headerRow)
     const mapping = normalizeMapping(dto.mapping)
 
     validateMapping(mapping, headerIndex)
+
+    // Pre-fetch all assignees to avoid N+1 query problem
+    const assigneeEmails = extractUniqueAssigneeEmails(rows, headerIndex, mapping)
+    const assigneeMap = await batchLookupAssignees(this.prisma, workspaceId, assigneeEmails)
 
     const job = await this.prisma.importJob.create({
       data: {
@@ -138,9 +144,8 @@ export class ImportsService {
           errors: rowErrors,
         })
 
-        const assigneeId = await resolveAssigneeId({
-          prisma: this.prisma,
-          workspaceId,
+        const assigneeId = resolveAssigneeFromMap({
+          assigneeMap,
           email: assigneeEmail,
           rowNumber,
           rowContext,
@@ -360,8 +365,18 @@ export class ImportsService {
       select: { id: true },
     })
 
-    const tasks = await fetchAsanaTasks(dto)
     const errors: RowError[] = []
+    let tasks: Array<{ gid: string; name: string; notes?: string; completed: boolean }> = []
+
+    try {
+      tasks = await fetchAsanaTasks(dto)
+    } catch (error) {
+      await this.prisma.importJob.update({
+        where: { id: job.id },
+        data: { status: ImportStatus.FAILED, errorCount: 1 },
+      })
+      throw error
+    }
     let processedRows = 0
     let errorsPersisted = false
 
@@ -477,8 +492,19 @@ export class ImportsService {
       select: { id: true },
     })
 
-    const cards = await fetchTrelloCards(dto)
     const errors: RowError[] = []
+    let cards: Array<{ id: string; name: string; desc?: string; closed: boolean; idList: string; url: string }> = []
+
+    try {
+      cards = await fetchTrelloCards(dto)
+    } catch (error) {
+      await this.prisma.importJob.update({
+        where: { id: job.id },
+        data: { status: ImportStatus.FAILED, errorCount: 1 },
+      })
+      throw error
+    }
+
     let processedRows = 0
     let errorsPersisted = false
 
@@ -750,25 +776,64 @@ function resolvePhaseId(params: {
   return params.defaultPhaseId
 }
 
-async function resolveAssigneeId(params: {
-  prisma: PrismaService
-  workspaceId: string
+// Extract unique assignee emails from CSV rows for batch lookup
+function extractUniqueAssigneeEmails(
+  rows: string[][],
+  headerIndex: Map<string, number>,
+  mapping: Record<CsvField, string>,
+): string[] {
+  const emails = new Set<string>()
+  for (const row of rows) {
+    const email = getMappedValue(row, headerIndex, mapping, 'assigneeEmail')
+    if (email) {
+      emails.add(email.trim().toLowerCase())
+    }
+  }
+  return Array.from(emails)
+}
+
+// Batch lookup all assignees in a single query
+async function batchLookupAssignees(
+  prisma: PrismaService,
+  workspaceId: string,
+  emails: string[],
+): Promise<Map<string, string>> {
+  if (emails.length === 0) return new Map()
+
+  const members = await prisma.workspaceMember.findMany({
+    where: {
+      workspaceId,
+      user: { email: { in: emails, mode: 'insensitive' } },
+    },
+    select: {
+      userId: true,
+      user: { select: { email: true } },
+    },
+  })
+
+  const map = new Map<string, string>()
+  for (const member of members) {
+    if (member.user.email) {
+      map.set(member.user.email.toLowerCase(), member.userId)
+    }
+  }
+  return map
+}
+
+// Resolve assignee from pre-fetched map
+function resolveAssigneeFromMap(params: {
+  assigneeMap: Map<string, string>
   email: string | null
   rowNumber: number
   rowContext: Record<string, string | null>
   errors: RowError[]
-}): Promise<string | null> {
+}): string | null {
   if (!params.email) return null
 
-  const member = await params.prisma.workspaceMember.findFirst({
-    where: {
-      workspaceId: params.workspaceId,
-      user: { email: { equals: params.email.trim(), mode: 'insensitive' } },
-    },
-    select: { userId: true },
-  })
+  const normalizedEmail = params.email.trim().toLowerCase()
+  const userId = params.assigneeMap.get(normalizedEmail)
 
-  if (!member) {
+  if (!userId) {
     params.errors.push({
       rowNumber: params.rowNumber,
       field: 'assigneeEmail',
@@ -778,7 +843,7 @@ async function resolveAssigneeId(params: {
     return null
   }
 
-  return member.userId
+  return userId
 }
 
 function buildRowContext(headers: string[], row: string[]): Record<string, string | null> {
@@ -794,33 +859,47 @@ async function fetchJiraIssues(dto: StartJiraImportDto) {
   const maxResults = dto.maxResults ?? 50
   const auth = Buffer.from(`${dto.email}:${dto.apiToken}`).toString('base64')
 
-  const response = await fetch(
-    `${dto.baseUrl}/rest/api/3/search?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}`,
-    {
-      headers: {
-        Authorization: `Basic ${auth}`,
-        Accept: 'application/json',
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+
+  try {
+    const response = await fetch(
+      `${dto.baseUrl}/rest/api/3/search?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}`,
+      {
+        headers: {
+          Authorization: `Basic ${auth}`,
+          Accept: 'application/json',
+        },
+        signal: controller.signal,
       },
-    },
-  )
+    )
 
-  if (!response.ok) {
-    throw new BadRequestException('Failed to fetch Jira issues')
+    if (!response.ok) {
+      throw new BadGatewayException(`Failed to fetch Jira issues: ${response.status} ${response.statusText}`)
+    }
+
+    const data = (await response.json()) as {
+      issues: Array<{
+        key: string
+        fields: {
+          summary?: string
+          description?: { content?: unknown } | string | null
+          status?: { name?: string; statusCategory?: { key?: string } }
+          issuetype?: { name?: string }
+        }
+      }>
+    }
+
+    return data.issues ?? []
+  } catch (error) {
+    if (error instanceof BadGatewayException) throw error
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new BadGatewayException('Jira API request timed out')
+    }
+    throw new BadGatewayException('Failed to connect to Jira API')
+  } finally {
+    clearTimeout(timeoutId)
   }
-
-  const data = (await response.json()) as {
-    issues: Array<{
-      key: string
-      fields: {
-        summary?: string
-        description?: { content?: unknown } | string | null
-        status?: { name?: string; statusCategory?: { key?: string } }
-        issuetype?: { name?: string }
-      }
-    }>
-  }
-
-  return data.issues ?? []
 }
 
 function mapJiraStatus(issue: { fields: { status?: { statusCategory?: { key?: string } } } }): TaskStatus {
@@ -841,44 +920,72 @@ function buildJiraDescription(
 }
 
 async function fetchAsanaTasks(dto: StartAsanaImportDto) {
-  const response = await fetch(
-    `https://app.asana.com/api/1.0/projects/${dto.projectGid}/tasks?opt_fields=name,notes,completed`,
-    {
-      headers: {
-        Authorization: `Bearer ${dto.accessToken}`,
-        Accept: 'application/json',
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+
+  try {
+    const response = await fetch(
+      `https://app.asana.com/api/1.0/projects/${dto.projectGid}/tasks?opt_fields=name,notes,completed`,
+      {
+        headers: {
+          Authorization: `Bearer ${dto.accessToken}`,
+          Accept: 'application/json',
+        },
+        signal: controller.signal,
       },
-    },
-  )
+    )
 
-  if (!response.ok) {
-    throw new BadRequestException('Failed to fetch Asana tasks')
+    if (!response.ok) {
+      throw new BadGatewayException(`Failed to fetch Asana tasks: ${response.status} ${response.statusText}`)
+    }
+
+    const data = (await response.json()) as {
+      data: Array<{ gid: string; name: string; notes?: string; completed: boolean }>
+    }
+
+    return data.data ?? []
+  } catch (error) {
+    if (error instanceof BadGatewayException) throw error
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new BadGatewayException('Asana API request timed out')
+    }
+    throw new BadGatewayException('Failed to connect to Asana API')
+  } finally {
+    clearTimeout(timeoutId)
   }
-
-  const data = (await response.json()) as {
-    data: Array<{ gid: string; name: string; notes?: string; completed: boolean }>
-  }
-
-  return data.data ?? []
 }
 
 async function fetchTrelloCards(dto: StartTrelloImportDto) {
-  const response = await fetch(
-    `https://api.trello.com/1/boards/${dto.boardId}/cards?fields=name,desc,closed,idList,url&key=${dto.apiKey}&token=${dto.token}`,
-  )
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
-  if (!response.ok) {
-    throw new BadRequestException('Failed to fetch Trello cards')
+  try {
+    const response = await fetch(
+      `https://api.trello.com/1/boards/${dto.boardId}/cards?fields=name,desc,closed,idList,url&key=${dto.apiKey}&token=${dto.token}`,
+      { signal: controller.signal },
+    )
+
+    if (!response.ok) {
+      throw new BadGatewayException(`Failed to fetch Trello cards: ${response.status} ${response.statusText}`)
+    }
+
+    const data = (await response.json()) as Array<{
+      id: string
+      name: string
+      desc?: string
+      closed: boolean
+      idList: string
+      url: string
+    }>
+
+    return data
+  } catch (error) {
+    if (error instanceof BadGatewayException) throw error
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new BadGatewayException('Trello API request timed out')
+    }
+    throw new BadGatewayException('Failed to connect to Trello API')
+  } finally {
+    clearTimeout(timeoutId)
   }
-
-  const data = (await response.json()) as Array<{
-    id: string
-    name: string
-    desc?: string
-    closed: boolean
-    idList: string
-    url: string
-  }>
-
-  return data
 }

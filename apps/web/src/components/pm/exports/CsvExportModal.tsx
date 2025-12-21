@@ -11,7 +11,27 @@ import { NESTJS_API_URL } from '@/lib/api-config'
 import { toast } from 'sonner'
 import type { FilterState } from '@/lib/pm/url-state'
 
-const EXPORT_FIELDS = [
+type ExportFieldKey =
+  | 'taskNumber'
+  | 'title'
+  | 'description'
+  | 'status'
+  | 'priority'
+  | 'type'
+  | 'assigneeId'
+  | 'dueDate'
+  | 'phaseId'
+  | 'projectId'
+  | 'createdAt'
+  | 'updatedAt'
+
+interface ExportField {
+  key: ExportFieldKey
+  label: string
+  required?: boolean
+}
+
+const EXPORT_FIELDS: ExportField[] = [
   { key: 'taskNumber', label: 'Task Number', required: true },
   { key: 'title', label: 'Title', required: true },
   { key: 'description', label: 'Description' },
@@ -24,7 +44,7 @@ const EXPORT_FIELDS = [
   { key: 'projectId', label: 'Project ID' },
   { key: 'createdAt', label: 'Created At' },
   { key: 'updatedAt', label: 'Updated At' },
-] as const
+]
 
 interface CsvExportModalProps {
   open: boolean
@@ -48,9 +68,11 @@ function getSessionToken(session: unknown): string | undefined {
 export function CsvExportModal({ open, onOpenChange, projectId, filters, search }: CsvExportModalProps) {
   const { data: session } = useSession()
   const token = getSessionToken(session)
-  const defaultFields = EXPORT_FIELDS.filter((field) => field.required).map((field) => field.key)
+  const defaultFields: ExportFieldKey[] = EXPORT_FIELDS.filter((field) => field.required).map(
+    (field) => field.key
+  )
 
-  const [selectedFields, setSelectedFields] = useState<string[]>(defaultFields)
+  const [selectedFields, setSelectedFields] = useState<ExportFieldKey[]>(defaultFields)
   const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
@@ -73,7 +95,7 @@ export function CsvExportModal({ open, onOpenChange, projectId, filters, search 
     return badges
   }, [filters, search])
 
-  const toggleField = (field: string) => {
+  const toggleField = (field: ExportFieldKey) => {
     if (defaultFields.includes(field)) return
     setSelectedFields((prev) =>
       prev.includes(field) ? prev.filter((value) => value !== field) : [...prev, field]

@@ -6,6 +6,7 @@ import { CurrentWorkspace } from '../../common/decorators/current-workspace.deco
 import { AuthGuard } from '../../common/guards/auth.guard'
 import { RolesGuard } from '../../common/guards/roles.guard'
 import { TenantGuard } from '../../common/guards/tenant.guard'
+import type { RequestUser } from '../../common/types/request-user'
 import { GithubIssuesService } from './github-issues.service'
 import { GithubIssuesSyncDto } from './dto/github-issues-sync.dto'
 
@@ -22,7 +23,7 @@ export class GithubIntegrationsController {
   @ApiResponse({ status: 200, description: 'Issues synced' })
   async syncIssues(
     @CurrentWorkspace() workspaceId: string,
-    @CurrentUser() actor: any,
+    @CurrentUser() actor: RequestUser,
     @Body() dto: GithubIssuesSyncDto,
   ) {
     return this.githubIssuesService.syncIssues(workspaceId, actor.id, dto)
