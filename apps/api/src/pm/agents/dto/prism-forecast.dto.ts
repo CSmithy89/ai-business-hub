@@ -83,13 +83,13 @@ export interface VelocityHistoryDto {
  */
 export class ForecastScenarioDto {
   @ApiProperty({
-    description: 'Additional scope (story points)',
+    description: 'Additional scope (story points to add or remove)',
     required: false,
     example: 20,
   })
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @Min(-1000)
   @Max(10000)
   addedScope?: number;
 
@@ -103,6 +103,17 @@ export class ForecastScenarioDto {
   @Min(-10)
   @Max(10)
   teamSizeChange?: number;
+
+  @ApiProperty({
+    description: 'Velocity multiplier (0.5 = 50%, 2.0 = 200%)',
+    required: false,
+    example: 1.2,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0.5)
+  @Max(2.0)
+  velocityMultiplier?: number;
 
   @ApiProperty({
     description: 'Additional parameters',
@@ -221,4 +232,85 @@ export class UpdateRiskStatusDto {
   })
   @IsEnum(RiskStatus)
   status!: RiskStatus;
+}
+
+/**
+ * Scenario risk types (PM-08-5)
+ */
+export type ScenarioRiskType =
+  | 'SCOPE_CREEP'
+  | 'TEAM_SCALING'
+  | 'SCHEDULE_DELAY'
+  | 'UNREALISTIC_VELOCITY';
+
+/**
+ * Scenario risk entry (PM-08-5)
+ */
+export interface ScenarioRiskDto {
+  type: ScenarioRiskType;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  description: string;
+  mitigation: string;
+}
+
+/**
+ * Scenario forecast response with risk assessment (PM-08-5)
+ */
+export interface ScenarioForecastDto {
+  baseline: {
+    predictedDate: string;
+    confidence: ConfidenceLevel;
+  };
+  scenario: {
+    predictedDate: string;
+    confidence: ConfidenceLevel;
+    optimisticDate: string;
+    pessimisticDate: string;
+  };
+  delta: {
+    days: number;
+    weeks: number;
+    direction: 'EARLIER' | 'LATER' | 'SAME';
+  };
+  risks: ScenarioRiskDto[];
+  summary: string;
+  resourceImpact: {
+    teamWeeks: number;
+    velocityChange: number;
+  };
+}
+
+/**
+ * Team performance metrics response (PM-08-5)
+ */
+export interface TeamPerformanceMetricsDto {
+  velocity: {
+    current: number;
+    average: number;
+    trend: 'UP' | 'DOWN' | 'STABLE';
+    sparkline: number[];
+    comparisonToWorkspace: number | null;
+  };
+  cycleTime: {
+    current: number;
+    trend: 'UP' | 'DOWN' | 'STABLE';
+    sparkline: number[];
+    comparisonToWorkspace: number | null;
+  };
+  throughput: {
+    current: number;
+    trend: 'UP' | 'DOWN' | 'STABLE';
+    sparkline: number[];
+    comparisonToWorkspace: number | null;
+  };
+  completionRate: {
+    current: number;
+    trend: 'UP' | 'DOWN' | 'STABLE';
+    sparkline: number[];
+    comparisonToWorkspace: number | null;
+  };
+  capacityUtilization: {
+    current: number;
+    status: 'UNDER_UTILIZED' | 'OPTIMAL' | 'OVER_UTILIZED';
+  };
 }

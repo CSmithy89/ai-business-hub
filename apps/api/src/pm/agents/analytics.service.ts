@@ -15,6 +15,9 @@ import {
   RiskCategory,
   RiskSource,
   RiskStatus,
+  ScenarioForecastDto,
+  ScenarioRiskDto,
+  TeamPerformanceMetricsDto,
 } from './dto/prism-forecast.dto';
 import {
   DashboardDataDto,
@@ -83,6 +86,11 @@ export class AnalyticsService {
         const velocityPerPerson = avgVelocity / Math.max(1, 5); // assume 5-person team
         const velocityAdjustment = velocityPerPerson * scenario.teamSizeChange;
         velocityValues = velocityValues.map(v => Math.max(1, v + velocityAdjustment));
+      }
+
+      // Apply velocity multiplier
+      if (scenario?.velocityMultiplier) {
+        velocityValues = velocityValues.map(v => v * scenario.velocityMultiplier!);
       }
 
       // Run Monte Carlo simulation
@@ -1882,5 +1890,451 @@ export class AnalyticsService {
     if (diff > 0.05) return 'AHEAD'; // >5% ahead
     if (diff < -0.05) return 'BEHIND'; // >5% behind
     return 'ON_TRACK';
+  }
+
+  // ============================================
+  // PM-08-5: SCENARIO FORECASTING & TEAM METRICS
+  // ============================================
+
+  /**
+   * Get scenario forecast with risk assessment (PM-08-5)
+   *
+   * Compares baseline forecast with scenario forecast and identifies risks.
+   */
+  async getScenarioForecast(
+    projectId: string,
+    workspaceId: string,
+    scenario: ForecastScenarioDto,
+  ): Promise<ScenarioForecastDto> {
+    try {
+      // Get baseline forecast (no scenario)
+      const baseline = await this.getForecast(projectId, workspaceId);
+
+      // Get scenario forecast (with scenario params)
+      const scenarioForecast = await this.getForecast(projectId, workspaceId, scenario);
+
+      // Calculate delta from baseline
+      const baselineDate = new Date(baseline.predictedDate);
+      const scenarioDate = new Date(scenarioForecast.predictedDate);
+      const deltaDays = Math.floor(
+        (scenarioDate.getTime() - baselineDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      // Assess risks introduced by scenario
+      const risks = this.assessScenarioRisks(scenario, deltaDays);
+
+      // Calculate confidence adjustment based on realism
+      const confidenceAdjustment = this.calculateScenarioConfidence(scenario);
+
+      // Calculate resource impact
+      const history = await this.getVelocityHistory(projectId, workspaceId, 12);
+      const avgVelocity = history.length > 0
+        ? history.reduce((sum, h) => sum + h.completedPoints, 0) / history.length
+        : 0;
+
+      // Calculate team weeks based on scenario
+      const weeksToCompletion = deltaDays / 7;
+      const teamSize = 5; // Default team size assumption
+      const adjustedTeamSize = teamSize + (scenario.teamSizeChange || 0);
+      const teamWeeks = weeksToCompletion * adjustedTeamSize;
+
+      // Calculate velocity change
+      let velocityChange = 0;
+      if (scenario.teamSizeChange) {
+        const velocityPerPerson = avgVelocity / teamSize;
+        velocityChange = velocityPerPerson * scenario.teamSizeChange;
+      }
+      if (scenario.velocityMultiplier) {
+        velocityChange += avgVelocity * (scenario.velocityMultiplier - 1);
+      }
+
+      return {
+        baseline: {
+          predictedDate: baseline.predictedDate,
+          confidence: baseline.confidence,
+        },
+        scenario: {
+          predictedDate: scenarioForecast.predictedDate,
+          confidence: confidenceAdjustment,
+          optimisticDate: scenarioForecast.optimisticDate,
+          pessimisticDate: scenarioForecast.pessimisticDate,
+        },
+        delta: {
+          days: deltaDays,
+          weeks: Math.round(deltaDays / 7),
+          direction: deltaDays > 0 ? 'LATER' : deltaDays < 0 ? 'EARLIER' : 'SAME',
+        },
+        risks,
+        summary: this.generateScenarioSummary(scenario, deltaDays, risks),
+        resourceImpact: {
+          teamWeeks,
+          velocityChange,
+        },
+      };
+    } catch (error: any) {
+      this.logger.error(
+        `Scenario forecast failed: ${error?.message}`,
+        error?.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Assess risks introduced by scenario changes
+   */
+  private assessScenarioRisks(
+    scenario: ForecastScenarioDto,
+    deltaDays: number,
+  ): ScenarioRiskDto[] {
+    const risks: ScenarioRiskDto[] = [];
+
+    // Scope creep risk
+    if (scenario.addedScope && scenario.addedScope > 0) {
+      const scopeIncreasePct = scenario.addedScope / 100; // Assuming 100 baseline points
+      if (scopeIncreasePct > 0.10) {
+        risks.push({
+          type: 'SCOPE_CREEP',
+          severity: scopeIncreasePct > 0.25 ? 'HIGH' : 'MEDIUM',
+          description: `Adding ${scenario.addedScope} points represents a ${(scopeIncreasePct * 100).toFixed(0)}% scope increase, which may introduce scope creep risk.`,
+          mitigation: 'Break new scope into separate phases or ensure adequate team capacity.',
+        });
+      }
+    }
+
+    // Team scaling risk
+    if (scenario.teamSizeChange && Math.abs(scenario.teamSizeChange) > 2) {
+      risks.push({
+        type: 'TEAM_SCALING',
+        severity: Math.abs(scenario.teamSizeChange) > 5 ? 'HIGH' : 'MEDIUM',
+        description: `Changing team size by ${scenario.teamSizeChange} members may introduce coordination overhead and ramp-up time.`,
+        mitigation: 'Plan for onboarding time (2-4 weeks) and increased communication needs.',
+      });
+    }
+
+    // Schedule risk
+    if (deltaDays > 14) {
+      risks.push({
+        type: 'SCHEDULE_DELAY',
+        severity: deltaDays > 28 ? 'HIGH' : 'MEDIUM',
+        description: `Scenario extends completion by ${Math.round(deltaDays / 7)} weeks, which may impact deadlines.`,
+        mitigation: 'Consider reducing scope or increasing team capacity to maintain timeline.',
+      });
+    }
+
+    // Velocity unrealistic risk
+    if (scenario.velocityMultiplier && scenario.velocityMultiplier > 1.5) {
+      risks.push({
+        type: 'UNREALISTIC_VELOCITY',
+        severity: 'MEDIUM',
+        description: `Assuming ${(scenario.velocityMultiplier * 100).toFixed(0)}% velocity increase may be unrealistic without process improvements.`,
+        mitigation: 'Ensure concrete plans for productivity improvements (automation, tooling, training).',
+      });
+    }
+
+    return risks;
+  }
+
+  /**
+   * Calculate scenario confidence level based on realism
+   */
+  private calculateScenarioConfidence(scenario: ForecastScenarioDto): ConfidenceLevel {
+    let confidenceScore = 1.0; // Start at HIGH
+
+    // Reduce confidence for large scope changes
+    if (scenario.addedScope && Math.abs(scenario.addedScope) > 100) {
+      confidenceScore -= 0.2;
+    }
+
+    // Reduce confidence for large team changes
+    if (scenario.teamSizeChange && Math.abs(scenario.teamSizeChange) > 3) {
+      confidenceScore -= 0.3;
+    }
+
+    // Reduce confidence for unrealistic velocity increases
+    if (scenario.velocityMultiplier && scenario.velocityMultiplier > 1.5) {
+      confidenceScore -= 0.4;
+    }
+
+    // Map confidence score to levels
+    if (confidenceScore >= 0.7) return ConfidenceLevel.HIGH;
+    if (confidenceScore >= 0.4) return ConfidenceLevel.MED;
+    return ConfidenceLevel.LOW;
+  }
+
+  /**
+   * Generate natural language summary of scenario impact
+   */
+  private generateScenarioSummary(
+    scenario: ForecastScenarioDto,
+    deltaDays: number,
+    risks: ScenarioRiskDto[],
+  ): string {
+    const parts: string[] = [];
+
+    // Scope change
+    if (scenario.addedScope) {
+      parts.push(
+        `${scenario.addedScope > 0 ? 'Adding' : 'Removing'} ${Math.abs(scenario.addedScope)} points`,
+      );
+    }
+
+    // Team size change
+    if (scenario.teamSizeChange) {
+      parts.push(
+        `${scenario.teamSizeChange > 0 ? 'adding' : 'removing'} ${Math.abs(scenario.teamSizeChange)} team member${Math.abs(scenario.teamSizeChange) > 1 ? 's' : ''}`,
+      );
+    }
+
+    // Velocity change
+    if (scenario.velocityMultiplier && scenario.velocityMultiplier !== 1.0) {
+      const pctChange = ((scenario.velocityMultiplier - 1.0) * 100).toFixed(0);
+      parts.push(
+        `assuming ${pctChange}% ${scenario.velocityMultiplier > 1 ? 'velocity increase' : 'velocity decrease'}`,
+      );
+    }
+
+    // Impact
+    const weeksChange = Math.round(deltaDays / 7);
+    const impact =
+      weeksChange > 0
+        ? `extend completion by ${weeksChange} week${weeksChange > 1 ? 's' : ''}`
+        : weeksChange < 0
+          ? `accelerate completion by ${Math.abs(weeksChange)} week${Math.abs(weeksChange) > 1 ? 's' : ''}`
+          : 'have minimal impact on completion date';
+
+    // Risks
+    const riskCount = risks.filter(r => r.severity === 'HIGH').length;
+    const riskSuffix =
+      riskCount > 0 ? ` with ${riskCount} high-severity risk${riskCount > 1 ? 's' : ''}` : '';
+
+    if (parts.length === 0) {
+      return `Scenario will ${impact}${riskSuffix}.`;
+    }
+
+    return `${parts.join(' and ')} will ${impact}${riskSuffix}.`;
+  }
+
+  /**
+   * Get team performance metrics (PM-08-5)
+   */
+  async getTeamPerformanceMetrics(
+    projectId: string,
+    workspaceId: string,
+  ): Promise<TeamPerformanceMetricsDto> {
+    try {
+      // Fetch velocity data (current + historical)
+      const velocityData = await this.getVelocityHistory(projectId, workspaceId, 12);
+
+      // Calculate current velocity (last week)
+      const currentVelocity = velocityData.length > 0
+        ? velocityData[velocityData.length - 1].completedPoints
+        : 0;
+
+      // Calculate average velocity (last 4 weeks)
+      const recentVelocity = velocityData.slice(-4);
+      const averageVelocity = recentVelocity.length > 0
+        ? recentVelocity.reduce((sum, v) => sum + v.completedPoints, 0) / recentVelocity.length
+        : 0;
+
+      // Determine velocity trend
+      const velocityTrend = this.calculateTrendDirection(
+        velocityData.map(v => v.completedPoints),
+      );
+
+      // Calculate cycle time (average days from start to done)
+      const cycleTime = await this.calculateCycleTime(projectId, workspaceId);
+
+      // Calculate throughput (tasks completed per week)
+      const throughput = await this.calculateThroughput(projectId, workspaceId);
+
+      // Calculate completion rate (% of estimated tasks completed on time)
+      const completionRate = await this.calculateCompletionRate(projectId, workspaceId);
+
+      // Calculate capacity utilization
+      const capacityUtilization = await this.calculateCapacityUtilization(projectId, workspaceId);
+
+      // Get workspace average for comparison (stub - would need implementation)
+      const _workspaceAverage = null; // TODO: Implement workspace average calculation
+
+      return {
+        velocity: {
+          current: currentVelocity,
+          average: averageVelocity,
+          trend: velocityTrend,
+          sparkline: velocityData.map(v => v.completedPoints),
+          comparisonToWorkspace: null, // workspaceAverage?.velocity comparison
+        },
+        cycleTime: {
+          current: cycleTime,
+          trend: 'STABLE', // TODO: Calculate trend
+          sparkline: [], // TODO: Implement cycle time history
+          comparisonToWorkspace: null,
+        },
+        throughput: {
+          current: throughput,
+          trend: 'STABLE', // TODO: Calculate trend
+          sparkline: [], // TODO: Implement throughput history
+          comparisonToWorkspace: null,
+        },
+        completionRate: {
+          current: completionRate,
+          trend: 'STABLE', // TODO: Calculate trend
+          sparkline: [], // TODO: Implement completion rate history
+          comparisonToWorkspace: null,
+        },
+        capacityUtilization: {
+          current: capacityUtilization,
+          status: this.getCapacityStatus(capacityUtilization),
+        },
+      };
+    } catch (error: any) {
+      this.logger.error(
+        `Team performance metrics failed: ${error?.message}`,
+        error?.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate average cycle time (days from start to done)
+   */
+  private async calculateCycleTime(
+    projectId: string,
+    workspaceId: string,
+  ): Promise<number> {
+    const completedTasks = await this.prisma.task.findMany({
+      where: {
+        projectId,
+        workspaceId,
+        status: 'DONE',
+        startedAt: { not: null },
+        completedAt: { not: null },
+      },
+      select: {
+        startedAt: true,
+        completedAt: true,
+      },
+    });
+
+    if (completedTasks.length === 0) return 0;
+
+    const totalCycleDays = completedTasks.reduce((sum, task) => {
+      const cycleDays =
+        (new Date(task.completedAt!).getTime() - new Date(task.startedAt!).getTime()) /
+        (1000 * 60 * 60 * 24);
+      return sum + cycleDays;
+    }, 0);
+
+    return totalCycleDays / completedTasks.length;
+  }
+
+  /**
+   * Calculate throughput (tasks completed per week)
+   */
+  private async calculateThroughput(
+    projectId: string,
+    workspaceId: string,
+  ): Promise<number> {
+    const fourWeeksAgo = new Date();
+    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+
+    const completedTasks = await this.prisma.task.count({
+      where: {
+        projectId,
+        workspaceId,
+        status: 'DONE',
+        completedAt: {
+          gte: fourWeeksAgo,
+        },
+      },
+    });
+
+    return completedTasks / 4; // tasks per week
+  }
+
+  /**
+   * Calculate completion rate (% of tasks completed on time)
+   */
+  private async calculateCompletionRate(
+    projectId: string,
+    workspaceId: string,
+  ): Promise<number> {
+    const tasksWithDueDates = await this.prisma.task.findMany({
+      where: {
+        projectId,
+        workspaceId,
+        status: 'DONE',
+        dueDate: { not: null },
+        completedAt: { not: null },
+      },
+      select: {
+        dueDate: true,
+        completedAt: true,
+      },
+    });
+
+    if (tasksWithDueDates.length === 0) return 100; // No data = assume 100%
+
+    const onTimeTasks = tasksWithDueDates.filter(
+      task =>
+        new Date(task.completedAt!).getTime() <= new Date(task.dueDate!).getTime(),
+    );
+
+    return (onTimeTasks.length / tasksWithDueDates.length) * 100;
+  }
+
+  /**
+   * Calculate capacity utilization (active tasks / team size)
+   */
+  private async calculateCapacityUtilization(
+    projectId: string,
+    workspaceId: string,
+  ): Promise<number> {
+    // Get active tasks (in progress)
+    const activeTasks = await this.prisma.task.count({
+      where: {
+        projectId,
+        workspaceId,
+        status: 'IN_PROGRESS',
+      },
+    });
+
+    // Get team size (stub - would need proper implementation)
+    const teamSize = 5; // Default assumption
+
+    return activeTasks / teamSize;
+  }
+
+  /**
+   * Get capacity status based on utilization
+   */
+  private getCapacityStatus(
+    utilization: number,
+  ): 'UNDER_UTILIZED' | 'OPTIMAL' | 'OVER_UTILIZED' {
+    if (utilization < 1.5) return 'UNDER_UTILIZED'; // <1.5 tasks per person
+    if (utilization <= 3.0) return 'OPTIMAL'; // 1.5-3 tasks per person
+    return 'OVER_UTILIZED'; // >3 tasks per person
+  }
+
+  /**
+   * Calculate trend direction from time series data
+   */
+  private calculateTrendDirection(values: number[]): 'UP' | 'DOWN' | 'STABLE' {
+    if (values.length < 2) return 'STABLE';
+
+    const midpoint = Math.floor(values.length / 2);
+    const firstHalf = values.slice(0, midpoint);
+    const secondHalf = values.slice(midpoint);
+
+    const firstAvg = firstHalf.reduce((sum, v) => sum + v, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, v) => sum + v, 0) / secondHalf.length;
+
+    const changePercent = firstAvg > 0 ? (secondAvg - firstAvg) / firstAvg : 0;
+
+    if (changePercent > 0.15) return 'UP';
+    if (changePercent < -0.15) return 'DOWN';
+    return 'STABLE';
   }
 }

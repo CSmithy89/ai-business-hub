@@ -27,6 +27,9 @@ import {
   PmRiskEntryDto,
   UpdateRiskStatusDto,
   RiskStatus,
+  ScenarioForecastDto,
+  TeamPerformanceMetricsDto,
+  ForecastScenarioDto,
 } from './dto/prism-forecast.dto';
 import { DashboardDataDto } from './dto/analytics-dashboard.dto';
 
@@ -286,5 +289,52 @@ export class AnalyticsController {
     }
 
     return this.analyticsService.getDashboardData(projectId, workspaceId, { start, end });
+  }
+
+  // ============================================
+  // PM-08-5: SCENARIO FORECASTING & TEAM METRICS
+  // ============================================
+
+  @Post('scenario-forecast')
+  @Roles('owner', 'admin', 'member')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get scenario forecast with risk assessment',
+    description: 'Analyze what-if scenarios by adjusting scope, team size, and velocity to predict project outcomes with risk assessment',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Scenario forecast generated successfully',
+    type: Object,
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request - invalid scenario parameters' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  async getScenarioForecast(
+    @Param('projectId') projectId: string,
+    @CurrentWorkspace() workspaceId: string,
+    @Body() scenario: ForecastScenarioDto,
+  ): Promise<ScenarioForecastDto> {
+    return this.analyticsService.getScenarioForecast(projectId, workspaceId, scenario);
+  }
+
+  @Get('team-performance')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({
+    summary: 'Get team performance metrics',
+    description: 'Retrieve comprehensive team performance metrics including velocity, cycle time, throughput, completion rate, and capacity utilization',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Team performance metrics retrieved successfully',
+    type: Object,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  async getTeamPerformance(
+    @Param('projectId') projectId: string,
+    @CurrentWorkspace() workspaceId: string,
+  ): Promise<TeamPerformanceMetricsDto> {
+    return this.analyticsService.getTeamPerformanceMetrics(projectId, workspaceId);
   }
 }
