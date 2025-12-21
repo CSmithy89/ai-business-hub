@@ -8,6 +8,85 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
+## EPIC-PM-05: AI Team - Scope, Pulse, Herald (8 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-20
+**Retrospective:** 2025-12-21
+**Branch:** `epic/pm-05-ai-team-scope-pulse-herald`
+**PR:** #30
+
+### Added
+
+- **Scope Agent**: AI agent for phase management and transitions
+  - Phase completion analysis with task recommendations
+  - Phase transition workflow with bulk task operations (complete/carry-over/cancel)
+  - Milestone tracking and checkpoint reminders
+  - Daily checkpoint reminder cron job
+
+- **Pulse Agent**: AI agent for health monitoring and risk detection
+  - Project health score calculation (0-100) with 4 factors
+  - Automated risk detection (deadline warnings, capacity overload, velocity drops)
+  - Risk alert UI (banner, list panel, risk cards)
+  - Health check cron job running every 15 minutes
+
+- **Herald Agent**: AI agent for automated reporting
+  - Report generation (project status, health, progress)
+  - Stakeholder-specific reports (executive, team lead, client)
+  - Scheduled report automation (daily, weekly, biweekly, monthly)
+
+### Python Agents
+
+- `agents/pm/scope.py` - Phase management agent
+- `agents/pm/pulse.py` - Health monitoring agent
+- `agents/pm/herald.py` - Report generation agent
+- `agents/pm/tools/phase_tools.py` - Phase analysis tools
+- `agents/pm/tools/health_tools.py` - Health monitoring tools
+- `agents/pm/tools/report_tools.py` - Report generation tools
+
+### API Endpoints
+
+- `POST /pm/phases/:id/analyze-completion` - Analyze phase completion readiness
+- `POST /pm/phases/:id/transition` - Execute phase transition
+- `GET /pm/phases/:id/checkpoints` - Get upcoming checkpoints
+- `POST /pm/agents/health/:projectId/check` - Trigger health check
+- `GET /pm/agents/health/:projectId` - Get latest health score
+- `GET /pm/agents/health/:projectId/risks` - Get active risks
+- `POST /pm/agents/health/:projectId/risks/:id/acknowledge` - Acknowledge risk
+- `POST /pm/agents/health/:projectId/risks/:id/resolve` - Resolve risk
+- `POST /pm/agents/reports/:projectId/generate` - Generate report
+- `GET /pm/agents/reports/:projectId` - List report history
+- `GET /pm/agents/reports/:projectId/:id` - Get specific report
+- `POST /pm/agents/reports/schedules` - Create report schedule
+- `GET /pm/agents/reports/schedules` - List schedules
+- `PUT /pm/agents/reports/schedules/:id` - Update schedule
+- `DELETE /pm/agents/reports/schedules/:id` - Delete schedule
+
+### Frontend Components
+
+- `PhaseTransitionModal` - Phase transition workflow UI
+- `RiskAlertBanner` - Prominent risk alert banner
+- `RiskListPanel` - Risk management slide-out panel
+- `RiskCard` - Individual risk display with actions
+- `useRiskSubscription` - WebSocket hook for real-time updates
+
+### Database Models
+
+- `HealthScore` - Project health scores with factor breakdown
+- `RiskEntry` - Detected risks with severity and status
+- `Report` - Generated reports with content and metadata
+- `ReportSchedule` - Scheduled report configurations
+- `PhaseCheckpoint` - Phase milestones with reminder settings
+
+### Notes
+
+- Health scores: 85+ Excellent, 70-84 Good, 50-69 Warning, <50 Critical
+- Risk severities: CRITICAL, HIGH, MEDIUM, LOW
+- Report types: PROJECT_STATUS, HEALTH_REPORT, PROGRESS_REPORT
+- Stakeholder types: EXECUTIVE, TEAM_LEAD, CLIENT, GENERAL
+
+---
+
 ## EPIC-KB-01: Knowledge Base Foundation (10 stories)
 
 **Status:** Complete

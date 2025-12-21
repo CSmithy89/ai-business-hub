@@ -119,30 +119,30 @@ development_status:
   # MVP | 8 stories | Phase mgmt, health, reporting
   # FRs: FR-5.5, FR-6.1, FR-6.2, FR-6.3, FR-6.4
   # ===========================================
-  pm-05: backlog
-  pm-05-1-scope-phase-agent: backlog
-  pm-05-2-scope-dependency-analysis: backlog
-  pm-05-3-scope-milestone-tracking: backlog
-  pm-05-4-pulse-health-agent: backlog
-  pm-05-5-pulse-risk-alerts: backlog
-  pm-05-6-herald-report-generation: backlog
-  pm-05-7-herald-stakeholder-reports: backlog
-  pm-05-8-herald-scheduled-reports: backlog
-  pm-05-retrospective: optional
+  pm-05: contexted
+  pm-05-1-scope-phase-agent: done
+  pm-05-2-scope-phase-transition-flow: done
+  pm-05-3-scope-milestone-tracking: done
+  pm-05-4-pulse-health-agent: done
+  pm-05-5-pulse-risk-alerts: done
+  pm-05-6-herald-report-generation: done
+  pm-05-7-herald-stakeholder-reports: done
+  pm-05-8-herald-scheduled-reports: done
+  pm-05-retrospective: completed
 
   # ===========================================
   # PM-06: Real-Time & Notifications
   # MVP | 6 stories | WebSocket, presence, preferences
   # FRs: FR-7.1, FR-7.2, FR-7.3, FR-7.4, FR-8.2
   # ===========================================
-  pm-06: backlog
-  pm-06-1-websocket-task-updates: backlog
-  pm-06-2-presence-indicators: backlog
-  pm-06-3-real-time-kanban: backlog
-  pm-06-4-notification-preferences: backlog
-  pm-06-5-in-app-notifications: backlog
-  pm-06-6-email-digest-notifications: backlog
-  pm-06-retrospective: optional
+  pm-06: contexted
+  pm-06-1-websocket-task-updates: done
+  pm-06-2-presence-indicators: done
+  pm-06-3-real-time-kanban: done
+  pm-06-4-notification-preferences: done
+  pm-06-5-in-app-notifications: done
+  pm-06-6-email-digest-notifications: done
+  pm-06-retrospective: completed
 
   # ===========================================
   # KB-01: Knowledge Base Foundation

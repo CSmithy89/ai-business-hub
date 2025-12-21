@@ -54,3 +54,50 @@ export const LOOKBACK_PERIODS = {
   /** Days for time tracking suggestions */
   TIME_SUGGESTION_DAYS: 7,
 } as const;
+
+// System user IDs for scheduled/automated tasks
+// Use reserved prefix (__system__) to avoid conflicts with real user IDs
+export const SYSTEM_USERS = {
+  /** System user for health check cron jobs */
+  HEALTH_CHECK: '__system__health_check',
+  /** System user for scheduled report generation */
+  HERALD_AGENT: '__system__herald_agent',
+  /** System user for checkpoint reminders */
+  CHECKPOINT_REMINDER: '__system__checkpoint',
+} as const;
+
+// Cron job settings for scalability
+export const CRON_SETTINGS = {
+  /** Number of concurrent health checks (limits DB load) */
+  HEALTH_CHECK_CONCURRENCY: 5,
+  /** Maximum projects to process per cron run */
+  HEALTH_CHECK_BATCH_SIZE: 100,
+  /** Minutes before a project's health check is considered stale */
+  HEALTH_CHECK_STALE_MINUTES: 14, // Slightly less than 15 to ensure overlap
+  /** Number of concurrent report generations */
+  REPORT_GENERATION_CONCURRENCY: 3,
+  /** Maximum reports to generate per cron run */
+  REPORT_GENERATION_BATCH_SIZE: 50,
+} as const;
+
+// Retry settings for cron job failure recovery
+export const RETRY_SETTINGS = {
+  /** Maximum retry attempts for failed cron tasks */
+  MAX_RETRIES: 3,
+  /** Base delay between retries in milliseconds */
+  BASE_DELAY_MS: 1000,
+  /** Maximum delay between retries in milliseconds (caps exponential backoff) */
+  MAX_DELAY_MS: 30000,
+  /** Multiplier for exponential backoff */
+  BACKOFF_MULTIPLIER: 2,
+} as const;
+
+// Health check limits
+export const HEALTH_CHECK_LIMITS = {
+  /** Maximum tasks to analyze per health check */
+  MAX_TASKS: 500,
+  /** Days of task history to consider for velocity */
+  VELOCITY_LOOKBACK_DAYS: 30,
+  /** Maximum risks to create per health check */
+  MAX_RISKS_PER_CHECK: 20,
+} as const;
