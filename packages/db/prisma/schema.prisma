@@ -1043,25 +1043,32 @@ model Project {
   autoApprovalThreshold Float   @default(0.85) @map("auto_approval_threshold")
   suggestionMode        Boolean @default(true) @map("suggestion_mode")
 
+  // Health tracking (PM-05)
+  healthScore     Int?      @map("health_score") // Latest health score
+  lastHealthCheck DateTime? @map("last_health_check")
+
   // Timestamps
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
   // Relations
-  business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  phases   Phase[]
-  team     ProjectTeam?
-  expenses ProjectExpense[]
-  views    SavedView[]
-  pages    ProjectPage[]
-  risks    RiskEntry[]
+  business        Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  phases          Phase[]
+  team            ProjectTeam?
+  expenses        ProjectExpense[]
+  views           SavedView[]
+  pages           ProjectPage[]
+  risks           RiskEntry[]
+  reportSchedules ReportSchedule[]
 
   @@unique([workspaceId, slug])
   @@index([workspaceId])
   @@index([businessId])
   @@index([status])
   @@index([deletedAt])
+  @@index([status, lastHealthCheck]) // Health dashboard: projects needing checks
+  @@index([healthScore]) // Health dashboard: sort by score
   @@map("projects")
 }
 
@@ -1108,14 +1115,26 @@ model Phase {
   totalPoints     Int @default(0) @map("total_points")
   completedPoints Int @default(0) @map("completed_points")
 
+  // Health tracking (PM-05)
+  healthScore     Int?      @map("health_score") // Latest health score (0-100)
+  lastHealthCheck DateTime? @map("last_health_check")
+
+  // Checkpoints (PM-05)
+  checkpointDate DateTime? @map("checkpoint_date")
+
+  // Completion (PM-05.2)
+  completedAt    DateTime? @map("completed_at")
+  completionNote String?   @db.Text @map("completion_note")
+
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tasks     Task[]
-  snapshots PhaseSnapshot[]
+  project      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+  snapshots    PhaseSnapshot[]
+  checkpoints  PhaseCheckpoint[]
 
   @@index([projectId])
   @@index([status])
@@ -1157,6 +1176,7 @@ model Task {
   dueDate     DateTime? @map("due_date")
   startedAt   DateTime? @map("started_at")
   completedAt DateTime? @map("completed_at")
+  cancelledAt DateTime? @map("cancelled_at")
 
   // Hierarchy
   parentId String? @map("parent_id")
@@ -1193,6 +1213,7 @@ model Task {
   @@index([assigneeId])
   @@index([dueDate])
   @@index([deletedAt])
+  @@index([projectId, deletedAt, updatedAt]) // Health check task queries
   @@map("tasks")
 }
 
@@ -1362,10 +1383,11 @@ model SavedView {
   @@map("saved_views")
 }
 
-/// RiskEntry - Risk tracking for projects
+/// RiskEntry - Risk tracking for projects (enhanced for PM-05 health monitoring)
 model RiskEntry {
-  id        String @id @default(cuid())
-  projectId String @map("project_id")
+  id          String  @id @default(cuid())
+  workspaceId String  @map("workspace_id")
+  projectId   String  @map("project_id")
 
   title       String
   description String? @db.Text
@@ -1374,6 +1396,14 @@ model RiskEntry {
   probability RiskProbability @default(POSSIBLE)
   impact      String? @db.Text
   mitigation  String? @db.Text
+
+  // Health monitoring fields (PM-05)
+  riskType      String?   @map("risk_type") // DEADLINE_WARNING, BLOCKER_CHAIN, CAPACITY_OVERLOAD, VELOCITY_DROP
+  affectedTasks String[]  @map("affected_tasks") // Array of task IDs
+  affectedUsers String[]  @map("affected_users") // Array of user IDs
+  detectedAt    DateTime? @map("detected_at")
+  acknowledgedBy String?  @map("acknowledged_by")
+  acknowledgedAt DateTime? @map("acknowledged_at")
 
   status     RiskStatus @default(IDENTIFIED)
   ownerId    String?    @map("owner_id")
@@ -1385,8 +1415,12 @@ model RiskEntry {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
+  @@index([workspaceId, projectId])
   @@index([projectId])
   @@index([status])
+  @@index([status, severity])
+  @@index([detectedAt])
+  @@index([projectId, status, detectedAt]) // Risk queries with status filter
   @@map("risk_entries")
 }
 
@@ -1410,6 +1444,69 @@ model PhaseSnapshot {
   @@index([phaseId])
   @@index([snapshotDate])
   @@map("phase_snapshots")
+}
+
+/// PhaseCheckpoint - Milestone checkpoints within phases (PM-05)
+model PhaseCheckpoint {
+  id             String   @id @default(cuid())
+  phaseId        String   @map("phase_id")
+  name           String
+  description    String?  @db.Text
+  checkpointDate DateTime @map("checkpoint_date")
+
+  // Status
+  status      CheckpointStatus @default(PENDING)
+  completedAt DateTime?        @map("completed_at")
+
+  // Reminders (used by PM-05.3)
+  remindAt3Days Boolean @default(true) @map("remind_at_3_days")
+  remindAt1Day  Boolean @default(true) @map("remind_at_1_day")
+  remindAtDayOf Boolean @default(true) @map("remind_at_day_of")
+
+  // Sent tracking (to avoid duplicate reminders)
+  reminder3DaysSent Boolean @default(false) @map("reminder_3_days_sent")
+  reminder1DaySent  Boolean @default(false) @map("reminder_1_day_sent")
+  reminderDayOfSent Boolean @default(false) @map("reminder_day_of_sent")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  phase Phase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@index([phaseId])
+  @@index([checkpointDate])
+  @@map("phase_checkpoints")
+}
+
+/// HealthScore - Project health calculations (PM-05)
+model HealthScore {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  projectId   String   @map("project_id")
+
+  // Score
+  score Int         // 0-100
+  level HealthLevel
+  trend HealthTrend
+
+  // Factor breakdown
+  onTimeDelivery Float @map("on_time_delivery") // 0-1
+  blockerImpact  Float @map("blocker_impact") // 0-1
+  teamCapacity   Float @map("team_capacity") // 0-1
+  velocityTrend  Float @map("velocity_trend") // 0-1
+
+  // Metadata
+  riskCount   Int    @map("risk_count")
+  explanation String @db.Text
+
+  // Timestamps
+  calculatedAt DateTime @default(now()) @map("calculated_at")
+
+  @@index([workspaceId, projectId, calculatedAt])
+  @@index([projectId, calculatedAt]) // Health score history queries
+  @@map("health_scores")
 }
 
 // Core-PM Enums
@@ -1449,6 +1546,12 @@ enum BmadPhaseType {
 enum PhaseStatus {
   UPCOMING
   CURRENT
+  COMPLETED
+  CANCELLED
+}
+
+enum CheckpointStatus {
+  PENDING
   COMPLETED
   CANCELLED
 }
@@ -1503,6 +1606,19 @@ enum TeamRole {
   QA_ENGINEER
   STAKEHOLDER
   CUSTOM
+}
+
+enum HealthLevel {
+  EXCELLENT // 85-100
+  GOOD      // 70-84
+  WARNING   // 50-69
+  CRITICAL  // 0-49
+}
+
+enum HealthTrend {
+  IMPROVING
+  STABLE
+  DECLINING
 }
 
 enum TaskActivityType {
@@ -1925,6 +2041,95 @@ model TimeEntry {
   @@index([workspaceId, taskId])
   @@index([workspaceId, userId, startTime])
   @@map("time_entries")
+}
+
+// ============================================
+// PM REPORTING (PM-05.6: Herald Agent)
+// ============================================
+
+/// Report - Generated project reports for status, health, and progress
+model Report {
+  id              String @id @default(cuid())
+  workspaceId     String @map("workspace_id")
+  projectId       String @map("project_id")
+
+  // Report details
+  type            ReportType
+  stakeholderType StakeholderType? @map("stakeholder_type")
+  title           String
+  content         Json // Structured report content
+
+  // Generation metadata
+  generatedBy     String   @map("generated_by") // User ID or 'herald_agent'
+  generatedAt     DateTime @default(now()) @map("generated_at")
+
+  // Format
+  format          ReportFormat @default(MARKDOWN)
+
+  // Timestamps
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([workspaceId, projectId])
+  @@index([projectId, generatedAt])
+  @@index([type])
+  @@index([stakeholderType])
+  @@map("reports")
+}
+
+// Report Enums
+enum ReportType {
+  PROJECT_STATUS
+  HEALTH_REPORT
+  PROGRESS_REPORT
+}
+
+enum ReportFormat {
+  MARKDOWN
+  JSON
+}
+
+enum StakeholderType {
+  EXECUTIVE
+  TEAM_LEAD
+  CLIENT
+  GENERAL
+}
+
+enum ReportFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+/// ReportSchedule - Automated report generation schedule (PM-05.8)
+model ReportSchedule {
+  id              String @id @default(cuid())
+  workspaceId     String @map("workspace_id")
+  projectId       String @map("project_id")
+
+  // Schedule configuration
+  frequency       ReportFrequency  @map("frequency")
+  reportType      ReportType       @map("report_type")
+  stakeholderType StakeholderType? @map("stakeholder_type")
+  enabled         Boolean @default(true)
+
+  // Schedule tracking
+  lastRun         DateTime? @map("last_run")
+  nextRun         DateTime  @map("next_run")
+
+  // Timestamps
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project         Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([enabled, nextRun])
+  @@index([workspaceId, projectId])
+  @@map("report_schedules")
 }
 
 // ============================================

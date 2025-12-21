@@ -21,3 +21,7 @@ export {
   type CelebrationType,
   type UseCelebrationReturn,
 } from './use-celebration';
+
+// PM module hooks (Epic PM-05)
+export { usePmRisks, type RiskEntry } from './use-pm-risks';
+export { usePhaseTransition } from './use-phase-transition';

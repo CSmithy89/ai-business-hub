@@ -1,0 +1,841 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-05-1-scope-agent-phase-management</story-id>
+    <epic>PM-05</epic>
+    <title>Scope Agent - Phase Management</title>
+    <status>ready-for-dev</status>
+    <points>8</points>
+    <generated-date>2025-12-19</generated-date>
+  </metadata>
+
+  <!-- ========================================
+       STORY SUMMARY
+       ======================================== -->
+  <summary>
+    <user-story>
+      As a **project lead**,
+      I want **AI assistance managing phase transitions**,
+      So that **phases complete cleanly**.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        <description>Phase Analysis with Task Recommendations</description>
+        <given>A phase is nearing completion</given>
+        <when>Scope analyzes phase status</when>
+        <then>Suggests: tasks to complete, tasks to carry over, tasks to cancel</then>
+      </criterion>
+
+      <criterion id="AC2">
+        <description>Phase Completion Summary</description>
+        <given>Scope has analyzed a phase</given>
+        <when>Summary is generated</when>
+        <then>Includes: completion readiness, blockers, next phase preview</then>
+      </criterion>
+
+      <criterion id="AC3">
+        <description>Human Approval Required</description>
+        <given>Scope suggests a phase transition</given>
+        <when>Transition is initiated</when>
+        <then>Requires human approval before executing</then>
+      </criterion>
+    </acceptance-criteria>
+
+    <goals>
+      - Create Scope agent for phase transition assistance
+      - Implement phase completion analysis
+      - Add PhaseCheckpoint model for milestone tracking
+      - Integrate Scope into existing PM agent team (Navi, Sage, Chrono)
+      - Enable checkpoint reminder tracking (implementation in PM-05.3)
+    </goals>
+  </summary>
+
+  <!-- ========================================
+       ARCHITECTURE PATTERNS
+       ======================================== -->
+  <architecture-patterns>
+    <agent-pattern>
+      <name>Agno Agent Factory Pattern</name>
+      <location>agents/pm/</location>
+      <example-files>
+        - agents/pm/navi.py
+        - agents/pm/sage.py
+        - agents/pm/chrono.py
+        - agents/pm/team.py
+      </example-files>
+
+      <pattern-structure>
+        <![CDATA[
+# Standard agent creation pattern used across PM module
+
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.memory import Memory
+
+AGENT_INSTRUCTIONS = [
+    "You are [AgentName], the [role] specialist.",
+    "Help users [primary responsibility].",
+    "When analyzing [context]:",
+    "  1. [Step 1]",
+    "  2. [Step 2]",
+    "  3. [Step 3]",
+    "Always [key constraint].",
+]
+
+def create_[agent]_agent(
+    workspace_id: str,
+    project_id: str,
+    shared_memory: Memory,
+    model: Optional[str] = None,
+) -> Agent:
+    """Create [AgentName] agent for [purpose]."""
+
+    return Agent(
+        name="[AgentName]",
+        role="[Role Description]",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=AGENT_INSTRUCTIONS + [
+            f"Workspace ID: {workspace_id}",
+            f"Project ID: {project_id}",
+        ],
+        tools=[
+            # Agent-specific tools
+        ],
+        memory=shared_memory,
+        add_datetime_to_instructions=True,
+        markdown=True,
+    )
+        ]]>
+      </pattern-structure>
+
+      <key-conventions>
+        - Use shared memory for team context
+        - Include workspace_id and project_id in instructions
+        - Default to Claude Sonnet 4 (claude-sonnet-4-20250514)
+        - Enable markdown formatting
+        - Add datetime to instructions
+        - Tools are defined separately in tools/ directory
+      </key-conventions>
+    </agent-pattern>
+
+    <team-integration-pattern>
+      <name>PM Team Coordination</name>
+      <location>agents/pm/team.py</location>
+
+      <current-team-structure>
+        <![CDATA[
+Team(
+    name="PM Team",
+    mode="coordinate",  # Leader coordinates member agents
+    leader=navi,        # Navi orchestrates
+    members=[sage, chrono],  # Current team members
+    delegate_task_to_all_members=False,
+    respond_directly=True,
+    share_member_interactions=True,
+    enable_agentic_context=True,
+)
+        ]]>
+      </current-team-structure>
+
+      <scope-integration>
+        <![CDATA[
+# After PM-05.1, team structure becomes:
+members=[sage, chrono, scope]  # Add Scope to existing team
+
+# Navi will delegate phase-related questions to Scope:
+# User: "Should we complete this phase?"
+# Navi: "Let me ask Scope to analyze phase completion."
+# Navi delegates to Scope → Scope analyzes → Returns to Navi → Navi presents to user
+        ]]>
+      </scope-integration>
+    </team-integration-pattern>
+
+    <backend-service-pattern>
+      <name>NestJS Agent Service Integration</name>
+      <location>apps/api/src/pm/agents/</location>
+
+      <existing-services>
+        - agents.service.ts (chat, conversation history)
+        - suggestion.service.ts (AI suggestions)
+        - estimation.service.ts (Sage integration)
+        - time-tracking.service.ts (Chrono integration)
+        - briefing.service.ts (Navi daily briefings)
+      </existing-services>
+
+      <new-service-needed>
+        - phase.service.ts (Scope phase analysis integration)
+      </new-service-needed>
+
+      <service-pattern>
+        <![CDATA[
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@/common/services/prisma.service';
+import { AgentOSService } from '@/agentos/agentos.service';
+
+@Injectable()
+export class PhaseService {
+  constructor(
+    private prisma: PrismaService,
+    private agentOS: AgentOSService,
+  ) {}
+
+  async analyzePhaseCompletion(
+    workspaceId: string,
+    phaseId: string,
+    userId: string
+  ): Promise<PhaseCompletionAnalysis> {
+    // 1. Get phase with tasks
+    const phase = await this.prisma.phase.findUnique({
+      where: { id: phaseId },
+      include: { tasks: true, project: true }
+    });
+
+    // 2. Invoke Scope agent for analysis
+    const agentResponse = await this.agentOS.invokeAgent({
+      workspaceId,
+      sessionId: `phase-analysis-${phaseId}`,
+      userId,
+      agentName: 'scope',
+      projectId: phase.projectId,
+      message: `Analyze phase completion for "${phase.name}"...`
+    });
+
+    // 3. Parse agent response into structured format
+    return this.parseAnalysis(agentResponse, phase);
+  }
+}
+        ]]>
+      </service-pattern>
+    </backend-service-pattern>
+  </architecture-patterns>
+
+  <!-- ========================================
+       DATABASE SCHEMA CONTEXT
+       ======================================== -->
+  <database-schema>
+    <existing-models>
+      <model name="Phase">
+        <location>packages/db/prisma/schema.prisma (lines 1063-1098)</location>
+        <fields>
+          - id: String (cuid)
+          - projectId: String
+          - name: String
+          - description: String?
+          - bmadPhase: BmadPhaseType?
+          - phaseNumber: Int
+          - startDate: DateTime?
+          - endDate: DateTime?
+          - status: PhaseStatus (UPCOMING, CURRENT, COMPLETED, CANCELLED)
+          - totalTasks: Int (denormalized)
+          - completedTasks: Int (denormalized)
+          - totalPoints: Int
+          - completedPoints: Int
+        </fields>
+        <relations>
+          - project: Project
+          - tasks: Task[]
+          - snapshots: PhaseSnapshot[]
+        </relations>
+      </model>
+
+      <model name="Task">
+        <location>packages/db/prisma/schema.prisma (lines 1101-1172)</location>
+        <key-fields>
+          - status: TaskStatus (BACKLOG, TODO, IN_PROGRESS, REVIEW, AWAITING_APPROVAL, DONE, CANCELLED)
+          - assignmentType: AssignmentType (HUMAN, AGENT, HYBRID)
+          - priority: TaskPriority
+          - dueDate: DateTime?
+        </key-fields>
+      </model>
+
+      <model name="Project">
+        <location>packages/db/prisma/schema.prisma (lines 981-1041)</location>
+        <key-fields>
+          - businessId: String
+          - status: ProjectStatus
+          - phases: Phase[]
+        </key-fields>
+      </model>
+    </existing-models>
+
+    <new-models-required>
+      <model name="PhaseCheckpoint">
+        <purpose>Track milestone checkpoints within phases</purpose>
+        <schema>
+          <![CDATA[
+model PhaseCheckpoint {
+  id            String   @id @default(cuid())
+  phaseId       String   @map("phase_id")
+  name          String
+  description   String?  @db.Text
+  checkpointDate DateTime @map("checkpoint_date")
+
+  // Status
+  status        CheckpointStatus @default(PENDING)
+  completedAt   DateTime? @map("completed_at")
+
+  // Reminders (used by PM-05.3)
+  remindAt3Days Boolean  @default(true) @map("remind_at_3_days")
+  remindAt1Day  Boolean  @default(true) @map("remind_at_1_day")
+  remindAtDayOf Boolean  @default(true) @map("remind_at_day_of")
+
+  // Timestamps
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  phase         Phase    @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@index([phaseId])
+  @@index([checkpointDate])
+  @@map("phase_checkpoints")
+}
+
+enum CheckpointStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+          ]]>
+        </schema>
+      </model>
+
+      <model-extensions>
+        <extend model="Phase">
+          <![CDATA[
+// Add to Phase model:
+healthScore     Int?     @map("health_score")  // Latest health score (used by Pulse in PM-05.4)
+lastHealthCheck DateTime? @map("last_health_check")
+checkpointDate  DateTime? @map("checkpoint_date")
+
+// Relations
+checkpoints     PhaseCheckpoint[]
+          ]]>
+        </extend>
+      </model-extensions>
+    </new-models-required>
+
+    <migration-strategy>
+      1. Create migration: pnpm prisma migrate dev --name add-phase-checkpoints
+      2. Migration will add:
+         - phase_checkpoints table
+         - CheckpointStatus enum
+         - Extensions to Phase model (healthScore, lastHealthCheck, checkpointDate)
+      3. No data migration needed (new feature)
+    </migration-strategy>
+  </database-schema>
+
+  <!-- ========================================
+       API ENDPOINTS CONTEXT
+       ======================================== -->
+  <api-endpoints>
+    <existing-endpoints>
+      <controller name="PhasesController">
+        <location>apps/api/src/pm/phases/phases.controller.ts</location>
+        <existing-routes>
+          - GET /api/pm/phases/:id (Get phase details)
+          - PUT /api/pm/phases/:id (Update phase)
+          - POST /api/pm/phases (Create phase)
+          - DELETE /api/pm/phases/:id (Delete phase)
+        </existing-routes>
+      </controller>
+    </existing-endpoints>
+
+    <new-endpoints-required>
+      <endpoint>
+        <method>POST</method>
+        <path>/api/pm/phases/:id/analyze-completion</path>
+        <purpose>Analyze phase for completion readiness (invokes Scope agent)</purpose>
+        <request-body>
+          { projectId: string }
+        </request-body>
+        <response>
+          <![CDATA[
+{
+  phaseId: string;
+  phaseName: string;
+  totalTasks: number;
+  completedTasks: number;
+  incompleteTasks: Task[];
+  recommendations: Array<{
+    taskId: string;
+    taskTitle: string;
+    action: 'complete' | 'carry_over' | 'cancel';
+    reasoning: string;
+    suggestedPhase?: string;
+  }>;
+  summary: {
+    readyForCompletion: boolean;
+    blockers: string[];
+    nextPhasePreview: string;
+    estimatedTimeToComplete?: string;
+  };
+}
+          ]]>
+        </response>
+      </endpoint>
+
+      <endpoint>
+        <method>GET</method>
+        <path>/api/pm/phases/:id/checkpoints/upcoming</path>
+        <purpose>Get upcoming checkpoints (next 3 days)</purpose>
+        <response>PhaseCheckpoint[]</response>
+      </endpoint>
+
+      <endpoint>
+        <method>POST</method>
+        <path>/api/pm/phases/:id/checkpoints</path>
+        <purpose>Create checkpoint (for manual checkpoint creation)</purpose>
+        <request-body>
+          <![CDATA[
+{
+  name: string;
+  checkpointDate: string (ISO);
+  description?: string;
+}
+          ]]>
+        </request-body>
+      </endpoint>
+    </new-endpoints-required>
+  </api-endpoints>
+
+  <!-- ========================================
+       AGENT TOOLS IMPLEMENTATION
+       ======================================== -->
+  <agent-tools>
+    <tool-pattern>
+      <name>Agno Tool Definition</name>
+      <location>agents/pm/tools/</location>
+
+      <example-from-existing-code>
+        <![CDATA[
+# From agents/pm/tools/pm_tools.py
+from agno import tool
+import requests
+import os
+
+API_URL = os.getenv("NEXT_PUBLIC_API_URL", "http://localhost:3000")
+
+@tool
+def get_project_status(project_id: str) -> dict:
+    """Get current status of a project."""
+    response = requests.get(f"{API_URL}/api/pm/projects/{project_id}")
+    return response.json()
+        ]]>
+      </example-from-existing-code>
+    </tool-pattern>
+
+    <new-tools-required>
+      <tool name="analyze_phase_completion">
+        <location>agents/pm/tools/phase_tools.py (new file)</location>
+        <implementation>
+          <![CDATA[
+from agno import tool
+import requests
+import os
+from typing import Dict
+
+API_URL = os.getenv("NEXT_PUBLIC_API_URL", "http://localhost:3000")
+
+@tool
+def analyze_phase_completion(
+    project_id: str,
+    phase_id: str
+) -> dict:
+    """
+    Analyze phase for completion readiness and provide task recommendations.
+
+    Args:
+        project_id: ID of the project
+        phase_id: ID of the phase to analyze
+
+    Returns:
+        Phase completion analysis with task recommendations
+    """
+    response = requests.post(
+        f"{API_URL}/api/pm/phases/{phase_id}/analyze-completion",
+        json={"projectId": project_id}
+    )
+    return response.json()
+
+@tool
+def check_phase_checkpoint(phase_id: str) -> dict | None:
+    """
+    Check if phase has upcoming checkpoints.
+
+    Args:
+        phase_id: ID of the phase
+
+    Returns:
+        Upcoming checkpoint data or None if no checkpoints
+    """
+    response = requests.get(
+        f"{API_URL}/api/pm/phases/{phase_id}/checkpoints/upcoming"
+    )
+    if response.status_code == 404:
+        return None
+    return response.json()
+          ]]>
+        </implementation>
+      </tool>
+    </new-tools-required>
+  </agent-tools>
+
+  <!-- ========================================
+       IMPLEMENTATION TASKS
+       ======================================== -->
+  <implementation-tasks>
+    <task category="database">
+      <name>Add PhaseCheckpoint model to Prisma schema</name>
+      <file>packages/db/prisma/schema.prisma</file>
+      <steps>
+        1. Add PhaseCheckpoint model (see schema section above)
+        2. Add CheckpointStatus enum
+        3. Extend Phase model with healthScore, lastHealthCheck, checkpointDate
+        4. Add checkpoints relation to Phase model
+      </steps>
+    </task>
+
+    <task category="database">
+      <name>Create database migration</name>
+      <command>pnpm prisma migrate dev --name add-phase-checkpoints</command>
+      <verification>
+        - Check migration file created in packages/db/prisma/migrations/
+        - Verify schema.prisma changes reflected in generated client
+      </verification>
+    </task>
+
+    <task category="agent">
+      <name>Create Scope agent</name>
+      <file>agents/pm/scope.py (new file)</file>
+      <dependencies>
+        - agents/pm/tools/phase_tools.py (tools)
+        - Follows pattern from navi.py, sage.py, chrono.py
+      </dependencies>
+      <key-instructions>
+        <![CDATA[
+SCOPE_INSTRUCTIONS = [
+    "You are Scope, the phase management specialist for HYVVE projects.",
+    "Help users transition between phases cleanly.",
+    "When analyzing phase completion:",
+    "  1. List all incomplete tasks",
+    "  2. For each task, recommend: complete, carry over, or cancel",
+    "  3. Provide reasoning for each recommendation",
+    "  4. Generate phase completion summary",
+    "Always ensure nothing falls through the cracks during transitions.",
+    "Track checkpoints and send timely reminders (3 days, 1 day, day-of).",
+    "Detect scope changes and alert users to prevent scope creep.",
+    "Provide clear, actionable recommendations.",
+]
+        ]]>
+      </key-instructions>
+    </task>
+
+    <task category="agent">
+      <name>Create phase tools</name>
+      <file>agents/pm/tools/phase_tools.py (new file)</file>
+      <tools>
+        - analyze_phase_completion(project_id, phase_id)
+        - check_phase_checkpoint(phase_id)
+        - recommend_task_actions(phase_id, task_ids) [optional for PM-05.1]
+      </tools>
+    </task>
+
+    <task category="agent">
+      <name>Update PM team to include Scope</name>
+      <file>agents/pm/team.py</file>
+      <changes>
+        <![CDATA[
+# Add import
+from .scope import create_scope_agent
+
+# In create_pm_team():
+scope = create_scope_agent(
+    workspace_id=workspace_id,
+    project_id=project_id,
+    shared_memory=shared_memory,
+    model=model,
+)
+
+# Update team members
+members=[sage, chrono, scope],  # Added Scope
+        ]]>
+      </changes>
+    </task>
+
+    <task category="backend">
+      <name>Create PhaseService</name>
+      <file>apps/api/src/pm/agents/phase.service.ts (new file)</file>
+      <methods>
+        - analyzePhaseCompletion(workspaceId, phaseId, userId)
+        - getUpcomingCheckpoints(workspaceId, phaseId)
+        - parseRecommendations(agentResponse, tasks) [helper]
+        - generateSummary(phase, agentResponse) [helper]
+      </methods>
+    </task>
+
+    <task category="backend">
+      <name>Extend PhasesController</name>
+      <file>apps/api/src/pm/phases/phases.controller.ts</file>
+      <new-endpoints>
+        - POST /api/pm/phases/:id/analyze-completion
+        - GET /api/pm/phases/:id/checkpoints/upcoming
+      </new-endpoints>
+      <inject-service>
+        - PhaseService (from pm/agents/phase.service.ts)
+      </inject-service>
+    </task>
+
+    <task category="testing">
+      <name>Unit tests - PhaseService</name>
+      <file>apps/api/src/pm/agents/phase.service.spec.ts (new file)</file>
+      <test-cases>
+        - analyzePhaseCompletion returns valid analysis
+        - getUpcomingCheckpoints filters by date range
+        - Workspace scoping enforced
+        - Agent response parsing handles edge cases
+      </test-cases>
+    </task>
+
+    <task category="testing">
+      <name>Unit tests - Scope agent</name>
+      <file>agents/pm/tests/test_scope.py (new file)</file>
+      <test-cases>
+        - Scope responds to phase completion analysis request
+        - analyze_phase_completion tool calls API correctly
+        - check_phase_checkpoint handles 404 (no checkpoints)
+        - Scope provides actionable recommendations
+      </test-cases>
+    </task>
+
+    <task category="testing">
+      <name>Integration tests - API endpoints</name>
+      <file>apps/api/test/pm/agents/phase.e2e-spec.ts (new file)</file>
+      <test-cases>
+        - POST /api/pm/phases/:id/analyze-completion invokes Scope
+        - GET /api/pm/phases/:id/checkpoints/upcoming returns correct checkpoints
+        - Analysis includes all incomplete tasks
+        - Recommendations have valid actions
+        - Workspace isolation enforced
+      </test-cases>
+    </task>
+  </implementation-tasks>
+
+  <!-- ========================================
+       KEY FILES TO CREATE/MODIFY
+       ======================================== -->
+  <file-changes>
+    <new-files>
+      <file>agents/pm/scope.py</file>
+      <file>agents/pm/tools/phase_tools.py</file>
+      <file>apps/api/src/pm/agents/phase.service.ts</file>
+      <file>apps/api/src/pm/agents/phase.service.spec.ts</file>
+      <file>agents/pm/tests/test_scope.py</file>
+      <file>apps/api/test/pm/agents/phase.e2e-spec.ts</file>
+    </new-files>
+
+    <modified-files>
+      <file>packages/db/prisma/schema.prisma</file>
+      <file>agents/pm/team.py</file>
+      <file>apps/api/src/pm/phases/phases.controller.ts</file>
+      <file>apps/api/src/pm/agents/agents.module.ts (register PhaseService)</file>
+    </modified-files>
+  </file-changes>
+
+  <!-- ========================================
+       INTEGRATION POINTS
+       ======================================== -->
+  <integration-points>
+    <integration name="Navi Delegation">
+      <description>
+        When user asks about phase completion, Navi recognizes this as a phase
+        management question and delegates to Scope.
+      </description>
+      <flow>
+        User: "Should we complete this phase?"
+        → Navi recognizes phase management query
+        → Navi delegates to Scope
+        → Scope invokes analyze_phase_completion tool
+        → Scope analyzes and returns structured recommendations
+        → Navi presents summary to user with suggestion card
+      </flow>
+    </integration>
+
+    <integration name="AgentOS Service">
+      <description>
+        PhaseService uses AgentOSService to invoke Scope agent, following the
+        same pattern as EstimationService (Sage) and TimeTrackingService (Chrono).
+      </description>
+      <service-location>apps/api/src/agentos/agentos.service.ts</service-location>
+      <method>invokeAgent({ workspaceId, sessionId, userId, agentName, projectId, message })</method>
+    </integration>
+
+    <integration name="Workspace Scoping">
+      <description>
+        All queries must enforce workspace isolation. PhaseService must verify
+        that phaseId belongs to workspaceId before processing.
+      </description>
+      <pattern>
+        <![CDATA[
+const phase = await this.prisma.phase.findUnique({
+  where: { id: phaseId },
+  include: { project: true }
+});
+
+if (phase.project.workspaceId !== workspaceId) {
+  throw new ForbiddenException('Phase not in workspace');
+}
+        ]]>
+      </pattern>
+    </integration>
+  </integration-points>
+
+  <!-- ========================================
+       REFERENCE DOCUMENTATION
+       ======================================== -->
+  <references>
+    <doc type="story">
+      <path>docs/modules/bm-pm/stories/pm-05-1-scope-agent-phase-management.md</path>
+      <description>Full story specification with technical notes</description>
+    </doc>
+
+    <doc type="epic-tech-spec">
+      <path>docs/modules/bm-pm/epics/epic-pm-05-tech-spec.md</path>
+      <description>Technical specification for Epic PM-05 (Scope, Pulse, Herald agents)</description>
+    </doc>
+
+    <doc type="architecture">
+      <path>docs/modules/bm-pm/architecture.md</path>
+      <description>Module architecture document</description>
+    </doc>
+
+    <doc type="existing-pattern">
+      <path>agents/pm/navi.py</path>
+      <description>Example: Agent creation pattern</description>
+    </doc>
+
+    <doc type="existing-pattern">
+      <path>agents/pm/team.py</path>
+      <description>Example: Team integration pattern</description>
+    </doc>
+
+    <doc type="existing-pattern">
+      <path>apps/api/src/pm/agents/estimation.service.ts</path>
+      <description>Example: Agent service integration (Sage)</description>
+    </doc>
+
+    <doc type="database-schema">
+      <path>packages/db/prisma/schema.prisma</path>
+      <description>Current database schema</description>
+    </doc>
+  </references>
+
+  <!-- ========================================
+       CRITICAL NOTES
+       ======================================== -->
+  <critical-notes>
+    <note priority="high">
+      <title>Workspace Scoping</title>
+      <description>
+        All database queries MUST enforce workspace isolation. Use workspaceId
+        in WHERE clauses and verify ownership before processing operations.
+      </description>
+    </note>
+
+    <note priority="high">
+      <title>Suggestion Mode</title>
+      <description>
+        Scope MUST operate in suggestion mode. Never auto-execute phase transitions.
+        Always generate recommendations for human approval (AC3).
+      </description>
+    </note>
+
+    <note priority="medium">
+      <title>Phase Transition Implementation</title>
+      <description>
+        This story (PM-05.1) focuses on ANALYSIS only. The actual phase transition
+        execution (bulk task updates, phase status changes) is implemented in
+        PM-05.2 "Scope Phase Transition Flow".
+      </description>
+    </note>
+
+    <note priority="medium">
+      <title>Checkpoint Reminders</title>
+      <description>
+        PhaseCheckpoint model includes reminder fields (remindAt3Days, etc.) but
+        the actual reminder cron job is implemented in PM-05.3 "Scope Checkpoint Reminders".
+        For PM-05.1, just create the model and basic CRUD operations.
+      </description>
+    </note>
+
+    <note priority="low">
+      <title>Graceful Degradation</title>
+      <description>
+        If PhaseCheckpoint table doesn't exist yet (migration not run), the
+        check_phase_checkpoint tool should return None instead of throwing an error.
+        This allows Scope to still provide phase analysis without checkpoint data.
+      </description>
+    </note>
+  </critical-notes>
+
+  <!-- ========================================
+       EXAMPLE OUTPUT
+       ======================================== -->
+  <example-output>
+    <title>Phase Completion Analysis Output</title>
+    <format>TypeScript interface</format>
+    <content>
+      <![CDATA[
+{
+  phaseId: "phase_abc123",
+  phaseName: "Phase 1: Brief",
+  totalTasks: 15,
+  completedTasks: 12,
+  incompleteTasks: [
+    { id: "task_001", title: "Draft project charter", status: "IN_PROGRESS" },
+    { id: "task_002", title: "Stakeholder interviews", status: "TODO" },
+    { id: "task_003", title: "Budget approval", status: "BLOCKED" }
+  ],
+  recommendations: [
+    {
+      taskId: "task_001",
+      taskTitle: "Draft project charter",
+      action: "complete",
+      reasoning: "Task is 80% complete. Finish before phase ends to maintain momentum."
+    },
+    {
+      taskId: "task_002",
+      taskTitle: "Stakeholder interviews",
+      action: "carry_over",
+      reasoning: "Not critical for phase 1 completion. Continue in Phase 2: Requirements.",
+      suggestedPhase: "phase_def456"
+    },
+    {
+      taskId: "task_003",
+      taskTitle: "Budget approval",
+      action: "cancel",
+      reasoning: "Blocked by external dependency. Budget will be finalized in Phase 3."
+    }
+  ],
+  summary: {
+    readyForCompletion: false,
+    blockers: [
+      "Task 'Budget approval' is blocked by finance team review",
+      "Task 'Draft project charter' must be completed before transition"
+    ],
+    nextPhasePreview: "Next: Phase 2 - Requirements Gathering",
+    estimatedTimeToComplete: "2-3 days"
+  }
+}
+      ]]>
+    </content>
+    <usage>
+      This structured output enables:
+      - Clear visualization in UI (PM-05.2)
+      - Human decision-making with AI guidance
+      - Audit trail of recommendations
+      - Learning for future phase transitions
+    </usage>
+  </example-output>
+</story-context>

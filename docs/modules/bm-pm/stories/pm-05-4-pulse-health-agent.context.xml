@@ -1,0 +1,1836 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-05-4-pulse-health-agent</story-id>
+    <epic>PM-05</epic>
+    <title>Pulse Agent - Health Monitoring</title>
+    <status>ready-for-dev</status>
+    <points>8</points>
+    <generated-date>2025-12-19</generated-date>
+  </metadata>
+
+  <!-- ========================================
+       STORY SUMMARY
+       ======================================== -->
+  <summary>
+    <user-story>
+      As a **project user**,
+      I want **continuous project health monitoring**,
+      So that **I'm warned of issues early**.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        <description>Continuous Health Monitoring</description>
+        <given>Pulse monitors project continuously</given>
+        <when>Risk detected (overdue, blocked, overloaded)</when>
+        <then>Notification sent to relevant users</then>
+      </criterion>
+
+      <criterion id="AC2">
+        <description>Risk Detection Types</description>
+        <given>Pulse is running health checks</given>
+        <when>Analyzing project state</when>
+        <then>Detects risk types: 48-hour deadline warning, blocker chain detected, team member overloaded, velocity drop</then>
+      </criterion>
+
+      <criterion id="AC3">
+        <description>Severity Levels</description>
+        <given>Risk is detected</given>
+        <when>Risk is created</when>
+        <then>Assigned severity: info, warning, critical</then>
+      </criterion>
+    </acceptance-criteria>
+
+    <goals>
+      - Create Pulse agent for continuous project health monitoring
+      - Implement risk detection for 4 risk types (deadline, blocker chain, overload, velocity drop)
+      - Calculate project health score (0-100) with factor breakdown
+      - Set up automated health check cron job (every 15 minutes)
+      - Send notifications for WARNING/CRITICAL severity risks
+      - Add RiskEntry and HealthScore data models
+      - Integrate Pulse into existing PM agent team (Navi, Sage, Chrono, Scope)
+    </goals>
+  </summary>
+
+  <!-- ========================================
+       ARCHITECTURE PATTERNS
+       ======================================== -->
+  <architecture-patterns>
+    <agent-pattern>
+      <name>Agno Agent Factory Pattern</name>
+      <location>agents/pm/</location>
+      <example-files>
+        - agents/pm/navi.py
+        - agents/pm/sage.py
+        - agents/pm/chrono.py
+        - agents/pm/scope.py
+        - agents/pm/team.py
+      </example-files>
+
+      <pattern-structure>
+        <![CDATA[
+# Standard agent creation pattern used across PM module
+
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.memory import Memory
+
+AGENT_INSTRUCTIONS = [
+    "You are [AgentName], the [role] specialist.",
+    "Help users [primary responsibility].",
+    "When analyzing [context]:",
+    "  1. [Step 1]",
+    "  2. [Step 2]",
+    "  3. [Step 3]",
+    "Always [key constraint].",
+]
+
+def create_[agent]_agent(
+    workspace_id: str,
+    project_id: str,
+    shared_memory: Memory,
+    model: Optional[str] = None,
+) -> Agent:
+    """Create [AgentName] agent for [purpose]."""
+
+    return Agent(
+        name="[AgentName]",
+        role="[Role Description]",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=AGENT_INSTRUCTIONS + [
+            f"Workspace ID: {workspace_id}",
+            f"Project ID: {project_id}",
+        ],
+        tools=[
+            # Agent-specific tools
+        ],
+        memory=shared_memory,
+        add_datetime_to_instructions=True,
+        markdown=True,
+    )
+        ]]>
+      </pattern-structure>
+
+      <key-conventions>
+        - Use shared memory for team context
+        - Include workspace_id and project_id in instructions
+        - Default to Claude Sonnet 4 (claude-sonnet-4-20250514)
+        - Enable markdown formatting
+        - Add datetime to instructions
+        - Tools are defined separately in tools/ directory
+      </key-conventions>
+    </agent-pattern>
+
+    <team-integration-pattern>
+      <name>PM Team Coordination</name>
+      <location>agents/pm/team.py</location>
+
+      <current-team-structure>
+        <![CDATA[
+Team(
+    name="PM Team",
+    mode="coordinate",  # Leader coordinates member agents
+    leader=navi,        # Navi orchestrates
+    members=[sage, chrono, scope],  # Current team members (PM-05.3 state)
+    delegate_task_to_all_members=False,
+    respond_directly=True,
+    share_member_interactions=True,
+    enable_agentic_context=True,
+)
+        ]]>
+      </current-team-structure>
+
+      <pulse-integration>
+        <![CDATA[
+# After PM-05.4, team structure becomes:
+members=[sage, chrono, scope, pulse]  # Add Pulse to existing team
+
+# Navi will delegate health-related questions to Pulse:
+# User: "How is the project health?"
+# Navi: "Let me ask Pulse to check project health."
+# Navi delegates to Pulse → Pulse analyzes → Returns to Navi → Navi presents to user
+        ]]>
+      </pulse-integration>
+    </team-integration-pattern>
+
+    <backend-service-pattern>
+      <name>NestJS Agent Service Integration</name>
+      <location>apps/api/src/pm/agents/</location>
+
+      <existing-services>
+        - agents.service.ts (chat, conversation history)
+        - suggestion.service.ts (AI suggestions)
+        - estimation.service.ts (Sage integration)
+        - time-tracking.service.ts (Chrono integration)
+        - briefing.service.ts (Navi daily briefings)
+        - phase.service.ts (Scope integration - from PM-05.1)
+      </existing-services>
+
+      <new-service-needed>
+        - health.service.ts (Pulse health monitoring integration)
+        - health.controller.ts (Health API endpoints)
+        - health.cron.ts (Scheduled health checks)
+      </new-service-needed>
+
+      <service-pattern>
+        <![CDATA[
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '@/common/services/prisma.service';
+import { AgentOSService } from '@/agentos/agentos.service';
+import { NotificationService } from '@/modules/notifications/notification.service';
+
+@Injectable()
+export class HealthService {
+  private readonly logger = new Logger(HealthService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private agentOS: AgentOSService,
+    private notifications: NotificationService,
+  ) {}
+
+  async runHealthCheck(
+    workspaceId: string,
+    projectId: string,
+    userId: string
+  ): Promise<HealthScore> {
+    // 1. Get project context with tasks, phases, team
+    // 2. Invoke Pulse agent for analysis
+    // 3. Parse agent response or generate basic analysis
+    // 4. Store HealthScore record
+    // 5. Store RiskEntry records for detected risks
+    // 6. Send notifications for WARNING/CRITICAL risks
+    // 7. Update project.healthScore and project.lastHealthCheck
+    // 8. Return health score
+  }
+
+  private detectRisks(project: any): RiskEntry[] {
+    // Detect 4 risk types:
+    // 1. Deadline warning (tasks due in 48h)
+    // 2. Blocker chains (3+ tasks blocked by same dependency)
+    // 3. Capacity overload (team member >40h assigned)
+    // 4. Velocity drop (30% below baseline)
+  }
+
+  private parseHealthScore(agentResponse: any, project: any): HealthScore {
+    // Calculate health factors:
+    // - onTimeDelivery: % tasks completed by due date
+    // - blockerImpact: severity of blocking issues
+    // - teamCapacity: utilization health
+    // - velocityTrend: current vs 4-week baseline
+
+    // Calculate overall score (0-100)
+    // Determine level (excellent/good/warning/critical)
+    // Determine trend (improving/stable/declining)
+  }
+}
+        ]]>
+      </service-pattern>
+    </backend-service-pattern>
+
+    <cron-job-pattern>
+      <name>NestJS Scheduled Tasks</name>
+      <location>apps/api/src/pm/agents/</location>
+
+      <cron-pattern>
+        <![CDATA[
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { PrismaService } from '@/common/services/prisma.service';
+import { HealthService } from './health.service';
+
+@Injectable()
+export class HealthCheckCron {
+  private readonly logger = new Logger(HealthCheckCron.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private healthService: HealthService,
+  ) {}
+
+  @Cron(CronExpression.EVERY_15_MINUTES)
+  async runHealthChecks() {
+    this.logger.log('Starting scheduled health checks');
+
+    try {
+      // Get all active projects
+      const activeProjects = await this.prisma.project.findMany({
+        where: {
+          status: 'ACTIVE',
+          deletedAt: null,
+        },
+        include: {
+          workspace: true,
+        },
+      });
+
+      this.logger.log(`Found ${activeProjects.length} active projects`);
+
+      // Run health check for each project
+      for (const project of activeProjects) {
+        try {
+          await this.healthService.runHealthCheck(
+            project.workspaceId,
+            project.id,
+            'system'  // System user for scheduled checks
+          );
+          this.logger.log(`Health check completed for project ${project.id}`);
+        } catch (error) {
+          this.logger.error(`Health check failed for project ${project.id}:`, error);
+        }
+      }
+
+      this.logger.log('Scheduled health checks completed');
+    } catch (error) {
+      this.logger.error('Health check cron job failed:', error);
+    }
+  }
+}
+        ]]>
+      </cron-pattern>
+
+      <registration>
+        <![CDATA[
+// In apps/api/src/pm/agents/agents.module.ts
+import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
+import { HealthCheckCron } from './health.cron';
+import { HealthService } from './health.service';
+
+@Module({
+  imports: [ScheduleModule.forRoot()],
+  providers: [
+    HealthService,
+    HealthCheckCron,  // Register cron job
+    // ... other providers
+  ],
+})
+export class AgentsModule {}
+        ]]>
+      </registration>
+    </cron-job-pattern>
+  </architecture-patterns>
+
+  <!-- ========================================
+       DATABASE SCHEMA CONTEXT
+       ======================================== -->
+  <database-schema>
+    <existing-models>
+      <model name="Project">
+        <location>packages/db/prisma/schema.prisma (lines 981-1041)</location>
+        <key-fields>
+          - id: String (cuid)
+          - workspaceId: String
+          - businessId: String
+          - status: ProjectStatus (ACTIVE, COMPLETED, etc.)
+          - phases: Phase[]
+          - tasks: Task[]
+          - team: ProjectTeamMember[]
+        </key-fields>
+        <note>Will extend with healthScore and lastHealthCheck fields</note>
+      </model>
+
+      <model name="Phase">
+        <location>packages/db/prisma/schema.prisma (lines 1063-1098)</location>
+        <key-fields>
+          - id: String (cuid)
+          - projectId: String
+          - status: PhaseStatus (UPCOMING, CURRENT, COMPLETED, CANCELLED)
+          - totalTasks: Int (denormalized)
+          - completedTasks: Int (denormalized)
+        </key-fields>
+        <extensions-from-pm-05-1>
+          - healthScore: Int? (added in PM-05.1)
+          - lastHealthCheck: DateTime? (added in PM-05.1)
+          - checkpointDate: DateTime? (added in PM-05.1)
+        </extensions-from-pm-05-1>
+      </model>
+
+      <model name="Task">
+        <location>packages/db/prisma/schema.prisma (lines 1101-1172)</location>
+        <key-fields>
+          - id: String (cuid)
+          - projectId: String
+          - phaseId: String?
+          - status: TaskStatus (BACKLOG, TODO, IN_PROGRESS, REVIEW, AWAITING_APPROVAL, DONE, CANCELLED, BLOCKED)
+          - priority: TaskPriority
+          - assigneeId: String?
+          - estimatedHours: Float?
+          - dueDate: DateTime?
+          - completedAt: DateTime?
+          - blockedBy: Task[] (relation for blocking dependencies)
+        </key-fields>
+      </model>
+    </existing-models>
+
+    <new-models-required>
+      <model name="RiskEntry">
+        <purpose>Store detected project risks and alerts</purpose>
+        <schema>
+          <![CDATA[
+/// RiskEntry - Detected project risks and alerts
+model RiskEntry {
+  id            String   @id @default(cuid())
+  workspaceId   String   @map("workspace_id")
+  projectId     String   @map("project_id")
+
+  // Risk details
+  type          RiskType
+  severity      RiskSeverity
+  title         String
+  description   String   @db.Text
+
+  // Affected entities
+  affectedTasks String[] @map("affected_tasks")  // Array of task IDs
+  affectedUsers String[] @map("affected_users")  // Array of user IDs
+
+  // Status
+  status        RiskStatus @default(ACTIVE)
+  detectedAt    DateTime @default(now()) @map("detected_at")
+  resolvedAt    DateTime? @map("resolved_at")
+  acknowledgedBy String? @map("acknowledged_by")
+  acknowledgedAt DateTime? @map("acknowledged_at")
+
+  // Timestamps
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([workspaceId, projectId])
+  @@index([status, severity])
+  @@index([detectedAt])
+  @@map("risk_entries")
+}
+          ]]>
+        </schema>
+      </model>
+
+      <model name="HealthScore">
+        <purpose>Store project health calculations with factor breakdown</purpose>
+        <schema>
+          <![CDATA[
+/// HealthScore - Project health calculations
+model HealthScore {
+  id            String   @id @default(cuid())
+  workspaceId   String   @map("workspace_id")
+  projectId     String   @map("project_id")
+
+  // Score
+  score         Int      // 0-100
+  level         HealthLevel
+  trend         HealthTrend
+
+  // Factor breakdown
+  onTimeDelivery   Float  @map("on_time_delivery")    // 0-1
+  blockerImpact    Float  @map("blocker_impact")      // 0-1
+  teamCapacity     Float  @map("team_capacity")       // 0-1
+  velocityTrend    Float  @map("velocity_trend")      // 0-1
+
+  // Metadata
+  riskCount     Int      @map("risk_count")
+  explanation   String   @db.Text
+
+  // Timestamps
+  calculatedAt  DateTime @default(now()) @map("calculated_at")
+
+  @@index([workspaceId, projectId, calculatedAt])
+  @@map("health_scores")
+}
+          ]]>
+        </schema>
+      </model>
+
+      <enums>
+        <![CDATA[
+// Risk Type Enum
+enum RiskType {
+  DEADLINE_WARNING      // Task due in 48h
+  BLOCKER_CHAIN         // Multiple tasks blocked by same dependency
+  CAPACITY_OVERLOAD     // Team member >40h assigned this week
+  VELOCITY_DROP         // 30% below 4-week baseline
+  SCOPE_CREEP           // Scope increased significantly (future use)
+}
+
+// Risk Severity Enum
+enum RiskSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+// Risk Status Enum
+enum RiskStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+  DISMISSED
+}
+
+// Health Level Enum
+enum HealthLevel {
+  EXCELLENT  // 85-100
+  GOOD       // 70-84
+  WARNING    // 50-69
+  CRITICAL   // 0-49
+}
+
+// Health Trend Enum
+enum HealthTrend {
+  IMPROVING
+  STABLE
+  DECLINING
+}
+        ]]>
+      </enums>
+
+      <model-extensions>
+        <extend model="Project">
+          <![CDATA[
+// Add to Project model:
+healthScore     Int?     @map("health_score")  // Latest health score
+lastHealthCheck DateTime? @map("last_health_check")
+          ]]>
+        </extend>
+      </model-extensions>
+    </new-models-required>
+
+    <migration-strategy>
+      1. Create migration: pnpm prisma migrate dev --name add-health-monitoring
+      2. Migration will add:
+         - risk_entries table
+         - health_scores table
+         - RiskType, RiskSeverity, RiskStatus enums
+         - HealthLevel, HealthTrend enums
+         - Extensions to Project model (healthScore, lastHealthCheck)
+      3. No data migration needed (new feature)
+      4. Indexes created for:
+         - RiskEntry: [workspaceId, projectId], [status, severity], [detectedAt]
+         - HealthScore: [workspaceId, projectId, calculatedAt]
+    </migration-strategy>
+  </database-schema>
+
+  <!-- ========================================
+       API ENDPOINTS CONTEXT
+       ======================================== -->
+  <api-endpoints>
+    <new-endpoints-required>
+      <endpoint>
+        <method>POST</method>
+        <path>/api/pm/agents/health/:projectId/check</path>
+        <purpose>Trigger health check for project (invokes Pulse agent)</purpose>
+        <guards>AuthGuard, TenantGuard, RolesGuard</guards>
+        <roles>owner, admin, member</roles>
+        <response>
+          <![CDATA[
+{
+  score: number;  // 0-100
+  level: "excellent" | "good" | "warning" | "critical";
+  trend: "improving" | "stable" | "declining";
+  factors: {
+    onTimeDelivery: number;      // 0-1
+    blockerImpact: number;       // 0-1
+    teamCapacity: number;        // 0-1
+    velocityTrend: number;       // 0-1
+  };
+  riskCount: number;
+  explanation: string;
+  suggestions: string[];
+}
+          ]]>
+        </response>
+      </endpoint>
+
+      <endpoint>
+        <method>GET</method>
+        <path>/api/pm/agents/health/:projectId</path>
+        <purpose>Get latest health score for project</purpose>
+        <guards>AuthGuard, TenantGuard, RolesGuard</guards>
+        <roles>owner, admin, member</roles>
+        <response>HealthScore (from database)</response>
+      </endpoint>
+
+      <endpoint>
+        <method>GET</method>
+        <path>/api/pm/agents/health/:projectId/risks</path>
+        <purpose>Get active risks for project</purpose>
+        <guards>AuthGuard, TenantGuard, RolesGuard</guards>
+        <roles>owner, admin, member</roles>
+        <query-params>
+          - severity?: "info" | "warning" | "critical"
+          - status?: "active" | "acknowledged" | "resolved"
+        </query-params>
+        <response>RiskEntry[]</response>
+      </endpoint>
+
+      <endpoint>
+        <method>POST</method>
+        <path>/api/pm/agents/health/:projectId/risks/:riskId/acknowledge</path>
+        <purpose>Acknowledge risk (marks as seen by user)</purpose>
+        <guards>AuthGuard, TenantGuard, RolesGuard</guards>
+        <roles>owner, admin, member</roles>
+        <response>Updated RiskEntry</response>
+      </endpoint>
+
+      <endpoint>
+        <method>POST</method>
+        <path>/api/pm/agents/health/:projectId/risks/:riskId/resolve</path>
+        <purpose>Mark risk as resolved</purpose>
+        <guards>AuthGuard, TenantGuard, RolesGuard</guards>
+        <roles>owner, admin, member</roles>
+        <response>Updated RiskEntry</response>
+      </endpoint>
+    </new-endpoints-required>
+
+    <internal-endpoints-for-agent-tools>
+      <note>
+        The agent tools call the same endpoints above, but use AGENT_SERVICE_TOKEN
+        for authentication instead of user auth tokens. These endpoints are the same,
+        just accessed differently.
+      </note>
+    </internal-endpoints-for-agent-tools>
+  </api-endpoints>
+
+  <!-- ========================================
+       AGENT TOOLS IMPLEMENTATION
+       ======================================== -->
+  <agent-tools>
+    <tool-pattern>
+      <name>Agno Tool Definition with HTTP Client</name>
+      <location>agents/pm/tools/</location>
+
+      <example-from-scope>
+        <![CDATA[
+# From agents/pm/tools/phase_tools.py (PM-05.1)
+from agno import tool
+import httpx
+from typing import Dict
+import os
+
+API_URL = os.getenv("API_URL", "http://localhost:3000")
+AGENT_SERVICE_TOKEN = os.getenv("AGENT_SERVICE_TOKEN", "")
+
+@tool
+def analyze_phase_completion(
+    workspace_id: str,
+    phase_id: str
+) -> dict:
+    """Analyze phase for completion readiness."""
+    with httpx.Client(timeout=30.0) as client:
+        response = client.post(
+            f"{API_URL}/api/pm/phases/{phase_id}/analyze-completion",
+            headers={
+                "Authorization": f"Bearer {AGENT_SERVICE_TOKEN}",
+                "x-workspace-id": workspace_id,
+                "Content-Type": "application/json",
+            },
+        )
+        response.raise_for_status()
+        return response.json()
+        ]]>
+      </example-from-scope>
+
+      <key-conventions>
+        - Use httpx.Client for HTTP requests
+        - Set timeout=30.0 for API calls
+        - Use AGENT_SERVICE_TOKEN for authentication
+        - Pass workspace_id in x-workspace-id header
+        - Use with statement for proper cleanup
+        - Call raise_for_status() to handle errors
+        - Return parsed JSON response
+      </key-conventions>
+    </tool-pattern>
+
+    <new-tools-required>
+      <tool name="detect_risks">
+        <location>agents/pm/tools/health_tools.py (new file)</location>
+        <purpose>Detect all types of project risks</purpose>
+        <parameters>
+          - workspace_id: str
+          - project_id: str
+        </parameters>
+        <returns>
+          <![CDATA[
+{
+  "risks": [
+    {
+      "type": "deadline_warning" | "blocker_chain" | "capacity_overload" | "velocity_drop",
+      "severity": "info" | "warning" | "critical",
+      "title": str,
+      "description": str,
+      "affectedTasks": [str],
+      "affectedUsers": [str]
+    }
+  ]
+}
+          ]]>
+        </returns>
+        <endpoint>POST /api/pm/agents/health/:projectId/detect-risks</endpoint>
+      </tool>
+
+      <tool name="calculate_health_score">
+        <location>agents/pm/tools/health_tools.py (new file)</location>
+        <purpose>Calculate project health score (0-100)</purpose>
+        <parameters>
+          - workspace_id: str
+          - project_id: str
+        </parameters>
+        <returns>
+          <![CDATA[
+{
+  "score": int (0-100),
+  "level": "excellent" | "good" | "warning" | "critical",
+  "trend": "improving" | "stable" | "declining",
+  "factors": {
+    "onTimeDelivery": float (0-1),
+    "blockerImpact": float (0-1),
+    "teamCapacity": float (0-1),
+    "velocityTrend": float (0-1)
+  },
+  "explanation": str,
+  "suggestions": [str]
+}
+          ]]>
+        </returns>
+        <endpoint>POST /api/pm/agents/health/:projectId/calculate-score</endpoint>
+      </tool>
+
+      <tool name="check_team_capacity">
+        <location>agents/pm/tools/health_tools.py (new file)</location>
+        <purpose>Check if any team members are overloaded (>40h assigned)</purpose>
+        <parameters>
+          - workspace_id: str
+          - project_id: str
+        </parameters>
+        <returns>
+          <![CDATA[
+{
+  "overloadedMembers": [
+    {
+      "userId": str,
+      "userName": str,
+      "assignedHours": float,
+      "threshold": 40,
+      "overloadPercent": float
+    }
+  ],
+  "teamHealth": "healthy" | "at_capacity" | "overloaded"
+}
+          ]]>
+        </returns>
+        <endpoint>GET /api/pm/agents/health/:projectId/team-capacity</endpoint>
+      </tool>
+
+      <tool name="analyze_velocity">
+        <location>agents/pm/tools/health_tools.py (new file)</location>
+        <purpose>Analyze project velocity vs 4-week baseline</purpose>
+        <parameters>
+          - workspace_id: str
+          - project_id: str
+        </parameters>
+        <returns>
+          <![CDATA[
+{
+  "currentVelocity": float,
+  "baselineVelocity": float,
+  "changePercent": float,
+  "trend": "up" | "stable" | "down",
+  "alert": bool  // true if >30% drop
+}
+          ]]>
+        </returns>
+        <endpoint>GET /api/pm/agents/health/:projectId/velocity</endpoint>
+      </tool>
+
+      <tool name="detect_blocker_chains">
+        <location>agents/pm/tools/health_tools.py (new file)</location>
+        <purpose>Detect blocker chains (3+ tasks blocked by same dependency)</purpose>
+        <parameters>
+          - workspace_id: str
+          - project_id: str
+        </parameters>
+        <returns>
+          <![CDATA[
+{
+  "chains": [
+    {
+      "blockerId": str,
+      "blockerTitle": str,
+      "blockedTasks": [
+        {
+          "id": str,
+          "title": str,
+          "assignee": str
+        }
+      ],
+      "severity": "warning" | "critical"
+    }
+  ]
+}
+          ]]>
+        </returns>
+        <endpoint>GET /api/pm/agents/health/:projectId/blocker-chains</endpoint>
+      </tool>
+
+      <tool name="get_overdue_tasks">
+        <location>agents/pm/tools/health_tools.py (new file)</location>
+        <purpose>Get tasks that are overdue or due within 48 hours</purpose>
+        <parameters>
+          - workspace_id: str
+          - project_id: str
+        </parameters>
+        <returns>
+          <![CDATA[
+{
+  "overdue": [
+    {
+      "id": str,
+      "title": str,
+      "dueDate": str,
+      "daysOverdue": int,
+      "assignee": str
+    }
+  ],
+  "dueSoon": [
+    {
+      "id": str,
+      "title": str,
+      "dueDate": str,
+      "hoursRemaining": float,
+      "assignee": str
+    }
+  ]
+}
+          ]]>
+        </returns>
+        <endpoint>GET /api/pm/agents/health/:projectId/overdue-tasks</endpoint>
+      </tool>
+    </new-tools-required>
+
+    <tool-implementation-notes>
+      <note priority="high">
+        <title>Error Handling</title>
+        <description>
+          All tools MUST handle HTTP errors gracefully. Use try/except blocks
+          to catch httpx.HTTPStatusError and return error objects instead of
+          raising exceptions. This allows Pulse to continue functioning even
+          if one tool fails.
+        </description>
+        <example>
+          <![CDATA[
+try:
+    response = client.post(...)
+    response.raise_for_status()
+    return response.json()
+except httpx.HTTPStatusError as e:
+    return {
+        "error": f"HTTP {e.response.status_code}",
+        "message": str(e),
+        "risks": []  # Return empty data
+    }
+except Exception as e:
+    return {
+        "error": "Request failed",
+        "message": str(e),
+        "risks": []
+    }
+          ]]>
+        </example>
+      </note>
+
+      <note priority="medium">
+        <title>Agent Service Token</title>
+        <description>
+          Tools must use AGENT_SERVICE_TOKEN environment variable for auth.
+          If token is not set, log a warning but don't fail immediately -
+          allow the HTTP request to fail with 401, which is more informative.
+        </description>
+        <example>
+          <![CDATA[
+AGENT_SERVICE_TOKEN = os.getenv("AGENT_SERVICE_TOKEN", "")
+
+if not AGENT_SERVICE_TOKEN:
+    import logging
+    logging.warning("AGENT_SERVICE_TOKEN not set - agent API calls may fail")
+          ]]>
+        </example>
+      </note>
+    </tool-implementation-notes>
+  </agent-tools>
+
+  <!-- ========================================
+       PULSE AGENT SPECIFICATION
+       ======================================== -->
+  <pulse-agent-spec>
+    <agent-file>agents/pm/pulse.py (new file)</agent-file>
+    <agent-role>Project Health Monitoring Specialist</agent-role>
+
+    <instructions>
+      <![CDATA[
+PULSE_INSTRUCTIONS = [
+    "You are Pulse, the project health monitoring specialist for HYVVE projects.",
+    "Continuously monitor project health and detect risks early.",
+    "Risk types to detect:",
+    "  • 48-hour deadline warning: Tasks due in next 48 hours",
+    "  • Blocker chain detected: 3+ tasks blocked by same dependency",
+    "  • Team member overloaded: >40 hours assigned this week",
+    "  • Velocity drop: 30% below 4-week baseline",
+    "Health score calculation (0-100):",
+    "  • 85-100: Excellent (green)",
+    "  • 70-84: Good (blue)",
+    "  • 50-69: Warning (yellow)",
+    "  • 0-49: Critical (red)",
+    "Factors: on-time delivery, blocker count, team capacity, velocity trend.",
+    "Send alerts for WARNING and CRITICAL levels.",
+    "Provide clear explanations of health factors and improvement suggestions.",
+]
+      ]]>
+    </instructions>
+
+    <tools-list>
+      - detect_risks
+      - calculate_health_score
+      - check_team_capacity
+      - analyze_velocity
+      - detect_blocker_chains
+      - get_overdue_tasks
+    </tools-list>
+
+    <agent-creation-function>
+      <![CDATA[
+def create_pulse_agent(
+    workspace_id: str,
+    project_id: str,
+    shared_memory: Memory,
+    model: Optional[str] = None,
+) -> Agent:
+    """Create Pulse agent for project health monitoring."""
+
+    return Agent(
+        name="Pulse",
+        role="Project Health Monitoring Specialist",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=PULSE_INSTRUCTIONS + [
+            f"Workspace ID: {workspace_id}",
+            f"Project ID: {project_id}",
+        ],
+        tools=[
+            health_tools.detect_risks,
+            health_tools.calculate_health_score,
+            health_tools.check_team_capacity,
+            health_tools.analyze_velocity,
+            health_tools.detect_blocker_chains,
+            health_tools.get_overdue_tasks,
+        ],
+        memory=shared_memory,
+        add_datetime_to_instructions=True,
+        markdown=True,
+    )
+      ]]>
+    </agent-creation-function>
+  </pulse-agent-spec>
+
+  <!-- ========================================
+       HEALTH SCORE CALCULATION LOGIC
+       ======================================== -->
+  <health-score-calculation>
+    <factors>
+      <factor name="onTimeDelivery">
+        <weight>30%</weight>
+        <calculation>
+          <![CDATA[
+// Calculate % of tasks completed by due date
+const totalTasksWithDeadlines = tasks.filter(t => t.dueDate).length;
+const onTimeTasks = tasks.filter(t =>
+  t.dueDate &&
+  t.completedAt &&
+  new Date(t.completedAt) <= new Date(t.dueDate)
+).length;
+
+const onTimeDelivery = totalTasksWithDeadlines > 0
+  ? onTimeTasks / totalTasksWithDeadlines
+  : 1.0;  // Perfect if no deadlines set
+          ]]>
+        </calculation>
+      </factor>
+
+      <factor name="blockerImpact">
+        <weight>25%</weight>
+        <calculation>
+          <![CDATA[
+// Calculate impact of blocked tasks
+const totalTasks = tasks.length;
+const blockedTasks = tasks.filter(t => t.status === 'BLOCKED').length;
+
+const blockerImpact = totalTasks > 0
+  ? Math.max(0, 1 - (blockedTasks / totalTasks))
+  : 1.0;  // Perfect if no tasks or no blockers
+          ]]>
+        </calculation>
+      </factor>
+
+      <factor name="teamCapacity">
+        <weight>25%</weight>
+        <calculation>
+          <![CDATA[
+// Calculate team capacity health
+// Ideal: 32-40h per person (80-100% utilization)
+// Warning: >40h (overloaded)
+// Poor: <20h (underutilized, might indicate blocked work)
+
+const teamWorkload = new Map<string, number>();
+tasks.forEach(task => {
+  if (task.assigneeId && task.estimatedHours && task.status !== 'DONE') {
+    const current = teamWorkload.get(task.assigneeId) || 0;
+    teamWorkload.set(task.assigneeId, current + task.estimatedHours);
+  }
+});
+
+const capacityScores = Array.from(teamWorkload.values()).map(hours => {
+  if (hours >= 32 && hours <= 40) return 1.0;  // Ideal
+  if (hours > 40) return Math.max(0, 1 - ((hours - 40) / 40));  // Overload penalty
+  if (hours < 32) return hours / 32;  // Underutilization
+  return 0.8;
+});
+
+const teamCapacity = capacityScores.length > 0
+  ? capacityScores.reduce((a, b) => a + b) / capacityScores.length
+  : 0.8;  // Default assumption if no data
+          ]]>
+        </calculation>
+      </factor>
+
+      <factor name="velocityTrend">
+        <weight>20%</weight>
+        <calculation>
+          <![CDATA[
+// Compare current velocity to 4-week baseline
+// Requires PhaseSnapshot data (from PM-05.7)
+// For PM-05.4, use simplified calculation based on completion rate
+
+const completedTasksLast7Days = tasks.filter(t =>
+  t.completedAt &&
+  (new Date() - new Date(t.completedAt)) <= 7 * 24 * 60 * 60 * 1000
+).length;
+
+const completedTasksLast28Days = tasks.filter(t =>
+  t.completedAt &&
+  (new Date() - new Date(t.completedAt)) <= 28 * 24 * 60 * 60 * 1000
+).length;
+
+const currentVelocity = completedTasksLast7Days;
+const baselineVelocity = completedTasksLast28Days / 4;  // Average per week
+
+const velocityTrend = baselineVelocity > 0
+  ? Math.min(1.0, currentVelocity / baselineVelocity)
+  : (completedTasksLast7Days > 0 ? 0.75 : 0.5);
+          ]]>
+        </calculation>
+      </factor>
+    </factors>
+
+    <overall-score>
+      <![CDATA[
+// Combine factors into overall score (0-100)
+const score = Math.round(
+  (onTimeDelivery * 30) +      // 30% weight
+  (blockerImpact * 25) +        // 25% weight
+  (teamCapacity * 25) +         // 25% weight
+  (velocityTrend * 20)          // 20% weight
+) * 100;  // Scale to 0-100
+
+// Determine level
+const level = score >= 85 ? 'EXCELLENT' :
+              score >= 70 ? 'GOOD' :
+              score >= 50 ? 'WARNING' :
+              'CRITICAL';
+
+// Determine trend (simplified - compare to previous score if available)
+const previousScore = await prisma.healthScore.findFirst({
+  where: { projectId },
+  orderBy: { calculatedAt: 'desc' }
+});
+
+const trend = previousScore
+  ? (score > previousScore.score + 5 ? 'IMPROVING' :
+     score < previousScore.score - 5 ? 'DECLINING' :
+     'STABLE')
+  : 'STABLE';
+      ]]>
+    </overall-score>
+
+    <explanation-generation>
+      <![CDATA[
+// Generate human-readable explanation
+const explanation = `Project health score is ${score}/100 (${level}). ` +
+  `${onTimeDelivery < 0.8 ? 'On-time delivery needs improvement. ' : ''}` +
+  `${blockerImpact < 0.8 ? 'Too many blocked tasks. ' : ''}` +
+  `${teamCapacity < 0.7 ? 'Team capacity is strained. ' : ''}` +
+  `${velocityTrend < 0.6 ? 'Velocity has dropped. ' : ''}`;
+
+// Generate suggestions
+const suggestions: string[] = [];
+if (onTimeDelivery < 0.8) {
+  suggestions.push('Review overdue tasks and adjust deadlines or priorities');
+}
+if (blockerImpact < 0.8) {
+  suggestions.push('Address blocking issues to unblock dependent tasks');
+}
+if (teamCapacity < 0.7) {
+  suggestions.push('Redistribute work to balance team capacity');
+}
+if (velocityTrend < 0.6) {
+  suggestions.push('Investigate velocity drop - consider team capacity or scope changes');
+}
+      ]]>
+    </explanation-generation>
+  </health-score-calculation>
+
+  <!-- ========================================
+       RISK DETECTION ALGORITHMS
+       ======================================== -->
+  <risk-detection-algorithms>
+    <risk type="DEADLINE_WARNING">
+      <description>Tasks due within next 48 hours</description>
+      <severity-rules>
+        - CRITICAL: 5+ tasks due in 48h
+        - WARNING: 1-4 tasks due in 48h
+      </severity-rules>
+      <detection-logic>
+        <![CDATA[
+const now = new Date();
+const in48Hours = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+
+const dueSoon = tasks.filter(t =>
+  t.dueDate &&
+  new Date(t.dueDate) <= in48Hours &&
+  new Date(t.dueDate) >= now &&
+  t.status !== 'DONE'
+);
+
+if (dueSoon.length > 0) {
+  risks.push({
+    type: 'DEADLINE_WARNING',
+    severity: dueSoon.length > 5 ? 'CRITICAL' : 'WARNING',
+    title: `${dueSoon.length} task${dueSoon.length > 1 ? 's' : ''} due within 48 hours`,
+    description: `Tasks: ${dueSoon.map(t => t.title).join(', ')}`,
+    affectedTasks: dueSoon.map(t => t.id),
+    affectedUsers: [...new Set(dueSoon.map(t => t.assigneeId).filter(Boolean))],
+  });
+}
+        ]]>
+      </detection-logic>
+    </risk>
+
+    <risk type="BLOCKER_CHAIN">
+      <description>3+ tasks blocked by same dependency</description>
+      <severity-rules>
+        - CRITICAL: 5+ tasks in chain
+        - WARNING: 3-4 tasks in chain
+      </severity-rules>
+      <detection-logic>
+        <![CDATA[
+const blockerChains = new Map<string, Task[]>();
+
+tasks.forEach(task => {
+  if (task.blockedBy && task.blockedBy.length > 0) {
+    task.blockedBy.forEach(blocker => {
+      if (!blockerChains.has(blocker.id)) {
+        blockerChains.set(blocker.id, []);
+      }
+      blockerChains.get(blocker.id).push(task);
+    });
+  }
+});
+
+blockerChains.forEach((blockedTasks, blockerId) => {
+  if (blockedTasks.length >= 3) {
+    const blocker = tasks.find(t => t.id === blockerId);
+    risks.push({
+      type: 'BLOCKER_CHAIN',
+      severity: blockedTasks.length >= 5 ? 'CRITICAL' : 'WARNING',
+      title: `${blockedTasks.length} tasks blocked by "${blocker?.title || 'Unknown'}"`,
+      description: `Blocked tasks: ${blockedTasks.map(t => t.title).join(', ')}`,
+      affectedTasks: blockedTasks.map(t => t.id),
+      affectedUsers: [...new Set(blockedTasks.map(t => t.assigneeId).filter(Boolean))],
+    });
+  }
+});
+        ]]>
+      </detection-logic>
+    </risk>
+
+    <risk type="CAPACITY_OVERLOAD">
+      <description>Team member assigned >40h this week</description>
+      <severity-rules>
+        - CRITICAL: >60h assigned
+        - WARNING: 40-60h assigned
+      </severity-rules>
+      <detection-logic>
+        <![CDATA[
+const teamWorkload = new Map<string, number>();
+
+tasks.forEach(task => {
+  if (task.assigneeId && task.estimatedHours && task.status !== 'DONE') {
+    const current = teamWorkload.get(task.assigneeId) || 0;
+    teamWorkload.set(task.assigneeId, current + task.estimatedHours);
+  }
+});
+
+teamWorkload.forEach((hours, userId) => {
+  if (hours > 40) {
+    const user = projectTeam.find(m => m.userId === userId)?.user;
+    risks.push({
+      type: 'CAPACITY_OVERLOAD',
+      severity: hours > 60 ? 'CRITICAL' : 'WARNING',
+      title: `${user?.name || 'Team member'} overloaded with ${hours}h assigned`,
+      description: `Assigned work exceeds healthy capacity (40h/week threshold)`,
+      affectedTasks: tasks.filter(t => t.assigneeId === userId).map(t => t.id),
+      affectedUsers: [userId],
+    });
+  }
+});
+        ]]>
+      </detection-logic>
+    </risk>
+
+    <risk type="VELOCITY_DROP">
+      <description>Velocity 30% below 4-week baseline</description>
+      <severity-rules>
+        - CRITICAL: >50% drop
+        - WARNING: 30-50% drop
+      </severity-rules>
+      <detection-logic>
+        <![CDATA[
+const completedTasksLast7Days = tasks.filter(t =>
+  t.completedAt &&
+  (new Date() - new Date(t.completedAt)) <= 7 * 24 * 60 * 60 * 1000
+).length;
+
+const completedTasksLast28Days = tasks.filter(t =>
+  t.completedAt &&
+  (new Date() - new Date(t.completedAt)) <= 28 * 24 * 60 * 60 * 1000
+).length;
+
+const currentVelocity = completedTasksLast7Days;
+const baselineVelocity = completedTasksLast28Days / 4;
+
+if (baselineVelocity > 0) {
+  const dropPercent = ((baselineVelocity - currentVelocity) / baselineVelocity) * 100;
+
+  if (dropPercent >= 30) {
+    risks.push({
+      type: 'VELOCITY_DROP',
+      severity: dropPercent >= 50 ? 'CRITICAL' : 'WARNING',
+      title: `Velocity dropped ${dropPercent.toFixed(0)}% below baseline`,
+      description: `Current: ${currentVelocity} tasks/week, Baseline: ${baselineVelocity.toFixed(1)} tasks/week`,
+      affectedTasks: [],
+      affectedUsers: [],
+    });
+  }
+}
+        ]]>
+      </detection-logic>
+    </risk>
+  </risk-detection-algorithms>
+
+  <!-- ========================================
+       IMPLEMENTATION TASKS
+       ======================================== -->
+  <implementation-tasks>
+    <task category="database">
+      <name>Add health monitoring models to Prisma schema</name>
+      <file>packages/db/prisma/schema.prisma</file>
+      <steps>
+        1. Add RiskEntry model with all fields and indexes
+        2. Add HealthScore model with all fields and indexes
+        3. Add enums: RiskType, RiskSeverity, RiskStatus, HealthLevel, HealthTrend
+        4. Extend Project model with healthScore and lastHealthCheck fields
+        5. Verify all relations and indexes are correct
+      </steps>
+    </task>
+
+    <task category="database">
+      <name>Create database migration</name>
+      <command>pnpm prisma migrate dev --name add-health-monitoring</command>
+      <verification>
+        - Check migration file created in packages/db/prisma/migrations/
+        - Verify schema.prisma changes reflected in generated client
+        - Test migration rollback and reapply
+      </verification>
+    </task>
+
+    <task category="agent">
+      <name>Create Pulse agent</name>
+      <file>agents/pm/pulse.py (new file)</file>
+      <dependencies>
+        - agents/pm/tools/health_tools.py (tools)
+        - Follows pattern from navi.py, sage.py, chrono.py, scope.py
+      </dependencies>
+      <key-instructions>
+        See pulse-agent-spec section above for full instructions
+      </key-instructions>
+    </task>
+
+    <task category="agent">
+      <name>Create health tools</name>
+      <file>agents/pm/tools/health_tools.py (new file)</file>
+      <tools>
+        - detect_risks(workspace_id, project_id)
+        - calculate_health_score(workspace_id, project_id)
+        - check_team_capacity(workspace_id, project_id)
+        - analyze_velocity(workspace_id, project_id)
+        - detect_blocker_chains(workspace_id, project_id)
+        - get_overdue_tasks(workspace_id, project_id)
+      </tools>
+      <patterns>
+        - Use httpx.Client with timeout=30.0
+        - Use AGENT_SERVICE_TOKEN for auth
+        - Handle errors gracefully (return error objects, don't raise)
+        - Pass workspace_id in x-workspace-id header
+      </patterns>
+    </task>
+
+    <task category="agent">
+      <name>Update PM team to include Pulse</name>
+      <file>agents/pm/team.py</file>
+      <changes>
+        <![CDATA[
+# Add import
+from .pulse import create_pulse_agent
+
+# In create_pm_team():
+pulse = create_pulse_agent(
+    workspace_id=workspace_id,
+    project_id=project_id,
+    shared_memory=shared_memory,
+    model=model,
+)
+
+# Update team members
+members=[sage, chrono, scope, pulse],  # Added Pulse
+
+# Update team instructions
+instructions=[
+    "You are the PM Team for HYVVE's Core-PM module.",
+    "Your goal is to help users manage their projects effectively.",
+    "Always suggest actions, never auto-execute (suggestion_mode: True).",
+    "Use Knowledge Base search for context when appropriate (kb_rag_enabled: True).",
+    "Scope handles phase management, transitions, and checkpoint tracking.",
+    "Pulse monitors project health and detects risks proactively.",
+],
+        ]]>
+      </changes>
+    </task>
+
+    <task category="backend">
+      <name>Create HealthService</name>
+      <file>apps/api/src/pm/agents/health.service.ts (new file)</file>
+      <methods>
+        - runHealthCheck(workspaceId, projectId, userId): Promise&lt;HealthScore&gt;
+        - getLatestHealthScore(workspaceId, projectId): Promise&lt;HealthScore | null&gt;
+        - getActiveRisks(workspaceId, projectId, filters?): Promise&lt;RiskEntry[]&gt;
+        - acknowledgeRisk(workspaceId, riskId, userId): Promise&lt;RiskEntry&gt;
+        - resolveRisk(workspaceId, riskId, userId): Promise&lt;RiskEntry&gt;
+        - detectRisks(project): RiskEntry[] [private helper]
+        - parseHealthScore(agentResponse, project): HealthScore [private helper]
+        - sendHealthAlerts(workspaceId, projectId, healthScore, risks): Promise&lt;void&gt; [private helper]
+      </methods>
+      <dependencies>
+        - PrismaService
+        - AgentOSService
+        - NotificationService (for alerts)
+      </dependencies>
+    </task>
+
+    <task category="backend">
+      <name>Create HealthController</name>
+      <file>apps/api/src/pm/agents/health.controller.ts (new file)</file>
+      <endpoints>
+        - POST /api/pm/agents/health/:projectId/check
+        - GET /api/pm/agents/health/:projectId
+        - GET /api/pm/agents/health/:projectId/risks
+        - POST /api/pm/agents/health/:projectId/risks/:riskId/acknowledge
+        - POST /api/pm/agents/health/:projectId/risks/:riskId/resolve
+      </endpoints>
+      <guards>AuthGuard, TenantGuard, RolesGuard</guards>
+      <roles>owner, admin, member</roles>
+    </task>
+
+    <task category="backend">
+      <name>Create HealthCheckCron</name>
+      <file>apps/api/src/pm/agents/health.cron.ts (new file)</file>
+      <schedule>Every 15 minutes (@Cron(CronExpression.EVERY_15_MINUTES))</schedule>
+      <responsibilities>
+        - Get all active projects
+        - Run health check for each project
+        - Log success/errors
+        - Continue on individual failures (don't stop cron)
+      </responsibilities>
+    </task>
+
+    <task category="backend">
+      <name>Register HealthCheckCron in AgentsModule</name>
+      <file>apps/api/src/pm/agents/agents.module.ts</file>
+      <changes>
+        <![CDATA[
+import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
+import { HealthService } from './health.service';
+import { HealthController } from './health.controller';
+import { HealthCheckCron } from './health.cron';
+
+@Module({
+  imports: [
+    ScheduleModule.forRoot(),  // Required for cron jobs
+    // ... other imports
+  ],
+  controllers: [
+    // ... other controllers
+    HealthController,
+  ],
+  providers: [
+    // ... other providers
+    HealthService,
+    HealthCheckCron,  // Register cron job
+  ],
+})
+export class AgentsModule {}
+        ]]>
+      </changes>
+    </task>
+
+    <task category="backend">
+      <name>Add internal health API endpoints for agent tools</name>
+      <file>apps/api/src/pm/agents/health.controller.ts</file>
+      <note>
+        These are the same endpoints as above, but accessed by agent tools
+        using AGENT_SERVICE_TOKEN instead of user auth. No separate endpoints
+        needed - just ensure AGENT_SERVICE_TOKEN is validated in guards.
+      </note>
+      <additional-endpoints>
+        - POST /api/pm/agents/health/:projectId/detect-risks
+        - POST /api/pm/agents/health/:projectId/calculate-score
+        - GET /api/pm/agents/health/:projectId/team-capacity
+        - GET /api/pm/agents/health/:projectId/velocity
+        - GET /api/pm/agents/health/:projectId/blocker-chains
+        - GET /api/pm/agents/health/:projectId/overdue-tasks
+      </additional-endpoints>
+    </task>
+
+    <task category="testing">
+      <name>Unit tests - HealthService</name>
+      <file>apps/api/src/pm/agents/health.service.spec.ts (new file)</file>
+      <test-cases>
+        - runHealthCheck calculates health score correctly
+        - detectRisks identifies all risk types
+        - Risk severity assigned correctly (info/warning/critical)
+        - Workspace scoping enforced on all health queries
+        - Notifications sent only for WARNING/CRITICAL risks
+        - parseHealthScore handles missing data gracefully
+        - sendHealthAlerts notifies all team members
+      </test-cases>
+    </task>
+
+    <task category="testing">
+      <name>Unit tests - Pulse agent</name>
+      <file>agents/pm/tests/test_pulse.py (new file)</file>
+      <test-cases>
+        - Pulse responds to health check request
+        - detect_risks tool calls API and returns risks
+        - calculate_health_score tool returns valid score (0-100)
+        - check_team_capacity identifies overloaded members (>40h)
+        - analyze_velocity detects velocity drops (>30% below baseline)
+        - detect_blocker_chains finds chains of 3+ tasks
+        - get_overdue_tasks returns overdue and due-soon tasks
+        - All tools handle HTTP errors gracefully
+      </test-cases>
+    </task>
+
+    <task category="testing">
+      <name>Integration tests - API endpoints</name>
+      <file>apps/api/test/pm/agents/health.e2e-spec.ts (new file)</file>
+      <test-cases>
+        - POST /api/pm/agents/health/:id/check invokes Pulse and returns health score
+        - GET /api/pm/agents/health/:id returns latest health score
+        - GET /api/pm/agents/health/:id/risks returns active risks filtered by severity
+        - POST /api/pm/agents/health/:id/risks/:riskId/acknowledge updates risk status
+        - POST /api/pm/agents/health/:id/risks/:riskId/resolve marks risk as resolved
+        - Health checks create HealthScore and RiskEntry records
+        - Workspace isolation enforced on all endpoints
+        - AGENT_SERVICE_TOKEN authentication works for agent tools
+      </test-cases>
+    </task>
+
+    <task category="testing">
+      <name>Integration tests - Cron job</name>
+      <file>apps/api/test/pm/agents/health.cron.spec.ts (new file)</file>
+      <test-cases>
+        - Health check cron runs every 15 minutes
+        - All active projects are checked
+        - Errors logged but don't crash cron job
+        - System user used for scheduled checks
+        - Cron respects workspace isolation
+      </test-cases>
+    </task>
+  </implementation-tasks>
+
+  <!-- ========================================
+       KEY FILES TO CREATE/MODIFY
+       ======================================== -->
+  <file-changes>
+    <new-files>
+      <file>agents/pm/pulse.py</file>
+      <file>agents/pm/tools/health_tools.py</file>
+      <file>apps/api/src/pm/agents/health.service.ts</file>
+      <file>apps/api/src/pm/agents/health.controller.ts</file>
+      <file>apps/api/src/pm/agents/health.cron.ts</file>
+      <file>apps/api/src/pm/agents/health.service.spec.ts</file>
+      <file>agents/pm/tests/test_pulse.py</file>
+      <file>apps/api/test/pm/agents/health.e2e-spec.ts</file>
+      <file>apps/api/test/pm/agents/health.cron.spec.ts</file>
+    </new-files>
+
+    <modified-files>
+      <file>packages/db/prisma/schema.prisma</file>
+      <file>agents/pm/team.py</file>
+      <file>apps/api/src/pm/agents/agents.module.ts</file>
+    </modified-files>
+  </file-changes>
+
+  <!-- ========================================
+       INTEGRATION POINTS
+       ======================================== -->
+  <integration-points>
+    <integration name="Navi Delegation">
+      <description>
+        When user asks about project health, Navi recognizes this as a health
+        monitoring question and delegates to Pulse.
+      </description>
+      <flow>
+        User: "How is the project health?"
+        → Navi recognizes health query
+        → Navi delegates to Pulse
+        → Pulse invokes calculate_health_score tool
+        → Pulse analyzes and returns health summary
+        → Navi presents summary to user with health score widget
+      </flow>
+    </integration>
+
+    <integration name="AgentOS Service">
+      <description>
+        HealthService uses AgentOSService to invoke Pulse agent, following the
+        same pattern as EstimationService (Sage), TimeTrackingService (Chrono),
+        and PhaseService (Scope).
+      </description>
+      <service-location>apps/api/src/agentos/agentos.service.ts</service-location>
+      <method>invokeAgent({ workspaceId, sessionId, userId, agentName, projectId, message })</method>
+    </integration>
+
+    <integration name="Notification Service">
+      <description>
+        HealthService sends notifications for WARNING/CRITICAL risks using
+        NotificationService. Notifications are sent to all project team members.
+      </description>
+      <notification-types>
+        - health_alert: Project health score update
+        - risk_detected: New risk detected
+        - risk_resolved: Risk has been resolved
+      </notification-types>
+    </integration>
+
+    <integration name="Cron Scheduler">
+      <description>
+        HealthCheckCron runs every 15 minutes using @nestjs/schedule.
+        Requires ScheduleModule.forRoot() in module imports.
+      </description>
+      <schedule>Every 15 minutes (CronExpression.EVERY_15_MINUTES)</schedule>
+      <responsibility>Automated background health monitoring</responsibility>
+    </integration>
+
+    <integration name="Workspace Scoping">
+      <description>
+        All queries must enforce workspace isolation. HealthService must verify
+        that projectId belongs to workspaceId before processing.
+      </description>
+      <pattern>
+        <![CDATA[
+const project = await this.prisma.project.findUnique({
+  where: { id: projectId },
+});
+
+if (!project || project.workspaceId !== workspaceId) {
+  throw new ForbiddenException('Project not in workspace');
+}
+        ]]>
+      </pattern>
+    </integration>
+  </integration-points>
+
+  <!-- ========================================
+       REFERENCE DOCUMENTATION
+       ======================================== -->
+  <references>
+    <doc type="story">
+      <path>docs/modules/bm-pm/stories/pm-05-4-pulse-health-agent.md</path>
+      <description>Full story specification with technical notes</description>
+    </doc>
+
+    <doc type="epic-tech-spec">
+      <path>docs/modules/bm-pm/epics/epic-pm-05-tech-spec.md</path>
+      <description>Technical specification for Epic PM-05 (Scope, Pulse, Herald agents)</description>
+    </doc>
+
+    <doc type="architecture">
+      <path>docs/modules/bm-pm/architecture.md</path>
+      <description>Module architecture document</description>
+    </doc>
+
+    <doc type="existing-pattern">
+      <path>agents/pm/navi.py</path>
+      <description>Example: Agent creation pattern</description>
+    </doc>
+
+    <doc type="existing-pattern">
+      <path>agents/pm/scope.py</path>
+      <description>Example: Similar agent (phase management)</description>
+    </doc>
+
+    <doc type="existing-pattern">
+      <path>agents/pm/team.py</path>
+      <description>Example: Team integration pattern</description>
+    </doc>
+
+    <doc type="existing-pattern">
+      <path>agents/pm/tools/phase_tools.py</path>
+      <description>Example: Agent tools with httpx (from PM-05.1)</description>
+    </doc>
+
+    <doc type="existing-pattern">
+      <path>apps/api/src/pm/agents/estimation.service.ts</path>
+      <description>Example: Agent service integration (Sage)</description>
+    </doc>
+
+    <doc type="existing-pattern">
+      <path>apps/api/src/pm/agents/phase.service.ts</path>
+      <description>Example: Similar service (Scope - from PM-05.1)</description>
+    </doc>
+
+    <doc type="database-schema">
+      <path>packages/db/prisma/schema.prisma</path>
+      <description>Current database schema</description>
+    </doc>
+  </references>
+
+  <!-- ========================================
+       CRITICAL NOTES
+       ======================================== -->
+  <critical-notes>
+    <note priority="high">
+      <title>Workspace Scoping</title>
+      <description>
+        All database queries MUST enforce workspace isolation. Use workspaceId
+        in WHERE clauses and verify ownership before processing operations.
+        This is critical for multi-tenant security.
+      </description>
+    </note>
+
+    <note priority="high">
+      <title>Cron Job Error Handling</title>
+      <description>
+        The health check cron job MUST NOT crash if individual project checks
+        fail. Use try/catch for each project and log errors, but continue
+        processing remaining projects. System stability depends on this.
+      </description>
+    </note>
+
+    <note priority="high">
+      <title>Notification Throttling</title>
+      <description>
+        Consider implementing notification throttling to prevent alert fatigue.
+        For example, don't send the same risk alert multiple times within 24h
+        unless severity increases. This can be a future enhancement.
+      </description>
+    </note>
+
+    <note priority="medium">
+      <title>Health Score Accuracy</title>
+      <description>
+        The health score calculation in PM-05.4 uses simplified velocity
+        calculations. Full velocity tracking with PhaseSnapshot data will be
+        available in PM-05.7 (Phase Analytics). For now, use completion rate
+        as a proxy for velocity.
+      </description>
+    </note>
+
+    <note priority="medium">
+      <title>Agent Service Token</title>
+      <description>
+        All agent tools must use AGENT_SERVICE_TOKEN environment variable for
+        authentication. This token should have elevated permissions to access
+        project data on behalf of the agent system. Ensure token is properly
+        secured and not exposed in logs.
+      </description>
+    </note>
+
+    <note priority="medium">
+      <title>Dependency on PM-05.1</title>
+      <description>
+        This story (PM-05.4) depends on PM-05.1 being complete. Specifically:
+        - Scope agent must be created and integrated
+        - agents/pm/team.py must already include Scope
+        - Phase model must have healthScore fields (added in PM-05.1)
+
+        Verify PM-05.1 is in "done" status before starting PM-05.4.
+      </description>
+    </note>
+
+    <note priority="low">
+      <title>Future Enhancement: Risk Patterns</title>
+      <description>
+        Consider tracking historical risk patterns to improve predictions.
+        For example, if a team consistently has capacity issues on Fridays,
+        Pulse could proactively warn earlier in the week. This is out of scope
+        for PM-05.4 but could be added in PM-08 (Prism Agent).
+      </description>
+    </note>
+  </critical-notes>
+
+  <!-- ========================================
+       EXAMPLE OUTPUT
+       ======================================== -->
+  <example-output>
+    <title>Health Check Response</title>
+    <format>TypeScript interface</format>
+    <content>
+      <![CDATA[
+{
+  score: 72,
+  level: "good",
+  trend: "stable",
+  factors: {
+    onTimeDelivery: 0.85,      // 85% of tasks completed on time
+    blockerImpact: 0.90,       // Only 10% of tasks blocked
+    teamCapacity: 0.75,        // Team at 75% capacity
+    velocityTrend: 0.65        // Velocity 65% of baseline (slight drop)
+  },
+  riskCount: 2,
+  explanation: "Project health score is 72/100 (GOOD). Velocity has dropped slightly.",
+  suggestions: [
+    "Investigate velocity drop - consider team capacity or scope changes"
+  ]
+}
+      ]]>
+    </content>
+
+    <example-risks>
+      <![CDATA[
+[
+  {
+    id: "risk_abc123",
+    workspaceId: "ws_789",
+    projectId: "proj_123",
+    type: "DEADLINE_WARNING",
+    severity: "WARNING",
+    title: "3 tasks due within 48 hours",
+    description: "Tasks: Complete user auth, Setup database, Write API docs",
+    affectedTasks: ["task_001", "task_002", "task_003"],
+    affectedUsers: ["user_456", "user_789"],
+    status: "ACTIVE",
+    detectedAt: "2025-12-19T10:00:00Z",
+    createdAt: "2025-12-19T10:00:00Z",
+    updatedAt: "2025-12-19T10:00:00Z"
+  },
+  {
+    id: "risk_def456",
+    workspaceId: "ws_789",
+    projectId: "proj_123",
+    type: "CAPACITY_OVERLOAD",
+    severity: "WARNING",
+    title: "John Doe overloaded with 45h assigned",
+    description: "Assigned work exceeds healthy capacity (40h/week threshold)",
+    affectedTasks: ["task_004", "task_005", "task_006", "task_007"],
+    affectedUsers: ["user_456"],
+    status: "ACTIVE",
+    detectedAt: "2025-12-19T10:00:00Z",
+    createdAt: "2025-12-19T10:00:00Z",
+    updatedAt: "2025-12-19T10:00:00Z"
+  }
+]
+      ]]>
+    </example-risks>
+
+    <usage>
+      This structured output enables:
+      - Clear visualization in UI (PM-05.5 - Health Dashboard Widget)
+      - Actionable risk alerts
+      - Historical health tracking
+      - Trend analysis over time
+      - Integration with Navi for conversational health updates
+    </usage>
+  </example-output>
+
+  <!-- ========================================
+       DEPENDENCIES
+       ======================================== -->
+  <dependencies>
+    <prerequisite story="PM-05.1">
+      <title>Scope Agent - Phase Management</title>
+      <status>done</status>
+      <reason>
+        PM-05.4 extends the PM team by adding Pulse. Requires Scope to already
+        be integrated into agents/pm/team.py. Also requires Phase model to have
+        healthScore fields (added in PM-05.1).
+      </reason>
+    </prerequisite>
+
+    <prerequisite story="PM-01.2">
+      <title>Phase CRUD API</title>
+      <status>done</status>
+      <reason>
+        Health monitoring operates on projects and phases. Requires Phase model
+        and basic CRUD operations to exist.
+      </reason>
+    </prerequisite>
+
+    <prerequisite story="PM-02.1">
+      <title>Task Data Model</title>
+      <status>done</status>
+      <reason>
+        Pulse analyzes tasks for risk detection. Requires Task model with all
+        fields (status, dueDate, assigneeId, estimatedHours, blockedBy, etc.)
+      </reason>
+    </prerequisite>
+
+    <prerequisite story="PM-04.1">
+      <title>Navi Agent Foundation</title>
+      <status>done</status>
+      <reason>
+        Pulse joins the PM agent team led by Navi. Requires PM team structure
+        and AgentOSService integration to exist.
+      </reason>
+    </prerequisite>
+
+    <blocks story="PM-05.5">
+      <title>Pulse Health Dashboard Widget</title>
+      <reason>
+        PM-05.5 builds the UI for displaying health scores and risks. Requires
+        health API endpoints and data models from PM-05.4.
+      </reason>
+    </blocks>
+
+    <blocks story="PM-05.6">
+      <title>Project Dashboard</title>
+      <reason>
+        Project dashboard includes health widget. Requires health data from PM-05.4.
+      </reason>
+    </blocks>
+
+    <optional-dependency epic="PM-06">
+      <title>Real-Time & Notifications</title>
+      <reason>
+        Health alerts can use real-time WebSocket updates from PM-06, but can
+        fall back to polling or scheduled notifications if PM-06 is not complete.
+      </reason>
+    </optional-dependency>
+  </dependencies>
+</story-context>
