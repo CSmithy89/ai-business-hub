@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger, BadRequestException } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
+import { createHash } from 'crypto'
 import { PrismaService } from '../../common/services/prisma.service'
 import { RedisProvider } from '../../events/redis.provider'
 import { PortfolioQueryDto } from './dto/portfolio-query.dto'
@@ -28,10 +29,39 @@ type PortfolioProject = {
 
 @Injectable()
 export class PortfolioService {
+  private readonly logger = new Logger(PortfolioService.name)
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly redisProvider: RedisProvider,
   ) {}
+
+  private async getPortfolioVersion(workspaceId: string): Promise<string> {
+    try {
+      const redis = this.redisProvider.getClient()
+      const versionKey = `pm:portfolio:version:${workspaceId}`
+      let version = await redis.get(versionKey)
+      if (!version) {
+        version = Date.now().toString()
+        await redis.set(versionKey, version, 'EX', 86400) // 24h
+      }
+      return version
+    } catch {
+      return 'no-cache'
+    }
+  }
+
+  async invalidateCache(workspaceId: string): Promise<void> {
+    try {
+      const redis = this.redisProvider.getClient()
+      const versionKey = `pm:portfolio:version:${workspaceId}`
+      await redis.incr(versionKey) // Incrementing a timestamp-like string works if it's numeric, or just set new timestamp
+      await redis.set(versionKey, Date.now().toString(), 'EX', 86400)
+      this.logger.log(`Invalidated portfolio cache for workspace ${workspaceId}`)
+    } catch (error) {
+      this.logger.error(`Failed to invalidate portfolio cache: ${error}`)
+    }
+  }
 
   async getPortfolio(workspaceId: string, query: PortfolioQueryDto) {
     const from =
@@ -41,13 +71,35 @@ export class PortfolioService {
     const to =
       query.to instanceof Date && !Number.isNaN(query.to.getTime()) ? query.to : undefined
 
-    const cacheKey = `pm:portfolio:${workspaceId}:${JSON.stringify({
+    if (from && to && from > to) {
+      throw new BadRequestException('From date must be before To date')
+    }
+
+    const version = await this.getPortfolioVersion(workspaceId)
+
+    const cacheObject = {
+      version, // Include version in cache key
       status: query.status ?? null,
       teamLeadId: query.teamLeadId ?? null,
       search: query.search ?? null,
       from: from ? from.toISOString() : null,
       to: to ? to.toISOString() : null,
-    })}`
+    }
+
+    // Deterministic key serialization
+    const sortedCacheObject = Object.keys(cacheObject)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = cacheObject[key as keyof typeof cacheObject]
+        return acc
+      }, {} as Record<string, any>)
+
+    const filterHash = createHash('sha256')
+      .update(JSON.stringify(sortedCacheObject))
+      .digest('hex')
+      .slice(0, 16)
+
+    const cacheKey = `pm:portfolio:${workspaceId}:${filterHash}`
 
     const cached = await this.getCachedPortfolio(cacheKey)
     if (cached) {
@@ -208,7 +260,8 @@ export class PortfolioService {
       const cached = await redis.get(cacheKey)
       if (!cached) return null
       return JSON.parse(cached) as { data: unknown }
-    } catch {
+    } catch (error) {
+      this.logger.error(`Cache get error: ${error instanceof Error ? error.message : String(error)}`)
       return null
     }
   }
@@ -217,8 +270,8 @@ export class PortfolioService {
     try {
       const redis = this.redisProvider.getClient()
       await redis.set(cacheKey, JSON.stringify(value), 'EX', PORTFOLIO_CACHE_TTL_SECONDS)
-    } catch {
-      // Best-effort cache only
+    } catch (error) {
+      this.logger.error(`Cache set error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 }

@@ -76,13 +76,53 @@ PR: https://github.com/CSmithy89/ai-business-hub/pull/35
 - [x] **CORS CSRF header** (Critical): allow `x-csrf-token` in `allowedHeaders` for NestJS CORS config.
 - [x] **CSRF endpoint rate limiting** (High): throttle `GET /csrf` to prevent unlimited token minting.
 - [x] **CSRF runbook accuracy** (High): verify cookie name and endpoint scope, and clarify header=cookie equality requirement in `docs/runbooks/README.md`.
-- [ ] **StartedAt vs startDate consistency** (High): verify Prisma schema field name and tech spec references; standardize on one field and add migration if needed.
-- [ ] **Health score formula documentation** (Low): document backend calculation in tech spec/architecture docs and align with UI thresholds.
+- [x] **StartedAt vs startDate consistency** (High): verify Prisma schema field name and tech spec references; standardize on one field and add migration if needed.
+- [x] **Health score formula documentation** (Low): document backend calculation in tech spec/architecture docs and align with UI thresholds.
 - [x] **Cross-project dependency null filtering** (Low): behavior verified and covered by `dependencies.service.spec.ts` (no action needed).
 - [x] **Portfolio date parsing guard** (Critical): ensure `query.from/to` are `Date` instances before calling `getTime()`.
-- [ ] **E2E coverage** (Medium): add tests for timeline drag/resize, portfolio filters + drill-down, and view sharing via `viewId`.
-- [ ] **Component tests** (Medium): add coverage for `PortfolioDashboard`, `DependenciesDashboard`, `SavedViewsDropdown`.
+- [x] **E2E coverage** (Medium): add tests for timeline drag/resize, portfolio filters + drill-down, and view sharing via `viewId`.
+- [x] **Component tests** (Medium): add coverage for `PortfolioDashboard`, `DependenciesDashboard`, `SavedViewsDropdown`.
 - [x] **Timeline resize accessibility** (High): add keyboard-accessible alternatives for resize handles in `TimelineView`.
-- [ ] **Portfolio cache invalidation** (Low): ensure task/project updates bust portfolio cache to avoid stale aggregates.
-- [ ] **Share token security** (Medium): confirm shareToken is cryptographically random and validated server-side.
-- [ ] **Observability** (Low): add tracing + monitoring for `/pm/portfolio` and `/pm/dependencies` (P95 latency, cache hit rate).
+- [x] **Portfolio cache invalidation** (Low): ensure task/project updates bust portfolio cache to avoid stale aggregates.
+- [x] **Share token security** (Medium): confirm shareToken is cryptographically random and validated server-side.
+- [x] **Observability** (Low): add tracing + monitoring for `/pm/portfolio` and `/pm/dependencies` (P95 latency, cache hit rate).
+
+## New Review Findings (2025-12-22)
+
+### CRITICAL / HIGH PRIORITY
+
+- [x] **Fix In-Memory Pagination & N+1 in Dependencies** (Critical)
+  - Location: `apps/api/src/pm/dependencies/dependencies.service.ts:33-65`
+  - Issue: Fetches ALL relations, filters in-memory, then slices array.
+  - Fix: Apply `take: limit` and `skip: offset` in Prisma query. Move cross-project filtering to DB where clause if possible.
+
+- [x] **Enforce Secure Cookie for SameSite=None** (Critical)
+  - Location: `apps/api/src/common/controllers/csrf.controller.ts:28-40`
+  - Issue: `sameSite='none'` requires `secure=true` per browser policy. Current logic allows `secure=false` in dev/test which breaks functionality.
+  - Fix: Explicitly force `secure: true` if `sameSite === 'none'`.
+
+- [x] **Set CSRF Cookie MaxAge** (High)
+  - Location: `apps/api/src/common/controllers/csrf.controller.ts:16`
+  - Issue: No maxAge configured; tokens persist indefinitely.
+  - Fix: Add `maxAge` (e.g., 1 hour) to cookie options.
+
+### MEDIUM PRIORITY
+
+- [x] **Fix Cache Key Serialization Collision**
+  - Location: `apps/api/src/pm/portfolio/portfolio.service.ts:44-50`
+  - Issue: `JSON.stringify` key order isn't guaranteed, causing cache misses.
+  - Fix: Use deterministic serialization (e.g., sort keys or use hash).
+
+- [x] **Add Error Logging for Silent Cache Failures**
+  - Location: `apps/api/src/pm/portfolio/portfolio.service.ts:205-223`
+  - Issue: Cache errors are swallowed.
+  - Fix: Add logger.error() in catch block.
+
+- [x] **Add Date Range Validation**
+  - Location: `apps/api/src/pm/portfolio/portfolio.service.ts:37-42`
+  - Issue: No check for `from > to`.
+  - Fix: Add class-validator check in DTO.
+
+- [x] **Document Database Indexes**
+  - Issue: Missing documentation for required indexes.
+  - Fix: Add index definitions to schema or docs for workspace/project queries.

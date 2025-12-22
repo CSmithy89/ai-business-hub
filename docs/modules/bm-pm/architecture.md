@@ -260,6 +260,31 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### Health Score Algorithm
+
+The Project Health Score (0-100) is calculated by the Pulse agent based on four weighted factors:
+
+**Formula:**
+`Score = (OnTime * 30%) + (Blocker * 25%) + (Capacity * 25%) + (Velocity * 20%)`
+
+**Factors (Normalized 0-1):**
+1.  **On-Time Delivery (30%)**: Percentage of tasks not overdue.
+    *   `1.0 - (overdue_tasks / total_tasks)`
+2.  **Blocker Impact (25%)**: Percentage of tasks not blocked by dependencies.
+    *   `1.0 - (blocked_tasks / total_tasks)`
+3.  **Team Capacity (25%)**: Workload balance score based on assigned hours.
+    *   Ideal: 32-40h/week (1.0)
+    *   Overload: >40h (penalty)
+    *   Underload: <32h (penalty)
+4.  **Velocity Trend (20%)**: Ratio of current velocity (last 7 days) to baseline (last 28 days avg).
+    *   `current_velocity / baseline_velocity` (capped at 1.0)
+
+**Health Levels:**
+*   **85-100: EXCELLENT** - Project is on track and healthy.
+*   **70-84: GOOD** - Minor issues, generally stable.
+*   **50-69: WARNING** - Significant risks detected, needs attention.
+*   **0-49: CRITICAL** - Project is off track, immediate intervention required.
+
 ### Core PM Prisma Schema
 
 ```prisma

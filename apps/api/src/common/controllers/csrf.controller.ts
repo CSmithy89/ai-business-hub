@@ -25,18 +25,25 @@ export class CsrfController {
     const signedToken = `${token}.${signature}`
     const cookieName =
       this.configService.get<string>('CSRF_COOKIE_NAME') ?? 'hyvve_csrf_token'
+    
     const sameSite =
       (this.configService.get<string>('CSRF_COOKIE_SAMESITE') ?? 'lax').toLowerCase()
-    const secure =
-      this.configService.get<string>('CSRF_COOKIE_SECURE') === 'true' ||
-      this.configService.get<string>('NODE_ENV') === 'production'
+    
+    const isProduction = this.configService.get<string>('NODE_ENV') === 'production'
+    const forceSecure = this.configService.get<string>('CSRF_COOKIE_SECURE') === 'true'
+    
+    // Secure is required if SameSite=None, otherwise depends on config/env
+    const secure = sameSite === 'none' ? true : (forceSecure || isProduction)
+    
     const httpOnly = this.configService.get<string>('CSRF_COOKIE_HTTPONLY') !== 'false'
+    const maxAge = 3600000 // 1 hour
 
     res.cookie(cookieName, signedToken, {
       httpOnly,
       secure,
       sameSite: sameSite === 'none' || sameSite === 'strict' ? sameSite : 'lax',
       path: '/',
+      maxAge,
     })
 
     return { csrfToken: signedToken }
