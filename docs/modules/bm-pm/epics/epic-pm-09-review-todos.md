@@ -67,3 +67,15 @@ PR: https://github.com/CSmithy89/ai-business-hub/pull/35
 ## Documentation
 
 - [x] Add `docs/modules/bm-pm/README.md` with performance notes, routes, and limitations.
+
+## Additional Review Follow-ups (Post-PR)
+
+- [ ] **CSRF HMAC signing** (Medium): switch double-submit tokens to HMAC-signed tokens using `CSRF_SECRET`, validate with timing-safe compare; align with `apps/web/src/lib/csrf.ts`.
+- [ ] **StartedAt vs startDate consistency** (High): verify Prisma schema field name and tech spec references; standardize on one field and add migration if needed.
+- [ ] **Health score formula documentation** (Low): document backend calculation in tech spec/architecture docs and align with UI thresholds.
+- [x] **Cross-project dependency null filtering** (Low): behavior verified and covered by `dependencies.service.spec.ts` (no action needed).
+- [ ] **E2E coverage** (Medium): add tests for timeline drag/resize, portfolio filters + drill-down, and view sharing via `viewId`.
+- [ ] **Component tests** (Medium): add coverage for `PortfolioDashboard`, `DependenciesDashboard`, `SavedViewsDropdown`.
+- [ ] **Portfolio cache invalidation** (Low): ensure task/project updates bust portfolio cache to avoid stale aggregates.
+- [ ] **Share token security** (Medium): confirm shareToken is cryptographically random and validated server-side.
+- [ ] **Observability** (Low): add tracing + monitoring for `/pm/portfolio` and `/pm/dependencies` (P95 latency, cache hit rate).

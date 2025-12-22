@@ -18,6 +18,14 @@ Use these runbooks to respond to incidents on the HYVVE platform. Keep a termina
 - Application logs (NestJS, FastAPI agents) in centralized logging
 - Database telemetry: Postgres dashboard (connections, replication lag, slow queries)
 
+## CSRF Quick Check
+Use when state-changing requests unexpectedly return 403 in environments with CSRF enabled.
+
+1. Verify `CSRF_ENABLED=true` and correct `FRONTEND_URL` in the API environment.
+2. Fetch a token: `GET /csrf` (sets `hyvve.csrf_token` cookie + returns token).
+3. Repeat the failing request with `x-csrf-token: <token>` and cookies attached.
+4. Confirm the session cookie (`hyvve.session_token`) is present for cookie-auth flows.
+
 ## Escalation
 - Primary on-call: Platform Ops
 - Secondary: Backend Lead
