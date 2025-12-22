@@ -70,7 +70,7 @@ PR: https://github.com/CSmithy89/ai-business-hub/pull/35
 
 ## Additional Review Follow-ups (Post-PR)
 
-- [ ] **CSRF HMAC signing** (Medium): switch double-submit tokens to HMAC-signed tokens using `CSRF_SECRET`, validate with timing-safe compare; align with `apps/web/src/lib/csrf.ts`.
+- [x] **CSRF HMAC signing** (Medium): switch double-submit tokens to HMAC-signed tokens using `CSRF_SECRET`, validate with timing-safe compare; align with `apps/web/src/lib/csrf.ts`.
 - [x] **CSRF token entropy** (Critical): replace `randomUUID()` with `randomBytes(32)` (base64url) for CSRF token generation in `apps/api/src/common/controllers/csrf.controller.ts`.
 - [x] **CSRF constant-time compare** (Critical): use `timingSafeEqual` for header/cookie token comparison in `apps/api/src/main.ts`.
 - [x] **CORS CSRF header** (Critical): allow `x-csrf-token` in `allowedHeaders` for NestJS CORS config.
