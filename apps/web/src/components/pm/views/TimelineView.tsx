@@ -21,8 +21,14 @@ import { usePmDependencies } from '@/hooks/use-pm-dependencies'
 import { useUpdatePmTask, type TaskListItem } from '@/hooks/use-pm-tasks'
 import { VIRTUALIZATION } from '@/lib/pm/constants'
 import { cn } from '@/lib/utils'
-
-type ZoomLevel = 'day' | 'week' | 'month'
+import {
+  DEFAULT_DURATION_DAYS,
+  ROW_HEIGHT,
+  TIMELINE_PADDING_DAYS,
+  ZOOM_DAY_WIDTH,
+  ZOOM_LABELS,
+  type ZoomLevel,
+} from './TimelineView.constants'
 
 type TaskDates = {
   start: Date
@@ -38,22 +44,6 @@ type DragState = {
   start: Date
   end: Date
 }
-
-const ZOOM_LABELS: Record<ZoomLevel, string> = {
-  day: 'Day',
-  week: 'Week',
-  month: 'Month',
-}
-
-const ZOOM_DAY_WIDTH: Record<ZoomLevel, number> = {
-  day: 36,
-  week: 18,
-  month: 10,
-}
-
-const DEFAULT_DURATION_DAYS = 5
-const ROW_HEIGHT = 52
-const TIMELINE_PADDING_DAYS = 5
 
 function parseDate(value: string | null, fallback: Date): Date {
   if (!value) return fallback
@@ -199,9 +189,10 @@ export function TimelineView({
     try {
       const stored = window.localStorage.getItem(`pm-timeline-zoom-${projectId}`)
       if (stored === 'day' || stored === 'week' || stored === 'month') {
-        setZoom(stored)
+        setZoom(stored as ZoomLevel)
       }
-    } catch {
+    } catch (error) {
+      console.error('Failed to read timeline zoom from localStorage:', error)
       // Ignore storage errors (private browsing, disabled storage)
     }
   }, [projectId])
@@ -330,33 +321,6 @@ export function TimelineView({
     }
   }, [dayWidth, dragState, updateTask])
 
-  const dependencyLines = useMemo(() => {
-    const idToIndex = new Map<string, number>()
-    schedule.forEach(({ task }, index) => {
-      idToIndex.set(task.id, index)
-    })
-
-    return dependencyEdges.flatMap((edge) => {
-      const parentIndex = idToIndex.get(edge.from)
-      if (parentIndex === undefined) return []
-      const childIndex = idToIndex.get(edge.to)
-      if (childIndex === undefined) return []
-      const parent = schedule[parentIndex]
-      const child = schedule[childIndex]
-      const parentLeft = differenceInDays(parent.dates.end, timelineBounds.start) * dayWidth + dayWidth
-      const childLeft = differenceInDays(child.dates.start, timelineBounds.start) * dayWidth
-      const parentY = parentIndex * ROW_HEIGHT + ROW_HEIGHT / 2
-      const childY = childIndex * ROW_HEIGHT + ROW_HEIGHT / 2
-
-      return [
-        {
-          id: `${edge.from}-${edge.to}`,
-          path: `M ${parentLeft} ${parentY} L ${parentLeft + 12} ${parentY} L ${parentLeft + 12} ${childY} L ${childLeft} ${childY}`,
-        },
-      ]
-    })
-  }, [schedule, timelineBounds, dayWidth, dependencyEdges])
-
   const shouldVirtualize = schedule.length > VIRTUALIZATION.TABLE_ROW_THRESHOLD
   const rowVirtualizer = useVirtualizer({
     count: schedule.length,
@@ -377,6 +341,54 @@ export function TimelineView({
   const totalHeight = shouldVirtualize
     ? rowVirtualizer.getTotalSize()
     : schedule.length * ROW_HEIGHT
+
+  const dependencyLines = useMemo(() => {
+    const idToIndex = new Map<string, number>()
+    schedule.forEach(({ task }, index) => {
+      idToIndex.set(task.id, index)
+    })
+
+    // Determine visible vertical range
+    const visibleStart = virtualRows.length > 0 ? virtualRows[0].start : 0
+    const visibleEnd =
+      virtualRows.length > 0
+        ? virtualRows[virtualRows.length - 1].start + virtualRows[virtualRows.length - 1].size
+        : 0
+    // Add buffer for smooth scrolling (lines appearing before entering view)
+    const buffer = 500
+    const renderStart = visibleStart - buffer
+    const renderEnd = visibleEnd + buffer
+
+    return dependencyEdges.flatMap((edge) => {
+      const parentIndex = idToIndex.get(edge.from)
+      if (parentIndex === undefined) return []
+      const childIndex = idToIndex.get(edge.to)
+      if (childIndex === undefined) return []
+      
+      const parentY = parentIndex * ROW_HEIGHT + ROW_HEIGHT / 2
+      const childY = childIndex * ROW_HEIGHT + ROW_HEIGHT / 2
+
+      // Optimization: Skip lines that are entirely outside the visible/buffered area
+      const minY = Math.min(parentY, childY)
+      const maxY = Math.max(parentY, childY)
+      
+      if (maxY < renderStart || minY > renderEnd) {
+         return []
+      }
+
+      const parent = schedule[parentIndex]
+      const child = schedule[childIndex]
+      const parentLeft = differenceInDays(parent.dates.end, timelineBounds.start) * dayWidth + dayWidth
+      const childLeft = differenceInDays(child.dates.start, timelineBounds.start) * dayWidth
+
+      return [
+        {
+          id: `${edge.from}-${edge.to}`,
+          path: `M ${parentLeft} ${parentY} L ${parentLeft + 12} ${parentY} L ${parentLeft + 12} ${childY} L ${childLeft} ${childY}`,
+        },
+      ]
+    })
+  }, [schedule, timelineBounds, dayWidth, dependencyEdges, virtualRows]) // Depend on virtualRows to update on scroll
 
   if (tasks.length === 0) {
     return (
@@ -407,7 +419,8 @@ export function TimelineView({
                 if (projectId && typeof window !== 'undefined') {
                   try {
                     window.localStorage.setItem(`pm-timeline-zoom-${projectId}`, level)
-                  } catch {
+                  } catch (error) {
+                    console.error('Failed to save timeline zoom to localStorage:', error)
                     // Ignore storage errors (private browsing, disabled storage)
                   }
                 }

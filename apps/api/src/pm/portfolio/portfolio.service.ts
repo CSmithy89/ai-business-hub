@@ -92,7 +92,7 @@ export class PortfolioService {
       .reduce((acc, key) => {
         acc[key] = cacheObject[key as keyof typeof cacheObject]
         return acc
-      }, {} as Record<string, any>)
+      }, {} as Record<string, unknown>)
 
     const filterHash = createHash('sha256')
       .update(JSON.stringify(sortedCacheObject))

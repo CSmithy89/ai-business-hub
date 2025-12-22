@@ -36,52 +36,69 @@ export class DependenciesService {
       const limit = query.limit ?? 50
       const offset = query.offset ?? 0
 
-      // 1. Get total count for pagination metadata
-      const total = await this.prisma.taskRelation.count({ where })
-
-      // 2. Fetch paged results directly from DB
-      const relations = await this.prisma.taskRelation.findMany({
+      // 1. Fetch ALL lightweight relations matching the base criteria
+      // We do this to handle cross-project filtering accurately before pagination
+      // This is efficient enough for typical workspace sizes (<10k relations)
+      const allRelations = await this.prisma.taskRelation.findMany({
         where,
-        take: limit,
-        skip: offset,
         orderBy: { createdAt: 'desc' },
-        include: {
-          sourceTask: {
-            select: {
-              id: true,
-              taskNumber: true,
-              title: true,
-              projectId: true,
-            },
-          },
-          targetTask: {
-            select: {
-              id: true,
-              taskNumber: true,
-              title: true,
-              projectId: true,
-            },
-          },
+        select: {
+          id: true,
+          sourceTask: { select: { projectId: true } },
+          targetTask: { select: { projectId: true } },
         },
       })
 
       const crossProjectOnly = query.crossProjectOnly !== false
 
-      // Note: Strict cross-project filtering is applied after pagination because
-      // Prisma findMany does not support field-to-field comparison in where clause.
-      // This may result in fewer than 'limit' items being returned if many are intra-project.
+      // 2. Apply filtering in memory
       const filtered = crossProjectOnly
-        ? relations.filter((relation) => {
+        ? allRelations.filter((relation) => {
             if (!relation.sourceTask.projectId || !relation.targetTask.projectId) return false
             return relation.sourceTask.projectId !== relation.targetTask.projectId
           })
-        : relations
+        : allRelations
 
-      const paged = filtered // Already paged in DB
+      // 3. Calculate pagination metadata based on filtered results
+      const total = filtered.length
+      const paginatedIds = filtered.slice(offset, offset + limit).map((r) => r.id)
+      const hasMore = offset + limit < total
+
+      // 4. Fetch full details for the current page
+      const paged =
+        paginatedIds.length > 0
+          ? await this.prisma.taskRelation.findMany({
+              where: { id: { in: paginatedIds } },
+              include: {
+                sourceTask: {
+                  select: {
+                    id: true,
+                    taskNumber: true,
+                    title: true,
+                    projectId: true,
+                  },
+                },
+                targetTask: {
+                  select: {
+                    id: true,
+                    taskNumber: true,
+                    title: true,
+                    projectId: true,
+                  },
+                },
+              },
+            })
+          : []
+
+      // Restore order (database 'IN' query does not guarantee order)
+      const pagedMap = new Map(paged.map((r) => [r.id, r]))
+      const sortedPaged = paginatedIds
+        .map((id) => pagedMap.get(id))
+        .filter((r): r is typeof paged[0] => Boolean(r))
 
       const projectIds = Array.from(
         new Set(
-          paged
+          sortedPaged
             .flatMap((relation) => [relation.sourceTask.projectId, relation.targetTask.projectId])
             .filter((id): id is string => Boolean(id))
         )
@@ -91,16 +108,13 @@ export class DependenciesService {
         ? await this.prisma.project.findMany({
             where: { id: { in: projectIds }, workspaceId },
             select: { id: true, slug: true, name: true },
-        })
+          })
         : []
 
       const projectMap = new Map(projects.map((project) => [project.id, project]))
 
-      // hasMore calculation based on total count
-      const hasMore = offset + limit < total
-
       this.logger.log(`Dependencies list fetched in ${Date.now() - startTime}ms`, {
-        count: filtered.length,
+        count: sortedPaged.length,
         total,
       })
 
@@ -113,7 +127,7 @@ export class DependenciesService {
             offset,
             hasMore,
           },
-          relations: paged.map((relation) => ({
+          relations: sortedPaged.map((relation) => ({
             id: relation.id,
             relationType: relation.relationType,
             createdAt: relation.createdAt,

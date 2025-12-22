@@ -1,6 +1,6 @@
 # Epic PM-09 Review TODOs (PR Follow-ups)
 
-PR: https://github.com/CSmithy89/ai-business-hub/pull/35
+PR: [https://github.com/CSmithy89/ai-business-hub/pull/35](https://github.com/CSmithy89/ai-business-hub/pull/35)
 
 ## P1 (Fix before merge)
 
@@ -126,3 +126,40 @@ PR: https://github.com/CSmithy89/ai-business-hub/pull/35
 - [x] **Document Database Indexes**
   - Issue: Missing documentation for required indexes.
   - Fix: Add index definitions to schema or docs for workspace/project queries.
+
+## CodeRabbit Review Findings (2025-12-22)
+
+### CRITICAL / HIGH PRIORITY
+
+- [x] **Fix Pagination Metadata in Dependencies Service** (Critical)
+  - Issue: `total` count is calculated before cross-project filtering, and DB pagination happens before in-memory filtering.
+  - Impact: `hasMore` is incorrect and page sizes are inconsistent when `crossProjectOnly=true`.
+  - Location: `apps/api/src/pm/dependencies/dependencies.service.ts`
+- [x] **Move CSRF Validation to NestJS Guard** (High)
+  - Issue: Current middleware runs before NestJS guards (like rate limiting), leaving the CSRF endpoint unprotected.
+  - Location: `apps/api/src/main.ts`
+- [x] **Add Comprehensive Tests for PortfolioService** (High)
+  - Need coverage for: Cache hit/miss scenarios, version-based invalidation, and date range validation.
+  - Location: `apps/api/src/pm/portfolio/portfolio.service.spec.ts`
+- [x] **Fix Race Condition in Cache Invalidation** (High)
+  - Issue: Redundant `incr` followed by `set` on `versionKey` creates a potential race condition.
+  - Location: `apps/api/src/pm/portfolio/portfolio.service.ts:58`
+
+### MEDIUM PRIORITY
+
+- [x] **Implement CSRF Token Auto-Refresh** (Medium)
+  - Issue: 1-hour TTL without client-side refresh breaks long-lived sessions.
+- [x] **Optimize Timeline View Dependency Rendering** (Medium)
+  - Issue: SVG path generation for many dependencies (100+) may hit performance limits. Consider lazy rendering or canvas-based rendering for scale.
+  - Location: `apps/web/src/components/pm/views/TimelineView.tsx`
+- [x] **Document CSRF Environment Variables** (Medium)
+  - Add comments to `.env.example` explaining when to enable CSRF and documented SameSite/Secure requirements.
+
+### CODE QUALITY / TECH DEBT
+
+- [x] **Improve Type Safety in Dependencies Service** (Low)
+  - Replace `Record<string, any>` with a proper interface for cache objects.
+- [x] **Log LocalStorage Errors in Development** (Low)
+  - Add debug logging for `window.localStorage` access errors in `TimelineView.tsx`.
+- [x] **Extract Timeline Constants** (Low)
+  - Move magic numbers (`DEFAULT_DURATION_DAYS`, `ROW_HEIGHT`, etc.) to a shared constants file for reusability.
