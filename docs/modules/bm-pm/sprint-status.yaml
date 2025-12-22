@@ -238,7 +238,7 @@ development_status:
   pm-09-4-custom-view-builder: done
   pm-09-5-view-sharing: done
   pm-09-6-view-templates: done
-  pm-09-retrospective: optional
+  pm-09-retrospective: done
 
   # ===========================================
   # PHASE 3 - 3 Epics, 16 Stories
