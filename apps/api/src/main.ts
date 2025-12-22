@@ -2,6 +2,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { timingSafeEqual } from 'crypto';
 import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { MetricsService } from './metrics/metrics-service';
@@ -25,24 +26,30 @@ const normalizeHeaderValue = (
   return Array.isArray(value) ? value[0] : value;
 };
 
+const constantTimeCompare = (a?: string, b?: string): boolean => {
+  if (!a || !b) return false;
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
+};
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     rawBody: true, // Required for webhook signature verification
   });
+  const csrfHeaderName = (
+    process.env.CSRF_HEADER_NAME || 'x-csrf-token'
+  ).toLowerCase();
 
   // CORS configuration - allow requests from Next.js frontend
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', csrfHeaderName],
   });
 
   if (process.env.CSRF_ENABLED === 'true') {
-    const csrfCookieName = process.env.CSRF_COOKIE_NAME || 'hyvve.csrf_token';
-    const csrfHeaderName = (
-      process.env.CSRF_HEADER_NAME || 'x-csrf-token'
-    ).toLowerCase();
+    const csrfCookieName = process.env.CSRF_COOKIE_NAME || 'hyvve_csrf_token';
     const sessionCookieName =
       process.env.CSRF_SESSION_COOKIE_NAME || 'hyvve.session_token';
 
@@ -59,7 +66,7 @@ async function bootstrap() {
       const headerToken = normalizeHeaderValue(req.headers[csrfHeaderName]);
       const cookieToken = cookies[csrfCookieName];
 
-      if (!headerToken || !cookieToken || headerToken !== cookieToken) {
+      if (!constantTimeCompare(headerToken, cookieToken)) {
         return res.status(403).json({ message: 'CSRF token mismatch' });
       }
 

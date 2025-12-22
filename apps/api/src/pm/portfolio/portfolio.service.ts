@@ -34,8 +34,12 @@ export class PortfolioService {
   ) {}
 
   async getPortfolio(workspaceId: string, query: PortfolioQueryDto) {
-    const from = query.from && !Number.isNaN(query.from.getTime()) ? query.from : undefined
-    const to = query.to && !Number.isNaN(query.to.getTime()) ? query.to : undefined
+    const from =
+      query.from instanceof Date && !Number.isNaN(query.from.getTime())
+        ? query.from
+        : undefined
+    const to =
+      query.to instanceof Date && !Number.isNaN(query.to.getTime()) ? query.to : undefined
 
     const cacheKey = `pm:portfolio:${workspaceId}:${JSON.stringify({
       status: query.status ?? null,

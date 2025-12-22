@@ -1,6 +1,7 @@
 import { Controller, Get, Res } from '@nestjs/common'
+import { Throttle } from '@nestjs/throttler'
 import { ConfigService } from '@nestjs/config'
-import { randomUUID } from 'crypto'
+import { randomBytes } from 'crypto'
 import type { Response } from 'express'
 import { Public } from '../decorators/public.decorator'
 
@@ -9,10 +10,12 @@ export class CsrfController {
   constructor(private readonly configService: ConfigService) {}
 
   @Get()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Public()
   getToken(@Res({ passthrough: true }) res: Response) {
-    const token = randomUUID()
-    const cookieName = this.configService.get<string>('CSRF_COOKIE_NAME') ?? 'hyvve.csrf_token'
+    const token = randomBytes(32).toString('base64url')
+    const cookieName =
+      this.configService.get<string>('CSRF_COOKIE_NAME') ?? 'hyvve_csrf_token'
     const sameSite =
       (this.configService.get<string>('CSRF_COOKIE_SAMESITE') ?? 'lax').toLowerCase()
     const secure =

@@ -526,6 +526,37 @@ export function TimelineView({
                     end: dates.end,
                   })
                 }
+                const handleKeyboardResize = (mode: 'start' | 'end', deltaDays: number) => {
+                  const currentDates = latestDraftDates.current[task.id] ?? dates
+                  let nextStart = currentDates.start
+                  let nextEnd = currentDates.end
+
+                  if (mode === 'start') {
+                    nextStart = addDays(currentDates.start, deltaDays)
+                    if (nextStart >= currentDates.end) {
+                      nextStart = addDays(currentDates.end, -1)
+                    }
+                  } else {
+                    nextEnd = addDays(currentDates.end, deltaDays)
+                    if (nextEnd <= currentDates.start) {
+                      nextEnd = addDays(currentDates.start, 1)
+                    }
+                  }
+
+                  const normalizedStart = startOfDay(nextStart)
+                  const normalizedEnd = endOfDay(nextEnd)
+                  setDraftDates((prev) => ({
+                    ...prev,
+                    [task.id]: { start: normalizedStart, end: normalizedEnd },
+                  }))
+                  updateTask({
+                    taskId: task.id,
+                    input: {
+                      startedAt: normalizedStart.toISOString(),
+                      dueDate: normalizedEnd.toISOString(),
+                    },
+                  })
+                }
 
                 return (
                   <div
@@ -554,8 +585,20 @@ export function TimelineView({
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault()
                           onSelectTask?.(task.id)
+                          return
                         }
+                        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+                        if (!event.shiftKey && !event.altKey) return
+                        event.preventDefault()
+                        event.stopPropagation()
+                        const deltaDays = event.key === 'ArrowRight' ? 1 : -1
+                        if (event.shiftKey) {
+                          handleKeyboardResize('start', deltaDays)
+                          return
+                        }
+                        handleKeyboardResize('end', deltaDays)
                       }}
+                      aria-keyshortcuts="Shift+ArrowLeft Shift+ArrowRight Alt+ArrowLeft Alt+ArrowRight"
                       role="button"
                       tabIndex={0}
                     >

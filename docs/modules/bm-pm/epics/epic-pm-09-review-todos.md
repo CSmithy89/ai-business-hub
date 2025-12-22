@@ -71,11 +71,18 @@ PR: https://github.com/CSmithy89/ai-business-hub/pull/35
 ## Additional Review Follow-ups (Post-PR)
 
 - [ ] **CSRF HMAC signing** (Medium): switch double-submit tokens to HMAC-signed tokens using `CSRF_SECRET`, validate with timing-safe compare; align with `apps/web/src/lib/csrf.ts`.
+- [x] **CSRF token entropy** (Critical): replace `randomUUID()` with `randomBytes(32)` (base64url) for CSRF token generation in `apps/api/src/common/controllers/csrf.controller.ts`.
+- [x] **CSRF constant-time compare** (Critical): use `timingSafeEqual` for header/cookie token comparison in `apps/api/src/main.ts`.
+- [x] **CORS CSRF header** (Critical): allow `x-csrf-token` in `allowedHeaders` for NestJS CORS config.
+- [x] **CSRF endpoint rate limiting** (High): throttle `GET /csrf` to prevent unlimited token minting.
+- [x] **CSRF runbook accuracy** (High): verify cookie name and endpoint scope, and clarify header=cookie equality requirement in `docs/runbooks/README.md`.
 - [ ] **StartedAt vs startDate consistency** (High): verify Prisma schema field name and tech spec references; standardize on one field and add migration if needed.
 - [ ] **Health score formula documentation** (Low): document backend calculation in tech spec/architecture docs and align with UI thresholds.
 - [x] **Cross-project dependency null filtering** (Low): behavior verified and covered by `dependencies.service.spec.ts` (no action needed).
+- [x] **Portfolio date parsing guard** (Critical): ensure `query.from/to` are `Date` instances before calling `getTime()`.
 - [ ] **E2E coverage** (Medium): add tests for timeline drag/resize, portfolio filters + drill-down, and view sharing via `viewId`.
 - [ ] **Component tests** (Medium): add coverage for `PortfolioDashboard`, `DependenciesDashboard`, `SavedViewsDropdown`.
+- [x] **Timeline resize accessibility** (High): add keyboard-accessible alternatives for resize handles in `TimelineView`.
 - [ ] **Portfolio cache invalidation** (Low): ensure task/project updates bust portfolio cache to avoid stale aggregates.
 - [ ] **Share token security** (Medium): confirm shareToken is cryptographically random and validated server-side.
 - [ ] **Observability** (Low): add tracing + monitoring for `/pm/portfolio` and `/pm/dependencies` (P95 latency, cache hit rate).
