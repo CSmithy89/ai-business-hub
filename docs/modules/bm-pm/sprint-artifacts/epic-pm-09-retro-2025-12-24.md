@@ -85,6 +85,25 @@
 
 ---
 
+## Remaining Technical Issues (Post-Retro Analysis)
+
+Issues identified during retrospective code review:
+
+| # | Issue | Priority | Location | Notes |
+|---|-------|----------|----------|-------|
+| 1 | **Portfolio Cache Race Condition** | Medium | `portfolio.service.ts:59` | Uses `Date.now()` instead of Redis `INCR` for version key - could lead to stale cache on concurrent updates |
+| 2 | **Timeline Critical Path Performance** | Medium | `TimelineView.tsx:101-161` | DFS algorithm runs on every render; add memoization budget for 500+ tasks |
+| 3 | **CSRF Refresh Tab Optimization** | Low | `use-csrf-refresh.ts:7` | Use Page Visibility API to pause refresh in hidden tabs |
+| 4 | **Auth Session Type Investigation** | Low | `auth-client.ts:73-90` | Triple-nested session type is defensive - investigate better-auth type mismatch |
+| 5 | **Missing Date Validation Test** | Low | `portfolio.service.spec.ts` | from > to validation exists but lacks unit test coverage |
+| 6 | **CSRF Cookie Default Explicit** | Low | `csrf.controller.ts:38` | Make httpOnly default explicit: `?? 'true'` |
+
+**Already Verified as Fixed:**
+- SQL Injection Risk: Has `@IsEnum(TaskRelationType)` decorator ✅
+- Timeline Date Parsing: Deferred as intentional (would be noisy) ✅
+
+---
+
 ## Key Metrics
 
 | Category | Count |
