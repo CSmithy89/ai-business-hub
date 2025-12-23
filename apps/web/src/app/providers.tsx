@@ -7,6 +7,12 @@ import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeErrorTracking } from '@/lib/telemetry/error-tracking';
 import { RealtimeProvider } from '@/lib/realtime';
+import { useCsrfRefresh } from '@/hooks/use-csrf-refresh';
+
+function CsrfRefresher() {
+  useCsrfRefresh();
+  return null;
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -57,6 +63,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       >
         <RealtimeProvider>
           <TooltipProvider delayDuration={300}>
+            <CsrfRefresher />
             {children}
           </TooltipProvider>
         </RealtimeProvider>

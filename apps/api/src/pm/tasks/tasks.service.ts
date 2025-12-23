@@ -887,6 +887,7 @@ export class TasksService {
       agentId: dto.agentId,
       storyPoints: dto.storyPoints,
       dueDate: dto.dueDate,
+      startedAt: dto.startedAt,
       approvalRequired: dto.approvalRequired,
       approvalStatus: dto.approvalStatus,
       approvedBy: dto.approvedBy,
@@ -903,7 +904,7 @@ export class TasksService {
         updateData.completedAt = null
       }
 
-      if (nextStatus === TaskStatus.IN_PROGRESS && !existing.startedAt) {
+      if (nextStatus === TaskStatus.IN_PROGRESS && !existing.startedAt && dto.startedAt === undefined) {
         updateData.startedAt = new Date()
       }
     }
@@ -981,6 +982,7 @@ export class TasksService {
         agentId: dto.agentId,
         assignmentType: dto.assignmentType,
         dueDate: dto.dueDate,
+        startedAt: updated.startedAt,
         updatedAt: updated.updatedAt.toISOString(),
         correlationId,
       },

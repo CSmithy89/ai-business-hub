@@ -2,21 +2,31 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { MetricsService } from './metrics/metrics-service';
+import { CsrfGuard } from './common/guards/csrf.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     rawBody: true, // Required for webhook signature verification
   });
+  const csrfHeaderName = (
+    process.env.CSRF_HEADER_NAME || 'x-csrf-token'
+  ).toLowerCase();
 
   // CORS configuration - allow requests from Next.js frontend
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', csrfHeaderName],
   });
+
+  // CSRF Protection Guard
+  // Placed here to run after middleware but before interceptors
+  const configService = app.get(ConfigService);
+  app.useGlobalGuards(new CsrfGuard(configService));
 
   // Global validation pipe for request validation
   app.useGlobalPipes(

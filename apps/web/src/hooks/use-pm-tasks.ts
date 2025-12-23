@@ -3,19 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { nanoid } from 'nanoid'
 import { toast } from 'sonner'
-import { useSession } from '@/lib/auth-client'
+import { getActiveWorkspaceId, getSessionToken, useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
 import { safeJson } from '@/lib/utils/safe-json'
 
 function getBaseUrl(): string {
   if (!NESTJS_API_URL) throw new Error('NESTJS_API_URL is not configured')
   return NESTJS_API_URL.replace(/\/$/, '')
-}
-
-function getSessionToken(session: unknown): string | undefined {
-  const direct = (session as { token?: string } | null)?.token
-  const nested = (session as { session?: { token?: string } } | null)?.session?.token
-  return direct || nested || undefined
 }
 
 function createCorrelationId(): string {
@@ -236,6 +230,7 @@ export type UpdateTaskInput = Partial<{
   assignmentType: AssignmentType
   agentId: string | null
   dueDate: string | null
+  startedAt: string | null
   storyPoints: number | null
   phaseId: string | null
 }>
@@ -896,7 +891,7 @@ async function bulkDeleteTasks(params: {
 
 export function usePmTasks(query: ListTasksQuery) {
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   const hasScope =
@@ -937,7 +932,7 @@ export function usePmTasks(query: ListTasksQuery) {
 
 export function usePmTask(taskId: string | null) {
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useQuery({
@@ -952,7 +947,7 @@ export function usePmTask(taskId: string | null) {
 export function useUpdatePmTask() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -980,7 +975,7 @@ export function useUpdatePmTask() {
 export function useCreatePmTask() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -1008,7 +1003,7 @@ export function useCreatePmTask() {
 export function useCreatePmTaskRelation() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -1031,7 +1026,7 @@ export function useCreatePmTaskRelation() {
 export function useDeletePmTaskRelation() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -1054,7 +1049,7 @@ export function useDeletePmTaskRelation() {
 export function useCreatePmTaskComment() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -1077,7 +1072,7 @@ export function useCreatePmTaskComment() {
 export function useUpdatePmTaskComment() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -1100,7 +1095,7 @@ export function useUpdatePmTaskComment() {
 export function useDeletePmTaskComment() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -1123,7 +1118,7 @@ export function useDeletePmTaskComment() {
 export function useCreatePmTaskAttachment() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -1146,7 +1141,7 @@ export function useCreatePmTaskAttachment() {
 export function useDeletePmTaskAttachment() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -1169,7 +1164,7 @@ export function useDeletePmTaskAttachment() {
 export function useUpsertPmTaskLabel() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -1192,7 +1187,7 @@ export function useUpsertPmTaskLabel() {
 export function useDeletePmTaskLabel() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -1215,7 +1210,7 @@ export function useDeletePmTaskLabel() {
 export function useBulkUpdatePmTasks() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -1247,7 +1242,7 @@ export function useBulkUpdatePmTasks() {
 export function useBulkDeletePmTasks() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({

@@ -1,8 +1,13 @@
 # AG-UI (Agent-User Interface) Protocol Specification
 
-**Status:** Draft
+> **⚠️ NOTE: SUPERSEDED BY COPILOTKIT**
+> As of December 2025, the custom SSE implementation described in this document has been superseded by the **CopilotKit Protocol**. 
+> While the concepts (Text Chunks, Tool Calls, UI Hints) remain valid, we now use the `CopilotKitSDK` and `@copilotkit/react-core` to handle the transport and state synchronization layers. 
+> See `docs/architecture/dynamic-module-system.md` for the updated "Hybrid" architecture.
+
+**Status:** Deprecated (Concepts preserved in CopilotKit)
 **Protocol Version:** 0.1.0
-**Target Framework:** Agno + Next.js (CopilotKit/Custom)
+**Target Framework:** CopilotKit + Next.js
 
 ---
 

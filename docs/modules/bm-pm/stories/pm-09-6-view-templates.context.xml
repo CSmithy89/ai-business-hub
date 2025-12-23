@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-09-6-view-templates</story-id>
+    <generated>2025-12-22T00:00:00Z</generated>
+    <epic>PM-09 - Advanced Views</epic>
+    <description>
+      Local view templates menu for applying consistent view setups.
+    </description>
+  </metadata>
+
+  <existing-code>
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/tasks/ProjectTasksContent.tsx">
+      <description>
+        Current task view state and saved views integration.
+      </description>
+    </file>
+    <file path="apps/web/src/lib/pm/view-preferences.ts">
+      <description>
+        View preference storage for columns and sorting.
+      </description>
+    </file>
+  </existing-code>
+</story-context>

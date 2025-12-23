@@ -88,6 +88,38 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 ---
 
+## EPIC-PM-09: Advanced Views (6 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-22
+**Branch:** `epic/pm-09-advanced-views`
+
+### Added
+
+- **Timeline/Gantt View**: Zoomable timeline with drag/resize, dependencies, and critical path highlighting
+- **Portfolio Dashboard**: Workspace-level project health overview with filters and drill-down
+- **Dependencies Dashboard**: Cross-project task relations with relation filters
+- **Custom View Builder**: Column visibility and sorting controls for saved views
+- **View Sharing Links**: Shareable saved views via `viewId` query parameter
+- **View Templates**: Local templates per workspace for reusing view configurations
+
+### Routes
+
+- `/dashboard/pm/portfolio` - Executive portfolio dashboard
+- `/dashboard/pm/dependencies` - Cross-project dependencies
+- `/dashboard/pm/[slug]/tasks?viewId=...` - Shared view deep link
+
+### API Endpoints
+
+- `GET /pm/portfolio` - Portfolio dashboard aggregates
+- `GET /pm/dependencies` - Task dependency list
+
+### Notes
+
+- Tech spec: `docs/sprint-artifacts/tech-spec-epic-pm-09.md`
+
+---
+
 ## EPIC-PM-07: Integrations & Bridge Agent (7 stories)
 
 **Status:** Complete
@@ -246,6 +278,107 @@ This changelog is organized by Epic, following the BMAD Method development proce
 - Risk severities: CRITICAL, HIGH, MEDIUM, LOW
 - Report types: PROJECT_STATUS, HEALTH_REPORT, PROGRESS_REPORT
 - Stakeholder types: EXECUTIVE, TEAM_LEAD, CLIENT, GENERAL
+
+---
+
+## EPIC-PM-04: AI Team - Navi, Sage, Chrono (9 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-19
+**Branch:** `epic/pm-04-ai-team-navi-sage-chrono`
+**PR:** #29
+
+### Added
+
+- **Navi Agent (Orchestrator)**: PM assistant for natural language commands, context-aware Q&A (via KB RAG), and daily briefings
+- **Sage Agent (Estimation)**: Estimation specialist providing story points/hours with confidence scores and learning from actuals
+- **Chrono Agent (Time)**: Time tracking assistant for timer management, manual logging, and velocity reporting
+- **Suggestion Mode**: AI actions require human approval (never auto-executed) via `AgentSuggestion` workflow
+- **Agent Architecture**: Python (Agno) + NestJS integration with shared auth and rate limiting
+- **Daily Briefing**: Cron-scheduled morning summaries of due tasks and blockers
+
+### API Endpoints
+
+- `POST /pm/agents/chat` - Send message to agent
+- `GET /pm/agents/briefing` - Get daily briefing
+- `GET /pm/agents/suggestions` - List pending suggestions
+- `POST /pm/agents/suggestions/:id/accept` - Accept suggestion
+- `POST /pm/agents/estimation/estimate` - Get task estimate
+- `POST /pm/agents/time/start` - Start timer
+- `POST /pm/agents/time/stop` - Stop timer
+
+### Notes
+
+- Tech spec: `docs/modules/bm-pm/epics/epic-pm-04-tech-spec.md`
+- Backend-first implementation; UI components to follow
+- Implements "Suggestion Mode" for safety and auditability
+
+---
+
+## EPIC-KB-03: KB Verification & Scribe Agent (7 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-19
+**Branch:** `epic/kb-03-verification-scribe`
+**PR:** #28
+
+### Added
+
+- **Verification System**: Mark pages as verified with expiration (30/60/90 days), visual badges, and re-verification flow
+- **Expiration Workflow**: Automated detection of expired verifications with notifications
+- **Stale Content Dashboard**: Admin interface to identify and manage outdated or low-traffic pages
+- **Social Features**: `@mention` users and `#task` references in KB editor with autocomplete
+- **Scribe Agent**: AI agent for KB management (create/update pages, verify content, detect staleness)
+- **RAG Boost**: Verified content receives 1.5x relevance boost in AI queries
+
+### API Endpoints
+
+- `POST /api/kb/pages/:id/verify` - Mark page as verified
+- `DELETE /api/kb/pages/:id/verify` - Remove verification
+- `GET /api/kb/stale` - List stale pages
+- `GET /api/workspace/users` - User search for mentions
+- `GET /api/pm/tasks/search` - Task search for references
+
+### Notes
+
+- Tech spec: `docs/modules/bm-pm/epics/epic-kb-03-tech-spec.md`
+- Includes CVE security fixes and rate limiting improvements
+
+---
+
+## EPIC-PM-03: Views & Navigation (8 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-18
+**Branch:** `epic/pm-03-views-navigation`
+
+### Added
+
+- **Task List View**: High-performance table with virtualization and column visibility toggle
+- **Kanban Board**: Drag-and-drop board with grouping (Status, Priority, Assignee, Type, Phase) and WIP limits
+- **Calendar View**: Month/Week/Day views with drag-to-reschedule and priority color coding
+- **View Persistence**: LocalStorage-based view preferences (type, columns, grouping)
+- **Saved Views**: Create, edit, share, and manage custom view configurations
+- **Advanced Filters**: URL-based filtering for status, priority, assignee, labels, and date ranges
+- **Bulk Operations**: Multi-select actions for status, priority, assignee, labels, and deletion
+
+### Routes
+
+- `/dashboard/pm/[slug]/tasks` - Main tasks interface with view switcher
+
+### API Endpoints
+
+- `GET /api/pm/projects/:projectId/views` - List saved views
+- `POST /api/pm/projects/:projectId/views` - Create saved view
+- `PATCH /api/pm/views/:viewId` - Update saved view
+- `DELETE /api/pm/views/:viewId` - Delete saved view
+- `PATCH /api/pm/tasks/bulk` - Execute bulk operations
+
+### Notes
+
+- Tech spec: `docs/modules/bm-pm/epics/epic-pm-03-tech-spec.md`
+- Implements optimistic updates for all drag-and-drop interactions
+- Uses `@tanstack/react-table` and `@dnd-kit` for performance and accessibility
 
 ---
 
@@ -639,6 +772,35 @@ This changelog is organized by Epic, following the BMAD Method development proce
 - Workflow execution tests
 - Real-time streaming validation
 - Error handling and edge case coverage
+
+---
+
+## EPIC-10: Platform Hardening (8 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-06
+**PR:** #11
+
+### Security Hardening
+
+- **CSRF Protection**: HMAC-SHA256 based tokens, middleware validation, and constant-time comparison.
+- **XSS Sanitization**: DOMPurify-based sanitization for user content with comprehensive test coverage.
+- **Encryption Validation**: Startup validation for encryption keys ensuring >128-bit entropy.
+- **Backup Code Safety**: Fixed race condition in backup code verification with pessimistic locking strategy.
+
+### Infrastructure & Reliability
+
+- **Redis Rate Limiting**: Migrated to `@upstash/ratelimit` for distributed rate limiting with in-memory fallback.
+- **Database Migrations**: Validated and executed migrations for AgentChatMessage and AgentSession models.
+- **Global Validation**: Verified NestJS `ValidationPipe` configuration for strict input validation.
+- **Trusted Devices**: Validated and fixed trusted device implementation.
+
+### Key Files
+
+- `apps/web/src/lib/csrf.ts` - CSRF token generation/verification
+- `apps/web/src/middleware.ts` - CSRF middleware
+- `apps/web/src/lib/utils/rate-limit.ts` - Unified Redis rate limiter
+- `apps/web/src/lib/utils/sanitize.ts` - XSS sanitization utility
 
 ---
 

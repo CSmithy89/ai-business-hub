@@ -306,6 +306,7 @@ For ongoing operations:
 - PM-01 through PM-08 ✅ Complete (projects, tasks, AI agents, real-time, integrations, analytics)
 - PM-07: Integrations & Bridge Agent ✅ Complete (CSV import/export, GitHub issues/PR linking, Jira/Asana/Trello imports, bridge agent foundation)
 - PM-08: Prism Agent & Predictive Analytics ✅ Complete (Monte Carlo forecasting, risk detection, analytics dashboard, what-if scenarios, team metrics, CSV/PDF export)
+- PM-09: Advanced Views ✅ Complete (timeline/Gantt, portfolio dashboard, dependencies, view builder, sharing, templates)
 - KB-01: Knowledge Base Foundation ✅ Complete
 - KB-02: KB Real-Time & RAG ✅ Complete (collab editing + embeddings + semantic search + RAG)
 - KB-03: KB Verification & Scribe ✅ Complete (verified content + review workflows)
@@ -350,23 +351,26 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 |------|------|---------|--------|
 | EPIC-PM-01 | Project & Phase Management | 9/9 | ✅ Complete |
 | EPIC-PM-02 | Task Management System | 11/11 | ✅ Complete |
+| EPIC-PM-03 | Views & Navigation | 8/8 | ✅ Complete |
+| EPIC-PM-04 | AI Team - Navi, Sage, Chrono | 9/9 | ✅ Complete |
+| EPIC-PM-05 | AI Team - Scope, Pulse, Herald | 8/8 | ✅ Complete |
 | EPIC-PM-06 | Real-Time & Notifications | 6/6 | ✅ Complete |
 | EPIC-PM-07 | Integrations & Bridge Agent | 7/7 | ✅ Complete |
 | EPIC-PM-08 | Prism Agent & Analytics | 6/6 | ✅ Complete |
+| EPIC-PM-09 | Advanced Views | 6/6 | ✅ Complete |
 | EPIC-KB-01 | Knowledge Base Foundation | 10/10 | ✅ Complete |
 | EPIC-KB-02 | KB Real-Time & RAG | 8/8 | ✅ Complete |
 | EPIC-KB-03 | KB Verification & Scribe | 7/7 | ✅ Complete |
 | EPIC-KB-04 | AI-Native Knowledge Base | 6/6 | ✅ Complete |
 
-**Latest Core-PM Epic: Prism Agent & Predictive Analytics (EPIC-PM-08)**
-- Monte Carlo simulation for completion forecasting (1000 iterations, Box-Muller transform)
-- Percentile predictions (P10, P25, P50, P75, P90) for date ranges
-- Risk detection system (schedule, scope, resource) with probability/impact scoring
-- Analytics dashboard with velocity, scope, completion, and productivity trends
-- What-if scenario planning with scope, team size, and velocity adjustments
-- Team performance metrics (velocity, cycle time, throughput, capacity utilization)
-- CSV and PDF data export for stakeholder reporting
-- Docs: `docs/sprint-artifacts/tech-spec-epic-pm-08.md`, `docs/modules/bm-pm/stories/pm-08-*.md`
+**Latest Core-PM Epic: Advanced Views (EPIC-PM-09)**
+- Timeline/Gantt view with zoom, drag/resize, dependencies, and critical path
+- Portfolio dashboard with health metrics, filters, and drill-downs
+- Cross-project dependencies dashboard with relation filters
+- Custom view builder for columns and sorting
+- Shareable saved views with team links
+- Reusable view templates per workspace
+- Docs: `docs/sprint-artifacts/tech-spec-epic-pm-09.md`, `docs/modules/bm-pm/stories/pm-09-*.md`
 
 **Latest KB Epic: AI-Native Knowledge Base (EPIC-KB-04)**
 - AI-generated page drafts from PM tasks with approval routing
@@ -414,6 +418,15 @@ pnpm lint
 # Type checking
 pnpm type-check
 ```
+
+### Environment Configuration
+
+Create `.env.local` from `.env.example` and set required values (database, Redis, auth).
+
+Optional CSRF protection (cookie-based sessions):
+- Set `CSRF_ENABLED=true` in `.env.local`
+- Fetch a token from `GET /csrf` (sets CSRF cookie + returns token)
+- Send `x-csrf-token: <token>` on POST/PUT/PATCH/DELETE requests
 
 ### Monorepo Commands
 

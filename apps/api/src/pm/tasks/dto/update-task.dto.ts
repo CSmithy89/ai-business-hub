@@ -14,7 +14,10 @@ function toOptionalDate(value: unknown): unknown {
   if (value === undefined || value === null) return value
   if (typeof value === 'string' && value.trim() === '') return undefined
   if (value instanceof Date) return value
-  if (typeof value === 'string' || typeof value === 'number') return new Date(value)
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? value : parsed
+  }
   return value
 }
 
@@ -58,6 +61,11 @@ export class UpdateTaskDto {
   @Transform(({ value }) => toOptionalDate(value), { toClassOnly: true })
   @IsDate()
   dueDate?: Date | null
+
+  @IsOptional()
+  @Transform(({ value }) => toOptionalDate(value), { toClassOnly: true })
+  @IsDate()
+  startedAt?: Date | null
 
   @IsOptional()
   @IsEnum(TaskStatus)

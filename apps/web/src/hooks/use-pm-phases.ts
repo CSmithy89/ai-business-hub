@@ -2,19 +2,13 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useSession } from '@/lib/auth-client'
+import { getActiveWorkspaceId, getSessionToken, useSession } from '@/lib/auth-client'
 import { NESTJS_API_URL } from '@/lib/api-config'
 import { safeJson } from '@/lib/utils/safe-json'
 
 function getBaseUrl(): string {
   if (!NESTJS_API_URL) throw new Error('NESTJS_API_URL is not configured')
   return NESTJS_API_URL.replace(/\/$/, '')
-}
-
-function getSessionToken(session: unknown): string | undefined {
-  const direct = (session as { token?: string } | null)?.token
-  const nested = (session as { session?: { token?: string } } | null)?.session?.token
-  return direct || nested || undefined
 }
 
 async function createPhase(params: {
@@ -89,7 +83,7 @@ async function updatePhase(params: {
 export function useCreatePmPhase() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -112,7 +106,7 @@ export function useCreatePmPhase() {
 export function useUpdatePmPhase() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
+  const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useMutation({
@@ -131,4 +125,3 @@ export function useUpdatePmPhase() {
     },
   })
 }
-

@@ -19,8 +19,8 @@ export interface ViewPreferences {
   sortOrder?: 'asc' | 'desc'
   /** Kanban board grouping option */
   kanbanGroupBy?: GroupByOption
-  /** Active view mode: simple, table, kanban, or calendar */
-  viewMode?: 'simple' | 'table' | 'kanban' | 'calendar'
+  /** Active view mode: simple, table, kanban, calendar, or timeline */
+  viewMode?: 'simple' | 'table' | 'kanban' | 'calendar' | 'timeline'
 }
 
 /** Default column configuration for list view */
@@ -43,10 +43,9 @@ export function getViewPreferences(projectId: string): ViewPreferences {
   }
 
   const key = `pm-view-prefs-${projectId}`
-  const stored = localStorage.getItem(key)
-
-  if (stored) {
-    try {
+  try {
+    const stored = localStorage.getItem(key)
+    if (stored) {
       const parsed = JSON.parse(stored) as ViewPreferences
       // Ensure all required fields exist
       return {
@@ -56,9 +55,10 @@ export function getViewPreferences(projectId: string): ViewPreferences {
         kanbanGroupBy: parsed.kanbanGroupBy || 'status',
         viewMode: parsed.viewMode || 'simple',
       }
-    } catch {
-      return getDefaultPreferences()
     }
+  } catch (error) {
+    console.error('Failed to read view preferences:', error)
+    return getDefaultPreferences()
   }
 
   return getDefaultPreferences()

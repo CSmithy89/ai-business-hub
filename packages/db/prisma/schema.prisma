@@ -1074,6 +1074,9 @@ model Project {
   @@index([deletedAt])
   @@index([status, lastHealthCheck]) // Health dashboard: projects needing checks
   @@index([healthScore]) // Health dashboard: sort by score
+  @@index([updatedAt]) // Portfolio sorting
+  @@index([startDate]) // Portfolio date filtering
+  @@index([targetDate]) // Portfolio date filtering
   @@map("projects")
 }
 
@@ -1303,6 +1306,7 @@ model TaskRelation {
   @@unique([sourceTaskId, targetTaskId, relationType])
   @@index([sourceTaskId])
   @@index([targetTaskId])
+  @@index([createdAt]) // Dependencies sorting
   @@map("task_relations")
 }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { BookmarkPlus, CalendarDays, ChevronRight, KanbanSquare, LayoutList, Search, Upload, Download, Github, DownloadCloud } from 'lucide-react'
@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { usePmProject } from '@/hooks/use-pm-projects'
 import { usePmTasks, type TaskListItem, type TaskPriority, type TaskStatus, type TaskType } from '@/hooks/use-pm-tasks'
 import { usePmTeam } from '@/hooks/use-pm-team'
-import { useDefaultView, type SavedView } from '@/hooks/use-saved-views'
+import { useDefaultView, useSavedViews, type SavedView } from '@/hooks/use-saved-views'
 import { usePresence } from '@/hooks/use-presence'
 import { PresenceBar } from '@/components/pm/presence/PresenceBar'
 import { TASK_PRIORITY_META, TASK_TYPE_META } from '@/lib/pm/task-meta'
@@ -24,6 +24,8 @@ import { TaskDetailSheet } from './TaskDetailSheet'
 import { TaskListView } from '@/components/pm/views/TaskListView'
 import { KanbanBoardView } from '@/components/pm/views/KanbanBoardView'
 import { CalendarView } from '@/components/pm/views/CalendarView'
+import { TimelineView } from '@/components/pm/views/TimelineView'
+import { ViewTemplatesMenu } from '@/components/pm/views/ViewTemplatesMenu'
 import { GroupBySelector } from '@/components/pm/kanban/GroupBySelector'
 import { SavedViewsDropdown } from '@/components/pm/saved-views/SavedViewsDropdown'
 import { SaveViewModal } from '@/components/pm/saved-views/SaveViewModal'
@@ -71,10 +73,12 @@ export function ProjectTasksContent() {
   const searchParams = useSearchParams()
   const params = useParams<{ slug: string }>()
   const { data: session } = useSession()
+  const workspaceId = (session?.session as { activeWorkspaceId?: string } | undefined)?.activeWorkspaceId
   const currentUserId = session?.user?.id ?? null
 
   const slug = params?.slug
   const taskId = searchParams.get('taskId')
+  const viewId = searchParams.get('viewId')
 
   const { data: projectData, isLoading: projectLoading, error: projectError } = usePmProject(slug)
   const project = projectData?.data
@@ -116,6 +120,8 @@ export function ProjectTasksContent() {
   const [saveViewModalOpen, setSaveViewModalOpen] = useState(false)
   const { data: defaultViewData } = useDefaultView(project?.id)
   const defaultView = defaultViewData?.data
+  const { data: savedViewsData } = useSavedViews(project?.id)
+  const savedViews = savedViewsData?.data ?? []
 
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<FilterState>({
@@ -128,7 +134,7 @@ export function ProjectTasksContent() {
     dueDateTo: null,
     phaseId: null,
   })
-  const [viewMode, setViewMode] = useState<'simple' | 'table' | 'kanban' | 'calendar'>(() => {
+  const [viewMode, setViewMode] = useState<'simple' | 'table' | 'kanban' | 'calendar' | 'timeline'>(() => {
     if (project?.id) {
       const prefs = getViewPreferences(project.id)
       return prefs.viewMode || 'simple'
@@ -150,15 +156,8 @@ export function ProjectTasksContent() {
   const [jiraImportOpen, setJiraImportOpen] = useState(false)
   const [asanaTrelloImportOpen, setAsanaTrelloImportOpen] = useState(false)
 
-  // Apply default view on mount
-  useEffect(() => {
-    if (defaultView && !activeSavedViewId) {
-      applyView(defaultView)
-    }
-  }, [defaultView?.id])
-
   // Apply a saved view
-  const applyView = (view: SavedView | null) => {
+  const applyView = useCallback((view: SavedView | null) => {
     if (!view) {
       // Reset to "All Tasks"
       setSearch('')
@@ -179,7 +178,17 @@ export function ProjectTasksContent() {
     }
 
     setActiveSavedViewId(view.id)
-    setViewMode(view.viewType.toLowerCase() as 'simple' | 'table' | 'kanban' | 'calendar')
+    const nextMode =
+      view.viewType === 'KANBAN'
+        ? 'kanban'
+        : view.viewType === 'CALENDAR'
+          ? 'calendar'
+          : view.viewType === 'TABLE'
+            ? 'table'
+            : view.viewType === 'TIMELINE'
+              ? 'timeline'
+              : 'simple'
+    setViewMode(nextMode)
     setSearch((view.filters.search as string) || '')
 
     // Convert saved view filters to new filter format
@@ -198,7 +207,92 @@ export function ProjectTasksContent() {
     if (view.filters.kanbanGroupBy) {
       setGroupBy(view.filters.kanbanGroupBy as GroupByOption)
     }
-  }
+
+    if (project?.id) {
+      const nextPrefs: Partial<ReturnType<typeof getViewPreferences>> = {}
+      if (view.columns && view.columns.length > 0) {
+        nextPrefs.listColumns = view.columns
+      }
+      if (view.sortBy) {
+        nextPrefs.sortBy = view.sortBy
+      }
+      if (view.sortOrder) {
+        nextPrefs.sortOrder = view.sortOrder as 'asc' | 'desc'
+      }
+      if (Object.keys(nextPrefs).length > 0) {
+        setViewPreferences(project.id, nextPrefs)
+      }
+    }
+  }, [project?.id])
+
+  const applyTemplateState = useCallback((viewState: {
+    viewType: 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE' | 'TIMELINE'
+    filters: Record<string, any>
+    sortBy?: string
+    sortOrder?: string
+    groupBy?: string
+    columns?: string[]
+  }) => {
+    const nextMode =
+      viewState.viewType === 'KANBAN'
+        ? 'kanban'
+        : viewState.viewType === 'CALENDAR'
+          ? 'calendar'
+          : viewState.viewType === 'TABLE'
+            ? 'table'
+            : viewState.viewType === 'TIMELINE'
+              ? 'timeline'
+              : 'simple'
+    setViewMode(nextMode)
+    setSearch((viewState.filters.search as string) || '')
+
+    const status = viewState.filters.status as TaskStatus | undefined
+    setFilters({
+      status: status ? [status] : [],
+      priority: (viewState.filters.priority as TaskPriority) || null,
+      assigneeId: null,
+      type: (viewState.filters.type as TaskType) || null,
+      labels: [],
+      dueDateFrom: null,
+      dueDateTo: null,
+      phaseId: null,
+    })
+
+    if (viewState.groupBy) {
+      setGroupBy(viewState.groupBy as GroupByOption)
+    }
+
+    if (project?.id) {
+      const nextPrefs: Partial<ReturnType<typeof getViewPreferences>> = {}
+      if (viewState.columns && viewState.columns.length > 0) {
+        nextPrefs.listColumns = viewState.columns
+      }
+      if (viewState.sortBy) {
+        nextPrefs.sortBy = viewState.sortBy
+      }
+      if (viewState.sortOrder) {
+        nextPrefs.sortOrder = viewState.sortOrder as 'asc' | 'desc'
+      }
+      if (Object.keys(nextPrefs).length > 0) {
+        setViewPreferences(project.id, nextPrefs)
+      }
+    }
+  }, [project?.id])
+
+  // Apply default view on mount
+  useEffect(() => {
+    if (defaultView && !activeSavedViewId && !viewId) {
+      applyView(defaultView)
+    }
+  }, [defaultView, activeSavedViewId, viewId, applyView])
+
+  useEffect(() => {
+    if (!viewId || !savedViews.length) return
+    const sharedView = savedViews.find((view) => view.id === viewId)
+    if (sharedView) {
+      applyView(sharedView)
+    }
+  }, [savedViews, viewId, applyView])
 
   // Detect if current state differs from saved view (for "Save View" button visibility)
   const hasUnsavedChanges = useMemo(() => {
@@ -227,7 +321,7 @@ export function ProjectTasksContent() {
     }
   }
 
-  const handleViewModeChange = (mode: 'simple' | 'table' | 'kanban' | 'calendar') => {
+  const handleViewModeChange = (mode: 'simple' | 'table' | 'kanban' | 'calendar' | 'timeline') => {
     setViewMode(mode)
     if (project?.id) {
       setViewPreferences(project.id, { viewMode: mode })
@@ -294,8 +388,21 @@ export function ProjectTasksContent() {
 
   // Current view state for saving - must be before early returns to avoid rules-of-hooks violation
   const currentViewState = useMemo(() => {
+    const viewType: 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE' | 'TIMELINE' =
+      viewMode === 'kanban'
+        ? 'KANBAN'
+        : viewMode === 'calendar'
+          ? 'CALENDAR'
+          : viewMode === 'table'
+            ? 'TABLE'
+            : viewMode === 'timeline'
+              ? 'TIMELINE'
+              : 'LIST'
+
+    const prefs = project?.id ? getViewPreferences(project.id) : null
+
     return {
-      viewType: viewMode.toUpperCase() as 'LIST' | 'KANBAN' | 'CALENDAR' | 'TABLE',
+      viewType,
       filters: {
         search,
         status: filters.status.length === 1 ? filters.status[0] : undefined,
@@ -304,9 +411,12 @@ export function ProjectTasksContent() {
         assigneeId: filters.assigneeId || undefined,
         phaseId: filters.phaseId || undefined,
       },
+      sortBy: prefs?.sortBy,
+      sortOrder: prefs?.sortOrder,
+      columns: prefs?.listColumns,
       groupBy,
     }
-  }, [viewMode, search, filters, groupBy])
+  }, [viewMode, search, filters, groupBy, project?.id])
 
   if (projectError) {
     return (
@@ -345,6 +455,7 @@ export function ProjectTasksContent() {
           {currentUserId && (
             <SavedViewsDropdown
               projectId={project.id}
+              projectSlug={slug}
               currentUserId={currentUserId}
               onApplyView={applyView}
               onSaveCurrentView={() => setSaveViewModalOpen(true)}
@@ -352,6 +463,13 @@ export function ProjectTasksContent() {
               currentViewState={currentViewState}
             />
           )}
+          {workspaceId ? (
+            <ViewTemplatesMenu
+              workspaceId={workspaceId}
+              currentViewState={currentViewState}
+              onApplyTemplate={applyTemplateState}
+            />
+          ) : null}
 
           {/* Save View Button */}
           {hasUnsavedChanges && (
@@ -418,6 +536,13 @@ export function ProjectTasksContent() {
             <CalendarDays className="h-4 w-4 mr-2" />
             Calendar
           </Button>
+          <Button
+            variant={viewMode === 'timeline' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => handleViewModeChange('timeline')}
+          >
+            Timeline
+          </Button>
           {viewMode === 'kanban' && (
             <GroupBySelector value={groupBy} onChange={handleGroupByChange} />
           )}
@@ -479,6 +604,13 @@ export function ProjectTasksContent() {
             <CalendarView
               tasks={tasks}
               onTaskClick={(taskId) => openTask(router, pathname, new URLSearchParams(searchParams.toString()), taskId)}
+            />
+          </ErrorBoundary>
+        ) : viewMode === 'timeline' ? (
+          <ErrorBoundary errorMessage="Failed to load timeline view">
+            <TimelineView
+              tasks={tasks}
+              onSelectTask={(selectedId) => openTask(router, pathname, searchParams, selectedId)}
             />
           </ErrorBoundary>
         ) : viewMode === 'kanban' ? (
