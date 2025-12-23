@@ -262,7 +262,7 @@ development_status:
   # PM-10: Workflow Builder
   # Phase 3 | 5 stories | Custom workflows, automations
   # ===========================================
-  pm-10: backlog
+  pm-10: contexted
   pm-10-1-workflow-canvas: backlog
   pm-10-2-trigger-conditions: backlog
   pm-10-3-action-library: backlog
