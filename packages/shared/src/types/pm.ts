@@ -59,3 +59,6 @@ export const ListProjectsQuerySchema = z.object({
 export type CreateProjectInput = z.infer<typeof CreateProjectSchema>
 export type UpdateProjectInput = z.infer<typeof UpdateProjectSchema>
 export type ListProjectsQuery = z.infer<typeof ListProjectsQuerySchema>
+
+// Workflow types
+export * from './pm/workflow.types'

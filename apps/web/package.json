@@ -90,6 +90,7 @@
     "react-email": "^5.0.5",
     "react-hook-form": "^7.67.0",
     "react-markdown": "^10.1.0",
+    "reactflow": "^11.11.4",
     "recharts": "^3.5.1",
     "remark-gfm": "^4.0.1",
     "resend": "^6.5.2",

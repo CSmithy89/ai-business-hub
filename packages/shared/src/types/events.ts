@@ -134,6 +134,13 @@ export const EventTypes = {
   PM_CHECKPOINT_COMPLETED: 'pm.checkpoint.completed',
   PM_CHECKPOINT_REMINDER_SENT: 'pm.checkpoint.reminder_sent',
 
+  // PM Workflow events (Epic PM-10)
+  PM_WORKFLOW_CREATED: 'pm.workflow.created',
+  PM_WORKFLOW_UPDATED: 'pm.workflow.updated',
+  PM_WORKFLOW_DELETED: 'pm.workflow.deleted',
+  PM_WORKFLOW_ACTIVATED: 'pm.workflow.activated',
+  PM_WORKFLOW_PAUSED: 'pm.workflow.paused',
+
   // KB events (bm-pm Knowledge Base)
   KB_PAGE_CREATED: 'kb.page.created',
   KB_PAGE_UPDATED: 'kb.page.updated',

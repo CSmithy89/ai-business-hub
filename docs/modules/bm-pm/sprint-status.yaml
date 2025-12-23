@@ -263,7 +263,7 @@ development_status:
   # Phase 3 | 5 stories | Custom workflows, automations
   # ===========================================
   pm-10: contexted
-  pm-10-1-workflow-canvas: backlog
+  pm-10-1-workflow-canvas: done
   pm-10-2-trigger-conditions: backlog
   pm-10-3-action-library: backlog
   pm-10-4-workflow-testing: backlog
