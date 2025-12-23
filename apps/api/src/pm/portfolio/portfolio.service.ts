@@ -46,8 +46,9 @@ export class PortfolioService {
         await redis.set(versionKey, version, 'EX', 86400) // 24h
       }
       return version
-    } catch {
-      return 'no-cache'
+    } catch (error) {
+      this.logger.error(`Cache version get error: ${error instanceof Error ? error.message : String(error)}`)
+      return 'offline'
     }
   }
 
@@ -55,7 +56,6 @@ export class PortfolioService {
     try {
       const redis = this.redisProvider.getClient()
       const versionKey = `pm:portfolio:version:${workspaceId}`
-      await redis.incr(versionKey) // Incrementing a timestamp-like string works if it's numeric, or just set new timestamp
       await redis.set(versionKey, Date.now().toString(), 'EX', 86400)
       this.logger.log(`Invalidated portfolio cache for workspace ${workspaceId}`)
     } catch (error) {
@@ -250,7 +250,11 @@ export class PortfolioService {
       },
     }
 
-    await this.setCachedPortfolio(cacheKey, response)
+    // Don't write to cache if we are in offline mode to avoid polluting keys
+    if (version !== 'offline') {
+      await this.setCachedPortfolio(cacheKey, response)
+    }
+    
     return response
   }
 

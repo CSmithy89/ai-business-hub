@@ -33,11 +33,8 @@ export function useCsrfRefresh() {
       }
     }
 
-    // Initial refresh on mount (optional, but good to ensure we have a fresh one if app was stale)
-    // Actually, on mount usually the app loads fresh. Let's strictly stick to the interval
-    // to avoid storming the server on every page load if not needed.
-    // However, if the user navigates back to the tab after 55 minutes, they might be close to expiry.
-    // For now, simple interval is a good start.
+    // Initial refresh on mount to handle stale tokens
+    refreshCsrfToken()
 
     const intervalId = setInterval(refreshCsrfToken, REFRESH_INTERVAL_MS)
 

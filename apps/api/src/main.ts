@@ -2,6 +2,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { MetricsService } from './metrics/metrics-service';
 import { CsrfGuard } from './common/guards/csrf.guard';
@@ -24,7 +25,8 @@ async function bootstrap() {
 
   // CSRF Protection Guard
   // Placed here to run after middleware but before interceptors
-  app.useGlobalGuards(new CsrfGuard());
+  const configService = app.get(ConfigService);
+  app.useGlobalGuards(new CsrfGuard(configService));
 
   // Global validation pipe for request validation
   app.useGlobalPipes(

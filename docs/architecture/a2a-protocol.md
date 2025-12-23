@@ -216,3 +216,48 @@ X-Agent-ID: <caller_agent_id>
 
 *   **Streaming RPC:** Using JSON-RPC over WebSocket for real-time task updates.
 *   **Events:** Async event publishing (e.g., `contact_created`) via Webhooks or Message Bus (Redis/NATS).
+
+---
+
+## 7. CopilotKit Bridge Integration
+
+While A2A handles internal agent-to-agent communication, **CopilotKit** acts as the gateway between the frontend and the A2A network.
+
+### 7.1 The "Gateway Agent" Pattern
+
+A specialized "Gateway Agent" is registered with CopilotKit. This agent has access to the `AgentRegistry` and uses A2A RPC to delegate user requests to the appropriate internal agents.
+
+**Conceptual Implementation:**
+
+```python
+# agents/bridge.py
+from copilotkit import CopilotKitSDK, LangGraphAgent
+from agents.registry import registry
+
+async def dashboard_gateway(state: dict):
+    user_input = state["messages"][-1].content
+    
+    # 1. Discovery via A2A
+    # Find agents supporting the user's intent
+    cards = registry.list_cards()
+    
+    # 2. Orchestration via A2A RPC
+    # Call the 'pm' agent for project queries
+    pm_team = registry.get_team("planning")
+    response = await pm_team.arun(user_input)
+    
+    # 3. Return to CopilotKit
+    return {"messages": [AIMessage(content=response.content)]}
+
+sdk = CopilotKitSDK(
+    agents=[
+        LangGraphAgent(name="dashboard", graph=dashboard_gateway)
+    ]
+)
+```
+
+### 7.2 Benefits
+
+1.  **Unified Frontend:** The frontend only needs to talk to one CopilotKit endpoint.
+2.  **Decoupled Backend:** Internal A2A agents can be updated, added, or moved without changing the frontend configuration.
+3.  **Security:** CopilotKit handles JWT validation and session management, while A2A handles tenant isolation between internal services.

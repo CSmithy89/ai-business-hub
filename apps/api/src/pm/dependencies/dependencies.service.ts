@@ -14,57 +14,81 @@ export class DependenciesService {
     this.logger.log(`Fetching dependencies list for workspace ${workspaceId}`)
 
     try {
-      const andFilters: Prisma.TaskRelationWhereInput[] = [
-        { sourceTask: { workspaceId, deletedAt: null } },
-        { targetTask: { workspaceId, deletedAt: null } },
-      ]
-
-      if (query.projectId) {
-        andFilters.push({
-          OR: [
-            { sourceTask: { projectId: query.projectId } },
-            { targetTask: { projectId: query.projectId } },
-          ],
-        })
-      }
-
-      const where: Prisma.TaskRelationWhereInput = {
-        ...(query.relationType ? { relationType: query.relationType } : {}),
-        AND: andFilters,
-      }
-
       const limit = query.limit ?? 50
       const offset = query.offset ?? 0
-
-      // 1. Fetch ALL lightweight relations matching the base criteria
-      // We do this to handle cross-project filtering accurately before pagination
-      // This is efficient enough for typical workspace sizes (<10k relations)
-      const allRelations = await this.prisma.taskRelation.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          sourceTask: { select: { projectId: true } },
-          targetTask: { select: { projectId: true } },
-        },
-      })
-
       const crossProjectOnly = query.crossProjectOnly !== false
 
-      // 2. Apply filtering in memory
-      const filtered = crossProjectOnly
-        ? allRelations.filter((relation) => {
-            if (!relation.sourceTask.projectId || !relation.targetTask.projectId) return false
-            return relation.sourceTask.projectId !== relation.targetTask.projectId
-          })
-        : allRelations
+      let resultIds: string[] = []
+      let total = 0
 
-      // 3. Calculate pagination metadata based on filtered results
-      const total = filtered.length
-      const paginatedIds = filtered.slice(offset, offset + limit).map((r) => r.id)
+      if (crossProjectOnly) {
+        // Optimized Raw SQL for Cross-Project Filtering
+        // Prisma does not support comparing two fields in the same 'where' clause (source.projectId != target.projectId)
+        // So we use raw SQL to push this filtering to the database level.
+        
+        const projectIdFilter = query.projectId
+          ? Prisma.sql`AND (s.project_id = ${query.projectId} OR t.project_id = ${query.projectId})`
+          : Prisma.sql``
+
+        const relationTypeFilter = query.relationType
+          ? Prisma.sql`AND r.relation_type = ${query.relationType}::"TaskRelationType"`
+          : Prisma.sql``
+
+        const rawRelations = await this.prisma.$queryRaw<{ id: string }[]>`
+          SELECT r.id
+          FROM task_relations r
+          JOIN tasks s ON r.source_task_id = s.id
+          JOIN tasks t ON r.target_task_id = t.id
+          WHERE s.workspace_id = ${workspaceId}
+            AND t.workspace_id = ${workspaceId}
+            AND s.deleted_at IS NULL
+            AND t.deleted_at IS NULL
+            AND s.project_id != t.project_id
+            ${projectIdFilter}
+            ${relationTypeFilter}
+          ORDER BY r.created_at DESC
+        `
+        
+        resultIds = rawRelations.map((r) => r.id)
+        total = resultIds.length
+      } else {
+        // Standard Prisma Query for All Relations (Intra + Cross)
+        const andFilters: Prisma.TaskRelationWhereInput[] = [
+          { sourceTask: { workspaceId, deletedAt: null } },
+          { targetTask: { workspaceId, deletedAt: null } },
+        ]
+
+        if (query.projectId) {
+          andFilters.push({
+            OR: [
+              { sourceTask: { projectId: query.projectId } },
+              { targetTask: { projectId: query.projectId } },
+            ],
+          })
+        }
+
+        const where: Prisma.TaskRelationWhereInput = {
+          ...(query.relationType ? { relationType: query.relationType } : {}),
+          AND: andFilters,
+        }
+
+        // Fetch ALL lightweight relations matching the base criteria
+        // We do this to handle pagination accurately before fetching full details
+        const allRelations = await this.prisma.taskRelation.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          select: { id: true },
+        })
+        
+        resultIds = allRelations.map((r) => r.id)
+        total = resultIds.length
+      }
+
+      // Pagination
+      const paginatedIds = resultIds.slice(offset, offset + limit)
       const hasMore = offset + limit < total
 
-      // 4. Fetch full details for the current page
+      // Fetch full details for the current page
       const paged =
         paginatedIds.length > 0
           ? await this.prisma.taskRelation.findMany({
