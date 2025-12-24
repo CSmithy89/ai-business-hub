@@ -1,10 +1,12 @@
 # BM-Content - Content Marketing Management
 
-> **Status:** Planning | **Parent:** BM-Marketing | **Priority:** P2
+> **Status:** Planning | **Type:** Standalone Module | **Priority:** P2
 
 ## Overview
 
-BM-Content is an extension module for BM-Marketing that provides comprehensive content marketing capabilities. It handles content creation, asset management, editorial planning, content repurposing, and multi-channel distribution to support marketing campaigns.
+BM-Content is a **standalone module** providing comprehensive content marketing capabilities. It handles content creation, asset management, editorial planning, content repurposing, and multi-channel distribution.
+
+**Standalone with Built-in Analytics:** Includes its own content performance dashboard. Provides assets to any installed module via A2A. When BM-Analytics is installed, AI-powered content optimization recommendations are enabled.
 
 ## Agent Team (6)
 
@@ -19,15 +21,17 @@ BM-Content is an extension module for BM-Marketing that provides comprehensive c
 
 ## Key Integrations
 
-**Requires:**
-- BM-Marketing (parent module - campaign themes, audience targeting)
-- BM-Brand (brand guidelines, voice, visual identity)
+**Standalone Module** - Works independently with full functionality.
 
-**Consumed By:**
-- BM-Email (email content assets)
-- BM-Social (social media content)
-- BM-Ads (ad creative assets)
-- BM-SEO (optimized content for search)
+**Enhanced When Installed With:**
+- BM-Brand (brand guidelines, voice, visual identity)
+- BM-Marketing (campaign-coordinated content)
+- BM-Email (provides email content assets)
+- BM-Social (provides social media content)
+- BM-Ads (provides ad creative assets)
+- BM-SEO (SEO-optimized content, keyword research)
+- BM-Analytics (AI-powered content recommendations)
+- Core-PM (editorial projects and tasks)
 
 **Event Patterns:**
 - `content.asset.created` - New content piece drafted
@@ -53,4 +57,4 @@ BM-Content is an extension module for BM-Marketing that provides comprehensive c
 
 ---
 
-*Module Status: Awaiting implementation after BM-Marketing core*
+*Module Status: Standalone module - works independently, enhanced with other modules*

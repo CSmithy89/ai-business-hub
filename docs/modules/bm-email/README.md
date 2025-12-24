@@ -1,10 +1,12 @@
 # BM-Email - Email Marketing Automation
 
-> **Status:** Planning | **Parent:** BM-Marketing | **Priority:** P2
+> **Status:** Planning | **Type:** Standalone Module | **Priority:** P2
 
 ## Overview
 
-BM-Email is an extension module for BM-Marketing that provides comprehensive email marketing automation capabilities. It handles email sequences, template management, deliverability optimization, analytics tracking, and compliance monitoring for marketing campaigns.
+BM-Email is a **standalone module** providing comprehensive email marketing automation capabilities. It handles email sequences, template management, deliverability optimization, analytics tracking, and compliance monitoring.
+
+**Standalone with Built-in Analytics:** Includes its own email analytics dashboard (opens, clicks, conversions). When BM-Marketing is installed, email becomes a coordinated campaign channel. When BM-Analytics is installed, AI-powered optimization recommendations are enabled.
 
 ## Agent Team (6)
 
@@ -19,12 +21,14 @@ BM-Email is an extension module for BM-Marketing that provides comprehensive ema
 
 ## Key Integrations
 
-**Requires:**
-- BM-Marketing (parent module - campaign context, audience segments)
+**Standalone Module** - Works independently with full functionality.
 
-**Consumed By:**
-- BM-CRM (contact engagement tracking, lead scoring signals)
-- BM-Content (email content assets)
+**Enhanced When Installed With:**
+- BM-Marketing (coordinated as campaign channel, audience segments)
+- BM-CRM (contact data, engagement tracking, lead scoring)
+- BM-Content (shared content assets)
+- BM-Analytics (AI-powered send time optimization)
+- Core-PM (email campaign projects)
 
 **Event Patterns:**
 - `email.sequence.started` - Sequence initiated for contact
@@ -52,4 +56,4 @@ BM-Email is an extension module for BM-Marketing that provides comprehensive ema
 
 ---
 
-*Module Status: Awaiting implementation after BM-Marketing core*
+*Module Status: Standalone module - works independently, enhanced with other modules*

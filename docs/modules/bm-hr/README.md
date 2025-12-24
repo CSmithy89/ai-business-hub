@@ -1,10 +1,12 @@
 # BM-HR - Human Resources Management
 
-> **Status:** Planning | **Priority:** P3
+> **Status:** Planning | **Type:** Standalone Module | **Priority:** P3
 
 ## Overview
 
-BM-HR provides comprehensive human resources management capabilities including talent sourcing, resume screening, interview scheduling, hiring workflows, and people operations. It helps businesses automate HR processes while maintaining the human touch for strategic decisions.
+BM-HR is a **standalone module** providing comprehensive human resources management capabilities including talent sourcing, resume screening, interview scheduling, hiring workflows, and people operations.
+
+**Standalone with Built-in Analytics:** Includes its own HR analytics dashboard (time-to-hire, pipeline velocity, retention). Works independently with full functionality.
 
 ## Agent Team (5)
 
@@ -18,12 +20,12 @@ BM-HR provides comprehensive human resources management capabilities including t
 
 ## Key Integrations
 
-**Requires:**
-- Core-PM (project management for hiring pipelines)
+**Standalone Module** - Works independently with full functionality.
 
-**Consumed By:**
-- Core-PM (onboarding projects when candidates hired)
+**Enhanced When Installed With:**
+- Core-PM (hiring pipeline projects, onboarding projects)
 - BM-Finance (payroll, compensation data)
+- BM-Analytics (AI-powered hiring recommendations)
 
 **Event Patterns:**
 - `hr.candidate.sourced` - New candidate identified
@@ -52,4 +54,4 @@ BM-HR provides comprehensive human resources management capabilities including t
 
 ---
 
-*Module Status: Awaiting prioritization after core modules*
+*Module Status: Standalone module - works independently, enhanced with other modules*

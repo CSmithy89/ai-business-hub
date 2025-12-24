@@ -1,10 +1,12 @@
 # BM-SEO - Search Engine Optimization
 
-> **Status:** Planning | **Parent:** BM-Marketing | **Priority:** P2
+> **Status:** Planning | **Type:** Standalone Module | **Priority:** P2
 
 ## Overview
 
-BM-SEO is an extension module for BM-Marketing that provides comprehensive search engine optimization capabilities. It handles site auditing, keyword research, on-page optimization, technical SEO, and rank tracking to improve organic search visibility.
+BM-SEO is a **standalone module** providing comprehensive search engine optimization capabilities. It handles site auditing, keyword research, on-page optimization, technical SEO, and rank tracking to improve organic search visibility.
+
+**Standalone with Built-in Analytics:** Includes its own SEO analytics dashboard. When BM-Marketing is installed, campaigns can include SEO as a channel. When BM-Analytics is installed, AI-powered SEO recommendations are enabled.
 
 ## Agent Team (5)
 
@@ -18,13 +20,14 @@ BM-SEO is an extension module for BM-Marketing that provides comprehensive searc
 
 ## Key Integrations
 
-**Requires:**
-- BM-Marketing (parent module - marketing goals, target audiences)
+**Standalone Module** - Works independently with full functionality.
 
-**Consumed By:**
-- BM-Content (content optimization recommendations)
-- BM-Ads (keyword intelligence for paid campaigns)
-- Core-PM (SEO tasks and projects)
+**Enhanced When Installed With:**
+- BM-Marketing (included in multi-channel campaigns)
+- BM-Content (shares keyword research for content optimization)
+- BM-Ads (shares keyword intelligence for paid campaigns)
+- BM-Analytics (AI-powered ranking recommendations)
+- Core-PM (SEO projects and task tracking)
 
 **Event Patterns:**
 - `seo.audit.started` - Site crawl initiated
@@ -51,4 +54,4 @@ BM-SEO is an extension module for BM-Marketing that provides comprehensive searc
 
 ---
 
-*Module Status: Awaiting implementation after BM-Marketing core*
+*Module Status: Standalone module - works independently, enhanced with other modules*

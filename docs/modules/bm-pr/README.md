@@ -1,10 +1,12 @@
 # BM-PR - Public Relations
 
-> **Status:** Planning | **Priority:** P3
+> **Status:** Planning | **Type:** Standalone Module | **Priority:** P3
 
 ## Overview
 
-BM-PR provides comprehensive public relations capabilities including PR strategy, media relations, press release distribution, media coverage tracking, and journalist/outlet database management. It helps businesses build and maintain positive public perception through strategic communications.
+BM-PR is a **standalone module** providing comprehensive public relations capabilities including PR strategy, media relations, press release distribution, media coverage tracking, and journalist/outlet database management.
+
+**Standalone with Built-in Analytics:** Includes its own PR analytics dashboard (coverage, reach, sentiment). Works independently with full functionality.
 
 ## Agent Team (5)
 
@@ -18,13 +20,14 @@ BM-PR provides comprehensive public relations capabilities including PR strategy
 
 ## Key Integrations
 
-**Requires:**
+**Standalone Module** - Works independently with full functionality.
+
+**Enhanced When Installed With:**
 - BM-Brand (brand messaging, voice guidelines)
 - BM-Marketing (campaign alignment)
-
-**Consumed By:**
 - BM-Social (press coverage amplification)
 - BM-CRM (media contact management - extends Contact model)
+- BM-Analytics (AI-powered PR recommendations)
 - Core-PM (PR campaign projects)
 
 **Event Patterns:**
@@ -54,4 +57,4 @@ BM-PR provides comprehensive public relations capabilities including PR strategy
 
 ---
 
-*Module Status: Awaiting prioritization after core modules*
+*Module Status: Standalone module - works independently, enhanced with other modules*

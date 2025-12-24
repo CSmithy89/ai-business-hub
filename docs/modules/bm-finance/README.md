@@ -1,10 +1,12 @@
 # BM-Finance - Finance & Accounting
 
-> **Status:** Planning | **Priority:** P3
+> **Status:** Planning | **Type:** Standalone Module | **Priority:** P3
 
 ## Overview
 
-BM-Finance provides comprehensive financial management capabilities including transaction categorization, accounts receivable/invoicing, cash flow strategy, and expense auditing. It helps businesses maintain financial health with AI-assisted bookkeeping and strategic financial guidance.
+BM-Finance is a **standalone module** providing comprehensive financial management capabilities including transaction categorization, accounts receivable/invoicing, cash flow strategy, and expense auditing.
+
+**Standalone with Built-in Analytics:** Includes its own financial analytics dashboard (cash flow, P&L, budgets). Works independently with full functionality.
 
 ## Agent Team (4)
 
@@ -17,15 +19,16 @@ BM-Finance provides comprehensive financial management capabilities including tr
 
 ## Key Integrations
 
-**Requires:**
-- Core-PM (financial project tracking)
+**Standalone Module** - Works independently with full functionality.
 
-**Consumed By:**
+**Enhanced When Installed With:**
+- Core-PM (financial project tracking)
 - BM-CRM (deal financial data, customer payment status)
 - BM-Sales (order invoicing, commission calculations)
 - BM-HR (payroll, compensation)
 - BM-Ads (ad spend tracking, ROI)
 - BM-Marketing (budget tracking)
+- BM-Analytics (AI-powered financial recommendations)
 
 **Event Patterns:**
 - `finance.invoice.created` - New invoice generated
@@ -54,4 +57,4 @@ BM-Finance provides comprehensive financial management capabilities including tr
 
 ---
 
-*Module Status: Awaiting prioritization after core modules*
+*Module Status: Standalone module - works independently, enhanced with other modules*

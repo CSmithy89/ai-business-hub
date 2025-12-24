@@ -31,13 +31,23 @@ This document is the authoritative reference for:
 | Category | Purpose | Modules |
 |----------|---------|---------|
 | **Platform Core** | Foundation infrastructure | Core-PM |
-| **BUILD Phase** | Business creation/planning | BMV, BMP, BM-Brand, BM-Marketing* |
-| **OPERATE Phase** | Day-to-day operations | BM-CRM, BM-Sales**, BM-Social**, BM-Email**, BM-Content**, BM-SEO**, BM-Ads**, BM-Support, BM-HR, BM-Finance, BM-PR |
-| **Horizontal Services** | Cross-cutting capabilities | BM-Support***, BMT (Analytics) |
+| **BUILD Phase** | Business creation/planning | BMV, BMP, BM-Brand, BM-Marketing |
+| **OPERATE Phase** | Day-to-day operations | BM-CRM, BM-Sales*, BM-Email, BM-Social, BM-SEO, BM-Ads, BM-Support, BM-HR, BM-Finance, BM-PR |
+| **Horizontal Services** | Cross-cutting capabilities | BM-Analytics |
 
-> *BM-Marketing requires BM-Brand, enables tactical marketing extensions
-> **Extension modules: BM-Sales requires BM-CRM; BM-Social/Email/Content/SEO/Ads require BM-Marketing
-> ***BM-Support is consumed by CRM, Marketing, Sales as a horizontal service
+> *BM-Sales is the only extension module requiring BM-CRM (shared contact/deal data)
+> All other OPERATE modules are **standalone** - they work independently but integrate via A2A when multiple are installed
+> BM-Analytics aggregates metrics from all installed modules and provides AI-powered insights
+
+### Module Architecture Philosophy
+
+**"Complete Modules, Automatic Integration"**
+
+1. **Every module is complete** - Full agent team, built-in analytics dashboard, all features included
+2. **CRM owns contact data** - Other modules read via A2A when CRM is installed
+3. **Automatic discovery** - Modules find each other via A2A AgentCards, no configuration needed
+4. **BM-Marketing orchestrates** - Coordinates multi-channel campaigns across installed modules
+5. **BM-Analytics enhances** - Adds AI insights, recommendations, and automated optimizations
 
 ### Module Status Matrix
 
@@ -47,20 +57,21 @@ This document is the authoritative reference for:
 | **BMP** (Planning) | BUILD | Complete | Active | 5 | P0 - Done |
 | **BM-Brand** (Branding) | BUILD | Complete | Active | 6 | P0 - Done |
 | **Core-PM** (Project Mgmt) | CORE | Complete | In Progress | 8 | P0 - Active |
+| **BM-Marketing** (Campaign Orchestrator) | BUILD | Complete | Not Started | 6 | P1 |
 | **BM-CRM** (CRM) | OPERATE | Complete | Partial | 8 | P1 |
-| **BM-Sales** (Sales) | OPERATE | Complete | Not Started | 6 | P1 (after CRM) |
-| **BM-Marketing** (Marketing) | BUILD | Complete | Not Started | 6 | P1 (after CRM) |
-| **BM-Email** (Email) | OPERATE | Complete | Not Started | 6 | P2 (after Marketing) |
-| **BM-Content** (Content) | OPERATE | Complete | Not Started | 6 | P2 (after Marketing) |
-| **BM-SEO** (SEO) | OPERATE | Complete | Not Started | 5 | P2 (after Marketing) |
-| **BM-Ads** (Ads) | OPERATE | Complete | Not Started | 6 | P2 (after Marketing) |
-| **BM-Social** (Social) | OPERATE | Research | Not Started | 18 | P2 (after Marketing) |
-| **BM-Support** (Support) | OPERATE | Research | Not Started | 8 | P2 |
-| **BM-HR** (HR) | OPERATE | Brief | Not Started | 5 | P3 |
-| **BM-Finance** (Finance) | OPERATE | Brief | Not Started | 4 | P3 |
-| **BM-PR** (PR) | OPERATE | Brief | Not Started | 5 | P3 |
+| **BM-Sales** (Sales) | OPERATE | Complete | Not Started | 6 | P1 (requires CRM) |
+| **BM-Email** (Email) | OPERATE | Complete | Not Started | 6 | P2 - Standalone |
+| **BM-Social** (Social) | OPERATE | Research | Not Started | 18 | P2 - Standalone |
+| **BM-SEO** (SEO) | OPERATE | Complete | Not Started | 5 | P2 - Standalone |
+| **BM-Ads** (Ads) | OPERATE | Complete | Not Started | 6 | P2 - Standalone |
+| **BM-Support** (Support) | OPERATE | Research | Not Started | 8 | P2 - Standalone |
+| **BM-Content** (Content) | OPERATE | Complete | Not Started | 6 | P2 - Standalone |
+| **BM-Analytics** (AI Analytics) | HORIZONTAL | Planned | Not Started | 4 | P2 |
+| **BM-HR** (HR) | OPERATE | Brief | Not Started | 5 | P3 - Standalone |
+| **BM-Finance** (Finance) | OPERATE | Brief | Not Started | 4 | P3 - Standalone |
+| **BM-PR** (PR) | OPERATE | Brief | Not Started | 5 | P3 - Standalone |
 
-**Total Agents Defined:** 107
+**Total Agents Defined:** 111 (107 + 4 BM-Analytics)
 
 ---
 
@@ -153,7 +164,7 @@ Reserved platform handles:
 | `@bm-sales.region` | Region | Territory Manager | Planned |
 | `@bm-sales.bounty` | Bounty | Commission Tracker | Planned |
 
-> **Note:** BM-Sales is an **extension module** requiring BM-CRM. Sterling coordinates with Clara for CRM→Sales workflows.
+> **Note:** BM-Sales **requires BM-CRM** (shared contact/deal data). Sterling coordinates with Clara for CRM→Sales workflows.
 
 ### BM-Marketing - Marketing Strategy (6) - BUILD Phase
 
@@ -166,9 +177,9 @@ Reserved platform handles:
 | `@bm-marketing.budget` | Budget | Marketing Economist | Planned |
 | `@bm-marketing.measure` | Measure | Attribution Analyst | Planned |
 
-> **Note:** BM-Marketing is a **BUILD phase** module requiring BM-Brand. Enables tactical marketing extensions (Email, Content, SEO, Ads, Social).
+> **Note:** BM-Marketing is a **BUILD phase** campaign orchestrator. Coordinates multi-channel campaigns across installed OPERATE modules via A2A discovery.
 
-### BM-Email - Email Marketing (6) - Marketing Extension
+### BM-Email - Email Marketing (6) - Standalone
 
 | Handle | Display Name | Role | Status |
 |--------|--------------|------|--------|
@@ -179,9 +190,9 @@ Reserved platform handles:
 | `@bm-email.track` | Track | Analytics Tracker | Planned |
 | `@bm-email.comply` | Comply | Compliance Monitor | Planned |
 
-> **Note:** BM-Email is an **extension module** requiring BM-Marketing.
+> **Note:** BM-Email is **standalone** with built-in analytics. When BM-Marketing is installed, campaigns are coordinated via A2A.
 
-### BM-Content - Content Marketing (6) - Marketing Extension
+### BM-Content - Content Marketing (6) - Standalone
 
 | Handle | Display Name | Role | Status |
 |--------|--------------|------|--------|
@@ -192,9 +203,9 @@ Reserved platform handles:
 | `@bm-content.repurpose` | Repurpose | Content Atomizer | Planned |
 | `@bm-content.calendar` | Calendar | Editorial Planner | Planned |
 
-> **Note:** BM-Content is an **extension module** requiring BM-Marketing.
+> **Note:** BM-Content is **standalone** with built-in analytics. Provides assets to any installed module via A2A.
 
-### BM-SEO - Search Optimization (5) - Marketing Extension
+### BM-SEO - Search Optimization (5) - Standalone
 
 | Handle | Display Name | Role | Status |
 |--------|--------------|------|--------|
@@ -204,9 +215,9 @@ Reserved platform handles:
 | `@bm-seo.technical` | Technical | Technical SEO Specialist | Planned |
 | `@bm-seo.rank` | Rank | Rank Tracker | Planned |
 
-> **Note:** BM-SEO is an **extension module** requiring BM-Marketing.
+> **Note:** BM-SEO is **standalone** with built-in analytics. Shares keyword intelligence with BM-Content and BM-Ads via A2A when installed.
 
-### BM-Ads - Paid Advertising (6) - Marketing Extension
+### BM-Ads - Paid Advertising (6) - Standalone
 
 | Handle | Display Name | Role | Status |
 |--------|--------------|------|--------|
@@ -217,7 +228,7 @@ Reserved platform handles:
 | `@bm-ads.google` | Google | Google Ads Specialist | Planned |
 | `@bm-ads.meta` | Meta | Meta Ads Specialist | Planned |
 
-> **Note:** BM-Ads is an **extension module** requiring BM-Marketing.
+> **Note:** BM-Ads is **standalone** with built-in analytics. Reads audience segments from BM-Marketing via A2A when installed.
 
 ### BM-Social - Social Media Management (18)
 
@@ -307,6 +318,17 @@ Reserved platform handles:
 | `@bm-pr.contacts` | Contacts | Media Database | Planned |
 
 > **Note:** Names simplified for consistency (`Pitch Perfect` → `Pitcher`, etc.).
+
+### BM-Analytics - AI Analytics (4) - Horizontal Service
+
+| Handle | Display Name | Role | Status |
+|--------|--------------|------|--------|
+| `@bm-analytics.cortex` | Cortex | Team Lead / Orchestrator | Planned |
+| `@bm-analytics.insight` | Insight | Pattern Detector | Planned |
+| `@bm-analytics.recommend` | Recommend | Recommendation Engine | Planned |
+| `@bm-analytics.automate` | Automate | Automated Optimizer | Planned |
+
+> **Note:** BM-Analytics is a **horizontal service** that enhances all installed modules. Aggregates metrics via A2A, provides AI-powered insights, recommendations, and automated optimizations. Each module has built-in analytics; BM-Analytics adds intelligence.
 
 ---
 
@@ -631,19 +653,20 @@ Agents can call tools from other modules via the platform:
 | BMP | 5 | 0 | 0 | 5 |
 | BM-Brand | 6 | 0 | 0 | 6 |
 | Core-PM | 0 | 6 | 2 | 8 |
+| BM-Marketing | 0 | 0 | 6 | 6 |
 | BM-CRM | 0 | 3 | 5 | 8 |
 | BM-Sales | 0 | 0 | 6 | 6 |
-| BM-Marketing | 0 | 0 | 6 | 6 |
 | BM-Email | 0 | 0 | 6 | 6 |
-| BM-Content | 0 | 0 | 6 | 6 |
+| BM-Social | 0 | 0 | 18 | 18 |
 | BM-SEO | 0 | 0 | 5 | 5 |
 | BM-Ads | 0 | 0 | 6 | 6 |
-| BM-Social | 0 | 0 | 18 | 18 |
 | BM-Support | 0 | 0 | 8 | 8 |
+| BM-Content | 0 | 0 | 6 | 6 |
+| BM-Analytics | 0 | 0 | 4 | 4 |
 | BM-HR | 0 | 0 | 5 | 5 |
 | BM-Finance | 0 | 0 | 4 | 4 |
 | BM-PR | 0 | 0 | 5 | 5 |
-| **Total** | **18** | **9** | **82** | **107** |
+| **Total** | **18** | **9** | **86** | **111** |
 
 ---
 
@@ -652,23 +675,31 @@ Agents can call tools from other modules via the platform:
 ### Agent Handles by Module
 
 ```
+# Platform Core
 @platform.{navigator|sentinel}
+
+# BUILD Phase
 @bmv.{vera|marco|cipher|persona|risk}
 @bmp.{blake|model|finance|revenue|forecast}
 @bm-brand.{bella|sage|vox|iris|artisan|audit}
+@bm-marketing.{maven|channel|segment|campaign|budget|measure}  ← Campaign Orchestrator
 @core-pm.{navi|oracle|herald|chrono|scope|vitals|scribe|prism}
+
+# OPERATE Phase - Standalone Modules
 @bm-crm.{clara|scout|atlas|flow|tracker|sync|guardian|cadence}
-@bm-sales.{sterling|quota|order|price|region|bounty}  ← Extension of CRM
-@bm-marketing.{maven|channel|segment|campaign|budget|measure}  ← BUILD Phase
-@bm-email.{dispatch|sequence|template|deliver|track|comply}  ← Marketing Extension
-@bm-content.{editor|writer|visual|library|repurpose|calendar}  ← Marketing Extension
-@bm-seo.{crawler|keyword|onpage|technical|rank}  ← Marketing Extension
-@bm-ads.{buyer|creative|target|bid|google|meta}  ← Marketing Extension
-@bm-social.{conductor|spark|tempo|metrics|engage|trends|...}  ← Marketing Extension
+@bm-sales.{sterling|quota|order|price|region|bounty}  ← Requires CRM
+@bm-email.{dispatch|sequence|template|deliver|track|comply}
+@bm-social.{conductor|spark|tempo|metrics|engage|trends|...}
+@bm-seo.{crawler|keyword|onpage|technical|rank}
+@bm-ads.{buyer|creative|target|bid|google|meta}
+@bm-content.{editor|writer|visual|library|repurpose|calendar}
 @bm-support.{hub|triage|reply|automate|quality|captain|library|escalate}
 @bm-hr.{hunter|gatekeeper|scheduler|interviewer|culture}
 @bm-finance.{bookkeeper|controller|cfo|compliance}
 @bm-pr.{chief|pitcher|wire|monitor|contacts}
+
+# Horizontal Service
+@bm-analytics.{cortex|insight|recommend|automate}  ← AI-Powered Enhancement
 ```
 
 ### Event Naming Convention
@@ -697,4 +728,5 @@ pm.task.completed
 
 *Document maintained by: Architecture Team*
 *Last updated: 2025-12-24*
-*BM-Marketing (BUILD phase) and extensions (Email, Content, SEO, Ads) added*
+*Architecture v2: "Complete Modules, Automatic Integration" - Standalone modules with A2A discovery*
+*BM-Analytics added as horizontal service (4 agents). Total: 111 agents across 18 modules.*

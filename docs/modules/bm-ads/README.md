@@ -1,10 +1,12 @@
 # BM-Ads - Paid Advertising Management
 
-> **Status:** Planning | **Parent:** BM-Marketing | **Priority:** P2
+> **Status:** Planning | **Type:** Standalone Module | **Priority:** P2
 
 ## Overview
 
-BM-Ads is an extension module for BM-Marketing that provides comprehensive paid advertising capabilities. It handles media buying, ad creative management, audience targeting, bid optimization, and platform-specific campaign management for Google Ads and Meta Ads.
+BM-Ads is a **standalone module** providing comprehensive paid advertising capabilities. It handles media buying, ad creative management, audience targeting, bid optimization, and platform-specific campaign management for Google Ads and Meta Ads.
+
+**Standalone with Built-in Analytics:** Includes its own ad performance dashboard (ROAS, CPA, conversions). When BM-Marketing is installed, audience segments can be shared. When BM-Analytics is installed, AI-powered bid optimization and budget recommendations are enabled.
 
 ## Agent Team (6)
 
@@ -19,13 +21,16 @@ BM-Ads is an extension module for BM-Marketing that provides comprehensive paid 
 
 ## Key Integrations
 
-**Requires:**
-- BM-Marketing (parent module - campaign strategy, budgets, audiences)
-- BM-Brand (brand guidelines for ad creative)
+**Standalone Module** - Works independently with full functionality.
 
-**Consumed By:**
+**Enhanced When Installed With:**
+- BM-Marketing (audience segments, campaign coordination)
+- BM-Brand (brand guidelines for ad creative)
+- BM-SEO (keyword intelligence for search ads)
 - BM-CRM (lead attribution, conversion tracking)
+- BM-Content (creative assets)
 - BM-Finance (ad spend tracking, ROI reporting)
+- BM-Analytics (AI-powered bid optimization)
 - Core-PM (campaign projects and tasks)
 
 **Event Patterns:**
@@ -53,4 +58,4 @@ BM-Ads is an extension module for BM-Marketing that provides comprehensive paid 
 
 ---
 
-*Module Status: Awaiting implementation after BM-Marketing core*
+*Module Status: Standalone module - works independently, enhanced with other modules*
