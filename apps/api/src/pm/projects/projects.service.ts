@@ -108,6 +108,8 @@ export class ProjectsService {
     const page = query.page ?? 1
     const limit = Math.min(query.limit ?? 20, 100)
     const skip = (page - 1) * limit
+    const sortBy = query.sortBy ?? 'updatedAt'
+    const sortOrder = query.sortOrder ?? 'desc'
 
     const where: Prisma.ProjectWhereInput = {
       workspaceId,
@@ -129,7 +131,7 @@ export class ProjectsService {
       this.prisma.project.count({ where }),
       this.prisma.project.findMany({
         where,
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { [sortBy]: sortOrder },
         skip,
         take: limit,
         select: {

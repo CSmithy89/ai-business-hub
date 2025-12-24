@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, Req } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, UseGuards, Req } from '@nestjs/common'
 import { ApiOperation, ApiParam, ApiResponse, ApiTags, ApiSecurity } from '@nestjs/swagger'
 import { Request } from 'express'
 import { API_SCOPES } from '@hyvve/shared'
@@ -9,12 +9,13 @@ import { ListProjectsQueryDto } from './dto/list-projects-query.dto'
 import { PaginatedResponse } from './dto/paginated-response.dto'
 import { ApiKeyGuard } from '@/common/guards/api-key.guard'
 import { ScopeGuard } from '@/common/guards/scope.guard'
+import { RateLimitGuard } from '@/common/guards/rate-limit.guard'
 import { Scopes } from '@/common/decorators/scopes.decorator'
 import { ApiAuthenticatedRequest } from '@/common/types/request-user'
 
 @ApiTags('projects')
 @Controller('api/v1/pm/projects')
-@UseGuards(ApiKeyGuard, ScopeGuard)
+@UseGuards(ApiKeyGuard, ScopeGuard, RateLimitGuard)
 @ApiSecurity('api-key')
 export class ProjectsApiController {
   constructor(private readonly projectsService: ProjectsService) {}
@@ -28,7 +29,7 @@ export class ProjectsApiController {
   async listProjects(@Query() query: ListProjectsQueryDto, @Req() request: Request & ApiAuthenticatedRequest) {
     const workspaceId = request.workspaceId
 
-    const { status, search, limit = 50, offset = 0, sortBy: _sortBy, sortOrder: _sortOrder } = query
+    const { status, search, limit = 50, offset = 0, sortBy = 'createdAt', sortOrder = 'desc' } = query
 
     // Build query for service
     const serviceQuery = {
@@ -36,6 +37,8 @@ export class ProjectsApiController {
       search,
       page: Math.floor(offset / limit) + 1,
       limit,
+      sortBy,
+      sortOrder,
     }
 
     const result = await this.projectsService.list(workspaceId, serviceQuery)
@@ -109,6 +112,7 @@ export class ProjectsApiController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   @Scopes(API_SCOPES.PM_ADMIN)
   @ApiOperation({ summary: 'Delete project (soft delete)' })
   @ApiParam({ name: 'id', description: 'Project ID' })

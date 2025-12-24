@@ -169,6 +169,20 @@ export class TasksService {
     const page = query.page ?? 1
     const limit = Math.min(query.limit ?? 20, 100)
     const skip = (page - 1) * limit
+    const sortBy = query.sortBy ?? 'createdAt'
+    const sortOrder = query.sortOrder ?? 'desc'
+
+    // Build due date filter conditions
+    const dueDateFilter: Prisma.TaskWhereInput = {}
+    if (query.dueAfter || query.dueBefore) {
+      dueDateFilter.dueDate = {}
+      if (query.dueAfter) {
+        dueDateFilter.dueDate.gte = new Date(query.dueAfter)
+      }
+      if (query.dueBefore) {
+        dueDateFilter.dueDate.lte = new Date(query.dueBefore)
+      }
+    }
 
     const where: Prisma.TaskWhereInput = {
       workspaceId,
@@ -181,6 +195,7 @@ export class TasksService {
       ...(query.assignmentType ? { assignmentType: query.assignmentType } : {}),
       ...(query.assigneeId ? { assigneeId: query.assigneeId } : {}),
       ...(query.parentId ? { parentId: query.parentId } : {}),
+      ...dueDateFilter,
       ...(query.label
         ? {
             labels: {
@@ -208,7 +223,7 @@ export class TasksService {
       this.prisma.task.count({ where }),
       this.prisma.task.findMany({
         where,
-        orderBy: [{ updatedAt: 'desc' }, { taskNumber: 'desc' }],
+        orderBy: [{ [sortBy]: sortOrder }, { taskNumber: 'desc' }],
         skip,
         take: limit,
         select: {

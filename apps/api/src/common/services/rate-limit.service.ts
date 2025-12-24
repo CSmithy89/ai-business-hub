@@ -67,6 +67,9 @@ export class RateLimitService implements OnModuleInit {
     const key = `${this.keyPrefix}${apiKeyId}`;
 
     try {
+      // Generate unique member suffix for ZSET to prevent same-millisecond request collapse
+      const uniqueSuffix = Math.random().toString(36).substring(2, 10);
+
       // Lua script for atomic rate limit check and increment
       // This prevents race conditions when multiple requests arrive simultaneously
       const luaScript = `
@@ -75,6 +78,7 @@ export class RateLimitService implements OnModuleInit {
         local window_start = tonumber(ARGV[2])
         local limit = tonumber(ARGV[3])
         local ttl = tonumber(ARGV[4])
+        local unique_suffix = ARGV[5]
 
         -- Remove expired entries
         redis.call('ZREMRANGEBYSCORE', key, 0, window_start)
@@ -82,12 +86,21 @@ export class RateLimitService implements OnModuleInit {
         -- Count current requests in window
         local current = redis.call('ZCARD', key)
 
-        -- Calculate reset time (next hour boundary)
-        local reset = math.ceil(now / 3600000) * 3600000
+        -- Calculate reset time based on oldest request + 1 hour (sliding window)
+        -- If no requests, use current time + 1 hour
+        local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+        local reset
+        if #oldest >= 2 then
+          -- oldest[2] is the score (timestamp) of the oldest request
+          reset = tonumber(oldest[2]) + 3600000
+        else
+          reset = now + 3600000
+        end
 
         if current < limit then
-          -- Add new request timestamp
-          redis.call('ZADD', key, now, now)
+          -- Add new request with unique member to prevent same-ms collisions
+          -- Member format: timestamp:uniqueSuffix (score is still the timestamp)
+          redis.call('ZADD', key, now, now .. ':' .. unique_suffix)
           -- Set expiry on the key (2 hours to be safe)
           redis.call('EXPIRE', key, ttl)
           return {limit, limit - current - 1, reset, 0}
@@ -105,6 +118,7 @@ export class RateLimitService implements OnModuleInit {
         windowStart.toString(),
         limit.toString(),
         '7200', // 2 hours in seconds
+        uniqueSuffix,
       ) as number[];
 
       return {

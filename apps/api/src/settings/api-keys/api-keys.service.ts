@@ -46,7 +46,7 @@ export class ApiKeysService {
         permissions: {
           scopes: data.scopes,
         },
-        rateLimit: data.rateLimit || 1000, // Default: 1000 requests/hour
+        rateLimit: data.rateLimit ?? 1000, // Default: 1000 requests/hour
         expiresAt: data.expiresAt,
       },
     })

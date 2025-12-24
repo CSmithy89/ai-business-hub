@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, Req } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, UseGuards, Req } from '@nestjs/common'
 import { ApiOperation, ApiParam, ApiResponse, ApiTags, ApiSecurity } from '@nestjs/swagger'
 import { Request } from 'express'
 import { API_SCOPES } from '@hyvve/shared'
@@ -7,12 +7,13 @@ import { CreateWebhookDto } from '@/settings/webhooks/dto/create-webhook.dto'
 import { UpdateWebhookDto } from '@/settings/webhooks/dto/update-webhook.dto'
 import { ApiKeyGuard } from '@/common/guards/api-key.guard'
 import { ScopeGuard } from '@/common/guards/scope.guard'
+import { RateLimitGuard } from '@/common/guards/rate-limit.guard'
 import { Scopes } from '@/common/decorators/scopes.decorator'
 import { ApiAuthenticatedRequest } from '@/common/types/request-user'
 
 @ApiTags('webhooks')
 @Controller('api/v1/webhooks')
-@UseGuards(ApiKeyGuard, ScopeGuard)
+@UseGuards(ApiKeyGuard, ScopeGuard, RateLimitGuard)
 @ApiSecurity('api-key')
 export class WebhooksApiController {
   constructor(private readonly webhooksService: WebhooksService) {}
@@ -83,6 +84,7 @@ export class WebhooksApiController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   @Scopes(API_SCOPES.WEBHOOK_WRITE)
   @ApiOperation({ summary: 'Delete webhook' })
   @ApiParam({ name: 'id', description: 'Webhook ID' })

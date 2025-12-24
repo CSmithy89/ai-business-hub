@@ -23,5 +23,5 @@ export type ApiScope = (typeof API_SCOPES)[keyof typeof API_SCOPES]
 
 export interface ApiKeyPermissions {
   scopes: ApiScope[]
-  rateLimit?: number // Requests per hour (default: 10000)
+  rateLimit?: number // Requests per hour (default: 1000)
 }

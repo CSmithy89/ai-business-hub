@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common'
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
+import { APP_INTERCEPTOR } from '@nestjs/core'
 import { BullModule } from '@nestjs/bullmq'
 import { ProjectsModule } from '../projects/projects.module'
 import { PhasesModule } from '../phases/phases.module'
@@ -8,7 +8,6 @@ import { SavedViewsModule } from '../saved-views/saved-views.module'
 import { WebhooksModule } from '@/settings/webhooks/webhooks.module'
 import { CommonModule } from '@/common/common.module'
 import { RateLimitService } from '@/common/services/rate-limit.service'
-import { RateLimitGuard } from '@/common/guards/rate-limit.guard'
 import { RateLimitInterceptor } from '@/common/interceptors/rate-limit.interceptor'
 import { ProjectsApiController } from './projects-api.controller'
 import { PhasesApiController } from './phases-api.controller'
@@ -34,7 +33,7 @@ import { WebhooksApiController } from './webhooks-api.controller'
  * Security:
  * - ApiKeyGuard: Validates API keys (applied per controller)
  * - ScopeGuard: Validates API scopes (applied per controller)
- * - RateLimitGuard: Enforces rate limits (applied globally in this module)
+ * - RateLimitGuard: Enforces rate limits (applied per controller, AFTER ApiKeyGuard)
  * - RateLimitInterceptor: Adds rate limit headers (applied globally in this module)
  */
 @Module({
@@ -57,10 +56,6 @@ import { WebhooksApiController } from './webhooks-api.controller'
   ],
   providers: [
     RateLimitService,
-    {
-      provide: APP_GUARD,
-      useClass: RateLimitGuard,
-    },
     {
       provide: APP_INTERCEPTOR,
       useClass: RateLimitInterceptor,

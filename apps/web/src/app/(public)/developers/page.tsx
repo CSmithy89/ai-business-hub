@@ -219,7 +219,8 @@ const response = await fetch('${API_BASE_URL}/api/v1/pm/projects?limit=50', {
     'X-API-Key': 'sk_prod_your_key_here'
   }
 });
-const { data, total, hasMore } = await response.json();`}
+const { data, pagination } = await response.json();
+// pagination: { total, limit, offset }`}
           />
 
           <ExampleCard

@@ -113,7 +113,32 @@ export class WebhookDeliveryService {
         body: JSON.stringify(delivery.payload),
       })
 
-      const responseBody = await response.text()
+      // Limit response body size to prevent memory exhaustion (max 64KB)
+      const MAX_RESPONSE_SIZE = 64 * 1024
+      const reader = response.body?.getReader()
+      let responseBody = ''
+
+      if (reader) {
+        const decoder = new TextDecoder()
+        let bytesRead = 0
+        let done = false
+
+        while (!done) {
+          const result = await reader.read()
+          done = result.done
+
+          if (result.value) {
+            bytesRead += result.value.length
+            if (bytesRead > MAX_RESPONSE_SIZE) {
+              responseBody += decoder.decode(result.value, { stream: true })
+              responseBody = responseBody.substring(0, MAX_RESPONSE_SIZE) + '... [truncated]'
+              await reader.cancel()
+              break
+            }
+            responseBody += decoder.decode(result.value, { stream: true })
+          }
+        }
+      }
 
       if (response.ok) {
         // Success

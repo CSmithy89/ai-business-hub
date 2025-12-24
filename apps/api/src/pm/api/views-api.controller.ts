@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, Req, BadRequestException } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, UseGuards, Req, BadRequestException } from '@nestjs/common'
 import { ApiOperation, ApiParam, ApiResponse, ApiTags, ApiSecurity } from '@nestjs/swagger'
 import { Request } from 'express'
 import { API_SCOPES } from '@hyvve/shared'
@@ -8,12 +8,13 @@ import { UpdateSavedViewDto } from '../saved-views/dto/update-saved-view.dto'
 import { ListViewsQueryDto } from './dto/list-views-query.dto'
 import { ApiKeyGuard } from '@/common/guards/api-key.guard'
 import { ScopeGuard } from '@/common/guards/scope.guard'
+import { RateLimitGuard } from '@/common/guards/rate-limit.guard'
 import { Scopes } from '@/common/decorators/scopes.decorator'
 import { ApiAuthenticatedRequest } from '@/common/types/request-user'
 
 @ApiTags('views')
 @Controller('api/v1/pm/views')
-@UseGuards(ApiKeyGuard, ScopeGuard)
+@UseGuards(ApiKeyGuard, ScopeGuard, RateLimitGuard)
 @ApiSecurity('api-key')
 export class ViewsApiController {
   constructor(private readonly savedViewsService: SavedViewsService) {}
@@ -82,6 +83,7 @@ export class ViewsApiController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   @Scopes(API_SCOPES.PM_WRITE)
   @ApiOperation({ summary: 'Delete saved view' })
   @ApiParam({ name: 'id', description: 'View ID' })

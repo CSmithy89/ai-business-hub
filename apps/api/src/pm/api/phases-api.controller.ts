@@ -8,12 +8,13 @@ import { CreatePhaseDto } from '../phases/dto/create-phase.dto'
 import { UpdatePhaseDto } from '../phases/dto/update-phase.dto'
 import { ApiKeyGuard } from '@/common/guards/api-key.guard'
 import { ScopeGuard } from '@/common/guards/scope.guard'
+import { RateLimitGuard } from '@/common/guards/rate-limit.guard'
 import { Scopes } from '@/common/decorators/scopes.decorator'
 import { ApiAuthenticatedRequest } from '@/common/types/request-user'
 
 @ApiTags('phases')
 @Controller('api/v1/pm')
-@UseGuards(ApiKeyGuard, ScopeGuard)
+@UseGuards(ApiKeyGuard, ScopeGuard, RateLimitGuard)
 @ApiSecurity('api-key')
 export class PhasesApiController {
   constructor(private readonly phasesService: PhasesService) {}

@@ -7,12 +7,13 @@ import { SearchQueryDto } from './dto/search-query.dto'
 import { PaginatedResponse } from './dto/paginated-response.dto'
 import { ApiKeyGuard } from '@/common/guards/api-key.guard'
 import { ScopeGuard } from '@/common/guards/scope.guard'
+import { RateLimitGuard } from '@/common/guards/rate-limit.guard'
 import { Scopes } from '@/common/decorators/scopes.decorator'
 import { ApiAuthenticatedRequest } from '@/common/types/request-user'
 
 @ApiTags('search')
 @Controller('api/v1/pm/search')
-@UseGuards(ApiKeyGuard, ScopeGuard)
+@UseGuards(ApiKeyGuard, ScopeGuard, RateLimitGuard)
 @ApiSecurity('api-key')
 export class SearchApiController {
   constructor(private readonly tasksService: TasksService) {}

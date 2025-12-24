@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, Req } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, UseGuards, Req } from '@nestjs/common'
 import { ApiOperation, ApiParam, ApiResponse, ApiTags, ApiSecurity } from '@nestjs/swagger'
 import { Request } from 'express'
 import { API_SCOPES } from '@hyvve/shared'
@@ -11,12 +11,13 @@ import { AssignTaskDto } from './dto/assign-task.dto'
 import { TransitionTaskDto } from './dto/transition-task.dto'
 import { ApiKeyGuard } from '@/common/guards/api-key.guard'
 import { ScopeGuard } from '@/common/guards/scope.guard'
+import { RateLimitGuard } from '@/common/guards/rate-limit.guard'
 import { Scopes } from '@/common/decorators/scopes.decorator'
 import { ApiAuthenticatedRequest } from '@/common/types/request-user'
 
 @ApiTags('tasks')
 @Controller('api/v1/pm/tasks')
-@UseGuards(ApiKeyGuard, ScopeGuard)
+@UseGuards(ApiKeyGuard, ScopeGuard, RateLimitGuard)
 @ApiSecurity('api-key')
 export class TasksApiController {
   constructor(private readonly tasksService: TasksService) {}
@@ -37,13 +38,13 @@ export class TasksApiController {
       assigneeId,
       priority,
       type,
-      dueAfter: _dueAfter,
-      dueBefore: _dueBefore,
+      dueAfter,
+      dueBefore,
       search,
       limit = 50,
       offset = 0,
-      sortBy: _sortBy,
-      sortOrder: _sortOrder,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
     } = query
 
     // Build query for service
@@ -54,9 +55,13 @@ export class TasksApiController {
       assigneeId,
       priority,
       type,
+      dueAfter,
+      dueBefore,
       search,
       page: Math.floor(offset / limit) + 1,
       limit,
+      sortBy,
+      sortOrder,
     }
 
     const result = await this.tasksService.list(workspaceId, serviceQuery)
@@ -183,6 +188,7 @@ export class TasksApiController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   @Scopes(API_SCOPES.PM_ADMIN)
   @ApiOperation({ summary: 'Delete task (soft delete)' })
   @ApiParam({ name: 'id', description: 'Task ID' })
