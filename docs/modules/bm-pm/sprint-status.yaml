@@ -276,7 +276,7 @@ development_status:
   # ===========================================
   pm-11: contexted
   pm-11-1-public-api: done
-  pm-11-2-api-key-management: backlog
+  pm-11-2-api-key-management: done
   pm-11-3-webhook-subscriptions: backlog
   pm-11-4-rate-limiting: backlog
   pm-11-5-api-documentation: backlog
