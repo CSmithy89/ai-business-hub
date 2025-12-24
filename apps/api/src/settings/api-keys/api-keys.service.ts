@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '@/common/services/prisma.service'
+import { RateLimitService } from '@/common/services/rate-limit.service'
 import { ApiScope } from '@hyvve/shared'
 import * as crypto from 'crypto'
 
 @Injectable()
 export class ApiKeysService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rateLimitService: RateLimitService,
+  ) {}
 
   /**
    * Generate a new API key with format: sk_prod_{random}
@@ -41,8 +45,8 @@ export class ApiKeysService {
         keyHash: hash,
         permissions: {
           scopes: data.scopes,
-          rateLimit: data.rateLimit || 10000,
         },
+        rateLimit: data.rateLimit || 1000, // Default: 1000 requests/hour
         expiresAt: data.expiresAt,
       },
     })
@@ -65,6 +69,7 @@ export class ApiKeysService {
         name: true,
         keyPrefix: true,
         permissions: true,
+        rateLimit: true,
         lastUsedAt: true,
         expiresAt: true,
         createdAt: true,
@@ -92,12 +97,42 @@ export class ApiKeysService {
   /**
    * Get API key usage stats
    */
-  async getApiKeyUsage(_id: string, _workspaceId: string) {
-    // TODO: Implement usage tracking from audit logs
+  async getApiKeyUsage(id: string, workspaceId: string) {
+    // Get API key details
+    const apiKey = await this.prisma.apiKey.findUnique({
+      where: { id, workspaceId },
+      select: {
+        id: true,
+        rateLimit: true,
+        lastUsedAt: true,
+      },
+    })
+
+    if (!apiKey) {
+      return {
+        currentUsage: 0,
+        rateLimit: 1000,
+        remaining: 1000,
+        resetAt: new Date(),
+        lastUsedAt: null,
+      }
+    }
+
+    // Get current usage from Redis
+    const currentUsage = await this.rateLimitService.getCurrentUsage(apiKey.id)
+    const remaining = Math.max(0, apiKey.rateLimit - currentUsage)
+
+    // Calculate reset time (next hour boundary)
+    const now = Date.now()
+    const nextHour = Math.ceil(now / 3600000) * 3600000
+    const resetAt = new Date(nextHour)
+
     return {
-      totalRequests: 0,
-      requestsToday: 0,
-      lastUsedAt: null,
+      currentUsage,
+      rateLimit: apiKey.rateLimit,
+      remaining,
+      resetAt,
+      lastUsedAt: apiKey.lastUsedAt,
     }
   }
 }
