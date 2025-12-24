@@ -16,6 +16,7 @@ import { MetricsModule } from './metrics/metrics.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { PmModule } from './pm/pm.module';
 import { KbModule } from './kb/kb.module';
+import { WebhooksModule } from './settings/webhooks/webhooks.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -77,6 +78,7 @@ import { validate } from './config/env.validation';
     RealtimeModule,
     PmModule,
     KbModule,
+    WebhooksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

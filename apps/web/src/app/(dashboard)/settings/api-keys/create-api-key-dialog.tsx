@@ -64,7 +64,7 @@ export function CreateApiKeyDialog({ open, onOpenChange }: CreateApiKeyDialogPro
           <DialogHeader>
             <DialogTitle>API Key Created</DialogTitle>
             <DialogDescription>
-              Copy this API key now. You won't be able to see it again!
+              Copy this API key now. You won&apos;t be able to see it again!
             </DialogDescription>
           </DialogHeader>
           <Alert>
