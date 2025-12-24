@@ -274,7 +274,7 @@ development_status:
   # PM-11: External API & Governance
   # Phase 3 | 5 stories | REST API, webhooks
   # ===========================================
-  pm-11: backlog
+  pm-11: contexted
   pm-11-1-public-api: backlog
   pm-11-2-api-key-management: backlog
   pm-11-3-webhook-subscriptions: backlog
