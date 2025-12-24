@@ -79,20 +79,20 @@ Implement deep integration between BM-CRM and Core-PM (Platform Core) for projec
 
 ---
 
-### CRM-11.4: Link Echo Activities to PM Tasks
+### CRM-11.4: Link Tracker Activities to PM Tasks
 **Points:** 3 | **Status:** `backlog`
 
 **Acceptance Criteria:**
 - [ ] Add optional `taskId` field to CrmActivity model
 - [ ] Activity creation can reference PM task
-- [ ] Echo agent can suggest task linkage for meeting activities
+- [ ] Tracker agent can suggest task linkage for meeting activities
 - [ ] Linked activities show task reference with link
 - [ ] Task detail (in Core-PM) shows related CRM activities
 - [ ] Filter activities by linked task
 
 **Technical Notes:**
 - `CrmActivity.taskId` → `Task.id` (Core-PM)
-- Echo uses `@pm.task.search` to find relevant tasks
+- Tracker uses `@core-pm.navi` to find relevant tasks
 - Task link rendered as clickable reference
 
 ---

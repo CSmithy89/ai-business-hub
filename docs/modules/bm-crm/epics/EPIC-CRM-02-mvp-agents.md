@@ -10,7 +10,7 @@
 
 ## Epic Overview
 
-Implement the 5 MVP CRM agents following the Agno team pattern: Clara (orchestrator), Scout (scoring), Atlas (enrichment), Flow (pipeline), and Echo (activities). Register the team in AgentOS and expose via A2A protocol.
+Implement the 5 MVP CRM agents following the Agno team pattern: Clara (orchestrator), Scout (scoring), Atlas (enrichment), Flow (pipeline), and Tracker (activities). Register the team in AgentOS and expose via A2A protocol.
 
 ### Success Criteria
 - CRM team operational with 5 agents
@@ -18,7 +18,7 @@ Implement the 5 MVP CRM agents following the Agno team pattern: Clara (orchestra
 - Scout calculates scores on contact events
 - Atlas enriches new contacts automatically
 - Flow manages pipeline transitions
-- Echo tracks all engagement
+- Tracker tracks all engagement
 
 ---
 
@@ -61,7 +61,7 @@ def create_crm_team(
             create_scout_agent(model, storage),
             create_atlas_agent(model, storage),
             create_flow_agent(model, storage),
-            create_echo_agent(model, storage),
+            create_tracker_agent(model, storage),
         ],
         # ... rest of config
     )
@@ -92,7 +92,7 @@ def create_clara_agent(model: str, storage: PostgresStorage) -> Agent:
         model=Claude(id=model or "claude-sonnet-4-20250514"),
         instructions=[
             "You are Clara, the CRM Team Lead.",
-            "Route requests to Scout (scoring), Atlas (enrichment), Flow (pipeline), or Echo (activities).",
+            "Route requests to Scout (scoring), Atlas (enrichment), Flow (pipeline), or Tracker (activities).",
             "Synthesize findings into actionable insights.",
             "Generate morning briefings with prioritized actions.",
         ],
@@ -156,11 +156,11 @@ Enhance the existing Flow agent with stage automations and stuck deal detection.
 
 ---
 
-### CRM-02.6: Create Echo Activity Tracker Agent
+### CRM-02.6: Create Tracker Activity Tracker Agent
 **Points:** 3 | **Status:** `backlog`
 
 **Description:**
-Create Echo agent for engagement tracking and relationship health scoring.
+Create Tracker agent for engagement tracking and relationship health scoring.
 
 **Acceptance Criteria:**
 - [ ] `agents/crm/activity_tracker_agent.py` created
@@ -208,7 +208,7 @@ Register the CRM team in the AgentOS main.py configuration.
 TEAM_CONFIG["crm"] = {
     "factory": create_crm_team,
     "leader": "Clara",
-    "members": ["Scout", "Atlas", "Flow", "Echo"],
+    "members": ["Scout", "Atlas", "Flow", "Tracker"],
     "storage": "bm_crm_sessions",
     "session_prefix": "crm",
     "description": "AI-powered CRM with lead scoring, enrichment, and pipeline management",

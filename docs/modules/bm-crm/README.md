@@ -60,10 +60,12 @@ BM-CRM is a **standalone module** providing AI-first customer relationship manag
 
 - **PRD:** See [PRD.md](./PRD.md)
 - **Architecture:** See [architecture.md](./architecture.md)
+- **Agent Mapping:** See [agent-mapping.md](./agent-mapping.md)
 - **Research:** See [research/](./research/) directory
 - **Epics:** See [epics/](./epics/) directory
 - **Cross-Module:** See [Cross-Module Architecture](/docs/architecture/cross-module-architecture.md)
-- **Agent Registry:** `@bm-crm.*` handles defined in architecture doc
+- **Protocols:** See [Dynamic Module System](/docs/architecture/dynamic-module-system.md) (AG-UI, A2A, MCP)
+- **Agent Registry:** `@bm-crm.*` handles defined in cross-module architecture
 
 ---
 

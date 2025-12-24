@@ -1,33 +1,43 @@
 # BM-CRM Agent Mapping
 
 **Created:** 2025-11-29
-**Source:** Party Mode Discussion Session
-**Status:** Ready for Implementation
+**Updated:** 2025-12-24
+**Source:** Cross-Module Architecture Registry
+**Status:** Aligned with Platform Standards
 
 ---
 
 ## Overview
 
-This document maps CRM user flows to AI agents, defining what each agent does, when it's triggered, and whether human approval is required. This serves as the blueprint for implementing BM-CRM agents using the Agno framework.
+This document maps CRM user flows to AI agents, defining what each agent does, when it's triggered, and whether human approval is required. All agents use the platform-standard @handle convention.
+
+**Handle Convention:** `@{module}.{agent-key}` (e.g., `@bm-crm.clara`)
 
 ---
 
-## Agent Inventory
+## Agent Registry
 
-### Core Platform Agents (Shared)
+### Platform Agents (Shared)
 
-| Agent | Purpose | Used By |
-|-------|---------|---------|
-| `OrchestratorAgent` | Routes requests to appropriate module agents | All modules |
-| `ApprovalAgent` | Manages human-in-the-loop approval gates | All modules |
+| Handle | Display Name | Role | Used By |
+|--------|--------------|------|---------|
+| `@platform.navigator` | Navigator | Routes requests to appropriate module agents | All modules |
+| `@platform.sentinel` | Sentinel | Approval Queue gatekeeper, HITL workflows | All modules |
 
-### BM-CRM Module Agents
+### BM-CRM Module Agents (8 Total)
 
-| Agent | Purpose | Trigger |
-|-------|---------|---------|
-| `LeadScorerAgent` | Score incoming leads based on firmographic/behavioral data | Lead creation, enrichment |
-| `DataEnricherAgent` | Enrich contacts with external data (company, title, social) | User-initiated |
-| `PipelineAgent` | Manage deal stages and suggest automations | Deal stage change |
+| Handle | Display Name | Role | Phase | Trigger |
+|--------|--------------|------|-------|---------|
+| `@bm-crm.clara` | Clara | Team Lead / Orchestrator | MVP | User requests, morning briefings |
+| `@bm-crm.scout` | Scout | Lead Scoring | MVP | Contact creation, enrichment |
+| `@bm-crm.atlas` | Atlas | Data Enrichment | MVP | User-initiated, new contacts |
+| `@bm-crm.flow` | Flow | Pipeline Management | MVP | Deal stage changes |
+| `@bm-crm.tracker` | Tracker | Activity Tracking | MVP | Email, call, meeting events |
+| `@bm-crm.sync` | Sync | Integration Specialist | Growth | External CRM sync |
+| `@bm-crm.guardian` | Guardian | Compliance (GDPR) | Growth | Data access, consent |
+| `@bm-crm.cadence` | Cadence | Outreach Sequences | Growth | Sequence triggers |
+
+> **Note:** Echo was renamed to Tracker to avoid collision with BM-Social Echo agent.
 
 ---
 
@@ -40,45 +50,56 @@ NEW LEAD ARRIVES (form, import, API)
          │
          ▼
 ┌─────────────────────────────────────┐
-│  LeadScorerAgent                    │
+│  @bm-crm.scout (Scout)              │
 │  ─────────────────────────────────  │
-│  Trigger: Lead created event        │
+│  Trigger: crm.contact.created       │
 │  Action: Calculate lead score       │
 │  Approval: None (automatic)         │
-│  Output: Score 0-100 + reasoning    │
+│  Output: Score 0-100 + tier         │
 └─────────────────────────────────────┘
          │
          ▼
 ┌─────────────────────────────────────┐
 │  CONTACT CARD (UI)                  │
 │  Shows: Lead Score badge            │
-│  User sees: "78/100" with indicator │
+│  Tier: COLD/WARM/HOT/SALES_READY    │
 └─────────────────────────────────────┘
 ```
 
 **Agent Specification:**
 ```python
-lead_scorer = Agent(
-    name="LeadScorerAgent",
-    model=get_tenant_model(tenant_id),  # BYOAI
-    instructions=[
-        "Score leads based on firmographic and behavioral data",
-        "Factors: company size, industry fit, engagement level, source quality",
-        "Return score 0-100 with brief reasoning",
-        "High scores (80+) indicate sales-ready leads",
-    ],
-    output_schema=LeadScore,
-    tools=[calculate_score, lookup_company_data],
-    db=get_agent_db(tenant_id),
-)
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.storage.postgres import PostgresStorage
+
+def create_scout_agent(
+    model: str,
+    storage: PostgresStorage,
+) -> Agent:
+    return Agent(
+        name="Scout",
+        role="Lead Scoring Specialist",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=[
+            "You are Scout, the Lead Scoring Specialist.",
+            "Score leads using the 40/35/25 algorithm:",
+            "- Firmographic (40%): company size, industry, revenue",
+            "- Behavioral (35%): email engagement, website visits",
+            "- Intent (25%): demo requests, pricing views",
+            "Assign tiers: COLD (<50), WARM (50-69), HOT (70-89), SALES_READY (90+)",
+        ],
+        tools=[calculate_lead_score, get_firmographic_data, get_behavioral_data],
+        storage=storage,
+    )
 ```
 
 **Output Schema:**
 ```python
 class LeadScore(BaseModel):
     score: int = Field(ge=0, le=100, description="Lead score 0-100")
+    tier: Literal["cold", "warm", "hot", "sales_ready"]
+    breakdown: ScoreBreakdown = Field(description="40/35/25 breakdown")
     reasoning: str = Field(description="Brief explanation of score")
-    factors: dict = Field(description="Breakdown by scoring factor")
     recommended_action: str = Field(description="Suggested next step")
 ```
 
@@ -91,19 +112,19 @@ USER CLICKS [Enrich] BUTTON
          │
          ▼
 ┌─────────────────────────────────────┐
-│  DataEnricherAgent                  │
+│  @bm-crm.atlas (Atlas)              │
 │  ─────────────────────────────────  │
 │  Trigger: User-initiated action     │
-│  Action: Lookup external sources    │
+│  Action: Provider waterfall lookup  │
 │  Approval: None (user initiated)    │
 │  Output: Enriched contact data      │
 └─────────────────────────────────────┘
          │
          ▼
 ┌─────────────────────────────────────┐
-│  LeadScorerAgent (re-score)         │
+│  @bm-crm.scout (re-score)           │
 │  ─────────────────────────────────  │
-│  Trigger: Enrichment complete       │
+│  Trigger: crm.contact.enriched      │
 │  Action: Recalculate with new data  │
 └─────────────────────────────────────┘
          │
@@ -111,38 +132,45 @@ USER CLICKS [Enrich] BUTTON
 ┌─────────────────────────────────────┐
 │  CONTACT CARD (UI) - Updated        │
 │  Shows: Company, title, LinkedIn    │
-│  Shows: Updated lead score          │
+│  Shows: Updated lead score + tier   │
 └─────────────────────────────────────┘
 ```
 
 **Agent Specification:**
 ```python
-data_enricher = Agent(
-    name="DataEnricherAgent",
-    model=get_tenant_model(tenant_id),
-    instructions=[
-        "Enrich contact with publicly available data",
-        "Find: company info, job title, LinkedIn, social profiles",
-        "Respect rate limits on external APIs",
-        "Return only verified information",
-    ],
-    tools=[
-        lookup_clearbit,
-        search_linkedin,
-        scrape_company_website,
-        verify_email,
-    ],
-    db=get_agent_db(tenant_id),
-)
+def create_atlas_agent(
+    model: str,
+    storage: PostgresStorage,
+) -> Agent:
+    return Agent(
+        name="Atlas",
+        role="Data Enrichment Specialist",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=[
+            "You are Atlas, the Data Enrichment Specialist.",
+            "Enrich contacts using provider waterfall: Apollo → Clearbit → Hunter",
+            "Track budget per tenant and respect rate limits",
+            "Cache enriched data with 30-day TTL",
+            "Return only verified information",
+        ],
+        tools=[
+            enrich_contact,
+            enrich_company,
+            verify_email,
+            lookup_apollo,
+            lookup_clearbit,
+            lookup_hunter,
+        ],
+        storage=storage,
+    )
 ```
 
-**Tools Required:**
-| Tool | Purpose | External API |
-|------|---------|--------------|
-| `lookup_clearbit` | Company data | Clearbit API |
-| `search_linkedin` | Professional profile | LinkedIn API/scrape |
-| `scrape_company_website` | Company details | Web scraper |
-| `verify_email` | Email validation | Email verification API |
+**Provider Waterfall:**
+| Priority | Provider | Data Type | Fallback |
+|----------|----------|-----------|----------|
+| 1 | Apollo | Company, contact | → Clearbit |
+| 2 | Clearbit | Company, logo | → Hunter |
+| 3 | Hunter | Email verification | → Manual |
 
 ---
 
@@ -153,9 +181,9 @@ USER DRAGS DEAL TO NEW STAGE
          │
          ▼
 ┌─────────────────────────────────────┐
-│  PipelineAgent                      │
+│  @bm-crm.flow (Flow)                │
 │  ─────────────────────────────────  │
-│  Trigger: Deal stage change event   │
+│  Trigger: crm.deal.stage_changed    │
 │  Action: Suggest automations        │
 │  Approval: YES - user must confirm  │
 │  Output: Automation options         │
@@ -174,7 +202,7 @@ USER DRAGS DEAL TO NEW STAGE
          │
          ▼ (if approved)
 ┌─────────────────────────────────────┐
-│  PipelineAgent (execute)            │
+│  @bm-crm.flow (execute)             │
 │  ─────────────────────────────────  │
 │  Action: Execute selected actions   │
 │  Approval: Pre-approved by user     │
@@ -183,26 +211,30 @@ USER DRAGS DEAL TO NEW STAGE
 
 **Agent Specification:**
 ```python
-pipeline_agent = Agent(
-    name="PipelineAgent",
-    model=get_tenant_model(tenant_id),
-    instructions=[
-        "When deal moves stages, suggest relevant automations",
-        "Consider: follow-up emails, calls, notifications, tasks",
-        "Tailor suggestions to the specific stage transition",
-        "Always present options - never auto-execute without approval",
-    ],
-    tools=[
-        suggest_automations,  # Returns options list
-        Tool(
-            execute_automation,
-            requires_confirmation=True,  # APPROVAL GATE
-        ),
-        create_task,
-        send_notification,
-    ],
-    db=get_agent_db(tenant_id),
-)
+def create_flow_agent(
+    model: str,
+    storage: PostgresStorage,
+) -> Agent:
+    return Agent(
+        name="Flow",
+        role="Pipeline Manager",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=[
+            "You are Flow, the Pipeline Manager.",
+            "Suggest relevant automations when deals move stages",
+            "Identify stuck deals using SLA thresholds",
+            "Calculate pipeline health and forecast revenue",
+            "Never auto-execute without user approval",
+        ],
+        tools=[
+            move_deal_stage,
+            suggest_next_action,
+            identify_stuck_deals,
+            calculate_pipeline_health,
+            forecast_revenue,
+        ],
+        storage=storage,
+    )
 ```
 
 **Stage-Specific Automations:**
@@ -216,14 +248,125 @@ pipeline_agent = Agent(
 
 ---
 
-### Flow 4: High-Value Deal Approval
+### Flow 4: Activity Tracking
+
+```
+EMAIL/CALL/MEETING OCCURS
+         │
+         ▼
+┌─────────────────────────────────────┐
+│  @bm-crm.tracker (Tracker)          │
+│  ─────────────────────────────────  │
+│  Trigger: crm.activity.logged       │
+│  Action: Update engagement score    │
+│  Approval: None (automatic)         │
+│  Output: Updated engagement metrics │
+└─────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│  CONTACT TIMELINE (UI)              │
+│  Shows: Activity timeline           │
+│  Shows: Engagement score trend      │
+└─────────────────────────────────────┘
+```
+
+**Agent Specification:**
+```python
+def create_tracker_agent(
+    model: str,
+    storage: PostgresStorage,
+) -> Agent:
+    return Agent(
+        name="Tracker",
+        role="Activity Tracker",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=[
+            "You are Tracker, the Activity Tracker.",
+            "Log all engagement activities: emails, calls, meetings",
+            "Calculate engagement scores using recency/frequency/depth",
+            "Identify cold contacts with declining engagement",
+            "Award activity points: email +2, click +5, reply +15, call +10, meeting +20",
+        ],
+        tools=[
+            log_activity,
+            get_activity_timeline,
+            calculate_engagement_score,
+            find_cold_contacts,
+        ],
+        storage=storage,
+    )
+```
+
+---
+
+### Flow 5: Clara Orchestration
+
+```
+USER ASKS "Who should I call today?"
+         │
+         ▼
+┌─────────────────────────────────────┐
+│  @bm-crm.clara (Clara)              │
+│  ─────────────────────────────────  │
+│  Trigger: User request              │
+│  Action: Coordinate specialists     │
+│  Approval: None                     │
+│  Output: Prioritized action list    │
+└─────────────────────────────────────┘
+         │
+         ├──► @bm-crm.scout (get hot leads)
+         │
+         ├──► @bm-crm.flow (check stuck deals)
+         │
+         └──► @bm-crm.tracker (get recent activity)
+                    │
+                    ▼
+┌─────────────────────────────────────┐
+│  CLARA SYNTHESIZES RESULTS          │
+│  ─────────────────────────────────  │
+│  "Here are your top 5 calls for     │
+│  today, ranked by opportunity..."   │
+└─────────────────────────────────────┘
+```
+
+**Agent Specification:**
+```python
+def create_clara_agent(
+    model: str,
+    storage: PostgresStorage,
+) -> Agent:
+    return Agent(
+        name="Clara",
+        role="CRM Team Lead",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=[
+            "You are Clara, the CRM Team Lead.",
+            "Route requests to specialists: Scout (scoring), Atlas (enrichment), Flow (pipeline), Tracker (activities)",
+            "Synthesize multi-agent results into actionable insights",
+            "Generate morning briefings with prioritized actions",
+            "Coordinate with @platform.navigator for cross-module requests",
+        ],
+        tools=[
+            generate_daily_briefing,
+            prioritize_contacts,
+            synthesize_team_results,
+        ],
+        storage=storage,
+        team_members=["Scout", "Atlas", "Flow", "Tracker"],
+    )
+```
+
+---
+
+### Flow 6: High-Value Deal Approval
 
 ```
 DEAL VALUE EXCEEDS THRESHOLD ($X)
          │
          ▼
 ┌─────────────────────────────────────┐
-│  ApprovalAgent                      │
+│  @platform.sentinel                 │
 │  ─────────────────────────────────  │
 │  Trigger: Deal value > threshold    │
 │  Action: Request manager approval   │
@@ -240,32 +383,52 @@ DEAL VALUE EXCEEDS THRESHOLD ($X)
 │  Requested by: Sales Rep            │
 │  [Approve] [Reject] [Request Info]  │
 └─────────────────────────────────────┘
-         │
-         ▼ (if approved)
-┌─────────────────────────────────────┐
-│  Deal proceeds to next stage        │
-│  Audit log: "Approved by Manager"   │
-└─────────────────────────────────────┘
 ```
 
-**Agent Specification:**
-```python
-approval_agent = Agent(
-    name="ApprovalAgent",
-    model=get_tenant_model(tenant_id),
-    instructions=[
-        "Manage approval workflows for high-stakes actions",
-        "Route approvals to appropriate approvers based on rules",
-        "Track approval status and send reminders",
-        "Log all approval decisions for audit",
-    ],
-    tools=[
-        Tool(request_approval, requires_confirmation=True),
-        send_approval_reminder,
-        log_approval_decision,
-    ],
-    db=get_agent_db(tenant_id),
-)
+---
+
+## A2A Communication Patterns
+
+### Inter-Agent Protocol
+
+BM-CRM agents communicate via the A2A (Agent-to-Agent) protocol:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  A2A PROTOCOL                                                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  @bm-crm.clara ─────────► @bm-crm.scout (delegate scoring)      │
+│  @bm-crm.clara ─────────► @bm-crm.flow (check pipeline)         │
+│  @bm-crm.tracker ───────► @core-pm.navi (link to tasks)         │
+│  @bm-crm.clara ─────────► @core-pm.navi (handoff on deal won)   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### AgentCard Discovery
+
+Each agent exposes an AgentCard for discovery:
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Clara",
+  "handle": "@bm-crm.clara",
+  "description": "CRM Team Lead and Orchestrator",
+  "module": "bm-crm",
+  "skills": [
+    "score_lead",
+    "enrich_contact",
+    "manage_pipeline",
+    "generate_briefing"
+  ],
+  "endpoints": {
+    "rpc": "/a2a/bm-crm/rpc",
+    "ws": "/a2a/bm-crm/ws"
+  }
+}
 ```
 
 ---
@@ -274,11 +437,12 @@ approval_agent = Agent(
 
 | Scenario | Agent | Approval Type | Approver |
 |----------|-------|---------------|----------|
-| Pipeline automations | `PipelineAgent` | User confirmation | Current user |
-| High-value deals | `ApprovalAgent` | Manager approval | Sales manager |
-| Bulk operations | `ApprovalAgent` | User confirmation | Current user |
-| External integrations | `DataEnricherAgent` | None (user-initiated) | N/A |
-| Lead scoring | `LeadScorerAgent` | None (automatic) | N/A |
+| Pipeline automations | `@bm-crm.flow` | User confirmation | Current user |
+| High-value deals | `@platform.sentinel` | Manager approval | Sales manager |
+| Bulk operations | `@platform.sentinel` | User confirmation | Current user |
+| Data enrichment | `@bm-crm.atlas` | None (user-initiated) | N/A |
+| Lead scoring | `@bm-crm.scout` | None (automatic) | N/A |
+| Activity logging | `@bm-crm.tracker` | None (automatic) | N/A |
 
 ---
 
@@ -288,35 +452,37 @@ approval_agent = Agent(
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  EVENT BUS (Redis/BullMQ)                                       │
+│  EVENT BUS (Redis Streams)                                       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  contact.created ──────────► LeadScorerAgent.score()            │
-│  contact.enriched ─────────► LeadScorerAgent.rescore()          │
-│  deal.stage_changed ───────► PipelineAgent.suggest()            │
-│  deal.value_threshold ─────► ApprovalAgent.request()            │
-│  approval.granted ─────────► PipelineAgent.execute()            │
+│  crm.contact.created ────────► @bm-crm.scout.score()            │
+│  crm.contact.enriched ───────► @bm-crm.scout.rescore()          │
+│  crm.deal.stage_changed ─────► @bm-crm.flow.suggest()           │
+│  crm.deal.won ───────────────► @bm-crm.clara.handoff()          │
+│  crm.activity.logged ────────► @bm-crm.tracker.update()         │
+│  approval.granted ───────────► @bm-crm.flow.execute()           │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Event Schema (per docs/archive/foundation-phase/MODULE-RESEARCH.md §1.4)
+### Event Schema
 
 ```typescript
 interface CRMEvent {
   id: string;
-  type: 'contact.created' | 'contact.enriched' | 'deal.stage_changed' | ...;
+  type: 'crm.contact.created' | 'crm.contact.enriched' | 'crm.deal.stage_changed' | ...;
   timestamp: Date;
-  tenantId: string;
+  workspaceId: string;
   userId: string;
+  correlationId?: string;
   payload: {
-    entityType: 'contact' | 'company' | 'deal';
+    entityType: 'contact' | 'account' | 'deal' | 'activity';
     entityId: string;
     changes?: Record<string, { old: any; new: any }>;
   };
   metadata: {
     source: 'user' | 'agent' | 'integration';
-    agentId?: string;
+    agentHandle?: string;
   };
 }
 ```
@@ -327,27 +493,29 @@ interface CRMEvent {
 
 | Agent | Test Priority | Key Test Cases |
 |-------|---------------|----------------|
-| `ApprovalAgent` | **CRITICAL** | No action executes without approval flag |
-| `LeadScorerAgent` | HIGH | Score consistency, edge cases (missing data) |
-| `PipelineAgent` | HIGH | Correct suggestions per stage, approval flow |
-| `DataEnricherAgent` | MEDIUM | API failure handling, rate limiting |
+| `@bm-crm.clara` | **CRITICAL** | Team coordination, briefing generation |
+| `@bm-crm.scout` | HIGH | Score consistency, tier classification |
+| `@bm-crm.flow` | HIGH | Stage validation, approval flow |
+| `@bm-crm.atlas` | HIGH | Provider waterfall, budget tracking |
+| `@bm-crm.tracker` | MEDIUM | Engagement scoring, activity logging |
+| `@platform.sentinel` | **CRITICAL** | Approval bypass prevention |
 
 ### Critical Test: Approval Bypass Prevention
 
 ```python
 def test_approval_required_tools_cannot_bypass():
     """Ensure requires_confirmation=True is enforced."""
-    agent = PipelineAgent(tenant_id="test")
+    flow = create_flow_agent(model="claude-sonnet-4-20250514", storage=storage)
 
     # Attempt to execute without approval
-    result = agent.execute_automation(automation_id="auto_123")
+    result = flow.execute_automation(automation_id="auto_123")
 
     # Should return pending_approval, NOT executed
     assert result.status == "pending_approval"
     assert result.requires_confirmation == True
 
     # Only after explicit confirmation
-    result = agent.execute_automation(
+    result = flow.execute_automation(
         automation_id="auto_123",
         confirmation=True,
         approver_id="user_456"
@@ -359,40 +527,33 @@ def test_approval_required_tools_cannot_bypass():
 
 ## Implementation Checklist
 
-### Phase 1: Core Infrastructure
-- [ ] Set up event bus (Redis + BullMQ)
-- [ ] Create agent base class with tenant isolation
-- [ ] Implement `get_tenant_model()` for BYOAI
-- [ ] Create `get_agent_db()` for scoped persistence
+### Phase 1: MVP Agents (5)
+- [ ] `@bm-crm.clara` - Team Lead / Orchestrator
+- [ ] `@bm-crm.scout` - Lead Scoring
+- [ ] `@bm-crm.atlas` - Data Enrichment
+- [ ] `@bm-crm.flow` - Pipeline Management
+- [ ] `@bm-crm.tracker` - Activity Tracking
 
-### Phase 2: Agent Implementation
-- [ ] `LeadScorerAgent` - automatic scoring
-- [ ] `DataEnricherAgent` - user-initiated enrichment
-- [ ] `PipelineAgent` - suggestions with approval
-- [ ] `ApprovalAgent` - approval workflow management
+### Phase 2: Growth Agents (3)
+- [ ] `@bm-crm.sync` - Integration Specialist (HubSpot, Salesforce)
+- [ ] `@bm-crm.guardian` - Compliance (GDPR)
+- [ ] `@bm-crm.cadence` - Outreach Sequences
 
-### Phase 3: UI Integration
-- [ ] Lead score badge component
-- [ ] Enrich button + loading state
-- [ ] Pipeline board with drag-drop
-- [ ] Approval modal component
-- [ ] Manager approval queue
-
-### Phase 4: Testing
-- [ ] Unit tests for each agent
-- [ ] Integration tests for approval flows
-- [ ] E2E tests for complete user journeys
+### Phase 3: Cross-Module Integration
+- [ ] A2A communication with `@core-pm.navi`
+- [ ] Deal→Project handoff workflow
+- [ ] KB playbook integration
 
 ---
 
 ## References
 
-- **Agno Patterns:** `/docs/research/agno-analysis.md`
-- **Twenty CRM Research:** `/docs/modules/bm-crm/research/twenty-crm-analysis.md`
-- **Event Schema:** `docs/archive/foundation-phase/MODULE-RESEARCH.md §1.4`
-- **Shared Data Contracts:** `docs/archive/foundation-phase/MODULE-RESEARCH.md §1.6`
+- **Cross-Module Architecture:** `/docs/architecture/cross-module-architecture.md`
+- **Dynamic Module System:** `/docs/architecture/dynamic-module-system.md`
+- **CRM Architecture:** `/docs/modules/bm-crm/architecture.md`
+- **CRM PRD:** `/docs/modules/bm-crm/PRD.md`
+- **Event Schema:** `/docs/architecture/event-bus.md`
 
 ---
 
-**Document Status:** Ready for Implementation
-**Next Step:** Create agents using `/bmad:bmb:workflows:create-agent`
+_Aligned with Cross-Module Architecture v1.0 (2024-12-24)_

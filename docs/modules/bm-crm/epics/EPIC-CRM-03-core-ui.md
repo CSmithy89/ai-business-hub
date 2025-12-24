@@ -134,7 +134,7 @@ Build the core CRM user interface including contact/account lists, detail views,
 
 **Acceptance Criteria:**
 - [ ] Shown on first visit to CRM module
-- [ ] Agent carousel introducing: Clara, Scout, Atlas, Flow, Echo
+- [ ] Agent carousel introducing: Clara, Scout, Atlas, Flow, Tracker
 - [ ] Each agent card: Avatar, name, tagline, 3 capabilities
 - [ ] Quick preferences: Proactivity level, Morning briefing toggle
 - [ ] First action prompt: Import contacts or create first contact

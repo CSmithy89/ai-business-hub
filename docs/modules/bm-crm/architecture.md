@@ -29,7 +29,7 @@ For platform-level architecture (multi-tenancy, auth, event bus, BYOAI), see [Pl
 
 | Phase | Timeline | Focus |
 |-------|----------|-------|
-| **MVP** | Phase 1 | Core CRM with 5 agents (Clara, Scout, Atlas, Flow, Echo) |
+| **MVP** | Phase 1 | Core CRM with 5 agents (Clara, Scout, Atlas, Flow, Tracker) |
 | **Growth-Phase2** | Phase 2 | +Sync, +Guardian, custom scoring, calendar integration |
 | **Growth-Phase3** | Phase 3 | +Cadence, multi-pipeline, analytics, mobile, LinkedIn |
 | **Vision** | Future | Predictive ML, conversation intelligence, revenue forecasting |
@@ -48,8 +48,12 @@ BM-CRM depends on these platform foundation capabilities:
 | **Approval Queue** | High-impact CRM actions require approval |
 | **WebSocket Gateway** | Real-time tier change notifications |
 | **AgentOS** | CRM team execution runtime |
+| **AG-UI Protocol** | Frontend communication via CopilotKit (Generative UI) |
 | **A2A Protocol** | Inter-module agent communication (Clara↔Navi) |
+| **MCP Protocol** | External tool integration (enrichment providers) |
 | **Core-PM** | Project linking, KB for playbooks, task integration |
+
+> **Protocol Reference:** See [Dynamic Module System](/docs/architecture/dynamic-module-system.md) for details on the "Unified Protocol" architecture (Agno + CopilotKit).
 
 Note: Core-PM is platform core but not fully implemented yet; BM-CRM must degrade gracefully (queue/skip Core-PM link features) until Core-PM endpoints and models land.
 
@@ -75,7 +79,7 @@ Note: Core-PM is platform core but not fully implemented yet; BM-CRM must degrad
 │      ┌───────────┬───────────┼───────────┬───────────┐          │
 │      │           │           │           │           │          │
 │  ┌───┴───┐   ┌───┴───┐   ┌───┴───┐   ┌───┴───┐   ┌───┴───┐     │
-│  │ Scout │   │ Atlas │   │ Flow  │   │ Echo  │   │Growth │     │
+│  │ Scout │   │ Atlas │   │ Flow  │   │Tracker│   │Growth │     │
 │  │(Score)│   │(Enrich│   │(Pipe) │   │(Track)│   │Agents │     │
 │  └───────┘   └───────┘   └───────┘   └───────┘   └───────┘     │
 │      │           │           │           │                      │
@@ -98,14 +102,22 @@ Note: Core-PM is platform core but not fully implemented yet; BM-CRM must degrad
 
 ### Agent Communication Patterns
 
-**1. User Request Flow (Synchronous)**
+BM-CRM uses the "Unified Protocol" architecture from the platform:
+
+| Protocol | Purpose | Usage |
+|----------|---------|-------|
+| **AG-UI** | Frontend↔Agent | CopilotKit Generative UI, "Ask Clara" chat |
+| **A2A** | Agent↔Agent | Clara↔Navi coordination, inter-module tasks |
+| **MCP** | Agent↔Tools | External enrichment APIs, third-party services |
+
+**1. User Request Flow (AG-UI via CopilotKit)**
 ```
-User → Clara → [Scout|Atlas|Flow|Echo] → Clara → User
+Browser → CopilotKit → AG-UI → Clara → [Scout|Atlas|Flow|Tracker] → Clara → AG-UI → UI Render
 ```
-- Clara receives all user requests
+- User interacts via "Ask Clara" chat or Generative UI components
+- CopilotKit's `useCoAgent` manages state synchronization
 - Clara routes to appropriate specialist(s)
-- Specialist executes and returns result
-- Clara synthesizes and presents to user
+- Results rendered via Generative UI or streamed text
 
 **2. Event-Driven Flow (Asynchronous)**
 ```
@@ -134,7 +146,7 @@ Clara ←→ Navi (A2A)
 - Clara coordinates with Navi for project/task integration
 - CRM playbooks stored in KB via Scribe agent
 - Deal lifecycle events can trigger PM workflows
-- Echo activities can reference PM tasks
+- Tracker activities can reference PM tasks
 
 ---
 
