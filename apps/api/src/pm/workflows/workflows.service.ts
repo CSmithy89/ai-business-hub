@@ -340,10 +340,62 @@ export class WorkflowsService {
       }
     }
 
+    // Validate webhook action configurations (fail-fast at creation time)
+    const MIN_WEBHOOK_TIMEOUT = 1000;
+    const MAX_WEBHOOK_TIMEOUT = 30000;
+    for (const node of nodes) {
+      if (node.type === 'action') {
+        const actionType = node.data?.config?.actionType;
+        const config = node.data?.config?.config;
+
+        if (actionType === 'CALL_WEBHOOK' && config?.timeout !== undefined) {
+          const timeout = config.timeout;
+          if (typeof timeout !== 'number' || timeout < MIN_WEBHOOK_TIMEOUT || timeout > MAX_WEBHOOK_TIMEOUT) {
+            throw new BadRequestException(
+              `Invalid webhook timeout in node '${node.id}': must be between ${MIN_WEBHOOK_TIMEOUT}ms and ${MAX_WEBHOOK_TIMEOUT}ms`,
+            );
+          }
+        }
+      }
+    }
+
+    // Validate trigger nodes are connected to at least one action (reachability check)
+    for (const triggerNode of triggerNodes) {
+      const reachableNodes = this.getReachableNodes(triggerNode.id, edges);
+      const hasReachableAction = nodes.some(
+        (n: any) => n.type === 'action' && reachableNodes.has(n.id),
+      );
+      if (!hasReachableAction) {
+        throw new BadRequestException(
+          `Trigger node '${triggerNode.id}' has no reachable action nodes`,
+        );
+      }
+    }
+
     // Detect cycles using DFS
     if (this.hasCycle(nodes, edges)) {
       throw new BadRequestException('Workflow definition contains circular dependencies');
     }
+  }
+
+  /**
+   * Get all nodes reachable from a given node via edges
+   */
+  private getReachableNodes(startNodeId: string, edges: any[]): Set<string> {
+    const reachable = new Set<string>();
+    const queue = [startNodeId];
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      for (const edge of edges) {
+        if (edge.source === current && !reachable.has(edge.target)) {
+          reachable.add(edge.target);
+          queue.push(edge.target);
+        }
+      }
+    }
+
+    return reachable;
   }
 
   /**

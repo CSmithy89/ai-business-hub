@@ -545,7 +545,8 @@ export class WorkflowExecutorService implements OnModuleInit {
   /**
    * Truncate execution trace if it exceeds 100KB
    *
-   * Preserves structure but truncates step results to prevent storage issues.
+   * Preserves structure and metadata while truncating large result values.
+   * Keeps object keys, types, and summaries for debugging.
    */
   private truncateExecutionTrace(trace: WorkflowExecutionTrace): WorkflowExecutionTrace {
     const MAX_TRACE_SIZE = 100 * 1024; // 100KB
@@ -559,19 +560,79 @@ export class WorkflowExecutorService implements OnModuleInit {
       `Execution trace exceeds 100KB (${Math.round(serialized.length / 1024)}KB), truncating step results`,
     );
 
-    // Create truncated version preserving structure
+    // Create truncated version preserving structure and metadata
     const truncated: WorkflowExecutionTrace = {
       ...trace,
       truncated: true,
       originalSize: serialized.length,
       steps: trace.steps.map((step) => ({
         ...step,
-        result: step.result
-          ? { truncated: true, message: 'Result truncated due to size limit' }
-          : step.result,
+        result: step.result ? this.truncateResult(step.result) : step.result,
       })),
     };
 
     return truncated;
+  }
+
+  /**
+   * Truncate a result object while preserving useful metadata for debugging.
+   * Keeps object structure, keys, and type information.
+   */
+  private truncateResult(result: Record<string, unknown>): Record<string, unknown> {
+    const MAX_STRING_LENGTH = 200;
+    const MAX_ARRAY_ITEMS = 5;
+
+    const truncateValue = (value: unknown, depth = 0): unknown => {
+      // Prevent deep recursion
+      if (depth > 3) {
+        return { _truncated: true, _type: typeof value };
+      }
+
+      if (value === null || value === undefined) {
+        return value;
+      }
+
+      if (typeof value === 'string') {
+        if (value.length > MAX_STRING_LENGTH) {
+          return `${value.substring(0, MAX_STRING_LENGTH)}... (${value.length} chars)`;
+        }
+        return value;
+      }
+
+      if (typeof value === 'number' || typeof value === 'boolean') {
+        return value;
+      }
+
+      if (Array.isArray(value)) {
+        if (value.length > MAX_ARRAY_ITEMS) {
+          return {
+            _truncated: true,
+            _type: 'array',
+            _length: value.length,
+            _preview: value.slice(0, MAX_ARRAY_ITEMS).map((v) => truncateValue(v, depth + 1)),
+          };
+        }
+        return value.map((v) => truncateValue(v, depth + 1));
+      }
+
+      if (typeof value === 'object') {
+        const keys = Object.keys(value);
+        const truncatedObj: Record<string, unknown> = {
+          _truncated: keys.length > 10,
+          _keys: keys.slice(0, 10),
+        };
+
+        // Include first few key-value pairs
+        for (const key of keys.slice(0, 5)) {
+          truncatedObj[key] = truncateValue((value as Record<string, unknown>)[key], depth + 1);
+        }
+
+        return truncatedObj;
+      }
+
+      return { _type: typeof value };
+    };
+
+    return truncateValue(result) as Record<string, unknown>;
   }
 }

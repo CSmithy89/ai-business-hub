@@ -131,9 +131,21 @@ const ALLOWED_VARIABLE_PATHS = [
 ];
 
 /**
+ * Maximum depth for variable interpolation paths.
+ * Prevents DoS through deeply nested object traversal.
+ */
+const MAX_PATH_DEPTH = 5;
+
+/**
  * Check if a path is allowed for variable interpolation
  */
 function isPathAllowed(path: string): boolean {
+  // Check depth limit to prevent DoS via deeply nested paths
+  const depth = path.split('.').length;
+  if (depth > MAX_PATH_DEPTH) {
+    return false;
+  }
+
   // Direct match
   if (ALLOWED_VARIABLE_PATHS.includes(path)) {
     return true;
@@ -660,9 +672,10 @@ export class ActionExecutorService implements OnModuleInit {
         }
 
         // Log detailed error for debugging (server-side only)
+        // Sanitize URL to remove potential API keys from query parameters
         this.logger.error({
           message: 'Webhook call failed',
-          url: config.url,
+          url: this.sanitizeUrlForLogs(config.url),
           method: config.method,
           error: error.message,
           code: error.code,
@@ -751,6 +764,51 @@ export class ActionExecutorService implements OnModuleInit {
 
     if (blockedPatterns.some((pattern) => pattern.test(hostname))) {
       throw new BadRequestException('Internal URLs are not allowed for webhooks');
+    }
+  }
+
+  /**
+   * Sanitize URL for logging by masking sensitive query parameters.
+   * Masks common patterns like api_key, token, secret, password, auth, key.
+   */
+  private sanitizeUrlForLogs(url: string): string {
+    try {
+      const parsedUrl = new URL(url);
+      const sensitiveParams = [
+        'api_key', 'apikey', 'api-key',
+        'token', 'access_token', 'auth_token',
+        'secret', 'client_secret',
+        'password', 'pass', 'pwd',
+        'auth', 'authorization',
+        'key', 'private_key',
+        'bearer', 'credential',
+      ];
+
+      // Mask sensitive query parameters
+      for (const param of sensitiveParams) {
+        if (parsedUrl.searchParams.has(param)) {
+          parsedUrl.searchParams.set(param, '[REDACTED]');
+        }
+      }
+
+      // Also check for params containing these words (case-insensitive)
+      for (const [key] of parsedUrl.searchParams.entries()) {
+        const lowerKey = key.toLowerCase();
+        if (sensitiveParams.some((s) => lowerKey.includes(s))) {
+          parsedUrl.searchParams.set(key, '[REDACTED]');
+        }
+      }
+
+      return parsedUrl.toString();
+    } catch {
+      // If URL parsing fails, return a safe version
+      return url.replace(/[?&]([^=]+)=([^&]*)/g, (match, key) => {
+        const lowerKey = key.toLowerCase();
+        if (['key', 'token', 'secret', 'password', 'auth'].some((s) => lowerKey.includes(s))) {
+          return `${match.charAt(0)}${key}=[REDACTED]`;
+        }
+        return match;
+      });
     }
   }
 
