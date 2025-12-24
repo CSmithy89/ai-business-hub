@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWorkflows, useActivateWorkflow, usePauseWorkflow, useDeleteWorkflow } from '@/hooks/use-pm-workflows';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { MoreHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -31,6 +41,9 @@ export default function WorkflowsPage(props: { params: Promise<{ slug: string }>
   const pauseWorkflow = usePauseWorkflow();
   const deleteWorkflow = useDeleteWorkflow();
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [workflowToDelete, setWorkflowToDelete] = useState<string | null>(null);
+
   const handleActivate = (workflowId: string) => {
     activateWorkflow.mutate(workflowId);
   };
@@ -39,10 +52,17 @@ export default function WorkflowsPage(props: { params: Promise<{ slug: string }>
     pauseWorkflow.mutate(workflowId);
   };
 
-  const handleDelete = (workflowId: string) => {
-    if (confirm('Are you sure you want to delete this workflow?')) {
-      deleteWorkflow.mutate(workflowId);
+  const handleDeleteClick = (workflowId: string) => {
+    setWorkflowToDelete(workflowId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (workflowToDelete) {
+      deleteWorkflow.mutate(workflowToDelete);
     }
+    setDeleteDialogOpen(false);
+    setWorkflowToDelete(null);
   };
 
   const getStatusBadge = (status: string, enabled: boolean) => {
@@ -168,7 +188,7 @@ export default function WorkflowsPage(props: { params: Promise<{ slug: string }>
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
-                          onClick={() => handleDelete(workflow.id)}
+                          onClick={() => handleDeleteClick(workflow.id)}
                           className="text-destructive"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
@@ -183,6 +203,26 @@ export default function WorkflowsPage(props: { params: Promise<{ slug: string }>
           </Table>
         </div>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Workflow</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this workflow? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

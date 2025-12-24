@@ -5,12 +5,13 @@ import { WorkflowsService } from './workflows.service';
 import { WorkflowExecutorService } from './workflow-executor.service';
 import { WorkflowSchedulerService } from './workflow-scheduler.service';
 import { ActionExecutorService } from './action-executor.service';
-import { PrismaService } from '../../common/services/prisma.service';
+import { CommonModule } from '../../common/common.module';
 import { EventsModule } from '../../events';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
+    CommonModule,
     EventsModule,
     NotificationsModule,
     BullModule.registerQueue({
@@ -23,7 +24,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
     WorkflowExecutorService,
     WorkflowSchedulerService,
     ActionExecutorService,
-    PrismaService,
   ],
   exports: [WorkflowsService, WorkflowExecutorService],
 })

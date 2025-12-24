@@ -1,4 +1,13 @@
-import { IsOptional, IsString, IsNumber, IsEnum, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsEnum,
+  Min,
+  Max,
+  ValidateNested,
+  Matches,
+} from 'class-validator';
 import { WorkflowTriggerType } from '@prisma/client';
 import { Type } from 'class-transformer';
 
@@ -12,6 +21,7 @@ export class TriggerFiltersDto {
    * Can be single value or array of values
    */
   @IsOptional()
+  @IsString({ each: true })
   status?: string | string[];
 
   /**
@@ -33,6 +43,7 @@ export class TriggerFiltersDto {
    * Can be single value or array of values
    */
   @IsOptional()
+  @IsString({ each: true })
   priority?: string | string[];
 
   /**
@@ -40,6 +51,7 @@ export class TriggerFiltersDto {
    * Can be single value or array of values
    */
   @IsOptional()
+  @IsString({ each: true })
   type?: string | string[];
 }
 
@@ -59,15 +71,20 @@ export class TriggerConfigDto {
    * Only triggers when task matches these conditions
    */
   @IsOptional()
+  @ValidateNested()
   @Type(() => TriggerFiltersDto)
   filters?: TriggerFiltersDto;
 
   /**
    * Cron expression for CUSTOM_SCHEDULE triggers
    * Example: "0 9 * * *" (daily at 9am)
+   * Validates basic cron format: minute hour day-of-month month day-of-week
    */
   @IsOptional()
   @IsString()
+  @Matches(/^(\*|[0-9,\-/]+)\s+(\*|[0-9,\-/]+)\s+(\*|[0-9,\-/]+)\s+(\*|[0-9,\-/]+)\s+(\*|[0-9,\-/]+)$/, {
+    message: 'schedule must be a valid cron expression (minute hour day month weekday)',
+  })
   schedule?: string;
 
   /**

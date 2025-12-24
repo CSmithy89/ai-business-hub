@@ -2423,6 +2423,7 @@ model WorkflowExecution {
   @@index([status])
   @@index([startedAt])
   @@index([workflowId, startedAt]) // Rate limiting queries (PM-10.2)
+  @@index([workflowId, status, startedAt]) // Execution history queries (PM-10.4)
   @@map("workflow_executions")
 }
 

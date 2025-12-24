@@ -178,10 +178,10 @@ export class WorkflowsService {
     return updated;
   }
 
-  async remove(workspaceId: string, id: string) {
+  async remove(workspaceId: string, id: string, actorId: string) {
     const workflow = await this.prisma.workflow.findUnique({
       where: { id },
-      select: { workspaceId: true, projectId: true },
+      select: { workspaceId: true, projectId: true, name: true },
     });
 
     if (!workflow || workflow.workspaceId !== workspaceId) {
@@ -192,11 +192,16 @@ export class WorkflowsService {
       where: { id },
     });
 
-    // Publish event
+    // Publish event with actor for audit trail
     await this.eventPublisher.publish(
       EventTypes.PM_WORKFLOW_DELETED,
-      { workflowId: id, projectId: workflow.projectId },
-      { tenantId: workspaceId, userId: 'system' },
+      {
+        workflowId: id,
+        projectId: workflow.projectId,
+        workflowName: workflow.name,
+        deletedBy: actorId,
+      },
+      { tenantId: workspaceId, userId: actorId },
     );
 
     return { success: true };
@@ -205,11 +210,29 @@ export class WorkflowsService {
   async activate(workspaceId: string, actorId: string, id: string) {
     const workflow = await this.prisma.workflow.findUnique({
       where: { id },
-      select: { workspaceId: true, projectId: true },
+      select: { workspaceId: true, projectId: true, enabled: true },
     });
 
     if (!workflow || workflow.workspaceId !== workspaceId) {
       throw new NotFoundException('Workflow not found');
+    }
+
+    // Skip if already active
+    if (workflow.enabled) {
+      const current = await this.prisma.workflow.findUnique({ where: { id } });
+      return current;
+    }
+
+    // Check active workflow limit before activating (50 per project)
+    const activeCount = await this.prisma.workflow.count({
+      where: {
+        projectId: workflow.projectId,
+        enabled: true,
+      },
+    });
+
+    if (activeCount >= 50) {
+      throw new BadRequestException('Maximum number of active workflows (50) reached for this project');
     }
 
     const updated = await this.prisma.workflow.update({
@@ -285,6 +308,35 @@ export class WorkflowsService {
     for (const node of nodes) {
       if (!validTypes.includes(node.type)) {
         throw new BadRequestException(`Invalid node type: ${node.type}`);
+      }
+    }
+
+    // Require at least one trigger node
+    const triggerNodes = nodes.filter((n: any) => n.type === 'trigger');
+    if (triggerNodes.length === 0) {
+      throw new BadRequestException('Workflow must have at least one trigger node');
+    }
+
+    // Validate edge references point to valid nodes
+    const nodeIds = new Set(nodes.map((n: any) => n.id));
+    for (const edge of edges) {
+      if (!nodeIds.has(edge.source)) {
+        throw new BadRequestException(`Invalid edge: source node '${edge.source}' does not exist`);
+      }
+      if (!nodeIds.has(edge.target)) {
+        throw new BadRequestException(`Invalid edge: target node '${edge.target}' does not exist`);
+      }
+    }
+
+    // Detect orphan nodes (nodes not connected to any edges, except triggers which can be entry points)
+    const connectedNodes = new Set<string>();
+    for (const edge of edges) {
+      connectedNodes.add(edge.source);
+      connectedNodes.add(edge.target);
+    }
+    for (const node of nodes) {
+      if (node.type !== 'trigger' && !connectedNodes.has(node.id)) {
+        throw new BadRequestException(`Orphan node detected: '${node.id}' is not connected to any edges`);
       }
     }
 
@@ -410,6 +462,7 @@ export class WorkflowsService {
     // Execute workflow in dry-run mode
     const execution = await this.workflowExecutor.executeWorkflow(workflow.id, {
       workflowId: workflow.id,
+      workspaceId: workflow.workspaceId, // Tenant isolation
       triggerType: workflow.triggerType,
       triggerData,
       isDryRun: true,
@@ -479,6 +532,9 @@ export class WorkflowsService {
     if (activeCount >= 50) {
       throw new BadRequestException('Maximum number of active workflows (50) reached for this project');
     }
+
+    // Validate template definition (check for cycles, required nodes, etc.)
+    this.validateWorkflowDefinition(template.definition);
 
     // Extract trigger type from template
     const triggerType = template.definition.triggers[0]?.eventType || 'MANUAL' as PrismaTriggerType;
@@ -628,6 +684,7 @@ export class WorkflowsService {
       originalExecution.workflowId,
       {
         workflowId: originalExecution.workflowId,
+        workspaceId, // Tenant isolation
         triggerType: originalExecution.triggerType,
         triggerData: originalExecution.triggerData as Record<string, any>,
         triggeredBy: `retry:${executionId}`,

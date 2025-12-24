@@ -1,7 +1,7 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../common/services/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { EventPublisherService } from '../../events';
+import { EventPublisherService, RedisProvider } from '../../events';
 import axios from 'axios';
 import { EventTypes } from '@hyvve/shared';
 
@@ -64,6 +64,7 @@ interface CallWebhookConfig extends ActionConfig {
  */
 interface ExecutionContext {
   workflowId: string;
+  workspaceId: string; // Required for tenant isolation
   triggerType: string;
   triggerData: Record<string, any>;
   triggeredBy?: string;
@@ -97,16 +98,22 @@ interface StepResult {
  * Story: PM-10.3 - Action Library
  */
 @Injectable()
-export class ActionExecutorService {
+export class ActionExecutorService implements OnModuleInit {
   private readonly logger = new Logger(ActionExecutorService.name);
-  private webhookRateLimiter = new Map<string, { count: number; resetAt: Date }>();
-  private notificationRateLimiter = new Map<string, { count: number; resetAt: Date }>();
+  // Rate limit keys for Redis (cluster-safe)
+  private readonly WEBHOOK_RATE_LIMIT_PREFIX = 'workflow:ratelimit:webhook:';
+  private readonly NOTIFICATION_RATE_LIMIT_PREFIX = 'workflow:ratelimit:notification:';
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly eventPublisher: EventPublisherService,
+    private readonly redisProvider: RedisProvider,
   ) {}
+
+  async onModuleInit() {
+    this.logger.log('Action executor service initialized with Redis rate limiting');
+  }
 
   /**
    * Execute a workflow action
@@ -226,27 +233,34 @@ export class ActionExecutorService {
 
     this.logger.log(`Updating task ${taskId} with updates:`, updates);
 
-    // Update task
-    const task = await this.prisma.task.update({
-      where: { id: taskId },
+    // Update task with tenant isolation - use updateMany with workspaceId filter
+    const result = await this.prisma.task.updateMany({
+      where: {
+        id: taskId,
+        workspaceId: context.workspaceId, // Tenant isolation
+      },
       data: updates,
     });
+
+    if (result.count === 0) {
+      throw new BadRequestException('Task not found or access denied');
+    }
 
     // Emit task updated event
     await this.eventPublisher.publish(
       EventTypes.PM_TASK_UPDATED,
       {
-        taskId: task.id,
+        taskId,
         updates,
         source: 'workflow',
       },
       {
-        tenantId: task.workspaceId,
+        tenantId: context.workspaceId,
         userId: 'system',
       },
     );
 
-    return { taskId: task.id, updates };
+    return { taskId, updates };
   }
 
   /**
@@ -267,9 +281,25 @@ export class ActionExecutorService {
 
     this.logger.log(`Assigning task ${taskId} to user ${assigneeId}`);
 
-    // Update task assignee
-    const task = await this.prisma.task.update({
-      where: { id: taskId },
+    // Get task title for notification (with tenant isolation)
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        workspaceId: context.workspaceId, // Tenant isolation
+      },
+      select: { id: true, title: true },
+    });
+
+    if (!task) {
+      throw new BadRequestException('Task not found or access denied');
+    }
+
+    // Update task assignee with tenant isolation
+    await this.prisma.task.updateMany({
+      where: {
+        id: taskId,
+        workspaceId: context.workspaceId, // Tenant isolation
+      },
       data: { assigneeId },
     });
 
@@ -277,7 +307,7 @@ export class ActionExecutorService {
     if (config.notifyAssignee !== false) {
       await this.notifications.createNotification({
         userId: assigneeId,
-        workspaceId: task.workspaceId,
+        workspaceId: context.workspaceId,
         type: 'TASK_ASSIGNED',
         title: 'Task Assigned',
         message: `You have been assigned to task: ${task.title}`,
@@ -293,7 +323,7 @@ export class ActionExecutorService {
         assigneeId,
       },
       {
-        tenantId: task.workspaceId,
+        tenantId: context.workspaceId,
         userId: 'system',
       },
     );
@@ -315,24 +345,8 @@ export class ActionExecutorService {
     // Rate limiting: Max 50 notifications per hour per workflow
     await this.checkNotificationRateLimit(workflowId);
 
-    // Get workspace ID from trigger data
-    const taskId = context.triggerData.taskId;
-    let workspaceId: string;
-
-    if (taskId) {
-      const task = await this.prisma.task.findUnique({
-        where: { id: taskId },
-        select: { workspaceId: true },
-      });
-      if (!task) {
-        throw new BadRequestException('Task not found');
-      }
-      workspaceId = task.workspaceId;
-    } else if (context.triggerData.workspaceId) {
-      workspaceId = context.triggerData.workspaceId;
-    } else {
-      throw new BadRequestException('No workspaceId available in trigger data');
-    }
+    // Use workspaceId from context (tenant isolation)
+    const workspaceId = context.workspaceId;
 
     // Interpolate recipients and message
     const recipients = config.recipients.map((r) =>
@@ -383,10 +397,16 @@ export class ActionExecutorService {
       throw new BadRequestException('No taskId in trigger data for CREATE_TASK action');
     }
 
-    const task = await this.prisma.task.findUnique({ where: { id: taskId } });
+    // Fetch task with tenant isolation
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        workspaceId: context.workspaceId, // Tenant isolation
+      },
+    });
 
     if (!task) {
-      throw new BadRequestException('Trigger task not found');
+      throw new BadRequestException('Trigger task not found or access denied');
     }
 
     // Interpolate task data
@@ -396,29 +416,35 @@ export class ActionExecutorService {
       `Creating related task: ${taskData.title} (parent: ${task.id})`,
     );
 
-    // Get next task number for project
-    const lastTask = await this.prisma.task.findFirst({
-      where: { projectId: task.projectId },
-      orderBy: { taskNumber: 'desc' },
-      select: { taskNumber: true },
-    });
-    const taskNumber = (lastTask?.taskNumber || 0) + 1;
+    // Use transaction to prevent task number race condition
+    const newTask = await this.prisma.$transaction(async (tx) => {
+      // Get next task number for project with tenant isolation (within transaction)
+      const lastTask = await tx.task.findFirst({
+        where: {
+          projectId: task.projectId,
+          workspaceId: context.workspaceId, // Tenant isolation
+        },
+        orderBy: { taskNumber: 'desc' },
+        select: { taskNumber: true },
+      });
+      const taskNumber = (lastTask?.taskNumber || 0) + 1;
 
-    // Create new task
-    const newTask = await this.prisma.task.create({
-      data: {
-        title: taskData.title,
-        description: taskData.description,
-        phaseId: taskData.phaseId || task.phaseId,
-        assigneeId: taskData.assigneeId,
-        priority: taskData.priority || 'MEDIUM',
-        dueDate: taskData.dueDate ? new Date(taskData.dueDate) : null,
-        projectId: task.projectId,
-        workspaceId: task.workspaceId,
-        createdBy: task.createdBy,
-        parentId: config.linkToTriggerTask !== false ? task.id : taskData.parentTaskId,
-        taskNumber,
-      },
+      // Create new task (within transaction)
+      return tx.task.create({
+        data: {
+          title: taskData.title,
+          description: taskData.description,
+          phaseId: taskData.phaseId || task.phaseId,
+          assigneeId: taskData.assigneeId,
+          priority: taskData.priority || 'MEDIUM',
+          dueDate: taskData.dueDate ? new Date(taskData.dueDate) : null,
+          projectId: task.projectId,
+          workspaceId: context.workspaceId, // Use context workspaceId
+          createdBy: task.createdBy,
+          parentId: config.linkToTriggerTask !== false ? task.id : taskData.parentTaskId,
+          taskNumber,
+        },
+      });
     });
 
     // Emit task created event
@@ -429,7 +455,7 @@ export class ActionExecutorService {
         source: 'workflow',
       },
       {
-        tenantId: task.workspaceId,
+        tenantId: context.workspaceId,
         userId: 'system',
       },
     );
@@ -453,29 +479,42 @@ export class ActionExecutorService {
 
     const phaseId = this.interpolateVariable(config.phaseId, context);
 
-    // Get current task to capture old phase
-    const currentTask = await this.prisma.task.findUnique({
-      where: { id: taskId },
-      select: { phaseId: true },
+    // Get current task to capture old phase (with tenant isolation)
+    const currentTask = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        workspaceId: context.workspaceId, // Tenant isolation
+      },
+      select: { id: true, phaseId: true },
     });
 
     if (!currentTask) {
-      throw new BadRequestException('Task not found');
+      throw new BadRequestException('Task not found or access denied');
     }
 
-    // Validate phase exists
-    const phase = await this.prisma.phase.findUnique({ where: { id: phaseId } });
+    // Validate phase exists in the same workspace
+    const phase = await this.prisma.phase.findFirst({
+      where: {
+        id: phaseId,
+        project: {
+          workspaceId: context.workspaceId, // Tenant isolation via project
+        },
+      },
+    });
     if (!phase) {
-      throw new BadRequestException(`Phase not found: ${phaseId}`);
+      throw new BadRequestException(`Phase not found or access denied: ${phaseId}`);
     }
 
     this.logger.log(
       `Moving task ${taskId} to phase ${phaseId} (${phase.name})`,
     );
 
-    // Update task phase
-    const task = await this.prisma.task.update({
-      where: { id: taskId },
+    // Update task phase with tenant isolation
+    await this.prisma.task.updateMany({
+      where: {
+        id: taskId,
+        workspaceId: context.workspaceId, // Tenant isolation
+      },
       data: { phaseId },
     });
 
@@ -483,17 +522,17 @@ export class ActionExecutorService {
     await this.eventPublisher.publish(
       'pm.task.phase_changed' as any,
       {
-        taskId: task.id,
+        taskId: currentTask.id,
         oldPhaseId: currentTask.phaseId,
         newPhaseId: phaseId,
       },
       {
-        tenantId: task.workspaceId,
+        tenantId: context.workspaceId,
         userId: 'system',
       },
     );
 
-    return { taskId: task.id, phaseId };
+    return { taskId: currentTask.id, phaseId };
   }
 
   /**
@@ -546,59 +585,55 @@ export class ActionExecutorService {
   }
 
   /**
-   * Check webhook rate limit
+   * Check webhook rate limit using Redis (cluster-safe)
    *
    * Max 10 calls per minute per workflow
    */
   private async checkWebhookRateLimit(workflowId: string): Promise<void> {
-    const key = `webhook:${workflowId}`;
-    const now = new Date();
-    const limit = this.webhookRateLimiter.get(key);
+    const key = `${this.WEBHOOK_RATE_LIMIT_PREFIX}${workflowId}`;
+    const redis = this.redisProvider.getClient();
+    const windowMs = 60 * 1000; // 1 minute
+    const limit = 10;
 
-    if (!limit || limit.resetAt < now) {
-      // Reset rate limit window
-      this.webhookRateLimiter.set(key, {
-        count: 1,
-        resetAt: new Date(now.getTime() + 60 * 1000), // 1 minute
-      });
-      return;
+    // Use INCR with EXPIRE for atomic rate limiting
+    const current = await redis.incr(key);
+
+    // Set expiry only on first increment (key just created)
+    if (current === 1) {
+      await redis.pexpire(key, windowMs);
     }
 
-    if (limit.count >= 10) {
+    if (current > limit) {
       throw new BadRequestException(
         'Webhook rate limit exceeded (10 calls per minute per workflow)',
       );
     }
-
-    limit.count++;
   }
 
   /**
-   * Check notification rate limit
+   * Check notification rate limit using Redis (cluster-safe)
    *
    * Max 50 notifications per hour per workflow
    */
   private async checkNotificationRateLimit(workflowId: string): Promise<void> {
-    const key = `notification:${workflowId}`;
-    const now = new Date();
-    const limit = this.notificationRateLimiter.get(key);
+    const key = `${this.NOTIFICATION_RATE_LIMIT_PREFIX}${workflowId}`;
+    const redis = this.redisProvider.getClient();
+    const windowMs = 60 * 60 * 1000; // 1 hour
+    const limit = 50;
 
-    if (!limit || limit.resetAt < now) {
-      // Reset rate limit window
-      this.notificationRateLimiter.set(key, {
-        count: 1,
-        resetAt: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
-      });
-      return;
+    // Use INCR with EXPIRE for atomic rate limiting
+    const current = await redis.incr(key);
+
+    // Set expiry only on first increment (key just created)
+    if (current === 1) {
+      await redis.pexpire(key, windowMs);
     }
 
-    if (limit.count >= 50) {
+    if (current > limit) {
       throw new BadRequestException(
         'Notification rate limit exceeded (50 per hour per workflow)',
       );
     }
-
-    limit.count++;
   }
 
   /**
@@ -617,7 +652,10 @@ export class ActionExecutorService {
       /^192\.168\.\d+\.\d+$/,
       /^10\.\d+\.\d+\.\d+$/,
       /^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/,
+      /^169\.254\.\d+\.\d+$/, // Link-local addresses (AWS/cloud metadata)
+      /^100\.(6[4-9]|[7-9]\d|1[0-1]\d|12[0-7])\.\d+\.\d+$/, // Carrier-grade NAT
       /^\[::1\]$/,
+      /^\[fe80:/i, // IPv6 link-local
     ];
 
     if (blockedPatterns.some((pattern) => pattern.test(hostname))) {
@@ -626,9 +664,23 @@ export class ActionExecutorService {
   }
 
   /**
+   * Sanitize string to prevent XSS attacks
+   *
+   * Escapes HTML special characters in interpolated values.
+   */
+  private sanitizeString(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  }
+
+  /**
    * Interpolate a single variable
    *
-   * Supports {{variable.path}} syntax
+   * Supports {{variable.path}} syntax with XSS protection
    */
   private interpolateVariable(value: any, context: ExecutionContext): any {
     if (typeof value !== 'string') return value;
@@ -644,7 +696,8 @@ export class ActionExecutorService {
         if (result === undefined) return match; // Keep original if not found
       }
 
-      return String(result);
+      // Sanitize to prevent XSS
+      return this.sanitizeString(String(result));
     });
   }
 

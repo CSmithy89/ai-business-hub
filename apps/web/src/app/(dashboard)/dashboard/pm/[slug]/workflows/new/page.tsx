@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ArrowLeft, Sparkles, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 const INITIAL_DEFINITION: WorkflowDefinition = {
   nodes: [],
@@ -69,7 +70,7 @@ export default function NewWorkflowPage(props: { params: Promise<{ slug: string 
 
   const handleSave = (updatedDefinition: WorkflowDefinition) => {
     if (!name.trim()) {
-      alert('Please enter a workflow name');
+      toast.error('Please enter a workflow name');
       return;
     }
 

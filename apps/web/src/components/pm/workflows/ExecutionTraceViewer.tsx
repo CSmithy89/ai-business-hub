@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, XCircle, MinusCircle, ChevronDown, ChevronRight, Zap, GitBranch, Play } from 'lucide-react';
+import { CheckCircle2, XCircle, MinusCircle, ChevronDown, ChevronRight, Zap, GitBranch, Play, Bot } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,8 @@ function getStepIcon(type: ExecutionStep['type']) {
       return <GitBranch className="h-4 w-4" />;
     case 'action':
       return <Play className="h-4 w-4" />;
+    case 'agent':
+      return <Bot className="h-4 w-4" />;
     default:
       return null;
   }
@@ -99,7 +101,7 @@ function StepResultDetails({ result }: { result: ExecutionStep['result'] }) {
   );
 }
 
-function ExecutionStepItem({ step, index }: { step: ExecutionStep; index: number }) {
+function ExecutionStepItem({ step, index, isLast }: { step: ExecutionStep; index: number; isLast: boolean }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -108,7 +110,7 @@ function ExecutionStepItem({ step, index }: { step: ExecutionStep; index: number
         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-xs font-medium">
           {index + 1}
         </div>
-        {index < (step.duration || 0) && (
+        {!isLast && (
           <div className="w-0.5 h-full bg-border mt-2" />
         )}
       </div>
@@ -235,7 +237,12 @@ export function ExecutionTraceViewer({ trace, onClose }: ExecutionTraceViewerPro
               </div>
             ) : (
               executionTrace.steps.map((step, index) => (
-                <ExecutionStepItem key={step.nodeId} step={step} index={index} />
+                <ExecutionStepItem
+                  key={step.nodeId}
+                  step={step}
+                  index={index}
+                  isLast={index === executionTrace.steps.length - 1}
+                />
               ))
             )}
           </div>

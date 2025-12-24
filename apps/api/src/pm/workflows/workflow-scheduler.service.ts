@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, Worker } from 'bullmq';
 import { PrismaService } from '../../common/services/prisma.service';
@@ -21,13 +22,14 @@ interface TriggerConfig {
  * Story: PM-10.2 - Trigger Conditions
  */
 @Injectable()
-export class WorkflowSchedulerService implements OnModuleInit {
+export class WorkflowSchedulerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WorkflowSchedulerService.name);
   private worker: Worker | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly executor: WorkflowExecutorService,
+    private readonly configService: ConfigService,
     @InjectQueue('workflow-scheduler') private schedulerQueue: Queue,
   ) {}
 
@@ -103,8 +105,8 @@ export class WorkflowSchedulerService implements OnModuleInit {
       },
       {
         connection: {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: parseInt(process.env.REDIS_PORT || '6379', 10),
+          host: this.configService.get<string>('REDIS_HOST', 'localhost'),
+          port: this.configService.get<number>('REDIS_PORT', 6379),
         },
       },
     );
@@ -191,6 +193,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
           try {
             await this.executor.executeWorkflow(workflow.id, {
               workflowId: workflow.id,
+              workspaceId: workflow.project.workspaceId, // Tenant isolation
               triggerType: 'DUE_DATE_APPROACHING',
               triggerData: {
                 taskId: task.id,
@@ -275,6 +278,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
 
           await this.executor.executeWorkflow(workflow.id, {
             workflowId: workflow.id,
+            workspaceId: workflow.project.workspaceId, // Tenant isolation
             triggerType: 'CUSTOM_SCHEDULE',
             triggerData: {
               scheduledAt: now.toISOString(),

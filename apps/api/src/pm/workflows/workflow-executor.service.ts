@@ -20,6 +20,7 @@ interface TriggerConfig {
 
 export interface ExecutionContext {
   workflowId: string;
+  workspaceId: string; // Required for tenant isolation
   triggerType: WorkflowTriggerType;
   triggerData: Record<string, any>;
   triggeredBy?: string;
@@ -115,6 +116,7 @@ export class WorkflowExecutorService implements OnModuleInit {
 
           await this.executeWorkflow(workflow.id, {
             workflowId: workflow.id,
+            workspaceId: workflow.workspaceId, // Tenant isolation
             triggerType,
             triggerData: event.data as Record<string, any>,
             triggeredBy: event.id,
@@ -299,6 +301,9 @@ export class WorkflowExecutorService implements OnModuleInit {
       // Execute workflow steps
       const executionTrace = await this.executeSteps(workflow, context);
 
+      // Truncate trace if it exceeds 100KB to prevent storage issues
+      const truncatedTrace = this.truncateExecutionTrace(executionTrace);
+
       // Update execution with results
       await this.prisma.workflowExecution.update({
         where: { id: execution.id },
@@ -308,7 +313,7 @@ export class WorkflowExecutorService implements OnModuleInit {
           stepsExecuted: executionTrace.stepsExecuted,
           stepsPassed: executionTrace.stepsPassed,
           stepsFailed: executionTrace.stepsFailed,
-          executionTrace: executionTrace as any,
+          executionTrace: truncatedTrace as any,
         },
       });
 
@@ -337,7 +342,12 @@ export class WorkflowExecutorService implements OnModuleInit {
 
       this.logger.log(`Workflow execution ${execution.id} completed successfully`);
 
-      return execution;
+      // Reload execution to return updated data with trace
+      const updatedExecution = await this.prisma.workflowExecution.findUnique({
+        where: { id: execution.id },
+      });
+
+      return updatedExecution || execution;
     } catch (error) {
       this.logger.error({
         message: 'Workflow execution failed',
@@ -425,8 +435,9 @@ export class WorkflowExecutorService implements OnModuleInit {
 
       // Execute action nodes
       if (node.type === 'action') {
-        const actionType = node.data?.actionType;
-        const config = { nodeId: node.id, ...node.data?.config };
+        // actionType is nested inside node.data.config per template structure
+        const actionType = node.data?.config?.actionType;
+        const config = { nodeId: node.id, ...node.data?.config?.config };
 
         if (!actionType) {
           this.logger.warn(`Action node ${node.id} missing actionType, skipping`);
@@ -528,5 +539,38 @@ export class WorkflowExecutorService implements OnModuleInit {
     }
 
     return sorted;
+  }
+
+  /**
+   * Truncate execution trace if it exceeds 100KB
+   *
+   * Preserves structure but truncates step results to prevent storage issues.
+   */
+  private truncateExecutionTrace(trace: any): any {
+    const MAX_TRACE_SIZE = 100 * 1024; // 100KB
+    const serialized = JSON.stringify(trace);
+
+    if (serialized.length <= MAX_TRACE_SIZE) {
+      return trace;
+    }
+
+    this.logger.warn(
+      `Execution trace exceeds 100KB (${Math.round(serialized.length / 1024)}KB), truncating step results`,
+    );
+
+    // Create truncated version preserving structure
+    const truncated = {
+      ...trace,
+      truncated: true,
+      originalSize: serialized.length,
+      steps: trace.steps?.map((step: any) => ({
+        ...step,
+        result: step.result
+          ? { truncated: true, message: 'Result truncated due to size limit' }
+          : step.result,
+      })),
+    };
+
+    return truncated;
   }
 }

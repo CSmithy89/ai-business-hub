@@ -47,7 +47,7 @@ export interface TestWorkflowInput {
 
 export interface ExecutionStep {
   nodeId: string;
-  type: 'trigger' | 'condition' | 'action';
+  type: 'trigger' | 'condition' | 'action' | 'agent';
   status: 'passed' | 'failed' | 'skipped';
   result?: {
     simulated?: boolean;

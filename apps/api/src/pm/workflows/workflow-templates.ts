@@ -52,7 +52,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             config: {
               actionType: 'assign_task',
               config: {
-                assigneeId: '{{context.assigneeId}}',
+                assigneeId: '{{triggerData.assigneeId}}',
               },
             },
             continueOnError: false,
@@ -67,8 +67,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             config: {
               actionType: 'send_notification',
               config: {
-                userId: '{{context.assigneeId}}',
-                message: 'You have been assigned to task: {{context.taskTitle}}',
+                userId: '{{triggerData.assigneeId}}',
+                message: 'You have been assigned to task: {{triggerData.taskTitle}}',
               },
             },
             continueOnError: true,
@@ -134,8 +134,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             config: {
               actionType: 'send_notification',
               config: {
-                userId: '{{context.assigneeId}}',
-                message: 'Reminder: Task "{{context.taskTitle}}" is due in {{context.daysUntilDue}} days',
+                userId: '{{triggerData.assigneeId}}',
+                message: 'Reminder: Task "{{triggerData.taskTitle}}" is due in {{triggerData.daysUntilDue}} days',
               },
             },
             continueOnError: false,
@@ -214,8 +214,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             config: {
               actionType: 'send_notification',
               config: {
-                userId: '{{context.assigneeId}}',
-                message: 'Task "{{context.taskTitle}}" was automatically closed due to inactivity',
+                userId: '{{triggerData.assigneeId}}',
+                message: 'Task "{{triggerData.taskTitle}}" was automatically closed due to inactivity',
               },
             },
             continueOnError: true,
@@ -280,8 +280,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             config: {
               actionType: 'send_notification',
               config: {
-                userId: '{{context.assigneeId}}',
-                message: 'URGENT: Task "{{context.taskTitle}}" is overdue!',
+                userId: '{{triggerData.assigneeId}}',
+                message: 'URGENT: Task "{{triggerData.taskTitle}}" is overdue!',
               },
             },
             continueOnError: true,
@@ -296,8 +296,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             config: {
               actionType: 'send_notification',
               config: {
-                userId: '{{context.managerId}}',
-                message: 'Task "{{context.taskTitle}}" assigned to {{context.assigneeName}} is overdue',
+                userId: '{{triggerData.managerId}}',
+                message: 'Task "{{triggerData.taskTitle}}" assigned to {{triggerData.assigneeName}} is overdue',
               },
             },
             continueOnError: true,
@@ -379,7 +379,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             config: {
               actionType: 'move_to_phase',
               config: {
-                phaseId: '{{context.nextPhaseId}}',
+                phaseId: '{{triggerData.nextPhaseId}}',
               },
             },
             continueOnError: false,
@@ -394,8 +394,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             config: {
               actionType: 'create_task',
               config: {
-                title: 'Start {{context.nextPhaseName}} phase',
-                phaseId: '{{context.nextPhaseId}}',
+                title: 'Start {{triggerData.nextPhaseName}} phase',
+                phaseId: '{{triggerData.nextPhaseId}}',
               },
             },
             continueOnError: true,

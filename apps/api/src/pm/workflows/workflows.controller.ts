@@ -109,8 +109,9 @@ export class WorkflowsController {
   async remove(
     @CurrentWorkspace() workspaceId: string,
     @Param('id') id: string,
+    @CurrentUser() actor: any,
   ) {
-    return this.workflowsService.remove(workspaceId, id);
+    return this.workflowsService.remove(workspaceId, id, actor.id);
   }
 
   @Post(':id/activate')

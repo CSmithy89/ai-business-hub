@@ -18,7 +18,10 @@ export class ListWorkflowsQueryDto {
   status?: WorkflowStatus;
 
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    return value === 'true' || value === true;
+  })
   @IsBoolean()
   enabled?: boolean;
 }
