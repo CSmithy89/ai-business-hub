@@ -4,6 +4,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { EventPublisherService, RedisProvider } from '../../events';
 import axios from 'axios';
 import { EventTypes } from '@hyvve/shared';
+import { getNestedValue } from './utils/get-nested-value';
 
 /**
  * Action Configuration Types
@@ -680,7 +681,8 @@ export class ActionExecutorService implements OnModuleInit {
   /**
    * Interpolate a single variable
    *
-   * Supports {{variable.path}} syntax with XSS protection
+   * Supports {{variable.path}} syntax with XSS protection.
+   * Handles deeply nested paths like {{triggerData.task.assignee.name}}.
    */
   private interpolateVariable(value: any, context: ExecutionContext): any {
     if (typeof value !== 'string') return value;
@@ -688,12 +690,13 @@ export class ActionExecutorService implements OnModuleInit {
     // Match {{variable.path}} pattern
     const regex = /\{\{([^}]+)\}\}/g;
     return value.replace(regex, (match, path) => {
-      const keys = path.trim().split('.');
-      let result: any = context;
+      const trimmedPath = path.trim();
 
-      for (const key of keys) {
-        result = result?.[key];
-        if (result === undefined) return match; // Keep original if not found
+      // Use getNestedValue for safe nested property access
+      const result = getNestedValue(context as unknown as Record<string, unknown>, trimmedPath);
+
+      if (result === undefined) {
+        return match; // Keep original if not found
       }
 
       // Sanitize to prevent XSS

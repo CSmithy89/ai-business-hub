@@ -23,6 +23,7 @@ import { ActionNode } from './nodes/ActionNode';
 import { AgentNode } from './nodes/AgentNode';
 import { NodePalette } from './NodePalette';
 import { Button } from '@/components/ui/button';
+import { WorkflowCanvasErrorBoundary } from '@/components/ui/error-boundary';
 import { Save } from 'lucide-react';
 
 interface WorkflowCanvasProps {
@@ -191,51 +192,53 @@ export function WorkflowCanvas({
   }, [nodes, edges, definition, onSave]);
 
   return (
-    <div className="flex h-full w-full">
-      {!readOnly && <NodePalette onAddNode={handleAddNode} />}
+    <WorkflowCanvasErrorBoundary>
+      <div className="flex h-full w-full">
+        {!readOnly && <NodePalette onAddNode={handleAddNode} />}
 
-      <div className="flex-1 relative">
-        <div className="absolute top-4 right-4 z-10 flex gap-2">
-          {!readOnly && (
-            <Button onClick={handleSave} size="sm">
-              <Save className="w-4 h-4 mr-2" />
-              Save Workflow
-            </Button>
-          )}
+        <div className="flex-1 relative">
+          <div className="absolute top-4 right-4 z-10 flex gap-2">
+            {!readOnly && (
+              <Button onClick={handleSave} size="sm">
+                <Save className="w-4 h-4 mr-2" />
+                Save Workflow
+              </Button>
+            )}
+          </div>
+
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodesChange={readOnly ? undefined : onNodesChange}
+            onEdgesChange={readOnly ? undefined : onEdgesChange}
+            onConnect={readOnly ? undefined : onConnect}
+            fitView
+            nodesDraggable={!readOnly}
+            nodesConnectable={!readOnly}
+            elementsSelectable={!readOnly}
+          >
+            <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+            <Controls />
+            <MiniMap
+              nodeColor={(node) => {
+                switch (node.type) {
+                  case 'trigger':
+                    return '#22c55e';
+                  case 'condition':
+                    return '#f59e0b';
+                  case 'action':
+                    return '#3b82f6';
+                  case 'agent':
+                    return '#a855f7';
+                  default:
+                    return '#6b7280';
+                }
+              }}
+            />
+          </ReactFlow>
         </div>
-
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          onNodesChange={readOnly ? undefined : onNodesChange}
-          onEdgesChange={readOnly ? undefined : onEdgesChange}
-          onConnect={readOnly ? undefined : onConnect}
-          fitView
-          nodesDraggable={!readOnly}
-          nodesConnectable={!readOnly}
-          elementsSelectable={!readOnly}
-        >
-          <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-          <Controls />
-          <MiniMap
-            nodeColor={(node) => {
-              switch (node.type) {
-                case 'trigger':
-                  return '#22c55e';
-                case 'condition':
-                  return '#f59e0b';
-                case 'action':
-                  return '#3b82f6';
-                case 'agent':
-                  return '#a855f7';
-                default:
-                  return '#6b7280';
-              }
-            }}
-          />
-        </ReactFlow>
       </div>
-    </div>
+    </WorkflowCanvasErrorBoundary>
   );
 }

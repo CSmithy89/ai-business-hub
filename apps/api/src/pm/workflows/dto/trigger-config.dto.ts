@@ -6,10 +6,11 @@ import {
   Min,
   Max,
   ValidateNested,
-  Matches,
+  Validate,
 } from 'class-validator';
 import { WorkflowTriggerType } from '@prisma/client';
 import { Type } from 'class-transformer';
+import { CronExpressionValidator } from '../validators/cron-expression.validator';
 
 /**
  * Trigger filter configuration
@@ -78,13 +79,11 @@ export class TriggerConfigDto {
   /**
    * Cron expression for CUSTOM_SCHEDULE triggers
    * Example: "0 9 * * *" (daily at 9am)
-   * Validates basic cron format: minute hour day-of-month month day-of-week
+   * Validated using cron-parser for accurate parsing
    */
   @IsOptional()
   @IsString()
-  @Matches(/^(\*|[0-9,\-/]+)\s+(\*|[0-9,\-/]+)\s+(\*|[0-9,\-/]+)\s+(\*|[0-9,\-/]+)\s+(\*|[0-9,\-/]+)$/, {
-    message: 'schedule must be a valid cron expression (minute hour day month weekday)',
-  })
+  @Validate(CronExpressionValidator)
   schedule?: string;
 
   /**

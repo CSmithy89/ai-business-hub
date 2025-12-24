@@ -249,3 +249,41 @@ export function HealthErrorBoundary({ children }: { children: ReactNode }) {
     </ErrorBoundary>
   );
 }
+
+/**
+ * Workflow Canvas error boundary
+ * Catches errors from React Flow and displays recovery UI
+ */
+export function WorkflowCanvasErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex h-full w-full flex-col items-center justify-center p-8 bg-muted/30 border rounded-lg"
+        >
+          <span className="material-symbols-rounded text-4xl text-destructive" aria-hidden="true">
+            error_outline
+          </span>
+          <h3 className="mt-4 text-base font-medium">Workflow Canvas Error</h3>
+          <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">
+            The workflow canvas encountered an error. This may be due to an invalid workflow definition.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
+          >
+            Reload Canvas
+          </button>
+        </div>
+      }
+      onError={(error) => {
+        console.error('Workflow canvas error:', error);
+      }}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}

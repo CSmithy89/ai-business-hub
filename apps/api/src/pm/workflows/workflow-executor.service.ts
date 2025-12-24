@@ -5,6 +5,13 @@ import { PrismaService } from '../../common/services/prisma.service';
 import { EventPublisherService, EventConsumerService } from '../../events';
 import { EventSubscriber } from '../../events/decorators/event-subscriber.decorator';
 import { ActionExecutorService } from './action-executor.service';
+import {
+  WorkflowExecutionTrace,
+  StepResult,
+  WorkflowNode,
+  WorkflowEdge,
+  WorkflowDefinition,
+} from './types/execution-trace.types';
 
 interface TriggerConfig {
   filters?: {
@@ -404,16 +411,10 @@ export class WorkflowExecutorService implements OnModuleInit {
   private async executeSteps(
     workflow: Workflow,
     context: ExecutionContext,
-  ): Promise<{
-    status: 'COMPLETED' | 'FAILED';
-    stepsExecuted: number;
-    stepsPassed: number;
-    stepsFailed: number;
-    steps: any[];
-  }> {
-    const definition = workflow.definition as any;
-    const nodes = definition.nodes || [];
-    const edges = definition.edges || [];
+  ): Promise<WorkflowExecutionTrace> {
+    const definition = workflow.definition as unknown as WorkflowDefinition;
+    const nodes: WorkflowNode[] = definition.nodes || [];
+    const edges: WorkflowEdge[] = definition.edges || [];
 
     // Topologically sort nodes
     const sortedNodes = this.topologicalSort(nodes, edges);
@@ -422,7 +423,7 @@ export class WorkflowExecutorService implements OnModuleInit {
       `Executing ${sortedNodes.length} node(s) for workflow ${workflow.id}`,
     );
 
-    const steps: any[] = [];
+    const steps: StepResult[] = [];
     let stepsPassed = 0;
     let stepsFailed = 0;
 
@@ -488,7 +489,7 @@ export class WorkflowExecutorService implements OnModuleInit {
    * @param edges - Workflow edges
    * @returns Sorted nodes
    */
-  private topologicalSort(nodes: any[], edges: any[]): any[] {
+  private topologicalSort(nodes: WorkflowNode[], edges: WorkflowEdge[]): WorkflowNode[] {
     // Build adjacency list
     const adjacency = new Map<string, string[]>();
     const inDegree = new Map<string, number>();
@@ -506,7 +507,7 @@ export class WorkflowExecutorService implements OnModuleInit {
     }
 
     // Find all nodes with no incoming edges
-    const queue: any[] = [];
+    const queue: WorkflowNode[] = [];
     for (const node of nodes) {
       if (inDegree.get(node.id) === 0) {
         queue.push(node);
@@ -514,7 +515,7 @@ export class WorkflowExecutorService implements OnModuleInit {
     }
 
     // Process nodes
-    const sorted: any[] = [];
+    const sorted: WorkflowNode[] = [];
     while (queue.length > 0) {
       const node = queue.shift()!;
       sorted.push(node);
@@ -546,7 +547,7 @@ export class WorkflowExecutorService implements OnModuleInit {
    *
    * Preserves structure but truncates step results to prevent storage issues.
    */
-  private truncateExecutionTrace(trace: any): any {
+  private truncateExecutionTrace(trace: WorkflowExecutionTrace): WorkflowExecutionTrace {
     const MAX_TRACE_SIZE = 100 * 1024; // 100KB
     const serialized = JSON.stringify(trace);
 
@@ -559,11 +560,11 @@ export class WorkflowExecutorService implements OnModuleInit {
     );
 
     // Create truncated version preserving structure
-    const truncated = {
+    const truncated: WorkflowExecutionTrace = {
       ...trace,
       truncated: true,
       originalSize: serialized.length,
-      steps: trace.steps?.map((step: any) => ({
+      steps: trace.steps.map((step) => ({
         ...step,
         result: step.result
           ? { truncated: true, message: 'Result truncated due to size limit' }
