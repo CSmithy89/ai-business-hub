@@ -4,12 +4,15 @@ import { WorkflowsController } from './workflows.controller';
 import { WorkflowsService } from './workflows.service';
 import { WorkflowExecutorService } from './workflow-executor.service';
 import { WorkflowSchedulerService } from './workflow-scheduler.service';
+import { ActionExecutorService } from './action-executor.service';
 import { PrismaService } from '../../common/services/prisma.service';
 import { EventsModule } from '../../events';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     EventsModule,
+    NotificationsModule,
     BullModule.registerQueue({
       name: 'workflow-scheduler',
     }),
@@ -19,6 +22,7 @@ import { EventsModule } from '../../events';
     WorkflowsService,
     WorkflowExecutorService,
     WorkflowSchedulerService,
+    ActionExecutorService,
     PrismaService,
   ],
   exports: [WorkflowsService, WorkflowExecutorService],

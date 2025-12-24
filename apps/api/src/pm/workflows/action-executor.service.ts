@@ -1,0 +1,673 @@
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { PrismaService } from '../../common/services/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { EventPublisherService } from '../../events';
+import axios from 'axios';
+import { EventTypes } from '@hyvve/shared';
+
+/**
+ * Action Configuration Types
+ */
+interface ActionConfig {
+  nodeId: string;
+  [key: string]: any;
+}
+
+interface UpdateTaskConfig extends ActionConfig {
+  updates: {
+    status?: string;
+    priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+    dueDate?: string; // ISO date or variable
+    customFields?: Record<string, any>;
+  };
+}
+
+interface AssignTaskConfig extends ActionConfig {
+  assigneeId: string; // User ID or variable
+  notifyAssignee?: boolean; // Default: true
+}
+
+interface SendNotificationConfig extends ActionConfig {
+  recipients: string[]; // User IDs or variables
+  title: string;
+  message: string;
+  type?: 'IN_APP' | 'EMAIL' | 'BOTH';
+}
+
+interface CreateTaskConfig extends ActionConfig {
+  taskData: {
+    title: string;
+    description?: string;
+    phaseId?: string;
+    assigneeId?: string;
+    priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+    dueDate?: string;
+    parentTaskId?: string;
+  };
+  linkToTriggerTask?: boolean; // Default: true
+}
+
+interface MoveToPhaseConfig extends ActionConfig {
+  phaseId: string; // Phase ID or variable
+}
+
+interface CallWebhookConfig extends ActionConfig {
+  url: string;
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  headers?: Record<string, string>;
+  payload?: Record<string, any>;
+  timeout?: number; // Default: 5000ms
+}
+
+/**
+ * Execution Context
+ */
+interface ExecutionContext {
+  workflowId: string;
+  triggerType: string;
+  triggerData: Record<string, any>;
+  triggeredBy?: string;
+  isDryRun?: boolean;
+}
+
+/**
+ * Step Result
+ */
+interface StepResult {
+  nodeId: string;
+  type: 'action' | 'condition' | 'trigger';
+  status: 'passed' | 'failed' | 'skipped';
+  result?: any;
+  error?: string;
+  duration?: number;
+}
+
+/**
+ * ActionExecutorService
+ *
+ * Executes workflow actions with configuration and context.
+ * Supports 6 action types:
+ * - UPDATE_TASK: Update task fields
+ * - ASSIGN_TASK: Assign task to user
+ * - SEND_NOTIFICATION: Send in-app notification
+ * - CREATE_TASK: Create related task
+ * - MOVE_TO_PHASE: Move task to different phase
+ * - CALL_WEBHOOK: Call external webhook
+ *
+ * Story: PM-10.3 - Action Library
+ */
+@Injectable()
+export class ActionExecutorService {
+  private readonly logger = new Logger(ActionExecutorService.name);
+  private webhookRateLimiter = new Map<string, { count: number; resetAt: Date }>();
+  private notificationRateLimiter = new Map<string, { count: number; resetAt: Date }>();
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+    private readonly eventPublisher: EventPublisherService,
+  ) {}
+
+  /**
+   * Execute a workflow action
+   *
+   * @param actionType - The type of action to execute
+   * @param config - Action configuration
+   * @param context - Execution context with trigger data
+   * @returns Step result with status and result data
+   */
+  async executeAction(
+    actionType: string,
+    config: ActionConfig,
+    context: ExecutionContext,
+  ): Promise<StepResult> {
+    const startTime = Date.now();
+
+    try {
+      // Skip actual execution in dry-run mode
+      if (context.isDryRun) {
+        return this.simulateAction(actionType, config, context);
+      }
+
+      // Execute action based on type
+      const result = await this.executeActionInternal(actionType, config, context);
+
+      return {
+        nodeId: config.nodeId,
+        type: 'action',
+        status: 'passed',
+        result,
+        duration: Date.now() - startTime,
+      };
+    } catch (error) {
+      this.logger.error({
+        message: 'Action execution failed',
+        actionType,
+        nodeId: config.nodeId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      return {
+        nodeId: config.nodeId,
+        type: 'action',
+        status: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+        duration: Date.now() - startTime,
+      };
+    }
+  }
+
+  /**
+   * Internal action execution dispatcher
+   */
+  private async executeActionInternal(
+    actionType: string,
+    config: ActionConfig,
+    context: ExecutionContext,
+  ): Promise<any> {
+    switch (actionType) {
+      case 'UPDATE_TASK':
+        return await this.updateTask(config as UpdateTaskConfig, context);
+      case 'ASSIGN_TASK':
+        return await this.assignTask(config as AssignTaskConfig, context);
+      case 'SEND_NOTIFICATION':
+        return await this.sendNotification(config as SendNotificationConfig, context);
+      case 'CREATE_TASK':
+        return await this.createRelatedTask(config as CreateTaskConfig, context);
+      case 'MOVE_TO_PHASE':
+        return await this.moveToPhase(config as MoveToPhaseConfig, context);
+      case 'CALL_WEBHOOK':
+        return await this.callWebhook(config as CallWebhookConfig, context);
+      default:
+        throw new BadRequestException(`Unknown action type: ${actionType}`);
+    }
+  }
+
+  /**
+   * Simulate action in dry-run mode
+   */
+  private simulateAction(
+    actionType: string,
+    config: ActionConfig,
+    context: ExecutionContext,
+  ): StepResult {
+    this.logger.log(
+      `Simulating action ${actionType} for workflow ${context.workflowId} (dry-run mode)`,
+    );
+
+    return {
+      nodeId: config.nodeId,
+      type: 'action',
+      status: 'passed',
+      result: {
+        simulated: true,
+        action: actionType,
+        config: this.interpolateVariables(config, context),
+      },
+    };
+  }
+
+  /**
+   * UPDATE_TASK Action
+   *
+   * Updates task fields (status, priority, due date, custom fields)
+   */
+  private async updateTask(
+    config: UpdateTaskConfig,
+    context: ExecutionContext,
+  ): Promise<any> {
+    const taskId = context.triggerData.taskId;
+    if (!taskId) {
+      throw new BadRequestException('No taskId in trigger data');
+    }
+
+    // Interpolate variables in updates
+    const updates = this.interpolateVariables(config.updates, context);
+
+    this.logger.log(`Updating task ${taskId} with updates:`, updates);
+
+    // Update task
+    const task = await this.prisma.task.update({
+      where: { id: taskId },
+      data: updates,
+    });
+
+    // Emit task updated event
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_UPDATED,
+      {
+        taskId: task.id,
+        updates,
+        source: 'workflow',
+      },
+      {
+        tenantId: task.workspaceId,
+        userId: 'system',
+      },
+    );
+
+    return { taskId: task.id, updates };
+  }
+
+  /**
+   * ASSIGN_TASK Action
+   *
+   * Assigns task to a user or agent
+   */
+  private async assignTask(
+    config: AssignTaskConfig,
+    context: ExecutionContext,
+  ): Promise<any> {
+    const taskId = context.triggerData.taskId;
+    if (!taskId) {
+      throw new BadRequestException('No taskId in trigger data');
+    }
+
+    const assigneeId = this.interpolateVariable(config.assigneeId, context);
+
+    this.logger.log(`Assigning task ${taskId} to user ${assigneeId}`);
+
+    // Update task assignee
+    const task = await this.prisma.task.update({
+      where: { id: taskId },
+      data: { assigneeId },
+    });
+
+    // Send notification if enabled
+    if (config.notifyAssignee !== false) {
+      await this.notifications.createNotification({
+        userId: assigneeId,
+        workspaceId: task.workspaceId,
+        type: 'TASK_ASSIGNED',
+        title: 'Task Assigned',
+        message: `You have been assigned to task: ${task.title}`,
+        data: { taskId: task.id },
+      });
+    }
+
+    // Emit task assigned event
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_ASSIGNED,
+      {
+        taskId: task.id,
+        assigneeId,
+      },
+      {
+        tenantId: task.workspaceId,
+        userId: 'system',
+      },
+    );
+
+    return { taskId: task.id, assigneeId };
+  }
+
+  /**
+   * SEND_NOTIFICATION Action
+   *
+   * Sends in-app or email notification to specified recipients
+   */
+  private async sendNotification(
+    config: SendNotificationConfig,
+    context: ExecutionContext,
+  ): Promise<any> {
+    const workflowId = context.workflowId;
+
+    // Rate limiting: Max 50 notifications per hour per workflow
+    await this.checkNotificationRateLimit(workflowId);
+
+    // Get workspace ID from trigger data
+    const taskId = context.triggerData.taskId;
+    let workspaceId: string;
+
+    if (taskId) {
+      const task = await this.prisma.task.findUnique({
+        where: { id: taskId },
+        select: { workspaceId: true },
+      });
+      if (!task) {
+        throw new BadRequestException('Task not found');
+      }
+      workspaceId = task.workspaceId;
+    } else if (context.triggerData.workspaceId) {
+      workspaceId = context.triggerData.workspaceId;
+    } else {
+      throw new BadRequestException('No workspaceId available in trigger data');
+    }
+
+    // Interpolate recipients and message
+    const recipients = config.recipients.map((r) =>
+      this.interpolateVariable(r, context),
+    );
+    const title = this.interpolateVariable(config.title, context);
+    const message = this.interpolateVariable(config.message, context);
+
+    this.logger.log(
+      `Sending notification to ${recipients.length} recipient(s): ${title}`,
+    );
+
+    // Send notifications
+    await Promise.all(
+      recipients.map((recipientId) =>
+        this.notifications.createNotification({
+          userId: recipientId,
+          workspaceId,
+          type: 'WORKFLOW_NOTIFICATION',
+          title,
+          message,
+          data: {
+            workflowId,
+            triggerType: context.triggerType,
+          },
+        }),
+      ),
+    );
+
+    return {
+      recipientCount: recipients.length,
+      recipients,
+      title,
+    };
+  }
+
+  /**
+   * CREATE_TASK Action
+   *
+   * Creates a new task related to the trigger task
+   */
+  private async createRelatedTask(
+    config: CreateTaskConfig,
+    context: ExecutionContext,
+  ): Promise<any> {
+    const taskId = context.triggerData.taskId;
+    if (!taskId) {
+      throw new BadRequestException('No taskId in trigger data for CREATE_TASK action');
+    }
+
+    const task = await this.prisma.task.findUnique({ where: { id: taskId } });
+
+    if (!task) {
+      throw new BadRequestException('Trigger task not found');
+    }
+
+    // Interpolate task data
+    const taskData = this.interpolateVariables(config.taskData, context);
+
+    this.logger.log(
+      `Creating related task: ${taskData.title} (parent: ${task.id})`,
+    );
+
+    // Get next task number for project
+    const lastTask = await this.prisma.task.findFirst({
+      where: { projectId: task.projectId },
+      orderBy: { taskNumber: 'desc' },
+      select: { taskNumber: true },
+    });
+    const taskNumber = (lastTask?.taskNumber || 0) + 1;
+
+    // Create new task
+    const newTask = await this.prisma.task.create({
+      data: {
+        title: taskData.title,
+        description: taskData.description,
+        phaseId: taskData.phaseId || task.phaseId,
+        assigneeId: taskData.assigneeId,
+        priority: taskData.priority || 'MEDIUM',
+        dueDate: taskData.dueDate ? new Date(taskData.dueDate) : null,
+        projectId: task.projectId,
+        workspaceId: task.workspaceId,
+        createdBy: task.createdBy,
+        parentId: config.linkToTriggerTask !== false ? task.id : taskData.parentTaskId,
+        taskNumber,
+      },
+    });
+
+    // Emit task created event
+    await this.eventPublisher.publish(
+      EventTypes.PM_TASK_CREATED,
+      {
+        taskId: newTask.id,
+        source: 'workflow',
+      },
+      {
+        tenantId: task.workspaceId,
+        userId: 'system',
+      },
+    );
+
+    return { taskId: newTask.id, parentTaskId: task.id };
+  }
+
+  /**
+   * MOVE_TO_PHASE Action
+   *
+   * Moves task to a different phase
+   */
+  private async moveToPhase(
+    config: MoveToPhaseConfig,
+    context: ExecutionContext,
+  ): Promise<any> {
+    const taskId = context.triggerData.taskId;
+    if (!taskId) {
+      throw new BadRequestException('No taskId in trigger data');
+    }
+
+    const phaseId = this.interpolateVariable(config.phaseId, context);
+
+    // Get current task to capture old phase
+    const currentTask = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: { phaseId: true },
+    });
+
+    if (!currentTask) {
+      throw new BadRequestException('Task not found');
+    }
+
+    // Validate phase exists
+    const phase = await this.prisma.phase.findUnique({ where: { id: phaseId } });
+    if (!phase) {
+      throw new BadRequestException(`Phase not found: ${phaseId}`);
+    }
+
+    this.logger.log(
+      `Moving task ${taskId} to phase ${phaseId} (${phase.name})`,
+    );
+
+    // Update task phase
+    const task = await this.prisma.task.update({
+      where: { id: taskId },
+      data: { phaseId },
+    });
+
+    // Emit phase changed event
+    await this.eventPublisher.publish(
+      'pm.task.phase_changed' as any,
+      {
+        taskId: task.id,
+        oldPhaseId: currentTask.phaseId,
+        newPhaseId: phaseId,
+      },
+      {
+        tenantId: task.workspaceId,
+        userId: 'system',
+      },
+    );
+
+    return { taskId: task.id, phaseId };
+  }
+
+  /**
+   * CALL_WEBHOOK Action
+   *
+   * Makes HTTP request to external webhook endpoint
+   */
+  private async callWebhook(
+    config: CallWebhookConfig,
+    context: ExecutionContext,
+  ): Promise<any> {
+    const workflowId = context.workflowId;
+
+    // Rate limiting: Max 10 webhook calls per minute per workflow
+    await this.checkWebhookRateLimit(workflowId);
+
+    // Validate URL (no internal IPs)
+    this.validateWebhookUrl(config.url);
+
+    // Interpolate payload and headers
+    const payload = this.interpolateVariables(config.payload || {}, context);
+    const headers = this.interpolateVariables(config.headers || {}, context);
+
+    this.logger.log(
+      `Calling webhook: ${config.method} ${config.url}`,
+    );
+
+    try {
+      const response = await axios({
+        method: config.method,
+        url: config.url,
+        data: payload,
+        headers,
+        timeout: config.timeout || 5000,
+      });
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data,
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new BadRequestException(
+          `Webhook call failed: ${error.response?.status} ${error.response?.statusText || error.message}`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Check webhook rate limit
+   *
+   * Max 10 calls per minute per workflow
+   */
+  private async checkWebhookRateLimit(workflowId: string): Promise<void> {
+    const key = `webhook:${workflowId}`;
+    const now = new Date();
+    const limit = this.webhookRateLimiter.get(key);
+
+    if (!limit || limit.resetAt < now) {
+      // Reset rate limit window
+      this.webhookRateLimiter.set(key, {
+        count: 1,
+        resetAt: new Date(now.getTime() + 60 * 1000), // 1 minute
+      });
+      return;
+    }
+
+    if (limit.count >= 10) {
+      throw new BadRequestException(
+        'Webhook rate limit exceeded (10 calls per minute per workflow)',
+      );
+    }
+
+    limit.count++;
+  }
+
+  /**
+   * Check notification rate limit
+   *
+   * Max 50 notifications per hour per workflow
+   */
+  private async checkNotificationRateLimit(workflowId: string): Promise<void> {
+    const key = `notification:${workflowId}`;
+    const now = new Date();
+    const limit = this.notificationRateLimiter.get(key);
+
+    if (!limit || limit.resetAt < now) {
+      // Reset rate limit window
+      this.notificationRateLimiter.set(key, {
+        count: 1,
+        resetAt: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
+      });
+      return;
+    }
+
+    if (limit.count >= 50) {
+      throw new BadRequestException(
+        'Notification rate limit exceeded (50 per hour per workflow)',
+      );
+    }
+
+    limit.count++;
+  }
+
+  /**
+   * Validate webhook URL
+   *
+   * Block internal IPs to prevent SSRF attacks
+   */
+  private validateWebhookUrl(url: string): void {
+    const parsedUrl = new URL(url);
+
+    // Block internal IPs
+    const hostname = parsedUrl.hostname;
+    const blockedPatterns = [
+      /^localhost$/i,
+      /^127\.\d+\.\d+\.\d+$/,
+      /^192\.168\.\d+\.\d+$/,
+      /^10\.\d+\.\d+\.\d+$/,
+      /^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/,
+      /^\[::1\]$/,
+    ];
+
+    if (blockedPatterns.some((pattern) => pattern.test(hostname))) {
+      throw new BadRequestException('Internal URLs are not allowed for webhooks');
+    }
+  }
+
+  /**
+   * Interpolate a single variable
+   *
+   * Supports {{variable.path}} syntax
+   */
+  private interpolateVariable(value: any, context: ExecutionContext): any {
+    if (typeof value !== 'string') return value;
+
+    // Match {{variable.path}} pattern
+    const regex = /\{\{([^}]+)\}\}/g;
+    return value.replace(regex, (match, path) => {
+      const keys = path.trim().split('.');
+      let result: any = context;
+
+      for (const key of keys) {
+        result = result?.[key];
+        if (result === undefined) return match; // Keep original if not found
+      }
+
+      return String(result);
+    });
+  }
+
+  /**
+   * Interpolate variables in objects/arrays recursively
+   */
+  private interpolateVariables(obj: any, context: ExecutionContext): any {
+    if (typeof obj === 'string') {
+      return this.interpolateVariable(obj, context);
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.interpolateVariables(item, context));
+    }
+
+    if (typeof obj === 'object' && obj !== null) {
+      const result: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        result[key] = this.interpolateVariables(value, context);
+      }
+      return result;
+    }
+
+    return obj;
+  }
+}

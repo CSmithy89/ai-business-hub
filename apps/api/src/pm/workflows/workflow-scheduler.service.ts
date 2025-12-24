@@ -190,6 +190,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
         for (const task of tasks) {
           try {
             await this.executor.executeWorkflow(workflow.id, {
+              workflowId: workflow.id,
               triggerType: 'DUE_DATE_APPROACHING',
               triggerData: {
                 taskId: task.id,
@@ -273,6 +274,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
           );
 
           await this.executor.executeWorkflow(workflow.id, {
+            workflowId: workflow.id,
             triggerType: 'CUSTOM_SCHEDULE',
             triggerData: {
               scheduledAt: now.toISOString(),

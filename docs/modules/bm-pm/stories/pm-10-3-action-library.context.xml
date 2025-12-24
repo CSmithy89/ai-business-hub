@@ -1,0 +1,1005 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-10-3-action-library</story-id>
+    <epic>PM-10 - Workflow Builder</epic>
+    <module>bm-pm</module>
+    <story-points>5</story-points>
+    <generated-at>2025-12-24</generated-at>
+    <status>ready-for-dev</status>
+  </metadata>
+
+  <story-overview>
+    <title>Action Library (Workflow Actions)</title>
+    <user-story>
+      As a workflow designer,
+      I want various action options,
+      So that workflows do useful things.
+    </user-story>
+    <summary>
+      Implement the action executor service that powers workflow automation. Each action type has specific
+      configuration options and execution logic. Actions execute in the context of a workflow trigger and can
+      access trigger data for dynamic behavior.
+    </summary>
+    <key-features>
+      <feature>Six core action types: UPDATE_TASK, ASSIGN_TASK, SEND_NOTIFICATION, CREATE_TASK, MOVE_TO_PHASE, CALL_WEBHOOK</feature>
+      <feature>Variable interpolation using {{variable.path}} syntax</feature>
+      <feature>Rate limiting for webhooks (10/min) and notifications (50/hour)</feature>
+      <feature>Dry-run mode for testing without side effects</feature>
+      <feature>Webhook URL validation to block internal IPs</feature>
+      <feature>Sequential action chaining with error handling</feature>
+    </key-features>
+  </story-overview>
+
+  <acceptance-criteria>
+    <criterion id="1">
+      <description>Available actions include: Update task field, Assign task, Send notification, Create related task, Move to phase, Call webhook</description>
+      <validation>All 6 action types implemented in ActionExecutorService</validation>
+    </criterion>
+    <criterion id="2">
+      <description>Actions can be chained sequentially</description>
+      <validation>WorkflowExecutorService executes nodes in topological order</validation>
+    </criterion>
+    <criterion id="3">
+      <description>Webhook calls are rate-limited</description>
+      <validation>Max 10 webhook calls per minute per workflow enforced</validation>
+    </criterion>
+    <criterion id="4">
+      <description>Notification sends are rate-limited</description>
+      <validation>Max 50 notifications per hour per workflow enforced</validation>
+    </criterion>
+    <criterion id="5">
+      <description>Actions support variable interpolation (e.g., {{task.id}})</description>
+      <validation>interpolateVariable() and interpolateVariables() methods work for all data types</validation>
+    </criterion>
+    <criterion id="6">
+      <description>Dry-run mode simulates actions without persisting changes</description>
+      <validation>All action types return simulated results when context.isDryRun is true</validation>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-implementation>
+    <file-structure>
+      <new-file>
+        <path>apps/api/src/pm/workflows/action-executor.service.ts</path>
+        <description>Core action executor service with all 6 action types</description>
+        <dependencies>
+          - PrismaService (database operations)
+          - NotificationService (for SEND_NOTIFICATION action)
+          - EventBusService (emit events after actions)
+          - axios (for CALL_WEBHOOK action)
+        </dependencies>
+      </new-file>
+      <new-file>
+        <path>apps/api/src/pm/workflows/action-executor.service.spec.ts</path>
+        <description>Unit tests for all action types</description>
+      </new-file>
+      <update-file>
+        <path>apps/api/src/pm/workflows/workflow-executor.service.ts</path>
+        <description>Add action executor integration to executeWorkflow method</description>
+        <note>Currently has TODO comment for PM-10.3 implementation</note>
+      </update-file>
+    </file-structure>
+
+    <architecture>
+      <component name="ActionExecutorService">
+        <responsibility>Execute individual workflow actions with configuration and context</responsibility>
+        <methods>
+          <method name="executeAction">Main entry point - routes to specific action implementations</method>
+          <method name="executeActionInternal">Switch statement to dispatch to action-specific methods</method>
+          <method name="simulateAction">Dry-run simulation for testing</method>
+          <method name="updateTask">UPDATE_TASK action implementation</method>
+          <method name="assignTask">ASSIGN_TASK action implementation</method>
+          <method name="sendNotification">SEND_NOTIFICATION action implementation</method>
+          <method name="createRelatedTask">CREATE_TASK action implementation</method>
+          <method name="moveToPhase">MOVE_TO_PHASE action implementation</method>
+          <method name="callWebhook">CALL_WEBHOOK action implementation</method>
+          <method name="interpolateVariable">String variable interpolation</method>
+          <method name="interpolateVariables">Recursive object/array interpolation</method>
+          <method name="checkWebhookRateLimit">Webhook rate limit enforcement</method>
+          <method name="checkNotificationRateLimit">Notification rate limit enforcement</method>
+          <method name="validateWebhookUrl">Block internal IPs for security</method>
+        </methods>
+        <state>
+          <field name="webhookRateLimiter">Map&lt;string, { count: number; resetAt: Date }&gt;</field>
+          <field name="notificationRateLimiter">Map&lt;string, { count: number; resetAt: Date }&gt;</field>
+        </state>
+      </component>
+
+      <integration name="WorkflowExecutorService">
+        <current-state>
+          - PM-10.2 implemented trigger evaluation and execution flow
+          - executeWorkflow() creates execution record but has TODO for step execution
+          - Event listeners set up for task events (TASK_CREATED, TASK_STATUS_CHANGED, etc.)
+        </current-state>
+        <changes-required>
+          - Import ActionExecutorService
+          - Inject in constructor
+          - Update executeSteps() to call actionExecutor.executeAction() for action nodes
+          - Remove placeholder trace data and use actual step results
+        </changes-required>
+      </integration>
+    </architecture>
+
+    <data-model>
+      <existing-models>
+        <model name="Workflow">
+          <note>No changes required - definition field stores action configs as JSON</note>
+        </model>
+        <model name="WorkflowExecution">
+          <note>executionTrace field stores action results</note>
+        </model>
+        <model name="Task">
+          <note>Target of UPDATE_TASK, ASSIGN_TASK, MOVE_TO_PHASE actions</note>
+        </model>
+        <model name="Phase">
+          <note>Used by MOVE_TO_PHASE action</note>
+        </model>
+      </existing-models>
+    </data-model>
+
+    <type-definitions>
+      <typescript><![CDATA[
+// Action Configuration Types
+interface ActionConfig {
+  nodeId: string;
+  [key: string]: any;
+}
+
+interface UpdateTaskConfig {
+  nodeId: string;
+  updates: {
+    status?: string;
+    priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+    dueDate?: string; // ISO date or variable
+    customFields?: Record<string, any>;
+  };
+}
+
+interface AssignTaskConfig {
+  nodeId: string;
+  assigneeId: string; // User ID or variable
+  notifyAssignee?: boolean; // Default: true
+}
+
+interface SendNotificationConfig {
+  nodeId: string;
+  recipients: string[]; // User IDs or variables
+  title: string;
+  message: string;
+  type?: 'IN_APP' | 'EMAIL' | 'BOTH';
+}
+
+interface CreateTaskConfig {
+  nodeId: string;
+  taskData: {
+    title: string;
+    description?: string;
+    phaseId?: string;
+    assigneeId?: string;
+    priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+    dueDate?: string;
+    parentTaskId?: string;
+  };
+  linkToTriggerTask?: boolean; // Default: true
+}
+
+interface MoveToPhaseConfig {
+  nodeId: string;
+  phaseId: string; // Phase ID or variable
+}
+
+interface CallWebhookConfig {
+  nodeId: string;
+  url: string;
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  headers?: Record<string, string>;
+  payload?: Record<string, any>;
+  timeout?: number; // Default: 5000ms
+}
+
+// Execution Context
+interface ExecutionContext {
+  workflowId: string;
+  triggerType: WorkflowTriggerType;
+  triggerData: Record<string, any>;
+  triggeredBy?: string;
+  isDryRun?: boolean;
+}
+
+// Step Result
+interface StepResult {
+  nodeId: string;
+  type: 'action' | 'condition' | 'trigger';
+  status: 'passed' | 'failed' | 'skipped';
+  result?: any;
+  error?: string;
+  duration?: number;
+}
+      ]]></typescript>
+    </type-definitions>
+  </technical-implementation>
+
+  <existing-patterns>
+    <pattern name="Task Updates">
+      <location>apps/api/src/pm/tasks/tasks.service.ts</location>
+      <example><![CDATA[
+// TasksService.update() method shows the pattern for task updates:
+async update(workspaceId: string, actorId: string, id: string, dto: UpdateTaskDto, correlationId?: string) {
+  const existing = await this.prisma.task.findFirst({
+    where: { id, workspaceId, deletedAt: null },
+    select: { id: true, projectId: true, phaseId: true, status: true, startedAt: true, completedAt: true, taskNumber: true, title: true },
+  })
+  if (!existing) throw new NotFoundException('Task not found')
+
+  const updateData: Prisma.TaskUncheckedUpdateInput = {
+    title: dto.title,
+    description: dto.description,
+    type: dto.type,
+    priority: dto.priority,
+    assignmentType: dto.assignmentType,
+    assigneeId: dto.assigneeId,
+    agentId: dto.agentId,
+    storyPoints: dto.storyPoints,
+    dueDate: dto.dueDate,
+    startedAt: dto.startedAt,
+    approvalRequired: dto.approvalRequired,
+    approvalStatus: dto.approvalStatus,
+    approvedBy: dto.approvedBy,
+    approvedAt: dto.approvedAt,
+    parentId: dto.parentId,
+    phaseId: dto.phaseId,
+    status: dto.status,
+  }
+
+  const updated = await this.prisma.$transaction(async (tx) => {
+    const task = await tx.task.update({
+      where: { id: existing.id },
+      data: updateData,
+    })
+
+    await tx.taskActivity.create({
+      data: {
+        taskId: existing.id,
+        userId: actorId,
+        type: TaskActivityType.UPDATED,
+        data: { changedKeys },
+      },
+    })
+
+    return task
+  })
+
+  // Emit event
+  await this.eventPublisher.publish(
+    EventTypes.PM_TASK_UPDATED,
+    { id: updated.id, taskId: updated.id, ... },
+    { tenantId: workspaceId, userId: actorId, source: 'api' },
+  )
+
+  return { data: updated }
+}
+      ]]></example>
+      <usage-in-action>
+        Use similar pattern in updateTask() action:
+        1. Find task with workspace validation
+        2. Build update data from config
+        3. Use transaction for update + activity log
+        4. Emit pm.task.updated event
+      </usage-in-action>
+    </pattern>
+
+    <pattern name="Notifications">
+      <location>apps/api/src/pm/notifications/notifications.service.ts</location>
+      <example><![CDATA[
+// NotificationsService.createNotification() method:
+async createNotification(data: {
+  userId: string;
+  workspaceId: string;
+  type: string;
+  title: string;
+  message?: string;
+  link?: string;
+  data?: Record<string, unknown>;
+}): Promise<NotificationDto> {
+  // Save to database
+  const notification = await this.prisma.notification.create({
+    data: {
+      userId: data.userId,
+      workspaceId: data.workspaceId,
+      type: data.type,
+      title: data.title,
+      message: data.message || null,
+      link: data.link || null,
+      data: (data.data as Prisma.InputJsonValue) || undefined,
+    },
+  });
+
+  // Emit WebSocket event to user
+  const payload: NotificationPayload = {
+    id: notification.id,
+    type: notification.type,
+    title: notification.title,
+    message: notification.message || '',
+    severity: this.getNotificationSeverity(notification.type),
+    actionUrl: notification.link || undefined,
+    createdAt: notification.createdAt.toISOString(),
+    read: false,
+  };
+
+  this.realtimeGateway.broadcastNotification(data.workspaceId, payload, data.userId);
+
+  this.logger.log(`Created notification ${notification.id} for user ${data.userId}`);
+
+  return notification;
+}
+      ]]></example>
+      <usage-in-action>
+        Use notifications.createNotification() in sendNotification() action.
+        Inject NotificationService via constructor.
+      </usage-in-action>
+    </pattern>
+
+    <pattern name="Phase Transitions">
+      <location>apps/api/src/pm/agents/phase.service.ts</location>
+      <example><![CDATA[
+// PhaseService shows pattern for phase validation and task updates:
+async executePhaseTransition(
+  workspaceId: string,
+  phaseId: string,
+  userId: string,
+  dto: PhaseTransitionDto,
+): Promise<PhaseTransitionResult> {
+  // 1. Verify phase ownership and permissions
+  const phase = await this.prisma.phase.findFirst({
+    where: {
+      id: phaseId,
+      project: { workspaceId, deletedAt: null },
+    },
+    include: { project: true },
+  });
+
+  if (!phase) {
+    throw new NotFoundException('Phase not found');
+  }
+
+  // ... validation logic ...
+}
+      ]]></example>
+      <usage-in-action>
+        Use similar phase validation pattern in moveToPhase() action:
+        1. Validate phase exists
+        2. Check phase belongs to same project as task
+        3. Update task.phaseId
+        4. Emit pm.task.phase_changed event
+      </usage-in-action>
+    </pattern>
+
+    <pattern name="HTTP Client (Axios)">
+      <location>apps/api/src/agentos/agentos.service.ts</location>
+      <example><![CDATA[
+// AgentOSService shows pattern for HTTP requests with error handling:
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import axios from 'axios';
+
+constructor(
+  private readonly httpService: HttpService,
+  private readonly configService: ConfigService,
+) {}
+
+// Using axios directly for webhook calls:
+async callWebhook(url: string, method: string, payload: Record<string, any>): Promise<void> {
+  try {
+    const response = await axios({
+      method,
+      url,
+      data: payload,
+      timeout: 5000,
+    });
+
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data,
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new BadRequestException(
+        `Webhook call failed: ${error.response?.status} ${error.response?.statusText}`,
+      );
+    }
+    throw error;
+  }
+}
+      ]]></example>
+      <usage-in-action>
+        Import axios directly (not HttpService) for webhook calls.
+        Handle AxiosError with proper error messages.
+        Set timeout to 5000ms.
+      </usage-in-action>
+    </pattern>
+
+    <pattern name="Event Bus Publishing">
+      <location>apps/api/src/pm/workflows/workflow-executor.service.ts</location>
+      <example><![CDATA[
+// WorkflowExecutorService shows event publishing pattern:
+import { EventPublisherService } from '../../events';
+
+constructor(
+  private readonly eventPublisher: EventPublisherService,
+) {}
+
+// Emit event after workflow action:
+await this.eventPublisher.publish(
+  'pm.workflow.execution.started' as any,
+  {
+    workflowId,
+    executionId: execution.id,
+    triggerType: context.triggerType,
+    isDryRun: context.isDryRun,
+  },
+  {
+    tenantId: workflow.workspaceId,
+    userId: 'system',
+  },
+);
+      ]]></example>
+      <usage-in-action>
+        Emit events after each action type:
+        - pm.task.updated (UPDATE_TASK)
+        - pm.task.assigned (ASSIGN_TASK)
+        - pm.task.created (CREATE_TASK)
+        - pm.task.phase_changed (MOVE_TO_PHASE)
+      </usage-in-action>
+    </pattern>
+  </existing-patterns>
+
+  <dependencies>
+    <prerequisite story="pm-10-1-workflow-canvas">
+      <status>done</status>
+      <provides>Workflow definition structure (nodes, edges, config)</provides>
+    </prerequisite>
+    <prerequisite story="pm-10-2-trigger-conditions">
+      <status>done</status>
+      <provides>
+        - WorkflowExecutorService with event listeners
+        - ExecutionContext interface
+        - Workflow execution flow with TODO for step execution
+      </provides>
+      <file>apps/api/src/pm/workflows/workflow-executor.service.ts</file>
+    </prerequisite>
+    <blocks story="pm-10-4-workflow-testing">
+      <reason>Workflow testing needs action executor for dry-run simulation</reason>
+    </blocks>
+    <blocks story="pm-10-5-workflow-management">
+      <reason>Workflow management needs actions for execution logs</reason>
+    </blocks>
+  </dependencies>
+
+  <integration-points>
+    <service name="PrismaService">
+      <usage>Database operations for all action types</usage>
+      <methods>
+        - task.update() for UPDATE_TASK, ASSIGN_TASK, MOVE_TO_PHASE
+        - task.create() for CREATE_TASK
+        - task.findUnique() for validation
+        - phase.findUnique() for MOVE_TO_PHASE validation
+      </methods>
+    </service>
+
+    <service name="NotificationService">
+      <location>apps/api/src/pm/notifications/notifications.service.ts</location>
+      <usage>Send notifications in SEND_NOTIFICATION action</usage>
+      <method>createNotification(data: { userId, workspaceId, type, title, message, link, data })</method>
+    </service>
+
+    <service name="EventPublisherService">
+      <location>apps/api/src/events</location>
+      <usage>Emit events after action execution</usage>
+      <events>
+        - pm.task.updated
+        - pm.task.assigned
+        - pm.task.created
+        - pm.task.phase_changed
+      </events>
+    </service>
+
+    <library name="axios">
+      <usage>HTTP requests for CALL_WEBHOOK action</usage>
+      <import>import axios from 'axios';</import>
+      <note>Already in package.json dependencies</note>
+    </library>
+  </integration-points>
+
+  <testing-strategy>
+    <unit-tests>
+      <file>apps/api/src/pm/workflows/action-executor.service.spec.ts</file>
+      <test-suites>
+        <suite name="ActionExecutorService">
+          <describe name="UPDATE_TASK">
+            <test>should update task fields</test>
+            <test>should interpolate variables in updates</test>
+            <test>should emit task updated event</test>
+            <test>should simulate in dry-run mode</test>
+          </describe>
+          <describe name="ASSIGN_TASK">
+            <test>should assign task to user</test>
+            <test>should send notification if enabled</test>
+            <test>should interpolate assignee ID variable</test>
+            <test>should simulate in dry-run mode</test>
+          </describe>
+          <describe name="SEND_NOTIFICATION">
+            <test>should send notification to recipients</test>
+            <test>should interpolate message variables</test>
+            <test>should enforce rate limit (50/hour)</test>
+            <test>should simulate in dry-run mode</test>
+          </describe>
+          <describe name="CREATE_TASK">
+            <test>should create related task</test>
+            <test>should link to trigger task</test>
+            <test>should interpolate task data</test>
+            <test>should simulate in dry-run mode</test>
+          </describe>
+          <describe name="MOVE_TO_PHASE">
+            <test>should move task to target phase</test>
+            <test>should validate phase exists</test>
+            <test>should emit phase changed event</test>
+            <test>should simulate in dry-run mode</test>
+          </describe>
+          <describe name="CALL_WEBHOOK">
+            <test>should make HTTP request to webhook</test>
+            <test>should interpolate payload variables</test>
+            <test>should enforce rate limit (10/min)</test>
+            <test>should block internal URLs</test>
+            <test>should timeout after 5 seconds</test>
+            <test>should simulate in dry-run mode</test>
+          </describe>
+          <describe name="Variable Interpolation">
+            <test>should interpolate simple variables</test>
+            <test>should interpolate nested variables</test>
+            <test>should handle missing variables gracefully</test>
+            <test>should interpolate arrays</test>
+            <test>should interpolate objects recursively</test>
+          </describe>
+          <describe name="Error Handling">
+            <test>should return failed status on error</test>
+            <test>should continue if continueOnError is true</test>
+            <test>should halt execution if continueOnError is false</test>
+          </describe>
+        </suite>
+      </test-suites>
+    </unit-tests>
+
+    <integration-tests>
+      <file>apps/api/test/pm/workflow-actions.e2e-spec.ts</file>
+      <test-cases>
+        <test>should execute UPDATE_TASK action and persist changes</test>
+        <test>should execute ASSIGN_TASK action and send notification</test>
+        <test>should execute SEND_NOTIFICATION with rate limiting</test>
+        <test>should execute CREATE_TASK and link to parent</test>
+        <test>should execute MOVE_TO_PHASE and update task</test>
+        <test>should execute CALL_WEBHOOK and handle response</test>
+        <test>should chain multiple actions sequentially</test>
+        <test>should interpolate variables across chained actions</test>
+      </test-cases>
+    </integration-tests>
+  </testing-strategy>
+
+  <security-considerations>
+    <rate-limiting>
+      <webhook-rate-limit>
+        <description>Max 10 webhook calls per minute per workflow</description>
+        <implementation>In-memory Map with per-workflow counters and reset timestamps</implementation>
+        <note>For production scale, consider Redis-based rate limiting</note>
+      </webhook-rate-limit>
+      <notification-rate-limit>
+        <description>Max 50 notifications per hour per workflow</description>
+        <implementation>In-memory Map with per-workflow counters and reset timestamps</implementation>
+      </notification-rate-limit>
+    </rate-limiting>
+
+    <webhook-security>
+      <url-validation>
+        <description>Block internal IP addresses to prevent SSRF attacks</description>
+        <blocked-patterns>
+          - localhost
+          - 127.x.x.x
+          - 192.168.x.x (private class C)
+          - 10.x.x.x (private class A)
+          - 172.16-31.x.x (private class B)
+          - [::1] (IPv6 localhost)
+        </blocked-patterns>
+      </url-validation>
+      <timeout>5000ms to prevent hanging requests</timeout>
+    </webhook-security>
+
+    <variable-interpolation>
+      <description>Prevent code injection via variable interpolation</description>
+      <approach>
+        - Simple string replacement, not eval()
+        - Return original placeholder if variable not found
+        - No expression evaluation
+      </approach>
+      <future-enhancements>
+        - Whitelist allowed variable paths
+        - Type checking for interpolated values
+        - Expression language for transformations
+      </future-enhancements>
+    </variable-interpolation>
+  </security-considerations>
+
+  <definition-of-done>
+    <checklist>
+      <item>Action executor service implemented with all 6 action types</item>
+      <item>Variable interpolation working for all string fields</item>
+      <item>Rate limiting enforced for webhooks (10/min) and notifications (50/hour)</item>
+      <item>Dry-run mode simulates all actions without side effects</item>
+      <item>Webhook URL validation blocks internal IPs</item>
+      <item>Error handling supports continueOnError flag</item>
+      <item>Action chaining executes steps sequentially</item>
+      <item>All unit tests pass (100% coverage for action executors)</item>
+      <item>All integration tests pass</item>
+      <item>Event bus emits appropriate events for each action type</item>
+      <item>API documentation updated (if applicable)</item>
+      <item>Code reviewed and approved</item>
+      <item>No TypeScript errors</item>
+      <item>No ESLint warnings</item>
+    </checklist>
+  </definition-of-done>
+
+  <reference-files>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/stories/pm-10-3-action-library.md">
+      Story specification with detailed action type implementations
+    </file>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/epics/epic-pm-10-tech-spec.md">
+      Technical specification for Epic PM-10 - Workflow Builder
+    </file>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/workflows/workflow-executor.service.ts">
+      Existing workflow executor service (PM-10.2) with TODO for action execution
+    </file>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/tasks/tasks.service.ts">
+      Task service with update() pattern for UPDATE_TASK action
+    </file>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/notifications/notifications.service.ts">
+      Notification service for SEND_NOTIFICATION action
+    </file>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/agents/phase.service.ts">
+      Phase service with validation patterns for MOVE_TO_PHASE action
+    </file>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/agentos/agentos.service.ts">
+      HTTP client pattern for CALL_WEBHOOK action
+    </file>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/sprint-status.yaml">
+      Sprint status tracking
+    </file>
+  </reference-files>
+
+  <implementation-notes>
+    <note priority="high">
+      WorkflowExecutorService currently has a TODO comment at line 295:
+      "TODO: PM-10.3 will implement actual workflow step execution"
+
+      This needs to be replaced with:
+      1. Import ActionExecutorService
+      2. Inject in constructor
+      3. Call actionExecutor.executeAction() in executeNode() method
+      4. Remove placeholder executionTrace data
+    </note>
+
+    <note priority="medium">
+      Rate limiting uses in-memory Maps which is suitable for MVP.
+      For production scale with multiple API instances, consider:
+      - Redis-based rate limiting for distributed state
+      - Per-tenant rate limits in addition to per-workflow
+      - Configurable rate limits via environment variables
+    </note>
+
+    <note priority="low">
+      Variable interpolation uses simple regex replacement.
+      Future enhancements could include:
+      - Expression language (e.g., {{task.dueDate | addDays(7)}})
+      - Type validation for interpolated values
+      - Whitelist of allowed variable paths
+    </note>
+
+    <note priority="high">
+      All action types must respect the isDryRun flag.
+      In dry-run mode:
+      - Skip all database writes
+      - Skip all external API calls
+      - Return simulated results with simulated: true flag
+      - Log what would happen without executing
+    </note>
+  </implementation-notes>
+
+  <code-examples>
+    <example name="Action Executor Service Structure">
+      <typescript><![CDATA[
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '@/prisma/prisma.service';
+import { NotificationService } from '@/notifications/notification.service';
+import { EventBusService } from '@/events/event-bus.service';
+import axios from 'axios';
+
+@Injectable()
+export class ActionExecutorService {
+  private webhookRateLimiter = new Map<string, { count: number; resetAt: Date }>();
+  private notificationRateLimiter = new Map<string, { count: number; resetAt: Date }>();
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationService,
+    private readonly eventBus: EventBusService,
+  ) {}
+
+  async executeAction(
+    actionType: string,
+    config: ActionConfig,
+    context: ExecutionContext,
+  ): Promise<StepResult> {
+    const startTime = Date.now();
+
+    try {
+      if (context.isDryRun) {
+        return this.simulateAction(actionType, config, context);
+      }
+
+      const result = await this.executeActionInternal(actionType, config, context);
+
+      return {
+        nodeId: config.nodeId,
+        type: 'action',
+        status: 'passed',
+        result,
+        duration: Date.now() - startTime,
+      };
+    } catch (error) {
+      return {
+        nodeId: config.nodeId,
+        type: 'action',
+        status: 'failed',
+        error: error.message,
+        duration: Date.now() - startTime,
+      };
+    }
+  }
+
+  private async executeActionInternal(
+    actionType: string,
+    config: ActionConfig,
+    context: ExecutionContext,
+  ): Promise<any> {
+    switch (actionType) {
+      case 'UPDATE_TASK':
+        return await this.updateTask(config, context);
+      case 'ASSIGN_TASK':
+        return await this.assignTask(config, context);
+      case 'SEND_NOTIFICATION':
+        return await this.sendNotification(config, context);
+      case 'CREATE_TASK':
+        return await this.createRelatedTask(config, context);
+      case 'MOVE_TO_PHASE':
+        return await this.moveToPhase(config, context);
+      case 'CALL_WEBHOOK':
+        return await this.callWebhook(config, context);
+      default:
+        throw new BadRequestException(`Unknown action type: ${actionType}`);
+    }
+  }
+
+  // ... action implementations ...
+}
+      ]]></typescript>
+    </example>
+
+    <example name="Variable Interpolation">
+      <typescript><![CDATA[
+private interpolateVariable(value: any, context: ExecutionContext): any {
+  if (typeof value !== 'string') return value;
+
+  // Match {{variable.path}} pattern
+  const regex = /\{\{([^}]+)\}\}/g;
+  return value.replace(regex, (match, path) => {
+    const keys = path.trim().split('.');
+    let result = context;
+
+    for (const key of keys) {
+      result = result?.[key];
+      if (result === undefined) return match; // Keep original if not found
+    }
+
+    return String(result);
+  });
+}
+
+private interpolateVariables(obj: any, context: ExecutionContext): any {
+  if (typeof obj === 'string') {
+    return this.interpolateVariable(obj, context);
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => this.interpolateVariables(item, context));
+  }
+
+  if (typeof obj === 'object' && obj !== null) {
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = this.interpolateVariables(value, context);
+    }
+    return result;
+  }
+
+  return obj;
+}
+      ]]></typescript>
+    </example>
+
+    <example name="Rate Limiting">
+      <typescript><![CDATA[
+private async checkWebhookRateLimit(workflowId: string): Promise<void> {
+  const key = `webhook:${workflowId}`;
+  const now = new Date();
+  const limit = this.webhookRateLimiter.get(key);
+
+  if (!limit || limit.resetAt < now) {
+    // Reset rate limit window
+    this.webhookRateLimiter.set(key, {
+      count: 1,
+      resetAt: new Date(now.getTime() + 60 * 1000), // 1 minute
+    });
+    return;
+  }
+
+  if (limit.count >= 10) {
+    throw new BadRequestException(
+      'Webhook rate limit exceeded (10 calls per minute per workflow)',
+    );
+  }
+
+  limit.count++;
+}
+
+private async checkNotificationRateLimit(workflowId: string): Promise<void> {
+  const key = `notification:${workflowId}`;
+  const now = new Date();
+  const limit = this.notificationRateLimiter.get(key);
+
+  if (!limit || limit.resetAt < now) {
+    this.notificationRateLimiter.set(key, {
+      count: 1,
+      resetAt: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
+    });
+    return;
+  }
+
+  if (limit.count >= 50) {
+    throw new BadRequestException(
+      'Notification rate limit exceeded (50 per hour per workflow)',
+    );
+  }
+
+  limit.count++;
+}
+      ]]></typescript>
+    </example>
+
+    <example name="Webhook URL Validation">
+      <typescript><![CDATA[
+private validateWebhookUrl(url: string): void {
+  const parsedUrl = new URL(url);
+
+  // Block internal IPs
+  const hostname = parsedUrl.hostname;
+  const blockedPatterns = [
+    /^localhost$/i,
+    /^127\.\d+\.\d+\.\d+$/,
+    /^192\.168\.\d+\.\d+$/,
+    /^10\.\d+\.\d+\.\d+$/,
+    /^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/,
+    /^\[::1\]$/,
+  ];
+
+  if (blockedPatterns.some((pattern) => pattern.test(hostname))) {
+    throw new BadRequestException('Internal URLs are not allowed for webhooks');
+  }
+}
+      ]]></typescript>
+    </example>
+  </code-examples>
+
+  <workflow-diagram>
+    <ascii-diagram><![CDATA[
+Workflow Execution Flow (with Actions):
+
+┌─────────────────────────────────────────────────────────────┐
+│ WorkflowExecutorService.executeWorkflow()                   │
+└─────────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Create WorkflowExecution record (status: RUNNING)           │
+└─────────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────────┐
+│ WorkflowExecutorService.executeSteps()                      │
+│ • Topologically sort nodes                                  │
+│ • Iterate through sorted nodes                              │
+└─────────────────────────────────────────────────────────────┘
+                        ↓
+              ┌─────────┴─────────┐
+              │  For each node    │
+              └─────────┬─────────┘
+                        ↓
+        ┌───────────────┴───────────────┐
+        │                               │
+   ┌────▼────┐                    ┌─────▼─────┐
+   │ Trigger │                    │  Action   │
+   │  Node   │                    │   Node    │
+   └────┬────┘                    └─────┬─────┘
+        │                               │
+        │                               ↓
+        │              ┌────────────────────────────────────┐
+        │              │ ActionExecutorService.executeAction│
+        │              └────────────────────────────────────┘
+        │                               ↓
+        │              ┌────────────────┴────────────────┐
+        │              │ isDryRun?                       │
+        │              └────────┬────────────────────┬───┘
+        │                       │ Yes                │ No
+        │                       ↓                    ↓
+        │              ┌─────────────────┐  ┌───────────────────┐
+        │              │simulateAction() │  │executeActionInternal│
+        │              └─────────────────┘  └───────────────────┘
+        │                       │                    │
+        │                       │                    ↓
+        │                       │         ┌──────────┴──────────┐
+        │                       │         │ Switch(actionType)  │
+        │                       │         └──────────┬──────────┘
+        │                       │                    │
+        │                       │         ┌──────────┴──────────┐
+        │                       │         │                     │
+        │                       │    ┌────▼─────┐        ┌─────▼──────┐
+        │                       │    │UPDATE_   │   ...  │CALL_       │
+        │                       │    │TASK      │        │WEBHOOK     │
+        │                       │    └────┬─────┘        └─────┬──────┘
+        │                       │         │                    │
+        │                       │         ↓                    ↓
+        │                       │    ┌─────────────┐   ┌──────────────┐
+        │                       │    │Interpolate  │   │Rate limit    │
+        │                       │    │variables    │   │check         │
+        │                       │    └─────┬───────┘   └──────┬───────┘
+        │                       │          │                  │
+        │                       │          ↓                  ↓
+        │                       │    ┌─────────────┐   ┌──────────────┐
+        │                       │    │Update task  │   │HTTP request  │
+        │                       │    │via Prisma   │   │via axios     │
+        │                       │    └─────┬───────┘   └──────┬───────┘
+        │                       │          │                  │
+        │                       │          ↓                  │
+        │                       │    ┌─────────────┐          │
+        │                       │    │Emit event   │          │
+        │                       │    └─────┬───────┘          │
+        │                       │          │                  │
+        └───────────────────────┴──────────┴──────────────────┘
+                                │
+                                ↓
+                       ┌─────────────────┐
+                       │Return StepResult│
+                       │{status, result} │
+                       └─────────┬───────┘
+                                │
+                                ↓
+                   ┌────────────────────────────┐
+                   │Add StepResult to trace     │
+                   │Check continueOnError flag  │
+                   └────────────┬───────────────┘
+                                │
+                                ↓
+                   ┌────────────────────────────┐
+                   │Update WorkflowExecution    │
+                   │status: COMPLETED           │
+                   │executionTrace: {...}       │
+                   └────────────────────────────┘
+    ]]></ascii-diagram>
+  </workflow-diagram>
+</story-context>
