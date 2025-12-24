@@ -674,6 +674,11 @@ export class WorkflowsService {
       throw new BadRequestException('Only failed executions can be retried');
     }
 
+    // Prevent retrying dry-run executions (they're simulations, not real executions)
+    if (originalExecution.isDryRun) {
+      throw new BadRequestException('Cannot retry dry-run executions. Use test workflow to run another simulation.');
+    }
+
     // Check if workflow is still enabled
     if (!originalExecution.workflow.enabled) {
       throw new BadRequestException('Workflow is not active. Please activate it before retrying.');
@@ -694,7 +699,7 @@ export class WorkflowsService {
 
     // Publish event
     await this.eventPublisher.publish(
-      'pm.workflow.execution.retried' as any,
+      EventTypes.PM_WORKFLOW_EXECUTION_RETRIED,
       {
         workflowId: originalExecution.workflowId,
         originalExecutionId: executionId,

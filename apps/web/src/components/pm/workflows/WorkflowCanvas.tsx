@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
+import { nanoid } from 'nanoid';
 import ReactFlow, {
   Node,
   Edge,
@@ -49,7 +50,6 @@ export function WorkflowCanvas({
 }: WorkflowCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(definition.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(definition.edges as Edge[]);
-  const [nodeIdCounter, setNodeIdCounter] = useState(definition.nodes.length);
 
   // Apply execution trace highlighting to nodes
   useEffect(() => {
@@ -153,8 +153,8 @@ export function WorkflowCanvas({
 
   const handleAddNode = useCallback(
     (nodeType: string, data: { label: string; config: any }) => {
-      const newNodeId = `node-${nodeIdCounter + 1}`;
-      setNodeIdCounter((prev) => prev + 1);
+      // Use nanoid for unique IDs to prevent collisions when nodes are deleted and re-added
+      const newNodeId = `node-${nanoid(8)}`;
 
       const newNode: Node = {
         id: newNodeId,
@@ -168,7 +168,7 @@ export function WorkflowCanvas({
 
       setNodes((nds) => [...nds, newNode]);
     },
-    [nodeIdCounter, setNodes]
+    [setNodes]
   );
 
   const handleSave = useCallback(() => {

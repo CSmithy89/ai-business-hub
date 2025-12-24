@@ -5,6 +5,7 @@ import { WorkflowsService } from './workflows.service';
 import { WorkflowExecutorService } from './workflow-executor.service';
 import { WorkflowSchedulerService } from './workflow-scheduler.service';
 import { ActionExecutorService } from './action-executor.service';
+import { RedisLockService } from './utils/redis-lock.service';
 import { CommonModule } from '../../common/common.module';
 import { EventsModule } from '../../events';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -24,6 +25,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     WorkflowExecutorService,
     WorkflowSchedulerService,
     ActionExecutorService,
+    RedisLockService,
   ],
   exports: [WorkflowsService, WorkflowExecutorService],
 })

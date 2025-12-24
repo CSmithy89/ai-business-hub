@@ -4,6 +4,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, Worker } from 'bullmq';
 import { PrismaService } from '../../common/services/prisma.service';
 import { WorkflowExecutorService } from './workflow-executor.service';
+import { RedisLockService } from './utils/redis-lock.service';
 import { CronExpressionParser } from 'cron-parser';
 
 interface TriggerConfig {
@@ -30,6 +31,7 @@ export class WorkflowSchedulerService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly executor: WorkflowExecutorService,
     private readonly configService: ConfigService,
+    private readonly lockService: RedisLockService,
     @InjectQueue('workflow-scheduler') private schedulerQueue: Queue,
   ) {}
 
@@ -272,19 +274,52 @@ export class WorkflowSchedulerService implements OnModuleInit, OnModuleDestroy {
 
         // Check if the workflow should run now
         if (this.shouldRunNow(cronExpression, now, workflow.lastExecutedAt)) {
-          this.logger.log(
-            `Executing CUSTOM_SCHEDULE workflow ${workflow.id} (${workflow.name})`,
+          // Acquire distributed lock to prevent duplicate execution across instances
+          const lockKey = `workflow:schedule:${workflow.id}`;
+
+          const result = await this.lockService.withLock(
+            lockKey,
+            async () => {
+              // Re-check lastExecutedAt after acquiring lock (double-check pattern)
+              const freshWorkflow = await this.prisma.workflow.findUnique({
+                where: { id: workflow.id },
+                select: { lastExecutedAt: true },
+              });
+
+              if (
+                freshWorkflow &&
+                !this.shouldRunNow(cronExpression, now, freshWorkflow.lastExecutedAt)
+              ) {
+                this.logger.debug(
+                  `Workflow ${workflow.id} already executed by another instance`,
+                );
+                return false;
+              }
+
+              this.logger.log(
+                `Executing CUSTOM_SCHEDULE workflow ${workflow.id} (${workflow.name})`,
+              );
+
+              await this.executor.executeWorkflow(workflow.id, {
+                workflowId: workflow.id,
+                workspaceId: workflow.project.workspaceId, // Tenant isolation
+                triggerType: 'CUSTOM_SCHEDULE',
+                triggerData: {
+                  scheduledAt: now.toISOString(),
+                  schedule: cronExpression,
+                },
+              });
+
+              return true;
+            },
+            30000, // 30 second lock TTL
           );
 
-          await this.executor.executeWorkflow(workflow.id, {
-            workflowId: workflow.id,
-            workspaceId: workflow.project.workspaceId, // Tenant isolation
-            triggerType: 'CUSTOM_SCHEDULE',
-            triggerData: {
-              scheduledAt: now.toISOString(),
-              schedule: cronExpression,
-            },
-          });
+          if (result === null) {
+            this.logger.debug(
+              `Could not acquire lock for workflow ${workflow.id}, likely running on another instance`,
+            );
+          }
         }
       } catch (error) {
         this.logger.error({

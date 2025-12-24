@@ -98,6 +98,53 @@ interface StepResult {
  *
  * Story: PM-10.3 - Action Library
  */
+/**
+ * Whitelist of allowed variable paths for interpolation
+ * This prevents access to sensitive data like API keys or internal state.
+ */
+const ALLOWED_VARIABLE_PATHS = [
+  // Workflow context
+  'workflowId',
+  'workspaceId',
+  'triggerType',
+  'triggeredBy',
+  // Trigger data - task fields
+  'triggerData.taskId',
+  'triggerData.title',
+  'triggerData.description',
+  'triggerData.status',
+  'triggerData.priority',
+  'triggerData.dueDate',
+  'triggerData.phaseId',
+  'triggerData.projectId',
+  'triggerData.assigneeId',
+  'triggerData.createdBy',
+  'triggerData.taskNumber',
+  'triggerData.type',
+  'triggerData.parentId',
+  // Trigger data - schedule fields
+  'triggerData.scheduledAt',
+  'triggerData.schedule',
+  'triggerData.daysUntilDue',
+  // Trigger data - custom fields (nested access allowed)
+  'triggerData.customFields',
+];
+
+/**
+ * Check if a path is allowed for variable interpolation
+ */
+function isPathAllowed(path: string): boolean {
+  // Direct match
+  if (ALLOWED_VARIABLE_PATHS.includes(path)) {
+    return true;
+  }
+
+  // Check if path starts with an allowed prefix (for nested access like triggerData.customFields.myField)
+  return ALLOWED_VARIABLE_PATHS.some(
+    (allowed) => path.startsWith(`${allowed}.`) || path === allowed,
+  );
+}
+
 @Injectable()
 export class ActionExecutorService implements OnModuleInit {
   private readonly logger = new Logger(ActionExecutorService.name);
@@ -553,6 +600,20 @@ export class ActionExecutorService implements OnModuleInit {
     // Validate URL (no internal IPs)
     this.validateWebhookUrl(config.url);
 
+    // Validate and constrain timeout (1s-30s)
+    const MIN_TIMEOUT = 1000;
+    const MAX_TIMEOUT = 30000;
+    const DEFAULT_TIMEOUT = 5000;
+
+    let timeout = config.timeout ?? DEFAULT_TIMEOUT;
+    if (timeout < MIN_TIMEOUT) {
+      this.logger.warn(`Webhook timeout ${timeout}ms is below minimum, using ${MIN_TIMEOUT}ms`);
+      timeout = MIN_TIMEOUT;
+    } else if (timeout > MAX_TIMEOUT) {
+      this.logger.warn(`Webhook timeout ${timeout}ms exceeds maximum, using ${MAX_TIMEOUT}ms`);
+      timeout = MAX_TIMEOUT;
+    }
+
     // Interpolate payload and headers
     const payload = this.interpolateVariables(config.payload || {}, context);
     const headers = this.interpolateVariables(config.headers || {}, context);
@@ -567,7 +628,7 @@ export class ActionExecutorService implements OnModuleInit {
         url: config.url,
         data: payload,
         headers,
-        timeout: config.timeout || 5000,
+        timeout,
       });
 
       return {
@@ -577,9 +638,38 @@ export class ActionExecutorService implements OnModuleInit {
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new BadRequestException(
-          `Webhook call failed: ${error.response?.status} ${error.response?.statusText || error.message}`,
-        );
+        // Sanitize error message to prevent information leakage
+        // Only include HTTP status codes, not response body or internal paths
+        const status = error.response?.status;
+        const statusText = error.response?.statusText;
+
+        let sanitizedMessage: string;
+        if (status) {
+          sanitizedMessage = `Webhook call failed with status ${status}`;
+          if (statusText) {
+            sanitizedMessage += ` (${statusText})`;
+          }
+        } else if (error.code === 'ECONNABORTED') {
+          sanitizedMessage = 'Webhook call timed out';
+        } else if (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN') {
+          sanitizedMessage = 'Webhook endpoint not reachable';
+        } else if (error.code === 'ECONNREFUSED') {
+          sanitizedMessage = 'Webhook connection refused';
+        } else {
+          sanitizedMessage = 'Webhook call failed due to network error';
+        }
+
+        // Log detailed error for debugging (server-side only)
+        this.logger.error({
+          message: 'Webhook call failed',
+          url: config.url,
+          method: config.method,
+          error: error.message,
+          code: error.code,
+          status,
+        });
+
+        throw new BadRequestException(sanitizedMessage);
       }
       throw error;
     }
@@ -682,7 +772,7 @@ export class ActionExecutorService implements OnModuleInit {
    * Interpolate a single variable
    *
    * Supports {{variable.path}} syntax with XSS protection.
-   * Handles deeply nested paths like {{triggerData.task.assignee.name}}.
+   * Only allows access to whitelisted paths for security.
    */
   private interpolateVariable(value: any, context: ExecutionContext): any {
     if (typeof value !== 'string') return value;
@@ -691,6 +781,12 @@ export class ActionExecutorService implements OnModuleInit {
     const regex = /\{\{([^}]+)\}\}/g;
     return value.replace(regex, (match, path) => {
       const trimmedPath = path.trim();
+
+      // Validate path against whitelist to prevent access to sensitive data
+      if (!isPathAllowed(trimmedPath)) {
+        this.logger.warn(`Blocked access to non-whitelisted variable path: ${trimmedPath}`);
+        return match; // Keep original placeholder if path not allowed
+      }
 
       // Use getNestedValue for safe nested property access
       const result = getNestedValue(context as unknown as Record<string, unknown>, trimmedPath);

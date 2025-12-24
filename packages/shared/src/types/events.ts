@@ -142,6 +142,7 @@ export const EventTypes = {
   PM_WORKFLOW_DELETED: 'pm.workflow.deleted',
   PM_WORKFLOW_ACTIVATED: 'pm.workflow.activated',
   PM_WORKFLOW_PAUSED: 'pm.workflow.paused',
+  PM_WORKFLOW_EXECUTION_RETRIED: 'pm.workflow.execution.retried',
 
   // KB events (bm-pm Knowledge Base)
   KB_PAGE_CREATED: 'kb.page.created',
