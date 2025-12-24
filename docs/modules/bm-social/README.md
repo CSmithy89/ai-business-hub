@@ -1,17 +1,12 @@
-# BM-Social Module Documentation
+# BM-Social - Social Media Management
 
-## Social Media Management Module
-
-**Module Code:** `bm-social`
-**Version:** 0.1.0 (Research Complete)
-**Layer:** Operations (OPERATE Phase)
-**Status:** Research Complete - PRD Pending
-
----
+> **Status:** Research Complete | **Type:** Standalone Module | **Priority:** P2
 
 ## Overview
 
-The Social Media Management Module (BM-Social) provides AI-powered social media scheduling, content creation, and analytics across multiple platforms.
+BM-Social is a **standalone module** providing AI-powered social media scheduling, content creation, and analytics across multiple platforms.
+
+**Standalone with Built-in Analytics:** Includes its own social analytics dashboard (engagement, reach, followers). Works independently with full functionality.
 
 ### Key Capabilities
 
@@ -148,19 +143,17 @@ Research based on [Postiz](https://github.com/gitroomhq/postiz-app):
 
 ---
 
-## Dependencies
+## Key Integrations
 
-### Platform Foundation
-- BullMQ worker infrastructure
-- OAuth provider registry
-- RBAC permissions
-- Approval queue system
+**Standalone Module** - Works independently with full functionality.
 
-### Cross-Module
-- **BM-Brand** - Brand voice for content
-- **BMC** - Article-to-social conversion
-- **BM-CRM** - Contact tagging
-- **BMT** - Unified analytics
+**Enhanced When Installed With:**
+- **BM-Brand** - Brand voice for content generation
+- **BM-CMS** - Blog-to-social conversion
+- **BM-CRM** - Contact tagging, social profiles
+- **BM-Marketing** - Campaign coordination
+- **BM-Analytics** - AI-powered posting recommendations
+- **Core-PM** - Social campaign projects
 
 ---
 
@@ -174,6 +167,4 @@ Research based on [Postiz](https://github.com/gitroomhq/postiz-app):
 
 ---
 
-**Module Owner:** AI Business Hub Team
-**Pipeline:** BMC → BM-Social → BMT
-**Last Updated:** 2025-12-17
+*Module Status: Standalone module - works independently, enhanced with other modules*

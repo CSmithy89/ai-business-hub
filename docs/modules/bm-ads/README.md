@@ -28,7 +28,7 @@ BM-Ads is a **standalone module** providing comprehensive paid advertising capab
 - BM-Brand (brand guidelines for ad creative)
 - BM-SEO (keyword intelligence for search ads)
 - BM-CRM (lead attribution, conversion tracking)
-- BM-Content (creative assets)
+- BM-CMS (landing pages, creative assets)
 - BM-Finance (ad spend tracking, ROI reporting)
 - BM-Analytics (AI-powered bid optimization)
 - Core-PM (campaign projects and tasks)

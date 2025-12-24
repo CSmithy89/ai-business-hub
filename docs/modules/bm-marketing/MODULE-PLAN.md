@@ -20,10 +20,10 @@ BUILD Phase (Strategy)                    OPERATE Phase (Execution)
 ───────────────────────────────────────────────────────────────────
 BMV → BMP → BM-Brand
               ↓
-         BM-Marketing  ───────────────→   Extension Modules:
-         (Core GTM)                       ├─ BM-Social (social media)
+         BM-Marketing  ───────────────→   Standalone Modules (coordinate via A2A):
+         (Campaign Orchestrator)          ├─ BM-Social (social media)
               │                           ├─ BM-Email (email marketing)
-              │                           ├─ BM-Content (content creation)
+              │                           ├─ BM-CMS (website/blog)
               │                           ├─ BM-SEO (search optimization)
               │                           └─ BM-Ads (paid advertising)
               │
@@ -40,7 +40,7 @@ BMV → BMP → BM-Brand
 | **Category** | BUILD Phase |
 | **Type** | Core Strategic Module |
 | **Requires** | `bm-brand` (for brand guidelines & voice) |
-| **Enables** | `bm-social`, `bm-email`, `bm-content`, `bm-seo`, `bm-ads` |
+| **Coordinates** | `bm-social`, `bm-email`, `bm-cms`, `bm-seo`, `bm-ads` (standalone modules via A2A) |
 | **Integrates** | `bm-support` (optional, for inquiry routing) |
 | **Agent Count** | 6 |
 | **Priority** | P1 (after BM-Brand, before tactical modules) |
@@ -59,10 +59,10 @@ dependencies:
     version: ">=1.0.0"
     type: required
     reason: "Brand voice, guidelines, and positioning"
-enables:
+coordinates:  # Standalone modules - BM-Marketing orchestrates campaigns via A2A
   - bm-social
   - bm-email
-  - bm-content
+  - bm-cms
   - bm-seo
   - bm-ads
 optional_integrations:
@@ -92,13 +92,13 @@ interfaces:
 | **Budget Allocation** | Distribute marketing budget across channels |
 | **Attribution** | Aggregate performance across all channels |
 
-### What Extensions Own
+### What Standalone Modules Own
 
-| Extension | Ownership |
-|-----------|-----------|
+| Module | Ownership |
+|--------|-----------|
 | **BM-Social** | Social platform execution, posting, engagement |
 | **BM-Email** | Email sequences, templates, deliverability |
-| **BM-Content** | Content creation, asset management, CMS |
+| **BM-CMS** | Website pages, blog posts, landing pages |
 | **BM-SEO** | Keyword research, on-page optimization, rankings |
 | **BM-Ads** | Ad creative, bidding, platform management |
 
@@ -136,9 +136,9 @@ Per `/docs/architecture/cross-module-architecture.md`:
 │ └───────┘ └───────┘ └─────────┘ └───────┘ └───────┘       │
 │                                                              │
 │ ═══════════════════════════════════════════════════════════ │
-│              Extensions Receive Campaigns                    │
+│         Standalone Modules (Coordinated via A2A)            │
 │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌───────┐ │
-│  │BM-Social│ │BM-Email │ │BM-Content│ │ BM-SEO │ │BM-Ads │ │
+│  │BM-Social│ │BM-Email │ │ BM-CMS  │ │ BM-SEO  │ │BM-Ads │ │
 │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └───────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -261,7 +261,7 @@ Campaign
 └── Channel Executions
     ├── Social Posts (→ BM-Social)
     ├── Email Sequences (→ BM-Email)
-    ├── Content Pieces (→ BM-Content)
+    ├── Website/Blog Content (→ BM-CMS)
     ├── SEO Initiatives (→ BM-SEO)
     └── Ad Campaigns (→ BM-Ads)
 ```
@@ -522,19 +522,18 @@ Per `/docs/architecture/cross-module-architecture.md`, BM-Social has 18 agents.
 | `@bm-email.track` | Track | Engagement Tracker |
 | `@bm-email.comply` | Comply | Compliance (CAN-SPAM, GDPR) |
 
-### BM-Content (New)
+### BM-CMS (Website/Blog Content)
 
-**Module ID:** `bm-content`
-**Agent Count:** 6
+**Module ID:** `bm-cms`
+**Agent Count:** 5
 
 | Handle | Name | Role |
 |--------|------|------|
-| `@bm-content.editor` | Editor | Team Lead / Content Orchestrator |
-| `@bm-content.writer` | Writer | Content Creator |
-| `@bm-content.visual` | Visual | Visual Content Designer |
-| `@bm-content.library` | Library | Asset Manager |
-| `@bm-content.repurpose` | Repurpose | Content Repurposing |
-| `@bm-content.calendar` | Calendar | Content Calendar Manager |
+| `@bm-cms.publisher` | Publisher | Team Lead / CMS Orchestrator |
+| `@bm-cms.page` | Page | Page Builder - creates and manages pages |
+| `@bm-cms.blog` | Blog | Blog Manager - posts and categories |
+| `@bm-cms.media` | Media | Media Library - images, videos, assets |
+| `@bm-cms.template` | Template | Template Designer - reusable layouts |
 
 ### BM-SEO (New)
 
@@ -663,7 +662,7 @@ BM-Marketing.Measure logs as campaign touchpoint!
 │                  └─────────┘     └─────────┘               │          │
 │                                                            │          │
 │  ┌─────────────────────────────────────────────────────────┘         │
-│  │   Attribution Events from: Social, Email, Content, SEO, Ads       │
+│  │   Attribution Events from: Social, Email, CMS, SEO, Ads           │
 │  │   + Support inquiries with campaign context                        │
 │  └────────────────────────────────────────────────────────────────────│
 │                                                                       │
@@ -695,13 +694,12 @@ BM-Marketing.Measure logs as campaign touchpoint!
 - [ ] ROI calculation
 - [ ] Channel performance analysis
 
-### Phase 3: Extension Integrations
-**Duration:** 3-4 weeks
-**Extensions:** BM-Email, BM-Content, BM-SEO, BM-Ads
+### Phase 3: Standalone Module Integrations
+**Modules:** BM-Email, BM-CMS, BM-SEO, BM-Ads (all standalone, coordinated via A2A)
 
 - [ ] Event bus integration with BM-Social (already exists)
 - [ ] BM-Email module (6 agents)
-- [ ] BM-Content module (6 agents)
+- [ ] BM-CMS module (5 agents)
 - [ ] BM-SEO module (5 agents)
 - [ ] BM-Ads module (6 agents)
 
@@ -739,7 +737,7 @@ BM-Marketing.Measure logs as campaign touchpoint!
   "description": "Go-to-market strategy, campaign orchestration, and marketing intelligence",
   "version": "1.0.0",
   "dependencies": ["brand"],
-  "enables": ["social", "email", "content", "seo", "ads"],
+  "coordinates": ["social", "email", "cms", "seo", "ads"],
   "endpoints": {
     "rpc": "/a2a/marketing/rpc",
     "ws": null
@@ -784,9 +782,9 @@ BMP (Planning)
  ↓
 BM-Brand (Branding)
  ↓
-BM-Marketing (GTM Strategy) ────────┬─→ BM-Social (18 agents)
+BM-Marketing (GTM Strategy) ────────┬─→ BM-Social (16 agents)
  • Maven (Lead)                     ├─→ BM-Email (6 agents)
- • Channel                          ├─→ BM-Content (6 agents)
+ • Channel                          ├─→ BM-CMS (5 agents)
  • Segment                          ├─→ BM-SEO (5 agents)
  • Campaign                         └─→ BM-Ads (6 agents)
  • Budget
@@ -795,10 +793,10 @@ BM-Marketing (GTM Strategy) ────────┬─→ BM-Social (18 agen
 HORIZONTAL SERVICES (Cross-Cutting)
 ───────────────────────────────────────────────────────────
 BM-Support (8 agents) ← receives from CRM, Marketing, Sales
-BMT Analytics ← aggregates from ALL
+BM-Analytics ← AI-powered insights aggregated from ALL modules
 ```
 
-**Total New Agents:** 6 (Marketing) + 6 (Email) + 6 (Content) + 5 (SEO) + 6 (Ads) = **29 agents**
+**Total New Agents:** 6 (Marketing) + 6 (Email) + 5 (CMS) + 5 (SEO) + 6 (Ads) = **28 agents**
 
 ---
 
@@ -811,4 +809,4 @@ BMT Analytics ← aggregates from ALL
 
 ---
 
-*This module plan establishes BM-Marketing as the strategic hub for marketing operations, with tactical execution delegated to extension modules. The design follows the proven CRM→Sales extension pattern while recognizing BM-Support as a horizontal service.*
+*This module plan establishes BM-Marketing as the strategic hub for marketing operations, coordinating standalone modules (BM-Social, BM-Email, BM-CMS, BM-SEO, BM-Ads) via A2A protocol. Each channel module works independently with its own analytics, enhanced when installed alongside BM-Marketing for multi-channel campaign orchestration.*

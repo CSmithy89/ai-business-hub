@@ -214,7 +214,7 @@ Reserved platform handles:
 | `@bm-seo.technical` | Technical | Technical SEO Specialist | Planned |
 | `@bm-seo.rank` | Rank | Rank Tracker | Planned |
 
-> **Note:** BM-SEO is **standalone** with built-in analytics. Shares keyword intelligence with BM-Content and BM-Ads via A2A when installed.
+> **Note:** BM-SEO is **standalone** with built-in analytics. Shares keyword intelligence with BM-CMS and BM-Ads via A2A when installed.
 
 ### BM-Ads - Paid Advertising (6) - Standalone
 
@@ -437,19 +437,19 @@ These names are permanently reserved for platform-level agents:
 | Candidate | BM-HR | Core-PM |
 | Media Contact | BM-PR | BM-CRM (extends Contact) |
 | Press Release | BM-PR | BM-Social |
-| Marketing Campaign | BM-Marketing | BM-Email, BM-Content, BM-Ads, BM-Social, Core-PM |
+| Marketing Campaign | BM-Marketing | BM-Email, BM-CMS, BM-Ads, BM-Social, Core-PM |
 | Audience Segment | BM-Marketing | BM-Email, BM-Ads, BM-Social |
 | Channel Strategy | BM-Marketing | All tactical extensions |
 | Attribution Event | BM-Marketing | BM-Finance (revenue), Core-PM |
 | Marketing Budget | BM-Marketing | BM-Finance, Core-PM |
 | Email Sequence | BM-Email | BM-CRM (contact status), BM-Marketing |
-| Email Template | BM-Email | BM-Content (assets) |
-| Content Asset | BM-Content | BM-Email, BM-Social, BM-Ads, BM-SEO |
-| Editorial Calendar | BM-Content | BM-Social (scheduling), BM-Email |
-| SEO Audit | BM-SEO | BM-Content (optimization), Core-PM |
-| Keyword Research | BM-SEO | BM-Content, BM-Ads |
+| Email Template | BM-Email | BM-CMS (assets) |
+| Web Page | BM-CMS | BM-SEO (optimization), BM-Marketing |
+| Blog Post | BM-CMS | BM-Social (share), BM-Email, BM-SEO |
+| SEO Audit | BM-SEO | BM-CMS (optimization), Core-PM |
+| Keyword Research | BM-SEO | BM-CMS, BM-Ads |
 | Ad Campaign | BM-Ads | BM-Marketing (attribution), BM-Finance |
-| Ad Creative | BM-Ads | BM-Content (assets), BM-Brand |
+| Ad Creative | BM-Ads | BM-CMS (assets), BM-Brand |
 
 ### Event Bus Integration
 
@@ -481,7 +481,7 @@ All modules publish events to Redis Streams with this naming convention:
 | `finance.invoice.paid` | BM-Finance | BM-CRM (deal update), BM-Sales (order update) |
 | `hr.candidate.hired` | BM-HR | Core-PM (onboarding project) |
 | `pr.coverage.detected` | BM-PR | BM-Social (share), BM-CRM (contact) |
-| `marketing.campaign.created` | BM-Marketing | BM-Email, BM-Content, BM-Ads, BM-Social |
+| `marketing.campaign.created` | BM-Marketing | BM-Email, BM-CMS, BM-Ads, BM-Social |
 | `marketing.campaign.launched` | BM-Marketing | All extensions, Core-PM |
 | `marketing.segment.updated` | BM-Marketing | BM-Email (lists), BM-Ads (audiences) |
 | `marketing.attribution.recorded` | BM-Marketing | BM-Finance (revenue), Core-PM |
@@ -490,9 +490,9 @@ All modules publish events to Redis Streams with this naming convention:
 | `email.sent` | BM-Email | BM-Marketing (metrics) |
 | `email.opened` | BM-Email | BM-Marketing, BM-CRM (engagement) |
 | `email.clicked` | BM-Email | BM-Marketing, BM-CRM (lead scoring) |
-| `content.asset.published` | BM-Content | BM-Social (share), BM-SEO (index) |
-| `content.asset.updated` | BM-Content | BM-SEO (re-index) |
-| `seo.audit.completed` | BM-SEO | BM-Content (fixes), Core-PM (tasks) |
+| `cms.page.published` | BM-CMS | BM-Social (share), BM-SEO (index) |
+| `cms.page.updated` | BM-CMS | BM-SEO (re-index) |
+| `seo.audit.completed` | BM-SEO | BM-CMS (fixes), Core-PM (tasks) |
 | `seo.rank.changed` | BM-SEO | BM-Marketing (metrics), Core-PM |
 | `ads.campaign.created` | BM-Ads | BM-Marketing (budget), BM-Finance |
 | `ads.conversion.recorded` | BM-Ads | BM-Marketing (attribution), BM-CRM (lead) |

@@ -62,7 +62,7 @@ Notes:
 
 **Core-PM is not a module—it is the platform's foundational infrastructure.**
 
-Unlike optional business modules (BM-CRM, BM-Content, etc.), Project Management and Knowledge Base are essential platform capabilities that:
+Unlike optional business modules (BM-CRM, BM-CMS, etc.), Project Management and Knowledge Base are essential platform capabilities that:
 
 1. **Enable all business modules** - Every module (CRM, Content, Analytics) uses PM for orchestration
 2. **Provide team command & control** - Agent teams are managed from both chat windows AND the PM interface
@@ -90,7 +90,7 @@ Unlike optional business modules (BM-CRM, BM-Content, etc.), Project Management 
            ┌───────────────┼────────────────────┼───────────────┐
            │               │                    │               │
      ┌─────┴─────┐   ┌─────┴─────┐        ┌─────┴─────┐   ┌─────┴─────┐
-     │  BM-CRM   │   │BM-Content │        │BM-Finance │   │  BM-...   │
+     │  BM-CRM   │   │  BM-CMS   │        │BM-Finance │   │  BM-...   │
      │ (Module)  │   │ (Module)  │        │ (Module)  │   │ (Module)  │
      └───────────┘   └───────────┘        └───────────┘   └───────────┘
 ```
@@ -2293,7 +2293,7 @@ Within MVP (Phase 1), if timeline pressure occurs:
 | Component | How It Uses Core-PM |
 |-----------|---------------------|
 | BM-CRM | Link tasks to contacts/deals, agent orchestration |
-| BM-Content | Content project management, KB for content assets |
+| BM-CMS | Website/blog projects, KB for content assets |
 | BME-* modules | Project execution via PM workflows |
 | All AI agents | Search KB for context (RAG) |
 | Platform chat | Navi answers questions with KB context |
@@ -2304,7 +2304,7 @@ Within MVP (Phase 1), if timeline pressure occurs:
 |--------|-----------------|-------|
 | BM-CRM | Optional | Link tasks to contacts/deals |
 | BME-* | Consumer | Project execution modules use PM |
-| BMT-Analytics | Consumer | PM feeds analytics |
+| BM-Analytics | Consumer | PM feeds analytics |
 | **All Modules** | **RAG Consumer** | All modules can search KB |
 
 ### External Dependencies
