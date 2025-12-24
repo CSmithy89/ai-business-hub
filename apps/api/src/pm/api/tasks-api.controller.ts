@@ -67,11 +67,34 @@ export class TasksApiController {
 
   @Post()
   @Scopes(API_SCOPES.PM_WRITE)
-  @ApiOperation({ summary: 'Create a new task' })
-  @ApiResponse({ status: 201, description: 'Task created successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid API key' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient scope' })
+  @ApiOperation({
+    summary: 'Create a new task',
+    description: 'Creates a new task within a project phase. Requires PM_WRITE scope.'
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Task created successfully',
+    schema: {
+      example: {
+        id: 'cm4task123xyz',
+        projectId: 'cm4abc123xyz',
+        phaseId: 'cm4def456uvw',
+        title: 'Implement user authentication',
+        description: 'Add OAuth2 authentication with Google and GitHub providers',
+        type: 'STORY',
+        priority: 'HIGH',
+        status: 'TODO',
+        assignmentType: 'HUMAN',
+        assigneeId: 'cm4user789rst',
+        storyPoints: 5,
+        createdAt: '2025-01-10T12:00:00Z',
+        updatedAt: '2025-01-10T12:00:00Z'
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input data - Check required fields and data types' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing API key' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient scope (requires PM_WRITE)' })
   async createTask(@Body() dto: CreateTaskDto, @Req() request: Request & ApiAuthenticatedRequest) {
     const workspaceId = request.workspaceId
     const actorId = request.apiKey.createdById

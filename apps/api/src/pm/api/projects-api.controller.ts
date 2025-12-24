@@ -46,11 +46,32 @@ export class ProjectsApiController {
 
   @Post()
   @Scopes(API_SCOPES.PM_WRITE)
-  @ApiOperation({ summary: 'Create a new project' })
-  @ApiResponse({ status: 201, description: 'Project created successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid API key' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient scope' })
+  @ApiOperation({
+    summary: 'Create a new project',
+    description: 'Creates a new project in the workspace. Requires PM_WRITE scope.'
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Project created successfully',
+    schema: {
+      example: {
+        id: 'cm4proj123xyz',
+        workspaceId: 'cm4ws456abc',
+        businessId: 'cm4biz123xyz',
+        name: 'Website Redesign Q1 2025',
+        description: 'Comprehensive redesign of company website',
+        type: 'WEBSITE',
+        status: 'PLANNING',
+        color: '#3b82f6',
+        icon: 'code',
+        createdAt: '2025-01-10T12:00:00Z',
+        updatedAt: '2025-01-10T12:00:00Z'
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input data - Check required fields and data types' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing API key' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient scope (requires PM_WRITE)' })
   async createProject(@Body() dto: CreateProjectDto, @Req() request: Request & ApiAuthenticatedRequest) {
     const workspaceId = request.workspaceId
     const actorId = request.apiKey.createdById
