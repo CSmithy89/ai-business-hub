@@ -18,7 +18,7 @@ interface TriggerConfig {
   daysBeforeDue?: number;
 }
 
-interface ExecutionContext {
+export interface ExecutionContext {
   workflowId: string;
   triggerType: WorkflowTriggerType;
   triggerData: Record<string, any>;

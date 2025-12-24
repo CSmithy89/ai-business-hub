@@ -6,12 +6,15 @@ import { EventPublisherService } from '../../events';
 import { CreateWorkflowDto } from './dto/create-workflow.dto';
 import { UpdateWorkflowDto } from './dto/update-workflow.dto';
 import { ListWorkflowsQueryDto } from './dto/list-workflows-query.dto';
+import { TestWorkflowDto, TestWorkflowResponseDto } from './dto/test-workflow.dto';
+import { WorkflowExecutorService } from './workflow-executor.service';
 
 @Injectable()
 export class WorkflowsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventPublisher: EventPublisherService,
+    private readonly workflowExecutor: WorkflowExecutorService,
   ) {}
 
   async create(workspaceId: string, actorId: string, dto: CreateWorkflowDto) {
@@ -333,5 +336,98 @@ export class WorkflowsService {
     }
 
     return false;
+  }
+
+  /**
+   * Test workflow in dry-run mode
+   *
+   * @param workspaceId - Workspace ID for tenant isolation
+   * @param id - Workflow ID to test
+   * @param dto - Test configuration with task ID and optional overrides
+   * @returns Test execution result with trace
+   */
+  async testWorkflow(
+    workspaceId: string,
+    id: string,
+    dto: TestWorkflowDto,
+  ): Promise<TestWorkflowResponseDto> {
+    const startTime = Date.now();
+
+    // Validate workflow access
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        workspaceId: true,
+        projectId: true,
+        triggerType: true,
+      },
+    });
+
+    if (!workflow || workflow.workspaceId !== workspaceId) {
+      throw new NotFoundException('Workflow not found');
+    }
+
+    // Validate task access and that it belongs to the same project
+    const task = await this.prisma.task.findUnique({
+      where: { id: dto.taskId },
+      select: {
+        id: true,
+        projectId: true,
+        workspaceId: true,
+        title: true,
+        status: true,
+        priority: true,
+        type: true,
+        assigneeId: true,
+        phaseId: true,
+      },
+    });
+
+    if (!task || task.workspaceId !== workspaceId) {
+      throw new NotFoundException('Task not found');
+    }
+
+    if (task.projectId !== workflow.projectId) {
+      throw new BadRequestException('Task must belong to the same project as the workflow');
+    }
+
+    // Build trigger data from task (with optional overrides)
+    const triggerData = {
+      taskId: task.id,
+      title: task.title,
+      status: task.status,
+      priority: task.priority,
+      type: task.type,
+      assigneeId: task.assigneeId,
+      phaseId: task.phaseId,
+      ...dto.overrides,
+    };
+
+    // Execute workflow in dry-run mode
+    const execution = await this.workflowExecutor.executeWorkflow(workflow.id, {
+      workflowId: workflow.id,
+      triggerType: workflow.triggerType,
+      triggerData,
+      isDryRun: true,
+    });
+
+    // Build response from execution
+    const trace = execution.executionTrace as any;
+    const duration = Date.now() - startTime;
+
+    return {
+      executionId: execution.id,
+      workflowId: workflow.id,
+      trace: {
+        steps: trace?.steps || [],
+      },
+      summary: {
+        stepsExecuted: execution.stepsExecuted || 0,
+        stepsPassed: execution.stepsPassed || 0,
+        stepsFailed: execution.stepsFailed || 0,
+        duration,
+      },
+    };
   }
 }

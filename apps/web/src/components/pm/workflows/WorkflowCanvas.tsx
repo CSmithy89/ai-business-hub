@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -16,6 +16,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { WorkflowDefinition } from '@hyvve/shared';
+import type { ExecutionStep } from '@/hooks/use-pm-workflows';
 import { TriggerNode } from './nodes/TriggerNode';
 import { ConditionNode } from './nodes/ConditionNode';
 import { ActionNode } from './nodes/ActionNode';
@@ -29,6 +30,7 @@ interface WorkflowCanvasProps {
   definition: WorkflowDefinition;
   onSave: (definition: WorkflowDefinition) => void;
   readOnly?: boolean;
+  executionTrace?: ExecutionStep[];
 }
 
 const nodeTypes: NodeTypes = {
@@ -38,10 +40,108 @@ const nodeTypes: NodeTypes = {
   agent: AgentNode,
 };
 
-export function WorkflowCanvas({ definition, onSave, readOnly = false }: WorkflowCanvasProps) {
+export function WorkflowCanvas({
+  definition,
+  onSave,
+  readOnly = false,
+  executionTrace
+}: WorkflowCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(definition.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(definition.edges as Edge[]);
   const [nodeIdCounter, setNodeIdCounter] = useState(definition.nodes.length);
+
+  // Apply execution trace highlighting to nodes
+  useEffect(() => {
+    if (!executionTrace || executionTrace.length === 0) {
+      // Reset node styles if no trace
+      setNodes((nds) =>
+        nds.map((node) => ({
+          ...node,
+          style: undefined,
+          data: {
+            ...node.data,
+            executionStatus: undefined,
+          },
+        }))
+      );
+      return;
+    }
+
+    // Create a map of nodeId to execution status
+    const executionMap = new Map<string, ExecutionStep>();
+    executionTrace.forEach((step) => {
+      executionMap.set(step.nodeId, step);
+    });
+
+    // Update nodes with execution status
+    setNodes((nds) =>
+      nds.map((node) => {
+        const execution = executionMap.get(node.id);
+        if (!execution) {
+          return node;
+        }
+
+        // Determine border color based on status
+        let borderColor = '#6b7280'; // gray default
+        let borderWidth = 2;
+
+        if (execution.status === 'passed') {
+          borderColor = '#22c55e'; // green
+          borderWidth = 3;
+        } else if (execution.status === 'failed') {
+          borderColor = '#ef4444'; // red
+          borderWidth = 3;
+        } else if (execution.status === 'skipped') {
+          borderColor = '#9ca3af'; // gray
+          borderWidth = 2;
+        }
+
+        return {
+          ...node,
+          style: {
+            ...node.style,
+            border: `${borderWidth}px solid ${borderColor}`,
+            boxShadow: execution.status === 'passed'
+              ? '0 0 0 2px rgba(34, 197, 94, 0.2)'
+              : execution.status === 'failed'
+              ? '0 0 0 2px rgba(239, 68, 68, 0.2)'
+              : undefined,
+          },
+          data: {
+            ...node.data,
+            executionStatus: execution.status,
+          },
+        };
+      })
+    );
+
+    // Highlight edges that were traversed
+    const executedNodeIds = new Set(executionTrace.map((step) => step.nodeId));
+    setEdges((eds) =>
+      eds.map((edge) => {
+        const sourceExecuted = executedNodeIds.has(edge.source);
+        const targetExecuted = executedNodeIds.has(edge.target);
+
+        if (sourceExecuted && targetExecuted) {
+          return {
+            ...edge,
+            animated: true,
+            style: {
+              ...edge.style,
+              stroke: '#3b82f6', // blue
+              strokeWidth: 2,
+            },
+          };
+        }
+
+        return {
+          ...edge,
+          animated: false,
+          style: undefined,
+        };
+      })
+    );
+  }, [executionTrace, setNodes, setEdges]);
 
   const onConnect = useCallback(
     (connection: Connection) => {

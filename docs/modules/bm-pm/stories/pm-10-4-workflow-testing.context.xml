@@ -1,0 +1,1628 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story>
+    <id>PM-10-4</id>
+    <title>Workflow Testing (Dry-Run Simulation)</title>
+    <epic>PM-10 - Workflow Builder</epic>
+    <module>Core-PM (bm-pm)</module>
+    <status>drafted</status>
+    <points>5</points>
+  </story>
+
+  <user-story>
+    <role>workflow designer</role>
+    <goal>test workflows before activation</goal>
+    <benefit>verify they work correctly without affecting real data</benefit>
+  </user-story>
+
+  <acceptance-criteria>
+    <criterion id="1">Given a created workflow, when clicking "Test Workflow", can select a sample task to test against</criterion>
+    <criterion id="2">Workflow runs in dry-run mode with no actual changes to database</criterion>
+    <criterion id="3">Execution trace shows each step's result</criterion>
+    <criterion id="4">Trace visualizes the path taken through the workflow</criterion>
+    <criterion id="5">Each step shows simulated results (what would happen)</criterion>
+    <criterion id="6">Can identify which conditions passed/failed</criterion>
+  </acceptance-criteria>
+
+  <technical-overview>
+    <description>
+      Implements workflow testing functionality allowing users to safely test workflows before activation.
+      Uses dry-run mode to simulate execution without persisting any changes to the database.
+    </description>
+
+    <api-endpoint>
+      <method>POST</method>
+      <path>/pm/workflows/:id/test</path>
+      <request-body>
+        <field name="taskId" type="string" required="true">Sample task to test against</field>
+        <field name="overrides" type="Record&lt;string, any&gt;" required="false">Optional trigger data overrides</field>
+      </request-body>
+      <response-body>
+        <field name="executionId" type="string">ID of the test execution</field>
+        <field name="workflowId" type="string">ID of the workflow tested</field>
+        <field name="trace" type="object">Execution trace with steps array</field>
+        <field name="summary" type="object">Summary with stepsExecuted, stepsPassed, stepsFailed, duration</field>
+      </response-body>
+    </api-endpoint>
+
+    <execution-step-format>
+      <field name="nodeId" type="string">Node identifier</field>
+      <field name="type" type="'trigger' | 'condition' | 'action'">Step type</field>
+      <field name="status" type="'passed' | 'failed' | 'skipped'">Execution status</field>
+      <field name="result" type="object">Result object with simulated flag, action, matched, evaluated, condition, error</field>
+      <field name="duration" type="number">Execution duration in ms</field>
+    </execution-step-format>
+
+    <components>
+      <component name="WorkflowTestPanel">Panel for selecting sample task and running tests</component>
+      <component name="ExecutionTraceViewer">Displays step-by-step execution results</component>
+      <component name="TaskSelector">Dropdown for selecting tasks from the project</component>
+    </components>
+
+    <canvas-integration>
+      <feature>Test panel integrates with existing workflow canvas</feature>
+      <feature>After running test, canvas highlights the execution path</feature>
+      <feature>Nodes colored based on execution result (passed/failed/skipped)</feature>
+    </canvas-integration>
+
+    <files-to-modify>
+      <backend>
+        <file action="create">apps/api/src/pm/workflows/dto/test-workflow.dto.ts</file>
+        <file action="modify">apps/api/src/pm/workflows/workflows.controller.ts</file>
+        <file action="modify">apps/api/src/pm/workflows/workflows.service.ts</file>
+      </backend>
+      <frontend>
+        <file action="create">apps/web/src/components/pm/workflows/WorkflowTestPanel.tsx</file>
+        <file action="create">apps/web/src/components/pm/workflows/ExecutionTraceViewer.tsx</file>
+        <file action="create">apps/web/src/components/pm/workflows/TaskSelector.tsx</file>
+        <file action="modify">apps/web/src/components/pm/workflows/WorkflowCanvas.tsx</file>
+        <file action="modify">apps/web/src/hooks/use-pm-workflows.ts</file>
+      </frontend>
+    </files-to-modify>
+  </technical-overview>
+
+  <definition-of-done>
+    <item>Backend test endpoint implemented</item>
+    <item>Dry-run mode correctly simulates without persisting</item>
+    <item>Frontend test panel with task selection</item>
+    <item>Execution trace viewer shows step results</item>
+    <item>Canvas highlights execution path after test</item>
+    <item>Error handling for invalid workflows</item>
+    <item>All TypeScript types properly defined</item>
+    <item>API returns proper error codes (400, 404, 500)</item>
+  </definition-of-done>
+
+  <dependencies>
+    <dependency id="PM-10-1">Workflow Canvas (provides canvas infrastructure)</dependency>
+    <dependency id="PM-10-2">Trigger Conditions (provides filter evaluation)</dependency>
+    <dependency id="PM-10-3">Action Library (provides action simulation)</dependency>
+  </dependencies>
+
+  <tech-spec-section>
+    <source>docs/modules/bm-pm/epics/epic-pm-10-tech-spec.md (lines 1164-1224)</source>
+    <content><![CDATA[### PM-10.4: Workflow Testing (Story PM-10-4)
+
+**Goal:** Dry-run testing with execution trace
+
+**Technical Implementation:**
+- Sandboxed execution engine (no actual changes)
+- Execution trace visualization
+- Sample task selection
+- Step-by-step simulation
+
+**Dry-Run Execution:**
+- Set `isDryRun: true` in execution context
+- Skip database writes in action executor
+- Log what would happen without side effects
+- Return detailed execution trace
+
+**Execution Trace Format:**
+```typescript
+{
+  executionId: string;
+  workflowId: string;
+  trace: {
+    steps: [
+      {
+        nodeId: 'node-1',
+        type: 'trigger',
+        status: 'passed',
+        result: { matched: true },
+      },
+      {
+        nodeId: 'node-2',
+        type: 'condition',
+        status: 'passed',
+        result: { evaluated: true, condition: 'status == IN_PROGRESS' },
+      },
+      {
+        nodeId: 'node-3',
+        type: 'action',
+        status: 'passed',
+        result: { simulated: true, action: 'assign_task', assigneeId: 'user-123' },
+      },
+    ],
+  },
+  summary: {
+    stepsExecuted: 3,
+    stepsPassed: 3,
+    stepsFailed: 0,
+  },
+}
+```
+
+**API Endpoints:**
+- `POST /pm/workflows/:id/test` - Run dry-run test
+
+**Acceptance Criteria:**
+- [x] Select sample task for testing
+- [x] Run workflow in dry-run mode
+- [x] Visualize execution path on canvas
+- [x] Show step results and simulated changes
+- [x] No actual changes made to database]]></content>
+  </tech-spec-section>
+
+  <existing-code>
+    <file path="apps/api/src/pm/workflows/workflow-executor.service.ts">
+      <description>
+        Core workflow execution service that handles:
+        - Event-based trigger listening (task created, status changed, assigned, completed)
+        - Trigger condition evaluation with filter matching
+        - Workflow execution orchestration
+        - Dry-run mode support (isDryRun flag in ExecutionContext)
+        - Step execution with topological sorting
+        - Execution trace generation
+        - Rate limiting (100 executions per hour)
+      </description>
+      <key-interfaces>
+        <interface name="ExecutionContext">
+          <field name="workflowId" type="string">Workflow ID</field>
+          <field name="triggerType" type="WorkflowTriggerType">Trigger type</field>
+          <field name="triggerData" type="Record&lt;string, any&gt;">Trigger data from event</field>
+          <field name="triggeredBy" type="string" optional="true">Event ID that triggered</field>
+          <field name="isDryRun" type="boolean" optional="true">Dry-run mode flag</field>
+        </interface>
+      </key-interfaces>
+      <key-methods>
+        <method name="executeWorkflow">
+          - Creates execution record with isDryRun flag
+          - Calls executeSteps() to process workflow
+          - Updates execution with trace results
+          - Publishes events (started, completed, failed)
+          - Returns WorkflowExecution
+        </method>
+        <method name="executeSteps">
+          - Topologically sorts workflow nodes
+          - Executes action nodes via ActionExecutorService
+          - Skips trigger nodes
+          - Collects step results into trace
+          - Returns execution summary with status, counts, steps array
+        </method>
+      </key-methods>
+      <source><![CDATA[import { Injectable, Logger, OnModuleInit, NotFoundException } from '@nestjs/common';
+import { Workflow, WorkflowTriggerType, WorkflowExecution } from '@prisma/client';
+import { BaseEvent, EventTypes } from '@hyvve/shared';
+import { PrismaService } from '../../common/services/prisma.service';
+import { EventPublisherService, EventConsumerService } from '../../events';
+import { EventSubscriber } from '../../events/decorators/event-subscriber.decorator';
+import { ActionExecutorService } from './action-executor.service';
+
+interface TriggerConfig {
+  filters?: {
+    status?: string | string[];
+    phaseId?: string;
+    assigneeId?: string;
+    priority?: string | string[];
+    type?: string | string[];
+  };
+  schedule?: string;
+  daysBeforeDue?: number;
+}
+
+interface ExecutionContext {
+  workflowId: string;
+  triggerType: WorkflowTriggerType;
+  triggerData: Record<string, any>;
+  triggeredBy?: string;
+  isDryRun?: boolean;
+}
+
+/**
+ * WorkflowExecutorService
+ *
+ * Executes workflows when trigger conditions are met.
+ * Listens to task events via event bus and evaluates active workflows.
+ *
+ * Story: PM-10.2 - Trigger Conditions
+ */
+@Injectable()
+export class WorkflowExecutorService implements OnModuleInit {
+  private readonly logger = new Logger(WorkflowExecutorService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventPublisher: EventPublisherService,
+    private readonly eventConsumer: EventConsumerService,
+    private readonly actionExecutor: ActionExecutorService,
+  ) {}
+
+  onModuleInit() {
+    this.logger.log('Workflow executor service initialized');
+    // Event listeners are auto-registered via @EventSubscriber decorators
+  }
+
+  /**
+   * Handle task created events
+   */
+  @EventSubscriber(EventTypes.PM_TASK_CREATED, { priority: 100 })
+  async handleTaskCreated(event: BaseEvent) {
+    await this.handleTaskEvent(event, 'TASK_CREATED');
+  }
+
+  /**
+   * Handle task status changed events
+   */
+  @EventSubscriber(EventTypes.PM_TASK_STATUS_CHANGED, { priority: 100 })
+  async handleTaskStatusChanged(event: BaseEvent) {
+    await this.handleTaskEvent(event, 'TASK_STATUS_CHANGED');
+  }
+
+  /**
+   * Handle task assigned events
+   */
+  @EventSubscriber(EventTypes.PM_TASK_ASSIGNED, { priority: 100 })
+  async handleTaskAssigned(event: BaseEvent) {
+    await this.handleTaskEvent(event, 'TASK_ASSIGNED');
+  }
+
+  /**
+   * Handle task completed events
+   */
+  @EventSubscriber(EventTypes.PM_TASK_COMPLETED, { priority: 100 })
+  async handleTaskCompleted(event: BaseEvent) {
+    await this.handleTaskEvent(event, 'TASK_COMPLETED');
+  }
+
+  /**
+   * Process task events and execute matching workflows
+   *
+   * @param event - The task event from event bus
+   * @param triggerType - The workflow trigger type
+   */
+  private async handleTaskEvent(
+    event: BaseEvent,
+    triggerType: WorkflowTriggerType,
+  ): Promise<void> {
+    try {
+      // Find active workflows for this trigger type and workspace
+      const workflows = await this.prisma.workflow.findMany({
+        where: {
+          workspaceId: event.tenantId,
+          enabled: true,
+          triggerType,
+        },
+      });
+
+      this.logger.debug(
+        `Found ${workflows.length} active workflow(s) for trigger ${triggerType} in workspace ${event.tenantId}`,
+      );
+
+      // Evaluate trigger conditions and execute matching workflows
+      for (const workflow of workflows) {
+        if (this.evaluateTriggerConditions(workflow, event)) {
+          this.logger.log(
+            `Trigger conditions matched for workflow ${workflow.id} (${workflow.name})`,
+          );
+
+          await this.executeWorkflow(workflow.id, {
+            workflowId: workflow.id,
+            triggerType,
+            triggerData: event.data as Record<string, any>,
+            triggeredBy: event.id,
+          });
+        } else {
+          this.logger.debug(
+            `Trigger conditions not matched for workflow ${workflow.id} (${workflow.name})`,
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error({
+        message: 'Error handling task event',
+        eventType: event.type,
+        eventId: event.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Don't throw - we don't want to break the event consumer loop
+    }
+  }
+
+  /**
+   * Evaluate trigger filter conditions
+   *
+   * @param workflow - The workflow to evaluate
+   * @param event - The event that triggered evaluation
+   * @returns True if all filter conditions match
+   */
+  private evaluateTriggerConditions(
+    workflow: Workflow,
+    event: BaseEvent,
+  ): boolean {
+    const config = workflow.triggerConfig as TriggerConfig;
+
+    // If no filters, always match
+    if (!config.filters) return true;
+
+    const taskData = event.data as Record<string, any>;
+
+    // Status filter (supports single value or array)
+    if (config.filters.status) {
+      if (Array.isArray(config.filters.status)) {
+        if (!config.filters.status.includes(taskData.status)) {
+          this.logger.debug(
+            `Status filter mismatch: ${taskData.status} not in [${config.filters.status.join(', ')}]`,
+          );
+          return false;
+        }
+      } else if (taskData.status !== config.filters.status) {
+        this.logger.debug(
+          `Status filter mismatch: ${taskData.status} !== ${config.filters.status}`,
+        );
+        return false;
+      }
+    }
+
+    // Phase filter
+    if (config.filters.phaseId && taskData.phaseId !== config.filters.phaseId) {
+      this.logger.debug(
+        `Phase filter mismatch: ${taskData.phaseId} !== ${config.filters.phaseId}`,
+      );
+      return false;
+    }
+
+    // Assignee filter
+    if (config.filters.assigneeId && taskData.assigneeId !== config.filters.assigneeId) {
+      this.logger.debug(
+        `Assignee filter mismatch: ${taskData.assigneeId} !== ${config.filters.assigneeId}`,
+      );
+      return false;
+    }
+
+    // Priority filter (supports single value or array)
+    if (config.filters.priority) {
+      if (Array.isArray(config.filters.priority)) {
+        if (!config.filters.priority.includes(taskData.priority)) {
+          this.logger.debug(
+            `Priority filter mismatch: ${taskData.priority} not in [${config.filters.priority.join(', ')}]`,
+          );
+          return false;
+        }
+      } else if (taskData.priority !== config.filters.priority) {
+        this.logger.debug(
+          `Priority filter mismatch: ${taskData.priority} !== ${config.filters.priority}`,
+        );
+        return false;
+      }
+    }
+
+    // Type filter (supports single value or array)
+    if (config.filters.type) {
+      if (Array.isArray(config.filters.type)) {
+        if (!config.filters.type.includes(taskData.type)) {
+          this.logger.debug(
+            `Type filter mismatch: ${taskData.type} not in [${config.filters.type.join(', ')}]`,
+          );
+          return false;
+        }
+      } else if (taskData.type !== config.filters.type) {
+        this.logger.debug(
+          `Type filter mismatch: ${taskData.type} !== ${config.filters.type}`,
+        );
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Execute a workflow
+   *
+   * Creates execution record and runs workflow steps.
+   * PM-10.3 will implement actual step execution - for now just creates placeholder execution.
+   *
+   * @param workflowId - The workflow to execute
+   * @param context - Execution context with trigger data
+   * @returns The created workflow execution
+   */
+  async executeWorkflow(
+    workflowId: string,
+    context: ExecutionContext,
+  ): Promise<WorkflowExecution> {
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id: workflowId },
+    });
+
+    if (!workflow) {
+      throw new NotFoundException('Workflow not found');
+    }
+
+    // Check rate limit: max 100 executions per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentExecutions = await this.prisma.workflowExecution.count({
+      where: {
+        workflowId,
+        startedAt: {
+          gte: oneHourAgo,
+        },
+      },
+    });
+
+    if (recentExecutions >= 100) {
+      this.logger.warn(
+        `Rate limit exceeded for workflow ${workflowId}: ${recentExecutions} executions in last hour`,
+      );
+      throw new Error('Workflow execution rate limit exceeded (100/hour)');
+    }
+
+    this.logger.log(
+      `Executing workflow ${workflowId} (${workflow.name}) - trigger: ${context.triggerType}, dry-run: ${context.isDryRun || false}`,
+    );
+
+    // Create execution record
+    const execution = await this.prisma.workflowExecution.create({
+      data: {
+        workflowId,
+        triggerType: context.triggerType,
+        triggeredBy: context.triggeredBy,
+        triggerData: context.triggerData as any,
+        status: 'RUNNING',
+        isDryRun: context.isDryRun || false,
+      },
+    });
+
+    try {
+      // Emit execution started event
+      await this.eventPublisher.publish(
+        'pm.workflow.execution.started' as any,
+        {
+          workflowId,
+          executionId: execution.id,
+          triggerType: context.triggerType,
+          isDryRun: context.isDryRun,
+        },
+        {
+          tenantId: workflow.workspaceId,
+          userId: 'system',
+        },
+      );
+
+      // Execute workflow steps
+      const executionTrace = await this.executeSteps(workflow, context);
+
+      // Update execution with results
+      await this.prisma.workflowExecution.update({
+        where: { id: execution.id },
+        data: {
+          status: executionTrace.status,
+          completedAt: new Date(),
+          stepsExecuted: executionTrace.stepsExecuted,
+          stepsPassed: executionTrace.stepsPassed,
+          stepsFailed: executionTrace.stepsFailed,
+          executionTrace: executionTrace as any,
+        },
+      });
+
+      // Update workflow stats
+      await this.prisma.workflow.update({
+        where: { id: workflowId },
+        data: {
+          executionCount: { increment: 1 },
+          lastExecutedAt: new Date(),
+        },
+      });
+
+      // Emit completion event
+      await this.eventPublisher.publish(
+        'pm.workflow.execution.completed' as any,
+        {
+          workflowId,
+          executionId: execution.id,
+          isDryRun: context.isDryRun,
+        },
+        {
+          tenantId: workflow.workspaceId,
+          userId: 'system',
+        },
+      );
+
+      this.logger.log(`Workflow execution ${execution.id} completed successfully`);
+
+      return execution;
+    } catch (error) {
+      this.logger.error({
+        message: 'Workflow execution failed',
+        workflowId,
+        executionId: execution.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      // Update execution with error
+      await this.prisma.workflowExecution.update({
+        where: { id: execution.id },
+        data: {
+          status: 'FAILED',
+          completedAt: new Date(),
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+      });
+
+      // Update error count
+      await this.prisma.workflow.update({
+        where: { id: workflowId },
+        data: {
+          errorCount: { increment: 1 },
+        },
+      });
+
+      // Emit failure event
+      await this.eventPublisher.publish(
+        'pm.workflow.execution.failed' as any,
+        {
+          workflowId,
+          executionId: execution.id,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        {
+          tenantId: workflow.workspaceId,
+          userId: 'system',
+        },
+      );
+
+      throw error;
+    }
+  }
+
+  /**
+   * Execute workflow steps
+   *
+   * Processes nodes in topological order and executes actions.
+   *
+   * @param workflow - The workflow to execute
+   * @param context - Execution context
+   * @returns Execution trace with step results
+   */
+  private async executeSteps(
+    workflow: Workflow,
+    context: ExecutionContext,
+  ): Promise<{
+    status: 'COMPLETED' | 'FAILED';
+    stepsExecuted: number;
+    stepsPassed: number;
+    stepsFailed: number;
+    steps: any[];
+  }> {
+    const definition = workflow.definition as any;
+    const nodes = definition.nodes || [];
+    const edges = definition.edges || [];
+
+    // Topologically sort nodes
+    const sortedNodes = this.topologicalSort(nodes, edges);
+
+    this.logger.debug(
+      `Executing ${sortedNodes.length} node(s) for workflow ${workflow.id}`,
+    );
+
+    const steps: any[] = [];
+    let stepsPassed = 0;
+    let stepsFailed = 0;
+
+    // Execute nodes in order
+    for (const node of sortedNodes) {
+      // Skip trigger nodes (they're just starting points)
+      if (node.type === 'trigger') {
+        continue;
+      }
+
+      // Execute action nodes
+      if (node.type === 'action') {
+        const actionType = node.data?.actionType;
+        const config = { nodeId: node.id, ...node.data?.config };
+
+        if (!actionType) {
+          this.logger.warn(`Action node ${node.id} missing actionType, skipping`);
+          continue;
+        }
+
+        const stepResult = await this.actionExecutor.executeAction(
+          actionType,
+          config,
+          context,
+        );
+
+        steps.push(stepResult);
+
+        if (stepResult.status === 'passed') {
+          stepsPassed++;
+        } else if (stepResult.status === 'failed') {
+          stepsFailed++;
+
+          // Stop execution unless continueOnError is true
+          if (!node.data?.continueOnError) {
+            this.logger.warn(
+              `Step ${node.id} failed, halting execution (continueOnError: false)`,
+            );
+            break;
+          }
+        }
+      }
+    }
+
+    const status = stepsFailed > 0 ? 'FAILED' : 'COMPLETED';
+
+    return {
+      status,
+      stepsExecuted: steps.length,
+      stepsPassed,
+      stepsFailed,
+      steps,
+    };
+  }
+
+  /**
+   * Topologically sort workflow nodes
+   *
+   * Ensures actions execute in the correct order based on edges.
+   *
+   * @param nodes - Workflow nodes
+   * @param edges - Workflow edges
+   * @returns Sorted nodes
+   */
+  private topologicalSort(nodes: any[], edges: any[]): any[] {
+    // Build adjacency list
+    const adjacency = new Map<string, string[]>();
+    const inDegree = new Map<string, number>();
+
+    // Initialize
+    for (const node of nodes) {
+      adjacency.set(node.id, []);
+      inDegree.set(node.id, 0);
+    }
+
+    // Build graph
+    for (const edge of edges) {
+      adjacency.get(edge.source)?.push(edge.target);
+      inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
+    }
+
+    // Find all nodes with no incoming edges
+    const queue: any[] = [];
+    for (const node of nodes) {
+      if (inDegree.get(node.id) === 0) {
+        queue.push(node);
+      }
+    }
+
+    // Process nodes
+    const sorted: any[] = [];
+    while (queue.length > 0) {
+      const node = queue.shift()!;
+      sorted.push(node);
+
+      // Reduce in-degree for neighbors
+      for (const neighborId of adjacency.get(node.id) || []) {
+        const newDegree = (inDegree.get(neighborId) || 0) - 1;
+        inDegree.set(neighborId, newDegree);
+
+        if (newDegree === 0) {
+          const neighborNode = nodes.find((n) => n.id === neighborId);
+          if (neighborNode) {
+            queue.push(neighborNode);
+          }
+        }
+      }
+    }
+
+    // Check for cycles
+    if (sorted.length !== nodes.length) {
+      this.logger.warn('Workflow contains cycles, some nodes may not execute');
+    }
+
+    return sorted;
+  }
+}]]></source>
+    </file>
+
+    <file path="apps/api/src/pm/workflows/workflows.controller.ts">
+      <description>
+        REST API controller for workflow CRUD operations.
+        Currently has endpoints for: create, list, get, update, delete, activate, pause.
+        Needs to add: POST /pm/workflows/:id/test endpoint for workflow testing.
+      </description>
+      <source><![CDATA[import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentWorkspace } from '../../common/decorators/current-workspace.decorator';
+import { AuthGuard } from '../../common/guards/auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { TenantGuard } from '../../common/guards/tenant.guard';
+import { CreateWorkflowDto } from './dto/create-workflow.dto';
+import { UpdateWorkflowDto } from './dto/update-workflow.dto';
+import { ListWorkflowsQueryDto } from './dto/list-workflows-query.dto';
+import { WorkflowsService } from './workflows.service';
+
+@ApiTags('PM Workflows')
+@Controller('pm/workflows')
+@UseGuards(AuthGuard, TenantGuard, RolesGuard)
+@ApiBearerAuth()
+export class WorkflowsController {
+  constructor(private readonly workflowsService: WorkflowsService) {}
+
+  @Post()
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Create a workflow' })
+  @ApiResponse({ status: 201, description: 'Workflow created' })
+  async create(
+    @CurrentWorkspace() workspaceId: string,
+    @Body() dto: CreateWorkflowDto,
+    @CurrentUser() actor: any,
+  ) {
+    return this.workflowsService.create(workspaceId, actor.id, dto);
+  }
+
+  @Get()
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'List workflows with filters' })
+  @ApiResponse({ status: 200, description: 'Workflows retrieved' })
+  async findAll(
+    @CurrentWorkspace() workspaceId: string,
+    @Query() query: ListWorkflowsQueryDto,
+  ) {
+    return this.workflowsService.findAll(workspaceId, query);
+  }
+
+  @Get(':id')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Get workflow details' })
+  @ApiParam({ name: 'id', description: 'Workflow ID' })
+  @ApiResponse({ status: 200, description: 'Workflow details retrieved' })
+  async findOne(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    return this.workflowsService.findOne(workspaceId, id);
+  }
+
+  @Put(':id')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Update workflow' })
+  @ApiParam({ name: 'id', description: 'Workflow ID' })
+  @ApiResponse({ status: 200, description: 'Workflow updated' })
+  async update(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateWorkflowDto,
+    @CurrentUser() actor: any,
+  ) {
+    return this.workflowsService.update(workspaceId, actor.id, id, dto);
+  }
+
+  @Delete(':id')
+  @Roles('owner', 'admin')
+  @ApiOperation({ summary: 'Delete workflow' })
+  @ApiParam({ name: 'id', description: 'Workflow ID' })
+  @ApiResponse({ status: 200, description: 'Workflow deleted' })
+  async remove(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    return this.workflowsService.remove(workspaceId, id);
+  }
+
+  @Post(':id/activate')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Activate workflow' })
+  @ApiParam({ name: 'id', description: 'Workflow ID' })
+  @ApiResponse({ status: 200, description: 'Workflow activated' })
+  async activate(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @CurrentUser() actor: any,
+  ) {
+    return this.workflowsService.activate(workspaceId, actor.id, id);
+  }
+
+  @Post(':id/pause')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Pause workflow' })
+  @ApiParam({ name: 'id', description: 'Workflow ID' })
+  @ApiResponse({ status: 200, description: 'Workflow paused' })
+  async pause(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @CurrentUser() actor: any,
+  ) {
+    return this.workflowsService.pause(workspaceId, actor.id, id);
+  }
+}]]></source>
+    </file>
+
+    <file path="apps/api/src/pm/workflows/workflows.service.ts">
+      <description>
+        Service layer for workflow business logic.
+        Currently handles: create, findAll, findOne, update, remove, activate, pause.
+        Needs to add: test() method for dry-run workflow testing.
+      </description>
+      <key-methods>
+        <method name="create">Creates workflow with validation (max 50 active per project, cycle detection)</method>
+        <method name="findAll">Lists workflows with filters (projectId, status, enabled)</method>
+        <method name="findOne">Gets workflow details with recent executions</method>
+        <method name="update">Updates workflow (validates definition if changed)</method>
+        <method name="activate">Sets workflow to ACTIVE and enabled=true</method>
+        <method name="pause">Sets workflow to PAUSED and enabled=false</method>
+      </key-methods>
+      <source><![CDATA[import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { WorkflowStatus as PrismaWorkflowStatus, WorkflowTriggerType as PrismaTriggerType } from '@prisma/client';
+import { EventTypes } from '@hyvve/shared';
+import { PrismaService } from '../../common/services/prisma.service';
+import { EventPublisherService } from '../../events';
+import { CreateWorkflowDto } from './dto/create-workflow.dto';
+import { UpdateWorkflowDto } from './dto/update-workflow.dto';
+import { ListWorkflowsQueryDto } from './dto/list-workflows-query.dto';
+
+@Injectable()
+export class WorkflowsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventPublisher: EventPublisherService,
+  ) {}
+
+  async create(workspaceId: string, actorId: string, dto: CreateWorkflowDto) {
+    // Validate project access
+    const project = await this.prisma.project.findUnique({
+      where: { id: dto.projectId },
+      select: { workspaceId: true },
+    });
+
+    if (!project || project.workspaceId !== workspaceId) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // Check active workflow limit (max 50 per project)
+    const activeCount = await this.prisma.workflow.count({
+      where: {
+        projectId: dto.projectId,
+        enabled: true,
+      },
+    });
+
+    if (activeCount >= 50) {
+      throw new BadRequestException('Maximum number of active workflows (50) reached for this project');
+    }
+
+    // Validate workflow definition (check for cycles)
+    this.validateWorkflowDefinition(dto.definition);
+
+    // Create workflow
+    const workflow = await this.prisma.workflow.create({
+      data: {
+        workspaceId,
+        projectId: dto.projectId,
+        name: dto.name,
+        description: dto.description,
+        definition: dto.definition as any,
+        triggerType: dto.triggerType as PrismaTriggerType,
+        triggerConfig: dto.triggerConfig as any,
+        status: PrismaWorkflowStatus.DRAFT,
+        createdBy: actorId,
+      },
+    });
+
+    // Publish event
+    await this.eventPublisher.publish(
+      EventTypes.PM_WORKFLOW_CREATED,
+      { workflowId: workflow.id, projectId: workflow.projectId },
+      { tenantId: workspaceId, userId: actorId },
+    );
+
+    return workflow;
+  }
+
+  async findAll(workspaceId: string, query: ListWorkflowsQueryDto) {
+    const where: any = { workspaceId };
+
+    if (query.projectId) {
+      // Validate project access
+      const project = await this.prisma.project.findUnique({
+        where: { id: query.projectId },
+        select: { workspaceId: true },
+      });
+
+      if (!project || project.workspaceId !== workspaceId) {
+        throw new NotFoundException('Project not found');
+      }
+
+      where.projectId = query.projectId;
+    }
+
+    if (query.status) {
+      where.status = query.status as PrismaWorkflowStatus;
+    }
+
+    if (query.enabled !== undefined) {
+      where.enabled = query.enabled;
+    }
+
+    const workflows = await this.prisma.workflow.findMany({
+      where,
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    return workflows;
+  }
+
+  async findOne(workspaceId: string, id: string) {
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        executions: {
+          take: 10,
+          orderBy: {
+            startedAt: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!workflow || workflow.workspaceId !== workspaceId) {
+      throw new NotFoundException('Workflow not found');
+    }
+
+    return workflow;
+  }
+
+  async update(workspaceId: string, actorId: string, id: string, dto: UpdateWorkflowDto) {
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id },
+      select: { workspaceId: true },
+    });
+
+    if (!workflow || workflow.workspaceId !== workspaceId) {
+      throw new NotFoundException('Workflow not found');
+    }
+
+    // Validate workflow definition if provided
+    if (dto.definition) {
+      this.validateWorkflowDefinition(dto.definition);
+    }
+
+    const updated = await this.prisma.workflow.update({
+      where: { id },
+      data: {
+        ...(dto.name && { name: dto.name }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.definition && { definition: dto.definition as any }),
+        ...(dto.triggerType && { triggerType: dto.triggerType as PrismaTriggerType }),
+        ...(dto.triggerConfig && { triggerConfig: dto.triggerConfig as any }),
+      },
+    });
+
+    // Publish event
+    await this.eventPublisher.publish(
+      EventTypes.PM_WORKFLOW_UPDATED,
+      { workflowId: updated.id, projectId: updated.projectId },
+      { tenantId: workspaceId, userId: actorId },
+    );
+
+    return updated;
+  }
+
+  async remove(workspaceId: string, id: string) {
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id },
+      select: { workspaceId: true, projectId: true },
+    });
+
+    if (!workflow || workflow.workspaceId !== workspaceId) {
+      throw new NotFoundException('Workflow not found');
+    }
+
+    await this.prisma.workflow.delete({
+      where: { id },
+    });
+
+    // Publish event
+    await this.eventPublisher.publish(
+      EventTypes.PM_WORKFLOW_DELETED,
+      { workflowId: id, projectId: workflow.projectId },
+      { tenantId: workspaceId, userId: 'system' },
+    );
+
+    return { success: true };
+  }
+
+  async activate(workspaceId: string, actorId: string, id: string) {
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id },
+      select: { workspaceId: true, projectId: true },
+    });
+
+    if (!workflow || workflow.workspaceId !== workspaceId) {
+      throw new NotFoundException('Workflow not found');
+    }
+
+    const updated = await this.prisma.workflow.update({
+      where: { id },
+      data: {
+        enabled: true,
+        status: PrismaWorkflowStatus.ACTIVE,
+      },
+    });
+
+    // Publish event
+    await this.eventPublisher.publish(
+      EventTypes.PM_WORKFLOW_ACTIVATED,
+      { workflowId: updated.id, projectId: updated.projectId },
+      { tenantId: workspaceId, userId: actorId },
+    );
+
+    return updated;
+  }
+
+  async pause(workspaceId: string, actorId: string, id: string) {
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id },
+      select: { workspaceId: true, projectId: true },
+    });
+
+    if (!workflow || workflow.workspaceId !== workspaceId) {
+      throw new NotFoundException('Workflow not found');
+    }
+
+    const updated = await this.prisma.workflow.update({
+      where: { id },
+      data: {
+        enabled: false,
+        status: PrismaWorkflowStatus.PAUSED,
+      },
+    });
+
+    // Publish event
+    await this.eventPublisher.publish(
+      EventTypes.PM_WORKFLOW_PAUSED,
+      { workflowId: updated.id, projectId: updated.projectId },
+      { tenantId: workspaceId, userId: actorId },
+    );
+
+    return updated;
+  }
+
+  /**
+   * Validate workflow definition structure
+   * - Check for cycles in workflow graph
+   * - Validate max node count (50)
+   * - Validate node types
+   */
+  private validateWorkflowDefinition(definition: any): void {
+    const { nodes, edges } = definition;
+
+    if (!nodes || !Array.isArray(nodes)) {
+      throw new BadRequestException('Invalid workflow definition: nodes must be an array');
+    }
+
+    if (!edges || !Array.isArray(edges)) {
+      throw new BadRequestException('Invalid workflow definition: edges must be an array');
+    }
+
+    // Validate node count
+    if (nodes.length > 50) {
+      throw new BadRequestException('Workflow cannot have more than 50 nodes');
+    }
+
+    // Validate node types
+    const validTypes = ['trigger', 'condition', 'action', 'agent'];
+    for (const node of nodes) {
+      if (!validTypes.includes(node.type)) {
+        throw new BadRequestException(`Invalid node type: ${node.type}`);
+      }
+    }
+
+    // Detect cycles using DFS
+    if (this.hasCycle(nodes, edges)) {
+      throw new BadRequestException('Workflow definition contains circular dependencies');
+    }
+  }
+
+  /**
+   * Detect cycles in workflow graph using DFS
+   */
+  private hasCycle(nodes: any[], edges: any[]): boolean {
+    const nodeIds = new Set(nodes.map((n) => n.id));
+    const adjacency = new Map<string, string[]>();
+
+    // Build adjacency list
+    for (const node of nodes) {
+      adjacency.set(node.id, []);
+    }
+
+    for (const edge of edges) {
+      if (!adjacency.has(edge.source)) continue;
+      adjacency.get(edge.source)!.push(edge.target);
+    }
+
+    // DFS with cycle detection
+    const visited = new Set<string>();
+    const recursionStack = new Set<string>();
+
+    const dfs = (nodeId: string): boolean => {
+      visited.add(nodeId);
+      recursionStack.add(nodeId);
+
+      const neighbors = adjacency.get(nodeId) || [];
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          if (dfs(neighbor)) return true;
+        } else if (recursionStack.has(neighbor)) {
+          return true; // Cycle detected
+        }
+      }
+
+      recursionStack.delete(nodeId);
+      return false;
+    };
+
+    for (const nodeId of nodeIds) {
+      if (!visited.has(nodeId)) {
+        if (dfs(nodeId)) return true;
+      }
+    }
+
+    return false;
+  }
+}]]></source>
+    </file>
+
+    <file path="apps/api/src/pm/workflows/action-executor.service.ts">
+      <description>
+        Executes workflow actions with 6 supported types:
+        - UPDATE_TASK, ASSIGN_TASK, SEND_NOTIFICATION, CREATE_TASK, MOVE_TO_PHASE, CALL_WEBHOOK
+        Already has dry-run support via simulateAction() method.
+      </description>
+      <key-features>
+        <feature>Dry-run simulation with isDryRun flag in ExecutionContext</feature>
+        <feature>Variable interpolation ({{variable.path}} syntax)</feature>
+        <feature>Rate limiting for webhooks (10/min) and notifications (50/hour)</feature>
+        <feature>SSRF protection for webhook URLs</feature>
+      </key-features>
+      <dry-run-implementation>
+        When context.isDryRun is true, simulateAction() returns a StepResult with:
+        - status: 'passed'
+        - result: { simulated: true, action: actionType, config: interpolatedConfig }
+        - No database writes or external API calls
+      </dry-run-implementation>
+      <source><![CDATA[// First 209 lines shown for brevity - full implementation includes all 6 action types
+
+  /**
+   * Execute a workflow action
+   *
+   * @param actionType - The type of action to execute
+   * @param config - Action configuration
+   * @param context - Execution context with trigger data
+   * @returns Step result with status and result data
+   */
+  async executeAction(
+    actionType: string,
+    config: ActionConfig,
+    context: ExecutionContext,
+  ): Promise<StepResult> {
+    const startTime = Date.now();
+
+    try {
+      // Skip actual execution in dry-run mode
+      if (context.isDryRun) {
+        return this.simulateAction(actionType, config, context);
+      }
+
+      // Execute action based on type
+      const result = await this.executeActionInternal(actionType, config, context);
+
+      return {
+        nodeId: config.nodeId,
+        type: 'action',
+        status: 'passed',
+        result,
+        duration: Date.now() - startTime,
+      };
+    } catch (error) {
+      this.logger.error({
+        message: 'Action execution failed',
+        actionType,
+        nodeId: config.nodeId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      return {
+        nodeId: config.nodeId,
+        type: 'action',
+        status: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+        duration: Date.now() - startTime,
+      };
+    }
+  }
+
+  /**
+   * Simulate action in dry-run mode
+   */
+  private simulateAction(
+    actionType: string,
+    config: ActionConfig,
+    context: ExecutionContext,
+  ): StepResult {
+    this.logger.log(
+      `Simulating action ${actionType} for workflow ${context.workflowId} (dry-run mode)`,
+    );
+
+    return {
+      nodeId: config.nodeId,
+      type: 'action',
+      status: 'passed',
+      result: {
+        simulated: true,
+        action: actionType,
+        config: this.interpolateVariables(config, context),
+      },
+    };
+  }]]></source>
+    </file>
+
+    <file path="apps/web/src/components/pm/workflows/WorkflowCanvas.tsx">
+      <description>
+        React Flow canvas component for visual workflow editing.
+        Supports trigger, condition, action, and agent nodes.
+        Includes node palette, save functionality, and read-only mode.
+      </description>
+      <key-features>
+        <feature>ReactFlow integration with custom node types</feature>
+        <feature>Drag-and-drop node placement</feature>
+        <feature>Edge connections between nodes</feature>
+        <feature>MiniMap with color-coded node types</feature>
+        <feature>Save workflow definition callback</feature>
+        <feature>Read-only mode for viewing</feature>
+      </key-features>
+      <extension-points>
+        Needs to add:
+        - executionTrace prop for highlighting execution path
+        - Node styling based on execution status (passed/failed/skipped)
+        - Edge styling to show execution flow
+      </extension-points>
+      <source><![CDATA['use client';
+
+import { useCallback, useState } from 'react';
+import ReactFlow, {
+  Node,
+  Edge,
+  NodeTypes,
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  Connection,
+  BackgroundVariant,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import type { WorkflowDefinition } from '@hyvve/shared';
+import { TriggerNode } from './nodes/TriggerNode';
+import { ConditionNode } from './nodes/ConditionNode';
+import { ActionNode } from './nodes/ActionNode';
+import { AgentNode } from './nodes/AgentNode';
+import { NodePalette } from './NodePalette';
+import { Button } from '@/components/ui/button';
+import { Save } from 'lucide-react';
+
+interface WorkflowCanvasProps {
+  workflowId?: string;
+  definition: WorkflowDefinition;
+  onSave: (definition: WorkflowDefinition) => void;
+  readOnly?: boolean;
+}
+
+const nodeTypes: NodeTypes = {
+  trigger: TriggerNode,
+  condition: ConditionNode,
+  action: ActionNode,
+  agent: AgentNode,
+};
+
+export function WorkflowCanvas({ definition, onSave, readOnly = false }: WorkflowCanvasProps) {
+  const [nodes, setNodes, onNodesChange] = useNodesState(definition.nodes as Node[]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(definition.edges as Edge[]);
+  const [nodeIdCounter, setNodeIdCounter] = useState(definition.nodes.length);
+
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      setEdges((eds) => addEdge(connection, eds));
+    },
+    [setEdges]
+  );
+
+  const handleAddNode = useCallback(
+    (nodeType: string, data: { label: string; config: any }) => {
+      const newNodeId = `node-${nodeIdCounter + 1}`;
+      setNodeIdCounter((prev) => prev + 1);
+
+      const newNode: Node = {
+        id: newNodeId,
+        type: nodeType,
+        position: {
+          x: Math.random() * 400 + 100,
+          y: Math.random() * 400 + 100,
+        },
+        data,
+      };
+
+      setNodes((nds) => [...nds, newNode]);
+    },
+    [nodeIdCounter, setNodes]
+  );
+
+  const handleSave = useCallback(() => {
+    const updatedDefinition: WorkflowDefinition = {
+      ...definition,
+      nodes: nodes.map((node) => ({
+        id: node.id,
+        type: node.type as 'trigger' | 'condition' | 'action' | 'agent',
+        position: node.position,
+        data: node.data,
+      })),
+      edges: edges.map((edge) => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        label: edge.label as string | undefined,
+      })),
+    };
+
+    onSave(updatedDefinition);
+  }, [nodes, edges, definition, onSave]);
+
+  return (
+    <div className="flex h-full w-full">
+      {!readOnly && <NodePalette onAddNode={handleAddNode} />}
+
+      <div className="flex-1 relative">
+        <div className="absolute top-4 right-4 z-10 flex gap-2">
+          {!readOnly && (
+            <Button onClick={handleSave} size="sm">
+              <Save className="w-4 h-4 mr-2" />
+              Save Workflow
+            </Button>
+          )}
+        </div>
+
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onNodesChange={readOnly ? undefined : onNodesChange}
+          onEdgesChange={readOnly ? undefined : onEdgesChange}
+          onConnect={readOnly ? undefined : onConnect}
+          fitView
+          nodesDraggable={!readOnly}
+          nodesConnectable={!readOnly}
+          elementsSelectable={!readOnly}
+        >
+          <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+          <Controls />
+          <MiniMap
+            nodeColor={(node) => {
+              switch (node.type) {
+                case 'trigger':
+                  return '#22c55e';
+                case 'condition':
+                  return '#f59e0b';
+                case 'action':
+                  return '#3b82f6';
+                case 'agent':
+                  return '#a855f7';
+                default:
+                  return '#6b7280';
+              }
+            }}
+          />
+        </ReactFlow>
+      </div>
+    </div>
+  );
+}]]></source>
+    </file>
+
+    <file path="apps/web/src/hooks/use-pm-workflows.ts">
+      <description>
+        React Query hooks for workflow API operations.
+        Includes: useWorkflows, useWorkflow, useCreateWorkflow, useUpdateWorkflow,
+        useDeleteWorkflow, useActivateWorkflow, usePauseWorkflow.
+        Needs to add: useTestWorkflow hook for dry-run testing.
+      </description>
+      <existing-hooks>
+        <hook name="useWorkflows">Fetches list of workflows with filters</hook>
+        <hook name="useWorkflow">Fetches single workflow with executions</hook>
+        <hook name="useCreateWorkflow">Creates new workflow</hook>
+        <hook name="useUpdateWorkflow">Updates workflow</hook>
+        <hook name="useDeleteWorkflow">Deletes workflow</hook>
+        <hook name="useActivateWorkflow">Activates workflow</hook>
+        <hook name="usePauseWorkflow">Pauses workflow</hook>
+      </existing-hooks>
+      <source><![CDATA[// First 257 lines shown - contains all query and mutation hooks
+// Pattern to follow for useTestWorkflow:
+export function usePauseWorkflow() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const workspaceId = getActiveWorkspaceId(session);
+  const token = getSessionToken(session);
+
+  return useMutation({
+    mutationFn: (workflowId: string) => {
+      if (!workspaceId) throw new Error('No workspace selected');
+      return pauseWorkflow({ workspaceId, token, workflowId });
+    },
+    onSuccess: (_, workflowId) => {
+      toast.success('Workflow paused');
+      queryClient.invalidateQueries({ queryKey: ['workflow', workspaceId, workflowId] });
+      queryClient.invalidateQueries({ queryKey: ['workflows', workspaceId] });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to pause workflow';
+      toast.error(message);
+    },
+  });
+}]]></source>
+    </file>
+  </existing-code>
+
+  <implementation-notes>
+    <note priority="high">
+      The WorkflowExecutorService.executeWorkflow() method already supports isDryRun flag.
+      The test endpoint will leverage this existing functionality by passing isDryRun: true.
+    </note>
+
+    <note priority="high">
+      ActionExecutorService.simulateAction() already implements dry-run simulation.
+      No changes needed to action executor - it will automatically return simulated results.
+    </note>
+
+    <note priority="medium">
+      Test endpoint should validate that the taskId belongs to the same project as the workflow.
+      Use prisma to fetch task and verify task.projectId === workflow.projectId.
+    </note>
+
+    <note priority="medium">
+      WorkflowCanvas needs to accept an optional executionTrace prop to highlight the execution path.
+      Apply different styles to nodes based on execution status (green=passed, red=failed, gray=skipped).
+    </note>
+
+    <note priority="low">
+      Consider adding a "Clear Test Results" button to reset canvas highlighting after viewing trace.
+    </note>
+  </implementation-notes>
+
+  <api-integration-pattern>
+    <request>
+      POST /pm/workflows/:id/test
+      Headers: Authorization: Bearer {token}
+      Query: ?workspaceId={workspaceId}
+      Body: { taskId: string, overrides?: Record&lt;string, any&gt; }
+    </request>
+
+    <response>
+      {
+        executionId: string,
+        workflowId: string,
+        trace: {
+          steps: [
+            { nodeId: string, type: string, status: string, result: object, duration: number }
+          ]
+        },
+        summary: {
+          stepsExecuted: number,
+          stepsPassed: number,
+          stepsFailed: number,
+          duration: number
+        }
+      }
+    </response>
+
+    <frontend-hook>
+      const testWorkflow = useTestWorkflow();
+      await testWorkflow.mutateAsync({ workflowId, taskId });
+    </frontend-hook>
+  </api-integration-pattern>
+
+  <ui-component-structure>
+    <component name="WorkflowTestPanel">
+      <location>apps/web/src/components/pm/workflows/WorkflowTestPanel.tsx</location>
+      <props>
+        - workflowId: string
+        - projectId: string
+        - onTestComplete: (trace) => void
+      </props>
+      <features>
+        - TaskSelector dropdown (filters tasks by projectId)
+        - "Run Test" button (disabled if no task selected)
+        - Loading state during test execution
+        - Error display if test fails
+      </features>
+    </component>
+
+    <component name="TaskSelector">
+      <location>apps/web/src/components/pm/workflows/TaskSelector.tsx</location>
+      <props>
+        - projectId: string
+        - value: string | null
+        - onChange: (taskId: string) => void
+      </props>
+      <features>
+        - Fetches tasks from /pm/tasks?projectId={projectId}
+        - Displays task number and title
+        - Search/filter capability
+      </features>
+    </component>
+
+    <component name="ExecutionTraceViewer">
+      <location>apps/web/src/components/pm/workflows/ExecutionTraceViewer.tsx</location>
+      <props>
+        - trace: ExecutionTrace
+        - onClose: () => void
+      </props>
+      <features>
+        - Step-by-step timeline view
+        - Color-coded status badges (passed/failed/skipped)
+        - Expandable step details showing result data
+        - Execution duration for each step
+        - Summary stats at top (total steps, passed, failed)
+      </features>
+    </component>
+
+    <component name="WorkflowCanvas (enhanced)">
+      <new-props>
+        - executionTrace?: ExecutionTrace (optional)
+      </new-props>
+      <enhancements>
+        - Apply node styles based on execution trace status
+        - Highlight edges that were traversed
+        - Show execution order numbers on nodes
+      </enhancements>
+    </component>
+  </ui-component-structure>
+</story-context>

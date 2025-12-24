@@ -266,7 +266,7 @@ development_status:
   pm-10-1-workflow-canvas: done
   pm-10-2-trigger-conditions: done
   pm-10-3-action-library: done
-  pm-10-4-workflow-testing: backlog
+  pm-10-4-workflow-testing: done
   pm-10-5-workflow-templates: backlog
   pm-10-retrospective: optional
 

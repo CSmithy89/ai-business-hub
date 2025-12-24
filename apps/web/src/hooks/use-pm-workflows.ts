@@ -40,6 +40,42 @@ export interface ListWorkflowsQuery {
   enabled?: boolean;
 }
 
+export interface TestWorkflowInput {
+  taskId: string;
+  overrides?: Record<string, any>;
+}
+
+export interface ExecutionStep {
+  nodeId: string;
+  type: 'trigger' | 'condition' | 'action';
+  status: 'passed' | 'failed' | 'skipped';
+  result?: {
+    simulated?: boolean;
+    action?: string;
+    matched?: boolean;
+    evaluated?: boolean;
+    condition?: string;
+    error?: string;
+    [key: string]: any;
+  };
+  duration?: number;
+  error?: string;
+}
+
+export interface TestWorkflowResponse {
+  executionId: string;
+  workflowId: string;
+  trace: {
+    steps: ExecutionStep[];
+  };
+  summary: {
+    stepsExecuted: number;
+    stepsPassed: number;
+    stepsFailed: number;
+    duration: number;
+  };
+}
+
 async function fetchWorkflows(params: {
   workspaceId: string;
   token?: string;
@@ -254,6 +290,42 @@ async function pauseWorkflow(params: {
   return body as Workflow;
 }
 
+async function testWorkflow(params: {
+  workspaceId: string;
+  token?: string;
+  workflowId: string;
+  input: TestWorkflowInput;
+}): Promise<TestWorkflowResponse> {
+  const base = getBaseUrl();
+
+  const query = new URLSearchParams();
+  query.set('workspaceId', params.workspaceId);
+
+  const response = await fetch(
+    `${base}/pm/workflows/${params.workflowId}/test?${query.toString()}`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+      },
+      body: JSON.stringify(params.input),
+    }
+  );
+
+  const body = await safeJson<unknown>(response);
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined;
+    throw new Error(message || 'Failed to test workflow');
+  }
+
+  return body as TestWorkflowResponse;
+}
+
 // Query hooks
 export function useWorkflows(filters?: ListWorkflowsQuery) {
   const { data: session } = useSession();
@@ -391,6 +463,26 @@ export function usePauseWorkflow() {
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to pause workflow';
+      toast.error(message);
+    },
+  });
+}
+
+export function useTestWorkflow() {
+  const { data: session } = useSession();
+  const workspaceId = getActiveWorkspaceId(session);
+  const token = getSessionToken(session);
+
+  return useMutation({
+    mutationFn: ({ workflowId, input }: { workflowId: string; input: TestWorkflowInput }) => {
+      if (!workspaceId) throw new Error('No workspace selected');
+      return testWorkflow({ workspaceId, token, workflowId, input });
+    },
+    onSuccess: () => {
+      toast.success('Workflow test completed');
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to test workflow';
       toast.error(message);
     },
   });

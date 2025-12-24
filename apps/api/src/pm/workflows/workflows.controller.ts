@@ -19,6 +19,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { CreateWorkflowDto } from './dto/create-workflow.dto';
 import { UpdateWorkflowDto } from './dto/update-workflow.dto';
 import { ListWorkflowsQueryDto } from './dto/list-workflows-query.dto';
+import { TestWorkflowDto } from './dto/test-workflow.dto';
 import { WorkflowsService } from './workflows.service';
 
 @ApiTags('PM Workflows')
@@ -113,5 +114,18 @@ export class WorkflowsController {
     @CurrentUser() actor: any,
   ) {
     return this.workflowsService.pause(workspaceId, actor.id, id);
+  }
+
+  @Post(':id/test')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Test workflow in dry-run mode' })
+  @ApiParam({ name: 'id', description: 'Workflow ID' })
+  @ApiResponse({ status: 200, description: 'Workflow test executed' })
+  async test(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: TestWorkflowDto,
+  ) {
+    return this.workflowsService.testWorkflow(workspaceId, id, dto);
   }
 }
