@@ -1,12 +1,26 @@
 import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
 import { WorkflowsController } from './workflows.controller';
 import { WorkflowsService } from './workflows.service';
+import { WorkflowExecutorService } from './workflow-executor.service';
+import { WorkflowSchedulerService } from './workflow-scheduler.service';
 import { PrismaService } from '../../common/services/prisma.service';
-import { EventPublisherService } from '../../events';
+import { EventsModule } from '../../events';
 
 @Module({
+  imports: [
+    EventsModule,
+    BullModule.registerQueue({
+      name: 'workflow-scheduler',
+    }),
+  ],
   controllers: [WorkflowsController],
-  providers: [WorkflowsService, PrismaService, EventPublisherService],
-  exports: [WorkflowsService],
+  providers: [
+    WorkflowsService,
+    WorkflowExecutorService,
+    WorkflowSchedulerService,
+    PrismaService,
+  ],
+  exports: [WorkflowsService, WorkflowExecutorService],
 })
 export class WorkflowsModule {}

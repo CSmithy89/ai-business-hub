@@ -2422,7 +2422,7 @@ model WorkflowExecution {
   @@index([workflowId])
   @@index([status])
   @@index([startedAt])
-  @@index([workflowId, startedAt])
+  @@index([workflowId, startedAt]) // Rate limiting queries (PM-10.2)
   @@map("workflow_executions")
 }
 

@@ -71,16 +71,19 @@ export interface WorkflowEdge {
   label?: string;
 }
 
+export interface TriggerFilters {
+  status?: string | string[];
+  phaseId?: string;
+  assigneeId?: string;
+  priority?: string | string[];
+  type?: string | string[];
+}
+
 export interface TriggerConfig {
-  eventType: WorkflowTriggerType;
-  filters?: {
-    status?: string[];
-    phaseId?: string;
-    assigneeId?: string;
-    priority?: string[];
-    type?: string[];
-  };
-  schedule?: string; // Cron expression for scheduled triggers
+  eventType?: WorkflowTriggerType;
+  filters?: TriggerFilters;
+  schedule?: string; // Cron expression for CUSTOM_SCHEDULE
+  daysBeforeDue?: number; // For DUE_DATE_APPROACHING
 }
 
 // Enums matching Prisma schema

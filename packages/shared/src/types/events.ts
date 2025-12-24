@@ -128,6 +128,8 @@ export const EventTypes = {
   PM_TASK_CREATED: 'pm.task.created',
   PM_TASK_UPDATED: 'pm.task.updated',
   PM_TASK_STATUS_CHANGED: 'pm.task.status_changed',
+  PM_TASK_ASSIGNED: 'pm.task.assigned',
+  PM_TASK_COMPLETED: 'pm.task.completed',
   PM_TASK_DELETED: 'pm.task.deleted',
 
   PM_CHECKPOINT_CREATED: 'pm.checkpoint.created',

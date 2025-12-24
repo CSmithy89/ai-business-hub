@@ -1,0 +1,825 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-reference>
+    <story-id>pm-10-2-trigger-conditions</story-id>
+    <epic-id>pm-10</epic-id>
+    <story-file>/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/stories/pm-10-2-trigger-conditions.md</story-file>
+    <epic-file>/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/epics/epic-pm-10-workflow-builder.md</epic-file>
+    <tech-spec-file>/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/epics/epic-pm-10-tech-spec.md</tech-spec-file>
+    <points>8</points>
+    <phase>Phase 3</phase>
+    <status>drafted</status>
+
+    <user-story>
+      As a workflow designer,
+      I want various trigger options,
+      So that workflows start automatically.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        Select Trigger Type
+        - Given: I am configuring a workflow trigger
+        - When: I choose trigger options
+        - Then: I can select from: Task Created, Task Status Changed, Task Assigned, Due Date Approaching, Task Completed, Custom Schedule, Manual
+      </criterion>
+
+      <criterion id="AC2">
+        Configure Filter Conditions
+        - Given: I have selected a trigger type
+        - When: I configure the trigger
+        - Then: I can add filter conditions: status matches, phase matches, assignee is, priority is, type is
+      </criterion>
+
+      <criterion id="AC3">
+        Configure Custom Schedule
+        - Given: I select "Custom Schedule" trigger
+        - When: I configure the schedule
+        - Then: I can define a cron expression for periodic execution
+      </criterion>
+
+      <criterion id="AC4">
+        Preview Matching Events
+        - Given: I have configured trigger conditions
+        - When: I preview the trigger
+        - Then: I see examples of tasks/events that would match the conditions
+      </criterion>
+    </acceptance-criteria>
+  </story-reference>
+
+  <technical-specification>
+    <overview>
+      This story implements workflow trigger evaluation and event bus integration. When task events occur,
+      the workflow executor evaluates active workflows to determine which triggers match. Scheduled triggers
+      use BullMQ cron jobs for periodic execution.
+    </overview>
+
+    <key-technologies>
+      <technology>Event Bus - Redis Streams for task event listening</technology>
+      <technology>Scheduler - BullMQ for cron-based triggers</technology>
+      <technology>Trigger Evaluation - Service to match events against trigger configurations</technology>
+      <technology>NestJS - Backend services and dependency injection</technology>
+    </key-technologies>
+
+    <trigger-evaluation-flow>
+      <![CDATA[
+Task Event (pm.task.created, pm.task.state_changed, etc.)
+  ↓
+Event Bus Listener
+  ↓
+Find Active Workflows with Matching Trigger Type
+  ↓
+Evaluate Filter Conditions for Each Workflow
+  ↓
+Execute Matching Workflows (via WorkflowExecutorService)
+      ]]>
+    </trigger-evaluation-flow>
+
+    <trigger-types>
+      <trigger type="TASK_CREATED" event="pm.task.created">
+        Fires when a new task is created
+      </trigger>
+      <trigger type="TASK_STATUS_CHANGED" event="pm.task.status_changed">
+        Fires when task status changes (e.g., TODO → IN_PROGRESS)
+      </trigger>
+      <trigger type="TASK_ASSIGNED" event="pm.task.assigned">
+        Fires when a task is assigned to a user or agent
+      </trigger>
+      <trigger type="DUE_DATE_APPROACHING" event="scheduled">
+        Scheduled check (daily at 8am) for tasks due soon
+      </trigger>
+      <trigger type="TASK_COMPLETED" event="pm.task.status_changed">
+        Fires when task status changes to DONE
+      </trigger>
+      <trigger type="CUSTOM_SCHEDULE" event="scheduled">
+        User-defined cron schedule
+      </trigger>
+      <trigger type="MANUAL" event="user_triggered">
+        User manually triggers workflow
+      </trigger>
+    </trigger-types>
+
+    <filter-conditions>
+      <filter name="status">
+        <type>string | string[]</type>
+        <description>Match task status (one or multiple)</description>
+        <example>["TODO", "IN_PROGRESS"]</example>
+      </filter>
+      <filter name="phaseId">
+        <type>string</type>
+        <description>Match specific phase</description>
+        <example>"phase_123"</example>
+      </filter>
+      <filter name="assigneeId">
+        <type>string</type>
+        <description>Match specific assignee</description>
+        <example>"user_456"</example>
+      </filter>
+      <filter name="priority">
+        <type>string | string[]</type>
+        <description>Match task priority (one or multiple)</description>
+        <example>["HIGH", "URGENT"]</example>
+      </filter>
+      <filter name="type">
+        <type>string | string[]</type>
+        <description>Match task type (one or multiple)</description>
+        <example>["BUG", "TASK"]</example>
+      </filter>
+    </filter-conditions>
+  </technical-specification>
+
+  <existing-patterns>
+    <event-bus-patterns>
+      <pattern name="Event Publisher Service">
+        <file>apps/api/src/events/event-publisher.service.ts</file>
+        <description>
+          Publishes events to Redis Streams (hyvve:events:main).
+          Auto-generates event ID, timestamp, and correlationId if not provided.
+          Creates EventMetadata record in database for tracking.
+        </description>
+        <example>
+          <![CDATA[
+await this.eventPublisher.publish(
+  EventTypes.PM_TASK_CREATED,
+  { taskId: task.id, projectId: task.projectId, ... },
+  { tenantId: workspaceId, userId: actorId }
+);
+          ]]>
+        </example>
+        <usage>
+          WorkflowExecutorService will use this to listen to task events:
+          - pm.task.created
+          - pm.task.status_changed
+          - pm.task.assigned
+          - pm.task.completed
+        </usage>
+      </pattern>
+
+      <pattern name="Event Consumer Service">
+        <file>apps/api/src/events/event-consumer.service.ts</file>
+        <description>
+          Subscribes to Redis Streams and processes events.
+          Uses XREADGROUP for consumer group pattern.
+          Handles event acknowledgment and error retry.
+        </description>
+        <usage>
+          WorkflowExecutorService will use EventConsumerService or implement OnModuleInit
+          to set up event listeners for task events.
+        </usage>
+      </pattern>
+
+      <pattern name="Event Types">
+        <file>packages/shared/src/types/events.ts</file>
+        <available-events>
+          PM_TASK_CREATED: 'pm.task.created'
+          PM_TASK_UPDATED: 'pm.task.updated'
+          PM_TASK_STATUS_CHANGED: 'pm.task.status_changed'
+          PM_TASK_DELETED: 'pm.task.deleted'
+          PM_WORKFLOW_CREATED: 'pm.workflow.created'
+          PM_WORKFLOW_UPDATED: 'pm.workflow.updated'
+          PM_WORKFLOW_ACTIVATED: 'pm.workflow.activated'
+          PM_WORKFLOW_PAUSED: 'pm.workflow.paused'
+        </available-events>
+        <note>
+          Task events are ALREADY DEFINED. No need to add new event types for triggers.
+          Use existing pm.task.* events for workflow triggers.
+        </note>
+      </pattern>
+    </event-bus-patterns>
+
+    <queue-patterns>
+      <pattern name="BullMQ Queue Setup">
+        <description>
+          BullMQ is used for background job processing, including scheduled workflows.
+          The platform uses BullMQ for async task execution.
+        </description>
+        <usage>
+          For scheduled workflows (DUE_DATE_APPROACHING, CUSTOM_SCHEDULE), create BullMQ jobs
+          with repeat options (cron expressions).
+        </usage>
+        <example>
+          <![CDATA[
+// In WorkflowSchedulerService (to be created)
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+
+@Injectable()
+export class WorkflowSchedulerService {
+  constructor(
+    @InjectQueue('workflow-scheduler') private schedulerQueue: Queue,
+    private readonly executor: WorkflowExecutorService,
+  ) {}
+
+  async scheduleWorkflow(workflowId: string, cronExpression: string) {
+    await this.schedulerQueue.add(
+      'check-scheduled-workflow',
+      { workflowId },
+      {
+        repeat: {
+          pattern: cronExpression,
+        },
+        jobId: `workflow-${workflowId}`,
+      }
+    );
+  }
+
+  async removeSchedule(workflowId: string) {
+    await this.schedulerQueue.remove(`workflow-${workflowId}`);
+  }
+}
+          ]]>
+        </example>
+      </pattern>
+
+      <pattern name="Cron Expression Validation">
+        <dependency>cron-parser</dependency>
+        <installation>pnpm add cron-parser @types/cron-parser</installation>
+        <example>
+          <![CDATA[
+import parser from 'cron-parser';
+
+function validateCronExpression(cronExpression: string): boolean {
+  try {
+    parser.parseExpression(cronExpression);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function getNextRunTimes(cronExpression: string, count: number = 5): Date[] {
+  const interval = parser.parseExpression(cronExpression);
+  const times: Date[] = [];
+  for (let i = 0; i < count; i++) {
+    times.push(interval.next().toDate());
+  }
+  return times;
+}
+          ]]>
+        </example>
+      </pattern>
+    </queue-patterns>
+
+    <service-patterns>
+      <pattern name="Workflow Service Pattern">
+        <file>apps/api/src/pm/workflows/workflows.service.ts</file>
+        <description>
+          Existing WorkflowsService provides CRUD operations for workflows.
+          This story adds WorkflowExecutorService and WorkflowSchedulerService.
+        </description>
+        <existing-methods>
+          - create(workspaceId, actorId, dto)
+          - findAll(workspaceId, query)
+          - findOne(workspaceId, id)
+          - update(workspaceId, actorId, id, dto)
+          - remove(workspaceId, id)
+          - activate(workspaceId, actorId, id)
+          - pause(workspaceId, actorId, id)
+          - validateWorkflowDefinition(definition)
+          - hasCycle(nodes, edges)
+        </existing-methods>
+        <note>
+          WorkflowsService already validates workflow definitions and manages workflow lifecycle.
+          New services will handle execution and scheduling.
+        </note>
+      </pattern>
+
+      <pattern name="Service Dependency Injection">
+        <example>
+          <![CDATA[
+@Injectable()
+export class WorkflowExecutorService implements OnModuleInit {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventPublisher: EventPublisherService,
+    private readonly eventConsumer: EventConsumerService,
+  ) {}
+
+  onModuleInit() {
+    this.setupEventListeners();
+  }
+
+  private setupEventListeners() {
+    // Subscribe to task events
+    this.eventConsumer.subscribe('pm.task.created', async (event) => {
+      await this.handleTaskEvent(event, 'TASK_CREATED');
+    });
+
+    this.eventConsumer.subscribe('pm.task.status_changed', async (event) => {
+      await this.handleTaskEvent(event, 'TASK_STATUS_CHANGED');
+    });
+
+    // ... other event subscriptions
+  }
+}
+          ]]>
+        </example>
+      </pattern>
+    </service-patterns>
+  </existing-patterns>
+
+  <implementation-guidance>
+    <phase-1-backend-services>
+      <step number="1">
+        <title>Create WorkflowExecutorService</title>
+        <file>apps/api/src/pm/workflows/workflow-executor.service.ts</file>
+        <dependencies>
+          - PrismaService
+          - EventPublisherService
+          - EventConsumerService (or implement OnModuleInit for event listening)
+        </dependencies>
+        <methods>
+          <![CDATA[
+- onModuleInit(): void
+  Setup event listeners for task events
+
+- setupEventListeners(): void
+  Subscribe to pm.task.created, pm.task.status_changed, pm.task.assigned, pm.task.completed
+
+- handleTaskEvent(event: BaseEvent, triggerType: WorkflowTriggerType): Promise<void>
+  1. Find active workflows for this trigger type
+  2. Evaluate trigger conditions
+  3. Execute matching workflows
+
+- evaluateTriggerConditions(workflow: Workflow, event: BaseEvent): boolean
+  Evaluate filter conditions (status, phase, assignee, priority, type)
+  Return true if all conditions match
+
+- executeWorkflow(workflowId: string, context: ExecutionContext): Promise<WorkflowExecution>
+  Create execution record
+  Execute workflow steps (placeholder for PM-10.3)
+  Update workflow stats
+  Emit completion event
+          ]]>
+        </methods>
+        <key-logic>
+          <![CDATA[
+private evaluateTriggerConditions(workflow: Workflow, event: BaseEvent): boolean {
+  const config = workflow.triggerConfig as TriggerConfig;
+
+  // If no filters, always match
+  if (!config.filters) return true;
+
+  // Status filter (supports array)
+  if (config.filters.status) {
+    if (Array.isArray(config.filters.status)) {
+      if (!config.filters.status.includes(event.data.status)) {
+        return false;
+      }
+    } else if (event.data.status !== config.filters.status) {
+      return false;
+    }
+  }
+
+  // Phase filter
+  if (config.filters.phaseId && event.data.phaseId !== config.filters.phaseId) {
+    return false;
+  }
+
+  // Assignee filter
+  if (config.filters.assigneeId && event.data.assigneeId !== config.filters.assigneeId) {
+    return false;
+  }
+
+  // Priority filter (supports array)
+  if (config.filters.priority) {
+    if (Array.isArray(config.filters.priority)) {
+      if (!config.filters.priority.includes(event.data.priority)) {
+        return false;
+      }
+    } else if (event.data.priority !== config.filters.priority) {
+      return false;
+    }
+  }
+
+  // Type filter (supports array)
+  if (config.filters.type) {
+    if (Array.isArray(config.filters.type)) {
+      if (!config.filters.type.includes(event.data.type)) {
+        return false;
+      }
+    } else if (event.data.type !== config.filters.type) {
+      return false;
+    }
+  }
+
+  return true;
+}
+          ]]>
+        </key-logic>
+      </step>
+
+      <step number="2">
+        <title>Create WorkflowSchedulerService</title>
+        <file>apps/api/src/pm/workflows/workflow-scheduler.service.ts</file>
+        <dependencies>
+          - PrismaService
+          - WorkflowExecutorService
+          - @InjectQueue('workflow-scheduler') Queue
+        </dependencies>
+        <methods>
+          <![CDATA[
+- onModuleInit(): void
+  Setup scheduled jobs
+
+- setupScheduledJobs(): void
+  1. Schedule daily check for DUE_DATE_APPROACHING (cron: '0 8 * * *')
+  2. Schedule minute check for CUSTOM_SCHEDULE (cron: '* * * * *')
+
+- checkDueDateApproaching(): Promise<void>
+  Find active DUE_DATE_APPROACHING workflows
+  For each workflow, find tasks due in N days
+  Execute workflow for each matching task
+
+- checkCustomSchedules(): Promise<void>
+  Find active CUSTOM_SCHEDULE workflows
+  For each workflow, check if cron should run now
+  Execute workflow if schedule matches
+
+- scheduleWorkflow(workflowId: string, cronExpression: string): Promise<void>
+  Add repeatable job to BullMQ queue
+
+- removeSchedule(workflowId: string): Promise<void>
+  Remove repeatable job from queue
+          ]]>
+        </methods>
+        <key-logic>
+          <![CDATA[
+private async checkDueDateApproaching() {
+  const workflows = await this.prisma.workflow.findMany({
+    where: {
+      enabled: true,
+      triggerType: 'DUE_DATE_APPROACHING',
+    },
+  });
+
+  for (const workflow of workflows) {
+    const config = workflow.triggerConfig as TriggerConfig;
+    const daysAhead = config.daysBeforeDue || 1;
+
+    // Find tasks due soon
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + daysAhead);
+
+    const tasks = await this.prisma.task.findMany({
+      where: {
+        projectId: workflow.projectId,
+        dueDate: {
+          gte: new Date(),
+          lte: targetDate,
+        },
+        status: {
+          not: 'COMPLETED',
+        },
+      },
+    });
+
+    // Execute workflow for each task
+    for (const task of tasks) {
+      await this.executor.executeWorkflow(workflow.id, {
+        triggerType: 'DUE_DATE_APPROACHING',
+        triggerData: { taskId: task.id, dueDate: task.dueDate },
+      });
+    }
+  }
+}
+          ]]>
+        </key-logic>
+      </step>
+
+      <step number="3">
+        <title>Update WorkflowsModule</title>
+        <file>apps/api/src/pm/workflows/workflows.module.ts</file>
+        <changes>
+          <![CDATA[
+import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
+import { WorkflowsService } from './workflows.service';
+import { WorkflowExecutorService } from './workflow-executor.service';
+import { WorkflowSchedulerService } from './workflow-scheduler.service';
+import { WorkflowsController } from './workflows.controller';
+import { EventsModule } from '../../events/events.module';
+
+@Module({
+  imports: [
+    EventsModule,
+    BullModule.registerQueue({
+      name: 'workflow-scheduler',
+    }),
+  ],
+  controllers: [WorkflowsController],
+  providers: [
+    WorkflowsService,
+    WorkflowExecutorService,
+    WorkflowSchedulerService,
+  ],
+  exports: [WorkflowsService, WorkflowExecutorService],
+})
+export class WorkflowsModule {}
+          ]]>
+        </changes>
+      </step>
+
+      <step number="4">
+        <title>Create DTOs for Trigger Configuration</title>
+        <file>apps/api/src/pm/workflows/dto/trigger-config.dto.ts</file>
+        <content>
+          <![CDATA[
+import { IsOptional, IsString, IsArray, IsNumber, IsEnum } from 'class-validator';
+import { WorkflowTriggerType } from '@prisma/client';
+
+export class TriggerFiltersDto {
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  status?: string | string[];
+
+  @IsOptional()
+  @IsString()
+  phaseId?: string;
+
+  @IsOptional()
+  @IsString()
+  assigneeId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  priority?: string | string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  type?: string | string[];
+}
+
+export class TriggerConfigDto {
+  @IsEnum(WorkflowTriggerType)
+  eventType!: WorkflowTriggerType;
+
+  @IsOptional()
+  filters?: TriggerFiltersDto;
+
+  @IsOptional()
+  @IsString()
+  schedule?: string; // Cron expression for CUSTOM_SCHEDULE
+
+  @IsOptional()
+  @IsNumber()
+  daysBeforeDue?: number; // For DUE_DATE_APPROACHING
+}
+          ]]>
+        </content>
+      </step>
+    </phase-1-backend-services>
+
+    <phase-2-frontend-components>
+      <step number="1">
+        <title>Create TriggerConfigPanel Component</title>
+        <file>apps/web/src/components/pm/workflows/TriggerConfigPanel.tsx</file>
+        <props>
+          - triggerType: WorkflowTriggerType
+          - triggerConfig: TriggerConfig
+          - onUpdate: (config: TriggerConfig) => void
+          - projectId: string
+        </props>
+        <features>
+          - Display current trigger type
+          - Show FilterConditionBuilder for event triggers
+          - Show ScheduleConfigSection for CUSTOM_SCHEDULE
+          - Show days input for DUE_DATE_APPROACHING
+        </features>
+      </step>
+
+      <step number="2">
+        <title>Create FilterConditionBuilder Component</title>
+        <file>apps/web/src/components/pm/workflows/FilterConditionBuilder.tsx</file>
+        <props>
+          - filters: TriggerFilters
+          - onChange: (filters: TriggerFilters) => void
+          - project: Project
+          - users: User[]
+          - triggerType: WorkflowTriggerType
+        </props>
+        <features>
+          - MultiSelect for status (TASK_CREATED, TASK_STATUS_CHANGED, TASK_ASSIGNED)
+          - Select for phase (all triggers)
+          - Select for assignee (TASK_ASSIGNED, TASK_STATUS_CHANGED)
+          - MultiSelect for priority (all triggers)
+          - MultiSelect for type (all triggers)
+        </features>
+      </step>
+
+      <step number="3">
+        <title>Create ScheduleConfigSection Component</title>
+        <file>apps/web/src/components/pm/workflows/ScheduleConfigSection.tsx</file>
+        <props>
+          - schedule: string
+          - onChange: (schedule: string) => void
+        </props>
+        <features>
+          - Preset cron expressions (Every hour, Daily at 9am, Every Monday, First of month)
+          - Custom cron input
+          - CronPreview component to show next run times
+        </features>
+      </step>
+
+      <step number="4">
+        <title>Create CronPreview Component</title>
+        <file>apps/web/src/components/pm/workflows/CronPreview.tsx</file>
+        <props>
+          - cronExpression: string
+        </props>
+        <features>
+          - Use cron-parser to calculate next 5 run times
+          - Display in user-friendly format
+          - Show validation errors for invalid cron expressions
+        </features>
+      </step>
+
+      <step number="5">
+        <title>Update Workflow Builder Page</title>
+        <file>apps/web/src/app/(dashboard)/pm/[slug]/workflows/[workflowId]/page.tsx</file>
+        <changes>
+          - Add TriggerConfigPanel to workflow editor
+          - Wire up trigger config state
+          - Save trigger config when workflow is saved
+        </changes>
+      </step>
+    </phase-2-frontend-components>
+
+    <phase-3-shared-types>
+      <step number="1">
+        <title>Add Trigger Types to Shared Package</title>
+        <file>packages/shared/src/types/pm/workflow.types.ts</file>
+        <additions>
+          <![CDATA[
+export interface TriggerConfig {
+  eventType?: WorkflowTriggerType;
+  filters?: TriggerFilters;
+  schedule?: string; // Cron expression for CUSTOM_SCHEDULE
+  daysBeforeDue?: number; // For DUE_DATE_APPROACHING
+}
+
+export interface TriggerFilters {
+  status?: string | string[];
+  phaseId?: string;
+  assigneeId?: string;
+  priority?: string | string[];
+  type?: string | string[];
+}
+          ]]>
+        </additions>
+      </step>
+    </phase-3-shared-types>
+  </implementation-guidance>
+
+  <security-considerations>
+    <tenant-isolation>
+      All workflow queries MUST include workspaceId filter.
+      Event listeners MUST validate workspaceId before executing workflows.
+    </tenant-isolation>
+
+    <rate-limiting>
+      <limit name="workflow-executions">Max 100 executions per hour per workflow</limit>
+      <limit name="workflow-loops">Max 10 executions per task per workflow per hour</limit>
+      <limit name="scheduled-jobs">Max 1 execution per minute per workflow</limit>
+    </rate-limiting>
+
+    <permissions>
+      - pm:workflow:edit - Configure triggers
+      - Workflow executor validates project access before execution
+    </permissions>
+
+    <audit-logging>
+      - Log all workflow trigger evaluations
+      - Log all workflow executions (success and failure)
+      - Track which events triggered which workflows
+    </audit-logging>
+  </security-considerations>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-suite name="WorkflowExecutorService">
+        - should match workflow on task created event
+        - should filter by task status
+        - should filter by task phase
+        - should filter by task assignee
+        - should filter by task priority
+        - should filter by task type
+        - should not trigger if filters do not match
+        - should execute workflow when conditions match
+        - should handle multiple filter conditions
+        - should support array filters (status, priority, type)
+      </test-suite>
+
+      <test-suite name="WorkflowSchedulerService">
+        - should check due date approaching daily
+        - should find tasks due in N days
+        - should execute workflow for each matching task
+        - should parse cron expressions correctly
+        - should execute custom schedule workflows
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <test name="Workflow Trigger Integration">
+        - should trigger workflow on task created
+        - should trigger workflow on task status changed
+        - should trigger workflow on task assigned
+        - should trigger workflow on task completed
+        - should not trigger if status filter does not match
+        - should not trigger if phase filter does not match
+        - should execute scheduled workflow at correct time
+      </test>
+    </integration-tests>
+
+    <ui-tests-playwright>
+      <test name="Workflow Triggers UI">
+        - should configure trigger type
+        - should add filter conditions
+        - should configure custom schedule
+        - should preview matching events
+        - should save trigger configuration
+      </test>
+    </ui-tests-playwright>
+  </testing-requirements>
+
+  <dependencies>
+    <prerequisite story="PM-10.1">
+      Workflow Canvas - Workflow definition exists
+    </prerequisite>
+
+    <external-dependencies>
+      <dependency>
+        <name>cron-parser</name>
+        <version>latest</version>
+        <usage>Parse and validate cron expressions</usage>
+        <installation>pnpm add cron-parser @types/cron-parser</installation>
+      </dependency>
+    </external-dependencies>
+  </dependencies>
+
+  <performance-considerations>
+    <optimization name="Cache Active Workflows">
+      Cache active workflows in Redis for faster lookups.
+      Invalidate cache when workflows are activated/paused.
+    </optimization>
+
+    <optimization name="Index Workflows">
+      Database indexes already exist:
+      - workspaceId
+      - projectId
+      - status
+      - enabled, triggerType (for active workflow queries)
+    </optimization>
+
+    <optimization name="Parallel Execution">
+      When multiple workflows match an event, execute them in parallel using Promise.all()
+    </optimization>
+
+    <optimization name="Event Filtering">
+      Filter events at the consumer level to avoid processing irrelevant events.
+      Only listen to pm.task.* events that can trigger workflows.
+    </optimization>
+  </performance-considerations>
+
+  <future-enhancements>
+    <note>These are NOT part of this story - they are future stories in PM-10 epic</note>
+    <story id="PM-10.3">Action Library - Execute actions when workflows run</story>
+    <story id="PM-10.4">Workflow Testing - Dry-run testing with execution trace</story>
+    <story id="PM-10.5">Workflow Management - Execution logs and retry mechanisms</story>
+  </future-enhancements>
+
+  <notes>
+    <event-bus-integration>
+      - Listen to pm.task.created, pm.task.status_changed, pm.task.assigned, pm.task.completed
+      - Emit pm.workflow.execution.started, pm.workflow.execution.completed, pm.workflow.execution.failed
+      - Use Redis Streams for reliable event delivery
+    </event-bus-integration>
+
+    <trigger-evaluation-performance>
+      - Cache active workflows in Redis for faster lookups
+      - Index workflows by enabled and triggerType
+      - Use parallel execution for multiple workflows
+    </trigger-evaluation-performance>
+
+    <scheduled-triggers>
+      - Use BullMQ repeat jobs for cron-based schedules
+      - Store last execution time to prevent duplicate runs
+      - Handle timezone considerations (use UTC)
+    </scheduled-triggers>
+
+    <filter-condition-matching>
+      - Support single value or array for status, priority, type
+      - Empty filters mean "match all"
+      - Combine filters with AND logic (all must match)
+    </filter-condition-matching>
+
+    <due-date-approaching>
+      - Check daily at 8am UTC
+      - Configurable days before due (default: 1 day)
+      - Only trigger for non-completed tasks
+    </due-date-approaching>
+  </notes>
+</story-context>
