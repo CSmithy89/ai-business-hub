@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { WorkflowsController } from './workflows.controller';
+import { WorkflowsController, WorkflowExecutionsController } from './workflows.controller';
 import { WorkflowsService } from './workflows.service';
 import { WorkflowExecutorService } from './workflow-executor.service';
 import { WorkflowSchedulerService } from './workflow-scheduler.service';
@@ -17,7 +17,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       name: 'workflow-scheduler',
     }),
   ],
-  controllers: [WorkflowsController],
+  controllers: [WorkflowsController, WorkflowExecutionsController],
   providers: [
     WorkflowsService,
     WorkflowExecutorService,

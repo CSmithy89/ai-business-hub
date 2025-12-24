@@ -487,3 +487,257 @@ export function useTestWorkflow() {
     },
   });
 }
+
+// PM-10-5: Workflow Templates & Management
+
+export interface WorkflowTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: 'assignment' | 'notification' | 'lifecycle' | 'escalation';
+  icon: string;
+  definition: WorkflowDefinition;
+}
+
+export interface CreateFromTemplateInput {
+  templateId: string;
+  name: string;
+  projectId: string;
+  description?: string;
+}
+
+export interface WorkflowExecutionListItem {
+  id: string;
+  workflowId: string;
+  triggerType: WorkflowTriggerType;
+  triggeredBy?: string;
+  triggerData: Record<string, any>;
+  status: string;
+  startedAt: Date;
+  completedAt?: Date | null;
+  stepsExecuted: number;
+  stepsPassed: number;
+  stepsFailed: number;
+  executionTrace?: any;
+  errorMessage?: string | null;
+  isDryRun: boolean;
+}
+
+export interface WorkflowExecutionsResponse {
+  items: WorkflowExecutionListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+async function fetchWorkflowTemplates(params: {
+  workspaceId: string;
+  token?: string;
+}): Promise<WorkflowTemplate[]> {
+  const base = getBaseUrl();
+
+  const query = new URLSearchParams();
+  query.set('workspaceId', params.workspaceId);
+
+  const response = await fetch(`${base}/pm/workflows/templates?${query.toString()}`, {
+    credentials: 'include',
+    headers: params.token ? { Authorization: `Bearer ${params.token}` } : {},
+    cache: 'no-store',
+  });
+
+  const body = await safeJson<unknown>(response);
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined;
+    throw new Error(message || 'Failed to fetch workflow templates');
+  }
+
+  return body as WorkflowTemplate[];
+}
+
+async function createFromTemplate(params: {
+  workspaceId: string;
+  token?: string;
+  input: CreateFromTemplateInput;
+}): Promise<Workflow> {
+  const base = getBaseUrl();
+
+  const query = new URLSearchParams();
+  query.set('workspaceId', params.workspaceId);
+
+  const response = await fetch(`${base}/pm/workflows/from-template?${query.toString()}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
+    },
+    body: JSON.stringify(params.input),
+  });
+
+  const body = await safeJson<unknown>(response);
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined;
+    throw new Error(message || 'Failed to create workflow from template');
+  }
+
+  return body as Workflow;
+}
+
+async function fetchWorkflowExecutions(params: {
+  workspaceId: string;
+  token?: string;
+  workflowId: string;
+  query?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  };
+}): Promise<WorkflowExecutionsResponse> {
+  const base = getBaseUrl();
+
+  const query = new URLSearchParams();
+  query.set('workspaceId', params.workspaceId);
+  if (params.query?.status) query.set('status', params.query.status);
+  if (params.query?.page) query.set('page', params.query.page.toString());
+  if (params.query?.limit) query.set('limit', params.query.limit.toString());
+
+  const response = await fetch(
+    `${base}/pm/workflows/${params.workflowId}/executions?${query.toString()}`,
+    {
+      credentials: 'include',
+      headers: params.token ? { Authorization: `Bearer ${params.token}` } : {},
+      cache: 'no-store',
+    }
+  );
+
+  const body = await safeJson<unknown>(response);
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined;
+    throw new Error(message || 'Failed to fetch workflow executions');
+  }
+
+  return body as WorkflowExecutionsResponse;
+}
+
+async function retryExecution(params: {
+  workspaceId: string;
+  token?: string;
+  executionId: string;
+}): Promise<any> {
+  const base = getBaseUrl();
+
+  const query = new URLSearchParams();
+  query.set('workspaceId', params.workspaceId);
+
+  const response = await fetch(
+    `${base}/pm/workflow-executions/${params.executionId}/retry?${query.toString()}`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: params.token ? { Authorization: `Bearer ${params.token}` } : {},
+    }
+  );
+
+  const body = await safeJson<unknown>(response);
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined;
+    throw new Error(message || 'Failed to retry execution');
+  }
+
+  return body;
+}
+
+export function useWorkflowTemplates() {
+  const { data: session } = useSession();
+  const workspaceId = getActiveWorkspaceId(session);
+  const token = getSessionToken(session);
+
+  return useQuery({
+    queryKey: ['workflow-templates', workspaceId],
+    queryFn: () => fetchWorkflowTemplates({ workspaceId: workspaceId!, token }),
+    enabled: !!workspaceId,
+    staleTime: 60000, // Templates don't change often
+  });
+}
+
+export function useCreateFromTemplate() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const workspaceId = getActiveWorkspaceId(session);
+  const token = getSessionToken(session);
+
+  return useMutation({
+    mutationFn: (input: CreateFromTemplateInput) => {
+      if (!workspaceId) throw new Error('No workspace selected');
+      return createFromTemplate({ workspaceId, token, input });
+    },
+    onSuccess: () => {
+      toast.success('Workflow created from template');
+      queryClient.invalidateQueries({ queryKey: ['workflows', workspaceId] });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to create workflow';
+      toast.error(message);
+    },
+  });
+}
+
+export function useWorkflowExecutions(
+  workflowId: string,
+  query?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }
+) {
+  const { data: session } = useSession();
+  const workspaceId = getActiveWorkspaceId(session);
+  const token = getSessionToken(session);
+
+  return useQuery({
+    queryKey: ['workflow-executions', workspaceId, workflowId, query],
+    queryFn: () =>
+      fetchWorkflowExecutions({ workspaceId: workspaceId!, token, workflowId, query }),
+    enabled: !!workspaceId && !!workflowId,
+    staleTime: 10000,
+    refetchInterval: 30000, // Auto-refresh every 30s for running executions
+  });
+}
+
+export function useRetryExecution() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const workspaceId = getActiveWorkspaceId(session);
+  const token = getSessionToken(session);
+
+  return useMutation({
+    mutationFn: (executionId: string) => {
+      if (!workspaceId) throw new Error('No workspace selected');
+      return retryExecution({ workspaceId, token, executionId });
+    },
+    onSuccess: () => {
+      toast.success('Execution retried');
+      queryClient.invalidateQueries({ queryKey: ['workflow-executions', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['workflows', workspaceId] });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to retry execution';
+      toast.error(message);
+    },
+  });
+}

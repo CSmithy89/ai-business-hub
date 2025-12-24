@@ -4,13 +4,15 @@ import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWorkflow, useUpdateWorkflow } from '@/hooks/use-pm-workflows';
 import { WorkflowCanvas } from '@/components/pm/workflows/WorkflowCanvas';
+import { ExecutionHistoryPanel } from '@/components/pm/workflows/ExecutionHistoryPanel';
+import { WorkflowStatusToggle } from '@/components/pm/workflows/WorkflowStatusToggle';
 import type { WorkflowDefinition } from '@hyvve/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Settings, History } from 'lucide-react';
 
 export default function EditWorkflowPage(props: {
   params: Promise<{ slug: string; workflowId: string }>;
@@ -48,19 +50,6 @@ export default function EditWorkflowPage(props: {
     );
   };
 
-  const getStatusBadge = (status: string, enabled: boolean) => {
-    if (status === 'ACTIVE' && enabled) {
-      return <Badge variant="default">Active</Badge>;
-    }
-    if (status === 'PAUSED' || !enabled) {
-      return <Badge variant="secondary">Paused</Badge>;
-    }
-    if (status === 'DRAFT') {
-      return <Badge variant="outline">Draft</Badge>;
-    }
-    return <Badge variant="secondary">{status}</Badge>;
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -90,9 +79,13 @@ export default function EditWorkflowPage(props: {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <h1 className="text-xl font-bold">Edit Workflow</h1>
+            <h1 className="text-xl font-bold">{workflow.name}</h1>
           </div>
-          {getStatusBadge(workflow.status, workflow.enabled)}
+          <WorkflowStatusToggle
+            workflowId={workflow.id}
+            enabled={workflow.enabled}
+            status={workflow.status}
+          />
         </div>
 
         <div className="grid grid-cols-3 gap-4">
@@ -139,7 +132,28 @@ export default function EditWorkflowPage(props: {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <WorkflowCanvas definition={workflow.definition as WorkflowDefinition} onSave={handleSave} />
+        <Tabs defaultValue="editor" className="h-full flex flex-col">
+          <div className="border-b px-4">
+            <TabsList>
+              <TabsTrigger value="editor">
+                <Settings className="w-4 h-4 mr-2" />
+                Workflow Editor
+              </TabsTrigger>
+              <TabsTrigger value="history">
+                <History className="w-4 h-4 mr-2" />
+                Execution History
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="editor" className="flex-1 m-0 overflow-hidden">
+            <WorkflowCanvas definition={workflow.definition as WorkflowDefinition} onSave={handleSave} />
+          </TabsContent>
+
+          <TabsContent value="history" className="flex-1 m-0 overflow-auto p-6">
+            <ExecutionHistoryPanel workflowId={workflow.id} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

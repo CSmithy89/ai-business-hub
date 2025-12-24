@@ -20,6 +20,8 @@ import { CreateWorkflowDto } from './dto/create-workflow.dto';
 import { UpdateWorkflowDto } from './dto/update-workflow.dto';
 import { ListWorkflowsQueryDto } from './dto/list-workflows-query.dto';
 import { TestWorkflowDto } from './dto/test-workflow.dto';
+import { CreateFromTemplateDto } from './dto/create-from-template.dto';
+import { ListExecutionsQueryDto } from './dto/list-executions-query.dto';
 import { WorkflowsService } from './workflows.service';
 
 @ApiTags('PM Workflows')
@@ -50,6 +52,27 @@ export class WorkflowsController {
     @Query() query: ListWorkflowsQueryDto,
   ) {
     return this.workflowsService.findAll(workspaceId, query);
+  }
+
+  // Static routes must come before parameterized routes in NestJS
+  @Get('templates')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'List workflow templates' })
+  @ApiResponse({ status: 200, description: 'Workflow templates retrieved' })
+  async getTemplates() {
+    return this.workflowsService.getTemplates();
+  }
+
+  @Post('from-template')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Create workflow from template' })
+  @ApiResponse({ status: 201, description: 'Workflow created from template' })
+  async createFromTemplate(
+    @CurrentWorkspace() workspaceId: string,
+    @Body() dto: CreateFromTemplateDto,
+    @CurrentUser() actor: any,
+  ) {
+    return this.workflowsService.createFromTemplate(workspaceId, actor.id, dto);
   }
 
   @Get(':id')
@@ -127,5 +150,39 @@ export class WorkflowsController {
     @Body() dto: TestWorkflowDto,
   ) {
     return this.workflowsService.testWorkflow(workspaceId, id, dto);
+  }
+
+  @Get(':id/executions')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'List workflow executions' })
+  @ApiParam({ name: 'id', description: 'Workflow ID' })
+  @ApiResponse({ status: 200, description: 'Workflow executions retrieved' })
+  async getExecutions(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Query() query: ListExecutionsQueryDto,
+  ) {
+    return this.workflowsService.getExecutions(workspaceId, id, query);
+  }
+}
+
+@ApiTags('PM Workflow Executions')
+@Controller('pm/workflow-executions')
+@UseGuards(AuthGuard, TenantGuard, RolesGuard)
+@ApiBearerAuth()
+export class WorkflowExecutionsController {
+  constructor(private readonly workflowsService: WorkflowsService) {}
+
+  @Post(':id/retry')
+  @Roles('owner', 'admin', 'member')
+  @ApiOperation({ summary: 'Retry failed workflow execution' })
+  @ApiParam({ name: 'id', description: 'Execution ID' })
+  @ApiResponse({ status: 200, description: 'Execution retried' })
+  async retryExecution(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @CurrentUser() actor: any,
+  ) {
+    return this.workflowsService.retryExecution(workspaceId, actor.id, id);
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { WorkflowStatus as PrismaWorkflowStatus, WorkflowTriggerType as PrismaTriggerType } from '@prisma/client';
+import { WorkflowStatus as PrismaWorkflowStatus, WorkflowTriggerType as PrismaTriggerType, WorkflowExecutionStatus as PrismaExecutionStatus } from '@prisma/client';
 import { EventTypes } from '@hyvve/shared';
 import { PrismaService } from '../../common/services/prisma.service';
 import { EventPublisherService } from '../../events';
@@ -7,7 +7,10 @@ import { CreateWorkflowDto } from './dto/create-workflow.dto';
 import { UpdateWorkflowDto } from './dto/update-workflow.dto';
 import { ListWorkflowsQueryDto } from './dto/list-workflows-query.dto';
 import { TestWorkflowDto, TestWorkflowResponseDto } from './dto/test-workflow.dto';
+import { CreateFromTemplateDto } from './dto/create-from-template.dto';
+import { ListExecutionsQueryDto } from './dto/list-executions-query.dto';
 import { WorkflowExecutorService } from './workflow-executor.service';
+import { getWorkflowTemplates, getWorkflowTemplateById } from './workflow-templates';
 
 @Injectable()
 export class WorkflowsService {
@@ -429,5 +432,220 @@ export class WorkflowsService {
         duration,
       },
     };
+  }
+
+  /**
+   * Get workflow templates
+   * PM-10-5: Workflow Templates
+   */
+  async getTemplates() {
+    return getWorkflowTemplates();
+  }
+
+  /**
+   * Create workflow from template
+   * PM-10-5: Workflow Templates
+   *
+   * @param workspaceId - Workspace ID for tenant isolation
+   * @param actorId - User creating the workflow
+   * @param dto - Template selection and workflow details
+   * @returns Created workflow
+   */
+  async createFromTemplate(workspaceId: string, actorId: string, dto: CreateFromTemplateDto) {
+    // Get template
+    const template = getWorkflowTemplateById(dto.templateId);
+    if (!template) {
+      throw new NotFoundException(`Template not found: ${dto.templateId}`);
+    }
+
+    // Validate project access
+    const project = await this.prisma.project.findUnique({
+      where: { id: dto.projectId },
+      select: { workspaceId: true },
+    });
+
+    if (!project || project.workspaceId !== workspaceId) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // Check active workflow limit (max 50 per project)
+    const activeCount = await this.prisma.workflow.count({
+      where: {
+        projectId: dto.projectId,
+        enabled: true,
+      },
+    });
+
+    if (activeCount >= 50) {
+      throw new BadRequestException('Maximum number of active workflows (50) reached for this project');
+    }
+
+    // Extract trigger type from template
+    const triggerType = template.definition.triggers[0]?.eventType || 'MANUAL' as PrismaTriggerType;
+    const triggerConfig = template.definition.triggers[0] || {};
+
+    // Create workflow from template
+    const workflow = await this.prisma.workflow.create({
+      data: {
+        workspaceId,
+        projectId: dto.projectId,
+        name: dto.name,
+        description: dto.description || template.description,
+        definition: template.definition as any,
+        triggerType: triggerType as PrismaTriggerType,
+        triggerConfig: triggerConfig as any,
+        status: PrismaWorkflowStatus.DRAFT,
+        createdBy: actorId,
+      },
+    });
+
+    // Publish event
+    await this.eventPublisher.publish(
+      EventTypes.PM_WORKFLOW_CREATED,
+      { workflowId: workflow.id, projectId: workflow.projectId, templateId: dto.templateId },
+      { tenantId: workspaceId, userId: actorId },
+    );
+
+    return workflow;
+  }
+
+  /**
+   * Get workflow executions with pagination
+   * PM-10-5: Workflow Management
+   *
+   * @param workspaceId - Workspace ID for tenant isolation
+   * @param workflowId - Workflow ID
+   * @param query - Pagination and filter options
+   * @returns Paginated execution list
+   */
+  async getExecutions(workspaceId: string, workflowId: string, query: ListExecutionsQueryDto) {
+    // Validate workflow access
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id: workflowId },
+      select: { workspaceId: true },
+    });
+
+    if (!workflow || workflow.workspaceId !== workspaceId) {
+      throw new NotFoundException('Workflow not found');
+    }
+
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = { workflowId };
+
+    if (query.status) {
+      where.status = query.status as PrismaExecutionStatus;
+    }
+
+    // Get total count
+    const total = await this.prisma.workflowExecution.count({ where });
+
+    // Get executions
+    const executions = await this.prisma.workflowExecution.findMany({
+      where,
+      orderBy: {
+        startedAt: 'desc',
+      },
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        workflowId: true,
+        triggerType: true,
+        triggeredBy: true,
+        triggerData: true,
+        status: true,
+        startedAt: true,
+        completedAt: true,
+        stepsExecuted: true,
+        stepsPassed: true,
+        stepsFailed: true,
+        executionTrace: true,
+        errorMessage: true,
+        isDryRun: true,
+      },
+    });
+
+    return {
+      items: executions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Retry failed workflow execution
+   * PM-10-5: Workflow Management
+   *
+   * Creates a new execution with the same trigger data as the failed execution.
+   *
+   * @param workspaceId - Workspace ID for tenant isolation
+   * @param actorId - User retrying the execution
+   * @param executionId - Failed execution ID
+   * @returns New execution
+   */
+  async retryExecution(workspaceId: string, actorId: string, executionId: string) {
+    // Load original execution
+    const originalExecution = await this.prisma.workflowExecution.findUnique({
+      where: { id: executionId },
+      include: {
+        workflow: {
+          select: {
+            id: true,
+            workspaceId: true,
+            enabled: true,
+          },
+        },
+      },
+    });
+
+    if (!originalExecution) {
+      throw new NotFoundException('Execution not found');
+    }
+
+    if (originalExecution.workflow.workspaceId !== workspaceId) {
+      throw new NotFoundException('Execution not found');
+    }
+
+    // Only allow retry for failed executions
+    if (originalExecution.status !== 'FAILED') {
+      throw new BadRequestException('Only failed executions can be retried');
+    }
+
+    // Check if workflow is still enabled
+    if (!originalExecution.workflow.enabled) {
+      throw new BadRequestException('Workflow is not active. Please activate it before retrying.');
+    }
+
+    // Execute workflow with same trigger data
+    const newExecution = await this.workflowExecutor.executeWorkflow(
+      originalExecution.workflowId,
+      {
+        workflowId: originalExecution.workflowId,
+        triggerType: originalExecution.triggerType,
+        triggerData: originalExecution.triggerData as Record<string, any>,
+        triggeredBy: `retry:${executionId}`,
+        isDryRun: false,
+      },
+    );
+
+    // Publish event
+    await this.eventPublisher.publish(
+      'pm.workflow.execution.retried' as any,
+      {
+        workflowId: originalExecution.workflowId,
+        originalExecutionId: executionId,
+        newExecutionId: newExecution.id,
+      },
+      { tenantId: workspaceId, userId: actorId },
+    );
+
+    return newExecution;
   }
 }
