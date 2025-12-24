@@ -31,10 +31,13 @@ This document is the authoritative reference for:
 | Category | Purpose | Modules |
 |----------|---------|---------|
 | **Platform Core** | Foundation infrastructure | Core-PM |
-| **BUILD Phase** | Business creation/planning | BMV, BMP, BM-Brand |
-| **OPERATE Phase** | Day-to-day operations | BM-CRM, BM-Sales*, BM-Social, BM-Support, BM-HR, BM-Finance, BM-PR |
+| **BUILD Phase** | Business creation/planning | BMV, BMP, BM-Brand, BM-Marketing* |
+| **OPERATE Phase** | Day-to-day operations | BM-CRM, BM-Sales**, BM-Social**, BM-Email**, BM-Content**, BM-SEO**, BM-Ads**, BM-Support, BM-HR, BM-Finance, BM-PR |
+| **Horizontal Services** | Cross-cutting capabilities | BM-Support***, BMT (Analytics) |
 
-> *BM-Sales is an extension module that requires BM-CRM
+> *BM-Marketing requires BM-Brand, enables tactical marketing extensions
+> **Extension modules: BM-Sales requires BM-CRM; BM-Social/Email/Content/SEO/Ads require BM-Marketing
+> ***BM-Support is consumed by CRM, Marketing, Sales as a horizontal service
 
 ### Module Status Matrix
 
@@ -46,13 +49,18 @@ This document is the authoritative reference for:
 | **Core-PM** (Project Mgmt) | CORE | Complete | In Progress | 8 | P0 - Active |
 | **BM-CRM** (CRM) | OPERATE | Complete | Partial | 8 | P1 |
 | **BM-Sales** (Sales) | OPERATE | Complete | Not Started | 6 | P1 (after CRM) |
-| **BM-Social** (Social) | OPERATE | Research | Not Started | 18 | P2 |
+| **BM-Marketing** (Marketing) | BUILD | Complete | Not Started | 6 | P1 (after CRM) |
+| **BM-Email** (Email) | OPERATE | Complete | Not Started | 6 | P2 (after Marketing) |
+| **BM-Content** (Content) | OPERATE | Complete | Not Started | 6 | P2 (after Marketing) |
+| **BM-SEO** (SEO) | OPERATE | Complete | Not Started | 5 | P2 (after Marketing) |
+| **BM-Ads** (Ads) | OPERATE | Complete | Not Started | 6 | P2 (after Marketing) |
+| **BM-Social** (Social) | OPERATE | Research | Not Started | 18 | P2 (after Marketing) |
 | **BM-Support** (Support) | OPERATE | Research | Not Started | 8 | P2 |
 | **BM-HR** (HR) | OPERATE | Brief | Not Started | 5 | P3 |
 | **BM-Finance** (Finance) | OPERATE | Brief | Not Started | 4 | P3 |
 | **BM-PR** (PR) | OPERATE | Brief | Not Started | 5 | P3 |
 
-**Total Agents Defined:** 78
+**Total Agents Defined:** 107
 
 ---
 
@@ -146,6 +154,70 @@ Reserved platform handles:
 | `@bm-sales.bounty` | Bounty | Commission Tracker | Planned |
 
 > **Note:** BM-Sales is an **extension module** requiring BM-CRM. Sterling coordinates with Clara for CRM→Sales workflows.
+
+### BM-Marketing - Marketing Strategy (6) - BUILD Phase
+
+| Handle | Display Name | Role | Status |
+|--------|--------------|------|--------|
+| `@bm-marketing.maven` | Maven | Team Lead / Orchestrator | Planned |
+| `@bm-marketing.channel` | Channel | Channel Strategist | Planned |
+| `@bm-marketing.segment` | Segment | Audience Analyst | Planned |
+| `@bm-marketing.campaign` | Campaign | Campaign Designer | Planned |
+| `@bm-marketing.budget` | Budget | Marketing Economist | Planned |
+| `@bm-marketing.measure` | Measure | Attribution Analyst | Planned |
+
+> **Note:** BM-Marketing is a **BUILD phase** module requiring BM-Brand. Enables tactical marketing extensions (Email, Content, SEO, Ads, Social).
+
+### BM-Email - Email Marketing (6) - Marketing Extension
+
+| Handle | Display Name | Role | Status |
+|--------|--------------|------|--------|
+| `@bm-email.dispatch` | Dispatch | Team Lead / Orchestrator | Planned |
+| `@bm-email.sequence` | Sequence | Journey Architect | Planned |
+| `@bm-email.template` | Template | Template Designer | Planned |
+| `@bm-email.deliver` | Deliver | Deliverability Expert | Planned |
+| `@bm-email.track` | Track | Analytics Tracker | Planned |
+| `@bm-email.comply` | Comply | Compliance Monitor | Planned |
+
+> **Note:** BM-Email is an **extension module** requiring BM-Marketing.
+
+### BM-Content - Content Marketing (6) - Marketing Extension
+
+| Handle | Display Name | Role | Status |
+|--------|--------------|------|--------|
+| `@bm-content.editor` | Editor | Team Lead / Orchestrator | Planned |
+| `@bm-content.writer` | Writer | Content Creator | Planned |
+| `@bm-content.visual` | Visual | Visual Content Creator | Planned |
+| `@bm-content.library` | Library | Asset Manager | Planned |
+| `@bm-content.repurpose` | Repurpose | Content Atomizer | Planned |
+| `@bm-content.calendar` | Calendar | Editorial Planner | Planned |
+
+> **Note:** BM-Content is an **extension module** requiring BM-Marketing.
+
+### BM-SEO - Search Optimization (5) - Marketing Extension
+
+| Handle | Display Name | Role | Status |
+|--------|--------------|------|--------|
+| `@bm-seo.crawler` | Crawler | Team Lead / Site Auditor | Planned |
+| `@bm-seo.keyword` | Keyword | Keyword Researcher | Planned |
+| `@bm-seo.onpage` | OnPage | On-Page Optimizer | Planned |
+| `@bm-seo.technical` | Technical | Technical SEO Specialist | Planned |
+| `@bm-seo.rank` | Rank | Rank Tracker | Planned |
+
+> **Note:** BM-SEO is an **extension module** requiring BM-Marketing.
+
+### BM-Ads - Paid Advertising (6) - Marketing Extension
+
+| Handle | Display Name | Role | Status |
+|--------|--------------|------|--------|
+| `@bm-ads.buyer` | Buyer | Team Lead / Media Buyer | Planned |
+| `@bm-ads.creative` | Creative | Ad Creative Designer | Planned |
+| `@bm-ads.target` | Target | Audience Targeting | Planned |
+| `@bm-ads.bid` | Bid | Bid Optimizer | Planned |
+| `@bm-ads.google` | Google | Google Ads Specialist | Planned |
+| `@bm-ads.meta` | Meta | Meta Ads Specialist | Planned |
+
+> **Note:** BM-Ads is an **extension module** requiring BM-Marketing.
 
 ### BM-Social - Social Media Management (18)
 
@@ -344,6 +416,19 @@ These names are permanently reserved for platform-level agents:
 | Candidate | BM-HR | Core-PM |
 | Media Contact | BM-PR | BM-CRM (extends Contact) |
 | Press Release | BM-PR | BM-Social |
+| Marketing Campaign | BM-Marketing | BM-Email, BM-Content, BM-Ads, BM-Social, Core-PM |
+| Audience Segment | BM-Marketing | BM-Email, BM-Ads, BM-Social |
+| Channel Strategy | BM-Marketing | All tactical extensions |
+| Attribution Event | BM-Marketing | BM-Finance (revenue), Core-PM |
+| Marketing Budget | BM-Marketing | BM-Finance, Core-PM |
+| Email Sequence | BM-Email | BM-CRM (contact status), BM-Marketing |
+| Email Template | BM-Email | BM-Content (assets) |
+| Content Asset | BM-Content | BM-Email, BM-Social, BM-Ads, BM-SEO |
+| Editorial Calendar | BM-Content | BM-Social (scheduling), BM-Email |
+| SEO Audit | BM-SEO | BM-Content (optimization), Core-PM |
+| Keyword Research | BM-SEO | BM-Content, BM-Ads |
+| Ad Campaign | BM-Ads | BM-Marketing (attribution), BM-Finance |
+| Ad Creative | BM-Ads | BM-Content (assets), BM-Brand |
 
 ### Event Bus Integration
 
@@ -375,6 +460,22 @@ All modules publish events to Redis Streams with this naming convention:
 | `finance.invoice.paid` | BM-Finance | BM-CRM (deal update), BM-Sales (order update) |
 | `hr.candidate.hired` | BM-HR | Core-PM (onboarding project) |
 | `pr.coverage.detected` | BM-PR | BM-Social (share), BM-CRM (contact) |
+| `marketing.campaign.created` | BM-Marketing | BM-Email, BM-Content, BM-Ads, BM-Social |
+| `marketing.campaign.launched` | BM-Marketing | All extensions, Core-PM |
+| `marketing.segment.updated` | BM-Marketing | BM-Email (lists), BM-Ads (audiences) |
+| `marketing.attribution.recorded` | BM-Marketing | BM-Finance (revenue), Core-PM |
+| `email.sequence.started` | BM-Email | BM-CRM (contact activity), BM-Marketing |
+| `email.sequence.completed` | BM-Email | BM-Marketing (funnel metrics) |
+| `email.sent` | BM-Email | BM-Marketing (metrics) |
+| `email.opened` | BM-Email | BM-Marketing, BM-CRM (engagement) |
+| `email.clicked` | BM-Email | BM-Marketing, BM-CRM (lead scoring) |
+| `content.asset.published` | BM-Content | BM-Social (share), BM-SEO (index) |
+| `content.asset.updated` | BM-Content | BM-SEO (re-index) |
+| `seo.audit.completed` | BM-SEO | BM-Content (fixes), Core-PM (tasks) |
+| `seo.rank.changed` | BM-SEO | BM-Marketing (metrics), Core-PM |
+| `ads.campaign.created` | BM-Ads | BM-Marketing (budget), BM-Finance |
+| `ads.conversion.recorded` | BM-Ads | BM-Marketing (attribution), BM-CRM (lead) |
+| `ads.budget.depleted` | BM-Ads | BM-Marketing (reallocation), Core-PM (alert) |
 
 ---
 
@@ -532,12 +633,17 @@ Agents can call tools from other modules via the platform:
 | Core-PM | 0 | 6 | 2 | 8 |
 | BM-CRM | 0 | 3 | 5 | 8 |
 | BM-Sales | 0 | 0 | 6 | 6 |
+| BM-Marketing | 0 | 0 | 6 | 6 |
+| BM-Email | 0 | 0 | 6 | 6 |
+| BM-Content | 0 | 0 | 6 | 6 |
+| BM-SEO | 0 | 0 | 5 | 5 |
+| BM-Ads | 0 | 0 | 6 | 6 |
 | BM-Social | 0 | 0 | 18 | 18 |
 | BM-Support | 0 | 0 | 8 | 8 |
 | BM-HR | 0 | 0 | 5 | 5 |
 | BM-Finance | 0 | 0 | 4 | 4 |
 | BM-PR | 0 | 0 | 5 | 5 |
-| **Total** | **18** | **9** | **53** | **78** |
+| **Total** | **18** | **9** | **82** | **107** |
 
 ---
 
@@ -553,7 +659,12 @@ Agents can call tools from other modules via the platform:
 @core-pm.{navi|oracle|herald|chrono|scope|vitals|scribe|prism}
 @bm-crm.{clara|scout|atlas|flow|tracker|sync|guardian|cadence}
 @bm-sales.{sterling|quota|order|price|region|bounty}  ← Extension of CRM
-@bm-social.{conductor|spark|tempo|metrics|engage|trends|...}
+@bm-marketing.{maven|channel|segment|campaign|budget|measure}  ← BUILD Phase
+@bm-email.{dispatch|sequence|template|deliver|track|comply}  ← Marketing Extension
+@bm-content.{editor|writer|visual|library|repurpose|calendar}  ← Marketing Extension
+@bm-seo.{crawler|keyword|onpage|technical|rank}  ← Marketing Extension
+@bm-ads.{buyer|creative|target|bid|google|meta}  ← Marketing Extension
+@bm-social.{conductor|spark|tempo|metrics|engage|trends|...}  ← Marketing Extension
 @bm-support.{hub|triage|reply|automate|quality|captain|library|escalate}
 @bm-hr.{hunter|gatekeeper|scheduler|interviewer|culture}
 @bm-finance.{bookkeeper|controller|cfo|compliance}
@@ -571,6 +682,12 @@ crm.deal.stage_changed
 sales.quote.created
 sales.order.completed
 sales.commission.earned
+marketing.campaign.launched
+marketing.attribution.recorded
+email.sequence.completed
+content.asset.published
+seo.audit.completed
+ads.conversion.recorded
 social.post.published
 support.conversation.resolved
 pm.task.completed
@@ -580,4 +697,4 @@ pm.task.completed
 
 *Document maintained by: Architecture Team*
 *Last updated: 2025-12-24*
-*BM-Sales extension module added*
+*BM-Marketing (BUILD phase) and extensions (Email, Content, SEO, Ads) added*
