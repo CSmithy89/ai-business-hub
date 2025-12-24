@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { MetricsService } from './metrics/metrics-service';
 import { CsrfGuard } from './common/guards/csrf.guard';
@@ -42,12 +43,26 @@ async function bootstrap() {
 
   // Swagger/OpenAPI documentation configuration
   const config = new DocumentBuilder()
-    .setTitle('HYVVE Platform API')
+    .setTitle('HYVVE Core-PM API')
     .setDescription(
-      'NestJS backend for modular business logic - AI-powered business orchestration platform',
+      'External API for HYVVE Project Management and Knowledge Base - AI-powered business orchestration platform',
     )
-    .setVersion('0.1.0')
+    .setVersion('1.0')
     .addTag('health', 'Health check endpoints')
+    .addTag('projects', 'Project management operations')
+    .addTag('phases', 'Phase management operations')
+    .addTag('tasks', 'Task management operations')
+    .addTag('views', 'Saved view operations')
+    .addTag('search', 'Search operations')
+    .addApiKey(
+      {
+        type: 'apiKey',
+        name: 'X-API-Key',
+        in: 'header',
+        description: 'API key for authentication (format: sk_prod_...)',
+      },
+      'api-key',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -58,7 +73,14 @@ async function bootstrap() {
       persistAuthorization: true,
       tagsSorter: 'alpha',
       operationsSorter: 'alpha',
+      filter: true,
+      tryItOutEnabled: true,
     },
+  });
+
+  // Serve OpenAPI spec as JSON
+  app.use('/api/docs/spec.json', (_req: Request, res: Response) => {
+    res.json(document);
   });
 
   // Start server on configured port

@@ -1,0 +1,574 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>pm-11-1-public-api</story-id>
+    <story-title>REST API Design</story-title>
+    <epic>PM-11 - External API &amp; Governance</epic>
+    <status>ready-for-dev</status>
+    <points>8</points>
+    <generated>2025-12-24</generated>
+  </metadata>
+
+  <summary>
+    <objective>
+      Implement versioned REST API endpoints for Core-PM module operations (Projects, Phases, Tasks, Views, Search)
+      with OpenAPI 3.0 documentation. All endpoints under /api/v1/pm/* with auto-generated Swagger docs at /api/docs.
+    </objective>
+
+    <key-requirements>
+      <requirement id="AC1">OpenAPI 3.0 spec covering Projects, Phases, Tasks, Views, Search CRUD endpoints</requirement>
+      <requirement id="AC2">Versioned API path: /api/v1/pm/*</requirement>
+      <requirement id="AC3">Pagination support with limit/offset parameters</requirement>
+      <requirement id="AC4">Auto-generated interactive documentation at /api/docs</requirement>
+    </key-requirements>
+
+    <notes>
+      - This story focuses ONLY on REST API design and documentation (no authentication)
+      - PM-11.2 will add API key authentication guards
+      - PM-11.5 will add rate limiting guards
+      - Create NEW controllers in apps/api/src/pm/api/ (separate from existing internal controllers)
+      - Reuse existing services (ProjectsService, TasksService, PhasesService, SavedViewsService)
+      - Follow existing NestJS patterns from internal controllers
+    </notes>
+  </summary>
+
+  <architecture>
+    <api-structure>
+      <base-path>/api/v1/pm</base-path>
+      <versioning>URL path versioning (v1, v2, etc.)</versioning>
+
+      <endpoints>
+        <group name="projects">
+          <path>/api/v1/pm/projects</path>
+          <operations>
+            <operation method="GET" summary="List projects with filters" scopes="pm:read"/>
+            <operation method="POST" summary="Create project" scopes="pm:write"/>
+            <operation method="GET" path="/:id" summary="Get project by ID" scopes="pm:read"/>
+            <operation method="PUT" path="/:id" summary="Update project" scopes="pm:write"/>
+            <operation method="DELETE" path="/:id" summary="Soft delete project" scopes="pm:admin"/>
+          </operations>
+        </group>
+
+        <group name="phases">
+          <path>/api/v1/pm</path>
+          <operations>
+            <operation method="GET" path="/projects/:projectId/phases" summary="List phases" scopes="pm:read"/>
+            <operation method="POST" path="/projects/:projectId/phases" summary="Create phase" scopes="pm:write"/>
+            <operation method="GET" path="/phases/:id" summary="Get phase by ID" scopes="pm:read"/>
+            <operation method="PUT" path="/phases/:id" summary="Update phase" scopes="pm:write"/>
+            <operation method="POST" path="/phases/:id/start" summary="Start phase" scopes="pm:write"/>
+            <operation method="POST" path="/phases/:id/complete" summary="Complete phase" scopes="pm:write"/>
+          </operations>
+        </group>
+
+        <group name="tasks">
+          <path>/api/v1/pm/tasks</path>
+          <operations>
+            <operation method="GET" summary="List tasks with filters" scopes="pm:read"/>
+            <operation method="POST" summary="Create task" scopes="pm:write"/>
+            <operation method="GET" path="/:id" summary="Get task by ID" scopes="pm:read"/>
+            <operation method="PUT" path="/:id" summary="Update task" scopes="pm:write"/>
+            <operation method="POST" path="/:id/assign" summary="Assign task" scopes="pm:write"/>
+            <operation method="POST" path="/:id/transition" summary="Transition status" scopes="pm:write"/>
+            <operation method="GET" path="/:id/activities" summary="Get activity log" scopes="pm:read"/>
+            <operation method="DELETE" path="/:id" summary="Soft delete task" scopes="pm:admin"/>
+          </operations>
+        </group>
+
+        <group name="views">
+          <path>/api/v1/pm/views</path>
+          <operations>
+            <operation method="GET" summary="List saved views" scopes="pm:read"/>
+            <operation method="POST" summary="Create view" scopes="pm:write"/>
+            <operation method="GET" path="/:id" summary="Get view by ID" scopes="pm:read"/>
+            <operation method="PUT" path="/:id" summary="Update view" scopes="pm:write"/>
+            <operation method="DELETE" path="/:id" summary="Delete view" scopes="pm:write"/>
+          </operations>
+        </group>
+
+        <group name="search">
+          <path>/api/v1/pm/search</path>
+          <operations>
+            <operation method="GET" summary="Full-text search" scopes="pm:read"/>
+          </operations>
+        </group>
+      </endpoints>
+    </api-structure>
+
+    <pagination-strategy>
+      <query-params>
+        <param name="limit" type="number" default="50" max="100">Items per page</param>
+        <param name="offset" type="number" default="0">Number of items to skip</param>
+      </query-params>
+
+      <response-format>
+        <![CDATA[
+{
+  "data": T[],
+  "pagination": {
+    "total": number,
+    "limit": number,
+    "offset": number
+  }
+}
+        ]]>
+      </response-format>
+    </pagination-strategy>
+
+    <error-response-format>
+      <![CDATA[
+{
+  "statusCode": 400,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "status",
+      "message": "status must be one of: BACKLOG, TODO, IN_PROGRESS, DONE"
+    }
+  ]
+}
+      ]]>
+    </error-response-format>
+  </architecture>
+
+  <existing-patterns>
+    <authentication>
+      <current-pattern>
+        <guards>AuthGuard, TenantGuard, RolesGuard</guards>
+        <decorators>@CurrentUser(), @CurrentWorkspace(), @Roles()</decorators>
+        <description>
+          Internal controllers use session-based JWT authentication via AuthGuard.
+          External API will use ApiKeyGuard (added in PM-11.2).
+          For PM-11.1, we create controller structure but guards will be added later.
+        </description>
+      </current-pattern>
+    </authentication>
+
+    <controller-patterns>
+      <example file="apps/api/src/pm/projects/projects.controller.ts">
+        - Uses @ApiTags('PM Projects') for Swagger grouping
+        - @Controller('pm/projects') defines route prefix
+        - @UseGuards(AuthGuard, TenantGuard, RolesGuard) for auth
+        - @ApiBearerAuth() for Swagger security
+        - @ApiOperation() for endpoint descriptions
+        - @ApiParam() for path parameters
+        - @ApiResponse() for response documentation
+        - Injects service via constructor
+        - Validates workspaceId matches request context
+      </example>
+
+      <example file="apps/api/src/pm/tasks/tasks.controller.ts">
+        - Similar pattern to projects controller
+        - Uses @Query() decorator with DTOs for query params
+        - Uses @Body() decorator with DTOs for request bodies
+        - Returns service method results directly
+      </example>
+
+      <example file="apps/api/src/pm/phases/phases.controller.ts">
+        - Nested routes: POST /projects/:projectId/phases
+        - Also standalone: PATCH /phases/:id
+        - Demonstrates both nested and standalone resource patterns
+      </example>
+    </controller-patterns>
+
+    <dto-patterns>
+      <query-dto file="apps/api/src/pm/projects/dto/list-projects.query.dto.ts">
+        - Extends class with validation decorators
+        - Uses @IsOptional() for optional fields
+        - Uses @IsEnum() for enums
+        - Uses @Type(() => Number) for type transformation
+        - Uses @IsInt(), @Min() for number validation
+        - Provides default values in property declarations
+      </query-dto>
+
+      <query-dto file="apps/api/src/pm/tasks/dto/list-tasks.query.dto.ts">
+        - More complex filters (projectId, phaseId, status, type, priority, assigneeId)
+        - Pagination with page/limit (not offset/limit)
+        - Search string support
+        - Label filtering
+      </query-dto>
+    </dto-patterns>
+
+    <service-patterns>
+      <example file="apps/api/src/pm/projects/projects.service.ts">
+        - Injects PrismaService for database access
+        - Injects EventPublisherService for event bus
+        - Methods accept workspaceId as first parameter (tenant isolation)
+        - Methods accept actorId for audit trail
+        - Publishes events after mutations (create, update, delete)
+        - Uses transactions for multi-step operations
+        - Throws NotFoundException for missing resources
+      </example>
+    </service-patterns>
+
+    <openapi-configuration>
+      <current file="apps/api/src/main.ts">
+        - Swagger setup in bootstrap() function
+        - DocumentBuilder() configures OpenAPI spec
+        - .setTitle(), .setDescription(), .setVersion()
+        - .addTag() for endpoint grouping
+        - SwaggerModule.createDocument() generates spec
+        - SwaggerModule.setup('api/docs', ...) serves UI
+        - Custom options: persistAuthorization, tagsSorter, operationsSorter
+      </current>
+
+      <enhancement-needed>
+        - Add .addApiKey() for API key security scheme (PM-11.2)
+        - Add tags for 'projects', 'phases', 'tasks', 'views', 'search'
+        - Serve OpenAPI spec JSON at /api/docs/spec.json
+        - Update title to "HYVVE Core-PM API"
+      </enhancement-needed>
+    </openapi-configuration>
+  </existing-patterns>
+
+  <files-to-create>
+    <module>
+      <file path="apps/api/src/pm/api/api.module.ts">
+        New module for external API controllers.
+        Imports: ProjectsService, PhasesService, TasksService, SavedViewsService, SearchService (from KB)
+        Controllers: ProjectsApiController, PhasesApiController, TasksApiController, ViewsApiController, SearchApiController
+      </file>
+    </module>
+
+    <controllers>
+      <file path="apps/api/src/pm/api/projects-api.controller.ts">
+        @ApiTags('projects')
+        @Controller('api/v1/pm/projects')
+        Endpoints: GET /, POST /, GET /:id, PUT /:id, DELETE /:id
+        Reuses: ProjectsService
+      </file>
+
+      <file path="apps/api/src/pm/api/phases-api.controller.ts">
+        @ApiTags('phases')
+        @Controller('api/v1/pm')
+        Endpoints:
+          - GET /projects/:projectId/phases
+          - POST /projects/:projectId/phases
+          - GET /phases/:id
+          - PUT /phases/:id
+          - POST /phases/:id/start
+          - POST /phases/:id/complete
+        Reuses: PhasesService
+      </file>
+
+      <file path="apps/api/src/pm/api/tasks-api.controller.ts">
+        @ApiTags('tasks')
+        @Controller('api/v1/pm/tasks')
+        Endpoints: GET /, POST /, GET /:id, PUT /:id, POST /:id/assign, POST /:id/transition, GET /:id/activities, DELETE /:id
+        Reuses: TasksService
+      </file>
+
+      <file path="apps/api/src/pm/api/views-api.controller.ts">
+        @ApiTags('views')
+        @Controller('api/v1/pm/views')
+        Endpoints: GET /, POST /, GET /:id, PUT /:id, DELETE /:id
+        Reuses: SavedViewsService
+      </file>
+
+      <file path="apps/api/src/pm/api/search-api.controller.ts">
+        @ApiTags('search')
+        @Controller('api/v1/pm/search')
+        Endpoints: GET /
+        Reuses: SearchService (from KB module) or create new PM-specific search
+      </file>
+    </controllers>
+
+    <dtos>
+      <file path="apps/api/src/pm/api/dto/list-projects-query.dto.ts">
+        Query DTO for GET /api/v1/pm/projects
+        Fields: status?, search?, limit?, offset?, sortBy?, sortOrder?
+      </file>
+
+      <file path="apps/api/src/pm/api/dto/list-tasks-query.dto.ts">
+        Query DTO for GET /api/v1/pm/tasks
+        Fields: projectId?, phaseId?, status?, assigneeId?, priority?, type?, dueAfter?, dueBefore?, search?, limit?, offset?, sortBy?, sortOrder?
+      </file>
+
+      <file path="apps/api/src/pm/api/dto/list-views-query.dto.ts">
+        Query DTO for GET /api/v1/pm/views
+        Fields: projectId?
+      </file>
+
+      <file path="apps/api/src/pm/api/dto/search-query.dto.ts">
+        Query DTO for GET /api/v1/pm/search
+        Fields: q (required), limit?, offset?
+      </file>
+
+      <file path="apps/api/src/pm/api/dto/paginated-response.dto.ts">
+        Generic DTO for paginated responses
+        Structure: { data: T[], pagination: { total, limit, offset } }
+      </file>
+
+      <file path="apps/api/src/pm/api/dto/assign-task.dto.ts">
+        Body DTO for POST /api/v1/pm/tasks/:id/assign
+        Fields: assigneeId?, agentId?, assignmentType
+      </file>
+
+      <file path="apps/api/src/pm/api/dto/transition-task.dto.ts">
+        Body DTO for POST /api/v1/pm/tasks/:id/transition
+        Fields: status (required)
+      </file>
+    </dtos>
+
+    <shared-types>
+      <file path="packages/shared/src/types/api-scopes.ts">
+        API scope definitions (for PM-11.2, but define now)
+        Exports: API_SCOPES constant, ApiScope type, ApiKeyPermissions interface
+      </file>
+    </shared-types>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/api/src/main.ts">
+      <changes>
+        - Update DocumentBuilder to include PM API tags
+        - Update title to "HYVVE Core-PM API"
+        - Add endpoint to serve OpenAPI spec JSON: app.get('/api/docs/spec.json')
+        - (Optional for PM-11.1) Add .addApiKey() security scheme placeholder
+      </changes>
+    </file>
+
+    <file path="apps/api/src/pm/pm.module.ts">
+      <changes>
+        - Import and register new ApiModule
+      </changes>
+    </file>
+
+    <file path="apps/api/src/app.module.ts">
+      <changes>
+        - Ensure PM module is imported (likely already done)
+      </changes>
+    </file>
+  </files-to-modify>
+
+  <reusable-services>
+    <service name="ProjectsService" path="apps/api/src/pm/projects/projects.service.ts">
+      Methods to use:
+      - create(workspaceId, actorId, dto)
+      - list(workspaceId, query)
+      - getById(workspaceId, id)
+      - update(workspaceId, actorId, id, dto)
+      - softDelete(workspaceId, actorId, id)
+    </service>
+
+    <service name="PhasesService" path="apps/api/src/pm/phases/phases.service.ts">
+      Methods to use:
+      - create(workspaceId, actorId, projectId, dto)
+      - list(workspaceId, projectId)
+      - update(workspaceId, actorId, id, dto)
+      Note: start/complete may need new methods or use existing PhaseService
+    </service>
+
+    <service name="TasksService" path="apps/api/src/pm/tasks/tasks.service.ts">
+      Methods to use:
+      - create(workspaceId, actorId, dto, correlationId?)
+      - list(workspaceId, query)
+      - getById(workspaceId, id)
+      - update(workspaceId, actorId, id, dto, correlationId?)
+      - softDelete(workspaceId, actorId, id, correlationId?)
+      Note: assign/transition may need new methods
+    </service>
+
+    <service name="SavedViewsService" path="apps/api/src/pm/saved-views/saved-views.service.ts">
+      Methods to use:
+      - list(workspaceId, userId, projectId)
+      - create(workspaceId, userId, dto)
+      - getById(workspaceId, userId, id)
+      - update(workspaceId, userId, id, dto)
+      - delete(workspaceId, userId, id)
+    </service>
+  </reusable-services>
+
+  <dependencies>
+    <npm-packages>
+      <package name="@nestjs/swagger" status="installed">OpenAPI/Swagger decorators</package>
+      <package name="class-validator" status="installed">DTO validation</package>
+      <package name="class-transformer" status="installed">DTO transformation</package>
+    </npm-packages>
+
+    <internal-packages>
+      <package name="@prisma/client" status="installed">Database models and types</package>
+      <package name="@hyvve/shared" status="installed">Shared types and utilities</package>
+    </internal-packages>
+
+    <database-models>
+      <model name="Project">Used by ProjectsService</model>
+      <model name="Phase">Used by PhasesService</model>
+      <model name="Task">Used by TasksService</model>
+      <model name="SavedView">Used by SavedViewsService</model>
+      <model name="ApiKey">Will be used in PM-11.2 for authentication</model>
+    </database-models>
+  </dependencies>
+
+  <implementation-approach>
+    <phase name="1. Setup API Module Structure">
+      <step>Create apps/api/src/pm/api/ directory</step>
+      <step>Create api.module.ts with imports and controller declarations</step>
+      <step>Update pm.module.ts to import ApiModule</step>
+    </phase>
+
+    <phase name="2. Create DTOs">
+      <step>Create apps/api/src/pm/api/dto/ directory</step>
+      <step>Implement pagination DTO (PaginatedResponse)</step>
+      <step>Implement query DTOs (ListProjectsQueryDto, ListTasksQueryDto, etc.)</step>
+      <step>Implement specialized body DTOs (AssignTaskDto, TransitionTaskDto)</step>
+      <step>Reuse existing Create/Update DTOs from internal controllers</step>
+    </phase>
+
+    <phase name="3. Implement Controllers">
+      <step>ProjectsApiController - List, Create, Get, Update, Delete</step>
+      <step>PhasesApiController - Nested and standalone endpoints</step>
+      <step>TasksApiController - Full CRUD plus assign/transition/activities</step>
+      <step>ViewsApiController - Simple CRUD</step>
+      <step>SearchApiController - Search endpoint</step>
+      <step>Add OpenAPI decorators (@ApiTags, @ApiOperation, @ApiResponse, @ApiParam)</step>
+    </phase>
+
+    <phase name="4. Update OpenAPI Configuration">
+      <step>Modify apps/api/src/main.ts DocumentBuilder</step>
+      <step>Add tags for 'projects', 'phases', 'tasks', 'views', 'search'</step>
+      <step>Add JSON spec endpoint at /api/docs/spec.json</step>
+      <step>Update title and description</step>
+    </phase>
+
+    <phase name="5. Define API Scopes (Preparation for PM-11.2)">
+      <step>Create packages/shared/src/types/api-scopes.ts</step>
+      <step>Define API_SCOPES constant (pm:read, pm:write, pm:admin)</step>
+      <step>Export types for use in future authentication guards</step>
+    </phase>
+
+    <phase name="6. Testing">
+      <step>Unit tests for each controller</step>
+      <step>Integration tests for API endpoints</step>
+      <step>Verify OpenAPI spec generation</step>
+      <step>Verify Swagger UI accessibility</step>
+      <step>Test pagination edge cases</step>
+    </phase>
+  </implementation-approach>
+
+  <testing-strategy>
+    <unit-tests>
+      <test-suite name="ProjectsApiController">
+        <test>should list projects with pagination</test>
+        <test>should create project</test>
+        <test>should get project by ID</test>
+        <test>should update project</test>
+        <test>should delete project</test>
+        <test>should validate DTO fields</test>
+      </test-suite>
+
+      <test-suite name="TasksApiController">
+        <test>should list tasks with filters</test>
+        <test>should create task</test>
+        <test>should assign task</test>
+        <test>should transition task status</test>
+        <test>should get task activities</test>
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <test-suite name="API Endpoints E2E">
+        <test>should complete workflow: Create project → Create phase → Create task</test>
+        <test>should paginate results correctly</test>
+        <test>should filter tasks by projectId, status, assigneeId</test>
+        <test>should return 404 for non-existent resources</test>
+      </test-suite>
+
+      <test-suite name="OpenAPI Documentation">
+        <test>should serve OpenAPI spec at /api/docs/spec.json</test>
+        <test>should render Swagger UI at /api/docs</test>
+        <test>should include all endpoints in spec</test>
+        <test>should include request/response schemas</test>
+      </test-suite>
+    </integration-tests>
+  </testing-strategy>
+
+  <acceptance-criteria-mapping>
+    <ac id="AC1" status="ready">
+      <requirement>OpenAPI 3.0 spec covering Projects, Phases, Tasks, Views, Search CRUD endpoints</requirement>
+      <implementation>
+        - All controllers decorated with @ApiTags, @ApiOperation, @ApiResponse
+        - Swagger auto-generates spec from decorators
+        - Spec accessible at /api/docs/spec.json
+      </implementation>
+    </ac>
+
+    <ac id="AC2" status="ready">
+      <requirement>Versioned API path: /api/v1/pm/*</requirement>
+      <implementation>
+        - All controllers use @Controller('api/v1/pm/...') prefix
+        - Consistent versioning across all endpoints
+      </implementation>
+    </ac>
+
+    <ac id="AC3" status="ready">
+      <requirement>Pagination support with limit/offset parameters</requirement>
+      <implementation>
+        - PaginatedResponse DTO wraps list results
+        - Query DTOs include limit/offset with validation
+        - Default limit: 50, max: 100
+      </implementation>
+    </ac>
+
+    <ac id="AC4" status="ready">
+      <requirement>Auto-generated interactive documentation at /api/docs</requirement>
+      <implementation>
+        - SwaggerModule.setup('api/docs', ...) in main.ts
+        - Try-it-out functionality enabled
+        - Persistent authorization enabled
+      </implementation>
+    </ac>
+  </acceptance-criteria-mapping>
+
+  <future-enhancements>
+    <enhancement story="PM-11.2">
+      Add ApiKeyGuard for authentication
+      Add ScopeGuard for authorization
+      Use API_SCOPES defined in this story
+    </enhancement>
+
+    <enhancement story="PM-11.3">
+      Add webhook subscription endpoints
+      Integrate with event bus for webhook delivery
+    </enhancement>
+
+    <enhancement story="PM-11.5">
+      Add RateLimitGuard with Redis token bucket
+      Enforce per-API-key rate limits
+    </enhancement>
+  </future-enhancements>
+
+  <security-notes>
+    <note type="authentication">
+      Controllers in this story do NOT include authentication guards.
+      PM-11.2 will add ApiKeyGuard and ScopeGuard.
+      For now, controllers are scaffolded but not secured.
+    </note>
+
+    <note type="tenant-isolation">
+      All services accept workspaceId as first parameter.
+      This ensures multi-tenant isolation at service layer.
+      API key will provide workspaceId context in PM-11.2.
+    </note>
+
+    <note type="input-validation">
+      All DTOs use class-validator decorators.
+      ValidationPipe is globally enabled in main.ts.
+      This prevents injection attacks and invalid data.
+    </note>
+  </security-notes>
+
+  <references>
+    <story-file>docs/modules/bm-pm/stories/pm-11-1-public-api.md</story-file>
+    <tech-spec>docs/modules/bm-pm/epics/epic-pm-11-tech-spec.md</tech-spec>
+    <sprint-status>docs/modules/bm-pm/sprint-status.yaml</sprint-status>
+    <architecture>docs/modules/bm-pm/architecture.md</architecture>
+    <prisma-schema>packages/db/prisma/schema.prisma</prisma-schema>
+    <existing-controllers>
+      <ref>apps/api/src/pm/projects/projects.controller.ts</ref>
+      <ref>apps/api/src/pm/tasks/tasks.controller.ts</ref>
+      <ref>apps/api/src/pm/phases/phases.controller.ts</ref>
+      <ref>apps/api/src/pm/saved-views/saved-views.controller.ts</ref>
+    </existing-controllers>
+  </references>
+</story-context>
