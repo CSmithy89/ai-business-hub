@@ -56,7 +56,7 @@ Implement the 5 MVP agents: Clara (orchestrator), Scout (scoring), Atlas (enrich
 | CRM-02.6 | Create Tracker activity tracker agent | 3 | `backlog` |
 | CRM-02.7 | Create CRM tools.py with shared tools | 3 | `backlog` |
 | CRM-02.8 | Register CRM team in main.py TEAM_CONFIG | 2 | `backlog` |
-| CRM-02.9 | Implement A2A Agent Card for CRM team | 2 | `backlog` |
+| CRM-02.9 | Implement Unified Protocol Endpoints (A2A + AG-UI) | 2 | `backlog` |
 | CRM-02.10 | Create CRM event bus publishers | 1 | `backlog` |
 
 ---

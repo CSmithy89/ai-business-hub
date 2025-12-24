@@ -10,7 +10,9 @@
 
 ## Epic Overview
 
-Implement the 5 MVP CRM agents following the Agno team pattern: Clara (orchestrator), Scout (scoring), Atlas (enrichment), Flow (pipeline), and Tracker (activities). Register the team in AgentOS and expose via A2A protocol.
+Implement the 5 MVP CRM agents following the Agno team pattern: Clara (orchestrator), Scout (scoring), Atlas (enrichment), Flow (pipeline), and Tracker (activities). Register the team in AgentOS and expose via the platform's "Unified Protocol" architecture (AG-UI for frontend, A2A for inter-agent).
+
+> **Protocol Reference:** See [Dynamic Module System](/docs/architecture/dynamic-module-system.md) for Agno + CopilotKit integration details.
 
 ### Success Criteria
 - CRM team operational with 5 agents
@@ -217,19 +219,22 @@ TEAM_CONFIG["crm"] = {
 
 ---
 
-### CRM-02.9: Implement A2A Agent Card for CRM Team
+### CRM-02.9: Implement Unified Protocol Endpoints for CRM Team
 **Points:** 2 | **Status:** `backlog`
 
 **Description:**
-Expose CRM team via A2A protocol for inter-module communication.
+Expose CRM team via the Unified Protocol (AG-UI for frontend, A2A for inter-module).
 
 **Acceptance Criteria:**
-- [ ] Agent Card at `/.well-known/agent-card.json` (or `/a2a/crm/.well-known/agent-card.json`)
-- [ ] Card includes: id, name, description, version
-- [ ] Endpoints: rpc, ws (if supported)
-- [ ] Capabilities: streaming, events
-- [ ] Skills: score_lead, enrich_contact, get_pipeline_status, log_activity, get_daily_summary
-- [ ] JSON-RPC endpoint at `/a2a/crm/rpc`
+- [ ] **A2A Protocol:**
+  - [ ] Agent Card at `/a2a/crm/.well-known/agent-card.json`
+  - [ ] Card includes: id, name, description, version, skills
+  - [ ] JSON-RPC endpoint at `/a2a/crm/rpc`
+  - [ ] Capabilities: streaming, events
+- [ ] **AG-UI Protocol:**
+  - [ ] CopilotKit endpoint at `/agui/crm`
+  - [ ] Clara exposed as primary agent for "Ask Clara" chat
+  - [ ] Generative UI support for CRM widgets
 
 ---
 
@@ -255,7 +260,7 @@ Publish CRM events to Redis Streams for platform integration.
 
 - [ ] All 5 MVP agents created and tested
 - [ ] Team factory registered in main.py
-- [ ] A2A Agent Card exposed
+- [ ] Unified Protocol endpoints exposed (A2A + AG-UI)
 - [ ] All tools functional with database
 - [ ] Events publishing correctly
 - [ ] Integration test: Create contact → enriched → scored → tier assigned

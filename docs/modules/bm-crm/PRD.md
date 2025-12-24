@@ -37,12 +37,14 @@ BM-CRM requires these platform foundation capabilities (all complete):
 | Dependency | Platform Feature | Status |
 |------------|------------------|--------|
 | Multi-tenancy | Workspace isolation with RLS | ✅ Complete |
-| Agent runtime | Agno AgentOS with A2A/AG-UI | ✅ Complete |
+| Agent runtime | Agno AgentOS with Unified Protocol (A2A/AG-UI/MCP) | ✅ Complete |
 | BYOAI | User-provided AI keys | ✅ Complete |
 | Approval system | Sentinel agent + approval queue | ✅ Complete |
 | Event bus | Redis Streams pub/sub | ✅ Complete |
 | Core-PM | Project/Task/KB management with Navi team | Planned (depends on Core-PM delivery) |
 | Knowledge base | RAG with pgvector (via Core-PM) | Planned (Phase 2+ of Core-PM) |
+
+> **Protocol Reference:** See [Dynamic Module System](/docs/architecture/dynamic-module-system.md) for the "Unified Protocol" architecture (Agno + CopilotKit) that BM-CRM uses for frontend (AG-UI), inter-agent (A2A), and tool integration (MCP).
 
 ---
 
@@ -838,12 +840,16 @@ User requests data deletion
 - Screen reader support
 - Color contrast ratios met
 
-### Integration
+### Integration (Unified Protocol)
 
-- Event bus: Publish all CRM events
-- A2A: CRM agents discoverable via A2A protocol
-- AG-UI: Real-time streaming for agent responses
-- MCP: CRM tools available as MCP tools
+BM-CRM uses the platform's "Unified Protocol" architecture:
+
+| Protocol | Purpose | Implementation |
+|----------|---------|----------------|
+| **AG-UI** | Frontend↔Agent | CopilotKit Generative UI, "Ask Clara" chat |
+| **A2A** | Agent↔Agent | Clara↔Navi coordination, inter-module tasks |
+| **MCP** | Agent↔Tools | External enrichment APIs, third-party services |
+| **Event Bus** | Async Events | All `crm.*` events published to Redis Streams |
 
 ### Agent Proactivity Settings
 
