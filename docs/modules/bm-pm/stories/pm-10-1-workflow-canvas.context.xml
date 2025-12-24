@@ -1,0 +1,742 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-reference>
+    <story-id>pm-10-1-workflow-canvas</story-id>
+    <epic-id>pm-10</epic-id>
+    <story-file>/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/stories/pm-10-1-workflow-canvas.md</story-file>
+    <epic-file>/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/epics/epic-pm-10-workflow-builder.md</epic-file>
+    <tech-spec-file>/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/epics/epic-pm-10-tech-spec.md</tech-spec-file>
+    <points>8</points>
+    <phase>Phase 3</phase>
+    <status>drafted</status>
+
+    <user-story>
+      As a project admin,
+      I want a visual workflow builder,
+      So that I can create custom automations.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1">
+        Open Workflow Builder
+        - Given: I am on a project page
+        - When: I navigate to the workflow builder
+        - Then: I see a node-based canvas with drag-drop interface
+      </criterion>
+
+      <criterion id="AC2">
+        Add Workflow Nodes
+        - Given: I am in the workflow builder
+        - When: I design a workflow
+        - Then: I can add triggers, conditions, and actions
+      </criterion>
+
+      <criterion id="AC3">
+        Drag-Drop Interface
+        - Given: I have nodes available
+        - When: I drag a node from the palette
+        - Then: I can drop it on the canvas and connect it with edges
+      </criterion>
+
+      <criterion id="AC4">
+        Preview Execution Path
+        - Given: I have designed a workflow
+        - When: I view the workflow
+        - Then: I can preview the execution path visually
+      </criterion>
+    </acceptance-criteria>
+  </story-reference>
+
+  <technical-specification>
+    <overview>
+      This story implements a visual workflow builder using React Flow, a node-based editor library.
+      The workflow definition is stored as JSON in PostgreSQL, containing nodes (triggers, conditions, actions)
+      and edges (connections between nodes).
+    </overview>
+
+    <key-technologies>
+      <technology>React Flow - Node-based canvas editor</technology>
+      <technology>PostgreSQL - JSON workflow definition storage</technology>
+      <technology>NestJS - Workflow CRUD APIs</technology>
+      <technology>Prisma - Database ORM</technology>
+    </key-technologies>
+
+    <workflow-definition-structure>
+      <typescript>
+        interface WorkflowDefinition {
+          nodes: WorkflowNode[];
+          edges: WorkflowEdge[];
+          triggers: TriggerConfig[];
+          variables: Record&lt;string, any&gt;;
+        }
+
+        interface WorkflowNode {
+          id: string;
+          type: 'trigger' | 'condition' | 'action' | 'agent';
+          position: { x: number; y: number };
+          data: NodeData;
+        }
+
+        interface NodeData {
+          label: string;
+          config: NodeConfig;
+          continueOnError?: boolean;
+        }
+
+        interface WorkflowEdge {
+          id: string;
+          source: string;
+          target: string;
+          label?: string;
+        }
+      </typescript>
+    </workflow-definition-structure>
+  </technical-specification>
+
+  <database-context>
+    <schema-additions>
+      <note>The Workflow and WorkflowExecution models are ALREADY DEFINED in the Prisma schema.</note>
+      <note>No migration needed - schema is complete.</note>
+
+      <existing-models>
+        <model name="Workflow">
+          <location>packages/db/prisma/schema.prisma (lines 2050-2119)</location>
+          <fields>
+            - id: String @id @default(cuid())
+            - workspaceId: String (tenant isolation)
+            - projectId: String
+            - name: String
+            - description: String?
+            - definition: Json (workflow graph: nodes, edges, triggers, variables)
+            - triggerType: WorkflowTriggerType
+            - triggerConfig: Json
+            - status: WorkflowStatus (DRAFT, ACTIVE, PAUSED, ARCHIVED)
+            - enabled: Boolean
+            - executionCount: Int
+            - lastExecutedAt: DateTime?
+            - errorCount: Int
+            - createdAt, updatedAt, createdBy
+          </fields>
+          <relations>
+            - project: Project
+            - executions: WorkflowExecution[]
+          </relations>
+          <indexes>
+            - workspaceId
+            - projectId
+            - status
+            - enabled, triggerType (for active workflow queries)
+            - projectId, enabled
+          </indexes>
+        </model>
+
+        <model name="WorkflowExecution">
+          <location>packages/db/prisma/schema.prisma (lines 2121-2155)</location>
+          <fields>
+            - id: String
+            - workflowId: String
+            - triggerType: WorkflowTriggerType
+            - triggeredBy: String?
+            - triggerData: Json
+            - status: WorkflowExecutionStatus (QUEUED, RUNNING, COMPLETED, FAILED, CANCELLED)
+            - startedAt, completedAt: DateTime
+            - stepsExecuted, stepsPassed, stepsFailed: Int
+            - executionTrace: Json? (step-by-step log)
+            - errorMessage: String?
+            - isDryRun: Boolean
+          </fields>
+        </model>
+
+        <enums>
+          WorkflowTriggerType: TASK_CREATED, TASK_STATUS_CHANGED, TASK_ASSIGNED,
+                               DUE_DATE_APPROACHING, TASK_COMPLETED, CUSTOM_SCHEDULE, MANUAL
+
+          WorkflowStatus: DRAFT, ACTIVE, PAUSED, ARCHIVED
+
+          WorkflowExecutionStatus: QUEUED, RUNNING, COMPLETED, FAILED, CANCELLED
+        </enums>
+      </existing-models>
+    </schema-additions>
+
+    <related-models>
+      <model name="Project">
+        <note>Workflows belong to projects</note>
+        <relation>Project has many Workflows (workspaceId scoped)</relation>
+      </model>
+
+      <model name="Task">
+        <note>Workflows can be triggered by task events</note>
+        <events>task.created, task.status_changed, task.assigned, task.completed</events>
+      </model>
+    </related-models>
+  </database-context>
+
+  <existing-patterns>
+    <component-patterns>
+      <pattern name="React Hook Form + Zod Validation">
+        <example>Similar to project creation patterns</example>
+        <usage>Form validation for workflow metadata (name, description, trigger config)</usage>
+      </pattern>
+
+      <pattern name="React Query Hooks">
+        <file>apps/web/src/hooks/use-pm-projects.ts</file>
+        <example>
+          <![CDATA[
+export function useWorkflows(projectId: string) {
+  const { data: session } = useSession()
+  const workspaceId = getActiveWorkspaceId(session)
+  const token = getSessionToken(session)
+
+  return useQuery({
+    queryKey: ['workflows', workspaceId, projectId],
+    queryFn: () => fetchWorkflows({ workspaceId: workspaceId!, token, projectId }),
+    enabled: !!workspaceId && !!projectId,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+  })
+}
+
+export function useCreateWorkflow() {
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const workspaceId = getActiveWorkspaceId(session)
+  const token = getSessionToken(session)
+
+  return useMutation({
+    mutationFn: (input: CreateWorkflowInput) => {
+      if (!workspaceId) throw new Error('No workspace selected')
+      return createWorkflow({ workspaceId, token, input })
+    },
+    onSuccess: () => {
+      toast.success('Workflow created')
+      queryClient.invalidateQueries({ queryKey: ['workflows', workspaceId] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to create workflow'
+      toast.error(message)
+    },
+  })
+}
+          ]]>
+        </example>
+      </pattern>
+
+      <pattern name="NestJS Service Pattern">
+        <file>apps/api/src/pm/projects/projects.service.ts</file>
+        <key-points>
+          - Use @Injectable() decorator
+          - Inject PrismaService and EventPublisherService
+          - Implement CRUD operations with tenant isolation
+          - Validate permissions before operations
+          - Publish events after state changes
+        </key-points>
+        <example>
+          <![CDATA[
+@Injectable()
+export class WorkflowsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventPublisher: EventPublisherService,
+  ) {}
+
+  async create(workspaceId: string, actorId: string, dto: CreateWorkflowDto) {
+    // Validate project access
+    const project = await this.prisma.project.findUnique({
+      where: { id: dto.projectId },
+      select: { workspaceId: true }
+    })
+
+    if (!project || project.workspaceId !== workspaceId) {
+      throw new NotFoundException('Project not found')
+    }
+
+    // Create workflow
+    const workflow = await this.prisma.workflow.create({
+      data: {
+        workspaceId,
+        projectId: dto.projectId,
+        name: dto.name,
+        description: dto.description,
+        definition: dto.definition,
+        triggerType: dto.triggerType,
+        triggerConfig: dto.triggerConfig,
+        status: 'DRAFT',
+        createdBy: actorId,
+      },
+    })
+
+    // Publish event
+    await this.eventPublisher.publish(
+      EventTypes.PM_WORKFLOW_CREATED,
+      { workflowId: workflow.id, projectId: workflow.projectId },
+      { workspaceId, userId: actorId }
+    )
+
+    return workflow
+  }
+}
+          ]]>
+        </example>
+      </pattern>
+
+      <pattern name="NestJS DTO with Validation">
+        <file>apps/api/src/pm/projects/dto/create-project.dto.ts</file>
+        <example>
+          <![CDATA[
+import { IsString, IsOptional, IsEnum, IsBoolean, IsNumber } from 'class-validator'
+import { WorkflowTriggerType } from '@prisma/client'
+
+export class CreateWorkflowDto {
+  @IsOptional()
+  @IsString()
+  workspaceId?: string  // TenantGuard extracts from session
+
+  @IsString()
+  projectId!: string
+
+  @IsString()
+  name!: string
+
+  @IsOptional()
+  @IsString()
+  description?: string
+
+  // WorkflowDefinition as JSON
+  definition!: {
+    nodes: Array<{
+      id: string
+      type: string
+      position: { x: number; y: number }
+      data: Record<string, any>
+    }>
+    edges: Array<{
+      id: string
+      source: string
+      target: string
+      label?: string
+    }>
+    triggers: Array<Record<string, any>>
+    variables: Record<string, any>
+  }
+
+  @IsEnum(WorkflowTriggerType)
+  triggerType!: WorkflowTriggerType
+
+  triggerConfig!: Record<string, any>
+}
+          ]]>
+        </example>
+      </pattern>
+    </component-patterns>
+
+    <api-patterns>
+      <pattern name="REST API Structure">
+        <base-path>/api/pm</base-path>
+        <endpoints>
+          <endpoint method="POST" path="/pm/workflows">
+            Create workflow (workspaceId from query/session)
+          </endpoint>
+          <endpoint method="GET" path="/pm/workflows">
+            List workflows (filter by projectId, status)
+          </endpoint>
+          <endpoint method="GET" path="/pm/workflows/:id">
+            Get workflow details
+          </endpoint>
+          <endpoint method="PUT" path="/pm/workflows/:id">
+            Update workflow definition
+          </endpoint>
+          <endpoint method="DELETE" path="/pm/workflows/:id">
+            Delete workflow
+          </endpoint>
+          <endpoint method="POST" path="/pm/workflows/:id/activate">
+            Activate workflow (set enabled=true, status=ACTIVE)
+          </endpoint>
+          <endpoint method="POST" path="/pm/workflows/:id/pause">
+            Pause workflow (set enabled=false, status=PAUSED)
+          </endpoint>
+        </endpoints>
+
+        <tenant-isolation>
+          All endpoints use TenantGuard to extract workspaceId from:
+          1. Query parameter (?workspaceId=xxx)
+          2. Session (activeWorkspaceId)
+          All database queries MUST filter by workspaceId for RLS.
+        </tenant-isolation>
+
+        <response-format>
+          <![CDATA[
+{
+  "data": { ...workflow },
+  "meta": { ... } // optional, for list endpoints
+}
+          ]]>
+        </response-format>
+      </pattern>
+
+      <pattern name="Event Publishing">
+        <events>
+          pm.workflow.created
+          pm.workflow.updated
+          pm.workflow.activated
+          pm.workflow.paused
+          pm.workflow.deleted
+        </events>
+        <example>
+          <![CDATA[
+await this.eventPublisher.publish(
+  EventTypes.PM_WORKFLOW_CREATED,
+  { workflowId: workflow.id, projectId: workflow.projectId },
+  { workspaceId, userId: actorId }
+)
+          ]]>
+        </example>
+      </pattern>
+    </api-patterns>
+
+    <hook-patterns>
+      <pattern name="Fetch Hook Pattern">
+        <file>apps/web/src/hooks/use-pm-projects.ts</file>
+        <structure>
+          1. Define response types
+          2. Implement async fetch function using NESTJS_API_URL
+          3. Use getActiveWorkspaceId() and getSessionToken() from session
+          4. Add workspaceId to query params
+          5. Use credentials: 'include' for cookies
+          6. Use safeJson() for response parsing
+          7. Return useQuery hook with proper queryKey
+        </structure>
+      </pattern>
+
+      <pattern name="Mutation Hook Pattern">
+        <structure>
+          1. Get queryClient from useQueryClient()
+          2. Get workspaceId and token from session
+          3. Use useMutation with mutationFn
+          4. onSuccess: invalidate related queries, show toast
+          5. onError: show error toast
+        </structure>
+      </pattern>
+    </hook-patterns>
+
+    <form-patterns>
+      <pattern name="React Hook Form with Zod">
+        <dependencies>
+          react-hook-form
+          @hookform/resolvers/zod
+          zod
+        </dependencies>
+        <usage>
+          <![CDATA[
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+const workflowSchema = z.object({
+  name: z.string().min(1, 'Name required'),
+  description: z.string().optional(),
+  triggerType: z.enum(['TASK_CREATED', 'TASK_STATUS_CHANGED', ...]),
+})
+
+type WorkflowFormData = z.infer<typeof workflowSchema>
+
+const form = useForm<WorkflowFormData>({
+  resolver: zodResolver(workflowSchema),
+  defaultValues: { ... }
+})
+          ]]>
+        </usage>
+      </pattern>
+    </form-patterns>
+  </existing-patterns>
+
+  <implementation-guidance>
+    <phase-1-backend>
+      <step number="1">
+        <title>Create Workflow Module Structure</title>
+        <files-to-create>
+          apps/api/src/pm/workflows/workflows.module.ts
+          apps/api/src/pm/workflows/workflows.controller.ts
+          apps/api/src/pm/workflows/workflows.service.ts
+          apps/api/src/pm/workflows/dto/create-workflow.dto.ts
+          apps/api/src/pm/workflows/dto/update-workflow.dto.ts
+          apps/api/src/pm/workflows/dto/workflow-definition.dto.ts
+          apps/api/src/pm/workflows/entities/workflow.entity.ts
+        </files-to-create>
+        <notes>
+          - Follow NestJS module conventions
+          - Import in apps/api/src/pm/pm.module.ts
+          - Use TenantGuard for all endpoints
+        </notes>
+      </step>
+
+      <step number="2">
+        <title>Implement Workflows Service</title>
+        <methods>
+          - create(workspaceId, actorId, dto)
+          - findAll(workspaceId, filters: { projectId?, status?, enabled? })
+          - findOne(workspaceId, id)
+          - update(workspaceId, actorId, id, dto)
+          - remove(workspaceId, id)
+          - activate(workspaceId, id)
+          - pause(workspaceId, id)
+        </methods>
+        <validation>
+          - Validate project access before creating workflow
+          - Prevent cycles in workflow graph (topological sort)
+          - Validate node types and configurations
+          - Limit max 50 active workflows per project
+        </validation>
+      </step>
+
+      <step number="3">
+        <title>Implement Workflows Controller</title>
+        <decorators>
+          @Controller('pm/workflows')
+          @UseGuards(JwtAuthGuard, TenantGuard)
+        </decorators>
+        <endpoints>
+          @Post() create(@Req() req, @Body() dto)
+          @Get() findAll(@Query() query)
+          @Get(':id') findOne(@Param('id') id)
+          @Put(':id') update(@Param('id') id, @Body() dto)
+          @Delete(':id') remove(@Param('id') id)
+          @Post(':id/activate') activate(@Param('id') id)
+          @Post(':id/pause') pause(@Param('id') id)
+        </endpoints>
+      </step>
+    </phase-1-backend>
+
+    <phase-2-frontend>
+      <step number="1">
+        <title>Install React Flow</title>
+        <command>pnpm add reactflow</command>
+        <version>React Flow requires: react ^18.0.0, react-dom ^18.0.0</version>
+      </step>
+
+      <step number="2">
+        <title>Create Workflow API Client Hook</title>
+        <file>apps/web/src/hooks/use-pm-workflows.ts</file>
+        <exports>
+          - useWorkflows(projectId: string)
+          - useWorkflow(workflowId: string)
+          - useCreateWorkflow()
+          - useUpdateWorkflow()
+          - useDeleteWorkflow()
+          - useActivateWorkflow()
+          - usePauseWorkflow()
+        </exports>
+      </step>
+
+      <step number="3">
+        <title>Create Workflow Canvas Component</title>
+        <file>apps/web/src/components/pm/workflows/WorkflowCanvas.tsx</file>
+        <dependencies>
+          import ReactFlow, {
+            Node,
+            Edge,
+            NodeTypes,
+            Background,
+            Controls,
+            MiniMap,
+            useNodesState,
+            useEdgesState,
+            addEdge,
+          } from 'reactflow'
+          import 'reactflow/dist/style.css'
+        </dependencies>
+        <props>
+          - workflowId?: string
+          - definition: WorkflowDefinition
+          - onSave: (definition: WorkflowDefinition) => void
+          - readOnly?: boolean
+        </props>
+        <features>
+          - Custom node types: TriggerNode, ConditionNode, ActionNode, AgentNode
+          - Background grid
+          - Zoom/pan controls
+          - MiniMap for navigation
+          - fitView on load
+        </features>
+      </step>
+
+      <step number="4">
+        <title>Create Node Palette Component</title>
+        <file>apps/web/src/components/pm/workflows/NodePalette.tsx</file>
+        <categories>
+          1. Triggers (task_created, task_status_changed, task_assigned, due_date_approaching, custom_schedule)
+          2. Conditions (if_condition, filter)
+          3. Actions (update_task, assign_task, send_notification, create_task, move_to_phase, call_webhook)
+        </categories>
+        <drag-behavior>
+          Use react-dnd or native drag events to drag nodes from palette to canvas
+        </drag-behavior>
+      </step>
+
+      <step number="5">
+        <title>Create Custom Node Components</title>
+        <files>
+          apps/web/src/components/pm/workflows/nodes/TriggerNode.tsx
+          apps/web/src/components/pm/workflows/nodes/ConditionNode.tsx
+          apps/web/src/components/pm/workflows/nodes/ActionNode.tsx
+          apps/web/src/components/pm/workflows/nodes/AgentNode.tsx
+        </files>
+        <structure>
+          Each node displays:
+          - Icon/visual identifier
+          - Node label
+          - Configuration summary
+          - Connection handles (source/target)
+        </structure>
+      </step>
+
+      <step number="6">
+        <title>Create Workflow Builder Pages</title>
+        <files>
+          apps/web/src/app/(dashboard)/pm/[slug]/workflows/page.tsx (list)
+          apps/web/src/app/(dashboard)/pm/[slug]/workflows/new/page.tsx (create)
+          apps/web/src/app/(dashboard)/pm/[slug]/workflows/[workflowId]/page.tsx (edit)
+        </files>
+        <navigation>
+          Add "Workflows" tab to project navigation
+        </navigation>
+      </step>
+    </phase-2-frontend>
+
+    <phase-3-shared-types>
+      <step number="1">
+        <title>Create Shared Workflow Types</title>
+        <file>packages/shared/src/types/pm/workflow.types.ts</file>
+        <exports>
+          - WorkflowDefinition
+          - WorkflowNode
+          - NodeData
+          - NodeConfig (union of TriggerNodeConfig, ConditionNodeConfig, ActionNodeConfig, AgentNodeConfig)
+          - WorkflowEdge
+          - TriggerNodeConfig
+          - ConditionNodeConfig
+          - ActionNodeConfig
+          - AgentNodeConfig
+        </exports>
+      </step>
+    </phase-3-shared-types>
+
+    <security-considerations>
+      <tenant-isolation>
+        ALL workflow queries MUST include workspaceId filter.
+        Use Row Level Security (RLS) policies in PostgreSQL.
+      </tenant-isolation>
+
+      <permissions>
+        - pm:workflow:create - Create workflows
+        - pm:workflow:edit - Edit workflows
+        - pm:workflow:delete - Delete workflows
+        - pm:workflow:execute - Manually trigger workflows
+
+        Check permissions before allowing operations.
+      </permissions>
+
+      <validation>
+        - Prevent circular dependencies in workflow graph
+        - Validate node types and configurations
+        - Limit workflow complexity (max 50 nodes)
+        - Limit active workflows per project (max 50)
+        - Validate trigger configurations
+      </validation>
+
+      <audit-logging>
+        Log all workflow creations, updates, deletions, activations, pauses.
+        Track which user created/modified workflows.
+      </audit-logging>
+    </security-considerations>
+
+    <testing-requirements>
+      <unit-tests>
+        - Workflow CRUD operations (WorkflowsService)
+        - Workflow validation (cycle detection, node type validation)
+        - Permission checks
+        - Tenant isolation
+      </unit-tests>
+
+      <integration-tests>
+        - Create workflow with nodes and edges
+        - Update workflow definition
+        - Delete workflow cascades to executions
+        - List workflows with filters (status, projectId)
+        - Activate/pause workflow updates status
+      </integration-tests>
+
+      <ui-tests-playwright>
+        - Drag node from palette to canvas
+        - Connect nodes with edges
+        - Configure node properties
+        - Save workflow definition
+        - Load existing workflow
+      </ui-tests-playwright>
+    </testing-requirements>
+  </implementation-guidance>
+
+  <dependencies>
+    <prerequisite epic="PM-02" story="PM-02.8">
+      Task Relations - Workflows interact with tasks
+    </prerequisite>
+
+    <external-dependencies>
+      <dependency>
+        <name>reactflow</name>
+        <version>^11.0.0</version>
+        <note>Node-based editor library</note>
+      </dependency>
+    </external-dependencies>
+
+    <installation>
+      pnpm add reactflow
+    </installation>
+  </dependencies>
+
+  <wireframe-reference>
+    <location>docs/design/wireframes/Finished wireframes and html files/pm-32_workflow_builder/</location>
+    <note>Reference wireframes for visual design and UX flows</note>
+  </wireframe-reference>
+
+  <future-enhancements>
+    <note>These are NOT part of this story - they are future stories in PM-10 epic</note>
+    <story id="PM-10.2">Workflow triggers (event-driven execution)</story>
+    <story id="PM-10.3">Workflow actions (action executor service)</story>
+    <story id="PM-10.4">Workflow testing (dry-run simulation)</story>
+    <story id="PM-10.5">Workflow management (list, logs, activate/pause)</story>
+  </future-enhancements>
+
+  <performance-considerations>
+    <limit name="nodes-per-workflow">Max 50 nodes</limit>
+    <limit name="active-workflows-per-project">Max 50</limit>
+    <index>Index workflows by enabled status and trigger type</index>
+    <caching>Cache active workflows in Redis (future optimization)</caching>
+  </performance-considerations>
+
+  <notes>
+    <react-flow-best-practices>
+      - Use useNodesState and useEdgesState hooks for state management
+      - Implement custom node types for different node categories
+      - Use fitView to auto-center the workflow on load
+      - Add Background, Controls, and MiniMap for better UX
+    </react-flow-best-practices>
+
+    <workflow-definition-storage>
+      - Store as JSON in PostgreSQL for flexibility
+      - Validate JSON structure before saving
+      - Version workflow definitions for future rollback support (future enhancement)
+    </workflow-definition-storage>
+
+    <tailwind-dynamic-classes>
+      IMPORTANT: Tailwind's JIT compiler needs to see complete class strings.
+
+      ❌ WRONG:
+      const width = isWide ? 'w-64' : 'w-16'
+      className={`ml-${collapsed ? '16' : '64'}`}
+
+      ✅ CORRECT:
+      className={collapsed ? 'ml-16' : 'ml-64'}
+      style={{ marginLeft: collapsed ? 64 : 256 }}
+    </tailwind-dynamic-classes>
+  </notes>
+</story-context>

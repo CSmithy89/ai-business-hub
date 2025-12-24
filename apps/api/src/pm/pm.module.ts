@@ -15,6 +15,7 @@ import { PresenceModule } from './presence/presence.module'
 import { NotificationsModule } from './notifications/notifications.module'
 import { PortfolioModule } from './portfolio/portfolio.module'
 import { DependenciesModule } from './dependencies/dependencies.module'
+import { WorkflowsModule } from './workflows/workflows.module'
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { DependenciesModule } from './dependencies/dependencies.module'
     NotificationsModule,
     PortfolioModule,
     DependenciesModule,
+    WorkflowsModule,
   ],
 })
 export class PmModule {}

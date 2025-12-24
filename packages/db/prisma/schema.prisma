@@ -1066,6 +1066,7 @@ model Project {
   pmRisks         PmRiskEntry[]
   reportSchedules ReportSchedule[]
   importJobs      ImportJob[]
+  workflows       Workflow[]
 
   @@unique([workspaceId, slug])
   @@index([workspaceId])
@@ -2339,4 +2340,114 @@ model PmRiskEntry {
   @@index([detectedAt])
   @@index([projectId, category, status])  // Composite index for risk queries
   @@map("pm_risk_entries")
+}
+
+// ============================================
+// PM WORKFLOWS (PM-10)
+// ============================================
+
+/// Workflow - Custom automation workflow definition
+model Workflow {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  projectId   String @map("project_id")
+
+  // Metadata
+  name        String
+  description String? @db.Text
+
+  // Workflow Definition (JSON)
+  definition  Json
+
+  // Trigger Configuration
+  triggerType   WorkflowTriggerType @map("trigger_type")
+  triggerConfig Json @map("trigger_config")
+
+  // Status
+  status      WorkflowStatus @default(DRAFT)
+  enabled     Boolean @default(false)
+
+  // Execution Statistics
+  executionCount Int @default(0) @map("execution_count")
+  lastExecutedAt DateTime? @map("last_executed_at")
+  errorCount     Int @default(0) @map("error_count")
+
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdBy   String @map("created_by")
+
+  // Relations
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  executions  WorkflowExecution[]
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([status])
+  @@index([enabled, triggerType])
+  @@index([projectId, enabled])
+  @@map("workflows")
+}
+
+/// WorkflowExecution - Execution log for workflow runs
+model WorkflowExecution {
+  id         String @id @default(cuid())
+  workflowId String @map("workflow_id")
+
+  // Execution Context
+  triggerType  WorkflowTriggerType @map("trigger_type")
+  triggeredBy  String? @map("triggered_by")
+  triggerData  Json @map("trigger_data")
+
+  // Execution Details
+  status       WorkflowExecutionStatus @default(RUNNING)
+  startedAt    DateTime @default(now()) @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+
+  // Results
+  stepsExecuted Int @default(0) @map("steps_executed")
+  stepsPassed   Int @default(0) @map("steps_passed")
+  stepsFailed   Int @default(0) @map("steps_failed")
+
+  // Execution Trace
+  executionTrace Json? @map("execution_trace")
+  errorMessage   String? @map("error_message") @db.Text
+
+  // Dry-Run Flag
+  isDryRun     Boolean @default(false) @map("is_dry_run")
+
+  // Relations
+  workflow     Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([workflowId, startedAt]) // Rate limiting queries (PM-10.2)
+  @@index([workflowId, status, startedAt]) // Execution history queries (PM-10.4)
+  @@map("workflow_executions")
+}
+
+enum WorkflowTriggerType {
+  TASK_CREATED
+  TASK_STATUS_CHANGED
+  TASK_ASSIGNED
+  DUE_DATE_APPROACHING
+  TASK_COMPLETED
+  CUSTOM_SCHEDULE
+  MANUAL
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum WorkflowExecutionStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
 }
