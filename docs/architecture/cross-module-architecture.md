@@ -32,7 +32,9 @@ This document is the authoritative reference for:
 |----------|---------|---------|
 | **Platform Core** | Foundation infrastructure | Core-PM |
 | **BUILD Phase** | Business creation/planning | BMV, BMP, BM-Brand |
-| **OPERATE Phase** | Day-to-day operations | BM-CRM, BM-Social, BM-Support, BM-HR, BM-Finance, BM-PR |
+| **OPERATE Phase** | Day-to-day operations | BM-CRM, BM-Sales*, BM-Social, BM-Support, BM-HR, BM-Finance, BM-PR |
+
+> *BM-Sales is an extension module that requires BM-CRM
 
 ### Module Status Matrix
 
@@ -43,13 +45,14 @@ This document is the authoritative reference for:
 | **BM-Brand** (Branding) | BUILD | Complete | Active | 6 | P0 - Done |
 | **Core-PM** (Project Mgmt) | CORE | Complete | In Progress | 8 | P0 - Active |
 | **BM-CRM** (CRM) | OPERATE | Complete | Partial | 8 | P1 |
+| **BM-Sales** (Sales) | OPERATE | Complete | Not Started | 6 | P1 (after CRM) |
 | **BM-Social** (Social) | OPERATE | Research | Not Started | 18 | P2 |
 | **BM-Support** (Support) | OPERATE | Research | Not Started | 8 | P2 |
 | **BM-HR** (HR) | OPERATE | Brief | Not Started | 5 | P3 |
 | **BM-Finance** (Finance) | OPERATE | Brief | Not Started | 4 | P3 |
 | **BM-PR** (PR) | OPERATE | Brief | Not Started | 5 | P3 |
 
-**Total Agents Defined:** 72
+**Total Agents Defined:** 78
 
 ---
 
@@ -130,6 +133,19 @@ Reserved platform handles:
 | `@bm-crm.cadence` | Cadence | Outreach Sequences | Planned |
 
 > **Note:** `Echo` renamed to `Tracker` to avoid collision with BM-Social.
+
+### BM-Sales - Sales Management (6) - CRM Extension
+
+| Handle | Display Name | Role | Status |
+|--------|--------------|------|--------|
+| `@bm-sales.sterling` | Sterling | Team Lead / Orchestrator | Planned |
+| `@bm-sales.quota` | Quota | Quotation Specialist | Planned |
+| `@bm-sales.order` | Order | Order Manager | Planned |
+| `@bm-sales.price` | Price | Pricing Strategist | Planned |
+| `@bm-sales.region` | Region | Territory Manager | Planned |
+| `@bm-sales.bounty` | Bounty | Commission Tracker | Planned |
+
+> **Note:** BM-Sales is an **extension module** requiring BM-CRM. Sterling coordinates with Clara for CRM→Sales workflows.
 
 ### BM-Social - Social Media Management (18)
 
@@ -311,15 +327,20 @@ These names are permanently reserved for platform-level agents:
 | Data Entity | Owner Module | Consumers |
 |-------------|--------------|-----------|
 | Contact/Company | BM-CRM | All modules |
-| Lead Score | BM-CRM | BM-Social, Core-PM |
-| Deal/Pipeline | BM-CRM | BM-Finance, Core-PM |
+| Lead Score | BM-CRM | BM-Sales, BM-Social, Core-PM |
+| Deal/Pipeline | BM-CRM | BM-Sales, BM-Finance, Core-PM |
+| Quote | BM-Sales | BM-CRM (read), BM-Finance |
+| Order | BM-Sales | BM-Finance (invoicing), Core-PM |
+| Pricing Rules | BM-Sales | BM-Finance |
+| Territory | BM-Sales | BM-CRM (assignment), Core-PM |
+| Commission | BM-Sales | BM-Finance (payroll), BM-HR |
 | Social Post | BM-Social | BM-PR, Core-PM |
 | Social Mention | BM-Social | BM-Support, BM-PR |
 | Conversation | BM-Support | BM-CRM, Core-PM |
 | Project/Task | Core-PM | All modules |
 | Knowledge Page | Core-PM | All modules |
 | Brand Guidelines | BM-Brand | All content modules |
-| Invoice | BM-Finance | BM-CRM |
+| Invoice | BM-Finance | BM-CRM, BM-Sales |
 | Candidate | BM-HR | Core-PM |
 | Media Contact | BM-PR | BM-CRM (extends Contact) |
 | Press Release | BM-PR | BM-Social |
@@ -336,16 +357,22 @@ All modules publish events to Redis Streams with this naming convention:
 
 | Event | Publisher | Subscribers |
 |-------|-----------|-------------|
-| `crm.contact.created` | BM-CRM | BM-Social, BM-Support, BM-PR |
-| `crm.deal.won` | BM-CRM | BM-Finance (invoice), Core-PM (project) |
-| `crm.deal.lost` | BM-CRM | Core-PM (archive) |
+| `crm.contact.created` | BM-CRM | BM-Sales, BM-Social, BM-Support, BM-PR |
+| `crm.deal.stage_changed` | BM-CRM | BM-Sales (if "Proposal", suggest quote) |
+| `crm.deal.won` | BM-CRM | BM-Sales (complete order), BM-Finance (invoice), Core-PM (project) |
+| `crm.deal.lost` | BM-CRM | BM-Sales (expire quotes), Core-PM (archive) |
+| `sales.quote.created` | BM-Sales | BM-CRM (update deal) |
+| `sales.quote.accepted` | BM-Sales | BM-CRM (advance deal) |
+| `sales.order.created` | BM-Sales | BM-Finance (invoice), Core-PM (project) |
+| `sales.order.completed` | BM-Sales | BM-Finance (revenue), BM-CRM (close deal) |
+| `sales.commission.earned` | BM-Sales | BM-Finance (payroll), BM-HR (compensation) |
 | `social.post.published` | BM-Social | BM-PR (amplification tracking) |
 | `social.mention.detected` | BM-Social | BM-Support (triage), BM-PR (coverage) |
 | `support.conversation.created` | BM-Support | BM-CRM (activity log) |
 | `support.csat.submitted` | BM-Support | Core-PM (metrics) |
 | `pm.task.completed` | Core-PM | All modules (context) |
 | `pm.project.created` | Core-PM | All modules (context) |
-| `finance.invoice.paid` | BM-Finance | BM-CRM (deal update) |
+| `finance.invoice.paid` | BM-Finance | BM-CRM (deal update), BM-Sales (order update) |
 | `hr.candidate.hired` | BM-HR | Core-PM (onboarding project) |
 | `pr.coverage.detected` | BM-PR | BM-Social (share), BM-CRM (contact) |
 
@@ -504,12 +531,13 @@ Agents can call tools from other modules via the platform:
 | BM-Brand | 6 | 0 | 0 | 6 |
 | Core-PM | 0 | 6 | 2 | 8 |
 | BM-CRM | 0 | 3 | 5 | 8 |
+| BM-Sales | 0 | 0 | 6 | 6 |
 | BM-Social | 0 | 0 | 18 | 18 |
 | BM-Support | 0 | 0 | 8 | 8 |
 | BM-HR | 0 | 0 | 5 | 5 |
 | BM-Finance | 0 | 0 | 4 | 4 |
 | BM-PR | 0 | 0 | 5 | 5 |
-| **Total** | **18** | **9** | **47** | **72** |
+| **Total** | **18** | **9** | **53** | **78** |
 
 ---
 
@@ -524,6 +552,7 @@ Agents can call tools from other modules via the platform:
 @bm-brand.{bella|sage|vox|iris|artisan|audit}
 @core-pm.{navi|oracle|herald|chrono|scope|vitals|scribe|prism}
 @bm-crm.{clara|scout|atlas|flow|tracker|sync|guardian|cadence}
+@bm-sales.{sterling|quota|order|price|region|bounty}  ← Extension of CRM
 @bm-social.{conductor|spark|tempo|metrics|engage|trends|...}
 @bm-support.{hub|triage|reply|automate|quality|captain|library|escalate}
 @bm-hr.{hunter|gatekeeper|scheduler|interviewer|culture}
@@ -539,6 +568,9 @@ Agents can call tools from other modules via the platform:
 Examples:
 crm.contact.created
 crm.deal.stage_changed
+sales.quote.created
+sales.order.completed
+sales.commission.earned
 social.post.published
 support.conversation.resolved
 pm.task.completed
@@ -547,4 +579,5 @@ pm.task.completed
 ---
 
 *Document maintained by: Architecture Team*
-*Last updated: 2024-12-24*
+*Last updated: 2025-12-24*
+*BM-Sales extension module added*
