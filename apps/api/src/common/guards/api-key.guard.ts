@@ -5,9 +5,10 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common'
-import { PrismaService } from '@/common/services/prisma.service'
-import { Request } from 'express'
 import * as crypto from 'crypto'
+import { Request } from 'express'
+
+import { PrismaService } from '@/common/services/prisma.service'
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {

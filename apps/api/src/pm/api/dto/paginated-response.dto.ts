@@ -9,6 +9,9 @@ export class PaginationMeta {
 
   @ApiProperty({ description: 'Number of items skipped' })
   offset!: number
+
+  @ApiProperty({ description: 'Whether more items exist beyond current page' })
+  hasMore!: boolean
 }
 
 export class PaginatedResponse<T> {
@@ -24,6 +27,7 @@ export class PaginatedResponse<T> {
       total,
       limit,
       offset,
+      hasMore: offset + limit < total,
     }
   }
 }

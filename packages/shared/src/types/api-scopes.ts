@@ -28,12 +28,15 @@ export interface ApiKeyPermissions {
 
 /**
  * API Key list item returned from the API
+ * Note: permissions.scopes is the primary data; rateLimit is a separate top-level field
  */
 export interface ApiKeyListItem {
   id: string
   name: string
   keyPrefix: string
-  permissions: ApiKeyPermissions
+  permissions: {
+    scopes: ApiScope[]
+  }
   rateLimit: number
   lastUsedAt: string | null
   expiresAt: string | null

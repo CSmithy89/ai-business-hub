@@ -57,7 +57,7 @@ export class RateLimitService implements OnModuleInit {
       return {
         limit,
         remaining: limit,
-        reset: this.getNextHourTimestamp(),
+        reset: this.getDefaultResetTimestamp(),
         isLimited: false,
       };
     }
@@ -138,7 +138,7 @@ export class RateLimitService implements OnModuleInit {
       return {
         limit,
         remaining: limit,
-        reset: this.getNextHourTimestamp(),
+        reset: this.getDefaultResetTimestamp(),
         isLimited: false,
       };
     }
@@ -200,9 +200,11 @@ export class RateLimitService implements OnModuleInit {
   }
 
   /**
-   * Get the next hour boundary as Unix timestamp in seconds
+   * Get a default reset timestamp for fallback scenarios (Redis failure).
+   * Returns the next hour boundary as Unix timestamp in seconds.
+   * Note: The actual sliding window uses oldest request + 1 hour (see Lua script).
    */
-  private getNextHourTimestamp(): number {
+  private getDefaultResetTimestamp(): number {
     const now = Date.now();
     const nextHour = Math.ceil(now / 3600000) * 3600000;
     return Math.floor(nextHour / 1000);

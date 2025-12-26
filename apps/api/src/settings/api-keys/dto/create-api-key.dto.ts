@@ -8,6 +8,7 @@ import {
   Max,
   Length,
   ArrayMinSize,
+  MinDate,
 } from 'class-validator'
 import { Type } from 'class-transformer'
 import { ApiScope } from '@hyvve/shared'
@@ -24,6 +25,7 @@ export class CreateApiKeyDto {
 
   @IsOptional()
   @IsDate()
+  @MinDate(() => new Date(), { message: 'expiresAt must be in the future' })
   @Type(() => Date)
   expiresAt?: Date
 

@@ -48,10 +48,10 @@ export class RateLimitGuard implements CanActivate {
       return true;
     }
 
-    // Check rate limit
+    // Check rate limit (default 1000 requests/hour as per Prisma schema)
     const rateLimitInfo = await this.rateLimitService.checkRateLimit(
       apiKey.id,
-      apiKey.rateLimit,
+      apiKey.rateLimit ?? 1000,
     );
 
     // Attach rate limit info to request for use by interceptor

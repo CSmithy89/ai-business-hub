@@ -206,6 +206,32 @@ export default function DevelopersPage() {
         </div>
       </section>
 
+      {/* API Versioning */}
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">API Versioning</h2>
+        <div className="prose prose-gray max-w-none">
+          <p>
+            The HYVVE API uses URL path versioning. The current version is <code>v1</code>.
+          </p>
+          <h3>Version Format</h3>
+          <p>
+            All API endpoints include the version in the URL path: <code>/api/v1/...</code>
+          </p>
+          <h3>Versioning Strategy</h3>
+          <ul>
+            <li><strong>Stable releases</strong> - Major versions (v1, v2) are stable and supported long-term</li>
+            <li><strong>Deprecation notice</strong> - Minimum 6 months notice before deprecating a version</li>
+            <li><strong>Migration guides</strong> - Detailed migration documentation provided for version upgrades</li>
+            <li><strong>Sunset headers</strong> - Deprecated versions include <code>Sunset</code> header with deprecation date</li>
+          </ul>
+          <h3>Breaking Changes</h3>
+          <p>
+            Breaking changes are only introduced in new major versions. Non-breaking additions
+            (new optional fields, new endpoints) may be added to existing versions.
+          </p>
+        </div>
+      </section>
+
       {/* Common Examples */}
       <section>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Common Use Cases</h2>
@@ -292,14 +318,26 @@ const task = await response.json();`}
           <p>
             Subscribe to real-time events in your workspace. Webhooks allow you to receive HTTP callbacks when specific events occur.
           </p>
-          <h3>Available Events</h3>
+          <h3>Project Events</h3>
           <ul>
-            <li><code>project.created</code> - New project created</li>
-            <li><code>project.updated</code> - Project updated</li>
-            <li><code>task.created</code> - New task created</li>
-            <li><code>task.updated</code> - Task updated</li>
-            <li><code>task.status_changed</code> - Task status changed</li>
-            <li><code>phase.completed</code> - Phase completed</li>
+            <li><code>pm.project.created</code> - New project created</li>
+            <li><code>pm.project.updated</code> - Project updated</li>
+            <li><code>pm.project.deleted</code> - Project deleted</li>
+          </ul>
+          <h3>Task Events</h3>
+          <ul>
+            <li><code>pm.task.created</code> - New task created</li>
+            <li><code>pm.task.updated</code> - Task updated</li>
+            <li><code>pm.task.status_changed</code> - Task status changed</li>
+            <li><code>pm.task.assigned</code> - Task assigned to user</li>
+            <li><code>pm.task.completed</code> - Task marked complete</li>
+            <li><code>pm.task.deleted</code> - Task deleted</li>
+          </ul>
+          <h3>Phase Events</h3>
+          <ul>
+            <li><code>pm.phase.created</code> - New phase created</li>
+            <li><code>pm.phase.updated</code> - Phase updated</li>
+            <li><code>pm.phase.transitioned</code> - Phase status transitioned</li>
           </ul>
           <p>
             Configure webhooks via the API endpoints documented in the Swagger UI.
