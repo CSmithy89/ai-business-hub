@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { ApiKeyListItem } from '@hyvve/shared'
 
 export function useApiKeys() {
   const queryClient = useQueryClient()
 
-  const { data: apiKeys, isLoading } = useQuery({
+  const { data: apiKeys, isLoading } = useQuery<ApiKeyListItem[]>({
     queryKey: ['api-keys'],
     queryFn: async () => {
       const res = await fetch('/api/settings/api-keys')

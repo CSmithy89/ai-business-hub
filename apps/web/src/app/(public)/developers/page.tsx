@@ -148,22 +148,22 @@ export default function DevelopersPage() {
         <h2 className="text-2xl font-bold text-gray-900 mb-6">API Scopes</h2>
         <div className="grid md:grid-cols-2 gap-4">
           <ScopeCard
-            scope="PM_READ"
+            scope="pm:read"
             description="Read access to projects, tasks, phases, and views"
             operations={['List projects', 'Get task details', 'Search tasks']}
           />
           <ScopeCard
-            scope="PM_WRITE"
+            scope="pm:write"
             description="Create and update projects, tasks, and phases"
             operations={['Create tasks', 'Update projects', 'Assign tasks']}
           />
           <ScopeCard
-            scope="PM_ADMIN"
+            scope="pm:admin"
             description="Full access including deletion"
             operations={['Delete projects', 'Delete tasks', 'Full management']}
           />
           <ScopeCard
-            scope="WEBHOOK_WRITE"
+            scope="webhook:write"
             description="Create and manage webhooks"
             operations={['Create webhooks', 'Update webhooks', 'View deliveries']}
           />

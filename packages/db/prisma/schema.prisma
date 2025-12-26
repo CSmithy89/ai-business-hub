@@ -2522,11 +2522,11 @@ model WebhookDelivery {
   // Relations
   webhook     Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
+  @@unique([webhookId, eventType, eventId]) // Enforce idempotency at DB level
   @@index([webhookId])
   @@index([workspaceId])
   @@index([status])
   @@index([status, nextRetryAt]) // For retry queue processing
-  @@index([eventType, eventId]) // For event deduplication
   @@map("webhook_deliveries")
 }
 

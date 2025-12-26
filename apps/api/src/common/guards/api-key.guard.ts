@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common'
 import { PrismaService } from '@/common/services/prisma.service'
 import { Request } from 'express'
@@ -10,6 +11,8 @@ import * as crypto from 'crypto'
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
+  private readonly logger = new Logger(ApiKeyGuard.name)
+
   constructor(private readonly prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -54,8 +57,10 @@ export class ApiKeyGuard implements CanActivate {
     extendedRequest.apiKeyId = apiKeyRecord.id
 
     // Update last used timestamp (async, don't block)
-    this.updateLastUsed(apiKeyRecord.id).catch(() => {
-      // Silently fail - not critical if update fails
+    this.updateLastUsed(apiKeyRecord.id).catch((error) => {
+      this.logger.warn(
+        `Failed to update lastUsedAt for API key ${apiKeyRecord.id}: ${error instanceof Error ? error.message : String(error)}`
+      )
     })
 
     return true

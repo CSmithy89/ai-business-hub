@@ -56,7 +56,7 @@ export default function ApiKeysPage() {
         <div className="text-center py-8">Loading...</div>
       ) : apiKeys && apiKeys.length > 0 ? (
         <div className="space-y-4">
-          {apiKeys.map((key: any) => (
+          {apiKeys.map((key) => (
             <Card key={key.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -79,7 +79,7 @@ export default function ApiKeysPage() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2">
-                    {key.permissions.scopes.map((scope: string) => (
+                    {key.permissions.scopes.map((scope) => (
                       <Badge key={scope} variant="secondary">
                         {scope}
                       </Badge>

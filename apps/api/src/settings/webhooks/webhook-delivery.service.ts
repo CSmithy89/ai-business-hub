@@ -10,6 +10,7 @@ export class WebhookDeliveryService {
 
   /**
    * Queue a webhook delivery for an event
+   * Uses upsert with unique constraint to prevent race conditions
    */
   async queueDelivery(data: {
     webhookId: string
@@ -20,22 +21,17 @@ export class WebhookDeliveryService {
   }) {
     const { webhookId, workspaceId, eventType, eventId, payload } = data
 
-    // Check if delivery already exists for this event
-    const existing = await this.prisma.webhookDelivery.findFirst({
+    // Use upsert to atomically check and create - prevents race conditions
+    const delivery = await this.prisma.webhookDelivery.upsert({
       where: {
-        webhookId,
-        eventType,
-        eventId,
+        webhookId_eventType_eventId: {
+          webhookId,
+          eventType,
+          eventId,
+        },
       },
-    })
-
-    if (existing) {
-      this.logger.debug(`Webhook delivery already exists for event ${eventId}`)
-      return existing
-    }
-
-    return this.prisma.webhookDelivery.create({
-      data: {
+      update: {}, // No-op if already exists
+      create: {
         webhookId,
         workspaceId,
         eventType,
@@ -44,6 +40,8 @@ export class WebhookDeliveryService {
         status: 'PENDING',
       },
     })
+
+    return delivery
   }
 
   /**

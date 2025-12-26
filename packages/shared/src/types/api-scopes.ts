@@ -25,3 +25,22 @@ export interface ApiKeyPermissions {
   scopes: ApiScope[]
   rateLimit?: number // Requests per hour (default: 1000)
 }
+
+/**
+ * API Key list item returned from the API
+ */
+export interface ApiKeyListItem {
+  id: string
+  name: string
+  keyPrefix: string
+  permissions: ApiKeyPermissions
+  rateLimit: number
+  lastUsedAt: string | null
+  expiresAt: string | null
+  createdAt: string
+  createdBy: {
+    id: string
+    name: string | null
+    email: string
+  }
+}

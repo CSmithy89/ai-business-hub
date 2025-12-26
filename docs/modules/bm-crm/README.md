@@ -27,7 +27,7 @@ BM-CRM is a **standalone module** providing AI-first customer relationship manag
 
 **Standalone Module** - Works independently with full functionality.
 
-**Enhanced When Installed With:**
+### Enhanced When Installed With
 - BM-Sales (extends CRM with quotes, orders, commissions - **requires CRM**)
 - BM-Email (contact engagement, lead scoring signals)
 - BM-Social (contact tagging, social profiles)
@@ -36,7 +36,7 @@ BM-CRM is a **standalone module** providing AI-first customer relationship manag
 - BM-Analytics (AI-powered customer insights)
 - Core-PM (customer projects, task linking)
 
-**Event Patterns:**
+### Event Patterns
 - `crm.contact.created` - New contact added
 - `crm.contact.updated` - Contact data changed
 - `crm.company.created` - New company added
