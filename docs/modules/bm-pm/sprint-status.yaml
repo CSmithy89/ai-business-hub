@@ -280,7 +280,7 @@ development_status:
   pm-11-3-webhook-subscriptions: done
   pm-11-4-rate-limiting: done
   pm-11-5-api-documentation: done
-  pm-11-retrospective: optional
+  pm-11-retrospective: completed
 
 # ===========================================
 # Sprint Planning Notes
